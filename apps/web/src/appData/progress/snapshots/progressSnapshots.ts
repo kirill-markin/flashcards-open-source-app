@@ -6,6 +6,7 @@ export {
   normalizeProgressSeries,
 } from "./progressSeriesSnapshots";
 export {
+  addLocalReviewTodayToSummarySnapshot,
   createProgressRenderedSeriesSummaryContext,
   createProgressSummarySnapshot,
 } from "./progressSummarySnapshots";

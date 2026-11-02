@@ -48,9 +48,15 @@ import {
   nowIso,
 } from "../../domain";
 import {
+  applyRatingToVisibleProgressBadges,
+  fullDeferredProgressRefresh,
+  mergeDeferredProgressRefreshes,
+  scheduleDeferredProgressRefresh,
+  type DeferredProgressRefresh,
+} from "../../progress/invalidation/deferredProgressRefresh";
+import {
   invalidateLocalProgress,
   invalidateLocalReviewSchedule,
-  invalidateProgress,
 } from "../../progress/invalidation/progressInvalidation";
 import {
   getBrowserTimeZone,
@@ -86,8 +92,12 @@ import {
   validateSeedRequest,
 } from "../local/syncSeed";
 import type { TestSeedRequest, TestSeedResult } from "../local/testSeedBridge";
-import type { SessionLoadState } from "../../context/types";
+import type { LocalReviewSchedule, SessionLoadState } from "../../context/types";
 import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
+import {
+  announceWorkspaceLocalDataChangeToOtherTabs,
+  subscribeToWorkspaceLocalDataChangesFromOtherTabs,
+} from "./otherTabWorkspaceChanges";
 import { useMediaUploadLifecycle } from "./useMediaUploadLifecycle";
 
 type UseSyncEngineParams = Readonly<{
@@ -100,6 +110,8 @@ type UseSyncEngineParams = Readonly<{
   setWorkspaceSettings: Dispatch<SetStateAction<WorkspaceSchedulerSettings | null>>;
   setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
   setLocalReadVersion: Dispatch<SetStateAction<number>>;
+  setSyncAppliedRemoteChangesVersion: Dispatch<SetStateAction<number>>;
+  setLocalReviewSchedule: Dispatch<SetStateAction<LocalReviewSchedule>>;
   setIsSyncing: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
   setTechnicalError: Dispatch<SetStateAction<Error | null>>;
@@ -152,6 +164,18 @@ function runSyncInBackground(syncTask: Promise<void>): void {
   void syncTask.catch((): void => undefined);
 }
 
+const noProgressRefresh: DeferredProgressRefresh = {
+  didChangeLocalProgress: false,
+  didChangeReviewSchedule: false,
+  didChangeServerProgress: false,
+};
+
+const ratingProgressRefresh: DeferredProgressRefresh = {
+  didChangeLocalProgress: true,
+  didChangeReviewSchedule: true,
+  didChangeServerProgress: false,
+};
+
 // A brand-new user owns exactly one workspace, the one created for the account at sign-up.
 // Creating a further workspace never removes the earlier ones, so an account that still has
 // a single workspace is the only user-scoped signal remote sync needs to tell a new user
@@ -174,6 +198,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setWorkspaceSettings,
     setCloudSettings,
     setLocalReadVersion,
+    setSyncAppliedRemoteChangesVersion,
+    setLocalReviewSchedule,
     setIsSyncing,
     setErrorMessage,
     setTechnicalError,
@@ -189,6 +215,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const needsResyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const syncingWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const discardedSyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
+  // A sync that throws or is discarded may already have applied remote pages and moved the shared cursor, so no
+  // later pull in any tab reports them; the next successful sync of that workspace in this tab handles them as
+  // applied remote changes: docs/fsrs-scheduling-logic.md#non-blocking-review
+  const workspaceIdsWithFailedSyncSinceLastViewRefreshRef = useRef<Set<string>>(new Set());
   const syncGenerationRef = useRef<number>(0);
   const isDiscardingAllSyncWorkRef = useRef<boolean>(false);
   const discardAllSyncWorkPromiseRef = useRef<Promise<void> | null>(null);
@@ -206,6 +236,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const bumpLocalReadVersion = useCallback(function bumpLocalReadVersion(): void {
     setLocalReadVersion((currentValue) => currentValue + 1);
   }, [setLocalReadVersion]);
+
+  // Both move in one render, so Review rebuilds once and names the sync as its reason.
+  const bumpLocalReadVersionForSyncAppliedRemoteChanges = useCallback(function bumpLocalReadVersionForSyncAppliedRemoteChanges(): void {
+    setSyncAppliedRemoteChangesVersion((currentValue) => currentValue + 1);
+    setLocalReadVersion((currentValue) => currentValue + 1);
+  }, [setLocalReadVersion, setSyncAppliedRemoteChangesVersion]);
 
   const isVisibleWorkspace = useCallback(function isVisibleWorkspace(workspaceId: string): boolean {
     return activeWorkspaceRef.current?.workspaceId === workspaceId;
@@ -466,20 +502,82 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, [indexedDbOpenRecoveryState, isVisibleWorkspace, markIndexedDbOpenRecoveryFailure, runLocalDataRead, setCloudSettings, setWorkspaceSettings, waitForRecoveryGuardedSyncPhase]);
 
-  const refreshWorkspaceView = useCallback(async function refreshWorkspaceView(workspaceId: string): Promise<void> {
+  // Resolves true when the workspace is still the visible one, so its views may re-read local data.
+  const refreshVisibleWorkspaceMetadata = useCallback(async function refreshVisibleWorkspaceMetadata(
+    workspaceId: string,
+  ): Promise<boolean> {
     const metadataGeneration = syncGenerationRef.current;
     await waitForRecoveryGuardedSyncPhase(refreshLocalMetadata(workspaceId));
-    if (
-      metadataGeneration !== syncGenerationRef.current
-      || indexedDbOpenRecoveryState.hasFailed()
-    ) {
+    return metadataGeneration === syncGenerationRef.current
+      && indexedDbOpenRecoveryState.hasFailed() === false
+      && isVisibleWorkspace(workspaceId);
+  }, [indexedDbOpenRecoveryState, isVisibleWorkspace, refreshLocalMetadata, waitForRecoveryGuardedSyncPhase]);
+
+  const refreshWorkspaceView = useCallback(async function refreshWorkspaceView(workspaceId: string): Promise<void> {
+    if (await waitForRecoveryGuardedSyncPhase(refreshVisibleWorkspaceMetadata(workspaceId))) {
+      bumpLocalReadVersion();
+    }
+  }, [bumpLocalReadVersion, refreshVisibleWorkspaceMetadata, waitForRecoveryGuardedSyncPhase]);
+
+  const refreshWorkspaceViewAfterRemoteChanges = useCallback(async function refreshWorkspaceViewAfterRemoteChanges(
+    workspaceId: string,
+  ): Promise<void> {
+    if (await waitForRecoveryGuardedSyncPhase(refreshVisibleWorkspaceMetadata(workspaceId))) {
+      bumpLocalReadVersionForSyncAppliedRemoteChanges();
+    }
+  }, [bumpLocalReadVersionForSyncAppliedRemoteChanges, refreshVisibleWorkspaceMetadata, waitForRecoveryGuardedSyncPhase]);
+  // Mirrored during render so a new callback identity never drops a change another tab announced while hidden.
+  const refreshWorkspaceViewAfterRemoteChangesRef = useRef(refreshWorkspaceViewAfterRemoteChanges);
+  refreshWorkspaceViewAfterRemoteChangesRef.current = refreshWorkspaceViewAfterRemoteChanges;
+
+  // Another tab's write or applied pull re-reads this tab, Progress included, as a sync that applied remote changes
+  // would, and only once it is shown, so ratings in one tab never make a hidden one do heavy work:
+  // docs/fsrs-scheduling-logic.md#non-blocking-review
+  useEffect(() => {
+    if (activeWorkspaceId === null) {
       return;
     }
 
-    if (isVisibleWorkspace(workspaceId)) {
-      bumpLocalReadVersion();
+    const workspaceId = activeWorkspaceId;
+    let pendingProgressRefreshFromOtherTabs: DeferredProgressRefresh | null = null;
+    function refreshAfterChangesFromOtherTabs(): void {
+      if (pendingProgressRefreshFromOtherTabs === null) {
+        return;
+      }
+
+      scheduleDeferredProgressRefresh(pendingProgressRefreshFromOtherTabs);
+      pendingProgressRefreshFromOtherTabs = null;
+      runSyncInBackground(refreshWorkspaceViewAfterRemoteChangesRef.current(workspaceId));
     }
-  }, [bumpLocalReadVersion, indexedDbOpenRecoveryState, isVisibleWorkspace, refreshLocalMetadata, waitForRecoveryGuardedSyncPhase]);
+    function addPendingChangeFromOtherTabs(progressRefresh: DeferredProgressRefresh): void {
+      pendingProgressRefreshFromOtherTabs = pendingProgressRefreshFromOtherTabs === null
+        ? progressRefresh
+        : mergeDeferredProgressRefreshes(pendingProgressRefreshFromOtherTabs, progressRefresh);
+      if (document.visibilityState === "visible") {
+        refreshAfterChangesFromOtherTabs();
+      }
+    }
+    function handleVisibilityChange(): void {
+      if (document.visibilityState === "visible") {
+        refreshAfterChangesFromOtherTabs();
+      }
+    }
+    // A page restored from the back/forward cache missed every announcement made while it was cached.
+    function handlePageShow(event: PageTransitionEvent): void {
+      if (event.persisted) {
+        addPendingChangeFromOtherTabs(fullDeferredProgressRefresh);
+      }
+    }
+
+    const unsubscribe = subscribeToWorkspaceLocalDataChangesFromOtherTabs(workspaceId, addPendingChangeFromOtherTabs);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [activeWorkspaceId]);
 
   const publishWorkspaceSettings = useCallback(function publishWorkspaceSettings(
     workspaceId: string,
@@ -577,9 +675,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         requireCurrentWorkspaceSync(currentWorkspaceId);
         publishWorkspaceSettings(currentWorkspaceId, workspaceSettings);
       };
-      const refreshCurrentWorkspaceView = async function refreshCurrentWorkspaceView(currentWorkspaceId: string): Promise<void> {
+      const refreshCurrentWorkspaceViewAfterRemoteChanges = async function refreshCurrentWorkspaceViewAfterRemoteChanges(
+        currentWorkspaceId: string,
+      ): Promise<void> {
         requireCurrentWorkspaceSync(currentWorkspaceId);
-        await waitForRecoveryGuardedSyncPhase(refreshWorkspaceView(currentWorkspaceId));
+        await waitForRecoveryGuardedSyncPhase(refreshWorkspaceViewAfterRemoteChanges(currentWorkspaceId));
+        requireCurrentWorkspaceSync(currentWorkspaceId);
+      };
+      const refreshCurrentWorkspaceMetadata = async function refreshCurrentWorkspaceMetadata(
+        currentWorkspaceId: string,
+      ): Promise<void> {
+        requireCurrentWorkspaceSync(currentWorkspaceId);
+        await waitForRecoveryGuardedSyncPhase(refreshVisibleWorkspaceMetadata(currentWorkspaceId));
         requireCurrentWorkspaceSync(currentWorkspaceId);
       };
       const observeAndReportSyncFailure = function observeAndReportSyncFailure(error: Error): Error {
@@ -630,24 +737,36 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             && (session.browserGuestCapabilities?.isGuest !== true || allowBrowserGuestInitialSeed(session.userId)),
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
           publishWorkspaceSettings: publishCurrentWorkspaceSettings,
-          refreshWorkspaceView: refreshCurrentWorkspaceView,
+          refreshWorkspaceView: refreshCurrentWorkspaceViewAfterRemoteChanges,
         }));
 
         if (indexedDbOpenRecoveryState.hasFailed()) {
           return;
         }
 
-        await waitForRecoveryGuardedSyncPhase(refreshCurrentWorkspaceView(workspaceId));
+        // Cleared before the refresh: a failure from here on sets it again in the catch below.
+        const hadFailedSyncSinceLastViewRefresh = workspaceIdsWithFailedSyncSinceLastViewRefreshRef.current.delete(workspaceId);
+        const didApplyRemoteChanges = hadFailedSyncSinceLastViewRefresh || syncFlags.didApplyRemoteChanges;
+        const progressRefresh: DeferredProgressRefresh = hadFailedSyncSinceLastViewRefresh
+          ? fullDeferredProgressRefresh
+          : {
+            didChangeLocalProgress: syncFlags.didChangeProgressHistory,
+            didChangeReviewSchedule: syncFlags.didChangeReviewSchedule,
+            didChangeServerProgress: syncFlags.didChangeProgressHistory,
+          };
+        if (didApplyRemoteChanges) {
+          announceWorkspaceLocalDataChangeToOtherTabs(workspaceId, progressRefresh);
+        }
+        // Views re-read local data only when the pull applied remote changes, never for the echo of this
+        // browser's own ratings: docs/fsrs-scheduling-logic.md#non-blocking-review
+        await waitForRecoveryGuardedSyncPhase(didApplyRemoteChanges
+          ? refreshCurrentWorkspaceViewAfterRemoteChanges(workspaceId)
+          : refreshCurrentWorkspaceMetadata(workspaceId));
         if (indexedDbOpenRecoveryState.hasFailed()) {
           return;
         }
 
-        if (syncFlags.didChangeProgressHistory) {
-          invalidateProgress();
-        }
-        if (syncFlags.didChangeReviewSchedule) {
-          invalidateLocalReviewSchedule();
-        }
+        scheduleDeferredProgressRefresh(progressRefresh);
         setErrorMessage("");
         // Re-arms the `sync_failed` analytics transition for this workspace: its next failure after
         // a healthy run is a new failure and is emitted, while repeats of an ongoing one stay
@@ -656,6 +775,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         if (session.browserGuestCapabilities?.isGuest === true) markBrowserGuestHydrated(session.userId);
         runMediaUploadTransfersForWorkspace(workspace);
       } catch (error) {
+        // Set on every failure and discard, never re-read here, so offline ticks never rebuild.
+        workspaceIdsWithFailedSyncSinceLastViewRefreshRef.current.add(workspaceId);
         const normalizedError = normalizeCaughtError(error);
         markIndexedDbOpenRecoveryFailure(normalizedError);
         indexedDbOpenRecoveryState.throwIfFailed();
@@ -740,7 +861,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     markIndexedDbOpenRecoveryFailure,
     publishWorkspaceSettings,
     refreshSyncIndicator,
-    refreshWorkspaceView,
+    refreshVisibleWorkspaceMetadata,
+    refreshWorkspaceViewAfterRemoteChanges,
     requireWorkspaceSyncNotDiscarded,
     runMediaUploadTransfersForWorkspace,
     session,
@@ -975,6 +1097,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ));
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, {
+      didChangeLocalProgress: false,
+      didChangeReviewSchedule: mutationResult.didChangeReviewSchedule,
+      didChangeServerProgress: false,
+    });
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
@@ -997,6 +1124,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ));
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, noProgressRefresh);
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.deck;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, runLocalWorkspaceMutation, runSyncForWorkspace]);
@@ -1017,6 +1145,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ));
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, {
+      didChangeLocalProgress: false,
+      didChangeReviewSchedule: mutationResult.didChangeReviewSchedule,
+      didChangeServerProgress: false,
+    });
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
@@ -1040,6 +1173,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ));
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, noProgressRefresh);
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.deck;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, runLocalWorkspaceMutation, runSyncForWorkspace]);
@@ -1059,6 +1193,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ));
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, {
+      didChangeLocalProgress: false,
+      didChangeReviewSchedule: mutationResult.didChangeReviewSchedule,
+      didChangeServerProgress: false,
+    });
     if (mutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }
@@ -1081,6 +1220,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ));
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, noProgressRefresh);
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.deck;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, runLocalWorkspaceMutation, runSyncForWorkspace]);
@@ -1110,12 +1250,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       return result;
     });
     indexedDbOpenRecoveryState.throwIfFailed();
-    bumpLocalReadVersion();
-    invalidateLocalProgress();
-    invalidateLocalReviewSchedule();
+    // A rating never triggers a whole-workspace reload: docs/fsrs-scheduling-logic.md#non-blocking-review
+    setLocalReviewSchedule((currentValue) => ({
+      reviewScheduleVersion: currentValue.reviewScheduleVersion + 1,
+      lastLocalReview: { workspaceId: activeWorkspaceId, reviewedCard: mutationResult.card },
+    }));
+    applyRatingToVisibleProgressBadges();
+    scheduleDeferredProgressRefresh(ratingProgressRefresh);
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, ratingProgressRefresh);
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, onReviewSaved, runLocalWorkspaceMutation, runSyncForWorkspace, session]);
+  }, [activeWorkspace, activeWorkspaceId, indexedDbOpenRecoveryState, onReviewSaved, runLocalWorkspaceMutation, runSyncForWorkspace, session, setLocalReviewSchedule]);
 
   const seedLinkedWorkspace = useCallback(async function seedLinkedWorkspace(
     request: TestSeedRequest,
@@ -1148,6 +1293,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     indexedDbOpenRecoveryState.throwIfFailed();
 
     bumpLocalReadVersion();
+    announceWorkspaceLocalDataChangeToOtherTabs(activeWorkspaceId, {
+      didChangeLocalProgress: seedMutationResult.didChangeProgressHistory,
+      didChangeReviewSchedule: seedMutationResult.didChangeReviewSchedule,
+      didChangeServerProgress: false,
+    });
     if (seedMutationResult.didChangeReviewSchedule) {
       invalidateLocalReviewSchedule();
     }

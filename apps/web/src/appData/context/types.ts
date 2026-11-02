@@ -19,6 +19,18 @@ import type { SessionVerificationState } from "../session/workspaceSessionTypes"
 
 export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "guest_recovery" | "guest_conversion" | "deleted" | "storage_unavailable";
 
+/** A review saved on this device. Rating consumers patch memory from it instead of rescanning the workspace. */
+export type LocalReview = Readonly<{
+  workspaceId: string;
+  reviewedCard: Card;
+}>;
+
+/** `reviewScheduleVersion` moves once per local review; `localReadVersion` does not move for reviews. */
+export type LocalReviewSchedule = Readonly<{
+  reviewScheduleVersion: number;
+  lastLocalReview: LocalReview | null;
+}>;
+
 export type AppDataContextValue = Readonly<{
   firstReviewOnboardingCompleted: boolean | null;
   setFirstReviewOnboardingCompleted: (completed: boolean) => Promise<void>;
@@ -34,6 +46,10 @@ export type AppDataContextValue = Readonly<{
   workspaceSettings: WorkspaceSchedulerSettings | null;
   cloudSettings: CloudSettings | null;
   localReadVersion: number;
+  /** Moves together with `localReadVersion` when a sync, here or in another tab, applied remote changes or another tab wrote locally. */
+  syncAppliedRemoteChangesVersion: number;
+  reviewScheduleVersion: number;
+  lastLocalReview: LocalReview | null;
   localCardCount: number;
   isSyncing: boolean;
   selectedReviewFilter: ReviewFilter;

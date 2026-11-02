@@ -13,6 +13,7 @@ import type {
   ProgressSummarySourceState,
 } from "../../../types";
 import {
+  addLocalReviewTodayToSummarySnapshot,
   areProgressSourceStatesEqual,
   createEmptyProgressLeaderboardSourceState,
   createEmptyProgressReviewScheduleSourceState,
@@ -60,6 +61,11 @@ export type ProgressSourceAction =
     localFallback: ProgressSummarySnapshot;
     localFallbackActiveDates: ReadonlyArray<string>;
     hasPendingLocalReviews: boolean;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "summary_local_rating_applied";
+    scopeKey: ProgressScopeKey;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -370,6 +376,32 @@ function reduceProgressSourceState(
         localFallbackActiveDates: action.localFallbackActiveDates,
         hasPendingLocalReviews: action.hasPendingLocalReviews,
         isLoading: false,
+      }, action.canRenderServerBase);
+
+      return {
+        ...state,
+        summary: nextSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
+          action.canRenderServerBase,
+        ),
+      };
+    }
+    case "summary_local_rating_applied": {
+      const referenceLocalDate = state.summary.referenceLocalDate;
+      if (state.summary.scopeKey !== action.scopeKey || referenceLocalDate === null) {
+        return state;
+      }
+
+      const nextSummaryState = createNextSummaryState(state.summary, {
+        localFallback: state.summary.localFallback === null
+          ? null
+          : addLocalReviewTodayToSummarySnapshot(state.summary.localFallback, referenceLocalDate),
+        localFallbackActiveDates: state.summary.localFallbackActiveDates.includes(referenceLocalDate)
+          ? state.summary.localFallbackActiveDates
+          : [...state.summary.localFallbackActiveDates, referenceLocalDate],
+        hasPendingLocalReviews: true,
       }, action.canRenderServerBase);
 
       return {

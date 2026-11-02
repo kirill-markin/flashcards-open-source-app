@@ -374,6 +374,7 @@ export type WebAppOperation =
   | "review_submit"
   | "review_rollback_lookup"
   | "review_replenish"
+  | "review_queue_refresh"
   | "review_card_image_authoring"
   | "review_card_image_upload_retry"
   | "review_card_save"

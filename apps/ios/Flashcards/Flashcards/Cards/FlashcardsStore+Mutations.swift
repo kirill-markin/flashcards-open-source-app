@@ -18,6 +18,18 @@ extension FlashcardsStore {
         )
     }
 
+    /// An edit shows at once instead of after the background rebuild. That rebuild then finds these cards
+    /// unchanged, so the loads the edit invalidated resume and other screens reread here.
+    /// See docs/fsrs-scheduling-logic.md#non-blocking-review.
+    private func replaceEditedCardsInMemory(editedCards: [Card], now: Date) {
+        let editedCardsById = Dictionary(uniqueKeysWithValues: editedCards.map { card in (card.cardId, card) })
+        self.cards = self.cards.map { card in
+            editedCardsById[card.cardId] ?? card
+        }
+        self.resumeReviewLoadsInvalidatedBySourceChange(now: now)
+        self.localReadVersion += 1
+    }
+
     func saveCard(
         input: CardEditorInput,
         editingCardId: String?,
@@ -25,7 +37,7 @@ extension FlashcardsStore {
     ) throws {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
-        _ = try context.database.saveCard(
+        let savedCard = try context.database.saveCard(
             workspaceId: context.workspaceId,
             input: input,
             cardId: editingCardId,
@@ -34,6 +46,8 @@ extension FlashcardsStore {
         self.reviewRuntime.invalidateReviewSource()
         if editingCardId == nil {
             self.handleReviewScheduleLocalCardStateDidChange(now: now)
+        } else {
+            self.replaceEditedCardsInMemory(editedCards: [savedCard], now: now)
         }
         try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
@@ -81,6 +95,7 @@ extension FlashcardsStore {
         let now = Date()
         let updatedCards = try context.database.updateCards(workspaceId: context.workspaceId, updates: updates)
         self.reviewRuntime.invalidateReviewSource()
+        self.replaceEditedCardsInMemory(editedCards: updatedCards, now: now)
         try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return updatedCards

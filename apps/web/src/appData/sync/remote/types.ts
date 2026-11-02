@@ -11,6 +11,7 @@ export type CardHotSyncEntry = Extract<HotSyncEntry, Readonly<{ entityType: "car
 export type RemoteSyncFlags = Readonly<{
   didChangeProgressHistory: boolean;
   didChangeReviewSchedule: boolean;
+  didApplyRemoteChanges: boolean;
 }>;
 
 export type WorkspaceRemoteSyncInput = Readonly<{

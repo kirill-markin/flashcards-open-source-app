@@ -3,6 +3,11 @@ import { toAnalyticsReviewAnswerFailureReason, track } from "../../../analytics"
 import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
 import {
+  delayUntilNextDueMillis,
+  dueCountAfterLocalReview,
+  reviewCountsRepairDelay,
+} from "../../../appData/review/localReviewSchedule";
+import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
   useAppErrorDialog,
@@ -48,22 +53,34 @@ import {
   buildDisplayedReviewTimeline,
   buildReviewQueueChunkExcludedCardIds,
   buildReviewSessionSignature,
+  collectCardsRatedAfter,
   createEmptyReviewCounts,
   filterExcludedReviewCards,
   filterPendingReviewCards,
+  findNextReviewDueAtMillis,
+  insertReviewedCardIntoTimeline,
+  isMissingDeckReviewFilterFallback,
   isPreservablePresentedCard,
   isReviewSessionSignatureCompatible,
   isReviewSessionSignatureEqual,
   isReviewSubmissionContextCurrent,
+  keepPreparedNextCard,
   loadPresentedCardForPreservation,
+  loadReviewCardIfStillInReview,
   removeCardFromReviewQueue,
   removePendingReviewSnapshot,
   resolveCanonicalPresentedCard,
   resolveFilteredPresentedCard,
-  resolvePresentedCard,
+  resolveReviewDataRebuildReason,
   resolveReviewFilterTitle,
+  reviewLongAbsenceThreshold,
+  reviewSafetyRebuildInterval,
+  selectPreparedNextCard,
+  startsNewReviewSession,
   toTagSuggestions,
+  type LocallyRatedCard,
   type PendingReviewSnapshot,
+  type ReviewDataRebuildReason,
   type ReviewSessionSignature,
   type ReviewSubmissionContext,
 } from "./reviewScreenDataState";
@@ -79,23 +96,31 @@ type UseReviewScreenDataParams = Readonly<{
   selectedReviewFilter: ReviewFilter;
   setErrorMessage: (message: string) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
+  syncAppliedRemoteChangesVersion: number;
   userId: string | null;
 }>;
 
 type LocalHotStateStatus = "loading" | "hydrated" | "unhydrated";
 
+type ReviewDataRebuildRequest = Readonly<{
+  reason: ReviewDataRebuildReason;
+  sequence: number;
+}>;
+
+type NextDueRefresh = Readonly<{
+  dueAtMillis: number;
+}>;
+
 type CarriedReviewDataContext = Readonly<{
   contextKey: string;
   localReadVersion: number;
+  rebuildSequence: number;
 }>;
 
 export type ReviewSubmissionOutcome = "saved" | "failed" | "stale" | "cancelled";
 
 type PendingReviewAfterRatingWork = Readonly<{
   span: ReviewTimingSpan;
-  ratedAtLocalReadVersion: number;
-  isSubmitSettled: boolean;
-  isReloadSettled: boolean;
   fullRebuildCount: number;
 }>;
 
@@ -123,6 +148,16 @@ function isWorkspaceUnavailableError(error: unknown): boolean {
 
 function buildReviewDataContextKey(workspaceId: string | null, reviewFilterKey: string): string {
   return JSON.stringify([workspaceId, reviewFilterKey]);
+}
+
+function toLocalDateKey(timestamp: number): string {
+  return new Date(timestamp).toDateString();
+}
+
+// A new object re-arms the timer even for an unchanged due time, such as after a clamped timeout.
+function nextDueRefreshFrom(reviewTimeline: ReadonlyArray<Card>, fromTimestamp: number): NextDueRefresh | null {
+  const dueAtMillis = findNextReviewDueAtMillis(reviewTimeline, fromTimestamp);
+  return dueAtMillis === null ? null : { dueAtMillis };
 }
 
 export type UseReviewScreenDataResult = Readonly<{
@@ -155,6 +190,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
+    syncAppliedRemoteChangesVersion,
     userId,
   } = params;
   const { formatCount, messages, t } = useI18n();
@@ -174,6 +210,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
   const [loadedReviewDataContextKey, setLoadedReviewDataContextKey] = useState<string | null>(null);
   const [presentedCard, setPresentedCard] = useState<Card | null>(null);
+  const [nextDueRefresh, setNextDueRefresh] = useState<NextDueRefresh | null>(null);
+  const [reviewDataRebuildRequest, setReviewDataRebuildRequest] = useState<ReviewDataRebuildRequest>({
+    reason: "initialLoad",
+    sequence: 0,
+  });
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
   const loadedWorkspaceIdRef = useRef<string | null>(null);
   const canonicalReviewQueueRef = useRef<ReadonlyArray<Card>>([]);
@@ -187,11 +228,21 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewSessionSignatureRef = useRef<ReviewSessionSignature | null>(null);
   const selectedReviewFilterKey = serializeReviewFilterKey(selectedReviewFilter);
   const selectedReviewFilterKeyRef = useRef<string>(selectedReviewFilterKey);
+  const selectedReviewFilterRef = useRef<ReviewFilter>(selectedReviewFilter);
+  const getCardByIdRef = useRef<(cardId: string) => Promise<Card>>(getCardById);
+  const selectReviewFilterRef = useRef<(reviewFilter: ReviewFilter) => void>(selectReviewFilter);
   const reviewDataContextKey = buildReviewDataContextKey(activeWorkspaceId, selectedReviewFilterKey);
   const reviewDataContextKeyRef = useRef<string>(reviewDataContextKey);
   const loadedReviewDataContextKeyRef = useRef<string | null>(null);
   const carriedReviewDataContextRef = useRef<CarriedReviewDataContext | null>(null);
   const afterRatingWorkRef = useRef<PendingReviewAfterRatingWork | null>(null);
+  const observedLocalReadVersionRef = useRef<number>(localReadVersion);
+  const observedSyncAppliedRemoteChangesVersionRef = useRef<number>(syncAppliedRemoteChangesVersion);
+  const reviewDataLoadGenerationRef = useRef<number>(0);
+  const ratingSequenceRef = useRef<number>(0);
+  const locallyRatedCardsRef = useRef<ReadonlyMap<string, LocallyRatedCard>>(new Map());
+  const isCountsRefreshAfterRatingsNeededRef = useRef<boolean>(false);
+  const countsRepairTimeoutIdRef = useRef<number | null>(null);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -247,6 +298,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const preparedImagesNextBackText = preparedImagesNextCard?.backText ?? "";
   activeWorkspaceIdRef.current = activeWorkspaceId;
   selectedReviewFilterKeyRef.current = selectedReviewFilterKey;
+  selectedReviewFilterRef.current = selectedReviewFilter;
+  getCardByIdRef.current = getCardById;
+  selectReviewFilterRef.current = selectReviewFilter;
   reviewDataContextKeyRef.current = reviewDataContextKey;
   observationIdentityRef.current = {
     userId,
@@ -311,15 +365,268 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     );
   }
 
-  function updateAfterRatingWork(nextAfterRatingWork: PendingReviewAfterRatingWork): void {
-    if (nextAfterRatingWork.isSubmitSettled && nextAfterRatingWork.isReloadSettled) {
-      afterRatingWorkRef.current = null;
-      finishReviewAfterRatingWorkSpan(nextAfterRatingWork.span, nextAfterRatingWork.fullRebuildCount);
+  // The only entry point for a full rebuild besides a workspace, filter, local card or sync-applied change:
+  // docs/fsrs-scheduling-logic.md#non-blocking-review
+  function rebuildReviewData(reason: ReviewDataRebuildReason): void {
+    setReviewDataRebuildRequest((currentRequest) => ({
+      reason,
+      sequence: currentRequest.sequence + 1,
+    }));
+  }
+
+  // Updates only the rated card, the queue, the counts and the next due time in memory; a rating never
+  // rescans the workspace: docs/fsrs-scheduling-logic.md#non-blocking-review
+  function applyRatedCardLocally(reviewedCard: Card): Readonly<{
+    canonicalReviewQueue: ReadonlyArray<Card>;
+    presentedCard: Card | null;
+  }> {
+    const nowTimestamp = Date.now();
+    const nextCanonicalReviewQueue = removeCardFromReviewQueue(canonicalReviewQueueRef.current, reviewedCard.cardId);
+    const nextPresentedCard = presentedCardRef.current?.cardId === reviewedCard.cardId
+      ? resolveCanonicalPresentedCard(nextCanonicalReviewQueue, null)
+      : presentedCardRef.current;
+    const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
+    const nextQueueCards = buildDisplayedReviewTimeline(
+      insertReviewedCardIntoTimeline(queueCardsRef.current, reviewedCard, nowTimestamp),
+      nextActiveReviewQueue,
+    );
+
+    setCanonicalReviewQueueState(nextCanonicalReviewQueue);
+    setPresentedCardState(nextPresentedCard);
+    setQueueCardsState(nextQueueCards);
+    setCurrentReviewSessionSignature(nextActiveReviewQueue, nextQueueCards);
+    setReviewCounts((currentCounts) => ({
+      dueCount: dueCountAfterLocalReview(currentCounts.dueCount),
+      totalCount: currentCounts.totalCount,
+    }));
+    // A timer still pending for a card that is already due must keep running; the rated card cannot be due sooner.
+    setNextDueRefresh((currentRefresh) => currentRefresh !== null && currentRefresh.dueAtMillis <= nowTimestamp
+      ? currentRefresh
+      : nextDueRefreshFrom(nextQueueCards, nowTimestamp));
+    return {
+      canonicalReviewQueue: nextCanonicalReviewQueue,
+      presentedCard: nextPresentedCard,
+    };
+  }
+
+  // Lets loads that read before this rating was written drop the card's stale due state.
+  function recordLocallyRatedCard(reviewedCard: Card): void {
+    ratingSequenceRef.current += 1;
+    locallyRatedCardsRef.current = new Map([
+      ...locallyRatedCardsRef.current,
+      [reviewedCard.cardId, { ratingSequence: ratingSequenceRef.current, reviewedCard }],
+    ]);
+  }
+
+  // One timer at the earliest due time after `fromTimestamp`; it refreshes only the bounded queue window and
+  // the counts: docs/fsrs-scheduling-logic.md#non-blocking-review
+  // A load passes its start time, so a card that fell due while it ran re-arms the timer at once.
+  function scheduleNextDueRefresh(reviewTimeline: ReadonlyArray<Card>, fromTimestamp: number): void {
+    setNextDueRefresh(nextDueRefreshFrom(reviewTimeline, fromTimestamp));
+  }
+
+  // Counts read while a rating was in flight or saved may miss or double-count it. Only an applied load
+  // decides: one that overlapped no rating read fresh counts, so it also settles an earlier repair; a
+  // dropped load leaves the need to the load that replaced it.
+  function refreshCountsIfLoadOverlappedRating(ratingSequenceAtStart: number): void {
+    isCountsRefreshAfterRatingsNeededRef.current = ratingSequenceRef.current !== ratingSequenceAtStart
+      || pendingReviewSnapshotsRef.current.size > 0;
+    restartCountsRepairTimer();
+  }
+
+  function clearCountsRepairTimer(): void {
+    if (countsRepairTimeoutIdRef.current !== null) {
+      window.clearTimeout(countsRepairTimeoutIdRef.current);
+      countsRepairTimeoutIdRef.current = null;
+    }
+  }
+
+  // One queue window refresh repairs the counts once ratings pause; each settled rating restarts the wait.
+  function restartCountsRepairTimer(): void {
+    clearCountsRepairTimer();
+    if (isCountsRefreshAfterRatingsNeededRef.current === false) {
       return;
     }
 
-    afterRatingWorkRef.current = nextAfterRatingWork;
+    countsRepairTimeoutIdRef.current = window.setTimeout(() => {
+      countsRepairTimeoutIdRef.current = null;
+      // A rating still in flight restarts the wait when it settles.
+      if (isCountsRefreshAfterRatingsNeededRef.current === false || pendingReviewSnapshotsRef.current.size > 0) {
+        return;
+      }
+
+      void refreshReviewQueueWindow();
+    }, reviewCountsRepairDelay);
   }
+
+  // Refreshes only the bounded queue window and the counts when the next card falls due, keeping the
+  // shown and prepared next cards: docs/fsrs-scheduling-logic.md#non-blocking-review
+  async function refreshReviewQueueWindow(): Promise<void> {
+    const workspaceId = activeWorkspaceIdRef.current;
+    const contextKey = reviewDataContextKeyRef.current;
+    if (
+      workspaceId === null
+      || loadedReviewDataContextKeyRef.current !== contextKey
+      || indexedDbOpenRecoveryState.hasFailed()
+    ) {
+      return;
+    }
+
+    const loadGeneration = reviewDataLoadGenerationRef.current;
+    const ratingSequenceAtStart = ratingSequenceRef.current;
+    const refreshStartTimestamp = Date.now();
+    const reviewFilter = resolvedReviewFilterRef.current;
+    try {
+      const [reviewQueueSnapshot, reviewTimelinePage] = await waitForRecoveryGuardedReviewPhase(Promise.all([
+        waitForRecoveryGuardedReviewPhase(
+          loadReviewQueueSnapshot(workspaceId, reviewFilter, 8),
+          indexedDbOpenRecoveryState,
+        ),
+        waitForRecoveryGuardedReviewPhase(
+          loadReviewTimelinePage(workspaceId, reviewFilter, 200, 0),
+          indexedDbOpenRecoveryState,
+        ),
+      ]), indexedDbOpenRecoveryState);
+      if (
+        indexedDbOpenRecoveryState.hasFailed()
+        || loadGeneration !== reviewDataLoadGenerationRef.current
+        || contextKey !== reviewDataContextKeyRef.current
+      ) {
+        return;
+      }
+
+      const pendingReviewSnapshots = pendingReviewSnapshotsRef.current;
+      const cardsRatedDuringRefresh = collectCardsRatedAfter(locallyRatedCardsRef.current, ratingSequenceAtStart);
+      const ratedCardIds: ReadonlySet<string> = new Set(cardsRatedDuringRefresh.map((card) => card.cardId));
+      const freshCanonicalReviewQueue = filterExcludedReviewCards(reviewQueueSnapshot.cards, pendingReviewSnapshots, ratedCardIds);
+      const currentPresentedCard = presentedCardRef.current;
+      const nextPresentedCard = resolveFilteredPresentedCard(
+        freshCanonicalReviewQueue,
+        currentPresentedCard,
+        pendingReviewSnapshots,
+        ratedCardIds,
+      );
+      // Only time passed since the last load, so a prepared card outside the fresh window is still due.
+      const currentPreparedNextCard = selectPreparedNextCard(
+        buildDisplayedReviewQueue(canonicalReviewQueueRef.current, currentPresentedCard),
+      );
+      const nextPreparedNextCard = currentPreparedNextCard === null
+        || pendingReviewSnapshots.has(currentPreparedNextCard.cardId)
+        || ratedCardIds.has(currentPreparedNextCard.cardId)
+        ? null
+        : freshCanonicalReviewQueue.find((card) => card.cardId === currentPreparedNextCard.cardId) ?? currentPreparedNextCard;
+      const nextCanonicalReviewQueue = keepPreparedNextCard(freshCanonicalReviewQueue, nextPresentedCard, nextPreparedNextCard);
+      const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
+      const nextQueueCards = buildDisplayedReviewTimeline(
+        cardsRatedDuringRefresh.reduce(
+          (timeline, reviewedCard) => insertReviewedCardIntoTimeline(timeline, reviewedCard, Date.now()),
+          filterExcludedReviewCards(reviewTimelinePage.cards, pendingReviewSnapshots, ratedCardIds),
+        ),
+        nextActiveReviewQueue,
+      );
+
+      setCanonicalReviewQueueState(nextCanonicalReviewQueue);
+      setPresentedCardState(nextPresentedCard);
+      setReviewQueueCursorState(reviewQueueSnapshot.nextCursor);
+      setQueueCardsState(nextQueueCards);
+      setCurrentReviewSessionSignature(nextActiveReviewQueue, nextQueueCards);
+      setReviewCounts(reviewQueueSnapshot.reviewCounts);
+      scheduleNextDueRefresh(nextQueueCards, refreshStartTimestamp);
+      refreshCountsIfLoadOverlappedRating(ratingSequenceAtStart);
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      if (contextKey !== reviewDataContextKeyRef.current) {
+        return;
+      }
+
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "review",
+        operation: "review_queue_refresh",
+        userId: observationIdentity.userId,
+        workspaceId,
+        installationId: observationIdentity.installationId,
+        entityId: null,
+      });
+      showCapturedTechnicalError(error);
+      setErrorMessage(t("appError.technicalError.message"));
+    }
+  }
+
+  useEffect(() => {
+    if (nextDueRefresh === null) {
+      return undefined;
+    }
+
+    const nextDueTimeoutId = window.setTimeout(() => {
+      // Marks the timer as no longer pending; the refresh schedules the next one.
+      setNextDueRefresh(null);
+      void refreshReviewQueueWindow();
+    }, delayUntilNextDueMillis(nextDueRefresh.dueAtMillis, Date.now()));
+    return () => {
+      window.clearTimeout(nextDueTimeoutId);
+    };
+    // Re-armed only when nextDueRefresh changes; the refresh reads everything else through refs.
+  }, [nextDueRefresh]);
+
+  useEffect(() => {
+    let safetyIntervalId: number | null = null;
+    let hiddenAtTimestamp: number | null = null;
+    let observedDateKey = toLocalDateKey(Date.now());
+
+    function rebuildForElapsedTime(reasonWithoutDateChange: ReviewDataRebuildReason): void {
+      const dateKey = toLocalDateKey(Date.now());
+      const reason = dateKey === observedDateKey ? reasonWithoutDateChange : "dateChanged";
+      observedDateKey = dateKey;
+      rebuildReviewData(reason);
+    }
+
+    function startSafetyInterval(): void {
+      if (safetyIntervalId === null) {
+        safetyIntervalId = window.setInterval(() => {
+          rebuildForElapsedTime("safetyInterval");
+        }, reviewSafetyRebuildInterval);
+      }
+    }
+
+    function stopSafetyInterval(): void {
+      if (safetyIntervalId !== null) {
+        window.clearInterval(safetyIntervalId);
+        safetyIntervalId = null;
+      }
+    }
+
+    function handleVisibilityChange(): void {
+      if (document.visibilityState !== "visible") {
+        hiddenAtTimestamp = hiddenAtTimestamp ?? Date.now();
+        stopSafetyInterval();
+        return;
+      }
+
+      startSafetyInterval();
+      const hiddenDurationMs = hiddenAtTimestamp === null ? 0 : Date.now() - hiddenAtTimestamp;
+      hiddenAtTimestamp = null;
+      if (hiddenDurationMs >= reviewLongAbsenceThreshold) {
+        rebuildForElapsedTime("returnedAfterLongAbsence");
+      } else if (toLocalDateKey(Date.now()) !== observedDateKey) {
+        rebuildForElapsedTime("dateChanged");
+      }
+    }
+
+    if (document.visibilityState === "visible") {
+      startSafetyInterval();
+    } else {
+      hiddenAtTimestamp = Date.now();
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      stopSafetyInterval();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // rebuildReviewData only calls a stable state setter.
+  }, []);
 
   // Keeps the current and next card images decoded so a rating or reveal never waits for them:
   // docs/fsrs-scheduling-logic.md#non-blocking-review
@@ -329,21 +636,20 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       return undefined;
     }
 
-    releasePreparedImagesExcept(activeWorkspaceId, collectReviewImageMediaAssetIds([
-      preparedImagesCurrentFrontText,
+    // The current front is already on screen and loads through its own card side.
+    const preparedMediaAssetIds = collectReviewImageMediaAssetIds([
       preparedImagesCurrentBackText,
       preparedImagesNextFrontText,
       preparedImagesNextBackText,
-    ]));
-    // The current front is already on screen and loads through its own card side.
+    ]);
+    releasePreparedImagesExcept(activeWorkspaceId, [
+      ...collectReviewImageMediaAssetIds([preparedImagesCurrentFrontText]),
+      ...preparedMediaAssetIds,
+    ]);
     const abortController = new AbortController();
     void prepareReviewImages(
       activeWorkspaceId,
-      collectReviewImageMediaAssetIds([
-        preparedImagesCurrentBackText,
-        preparedImagesNextFrontText,
-        preparedImagesNextBackText,
-      ]),
+      preparedMediaAssetIds,
       indexedDbOpenRecoveryState,
       abortController.signal,
     );
@@ -363,7 +669,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   useEffect(() => {
     return () => {
       releasePreparedImagesExcept(null, []);
+      clearCountsRepairTimer();
     };
+    // The cleanup reads the timer through a ref.
   }, []);
 
   useEffect(() => {
@@ -371,14 +679,36 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     if (
       carriedReviewDataContext?.contextKey === reviewDataContextKey
       && carriedReviewDataContext.localReadVersion === localReadVersion
+      && carriedReviewDataContext.rebuildSequence === reviewDataRebuildRequest.sequence
     ) {
       carriedReviewDataContextRef.current = null;
+      // A repair that fired before the promoted filter became current bailed on the context check.
+      restartCountsRepairTimer();
       return;
     }
     carriedReviewDataContextRef.current = null;
 
     let isCancelled = false;
-    const shouldShowBlockingLoader = loadedReviewDataContextKeyRef.current !== reviewDataContextKey;
+    // Read through refs: a new callback or filter object identity alone is not a rebuild reason.
+    const requestedReviewFilter = selectedReviewFilterRef.current;
+    const loadCardById = getCardByIdRef.current;
+    const promoteReviewFilter = selectReviewFilterRef.current;
+    const rebuildReason = resolveReviewDataRebuildReason({
+      loadedReviewDataContextKey: loadedReviewDataContextKeyRef.current,
+      loadedWorkspaceId: loadedWorkspaceIdRef.current,
+      reviewDataContextKey,
+      activeWorkspaceId,
+      hasLocalReadVersionChanged: observedLocalReadVersionRef.current !== localReadVersion,
+      hasSyncAppliedRemoteChanges: observedSyncAppliedRemoteChangesVersionRef.current !== syncAppliedRemoteChangesVersion,
+      requestedReason: reviewDataRebuildRequest.reason,
+    });
+    observedLocalReadVersionRef.current = localReadVersion;
+    observedSyncAppliedRemoteChangesVersionRef.current = syncAppliedRemoteChangesVersion;
+    const isNewReviewSessionReason = startsNewReviewSession(rebuildReason);
+    const previousResolvedReviewFilter = resolvedReviewFilterRef.current;
+    reviewDataLoadGenerationRef.current += 1;
+    const ratingSequenceAtStart = ratingSequenceRef.current;
+    const loadStartTimestamp = Date.now();
 
     async function loadReviewData(): Promise<void> {
       try {
@@ -401,11 +731,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           isHotStateHydrated,
         ] = await waitForRecoveryGuardedReviewPhase(Promise.all([
           waitForRecoveryGuardedReviewPhase(
-            loadReviewQueueSnapshot(activeWorkspaceId, selectedReviewFilter, 8),
+            loadReviewQueueSnapshot(activeWorkspaceId, requestedReviewFilter, 8),
             indexedDbOpenRecoveryState,
           ),
           waitForRecoveryGuardedReviewPhase(
-            loadReviewTimelinePage(activeWorkspaceId, selectedReviewFilter, 200, 0),
+            loadReviewTimelinePage(activeWorkspaceId, requestedReviewFilter, 200, 0),
             indexedDbOpenRecoveryState,
           ),
           waitForRecoveryGuardedReviewPhase(
@@ -434,12 +764,12 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           pendingReviewSnapshotsBeforePresentation,
         );
         const nextResolvedReviewFilter = reviewQueueSnapshot.resolvedReviewFilter;
-        const shouldPromoteResolvedReviewFilter = selectedReviewFilter.kind === "tags"
-          && selectedReviewFilter.tags.length > 0
+        const shouldPromoteResolvedReviewFilter = requestedReviewFilter.kind === "tags"
+          && requestedReviewFilter.tags.length > 0
           && nextResolvedReviewFilter.kind === "allCards";
         const loadedSelectedReviewFilter = shouldPromoteResolvedReviewFilter
           ? nextResolvedReviewFilter
-          : selectedReviewFilter;
+          : requestedReviewFilter;
         const loadedSelectedReviewFilterKey = serializeReviewFilterKey(loadedSelectedReviewFilter);
         const loadedReviewDataContextKey = buildReviewDataContextKey(
           activeWorkspaceId,
@@ -455,15 +785,23 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
             messages.common.countLabels.tag,
           ),
         );
-        const previousPresentedCard = shouldShowBlockingLoader ? null : presentedCardRef.current;
-        const resolvedPresentedCard = await waitForRecoveryGuardedReviewPhase(
-          resolvePresentedCard(
+        const isNewReviewSession = isNewReviewSessionReason || isMissingDeckReviewFilterFallback(
+          requestedReviewFilter,
+          previousResolvedReviewFilter,
+          nextResolvedReviewFilter,
+        );
+        const previousPresentedCard = isNewReviewSession ? null : presentedCardRef.current;
+        const previousPreparedNextCard = isNewReviewSession
+          ? null
+          : selectPreparedNextCard(buildDisplayedReviewQueue(canonicalReviewQueueRef.current, previousPresentedCard));
+        const [stillReviewedPresentedCard, stillReviewedPreparedNextCard] = await waitForRecoveryGuardedReviewPhase(
+          Promise.all([previousPresentedCard, previousPreparedNextCard].map((card) => loadReviewCardIfStillInReview(
             canonicalReviewQueueBeforePresentation,
-            previousPresentedCard,
+            card,
             nextResolvedReviewFilter,
             decksSnapshot.deckSummaries,
-            getCardById,
-          ),
+            loadCardById,
+          ))),
           indexedDbOpenRecoveryState,
         );
         if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -480,35 +818,71 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           && currentPresentedCard?.cardId !== previousPresentedCard.cardId
           ? new Set([previousPresentedCard.cardId])
           : new Set();
-        const nextCanonicalReviewQueue = filterExcludedReviewCards(
+        const cardsRatedDuringLoad = collectCardsRatedAfter(locallyRatedCardsRef.current, ratingSequenceAtStart);
+        const excludedCardIds: ReadonlySet<string> = new Set([
+          ...stalePresentedCardIds,
+          ...cardsRatedDuringLoad.map((card) => card.cardId),
+        ]);
+        const freshCanonicalReviewQueue = filterExcludedReviewCards(
           reviewQueueSnapshot.cards,
           pendingReviewSnapshotsAfterPresentation,
-          stalePresentedCardIds,
+          excludedCardIds,
         );
-        const nextReviewTimelineCards = filterExcludedReviewCards(
-          reviewTimelinePage.cards,
-          pendingReviewSnapshotsAfterPresentation,
-          stalePresentedCardIds,
+        const nextReviewTimelineCards = cardsRatedDuringLoad.reduce(
+          (timeline, reviewedCard) => insertReviewedCardIntoTimeline(timeline, reviewedCard, Date.now()),
+          filterExcludedReviewCards(
+            reviewTimelinePage.cards,
+            pendingReviewSnapshotsAfterPresentation,
+            excludedCardIds,
+          ),
         );
+        // The shown card stays while still in review; if it left, the prepared next card takes its place:
+        // docs/fsrs-scheduling-logic.md#non-blocking-review
+        // A rating during the lookup showed the prepared next card, so its lookup decides whether it stays.
         const nextPresentedCard = resolveFilteredPresentedCard(
-          nextCanonicalReviewQueue,
-          stalePresentedCardIds.size === 0 ? resolvedPresentedCard : currentPresentedCard,
+          freshCanonicalReviewQueue,
+          stalePresentedCardIds.size === 0
+            ? stillReviewedPresentedCard ?? stillReviewedPreparedNextCard
+            : currentPresentedCard !== null && currentPresentedCard.cardId === previousPreparedNextCard?.cardId
+              ? stillReviewedPreparedNextCard
+              : currentPresentedCard,
           pendingReviewSnapshotsAfterPresentation,
-          stalePresentedCardIds,
+          excludedCardIds,
         );
+        // The prepared next card stays while still in review; one that left, or was promoted, is re-prepared.
+        // A card prepared by a rating during this load was not looked up, so it stays only inside the window.
+        const currentPreparedNextCard = isNewReviewSession
+          ? null
+          : selectPreparedNextCard(buildDisplayedReviewQueue(canonicalReviewQueueRef.current, currentPresentedCard));
+        const nextPreparedNextCard = currentPreparedNextCard === null
+          || currentPreparedNextCard.cardId === nextPresentedCard?.cardId
+          || excludedCardIds.has(currentPreparedNextCard.cardId)
+          ? null
+          : freshCanonicalReviewQueue.find((card) => card.cardId === currentPreparedNextCard.cardId)
+            ?? (stillReviewedPreparedNextCard?.cardId === currentPreparedNextCard.cardId ? stillReviewedPreparedNextCard : null);
+        const nextCanonicalReviewQueue = keepPreparedNextCard(freshCanonicalReviewQueue, nextPresentedCard, nextPreparedNextCard);
         const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
         const nextQueueCards = buildDisplayedReviewTimeline(nextReviewTimelineCards, nextActiveReviewQueue);
-        applyFreshReviewSessionSignature(buildReviewSessionSignature(
+        const nextReviewSessionSignature = buildReviewSessionSignature(
           loadedSelectedReviewFilterKey,
           nextActiveReviewQueue,
           nextQueueCards,
-        ));
+        );
+        // While a background rebuild keeps the shown card, a reordered window behind it (or a prepared card
+        // kept from outside the window) must not mark in-flight ratings stale.
+        const keepsPresentedCard = currentPresentedCard !== null && nextPresentedCard?.cardId === currentPresentedCard.cardId;
+        if (isNewReviewSession || shouldPromoteResolvedReviewFilter || keepsPresentedCard === false) {
+          applyFreshReviewSessionSignature(nextReviewSessionSignature);
+        } else {
+          reviewSessionSignatureRef.current = nextReviewSessionSignature;
+        }
 
         setResolvedReviewFilterState(nextResolvedReviewFilter);
         setSelectedReviewFilterTitle(nextSelectedReviewFilterTitle);
         setCanonicalReviewQueueState(nextCanonicalReviewQueue);
         setPresentedCardState(nextPresentedCard);
         setReviewCounts(reviewQueueSnapshot.reviewCounts);
+        scheduleNextDueRefresh(nextQueueCards, loadStartTimestamp);
         setReviewQueueCursorState(reviewQueueSnapshot.nextCursor);
         setQueueCardsState(nextQueueCards);
         setReviewTagSummaries(tagsSummary.tags);
@@ -532,12 +906,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           savedAt: new Date().toISOString(),
         });
         setHasLoadedReviewData(true);
+        refreshCountsIfLoadOverlappedRating(ratingSequenceAtStart);
         if (shouldPromoteResolvedReviewFilter) {
           carriedReviewDataContextRef.current = {
             contextKey: loadedReviewDataContextKey,
             localReadVersion,
+            rebuildSequence: reviewDataRebuildRequest.sequence,
           };
-          selectReviewFilter(nextResolvedReviewFilter);
+          promoteReviewFilter(nextResolvedReviewFilter);
         }
       } catch (error) {
         if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
@@ -567,51 +943,41 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     }
 
     const afterRatingWork = afterRatingWorkRef.current;
-    if (afterRatingWork !== null && localReadVersion > afterRatingWork.ratedAtLocalReadVersion) {
-      updateAfterRatingWork({ ...afterRatingWork, fullRebuildCount: afterRatingWork.fullRebuildCount + 1 });
+    if (afterRatingWork !== null) {
+      afterRatingWorkRef.current = { ...afterRatingWork, fullRebuildCount: afterRatingWork.fullRebuildCount + 1 };
     }
 
-    void loadReviewData().then(() => {
-      const settledAfterRatingWork = afterRatingWorkRef.current;
-      if (
-        isCancelled === false
-        && settledAfterRatingWork !== null
-        && localReadVersion > settledAfterRatingWork.ratedAtLocalReadVersion
-      ) {
-        updateAfterRatingWork({ ...settledAfterRatingWork, isReloadSettled: true });
-      }
-    });
+    void loadReviewData();
 
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, getCardById, indexedDbOpenRecoveryState, localReadVersion, reviewDataContextKey, selectReviewFilter, selectedReviewFilter]);
+  }, [
+    activeWorkspaceId,
+    indexedDbOpenRecoveryState,
+    localReadVersion,
+    reviewDataContextKey,
+    reviewDataRebuildRequest,
+    syncAppliedRemoteChangesVersion,
+  ]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
-    // Rating until the submission and the reload it triggers settle; non-blocking review plans
-    // read it as their before/after number. A newer rating replaces an unsettled one, which is never sent.
+    // Rating until its submission and in-memory update settle; non-blocking review plans read it as
+    // their before/after number. A newer rating replaces an unsettled one, which is never sent.
     const afterRatingWorkSpan = startReviewAfterRatingWorkSpan();
     afterRatingWorkRef.current = {
       span: afterRatingWorkSpan,
-      ratedAtLocalReadVersion: localReadVersion,
-      isSubmitSettled: false,
-      isReloadSettled: false,
       fullRebuildCount: 0,
     };
-    let outcome: ReviewSubmissionOutcome = "failed";
     try {
-      outcome = await submitReview(card, rating);
-      return outcome;
+      return await submitReview(card, rating);
     } finally {
       const afterRatingWork = afterRatingWorkRef.current;
       if (afterRatingWork?.span === afterRatingWorkSpan) {
-        updateAfterRatingWork({
-          ...afterRatingWork,
-          isSubmitSettled: true,
-          // Only a saved review bumps the local read version that triggers the reload.
-          isReloadSettled: afterRatingWork.isReloadSettled || outcome !== "saved",
-        });
+        afterRatingWorkRef.current = null;
+        finishReviewAfterRatingWorkSpan(afterRatingWork.span, afterRatingWork.fullRebuildCount);
       }
+      restartCountsRepairTimer();
     }
   }
 
@@ -651,14 +1017,16 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setQueueCardsState(optimisticQueueCards);
     setCurrentReviewSessionSignature(optimisticActiveReviewQueue, optimisticQueueCards);
 
+    let reviewedCard: Card;
     try {
-      await waitForRecoveryGuardedReviewPhase(
+      reviewedCard = await waitForRecoveryGuardedReviewPhase(
         submitReviewItem(submissionContext.cardId, rating),
         indexedDbOpenRecoveryState,
       );
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return "cancelled";
       }
+      recordLocallyRatedCard(reviewedCard);
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return "cancelled";
@@ -779,24 +1147,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
     const pendingReviewSnapshotsBeforeClear = pendingReviewSnapshotsRef.current;
     pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(pendingReviewSnapshotsRef.current, submissionContext.cardId);
-    const nextCanonicalReviewQueue = removeCardFromReviewQueue(canonicalReviewQueueRef.current, submissionContext.cardId);
-    const nextPresentedCard = presentedCardRef.current?.cardId === submissionContext.cardId
-      ? resolveCanonicalPresentedCard(nextCanonicalReviewQueue, null)
-      : presentedCardRef.current;
-    const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
-    const nextQueueCards = buildDisplayedReviewTimeline(
-      removeCardFromReviewQueue(queueCardsRef.current, submissionContext.cardId),
-      nextActiveReviewQueue,
-    );
-
-    setCanonicalReviewQueueState(nextCanonicalReviewQueue);
-    setPresentedCardState(nextPresentedCard);
-    setQueueCardsState(nextQueueCards);
-    setCurrentReviewSessionSignature(nextActiveReviewQueue, nextQueueCards);
-    setReviewCounts((currentCounts) => ({
-      dueCount: Math.max(0, currentCounts.dueCount - 1),
-      totalCount: currentCounts.totalCount,
-    }));
+    const {
+      canonicalReviewQueue: nextCanonicalReviewQueue,
+      presentedCard: nextPresentedCard,
+    } = applyRatedCardLocally(reviewedCard);
 
     if (nextCanonicalReviewQueue.length <= 4 && reviewQueueCursorRef.current !== null) {
       try {
@@ -860,10 +1214,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           : nextChunk.nextCursor;
         const replenishedCanonicalReviewQueue = [...refreshedCanonicalReviewQueue, ...chunkCards];
         const replenishedActiveReviewQueue = buildDisplayedReviewQueue(replenishedCanonicalReviewQueue, refreshedPresentedCard);
-        const replenishedQueueCards = buildDisplayedReviewTimeline(
-          removeCardFromReviewQueue(queueCardsRef.current, submissionContext.cardId),
-          replenishedActiveReviewQueue,
-        );
+        const replenishedQueueCards = buildDisplayedReviewTimeline(queueCardsRef.current, replenishedActiveReviewQueue);
 
         setCanonicalReviewQueueState(replenishedCanonicalReviewQueue);
         setPresentedCardState(refreshedPresentedCard);

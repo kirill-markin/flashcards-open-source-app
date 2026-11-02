@@ -1,9 +1,11 @@
 import {
+  compareCardsForReviewOrder,
   isCardDue,
   isReviewFilterEqual,
   matchesDeckFilterDefinition,
   normalizeTagKey,
 } from "../../../appData/domain";
+import { parseDueAtMillis } from "../../../appData/domain/dueAt";
 import type {
   Card,
   DeckSummary,
@@ -12,6 +14,72 @@ import type {
   TagSuggestion,
   WorkspaceTagSummary,
 } from "../../../types";
+
+/*
+ * A full rebuild rescans the workspace and runs only for these reasons, never per rating:
+ * docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
+export type ReviewDataRebuildReason =
+  | "initialLoad"
+  | "filterChanged"
+  | "workspaceChanged"
+  | "localCardsChanged"
+  | "syncAppliedRemoteChanges"
+  | "returnedAfterLongAbsence"
+  | "dateChanged"
+  | "safetyInterval";
+
+export const reviewSafetyRebuildInterval: number = 10 * 60 * 1000;
+export const reviewLongAbsenceThreshold: number = 30 * 60 * 1000;
+
+type ReviewDataRebuildInputs = Readonly<{
+  loadedReviewDataContextKey: string | null;
+  loadedWorkspaceId: string | null;
+  reviewDataContextKey: string;
+  activeWorkspaceId: string | null;
+  hasLocalReadVersionChanged: boolean;
+  hasSyncAppliedRemoteChanges: boolean;
+  requestedReason: ReviewDataRebuildReason;
+}>;
+
+export function resolveReviewDataRebuildReason(inputs: ReviewDataRebuildInputs): ReviewDataRebuildReason {
+  if (inputs.loadedReviewDataContextKey === null) {
+    return "initialLoad";
+  }
+
+  if (inputs.loadedWorkspaceId !== inputs.activeWorkspaceId) {
+    return "workspaceChanged";
+  }
+
+  if (inputs.loadedReviewDataContextKey !== inputs.reviewDataContextKey) {
+    return "filterChanged";
+  }
+
+  if (inputs.hasSyncAppliedRemoteChanges) {
+    return "syncAppliedRemoteChanges";
+  }
+
+  return inputs.hasLocalReadVersionChanged ? "localCardsChanged" : inputs.requestedReason;
+}
+
+/** Only the user's own scope choice starts a new session; every other rebuild keeps the shown card. */
+export function startsNewReviewSession(reason: ReviewDataRebuildReason): boolean {
+  return reason === "initialLoad" || reason === "filterChanged" || reason === "workspaceChanged";
+}
+
+/**
+ * A selected deck that no longer exists falls back to all cards, a new scope that starts a new session; a tag
+ * selection that comes to cover every tag stays the same scope: docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
+export function isMissingDeckReviewFilterFallback(
+  requestedReviewFilter: ReviewFilter,
+  previousResolvedReviewFilter: ReviewFilter,
+  nextResolvedReviewFilter: ReviewFilter,
+): boolean {
+  return requestedReviewFilter.kind === "deck"
+    && nextResolvedReviewFilter.kind === "allCards"
+    && previousResolvedReviewFilter.kind !== "allCards";
+}
 
 export type PendingReviewSnapshot = Readonly<{
   card: Card;
@@ -101,6 +169,86 @@ export function buildDisplayedReviewTimeline(
     displayedCurrentCard,
     ...reviewTimeline.filter((card) => card.cardId !== displayedCurrentCard.cardId),
   ];
+}
+
+/** The card a rating shows next; its text and images are prepared before the rating. */
+export function selectPreparedNextCard(displayedReviewQueue: ReadonlyArray<Card>): Card | null {
+  return displayedReviewQueue[1] ?? null;
+}
+
+/**
+ * Keeps the prepared next card right behind the shown card in a refreshed queue, so a background
+ * refresh never swaps it: docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
+export function keepPreparedNextCard(
+  canonicalReviewQueue: ReadonlyArray<Card>,
+  presentedCard: Card | null,
+  preparedNextCard: Card | null,
+): ReadonlyArray<Card> {
+  if (presentedCard === null || preparedNextCard === null || preparedNextCard.cardId === presentedCard.cardId) {
+    return canonicalReviewQueue;
+  }
+
+  return [
+    preparedNextCard,
+    ...canonicalReviewQueue.filter((card) => card.cardId !== preparedNextCard.cardId),
+  ];
+}
+
+/** A rated card that is no longer due returns to the timeline at its new review-order position. */
+export function insertReviewedCardIntoTimeline(
+  reviewTimeline: ReadonlyArray<Card>,
+  reviewedCard: Card,
+  nowTimestamp: number,
+): ReadonlyArray<Card> {
+  const timelineWithoutReviewedCard = reviewTimeline.filter((card) => card.cardId !== reviewedCard.cardId);
+  if (isCardDue(reviewedCard, nowTimestamp)) {
+    return timelineWithoutReviewedCard;
+  }
+
+  const insertionIndex = timelineWithoutReviewedCard.findIndex((card) => (
+    compareCardsForReviewOrder(reviewedCard, card, nowTimestamp) < 0
+  ));
+  if (insertionIndex === -1) {
+    return [...timelineWithoutReviewedCard, reviewedCard];
+  }
+
+  return [
+    ...timelineWithoutReviewedCard.slice(0, insertionIndex),
+    reviewedCard,
+    ...timelineWithoutReviewedCard.slice(insertionIndex),
+  ];
+}
+
+/**
+ * The timeline page lists future cards by due time after the due ones, so it holds the earliest
+ * upcoming due time unless due cards fill the whole page; then the next rebuild picks it up.
+ */
+export function findNextReviewDueAtMillis(reviewTimeline: ReadonlyArray<Card>, nowTimestamp: number): number | null {
+  let nextDueAtMillis: number | null = null;
+  for (const card of reviewTimeline) {
+    const dueAtMillis = card.dueAt === null ? null : parseDueAtMillis(card.dueAt);
+    if (dueAtMillis !== null && dueAtMillis > nowTimestamp && (nextDueAtMillis === null || dueAtMillis < nextDueAtMillis)) {
+      nextDueAtMillis = dueAtMillis;
+    }
+  }
+
+  return nextDueAtMillis;
+}
+
+export type LocallyRatedCard = Readonly<{
+  ratingSequence: number;
+  reviewedCard: Card;
+}>;
+
+/** Cards rated after a load started; that load may have read them before their rating was written. */
+export function collectCardsRatedAfter(
+  locallyRatedCards: ReadonlyMap<string, LocallyRatedCard>,
+  ratingSequence: number,
+): ReadonlyArray<Card> {
+  return [...locallyRatedCards.values()]
+    .filter((locallyRatedCard) => locallyRatedCard.ratingSequence > ratingSequence)
+    .map((locallyRatedCard) => locallyRatedCard.reviewedCard);
 }
 
 export function resolveCanonicalPresentedCard(
@@ -436,24 +584,28 @@ export async function loadPresentedCardForPreservation(
   }
 }
 
-export async function resolvePresentedCard(
+/**
+ * A background rebuild keeps the shown and the prepared next card while they are still in review, even
+ * outside the fresh queue window; null means the card left review: docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
+export async function loadReviewCardIfStillInReview(
   canonicalReviewQueue: ReadonlyArray<Card>,
-  previousPresentedCard: Card | null,
+  card: Card | null,
   resolvedReviewFilter: ReviewFilter,
   deckSummaries: ReadonlyArray<DeckSummary>,
   getCardById: (cardId: string) => Promise<Card>,
 ): Promise<Card | null> {
-  if (previousPresentedCard === null) {
-    return canonicalReviewQueue[0] ?? null;
+  if (card === null) {
+    return null;
   }
 
-  const canonicalPresentedCard = canonicalReviewQueue.find((card) => card.cardId === previousPresentedCard.cardId);
-  if (canonicalPresentedCard !== undefined) {
-    return canonicalPresentedCard;
+  const canonicalCard = canonicalReviewQueue.find((queuedCard) => queuedCard.cardId === card.cardId);
+  if (canonicalCard !== undefined) {
+    return canonicalCard;
   }
 
-  const loadedPresentedCard = await loadPresentedCardForPreservation(previousPresentedCard.cardId, getCardById);
-  return loadedPresentedCard !== null && isPreservablePresentedCard(loadedPresentedCard, resolvedReviewFilter, deckSummaries, Date.now())
-    ? loadedPresentedCard
-    : canonicalReviewQueue[0] ?? null;
+  const loadedCard = await loadPresentedCardForPreservation(card.cardId, getCardById);
+  return loadedCard !== null && isPreservablePresentedCard(loadedCard, resolvedReviewFilter, deckSummaries, Date.now())
+    ? loadedCard
+    : null;
 }

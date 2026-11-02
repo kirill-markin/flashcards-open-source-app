@@ -7,6 +7,7 @@ import {
   formatReviewProgressFreezeValue,
   formatReviewProgressBadgeValue,
 } from "../../appData/progress/badge/reviewProgressBadge";
+import { useDeferredProgressRefreshWhileShown } from "../../appData/progress/invalidation/deferredProgressRefresh";
 import { useProgressInvalidationState } from "../../appData/progress/invalidation/progressInvalidation";
 import { canLoadProgressServerBase, useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n } from "../../i18n";
@@ -55,6 +56,7 @@ export function ProgressScreen(): ReactElement {
     cloudSettings,
     sessionVerificationState,
   } = useAppData();
+  useDeferredProgressRefreshWhileShown();
   const {
     progressLocalVersion,
     progressScheduleLocalVersion,

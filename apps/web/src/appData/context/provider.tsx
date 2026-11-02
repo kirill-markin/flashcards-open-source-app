@@ -27,7 +27,7 @@ import type {
   WorkspaceSummary,
 } from "../../types";
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual, markSelectedWorkspaces, normalizeReviewFilter } from "../domain";
-import type { AppDataContextValue, Props, SessionLoadState } from "./types";
+import type { AppDataContextValue, LocalReviewSchedule, Props, SessionLoadState } from "./types";
 import { useProgressInvalidationRefresh } from "../progress/invalidation/progressInvalidation";
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
 import { useSyncEngine } from "../sync/engine/useSyncEngine";
@@ -45,6 +45,11 @@ import {
 } from "./reviewFilterPersistence";
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
+
+const initialLocalReviewSchedule: LocalReviewSchedule = {
+  reviewScheduleVersion: 0,
+  lastLocalReview: null,
+};
 
 function mergeSessionAccountPreferences(
   session: SessionInfo,
@@ -143,6 +148,8 @@ export function AppDataProvider(props: Props): ReactElement {
   const [workspaceSettings, setWorkspaceSettings] = useState<WorkspaceSchedulerSettings | null>(null);
   const [cloudSettings, setCloudSettings] = useState<CloudSettings | null>(null);
   const [localReadVersion, setLocalReadVersion] = useState<number>(0);
+  const [syncAppliedRemoteChangesVersion, setSyncAppliedRemoteChangesVersion] = useState<number>(0);
+  const [localReviewSchedule, setLocalReviewSchedule] = useState<LocalReviewSchedule>(initialLocalReviewSchedule);
   const [localCardCount, setLocalCardCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [errorMessage, setErrorMessageState] = useState<string>("");
@@ -264,6 +271,8 @@ export function AppDataProvider(props: Props): ReactElement {
     setWorkspaceSettings,
     setCloudSettings,
     setLocalReadVersion,
+    setSyncAppliedRemoteChangesVersion,
+    setLocalReviewSchedule,
     setIsSyncing,
     setErrorMessage,
     setTechnicalError,
@@ -412,6 +421,8 @@ export function AppDataProvider(props: Props): ReactElement {
     }));
     setWorkspaceSettings(null);
     setLocalReadVersion(0);
+    setSyncAppliedRemoteChangesVersion(0);
+    setLocalReviewSchedule(initialLocalReviewSchedule);
     setLocalCardCount(0);
     setIsSyncing(false);
   }, []);
@@ -557,6 +568,9 @@ export function AppDataProvider(props: Props): ReactElement {
     workspaceSettings,
     cloudSettings,
     localReadVersion,
+    syncAppliedRemoteChangesVersion,
+    reviewScheduleVersion: localReviewSchedule.reviewScheduleVersion,
+    lastLocalReview: localReviewSchedule.lastLocalReview,
     localCardCount,
     isSyncing,
     selectedReviewFilter: selectedReviewFilterState,
