@@ -215,15 +215,21 @@ function requestStoredSyncWriteStamp(
 
 function readStoredSyncWriteStamp(
   entry: SyncBootstrapEntry,
-  record: StoredCard | Deck | StoredMediaAsset | WorkspaceSettingsRecord | undefined,
+  storedRecord: IDBRequest["result"],
 ): SyncWriteStamp | null {
-  if (record === undefined) {
-    return null;
+  if (entry.entityType === "card") {
+    return (storedRecord as StoredCard | undefined) ?? null;
   }
 
-  return entry.entityType === "workspace_scheduler_settings"
-    ? (record as WorkspaceSettingsRecord).settings
-    : record as SyncWriteStamp;
+  if (entry.entityType === "deck") {
+    return (storedRecord as Deck | undefined) ?? null;
+  }
+
+  if (entry.entityType === "media_asset") {
+    return (storedRecord as StoredMediaAsset | undefined) ?? null;
+  }
+
+  return (storedRecord as WorkspaceSettingsRecord | undefined)?.settings ?? null;
 }
 
 /**

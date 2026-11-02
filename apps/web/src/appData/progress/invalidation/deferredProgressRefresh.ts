@@ -13,7 +13,7 @@ export type DeferredProgressRefresh = Readonly<{
 
 type VisibleProgressRatingListener = () => void;
 
-const progressDeferredRefreshDelayMs = 3_000;
+export const progressDeferredRefreshDelayMs = 3_000;
 
 const noDeferredProgressRefresh: DeferredProgressRefresh = {
   didChangeLocalProgress: false,
