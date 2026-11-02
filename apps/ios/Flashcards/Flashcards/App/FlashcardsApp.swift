@@ -41,6 +41,7 @@ struct FlashcardsApp: App {
     @State private var appleSubscriptions: AppleSubscriptionService
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
+    @State private var reviewScreen: ReviewScreenModel
     @State private var progressScreenState: ProgressScreenState
     @State private var progressContextWatcherRefreshToken: Int
     @State private var uiTestLaunchScenario: FlashcardsUITestLaunchScenario?
@@ -194,6 +195,7 @@ struct FlashcardsApp: App {
                 progressPresentationRequest: nil
             )
         )
+        _reviewScreen = State(initialValue: ReviewScreenModel())
         _progressScreenState = State(initialValue: ProgressScreenState())
         _progressContextWatcherRefreshToken = State(initialValue: 0)
         _uiTestLaunchScenario = State(initialValue: launchScenario)
@@ -214,6 +216,7 @@ struct FlashcardsApp: App {
                 .environment(store)
                 .environment(self.appleSubscriptions)
                 .environment(navigation)
+                .environment(self.reviewScreen)
                 .environment(self.progressScreenState)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
