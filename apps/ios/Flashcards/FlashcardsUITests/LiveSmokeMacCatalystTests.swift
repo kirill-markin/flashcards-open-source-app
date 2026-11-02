@@ -338,8 +338,11 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         let window = self.app.windows.firstMatch
         let sidebar = self.app.collectionViews["Sidebar"].firstMatch
         XCTAssertTrue(sidebar.exists)
-        XCTAssertEqual(sidebar.frame.minY, window.frame.minY, accuracy: 1)
-        XCTAssertEqual(sidebar.frame.height, window.frame.height, accuracy: 1)
+        let sidebarOuterInset = min(sidebar.frame.minX - window.frame.minX, window.frame.maxX - sidebar.frame.maxX)
+        XCTAssertGreaterThanOrEqual(sidebarOuterInset, 0)
+        XCTAssertEqual(sidebar.frame.minY, window.frame.minY + sidebarOuterInset, accuracy: 1)
+        XCTAssertEqual(sidebar.frame.maxY, window.frame.maxY - sidebarOuterInset, accuracy: 1)
+        XCTAssertEqual(sidebar.frame.height, window.frame.height - 2 * sidebarOuterInset, accuracy: 1)
         let originalSidebarFrame = sidebar.frame
         let sidebarButton = self.app.buttons["mac.sidebar.toggle"].firstMatch
         XCTAssertTrue(sidebarButton.exists)
