@@ -167,78 +167,81 @@ extension AIChatView {
                     .accessibilityIdentifier(UITestIdentifier.aiRemainingMessagesNotice)
                 }
 
-                AIChatComposerKeyboardHost(
-                    isFocused: self.$isComposerFocused,
-                    canSend: { self.chatStore.canSendMessage },
-                    onSend: self.sendComposerMessageFromReturnKey
-                ) { isTextFieldFocused in
-                    ZStack(alignment: .bottomTrailing) {
-                        TextField(
-                            aiSettingsLocalized(
-                                "ai.composer.placeholder",
-                                "Ask about cards, review history, or propose a change..."
-                            ),
-                            text: self.composerTextBinding,
-                            selection: self.composerSelectionBinding,
-                            axis: .vertical
-                        )
-                        .disabled(self.composerTextFieldDisabled)
-                        .autocorrectionDisabled(true)
-                        .focused(isTextFieldFocused)
-                        .lineLimit(1...aiChatComposerMaximumLineCount)
-                        .padding(.leading, 12)
-                        .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
-                        .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                        .padding(.bottom, aiChatComposerTextVerticalPadding)
-                        #if targetEnvironment(macCatalyst)
-                        .frame(minHeight: aiChatComposerSendButtonHitSize)
-                        #endif
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            isTextFieldFocused.wrappedValue = true
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.aiComposerTextField)
-                        .modifier(ComposerKeyboardModifier(
-                            isEnabled: self.isPresentationActive,
-                            onDismiss: self.dismissComposerFocus
-                        ))
-
-                        Button {
-                            self.handlePrimaryComposerAction()
-                        } label: {
-                            Group {
-                                if self.chatStore.bootstrapPhase == .loading
-                                    || self.chatStore.composerPhase == .preparingSend {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .frame(
-                                            width: aiChatComposerSendButtonVisualSize,
-                                            height: aiChatComposerSendButtonVisualSize
-                                        )
-                                } else {
-                                    Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
-                                        .font(.system(size: 28))
-                                        .frame(
-                                            width: aiChatComposerSendButtonVisualSize,
-                                            height: aiChatComposerSendButtonVisualSize
-                                        )
-                                        .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
-                                }
-                            }
-                            .padding(.trailing, aiChatComposerSendButtonInset)
-                            .padding(.bottom, aiChatComposerSendButtonInset)
-                            .frame(
-                                width: aiChatComposerSendButtonHitSize,
-                                height: aiChatComposerSendButtonHitSize,
-                                alignment: .bottomTrailing
-                            )
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(self.primaryComposerButtonDisabled)
-                        .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
-                        .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
+                ZStack(alignment: .bottomTrailing) {
+                    TextField(
+                        aiSettingsLocalized(
+                            "ai.composer.placeholder",
+                            "Ask about cards, review history, or propose a change..."
+                        ),
+                        text: self.composerTextBinding,
+                        selection: self.composerSelectionBinding,
+                        axis: .vertical
+                    )
+                    .disabled(self.composerTextFieldDisabled)
+                    .autocorrectionDisabled(true)
+                    .focused(self.$isComposerFocused)
+                    .lineLimit(1...aiChatComposerMaximumLineCount)
+                    .padding(.leading, 12)
+                    .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
+                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    .padding(.bottom, aiChatComposerTextVerticalPadding)
+                    #if targetEnvironment(macCatalyst)
+                    .frame(minHeight: aiChatComposerSendButtonHitSize)
+                    #endif
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        self.isComposerFocused = true
                     }
+                    .accessibilityIdentifier(UITestIdentifier.aiComposerTextField)
+                    .modifier(ComposerKeyboardModifier(
+                        isEnabled: self.isPresentationActive,
+                        onDismiss: self.dismissComposerFocus
+                    ))
+
+                    Button {
+                        self.handlePrimaryComposerAction()
+                    } label: {
+                        Group {
+                            if self.chatStore.bootstrapPhase == .loading
+                                || self.chatStore.composerPhase == .preparingSend {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(
+                                        width: aiChatComposerSendButtonVisualSize,
+                                        height: aiChatComposerSendButtonVisualSize
+                                    )
+                            } else {
+                                Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
+                                    .font(.system(size: 28))
+                                    .frame(
+                                        width: aiChatComposerSendButtonVisualSize,
+                                        height: aiChatComposerSendButtonVisualSize
+                                    )
+                                    .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
+                            }
+                        }
+                        .padding(.trailing, aiChatComposerSendButtonInset)
+                        .padding(.bottom, aiChatComposerSendButtonInset)
+                        .frame(
+                            width: aiChatComposerSendButtonHitSize,
+                            height: aiChatComposerSendButtonHitSize,
+                            alignment: .bottomTrailing
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(self.primaryComposerButtonDisabled)
+                    .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
+                    .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
+                }
+                .background {
+                    AIChatComposerKeyboardObserver(
+                        isEnabled: self.isPresentationActive,
+                        canSend: { self.chatStore.canSendMessage },
+                        onSend: self.sendComposerMessageFromReturnKey
+                    )
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
                 }
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(alignment: .topLeading) {
