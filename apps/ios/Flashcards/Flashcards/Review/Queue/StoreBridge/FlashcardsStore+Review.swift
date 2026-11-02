@@ -141,12 +141,28 @@ extension FlashcardsStore {
         databaseURL: URL,
         now: Date
     ) {
+        let currentReviewState = self.currentReviewPublishedState()
+        // The shown card must never change before it is rated: replacing it during a reload reads as a blink.
+        // Only a filter change starts empty; a workspace switch resets the presentation before it loads.
+        // The card is validated against the fresh `cards`, not the queue being replaced.
+        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+        let isReviewFilterChange = resolvedReviewQuery.reviewFilter != currentReviewState.selectedReviewFilter
+        let preservedPresentedReviewCard = isReviewFilterChange ? nil : presentedReviewCardForBackgroundRefresh(
+            reviewQueue: [],
+            presentedCardId: currentReviewState.presentedReviewCard?.cardId,
+            pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
         let plan = self.reviewRuntime.startReviewLoad(
-            publishedState: self.currentReviewPublishedState(),
+            publishedState: currentReviewState,
             resolvedReviewQuery: resolvedReviewQuery,
             workspaceId: workspaceId,
             databaseURL: databaseURL,
-            now: now
+            now: now,
+            preservedPresentedReviewCard: preservedPresentedReviewCard
         )
         self.applyReviewPublishedState(reviewState: plan.publishedState)
         self.persistSelectedReviewFilter(reviewFilter: plan.publishedState.selectedReviewFilter)
@@ -608,6 +624,9 @@ extension FlashcardsStore {
             return
         }
         let completionValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
+        // The shown card must never change before it is rated, so a queue that only reordered or gained
+        // cards (an `Again` card becoming due) completes normally; a reload would replace the card (a blink).
+        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
         guard self.reviewSubmissionRequestMatchesCurrentContext(
             request: request,
             validationContext: completionValidationContext
@@ -682,6 +701,20 @@ extension FlashcardsStore {
         )
     }
 
+    private func reviewSubmissionRequestMatchesCurrentSession(
+        request: ReviewSubmissionRequest,
+        validationContext: ReviewSubmissionRollbackValidationContext?
+    ) -> Bool {
+        guard let validationContext else {
+            return false
+        }
+        return self.reviewRuntime.reviewSubmissionRequestMatchesCurrentSession(
+            publishedState: self.currentReviewPublishedState(),
+            request: request,
+            validationContext: validationContext
+        )
+    }
+
     private func applyStaleReviewSubmissionCompletion(request: ReviewSubmissionRequest) {
         self.applyReviewPublishedState(
             reviewState: self.reviewRuntime.completeStaleReviewSubmission(
@@ -725,7 +758,7 @@ extension FlashcardsStore {
         // this same snapshot when the refresh throws and a fresh context is unavailable;
         // rollback-card selection still requires fresh data and is suppressed in that case.
         let preRefreshValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
-        guard self.reviewSubmissionRequestMatchesCurrentContext(
+        guard self.reviewSubmissionRequestMatchesCurrentSession(
             request: request,
             validationContext: preRefreshValidationContext
         ) else {
@@ -739,7 +772,7 @@ extension FlashcardsStore {
                 self.localReadVersion += 1
             }
             let rollbackValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
-            guard self.reviewSubmissionRequestMatchesCurrentContext(
+            guard self.reviewSubmissionRequestMatchesCurrentSession(
                 request: request,
                 validationContext: rollbackValidationContext
             ) else {
@@ -761,7 +794,7 @@ extension FlashcardsStore {
             // classification stays consistent with the early check above, regardless of
             // refresh outcome. Rollback-card selection requires fresh data we no longer
             // have, so we pass nil to suppress it.
-            guard self.reviewSubmissionRequestMatchesCurrentContext(
+            guard self.reviewSubmissionRequestMatchesCurrentSession(
                 request: request,
                 validationContext: preRefreshValidationContext
             ) else {
