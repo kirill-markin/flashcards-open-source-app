@@ -244,7 +244,19 @@ describe("ReviewCardSide managed media rendering", () => {
       naturalWidth = imageNaturalWidth;
       onerror: (() => void) | null = null;
       onload: (() => void) | null = null;
-      src = "";
+      private currentSrc = "";
+
+      get src(): string {
+        return this.currentSrc;
+      }
+
+      // Like a browser, an object URL loads asynchronously after src is set.
+      set src(value: string) {
+        this.currentSrc = value;
+        queueMicrotask(() => {
+          this.onload?.();
+        });
+      }
 
       decode(): Promise<void> {
         return imageDecodeMock();

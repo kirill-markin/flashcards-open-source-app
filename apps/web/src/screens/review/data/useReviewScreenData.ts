@@ -21,6 +21,11 @@ import {
   startReviewAfterRatingWorkSpan,
   type ReviewTimingSpan,
 } from "../../../observability/reviewTimingSpans";
+import {
+  collectReviewImageMediaAssetIds,
+  prepareReviewImages,
+  releasePreparedImagesExcept,
+} from "../components/card/managedMedia/reviewPreparedImages";
 import type {
   Card,
   DeckSummary,
@@ -234,6 +239,12 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         messages.common.countLabels.tag,
       ),
     );
+  const preparedImagesCurrentCard = activeReviewQueue[0] ?? null;
+  const preparedImagesNextCard = activeReviewQueue[1] ?? null;
+  const preparedImagesCurrentFrontText = preparedImagesCurrentCard?.frontText ?? "";
+  const preparedImagesCurrentBackText = preparedImagesCurrentCard?.backText ?? "";
+  const preparedImagesNextFrontText = preparedImagesNextCard?.frontText ?? "";
+  const preparedImagesNextBackText = preparedImagesNextCard?.backText ?? "";
   activeWorkspaceIdRef.current = activeWorkspaceId;
   selectedReviewFilterKeyRef.current = selectedReviewFilterKey;
   reviewDataContextKeyRef.current = reviewDataContextKey;
@@ -309,6 +320,51 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
     afterRatingWorkRef.current = nextAfterRatingWork;
   }
+
+  // Keeps the current and next card images decoded so a rating or reveal never waits for them:
+  // docs/fsrs-scheduling-logic.md#non-blocking-review
+  useEffect(() => {
+    if (activeWorkspaceId === null) {
+      releasePreparedImagesExcept(null, []);
+      return undefined;
+    }
+
+    releasePreparedImagesExcept(activeWorkspaceId, collectReviewImageMediaAssetIds([
+      preparedImagesCurrentFrontText,
+      preparedImagesCurrentBackText,
+      preparedImagesNextFrontText,
+      preparedImagesNextBackText,
+    ]));
+    // The current front is already on screen and loads through its own card side.
+    const abortController = new AbortController();
+    void prepareReviewImages(
+      activeWorkspaceId,
+      collectReviewImageMediaAssetIds([
+        preparedImagesCurrentBackText,
+        preparedImagesNextFrontText,
+        preparedImagesNextBackText,
+      ]),
+      indexedDbOpenRecoveryState,
+      abortController.signal,
+    );
+
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    activeWorkspaceId,
+    indexedDbOpenRecoveryState,
+    preparedImagesCurrentBackText,
+    preparedImagesCurrentFrontText,
+    preparedImagesNextBackText,
+    preparedImagesNextFrontText,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      releasePreparedImagesExcept(null, []);
+    };
+  }, []);
 
   useEffect(() => {
     const carriedReviewDataContext = carriedReviewDataContextRef.current;
@@ -581,6 +637,8 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     pendingReviewSnapshotsRef.current = addPendingReviewSnapshot(pendingReviewSnapshotsRef.current, card);
 
     const optimisticCanonicalReviewQueue = removeCardFromReviewQueue(canonicalReviewQueueRef.current, submissionContext.cardId);
+    // The card shown after a rating is the already prepared next card, so its images are decoded:
+    // docs/fsrs-scheduling-logic.md#non-blocking-review
     const optimisticPresentedCard = resolveCanonicalPresentedCard(optimisticCanonicalReviewQueue, null);
     const optimisticActiveReviewQueue = buildDisplayedReviewQueue(optimisticCanonicalReviewQueue, optimisticPresentedCard);
     const optimisticQueueCards = buildDisplayedReviewTimeline(

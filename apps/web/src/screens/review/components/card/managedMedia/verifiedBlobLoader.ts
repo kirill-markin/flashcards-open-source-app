@@ -24,7 +24,7 @@ type ManagedMediaDownloadTask = Readonly<{
   promise: Promise<MediaBlobCacheRecord>;
 }>;
 
-async function waitForRecoveryGuardedManagedMediaPhase<ResultType>(
+export async function waitForRecoveryGuardedManagedMediaPhase<ResultType>(
   createPhase: () => Promise<ResultType>,
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
 ): Promise<ResultType> {
@@ -76,7 +76,7 @@ async function waitForRecoveryAndAbortGuardedManagedMediaPhase<ResultType>(
 
 const activeManagedMediaDownloadTasks = new Map<string, ManagedMediaDownloadTask>();
 
-function readErrorName(error: unknown): string {
+export function readErrorName(error: unknown): string {
   if (error instanceof Error && error.name.trim() !== "") {
     return error.name;
   }
@@ -84,7 +84,7 @@ function readErrorName(error: unknown): string {
   return typeof error;
 }
 
-function readErrorMessage(error: unknown): string {
+export function readErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim() !== "") {
     return error.message;
   }
