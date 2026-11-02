@@ -41,6 +41,7 @@ struct FlashcardsApp: App {
     @State private var appleSubscriptions: AppleSubscriptionService
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
+    @State private var progressScreenState: ProgressScreenState
     @State private var progressContextWatcherRefreshToken: Int
     @State private var uiTestLaunchScenario: FlashcardsUITestLaunchScenario?
     @State private var uiTestAIHandoffCard: FlashcardsUITestAIHandoffCard?
@@ -193,6 +194,7 @@ struct FlashcardsApp: App {
                 progressPresentationRequest: nil
             )
         )
+        _progressScreenState = State(initialValue: ProgressScreenState())
         _progressContextWatcherRefreshToken = State(initialValue: 0)
         _uiTestLaunchScenario = State(initialValue: launchScenario)
         _uiTestAIHandoffCard = State(initialValue: aiHandoffCard)
@@ -212,6 +214,7 @@ struct FlashcardsApp: App {
                 .environment(store)
                 .environment(self.appleSubscriptions)
                 .environment(navigation)
+                .environment(self.progressScreenState)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
                     await self.runInitialAppStartupIfNeeded()

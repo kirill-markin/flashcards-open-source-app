@@ -35,7 +35,7 @@ struct ProgressReviewsSection: View {
     let chartDays: [ProgressChartDay]
     let chartCalendar: Calendar
     let selectionResetKey: String
-    @State private var selectedPageStartLocalDate: String? = nil
+    @Binding var pageSelection: ProgressReviewChartPageSelection?
     @State private var selection: ProgressReviewsSelection? = nil
 
     private var pageSelectionResetToken: ProgressReviewChartSelectionResetToken {
@@ -43,6 +43,14 @@ struct ProgressReviewsSection: View {
             selectionResetKey: self.selectionResetKey,
             chartDays: self.chartDays
         )
+    }
+
+    private var selectedPageStartLocalDate: String? {
+        guard let pageSelection = self.pageSelection, pageSelection.resetToken == self.pageSelectionResetToken else {
+            return nil
+        }
+
+        return pageSelection.startLocalDate
     }
 
     private var chartPages: [ProgressReviewChartPage] {
@@ -347,7 +355,7 @@ struct ProgressReviewsSection: View {
         }
         .padding(.vertical, 4)
         .onChange(of: self.pageSelectionResetToken) { _, _ in
-            self.selectedPageStartLocalDate = nil
+            self.pageSelection = nil
             self.selection = nil
         }
     }
@@ -357,7 +365,7 @@ struct ProgressReviewsSection: View {
             return
         }
 
-        self.selectedPageStartLocalDate = self.chartPages[self.selectedPageIndex - 1].startLocalDate
+        self.selectPage(startLocalDate: self.chartPages[self.selectedPageIndex - 1].startLocalDate)
         self.selection = nil
     }
 
@@ -366,8 +374,15 @@ struct ProgressReviewsSection: View {
             return
         }
 
-        self.selectedPageStartLocalDate = self.chartPages[self.selectedPageIndex + 1].startLocalDate
+        self.selectPage(startLocalDate: self.chartPages[self.selectedPageIndex + 1].startLocalDate)
         self.selection = nil
+    }
+
+    private func selectPage(startLocalDate: String) {
+        self.pageSelection = ProgressReviewChartPageSelection(
+            startLocalDate: startLocalDate,
+            resetToken: self.pageSelectionResetToken
+        )
     }
 
     private func segmentForegroundStyle(segment: ProgressReviewChartSegment) -> Color {
