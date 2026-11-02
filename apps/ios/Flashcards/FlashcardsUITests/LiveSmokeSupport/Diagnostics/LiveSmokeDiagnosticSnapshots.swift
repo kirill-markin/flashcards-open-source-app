@@ -133,6 +133,48 @@ extension LiveSmokeTestCase {
         }.joined(separator: ", ")
     }
 
+    /// Frames come from `snapshot()`, which throws when the element is gone, because reading `frame` on a
+    /// vanished element records its own XCTest failure and could abort before the original one is reported.
+    /// `isHittable` still re-resolves the live element, so a fresh `exists` check guards it; only the
+    /// tiny window between those two reads remains.
+    @MainActor
+    func targetGeometrySnapshot(identifier: String) -> String {
+        guard self.app != nil else {
+            return "<unavailable: app not initialized>"
+        }
+        guard self.isApplicationRunning else {
+            return "<unavailable: app not running>"
+        }
+
+        let window = self.snapshotFrame(of: self.app.windows.firstMatch)
+        let sheet = self.snapshotFrame(of: self.app.sheets.containing(.any, identifier: identifier).firstMatch)
+        let containers = "window=\(window.summary) sheet=\(sheet.summary)"
+
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        let target = self.snapshotFrame(of: element)
+        guard let frame = target.frame else {
+            return "element=\(target.summary) \(containers)"
+        }
+
+        let insideWindow = window.frame.map { "\($0.contains(frame))" } ?? "-"
+        let insideSheet = sheet.frame.map { "\($0.contains(frame))" } ?? "-"
+        let hittable = element.exists ? "\(element.isHittable)" : "<unavailable: element vanished after snapshot>"
+        return """
+        exists=true hittable=\(hittable) frame=\(frame) \(containers) \
+        insideWindow=\(insideWindow) insideSheet=\(insideSheet)
+        """
+    }
+
+    @MainActor
+    private func snapshotFrame(of element: XCUIElement) -> (frame: CGRect?, summary: String) {
+        do {
+            let frame = try element.snapshot().frame
+            return (frame, "\(frame)")
+        } catch {
+            return (nil, "<unavailable: \(error.localizedDescription)>")
+        }
+    }
+
     @MainActor
     func appDebugHierarchy() -> String {
         guard self.app != nil else {
