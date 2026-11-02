@@ -40,6 +40,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil3.SingletonImageLoader
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionStage
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.bidiWrap
@@ -160,6 +161,22 @@ fun ReviewRoute(
             unavailableMessage = context.getString(R.string.review_speech_unavailable),
             observability = observability
         )
+    }
+    val currentLoadManagedMediaFile = rememberUpdatedState(newValue = onLoadManagedMediaFile)
+    val reviewImagePreparer = remember(context) {
+        ReviewImagePreparer(
+            context = context,
+            imageLoader = SingletonImageLoader.get(context),
+            loadManagedMediaFile = { mediaAssetId -> currentLoadManagedMediaFile.value(mediaAssetId) }
+        )
+    }
+    val reviewImageAssetsToPrepare = reviewImageAssetsToPrepare(
+        currentCard = uiState.preparedCurrentCard,
+        nextCard = uiState.preparedNextCard
+    )
+    // Restarts only when the image set changes, cancelling the previous card pair's preparation.
+    LaunchedEffect(reviewImagePreparer, reviewImageAssetsToPrepare) {
+        reviewImagePreparer.prepareImages(mediaAssets = reviewImageAssetsToPrepare)
     }
     val isReviewSurfaceBusy = filterSheetTransaction.isVisible || tagFilterRequest != null ||
         uiState.isHardAnswerReminderVisible || uiState.isNotificationPermissionPromptVisible
@@ -368,7 +385,7 @@ fun ReviewRoute(
                 onCreateCard = onCreateCard,
                 onCreateCardWithAi = onCreateCardWithAi,
                 onSwitchToAllCards = onSwitchToAllCards,
-                onLoadManagedMediaFile = onLoadManagedMediaFile,
+                reviewImagePreparer = reviewImagePreparer,
                 onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                 onConsumeRelocationTarget = onConsumeRelocationTarget,
                 onToggleFrontSpeech = {

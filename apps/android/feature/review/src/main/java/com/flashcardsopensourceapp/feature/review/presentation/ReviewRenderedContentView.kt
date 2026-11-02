@@ -12,12 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.content.MathFormulaBlock
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
-import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 
 @Composable
-fun ReviewRenderedContentView(
+internal fun ReviewRenderedContentView(
     content: ReviewRenderedContent,
-    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
+    reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     modifier: Modifier
 ) {
@@ -63,7 +62,7 @@ fun ReviewRenderedContentView(
                             is ReviewManagedMarkdownBlock.ManagedMedia -> DisableSelection {
                                 ReviewManagedMediaContent(
                                     reference = block.reference,
-                                    onLoadManagedMediaFile = onLoadManagedMediaFile,
+                                    reviewImagePreparer = reviewImagePreparer,
                                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
                                 )
                             }
