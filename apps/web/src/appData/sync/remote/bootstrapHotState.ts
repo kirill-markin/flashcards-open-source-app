@@ -184,6 +184,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
   const indexedDbOpenLifecycleSnapshot = readIndexedDbOpenLifecycleSnapshotForDiagnostics();
@@ -199,6 +200,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule: false,
+        didApplyRemoteChanges: false,
       };
     }
     await loadAndStoreCurrentWorkspaceRestoreHistory(
@@ -210,12 +212,14 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule: false,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
 
@@ -225,6 +229,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
   const localBootstrapState = determineLocalBootstrapState(syncStateBefore, localCardCountBefore);
@@ -272,6 +277,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       observeLocalDbMissing({
@@ -293,6 +299,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -312,6 +319,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       const bootstrapPullElapsedMs = Date.now() - bootstrapPullStartedAtMs;
@@ -330,6 +338,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -340,6 +349,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       await applyHotSyncPage(
@@ -356,6 +366,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       applyHotPagesDurationMs += Date.now() - applyHotPageStartedAtMs;
@@ -372,6 +383,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -382,6 +394,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     finalRefreshDurationMs = Date.now() - finalRefreshStartedAtMs;
@@ -393,6 +406,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     recoveryFailurePhase = "validate_bootstrap_result";
@@ -407,6 +421,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     persistentStorageDurationMs = Date.now() - persistentStorageStartedAtMs;
@@ -415,6 +430,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     await storeCurrentWorkspaceRestoreHistory(
@@ -427,6 +443,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
 
@@ -504,6 +521,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -520,6 +538,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         return {
           didChangeProgressHistory: false,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       if (demoCardSeedResult !== null && demoCardSeedResult.didChangeReviewSchedule) {
@@ -527,9 +546,11 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       }
     }
 
+    // A bootstrap replaces the whole hot state.
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule,
+      didApplyRemoteChanges: true,
     };
   } catch (error) {
     input.indexedDbOpenRecoveryState.throwIfFailed();

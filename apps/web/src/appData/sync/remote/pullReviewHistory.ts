@@ -17,6 +17,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
   const reviewHistoryHydrated = await hasHydratedReviewHistory(input.workspaceId);
@@ -24,6 +25,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -34,6 +36,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory,
         didChangeReviewSchedule: false,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -50,6 +53,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory,
         didChangeReviewSchedule: false,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -58,6 +62,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory,
         didChangeReviewSchedule: false,
+        didApplyRemoteChanges: false,
       };
     }
     await applyReviewHistorySyncPage(input.workspaceId, reviewHistoryResult.reviewEvents, {
@@ -68,6 +73,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       return {
         didChangeProgressHistory,
         didChangeReviewSchedule: false,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -86,5 +92,6 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
   return {
     didChangeProgressHistory,
     didChangeReviewSchedule: false,
+    didApplyRemoteChanges: false,
   };
 }

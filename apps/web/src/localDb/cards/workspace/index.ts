@@ -1,4 +1,5 @@
 import type {
+  Deck,
   ReviewEvent,
   SyncBootstrapEntry,
   WorkspaceSchedulerSettings,
@@ -12,6 +13,8 @@ import {
   type DatabaseStores,
   getFromStore,
   runReadwrite,
+  type StoredCard,
+  type StoredMediaAsset,
   type WorkspaceSettingsRecord,
   type WorkspaceSyncStateRecord,
 } from "../../core/database";
@@ -29,6 +32,11 @@ type HotSyncStateUpdate = Readonly<{
 type ReviewHistorySyncStateUpdate = Readonly<{
   lastAppliedReviewSequenceId: number;
   markReviewHistoryHydrated: boolean;
+}>;
+
+type SyncWriteStamp = Readonly<{
+  lastOperationId: string;
+  clientUpdatedAt: string;
 }>;
 
 function compareTagSummaries(
@@ -181,6 +189,56 @@ export async function loadWorkspaceTagsSummary(workspaceId: string): Promise<Wor
         .sort(compareTagSummaries),
       totalCards: await loadActiveCardCountWithDatabase(database, workspaceId),
     };
+  });
+}
+
+async function loadStoredSyncWriteStamp(
+  database: IDBDatabase,
+  workspaceId: string,
+  entry: SyncBootstrapEntry,
+): Promise<SyncWriteStamp | null> {
+  if (entry.entityType === "card") {
+    return await getFromStore<StoredCard>(database, "cards", [workspaceId, entry.payload.cardId]) ?? null;
+  }
+
+  if (entry.entityType === "deck") {
+    return await getFromStore<Deck>(database, "decks", [workspaceId, entry.payload.deckId]) ?? null;
+  }
+
+  if (entry.entityType === "media_asset") {
+    return await getFromStore<StoredMediaAsset>(database, "mediaAssets", [workspaceId, entry.payload.mediaAssetId]) ?? null;
+  }
+
+  return (await getFromStore<WorkspaceSettingsRecord>(database, "workspaceSettings", workspaceId))?.settings ?? null;
+}
+
+/**
+ * Whether storing these pulled entries changes local data. An entry that carries the stored entity's own last
+ * operation and client time is a write this browser already holds, such as the echo of its own rating; the
+ * server moves the client time when it merges text into such a write:
+ * docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
+export async function doHotSyncEntriesChangeLocalData(
+  workspaceId: string,
+  entries: ReadonlyArray<SyncBootstrapEntry>,
+): Promise<boolean> {
+  if (entries.length === 0) {
+    return false;
+  }
+
+  return closeDatabaseAfter(async (database) => {
+    for (const entry of entries) {
+      const storedStamp = await loadStoredSyncWriteStamp(database, workspaceId, entry);
+      if (
+        storedStamp === null
+        || storedStamp.lastOperationId !== entry.payload.lastOperationId
+        || storedStamp.clientUpdatedAt !== entry.payload.clientUpdatedAt
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   });
 }
 

@@ -205,6 +205,22 @@ function mergeProgressSummary(
   };
 }
 
+// What a rescan would add for a rating today, kept in memory until the deferred refresh rescans.
+export function addLocalReviewTodayToSummarySnapshot(
+  snapshot: ProgressSummarySnapshot,
+  referenceLocalDate: string,
+): ProgressSummarySnapshot {
+  if (snapshot.summary.hasReviewedToday) {
+    return snapshot;
+  }
+
+  return createProgressSummarySnapshot(
+    mergeProgressSummary(snapshot, [referenceLocalDate], null, referenceLocalDate),
+    snapshot.source,
+    true,
+  );
+}
+
 export function buildRenderedSummary(
   serverBase: ProgressSummarySnapshot | null,
   localFallback: ProgressSummarySnapshot | null,

@@ -46,6 +46,8 @@ export type AppDataContextValue = Readonly<{
   workspaceSettings: WorkspaceSchedulerSettings | null;
   cloudSettings: CloudSettings | null;
   localReadVersion: number;
+  /** Moves together with `localReadVersion` when a sync, here or in another tab, applied remote changes or another tab wrote locally. */
+  syncAppliedRemoteChangesVersion: number;
   reviewScheduleVersion: number;
   lastLocalReview: LocalReview | null;
   localCardCount: number;

@@ -13,6 +13,7 @@ import type {
   ProgressScopeKey,
   ProgressSummaryInput,
 } from "../../../../types";
+import { subscribeToVisibleProgressRatings } from "../../invalidation/deferredProgressRefresh";
 import {
   createProgressSummarySnapshot,
 } from "../../snapshots/progressSnapshots";
@@ -190,6 +191,19 @@ export function useProgressSummarySourcePipeline(
     progressLocalVersion,
     scopeKey,
   ]);
+
+  useEffect(() => subscribeToVisibleProgressRatings(() => {
+    const currentScopeKey = currentScopeKeyRef.current;
+    if (currentScopeKey === null) {
+      return;
+    }
+
+    dispatch({
+      type: "summary_local_rating_applied",
+      scopeKey: currentScopeKey,
+      canRenderServerBase: canLoadServerBaseRef.current,
+    });
+  }), [canLoadServerBaseRef, currentScopeKeyRef, dispatch]);
 
   const refreshProgressSummary = useCallback<RefreshProgressSummary>(async function refreshProgressSummary(
     targetScopeKey: ProgressScopeKey,
