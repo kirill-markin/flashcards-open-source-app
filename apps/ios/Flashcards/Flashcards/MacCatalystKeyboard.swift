@@ -57,7 +57,7 @@ private extension UIResponder {
 
 /// Probe the responder directly to avoid expensive window view-tree walks.
 @MainActor
-func firstResponderView(in view: UIView) -> UIView? {
+func keyboardFirstResponderView(in view: UIView) -> UIView? {
     FirstResponderProbe.responder = nil
     defer { FirstResponderProbe.responder = nil }
     UIApplication.shared.sendAction(#selector(UIResponder.nibomoReportFirstResponder(_:)), to: nil, from: nil, for: nil)
@@ -74,7 +74,7 @@ func hasCoveringPresentation(_ controller: UIViewController) -> Bool {
 #if targetEnvironment(macCatalyst)
 @MainActor
 private func hasEditableResponder(in window: UIWindow) -> Bool {
-    guard let responder = firstResponderView(in: window) else { return false }
+    guard let responder = keyboardFirstResponderView(in: window) else { return false }
     return responder is UIKeyInput || responder is UITextInput
 }
 
@@ -169,7 +169,7 @@ private final class ComposerEscapeCommandView: UIView {
 
     private func eligibleController() -> UIViewController? {
         guard self.isEnabled, let window = self.window, isActiveKeyboardWindow(window),
-              let responder = firstResponderView(in: window),
+              let responder = keyboardFirstResponderView(in: window),
               responder is UITextInput || responder is UIKeyInput,
               (responder as? UITextInput)?.markedTextRange == nil,
               self.convert(self.bounds, to: window).intersects(responder.convert(responder.bounds, to: window)) else { return nil }
@@ -240,7 +240,7 @@ private final class CardEditorKeyboardController: UIHostingController<AnyView> {
     private var canHandleInput: Bool {
         self.isEnabled && isActiveKeyboardWindow(self.viewIfLoaded?.window)
             && hasCoveringPresentation(self) == false
-            && (self.isFirstResponder || self.viewIfLoaded.map { firstResponderView(in: $0) != nil } == true)
+            && (self.isFirstResponder || self.viewIfLoaded.map { keyboardFirstResponderView(in: $0) != nil } == true)
     }
     override var keyCommands: [UIKeyCommand]? {
         let inheritedCommands = super.keyCommands ?? []
