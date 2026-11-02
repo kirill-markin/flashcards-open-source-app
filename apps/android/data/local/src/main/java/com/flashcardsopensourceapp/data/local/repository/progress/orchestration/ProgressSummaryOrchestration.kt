@@ -57,6 +57,18 @@ private data class ProgressSummaryRatingPatch(
     val localDate: ProgressPendingReviewLocalDate
 )
 
+// Every local cache write updates the review-history and cache-state versions in one
+// transaction, but Room re-queries the two tables separately, so one emission can pair a new
+// version with an old one. Such a view keeps the shown summary of the same scope instead of
+// blanking the badge; the caller still runs ensureLocalCacheReady for it, so a gap that does
+// not resolve is rebuilt. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+private fun shouldKeepPublishedSummaryWhileCacheCatchesUp(
+    publishedSnapshot: ProgressSummarySnapshot?,
+    storeState: ProgressSummaryStoreState
+): Boolean {
+    return storeState.isLocalCacheReady.not() && publishedSnapshot?.scopeKey == storeState.scopeKey
+}
+
 internal class ProgressSummaryOrchestration(
     private val database: AppDatabase,
     private val cloudAccountRepository: CloudAccountRepository,
@@ -99,7 +111,14 @@ internal class ProgressSummaryOrchestration(
                 )
             )
             latestStoreStateMutable.value = currentStoreState
-            publishSnapshotIfChanged(snapshot = currentStoreState.snapshot)
+            if (
+                shouldKeepPublishedSummaryWhileCacheCatchesUp(
+                    publishedSnapshot = snapshotMutable.value,
+                    storeState = currentStoreState
+                ).not()
+            ) {
+                publishSnapshotIfChanged(snapshot = currentStoreState.snapshot)
+            }
             return ProgressSummaryHandledInputs(
                 previousStoreState = previousStoreState,
                 currentStoreState = currentStoreState
