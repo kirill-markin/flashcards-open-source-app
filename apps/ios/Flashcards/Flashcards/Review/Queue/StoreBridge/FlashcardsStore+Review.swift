@@ -950,10 +950,12 @@ extension FlashcardsStore {
             return false
         }
         // The Review badge counts the same due cards for the same filter, so it needs no query of its own. Fresh
-        // counts publish it even when the queue result below is dropped, because a rating rereads nothing else.
+        // counts publish it even when the queue below is unchanged, because a rating rereads nothing else; a
+        // superseded reconcile publishes nothing, so it cannot overwrite a newer count.
         // See docs/fsrs-scheduling-logic.md#non-blocking-review.
         if requestedReviewFilter == self.selectedReviewFilter,
-           self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion) {
+           self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion),
+           self.reviewRuntime.shouldApplyReviewReconciliation(generation: reconciliationGeneration) {
             self.reviewDueBadgeCount = reviewCounts.dueCount
         }
         guard currentReviewState == self.currentReviewPublishedState() else {

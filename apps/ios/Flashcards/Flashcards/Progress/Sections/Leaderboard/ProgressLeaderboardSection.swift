@@ -9,12 +9,20 @@ struct ProgressLeaderboardSection: View {
     /// the offline placeholder must stay hidden while any of them is in flight.
     let isRefreshing: Bool
     let leaderboardRefreshMessage: String
-    @Binding var selectedWindowKey: LeaderboardWindowKey?
+    @Binding var windowSelection: ProgressLeaderboardWindowSelection?
     let onOpenCloudSignIn: () -> Void
     let onOpenFriendInvite: () -> Void
     let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
 
     @State private var isInfoAlertPresented: Bool = false
+
+    private var selectedWindowKey: LeaderboardWindowKey? {
+        guard let windowSelection = self.windowSelection, windowSelection.scopeKey == self.snapshot.scopeKey else {
+            return nil
+        }
+
+        return windowSelection.windowKey
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -36,7 +44,7 @@ struct ProgressLeaderboardSection: View {
         }
         .padding(.vertical, 4)
         .onChange(of: self.snapshot.scopeKey) { _, _ in
-            self.selectedWindowKey = nil
+            self.windowSelection = nil
         }
         .alert(
             progressLeaderboardSectionTitle(),
@@ -143,7 +151,10 @@ struct ProgressLeaderboardSection: View {
                 selectedKey
             },
             set: { nextWindowKey in
-                self.selectedWindowKey = nextWindowKey
+                self.windowSelection = ProgressLeaderboardWindowSelection(
+                    windowKey: nextWindowKey,
+                    scopeKey: self.snapshot.scopeKey
+                )
             }
         )
 

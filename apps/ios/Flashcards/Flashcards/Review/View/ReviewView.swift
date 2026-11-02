@@ -97,14 +97,6 @@ struct ReviewView: View {
         store.presentedReviewCard
     }
 
-    private var cachedPreparedCurrentRevealState: PreparedReviewRevealState? {
-        guard let currentCard else {
-            return nil
-        }
-
-        return self.cachedPreparedRevealState(card: currentCard)
-    }
-
     private var preparedRevealStatesTaskId: String {
         let presentedStateId = self.currentCard.map {
             makePreparedReviewRevealStateId(card: $0, schedulerSettings: store.schedulerSettings)
@@ -119,11 +111,7 @@ struct ReviewView: View {
     /// A kept card stays on screen while a rebuild loads the queue behind it.
     /// See docs/fsrs-scheduling-logic.md#non-blocking-review.
     private var shouldShowReviewLoader: Bool {
-        if let currentCard {
-            return self.cachedPreparedRevealState(card: currentCard) == nil
-        }
-
-        return store.isReviewHeadLoading || store.isReviewQueueChunkLoading
+        self.currentCard == nil && (store.isReviewHeadLoading || store.isReviewQueueChunkLoading)
     }
 
     private var usesPairedReviewSpacing: Bool {
@@ -159,8 +147,8 @@ struct ReviewView: View {
             Group {
                 if self.shouldShowReviewLoader {
                     reviewLoadingView
-                } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
-                    activeCardView(card: currentCard, preparedRevealState: preparedRevealState)
+                } else if let currentCard {
+                    activeCardView(card: currentCard, preparedRevealState: self.displayedRevealState(card: currentCard))
                 } else {
                     emptyStateView
                         .onAppear {
@@ -944,9 +932,9 @@ struct ReviewView: View {
             if self.shouldShowReviewLoader {
                 EmptyView()
             } else if !(self.reviewScreen.isAnswerVisible && self.dynamicTypeSize.isAccessibilitySize),
-                      let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+                      let currentCard {
                 reviewBottomBarContainer {
-                    reviewBottomBar(card: currentCard, preparedRevealState: preparedRevealState)
+                    reviewBottomBar(card: currentCard, preparedRevealState: self.displayedRevealState(card: currentCard))
                 }
             }
         }
@@ -1232,7 +1220,7 @@ struct ReviewView: View {
                 rate: nil
             )
         }
-        guard self.cachedPreparedCurrentRevealState?.reviewAnswerGridOptions != nil else {
+        guard self.displayedRevealState(card: card).reviewAnswerGridOptions != nil else {
             return nil
         }
         return ReviewKeyboardActions(
@@ -1369,7 +1357,7 @@ struct ReviewView: View {
             return nil
         }
 
-        return self.cachedPreparedRevealState(card: card)?.reviewAnswerOptionsErrorMessage
+        return self.displayedRevealState(card: card).reviewAnswerOptionsErrorMessage
     }
 
     private var emptyStateView: some View {

@@ -1040,4 +1040,5 @@ private extension View {
         .environment(AppleSubscriptionService(store: store, session: .shared))
         .environment(AppNavigationModel())
         .environment(ReviewScreenModel())
+        .environment(ProgressScreenState())
 }
