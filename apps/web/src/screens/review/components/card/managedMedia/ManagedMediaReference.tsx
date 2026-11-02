@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -8,7 +9,6 @@ import {
 } from "react";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
-  type IndexedDbOpenRecoveryState,
   useAppErrorDialog,
 } from "../../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../../i18n";
@@ -22,18 +22,26 @@ import {
   type ManagedMediaObjectUrlLease,
 } from "./objectUrlLease";
 import {
+  decodeLoadedManagedImage,
+  getPreparedReviewImage,
+  loadManagedImageObjectUrl,
+  readManagedImageDimensions,
+  type ManagedMediaImageDimensions,
+  type PreparedReviewImage,
+} from "./reviewPreparedImages";
+import {
   loadManagedMediaBlob,
+  readErrorMessage,
+  readErrorName,
+  waitForRecoveryGuardedManagedMediaPhase,
   type ManagedMediaBlobLoadResult,
 } from "./verifiedBlobLoader";
 
 type ManagedMediaKind = "image" | "audio" | "video" | "attachment";
 type ManagedMediaReferencePresentation = "image" | "link";
-type ManagedMediaImageDimensions = Readonly<{
-  height: number;
-  width: number;
-}>;
 type ManagedMediaLoadState =
-  | Readonly<{ status: "loading" }>
+  // Dimensions come from the local file once it is read, so the placeholder matches the image before decode.
+  | Readonly<{ status: "loading"; imageDimensions: ManagedMediaImageDimensions | null }>
   | Readonly<{ status: "unavailable"; mediaAsset: MediaAsset | null }>
   | Readonly<{
     imageDimensions: ManagedMediaImageDimensions | null;
@@ -46,39 +54,6 @@ type ManagedMediaObjectUrlRetention = Readonly<{
   isAcquiredLease: boolean;
   objectUrlLease: ManagedMediaObjectUrlLease;
 }>;
-
-async function waitForRecoveryGuardedManagedMediaPhase<ResultType>(
-  createPhase: () => Promise<ResultType>,
-  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
-): Promise<ResultType> {
-  try {
-    indexedDbOpenRecoveryState.throwIfFailed();
-    const result = await createPhase();
-    indexedDbOpenRecoveryState.throwIfFailed();
-    return result;
-  } catch (error) {
-    indexedDbOpenRecoveryState.throwIfFailed();
-    indexedDbOpenRecoveryState.markFailed(error);
-    indexedDbOpenRecoveryState.throwIfFailed();
-    throw error;
-  }
-}
-
-function readErrorName(error: unknown): string {
-  if (error instanceof Error && error.name.trim() !== "") {
-    return error.name;
-  }
-
-  return typeof error;
-}
-
-function readErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim() !== "") {
-    return error.message;
-  }
-
-  return String(error);
-}
 
 function warnManagedMediaUnavailable(workspaceId: string, mediaAssetId: string, error: unknown): void {
   console.warn("Managed media download unavailable", {
@@ -143,66 +118,6 @@ function readTextFromReactNode(node: ReactNode): string {
   return "";
 }
 
-function readDecodedManagedImageDimensions(image: HTMLImageElement): ManagedMediaImageDimensions | null {
-  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-    return {
-      height: image.naturalHeight,
-      width: image.naturalWidth,
-    };
-  }
-
-  return null;
-}
-
-function waitForManagedImageLoad(image: HTMLImageElement, url: string): Promise<void> {
-  if (image.complete) {
-    if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-      return Promise.resolve();
-    }
-
-    return Promise.reject(new Error(`Managed media image load failed: objectUrl=${url}`));
-  }
-
-  return new Promise<void>((resolve, reject) => {
-    image.onload = (): void => {
-      resolve();
-    };
-    image.onerror = (): void => {
-      reject(new Error(`Managed media image load failed: objectUrl=${url}`));
-    };
-  });
-}
-
-async function decodeManagedImageObjectUrl(
-  url: string,
-  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
-): Promise<ManagedMediaImageDimensions | null> {
-  indexedDbOpenRecoveryState.throwIfFailed();
-  const image = new Image();
-  image.src = url;
-
-  try {
-    if (typeof image.decode === "function") {
-      await waitForRecoveryGuardedManagedMediaPhase(
-        () => image.decode(),
-        indexedDbOpenRecoveryState,
-      );
-      indexedDbOpenRecoveryState.throwIfFailed();
-    } else {
-      await waitForRecoveryGuardedManagedMediaPhase(
-        () => waitForManagedImageLoad(image, url),
-        indexedDbOpenRecoveryState,
-      );
-      indexedDbOpenRecoveryState.throwIfFailed();
-    }
-  } catch (error) {
-    indexedDbOpenRecoveryState.throwIfFailed();
-    throw new Error(`Managed media image decode failed: objectUrl=${url}, error=${readErrorMessage(error)}`);
-  }
-
-  return readDecodedManagedImageDimensions(image);
-}
-
 function createManagedImageStyle(imageDimensions: ManagedMediaImageDimensions | null): CSSProperties | undefined {
   if (imageDimensions === null) {
     return undefined;
@@ -210,6 +125,16 @@ function createManagedImageStyle(imageDimensions: ManagedMediaImageDimensions | 
 
   return {
     aspectRatio: `${imageDimensions.width} / ${imageDimensions.height}`,
+  };
+}
+
+function createPreparedManagedMediaLoadState(preparedImage: PreparedReviewImage): ManagedMediaLoadState {
+  return {
+    imageDimensions: preparedImage.imageDimensions,
+    status: "ready",
+    mediaAsset: preparedImage.mediaAsset,
+    objectUrlLease: preparedImage.objectUrlLease,
+    url: preparedImage.objectUrlLease.url,
   };
 }
 
@@ -302,7 +227,18 @@ export function ManagedMediaReference(props: Readonly<{
   } = props;
   const { t } = useI18n();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
-  const [loadState, setLoadState] = useState<ManagedMediaLoadState>({ status: "loading" });
+  // An image prepared before this card side mounted renders ready on the first frame:
+  // docs/fsrs-scheduling-logic.md#non-blocking-review
+  const [initialPreparedImage] = useState<PreparedReviewImage | null>(() => (
+    referenceState === "ready" && workspaceId !== null
+      ? getPreparedReviewImage(workspaceId, mediaAssetId)
+      : null
+  ));
+  const [loadState, setLoadState] = useState<ManagedMediaLoadState>(() => (
+    initialPreparedImage === null
+      ? { status: "loading", imageDimensions: null }
+      : createPreparedManagedMediaLoadState(initialPreparedImage)
+  ));
   const loadStateRef = useRef<ManagedMediaLoadState>(loadState);
   // Leases acquired by a loader run and published into loadState but not yet adopted by a committed render, oldest first.
   const unadoptedObjectUrlLeasesRef = useRef<ReadonlyArray<ManagedMediaObjectUrlLease>>([]);
@@ -335,8 +271,26 @@ export function ManagedMediaReference(props: Readonly<{
     ? loadState.objectUrlLease
     : null;
 
+  // The prepared lease is borrowed from reviewPreparedImages. A layout effect takes this component's own
+  // reference before the review data layer's passive effects can release the prepared one.
+  useLayoutEffect(() => {
+    if (initialPreparedImage === null) {
+      return undefined;
+    }
+
+    const ownObjectUrlLease = acquireManagedMediaObjectUrl(initialPreparedImage.mediaAsset, initialPreparedImage.blob);
+    if (ownObjectUrlLease.url !== initialPreparedImage.objectUrlLease.url) {
+      // The prepared URL was revoked between render and commit; load through the normal path instead.
+      updateLoadState({ status: "loading", imageDimensions: null });
+    }
+
+    return () => {
+      releaseManagedMediaObjectUrl(ownObjectUrlLease);
+    };
+  }, [initialPreparedImage]);
+
   useEffect(() => {
-    if (committedObjectUrlLease === null) {
+    if (committedObjectUrlLease === null || committedObjectUrlLease === initialPreparedImage?.objectUrlLease) {
       return undefined;
     }
 
@@ -353,7 +307,7 @@ export function ManagedMediaReference(props: Readonly<{
     return () => {
       releaseManagedMediaObjectUrl(committedObjectUrlLease);
     };
-  }, [committedObjectUrlLease]);
+  }, [committedObjectUrlLease, initialPreparedImage]);
 
   useEffect(() => {
     return () => {
@@ -393,7 +347,7 @@ export function ManagedMediaReference(props: Readonly<{
       }
 
       if (isReadyManagedMediaReference(loadStateRef.current, workspaceId, mediaAssetId) === false) {
-        updateLoadState({ status: "loading" });
+        updateLoadState({ status: "loading", imageDimensions: null });
       }
 
       let loadResult: ManagedMediaBlobLoadResult | null;
@@ -441,11 +395,21 @@ export function ManagedMediaReference(props: Readonly<{
 
         if (classifyManagedMediaKind(loadResult.mediaAsset.mimeType) === "image") {
           if (objectUrlRetention.isAcquiredLease) {
-            imageDimensions = await waitForRecoveryGuardedManagedMediaPhase(
-              () => decodeManagedImageObjectUrl(
+            const image = await waitForRecoveryGuardedManagedMediaPhase(
+              () => loadManagedImageObjectUrl(
                 objectUrlRetention.objectUrlLease.url,
                 indexedDbOpenRecoveryState,
               ),
+              indexedDbOpenRecoveryState,
+            );
+            indexedDbOpenRecoveryState.throwIfFailed();
+            imageDimensions = readManagedImageDimensions(image);
+            // Size the placeholder from the local file while it decodes: docs/fsrs-scheduling-logic.md#non-blocking-review
+            if (isCancelled === false && loadStateRef.current.status === "loading") {
+              updateLoadState({ status: "loading", imageDimensions });
+            }
+            await waitForRecoveryGuardedManagedMediaPhase(
+              () => decodeLoadedManagedImage(image, indexedDbOpenRecoveryState),
               indexedDbOpenRecoveryState,
             );
             indexedDbOpenRecoveryState.throwIfFailed();
@@ -524,6 +488,7 @@ export function ManagedMediaReference(props: Readonly<{
           aria-busy="true"
           aria-label={t("reviewScreen.media.loading")}
           role="status"
+          style={createManagedImageStyle(loadState.imageDimensions)}
         />
       );
     }
@@ -559,13 +524,14 @@ export function ManagedMediaReference(props: Readonly<{
   const label = resolveManagedMediaLabel(loadState.mediaAsset, childrenText, fallbackLabel);
 
   if (mediaKind === "image") {
+    // Ready images are already decoded, so a synchronous paint shows them on the first frame.
     return (
       <img
         className="review-markdown-media-image"
         src={loadState.url}
         alt={altText.trim() === "" ? t("reviewScreen.media.imageAlt") : altText}
-        loading="lazy"
-        decoding="async"
+        loading="eager"
+        decoding="sync"
         style={createManagedImageStyle(loadState.imageDimensions)}
       />
     );
