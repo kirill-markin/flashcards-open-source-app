@@ -60,6 +60,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.workspaceImport]
     case .workspaceDecks:
         return [.workspaceDecks]
+    case .workspaceDeckDetail(let destination):
+        return [.workspaceDecks, .workspaceDeckDetail(destination)]
     case .workspaceTags:
         return [.workspaceTags]
     case .accountStatus:
@@ -238,13 +240,33 @@ final class AppNavigationModel {
     /// Whether the Decks list is still on the Settings stack.
     var isWorkspaceDecksOnSettingsPath: Bool {
         #if targetEnvironment(macCatalyst)
-        // `NavigationPath` is opaque. Decks is reachable only as the first Settings screen and
-        // pushes its details by view, so while the list exists any path still holds it.
-        self.settingsPath.isEmpty == false
+        self.isSettingsPathRoot(.workspaceDecks)
         #else
         self.settingsPath.contains(.workspaceDecks)
         #endif
     }
+
+    /// Whether the Tags list is still on the Settings stack.
+    var isWorkspaceTagsOnSettingsPath: Bool {
+        #if targetEnvironment(macCatalyst)
+        self.isSettingsPathRoot(.workspaceTags)
+        #else
+        self.settingsPath.contains(.workspaceTags)
+        #endif
+    }
+
+    #if targetEnvironment(macCatalyst)
+    /// `NavigationPath` is opaque, so this compares its first page; Decks and Tags are reachable
+    /// only as the first Settings screen.
+    private func isSettingsPathRoot(_ destination: SettingsNavigationDestination) -> Bool {
+        guard self.settingsPath.isEmpty == false else {
+            return false
+        }
+        var root = self.settingsPath
+        root.removeLast(root.count - 1)
+        return root == NavigationPath([destination])
+    }
+    #endif
 
     func clearCardsPresentationRequest() {
         self.cardsPresentationRequest = nil

@@ -945,6 +945,8 @@ struct RootTabView: View {
             WorkspaceImportView()
         case .workspaceDecks:
             DecksScreen()
+        case .workspaceDeckDetail(let destination):
+            DeckDetailScreen(destination: destination)
         case .workspaceTags:
             TagsScreen()
         case .accountStatus:
@@ -1039,6 +1041,7 @@ private extension View {
         .environment(store)
         .environment(AppleSubscriptionService(store: store, session: .shared))
         .environment(AppNavigationModel())
+        .environment(SettingsScrollModel())
         .environment(CardsScreenModel())
         .environment(ReviewScreenModel())
         .environment(ProgressScreenState())
