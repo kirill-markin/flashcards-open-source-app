@@ -32,7 +32,7 @@ internal fun makeVisibleAutoSyncChangeSignature(
     )
 }
 
-internal fun shouldShowVisibleAutoSyncChangeMessage(
+internal fun hasNewVisibleAutoSyncChange(
     visibleSignatureBeforeSync: VisibleAutoSyncChangeSignature?,
     nextVisibleChangeSignature: VisibleAutoSyncChangeSignature,
     lastVisibleAutoSyncChangeSignature: VisibleAutoSyncChangeSignature?
@@ -44,6 +44,17 @@ internal fun shouldShowVisibleAutoSyncChangeMessage(
         return false
     }
     return nextVisibleChangeSignature != lastVisibleAutoSyncChangeSignature
+}
+
+/**
+ * Only a change to the card on screen is news from another device. Cards added behind it, such as
+ * returning "Again" cards, are not. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+internal fun shouldShowReviewUpdatedOnAnotherDeviceMessage(
+    visibleSignatureBeforeSync: VisibleAutoSyncChangeSignature,
+    nextVisibleChangeSignature: VisibleAutoSyncChangeSignature
+): Boolean {
+    return visibleSignatureBeforeSync.preparedCurrentCard != nextVisibleChangeSignature.preparedCurrentCard
 }
 
 internal fun applySuccessfulAutoSyncReviewState(

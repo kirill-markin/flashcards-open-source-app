@@ -23,7 +23,8 @@ extension ReviewQueueRuntime {
         resolvedReviewQuery: ResolvedReviewQuery,
         workspaceId: String,
         databaseURL: URL,
-        now: Date
+        now: Date,
+        preservedPresentedReviewCard: Card?
     ) -> ReviewLoadPlan {
         self.cancelActiveReviewLoads()
 
@@ -33,7 +34,7 @@ extension ReviewQueueRuntime {
         let nextPublishedState = ReviewQueuePublishedState(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewQueue: [],
-            presentedReviewCard: nil,
+            presentedReviewCard: preservedPresentedReviewCard,
             reviewCounts: ReviewCounts(dueCount: 0, totalCount: 0),
             isReviewHeadLoading: true,
             isReviewCountsLoading: true,

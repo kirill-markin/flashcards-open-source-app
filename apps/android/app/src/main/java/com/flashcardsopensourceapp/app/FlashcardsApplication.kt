@@ -268,6 +268,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
         return AppGraph(
             context = this,
             observability = observabilityStartup.observability,
+            performanceTracing = observabilityStartup.performanceTracing,
             okHttpClient = observabilityStartup.okHttpClient
         )
     }

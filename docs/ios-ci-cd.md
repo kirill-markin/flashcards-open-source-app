@@ -7,7 +7,7 @@ We do not aim for exhaustive iOS test coverage in this pipeline. The most truste
 
 ## Native release gate
 
-Complete the [local native acceptance](ios-local-setup.md#local-native-acceptance) and unsigned device Release archive before dispatching **iOS Release Build** under the [iOS release procedure](release/ios.md#ios). Require all five schema-4 gates before App Review submission. Mac releases require their full [signed local acceptance](macos-ci-cd.md#signed-local-native-acceptance).
+Complete the [local native acceptance](ios-local-setup.md#local-native-acceptance) and unsigned device Release archive before dispatching **iOS Release Build** under the [iOS release procedure](release/ios.md#ios). Require all five schema-4 gates green, or recovered under [targeted recovery](release/evidence.md#targeted-recovery), before App Review submission. Mac releases require their full [signed local acceptance](macos-ci-cd.md#signed-local-native-acceptance) or its targeted recovery.
 
 Exactly two Cloud workflows remain enabled:
 
