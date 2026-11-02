@@ -12,13 +12,13 @@ final class MacReviewManagedMediaState {
     private(set) var decodedImage: UIImage?
     private(set) var decodedImageURL: URL?
     private(set) var failedImageURL: URL?
+    private(set) var placeholderAspectRatio: CGFloat?
     private(set) var remoteImage: Image?
     private(set) var remoteImageFailed = false
     private(set) var player: AVPlayer?
     private(set) var activePresentationID: UUID?
     @ObservationIgnored private var presentations: [UUID] = []
     @ObservationIgnored private var request: ReviewManagedMediaTaskID?
-    @ObservationIgnored private var loadedVersion: Int?
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var fileTask: Task<Void, Never>?
@@ -28,10 +28,14 @@ final class MacReviewManagedMediaState {
         self.fileTask?.cancel()
     }
 
-    func setPresented(_ isPresented: Bool, id: UUID) {
+    func setPresented(_ isPresented: Bool, id: UUID, store: FlashcardsStore) {
         self.presentations.removeAll { $0 == id }
         if isPresented { self.presentations.append(id) }
         self.activePresentationID = self.presentations.last
+        // A successor graph can start its load before the deferred teardown below cancels it; resume that load.
+        if isPresented, self.isLoading, self.loadTask == nil, let request = self.request {
+            self.load(request: request, store: store)
+        }
         guard self.presentations.isEmpty else { return }
         // TextKit replacement can remove a graph before inserting its successor in the same layout turn.
         DispatchQueue.main.async { [weak self] in
@@ -46,13 +50,13 @@ final class MacReviewManagedMediaState {
     }
 
     func load(request: ReviewManagedMediaTaskID, store: FlashcardsStore) {
+        // Available media never reloads for the same request; unavailable media retries on each call.
         if self.request == request,
-           self.loadTask != nil || self.loadedVersion == store.localReadVersion { return }
+           self.loadTask != nil || self.loadResult?.mediaURL != nil { return }
         self.loadTask?.cancel()
         if self.request != request {
             self.loadResult = nil
             self.isLoading = true
-            self.loadedVersion = nil
             self.resetResolvedMedia()
         }
         self.request = request
@@ -69,7 +73,6 @@ final class MacReviewManagedMediaState {
                 if self.loadResult?.mediaURL != result.mediaURL { self.resetResolvedMedia() }
                 self.loadResult = result
                 self.isLoading = false
-                self.loadedVersion = version
                 self.preparePlayer(result: result)
                 self.loadTask = nil
                 return
@@ -87,10 +90,13 @@ final class MacReviewManagedMediaState {
         self.remoteImageFailed = true
     }
 
-    func loadFileImage(mediaURL: URL, decode: @escaping @Sendable (URL) async -> UIImage?) {
+    func loadFileImage(mediaURL: URL) {
         guard self.decodedImageURL != mediaURL, self.failedImageURL != mediaURL, self.fileTask == nil else { return }
         self.fileTask = Task { [weak self] in
-            let image = await decode(mediaURL)
+            let pixelSize = await readReviewManagedImagePixelSize(mediaURL: mediaURL)
+            guard Task.isCancelled == false, self?.loadResult?.mediaURL == mediaURL else { return }
+            self?.placeholderAspectRatio = pixelSize.flatMap(reviewManagedImageAspectRatio(size:))
+            let image = await decodeReviewManagedFileImage(mediaURL: mediaURL)
             guard let self, Task.isCancelled == false, self.loadResult?.mediaURL == mediaURL else { return }
             if let image {
                 self.decodedImage = image
@@ -111,6 +117,7 @@ final class MacReviewManagedMediaState {
         self.decodedImage = nil
         self.decodedImageURL = nil
         self.failedImageURL = nil
+        self.placeholderAspectRatio = nil
         self.remoteImage = nil
         self.remoteImageFailed = false
         self.player?.pause()

@@ -4,6 +4,7 @@ import android.app.Application
 import com.flashcardsopensourceapp.app.BuildConfig
 import com.flashcardsopensourceapp.app.automation.isFirebaseTestLabDevice
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.AppPerformanceTracing
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
 import io.sentry.BaggageHeader
 import io.sentry.Breadcrumb
@@ -41,6 +42,7 @@ private const val firebaseTestLabSentryEnvironment: String = "firebase-test-lab"
 
 data class AndroidObservabilityStartup(
     val observability: AppObservability,
+    val performanceTracing: AppPerformanceTracing,
     val okHttpClient: OkHttpClient
 )
 
@@ -63,6 +65,11 @@ fun startAndroidObservability(application: Application): AndroidObservabilitySta
             SentryAppObservability()
         } else {
             NoopAppObservability()
+        },
+        performanceTracing = if (isSentryEnabled) {
+            SentryAppPerformanceTracing()
+        } else {
+            NoopAppPerformanceTracing()
         },
         okHttpClient = buildAppOkHttpClient(isSentryEnabled = isSentryEnabled)
     )

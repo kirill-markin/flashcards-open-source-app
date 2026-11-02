@@ -98,7 +98,19 @@ extension ReviewQueueRuntime {
         request: ReviewSubmissionRequest,
         validationContext: ReviewSubmissionRollbackValidationContext?
     ) -> Bool {
-        self.isStaleReviewSubmissionContext(
+        self.didReviewSubmissionContextChange(
+            publishedState: publishedState,
+            request: request,
+            validationContext: validationContext
+        ) == false
+    }
+
+    func reviewSubmissionRequestMatchesCurrentSession(
+        publishedState: ReviewQueuePublishedState,
+        request: ReviewSubmissionRequest,
+        validationContext: ReviewSubmissionRollbackValidationContext?
+    ) -> Bool {
+        self.isStaleReviewSubmissionSession(
             publishedState: publishedState,
             request: request,
             validationContext: validationContext
@@ -112,7 +124,7 @@ extension ReviewQueueRuntime {
     ) -> ReviewQueuePublishedState {
         var pendingReviewCardIds = publishedState.pendingReviewCardIds
         pendingReviewCardIds.remove(request.cardId)
-        if self.isStaleReviewSubmissionContext(
+        if self.didReviewSubmissionContextChange(
             publishedState: publishedState,
             request: request,
             validationContext: validationContext
@@ -160,7 +172,7 @@ extension ReviewQueueRuntime {
     ) -> ReviewQueuePublishedState {
         var pendingReviewCardIds = publishedState.pendingReviewCardIds
         pendingReviewCardIds.remove(request.cardId)
-        if self.isStaleReviewSubmissionContext(
+        if self.isStaleReviewSubmissionSession(
             publishedState: publishedState,
             request: request,
             validationContext: validationContext
@@ -237,7 +249,13 @@ extension ReviewQueueRuntime {
         )
     }
 
-    private func isStaleReviewSubmissionContext(
+    /**
+     Only a workspace, filter, resolved filter, or scheduler settings change counts. A queue that only
+     reordered or gained cards, such as an `Again` card becoming due, does not: treating it as one reloads
+     Review and replaces the shown card before it is rated (a blink).
+     See docs/fsrs-scheduling-logic.md#non-blocking-review.
+     */
+    private func didReviewSubmissionContextChange(
         publishedState: ReviewQueuePublishedState,
         request: ReviewSubmissionRequest,
         validationContext: ReviewSubmissionRollbackValidationContext?
@@ -245,20 +263,18 @@ extension ReviewQueueRuntime {
         if let validationContext, request.workspaceId != validationContext.currentWorkspaceId {
             return true
         }
-        guard request.reviewContext.selectedReviewFilter == publishedState.selectedReviewFilter else {
-            return true
-        }
-        guard self.reviewSubmissionSessionMatchesCurrentState(
-            publishedState: publishedState,
-            request: request,
-            validationContext: validationContext
-        ) else {
+        guard request.reviewContext.selectedReviewFilter == publishedState.selectedReviewFilter,
+              request.reviewSessionSignature.selectedReviewFilter == publishedState.selectedReviewFilter else {
             return true
         }
         guard let validationContext else {
             return false
         }
 
+        let currentSchedulerSettingsUpdatedAt = validationContext.schedulerSettings?.updatedAt ?? "no-scheduler-settings"
+        guard request.reviewSessionSignature.schedulerSettingsUpdatedAt == currentSchedulerSettingsUpdatedAt else {
+            return true
+        }
         let currentReviewContext = makeReviewSubmissionContext(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             decks: validationContext.decks,
@@ -267,43 +283,44 @@ extension ReviewQueueRuntime {
         return currentReviewContext != request.reviewContext
     }
 
-    private func reviewSubmissionSessionMatchesCurrentState(
+    private func isStaleReviewSubmissionSession(
         publishedState: ReviewQueuePublishedState,
         request: ReviewSubmissionRequest,
         validationContext: ReviewSubmissionRollbackValidationContext?
     ) -> Bool {
-        let currentReviewSessionSignature = makeReviewSessionSignature(
+        if self.didReviewSubmissionContextChange(
+            publishedState: publishedState,
+            request: request,
+            validationContext: validationContext
+        ) {
+            return true
+        }
+        return self.reviewSubmissionSeedQueueMatchesCurrentState(
+            publishedState: publishedState,
+            request: request,
+            validationContext: validationContext
+        ) == false
+    }
+
+    private func reviewSubmissionSeedQueueMatchesCurrentState(
+        publishedState: ReviewQueuePublishedState,
+        request: ReviewSubmissionRequest,
+        validationContext: ReviewSubmissionRollbackValidationContext?
+    ) -> Bool {
+        let currentSeedQueue = makeReviewSessionSignature(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: self.effectiveReviewQueue(publishedState: publishedState),
             schedulerSettings: validationContext?.schedulerSettings,
             seedQueueSize: self.reviewSeedQueueSize
-        )
-        guard request.reviewSessionSignature.selectedReviewFilter == currentReviewSessionSignature.selectedReviewFilter else {
-            return false
-        }
+        ).seedQueue
         let comparableRequestSeedQueue = self.makeComparableReviewSubmissionSeedQueue(
             request: request,
             pendingReviewCardIds: publishedState.pendingReviewCardIds
         )
         guard comparableRequestSeedQueue.isEmpty == false else {
-            guard currentReviewSessionSignature.seedQueue.isEmpty else {
-                return false
-            }
-            guard let validationContext else {
-                return true
-            }
-            let currentSchedulerSettingsUpdatedAt = validationContext.schedulerSettings?.updatedAt ?? "no-scheduler-settings"
-            return request.reviewSessionSignature.schedulerSettingsUpdatedAt == currentSchedulerSettingsUpdatedAt
+            return currentSeedQueue.isEmpty
         }
-        guard currentReviewSessionSignature.seedQueue.starts(with: comparableRequestSeedQueue) else {
-            return false
-        }
-        guard let validationContext else {
-            return true
-        }
-
-        let currentSchedulerSettingsUpdatedAt = validationContext.schedulerSettings?.updatedAt ?? "no-scheduler-settings"
-        return request.reviewSessionSignature.schedulerSettingsUpdatedAt == currentSchedulerSettingsUpdatedAt
+        return currentSeedQueue.starts(with: comparableRequestSeedQueue)
     }
 
     private func makeComparableReviewSubmissionSeedQueue(

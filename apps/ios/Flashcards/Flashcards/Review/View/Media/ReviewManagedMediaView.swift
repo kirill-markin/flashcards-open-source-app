@@ -1,4 +1,5 @@
 import AVKit
+import ImageIO
 import SwiftUI
 import UIKit
 
@@ -9,7 +10,7 @@ private let reviewManagedImagePlaceholderAspectRatio: CGFloat = 4.0 / 3.0
 private let reviewManagedAudioHeight: CGFloat = 76
 private let reviewManagedVideoMinHeight: CGFloat = 190
 
-private enum ReviewManagedMediaCategory {
+enum ReviewManagedMediaCategory {
     case image
     case audio
     case video
@@ -52,6 +53,7 @@ struct ReviewManagedMediaTaskID: Hashable {
 
 struct ReviewManagedMediaView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(ReviewPreparedImageCache.self) private var preparedImageCache: ReviewPreparedImageCache?
 
     let reference: ReviewManagedMediaReference
     let surfaceStyle: ReviewCardSurfaceStyle
@@ -91,14 +93,10 @@ struct ReviewManagedMediaView: View {
             case .failed:
                 generatedImageFailedView
             case .ready:
-                if isLoading {
-                    initialLoadingView
-                } else if let loadResult,
-                          let mediaAsset = loadResult.mediaAsset,
-                          let mediaURL = loadResult.mediaURL {
-                    readyView(mediaAsset: mediaAsset, mediaURL: mediaURL)
+                if let preparedImage = self.preparedImageCache?.preparedImage(mediaAssetId: reference.mediaAssetId) {
+                    preparedImageView(preparedImage: preparedImage)
                 } else {
-                    unavailableView(unavailableReason: loadResult?.unavailableReason)
+                    loadedMediaView
                 }
             }
         }
@@ -110,25 +108,38 @@ struct ReviewManagedMediaView: View {
                 } else if self.presentationID == id {
                     self.presentationID = nil
                 }
-                self.retainedState.setPresented(isPresented, id: id)
+                self.retainedState.setPresented(isPresented, id: id, store: self.store)
             }
         }
+        #endif
+    }
+
+    /// Loads only when no prepared image exists, so a prepared card renders without a lookup.
+    private var loadedMediaView: some View {
+        Group {
+            if isLoading {
+                initialLoadingView
+            } else if let loadResult,
+                      let mediaAsset = loadResult.mediaAsset,
+                      let mediaURL = loadResult.mediaURL {
+                readyView(mediaAsset: mediaAsset, mediaURL: mediaURL)
+            } else {
+                unavailableView(unavailableReason: loadResult?.unavailableReason)
+            }
+        }
+        #if targetEnvironment(macCatalyst)
         .task(id: taskID) { self.retainedState.load(request: self.taskID, store: self.store) }
-        .onChange(of: store.localReadVersion) { _, _ in
+        .onChange(of: unavailableMediaRefreshVersion) { previousVersion, version in
+            guard previousVersion != nil, version != nil else { return }
             self.retainedState.load(request: self.taskID, store: self.store)
         }
         #else
         .task(id: taskID) { [taskID] in
             self.localRefreshTask?.cancel()
-            guard taskID.state == .ready else {
-                self.loadResult = nil
-                self.isLoading = true
-                return
-            }
             await self.loadManagedMedia(taskID: taskID, showsLoadingIndicator: true)
         }
-        .onChange(of: store.localReadVersion) { _, _ in
-            guard self.reference.state == .ready else {
+        .onChange(of: unavailableMediaRefreshVersion) { previousVersion, version in
+            guard previousVersion != nil, version != nil else {
                 return
             }
             self.startLocalRefresh(taskID: self.taskID)
@@ -138,6 +149,23 @@ struct ReviewManagedMediaView: View {
             self.localRefreshTask = nil
         }
         #endif
+    }
+
+    /// A missing registry row or cache file can arrive with any local read; available media never reloads per rating.
+    private var unavailableMediaRefreshVersion: Int? {
+        guard isLoading == false, loadResult?.mediaURL == nil else {
+            return nil
+        }
+
+        return store.localReadVersion
+    }
+
+    private func preparedImageView(preparedImage: ReviewPreparedImage) -> some View {
+        reviewManagedImageView(
+            image: Image(uiImage: preparedImage.image),
+            accessibilityLabel: displayLabel(mediaAsset: preparedImage.mediaAsset, category: .image),
+            aspectRatio: reviewManagedImageAspectRatio(size: preparedImage.image.size)
+        )
     }
 
     private var taskID: ReviewManagedMediaTaskID {
@@ -151,7 +179,7 @@ struct ReviewManagedMediaView: View {
     @ViewBuilder
     private var initialLoadingView: some View {
         if reference.isImageSyntax {
-            imageLoadingView
+            imageLoadingView(aspectRatio: reviewManagedImagePlaceholderAspectRatio)
         } else {
             loadingView
         }
@@ -174,10 +202,10 @@ struct ReviewManagedMediaView: View {
         .background(mediaBackgroundStyle, in: RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
     }
 
-    private var imageLoadingView: some View {
+    private func imageLoadingView(aspectRatio: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
             .fill(mediaBackgroundStyle)
-            .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .aspectRatio(aspectRatio, contentMode: .fit)
             .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
             .frame(maxWidth: .infinity, alignment: .center)
             .overlay {
@@ -304,11 +332,11 @@ struct ReviewManagedMediaView: View {
                 } else if self.retainedState.failedImageURL == mediaURL {
                     unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
                 } else {
-                    imageLoadingView
+                    imageLoadingView(aspectRatio: self.retainedState.placeholderAspectRatio ?? reviewManagedImagePlaceholderAspectRatio)
                 }
             }
             .task(id: mediaURL) {
-                self.retainedState.loadFileImage(mediaURL: mediaURL, decode: decodeReviewManagedFileImage)
+                self.retainedState.loadFileImage(mediaURL: mediaURL)
             }
         } else if let image = self.retainedState.remoteImage {
             reviewManagedImageView(image: image, accessibilityLabel: accessibilityLabel, aspectRatio: nil)
@@ -318,7 +346,7 @@ struct ReviewManagedMediaView: View {
             AsyncImage(url: mediaURL) { phase in
                 Group {
                     switch phase {
-                    case .empty: imageLoadingView
+                    case .empty: imageLoadingView(aspectRatio: reviewManagedImagePlaceholderAspectRatio)
                     case .success(let image):
                         reviewManagedImageView(image: image, accessibilityLabel: accessibilityLabel, aspectRatio: nil)
                     case .failure: unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
@@ -341,8 +369,8 @@ struct ReviewManagedMediaView: View {
                     accessibilityLabel: accessibilityLabel,
                     aspectRatio: reviewManagedImageAspectRatio(size: image.size)
                 )
-            } loading: {
-                imageLoadingView
+            } loading: { placeholderAspectRatio in
+                imageLoadingView(aspectRatio: placeholderAspectRatio ?? reviewManagedImagePlaceholderAspectRatio)
             } failure: {
                 unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
             }
@@ -350,7 +378,7 @@ struct ReviewManagedMediaView: View {
             AsyncImage(url: mediaURL) { phase in
                 switch phase {
                 case .empty:
-                    imageLoadingView
+                    imageLoadingView(aspectRatio: reviewManagedImagePlaceholderAspectRatio)
                 case .success(let image):
                     reviewManagedImageView(
                         image: image,
@@ -478,17 +506,19 @@ struct ReviewManagedMediaView: View {
 private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure: View>: View {
     let mediaURL: URL
     let content: (UIImage) -> Content
-    let loading: () -> Loading
+    let loading: (CGFloat?) -> Loading
     let failure: () -> Failure
 
     @State private var decodedImage: UIImage?
     @State private var decodedImageURL: URL?
     @State private var failedImageURL: URL?
+    @State private var placeholderAspectRatio: CGFloat?
+    @State private var placeholderAspectRatioURL: URL?
 
     init(
         mediaURL: URL,
         @ViewBuilder content: @escaping (UIImage) -> Content,
-        @ViewBuilder loading: @escaping () -> Loading,
+        @ViewBuilder loading: @escaping (CGFloat?) -> Loading,
         @ViewBuilder failure: @escaping () -> Failure
     ) {
         self.mediaURL = mediaURL
@@ -505,7 +535,7 @@ private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure:
             } else if self.failedImageURL == self.mediaURL {
                 self.failure()
             } else {
-                self.loading()
+                self.loading(self.placeholderAspectRatioURL == self.mediaURL ? self.placeholderAspectRatio : nil)
             }
         }
         .task(id: self.mediaURL) { [mediaURL] in
@@ -519,6 +549,14 @@ private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure:
         }
 
         self.failedImageURL = nil
+        if self.placeholderAspectRatioURL != mediaURL {
+            let pixelSize = await readReviewManagedImagePixelSize(mediaURL: mediaURL)
+            guard Task.isCancelled == false else {
+                return
+            }
+            self.placeholderAspectRatio = pixelSize.flatMap(reviewManagedImageAspectRatio(size:))
+            self.placeholderAspectRatioURL = mediaURL
+        }
         let nextImage = await decodeReviewManagedFileImage(mediaURL: mediaURL)
         guard Task.isCancelled == false else {
             return
@@ -539,7 +577,7 @@ private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure:
     }
 }
 
-private func reviewManagedImageAspectRatio(size: CGSize) -> CGFloat? {
+func reviewManagedImageAspectRatio(size: CGSize) -> CGFloat? {
     let width: CGFloat = size.width
     let height: CGFloat = size.height
     guard width.isFinite, height.isFinite, width > 0, height > 0 else {
@@ -554,7 +592,29 @@ private func reviewManagedImageAspectRatio(size: CGSize) -> CGFloat? {
     return aspectRatio
 }
 
-private func decodeReviewManagedFileImage(mediaURL: URL) async -> UIImage? {
+/// Reads only the file header, so a placeholder takes the image's shape before the slower full decode.
+func readReviewManagedImagePixelSize(mediaURL: URL) async -> CGSize? {
+    await Task.detached(priority: .userInitiated) { () -> CGSize? in
+        guard let imageSource = CGImageSourceCreateWithURL(mediaURL as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
+              let pixelWidth = properties[kCGImagePropertyPixelWidth as String] as? Int,
+              let pixelHeight = properties[kCGImagePropertyPixelHeight as String] as? Int else {
+            return nil
+        }
+
+        // Match the decoded UIImage, whose size already applies the EXIF rotation.
+        let orientation = (properties[kCGImagePropertyOrientation as String] as? UInt32)
+            .flatMap(CGImagePropertyOrientation.init(rawValue:))
+        switch orientation {
+        case .left, .leftMirrored, .right, .rightMirrored:
+            return CGSize(width: pixelHeight, height: pixelWidth)
+        default:
+            return CGSize(width: pixelWidth, height: pixelHeight)
+        }
+    }.value
+}
+
+func decodeReviewManagedFileImage(mediaURL: URL) async -> UIImage? {
     let decodeTask = Task.detached(priority: .userInitiated) { () -> UIImage? in
         guard Task.isCancelled == false else {
             return nil

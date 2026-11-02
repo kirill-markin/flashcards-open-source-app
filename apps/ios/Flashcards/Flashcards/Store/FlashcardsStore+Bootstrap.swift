@@ -365,7 +365,8 @@ extension FlashcardsStore {
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
         if shouldRestartActiveReviewLoad {
-            if self.reviewQueue.isEmpty && self.presentedReviewCard == nil {
+            // A head load keeps the shown card on an empty queue, so it restarts instead of settling.
+            if self.isReviewHeadLoading || (self.reviewQueue.isEmpty && self.presentedReviewCard == nil) {
                 self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
             } else {
                 let settledReviewState = self.reviewRuntime.settleInvalidatedReviewLoads(
