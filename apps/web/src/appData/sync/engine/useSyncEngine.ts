@@ -86,7 +86,7 @@ import {
   validateSeedRequest,
 } from "../local/syncSeed";
 import type { TestSeedRequest, TestSeedResult } from "../local/testSeedBridge";
-import type { SessionLoadState } from "../../context/types";
+import type { LocalReviewSchedule, SessionLoadState } from "../../context/types";
 import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
 import { useMediaUploadLifecycle } from "./useMediaUploadLifecycle";
 
@@ -100,6 +100,7 @@ type UseSyncEngineParams = Readonly<{
   setWorkspaceSettings: Dispatch<SetStateAction<WorkspaceSchedulerSettings | null>>;
   setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
   setLocalReadVersion: Dispatch<SetStateAction<number>>;
+  setLocalReviewSchedule: Dispatch<SetStateAction<LocalReviewSchedule>>;
   setIsSyncing: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
   setTechnicalError: Dispatch<SetStateAction<Error | null>>;
@@ -174,6 +175,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setWorkspaceSettings,
     setCloudSettings,
     setLocalReadVersion,
+    setLocalReviewSchedule,
     setIsSyncing,
     setErrorMessage,
     setTechnicalError,
@@ -1110,12 +1112,16 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       return result;
     });
     indexedDbOpenRecoveryState.throwIfFailed();
-    bumpLocalReadVersion();
+    // A rating never triggers a whole-workspace reload: docs/fsrs-scheduling-logic.md#non-blocking-review
+    setLocalReviewSchedule((currentValue) => ({
+      reviewScheduleVersion: currentValue.reviewScheduleVersion + 1,
+      lastLocalReview: { workspaceId: activeWorkspaceId, reviewedCard: mutationResult.card },
+    }));
     invalidateLocalProgress();
     invalidateLocalReviewSchedule();
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, onReviewSaved, runLocalWorkspaceMutation, runSyncForWorkspace, session]);
+  }, [activeWorkspace, activeWorkspaceId, indexedDbOpenRecoveryState, onReviewSaved, runLocalWorkspaceMutation, runSyncForWorkspace, session, setLocalReviewSchedule]);
 
   const seedLinkedWorkspace = useCallback(async function seedLinkedWorkspace(
     request: TestSeedRequest,
