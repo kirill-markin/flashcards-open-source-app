@@ -10,7 +10,11 @@ extension LiveSmokeTestCase {
     @MainActor
     func tapTabBarItem(identifier: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(identifier)") {
+            #if targetEnvironment(macCatalyst)
+            let tabBarItem = self.app.cells.containing(.staticText, identifier: identifier).firstMatch
+            #else
             let tabBarItem = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            #endif
             let deadline = Date().addingTimeInterval(timeout)
 
             while Date() < deadline {
