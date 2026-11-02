@@ -2,10 +2,9 @@ import Foundation
 
 /*
  A rating updates only the rated card, the queue, counts and badge in memory (`applyRatedCardLocally`).
- Everything else that rereads Review data is a full rebuild, and `rebuildReviewData(reason:now:)` is its only
- entry point: initial load, filter change, workspace change, local card/deck/scheduler changes, return after a
- long absence or a date change, and a safety rebuild while the app is open. A sync that applied remote changes
- rebuilds awaited in `applySyncResultWithoutBlockingReset` under the same breadcrumb. A rebuild never swaps the
+ A full rebuild rereads Review data for one `ReviewDataRebuildReason` and records it with
+ `addReviewDataRebuildBreadcrumb`. Every reason but one starts in `rebuildReviewData(reason:now:)`; a sync that
+ applied remote changes rebuilds awaited in `applySyncResultWithoutBlockingReset`. A rebuild never swaps the
  shown card or the prepared next card except for a new scope.
  See docs/fsrs-scheduling-logic.md#non-blocking-review.
  */
@@ -75,9 +74,10 @@ func reviewDataRebuildReasonAfterReturning(
 @MainActor
 extension FlashcardsStore {
     /**
-     The only entry point for a full rebuild of Review data. Initial load and workspace transitions read on the
-     main actor and publish before returning because their callers read the new workspace at once; a filter
-     change only resolves the filter there. Every other reason reads off the main actor while Review stays usable.
+     Starts the full rebuild for every reason except `.syncAppliedRemoteChanges`. Initial load and workspace
+     transitions read on the main actor and publish before returning because their callers read the new workspace
+     at once; a filter change only resolves the filter there. The remaining reasons read off the main actor while
+     Review stays usable.
      */
     func rebuildReviewData(reason: ReviewDataRebuildReason, now: Date) throws {
         self.addReviewDataRebuildBreadcrumb(reason: reason)
@@ -94,8 +94,13 @@ extension FlashcardsStore {
         case .workspaceChanged:
             // A different workspace id resets the session in `applyLoadedBootstrapSnapshot`.
             try self.reload(now: now, refreshVisibleProgress: true, shownCardIntent: .keepShownCard)
-        case .localCardsChanged, .syncAppliedRemoteChanges, .returnedAfterLongAbsence, .dateChanged, .safetyInterval:
+        case .localCardsChanged, .returnedAfterLongAbsence, .dateChanged, .safetyInterval:
             self.startBackgroundReviewDataRebuild(reason: reason, now: now)
+        case .syncAppliedRemoteChanges:
+            // The sync awaits this rebuild so it fails with it; see `applySyncResultWithoutBlockingReset`.
+            throw LocalStoreError.validation(
+                "The sync_applied_remote_changes rebuild runs only in applySyncResultWithoutBlockingReset."
+            )
         }
     }
 
