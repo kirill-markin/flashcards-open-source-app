@@ -40,11 +40,30 @@ final class ReviewPreparedImageCache {
         return ReviewPreparedImage(mediaAsset: mediaAsset, image: image)
     }
 
-    func releaseImagesOutside(cardIds: Set<String>) {
-        let keptMediaAssetsByCardId = self.mediaAssetsByCardId.filter { cardId, _ in
-            cardIds.contains(cardId)
+    /// Keeps only the assets these sides reference per card, so an image replaced by an edit leaves the cache
+    /// even while its card stays shown or prepared.
+    func releaseImagesOutside(sides: [ReviewImagePreparationSide]) {
+        var keptMediaAssetIdsByCardId: [String: Set<String>] = [:]
+        for side in sides {
+            for reference in reviewManagedMediaReferences(content: side.content) {
+                keptMediaAssetIdsByCardId[side.cardId, default: []].insert(reference.mediaAssetId)
+            }
         }
-        guard keptMediaAssetsByCardId.count != self.mediaAssetsByCardId.count else {
+
+        var keptMediaAssetsByCardId: [String: [String: MediaAsset]] = [:]
+        for (cardId, mediaAssets) in self.mediaAssetsByCardId {
+            guard let keptMediaAssetIds = keptMediaAssetIdsByCardId[cardId] else {
+                continue
+            }
+            let keptMediaAssets = mediaAssets.filter { mediaAssetId, _ in
+                keptMediaAssetIds.contains(mediaAssetId)
+            }
+            if keptMediaAssets.isEmpty == false {
+                keptMediaAssetsByCardId[cardId] = keptMediaAssets
+            }
+        }
+        guard preparedMediaAssetCount(mediaAssetsByCardId: keptMediaAssetsByCardId)
+            != preparedMediaAssetCount(mediaAssetsByCardId: self.mediaAssetsByCardId) else {
             return
         }
 
@@ -141,6 +160,12 @@ final class ReviewPreparedImageCache {
         }
 
         return nil
+    }
+}
+
+private func preparedMediaAssetCount(mediaAssetsByCardId: [String: [String: MediaAsset]]) -> Int {
+    mediaAssetsByCardId.values.reduce(0) { count, mediaAssets in
+        count + mediaAssets.count
     }
 }
 
