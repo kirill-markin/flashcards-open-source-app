@@ -1,6 +1,6 @@
 # Pre-merge static checks
 
-Repository-wide consistency checks that run on every pull request through the
+Repository-wide consistency checks that run on every pull request into `main` through the
 `repository_static_validation` job of [`.github/workflows/pr-checks.yml`](../../../.github/workflows/pr-checks.yml).
 Its result is enforced by the required `Repository static checks` aggregate.
 
