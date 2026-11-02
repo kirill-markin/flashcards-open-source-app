@@ -16,6 +16,11 @@ import {
 } from "../../../localDb/reviews/reviews";
 import { hasHydratedHotState, loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import {
+  finishReviewAfterRatingWorkSpan,
+  startReviewAfterRatingWorkSpan,
+  type ReviewTimingSpan,
+} from "../../../observability/reviewTimingSpans";
 import type {
   Card,
   DeckSummary,
@@ -80,6 +85,14 @@ type CarriedReviewDataContext = Readonly<{
 }>;
 
 export type ReviewSubmissionOutcome = "saved" | "failed" | "stale" | "cancelled";
+
+type PendingReviewAfterRatingWork = Readonly<{
+  span: ReviewTimingSpan;
+  ratedAtLocalReadVersion: number;
+  isSubmitSettled: boolean;
+  isReloadSettled: boolean;
+  fullRebuildCount: number;
+}>;
 
 const workspaceUnavailableErrorMessage = "Workspace is unavailable";
 
@@ -173,6 +186,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewDataContextKeyRef = useRef<string>(reviewDataContextKey);
   const loadedReviewDataContextKeyRef = useRef<string | null>(null);
   const carriedReviewDataContextRef = useRef<CarriedReviewDataContext | null>(null);
+  const afterRatingWorkRef = useRef<PendingReviewAfterRatingWork | null>(null);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -284,6 +298,16 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       activeQueue,
       visibleQueueCards,
     );
+  }
+
+  function updateAfterRatingWork(nextAfterRatingWork: PendingReviewAfterRatingWork): void {
+    if (nextAfterRatingWork.isSubmitSettled && nextAfterRatingWork.isReloadSettled) {
+      afterRatingWorkRef.current = null;
+      finishReviewAfterRatingWorkSpan(nextAfterRatingWork.span, nextAfterRatingWork.fullRebuildCount);
+      return;
+    }
+
+    afterRatingWorkRef.current = nextAfterRatingWork;
   }
 
   useEffect(() => {
@@ -486,7 +510,21 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       }
     }
 
-    void loadReviewData();
+    const afterRatingWork = afterRatingWorkRef.current;
+    if (afterRatingWork !== null && localReadVersion > afterRatingWork.ratedAtLocalReadVersion) {
+      updateAfterRatingWork({ ...afterRatingWork, fullRebuildCount: afterRatingWork.fullRebuildCount + 1 });
+    }
+
+    void loadReviewData().then(() => {
+      const settledAfterRatingWork = afterRatingWorkRef.current;
+      if (
+        isCancelled === false
+        && settledAfterRatingWork !== null
+        && localReadVersion > settledAfterRatingWork.ratedAtLocalReadVersion
+      ) {
+        updateAfterRatingWork({ ...settledAfterRatingWork, isReloadSettled: true });
+      }
+    });
 
     return () => {
       isCancelled = true;
@@ -494,6 +532,34 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   }, [activeWorkspaceId, getCardById, indexedDbOpenRecoveryState, localReadVersion, reviewDataContextKey, selectReviewFilter, selectedReviewFilter]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
+    // Rating until the submission and the reload it triggers settle; non-blocking review plans
+    // read it as their before/after number. A newer rating replaces an unsettled one, which is never sent.
+    const afterRatingWorkSpan = startReviewAfterRatingWorkSpan();
+    afterRatingWorkRef.current = {
+      span: afterRatingWorkSpan,
+      ratedAtLocalReadVersion: localReadVersion,
+      isSubmitSettled: false,
+      isReloadSettled: false,
+      fullRebuildCount: 0,
+    };
+    let outcome: ReviewSubmissionOutcome = "failed";
+    try {
+      outcome = await submitReview(card, rating);
+      return outcome;
+    } finally {
+      const afterRatingWork = afterRatingWorkRef.current;
+      if (afterRatingWork?.span === afterRatingWorkSpan) {
+        updateAfterRatingWork({
+          ...afterRatingWork,
+          isSubmitSettled: true,
+          // Only a saved review bumps the local read version that triggers the reload.
+          isReloadSettled: afterRatingWork.isReloadSettled || outcome !== "saved",
+        });
+      }
+    }
+  }
+
+  async function submitReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return "cancelled";
     }

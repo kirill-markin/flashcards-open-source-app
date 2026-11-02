@@ -549,6 +549,15 @@ extension FlashcardsStore {
     }
 
     func processReviewSubmissionRequest(request: ReviewSubmissionRequest) async {
+        // Rating until this submission's follow-up work settles; non-blocking review plans read it
+        // as their before/after number.
+        let afterRatingWorkSpan = FlashcardsObservability.startReviewAfterRatingWorkSpan(
+            ratedAt: parseIsoTimestamp(value: request.reviewedAtClient) ?? Date()
+        )
+        defer {
+            FlashcardsObservability.finishReviewAfterRatingWorkSpan(afterRatingWorkSpan)
+        }
+
         guard let reviewSubmissionExecutor = self.dependencies.reviewSubmissionExecutor else {
             await self.handleReviewSubmissionFailure(
                 request: request,
