@@ -122,9 +122,9 @@ struct ReviewCounts: Hashable, Sendable {
     let totalCount: Int
 }
 
-/// Overdue cards exclude new cards; `nextDueAt` is the earliest future due time.
-struct ReviewOverdueSnapshot: Hashable, Sendable {
-    let overdueCount: Int
+/// `dueCount` includes new cards; `nextDueAt` is the earliest future due time.
+struct ReviewDueBadgeSnapshot: Hashable, Sendable {
+    let dueCount: Int
     let nextDueAt: Date?
 }
 

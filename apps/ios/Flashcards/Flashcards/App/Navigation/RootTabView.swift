@@ -9,7 +9,7 @@ private struct StoreReviewRequestTaskID: Hashable {
     let requestAttemptId: String?
 }
 
-private struct ReviewOverdueBadgeTaskID: Hashable {
+private struct ReviewDueBadgeTaskID: Hashable {
     let workspaceId: String?
     let reviewFilter: ReviewFilter
     let localReadVersion: Int
@@ -64,8 +64,8 @@ struct RootTabView: View {
         )
     }
 
-    private var reviewOverdueBadgeTaskID: ReviewOverdueBadgeTaskID {
-        ReviewOverdueBadgeTaskID(
+    private var reviewDueBadgeTaskID: ReviewDueBadgeTaskID {
+        ReviewDueBadgeTaskID(
             workspaceId: store.workspace?.workspaceId,
             reviewFilter: store.selectedReviewFilter,
             localReadVersion: store.localReadVersion,
@@ -73,8 +73,8 @@ struct RootTabView: View {
         )
     }
 
-    private var reviewOverdueBadgeLabel: Text? {
-        makeReviewOverdueBadgeLabel(overdueCount: store.reviewOverdueBadgeCount).map { label in
+    private var reviewDueBadgeLabel: Text? {
+        makeReviewDueBadgeLabel(dueCount: store.reviewDueBadgeCount).map { label in
             Text(label)
         }
     }
@@ -310,7 +310,7 @@ struct RootTabView: View {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem, isEnabled: true)
-            .badge(self.reviewOverdueBadgeLabel)
+            .badge(self.reviewDueBadgeLabel)
 
             Tab(value: AppTab.progress) {
                 self.progressTab
@@ -380,7 +380,7 @@ struct RootTabView: View {
                 set: { if let tab = $0 { self.selectedTabBinding.wrappedValue = tab } }
             )) {
                 self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
-                    .badge(self.reviewOverdueBadgeLabel)
+                    .badge(self.reviewDueBadgeLabel)
                     .tag(AppTab.review)
                 self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
                 self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
@@ -636,8 +636,8 @@ struct RootTabView: View {
         .task(id: self.storeReviewRequestTaskID) {
             await self.requestStoreReviewIfNeeded()
         }
-        .task(id: self.reviewOverdueBadgeTaskID) {
-            await self.store.runReviewOverdueBadgeUpdates()
+        .task(id: self.reviewDueBadgeTaskID) {
+            await self.store.runReviewDueBadgeUpdates()
         }
         .overlay {
             ZStack {
