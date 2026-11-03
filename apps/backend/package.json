@@ -54,7 +54,8 @@
     "@types/yauzl": "^3.4.0",
     "js-tiktoken": "^1.0.21",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "undici": "6.29.1"
   },
   "overrides": {
     "protobufjs": "^8.8.1",

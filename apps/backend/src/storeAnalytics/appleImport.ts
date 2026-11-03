@@ -370,10 +370,14 @@ export async function importAppleReports(
   deadlineAtMs: number,
   signal: AbortSignal,
 ): Promise<AppleImportSummary> {
+  signal.throwIfAborted();
+  if (Date.now() >= deadlineAtMs) {
+    throw new Error("App Store Connect import deadline exceeded before loading credentials");
+  }
   const credentials = await loadAppStoreConnectCredentials(readReportsSecretId());
   const client = new AppStoreConnectClient(credentials, (retry) => {
     addBackendBreadcrumb({ action: "store_analytics_apple_retry", scope, details: retry });
-  });
+  }, deadlineAtMs, signal);
 
   const requests = await client.listReportRequests(credentials.appId);
   const { reports, listed } = await listPendingInstances(client, requests);
@@ -402,6 +406,10 @@ export async function importAppleReports(
       if (segments.length === 0) {
         instancesWithoutSegments += 1;
         continue;
+      }
+      signal.throwIfAborted();
+      if (Date.now() >= deadlineAtMs) {
+        throw new Error(`App Store Connect import deadline exceeded before writing instance ${pending.instance.id}`);
       }
       const result = await writeInstance(pending, segments);
       instancesImported += 1;

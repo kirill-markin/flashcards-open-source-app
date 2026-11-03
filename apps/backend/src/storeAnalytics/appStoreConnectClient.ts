@@ -142,10 +142,40 @@ function isRetryableStatus(status: number): boolean {
 export class AppStoreConnectClient {
   private readonly credentials: AppStoreConnectCredentials;
   private readonly onRetry: (retry: AppStoreConnectRetry) => void;
+  private readonly deadlineAtMs: number;
+  private readonly signal: AbortSignal;
 
-  constructor(credentials: AppStoreConnectCredentials, onRetry: (retry: AppStoreConnectRetry) => void) {
+  constructor(
+    credentials: AppStoreConnectCredentials,
+    onRetry: (retry: AppStoreConnectRetry) => void,
+    deadlineAtMs: number,
+    signal: AbortSignal,
+  ) {
     this.credentials = credentials;
     this.onRetry = onRetry;
+    this.deadlineAtMs = deadlineAtMs;
+    this.signal = AbortSignal.any([signal, AbortSignal.timeout(Math.max(0, deadlineAtMs - Date.now()))]);
+    this.assertActive("App Store Connect import");
+  }
+
+  private assertActive(label: string): void {
+    if (Date.now() >= this.deadlineAtMs) {
+      throw new Error(`${label}: App Store Connect import deadline exceeded`);
+    }
+    if (this.signal.aborted) {
+      throw new Error(`${label}: App Store Connect import aborted`, { cause: this.signal.reason });
+    }
+  }
+
+  private async retryAfterDelay(retry: AppStoreConnectRetry): Promise<void> {
+    this.assertActive(retry.label);
+    this.onRetry(retry);
+    try {
+      await sleep(retry.attempt * retryDelayMs, undefined, { signal: this.signal });
+    } catch (error) {
+      this.assertActive(retry.label);
+      throw error;
+    }
   }
 
   async listReportRequests(appId: string): Promise<ReadonlyArray<AnalyticsReportRequest>> {
@@ -231,6 +261,7 @@ export class AppStoreConnectClient {
       visited.add(url.href);
 
       const label = `GET ${url.pathname}${url.search}`;
+      this.assertActive(label);
       const body = await this.fetchWithRetry(url.href, { Authorization: `Bearer ${this.createToken()}` }, label);
       let json: unknown;
       try {
@@ -249,6 +280,7 @@ export class AppStoreConnectClient {
         }
         items.push(item.data);
       }
+      this.assertActive(label);
       next = page.data.links.next ?? null;
     }
     return items;
@@ -260,27 +292,32 @@ export class AppStoreConnectClient {
     label: string,
   ): Promise<Buffer> {
     for (let attempt = 1; ; attempt += 1) {
+      this.assertActive(label);
       let response: Response;
+      let body: Buffer;
       try {
-        response = await fetch(url, { method: "GET", headers, signal: AbortSignal.timeout(requestTimeoutMs) });
+        response = await fetch(url, {
+          method: "GET", headers,
+          signal: AbortSignal.any([this.signal, AbortSignal.timeout(requestTimeoutMs)]),
+        });
+        body = Buffer.from(await response.arrayBuffer());
       } catch (error) {
+        this.assertActive(label);
         if (attempt >= maxAttempts) {
           throw new Error(`${label}: request failed after ${attempt} attempts`, { cause: error });
         }
-        this.onRetry({ label, attempt, status: null });
-        await sleep(attempt * retryDelayMs);
+        await this.retryAfterDelay({ label, attempt, status: null });
         continue;
       }
 
-      const body = Buffer.from(await response.arrayBuffer());
+      this.assertActive(label);
       if (response.ok) {
         return body;
       }
       if (attempt >= maxAttempts || !isRetryableStatus(response.status)) {
         throw new Error(`${label}: HTTP ${response.status}: ${body.toString("utf8").slice(0, 2_000)}`);
       }
-      this.onRetry({ label, attempt, status: response.status });
-      await sleep(attempt * retryDelayMs);
+      await this.retryAfterDelay({ label, attempt, status: response.status });
     }
   }
 }
