@@ -165,7 +165,10 @@ fun TestAnimationsRoute(
 
             ReviewReactionOverlay(
                 modifier = Modifier.fillMaxSize(),
-                events = activeReviewReactionEvents,
+                slots = activeReviewReactionEvents.map { event: ReviewReactionEvent ->
+                    ReviewReactionSlot(event = event, phase = ReviewReactionSlotPhase.PLAYING)
+                },
+                isPlaybackStartAllowed = true,
                 motionMode = reviewReactionMotionMode,
                 configurationStore = reviewReactionLottieConfigurationStore,
                 onEventFinished = { eventId: String ->

@@ -17,6 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -37,6 +39,7 @@ import com.flashcardsopensourceapp.feature.review.reaction.drawing.reviewReactio
 import com.flashcardsopensourceapp.feature.review.reaction.drawing.reviewReactionOpacity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 private const val reviewReactionCleanupExtraMillis: Long = 80L
 private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
@@ -44,22 +47,21 @@ private const val reviewReactionReducedMotionDrawingProgress: Float = 0.55f
 @Composable
 internal fun ReviewReactionOverlay(
     modifier: Modifier,
-    events: List<ReviewReactionEvent>,
+    slots: List<ReviewReactionSlot>,
+    isPlaybackStartAllowed: Boolean,
     motionMode: ReviewReactionMotionMode,
     configurationStore: ReviewReactionLottieConfigurationStore,
     onEventFinished: (String) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val currentEvent by rememberUpdatedState(newValue = events.lastOrNull())
+    val playingEvent by rememberUpdatedState(
+        newValue = slots.firstOrNull { slot -> slot.phase == ReviewReactionSlotPhase.PLAYING }?.event
+    )
     val finishEvent by rememberUpdatedState(newValue = onEventFinished)
-    var isStarted by remember(lifecycleOwner) {
-        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
-    }
     DisposableEffect(lifecycleOwner, configurationStore) {
         val observer = LifecycleEventObserver { _, lifecycleEvent ->
-            isStarted = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
             if (lifecycleEvent == Lifecycle.Event.ON_STOP) {
-                currentEvent?.let { event ->
+                playingEvent?.let { event ->
                     configurationStore.record(stage = AndroidReviewReactionStage.LIFECYCLE_STOPPED, variant = event.variant)
                     finishEvent(event.id)
                 }
@@ -68,17 +70,15 @@ internal fun ReviewReactionOverlay(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            currentEvent?.let { event ->
+            playingEvent?.let { event ->
                 configurationStore.record(stage = AndroidReviewReactionStage.CANCELLED, variant = event.variant)
             }
         }
     }
     Box(modifier = modifier.fillMaxSize().clearAndSetSemantics {}) {
-        if (isStarted) {
-            events.lastOrNull()?.let { event ->
-                key(event.id) {
-                    ReviewReactionCanvas(event, motionMode, configurationStore, onEventFinished)
-                }
+        slots.forEach { slot ->
+            key(slot.event.id) {
+                ReviewReactionCanvas(slot, isPlaybackStartAllowed, motionMode, configurationStore, onEventFinished)
             }
         }
     }
@@ -86,11 +86,13 @@ internal fun ReviewReactionOverlay(
 
 @Composable
 private fun ReviewReactionCanvas(
-    event: ReviewReactionEvent,
+    slot: ReviewReactionSlot,
+    isPlaybackStartAllowed: Boolean,
     motionMode: ReviewReactionMotionMode,
     configurationStore: ReviewReactionLottieConfigurationStore,
     onEventFinished: (String) -> Unit
 ) {
+    val event = slot.event
     val configuration = reviewReactionLottieConfiguration(variant = event.variant, configurationStore = configurationStore)
     val readiness = configuration?.readiness
     if (readiness !is ReviewReactionLottieReadiness.Ready) {
@@ -127,10 +129,20 @@ private fun ReviewReactionCanvas(
         return
     }
     val finishEvent by rememberUpdatedState(newValue = onEventFinished)
+    val currentIsPlaybackStartAllowed by rememberUpdatedState(newValue = isPlaybackStartAllowed)
+    val isPlaying = slot.phase == ReviewReactionSlotPhase.PLAYING
     val progress = remember(event.id, composition) { Animatable(initialValue = 0f) }
+    var isPlaybackStarted by remember(event.id) { mutableStateOf(false) }
     val durationMillis = reviewReactionAnimationDurationMillis(variant = event.variant, motionMode = motionMode)
-    LaunchedEffect(event.id, composition, motionMode) {
+    LaunchedEffect(event.id, composition, motionMode, isPlaying) {
+        if (isPlaying.not()) {
+            return@LaunchedEffect
+        }
+        // The frame that first draws the next card must not also start the reaction.
+        snapshotFlow { currentIsPlaybackStartAllowed }.first { isAllowed -> isAllowed }
+        withFrameNanos { }
         try {
+            isPlaybackStarted = true
             configurationStore.record(stage = AndroidReviewReactionStage.STARTED, variant = event.variant)
             if (motionMode == ReviewReactionMotionMode.REDUCED) {
                 delay(timeMillis = durationMillis.toLong())
@@ -149,9 +161,14 @@ private fun ReviewReactionCanvas(
         }
     }
     val reducedMotion = motionMode == ReviewReactionMotionMode.REDUCED
+    // Hidden slots still record their draw at alpha 0, so the drawable is built and drawn before the tap.
     ReviewReactionLottieFrame(
         progress = if (reducedMotion) reviewReactionReducedMotionDrawingProgress else reviewReactionClampedProgress(progress.value),
-        alpha = if (reducedMotion) 1f else reviewReactionOpacity(progress.value),
+        alpha = when {
+            isPlaying.not() || isPlaybackStarted.not() -> 0f
+            reducedMotion -> 1f
+            else -> reviewReactionOpacity(progress.value)
+        },
         frameScale = configuration.frameScale,
         composition = composition,
         onPresentationFailure = { error ->

@@ -444,6 +444,15 @@ internal fun reviewReactionLottieConfiguration(
     return configurationStore.configurations[variant]
 }
 
+internal fun reviewReactionHasPendingVariants(
+    rating: ReviewRating,
+    configurationStore: ReviewReactionLottieConfigurationStore
+): Boolean {
+    return reviewReactionVariantDistributionEntries(rating = rating).any { entry: ReviewReactionVariantDistributionEntry ->
+        configurationStore.configurations[entry.variant]?.readiness == ReviewReactionLottieReadiness.Pending
+    }
+}
+
 internal fun reviewReactionReadyVariants(
     rating: ReviewRating,
     configurationStore: ReviewReactionLottieConfigurationStore

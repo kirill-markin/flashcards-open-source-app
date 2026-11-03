@@ -5,10 +5,12 @@ import com.flashcardsopensourceapp.core.observability.AppPerformanceSpan
 private const val hasImagesAttributeKey: String = "has_images"
 private const val imagesReadyAttributeKey: String = "images_ready"
 private const val fullRebuildCountAttributeKey: String = "full_rebuild_count"
+private const val reactionPlayedAttributeKey: String = "reaction_played"
 
 internal data class PendingReviewNextCardVisible(
     val span: AppPerformanceSpan,
-    val ratedCardId: String
+    val ratedCardId: String,
+    val reactionPlayed: Boolean
 )
 
 internal data class ReviewAfterRatingWork(
@@ -28,8 +30,9 @@ internal fun reviewRenderedContentHasImages(content: ReviewRenderedContent): Boo
     }
 }
 
-internal fun finishReviewNextCardVisibleSpan(span: AppPerformanceSpan, hasImages: Boolean) {
+internal fun finishReviewNextCardVisibleSpan(span: AppPerformanceSpan, hasImages: Boolean, reactionPlayed: Boolean) {
     span.setAttribute(key = hasImagesAttributeKey, value = hasImages)
+    span.setAttribute(key = reactionPlayedAttributeKey, value = reactionPlayed)
     // Nothing tracks image decoding yet, so a shown image always counts as not ready.
     span.setAttribute(key = imagesReadyAttributeKey, value = hasImages.not())
     span.finish()
