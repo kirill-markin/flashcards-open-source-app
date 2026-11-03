@@ -37,7 +37,7 @@ struct ReviewPromptConfig: Codable, Equatable, Sendable {
 
 let builtInReviewPromptConfig = ReviewPromptConfig(
     schemaVersion: 1,
-    version: "2026-10-28-2",
+    version: "2026-11-03-1",
     order: [
         "web-mobile-app-promo",
         "guest-sign-in",
@@ -72,7 +72,7 @@ let builtInReviewPromptConfig = ReviewPromptConfig(
             enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 15, cooldownDays: 7
         ),
         "notifications-pre-prompt": ReviewPromptSettings(
-            enabled: true, minTotalReviews: 6, minReviewsToday: nil, minReviewDays: nil, cooldownDays: 7
+            enabled: true, minTotalReviews: 10, minReviewsToday: 3, minReviewDays: nil, cooldownDays: 3
         ),
         "hard-reminder": ReviewPromptSettings(
             enabled: true, minTotalReviews: nil, minReviewsToday: nil, minReviewDays: nil, cooldownDays: 3
