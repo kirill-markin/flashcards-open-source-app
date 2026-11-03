@@ -6,12 +6,13 @@ private let reviewCardsStringsTableName: String = "ReviewCards"
 
 @MainActor
 final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency AVSpeechSynthesizerDelegate {
+    /// The side the user asked to hear; set on tap, before preparation finishes, so the button reflects the request.
     @Published private(set) var activeSide: ReviewSpeechSide? = nil
 
     private let synthesizer = AVSpeechSynthesizer()
     private var hasRequestedSpeech: Bool = false
-    private let audioSession = AVAudioSession.sharedInstance()
-    private var isAudioSessionActive: Bool = false
+    private let audioSession = ReviewSpeechAudioSession()
+    private var playbackGeneration: Int = 0
     private var finalUtterance: AVSpeechUtterance? = nil
 
     override init() {
@@ -22,66 +23,70 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
     func toggleSpeech(
         side: ReviewSpeechSide,
         sourceText: String,
-        fallbackLanguageTag: String
-    ) -> String? {
+        fallbackLanguageTag: String,
+        onError: @escaping @MainActor (String) -> Void
+    ) {
         let segments = makeReviewSpeechSegments(
             text: makeReviewSpeakableText(text: sourceText),
             fallbackLanguageTag: fallbackLanguageTag
         )
         if segments.isEmpty {
-            return nil
+            return
         }
 
-        if self.activeSide == side && self.synthesizer.isSpeaking {
+        if self.activeSide == side {
             self.stopSpeech()
-            return nil
+            return
         }
 
         self.stopSpeech()
+        self.activeSide = side
+        let generation = self.playbackGeneration
 
-        var utterances: [AVSpeechUtterance] = []
-        for segment in segments {
-            guard let voice = selectReviewSpeechVoice(languageTag: segment.languageTag) else {
-                return reviewSpeechUnavailableBannerMessage
+        Task { @MainActor in
+            let utterances: [AVSpeechUtterance]
+            do {
+                utterances = try await self.audioSession.prepareUtterances(segments: segments)
+            } catch {
+                if generation != self.playbackGeneration {
+                    return
+                }
+
+                self.activeSide = nil
+                self.audioSession.deactivate()
+                onError(makeReviewSpeechPreparationErrorMessage(error: error))
+                return
             }
 
-            let utterance = AVSpeechUtterance(string: segment.text)
-            utterance.voice = voice
-            utterances.append(utterance)
-        }
+            if generation != self.playbackGeneration {
+                // A stop or a newer tap superseded this playback; a pending newer playback owns the session.
+                if self.activeSide == nil {
+                    self.audioSession.deactivate()
+                }
+                return
+            }
 
-        do {
-            try self.configureReviewSpeechAudioSession()
-            try self.activateReviewSpeechAudioSession()
-        } catch {
-            self.deactivateReviewSpeechAudioSession()
-            return String(
-                localized: "Couldn't prepare audio for speech. Check your audio settings and try again.",
-                table: reviewCardsStringsTableName
-            )
-        }
-
-        self.activeSide = side
-        self.finalUtterance = utterances.last
-        for utterance in utterances {
+            self.finalUtterance = utterances.last
             self.hasRequestedSpeech = true
-            self.synthesizer.speak(utterance)
+            for utterance in utterances {
+                self.synthesizer.speak(utterance)
+            }
         }
-        return nil
     }
 
     func stopSpeech() {
+        self.playbackGeneration += 1
         self.activeSide = nil
         self.finalUtterance = nil
         if self.hasRequestedSpeech == false {
-            self.deactivateReviewSpeechAudioSession()
+            self.audioSession.deactivate()
             return
         }
 
         if self.synthesizer.isSpeaking || self.synthesizer.isPaused {
             self.synthesizer.stopSpeaking(at: .immediate)
         } else {
-            self.deactivateReviewSpeechAudioSession()
+            self.audioSession.deactivate()
         }
     }
 
@@ -100,48 +105,98 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
                 return
             }
 
-            self.deactivateReviewSpeechAudioSession()
+            self.audioSession.deactivate()
         }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            // Only `stopSpeech` cancels; when a replacement playback has already started, it owns the session.
-            if self.finalUtterance != nil {
+            // Only `stopSpeech` cancels; a replacement playback, even one still preparing, owns the session.
+            if self.finalUtterance != nil || self.activeSide != nil {
                 return
             }
 
-            self.deactivateReviewSpeechAudioSession()
+            self.audioSession.deactivate()
+        }
+    }
+}
+
+private enum ReviewSpeechPreparationError: Error {
+    case voiceUnavailable
+    case audioSessionUnavailable
+}
+
+private func makeReviewSpeechPreparationErrorMessage(error: any Error) -> String {
+    if case ReviewSpeechPreparationError.voiceUnavailable = error {
+        return reviewSpeechUnavailableBannerMessage
+    }
+
+    return String(
+        localized: "Couldn't prepare audio for speech. Check your audio settings and try again.",
+        table: reviewCardsStringsTableName
+    )
+}
+
+/// `AVAudioSession.setActive` blocks and voice lookup can be slow, so both run off the main thread on one serial
+/// queue; activations and deactivations therefore never overlap and apply in the order the main actor requested them.
+private final class ReviewSpeechAudioSession: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "ReviewSpeechAudioSession", qos: .userInitiated)
+    /// Read and written only on `queue`.
+    private var isActive: Bool = false
+
+    func prepareUtterances(segments: [ReviewSpeechSegment]) async throws -> sending [AVSpeechUtterance] {
+        try await withCheckedThrowingContinuation { continuation in
+            self.queue.async {
+                var utterances: [AVSpeechUtterance] = []
+                for segment in segments {
+                    guard let voice = selectReviewSpeechVoice(languageTag: segment.languageTag) else {
+                        continuation.resume(throwing: ReviewSpeechPreparationError.voiceUnavailable)
+                        return
+                    }
+
+                    let utterance = AVSpeechUtterance(string: segment.text)
+                    utterance.voice = voice
+                    utterances.append(utterance)
+                }
+
+                do {
+                    try self.activate()
+                } catch {
+                    continuation.resume(throwing: ReviewSpeechPreparationError.audioSessionUnavailable)
+                    return
+                }
+                continuation.resume(returning: utterances)
+            }
         }
     }
 
-    private func configureReviewSpeechAudioSession() throws {
-        try self.audioSession.setCategory(
+    func deactivate() {
+        self.queue.async {
+            if self.isActive == false {
+                return
+            }
+
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            } catch {
+                // Keep deactivation best-effort so review UI never fails on stop/cancel cleanup.
+            }
+            self.isActive = false
+        }
+    }
+
+    private func activate() throws {
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(
             .playback,
             mode: .spokenAudio,
             options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers]
         )
-    }
-
-    private func activateReviewSpeechAudioSession() throws {
-        if self.isAudioSessionActive {
+        if self.isActive {
             return
         }
 
-        try self.audioSession.setActive(true)
-        self.isAudioSessionActive = true
-    }
-
-    private func deactivateReviewSpeechAudioSession() {
-        if self.isAudioSessionActive == false {
-            return
-        }
-
-        do {
-            try self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-        } catch {
-            // Keep deactivation best-effort so review UI never fails on stop/cancel cleanup.
-        }
-        self.isAudioSessionActive = false
+        try audioSession.setActive(true)
+        self.isActive = true
     }
 }

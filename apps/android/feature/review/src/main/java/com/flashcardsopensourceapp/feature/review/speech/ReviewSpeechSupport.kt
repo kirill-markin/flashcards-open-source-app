@@ -134,6 +134,8 @@ class ReviewSpeechController(
     private var pendingRequest: PendingReviewSpeechRequest? = null
     private var activePlayback: ActiveReviewSpeechPlayback? = null
     private var isReleased: Boolean = false
+    // An init failure during warm-up is reported on the first tap, so the warning still means someone asked to listen.
+    private var unreportedInitFailureStatus: Int? = null
 
     var activeSide: ReviewSpeechSide? by mutableStateOf(value = null)
         private set
@@ -163,24 +165,37 @@ class ReviewSpeechController(
             onError = onError
         )
 
+        // The button reflects the accepted request on tap, before the engine finishes starting or speaking.
         when (initState) {
             ReviewSpeechInitState.NOT_INITIALIZED -> {
+                activeSide = side
                 pendingRequest = request
                 initializeTextToSpeech(fallbackLanguageTag = fallbackLanguageTag)
             }
 
             ReviewSpeechInitState.PENDING -> {
+                activeSide = side
                 pendingRequest = request
             }
 
             ReviewSpeechInitState.FAILED -> {
+                val initFailureStatus = unreportedInitFailureStatus
+                if (initFailureStatus != null) {
+                    unreportedInitFailureStatus = null
+                    captureInitFailure(status = initFailureStatus, fallbackLanguageTag = fallbackLanguageTag)
+                }
                 onError(unavailableMessage)
             }
 
             ReviewSpeechInitState.READY -> {
+                activeSide = side
                 speak(request = request)
             }
         }
+    }
+
+    fun warmUp(fallbackLanguageTag: String) {
+        initializeTextToSpeech(fallbackLanguageTag = fallbackLanguageTag)
     }
 
     fun stop() {
@@ -192,6 +207,7 @@ class ReviewSpeechController(
 
     fun release() {
         isReleased = true
+        unreportedInitFailureStatus = null
         stop()
         textToSpeech?.shutdown()
         textToSpeech = null
@@ -331,6 +347,17 @@ class ReviewSpeechController(
         initState = ReviewSpeechInitState.FAILED
         val request = pendingRequest
         pendingRequest = null
+        activeSide = null
+        if (request == null) {
+            unreportedInitFailureStatus = status
+            return
+        }
+
+        captureInitFailure(status = status, fallbackLanguageTag = fallbackLanguageTag)
+        request.onError(unavailableMessage)
+    }
+
+    private fun captureInitFailure(status: Int, fallbackLanguageTag: String) {
         captureFailure(
             stage = AndroidReviewSpeechFailureStage.INIT,
             errorCode = status,
@@ -338,12 +365,12 @@ class ReviewSpeechController(
             languageTag = localeFromLanguageTag(languageTag = fallbackLanguageTag).toLanguageTag(),
             voiceName = null
         )
-        request?.onError?.invoke(unavailableMessage)
     }
 
     private fun speak(request: PendingReviewSpeechRequest) {
         val controller = textToSpeech
         if (controller == null) {
+            activeSide = null
             request.onError(unavailableMessage)
             return
         }
@@ -356,14 +383,15 @@ class ReviewSpeechController(
             val languageResult = applyReviewSpeechLanguage(controller = controller, locale = locale)
 
             if (languageResult is ReviewSpeechLanguageResult.Failed) {
-                captureFailure(
+                // Also stops the previous side's playback, whose button the tap already turned idle.
+                failActivePlayback(
                     stage = languageResult.stage,
                     errorCode = languageResult.errorCode,
                     languageStatus = languageResult.languageStatus,
                     languageTag = locale.toLanguageTag(),
-                    voiceName = languageResult.voiceName
+                    voiceName = languageResult.voiceName,
+                    onError = request.onError
                 )
-                request.onError(unavailableMessage)
                 return
             }
 
@@ -382,7 +410,6 @@ class ReviewSpeechController(
             )
         }
         activePlayback = ActiveReviewSpeechPlayback(utterances = utterances, onError = request.onError)
-        activeSide = request.side
 
         for ((index, utterance) in utterances.withIndex()) {
             // speak() copies the engine's current language and voice into each queued request, and that
