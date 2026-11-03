@@ -76,6 +76,8 @@ Use this routine checklist; the linked procedures own the detailed gates.
    complete feasible iOS and signed `LocalMac` acceptance under the [standing policy](#standing-best-effort-release-policy) before their Xcode Cloud release-build dispatches, use Android's
    [cloud-first gate](evidence.md#android-cloud-release-gate), and follow the independent
    [macOS local acceptance and Cloud archive flow](macos.md). Prepare metadata while builds run.
+   Use [optional Sentry monitoring and cleanup](#optional-sentry-monitoring-and-cleanup)
+   alongside testing and publication when available.
 5. **Verify results and artifacts.** Inspect native results, warnings, source/build
    correlation, uploaded binaries and saved metadata under those procedures;
    retain [readiness evidence](evidence.md#release-ledger) before new Apple or Android submission/publication.
@@ -91,6 +93,15 @@ On failure, inspect evidence, fix, repeat only affected gates on a recorded
 [source snapshot](evidence.md#source-snapshots) or under [targeted recovery](evidence.md#targeted-recovery),
 merge through normal CI and revalidate artifact reuse; Android gates follow the [Android procedure](android.md). Update the target SHA and notes.
 If a fix affects an already published artifact, ask the user how to handle that platform.
+
+### Optional Sentry monitoring and cleanup
+
+Optionally check Sentry during testing and publication, filtering by project, environment
+and build. Archive only confirmed test noise with no production impact; resolve verified
+fixes under [Sentry rules](../../AGENTS.md#data-sources-for-analysis). Follow the
+[release policy](#standing-best-effort-release-policy) for real defects, leave uncertain
+issues unresolved, and record outcomes in the [ledger](evidence.md#release-ledger).
+This adds no release gate.
 
 ### Early preflight
 

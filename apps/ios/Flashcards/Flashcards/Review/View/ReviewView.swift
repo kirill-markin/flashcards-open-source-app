@@ -1438,17 +1438,17 @@ struct ReviewView: View {
 
     private func toggleSpeech(side: ReviewSpeechSide, sourceText: String) {
         let fallbackLanguageTag = Locale.autoupdatingCurrent.identifier.replacingOccurrences(of: "_", with: "-")
-        let errorMessage = self.reviewSpeechController.toggleSpeech(
+        let store = self.store
+        self.reviewSpeechController.toggleSpeech(
             side: side,
             sourceText: sourceText,
-            fallbackLanguageTag: fallbackLanguageTag
+            fallbackLanguageTag: fallbackLanguageTag,
+            onError: { errorMessage in
+                store.enqueueTransientBanner(
+                    banner: makeReviewSpeechUnavailableBanner(message: errorMessage)
+                )
+            }
         )
-
-        if let errorMessage {
-            self.store.enqueueTransientBanner(
-                banner: makeReviewSpeechUnavailableBanner(message: errorMessage)
-            )
-        }
     }
 
 }
