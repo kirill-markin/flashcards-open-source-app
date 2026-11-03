@@ -321,6 +321,8 @@ fun ReviewRoute(
     }
 
     DisposableEffect(reviewSpeechController) {
+        // Binding the engine on open keeps the first tap from waiting for it.
+        reviewSpeechController.warmUp(fallbackLanguageTag = reviewSpeechFallbackLanguageTag)
         onDispose {
             reviewSpeechController.release()
         }
