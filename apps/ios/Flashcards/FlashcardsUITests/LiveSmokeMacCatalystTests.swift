@@ -940,34 +940,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
                 try self.waitForReviewAnswerReveal()
                 self.app.typeKey("1", modifierFlags: [])
                 try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
-                if revealKey == .space {
-                    try self.dismissSixthReviewNotificationPrePrompt()
-                }
             }
         }
-    }
-
-    @MainActor
-    private func dismissSixthReviewNotificationPrePrompt() throws {
-        let alert = self.nativeAlerts.firstMatch
-        guard alert.waitForExistence(timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds) else { return }
-        let title = alert.staticTexts.firstMatch.value as? String
-        _ = try XCTUnwrap(
-            title == "Stay on top of your cards" ? title : nil,
-            "Expected the notification preprompt before cancelling; found \(String(describing: title))."
-        )
-        try self.tapExistingButtonPreservingAlerts(
-            alert.buttons.matching(identifier: "action-button--998").firstMatch,
-            identifier: "action-button--998",
-            action: "cancel_review_notification_preprompt",
-            note: "expected sixth-review notification preprompt cancelled"
-        )
-        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: alert)
-        XCTAssertEqual(
-            XCTWaiter.wait(for: [dismissed], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds),
-            .completed,
-            "Cancelling the notification preprompt must restore access to the sidebar."
-        )
     }
 
     @MainActor

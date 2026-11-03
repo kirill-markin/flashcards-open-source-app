@@ -37,7 +37,7 @@ data class ReviewPromptConfig(
 
 val reviewPromptConfigDefaults: ReviewPromptConfig = ReviewPromptConfig(
     schemaVersion = 1,
-    version = "2026-10-28-2",
+    version = "2026-11-03-1",
     order = listOf(
         ReviewPromptId.WEB_MOBILE_APP_PROMO,
         ReviewPromptId.GUEST_SIGN_IN,
@@ -101,10 +101,10 @@ val reviewPromptConfigDefaults: ReviewPromptConfig = ReviewPromptConfig(
         ),
         ReviewPromptId.NOTIFICATIONS_PRE_PROMPT to ReviewPromptSettings(
             enabled = true,
-            minTotalReviews = 6,
-            minReviewsToday = null,
+            minTotalReviews = 10,
+            minReviewsToday = 3,
             minReviewDays = null,
-            cooldownDays = 7
+            cooldownDays = 3
         ),
         ReviewPromptId.HARD_REMINDER to ReviewPromptSettings(
             enabled = true,

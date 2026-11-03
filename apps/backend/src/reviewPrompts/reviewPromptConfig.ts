@@ -80,7 +80,7 @@ export type ReviewPromptConfig = Readonly<{
 
 export const reviewPromptConfig: ReviewPromptConfig = {
   schemaVersion: 1,
-  version: "2026-10-28-2",
+  version: "2026-11-03-1",
   order: [
     "web-mobile-app-promo",
     "guest-sign-in",
@@ -100,7 +100,7 @@ export const reviewPromptConfig: ReviewPromptConfig = {
     "paywall-initial": { enabled: true, minReviewsToday: 2, minReviewDays: 3 },
     "paywall-second": { enabled: true, minReviewsToday: 2, minReviewDays: 5, cooldownDays: 2 },
     "paywall-periodic": { enabled: true, minReviewsToday: 2, minReviewDays: 15, cooldownDays: 7 },
-    "notifications-pre-prompt": { enabled: true, minTotalReviews: 6, cooldownDays: 7 },
+    "notifications-pre-prompt": { enabled: true, minTotalReviews: 10, minReviewsToday: 3, cooldownDays: 3 },
     "hard-reminder": { enabled: true, cooldownDays: 3 },
   },
 };
