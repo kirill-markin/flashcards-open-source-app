@@ -32,37 +32,42 @@ own network breadcrumbs use the `http` category and never carry the memory
 fields, and the newest entries in the ring buffer are often exactly those, so
 scan the whole buffer before concluding anything.
 
-On an app-emitted breadcrumb, an empty `app_memory_footprint_bytes` or
-`app_uptime_seconds` means that sample was unavailable. Empty values on every
-app-emitted breadcrumb of a current build mean sampling failed, which is worth
-a look. App-emitted breadcrumbs without the `app_memory_*` keys at all came from
-a build older than the instrumentation and answer nothing.
+On an app-emitted breadcrumb, an empty `app_memory_footprint_bytes`,
+`app_memory_available_bytes` or `app_uptime_seconds` means that sample was
+unavailable. Available memory is always unknown on Mac Catalyst: macOS can
+return zero when no process memory limit is configured. Historical Catalyst
+events can contain a literal `0` for this reason; do not interpret it as zero
+headroom or evidence of an out-of-memory kill. Empty footprint or uptime values
+on every app-emitted breadcrumb of a current build mean sampling failed, which
+is worth a look. App-emitted breadcrumbs without the `app_memory_*` keys at all
+came from a build older than the instrumentation and answer nothing.
 
 ## The decision tree
 
 Read the last app-emitted breadcrumbs first, then walk down. Every branch ends
 in an action.
 
-1. **`app_memory_available_bytes` at or near zero on the last breadcrumbs, or
-   `app_memory_footprint_bytes` climbing across the window** → an out-of-memory
-   kill. Fix it. A literal `0` settles the question on its own; no climbing
-   trend is required alongside it. A climbing footprint corroborates it, and
-   the breadcrumb where the curve turns names the operation that started the
-   growth; a flat footprint only means the growth predates the ring buffer or
-   arrived in one allocation. Do not weigh the footprint against
+1. **`app_memory_available_bytes` at or near zero on the last iOS/iPadOS
+   breadcrumbs, or `app_memory_footprint_bytes` climbing across the window** →
+   investigate memory pressure. A literal `0` on iOS/iPadOS means the process has
+   reached its memory limit; no climbing trend is required alongside it. Catalyst's unknown
+   headroom cannot support this conclusion. A climbing footprint corroborates
+   memory pressure, and the breadcrumb where the curve turns names the operation
+   that started the growth; a flat footprint only means the growth predates the
+   ring buffer or arrived in one allocation. Do not weigh the footprint against
    `contexts.device.usable_memory`: that is device-wide physical memory, while
-   iOS kills a process at its own per-process limit, well below it. The headroom
-   question is answered directly by `app_memory_available_bytes`. Read all of it
-   together with `app_uptime_seconds`: a large footprint after four hours is a
-   slow leak, the same footprint after twelve seconds is a startup allocation,
-   and they are different bugs.
+   iOS kills a process at its own per-process limit, well below it. On iOS/iPadOS,
+   the headroom question is answered directly by `app_memory_available_bytes`.
+   Read all of it together with `app_uptime_seconds`: a large footprint after
+   four hours is a slow leak, the same footprint after twelve seconds is a
+   startup allocation, and they are different bugs.
 
 2. **A `memory_warning_received` breadcrumb present** → the OS warned before it
    killed. Same conclusion as branch 1, and that breadcrumb is the starting
    line for the investigation.
 
-3. **Memory flat and modest, no warning** → not an out-of-memory kill. Continue
-   to branch 4.
+3. **Memory flat and modest, no warning** → no captured memory-pressure signal;
+   unknown headroom does not rule out an out-of-memory kill. Continue to branch 4.
 
 4. **A `Fatal App Hang Fully Blocked` issue for the same user, release, and
    minute** → that issue carries the stack; work from it and ignore the
@@ -74,9 +79,8 @@ in an action.
    issue: check the timestamps of consecutive `scene_phase_changed` breadcrumbs
    for that case, where a slow transition shows up as a gap between them.
 
-5. **Flat memory, no warning, no hang** → record the event as OS-side or
-   environmental. Do not open engineering work on a single user without a new
-   signal.
+5. **Flat memory, no warning, no hang** → leave the cause unproved. Do not open
+   engineering work on a single user without a new signal.
 
 ## `FLASHCARDS-IOS-3Q`: settled, and when to reopen
 
@@ -94,8 +98,7 @@ Do not re-derive these facts.
 
 Reopen `FLASHCARDS-IOS-3Q` when any of these appears:
 
-- an event arrives carrying the memory fields above; a short-session or
-  pressure-starved kill can keep arriving without them, so their absence alone
-  is not a reason to reopen
+- an event adds evidence of memory pressure; the presence of memory keys,
+  historical Catalyst zeros or missing samples alone is not a reason to reopen
 - the affected user count rises above one
 - a `Fatal App Hang Fully Blocked` issue appears for the same release and user

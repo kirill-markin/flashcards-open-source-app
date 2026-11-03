@@ -1,16 +1,6 @@
 import Foundation
 
-// Process diagnostics sampled on every Sentry breadcrumb.
-//
-// The Sentry Cocoa SDK deliberately skips frequently changing context such as
-// free memory when it writes a watchdog termination event, but it does replay
-// the persisted breadcrumb ring buffer onto that event. It persists that buffer
-// on a utility queue, so a kill under memory pressure can lose the newest
-// breadcrumbs or all of them. Carrying these values on our own breadcrumbs is
-// still the only way a later `WatchdogTermination` can answer whether the OS
-// killed the app for running out of memory. Everything here runs on every
-// breadcrumb, so it must stay allocation-free, must not log, and must not touch
-// Sentry.
+// Sampling runs on every breadcrumb; do not allocate, log, or touch Sentry.
 
 private final class AppUptimeReferenceStorage: @unchecked Sendable {
     private let lock: NSLock
@@ -40,9 +30,7 @@ private final class AppUptimeReferenceStorage: @unchecked Sendable {
 
 private let appUptimeReferenceStorage: AppUptimeReferenceStorage = AppUptimeReferenceStorage()
 
-/// Bytes the process currently occupies, as reported by `phys_footprint`. This
-/// is the number the Xcode memory gauge shows and the number the OS jetsam
-/// limit is applied to, which is why `resident_size` is not used here.
+// The OS jetsam limit applies to phys_footprint, not resident_size.
 func currentMemoryFootprintBytes() -> UInt64? {
     var info: task_vm_info_data_t = task_vm_info_data_t()
     var count: mach_msg_type_number_t = mach_msg_type_number_t(
@@ -61,14 +49,13 @@ func currentMemoryFootprintBytes() -> UInt64? {
     return info.phys_footprint
 }
 
-/// Bytes the process may still allocate before it hits its dirty memory limit
-/// and the OS terminates it. `os_proc_available_memory` documents `0` as a real
-/// reading meaning the process is already over its memory limit — the single
-/// strongest signal that a termination was an out-of-memory kill — so `0` is
-/// reported as-is and never mapped to a missing value. (The header's other `0`
-/// case, "the calling process is not an app", cannot apply to this binary.)
-func availableMemoryBytes() -> UInt64 {
+func availableMemoryBytes() -> UInt64? {
+    #if targetEnvironment(macCatalyst)
+    // macOS can return zero without a configured process memory limit.
+    return nil
+    #else
     return UInt64(os_proc_available_memory())
+    #endif
 }
 
 func currentThermalStateName(processInfo: ProcessInfo) -> String {
@@ -86,14 +73,10 @@ func currentThermalStateName(processInfo: ProcessInfo) -> String {
     }
 }
 
-/// Captures the launch reference read back by `appUptimeSeconds(processInfo:)`.
 func startAppUptimeReference(processInfo: ProcessInfo) {
     appUptimeReferenceStorage.store(systemUptime: processInfo.systemUptime)
 }
 
-/// Whole seconds since `startAppUptimeReference(processInfo:)` ran, or `nil`
-/// before it ran. Whole seconds are enough to separate a process that has been
-/// running for hours from one that just launched.
 func appUptimeSeconds(processInfo: ProcessInfo) -> Int? {
     guard let referenceSystemUptime: TimeInterval = appUptimeReferenceStorage.read() else {
         return nil
