@@ -46,6 +46,14 @@ func makeReviewSelectableContent(
         var listItemFirstBlocks: [Int: Int] = [:]
         var table: ReviewSelectableTableContent?
         var previousAttributes: [NSAttributedString.Key: Any] = [:]
+        let codeBlocks = value.runs.reduce(into: [Int: String]()) { blocks, run in
+            guard let block = run.presentationIntent?.components.first(where: {
+                if case .codeBlock = $0.kind { return true }
+                return false
+            }) else { return }
+            blocks[block.identity, default: ""] += String(value[run.range].characters)
+        }
+        var renderedCodeBlocks: Set<Int> = []
 
         func appendTable() {
             guard let tableContent = table else { return }
@@ -130,14 +138,11 @@ func makeReviewSelectableContent(
             paragraph.paragraphSpacing = 10
             var pointSize = font.pointSize
             var traits: UIFontDescriptor.SymbolicTraits = []
-            var isCode = false
             for component in components {
                 switch component.kind {
                 case .header(let level):
                     pointSize *= [1.5, 1.3, 1.15, 1, 0.95, 0.9][min(max(level - 1, 0), 5)]
                     traits.insert(.traitBold)
-                case .codeBlock:
-                    isCode = true
                 case .blockQuote:
                     paragraph.headIndent += 16
                     paragraph.firstLineHeadIndent += 16
@@ -156,16 +161,37 @@ func makeReviewSelectableContent(
                 paragraph.paragraphSpacing = 0
             }
             if isTableHeader { traits.insert(.traitBold) }
+            let codeBlock = components.first(where: {
+                if case .codeBlock = $0.kind { return true }
+                return false
+            })
             let inline = run.inlinePresentationIntent ?? []
             if inline.contains(.stronglyEmphasized) { traits.insert(.traitBold) }
             if inline.contains(.emphasized) { traits.insert(.traitItalic) }
-            isCode = isCode || inline.contains(.code)
+            let isCode = codeBlock == nil && inline.contains(.code)
             let baseFont = isCode ? UIFont.monospacedSystemFont(ofSize: pointSize * 0.88, weight: .regular) : UIFont.systemFont(ofSize: pointSize)
             let styledFont = baseFont.fontDescriptor.withSymbolicTraits(traits).map { UIFont(descriptor: $0, size: baseFont.pointSize) } ?? baseFont
             var attributes: [NSAttributedString.Key: Any] = [.font: styledFont, .foregroundColor: UIColor.label, .paragraphStyle: paragraph]
             if isCode { attributes[.backgroundColor] = UIColor.secondarySystemBackground }
             if inline.contains(.strikethrough) { attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
             if let link = run.link { attributes[.link] = link }
+            if let codeBlock, let code = codeBlocks[codeBlock.identity] {
+                guard renderedCodeBlocks.insert(codeBlock.identity).inserted else { continue }
+                if let listMarker { destination.append(NSAttributedString(string: listMarker, attributes: attributes)) }
+                appendAttachment(
+                    view: AnyView(ReviewSelectableCodeBlock(
+                        code: code,
+                        font: UIFont.monospacedSystemFont(ofSize: font.pointSize * 0.88, weight: .regular)
+                    )),
+                    text: code,
+                    layout: .block,
+                    attributes: attributes,
+                    to: destination
+                )
+                previousAttributes = attributes
+                continue
+            }
+
             if let listMarker {
                 destination.append(NSAttributedString(string: listMarker, attributes: attributes))
             }
