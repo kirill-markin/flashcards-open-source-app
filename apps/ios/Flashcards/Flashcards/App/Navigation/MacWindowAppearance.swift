@@ -186,12 +186,17 @@ struct MacWindowAppearance: UIViewRepresentable {
             guard let split else { return didChangeSplit }
             if didChangeSplit == false, self.sidebarItem != nil { return false }
             if self.sidebarItem == nil {
-                let button = UIBarButtonItem(image: UIImage(systemName: "sidebar.left"), style: .plain,
-                    target: self, action: #selector(self.toggleSidebar))
+                let button = UIButton(type: .system)
+                var configuration = UIButton.Configuration.plain()
+                configuration.image = UIImage(systemName: "sidebar.left")
+                configuration.baseForegroundColor = .label
+                button.configuration = configuration
                 button.accessibilityIdentifier = "mac.sidebar.toggle"
                 button.accessibilityLabel = String(localized: "mac.sidebar.title", table: "Foundation")
+                button.addTarget(self, action: #selector(self.toggleSidebar), for: .primaryActionTriggered)
                 // Keep SwiftUI's column visibility authoritative for the native split.
-                let item = NSToolbarItem(itemIdentifier: self.sidebarIdentifier, barButtonItem: button)
+                let item = NSUIViewToolbarItem(itemIdentifier: self.sidebarIdentifier, uiView: button)
+                item.isBordered = true
                 item.label = button.accessibilityLabel ?? ""
                 item.paletteLabel = item.label
                 item.visibilityPriority = .high
@@ -313,27 +318,23 @@ struct MacWindowAppearance: UIViewRepresentable {
 
         private func updateAction(_ action: MacToolbarAction) {
             let entry: ActionEntry
-            if let cached = self.items[action.identifier], cached.matchesAccessibility(of: action) {
+            if let cached = self.items[action.identifier] {
                 entry = cached
             } else {
                 entry = ActionEntry(action: action) { [weak self] in
                     self?.performAction(identifier: action.identifier)
                 }
                 self.items[action.identifier] = entry
-                // Catalyst snapshots UIBarButtonItem accessibility when bridging.
-                // Rebuild only on semantic changes; keep search and unchanged items stable.
-                let identifier = NSToolbarItem.Identifier(action.identifier)
-                if let toolbar = self.toolbar, let index = toolbar.itemIdentifiers.firstIndex(of: identifier) {
-                    toolbar.removeItem(at: index)
-                    toolbar.insertItem(withItemIdentifier: identifier, at: index)
-                }
             }
-            entry.button.title = action.title
             var image = action.symbol.isEmpty ? nil : UIImage(systemName: action.symbol)
             if let color = action.symbolColor {
                 image = image?.withTintColor(color, renderingMode: .alwaysOriginal)
             }
-            entry.button.image = image
+            var configuration = UIButton.Configuration.plain()
+            configuration.title = action.title
+            configuration.image = image
+            configuration.baseForegroundColor = .label
+            entry.button.configuration = configuration
             entry.button.accessibilityIdentifier = action.identifier
             entry.button.accessibilityLabel = action.label
             entry.button.accessibilityValue = action.value
@@ -344,12 +345,12 @@ struct MacWindowAppearance: UIViewRepresentable {
             entry.button.isSelected = action.isSelected
             entry.button.isEnabled = action.isEnabled
             entry.item.title = action.title ?? ""
-            entry.item.image = entry.button.image
+            entry.item.image = image
             entry.item.label = action.label
             entry.item.paletteLabel = action.label
             entry.item.toolTip = action.label
             entry.item.isEnabled = action.isEnabled
-            entry.item.itemMenuFormRepresentation = UIAction(title: action.label, image: entry.button.image,
+            entry.item.itemMenuFormRepresentation = UIAction(title: action.label, image: image,
                 attributes: action.isEnabled ? [] : .disabled, state: action.isSelected ? .on : .off) { [weak self] _ in
                 self?.performAction(identifier: action.identifier)
             }
@@ -479,41 +480,17 @@ struct MacWindowAppearance: UIViewRepresentable {
 
     @MainActor
     private final class ActionEntry: NSObject {
-        let button: UIBarButtonItem
-        let item: NSToolbarItem
+        let button: UIButton
+        let item: NSUIViewToolbarItem
         private let activate: () -> Void
-        private let initialAccessibilityLabel: String
-        private let initialAccessibilityValue: String?
-        private let isSelected: Bool
-        private let isEnabled: Bool
-
-        func matchesAccessibility(of action: MacToolbarAction) -> Bool {
-            self.initialAccessibilityLabel == action.label && self.initialAccessibilityValue == action.value
-                && self.isSelected == action.isSelected && self.isEnabled == action.isEnabled
-        }
 
         init(action: MacToolbarAction, activate: @escaping () -> Void) {
             self.activate = activate
-            self.initialAccessibilityLabel = action.label
-            self.initialAccessibilityValue = action.value
-            self.isSelected = action.isSelected
-            self.isEnabled = action.isEnabled
-            self.button = UIBarButtonItem(title: action.title, image: action.symbol.isEmpty ? nil : UIImage(systemName: action.symbol), primaryAction: nil, menu: nil)
+            self.button = UIButton(type: .system)
             self.button.accessibilityIdentifier = action.identifier
-            self.button.accessibilityLabel = action.label
-            self.button.accessibilityValue = action.value
-            var traits: UIAccessibilityTraits = .button
-            if action.isSelected { traits.insert(.selected) }
-            if !action.isEnabled { traits.insert(.notEnabled) }
-            self.button.accessibilityTraits = traits
-            self.button.isEnabled = action.isEnabled
-            self.button.isSelected = action.isSelected
-            self.item = NSToolbarItem(itemIdentifier: NSToolbarItem.Identifier(action.identifier), barButtonItem: self.button)
+            self.item = NSUIViewToolbarItem(itemIdentifier: NSToolbarItem.Identifier(action.identifier), uiView: self.button)
             super.init()
-            self.button.target = self
-            self.button.action = #selector(self.pressed(_:))
-            self.item.target = self
-            self.item.action = #selector(self.pressed(_:))
+            self.button.addTarget(self, action: #selector(self.pressed(_:)), for: .primaryActionTriggered)
             self.item.isBordered = true
             self.item.autovalidates = false
         }
