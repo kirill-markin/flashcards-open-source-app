@@ -42,7 +42,88 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.waitForReviewAnswerReveal()
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.waitForAiComposerValue("Keep this unsent companion draft", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#if !targetEnvironment(macCatalyst)
+        try self.assertReviewFilterLifetimeAcrossCompanionLayouts()
+#endif
     }
+
+#if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func assertReviewFilterLifetimeAcrossCompanionLayouts() throws {
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCUIDevice.shared.orientation = .portrait
+        try self.waitForReviewAnswerReveal()
+        let allCards = self.app.buttons[LiveSmokeIdentifier.reviewFilterAllCardsToggle].firstMatch
+
+        try self.step("retain a pending filter and revealed card through popup rotation") {
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            XCTAssertEqual(self.elementValue(element: allCards), "0")
+            for orientation in [UIDeviceOrientation.landscapeLeft, .portrait] {
+                XCUIDevice.shared.orientation = orientation
+                try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                XCTAssertEqual(self.elementValue(element: allCards), "0", "Rotation must preserve the pending filter while its control stays in place.")
+                try self.waitForReviewAnswerReveal()
+            }
+            self.recordReviewFilterLayout(name: "review-filter-portrait")
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.dismissReviewFilterWithOutsideTap()
+            try self.waitForReviewAnswerReveal()
+        }
+
+        try self.step("commit the pending filter when rotation removes its companion toolbar control") {
+            XCUIDevice.shared.orientation = .landscapeLeft
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerValue("Keep this unsent companion draft", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            XCTAssertEqual(self.elementValue(element: allCards), "1")
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            XCTAssertEqual(self.elementValue(element: allCards), "0")
+            self.recordReviewFilterLayout(name: "review-filter-companion-landscape")
+
+            XCUIDevice.shared.orientation = .portrait
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            XCTAssertEqual(self.elementValue(element: allCards), "0", "Relocating the control must commit its pending filter.")
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.dismissReviewFilterWithOutsideTap()
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+        }
+
+        try self.step("reopen the native popup after hiding the companion") {
+            XCUIDevice.shared.orientation = .landscapeLeft
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            XCTAssertEqual(self.elementValue(element: allCards), "1")
+            try self.dismissReviewFilterWithOutsideTap()
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            XCTAssertEqual(self.elementValue(element: allCards), "1")
+            try self.dismissReviewFilterWithOutsideTap()
+        }
+    }
+
+    @MainActor
+    private func dismissReviewFilterWithOutsideTap() throws {
+        let dismissRegion = self.app.otherElements[LiveSmokeIdentifier.popoverDismissRegion].firstMatch
+        try self.tapButton(button: dismissRegion, identifier: LiveSmokeIdentifier.popoverDismissRegion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
+
+    @MainActor
+    private func recordReviewFilterLayout(name: String) {
+        let screenshot = XCTAttachment(screenshot: self.app.screenshot())
+        screenshot.name = name
+        screenshot.lifetime = .keepAlways
+        self.add(screenshot)
+        self.add(self.makeTextAttachment(name: name + "-hierarchy", text: self.app.debugDescription))
+    }
+#endif
 
     @MainActor
     func testIPadReviewHardwareKeysRespectFilterAndRateCards() throws {
