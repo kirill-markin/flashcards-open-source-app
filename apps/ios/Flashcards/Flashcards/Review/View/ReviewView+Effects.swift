@@ -136,6 +136,7 @@ extension ReviewView {
                 self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
                     loadResult: loadResult
                 )
+                self.prepareReviewReactions()
             },
             onCompletion: {
                 self.finishReviewReactionLottiePrewarm(prewarmId: prewarmId)
@@ -158,54 +159,182 @@ extension ReviewView {
         self.reviewReactionLottiePrewarmId = nil
     }
 
-    func emitReviewReaction(rating: ReviewRating) {
-        guard self.isReviewReactionScreenVisible, self.areReviewReactionAnimationsEnabled, self.scenePhase == .active else { return }
-        let reactionRating = makeReviewReactionRating(rating: rating)
-        let readyVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.readyVariants
-        let totalWeight: Int = reviewReactionReadyVariantTotalWeight(
+    private var canPlayReviewReactions: Bool {
+        self.isReviewReactionScreenVisible && self.areReviewReactionAnimationsEnabled && self.scenePhase == .active
+    }
+
+    /// Queues every fully loaded rating without an unplayed prepared reaction. Runs on appear, enable, scene
+    /// activation and asset loads, never on a rating; the queue builds one reaction per display refresh.
+    func prepareReviewReactions() {
+        guard self.canPlayReviewReactions else { return }
+        let pendingVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.pendingVariants
+        let ratings: [ReviewReactionRating] = ReviewReactionRating.allCases.filter { rating in
+            self.needsPreparedReviewReaction(rating: rating)
+                && hasPendingReviewReactionVariant(rating: rating, pendingVariants: pendingVariants) == false
+        }
+        guard ratings.isEmpty == false else { return }
+        self.reviewReactionRatingsToPrepare.formUnion(ratings)
+        self.scheduleReviewReactionRefreshWork()
+    }
+
+    /// Marks the rating's reaction to start at the next display refresh, after the frame that shows the next card.
+    /// A prepared reaction plays at most once; without an unplayed one, the refresh after that builds a fresh roll
+    /// over the loaded variants and plays it slightly late. Every rating schedules the refresh work, so queued
+    /// builds resume after its next card even when it plays nothing. Returns whether a reaction was scheduled.
+    func scheduleReviewReaction(rating: ReviewRating) -> Bool {
+        guard self.canPlayReviewReactions else { return false }
+        self.isReviewReactionNextCardRefreshPending = true
+        self.scheduleReviewReactionRefreshWork()
+        let reactionRating: ReviewReactionRating = makeReviewReactionRating(rating: rating)
+        let unplayedReaction: ReviewReactionEvent? = self.preparedReviewReactions[reactionRating].flatMap { reaction in
+            self.playedReviewReactionIds.contains(reaction.id) ? nil : reaction
+        }
+        if unplayedReaction == nil, reviewReactionReadyVariantTotalWeight(
             rating: reactionRating,
-            readyVariants: readyVariants
-        )
-        guard totalWeight > 0 else {
+            readyVariants: self.reviewReactionLottieAssetStore.readyVariants
+        ) == 0 {
             FlashcardsObservability.recordReviewReaction(
                 action: .skip, variant: nil, source: .review, reason: "no_ready_asset"
             )
-            return
-        }
-        guard let variant: ReviewReactionVariant = selectReadyReviewReactionVariant(
-            rating: reactionRating,
-            readyVariants: readyVariants,
-            roll: Int.random(in: 0..<totalWeight)
-        ) else {
-            return
+            return false
         }
 
-        let event = ReviewReactionEvent(
-            id: UUID(),
-            rating: reactionRating,
-            variant: variant
-        )
         self.dismissActiveReviewReactions(reason: "replacement")
-        self.activeReviewReactionEvents = [event]
-    }
-
-    func dismissActiveReviewReactions(reason: String) {
-        for event in self.activeReviewReactionEvents {
-            FlashcardsObservability.recordReviewReaction(
-                action: .cancel, variant: event.variant, source: .review, reason: reason
-            )
+        if let unplayedReaction {
+            self.playedReviewReactionIds.insert(unplayedReaction.id)
         }
-        self.activeReviewReactionEvents = []
+        self.activeReviewReactionPlayback = ReviewReactionPlayback(
+            id: UUID(), rating: reactionRating, reaction: unplayedReaction, isStarted: false
+        )
+        return true
     }
 
-    func removeFinishedReviewReactionEvent(
-        eventId: UUID, action: ReviewReactionLifecycleAction, reason: String
-    ) {
-        guard let event = self.activeReviewReactionEvents.first(where: { $0.id == eventId }) else { return }
+    /// Hides and pauses the playing reaction in this frame and queues its re-roll for a later refresh, so a tap's
+    /// or key's action never waits for a Lottie build.
+    func dismissActiveReviewReactions(reason: String) {
+        guard let playback = self.activeReviewReactionPlayback else { return }
         FlashcardsObservability.recordReviewReaction(
-            action: action, variant: event.variant, source: .review, reason: reason
+            action: .cancel, variant: playback.reaction?.variant, source: .review, reason: reason
         )
-        self.activeReviewReactionEvents.removeAll { $0.id == eventId }
+        self.activeReviewReactionPlayback = nil
+        self.reviewReactionRatingsToPrepare.insert(playback.rating)
+        self.resumeReviewReactionPreparation()
+    }
+
+    /// Runs after a stop and on touch-up: the next refresh builds nothing, so a build never shares the frame that
+    /// commits the stop or the interaction's action.
+    func resumeReviewReactionPreparation() {
+        guard self.reviewReactionRatingsToPrepare.isEmpty == false else { return }
+        self.isReviewReactionNextCardRefreshPending = true
+        self.scheduleReviewReactionRefreshWork()
+    }
+
+    func releaseReviewReactions(reason: String) {
+        self.dismissActiveReviewReactions(reason: reason)
+        self.preparedReviewReactions = [:]
+        self.playedReviewReactionIds = []
+        self.reviewReactionRatingsToPrepare = []
+    }
+
+    func finishReviewReactionPlayback(
+        playbackId: UUID, action: ReviewReactionLifecycleAction, reason: String
+    ) {
+        guard let playback = self.activeReviewReactionPlayback, playback.id == playbackId else { return }
+        FlashcardsObservability.recordReviewReaction(
+            action: action, variant: playback.reaction?.variant, source: .review, reason: reason
+        )
+        self.activeReviewReactionPlayback = nil
+        self.reviewReactionRatingsToPrepare.insert(playback.rating)
+        self.scheduleReviewReactionRefreshWork()
+    }
+
+    /// A rating's view is never replaced while its playback is pending or started.
+    private func needsPreparedReviewReaction(rating: ReviewReactionRating) -> Bool {
+        guard self.activeReviewReactionPlayback?.rating != rating else { return false }
+        guard let reaction = self.preparedReviewReactions[rating] else { return true }
+        return self.playedReviewReactionIds.contains(reaction.id)
+    }
+
+    private func scheduleReviewReactionRefreshWork() {
+        guard self.isReviewReactionRefreshWorkScheduled == false else { return }
+        self.isReviewReactionRefreshWorkScheduled = true
+        performOnNextDisplayRefresh {
+            self.performReviewReactionRefreshWork()
+        }
+    }
+
+    /// Does one unit of reaction work per display refresh, so building a Lottie view never shares a frame with a
+    /// rating's update or with another build: the pending playback starts first, else one queued rating is built.
+    /// The refresh that shows a rating's next card only starts a prepared reaction, so the next-card span ends
+    /// before any build. While a touch is down nothing is built, so the tap's action never waits; touch-up resumes
+    /// the queue.
+    private func performReviewReactionRefreshWork() {
+        self.isReviewReactionRefreshWorkScheduled = false
+        let canBuild: Bool = self.isReviewReactionNextCardRefreshPending == false
+        self.isReviewReactionNextCardRefreshPending = false
+        guard self.canPlayReviewReactions else { return }
+        if let playback = self.activeReviewReactionPlayback, playback.isStarted == false {
+            if playback.reaction != nil || canBuild {
+                self.startReviewReactionPlayback(playback: playback)
+            }
+        } else if canBuild, self.isReviewReactionTouchDown == false {
+            self.buildNextQueuedReviewReaction()
+        }
+        if self.activeReviewReactionPlayback?.isStarted == false
+            || (self.reviewReactionRatingsToPrepare.isEmpty == false && self.isReviewReactionTouchDown == false) {
+            self.scheduleReviewReactionRefreshWork()
+        }
+    }
+
+    private func startReviewReactionPlayback(playback: ReviewReactionPlayback) {
+        let reaction: ReviewReactionEvent
+        if let preparedReaction = playback.reaction {
+            reaction = preparedReaction
+        } else {
+            guard let freshReaction = makePreparedReviewReaction(
+                rating: playback.rating,
+                readyVariants: self.reviewReactionLottieAssetStore.readyVariants
+            ) else {
+                FlashcardsObservability.recordReviewReaction(
+                    action: .skip, variant: nil, source: .review, reason: "no_ready_asset"
+                )
+                self.activeReviewReactionPlayback = nil
+                return
+            }
+            self.replacePreparedReviewReaction(rating: playback.rating, reaction: freshReaction)
+            self.playedReviewReactionIds.insert(freshReaction.id)
+            reaction = freshReaction
+        }
+        self.activeReviewReactionPlayback = ReviewReactionPlayback(
+            id: playback.id, rating: playback.rating, reaction: reaction, isStarted: true
+        )
+    }
+
+    private func buildNextQueuedReviewReaction() {
+        let pendingVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.pendingVariants
+        for rating in ReviewReactionRating.allCases where self.reviewReactionRatingsToPrepare.contains(rating) {
+            self.reviewReactionRatingsToPrepare.remove(rating)
+            // A rating with variants still loading is queued again by the asset load that completes it.
+            guard self.needsPreparedReviewReaction(rating: rating),
+                  hasPendingReviewReactionVariant(rating: rating, pendingVariants: pendingVariants) == false else {
+                continue
+            }
+            self.replacePreparedReviewReaction(
+                rating: rating,
+                reaction: makePreparedReviewReaction(
+                    rating: rating,
+                    readyVariants: self.reviewReactionLottieAssetStore.readyVariants
+                )
+            )
+            return
+        }
+    }
+
+    private func replacePreparedReviewReaction(rating: ReviewReactionRating, reaction: ReviewReactionEvent?) {
+        if let previousReaction = self.preparedReviewReactions[rating] {
+            self.playedReviewReactionIds.remove(previousReaction.id)
+        }
+        self.preparedReviewReactions[rating] = reaction
     }
 
     func submitReview(cardId: String, rating: ReviewRating) {
@@ -329,6 +458,17 @@ extension ReviewView {
             schedulerSettings: store.schedulerSettings,
             now: Date()
         ).state
+    }
+}
+
+/// Preparing ahead before every variant of a rating has loaded would favor the ones that load first; a rating with
+/// no prepared reaction still rolls over the loaded ones.
+private func hasPendingReviewReactionVariant(
+    rating: ReviewReactionRating,
+    pendingVariants: Set<ReviewReactionVariant>
+) -> Bool {
+    reviewReactionVariantDistributionEntries(rating: rating).contains { entry in
+        pendingVariants.contains(entry.variant)
     }
 }
 

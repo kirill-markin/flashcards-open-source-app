@@ -2,37 +2,35 @@ import Foundation
 import Lottie
 import SwiftUI
 
+/// Keeps every prepared reaction mounted, hidden and paused at its first frame, so a rating only switches the
+/// playback of an existing Lottie view and never builds one in the frame that shows the next card.
 struct ReviewReactionLayer: View {
     @Environment(\.accessibilityReduceMotion) private var isReduceMotionEnabled
 
-    let events: [ReviewReactionEvent]
+    let preparedReactions: [ReviewReactionRating: ReviewReactionEvent]
+    let playback: ReviewReactionPlayback?
     let lottieAssetStore: ReviewReactionLottieAssetStore
     let source: ReviewReactionSource
-    let onEventFinished: (UUID, ReviewReactionLifecycleAction, String) -> Void
-
-    @State private var reportedConfigurationFailures: Set<ReviewReactionVariant> = []
+    let onPlaybackEnded: (UUID, ReviewReactionLifecycleAction, String) -> Void
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                ForEach(self.events.suffix(1)) { event in
-                    if let configuration = reviewReactionLottieAssetConfiguration(variant: event.variant),
-                       let animation = self.lottieAssetStore.readyAnimations[event.variant],
-                       animation.duration.isFinite, animation.duration > 0,
-                       configuration.frameScale.isFinite, configuration.frameScale > 0 {
+                ForEach(ReviewReactionRating.allCases.compactMap { self.preparedReactions[$0] }) { reaction in
+                    // The asset loader admits only animations with a configuration, a positive finite duration
+                    // and frame scale, and reports every other asset as a failure.
+                    if let configuration = reviewReactionLottieAssetConfiguration(variant: reaction.variant),
+                       let animation = self.lottieAssetStore.readyAnimations[reaction.variant] {
                         ReviewReactionLottieView(
-                            event: event,
+                            reaction: reaction,
                             animation: animation,
                             frameScale: configuration.frameScale,
+                            startedPlaybackId: self.startedPlaybackId(reaction: reaction),
                             isReduceMotionEnabled: self.isReduceMotionEnabled,
                             source: self.source,
-                            onEventFinished: self.onEventFinished
+                            onPlaybackEnded: self.onPlaybackEnded
                         )
-                        .id(event.id)
-                    } else {
-                        Color.clear.task(id: event.id) {
-                            self.skipUnusableEvent(event: event)
-                        }
+                        .id(reaction.id)
                     }
                 }
             }
@@ -40,78 +38,70 @@ struct ReviewReactionLayer: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-        .onDisappear {
-            for event in self.events {
-                self.onEventFinished(event.id, .cancel, "presentation_disappeared")
-            }
-        }
     }
 
-    private func skipUnusableEvent(event: ReviewReactionEvent) {
-        let status: ReviewReactionLottieAssetStatus = reviewReactionLottieAssetStatus(
-            variant: event.variant, readiness: self.lottieAssetStore.readiness
-        )
-        let reason: String
-        if status == .pending {
-            reason = "asset_pending"
-        } else if let failure = self.lottieAssetStore.failedAssets[event.variant] {
-            reason = failure.failureReason
-        } else {
-            reason = "missing_or_invalid_presentation_configuration"
-            if self.reportedConfigurationFailures.insert(event.variant).inserted {
-                FlashcardsObservability.captureReviewReactionFailure(
-                    failure: makeReviewReactionConfigurationFailure(
-                        variant: event.variant, reason: reason,
-                        message: "Review reaction requires a decoded bundled animation, positive finite duration and frame scale. Check the asset configuration and readiness."
-                    ),
-                    source: self.source
-                )
-            }
+    private func startedPlaybackId(reaction: ReviewReactionEvent) -> UUID? {
+        guard let playback = self.playback, playback.isStarted, playback.reaction?.id == reaction.id else {
+            return nil
         }
-        self.onEventFinished(event.id, .skip, reason)
+        return playback.id
     }
 }
 
 private struct ReviewReactionLottieView: View {
-    let event: ReviewReactionEvent
+    let reaction: ReviewReactionEvent
     let animation: LottieAnimation
     let frameScale: CGFloat
+    /// `nil` keeps the reaction hidden and paused at its first frame; a stop takes effect in the same frame.
+    let startedPlaybackId: UUID?
     let isReduceMotionEnabled: Bool
     let source: ReviewReactionSource
-    let onEventFinished: (UUID, ReviewReactionLifecycleAction, String) -> Void
+    let onPlaybackEnded: (UUID, ReviewReactionLifecycleAction, String) -> Void
 
     @State private var opacity: Double = 0
-    @State private var hasFinished: Bool = false
+
+    private var playbackMode: LottiePlaybackMode {
+        guard self.startedPlaybackId != nil else {
+            return .paused(at: .progress(0))
+        }
+        return self.isReduceMotionEnabled
+            ? .paused(at: .progress(0.55))
+            : .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce))
+    }
 
     var body: some View {
         GeometryReader { proxy in
             let sideLength: CGFloat = max(min(proxy.size.width, proxy.size.height) * self.frameScale, 1)
+            // Lottie keeps the completion passed with the playing mode, so it reports that playback's id.
+            let playbackId: UUID? = self.startedPlaybackId
             LottieView(animation: self.animation)
                 .resizable()
-                .animationSpeed(self.animation.duration / self.event.variant.animationDurationSeconds)
-                .playbackMode(self.isReduceMotionEnabled
-                    ? .paused(at: .progress(0.55))
-                    : .playing(.fromProgress(0, toProgress: 1, loopMode: .playOnce)))
+                .animationSpeed(self.animation.duration / self.reaction.variant.animationDurationSeconds)
+                .playbackMode(self.playbackMode)
                 .animationDidFinish { completed in
-                    self.finish(
-                        action: completed ? .finish : .cancel,
-                        reason: completed ? "playback_completed" : "playback_interrupted"
+                    guard let playbackId else { return }
+                    self.onPlaybackEnded(
+                        playbackId,
+                        completed ? .finish : .cancel,
+                        completed ? "playback_completed" : "playback_interrupted"
                     )
                 }
                 .frame(width: sideLength, height: sideLength)
                 .position(x: proxy.size.width * reviewReactionCenterX, y: proxy.size.height * reviewReactionCenterY)
-                .opacity(self.opacity)
+                .opacity(playbackId == nil ? 0 : self.opacity)
         }
-        .onAppear {
+        .task(id: self.startedPlaybackId) {
+            guard let playbackId = self.startedPlaybackId else {
+                self.opacity = 0
+                return
+            }
             FlashcardsObservability.recordReviewReaction(
-                action: .start, variant: self.event.variant, source: self.source,
+                action: .start, variant: self.reaction.variant, source: self.source,
                 reason: self.isReduceMotionEnabled ? "reduced_motion" : "native_playback"
             )
-        }
-        .task(id: self.isReduceMotionEnabled) {
             let duration: Double = self.isReduceMotionEnabled
                 ? ReviewReactionRenderer.reducedMotionDurationSeconds
-                : self.event.variant.animationDurationSeconds
+                : self.reaction.variant.animationDurationSeconds
             withAnimation(.linear(duration: duration * 0.10)) {
                 self.opacity = 1
             }
@@ -124,16 +114,11 @@ private struct ReviewReactionLottieView: View {
             } catch {
                 return
             }
-            self.finish(
-                action: self.isReduceMotionEnabled ? .finish : .cancel,
-                reason: self.isReduceMotionEnabled ? "static_expired" : "cleanup_timeout"
+            self.onPlaybackEnded(
+                playbackId,
+                self.isReduceMotionEnabled ? .finish : .cancel,
+                self.isReduceMotionEnabled ? "static_expired" : "cleanup_timeout"
             )
         }
-    }
-
-    private func finish(action: ReviewReactionLifecycleAction, reason: String) {
-        guard self.hasFinished == false else { return }
-        self.hasFinished = true
-        self.onEventFinished(self.event.id, action, reason)
     }
 }

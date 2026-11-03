@@ -289,6 +289,33 @@ struct ReviewReactionEvent: Identifiable, Hashable, Sendable {
     let variant: ReviewReactionVariant
 }
 
+/// One playback of a rating's reaction. A rating marks it, and it starts at the next display refresh,
+/// after the frame that shows the next card.
+struct ReviewReactionPlayback: Hashable, Sendable {
+    let id: UUID
+    let rating: ReviewReactionRating
+    /// `nil` until the starting refresh builds a fresh reaction, when the rating had no unplayed prepared one.
+    let reaction: ReviewReactionEvent?
+    let isStarted: Bool
+}
+
+/// Picks the reaction a rating will play with the weighted roll over ready variants; `nil` when none is ready.
+func makePreparedReviewReaction(
+    rating: ReviewReactionRating,
+    readyVariants: Set<ReviewReactionVariant>
+) -> ReviewReactionEvent? {
+    let totalWeight: Int = reviewReactionReadyVariantTotalWeight(rating: rating, readyVariants: readyVariants)
+    guard totalWeight > 0, let variant: ReviewReactionVariant = selectReadyReviewReactionVariant(
+        rating: rating,
+        readyVariants: readyVariants,
+        roll: Int.random(in: 0..<totalWeight)
+    ) else {
+        return nil
+    }
+
+    return ReviewReactionEvent(id: UUID(), rating: rating, variant: variant)
+}
+
 func selectReviewReactionVariant(
     rating: ReviewReactionRating,
     roll: Int
