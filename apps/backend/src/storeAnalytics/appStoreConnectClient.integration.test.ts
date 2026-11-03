@@ -8,11 +8,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { Agent, buildConnector, getGlobalDispatcher, setGlobalDispatcher } from "undici";
+import { listPendingInstances } from "./appleDiscovery";
 import { AppStoreConnectClient, type AppStoreConnectRetry } from "./appStoreConnectClient";
 
 const origin = "https://api.appstoreconnect.apple.com";
 
-test("App Store Connect discovery and downloads honor source cancellation over real HTTPS", { timeout: 30_000 }, async (t) => {
+test("App Store Connect discovery and downloads honor source cancellation over real HTTPS", { timeout: 90_000 }, async (t) => {
   const directory = mkdtempSync(join(tmpdir(), "asc-transport-"));
   const keyPath = join(directory, "key.pem");
   const certPath = join(directory, "cert.pem");
@@ -21,6 +22,10 @@ test("App Store Connect discovery and downloads honor source cancellation over r
   const retries: Array<AppStoreConnectRetry> = [];
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const counts = new Map<string, number>();
+  const discoveryRequests: Array<string> = [];
+  const pendingDiscoveryResponses = new Set<string>();
+  let maximumDiscovery = 0;
+  let completedCatalogPages = 0;
   const credentials = {
     privateKey: generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey,
     keyId: "local-key", issuerId: "local-issuer", appId: "42",
@@ -36,6 +41,84 @@ test("App Store Connect discovery and downloads honor source cancellation over r
     } else {
       assert.match(request.headers.authorization ?? "", /^Bearer /);
     }
+    const discoveryApp = url.pathname.match(/^\/v1\/apps\/discovery-([^/]+)\/analyticsReportRequests$/);
+    const discoveryReports = url.pathname.match(/^\/v1\/analyticsReportRequests\/(catalog|terminal|malformed|deadline|lock)-([ab])\/reports$/);
+    const discoveryInstances = url.pathname.match(/^\/v1\/analyticsReports\/(catalog|terminal|malformed|deadline|lock)-(\d+)\/instances$/);
+    const page = (data: ReadonlyArray<object>, next: string | null): void => {
+      pendingDiscoveryResponses.delete(url.href);
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ data, links: { next } }));
+    };
+    if (discoveryApp !== null) {
+      const second = url.searchParams.has("page");
+      page([{
+        id: discoveryApp[1] + (second ? "-b" : "-a"), type: "analyticsReportRequests",
+        attributes: { accessType: second ? "ONE_TIME_SNAPSHOT" : "ONGOING" },
+      }], second ? null : origin + url.pathname + "?page=2");
+      return;
+    }
+    if (discoveryReports !== null) {
+      const catalog = discoveryReports[1] === "catalog";
+      const second = url.searchParams.has("page");
+      const offset = (discoveryReports[2] === "a" ? 0 : catalog ? 175 : 12) + (second ? 100 : 0);
+      const size = catalog ? second ? 75 : 100 : 12;
+      const next = catalog && !second ? origin + url.pathname + "?page=2" : null;
+      const timer = setTimeout(() => {
+        if (catalog) completedCatalogPages += 1;
+        page(Array.from({ length: size }, (_, index) => ({
+          id: discoveryReports[1] + "-" + (offset + index), type: "analyticsReports",
+          attributes: { name: "Fixture report " + (offset + index) },
+        })), next);
+      }, 5);
+      timers.add(timer);
+      return;
+    }
+    if (discoveryInstances !== null) {
+      const scenario = discoveryInstances[1];
+      const index = Number(discoveryInstances[2]);
+      if (scenario === "catalog") assert.equal(completedCatalogPages, 4);
+      discoveryRequests.push(url.pathname + url.search);
+      pendingDiscoveryResponses.add(url.href);
+      maximumDiscovery = Math.max(maximumDiscovery, pendingDiscoveryResponses.size);
+      response.once("close", () => { pendingDiscoveryResponses.delete(url.href); });
+      if (scenario === "deadline" || scenario === "lock") {
+        if (index % 3 === 0) {
+          response.writeHead(200, { "Content-Type": "application/json" });
+          response.write('{"data":[');
+        } else if (index % 3 === 1) {
+          pendingDiscoveryResponses.delete(url.href);
+          response.writeHead(500);
+          response.end("provider busy");
+        }
+        return;
+      }
+      const timer = setTimeout(() => {
+        if (index === 0 && scenario === "terminal") {
+          pendingDiscoveryResponses.delete(url.href);
+          response.writeHead(403);
+          response.end("discovery denied");
+          return;
+        }
+        if (index === 0 && scenario === "malformed") {
+          page([{ id: "incomplete" }], null);
+          return;
+        }
+        const second = url.searchParams.has("page");
+        const next = scenario === "catalog" && index % 17 === 0 && !second
+          ? origin + url.pathname + "?page=2" : null;
+        page([{
+          id: scenario + "-" + index + "-instance-" + (second ? 1 : 0), type: "analyticsReportInstances",
+          attributes: { granularity: "DAILY", processingDate: "2026-11-02" },
+        }], next);
+      }, scenario === "catalog" ? 8 + index % 7 * 4 : index === 0 ? 20 : 100);
+      timers.add(timer);
+      return;
+    }
+    if (url.pathname === "/segment/long-download") {
+      timers.add(setTimeout(() => response.end("complete long segment"), 31_000));
+      return;
+    }
+    if (url.pathname.includes("metadata-stall") && count === 1) return;
     if (url.pathname.includes("slow-headers") || (url.pathname.includes("partial") && url.searchParams.has("page"))) {
       return;
     }
@@ -51,7 +134,7 @@ test("App Store Connect discovery and downloads honor source cancellation over r
       return;
     }
     if (url.pathname.includes("retry") && (!url.pathname.includes("recovery") || count === 1)) {
-      response.writeHead(503);
+      response.writeHead(url.pathname.includes("429") ? 429 : 503);
       response.end("provider busy");
       return;
     }
@@ -162,6 +245,11 @@ test("App Store Connect discovery and downloads honor source cancellation over r
       assert.deepEqual(retries.slice(-2).map(({ attempt, status }) => ({ attempt, status })), [
         { attempt: 1, status: 503 }, { attempt: 2, status: 503 },
       ]);
+      assert.equal((await active.listReportRequests("retry-429-recovery")).length, 1);
+      assert.equal(counts.get("/v1/apps/retry-429-recovery/analyticsReportRequests"), 2);
+      assert.deepEqual(retries.at(-1), {
+        label: "GET /v1/apps/retry-429-recovery/analyticsReportRequests?limit=200", attempt: 1, status: 429,
+      });
       await assert.rejects(active.listReportRequests("terminal"), /HTTP 403: provider denied/);
     });
 
@@ -177,6 +265,89 @@ test("App Store Connect discovery and downloads honor source cancellation over r
       await assert.rejects(client(Date.now() + 300, new AbortController().signal)
         .downloadSegment(`${origin}/segment/slow-body`, "local segment"), /local segment:.*deadline exceeded/);
       assert.equal(requests.length - before, 1);
+    });
+
+    await t.test("all 350 reports and their pages complete with ordered context and at most eight overlapping listings", async () => {
+      const active = client(Date.now() + 10_000, new AbortController().signal);
+      const catalogRequests = await active.listReportRequests("discovery-catalog");
+      const before = discoveryRequests.length;
+      maximumDiscovery = 0;
+      const result = await listPendingInstances(active, catalogRequests);
+      assert.equal(result.reports, 350);
+      const expected = Array.from({ length: 350 }, (_, index) => [0, ...(index % 17 === 0 ? [1] : [])]
+        .map((page) => ({
+          reportId: "catalog-" + index, reportName: "Fixture report " + index,
+          instanceId: "catalog-" + index + "-instance-" + page, granularity: "DAILY", processingDate: "2026-11-02",
+          table: "apple_other_report_rows", detailLevel: "single",
+        }))).flat();
+      assert.deepEqual(result.listed.map(({ report, instance, variant }) => ({
+        reportId: report.id, reportName: report.name, instanceId: instance.id,
+        granularity: instance.granularity, processingDate: instance.processingDate,
+        table: variant.table.tableName, detailLevel: variant.detailLevel,
+      })), expected);
+      assert.equal(discoveryRequests.length - before, expected.length);
+      assert.equal(new Set(discoveryRequests.slice(before)).size, expected.length);
+      assert.equal(maximumDiscovery, 8);
+      assert.equal(pendingDiscoveryResponses.size, 0);
+      t.diagnostic(JSON.stringify({ reports: result.reports, instances: result.listed.length, maximumDiscovery }));
+    });
+
+    await t.test("terminal and malformed inventories stop report admissions and drain siblings before rejecting", async () => {
+      for (const scenario of ["terminal", "malformed"]) {
+        const active = client(Date.now() + 5_000, new AbortController().signal);
+        const catalogRequests = await active.listReportRequests("discovery-" + scenario);
+        const before = discoveryRequests.length;
+        const started = Date.now();
+        await assert.rejects(listPendingInstances(active, catalogRequests), scenario === "terminal"
+          ? /HTTP 403: discovery denied/ : /unexpected data\[0\]/);
+        assert.ok(Date.now() - started >= 90, "discovery must await slower admitted siblings");
+        assert.equal(discoveryRequests.length - before, 8);
+        assert.equal(pendingDiscoveryResponses.size, 0);
+        await new Promise<void>((resolve) => { timers.add(setTimeout(resolve, 120)); });
+        assert.equal(discoveryRequests.length - before, 8, "no late report admission after rejection");
+      }
+    });
+
+    await t.test("deadline and lock loss drain concurrent headers, bodies and retry waits without more admissions", async () => {
+      for (const scenario of ["deadline", "lock"]) {
+        const controller = new AbortController();
+        const started = Date.now();
+        const active = client(started + (scenario === "deadline" ? 300 : 5_000), controller.signal);
+        const catalogRequests = await active.listReportRequests("discovery-" + scenario);
+        const before = discoveryRequests.length;
+        const retryCount = retries.length;
+        if (scenario === "lock") {
+          timers.add(setTimeout(() => controller.abort(new Error("local discovery lock lost")), 150));
+        }
+        await assert.rejects(listPendingInstances(active, catalogRequests),
+          scenario === "deadline" ? /deadline exceeded/ : /import aborted/);
+        assert.ok(Date.now() - started < 1_500);
+        assert.equal(discoveryRequests.length - before, 8);
+        assert.equal(retries.length - retryCount, 3);
+        // Native fetch has settled; allow the server to observe the cancelled TLS sockets.
+        await new Promise<void>((resolve) => { timers.add(setTimeout(resolve, 120)); });
+        assert.equal(pendingDiscoveryResponses.size, 0);
+        assert.equal(discoveryRequests.length - before, 8);
+        assert.equal(retries.length - retryCount, 3);
+      }
+    });
+
+    await t.test("a stalled metadata attempt retries while a segment may download beyond that ceiling", { timeout: 40_000 }, async () => {
+      const started = Date.now();
+      const retryCount = retries.length;
+      const active = client(started + 45_000, new AbortController().signal);
+      const [result, segment] = await Promise.all([
+        active.listReportRequests("metadata-stall"),
+        active.downloadSegment(origin + "/segment/long-download", "long segment"),
+      ]);
+      assert.equal(segment.toString("utf8"), "complete long segment");
+      assert.equal(counts.get("/segment/long-download"), 1);
+      assert.equal(result.length, 1);
+      assert.ok(Date.now() - started >= 30_000 && Date.now() - started < 38_000);
+      assert.equal(counts.get("/v1/apps/metadata-stall/analyticsReportRequests"), 2);
+      assert.deepEqual(retries.slice(retryCount), [{
+        label: "GET /v1/apps/metadata-stall/analyticsReportRequests?limit=200", attempt: 1, status: null,
+      }]);
     });
 
     await t.test("expired budgets and pre-aborted locks start no transport", async () => {

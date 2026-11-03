@@ -4,7 +4,8 @@ import { z } from "zod";
 import { loadAppStoreConnectReportsSecretJson } from "../aws/secrets";
 
 const apiOrigin = "https://api.appstoreconnect.apple.com";
-const requestTimeoutMs = 120_000;
+const metadataTimeoutMs = 30_000;
+const segmentTimeoutMs = 120_000;
 const maxAttempts = 3;
 const retryDelayMs = 2_000;
 // Apple rejects tokens that live longer than 20 minutes.
@@ -224,7 +225,7 @@ export class AppStoreConnectClient {
 
   /** `label` names the segment in errors; the pre-signed URL itself is never logged. */
   async downloadSegment(url: string, label: string): Promise<Buffer> {
-    return this.fetchWithRetry(url, {}, label);
+    return this.fetchWithRetry(url, {}, label, segmentTimeoutMs);
   }
 
   private createToken(): string {
@@ -262,7 +263,7 @@ export class AppStoreConnectClient {
 
       const label = `GET ${url.pathname}${url.search}`;
       this.assertActive(label);
-      const body = await this.fetchWithRetry(url.href, { Authorization: `Bearer ${this.createToken()}` }, label);
+      const body = await this.fetchWithRetry(url.href, { Authorization: `Bearer ${this.createToken()}` }, label, metadataTimeoutMs);
       let json: unknown;
       try {
         json = JSON.parse(body.toString("utf8"));
@@ -290,6 +291,7 @@ export class AppStoreConnectClient {
     url: string,
     headers: Readonly<Record<string, string>>,
     label: string,
+    requestTimeoutMs: number,
   ): Promise<Buffer> {
     for (let attempt = 1; ; attempt += 1) {
       this.assertActive(label);
