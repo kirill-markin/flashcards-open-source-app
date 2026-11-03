@@ -440,25 +440,24 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
   const showMessageRef = useRef<(message: string) => void>(showMessage);
 
   useEffect(() => {
-    activeSideRef.current = activeSide;
-  }, [activeSide]);
-
-  useEffect(() => {
     showMessageRef.current = showMessage;
   }, [showMessage]);
+
+  // The ref is the requested side right away, so a second tap reads it before React re-renders.
+  const updateActiveSide = useCallback((side: ReviewSpeechSide | null) => {
+    activeSideRef.current = side;
+    setActiveSide(side);
+  }, []);
 
   const stopSpeech = useCallback(() => {
     playbackIdRef.current += 1;
     activeUtterancesRef.current = [];
 
-    if (typeof window.speechSynthesis === "undefined") {
-      setActiveSide(null);
-      return;
+    if (typeof window.speechSynthesis !== "undefined") {
+      window.speechSynthesis.cancel();
     }
-
-    window.speechSynthesis.cancel();
-    setActiveSide(null);
-  }, []);
+    updateActiveSide(null);
+  }, [updateActiveSide]);
 
   const toggleSpeech = useCallback((side: ReviewSpeechSide, sourceText: string) => {
     const segments = splitReviewSpeechSegments(makeReviewSpeakableText(sourceText), locale);
@@ -474,7 +473,8 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
 
     const synthesis = window.speechSynthesis;
 
-    if (activeSideRef.current === side && (synthesis.speaking || synthesis.pending)) {
+    // Compares with the requested side, not the audio state, so a tap before speech starts still stops it.
+    if (activeSideRef.current === side) {
       stopSpeech();
       return;
     }
@@ -482,6 +482,8 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
     playbackIdRef.current += 1;
     const playbackId = playbackIdRef.current;
     synthesis.cancel();
+    // The button reflects the request from the tap itself, not the audio start.
+    updateActiveSide(side);
 
     const voices = synthesis.getVoices();
     const availableVoices = voices.length === 0 ? voicesRef.current : voices;
@@ -494,16 +496,10 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
         utterance.voice = selectedVoice;
       }
 
-      utterance.onstart = () => {
-        if (playbackIdRef.current === playbackId) {
-          setActiveSide(side);
-        }
-      };
-
       utterance.onend = () => {
         if (playbackIdRef.current === playbackId && segmentIndex === segments.length - 1) {
           activeUtterancesRef.current = [];
-          setActiveSide(null);
+          updateActiveSide(null);
         }
       };
 
@@ -527,7 +523,7 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
       stopSpeech();
       showMessageRef.current(speechUnavailableMessage);
     }
-  }, [locale, speechUnavailableMessage, stopSpeech]);
+  }, [locale, speechUnavailableMessage, stopSpeech, updateActiveSide]);
 
   useEffect(() => {
     if (typeof window.speechSynthesis === "undefined") {
@@ -555,9 +551,9 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
       playbackIdRef.current += 1;
       activeUtterancesRef.current = [];
       synthesis.cancel();
-      setActiveSide(null);
+      updateActiveSide(null);
     };
-  }, []);
+  }, [updateActiveSide]);
 
   return {
     activeSide,
