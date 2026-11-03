@@ -12,7 +12,10 @@ import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isReviewFilterEqual } from 
 import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
 import { useI18n } from "../../i18n";
 import { normalizeCaughtError } from "../../observability/webObservability";
-import { startReviewNextCardVisibleSpan } from "../../observability/reviewTimingSpans";
+import {
+  setReviewNextCardVisibleReactionPlayed,
+  startReviewNextCardVisibleSpan,
+} from "../../observability/reviewTimingSpans";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import { completeCatalogImmediateStudy } from "../catalog/catalogImmediateAttempt";
@@ -50,6 +53,7 @@ export type UseReviewScreenControllerResult = Readonly<{
   mobileAppPromotionDialogProps: MobileAppPromotionDialogProps;
   paneProps: ReviewPaneProps;
   queuePanelProps: ReviewQueuePanelProps;
+  reviewReactionDismissedEvents: UseReviewRatingReactionsResult["dismissedEvents"];
   reviewReactionFallbackHandler: UseReviewRatingReactionsResult["handleReactionEventFallback"];
   reviewReactionEvents: UseReviewRatingReactionsResult["events"];
   tagFilterDialogProps: ReviewTagFilterDialogProps;
@@ -106,6 +110,7 @@ export function useReviewScreenController(
   const { message: reviewFeedbackMessage, showMessage: showReviewFeedbackMessage } = useTransientMessage(3000);
   const {
     dismissReactions: dismissReviewReactions,
+    dismissedEvents: reviewReactionDismissedEvents,
     emitReaction: emitReviewReaction,
     events: reviewReactionEvents,
     handleReactionEventFallback: handleReviewReactionEventFallback,
@@ -306,8 +311,8 @@ export function useReviewScreenController(
     }
 
     // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
-    startReviewNextCardVisibleSpan(card.cardId);
-    emitReviewReaction(rating);
+    const nextCardVisibleSpan = startReviewNextCardVisibleSpan(card.cardId);
+    setReviewNextCardVisibleReactionPlayed(nextCardVisibleSpan, emitReviewReaction(rating));
     setIsSubmitting(true);
     setReviewSubmitState("submitting");
     setLastSubmittedReview({
@@ -727,6 +732,7 @@ export function useReviewScreenController(
       selectedCardId: selectedCard?.cardId ?? null,
       visibleQueueCardsCount,
     },
+    reviewReactionDismissedEvents,
     reviewReactionFallbackHandler: handleReviewReactionEventFallback,
     reviewReactionEvents,
     tagFilterDialogProps: {

@@ -30,6 +30,7 @@ export function ReviewScreen(): ReactElement {
     mobileAppPromotionDialogProps,
     paneProps,
     queuePanelProps,
+    reviewReactionDismissedEvents,
     reviewReactionFallbackHandler,
     reviewReactionEvents,
     tagFilterDialogProps,
@@ -59,6 +60,7 @@ export function ReviewScreen(): ReactElement {
           <div className="review-pane-reaction-frame">
             <ReviewPane {...paneProps} />
             <ReviewRatingReactionLayer
+              dismissedEvents={reviewReactionDismissedEvents}
               events={reviewReactionEvents}
               onReactionEventFallback={reviewReactionFallbackHandler}
             />

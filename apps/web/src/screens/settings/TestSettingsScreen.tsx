@@ -719,6 +719,7 @@ export function TestAnimationsScreen(): ReactElement {
         ))}
       </div>
       <ReviewRatingReactionLayer
+        dismissedEvents={[]}
         events={activeReviewReactionEvents}
         onReactionEventFallback={handleReviewReactionEventFallback}
       />

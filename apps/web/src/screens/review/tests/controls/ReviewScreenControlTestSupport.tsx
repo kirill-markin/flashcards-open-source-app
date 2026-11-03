@@ -1,4 +1,5 @@
 import { act } from "react";
+import { vi } from "vitest";
 import {
   clickElement,
   dispatchKeydown,
@@ -8,6 +9,15 @@ export async function flushReviewScreenPromises(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
     await Promise.resolve();
+  });
+}
+
+/** Reaction starts and teardowns run after the next paint. */
+export async function advanceReviewScreenPastNextPaint(): Promise<void> {
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
+    // Fake timers run a zero-delay timeout queued during a tick 1 ms later.
+    vi.advanceTimersByTime(1);
   });
 }
 
