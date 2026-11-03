@@ -24,6 +24,7 @@ const supportedBundlingOptions = new Set([
 const repoRoot = resolveFromRepoRoot();
 const sentryBuildAdapter = resolveFromRepoRoot("infra", "aws", "sentry-lambda-build.mjs");
 const dockerBuildRepoRoot = "/sentry-build-repo";
+export const sentryRuntimeInjectionModule = "@sentry/server-runtime-injection";
 
 interface InstrumentedGraph {
   readonly inputs: ReadonlyArray<string>;
@@ -129,7 +130,10 @@ export function createCachedNodejsFunction(
     throw new Error("Lambda input cache requires the locked Sentry CLI; unset SENTRY_BACKEND_CLI_PATH on the synth host");
   }
   const { copiedAssetPaths, ...functionProps } = props;
-  const bundling = props.bundling ?? {};
+  const bundling = {
+    ...props.bundling,
+    nodeModules: [...new Set([...(props.bundling?.nodeModules ?? []), sentryRuntimeInjectionModule])],
+  };
   if (bundling.sourceMap !== true) {
     throw new Error(`Lambda ${id} cache requires sourceMap:true for complete asset validation`);
   }
@@ -278,7 +282,9 @@ export function createCachedNodejsFunction(
   // These tiny reference files contain no CloudFormation context or credentials.
   const referenceDirectory = path.join(outdir, "lambda-cache-references");
   fs.mkdirSync(referenceDirectory, { recursive: true });
-  fs.writeFileSync(path.join(referenceDirectory, `${assetHash}.json`), JSON.stringify({ schema: 1, asset }));
+  fs.writeFileSync(path.join(referenceDirectory, `${assetHash}.json`), JSON.stringify({
+    schema: 1, asset, projectRoot: relativePath(projectRoot),
+  }));
   console.log(JSON.stringify({
     event: "lambda_asset_cache", function: fn.node.path, asset,
     result, inputs: files.length,
