@@ -5,13 +5,13 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
-import { createCachedNodejsFunction } from "../lambda-input-cache";
+import { createCachedNodejsFunction, sentryRuntimeInjectionModule } from "../lambda-input-cache";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 
 // A chat run waits for each sandbox call, so the chat worker's own reservation bounds normal use; the
 // rest absorbs invocations a transport retry left running.
 const chatSandboxReservedConcurrency = 10;
-const chatSandboxNodeModules = ["just-bash", "pdfjs-dist"] as const;
+const chatSandboxNodeModules = ["just-bash", "pdfjs-dist", sentryRuntimeInjectionModule] as const;
 
 /**
  * Runs model-written commands over one chat session's files and parses the files people attach
