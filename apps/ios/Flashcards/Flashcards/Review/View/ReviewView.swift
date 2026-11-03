@@ -74,6 +74,7 @@ struct ReviewView: View {
     @State var isReviewFilterPopoverPresented: Bool = false
     @State var reviewFilterDraft: ReviewFilter = .allCards
     @State private var reviewFilterPresentationContext: ReviewFilterPresentationContext? = nil
+    @State private var reviewFilterButtonFrame: CGRect = .zero
     @State private var reviewTagFilterRequest: ReviewTagFilterRequest? = nil
 
     private var availableTagSuggestions: [TagSuggestion] {
@@ -184,7 +185,7 @@ struct ReviewView: View {
             }
         }
         .onChange(of: [self.showsFilterInReviewColumn, self.usesCompactCompanionToolbar]) { _, _ in
-            // Relocating the anchor dismisses its popover like an ordinary outside tap.
+            // Moving the control commits the draft like an ordinary outside tap.
             if self.isReviewFilterPopoverPresented {
                 self.finalizeReviewFilterDraft()
                 self.isReviewFilterPopoverPresented = false
@@ -307,6 +308,29 @@ struct ReviewView: View {
 
     private var reviewContentWithOnboarding: some View {
         self.nativeReviewContent
+        #if !targetEnvironment(macCatalyst)
+        .background {
+            // The presenter must outlive replacements of the toolbar/header control.
+            GeometryReader { geometry in
+                Color.clear
+                    .popover(
+                        isPresented: self.$isReviewFilterPopoverPresented,
+                        attachmentAnchor: .rect(.rect(self.reviewFilterButtonFrame.offsetBy(
+                            dx: -geometry.frame(in: .global).minX,
+                            dy: -geometry.frame(in: .global).minY
+                        )))
+                    ) {
+                        ReviewFilterPopover(
+                            reviewFilter: self.$reviewFilterDraft,
+                            decks: store.decks,
+                            tagSummaries: self.reviewTagSummaries,
+                            onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+                        )
+                        .presentationCompactAdaptation(.popover)
+                    }
+            }
+        }
+        #endif
         .overlayPreferenceValue(FirstReviewOnboardingAnchors.self) { anchors in
             GeometryReader { geometry in
                 if self.canPresentSavedReviewPrompt,
@@ -731,17 +755,12 @@ struct ReviewView: View {
         .accessibilityValue(self.usesCompactCompanionToolbar ? self.selectedReviewFilterTitle : "")
         }
         #if !targetEnvironment(macCatalyst)
-        .popover(isPresented: self.$isReviewFilterPopoverPresented) {
-            ReviewFilterPopover(
-                reviewFilter: self.$reviewFilterDraft,
-                decks: store.decks,
-                tagSummaries: self.reviewTagSummaries,
-                onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
-            )
-            .presentationCompactAdaptation(.popover)
+        .onGeometryChange(for: CGRect.self) { geometry in
+            geometry.frame(in: .global)
+        } action: { frame in
+            self.reviewFilterButtonFrame = frame
         }
         #endif
-        .id(store.selectedReviewFilter.id)
     }
 
     private func finalizeReviewFilterDraft() {
