@@ -5,6 +5,36 @@ let filteredDiagnosticValue: String = "[Filtered]"
 
 private let ciSimulatorEnvironment: String = "ci-simulator"
 
+private let diagnosticEmbeddedURLExpression: NSRegularExpression = {
+    do {
+        return try NSRegularExpression(
+            pattern: #"https?://[^\s\)\]\}"]+"#,
+            options: [.caseInsensitive]
+        )
+    } catch {
+        fatalError("Invalid diagnostic embedded URL regex")
+    }
+}()
+// An OpenAI secret key always starts with "sk-", including the user-supplied key the app forwards.
+private let diagnosticOpenAIKeyExpression: NSRegularExpression = {
+    do {
+        return try NSRegularExpression(pattern: #"(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}"#)
+    } catch {
+        fatalError("Invalid diagnostic OpenAI key regex")
+    }
+}()
+// A JWT header is base64url of a JSON object, so a real token always starts with "eyJ".
+// Requiring that prefix keeps hostnames, version strings and dotted type names readable.
+private let diagnosticJWTExpression: NSRegularExpression = {
+    do {
+        return try NSRegularExpression(
+            pattern: #"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"#
+        )
+    } catch {
+        fatalError("Invalid diagnostic JWT regex")
+    }
+}()
+
 func safeDiagnosticIdentifier(_ value: String) -> String {
     let trimmedValue: String = value.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmedValue.isEmpty == false, trimmedValue.count <= 160 else {
@@ -328,16 +358,8 @@ private func redactedSpanText(_ value: String) -> String {
 }
 
 private func redactedEmbeddedURLStrings(_ value: String) -> String {
-    let urlPattern: String = #"https?://[^\s\)\]\}"]+"#
-    guard let urlRegex: NSRegularExpression = try? NSRegularExpression(
-        pattern: urlPattern,
-        options: [.caseInsensitive]
-    ) else {
-        return value
-    }
-
     let fullRange: NSRange = NSRange(value.startIndex..<value.endIndex, in: value)
-    let matches: [NSTextCheckingResult] = urlRegex.matches(
+    let matches: [NSTextCheckingResult] = diagnosticEmbeddedURLExpression.matches(
         in: value,
         options: [],
         range: fullRange
@@ -354,28 +376,21 @@ private func redactedEmbeddedURLStrings(_ value: String) -> String {
 }
 
 private func redactedSensitiveString(_ value: String) -> String {
-    // An OpenAI secret key always starts with "sk-", including the user-supplied key the app forwards.
-    let openAIKeyPattern: String = #"(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}"#
-    let openAIKeyRegex: NSRegularExpression? = try? NSRegularExpression(pattern: openAIKeyPattern)
     let fullRange: NSRange = NSRange(value.startIndex..<value.endIndex, in: value)
-    let keyRedacted: String = openAIKeyRegex?.stringByReplacingMatches(
+    let keyRedacted: String = diagnosticOpenAIKeyExpression.stringByReplacingMatches(
         in: value,
         options: [],
         range: fullRange,
         withTemplate: "[Filtered key]"
-    ) ?? value
+    )
 
-    // A JWT header is base64url of a JSON object, so a real token always starts with "eyJ".
-    // Requiring that prefix keeps hostnames, version strings and dotted type names readable.
-    let jwtPattern: String = #"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"#
-    let jwtRegex: NSRegularExpression? = try? NSRegularExpression(pattern: jwtPattern)
     let jwtRange: NSRange = NSRange(keyRedacted.startIndex..<keyRedacted.endIndex, in: keyRedacted)
-    return jwtRegex?.stringByReplacingMatches(
+    return diagnosticJWTExpression.stringByReplacingMatches(
         in: keyRedacted,
         options: [],
         range: jwtRange,
         withTemplate: "[Filtered token]"
-    ) ?? keyRedacted
+    )
 }
 
 func stringifyContext(_ context: [String: Any]) -> [String: String] {
