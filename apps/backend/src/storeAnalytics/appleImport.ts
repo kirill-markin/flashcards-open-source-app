@@ -9,19 +9,16 @@ import {
 import {
   AppStoreConnectClient,
   loadAppStoreConnectCredentials,
-  type AnalyticsReport,
-  type AnalyticsReportInstance,
   type AnalyticsReportRequest,
 } from "./appStoreConnectClient";
 import {
   appleReportTables,
   mapAppleReportRows,
   parseAppleReportFile,
-  resolveAppleReportVariant,
   type AppleMappedRow,
   type AppleReportTable,
-  type AppleReportVariant,
 } from "./appleReports";
+import { assertSourceRefId, listPendingInstances, type PendingInstance } from "./appleDiscovery";
 
 const reportsSecretIdEnvName = "APP_STORE_CONNECT_REPORTS_SECRET_ID";
 const insertBatchRows = 1_000;
@@ -38,12 +35,6 @@ export type AppleImportSummary = Readonly<{
   segmentsImported: number;
   rowsInserted: Readonly<Record<string, number>>;
   rowsSkippedAsSuperseded: number;
-}>;
-
-type PendingInstance = Readonly<{
-  report: AnalyticsReport;
-  variant: AppleReportVariant;
-  instance: AnalyticsReportInstance;
 }>;
 
 type DownloadedSegment = Readonly<{
@@ -69,13 +60,6 @@ function readReportsSecretId(): string {
     throw new Error(`${reportsSecretIdEnvName} is required to read the App Store Connect reports key`);
   }
   return secretId;
-}
-
-/** `/` separates the instance and segment ids inside `import_files.source_ref`. */
-function assertSourceRefId(id: string, kind: string): void {
-  if (id.includes("/")) {
-    throw new Error(`App Store Connect ${kind} id ${id} contains "/", which source_ref uses as its separator`);
-  }
 }
 
 /**
@@ -316,25 +300,6 @@ async function writeInstance(
 
     return { segments: segments.length, rowsInserted: records.length, rowsSkippedAsSuperseded };
   });
-}
-
-async function listPendingInstances(
-  client: AppStoreConnectClient,
-  requests: ReadonlyArray<AnalyticsReportRequest>,
-): Promise<Readonly<{ reports: number; listed: ReadonlyArray<PendingInstance> }>> {
-  const listed: Array<PendingInstance> = [];
-  let reports = 0;
-  for (const request of requests) {
-    for (const report of await client.listReports(request.id)) {
-      reports += 1;
-      const variant = resolveAppleReportVariant(report.name);
-      for (const instance of await client.listInstances(report.id)) {
-        assertSourceRefId(instance.id, "report instance");
-        listed.push({ report, variant, instance });
-      }
-    }
-  }
-  return { reports, listed };
 }
 
 function compareInstances(left: PendingInstance, right: PendingInstance): number {
