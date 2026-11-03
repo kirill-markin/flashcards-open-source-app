@@ -57,9 +57,6 @@ export const automatedActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT DISTINCT automated_events.actor_id::text",
   "FROM analytics.product_events_resolved AS automated_events",
   "WHERE automated_events.automated_client",
-  // A marked row nobody can be resolved behind names no actor to drop, and a NULL inside the set
-  // would make every comparison that does not match a listed actor unknown, so the caller would
-  // keep no row either way.
   "  AND automated_events.actor_id IS NOT NULL",
 ];
 
@@ -105,15 +102,10 @@ export const sandboxBillingActorIdsSqlLines: ReadonlyArray<string> = [
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
-  // One uncorrelated `NOT IN` set, so Postgres computes it once and never rescans it per outer row;
-  // it probes the set by hash or scans the cached result, choosing by cost. Every arm must yield
-  // only non-NULL ids: one NULL in the set makes `NOT IN` unknown for every unlisted actor and drops
-  // every row. The NULL arm keeps an unresolvable actor, which a bare `NOT IN` would drop; a caller
-  // whose relation can hold one is rejecting it for its own reasons, never through this rule.
   return [
-    "  AND (",
-    `    ${actorIdSqlExpression} IS NULL`,
-    `    OR ${actorIdSqlExpression} NOT IN (`,
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM (",
     ...indentSqlLines(excludedTestEmailActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(excludedAdminActorIdsSqlLines, "      "),
@@ -131,7 +123,8 @@ export function buildExcludedActorSqlLines(
     ...indentSqlLines(probableAndroidBurstActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(probableScraperFleetActorIdsSqlLines, "      "),
-    "    )",
+    "    ) AS excluded_actor_ids(excluded_actor_id)",
+    `    WHERE excluded_actor_ids.excluded_actor_id = ${actorIdSqlExpression}`,
     "  )",
   ];
 }

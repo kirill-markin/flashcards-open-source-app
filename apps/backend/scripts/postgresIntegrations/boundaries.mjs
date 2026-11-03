@@ -99,10 +99,11 @@ export const boundaryDefinitions = Object.freeze([
     ]),
   }),
   Object.freeze({
-    migrationFileName: "0223_probable_scraper_fleet_visitors.sql",
-    expectedMigrationCount: 225,
+    migrationFileName: "0231_probable_scraper_fleet_demo_card_passive.sql",
+    expectedMigrationCount: 233,
     testFiles: Object.freeze([
       "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
+      "src/productAnalytics/reviewMetricsSql.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
