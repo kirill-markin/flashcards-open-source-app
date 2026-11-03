@@ -16,6 +16,7 @@
     "@aws-sdk/client-cloudwatch": "^3.1158.0",
     "@aws-sdk/client-s3": "^3.1158.0",
     "@sentry/aws-serverless": "^11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
     "aws-cdk-lib": "^2.275.0",
     "constructs": "^10.8.1"
   },

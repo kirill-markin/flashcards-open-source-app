@@ -72,7 +72,7 @@ jobs:
               admin_changed=true
             fi
 
-            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|prepare-node-runtime\.py|report-cloudformation-budget\.py|bootstrap\.sh)$|scripts/checks/check-node-runtime-[^/]+\.py$|scripts/checks/check-mcp-capacity-smoke\.py$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$|\.github/workflows/(pr-checks|aws-web-release)\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|prepare-node-runtime\.py|report-cloudformation-budget\.py|bootstrap\.sh)$|scripts/checks/check-node-runtime-[^/]+\.py$|scripts/checks/check-sentry-lambda-packaging\.py$|scripts/checks/check-mcp-capacity-smoke\.py$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$|\.github/workflows/(pr-checks|aws-web-release)\.yml$)' "${changed_files_path}"; then
               infra_changed=true
             fi
           fi
@@ -261,7 +261,17 @@ jobs:
           python3 ../../scripts/deploy/lambda-asset-cache.py restore cdk.out
           npx cdk synth --all --quiet
           python3 ../../scripts/checks/check-node-runtime-template.py cdk.out
+          python3 ../../scripts/checks/check-sentry-lambda-packaging.py cdk.out "${RUNNER_TEMP}/sentry-lambda-packaging.json"
           python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out --fail-at 470
+
+      - name: Upload final Lambda packaging evidence
+        if: ${{ always() && needs.changes.outputs.infra_changed == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: sentry-lambda-packaging
+          path: ${{ runner.temp }}/sentry-lambda-packaging.json
+          if-no-files-found: warn
+          retention-days: 7
 
   backend_tests:
     name: Backend test suites
