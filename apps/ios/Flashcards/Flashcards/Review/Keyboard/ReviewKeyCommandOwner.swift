@@ -208,7 +208,12 @@ private func reviewPriorityKeyCommand(input: String, modifierFlags: UIKeyModifie
 @MainActor
 private func firstResponderView(in view: UIView) -> UIView? {
     if view.isFirstResponder { return view }
-    return view.subviews.lazy.compactMap { firstResponderView(in: $0) }.first
+    for subview in view.subviews {
+        if let responder = firstResponderView(in: subview) {
+            return responder
+        }
+    }
+    return nil
 }
 
 extension View {
