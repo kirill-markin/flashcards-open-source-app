@@ -284,8 +284,8 @@ struct CardsScreen: View {
                                     .contentShape(Rectangle())
                             }
                             .accessibilityIdentifier(UITestIdentifier.cardsCardRow)
-                            .onGeometryChange(for: Bool.self, of: { geometry in
-                                geometry.frame(in: .scrollView).midY > self.listTopInset
+                            .onGeometryChange(for: Bool.self, of: { [listTopInset = self.listTopInset] geometry in
+                                geometry.frame(in: .scrollView).midY > listTopInset
                             }) { isBelowListTop in
                                 if isBelowListTop {
                                     self.cardIdsBelowListTop.insert(card.id)

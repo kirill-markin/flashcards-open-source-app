@@ -137,9 +137,9 @@ private struct RememberedListRow: ViewModifier {
     func body(content: Content) -> some View {
         if let context {
             content
-                .onGeometryChange(for: Bool.self) { geometry in
+                .onGeometryChange(for: Bool.self) { [topEdge = context.topEdge] geometry in
                     let frame = geometry.frame(in: .global)
-                    return frame.minY <= context.topEdge && frame.maxY > context.topEdge
+                    return frame.minY <= topEdge && frame.maxY > topEdge
                 } action: { isTopRow in
                     if isTopRow {
                         context.reportTopRow(self.id)
