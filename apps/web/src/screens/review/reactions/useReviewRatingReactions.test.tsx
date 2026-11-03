@@ -128,6 +128,14 @@ describe("useReviewRatingReactions", () => {
     });
   }
 
+  function advancePastNextPaint(): Promise<void> {
+    return act(async () => {
+      vi.advanceTimersToNextFrame();
+      // Fake timers run a zero-delay timeout queued during a tick 1 ms later.
+      vi.advanceTimersByTime(1);
+    });
+  }
+
   function requireLatestResult(): UseReviewRatingReactionsResult {
     if (latestResult === null) {
       throw new Error("Review reaction hook result was not rendered");
@@ -146,6 +154,7 @@ describe("useReviewRatingReactions", () => {
       emitReaction(2);
       emitReaction(2);
     });
+    await advancePastNextPaint();
 
     expect(requireLatestResult().events.map((event) => event.id)).toEqual([
       "00000000-0000-4000-8000-000000000002",
@@ -172,6 +181,7 @@ describe("useReviewRatingReactions", () => {
     await act(async () => {
       requireLatestResult().emitReaction(2);
     });
+    await advancePastNextPaint();
 
     const [activeEvent] = requireLatestResult().events;
     if (activeEvent === undefined) {
@@ -183,6 +193,12 @@ describe("useReviewRatingReactions", () => {
     });
 
     expect(requireLatestResult().events).toHaveLength(0);
+    expect(requireLatestResult().dismissedEvents).toEqual([activeEvent]);
+    expect(releaseReviewReactionLottieRenderMock).not.toHaveBeenCalled();
+
+    await advancePastNextPaint();
+
+    expect(requireLatestResult().dismissedEvents).toHaveLength(0);
     expect(releaseReviewReactionLottieRenderMock).toHaveBeenCalledTimes(1);
     expect(releaseReviewReactionLottieRenderMock).toHaveBeenCalledWith(activeEvent.id);
 
@@ -205,6 +221,7 @@ describe("useReviewRatingReactions", () => {
     await act(async () => {
       requireLatestResult().emitReaction(2);
     });
+    await advancePastNextPaint();
 
     expect(requireLatestResult().events).toEqual([
       {

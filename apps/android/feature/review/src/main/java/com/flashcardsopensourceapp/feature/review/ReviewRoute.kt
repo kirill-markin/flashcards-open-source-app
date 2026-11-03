@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -52,16 +54,23 @@ import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
-import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionOverlay
-import com.flashcardsopensourceapp.feature.review.reaction.appendReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionSlot
+import com.flashcardsopensourceapp.feature.review.reaction.finishReviewReactionSlot
 import com.flashcardsopensourceapp.feature.review.reaction.makeRandomReadyReviewReactionEvent
-import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMaximumActiveEvents
+import com.flashcardsopensourceapp.feature.review.reaction.playPreparedReviewReactionSlot
+import com.flashcardsopensourceapp.feature.review.reaction.playRequestedReviewReactionSlot
+import com.flashcardsopensourceapp.feature.review.reaction.prepareReviewReactionSlot
 import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMotionModeFromAnimatorSettings
+import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionRatingToPrepare
+import com.flashcardsopensourceapp.feature.review.reaction.stopReviewReactionSlots
 import com.flashcardsopensourceapp.feature.review.onboarding.FirstReviewOnboardingOverlay
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionMotionMode
 import java.util.Locale
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,10 +99,10 @@ fun ReviewRoute(
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onConsumeRelocationTarget: (String?, Boolean) -> ReviewRelocationTarget?,
     onRevealAnswer: () -> Unit,
-    onRateAgain: () -> Unit,
-    onRateHard: () -> Unit,
-    onRateGood: () -> Unit,
-    onRateEasy: () -> Unit,
+    onRateAgain: (reactionPlayed: Boolean) -> Unit,
+    onRateHard: (reactionPlayed: Boolean) -> Unit,
+    onRateGood: (reactionPlayed: Boolean) -> Unit,
+    onRateEasy: (reactionPlayed: Boolean) -> Unit,
     onDismissHardAnswerReminder: () -> Unit,
     onDismissErrorMessage: () -> Unit,
     notificationPermissionPromptContinueAction: NotificationPermissionPromptContinueAction,
@@ -119,9 +128,14 @@ fun ReviewRoute(
     var tagFilterRequest by remember {
         mutableStateOf<ReviewTagFilterRequest?>(value = null)
     }
-    var activeReviewReactionEvents by remember {
-        mutableStateOf<List<ReviewReactionEvent>>(value = emptyList())
+    var reviewReactionSlots by remember {
+        mutableStateOf<List<ReviewReactionSlot>>(value = emptyList())
     }
+    var reviewReactionRatedCardId by remember { mutableStateOf<String?>(value = null) }
+    // A rating whose prepared slot was consumed plays a fresh variant built after the next card shows.
+    var reviewReactionRequestedEvent by remember { mutableStateOf<ReviewReactionEvent?>(value = null) }
+    var isReviewReactionSpentSlotRebuildAllowed by remember { mutableStateOf(value = true) }
+    var isReviewPointerDown by remember { mutableStateOf(value = false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
@@ -195,31 +209,38 @@ fun ReviewRoute(
     }
 
     fun dismissReviewReactions(): Unit {
-        if (activeReviewReactionEvents.isEmpty()) {
-            return
-        }
-
-        activeReviewReactionEvents = emptyList()
+        reviewReactionSlots = stopReviewReactionSlots(slots = reviewReactionSlots)
+        reviewReactionRequestedEvent = null
+        // A touch-down may become a rating click, so the slot it stopped waits for the next card.
+        isReviewReactionSpentSlotRebuildAllowed = false
     }
 
-    fun emitReviewReaction(rating: ReviewRating): Unit {
+    /** Returns whether this rating scheduled a reaction. */
+    fun playReviewReaction(rating: ReviewRating): Boolean {
         if (reviewReactionAnimationsEnabled.not()) {
-            return
+            return false
         }
 
-        val event: ReviewReactionEvent = makeRandomReadyReviewReactionEvent(
-            rating = rating,
-            configurationStore = reviewReactionLottieConfigurationStore
-        ) ?: run {
-            reviewReactionLottieConfigurationStore.record(stage = AndroidReviewReactionStage.UNAVAILABLE_SKIPPED, variant = null)
-            return
-        }
-
-        activeReviewReactionEvents = appendReviewReactionEvent(
-            events = activeReviewReactionEvents,
-            event = event,
-            maximumActiveEvents = reviewReactionMaximumActiveEvents
+        reviewReactionRatedCardId = uiState.preparedCurrentCard?.card?.cardId
+        val playingSlots: List<ReviewReactionSlot>? = playPreparedReviewReactionSlot(
+            slots = reviewReactionSlots,
+            rating = rating
         )
+        if (playingSlots != null) {
+            reviewReactionSlots = playingSlots
+            reviewReactionRequestedEvent = null
+        } else {
+            // Picking a variant only reads readiness; the build waits for the frame after the next card.
+            reviewReactionRequestedEvent = makeRandomReadyReviewReactionEvent(
+                rating = rating,
+                configurationStore = reviewReactionLottieConfigurationStore
+            ) ?: run {
+                reviewReactionLottieConfigurationStore.record(stage = AndroidReviewReactionStage.UNAVAILABLE_SKIPPED, variant = null)
+                return false
+            }
+            reviewReactionSlots = stopReviewReactionSlots(slots = reviewReactionSlots)
+        }
+        return true
     }
     fun finalizeFilterSheetSelection(): Unit {
         val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
@@ -241,20 +262,16 @@ fun ReviewRoute(
         }
     }
     val onRateAgainWithReaction: () -> Unit = {
-        emitReviewReaction(rating = ReviewRating.AGAIN)
-        onRateAgain()
+        onRateAgain(playReviewReaction(rating = ReviewRating.AGAIN))
     }
     val onRateHardWithReaction: () -> Unit = {
-        emitReviewReaction(rating = ReviewRating.HARD)
-        onRateHard()
+        onRateHard(playReviewReaction(rating = ReviewRating.HARD))
     }
     val onRateGoodWithReaction: () -> Unit = {
-        emitReviewReaction(rating = ReviewRating.GOOD)
-        onRateGood()
+        onRateGood(playReviewReaction(rating = ReviewRating.GOOD))
     }
     val onRateEasyWithReaction: () -> Unit = {
-        emitReviewReaction(rating = ReviewRating.EASY)
-        onRateEasy()
+        onRateEasy(playReviewReaction(rating = ReviewRating.EASY))
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -266,9 +283,66 @@ fun ReviewRoute(
         onDismissErrorMessage()
     }
 
-    LaunchedEffect(reviewReactionAnimationsEnabled) {
+    // The rated card's replacement must be on screen before its reaction starts or is built.
+    val isReviewReactionPlaybackStartAllowed: Boolean =
+        uiState.preparedCurrentCard?.card?.cardId != reviewReactionRatedCardId
+    val currentIsReviewReactionPlaybackStartAllowed by rememberUpdatedState(
+        newValue = isReviewReactionPlaybackStartAllowed
+    )
+
+    // A new card on screen lets spent slots rebuild; the builder below starts a frame later.
+    LaunchedEffect(uiState.preparedCurrentCard?.card?.cardId) {
+        isReviewReactionSpentSlotRebuildAllowed = true
+    }
+
+    LaunchedEffect(reviewReactionRequestedEvent) {
+        val event: ReviewReactionEvent = reviewReactionRequestedEvent ?: return@LaunchedEffect
+        snapshotFlow { currentIsReviewReactionPlaybackStartAllowed }.first { isAllowed -> isAllowed }
+        withFrameNanos { }
+        reviewReactionSlots = playRequestedReviewReactionSlot(slots = reviewReactionSlots, event = event)
+        reviewReactionRequestedEvent = null
+    }
+
+    LaunchedEffect(reviewReactionAnimationsEnabled, reviewReactionLottieConfigurationStore) {
         if (reviewReactionAnimationsEnabled.not()) {
-            activeReviewReactionEvents = emptyList()
+            reviewReactionSlots = stopReviewReactionSlots(slots = reviewReactionSlots)
+            reviewReactionRequestedEvent = null
+            // Release one frame later, so the frame that hides a reaction never disposes it.
+            withFrameNanos { }
+            reviewReactionSlots = emptyList()
+            return@LaunchedEffect
+        }
+
+        fun ratingToPrepare(): ReviewRating? {
+            if (
+                isReviewPointerDown
+                || reviewReactionRequestedEvent != null
+                || currentIsReviewReactionPlaybackStartAllowed.not()
+            ) {
+                return null
+            }
+            return reviewReactionRatingToPrepare(
+                slots = reviewReactionSlots,
+                isSpentSlotRebuildAllowed = isReviewReactionSpentSlotRebuildAllowed,
+                configurationStore = reviewReactionLottieConfigurationStore
+            )
+        }
+
+        // Each build changes the next rating to prepare, so this builds at most one slot per frame.
+        snapshotFlow { ratingToPrepare() }.collectLatest { rating ->
+            if (rating == null) {
+                return@collectLatest
+            }
+
+            // Builds wait for a later frame than the state that allowed them, and re-read state so
+            // a touch or rating in this frame defers them.
+            withFrameNanos { }
+            val currentRating: ReviewRating = ratingToPrepare() ?: return@collectLatest
+            reviewReactionSlots = prepareReviewReactionSlot(
+                slots = reviewReactionSlots,
+                rating = currentRating,
+                configurationStore = reviewReactionLottieConfigurationStore
+            )
         }
     }
 
@@ -384,7 +458,15 @@ fun ReviewRoute(
                             requireUnconsumed = false,
                             pass = PointerEventPass.Initial
                         )
+                        isReviewPointerDown = true
                         dismissReviewReactions()
+                        try {
+                            do {
+                                val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                            } while (event.changes.any { change -> change.pressed })
+                        } finally {
+                            isReviewPointerDown = false
+                        }
                     }
                 }
         ) {
@@ -492,12 +574,14 @@ fun ReviewRoute(
 
             ReviewReactionOverlay(
                 modifier = Modifier.matchParentSize(),
-                events = activeReviewReactionEvents,
+                slots = reviewReactionSlots,
+                isPlaybackStartAllowed = isReviewReactionPlaybackStartAllowed,
                 motionMode = reviewReactionMotionMode,
                 configurationStore = reviewReactionLottieConfigurationStore,
                 onEventFinished = { eventId ->
-                    activeReviewReactionEvents = activeReviewReactionEvents.filter { event ->
-                        event.id != eventId
+                    reviewReactionSlots = finishReviewReactionSlot(slots = reviewReactionSlots, eventId = eventId)
+                    if (isReviewPointerDown.not()) {
+                        isReviewReactionSpentSlotRebuildAllowed = true
                     }
                 }
             )

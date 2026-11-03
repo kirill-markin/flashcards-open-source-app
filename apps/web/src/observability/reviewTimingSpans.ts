@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import type { Span } from "@sentry/react";
 import { parseManagedImageMarkdownReferences } from "../media/managedMediaMarkdown";
+import { runAfterNextPaint } from "../runAfterNextPaint";
 
 /*
  * Diagnostics-only review timing spans. The non-blocking review plans read their durations as the
@@ -30,11 +31,18 @@ function startReviewTimingSpan(name: string): Span {
   });
 }
 
-export function startReviewNextCardVisibleSpan(ratedCardId: string): void {
+export function startReviewNextCardVisibleSpan(ratedCardId: string): ReviewTimingSpan {
+  const span = startReviewTimingSpan(REVIEW_NEXT_CARD_VISIBLE_SPAN_NAME);
   pendingReviewNextCardVisible = {
-    span: startReviewTimingSpan(REVIEW_NEXT_CARD_VISIBLE_SPAN_NAME),
+    span,
     ratedCardId,
   };
+  return span;
+}
+
+/** True when the rating scheduled a reaction animation to start after the next card is painted. */
+export function setReviewNextCardVisibleReactionPlayed(span: ReviewTimingSpan, reactionPlayed: boolean): void {
+  span.setAttribute("reaction_played", reactionPlayed);
 }
 
 export function finishReviewNextCardVisibleSpan(shownCardId: string, shownFrontText: string): void {
@@ -44,18 +52,15 @@ export function finishReviewNextCardVisibleSpan(shownCardId: string, shownFrontT
   }
 
   pendingReviewNextCardVisible = null;
-  // The animation frame runs just before the paint; the timeout runs after it.
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      // Parsed after the paint so the span adds no work ahead of the next card.
-      const hasImages = parseManagedImageMarkdownReferences(shownFrontText).length > 0;
-      pending.span.setAttributes({
-        has_images: hasImages,
-        // Nothing tracks image decoding yet, so a shown image always counts as not ready.
-        images_ready: hasImages === false,
-      });
-      pending.span.end();
-    }, 0);
+  runAfterNextPaint(() => {
+    // Parsed after the paint so the span adds no work ahead of the next card.
+    const hasImages = parseManagedImageMarkdownReferences(shownFrontText).length > 0;
+    pending.span.setAttributes({
+      has_images: hasImages,
+      // Nothing tracks image decoding yet, so a shown image always counts as not ready.
+      images_ready: hasImages === false,
+    });
+    pending.span.end();
   });
 }
 

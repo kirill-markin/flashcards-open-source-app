@@ -4,6 +4,7 @@ import {
   reviewReactionLottieVariants,
   type ReviewReactionLottieVariant,
 } from "./reviewReactionLottieCatalog";
+import { runAfterNextPaint } from "../../../../runAfterNextPaint";
 
 type ReviewReactionLottiePlayerModule = Readonly<{
   default: LottiePlayer;
@@ -207,7 +208,14 @@ export class ReviewReactionLottieRuntime {
       [variant]: null,
     };
     this.reservedRenderByEventId.set(eventId, preparedRender);
-    this.startVariantPrewarm(variant);
+    // Building the replacement render is reaction work, so it waits until the next card is painted.
+    const generation = this.stateGeneration;
+    runAfterNextPaint(() => {
+      if (signal.aborted || generation !== this.stateGeneration) {
+        return;
+      }
+      this.startVariantPrewarm(variant);
+    });
     return true;
   }
 

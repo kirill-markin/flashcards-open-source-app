@@ -15,6 +15,7 @@ import {
   reviewReactionLottieVariants,
 } from "../../reactions/lottie/reviewReactionLottie";
 import {
+  advanceReviewScreenPastNextPaint,
   flushReviewScreenPromises,
   pointerDownAndClickElementAsync,
   pointerDownElementAsync,
@@ -65,6 +66,7 @@ async function createStaleReviewReactionOnSecondCard(cards: ReadonlyArray<Card>)
 
   await clickElementAsync(goodButton);
   await flushReviewScreenPromises();
+  await advanceReviewScreenPastNextPaint();
 
   expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(1);
   return cards[1];
@@ -220,6 +222,11 @@ describe("ReviewScreen rating controls", () => {
     await clickElementAsync(goodButton);
     await flushReviewScreenPromises();
 
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
+    expect(getContainer().textContent).toContain("Second reaction question");
+
+    await advanceReviewScreenPastNextPaint();
+
     const reactionLayer = getContainer().querySelector("[data-testid='review-rating-reaction-layer']");
     if (!(reactionLayer instanceof HTMLElement)) {
       throw new Error("Review rating reaction layer was not found");
@@ -263,6 +270,8 @@ describe("ReviewScreen rating controls", () => {
       throw new Error("Review pane was not found");
     }
 
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']:not([hidden])")).toHaveLength(0);
+    await advanceReviewScreenPastNextPaint();
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
     expect(reviewPane.getAttribute("data-review-current-card-id")).toBe(secondCard.cardId);
     expect(getContainer().textContent).toContain("Pointer second question");
@@ -290,6 +299,8 @@ describe("ReviewScreen rating controls", () => {
 
     await pointerDownAndClickElementAsync(revealButton);
 
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']:not([hidden])")).toHaveLength(0);
+    await advanceReviewScreenPastNextPaint();
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
     expect(getContainer().textContent).toContain("Pointer reveal second answer");
     expect(getState().appData.submitReviewItem).toHaveBeenCalledTimes(1);
@@ -311,6 +322,8 @@ describe("ReviewScreen rating controls", () => {
 
     await dispatchDocumentKeydown(" ");
 
+    expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']:not([hidden])")).toHaveLength(0);
+    await advanceReviewScreenPastNextPaint();
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
     expect(getContainer().textContent).toContain("Space second answer");
     expect(getState().appData.submitReviewItem).toHaveBeenCalledTimes(1);
@@ -339,6 +352,7 @@ describe("ReviewScreen rating controls", () => {
       await revealAnswer();
       await dispatchDocumentKeydown(shortcutCase.key);
       await flushReviewScreenPromises();
+      await advanceReviewScreenPastNextPaint();
 
       const reactionEvents = getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']");
       const [reactionEvent] = reactionEvents;
@@ -391,6 +405,7 @@ describe("ReviewScreen rating controls", () => {
 
       await clickElementAsync(goodButton);
       await flushReviewScreenPromises();
+      await advanceReviewScreenPastNextPaint();
     }
 
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(3);

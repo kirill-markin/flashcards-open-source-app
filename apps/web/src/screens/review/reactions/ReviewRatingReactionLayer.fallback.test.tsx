@@ -82,6 +82,7 @@ function ReviewReactionLayerHarness(props: ReviewReactionLayerHarnessProps): Rea
 
   return (
     <ReviewRatingReactionLayer
+      dismissedEvents={result.dismissedEvents}
       events={result.events}
       onReactionEventFallback={result.handleReactionEventFallback}
     />
@@ -313,6 +314,9 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
     vi.spyOn(Math, "random").mockReturnValue(randomValue);
     await act(async () => {
       requireLatestResult().emitReaction(rating);
+      vi.advanceTimersToNextFrame();
+      // Fake timers run a zero-delay timeout queued during a tick 1 ms later.
+      vi.advanceTimersByTime(1);
       await flushReactionPromises();
     });
   }

@@ -616,7 +616,7 @@ class ReviewViewModel(
         refreshPreview()
     }
 
-    fun rateCard(rating: ReviewRating) {
+    fun rateCard(rating: ReviewRating, reactionPlayed: Boolean) {
         val currentCard = uiState.value.preparedCurrentCard?.card ?: return
         val cardId = currentCard.cardId
         val pendingReviewedCard = PendingReviewedCard(
@@ -630,7 +630,8 @@ class ReviewViewModel(
         // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
         pendingReviewNextCardVisible = PendingReviewNextCardVisible(
             span = performanceTracing.startSpan(name = AppPerformanceSpanName.REVIEW_NEXT_CARD_VISIBLE),
-            ratedCardId = cardId
+            ratedCardId = cardId,
+            reactionPlayed = reactionPlayed
         )
         val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
         val nextPresentedCard = optimisticPreparedCurrentCard?.card
@@ -777,7 +778,8 @@ class ReviewViewModel(
         pendingReviewNextCardVisible = null
         finishReviewNextCardVisibleSpan(
             span = pending.span,
-            hasImages = reviewRenderedContentHasImages(content = shownCard.frontContent)
+            hasImages = reviewRenderedContentHasImages(content = shownCard.frontContent),
+            reactionPlayed = pending.reactionPlayed
         )
     }
 

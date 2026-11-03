@@ -16,6 +16,7 @@ import {
 } from "./lottie/reviewReactionLottie";
 
 type ReviewRatingReactionLayerProps = Readonly<{
+  dismissedEvents: ReadonlyArray<ReviewReactionEvent>;
   events: ReadonlyArray<ReviewReactionEvent>;
   onReactionEventFallback: (eventId: string) => void;
 }>;
@@ -346,23 +347,36 @@ function renderReviewReactionArt(
   );
 }
 
-export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps): ReactElement {
-  const { events, onReactionEventFallback } = props;
+function renderReviewReactionEvent(
+  event: ReviewReactionEvent,
+  isDismissed: boolean,
+  onReactionEventFallback: (eventId: string) => void,
+): ReactElement {
+  return (
+    <div
+      key={event.id}
+      className={`review-rating-reaction-event review-rating-reaction-${event.variant}`}
+      data-review-reaction-rating={event.rating}
+      data-review-reaction-variant={event.variant}
+      data-testid="review-rating-reaction-event"
+      hidden={isDismissed}
+      style={makeReviewReactionStyle(event)}
+    >
+      {renderReviewReactionArt(event, onReactionEventFallback)}
+    </div>
+  );
+}
 
+export function ReviewRatingReactionLayer(props: ReviewRatingReactionLayerProps): ReactElement {
+  const { dismissedEvents, events, onReactionEventFallback } = props;
+
+  // One keyed list, so a dismissed event stays mounted (hidden) until its teardown after the next paint.
   return (
     <div className="review-rating-reaction-layer" aria-hidden="true" data-testid="review-rating-reaction-layer">
-      {events.map((event) => (
-        <div
-          key={event.id}
-          className={`review-rating-reaction-event review-rating-reaction-${event.variant}`}
-          data-review-reaction-rating={event.rating}
-          data-review-reaction-variant={event.variant}
-          data-testid="review-rating-reaction-event"
-          style={makeReviewReactionStyle(event)}
-        >
-          {renderReviewReactionArt(event, onReactionEventFallback)}
-        </div>
-      ))}
+      {[
+        ...dismissedEvents.map((event) => renderReviewReactionEvent(event, true, onReactionEventFallback)),
+        ...events.map((event) => renderReviewReactionEvent(event, false, onReactionEventFallback)),
+      ]}
     </div>
   );
 }

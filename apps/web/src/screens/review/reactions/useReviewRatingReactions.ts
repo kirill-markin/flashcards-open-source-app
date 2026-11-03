@@ -23,6 +23,7 @@ import {
   reserveReviewReactionLottieRender,
   reviewReactionLottieFallbackVariant,
 } from "./lottie/reviewReactionLottie";
+import { runAfterNextPaint } from "../../../runAfterNextPaint";
 
 export type UseReviewRatingReactionsParams = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
@@ -30,7 +31,10 @@ export type UseReviewRatingReactionsParams = Readonly<{
 
 export type UseReviewRatingReactionsResult = Readonly<{
   dismissReactions: () => void;
-  emitReaction: (rating: 0 | 1 | 2 | 3) => void;
+  /** Hidden at once on dismiss; torn down after the next paint. */
+  dismissedEvents: ReadonlyArray<ReviewReactionEvent>;
+  /** Returns true when a reaction is scheduled to start after the next paint. */
+  emitReaction: (rating: 0 | 1 | 2 | 3) => boolean;
   events: ReadonlyArray<ReviewReactionEvent>;
   handleReactionEventFallback: (eventId: string) => void;
 }>;
@@ -46,6 +50,16 @@ function clearReviewReactionTimer(
 
   window.clearTimeout(timerId);
   cleanupTimers.delete(eventId);
+}
+
+/** Returns the cancelled event ids, whose reserved renders the caller still has to release. */
+function cancelPendingReviewReactionStarts(pendingStarts: Map<string, () => void>): ReadonlyArray<string> {
+  const cancelledEventIds = [...pendingStarts.keys()];
+  for (const cancelStart of pendingStarts.values()) {
+    cancelStart();
+  }
+  pendingStarts.clear();
+  return cancelledEventIds;
 }
 
 function clearTrimmedReviewReactionTimers(
@@ -148,11 +162,13 @@ export function useReviewRatingReactions(
 ): UseReviewRatingReactionsResult {
   const { reviewReactionAnimationsEnabled } = params;
   const [events, setEvents] = useState<ReadonlyArray<ReviewReactionEvent>>([]);
+  const [dismissedEvents, setDismissedEvents] = useState<ReadonlyArray<ReviewReactionEvent>>([]);
   const [motionMode, setMotionMode] = useState<ReviewReactionMotionMode>(
     matchesReducedReviewReactionMotion() ? "reduced" : "standard",
   );
   const eventsRef = useRef<ReadonlyArray<ReviewReactionEvent>>([]);
   const cleanupTimersRef = useRef<Map<string, number>>(new Map<string, number>());
+  const pendingStartsRef = useRef<Map<string, () => void>>(new Map<string, () => void>());
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -171,6 +187,9 @@ export function useReviewRatingReactions(
 
   useEffect(() => {
     return () => {
+      for (const eventId of cancelPendingReviewReactionStarts(pendingStartsRef.current)) {
+        releaseReviewReactionLottieRender(eventId);
+      }
       for (const timerId of cleanupTimersRef.current.values()) {
         window.clearTimeout(timerId);
       }
@@ -196,21 +215,38 @@ export function useReviewRatingReactions(
     });
   }, []);
 
+  // A dismissed reaction is hidden in this frame and never resumed; its teardown waits until after the paint.
   const dismissReactions = useCallback((): void => {
-    if (eventsRef.current.length === 0 && cleanupTimersRef.current.size === 0) {
+    const cancelledStartEventIds = cancelPendingReviewReactionStarts(pendingStartsRef.current);
+    const dismissedActiveEvents = eventsRef.current;
+    if (cancelledStartEventIds.length === 0 && dismissedActiveEvents.length === 0) {
       return;
     }
 
-    for (const timerId of cleanupTimersRef.current.values()) {
-      window.clearTimeout(timerId);
+    if (dismissedActiveEvents.length > 0) {
+      for (const timerId of cleanupTimersRef.current.values()) {
+        window.clearTimeout(timerId);
+      }
+      cleanupTimersRef.current.clear();
+      eventsRef.current = [];
+      setEvents([]);
+      setDismissedEvents((currentDismissedEvents) => [...currentDismissedEvents, ...dismissedActiveEvents]);
     }
-    cleanupTimersRef.current.clear();
 
-    for (const event of eventsRef.current) {
-      releaseReviewReactionLottieRender(event.id);
-    }
-    eventsRef.current = [];
-    setEvents([]);
+    // Not cancelled on unmount: the reserved renders still have to be released.
+    runAfterNextPaint(() => {
+      for (const eventId of cancelledStartEventIds) {
+        releaseReviewReactionLottieRender(eventId);
+      }
+      for (const event of dismissedActiveEvents) {
+        releaseReviewReactionLottieRender(event.id);
+      }
+      if (dismissedActiveEvents.length > 0) {
+        setDismissedEvents((currentDismissedEvents) => currentDismissedEvents.filter((dismissedEvent) => (
+          !dismissedActiveEvents.includes(dismissedEvent)
+        )));
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -229,9 +265,9 @@ export function useReviewRatingReactions(
     cleanupTimersRef.current.set(eventId, cleanupTimerId);
   }, [motionMode, removeReactionEvent]);
 
-  const emitReaction = useCallback((rating: 0 | 1 | 2 | 3): void => {
+  const emitReaction = useCallback((rating: 0 | 1 | 2 | 3): boolean => {
     if (reviewReactionAnimationsEnabled === false) {
-      return;
+      return false;
     }
 
     const reactionRating = makeReviewReactionRating(rating);
@@ -247,7 +283,7 @@ export function useReviewRatingReactions(
       selectedVariant,
     );
     if (reservedVariant === null) {
-      return;
+      return false;
     }
 
     const event: ReviewReactionEvent = {
@@ -255,17 +291,22 @@ export function useReviewRatingReactions(
       rating: reactionRating,
       variant: reservedVariant,
     };
-    scheduleReactionEventCleanup(event.id, event.variant);
-
-    setEvents((currentEvents) => {
-      const nextEvents = appendReviewReactionEvent(
-        currentEvents,
-        event,
-        reviewReactionMaximumActiveEvents,
-      );
-      eventsRef.current = nextEvents;
-      return nextEvents;
+    // Mounting the prepared render waits until the next card is painted.
+    const cancelStart = runAfterNextPaint(() => {
+      pendingStartsRef.current.delete(event.id);
+      scheduleReactionEventCleanup(event.id, event.variant);
+      setEvents((currentEvents) => {
+        const nextEvents = appendReviewReactionEvent(
+          currentEvents,
+          event,
+          reviewReactionMaximumActiveEvents,
+        );
+        eventsRef.current = nextEvents;
+        return nextEvents;
+      });
     });
+    pendingStartsRef.current.set(event.id, cancelStart);
+    return true;
   }, [reviewReactionAnimationsEnabled, scheduleReactionEventCleanup]);
 
   const handleReactionEventFallback = useCallback((eventId: string): void => {
@@ -297,6 +338,7 @@ export function useReviewRatingReactions(
 
   return {
     dismissReactions,
+    dismissedEvents,
     emitReaction,
     events,
     handleReactionEventFallback,

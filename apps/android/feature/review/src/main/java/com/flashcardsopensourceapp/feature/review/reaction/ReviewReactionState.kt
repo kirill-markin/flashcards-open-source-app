@@ -306,6 +306,117 @@ internal fun appendReviewReactionEvent(
     return nextEvents.takeLast(n = maximumActiveEvents)
 }
 
+internal enum class ReviewReactionSlotPhase {
+    PREPARED,
+    PLAYING,
+    SPENT
+}
+
+/**
+ * A mounted reaction. The Review screen keeps one prepared slot per rating, already drawn hidden, so
+ * a rating never builds a Lottie layer tree in the next card's frame. A spent slot stays mounted and
+ * hidden until it is replaced, so the frame that hides a reaction never disposes it.
+ */
+internal data class ReviewReactionSlot(
+    val event: ReviewReactionEvent,
+    val phase: ReviewReactionSlotPhase
+)
+
+/**
+ * The one rating to build next, or null. Builds run one per frame. A spent slot is rebuilt only when
+ * [isSpentSlotRebuildAllowed], so the frame after a touch-down stop never builds before the click.
+ */
+internal fun reviewReactionRatingToPrepare(
+    slots: List<ReviewReactionSlot>,
+    isSpentSlotRebuildAllowed: Boolean,
+    configurationStore: ReviewReactionLottieConfigurationStore
+): ReviewRating? {
+    // Building while a reaction plays would compete with it and with the next card's frame.
+    if (slots.any { slot: ReviewReactionSlot -> slot.phase == ReviewReactionSlotPhase.PLAYING }) {
+        return null
+    }
+
+    return ReviewRating.entries.firstOrNull { rating: ReviewRating ->
+        when (slots.firstOrNull { slot: ReviewReactionSlot -> slot.event.rating == rating }?.phase) {
+            ReviewReactionSlotPhase.PREPARED,
+            ReviewReactionSlotPhase.PLAYING -> false
+            ReviewReactionSlotPhase.SPENT -> isSpentSlotRebuildAllowed
+            // Waiting for every variant keeps the first pick on the full weighted distribution.
+            null -> reviewReactionHasPendingVariants(rating = rating, configurationStore = configurationStore).not()
+                && reviewReactionReadyVariants(rating = rating, configurationStore = configurationStore).isNotEmpty()
+        }
+    }
+}
+
+internal fun prepareReviewReactionSlot(
+    slots: List<ReviewReactionSlot>,
+    rating: ReviewRating,
+    configurationStore: ReviewReactionLottieConfigurationStore
+): List<ReviewReactionSlot> {
+    val keptSlots: List<ReviewReactionSlot> = slots.filter { slot: ReviewReactionSlot ->
+        slot.event.rating != rating
+    }
+    val event: ReviewReactionEvent = makeRandomReadyReviewReactionEvent(
+        rating = rating,
+        configurationStore = configurationStore
+    ) ?: return keptSlots
+    return keptSlots + ReviewReactionSlot(event = event, phase = ReviewReactionSlotPhase.PREPARED)
+}
+
+/**
+ * Plays [event], a fresh variant built for a rating whose prepared slot was already consumed: a slot
+ * plays at most once. Call it in a frame after the next card is on screen, never in the card's frame.
+ */
+internal fun playRequestedReviewReactionSlot(
+    slots: List<ReviewReactionSlot>,
+    event: ReviewReactionEvent
+): List<ReviewReactionSlot> {
+    return stopReviewReactionSlots(slots = slots).filter { slot: ReviewReactionSlot ->
+        slot.event.rating != event.rating
+    } + ReviewReactionSlot(event = event, phase = ReviewReactionSlotPhase.PLAYING)
+}
+
+/** Returns null when the rating has no prepared reaction. */
+internal fun playPreparedReviewReactionSlot(
+    slots: List<ReviewReactionSlot>,
+    rating: ReviewRating
+): List<ReviewReactionSlot>? {
+    val preparedSlot: ReviewReactionSlot = slots.firstOrNull { slot: ReviewReactionSlot ->
+        slot.event.rating == rating && slot.phase == ReviewReactionSlotPhase.PREPARED
+    } ?: return null
+
+    return stopReviewReactionSlots(slots = slots).map { slot: ReviewReactionSlot ->
+        if (slot.event.id == preparedSlot.event.id) {
+            slot.copy(phase = ReviewReactionSlotPhase.PLAYING)
+        } else {
+            slot
+        }
+    }
+}
+
+internal fun stopReviewReactionSlots(slots: List<ReviewReactionSlot>): List<ReviewReactionSlot> {
+    return slots.map { slot: ReviewReactionSlot ->
+        if (slot.phase == ReviewReactionSlotPhase.PLAYING) {
+            slot.copy(phase = ReviewReactionSlotPhase.SPENT)
+        } else {
+            slot
+        }
+    }
+}
+
+internal fun finishReviewReactionSlot(
+    slots: List<ReviewReactionSlot>,
+    eventId: String
+): List<ReviewReactionSlot> {
+    return slots.map { slot: ReviewReactionSlot ->
+        if (slot.event.id == eventId) {
+            slot.copy(phase = ReviewReactionSlotPhase.SPENT)
+        } else {
+            slot
+        }
+    }
+}
+
 internal fun reviewReactionMotionModeFromAnimatorSettings(): ReviewReactionMotionMode {
     return if (ValueAnimator.areAnimatorsEnabled()) {
         ReviewReactionMotionMode.STANDARD

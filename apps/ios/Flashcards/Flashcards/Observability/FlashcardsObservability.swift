@@ -24,8 +24,8 @@ enum FlashcardsObservability {
     }
 
     @MainActor
-    static func startReviewNextCardVisibleSpan(ratedCardId: String) {
-        SentryObservabilityAdapter.startReviewNextCardVisibleSpan(ratedCardId: ratedCardId)
+    static func startReviewNextCardVisibleSpan(ratedCardId: String, reactionPlayed: Bool) {
+        SentryObservabilityAdapter.startReviewNextCardVisibleSpan(ratedCardId: ratedCardId, reactionPlayed: reactionPlayed)
     }
 
     @MainActor
