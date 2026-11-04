@@ -7,6 +7,11 @@ private let reviewCardsStringsTableName: String = "ReviewCards"
 struct ReviewKeyboardActions {
     let revealAnswer: (@MainActor () -> Void)?
     let rate: (@MainActor (ReviewRating) -> Void)?
+    /// The side R and C act on: the back once it shows, otherwise the front.
+    let activeSide: ReviewSpeechSide
+    let isActiveSideSpeaking: Bool
+    let toggleSpeech: (@MainActor () -> Void)?
+    let copy: (@MainActor () -> Void)?
 }
 
 /// The Review menu shows the keys and serves pointer clicks. The window's `ReviewKeyCommandController`
@@ -38,12 +43,33 @@ private struct ReviewMenuItems: View {
             .keyboardShortcut(KeyEquivalent(Character(reviewRatingKey(rating))), modifiers: [])
             .disabled(self.target?.actions?.rate == nil)
         }
+        Divider()
+        Button(reviewSpeechMenuTitle(actions: self.target?.actions)) {
+            self.target?.actions?.toggleSpeech?()
+        }
+        .keyboardShortcut("r", modifiers: [])
+        .disabled(self.target?.actions?.toggleSpeech == nil)
+        Button(String(localized: "Copy", table: reviewCardsStringsTableName)) {
+            self.target?.actions?.copy?()
+        }
+        .keyboardShortcut("c", modifiers: [])
+        .disabled(self.target?.actions?.copy == nil)
     }
+}
+
+private func reviewSpeechMenuTitle(actions: ReviewKeyboardActions?) -> String {
+    let sideLabel = actions?.activeSide == .back
+        ? String(localized: "Back", table: reviewCardsStringsTableName)
+        : String(localized: "Front", table: reviewCardsStringsTableName)
+    let format = actions?.isActiveSideSpeaking == true
+        ? String(localized: "Stop %@ speech", table: reviewCardsStringsTableName)
+        : String(localized: "Speak %@", table: reviewCardsStringsTableName)
+    return String(format: format, locale: Locale.current, sideLabel)
 }
 
 extension View {
     /// Disables the Review commands while this view's sheet, alert, or picker is up, so Space,
-    /// Return, and digits reach the presentation instead of the card behind it.
+    /// Return, digits, and letters reach the presentation instead of the card behind it.
     func reviewKeyboardBlockingPresentation(isPresented: Bool) -> some View {
         self.modifier(ReviewKeyboardBlockingPresentationModifier(isPresented: isPresented))
     }

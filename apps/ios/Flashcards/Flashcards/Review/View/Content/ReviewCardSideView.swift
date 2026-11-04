@@ -5,6 +5,12 @@ private let reviewCardsStringsTableName: String = "ReviewCards"
 let reviewContentSurfaceCornerRadius: CGFloat = 24
 private let reviewCardSideCopiedFeedbackDuration: Duration = .seconds(3)
 
+/// A keyboard request to copy one card side; every request has a new id, so repeating it copies again.
+struct ReviewCardSideCopyRequest: Equatable {
+    let id: UUID
+    let side: ReviewCardSurfaceStyle
+}
+
 struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
@@ -17,6 +23,9 @@ struct ReviewCardSideView: View {
     let aiButtonAccentColor: AccountAccentColor
     let onOpenAi: () -> Void
     let surfaceStyle: ReviewCardSurfaceStyle
+    /// Only the side the R and C keys act on shows their hints.
+    let showsShortcutHints: Bool
+    let copyRequest: ReviewCardSideCopyRequest?
 
     @State private var hasCopied: Bool = false
     /// Restarts the copied-feedback reset task on every successful copy.
@@ -34,7 +43,9 @@ struct ReviewCardSideView: View {
         showsAiButton: Bool,
         aiButtonAccentColor: AccountAccentColor,
         onOpenAi: @escaping () -> Void,
-        surfaceStyle: ReviewCardSurfaceStyle
+        surfaceStyle: ReviewCardSurfaceStyle,
+        showsShortcutHints: Bool,
+        copyRequest: ReviewCardSideCopyRequest?
     ) {
         self.label = label
         self.content = content
@@ -47,6 +58,8 @@ struct ReviewCardSideView: View {
         self.aiButtonAccentColor = aiButtonAccentColor
         self.onOpenAi = onOpenAi
         self.surfaceStyle = surfaceStyle
+        self.showsShortcutHints = showsShortcutHints
+        self.copyRequest = copyRequest
     }
 
     var body: some View {
@@ -88,17 +101,7 @@ struct ReviewCardSideView: View {
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
 
-                Button {
-                    do {
-                        UIPasteboard.general.string = try reviewCardSideCopyText(sourceText: self.sourceText)
-                        self.hasCopied = true
-                        self.successfulCopyCount += 1
-                        UIAccessibility.post(notification: .announcement, argument: self.copyActionLabel)
-                    } catch {
-                        self.hasCopied = false
-                        self.copyError = error.localizedDescription
-                    }
-                } label: {
+                let copyButton = Button(action: self.copySide) {
                     Image(systemName: self.hasCopied ? "checkmark" : "square.on.square")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -112,10 +115,15 @@ struct ReviewCardSideView: View {
                 .accessibilityIdentifier(self.surfaceStyle == .front
                     ? UITestIdentifier.reviewFrontCopyButton : UITestIdentifier.reviewBackCopyButton)
                 .accessibilityLabel(Text(self.copyActionLabel) + Text(", ") + Text(self.label))
-                .help(self.copyActionLabel)
+                // The shortcut hint replaces the copy help, so the Mac never shows two tooltips.
+                if self.showsShortcutHints {
+                    copyButton.reviewCardSideShortcutHint(key: "C")
+                } else {
+                    copyButton.help(self.copyActionLabel)
+                }
 
                 if self.showsSpeechButton {
-                    Button(action: self.onToggleSpeech) {
+                    let speechButton = Button(action: self.onToggleSpeech) {
                         Image(systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
                             .font(.callout.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -139,6 +147,11 @@ struct ReviewCardSideView: View {
                                 self.label
                             )
                     )
+                    if self.showsShortcutHints {
+                        speechButton.reviewCardSideShortcutHint(key: "R")
+                    } else {
+                        speechButton
+                    }
                 }
 
                 if self.showsAiButton {
@@ -164,6 +177,11 @@ struct ReviewCardSideView: View {
         .onChange(of: self.sourceText) {
             self.hasCopied = false
         }
+        .onChange(of: self.copyRequest) { _, request in
+            if request?.side == self.surfaceStyle {
+                self.copySide()
+            }
+        }
         .task(id: self.successfulCopyCount) {
             await self.resetCopiedFeedbackAfterDelay()
         }
@@ -182,6 +200,18 @@ struct ReviewCardSideView: View {
             Text(self.copyError ?? "")
         }
         .reviewKeyboardBlockingPresentation(isPresented: self.copyError != nil)
+    }
+
+    private func copySide() {
+        do {
+            UIPasteboard.general.string = try reviewCardSideCopyText(sourceText: self.sourceText)
+            self.hasCopied = true
+            self.successfulCopyCount += 1
+            UIAccessibility.post(notification: .announcement, argument: self.copyActionLabel)
+        } catch {
+            self.hasCopied = false
+            self.copyError = error.localizedDescription
+        }
     }
 
     private func resetCopiedFeedbackAfterDelay() async {
@@ -211,5 +241,15 @@ struct ReviewCardSideView: View {
         case .back:
             return AnyShapeStyle(.regularMaterial)
         }
+    }
+}
+
+private extension View {
+    func reviewCardSideShortcutHint(key: String) -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.catalystReviewShortcutHint(key: key)
+        #else
+        self.reviewCardsShortcutHelp(key: key)
+        #endif
     }
 }

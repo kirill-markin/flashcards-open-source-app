@@ -121,6 +121,11 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
         reviewPriorityKeyCommand(input: reviewRatingKey(rating), modifierFlags: [], action: self.rateAction(rating))
     }
 
+    private lazy var speechCommand: UIKeyCommand = reviewLetterKeyCommand(input: "r", action: #selector(self.toggleSpeech(_:)))
+    private lazy var copyCommand: UIKeyCommand = reviewLetterKeyCommand(input: "c", action: #selector(self.copyActiveSide(_:)))
+    /// The press `pressesBegan` handled itself, so its end is not forwarded either.
+    private var keyPositionPress: UIPress?
+
     override var canBecomeFirstResponder: Bool { true }
 
     override var keyCommands: [UIKeyCommand]? {
@@ -129,6 +134,8 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
         return inheritedCommands
             + (actions.revealAnswer == nil ? [] : self.revealCommands)
             + (actions.rate == nil ? [] : self.ratingCommands)
+            + (actions.toggleSpeech == nil ? [] : [self.speechCommand])
+            + (actions.copy == nil ? [] : [self.copyCommand])
     }
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
@@ -137,6 +144,12 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
         }
         if ReviewRating.allCases.contains(where: { self.rateAction($0) == action }) {
             return self.target?.actions?.rate != nil
+        }
+        if action == #selector(self.toggleSpeech(_:)) {
+            return self.target?.actions?.toggleSpeech != nil
+        }
+        if action == #selector(self.copyActiveSide(_:)) {
+            return self.target?.actions?.copy != nil
         }
         return super.canPerformAction(action, withSender: sender)
     }
@@ -173,6 +186,48 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
         _ = self.resignFirstResponder()
     }
 
+    /// Letter key commands match the typed character, so on a layout without Latin letters,
+    /// such as Russian or Greek, R and C match by key position instead.
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        guard presses.count == 1, let press = presses.first, let action = self.keyPositionAction(press: press) else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
+        self.keyPositionPress = press
+        action()
+    }
+
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        let forwardedPresses = self.removingKeyPositionPress(presses)
+        if forwardedPresses.isEmpty == false {
+            super.pressesEnded(forwardedPresses, with: event)
+        }
+    }
+
+    override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        let forwardedPresses = self.removingKeyPositionPress(presses)
+        if forwardedPresses.isEmpty == false {
+            super.pressesCancelled(forwardedPresses, with: event)
+        }
+    }
+
+    private func keyPositionAction(press: UIPress) -> (@MainActor () -> Void)? {
+        guard let key = press.key, let actions = self.target?.actions,
+              key.modifierFlags.isDisjoint(with: [.shift, .control, .alternate, .command]),
+              isASCIILetter(key.charactersIgnoringModifiers) == false else { return nil }
+        switch key.keyCode {
+        case .keyboardR: return actions.toggleSpeech
+        case .keyboardC: return actions.copy
+        default: return nil
+        }
+    }
+
+    private func removingKeyPositionPress(_ presses: Set<UIPress>) -> Set<UIPress> {
+        guard let press = self.keyPositionPress, presses.contains(press) else { return presses }
+        self.keyPositionPress = nil
+        return presses.subtracting([press])
+    }
+
     @objc private func windowDidBecomeKey(_ notification: Notification) {
         guard let window = notification.object as? UIWindow, window === self.viewIfLoaded?.window else { return }
         // Runs after the system settles the new key window's first responder.
@@ -195,6 +250,8 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
     @objc private func rateHard(_ command: UIKeyCommand) { self.target?.actions?.rate?(.hard) }
     @objc private func rateGood(_ command: UIKeyCommand) { self.target?.actions?.rate?(.good) }
     @objc private func rateEasy(_ command: UIKeyCommand) { self.target?.actions?.rate?(.easy) }
+    @objc private func toggleSpeech(_ command: UIKeyCommand) { self.target?.actions?.toggleSpeech?() }
+    @objc private func copyActiveSide(_ command: UIKeyCommand) { self.target?.actions?.copy?() }
 }
 
 /// Untitled, so the command stays out of the menu and the iPad shortcut overlay, which the Review menu fills.
@@ -203,6 +260,21 @@ private func reviewPriorityKeyCommand(input: String, modifierFlags: UIKeyModifie
     let command = UIKeyCommand(input: input, modifierFlags: modifierFlags, action: action)
     command.wantsPriorityOverSystemBehavior = true
     return command
+}
+
+/// On iOS 26 and later, holding the key runs the action once, so a held R cannot start and stop speech repeatedly;
+/// earlier systems may auto-repeat it.
+@MainActor
+private func reviewLetterKeyCommand(input: String, action: Selector) -> UIKeyCommand {
+    let command = reviewPriorityKeyCommand(input: input, modifierFlags: [], action: action)
+    if #available(iOS 26.0, *) {
+        command.repeatBehavior = .nonRepeatable
+    }
+    return command
+}
+
+private func isASCIILetter(_ text: String) -> Bool {
+    text.count == 1 && text.allSatisfy { $0.isASCII && $0.isLetter }
 }
 
 @MainActor
