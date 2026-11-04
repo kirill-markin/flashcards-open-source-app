@@ -12,6 +12,7 @@ import type {
 } from "../sqlDialect";
 import { buildInvalidSqlError } from "../sqlErrors";
 import { MAX_SQL_RECORD_LIMIT } from "../toolContract/sqlToolLimits";
+import { findLiteralCardTextEscape } from "./cardTextEscapes";
 
 /**
  * Entrypoint that executed the SQL. Kept as a closed union and required on
@@ -327,6 +328,26 @@ export function toDeletedMutationRows(
     .map((row) => projectReturningRow(returning, row));
 }
 
+/**
+ * Rejects AI-authored card text that stores a literal `\n` or `\"` outside
+ * code and math. Human editor paths do not pass through here.
+ */
+export function assertNoLiteralCardTextEscape(columnName: "front_text" | "back_text", text: string): void {
+  const literalEscape = findLiteralCardTextEscape(text);
+  if (literalEscape === null) {
+    return;
+  }
+
+  throw buildInvalidSqlError(
+    `${columnName} contains a literal ${literalEscape.escape} outside code and math, near "${literalEscape.excerpt}". `
+      + "Card text must hold real line breaks and plain quotes, not the escape sequences \\n or \\\". "
+      + "At the JSON boundary a line break is \\n, never \\\\n. "
+      + "Retry with real line breaks and plain quotes; a literal \\n meant as text belongs in inline code or a code block, or is stored as \\\\n.",
+    "invalid_value",
+    columnName,
+  );
+}
+
 export function buildCreateCardInput(
   columnNames: ReadonlyArray<string>,
   row: ReadonlyArray<AgentSqlMutationAssignmentValue>,
@@ -350,6 +371,9 @@ export function buildCreateCardInput(
   if (typeof backText !== "string") {
     throw buildInvalidSqlError("back_text is required for INSERT INTO cards", "invalid_value", "back_text");
   }
+
+  assertNoLiteralCardTextEscape("front_text", frontText);
+  assertNoLiteralCardTextEscape("back_text", backText);
 
   if (effortLevel !== undefined && isLegacyEffortLevel(effortLevel) === false) {
     throw buildInvalidSqlError("effort_level must be fast, medium, or long", "invalid_value", "effort_level");
@@ -463,6 +487,7 @@ export function buildCardUpdateInput(
       if (typeof assignment.value !== "string") {
         throw buildInvalidSqlError("front_text must be a string", "invalid_value", "front_text");
       }
+      assertNoLiteralCardTextEscape("front_text", assignment.value);
       frontText = assignment.value;
     }
 
@@ -470,6 +495,7 @@ export function buildCardUpdateInput(
       if (typeof assignment.value !== "string") {
         throw buildInvalidSqlError("back_text must be a string", "invalid_value", "back_text");
       }
+      assertNoLiteralCardTextEscape("back_text", assignment.value);
       backText = assignment.value;
     }
 
