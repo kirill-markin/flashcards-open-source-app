@@ -48,6 +48,26 @@ struct ReviewReactionLayer: View {
     }
 }
 
+/// Observes animation state here so preparation and playback do not rebuild the review card's view.
+struct ReviewReactionPlaybackLayer: View {
+    let model: ReviewReactionPlaybackModel
+    let context: ReviewReactionPlaybackContextReader
+
+    var body: some View {
+        ReviewReactionLayer(
+            preparedReactions: self.model.preparedReviewReactions,
+            playback: self.model.activeReviewReactionPlayback,
+            lottieAssetStore: self.model.reviewReactionLottieAssetStore,
+            source: .review,
+            onPlaybackEnded: { playbackId, action, reason in
+                self.model.finishReviewReactionPlayback(
+                    playbackId: playbackId, action: action, reason: reason, context: self.context
+                )
+            }
+        )
+    }
+}
+
 private struct ReviewReactionLottieView: View {
     let reaction: ReviewReactionEvent
     let animation: LottieAnimation

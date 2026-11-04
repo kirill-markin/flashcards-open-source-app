@@ -39,18 +39,8 @@ struct ReviewView: View {
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State private var textSelection: ReviewCardTextSelection? = nil
-    @State var isReviewReactionScreenVisible: Bool = false
-    @State var reviewReactionLottiePrewarmTask: Task<Void, Never>?
-    @State var reviewReactionLottiePrewarmId: UUID?
-    @State var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
-    @State var preparedReviewReactions: [ReviewReactionRating: ReviewReactionEvent] = [:]
-    @State var activeReviewReactionPlayback: ReviewReactionPlayback? = nil
-    @State var playedReviewReactionIds: Set<UUID> = []
-    @State var reviewReactionRatingsToPrepare: Set<ReviewReactionRating> = []
-    @State var isReviewReactionRefreshWorkScheduled: Bool = false
-    /// Set by a rating, a stop or touch-up: the next refresh builds no reaction view, so neither the next card's
-    /// frame nor the interaction's frame waits for a build.
-    @State var isReviewReactionNextCardRefreshPending: Bool = false
+    @State var isReviewScreenVisible: Bool = false
+    @State private var reviewReactionPlayback = ReviewReactionPlaybackModel()
     /// Resets on touch-up and on cancellation, which skips `onEnded`.
     @GestureState var isReviewReactionTouchDown: Bool = false
     @State var isQueuePreviewPresented: Bool = false
@@ -101,6 +91,14 @@ struct ReviewView: View {
 
     var areReviewReactionAnimationsEnabled: Bool {
         store.effectiveReviewReactionAnimationsEnabled && self.isLowPowerModeEnabled == false
+    }
+
+    private func reviewReactionContext() -> ReviewReactionPlaybackContext {
+        ReviewReactionPlaybackContext(
+            areAnimationsEnabled: self.areReviewReactionAnimationsEnabled,
+            scenePhase: self.scenePhase,
+            isTouchDown: self.isReviewReactionTouchDown
+        )
     }
 
     private var currentCard: Card? {
@@ -167,12 +165,9 @@ struct ReviewView: View {
                 }
             }
 
-            ReviewReactionLayer(
-                preparedReactions: self.preparedReviewReactions,
-                playback: self.activeReviewReactionPlayback,
-                lottieAssetStore: self.reviewReactionLottieAssetStore,
-                source: .review,
-                onPlaybackEnded: self.finishReviewReactionPlayback(playbackId:action:reason:)
+            ReviewReactionPlaybackLayer(
+                model: self.reviewReactionPlayback,
+                context: self.reviewReactionContext
             )
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
@@ -243,37 +238,17 @@ struct ReviewView: View {
         // Switching from a large title can retain its empty band after keyboard dismissal.
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
         .onAppear {
-            self.isReviewReactionScreenVisible = true
-            if self.areReviewReactionAnimationsEnabled {
-                self.prewarmReviewReactionLottieAssets()
-                self.prepareReviewReactions()
-            }
+            self.isReviewScreenVisible = true
+            self.reviewReactionPlayback.appear(context: self.reviewReactionContext)
         }
-        .onChange(of: self.areReviewReactionAnimationsEnabled) { _, isEnabled in
-            if isEnabled {
-                self.prewarmReviewReactionLottieAssets()
-                self.prepareReviewReactions()
-            } else {
-                self.cancelReviewReactionLottiePrewarm()
-                self.releaseReviewReactions(reason: "disabled")
-            }
+        .onChange(of: self.areReviewReactionAnimationsEnabled) { _, _ in
+            self.reviewReactionPlayback.enablementChanged(context: self.reviewReactionContext)
         }
-        .onChange(of: self.scenePhase) { _, phase in
-            if phase == .active {
-                self.prewarmReviewReactionLottieAssets()
-                self.prepareReviewReactions()
-            } else if phase == .inactive {
-                // Mac Catalyst reports every window focus loss as inactive, so prepared views survive it.
-                self.cancelReviewReactionLottiePrewarm()
-                self.dismissActiveReviewReactions(reason: "scene_inactive")
-            } else {
-                self.cancelReviewReactionLottiePrewarm()
-                self.releaseReviewReactions(reason: "scene_background")
-            }
+        .onChange(of: self.scenePhase) { _, _ in
+            self.reviewReactionPlayback.scenePhaseChanged(context: self.reviewReactionContext)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
-            self.cancelReviewReactionLottiePrewarm()
-            self.releaseReviewReactions(reason: "memory_warning")
+            self.reviewReactionPlayback.receiveMemoryWarning(context: self.reviewReactionContext)
         }
         .onChange(of: currentCard?.cardId, initial: true) { _, cardId in
             if self.textSelection?.cardId != cardId {
@@ -284,11 +259,10 @@ struct ReviewView: View {
         }
         .onDisappear {
             self.textSelection = nil
-            self.isReviewReactionScreenVisible = false
+            self.isReviewScreenVisible = false
             self.store.isSavedReviewPromptSurfaceAvailable = false
             self.reviewSpeechController.stopSpeech()
-            self.cancelReviewReactionLottiePrewarm()
-            self.releaseReviewReactions(reason: "screen_disappeared")
+            self.reviewReactionPlayback.disappear(context: self.reviewReactionContext)
         }
         .task(id: preparedRevealStatesTaskId) {
             await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue, presentedCard: self.currentCard)
@@ -366,12 +340,14 @@ struct ReviewView: View {
                     isTouchDown = true
                 }
                 .onChanged { _ in
-                    self.dismissActiveReviewReactions(reason: "interaction")
+                    self.reviewReactionPlayback.dismissActiveReviewReactions(
+                        reason: "interaction", context: self.reviewReactionContext
+                    )
                 }
         )
         .onChange(of: self.isReviewReactionTouchDown) { _, isTouchDown in
             if isTouchDown == false {
-                self.resumeReviewReactionPreparation()
+                self.reviewReactionPlayback.resumeReviewReactionPreparation(context: self.reviewReactionContext)
             }
         }
         #if targetEnvironment(macCatalyst)
@@ -1204,7 +1180,7 @@ struct ReviewView: View {
     }
 
     var canPresentSavedReviewPrompt: Bool {
-        self.isReviewReactionScreenVisible
+        self.isReviewScreenVisible
             && self.navigation.selectedTab == .review
             && self.scenePhase == .active
             && self.isEditorPresented == false
@@ -1258,7 +1234,9 @@ struct ReviewView: View {
         if self.reviewScreen.isAnswerVisible == false {
             return ReviewKeyboardActions(
                 revealAnswer: {
-                    self.dismissActiveReviewReactions(reason: "interaction")
+                    self.reviewReactionPlayback.dismissActiveReviewReactions(
+                        reason: "interaction", context: self.reviewReactionContext
+                    )
                     self.revealReviewAnswer()
                 },
                 rate: nil
@@ -1270,7 +1248,9 @@ struct ReviewView: View {
         return ReviewKeyboardActions(
             revealAnswer: nil,
             rate: { rating in
-                self.dismissActiveReviewReactions(reason: "interaction")
+                self.reviewReactionPlayback.dismissActiveReviewReactions(
+                    reason: "interaction", context: self.reviewReactionContext
+                )
                 self.rateReviewCard(cardId: card.cardId, rating: rating)
             }
         )
@@ -1299,7 +1279,9 @@ struct ReviewView: View {
 
     private func rateReviewCard(cardId: String, rating: ReviewRating) {
         guard self.store.isReviewPending(cardId: cardId) == false else { return }
-        let isReactionScheduled: Bool = self.scheduleReviewReaction(rating: rating)
+        let isReactionScheduled: Bool = self.reviewReactionPlayback.scheduleReviewReaction(
+            rating: rating, context: self.reviewReactionContext
+        )
         // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
         FlashcardsObservability.startReviewNextCardVisibleSpan(ratedCardId: cardId, reactionPlayed: isReactionScheduled)
         self.submitReview(cardId: cardId, rating: rating)
