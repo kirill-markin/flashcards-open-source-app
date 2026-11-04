@@ -132,7 +132,11 @@ export function resolveReviewFilterTitle(
   }
 
   if (reviewFilter.kind === "tags") {
-    return reviewFilter.tags.length === 0 ? noTagsLabel : selectedTagsCountLabel;
+    if (reviewFilter.tags.length === 0) {
+      return noTagsLabel;
+    }
+
+    return reviewFilter.tags.length === 1 ? reviewFilter.tags[0] : selectedTagsCountLabel;
   }
 
   if (reviewFilter.kind === "catalogImport") {
