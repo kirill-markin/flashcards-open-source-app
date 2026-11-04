@@ -8,7 +8,6 @@ import SwiftUI
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
-    @FocusState private var isEmailFieldFocused: Bool
 
     let presentationContext: CloudSignInPresentationContext
 
@@ -131,9 +130,6 @@ struct CloudSignInSheet: View {
                     self.store.cloudSignInAttempt.otpSheetState = nil
                 }
                 self.store.cloudSignInAttempt.isEmailSelected = path.contains(.email)
-                if !self.store.cloudSignInAttempt.isEmailSelected {
-                    self.isEmailFieldFocused = false
-                }
             }
         )
     }
@@ -185,48 +181,14 @@ struct CloudSignInSheet: View {
     }
 
     private var emailForm: some View {
-        @Bindable var store = self.store
-
-        return ReadableContentLayout(
-            maxWidth: flashcardsReadableFormMaxWidth,
-            horizontalPadding: 0
-        ) {
-            Form {
-                self.authErrorSection
-                Section(aiSettingsLocalized("common.email", "Email")) {
-                    TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.emailAddress)
-                        .textContentType(.emailAddress)
-                        .submitLabel(.send)
-                        .focused(self.$isEmailFieldFocused)
-                        .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
-                        .onSubmit {
-                            self.sendCode()
-                        }
-                }
-                .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
-
-                Section {
-                    Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
-                        self.sendCode()
-                    }
-                    .disabled(
-                        self.store.cloudSignInAttempt.isMethodChangeBlocked
-                            || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
-                    )
-                    .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
-                }
-            }
-        }
+        CloudSignInEmailForm(
+            errorSection: self.authErrorSection,
+            onSendCode: { self.sendCode() }
+        )
         .navigationTitle(aiSettingsLocalized("common.email", "Email"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(self.store.cloudSignInAttempt.isMethodChangeBlocked)
         .toolbar { self.closeToolbar }
-        .onAppear {
-            self.scheduleEmailFieldFocusIfShowingEmailForm()
-        }
     }
 
     private var codeForm: some View {
@@ -322,21 +284,6 @@ struct CloudSignInSheet: View {
         )
     }
 
-    private func scheduleEmailFieldFocus() {
-        DispatchQueue.main.async {
-            self.isEmailFieldFocused = true
-        }
-    }
-
-    private func scheduleEmailFieldFocusIfShowingEmailForm() {
-        guard self.store.cloudSignInAttempt.isEmailSelected,
-              self.store.cloudSignInAttempt.isStepAboveEmailFormPresented == false else {
-            return
-        }
-
-        self.scheduleEmailFieldFocus()
-    }
-
     private var isStandardPresentation: Bool {
         switch self.presentationContext {
         case .standard:
@@ -367,7 +314,6 @@ struct CloudSignInSheet: View {
     private func sendCode() {
         guard !self.store.cloudSignInAttempt.isMethodChangeBlocked,
               self.store.cloudSignInAttempt.isEmailSelected else { return }
-        self.isEmailFieldFocused = false
 
         guard isValidCloudEmail(self.store.cloudSignInAttempt.email) else {
             self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
