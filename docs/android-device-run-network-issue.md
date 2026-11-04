@@ -1,13 +1,14 @@
-# Known Device Run network issue
+# Device Run network issue and recovery
 
-Device Run physical-device networking is unreliable in the 1.35.0 release
-investigation. Root cause and ownership remain unproved; this is not evidence
-that app transport, OkHttp, AWS, or Google alone is responsible.
+The 1.35.0 release investigation reproduced intermittent Device Run
+physical-device network timeouts. The retained native evidence does not
+independently isolate app transport, OkHttp, AWS, or Google as the cause.
+The [recovery verification](#recovery-verification) below passed.
 
 ## Reproduction and limits
 
-- Real sign-in/sync runs intermittently time out awaiting response headers.
-  Instrumented attempts show approximately 30-second HTTP/2 timeouts across
+- During that investigation, real sign-in/sync runs intermittently timed out
+  awaiting response headers. Instrumented attempts show approximately 30-second HTTP/2 timeouts across
   different connections; server-side successful requests do not establish that
   a timed-out client received a response.
 - The manual [protocol probe](../apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/diagnostics/HttpProtocolProbeTest.kt)
@@ -24,28 +25,32 @@ that app transport, OkHttp, AWS, or Google alone is responsible.
   Aggregate findings above come from retained private native evidence, not
   those vendor documents. Keep raw logs, identifiers and credentials private.
 
-## Standing known-issue procedure
+## Recovery verification
 
-Track the vendor report at [Google issue 574921431](https://issuetracker.google.com/issues/574921431). Ownership remains unknown. Apply the [standing best-effort release policy](release/README.md#standing-best-effort-release-policy) to future releases while the issue remains unresolved and there is no material new evidence. Reuse the bounded diagnosis above; no new owner decision, unavailable physical evidence or repeated blind probes are required each release.
+Google's Omnilab team reported recovery of the Atlanta lab's transit and Wi-Fi
+egress on November 2, 2026. November 4 reruns rebuilt the original reproduction
+source, `99525ea3009c2499cfc2d2f5c32bc51b9018d644`, on physical Pixel 11 devices
+running Android 17 / API 37:
 
-Dispatch `Android Release` with `known_device_run_network_exception=true` only
-when preflight selects this known-issue route. It defaults to false. The exception skips all four
-physical sessions as `waived_not_executed`; it does not pass them, repair earlier
-failures, or produce a green mobile-readiness result. Retain the run's
-`android-device-run-policy-r<runId>a<attempt>` artifact and visible summaries.
-Normal dispatch still requires four passing sessions and complete named results.
+- [Protocol and stack controls](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/41789641935):
+  all 6 named tests and 48 requests passed, with expected statuses, complete
+  response bodies and no exceptions. Both HTTP/1.1 and HTTP/2 passed, as did
+  platform HTTPS and Google controls.
+- [App smoke selection](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/41790646660):
+  all 7 named tests passed, including account linking, sync, card creation and
+  review, progress reset and guest AI flows.
 
-Before publication, retain a separate dated operator readiness decision with
-the standing-policy reference, exact source/run/attempt/version/code/AAB hash,
-failed/skipped history, best-effort full latest-OS local native results and
-feasible compatibility checks, applicable API 30 walkthrough results or coverage gaps,
-and exact Play-delivered candidate/translation verification. Local success is
-bounded evidence, not a physical-device pass. CI/build/lint/local-data gates,
-security/warning policy, signing, R8, managed publishing and publisher guards
-remain mandatory. Public production availability at the chosen rollout scope
-is still required by [Android release completion](release/android.md).
+Private archive and submitted APK hashes, session/job/execution success, named
+JUnit results and physical-device automation markers were verified. No selected
+case was missing, duplicated or skipped. The retained reports and logs do not
+expose the allocated lab or host, so these passes do not independently establish
+the exact Atlanta route or the network failure's mechanism.
 
-Preserve all original failures and skips and the readiness CLI's unchanged
-contract/report. Recheck physical networking on provider remediation or
-materially new evidence; avoid unchanged expensive reruns or speculative app
-transport changes. Fix identifiable app/test defects and actionable failures under the standing policy.
+## Release acceptance
+
+The original report is [Google issue 574921431](https://issuetracker.google.com/issues/574921431).
+Android releases require all four physical Device Run sessions and the other gates
+in [the Android release procedure](release/android.md), with complete named results
+under [release result verification](android-ci-cd.md#device-run-results-and-release-correlation).
+These diagnostic selections do not replace release acceptance. Preserve historical
+failures, skips and readiness records.
