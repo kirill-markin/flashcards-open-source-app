@@ -8,7 +8,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.launchApplication(launchScenario: nil, selectedTab: .progress)
         let sidebar = self.app.collectionViews["Sidebar"].firstMatch
         if !sidebar.exists || !sidebar.isHittable {
-            self.app.buttons["mac.sidebar.toggle"].click()
+            self.buttons(identifier: "mac.sidebar.toggle").firstMatch.click()
             let shown = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in sidebar.exists && sidebar.isHittable }, object: nil)
             XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
         }
@@ -26,11 +26,11 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         sidebarHierarchy.name = "mac-native-sidebar-hierarchy"
         sidebarHierarchy.lifetime = .keepAlways
         self.add(sidebarHierarchy)
-        let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+        let toggle = self.buttons(identifier: LiveSmokeIdentifier.aiCompanionToggle).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
-        let companionWasVisible = toggle.isSelected
+        let companionWasVisible = self.macAiCompanionIsOpen(toggle: toggle)
         defer {
-            if !companionWasVisible, toggle.exists, toggle.isSelected { toggle.click() }
+            if !companionWasVisible, toggle.exists, self.macAiCompanionIsOpen(toggle: toggle) { toggle.click() }
         }
         if !companionWasVisible {
             toggle.click()
@@ -103,7 +103,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         // A sidebar row keeps keyboard focus; a click on blank card space returns it to study.
         let sidebar = self.app.collectionViews["Sidebar"].firstMatch
         if !sidebar.exists || !sidebar.isHittable {
-            self.app.buttons["mac.sidebar.toggle"].click()
+            self.buttons(identifier: "mac.sidebar.toggle").firstMatch.click()
             XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
                 sidebar.exists && sidebar.isHittable
             }, object: nil)], timeout: 5), .completed)
@@ -128,14 +128,14 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(0.7))
 
         // The companion's transcript registers while it slides in.
-        let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+        let toggle = self.buttons(identifier: LiveSmokeIdentifier.aiCompanionToggle).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
-        if !toggle.isSelected {
+        if !self.macAiCompanionIsOpen(toggle: toggle) {
             self.addTeardownBlock { [weak self] in
                 MainActor.assumeIsolated {
-                    guard let app = self?.app, app.state == .runningForeground else { return }
-                    let toggle = app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
-                    if toggle.exists && toggle.isSelected { toggle.click() }
+                    guard let self, self.app.state == .runningForeground else { return }
+                    let toggle = self.buttons(identifier: LiveSmokeIdentifier.aiCompanionToggle).firstMatch
+                    if toggle.exists && self.macAiCompanionIsOpen(toggle: toggle) { toggle.click() }
                 }
             }
             toggle.click()
@@ -253,7 +253,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         editDecks.click()
         // Edit decks pushes Decks onto Settings: the toolbar offers Back.
         XCTAssertTrue(self.app.staticTexts["mac.toolbar.title.settings"].waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
-        XCTAssertTrue(self.app.buttons["mac.navigation.back"].exists, "Edit decks must open a pushed Settings page.")
+        XCTAssertTrue(self.buttons(identifier: "mac.navigation.back").firstMatch.exists, "Edit decks must open a pushed Settings page.")
         self.attachMacWindowScreenshot(name: "mac-edit-decks-opened")
         try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -307,7 +307,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND label == %@", title), object: header)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), .completed,
             "Expected the pushed Settings page \(title); found \(header.exists ? header.label : "no title").")
-        XCTAssertTrue(self.app.buttons["mac.navigation.back"].exists, "A pushed Settings page offers Back.")
+        XCTAssertTrue(self.buttons(identifier: "mac.navigation.back").firstMatch.exists, "A pushed Settings page offers Back.")
     }
 
     /// Undo the launcher's one Fill before the app terminates, whatever the test's outcome.
@@ -390,7 +390,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         XCTAssertEqual(sidebar.frame.maxY, window.frame.maxY - sidebarOuterInset, accuracy: 1)
         XCTAssertEqual(sidebar.frame.height, window.frame.height - 2 * sidebarOuterInset, accuracy: 1)
         let originalSidebarFrame = sidebar.frame
-        let sidebarButton = self.app.buttons["mac.sidebar.toggle"].firstMatch
+        let sidebarButton = self.buttons(identifier: "mac.sidebar.toggle").firstMatch
         XCTAssertTrue(sidebarButton.exists)
         sidebarButton.click()
         let hidden = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in !sidebar.isHittable }, object: nil)
@@ -542,7 +542,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.assertElementExists(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].click()
+        self.buttons(identifier: LiveSmokeIdentifier.aiCompanionToggle).firstMatch.click()
         try self.assertAiEntrySurfaceVisible()
         // The companion animates for 0.35 seconds; inspect its settled presentation.
         RunLoop.current.run(until: Date().addingTimeInterval(0.5))
@@ -575,7 +575,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
                 try self.tapAlertButton(label: "OK", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
             if tab == .settings {
-                XCTAssertFalse(self.app.buttons["mac.navigation.back"].exists)
+                XCTAssertFalse(self.buttons(identifier: "mac.navigation.back").firstMatch.exists)
                 try self.tapButton(identifier: "settings.accentColorRow", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.assertElementExists(identifier: "accentColorSettings.screen", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.checkMacToolbar(name: "settings-color", identifiers: ["mac.navigation.back"])
@@ -583,9 +583,9 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
                 // Toolbar navigation must also accept a click after another app
                 // owns activation, without an extra activation-only click.
                 XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
-                self.app.buttons["mac.navigation.back"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+                self.buttons(identifier: "mac.navigation.back").firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
                 try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-                XCTAssertFalse(self.app.buttons["mac.navigation.back"].exists)
+                XCTAssertFalse(self.buttons(identifier: "mac.navigation.back").firstMatch.exists)
                 self.waitForMacToolbarTitleAbsent(identifier: "mac.toolbar.title.settings")
             }
             if tab == .ai {
@@ -663,7 +663,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         case LiveSmokeIdentifier.reviewProgressBadge:
             return try self.macReviewStatusButtons(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds).streak
         default:
-            let buttons = self.app.buttons.matching(identifier: identifier)
+            let buttons = self.buttons(identifier: identifier)
             XCTAssertTrue(buttons.firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
             return try XCTUnwrap(buttons.count == 1 ? buttons.firstMatch : nil,
                 "Expected exactly one native toolbar button for \(identifier); found \(buttons.count).")
@@ -885,7 +885,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
     @MainActor
     private func hoverMacShortcutButton(identifier: String, expectedHelp: String) {
         let hint = self.app.staticTexts["review.shortcutHint"]
-        self.app.buttons["review.filter.menu"].hover()
+        self.buttons(identifier: LiveSmokeIdentifier.reviewFilterMenu).firstMatch.hover()
         let dismissed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
             object: hint
