@@ -26,6 +26,7 @@ import {
   type MediaTransferStatus,
 } from "../../../localDb/mediaTransfers";
 import {
+  endsWithMarkdownImage,
   parseManagedImageMarkdownReferences,
   type ManagedMediaMarkdownReference,
 } from "../../../media/managedMediaMarkdown";
@@ -381,7 +382,10 @@ function buildManagedMediaInsertion(
   const end = clampSelectionIndex(selection.end, text.length);
   const prefix = text.slice(0, Math.min(start, end));
   const suffix = text.slice(Math.max(start, end));
-  const leadingBreak = prefix === "" || prefix.endsWith("\n") ? "" : "\n\n";
+  // An image placed right after another image joins its paragraph, which renders as a gallery.
+  const leadingBreak = prefix === "" || prefix.endsWith("\n")
+    ? ""
+    : endsWithMarkdownImage(prefix) ? " " : "\n\n";
   const trailingBreak = suffix === "" || suffix.startsWith("\n") ? "" : "\n\n";
   const insertionText = `${leadingBreak}${markdown}${trailingBreak}`;
 

@@ -7,7 +7,7 @@ import { decodeString } from "micromark-util-decode-string";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
-import { visit } from "unist-util-visit";
+import { EXIT, visit } from "unist-util-visit";
 
 const MANAGED_MEDIA_URL_PREFIX = "fcasset:";
 const managedMediaMarkdownProcessor = unified().use(remarkParse).use(remarkGfm);
@@ -389,6 +389,19 @@ export function parseManagedImageMarkdownReferences(text: string): ReadonlyArray
   });
 
   return references.sort((left, right) => left.startIndex - right.startIndex);
+}
+
+/** True when `text` ends with an inline Markdown image followed only by spaces or tabs. */
+export function endsWithMarkdownImage(text: string): boolean {
+  const imageEndIndex = text.replace(/[ \t]+$/, "").length;
+  let endsWithImage = false;
+  visit(managedMediaMarkdownProcessor.parse(text), "image", (node) => {
+    if (node.position?.end.offset === imageEndIndex) {
+      endsWithImage = true;
+      return EXIT;
+    }
+  });
+  return endsWithImage;
 }
 
 export function extractManagedMediaAssetIdsFromMarkdown(text: string): ReadonlyArray<string> {

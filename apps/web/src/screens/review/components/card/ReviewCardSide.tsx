@@ -3,7 +3,7 @@ import {
   useContext,
   type ReactElement,
 } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
+import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import {
@@ -27,6 +27,7 @@ import { useI18n } from "../../../../i18n";
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
 const REVIEW_MARKDOWN_DISPLAY_MATH_DELIMITER_PATTERN = /^[ \t]*\$\$[ \t]*$/;
+const REVIEW_MARKDOWN_GALLERY_SEPARATOR_PATTERN = /^[ \t\r\n]*$/;
 
 type MarkdownFenceMarker = "`" | "~";
 type ReviewMarkdownRenderContextValue = Readonly<{
@@ -67,6 +68,38 @@ export type ReviewCardSpeechButtonProps = Readonly<{
 
 function reviewMarkdownClassName(tagName: string): string {
   return `review-markdown-${tagName}`;
+}
+
+/**
+ * An image-only paragraph with two or more images renders as a gallery; separators may be only
+ * spaces, tabs, and soft line breaks, so a hard break or any other content keeps the paragraph as is.
+ */
+function readReviewMarkdownGalleryColumnCount(node: ExtraProps["node"]): number | null {
+  if (node === undefined) {
+    return null;
+  }
+
+  let imageCount = 0;
+  for (const child of node.children) {
+    if (child.type === "element" && child.tagName === "img") {
+      imageCount += 1;
+      continue;
+    }
+    if (child.type === "text" && REVIEW_MARKDOWN_GALLERY_SEPARATOR_PATTERN.test(child.value)) {
+      continue;
+    }
+
+    return null;
+  }
+
+  if (imageCount < 2) {
+    return null;
+  }
+  if (imageCount === 4) {
+    return 2;
+  }
+
+  return Math.min(imageCount, 3);
 }
 
 function createManagedMediaReferenceKey(
@@ -221,7 +254,19 @@ const reviewMarkdownComponents: Components = {
   h6: function ReviewMarkdownH6({ children }) {
     return <h6 className={reviewMarkdownClassName("h6")}>{children}</h6>;
   },
-  p: function ReviewMarkdownParagraph({ children }) {
+  p: function ReviewMarkdownParagraph({ children, node }) {
+    const galleryColumnCount = readReviewMarkdownGalleryColumnCount(node);
+    if (galleryColumnCount !== null) {
+      return (
+        <p
+          className={`${reviewMarkdownClassName("p")} ${reviewMarkdownClassName("gallery")}`}
+          data-gallery-columns={galleryColumnCount}
+        >
+          {children}
+        </p>
+      );
+    }
+
     return <p className={reviewMarkdownClassName("p")}>{children}</p>;
   },
   ul: function ReviewMarkdownUnorderedList({ children }) {
