@@ -3,7 +3,7 @@ FROM $IMAGE
 
 RUN npm install --global --allow-scripts=yarn@1.22.22 yarn@1.22.22
 
-RUN npm install --global --allow-scripts=pnpm@12.15.0 pnpm@12.15.0
+RUN npm install --global --allow-scripts=pnpm@12.16.1 pnpm@12.16.1
 
 RUN npm install --global --allow-scripts=bun@1.4.4 bun@1.4.4
 
