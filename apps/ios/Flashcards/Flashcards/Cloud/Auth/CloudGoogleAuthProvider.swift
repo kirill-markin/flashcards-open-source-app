@@ -28,22 +28,34 @@ final class CloudGoogleAuthProvider {
             signIn.signOut()
             Self.isAuthorizing = false
         }
-        let token: String = try await withCheckedThrowingContinuation { continuation in
-            onRequested()
-            signIn.signIn(withPresenting: presentation.viewController,
-                hint: nil, additionalScopes: nil, nonce: login.response.nonce) { result, error in
-                if let error {
-                    let providerError = error as NSError
-                    let failure: CloudNativeAuthError = providerError.domain == kGIDSignInErrorDomain
-                        && providerError.code == GIDSignInError.canceled.rawValue
-                        ? .cancelled(.google) : .providerFailure(.google, providerError)
-                    continuation.resume(throwing: failure)
-                } else if let token = result?.user.idToken?.tokenString, !token.isEmpty {
-                    continuation.resume(returning: token)
-                } else {
-                    continuation.resume(throwing: CloudNativeAuthError.invalidCredential(.google))
+        let diagnostics = CloudGoogleAuthDiagnostics(presentation: presentation)
+        defer { diagnostics.stopObserving() }
+        let token: String = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                onRequested()
+                diagnostics.record(action: .sdkInvoked)
+                signIn.signIn(withPresenting: presentation.viewController,
+                    hint: nil, additionalScopes: nil, nonce: login.response.nonce) { result, error in
+                    if let error {
+                        let providerError = error as NSError
+                        let isCancelled = providerError.domain == kGIDSignInErrorDomain
+                            && providerError.code == GIDSignInError.canceled.rawValue
+                        diagnostics.complete(outcome: isCancelled ? .cancelled : .failure, error: providerError)
+                        let failure: CloudNativeAuthError = isCancelled
+                            ? .cancelled(.google) : .providerFailure(.google, providerError)
+                        continuation.resume(throwing: failure)
+                    } else if let token = result?.user.idToken?.tokenString, !token.isEmpty {
+                        diagnostics.complete(outcome: .credentialReceived, error: nil)
+                        continuation.resume(returning: token)
+                    } else {
+                        diagnostics.complete(outcome: .missingCredential, error: nil)
+                        continuation.resume(throwing: CloudNativeAuthError.invalidCredential(.google))
+                    }
                 }
             }
+        } onCancel: {
+            // Google owns the pending SDK session; task cancellation only records an observation.
+            Task { @MainActor in diagnostics.record(action: .hostTaskCancelled) }
         }
         guard !Task.isCancelled else { throw CloudNativeAuthError.cancelled(.google) }
         // Detect the released SDK’s Device Policy restart nonce loss. The server still verifies the JWT.

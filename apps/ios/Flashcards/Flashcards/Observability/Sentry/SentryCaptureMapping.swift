@@ -74,6 +74,31 @@ extension SentryObservabilityAdapter {
                 message: "\(observation.action.rawValue).\(observation.phase.rawValue)",
                 data: self.foregroundOperationContext(observation)
             )
+        case .googleAuthorization(let observation):
+            let context: [String: Any] = [
+                "diagnostic_id": observation.diagnosticId.uuidString,
+                "elapsed_ms": observation.elapsedMilliseconds,
+                "sdk_callback_received": observation.sdkCallbackReceived,
+                "outcome": observation.outcome?.rawValue ?? "",
+                "error_domain": observation.errorDomain ?? "",
+                "error_code": observation.errorCode.map { String($0) } ?? "",
+                "application_state": observation.applicationState,
+                "scene_activation_state": observation.sceneActivationState.map { String($0) } ?? "",
+                "presenter_attached_to_window": observation.presenterAttachedToWindow,
+                "window_hidden": observation.windowHidden.map { String($0) } ?? "",
+                "window_key": observation.windowKey.map { String($0) } ?? "",
+                "has_presented_controller": observation.hasPresentedController,
+                "presenter_being_presented": observation.presenterBeingPresented,
+                "presenter_being_dismissed": observation.presenterBeingDismissed
+            ]
+            self.writeLocalRecord(
+                kind: "breadcrumb", feature: .cloudAuth,
+                action: observation.action.rawValue, fields: stringifyContext(context)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.google_authorization", level: .info,
+                message: observation.action.rawValue, data: context
+            )
         case .cloudFlow(let observation):
             self.logCloudFlow(observation)
             self.addSentryBreadcrumb(
