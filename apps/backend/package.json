@@ -37,7 +37,7 @@
     "openai": "^7.50.0",
     "papaparse": "^5.7.0",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.5.438",
+    "pdfjs-dist": "6.4.299",
     "pg": "^8.23.1",
     "read-excel-file": "^9.3.14",
     "sharp": "^0.35.5",
