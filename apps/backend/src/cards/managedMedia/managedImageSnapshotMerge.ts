@@ -368,19 +368,16 @@ function restoreReferencesOntoSide(
  * stamped exactly one millisecond after a normalized snapshot ties on the timestamp and loses about
  * half the time.
  *
- * WHERE A RESTORED REFERENCE LANDS. Appended as a trailing block on the side the server held it on,
- * in stored order, as the exact source text of the stored node so the alt text survives. Trailing
- * is defensible because it is where the backend put the image in the first place
- * (`appendManagedImageToCardText`): the person gets the card they would have had if the device had
- * pulled before pushing. Splicing it back into its old position is not available - the incoming
- * prose may have been rewritten around it, and there is nothing to anchor to - and any attempt to
- * do so would edit text a person wrote. Their prose is never touched; only a block is added. One
- * consequence worth naming because it is not obvious: a side that held two images and lost the
- * first one gets that one back after the second, so undoing the deletion also reorders the image
- * that survived. Appending is the only placement available, so there is nothing better to do. A
- * side that held the SAME asset twice - only reachable by hand-editing, since the append refuses a
- * second copy - gets one copy back rather than two, because the drop is tracked per asset id. That
- * is the better answer anyway and is left as it is.
+ * WHERE A RESTORED REFERENCE LANDS. At the end of the side the server held it on, in stored order,
+ * as the exact source text of the stored node so the alt text survives. Splicing it back into its
+ * old position is not available - the incoming prose may have been rewritten around it, and there
+ * is nothing to anchor to - and any attempt to do so would edit text a person wrote. Their prose is
+ * never touched; only an image is added. One consequence worth naming because it is not obvious: a
+ * side that held two images and lost the first one gets that one back after the second, so undoing
+ * the deletion also reorders the image that survived. Appending is the only placement available, so
+ * there is nothing better to do. A side that held the SAME asset twice - only reachable by
+ * hand-editing, since the append refuses a second copy - gets one copy back rather than two,
+ * because the drop is tracked per asset id. That is the better answer anyway and is left as it is.
  *
  * THE DELIBERATE-DELETION RULE, and the one decision this function turns on. Nothing in the system
  * records what a device has pulled: `sync.workspace_replicas` holds `last_seen_at` and no cursor, a
