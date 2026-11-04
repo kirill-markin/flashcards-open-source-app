@@ -1,9 +1,12 @@
 export type LiteralCardTextEscape = Readonly<{
   escape: "\\n" | "\\\"";
   excerpt: string;
+  /** True when the escape is a `\n` inside a formula; the excerpt then starts at its opening `$`. */
+  inMath: boolean;
 }>;
 
 const excerptRadius = 20;
+const mathExcerptLength = 80;
 
 const fenceOpenPattern = /^[\s>]*(`{3,}|~{3,})/u;
 const fenceClosePattern = /^[\s>]*(`{3,}|~{3,})[ \t]*$/u;
@@ -104,6 +107,29 @@ function findInlineMathEnd(text: string, openIndex: number): number {
   return -1;
 }
 
+/**
+ * Returns the offset of the first `\n` in `text[start, end)` that is not the
+ * start of a control word, or -1. TeX reads a control word as a backslash plus
+ * a maximal run of ASCII letters, so `\ne` or `\nabla` is a command while
+ * `\n` before a non-letter or the span end is undefined in every renderer.
+ */
+function findBrokenMathNewline(text: string, start: number, end: number): number {
+  let index = start;
+  while (index < end) {
+    if (text[index] !== "\\") {
+      index += 1;
+      continue;
+    }
+    const isNewline = index + 1 < end && text[index + 1] === "n";
+    const startsControlWord = index + 2 < end && /[A-Za-z]/u.test(text[index + 2]);
+    if (isNewline && !startsControlWord) {
+      return index;
+    }
+    index += 2;
+  }
+  return -1;
+}
+
 function buildExcerpt(text: string, escapeIndex: number): string {
   const lineStart = text.lastIndexOf("\n", escapeIndex) + 1;
   const lineEndIndex = text.indexOf("\n", escapeIndex);
@@ -115,10 +141,22 @@ function buildExcerpt(text: string, escapeIndex: number): string {
 }
 
 /**
+ * Shows a formula from its opening delimiter, because a model fixing only the
+ * reported spot misses a sibling `\n` at the start, as in `$$\nC_n=…\n$$`.
+ */
+function buildMathExcerpt(text: string, openIndex: number, formulaEnd: number, escapeIndex: number): string {
+  const head = text.slice(openIndex, Math.min(formulaEnd, openIndex + mathExcerptLength));
+  return escapeIndex + 2 <= openIndex + mathExcerptLength
+    ? head
+    : `${head}…${buildExcerpt(text, escapeIndex)}`;
+}
+
+/**
  * Finds the first unescaped literal backslash-n or backslash-quote in a card
  * side outside fenced code, one- or two-backtick code spans, `$$…$$` display
- * math, and one-line `$…$` inline math. Such text is almost always a model that
- * double-escaped at the JSON boundary; `\\n` (an escaped backslash) is allowed.
+ * math, and one-line `$…$` inline math, or a backslash-n inside that math that
+ * is not a LaTeX command. Such text is almost always a model that double-escaped
+ * at the JSON boundary; `\\n` (an escaped backslash) is allowed.
  * Detection approximates the client renderers on purpose.
  */
 export function findLiteralCardTextEscape(text: string): LiteralCardTextEscape | null {
@@ -134,6 +172,7 @@ export function findLiteralCardTextEscape(text: string): LiteralCardTextEscape |
         return {
           escape: nextCharacter === "n" ? "\\n" : "\\\"",
           excerpt: buildExcerpt(text, index),
+          inMath: false,
         };
       }
       index += 2;
@@ -150,13 +189,37 @@ export function findLiteralCardTextEscape(text: string): LiteralCardTextEscape |
     if (character === "$" && scannedText[index + 1] === "$") {
       const runLength = countRun(scannedText, index, "$");
       const closeIndex = findRun(scannedText, index + runLength, "$", runLength);
-      index = closeIndex === -1 ? index + runLength : closeIndex + runLength;
+      if (closeIndex === -1) {
+        index += runLength;
+        continue;
+      }
+      const brokenNewlineIndex = findBrokenMathNewline(scannedText, index + runLength, closeIndex);
+      if (brokenNewlineIndex !== -1) {
+        return {
+          escape: "\\n",
+          excerpt: buildMathExcerpt(text, index, closeIndex + runLength, brokenNewlineIndex),
+          inMath: true,
+        };
+      }
+      index = closeIndex + runLength;
       continue;
     }
 
     if (character === "$") {
       const closeIndex = findInlineMathEnd(scannedText, index);
-      index = closeIndex === -1 ? index + 1 : closeIndex + 1;
+      if (closeIndex === -1) {
+        index += 1;
+        continue;
+      }
+      const brokenNewlineIndex = findBrokenMathNewline(scannedText, index + 1, closeIndex);
+      if (brokenNewlineIndex !== -1) {
+        return {
+          escape: "\\n",
+          excerpt: buildMathExcerpt(text, index, closeIndex + 1, brokenNewlineIndex),
+          inMath: true,
+        };
+      }
+      index = closeIndex + 1;
       continue;
     }
 
