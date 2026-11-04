@@ -2,9 +2,9 @@ import { AwsClient } from "google-auth-library";
 import { GoogleBillingError } from "./contracts";
 import { readGoogleBillingConfig } from "../../googleCloudConfig";
 
-let authClient: AwsClient | undefined;
+let cachedAuthClient: Readonly<{ identity: string; client: AwsClient }> | undefined;
 
-export function loadGoogleAuthClient(): AwsClient {
+export async function loadGoogleAuthClient(): Promise<AwsClient> {
   for (const field of ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"]) {
     if (process.env[field] === undefined || process.env[field]?.trim() === "") {
       throw new GoogleBillingError("GOOGLE_CONFIGURATION_INVALID", false, null,
@@ -14,9 +14,10 @@ export function loadGoogleAuthClient(): AwsClient {
   if (!/^[a-z]{2}(?:-[a-z]+)+-\d+$/.test(process.env.AWS_REGION!)) {
     throw new GoogleBillingError("GOOGLE_CONFIGURATION_INVALID", false, null, "Google billing requires a valid AWS_REGION.");
   }
-  if (authClient !== undefined) return authClient;
-  const config = readGoogleBillingConfig();
-  authClient = new AwsClient({
+  const config = await readGoogleBillingConfig();
+  const identity = JSON.stringify([config.workloadIdentityProvider, config.serviceAccountEmail]);
+  if (cachedAuthClient?.identity === identity) return cachedAuthClient.client;
+  const client = new AwsClient({
     type: "external_account",
     audience: `//iam.googleapis.com/${config.workloadIdentityProvider}`,
     subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
@@ -49,5 +50,6 @@ export function loadGoogleAuthClient(): AwsClient {
       },
     },
   });
-  return authClient;
+  cachedAuthClient = { identity, client };
+  return client;
 }

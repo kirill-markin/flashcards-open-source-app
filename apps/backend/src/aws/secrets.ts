@@ -1,4 +1,5 @@
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import { GoogleBillingError } from "../billing/google/contracts";
 import { StripeBillingError } from "../billing/stripe/contracts";
 
 export interface DatabaseCredentialsSecret {
@@ -7,6 +8,27 @@ export interface DatabaseCredentialsSecret {
 }
 
 const secretsClient = new SecretsManagerClient({});
+
+export async function loadGoogleBillingSecretJson(secretArn: string): Promise<string> {
+  if (!/^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$/.test(secretArn)) {
+    throw new GoogleBillingError("GOOGLE_CONFIGURATION_INVALID", false, null,
+      "GOOGLE_PLAY_BILLING_SECRET_ARN must name one complete Secrets Manager secret ARN.");
+  }
+  try {
+    const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+    if (!response.SecretString) {
+      throw new GoogleBillingError("GOOGLE_CONFIGURATION_INVALID", false, null,
+        "Google billing secret must contain a JSON SecretString.");
+    }
+    return response.SecretString;
+  } catch (error) {
+    if (error instanceof GoogleBillingError) throw error;
+    // AWS exceptions may contain private configuration in request diagnostics.
+    throw new GoogleBillingError("GOOGLE_BILLING_UNAVAILABLE", true, null,
+      "Google billing secret could not be loaded. Check the HTTP backend secret ARN and GetSecretValue grant, then retry.");
+  }
+}
+
 export async function loadStripeBillingSecretJson(secretArn: string): Promise<string> {
   if (!/^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$/.test(secretArn)) {
     throw new StripeBillingError("STRIPE_CONFIGURATION_INVALID", false,
