@@ -296,6 +296,14 @@ func makeReviewSelectableContent(
                 #else
                 appendAttachment(view: AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle)), text: reference.label ?? "fcasset:\(reference.mediaAssetId)", layout: .block, attributes: [:], to: result)
                 #endif
+            case .managedMediaGallery(let references):
+                #if targetEnvironment(macCatalyst)
+                let cells = references.map { ReviewManagedMediaView(reference: $0, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState()) }
+                #else
+                let cells = references.map { ReviewManagedMediaView(reference: $0, surfaceStyle: surfaceStyle) }
+                #endif
+                let copyText = references.map { $0.label ?? "fcasset:\($0.mediaAssetId)" }.joined(separator: " ")
+                appendAttachment(view: AnyView(ReviewImageGalleryGrid(cells: cells)), text: copyText, layout: .block, attributes: [:], to: result)
             }
         }
     }

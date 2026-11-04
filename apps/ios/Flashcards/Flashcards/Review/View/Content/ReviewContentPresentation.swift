@@ -39,6 +39,8 @@ enum ReviewManagedMarkdownBlock {
     case markdown(MarkdownContent, inlineMath: [ReviewInlineMathReference])
     case formula(ReviewFormulaContent)
     case managedMedia(ReviewManagedMediaReference)
+    /// A paragraph holding only two or more managed images, rendered side by side.
+    case managedMediaGallery([ReviewManagedMediaReference])
 }
 
 /// An accepted inline formula together with the `fcmath:` source that addresses it from the
@@ -422,22 +424,9 @@ private func makeReviewManagedMarkdownContent(
     var pendingMarkdownLines: [String] = []
     var blocks: [ReviewManagedMarkdownBlock] = []
     var didFindManagedMedia = false
+    var paragraphLines: [String] = []
 
-    for line in text.components(separatedBy: .newlines) {
-        if let openingFence = activeFence {
-            pendingMarkdownLines.append(line)
-            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
-                activeFence = nil
-            }
-            continue
-        }
-
-        if let openingFence = reviewMathFence(line: line) {
-            activeFence = openingFence
-            pendingMarkdownLines.append(line)
-            continue
-        }
-
+    func appendLine(_ line: String) {
         let lineBlocks = splitReviewManagedMediaLine(line: line, inlineMath: inlineMath)
         if lineBlocks.contains(where: { block in
             if case .managedMedia = block {
@@ -446,7 +435,7 @@ private func makeReviewManagedMarkdownContent(
             return false
         }) == false {
             pendingMarkdownLines.append(line)
-            continue
+            return
         }
 
         appendReviewPendingMarkdownBlocks(
@@ -458,6 +447,50 @@ private func makeReviewManagedMarkdownContent(
         didFindManagedMedia = true
     }
 
+    func flushParagraph() {
+        let lines = paragraphLines
+        paragraphLines.removeAll()
+        guard let galleryReferences = reviewManagedImageGalleryReferences(paragraphLines: lines) else {
+            lines.forEach(appendLine)
+            return
+        }
+
+        appendReviewPendingMarkdownBlocks(
+            lines: &pendingMarkdownLines,
+            inlineMath: inlineMath,
+            blocks: &blocks
+        )
+        blocks.append(.managedMediaGallery(galleryReferences))
+        didFindManagedMedia = true
+    }
+
+    for line in text.components(separatedBy: .newlines) {
+        if let openingFence = activeFence {
+            pendingMarkdownLines.append(line)
+            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
+                activeFence = nil
+            }
+            continue
+        }
+
+        if let openingFence = reviewMathFence(line: line) {
+            flushParagraph()
+            activeFence = openingFence
+            pendingMarkdownLines.append(line)
+            continue
+        }
+
+        // Blank lines and ATX headings end a paragraph; any other line may continue it.
+        if line.trimmingCharacters(in: .whitespaces).isEmpty || reviewContentHeadingExpression.matches(line) {
+            flushParagraph()
+            appendLine(line)
+            continue
+        }
+
+        paragraphLines.append(line)
+    }
+
+    flushParagraph()
     appendReviewPendingMarkdownBlocks(
         lines: &pendingMarkdownLines,
         inlineMath: inlineMath,
@@ -468,6 +501,53 @@ private func makeReviewManagedMarkdownContent(
     }
 
     return ReviewManagedMarkdownContent(blocks: blocks)
+}
+
+/// Returns the paragraph's managed images when they are its only content and there are at least
+/// two; any text, link, or non-managed image keeps the paragraph on the per-reference path.
+private func reviewManagedImageGalleryReferences(paragraphLines: [String]) -> [ReviewManagedMediaReference]? {
+    var references: [ReviewManagedMediaReference] = []
+
+    for line in paragraphLines {
+        let fullRange = NSRange(line.startIndex..<line.endIndex, in: line)
+        var currentIndex = line.startIndex
+
+        for match in reviewManagedMediaReferenceExpression.matches(in: line, options: [], range: fullRange) {
+            guard match.range(at: 1).location != NSNotFound,
+                  let urlRange = Range(match.range(at: 3), in: line),
+                  let matchRange = Range(match.range, in: line) else {
+                return nil
+            }
+            let rawReference = String(line[urlRange])
+            guard let mediaAssetId = parseManagedMediaAssetId(reference: rawReference),
+                  let state = managedMediaAssetReferenceState(reference: rawReference),
+                  reviewIsSpaceOrTabOnly(text: line[currentIndex..<matchRange.lowerBound]) else {
+                return nil
+            }
+
+            references.append(
+                ReviewManagedMediaReference(
+                    mediaAssetId: mediaAssetId,
+                    state: state,
+                    label: reviewManagedMediaLabel(line: line, match: match),
+                    isImageSyntax: true
+                )
+            )
+            currentIndex = matchRange.upperBound
+        }
+
+        guard reviewIsSpaceOrTabOnly(text: line[currentIndex..<line.endIndex]) else {
+            return nil
+        }
+    }
+
+    return references.count >= 2 ? references : nil
+}
+
+private func reviewIsSpaceOrTabOnly(text: Substring) -> Bool {
+    text.allSatisfy { character in
+        character == " " || character == "\t"
+    }
 }
 
 private func splitReviewManagedMediaLine(
