@@ -589,6 +589,10 @@ private struct ReviewManagedMarkdownGallery {
 
 /// Top-level gallery paragraphs holding at least one managed image, keyed by their first source line.
 private func reviewManagedMarkdownGalleries(text: String) -> [Int: ReviewManagedMarkdownGallery] {
+    guard text.range(of: managedMediaAssetReferenceSchemePrefix, options: .caseInsensitive) != nil else {
+        return [:]
+    }
+
     // Giving empty alt texts the character Foundation shows for them anyway makes every image report its line.
     let positionedText = text.replacingOccurrences(of: "![]", with: "![\(reviewMarkdownEmptyImageAltText)]")
     let markdown: AttributedString
