@@ -1,0 +1,235 @@
+name: MCP Registry Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing stable companion release tag (vX.Y.Z)
+        required: true
+        type: string
+
+concurrency:
+  group: mcp-registry-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'kirill-markin/flashcards-open-source-app'
+    name: Publish server.json to MCP Registry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/plugin-source
+    env:
+      PLUGIN_SOURCE_DIR: ${{ github.workspace }}/plugin-source
+      RELEASE_TAG: ${{ inputs.release_tag }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Require main branch dispatch
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::Dispatch MCP Registry publish from core main using an existing stable companion release tag. Current ref: ${GITHUB_REF}. Re-run with branch 'main' selected."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Clone public companion source without credentials
+        working-directory: ${{ github.workspace }}
+        run: git -c credential.helper= clone https://github.com/kirill-markin/nibomo-plugins.git "$PLUGIN_SOURCE_DIR"
+
+      - name: Verify and select immutable companion release
+        id: source
+        working-directory: ${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from scripts.plugins.publish_executor import prepare_registry_source
+          prepare_registry_source()
+          PY
+
+      - name: Install schema validation dependencies
+        run: python -m pip install -r requirements-ci.txt
+
+      - name: Validate MCP Registry manifest
+        run: python scripts/validate_mcp_registry.py
+
+      - name: Check immutable registry version
+        id: manifest
+        run: |
+          set -euo pipefail
+          server_name="$(jq -r '.name // empty' server.json)"
+          server_version="$(jq -r '.version // empty' server.json)"
+
+          if [ -z "${server_name}" ]; then
+            echo "::error::server.json must include a non-empty .name before publishing to the MCP Registry."
+            exit 1
+          fi
+
+          if [ -z "${server_version}" ]; then
+            echo "::error::server.json must include a non-empty .version before publishing to the MCP Registry."
+            exit 1
+          fi
+
+          encoded_name="$(printf '%s' "${server_name}" | jq -sRr @uri)"
+          encoded_version="$(printf '%s' "${server_version}" | jq -sRr @uri)"
+          version_endpoint="https://registry.modelcontextprotocol.io/v0.1/servers/${encoded_name}/versions/${encoded_version}"
+          response_body="$(mktemp)"
+          max_attempts=3
+          retry_delay_seconds=5
+
+          for attempt in $(seq 1 "${max_attempts}"); do
+            : > "${response_body}"
+            set +e
+            status="$(curl --connect-timeout 15 --max-time 45 -sS -o "${response_body}" -w '%{http_code}' "${version_endpoint}")"
+            curl_exit=$?
+            set -e
+
+            if [ "${curl_exit}" -eq 0 ]; then
+              if [ "${status}" = "404" ]; then
+                {
+                  echo "publish=true"
+                  echo "name=${server_name}"
+                  echo "version=${server_version}"
+                  echo "version_endpoint=${version_endpoint}"
+                } >> "${GITHUB_OUTPUT}"
+                echo "MCP Registry version is unpublished: ${server_name} ${server_version}"
+                exit 0
+              fi
+
+              if [ "${status}" = "200" ]; then
+                if ! jq -e --slurpfile expected server.json '.server == $expected[0]' "${response_body}" > /dev/null; then
+                  echo "::error::Immutable registry version ${server_name} ${server_version} conflicts with the selected companion manifest at ${version_endpoint}."
+                  cat "${response_body}"
+                  exit 1
+                fi
+                {
+                  echo "publish=false"
+                  echo "name=${server_name}"
+                  echo "version=${server_version}"
+                  echo "version_endpoint=${version_endpoint}"
+                } >> "${GITHUB_OUTPUT}"
+                echo "Matching immutable registry manifest exists; no update needed."
+                exit 0
+              fi
+            fi
+
+            if [ "${attempt}" -lt "${max_attempts}" ]; then
+              if [ "${curl_exit}" -ne 0 ]; then
+                echo "::warning::Failed to check MCP Registry version endpoint ${version_endpoint}; curl exit code ${curl_exit}. Retrying in ${retry_delay_seconds}s. Attempt ${attempt}/${max_attempts}."
+              else
+                echo "::warning::MCP Registry version endpoint ${version_endpoint} returned HTTP ${status}. Retrying in ${retry_delay_seconds}s. Attempt ${attempt}/${max_attempts}."
+              fi
+              sleep "${retry_delay_seconds}"
+              continue
+            fi
+
+            if [ "${curl_exit}" -ne 0 ]; then
+              echo "::error::Failed to check MCP Registry version endpoint ${version_endpoint} after ${max_attempts} attempts. Last curl exit code: ${curl_exit}. Response body follows."
+            else
+              echo "::error::Failed to check MCP Registry version endpoint ${version_endpoint} after ${max_attempts} attempts. Last HTTP status: ${status}. Response body follows."
+            fi
+            cat "${response_body}"
+            exit 1
+          done
+
+      - name: Check for registry credential
+        if: steps.manifest.outputs.publish == 'true'
+        env:
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MCP_PRIVATE_KEY}" ]; then
+            echo "::error::Configure the existing DNS-verified MCP_PRIVATE_KEY repository secret before publishing."
+            exit 1
+          fi
+
+      - name: Install mcp-publisher CLI
+        if: steps.manifest.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (DNS namespace)
+        if: steps.manifest.outputs.publish == 'true'
+        env:
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: ./mcp-publisher login dns --domain nibomo.com --private-key "${MCP_PRIVATE_KEY}"
+
+      - name: Publish server to MCP Registry
+        if: steps.manifest.outputs.publish == 'true'
+        run: ./mcp-publisher publish
+
+      - name: Verify published registry version
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          PUBLISH_NEEDED: ${{ steps.manifest.outputs.publish }}
+          SERVER_NAME: ${{ steps.manifest.outputs.name }}
+          SERVER_VERSION: ${{ steps.manifest.outputs.version }}
+          VERSION_ENDPOINT: ${{ steps.manifest.outputs.version_endpoint }}
+        run: |
+          set -euo pipefail
+          response_body="$(mktemp)"
+          max_attempts=5
+          retry_delay_seconds=5
+
+          for attempt in $(seq 1 "${max_attempts}"); do
+            : > "${response_body}"
+            set +e
+            status="$(curl --connect-timeout 15 --max-time 45 -sS -o "${response_body}" -w '%{http_code}' "${VERSION_ENDPOINT}")"
+            curl_exit=$?
+            set -e
+
+            if [ "${curl_exit}" -eq 0 ] && [ "${status}" = "200" ]; then
+              if ! jq -e --slurpfile expected server.json '.server == $expected[0]' "${response_body}" > /dev/null; then
+                echo "::error::Published registry manifest conflicts with the selected immutable companion manifest."
+                cat "${response_body}"
+                exit 1
+              fi
+              {
+                echo "## MCP Registry publish"
+                echo ""
+                echo "- Companion source SHA: \`${SOURCE_SHA}\`"
+                if [ "${PUBLISH_NEEDED}" = "false" ]; then
+                  echo "- Outcome: No update needed; matching immutable manifest verified."
+                fi
+                echo "- Manifest: \`server.json\`"
+                echo "- Registry name: \`${SERVER_NAME}\`"
+                echo "- Registry version: \`${SERVER_VERSION}\`"
+                echo "- Verified endpoint: \`${VERSION_ENDPOINT}\`"
+              } >> "${GITHUB_STEP_SUMMARY}"
+              exit 0
+            fi
+
+            if [ "${attempt}" -lt "${max_attempts}" ]; then
+              if [ "${curl_exit}" -ne 0 ]; then
+                echo "::warning::Published MCP Registry version verification failed for ${VERSION_ENDPOINT}; curl exit code ${curl_exit}. Retrying in ${retry_delay_seconds}s. Attempt ${attempt}/${max_attempts}."
+              else
+                echo "::warning::Published MCP Registry version verification returned HTTP ${status} for ${VERSION_ENDPOINT}. Retrying in ${retry_delay_seconds}s. Attempt ${attempt}/${max_attempts}."
+              fi
+              sleep "${retry_delay_seconds}"
+              continue
+            fi
+
+            if [ "${curl_exit}" -ne 0 ]; then
+              echo "::error::Published MCP Registry version verification failed for ${VERSION_ENDPOINT} after ${max_attempts} attempts. Last curl exit code: ${curl_exit}. Response body follows."
+            else
+              echo "::error::Published MCP Registry version verification failed for ${VERSION_ENDPOINT} after ${max_attempts} attempts. Last HTTP status: ${status}. Response body follows."
+            fi
+            cat "${response_body}"
+            exit 1
+          done

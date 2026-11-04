@@ -66,6 +66,8 @@ struct MacWindowAppearance: UIViewRepresentable {
         private var lastModelSearchText: String?
         private var consumedSearchFocusRequest: UUID?
         private var appliedPresentation: MacToolbarPresentation?
+        /// Each click waiting for our popover's animation queues its own completion; only the latest one runs.
+        private var pendingClickID: UUID?
 
         init(configuration: MacWindowToolbarConfiguration, onSidebarVisibilityChange: @escaping (Bool) -> Void) {
             self.configuration = configuration
@@ -165,6 +167,7 @@ struct MacWindowAppearance: UIViewRepresentable {
             self.splitViewController = nil
             self.sidebarItem = nil
             self.bridgeView = nil
+            self.pendingClickID = nil
         }
 
         func refreshSidebar(view: WindowView) {
@@ -216,20 +219,22 @@ struct MacWindowAppearance: UIViewRepresentable {
             if let view = self.bridgeView {
                 self.refreshSidebar(view: view)
             }
-            guard let split = self.splitViewController, let item = self.sidebarItem,
-                  self.actionContext(item: item) != nil else { return }
-            let isVisible: Bool
-            if #available(iOS 26.0, *) {
-                isVisible = split.isShowing(.primary)
-            } else {
-                isVisible = !split.isCollapsed && split.displayMode != .secondaryOnly
+            guard self.splitViewController != nil, let item = self.sidebarItem else { return }
+            self.handleToolbarClick(identifier: self.sidebarIdentifier.rawValue, item: item) { [weak self] _ in
+                guard let self, let split = self.splitViewController else { return }
+                let isVisible: Bool
+                if #available(iOS 26.0, *) {
+                    isVisible = split.isShowing(.primary)
+                } else {
+                    isVisible = !split.isCollapsed && split.displayMode != .secondaryOnly
+                }
+                if isVisible {
+                    split.hide(.primary)
+                } else {
+                    split.show(.primary)
+                }
+                self.onSidebarVisibilityChange(!isVisible)
             }
-            if isVisible {
-                split.hide(.primary)
-            } else {
-                split.show(.primary)
-            }
-            self.onSidebarVisibilityChange(!isVisible)
         }
 
         private func refreshItems() {
@@ -365,9 +370,83 @@ struct MacWindowAppearance: UIViewRepresentable {
 
         private func performAction(identifier: String, sourceItem: NSToolbarItem? = nil) {
             guard let action = self.actions[identifier], action.isEnabled,
-                  let item = sourceItem ?? self.items[identifier]?.item,
-                  let context = self.actionContext(item: item) else { return }
-            action.perform(context)
+                  let item = sourceItem ?? self.items[identifier]?.item else { return }
+            self.handleToolbarClick(identifier: identifier, item: item) { [weak self] context in
+                guard let action = self?.actions[identifier], action.isEnabled else { return }
+                action.perform(context)
+            }
+        }
+
+        /// As in native Mac apps, a toolbar click closes our popover; a click on another item then runs.
+        private func handleToolbarClick(identifier: String, item: NSToolbarItem,
+                                        perform: @escaping @MainActor (MacToolbarActionContext) -> Void) {
+            if let context = self.actionContext(item: item) {
+                perform(context)
+                return
+            }
+            guard let root = self.bridgeView?.window?.rootViewController,
+                  let popover = macToolbarPopover(presentedBy: root) else {
+                self.reportDroppedClick(identifier: identifier)
+                return
+            }
+            let isOwnItem = popover.isPresented(from: item)
+            if let transition = popover.transitionCoordinator {
+                // UIKit ignores a dismissal requested while the popover opens, so wait for the running animation.
+                let isOpening = popover.isBeingPresented
+                guard isOpening || !isOwnItem else { return }
+                let clickID = UUID()
+                self.pendingClickID = clickID
+                let isQueued = transition.animate(alongsideTransition: nil) { [weak self] _ in
+                    guard let self, self.takePendingClick(clickID) else { return }
+                    if isOpening {
+                        self.handleToolbarClick(identifier: identifier, item: item, perform: perform)
+                    } else {
+                        self.performUncovered(identifier: identifier, item: item, perform: perform)
+                    }
+                }
+                if !isQueued {
+                    self.reportDroppedClick(identifier: identifier)
+                }
+            } else if popover.isBeingDismissed {
+                self.reportDroppedClick(identifier: identifier)
+            } else if isOwnItem {
+                popover.dismiss(animated: true)
+            } else {
+                let clickID = UUID()
+                self.pendingClickID = clickID
+                popover.dismiss(animated: true) { [weak self] in
+                    guard let self, self.takePendingClick(clickID) else { return }
+                    self.performUncovered(identifier: identifier, item: item, perform: perform)
+                }
+            }
+        }
+
+        private func takePendingClick(_ clickID: UUID) -> Bool {
+            guard self.pendingClickID == clickID else { return false }
+            self.pendingClickID = nil
+            return true
+        }
+
+        private func performUncovered(identifier: String, item: NSToolbarItem,
+                                      perform: @MainActor (MacToolbarActionContext) -> Void) {
+            guard let context = self.actionContext(item: item) else {
+                self.reportDroppedClick(identifier: identifier)
+                return
+            }
+            perform(context)
+        }
+
+        private func reportDroppedClick(identifier: String) {
+            let covering = self.bridgeView?.window?.rootViewController.flatMap(Self.coveringPresentation(in:))
+            FlashcardsObservability.captureWarning(.macToolbarClickDropped(MacToolbarClickDroppedWarning(
+                actionIdentifier: identifier,
+                coveringControllerType: covering.map { String(describing: type(of: $0)) }
+            )))
+        }
+
+        private static func coveringPresentation(in controller: UIViewController) -> UIViewController? {
+            if let presented = controller.presentedViewController { return presented }
+            return controller.children.lazy.compactMap { Self.coveringPresentation(in: $0) }.first
         }
 
         @objc private func searchChanged(_ field: UISearchTextField) {

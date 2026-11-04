@@ -1,0 +1,40 @@
+name: Executor Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing stable release tag (vX.Y.Z or executor-vX.Y.Z-scope-migration)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: executor-publish-nibomo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'kirill-markin/flashcards-open-source-app' && ((github.event_name == 'release' && !github.event.release.prerelease && !github.event.release.draft && startsWith(github.event.release.tag_name, 'v') && !contains(github.event.release.tag_name, '-')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Clone public companion source without credentials
+        run: git -c credential.helper= clone https://github.com/kirill-markin/nibomo-plugins.git "$RUNNER_TEMP/nibomo-plugins"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Publish reviewed release to the existing Executor app
+        env:
+          PLUGIN_SOURCE_DIR: ${{ runner.temp }}/nibomo-plugins
+          EXECUTOR_API_TOKEN: ${{ secrets.EXECUTOR_API_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: python scripts/plugins/publish_executor.py
