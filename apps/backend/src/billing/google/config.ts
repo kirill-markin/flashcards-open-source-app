@@ -1,8 +1,7 @@
 import { AwsClient } from "google-auth-library";
 import { GoogleBillingError } from "./contracts";
+import { readGoogleBillingConfig } from "../../googleCloudConfig";
 
-const googleProviderAudience = "//iam.googleapis.com/projects/360001205059/locations/global/workloadIdentityPools/nibomo-aws-billing/providers/aws-backend";
-const googleServiceAccount = "google-play-billing@flashcards-open-source-app.iam.gserviceaccount.com";
 let authClient: AwsClient | undefined;
 
 export function loadGoogleAuthClient(): AwsClient {
@@ -16,12 +15,13 @@ export function loadGoogleAuthClient(): AwsClient {
     throw new GoogleBillingError("GOOGLE_CONFIGURATION_INVALID", false, null, "Google billing requires a valid AWS_REGION.");
   }
   if (authClient !== undefined) return authClient;
+  const config = readGoogleBillingConfig();
   authClient = new AwsClient({
     type: "external_account",
-    audience: googleProviderAudience,
+    audience: `//iam.googleapis.com/${config.workloadIdentityProvider}`,
     subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
     token_url: "https://sts.googleapis.com/v1/token",
-    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${googleServiceAccount}:generateAccessToken`,
+    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${config.serviceAccountEmail}:generateAccessToken`,
     scopes: ["https://www.googleapis.com/auth/androidpublisher"],
     credential_source: {
       environment_id: "aws1",

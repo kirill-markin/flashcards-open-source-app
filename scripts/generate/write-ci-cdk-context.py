@@ -119,6 +119,8 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "googleSignInConfig": get_raw_env("CDK_CONTEXT_GOOGLE_SIGN_IN_CONFIG"),
         "googleSignInSecretArn": get_raw_env("CDK_CONTEXT_GOOGLE_SIGN_IN_SECRET_ARN"),
         "appleIapSecretArn": get_trimmed_env("CDK_CONTEXT_APPLE_IAP_SECRET_ARN"),
+        "googlePlayBillingConfig": get_raw_env("CDK_CONTEXT_GOOGLE_PLAY_BILLING_CONFIG"),
+        "googlePlayReportsConfig": get_raw_env("CDK_CONTEXT_GOOGLE_PLAY_REPORTS_CONFIG"),
         "stripeBillingSecretArn": get_trimmed_env("CDK_CONTEXT_STRIPE_BILLING_SECRET_ARN"),
         "stripeCheckoutLiveEnabled": get_raw_env("CDK_CONTEXT_STRIPE_CHECKOUT_LIVE_ENABLED"),
         "apiBaseUrl": get_trimmed_env("CDK_CONTEXT_API_BASE_URL"),
@@ -179,6 +181,16 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
             raise ValueError(f"{provider} sign-in config must be a JSON object") from None
         if not isinstance(parsed_config, dict):
             raise ValueError(f"{provider} sign-in config must be a JSON object")
+    for config_key in ("googlePlayBillingConfig", "googlePlayReportsConfig"):
+        config = values[config_key]
+        if config == "":
+            continue
+        try:
+            parsed_config = json.loads(config)
+        except ValueError:
+            raise ValueError(f"{config_key} must be a JSON object") from None
+        if not isinstance(parsed_config, dict):
+            raise ValueError(f"{config_key} must be a JSON object")
     validate_required_backend_sentry_context(values, aws_deploy_role_arn)
     return {key: value for key, value in values.items() if value != ""}
 

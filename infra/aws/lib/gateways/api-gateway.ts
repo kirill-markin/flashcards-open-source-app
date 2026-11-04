@@ -65,6 +65,7 @@ export interface ApiGatewayProps {
   // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
   appleIapSecretArn: string | undefined;
+  googlePlayBillingConfig: string | undefined;
   stripeBillingSecretArn: string | undefined;
   stripeCheckoutLiveEnabled: boolean;
   openAiApiKeySecretArn: string | undefined;
@@ -1038,6 +1039,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       maxEventAge: cdk.Duration.minutes(15),
     })],
   });
+  if (hasConfiguredValue(props.googlePlayBillingConfig)) {
+    backendFn.addEnvironment("GOOGLE_PLAY_BILLING_CONFIG", props.googlePlayBillingConfig);
+  }
   if (hasConfiguredValue(props.appleIapSecretArn)) {
     const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
       scope, "AppleIapSecret", props.appleIapSecretArn,

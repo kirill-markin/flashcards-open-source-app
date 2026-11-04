@@ -754,6 +754,7 @@ jobs:
         env:
           ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
         run: |
+          umask 077
           keystore_path="${RUNNER_TEMP}/android-upload-key.jks"
           printf '%s' "${ANDROID_UPLOAD_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
 
@@ -766,17 +767,14 @@ jobs:
 
       - name: Build signed Android App Bundle
         env:
-          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
-          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
-          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          ANDROID_RELEASE_STORE_FILE: ${{ env.ANDROID_KEYSTORE_PATH }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           bash scripts/android/run-android-release.sh \
-            --version-code "${ANDROID_VERSION_CODE}" \
-            --keystore-path "${ANDROID_KEYSTORE_PATH}" \
-            --keystore-password "${ANDROID_UPLOAD_KEYSTORE_PASSWORD}" \
-            --key-alias "${ANDROID_UPLOAD_KEY_ALIAS}" \
-            --key-password "${ANDROID_UPLOAD_KEY_PASSWORD}"
+            --version-code "${ANDROID_VERSION_CODE}"
 
       - name: Upload signed Android App Bundle artifact
         uses: actions/upload-artifact@v7

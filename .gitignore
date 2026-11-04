@@ -12,6 +12,14 @@
 **/.env.*
 !**/.env.example
 
+# Operator credentials and private artifacts
+**/.local/
+**/*.p8
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+
 # AWS CDK local context and synth outputs
 infra/aws/cdk.context.json
 infra/aws/cdk.context.local.json

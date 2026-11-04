@@ -1,11 +1,8 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { AwsClient } from "google-auth-library";
 import { z } from "zod";
+import { readGoogleReportsConfig } from "../googleCloudConfig";
 
-// The provider trusts only the Lambda role FlashcardsStoreReportsImportRole; the service account is
-// a Play Console user allowed to download bulk reports. It is not the billing identity.
-const googleProviderAudience = "//iam.googleapis.com/projects/360001205059/locations/global/workloadIdentityPools/nibomo-aws-store-reports/providers/aws-store-reports-import";
-const googleServiceAccount = "nibomo-store-reports@flashcards-open-source-app.iam.gserviceaccount.com";
 const storageReadOnlyScope = "https://www.googleapis.com/auth/devstorage.read_only";
 const storageApiOrigin = "https://storage.googleapis.com";
 const requestTimeoutMs = 120_000;
@@ -50,12 +47,13 @@ export function createStoreReportsAuthClient(
       throw new Error(`Google Play reports access requires Lambda temporary AWS credentials and region: ${field} is missing`);
     }
   }
+  const config = readGoogleReportsConfig();
   return new AwsClient({
     type: "external_account",
-    audience: googleProviderAudience,
+    audience: `//iam.googleapis.com/${config.workloadIdentityProvider}`,
     subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
     token_url: "https://sts.googleapis.com/v1/token",
-    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${googleServiceAccount}:generateAccessToken`,
+    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${config.serviceAccountEmail}:generateAccessToken`,
     scopes: [...scopes],
     credential_source: {
       environment_id: "aws1",
@@ -147,7 +145,7 @@ export class GoogleStorageClient {
   private async readAccessToken(): Promise<string> {
     const { token } = await this.authClient.getAccessToken();
     if (token === undefined || token === null || token === "") {
-      throw new Error(`Google returned no access token for ${googleServiceAccount}`);
+      throw new Error("Google returned no access token for the GOOGLE_PLAY_REPORTS_CONFIG service account.");
     }
     return token;
   }

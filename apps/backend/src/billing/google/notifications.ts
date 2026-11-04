@@ -5,6 +5,7 @@ import { HttpError } from "../../shared/errors";
 import { parseJsonBodyWithByteLimit } from "../../server/requestParsing";
 import { GoogleBillingError, googlePackageName } from "./contracts";
 import { GoogleProvider } from "./provider";
+import { readGoogleBillingConfig } from "../../googleCloudConfig";
 import {
   acknowledgeGoogleTransition, persistGoogleNotification, revokeKnownGoogleNotification,
   settleUnavailableGoogleToken,
@@ -13,15 +14,12 @@ import { publishGoogleTransition } from "./facts";
 import { finishGoogleNotification, readGoogleNotification, recordGoogleNotification } from "./store";
 
 export const googleNotificationPath = "/billing/google/notifications";
-const notificationAudience = "https://api.nibomo.com/v1/billing/google/notifications";
-const pushServiceAccount = "nibomo-play-notifications@flashcards-open-source-app.iam.gserviceaccount.com";
-const subscriptionResource = "projects/flashcards-open-source-app/subscriptions/nibomo-play-subscriptions-sub";
 const pushVerifier = new OAuth2Client({
   transporterOptions: { timeout: 5_000, retry: true, retryConfig: { retry: 2, totalTimeout: 15_000 } },
 });
 const tokenSchema = z.string().min(1).max(4096).regex(/^[\x21-\x7e]+$/);
 const envelopeSchema = z.object({
-  subscription: z.literal(subscriptionResource),
+  subscription: z.string(),
   message: z.object({
     messageId: z.string().regex(/^\d{1,128}$/),
     data: z.string().min(4).max(24_576).regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
@@ -65,13 +63,14 @@ export async function authenticateGooglePush(request: Request): Promise<void> {
     || !/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(authorization)) {
     throw new HttpError(401, "Google push requires a signed Bearer ID token.", "GOOGLE_PUSH_UNAUTHORIZED");
   }
+  const config = readGoogleBillingConfig();
   try {
     const ticket = await pushVerifier.verifyIdToken({
-      idToken: authorization.slice(7), audience: notificationAudience,
+      idToken: authorization.slice(7), audience: config.pushAudience,
     });
     const claims = ticket.getPayload();
-    if (claims?.email !== pushServiceAccount || claims.email_verified !== true
-      || claims.sub !== "117934371221231125176") {
+    if (claims?.email !== config.pushServiceAccountEmail || claims.email_verified !== true
+      || claims.sub !== config.pushServiceAccountSubject) {
       throw new HttpError(403, "Google push service account does not match.", "GOOGLE_PUSH_IDENTITY_INVALID");
     }
   } catch (error) {
@@ -85,7 +84,7 @@ export async function authenticateGooglePush(request: Request): Promise<void> {
 export async function decodeGooglePush(request: Request): Promise<GoogleNotification> {
   const envelope = envelopeSchema.safeParse(await parseJsonBodyWithByteLimit(request, 32_768,
     "Google push body exceeds 32768 bytes.", "GOOGLE_PUSH_BODY_TOO_LARGE"));
-  if (!envelope.success) {
+  if (!envelope.success || envelope.data.subscription !== readGoogleBillingConfig().pushSubscription) {
     throw new HttpError(400, "Google push envelope or subscription is invalid.", "GOOGLE_PUSH_ENVELOPE_INVALID");
   }
   let decoded: unknown;
