@@ -38,6 +38,10 @@ import com.flashcardsopensourceapp.core.ui.content.countInlineMathMarkers
 import com.flashcardsopensourceapp.core.ui.content.inlineMathMarker
 import com.flashcardsopensourceapp.core.ui.content.rememberInlineMathContent
 import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
+import com.mikepenz.markdown.compose.components.CurrentComponentsBridge
+import com.mikepenz.markdown.compose.components.MarkdownComponents
+import com.mikepenz.markdown.compose.components.markdownComponents
+import com.mikepenz.markdown.compose.elements.MarkdownImage
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
@@ -49,6 +53,7 @@ import com.mikepenz.markdown.model.markdownDimens
 import com.mikepenz.markdown.model.markdownInlineContent
 import com.mikepenz.markdown.model.markdownPadding
 import com.mikepenz.markdown.utils.EntityConverter
+import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes
 
@@ -72,10 +77,32 @@ private object ReviewNetworkImageTransformer : ImageTransformer {
     }
 }
 
+/** For a whole card document; Markdown fragments get their galleries from the content parser. */
+internal val reviewMarkdownGalleryComponents: MarkdownComponents = markdownComponents(
+    paragraph = { model ->
+        val imageNodes: List<ASTNode>? = reviewImageGalleryImageNodes(
+            paragraph = model.node,
+            markdown = model.content
+        )
+        if (imageNodes == null) {
+            CurrentComponentsBridge.paragraph(model)
+        } else {
+            ReviewImageGallery(
+                items = imageNodes,
+                itemContent = { imageNode -> MarkdownImage(content = model.content, node = imageNode) },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+)
+
+internal val reviewMarkdownPlainComponents: MarkdownComponents = markdownComponents()
+
 @Composable
 internal fun ReviewMarkdownText(
     markdown: String,
     inlineFormulas: List<InlineMathFormula>,
+    components: MarkdownComponents,
     modifier: Modifier
 ) {
     val platformUriHandler: UriHandler = LocalUriHandler.current
@@ -167,6 +194,7 @@ internal fun ReviewMarkdownText(
                     tableCornerSize = 12.dp
                 ),
                 imageTransformer = ReviewNetworkImageTransformer,
+                components = components,
                 annotator = inlineMathAnnotator,
                 inlineContent = markdownInlineContent(content = inlineMathContent.inlineContent),
                 loading = { loadingModifier ->

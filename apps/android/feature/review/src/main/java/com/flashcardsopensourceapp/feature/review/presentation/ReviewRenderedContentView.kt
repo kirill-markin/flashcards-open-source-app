@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.content.MathFormulaBlock
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
@@ -42,6 +41,7 @@ internal fun ReviewRenderedContentView(
             ReviewMarkdownText(
                 markdown = content.markdown,
                 inlineFormulas = emptyList(),
+                components = reviewMarkdownGalleryComponents,
                 modifier = modifier.fillMaxWidth()
             )
         }
@@ -57,6 +57,7 @@ internal fun ReviewRenderedContentView(
                             is ReviewManagedMarkdownBlock.Markdown -> ReviewMarkdownText(
                                 markdown = block.markdown,
                                 inlineFormulas = block.inlineFormulas,
+                                components = reviewMarkdownPlainComponents,
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -65,21 +66,29 @@ internal fun ReviewRenderedContentView(
                                     reference = block.reference,
                                     reviewImagePreparer = reviewImagePreparer,
                                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
-                                    imageMaxWidth = reviewManagedMediaImageMaxWidth
+                                    presentation = ReviewManagedMediaPresentation.BLOCK
                                 )
                             }
 
-                            is ReviewManagedMarkdownBlock.ManagedMediaGallery -> DisableSelection {
+                            is ReviewManagedMarkdownBlock.ImageGallery -> DisableSelection {
                                 ReviewImageGallery(
-                                    items = block.references,
-                                    itemContent = { reference ->
-                                        ReviewManagedMediaContent(
-                                            reference = reference,
-                                            reviewImagePreparer = reviewImagePreparer,
-                                            onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
-                                            // A cell already bounds the image; it fills the cell.
-                                            imageMaxWidth = Dp.Unspecified
-                                        )
+                                    items = block.items,
+                                    itemContent = { item ->
+                                        when (item) {
+                                            is ReviewImageGalleryItem.Managed -> ReviewManagedMediaContent(
+                                                reference = item.reference,
+                                                reviewImagePreparer = reviewImagePreparer,
+                                                onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                                                presentation = ReviewManagedMediaPresentation.GALLERY_CELL
+                                            )
+
+                                            is ReviewImageGalleryItem.Linked -> ReviewMarkdownText(
+                                                markdown = item.markdown,
+                                                inlineFormulas = emptyList(),
+                                                components = reviewMarkdownPlainComponents,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 )

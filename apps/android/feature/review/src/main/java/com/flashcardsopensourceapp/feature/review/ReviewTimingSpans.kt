@@ -27,7 +27,7 @@ internal fun reviewRenderedContentHasImages(content: ReviewRenderedContent): Boo
 
     return content.blocks.any { block ->
         (block is ReviewManagedMarkdownBlock.ManagedMedia && block.reference.isImageSyntax) ||
-            block is ReviewManagedMarkdownBlock.ManagedMediaGallery
+            block is ReviewManagedMarkdownBlock.ImageGallery
     }
 }
 

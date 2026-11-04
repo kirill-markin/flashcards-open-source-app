@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
@@ -67,6 +68,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 private val reviewManagedMediaIconSize = 22.dp
+private val reviewManagedMediaCompactIconSize = 18.dp
 private val reviewManagedMediaActionIconSize = 18.dp
 internal val reviewManagedMediaImageMaxWidth = 520.dp
 private const val reviewManagedMediaImagePlaceholderAspectRatio = 4f / 3f
@@ -79,6 +81,12 @@ private enum class ReviewManagedMediaCategory {
     AUDIO,
     VIDEO,
     ATTACHMENT
+}
+
+/** A gallery cell is narrow, so its image placeholders use a compact layout. */
+internal enum class ReviewManagedMediaPresentation {
+    BLOCK,
+    GALLERY_CELL
 }
 
 private enum class ReviewManagedMediaImageStateStyle {
@@ -108,7 +116,7 @@ internal fun ReviewManagedMediaContent(
     reference: ReviewManagedMediaReference,
     reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
-    imageMaxWidth: Dp
+    presentation: ReviewManagedMediaPresentation
 ) {
     val mediaAsset = reference.mediaAsset
     val category = classifyReviewManagedMediaCategory(
@@ -134,9 +142,10 @@ internal fun ReviewManagedMediaContent(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.PROGRESS,
+                presentation = presentation,
                 modifier = Modifier.reviewManagedMediaImageFrame(
                     sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
-                    maxWidth = imageMaxWidth
+                    presentation = presentation
                 )
             )
             return
@@ -153,9 +162,10 @@ internal fun ReviewManagedMediaContent(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
+                presentation = presentation,
                 modifier = Modifier.reviewManagedMediaImageFrame(
                     sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
-                    maxWidth = imageMaxWidth
+                    presentation = presentation
                 )
             )
             return
@@ -175,9 +185,10 @@ internal fun ReviewManagedMediaContent(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
+                presentation = presentation,
                 modifier = Modifier.reviewManagedMediaImageFrame(
                     sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
-                    maxWidth = imageMaxWidth
+                    presentation = presentation
                 )
             )
         } else {
@@ -195,7 +206,7 @@ internal fun ReviewManagedMediaContent(
             mediaAsset = checkNotNull(mediaAsset),
             label = label,
             reviewImagePreparer = reviewImagePreparer,
-            imageMaxWidth = imageMaxWidth
+            presentation = presentation
         )
 
         ReviewManagedMediaCategory.ATTACHMENT -> ReviewManagedMediaAttachment(
@@ -219,7 +230,7 @@ private fun ReviewManagedMediaImageFile(
     mediaAsset: MediaAsset,
     label: String,
     reviewImagePreparer: ReviewImagePreparer,
-    imageMaxWidth: Dp
+    presentation: ReviewManagedMediaPresentation
 ) {
     // A resolved file starts ready: sized from its header, and drawn on the first frame once prepared.
     // Only a file not yet known on disk shows the 4:3 loading frame.
@@ -269,9 +280,10 @@ private fun ReviewManagedMediaImageFile(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.PROGRESS,
+                presentation = presentation,
                 modifier = Modifier.reviewManagedMediaImageFrame(
                     sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
-                    maxWidth = imageMaxWidth
+                    presentation = presentation
                 )
             )
         }
@@ -287,9 +299,10 @@ private fun ReviewManagedMediaImageFile(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
+                presentation = presentation,
                 modifier = Modifier.reviewManagedMediaImageFrame(
                     sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
-                    maxWidth = imageMaxWidth
+                    presentation = presentation
                 )
             )
         }
@@ -297,7 +310,7 @@ private fun ReviewManagedMediaImageFile(
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
             label = label,
             imageFile = state.imageFile,
-            imageMaxWidth = imageMaxWidth,
+            presentation = presentation,
             onImageLoadFailed = {
                 reviewImagePreparer.forgetResolvedImageFile(mediaAsset = state.imageFile.mediaFile.mediaAsset)
             }
@@ -309,7 +322,7 @@ private fun ReviewManagedMediaImageFile(
 private fun ReviewManagedMediaImage(
     label: String,
     imageFile: ReviewResolvedImageFile,
-    imageMaxWidth: Dp,
+    presentation: ReviewManagedMediaPresentation,
     onImageLoadFailed: () -> Unit
 ) {
     val context = LocalContext.current
@@ -340,6 +353,7 @@ private fun ReviewManagedMediaImage(
                         supportingText
                     ),
                     style = ReviewManagedMediaImageStateStyle.PROGRESS,
+                    presentation = presentation,
                     modifier = Modifier.fillMaxSize()
                 )
             },
@@ -361,19 +375,28 @@ private fun ReviewManagedMediaImage(
                         supportingText
                     ),
                     style = ReviewManagedMediaImageStateStyle.WARNING,
+                    presentation = presentation,
                     modifier = Modifier.fillMaxSize()
                 )
             },
             onError = { onImageLoadFailed() },
             modifier = Modifier.reviewManagedMediaImageFrame(
                 sizeModifier = imageSizeModifier,
-                maxWidth = imageMaxWidth
+                presentation = presentation
             )
         )
     }
 }
 
-private fun Modifier.reviewManagedMediaImageFrame(sizeModifier: Modifier, maxWidth: Dp): Modifier {
+private fun Modifier.reviewManagedMediaImageFrame(
+    sizeModifier: Modifier,
+    presentation: ReviewManagedMediaPresentation
+): Modifier {
+    val maxWidth: Dp = when (presentation) {
+        ReviewManagedMediaPresentation.BLOCK -> reviewManagedMediaImageMaxWidth
+        // A cell already bounds the image; it fills the cell.
+        ReviewManagedMediaPresentation.GALLERY_CELL -> Dp.Unspecified
+    }
     return fillMaxWidth()
         .wrapContentWidth(
             align = Alignment.CenterHorizontally,
@@ -390,6 +413,7 @@ private fun ReviewManagedMediaImageState(
     supportingText: String,
     accessibilityLabel: String,
     style: ReviewManagedMediaImageStateStyle,
+    presentation: ReviewManagedMediaPresentation,
     modifier: Modifier
 ) {
     val containerColor = when (style) {
@@ -400,9 +424,15 @@ private fun ReviewManagedMediaImageState(
         ReviewManagedMediaImageStateStyle.PROGRESS -> MaterialTheme.colorScheme.onSurfaceVariant
         ReviewManagedMediaImageStateStyle.WARNING -> MaterialTheme.colorScheme.onErrorContainer
     }
+    val isCompact = presentation == ReviewManagedMediaPresentation.GALLERY_CELL
+    val iconSize = if (isCompact) reviewManagedMediaCompactIconSize else reviewManagedMediaIconSize
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = if (isCompact) {
+            Arrangement.spacedBy(space = 4.dp, alignment = Alignment.CenterVertically)
+        } else {
+            Arrangement.spacedBy(8.dp)
+        },
         modifier = modifier
             .clearAndSetSemantics {
                 contentDescription = accessibilityLabel
@@ -414,31 +444,42 @@ private fun ReviewManagedMediaImageState(
                 color = containerColor,
                 shape = RoundedCornerShape(reviewManagedMediaSurfaceCornerRadius)
             )
-            .padding(16.dp)
+            .padding(if (isCompact) 8.dp else 16.dp)
     ) {
         when (style) {
             ReviewManagedMediaImageStateStyle.PROGRESS -> CircularProgressIndicator(
                 color = contentColor,
-                modifier = Modifier.size(reviewManagedMediaIconSize)
+                modifier = Modifier.size(iconSize)
             )
 
             ReviewManagedMediaImageStateStyle.WARNING -> Icon(
                 imageVector = Icons.Outlined.WarningAmber,
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.size(reviewManagedMediaIconSize)
+                modifier = Modifier.size(iconSize)
             )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = contentColor
-        )
-        Text(
-            text = supportingText,
-            style = MaterialTheme.typography.bodySmall,
-            color = contentColor
-        )
+        if (isCompact) {
+            // The supporting text stays in the accessibility label.
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        } else {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor
+            )
+            Text(
+                text = supportingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor
+            )
+        }
     }
 }
 

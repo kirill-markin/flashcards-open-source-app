@@ -169,8 +169,11 @@ private fun reviewRenderedContentImageAssets(content: ReviewRenderedContent): Li
             is ReviewManagedMarkdownBlock.ManagedMedia -> listOfNotNull(
                 reviewManagedMediaImageFileAsset(reference = block.reference)
             )
-            is ReviewManagedMarkdownBlock.ManagedMediaGallery -> block.references.mapNotNull { reference ->
-                reviewManagedMediaImageFileAsset(reference = reference)
+            is ReviewManagedMarkdownBlock.ImageGallery -> block.items.mapNotNull { item ->
+                when (item) {
+                    is ReviewImageGalleryItem.Managed -> reviewManagedMediaImageFileAsset(reference = item.reference)
+                    is ReviewImageGalleryItem.Linked -> null
+                }
             }
             is ReviewManagedMarkdownBlock.Markdown,
             is ReviewManagedMarkdownBlock.Formula -> emptyList()
