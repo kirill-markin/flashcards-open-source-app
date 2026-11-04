@@ -30,8 +30,9 @@ without reconstructing evidence merely to turn this report green.
 
 ## Standing-policy publication boundary
 
-The [standing best-effort policy](README.md#standing-best-effort-release-policy), including the [known Device Run exception](../android-device-run-network-issue.md),
+The [standing best-effort policy](README.md#standing-best-effort-release-policy)
 does not change this CLI, its schemas, required inventories or exit codes.
+Android's four physical Device Run sessions remain mandatory.
 Preserve failed/skipped/missing native evidence and the resulting blocked report;
 never manufacture a passing gate or relabel historical records. Publication
 with unavailable testing requires the separately retained operator readiness decision and remaining platform gates under that policy.

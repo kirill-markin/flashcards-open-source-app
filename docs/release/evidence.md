@@ -153,7 +153,7 @@ After a failed, interrupted or passed native attempt of an Apple local acceptanc
 
 Keep the complete independently established inventory and every original native attempt with its failures, statuses and artifacts. On the corrected snapshot, execute all failed, missing, interrupted and affected cases; reuse earlier passes only while their inputs remain valid. Account for every required case with the attempt that supplies it. If impact cannot be bounded, run the complete affected plan; app changes follow normal affected-plan acceptance. Never call the original failed attempt passed, and label readiness assembled from several attempts as such. A filtered diagnostic run alone is not acceptance.
 
-For `local-full`, `local-ipad` and `local-ios18`, the latest full-plan attempt whose app inputs remain valid stays the gate's `results` entry with its real status and source, and the [mobile readiness](readiness.md) report stays blocked; never merge attempts into one passed result. Like the [Device Run exception](#android-cloud-release-gate), retain next to that manifest/report in the ledger a recovery record and an explicit operator readiness decision. The record lists:
+For `local-full`, `local-ipad` and `local-ios18`, the latest full-plan attempt whose app inputs remain valid stays the gate's `results` entry with its real status and source, and the [mobile readiness](readiness.md) report stays blocked; never merge attempts into one passed result. Retain next to that manifest/report in the ledger a recovery record and an explicit operator readiness decision. The record lists:
 
 - gate; every attempt with its real overall status, source snapshot/artifact identity and native result references;
 - changed files and the enumerated affected chain;
@@ -190,17 +190,10 @@ retrying the cloud flow.
 
 ## Android Cloud Release Gate
 
-Use the [standing known Device Run network procedure](../android-device-run-network-issue.md)
-when preflight selects the alternative to the normal four-session acceptance requirement.
-Retain its explicit dispatch/policy provenance, truthful failed/skipped records
-and separate operator readiness decision alongside the unchanged mobile-readiness
-manifest/report. No native failure becomes a pass; other gates and public
-rollout completion remain mandatory. Exact-bundle recovery retains its original contract.
-
 For new Android artifacts, follow the [Android procedure](android.md) on the
 intended release SHA with no uncommitted source changes. Require the complete
 `Android Release` workflow, cloud checks and optimized signed Release AAB,
-and all four sequential Device Run sessions with their complete named results.
+and all four sequential physical Device Run sessions with their complete named results.
 Retain full logs and reports, inspect diagnostics under the
 [release warning policy](README.md#release-warning-policy), and preserve
 source/run/attempt/artifact correlation. A green summary does not replace
