@@ -36,20 +36,24 @@ final class CloudGoogleAuthProvider {
                 diagnostics.record(action: .sdkInvoked)
                 signIn.signIn(withPresenting: presentation.viewController,
                     hint: nil, additionalScopes: nil, nonce: login.response.nonce) { result, error in
-                    if let error {
-                        let providerError = error as NSError
-                        let isCancelled = providerError.domain == kGIDSignInErrorDomain
-                            && providerError.code == GIDSignInError.canceled.rawValue
-                        diagnostics.complete(outcome: isCancelled ? .cancelled : .failure, error: providerError)
-                        let failure: CloudNativeAuthError = isCancelled
-                            ? .cancelled(.google) : .providerFailure(.google, providerError)
-                        continuation.resume(throwing: failure)
-                    } else if let token = result?.user.idToken?.tokenString, !token.isEmpty {
-                        diagnostics.complete(outcome: .credentialReceived, error: nil)
-                        continuation.resume(returning: token)
-                    } else {
-                        diagnostics.complete(outcome: .missingCredential, error: nil)
-                        continuation.resume(throwing: CloudNativeAuthError.invalidCredential(.google))
+                    let token = error == nil ? result?.user.idToken?.tokenString : nil
+                    // Google guarantees this completion runs asynchronously on the main queue.
+                    MainActor.assumeIsolated {
+                        if let error {
+                            let providerError = error as NSError
+                            let isCancelled = providerError.domain == kGIDSignInErrorDomain
+                                && providerError.code == GIDSignInError.canceled.rawValue
+                            diagnostics.complete(outcome: isCancelled ? .cancelled : .failure, error: providerError)
+                            let failure: CloudNativeAuthError = isCancelled
+                                ? .cancelled(.google) : .providerFailure(.google, providerError)
+                            continuation.resume(throwing: failure)
+                        } else if let token, !token.isEmpty {
+                            diagnostics.complete(outcome: .credentialReceived, error: nil)
+                            continuation.resume(returning: token)
+                        } else {
+                            diagnostics.complete(outcome: .missingCredential, error: nil)
+                            continuation.resume(throwing: CloudNativeAuthError.invalidCredential(.google))
+                        }
                     }
                 }
             }
