@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReference
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
 import org.intellij.markdown.MarkdownElementTypes
+import org.intellij.markdown.MarkdownTokenTypes
 import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
@@ -44,6 +45,10 @@ private val reviewMarkdownLinkOrImageRegex: Regex = Regex(
 private data class ReviewManagedMediaMatch(
     val range: IntRange,
     val reference: ReviewManagedMediaReference
+)
+private data class ReviewManagedMediaSegment(
+    val range: IntRange,
+    val block: ReviewManagedMarkdownBlock
 )
 
 fun classifyReviewContentPresentation(text: String): ReviewContentPresentationMode {
@@ -190,24 +195,18 @@ private fun reviewManagedMarkdownBlocks(
     inlineFormulas: List<InlineMathFormula>,
     mediaAssetsById: Map<String, MediaAsset>
 ): List<ReviewManagedMarkdownBlock> {
-    val managedContent: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
+    // Markdown fragments render without the gallery override, so galleries are split out here.
+    return reviewSegmentedMarkdownBlocks(
         text = text,
         inlineFormulas = inlineFormulas,
-        mediaAssetsById = mediaAssetsById
-    )
-    if (managedContent != null) {
-        return managedContent.blocks
-    }
-    return if (text.isBlank()) {
-        emptyList()
-    } else {
-        listOf(
-            ReviewManagedMarkdownBlock.Markdown(
-                markdown = text,
-                inlineFormulas = inlineFormulas
+        segments = groupReviewManagedMediaMatches(
+            text = text,
+            matches = findReviewManagedMediaMatches(
+                text = text,
+                mediaAssetsById = mediaAssetsById
             )
         )
-    }
+    )
 }
 
 private fun hasInlineMarkdownFormatting(text: String): Boolean {
@@ -215,13 +214,15 @@ private fun hasInlineMarkdownFormatting(text: String): Boolean {
         return false
     }
 
-    val markdownText: CharSequence = text
-    val tree: ASTNode = MarkdownParser(
+    return hasInlineMarkdownFormattingNode(node = parseReviewMarkdownTree(markdown = text))
+}
+
+private fun parseReviewMarkdownTree(markdown: CharSequence): ASTNode {
+    return MarkdownParser(
         flavour = GFMFlavourDescriptor(),
         assertionsEnabled = true,
         cancellationToken = CancellationToken.NonCancellable
-    ).buildMarkdownTreeFromString(markdownText)
-    return hasInlineMarkdownFormattingNode(node = tree)
+    ).buildMarkdownTreeFromString(markdown)
 }
 
 private fun hasInlineMarkdownFormattingNode(node: ASTNode): Boolean {
@@ -267,13 +268,30 @@ private fun makeReviewManagedMarkdownContent(
         return null
     }
 
+    return ReviewRenderedContent.ManagedMarkdown(
+        blocks = reviewSegmentedMarkdownBlocks(
+            text = text,
+            inlineFormulas = inlineFormulas,
+            segments = groupReviewManagedMediaMatches(
+                text = text,
+                matches = matches
+            )
+        )
+    )
+}
+
+private fun reviewSegmentedMarkdownBlocks(
+    text: String,
+    inlineFormulas: List<InlineMathFormula>,
+    segments: List<ReviewManagedMediaSegment>
+): List<ReviewManagedMarkdownBlock> {
     var currentIndex: Int = 0
     var formulaIndex: Int = 0
-    val blocks: List<ReviewManagedMarkdownBlock> = buildList {
-        matches.forEach { match ->
+    return buildList {
+        segments.forEach { segment ->
             val precedingMarkdown: String = text.substring(
                 startIndex = currentIndex,
-                endIndex = match.range.first
+                endIndex = segment.range.first
             )
             val precedingFormulaCount: Int = countInlineMathMarkers(text = precedingMarkdown)
             if (precedingMarkdown.isNotBlank()) {
@@ -288,8 +306,8 @@ private fun makeReviewManagedMarkdownContent(
                 )
             }
             formulaIndex += precedingFormulaCount
-            add(ReviewManagedMarkdownBlock.ManagedMedia(reference = match.reference))
-            currentIndex = match.range.last + 1
+            add(segment.block)
+            currentIndex = segment.range.last + 1
         }
 
         val trailingMarkdown: String = text.substring(startIndex = currentIndex)
@@ -305,8 +323,84 @@ private fun makeReviewManagedMarkdownContent(
             )
         }
     }
+}
 
-    return ReviewRenderedContent.ManagedMarkdown(blocks = blocks)
+/**
+ * Each gallery paragraph becomes one gallery, whatever its images; every other reference stays its
+ * own block.
+ */
+private fun groupReviewManagedMediaMatches(
+    text: String,
+    matches: List<ReviewManagedMediaMatch>
+): List<ReviewManagedMediaSegment> {
+    // A same-length line-ending rewrite keeps parser offsets equal to offsets in [text].
+    val parserText: String = text
+        .replace(oldValue = "\r\n", newValue = " \n")
+        .replace(oldChar = '\r', newChar = '\n')
+    val matchesByRange: Map<IntRange, ReviewManagedMediaMatch> = matches.associateBy(ReviewManagedMediaMatch::range)
+    val markdownTree: ASTNode = parseReviewMarkdownTree(markdown = parserText)
+    val gallerySegments: List<ReviewManagedMediaSegment> = reviewMarkdownParagraphNodes(
+        node = markdownTree
+    ).mapNotNull { paragraph ->
+        val imageNodes: List<ASTNode> = reviewImageGalleryImageNodes(
+            paragraph = paragraph,
+            markdown = parserText
+        ) ?: return@mapNotNull null
+        val items: List<ReviewImageGalleryItem> = imageNodes.map { imageNode ->
+            val match: ReviewManagedMediaMatch? = matchesByRange[imageNode.startOffset until imageNode.endOffset]
+            if (match != null) {
+                ReviewImageGalleryItem.Managed(reference = match.reference)
+            } else {
+                ReviewImageGalleryItem.Linked(
+                    markdown = text.substring(startIndex = imageNode.startOffset, endIndex = imageNode.endOffset)
+                )
+            }
+        }
+        // Splitting cuts a nested paragraph out of its list or quote, which managed references do anyway;
+        // a nested paragraph of linked images stays in its Markdown fragment.
+        if (paragraph.parent != markdownTree && items.none { item -> item is ReviewImageGalleryItem.Managed }) {
+            return@mapNotNull null
+        }
+        ReviewManagedMediaSegment(
+            range = imageNodes.first().startOffset until imageNodes.last().endOffset,
+            block = ReviewManagedMarkdownBlock.ImageGallery(items = items)
+        )
+    }
+    val singleSegments: List<ReviewManagedMediaSegment> = matches
+        .filter { match -> gallerySegments.none { segment -> match.range.first in segment.range } }
+        .map { match ->
+            ReviewManagedMediaSegment(
+                range = match.range,
+                block = ReviewManagedMarkdownBlock.ManagedMedia(reference = match.reference)
+            )
+        }
+
+    return (gallerySegments + singleSegments).sortedBy { segment -> segment.range.first }
+}
+
+/**
+ * The images of a paragraph that renders as an image gallery (docs/review-markdown-rendering.md
+ * "Image galleries"), or null for any other paragraph.
+ */
+internal fun reviewImageGalleryImageNodes(paragraph: ASTNode, markdown: CharSequence): List<ASTNode>? {
+    val imageNodes: List<ASTNode> = paragraph.children.filter { child ->
+        child.type == MarkdownElementTypes.IMAGE
+    }
+    // A blockquote marker continues the paragraph on its next line; a hard break keeps images stacked.
+    val hasOnlySoftSeparators: Boolean = paragraph.children.all { child ->
+        child.type == MarkdownElementTypes.IMAGE ||
+            child.type == MarkdownTokenTypes.BLOCK_QUOTE ||
+            (child.type != MarkdownTokenTypes.HARD_LINE_BREAK &&
+                markdown.subSequence(startIndex = child.startOffset, endIndex = child.endOffset).isBlank())
+    }
+    return if (imageNodes.size > 1 && hasOnlySoftSeparators) imageNodes else null
+}
+
+private fun reviewMarkdownParagraphNodes(node: ASTNode): List<ASTNode> {
+    if (node.type == MarkdownElementTypes.PARAGRAPH) {
+        return listOf(node)
+    }
+    return node.children.flatMap { child -> reviewMarkdownParagraphNodes(node = child) }
 }
 
 private fun findReviewManagedMediaMatches(

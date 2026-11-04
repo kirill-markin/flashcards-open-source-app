@@ -41,6 +41,7 @@ internal fun ReviewRenderedContentView(
             ReviewMarkdownText(
                 markdown = content.markdown,
                 inlineFormulas = emptyList(),
+                components = reviewMarkdownGalleryComponents,
                 modifier = modifier.fillMaxWidth()
             )
         }
@@ -56,6 +57,7 @@ internal fun ReviewRenderedContentView(
                             is ReviewManagedMarkdownBlock.Markdown -> ReviewMarkdownText(
                                 markdown = block.markdown,
                                 inlineFormulas = block.inlineFormulas,
+                                components = reviewMarkdownPlainComponents,
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -63,7 +65,32 @@ internal fun ReviewRenderedContentView(
                                 ReviewManagedMediaContent(
                                     reference = block.reference,
                                     reviewImagePreparer = reviewImagePreparer,
-                                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
+                                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                                    presentation = ReviewManagedMediaPresentation.BLOCK
+                                )
+                            }
+
+                            is ReviewManagedMarkdownBlock.ImageGallery -> DisableSelection {
+                                ReviewImageGallery(
+                                    items = block.items,
+                                    itemContent = { item ->
+                                        when (item) {
+                                            is ReviewImageGalleryItem.Managed -> ReviewManagedMediaContent(
+                                                reference = item.reference,
+                                                reviewImagePreparer = reviewImagePreparer,
+                                                onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                                                presentation = ReviewManagedMediaPresentation.GALLERY_CELL
+                                            )
+
+                                            is ReviewImageGalleryItem.Linked -> ReviewMarkdownText(
+                                                markdown = item.markdown,
+                                                inlineFormulas = emptyList(),
+                                                components = reviewMarkdownPlainComponents,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
 

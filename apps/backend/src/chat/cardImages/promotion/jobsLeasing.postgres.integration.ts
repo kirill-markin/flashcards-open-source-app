@@ -376,12 +376,9 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     );
     assert.equal(
       appliedCard.rows[0]?.back_text,
-      [
-        "Original answer",
-        ...inputs.slice(1).map((input) => (
-          `![${input.altText}](fcasset:${input.mediaAssetId}?state=pending)`
-        )),
-      ].join("\n\n"),
+      `Original answer\n\n${inputs.slice(1).map((input) => (
+        `![${input.altText}](fcasset:${input.mediaAssetId}?state=pending)`
+      )).join(" ")}`,
     );
     assert.equal(
       appliedCard.rows[0]?.front_text.match(new RegExp(`fcasset:${applied.mediaAssetId}`, "gu"))?.length,

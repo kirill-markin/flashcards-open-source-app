@@ -1529,10 +1529,14 @@ private func reviewRenderedContentHasImages(content: ReviewRenderedContent) -> B
     }
 
     return managedContent.blocks.contains { block in
-        guard case .managedMedia(let reference) = block else {
+        switch block {
+        case .managedMedia(let reference):
+            return reference.isImageSyntax
+        case .mediaGallery:
+            return true
+        case .markdown, .formula:
             return false
         }
-        return reference.isImageSyntax
     }
 }
 

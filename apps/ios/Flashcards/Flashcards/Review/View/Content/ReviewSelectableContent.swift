@@ -54,6 +54,10 @@ func makeReviewSelectableContent(
             blocks[block.identity, default: ""] += String(value[run.range].characters)
         }
         var renderedCodeBlocks: Set<Int> = []
+        let galleries = Dictionary(uniqueKeysWithValues: reviewMarkdownGalleryParagraphs(markdown: value).map { paragraph in
+            (paragraph.identity, paragraph.images)
+        })
+        var renderedGalleries: Set<Int> = []
 
         func appendTable() {
             guard let tableContent = table else { return }
@@ -196,6 +200,18 @@ func makeReviewSelectableContent(
                 destination.append(NSAttributedString(string: listMarker, attributes: attributes))
             }
             previousAttributes = attributes
+            if let block, let images = galleries[block.identity] {
+                if renderedGalleries.insert(block.identity).inserted {
+                    appendAttachment(
+                        view: AnyView(ReviewImageGalleryGrid(cells: images.map { makeReviewLinkedImageCell(url: $0.url) })),
+                        text: images.map { reviewMediaCopyText(item: .linked(url: $0.url, label: $0.label)) }.joined(separator: " "),
+                        layout: .block,
+                        attributes: attributes,
+                        to: destination
+                    )
+                }
+                continue
+            }
             let text = String(value[run.range].characters)
             if let url = run.imageURL {
                 if let formula = formulas.first(where: { $0.source == url.absoluteString }) {
@@ -209,11 +225,7 @@ func makeReviewSelectableContent(
                         appendAttachment(view: AnyView(image.accessibilityLabel(formula.formula.latex)), text: formula.formula.originalSource, layout: .inline, attributes: attributes, to: destination)
                     }
                 } else {
-                    #if targetEnvironment(macCatalyst)
-                    appendAttachment(view: AnyView(MacReviewImageView(state: MacReviewImageState(url: url))), text: text, layout: .block, attributes: attributes, to: destination)
-                    #else
-                    appendAttachment(view: AnyView(DefaultImageProvider.default.makeImage(url: url)), text: text, layout: .block, attributes: attributes, to: destination)
-                    #endif
+                    appendAttachment(view: makeReviewLinkedImageCell(url: url), text: text, layout: .block, attributes: attributes, to: destination)
                 }
                 continue
             }
@@ -291,13 +303,47 @@ func makeReviewSelectableContent(
                 appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle)), text: formula.originalSource, layout: .block, attributes: [:], to: result)
                 #endif
             case .managedMedia(let reference):
-                #if targetEnvironment(macCatalyst)
-                appendAttachment(view: AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState())), text: reference.label ?? "fcasset:\(reference.mediaAssetId)", layout: .block, attributes: [:], to: result)
-                #else
-                appendAttachment(view: AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle)), text: reference.label ?? "fcasset:\(reference.mediaAssetId)", layout: .block, attributes: [:], to: result)
-                #endif
+                appendAttachment(view: makeReviewManagedMediaCell(reference: reference, surfaceStyle: surfaceStyle), text: reviewMediaCopyText(item: .managed(reference)), layout: .block, attributes: [:], to: result)
+            case .mediaGallery(let items):
+                let cells = items.map { item -> AnyView in
+                    switch item {
+                    case .managed(let reference):
+                        return makeReviewManagedMediaCell(reference: reference, surfaceStyle: surfaceStyle)
+                    case .linked(let url, _):
+                        return makeReviewLinkedImageCell(url: url)
+                    }
+                }
+                let copyText = items.map(reviewMediaCopyText(item:)).joined(separator: " ")
+                appendAttachment(view: AnyView(ReviewImageGalleryGrid(cells: cells)), text: copyText, layout: .block, attributes: [:], to: result)
             }
         }
     }
     return result
+}
+
+@MainActor
+private func makeReviewManagedMediaCell(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle) -> AnyView {
+    #if targetEnvironment(macCatalyst)
+    AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState()))
+    #else
+    AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle))
+    #endif
+}
+
+@MainActor
+private func makeReviewLinkedImageCell(url: URL) -> AnyView {
+    #if targetEnvironment(macCatalyst)
+    AnyView(MacReviewImageView(state: MacReviewImageState(url: url)))
+    #else
+    AnyView(DefaultImageProvider.default.makeImage(url: url))
+    #endif
+}
+
+private func reviewMediaCopyText(item: ReviewMediaGalleryItem) -> String {
+    switch item {
+    case .managed(let reference):
+        return reference.label ?? "fcasset:\(reference.mediaAssetId)"
+    case .linked(let url, let label):
+        return label ?? url.absoluteString
+    }
 }

@@ -174,10 +174,19 @@ private func reviewManagedMediaReferences(content: ReviewRenderedContent) -> [Re
         return []
     }
 
-    return managedContent.blocks.compactMap { block in
-        guard case .managedMedia(let reference) = block else {
-            return nil
+    return managedContent.blocks.flatMap { block -> [ReviewManagedMediaReference] in
+        switch block {
+        case .managedMedia(let reference):
+            return [reference]
+        case .mediaGallery(let items):
+            return items.compactMap { item in
+                guard case .managed(let reference) = item else {
+                    return nil
+                }
+                return reference
+            }
+        case .markdown, .formula:
+            return []
         }
-        return reference
     }
 }

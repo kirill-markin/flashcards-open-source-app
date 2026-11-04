@@ -574,16 +574,45 @@ private func cardEditorMarkdownInsertionText(
     replacementRange: Range<String.Index>,
     markdown: String
 ) -> String {
-    let leadingSeparator = cardEditorNeedsLeadingMarkdownSeparator(
-        text: text,
-        replacementRange: replacementRange
-    ) ? "\n" : ""
+    let leadingSeparator: String
+    if cardEditorInsertionFollowsImageReference(text: text, insertionIndex: replacementRange.lowerBound) {
+        // Staying on the image's line keeps both images in one gallery paragraph.
+        leadingSeparator = " "
+    } else {
+        leadingSeparator = cardEditorNeedsLeadingMarkdownSeparator(
+            text: text,
+            replacementRange: replacementRange
+        ) ? "\n" : ""
+    }
     let trailingSeparator = cardEditorNeedsTrailingMarkdownSeparator(
         text: text,
         replacementRange: replacementRange
     ) ? "\n" : ""
 
     return "\(leadingSeparator)\(markdown)\(trailingSeparator)"
+}
+
+/// Whether only spaces or tabs separate the insertion point from an image reference before it on its line.
+private func cardEditorInsertionFollowsImageReference(
+    text: String,
+    insertionIndex: String.Index
+) -> Bool {
+    let lineStart = text[..<insertionIndex].lastIndex(where: \.isNewline).map { newlineIndex in
+        text.index(after: newlineIndex)
+    } ?? text.startIndex
+    let precedingText = text[lineStart..<insertionIndex]
+    let contentEnd = precedingText.lastIndex(where: { character in
+        character != " " && character != "\t"
+    }).map { lastContentIndex in
+        precedingText.index(after: lastContentIndex)
+    } ?? lineStart
+    let precedingContent = String(precedingText[..<contentEnd])
+    let fullRange = NSRange(precedingContent.startIndex..<precedingContent.endIndex, in: precedingContent)
+    guard let lastMatch = cardEditorManagedMediaReferenceExpression.matches(in: precedingContent, options: [], range: fullRange).last else {
+        return false
+    }
+
+    return lastMatch.range(at: 1).location != NSNotFound && NSMaxRange(lastMatch.range) == NSMaxRange(fullRange)
 }
 
 private func cardEditorNeedsLeadingMarkdownSeparator(

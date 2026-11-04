@@ -40,10 +40,26 @@ sealed interface ReviewManagedMarkdownBlock {
         val reference: ReviewManagedMediaReference
     ) : ReviewManagedMarkdownBlock
 
+    /** An image gallery paragraph (docs/review-markdown-rendering.md "Image galleries"). */
+    data class ImageGallery(
+        val items: List<ReviewImageGalleryItem>
+    ) : ReviewManagedMarkdownBlock
+
     data class Formula(
         val source: String,
         val delimitedSource: String
     ) : ReviewManagedMarkdownBlock
+}
+
+sealed interface ReviewImageGalleryItem {
+    data class Managed(
+        val reference: ReviewManagedMediaReference
+    ) : ReviewImageGalleryItem
+
+    /** An ordinary image as its Markdown source, so it renders through the review Markdown image path. */
+    data class Linked(
+        val markdown: String
+    ) : ReviewImageGalleryItem
 }
 
 internal data class PreparedReviewContent(

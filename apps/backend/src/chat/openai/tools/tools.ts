@@ -72,6 +72,13 @@ import {
   GENERATED_IMAGE_TOOL_NAME,
   OPENAI_GENERATED_IMAGE_TOOL,
 } from "./generatedImageToolContract";
+import { addImageCollageToCard } from "../../cardCollage/operation";
+import { CardCollageError } from "../../cardCollage/errors";
+import {
+  CARD_COLLAGE_TOOL_ARGUMENT_VALIDATOR,
+  CARD_COLLAGE_TOOL_NAME,
+  OPENAI_CARD_COLLAGE_TOOL,
+} from "./cardCollageToolContract";
 import { executeBashToolCall } from "./bashTool";
 import { BASH_TOOL_NAME, OPENAI_BASH_TOOL } from "./bashToolContract";
 import { executeViewFileToolCall } from "./viewFileTool";
@@ -560,9 +567,15 @@ const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
 export function buildOpenAIChatTools(
   generatedImageEligible: boolean,
 ): ReadonlyArray<OpenAI.Responses.FunctionTool> {
+  const alwaysSentTools = [
+    ...OPENAI_CHAT_TOOLS,
+    OPENAI_BASH_TOOL,
+    OPENAI_VIEW_FILE_TOOL,
+    OPENAI_CARD_COLLAGE_TOOL,
+  ];
   return generatedImageEligible
-    ? [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
-    : [...OPENAI_CHAT_TOOLS, OPENAI_BASH_TOOL, OPENAI_VIEW_FILE_TOOL];
+    ? [...alwaysSentTools, OPENAI_GENERATED_IMAGE_TOOL]
+    : alwaysSentTools;
 }
 
 type GeneratedImageExecutionState =
@@ -1297,6 +1310,58 @@ async function executeReviewChatToolCall(
   }
 }
 
+/**
+ * Open to every chat user: it calls no provider and spends no generated-image budget. It edits only
+ * the session's workspace, so a success always invalidates main content. A failure comes back as an
+ * `{ ok: false }` envelope, as a registry tool's does; an expected refusal carries its own message
+ * instead of the generic remediation.
+ */
+async function executeCardCollageToolCall(
+  rawArguments: string,
+  context: OpenAIToolContext,
+): Promise<ExecutedChatToolCall> {
+  try {
+    const parsed = CARD_COLLAGE_TOOL_ARGUMENT_VALIDATOR.parse(JSON.parse(rawArguments));
+    const result = await addImageCollageToCard({
+      userId: context.userId,
+      workspaceId: context.workspaceId,
+      cardId: parsed.cardId,
+      targetSide: parsed.targetSide,
+      sourceMediaAssetIds: parsed.sourceMediaAssetIds,
+      altText: parsed.altText,
+      observationScope: context.generatedImageObservationContext.scope,
+      signal: context.signal,
+    });
+    return {
+      output: createToolSuccessResult(CARD_COLLAGE_TOOL_NAME, result),
+      isMutating: true,
+      succeeded: true,
+      shouldInvalidateMainContent: true,
+      stopReason: null,
+      sqlTelemetry: null,
+      toolErrorClass: null,
+      modelContent: null,
+    };
+  } catch (error) {
+    context.signal?.throwIfAborted();
+    return {
+      output: createToolErrorResult(
+        CARD_COLLAGE_TOOL_NAME,
+        error instanceof CardCollageError
+          ? { error: { name: error.name, message: error.message }, code: error.collageCode }
+          : createChatToolErrorPayload(CARD_COLLAGE_TOOL_NAME, error),
+      ),
+      isMutating: true,
+      succeeded: false,
+      shouldInvalidateMainContent: false,
+      stopReason: null,
+      sqlTelemetry: null,
+      toolErrorClass: serializeToolError(error).name,
+      modelContent: null,
+    };
+  }
+}
+
 type ChatToolRunner = (
   rawArguments: string,
   context: OpenAIToolContext,
@@ -1359,6 +1424,10 @@ export async function executeChatToolCallWithDependencies(
 ): Promise<ExecutedChatToolCall> {
   if (toolName === GENERATED_IMAGE_TOOL_NAME) {
     return executeGeneratedImageToolCall(rawArguments, context, dependencies);
+  }
+
+  if (toolName === CARD_COLLAGE_TOOL_NAME) {
+    return executeCardCollageToolCall(rawArguments, context);
   }
 
   if (toolName === BASH_TOOL_NAME) {

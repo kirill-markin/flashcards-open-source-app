@@ -477,6 +477,29 @@ managed-media UI. An `fcasset:` URL must never be sent to a generic network
 image loader. Inside fenced code, the same text is literal code and must not
 start a managed-media load.
 
+## Image galleries
+
+A paragraph whose only content is two or more images, managed `fcasset:` or
+ordinary URLs, separated only by spaces, tabs, or soft line breaks, renders as a
+gallery:
+
+- 2 images make 2 columns, 3 make 3, 4 make a 2x2 grid, and 5 or more make 3
+  columns; further images wrap to new rows.
+- Cells in a row share the width equally; each image keeps its aspect ratio,
+  is never cropped, and is centered in its cell, with platform-native gaps.
+- A pending, failed, or loading managed image occupies its cell like a ready one.
+
+A single image, images separated by a blank line or a hard line break (two
+trailing spaces or a backslash before the newline), a paragraph that mixes text
+and images, managed links `[label](fcasset:...)`, and anything inside code keep
+their existing rendering. A gallery adds no tap behavior.
+
+When a person inserts an image directly after an image reference, with only
+spaces or tabs between it and the cursor, the editor inserts one space instead
+of line breaks. The server appends a generated image the same way when the card
+side ends with an image. A chat collage is appended as its own block, below the
+images it combines.
+
 ## Manual parity sample
 
 Create or edit one card side on Web, iOS, and Android, paste the sample below, and replace
@@ -509,6 +532,12 @@ Literal managed reference: ![not media](fcasset:literal-inside-fence)
 
 ![Ordinary HTTPS image](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/main/apps/web/public/icon-preview.png)
 
+![Gallery left](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/main/apps/web/public/icon-preview.png) ![Gallery right](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/main/apps/web/public/icon-preview.png)
+
+![Stacked first](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/main/apps/web/public/icon-preview.png)
+
+![Stacked second](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/main/apps/web/public/icon-preview.png)
+
 Managed image inserted through the app:
 [REPLACE THIS LINE USING THE APP IMAGE ACTION]
 ````
@@ -520,6 +549,8 @@ On all three clients, confirm:
 - strikethrough and the CJK-adjacent emphasis render without consuming adjacent
   punctuation
 - the HTTPS link is interactive and the HTTPS image uses the ordinary image path
+- the two images on one line render as a two-column gallery, and the two images
+  separated by a blank line stay stacked
 - the inserted managed image uses the native managed-media path and remains
   available from local media after it has been cached
 - the fenced `fcasset:` example stays literal and does not trigger media loading
