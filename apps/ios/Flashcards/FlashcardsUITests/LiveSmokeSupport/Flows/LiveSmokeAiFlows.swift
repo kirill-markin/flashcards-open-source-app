@@ -829,7 +829,7 @@ extension LiveSmokeTestCase {
     ) throws {
         let composer = self.aiComposerTextFieldElement()
         let sendButton = self.app.buttons[LiveSmokeIdentifier.aiComposerSendButton]
-        let newChatButton = self.app.buttons[LiveSmokeIdentifier.aiNewChatButton]
+        let newChatButton = self.buttons(identifier: LiveSmokeIdentifier.aiNewChatButton).firstMatch
         let deadline = Date().addingTimeInterval(timeout)
 
         while Date() < deadline {

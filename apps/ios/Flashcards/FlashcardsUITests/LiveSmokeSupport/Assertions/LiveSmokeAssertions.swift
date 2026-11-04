@@ -4,7 +4,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func assertElementExists(identifier: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_exists.\(identifier)") {
-            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            let element = self.element(identifier: identifier)
             if self.waitForOptionalElement(
                 element,
                 identifier: identifier,
@@ -23,7 +23,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func assertElementDoesNotExist(identifier: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_does_not_exist.\(identifier)") {
-            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            let element = self.element(identifier: identifier)
             if element.waitForNonExistence(timeout: timeout) == false {
                 throw LiveSmokeFailure.elementDidNotDisappear(
                     identifier: identifier,

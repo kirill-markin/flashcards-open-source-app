@@ -122,7 +122,7 @@ struct CloudOtpVerificationSheet: View {
             // Focus is one of the two things a rebuild is still allowed to lose — the open
             // technical-error inspector is the other — because both describe this view instance. A
             // new instance that opens straight onto a usable code field takes focus back, the way
-            // `CloudSignInSheet` does for the email field; neither `onChange` above fires for a
+            // `CloudSignInEmailForm` does for the email field; neither `onChange` above fires for a
             // rebuild, because nothing about the attempt changed.
             .onAppear {
                 if self.currentChallenge != nil, self.store.cloudSignInAttempt.otpChallengeState == .active {

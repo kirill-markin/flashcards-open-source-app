@@ -231,9 +231,8 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
   never rating, saving or sending personal content: sidebar focus and
   wide→narrow→wide restoration, toolbar backdrop over recreated Review/chat
   scroll views, toolbar search text, and Settings after AI history;
-- Settings pages opened from other sections: Review's Edit decks before and
-  after Settings was shown and scrolled, and the Progress leaderboard
-  placeholder when participation is already off.
+- a Settings page opened from another section: Review's Edit decks before and
+  after Settings was shown and scrolled.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.
