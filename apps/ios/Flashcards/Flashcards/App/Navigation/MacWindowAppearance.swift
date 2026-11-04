@@ -66,6 +66,8 @@ struct MacWindowAppearance: UIViewRepresentable {
         private var lastModelSearchText: String?
         private var consumedSearchFocusRequest: UUID?
         private var appliedPresentation: MacToolbarPresentation?
+        /// Each click waiting for our popover's animation queues its own completion; only the latest one runs.
+        private var pendingClickID: UUID?
 
         init(configuration: MacWindowToolbarConfiguration, onSidebarVisibilityChange: @escaping (Bool) -> Void) {
             self.configuration = configuration
@@ -165,6 +167,7 @@ struct MacWindowAppearance: UIViewRepresentable {
             self.splitViewController = nil
             self.sidebarItem = nil
             self.bridgeView = nil
+            self.pendingClickID = nil
         }
 
         func refreshSidebar(view: WindowView) {
@@ -391,21 +394,37 @@ struct MacWindowAppearance: UIViewRepresentable {
                 // UIKit ignores a dismissal requested while the popover opens, so wait for the running animation.
                 let isOpening = popover.isBeingPresented
                 guard isOpening || !isOwnItem else { return }
-                transition.animate(alongsideTransition: nil) { [weak self] _ in
+                let clickID = UUID()
+                self.pendingClickID = clickID
+                let isQueued = transition.animate(alongsideTransition: nil) { [weak self] _ in
+                    guard let self, self.takePendingClick(clickID) else { return }
                     if isOpening {
-                        self?.handleToolbarClick(identifier: identifier, item: item, perform: perform)
+                        self.handleToolbarClick(identifier: identifier, item: item, perform: perform)
                     } else {
-                        self?.performUncovered(identifier: identifier, item: item, perform: perform)
+                        self.performUncovered(identifier: identifier, item: item, perform: perform)
                     }
+                }
+                if !isQueued {
+                    self.reportDroppedClick(identifier: identifier)
                 }
             } else if popover.isBeingDismissed {
                 self.reportDroppedClick(identifier: identifier)
+            } else if isOwnItem {
+                popover.dismiss(animated: true)
             } else {
+                let clickID = UUID()
+                self.pendingClickID = clickID
                 popover.dismiss(animated: true) { [weak self] in
-                    guard !isOwnItem else { return }
-                    self?.performUncovered(identifier: identifier, item: item, perform: perform)
+                    guard let self, self.takePendingClick(clickID) else { return }
+                    self.performUncovered(identifier: identifier, item: item, perform: perform)
                 }
             }
+        }
+
+        private func takePendingClick(_ clickID: UUID) -> Bool {
+            guard self.pendingClickID == clickID else { return false }
+            self.pendingClickID = nil
+            return true
         }
 
         private func performUncovered(identifier: String, item: NSToolbarItem,
