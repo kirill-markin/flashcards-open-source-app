@@ -29,6 +29,7 @@ import { executeSqlSelect } from "../sqlDialect";
 import { buildInvalidSqlError } from "../sqlErrors";
 import {
   MAX_SQL_LIMIT,
+  assertNoLiteralCardTextEscape,
   assertSqlMutationRecordLimit,
   buildBatchMutationInstructions,
   buildCreateCardInput,
@@ -126,6 +127,7 @@ function buildCardUpdatePatch(
       if (typeof assignment.value !== "string") {
         throw buildInvalidSqlError("front_text must be a string", "invalid_value", "front_text");
       }
+      assertNoLiteralCardTextEscape("front_text", assignment.value);
       frontText = assignment.value;
     }
 
@@ -133,6 +135,7 @@ function buildCardUpdatePatch(
       if (typeof assignment.value !== "string") {
         throw buildInvalidSqlError("back_text must be a string", "invalid_value", "back_text");
       }
+      assertNoLiteralCardTextEscape("back_text", assignment.value);
       backText = assignment.value;
     }
 
