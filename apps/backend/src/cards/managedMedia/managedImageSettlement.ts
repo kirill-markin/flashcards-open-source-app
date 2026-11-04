@@ -6,6 +6,7 @@ import {
   type HotChangeWriteLock,
 } from "../../sync/replication/changes";
 import {
+  endsWithMarkdownImage,
   extractMarkdownImageDestinationUrls,
   isMarkdownComplexityLimitError,
   rewriteMarkdownImageDestinationUrl,
@@ -148,11 +149,16 @@ function hasExactManagedImageUrl(text: string, url: string): boolean {
 }
 
 /**
- * Where a managed image goes when the server puts one on a card side: a trailing block, separated
- * from whatever is already there by exactly one blank line. ./managedImageSnapshotMerge.ts reuses
- * it so a restored reference lands where the original append would have put it.
+ * Where a managed image goes when the server puts one on a card side: on the same line as an image
+ * that ends the side, so the two form a gallery (docs/review-markdown-rendering.md#image-galleries),
+ * otherwise a trailing block separated from whatever is already there by exactly one blank line.
+ * ./managedImageSnapshotMerge.ts reuses it so a restored reference lands where the original append
+ * would have put it.
  */
 export function appendMarkdownBlock(text: string, markdownBlock: string): string {
+  if (endsWithMarkdownImage(text)) {
+    return `${text}${/[ \t]$/u.test(text) ? "" : " "}${markdownBlock}`;
+  }
   const separator = text === "" || text.endsWith("\n\n")
     ? ""
     : text.endsWith("\n") ? "\n" : "\n\n";

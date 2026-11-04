@@ -333,6 +333,24 @@ export function extractMarkdownImageDestinationUrls(markdown: string): ReadonlyA
   return runMarkdownHelper(() => extractMarkdownImageDestinationUrlsUnchecked(markdown));
 }
 
+function endsWithMarkdownImageUnchecked(markdown: string): boolean {
+  let contentEndIndex = markdown.length;
+  while (markdown[contentEndIndex - 1] === " " || markdown[contentEndIndex - 1] === "\t") {
+    contentEndIndex -= 1;
+  }
+  for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+    if (destination.isImage && destination.linkEndIndex === contentEndIndex) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Whether the last line ends, before any trailing spaces or tabs, with an active `![...](...)` image. */
+export function endsWithMarkdownImage(markdown: string): boolean {
+  return runMarkdownHelper(() => endsWithMarkdownImageUnchecked(markdown));
+}
+
 function extractMarkdownManagedMediaLifecycleReferencesUnchecked(
   markdown: string,
 ): ReadonlyArray<ManagedMediaLifecycleReference> {

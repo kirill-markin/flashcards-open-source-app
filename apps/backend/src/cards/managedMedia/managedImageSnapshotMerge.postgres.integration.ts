@@ -381,11 +381,8 @@ test(
       const merged = (await loadPersistedCardText(fixture)).back_text;
       assert.equal(
         merged,
-        [
-          editedBackText,
-          `![${generatedImageAltText}](fcasset:${firstMediaAssetId})`,
-          `![${generatedImageAltText}](fcasset:${secondMediaAssetId})`,
-        ].join("\n\n"),
+        `${editedBackText}\n\n![${generatedImageAltText}](fcasset:${firstMediaAssetId}) `
+          + `![${generatedImageAltText}](fcasset:${secondMediaAssetId})`,
       );
     });
   },
