@@ -11,11 +11,6 @@ on:
         description: Optional JSON list of {language,text} records using exact Google Play locale codes
         required: false
         type: string
-      known_device_run_network_exception:
-        description: Apply the standing known Device Run network exception; physical sessions are waived, not passed
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -33,7 +28,6 @@ jobs:
       android_target_short_sha: ${{ steps.release-metadata.outputs.android_target_short_sha }}
       android_release_id: ${{ steps.release-metadata.outputs.android_release_id }}
       android_play_release_name: ${{ steps.release-metadata.outputs.android_play_release_name }}
-      device_run_policy: ${{ steps.device-run-policy.outputs.disposition }}
 
     steps:
       - uses: actions/checkout@v7
@@ -106,45 +100,6 @@ jobs:
             echo "android_play_release_name=${play_release_name}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Record Device Run release policy
-        id: device-run-policy
-        env:
-          EXCEPTION_ENABLED: ${{ inputs.known_device_run_network_exception }}
-          TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
-          VERSION_NAME: ${{ steps.release-metadata.outputs.android_version_name }}
-          VERSION_CODE: ${{ steps.release-metadata.outputs.android_version_code }}
-          RELEASE_ID: ${{ steps.release-metadata.outputs.android_release_id }}
-          WORKFLOW_SHA: ${{ github.sha }}
-          DISPATCH_ACTOR: ${{ github.actor }}
-          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
-        run: |
-          set -euo pipefail
-          disposition="required_four_passing_sessions"
-          if [[ "${EXCEPTION_ENABLED}" == "true" ]]; then
-            disposition="waived_not_executed"
-          fi
-          echo "disposition=${disposition}" >> "${GITHUB_OUTPUT}"
-          jq -n --arg disposition "${disposition}" --arg sourceSha "${TARGET_SHA}" \
-            --arg workflowSha "${WORKFLOW_SHA}" --arg version "${VERSION_NAME}" \
-            --arg versionCode "${VERSION_CODE}" --arg releaseId "${RELEASE_ID}" \
-            --arg runId "${GITHUB_RUN_ID}" --arg runAttempt "${GITHUB_RUN_ATTEMPT}" \
-            --arg actor "${DISPATCH_ACTOR}" --arg triggeringActor "${TRIGGERING_ACTOR}" \
-            --argjson exceptionEnabled "${EXCEPTION_ENABLED}" \
-            '{disposition: $disposition, exceptionEnabled: $exceptionEnabled,
-              sourceSha: $sourceSha, workflowSha: $workflowSha, version: $version,
-              versionCode: $versionCode, releaseId: $releaseId, runId: $runId,
-              runAttempt: $runAttempt, actor: $actor, triggeringActor: $triggeringActor,
-              apis: [37, 30, 31, 33], reference: "docs/android-device-run-network-issue.md",
-              reason: (if $exceptionEnabled then "Standing best-effort release policy; known Device Run physical networking is unreliable and ownership is unproved. See Google issue 574921431." else null end)}' \
-            > "${RUNNER_TEMP}/device-run-policy.json"
-
-      - name: Retain Device Run policy and exception provenance
-        uses: actions/upload-artifact@v7
-        with:
-          name: android-device-run-policy-r${{ github.run_id }}a${{ github.run_attempt }}
-          if-no-files-found: error
-          path: ${{ runner.temp }}/device-run-policy.json
-
       - name: Check out release-notes tooling from the workflow source
         uses: actions/checkout@v7
         with:
@@ -181,9 +136,6 @@ jobs:
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
             echo "- Upload draft to Play: \`true\`"
-            echo "- Device Run policy: \`${{ steps.device-run-policy.outputs.disposition }}\` (waived means not executed, never passed)"
-            echo "- Exception reason/reference when opted in: unreliable physical networking; standing best-effort release policy and unresolved Google issue 574921431 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
-            echo "- Dispatch actor: \`${{ github.actor }}\`; triggering actor: \`${{ github.triggering_actor }}\`; run \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`. Retain the Device Run policy artifact."
             echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -205,7 +157,7 @@ jobs:
     needs:
       - preflight
       - android_ci
-    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' && !inputs.known_device_run_network_exception }}
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 165
     concurrency:
@@ -676,7 +628,7 @@ jobs:
       - preflight
       - android_ci
       - device_run_submission
-    if: ${{ always() && !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' && ((!inputs.known_device_run_network_exception && needs.device_run_submission.result == 'success') || (inputs.known_device_run_network_exception && needs.device_run_submission.result == 'skipped')) }}
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' && needs.device_run_submission.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:
@@ -946,10 +898,7 @@ jobs:
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
-            echo "- Device Run policy: \`${{ needs.preflight.outputs.device_run_policy }}\` (waived means not executed, never passed)"
-            echo "- Exception reason/reference when opted in: unreliable physical networking; standing best-effort release policy and unresolved Google issue 574921431 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
-            echo "- Dispatch actor: \`${{ github.actor }}\`; triggering actor: \`${{ github.triggering_actor }}\`. Retain the Device Run policy artifact."
-            echo "- Next step: inspect native results or the explicit exception provenance, complete operator readiness and Play-delivered verification, review translations, then publish manually."
+            echo "- Next step: inspect native results, complete operator readiness and Play-delivered verification, review translations, then publish manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
@@ -976,10 +925,6 @@ jobs:
             echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
             echo "- Device Run terminal gate result: \`${{ needs.device_run_submission.result }}\`"
-            echo "- Device Run requested: \`${{ !inputs.known_device_run_network_exception }}\`"
-            echo "- Device Run policy: \`${{ needs.preflight.outputs.device_run_policy || 'not_recorded' }}\` (waived means not executed, never passed)"
-            echo "- Exception reason/reference when opted in: unreliable physical networking; standing best-effort release policy and unresolved Google issue 574921431 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
-            echo "- Dispatch actor: \`${{ github.actor }}\`; triggering actor: \`${{ github.triggering_actor }}\`; run \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`. Retain the Device Run policy artifact."
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
             echo "- Latest Device Run outcome: \`${{ needs.device_run_submission.outputs.submission_state || 'n/a' }}\`"
@@ -996,7 +941,7 @@ jobs:
             echo ""
             echo "- Compatibility devices: \`${{ needs.device_run_submission.outputs.compat_device_descriptors || 'n/a' }}\`"
             echo "- Compatibility targets: \`${{ needs.device_run_submission.outputs.compat_test_targets || 'n/a' }}\`"
-            echo "- Normal mode requires four terminal PASSED sessions and complete named results. An exception-mode success records waived physical sessions, not four passing sessions; separate operator readiness remains required."
+            echo "- Play draft upload requires four terminal PASSED sessions and complete reconciled native named results."
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
