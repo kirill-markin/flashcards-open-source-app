@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { appendManagedImageToCardSideInExecutor, getCard } from "../../cards";
+import { appendManagedImageBlockToCardSideInExecutor, getCard } from "../../cards";
 import type { CardTextSide } from "../../cards/types";
 import { transactionWithWorkspaceScope } from "../../database";
 import { loadMediaAssetWithBlobForWorkspace } from "../../mediaAssets";
@@ -175,7 +175,7 @@ export async function addImageCollageToCard(
   try {
     await transactionWithWorkspaceScope(
       { userId: input.userId, workspaceId: input.workspaceId },
-      async (executor) => appendManagedImageToCardSideInExecutor(
+      async (executor) => appendManagedImageBlockToCardSideInExecutor(
         executor,
         input.workspaceId,
         {

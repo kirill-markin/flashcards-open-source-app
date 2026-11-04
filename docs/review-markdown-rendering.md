@@ -480,8 +480,8 @@ start a managed-media load.
 ## Image galleries
 
 A paragraph whose only content is two or more images, managed `fcasset:` or
-ordinary URLs, separated only by spaces, tabs, or single line breaks, renders as
-a gallery:
+ordinary URLs, separated only by spaces, tabs, or soft line breaks, renders as a
+gallery:
 
 - 2 images make 2 columns, 3 make 3, 4 make a 2x2 grid, and 5 or more make 3
   columns; further images wrap to new rows.
@@ -489,14 +489,16 @@ a gallery:
   is never cropped, and is centered in its cell, with platform-native gaps.
 - A pending, failed, or loading managed image occupies its cell like a ready one.
 
-A single image, images separated by a blank line, a paragraph that mixes text
+A single image, images separated by a blank line or a hard line break (two
+trailing spaces or a backslash before the newline), a paragraph that mixes text
 and images, managed links `[label](fcasset:...)`, and anything inside code keep
 their existing rendering. A gallery adds no tap behavior.
 
 When a person inserts an image directly after an image reference, with only
 spaces or tabs between it and the cursor, the editor inserts one space instead
 of line breaks. The server appends a generated image the same way when the card
-side ends with an image.
+side ends with an image. A chat collage is appended as its own block, below the
+images it combines.
 
 ## Manual parity sample
 

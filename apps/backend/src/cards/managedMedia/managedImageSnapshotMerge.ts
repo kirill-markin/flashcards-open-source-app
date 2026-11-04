@@ -7,7 +7,7 @@ import {
   type ManagedMediaLifecycleState,
 } from "../../workspacePackages/markdownMedia";
 import type { CardRow, CardTextSide } from "../types";
-import { appendMarkdownBlock } from "./managedImageSettlement";
+import { appendMarkdownImageJoiningEndingImage } from "./managedImageSettlement";
 
 /**
  * The card text a snapshot push wants to store, and the stamp it wants to store it under.
@@ -241,7 +241,7 @@ function restoreReferencesOntoSide(
 ): string | null {
   let mergedText = incomingText;
   for (const reference of references) {
-    mergedText = appendMarkdownBlock(mergedText, reference.source);
+    mergedText = appendMarkdownImageJoiningEndingImage(mergedText, reference.source);
   }
 
   // A restored reference has to survive as an active image destination in the text it lands in. It

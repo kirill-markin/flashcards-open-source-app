@@ -7,6 +7,7 @@ export type {
 } from "./managedImageSnapshotMerge";
 
 export {
+  appendManagedImageBlockToCardSideInExecutor,
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
   appendPendingManagedImageToCardSideInExecutor,
