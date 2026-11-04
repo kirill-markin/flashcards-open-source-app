@@ -125,3 +125,22 @@ signed artifact. Use an authorized non-demo account and verify:
    has no unlink/re-enable mutation event, so those do not emit link success.
    Check collection off and live consent withdrawal independently; automation
    suppresses product events and cannot establish positive analytics delivery.
+
+## Google window diagnostics on a physical iPhone
+
+On a later authorized signed build, apply the automation marker above and stream
+Nibomo device logs through Xcode or macOS Console before opening Google sign-in.
+Compare manual password entry with 1Password password AutoFill; exercise passkeys
+separately if available. Repeat Google Cancel and background/foreground, including
+closing the Nibomo chooser while the SDK is pending. Record which window responds
+to touches, the OS/build and credential-entry method, without capturing credentials.
+
+Filter structured device logs by `feature=cloud_auth` and `diagnostic_id`; matching
+breadcrumbs use Sentry category `ios.google_authorization` on existing reports.
+`sdk_callback` records the SDK outcome and original error domain/code, with bounded
+identifier sanitization. `credential_received` precedes the existing nonce/server
+validation and does not prove successful account sign-in. `host_task_cancelled`
+observes Nibomo task cancellation and does not cancel Google. An `sdk_invoked` with
+no matching callback means no callback was observed in the captured interval;
+elapsed time alone is not a failure. Report an unresponsive Google/system window
+separately: these observations cannot identify its owner or prove the freeze fixed.
