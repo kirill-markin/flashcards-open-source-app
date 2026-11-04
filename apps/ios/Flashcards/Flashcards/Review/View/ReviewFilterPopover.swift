@@ -102,12 +102,15 @@ struct ReviewFilterPopover: View {
 
     private func deckButton(deck: Deck) -> some View {
         let deckFilter = ReviewFilter.deck(deckId: deck.deckId)
+        let isSelected = self.reviewFilter == deckFilter
         return self.selectionButton(
             title: deck.name,
-            isSelected: self.reviewFilter == deckFilter,
+            isSelected: isSelected,
             accessibilityIdentifier: UITestIdentifier.reviewFilterDeckActionPrefix + deck.deckId,
             action: {
-                self.reviewFilter = deckFilter
+                self.reviewFilter = isSelected
+                    ? makeReviewTagsFilter(tags: [])
+                    : deckFilter
             }
         )
     }

@@ -128,6 +128,8 @@ internal fun ReviewFilterSheet(
                 }
 
                 items(sortedDeckFilters, key = { deck -> deck.deckId }) { deck ->
+                    val deckFilter: ReviewFilter = ReviewFilter.Deck(deckId = deck.deckId)
+                    val isSelected = selectedFilter == deckFilter
                     ReviewFilterOptionRow(
                         title = stringResource(
                             id = R.string.review_filter_title_with_count,
@@ -138,10 +140,15 @@ internal fun ReviewFilterSheet(
                             deck.totalCount
                         ),
                         subtitle = stringResource(id = R.string.review_filtered_deck_subtitle),
-                        selected = selectedFilter == ReviewFilter.Deck(deckId = deck.deckId),
+                        selected = isSelected,
                         testTag = reviewFilterDeckOptionTag(deckId = deck.deckId),
                         onClick = {
-                            onSelectFilter(ReviewFilter.Deck(deckId = deck.deckId))
+                            val nextFilter: ReviewFilter = if (isSelected) {
+                                makeReviewTagFilter(tagNames = emptyList())
+                            } else {
+                                deckFilter
+                            }
+                            onSelectFilter(nextFilter)
                         }
                     )
                 }
