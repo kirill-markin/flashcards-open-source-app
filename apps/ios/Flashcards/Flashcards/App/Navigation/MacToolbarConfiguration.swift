@@ -238,8 +238,19 @@ func dismissMacToolbarPopover(presentedBy presenter: UIViewController) {
     popover.dismiss(animated: true)
 }
 
-private final class MacToolbarPopoverController: UIHostingController<AnyView>, UIPopoverPresentationControllerDelegate {
+/// The toolbar popover `presenter` shows, including while it animates closed, unless it presents something itself.
+@MainActor
+func macToolbarPopover(presentedBy presenter: UIViewController) -> MacToolbarPopoverController? {
+    guard let popover = presenter.presentedViewController as? MacToolbarPopoverController,
+          popover.presentedViewController == nil else { return nil }
+    return popover
+}
+
+final class MacToolbarPopoverController: UIHostingController<AnyView>, UIPopoverPresentationControllerDelegate {
     var onDismiss: (() -> Void)?
+    func isPresented(from item: NSToolbarItem) -> Bool {
+        self.popoverPresentationController?.sourceItem === item
+    }
     override func viewDidLoad() {
         super.viewDidLoad()
         // Let the system popover material show instead of the hosting view's opaque fill.

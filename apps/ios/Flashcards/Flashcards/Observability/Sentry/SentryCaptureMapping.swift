@@ -472,6 +472,30 @@ extension SentryObservabilityAdapter {
                 context: context,
                 localFields: stringifyContext(context)
             )
+        case .macToolbarClickDropped(let warning):
+            let context: [String: Any] = [
+                "action_identifier": warning.actionIdentifier,
+                "covering_controller_type": warning.coveringControllerType ?? ""
+            ]
+            return ObservationPayload(
+                message: "iOS Mac toolbar click dropped",
+                action: "mac_toolbar_click_dropped",
+                scope: IOSObservationScope(
+                    feature: .macToolbar,
+                    userId: nil,
+                    workspaceId: nil,
+                    requestId: nil,
+                    clientRequestId: nil,
+                    sessionId: nil,
+                    runId: nil,
+                    cloudState: nil,
+                    configurationMode: nil
+                ),
+                statusCode: nil,
+                backendCode: nil,
+                context: context,
+                localFields: stringifyContext(context)
+            )
         case .progressCacheRemoved(let warning):
             let context: [String: Any] = [
                 "cache_kind": warning.cacheKind,
