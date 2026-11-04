@@ -174,7 +174,7 @@ const purchasesUrl = `https://androidpublisher.googleapis.com/androidpublisher/v
 export class GoogleProvider {
   async currentState(purchaseToken: string): Promise<GooglePurchaseState> {
     const token = requirePurchaseToken(purchaseToken);
-    const response = await callGoogle("subscriptionsv2.get", () => loadGoogleAuthClient().request<unknown>({
+    const response = await callGoogle("subscriptionsv2.get", async () => (await loadGoogleAuthClient()).request<unknown>({
       url: `${purchasesUrl}/subscriptionsv2/tokens/${encodeURIComponent(token)}`, method: "GET",
     }));
     const subscription = subscriptionSchema.safeParse(response.data);
@@ -193,7 +193,7 @@ export class GoogleProvider {
     }
     if (before.acknowledgementState === "acknowledged") return before;
     try {
-      await callGoogle("subscriptions.acknowledge", () => loadGoogleAuthClient().request({
+      await callGoogle("subscriptions.acknowledge", async () => (await loadGoogleAuthClient()).request({
         url: `${purchasesUrl}/subscriptions/${googleProductId}/tokens/${encodeURIComponent(before.purchaseToken)}:acknowledge`,
         method: "POST", data: {},
       }));

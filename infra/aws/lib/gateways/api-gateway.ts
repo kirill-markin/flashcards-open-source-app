@@ -1,4 +1,5 @@
 import { createCachedNodejsFunction } from "../lambda-input-cache";
+import { createHash } from "node:crypto";
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
@@ -1040,7 +1041,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     })],
   });
   if (hasConfiguredValue(props.googlePlayBillingConfig)) {
-    backendFn.addEnvironment("GOOGLE_PLAY_BILLING_CONFIG", props.googlePlayBillingConfig);
+    const googleBillingSecret = new cdk.aws_secretsmanager.Secret(scope, "GooglePlayBillingConfigSecret", {
+      secretName: `${cdk.Stack.of(scope).stackName}/google-play-billing-config`,
+      secretStringValue: cdk.SecretValue.unsafePlainText(props.googlePlayBillingConfig),
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    googleBillingSecret.grantRead(backendFn);
+    backendFn.addEnvironment("GOOGLE_PLAY_BILLING_SECRET_ARN", googleBillingSecret.secretArn);
+    // Updating the JSON must also replace warm processes that cached the previous identity.
+    backendFn.addEnvironment("GOOGLE_PLAY_BILLING_CONFIG_REVISION",
+      createHash("sha256").update(props.googlePlayBillingConfig).digest("hex").slice(0, 16));
   }
   if (hasConfiguredValue(props.appleIapSecretArn)) {
     const appleIapSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(

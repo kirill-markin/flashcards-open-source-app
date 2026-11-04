@@ -63,7 +63,7 @@ export async function authenticateGooglePush(request: Request): Promise<void> {
     || !/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(authorization)) {
     throw new HttpError(401, "Google push requires a signed Bearer ID token.", "GOOGLE_PUSH_UNAUTHORIZED");
   }
-  const config = readGoogleBillingConfig();
+  const config = await readGoogleBillingConfig();
   try {
     const ticket = await pushVerifier.verifyIdToken({
       idToken: authorization.slice(7), audience: config.pushAudience,
@@ -84,7 +84,7 @@ export async function authenticateGooglePush(request: Request): Promise<void> {
 export async function decodeGooglePush(request: Request): Promise<GoogleNotification> {
   const envelope = envelopeSchema.safeParse(await parseJsonBodyWithByteLimit(request, 32_768,
     "Google push body exceeds 32768 bytes.", "GOOGLE_PUSH_BODY_TOO_LARGE"));
-  if (!envelope.success || envelope.data.subscription !== readGoogleBillingConfig().pushSubscription) {
+  if (!envelope.success || envelope.data.subscription !== (await readGoogleBillingConfig()).pushSubscription) {
     throw new HttpError(400, "Google push envelope or subscription is invalid.", "GOOGLE_PUSH_ENVELOPE_INVALID");
   }
   let decoded: unknown;
