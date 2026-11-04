@@ -155,6 +155,15 @@ SELECT DISTINCT repaired_cards.workspace_id, 0, now()
 FROM migration_0235_repaired_cards AS repaired_cards
 ON CONFLICT (workspace_id) DO NOTHING;
 
+SELECT metadata.workspace_id
+FROM sync.workspace_sync_metadata AS metadata
+WHERE metadata.workspace_id IN (
+  SELECT DISTINCT repaired_cards.workspace_id
+  FROM migration_0235_repaired_cards AS repaired_cards
+)
+ORDER BY metadata.workspace_id
+FOR UPDATE;
+
 WITH updated_cards AS (
   UPDATE content.cards AS cards
   SET
