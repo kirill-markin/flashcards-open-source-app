@@ -8,30 +8,44 @@ const excerptRadius = 20;
 const fenceOpenPattern = /^[\s>]*(`{3,}|~{3,})/u;
 const fenceClosePattern = /^[\s>]*(`{3,}|~{3,})[ \t]*$/u;
 
+function closesFence(line: string, fence: string): boolean {
+  const closeMatch = fenceClosePattern.exec(line);
+  return closeMatch !== null && closeMatch[1][0] === fence[0] && closeMatch[1].length >= fence.length;
+}
+
 /**
  * Replaces fenced code blocks with spaces, keeping line breaks so offsets and
- * line boundaries stay aligned with the original text. An unclosed fence runs
- * to the end of the text. The opening line keeps its info string scannable: a
- * double-escaped card is one line, so masking the whole opener would hide it.
+ * line boundaries stay aligned with the original text. As in migration 0235, a
+ * run opens a fence only when a later line closes it and, for backticks, no
+ * backtick follows it on its line; otherwise it stays plain text. The opening
+ * line keeps its info string scannable: a double-escaped card is one line, so
+ * masking the whole opener would hide it.
  */
 function maskFencedCodeBlocks(text: string): string {
+  const lines = text.split("\n");
   let openFence: string | null = null;
 
-  return text.split("\n").map((line) => {
-    if (openFence === null) {
-      const openMatch = fenceOpenPattern.exec(line);
-      if (openMatch === null) {
-        return line;
+  return lines.map((line, lineIndex) => {
+    if (openFence !== null) {
+      if (closesFence(line, openFence)) {
+        openFence = null;
       }
-      openFence = openMatch[1];
-      return " ".repeat(openMatch[0].length) + line.slice(openMatch[0].length);
+      return " ".repeat(line.length);
     }
 
-    const closeMatch = fenceClosePattern.exec(line);
-    if (closeMatch !== null && closeMatch[1][0] === openFence[0] && closeMatch[1].length >= openFence.length) {
-      openFence = null;
+    const openMatch = fenceOpenPattern.exec(line);
+    if (openMatch === null) {
+      return line;
     }
-    return " ".repeat(line.length);
+    const fence = openMatch[1];
+    const infoString = line.slice(openMatch[0].length);
+    const isFence = (fence[0] === "~" || !infoString.includes("`"))
+      && lines.slice(lineIndex + 1).some((laterLine) => closesFence(laterLine, fence));
+    if (!isFence) {
+      return line;
+    }
+    openFence = fence;
+    return " ".repeat(openMatch[0].length) + infoString;
   }).join("\n");
 }
 
@@ -102,8 +116,8 @@ function buildExcerpt(text: string, escapeIndex: number): string {
 
 /**
  * Finds the first unescaped literal backslash-n or backslash-quote in a card
- * side outside fenced code, inline code spans, `$$…$$` display math, and
- * one-line `$…$` inline math. Such text is almost always a model that
+ * side outside fenced code, one- or two-backtick code spans, `$$…$$` display
+ * math, and one-line `$…$` inline math. Such text is almost always a model that
  * double-escaped at the JSON boundary; `\\n` (an escaped backslash) is allowed.
  * Detection approximates the client renderers on purpose.
  */
@@ -128,7 +142,7 @@ export function findLiteralCardTextEscape(text: string): LiteralCardTextEscape |
 
     if (character === "`") {
       const runLength = countRun(scannedText, index, "`");
-      const closeIndex = findRun(scannedText, index + runLength, "`", runLength);
+      const closeIndex = runLength > 2 ? -1 : findRun(scannedText, index + runLength, "`", runLength);
       index = closeIndex === -1 ? index + runLength : closeIndex + runLength;
       continue;
     }
