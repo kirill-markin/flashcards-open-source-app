@@ -18,13 +18,13 @@ following this procedure.
 | Glama | Verify/update the [existing connector](https://glama.ai/mcp/connectors/com.nibomo/flashcards), endpoint, health, auth, and discovered tools. |
 | Cursor Directory | Verify/update the [existing Nibomo plugin](https://cursor.directory/plugins/nibomo), source, MCP configuration, and shared skills under the [Cursor Directory procedure](#cursor-directory). |
 | Gemini CLI | Verify the [gallery entry](https://geminicli.com/extensions/?name=kirill-markinnibomo-plugins) and released install/update source and version. |
-| Executor | Verify/update the [existing public app](https://executor.sh/apps/nibomo.executor.community/nibomo) through the companion's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
+| Executor | Verify/update the [existing public app](https://executor.sh/apps/nibomo.executor.community/nibomo) through core's **Executor Publish** workflow; follow the [Executor procedure](#executor). |
 | OpenAI | Verify/update existing plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58` and its [public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ab77a6e971c81918b9e9185a6a19d58); inspect hosted MCP scans/live tools and submitted/published package version/skills separately under the [OpenAI gate](#openai). |
 | Antigravity | Optional marketplace work; packaged assets do not prove listing approval. Include publication only when explicitly scoped. |
 
 Provider-specific update, installation, and workflow verification belong in
-[`nibomo-plugins` publishing](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
-and [Executor publishing and access setup](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#executor).
+[plugin publishing](../plugin-publishing.md), including
+[Executor publishing and access setup](../plugin-publishing.md#executor).
 For established channels, perform concise immediate checks: verify the intended
 endpoint, package/source identity, required CI/scans, and acceptance of any
 required update/submission. Current MCP listings must resolve to
@@ -57,7 +57,8 @@ a directory button based only on a submission or approval.
 ## MCP
 
 The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
-and the registry workflows. During [release preparation](versioning.md#release-preparation),
+and registry validation; core owns the credential-reading publisher. During
+[release preparation](versioning.md#release-preparation),
 align its manifest and plugin versions with the selected core release version.
 Require successful [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
 for changed release inputs and **Plugin packages** cloud CI for the intended
@@ -66,19 +67,19 @@ companion source.
 First inspect the public registry for the target companion `server.json.version`
 and compare its manifest with the intended release. Reuse a matching publication
 and its workflow evidence. Only if that version is absent, dispatch
-[MCP Registry Publish](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-publish.yml)
-on companion `main` while its manifest still names the current release:
+[MCP Registry Publish](https://github.com/kirill-markin/flashcards-open-source-app/actions/workflows/mcp-registry-publish.yml)
+on core `main` with the intended immutable companion release tag:
 
 ```sh
 gh workflow run mcp-registry-publish.yml \
-  --repo kirill-markin/nibomo-plugins \
-  --ref main
+  --repo kirill-markin/flashcards-open-source-app \
+  --ref main -f release_tag=vX.Y.Z
 ```
 
-Check that the run used the intended manifest/version and completed successfully;
-the workflow validates, publishes, and verifies the registry entry. No console
-publication step follows. See [publisher details](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md)
-only for troubleshooting or credential setup.
+Check that the run used the selected companion release's exact manifest/version
+and completed successfully; the core workflow validates, publishes, and verifies
+the entry. No console publication step follows. See [publisher details](../plugin-publishing.md#mcp-registry)
+for troubleshooting or credential setup.
 
 Completion: the intended version and manifest are verified at the public
 registry endpoint and linked to successful workflow evidence. Registry versions
@@ -107,19 +108,21 @@ Use the existing [Nibomo plugin listing](https://cursor.directory/plugins/nibomo
 
 ## Executor
 
-Follow the companion's [canonical procedure and credential setup](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#executor).
+Follow the [canonical procedure and credential setup](../plugin-publishing.md#executor).
 
 1. Complete the companion's required exact-source **Plugin packages** cloud CI,
    including **Executor typecheck**, and applicable focused workflow checks.
-   Publishing its prepared stable GitHub Release triggers **Executor Publish**
-   (`.github/workflows/executor-publish.yml`, `release.published`). The workflow
-   uploads the selected release's exact Git source using the publisher from
-   reviewed `main`; development pushes never publish same-version source.
+   Publish its prepared stable companion Release before the coordinated core
+   `vX.Y.Z` GitHub Release. The latter triggers core **Executor Publish**
+   (`.github/workflows/executor-publish.yml`, `release.published`), which uploads
+   the matching immutable companion tag's exact source using core's reviewed
+   publisher. Development pushes and Mac-only Releases never publish Executor.
 2. Inspect the workflow result. To retry an existing stable release after
-   resolving a failure, dispatch **Executor Publish** from `main` with
-   `release_tag=vX.Y.Z`, selecting the intended immutable release tag. Follow
-   the companion procedure for the command and failure diagnosis; retrying an
-   older release intentionally republishes its source.
+   resolving a failure, dispatch **Executor Publish** from core `main` with
+   `release_tag=vX.Y.Z`, selecting the intended immutable companion tag. Manual
+   dispatch also supports companion `executor-vX.Y.Z-scope-migration` remediation
+   Releases. Follow the canonical procedure for the command and diagnosis;
+   retrying an older release intentionally republishes its source.
 3. Retain the Actions summary in the [release ledger](evidence.md#release-ledger):
    release/tag and publisher SHAs, exact-source cloud run, Executor source
    commit, deployment ID/commit, accepted publication, and immediate anonymous
@@ -131,7 +134,7 @@ Follow the companion's [canonical procedure and credential setup](https://github
 
 ## OpenAI
 
-Use the companion's [canonical OpenAI procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+Use the [canonical OpenAI procedure](../plugin-publishing.md#openai)
 for the existing plugin, publisher `kirill@kirill-markin.com`, verified
 **SAMO DANNI EOOD** identity and owning organization/project. Preserve that
 identity and any accepted pending review; no new listing or transfer is needed.
@@ -152,7 +155,7 @@ in the [ledger](evidence.md#release-ledger); never silently skip OpenAI.
 - **Package:** align the companion version to the selected coordinated release
   under [release preparation](versioning.md#release-preparation). For a required
   package update, use the complete exact-source OpenAI CI ZIP from the companion's
-  [durable package procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#release-source-and-durable-packages),
+  [durable package procedure](../plugin-publishing.md#release-source-and-durable-packages),
   with successful `packages` and **Executor typecheck** for that SHA; retain its
   version, run and digest. Inspect selected draft, required metadata/skill scans,
   review materials and accepted submission/publication requests under the
@@ -200,7 +203,7 @@ tracked on `main`. Update these listings; do not create duplicate submissions.
 3. **Plugin source:** verify the [plugin version surfaces](versioning.md#anthropic-plugin-version-sources)
    were aligned to the selected target during [release preparation](versioning.md#release-preparation),
    even when only the product version changed. Follow
-   that repository's [packaging and verification instructions](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
+   the [packaging and verification instructions](../plugin-publishing.md)
    and require its **Plugin packages** cloud CI for the exact source commit.
    Record the merged preparation commit and artifact/run link; apply the
    [publication settings and source safeguards](versioning.md#release-closeout-and-development)

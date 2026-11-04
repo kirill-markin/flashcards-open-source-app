@@ -16,7 +16,7 @@ Do not submit to any directory until all checks pass.
 
 - The [companion manifest](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
   passes the official MCP Registry schema check; use
-  [companion cloud validation](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md#validate-the-manifest)
+  [companion cloud validation](plugin-publishing.md#validate-the-manifest)
   and record the run and schema URL used.
 - The official registry lookup returns the published entry:
 
@@ -28,7 +28,7 @@ Do not submit to any directory until all checks pass.
   `404 Server not found` response means the entry is not published yet, the
   server name is wrong, or the publish failed. Use the credential setup and
   publish flow in
-  [the companion publisher procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md#one-time-credential-setup)
+  [the core publisher procedure](plugin-publishing.md#one-time-credential-setup)
   before submitting to downstream directories.
 - Unauthenticated access to the MCP endpoint returns a standards-compatible
   OAuth challenge:
@@ -200,8 +200,8 @@ using the demo account. Record the result inline:
 ## OpenAI prerequisites
 
 Publisher login, plugin, identity and the update procedure are in the
-[OpenAI release gate](release/mcp-and-plugins.md#openai) and the companion's
-[canonical OpenAI ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai).
+[OpenAI release gate](release/mcp-and-plugins.md#openai) and the
+[canonical OpenAI ZIP procedure](plugin-publishing.md#openai).
 Before an applicable update/submission, also:
 
 - Confirm organization-owner access or **Apps Management Write** in the owning

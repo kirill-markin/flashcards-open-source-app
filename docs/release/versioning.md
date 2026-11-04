@@ -50,9 +50,12 @@ naming conventions. Record any artifact-SHA comparison under the reuse rules.
 Publish GitHub Releases with the English notes and
 [contributor thanks](release-notes.md#github-release-thanks), and preserve the companion's
 exact successful **Plugin packages** CI assets under its
-[publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md).
-Record asset identity/checksums and provenance; an expiring Actions artifact
-alone is not durable release preservation. Complete this before release closeout.
+[publishing procedure](../plugin-publishing.md#release-source-and-durable-packages).
+Publish the companion Release and complete its exact-source package/typecheck CI
+before publishing the coordinated core Release: core's stable release event
+publishes the matching companion tag to Executor. Mac-only Releases do not trigger
+that publisher. Record asset identity/checksums and provenance; an expiring
+Actions artifact alone is not durable release preservation. Complete this before release closeout.
 Do not wait for external review or propagation, or reconstruct historical mobile
 logs for already-published matching artifacts, before this checkpoint. Apply the
 [reuse rules](evidence.md#reuse-existing-artifacts); artifact/source identity and
@@ -111,7 +114,7 @@ ref can cancel a pending request, so do not use it to bypass review. If
 preservation is blocked, stop the affected merge and report it.
 
 Also establish and verify the companion's stable Gemini install/update source
-under its [publishing procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md)
+under the [publishing procedure](../plugin-publishing.md#public-listings)
 and [Gemini release guidance](https://geminicli.com/docs/extensions/releasing/).
 Check both fresh installation and the supported update path resolve the released
 version and source, including the source reached from the gallery. An unpinned
@@ -154,8 +157,8 @@ manifest/plugin alignment using companion files. Release preparation verifies
 alignment across both repositories without a network-dependent core PR check.
 
 Require [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
-for changed release inputs. Publish an absent version from companion `main`
-through [MCP Registry Publish](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-publish.yml)
+for changed release inputs. Publish an absent version from its immutable
+companion release tag through core [MCP Registry Publish](https://github.com/kirill-markin/flashcards-open-source-app/actions/workflows/mcp-registry-publish.yml)
 during the platform release stage, before closeout, following the
 [explicit repository dispatch command](mcp-and-plugins.md#mcp).
 Registry versions are immutable; reuse a matching publication and its evidence.
@@ -168,7 +171,7 @@ For every shared-version update, align these files in the separate
 - `.claude-plugin/plugin.json` — Anthropic plugin `version`.
 - `plugin.json` — portable plugin `version`.
 - `gemini-extension.json` — shared extension `version` required by packaging CI.
-- Versioned archive names in `README.md` and `docs/publishing.md`, when present.
+- Versioned archive names in `README.md`, when present.
 
 Keep the packaging script's derived archive versions and Antigravity metadata
 derived from the manifests; do not add another version literal. An authorized
