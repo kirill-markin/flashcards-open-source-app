@@ -1475,7 +1475,7 @@ private func reviewRenderedContentHasImages(content: ReviewRenderedContent) -> B
         switch block {
         case .managedMedia(let reference):
             return reference.isImageSyntax
-        case .managedMediaGallery:
+        case .mediaGallery:
             return true
         case .markdown, .formula:
             return false
