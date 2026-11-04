@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.2",
-    "@aws-sdk/client-cloudwatch": "^3.1158.0",
-    "@aws-sdk/client-s3": "^3.1158.0",
+    "@aws-sdk/client-cloudwatch": "^3.1161.0",
+    "@aws-sdk/client-s3": "^3.1161.0",
     "@sentry/aws-serverless": "^11.10.0",
     "@sentry/server-runtime-injection": "11.10.0",
     "aws-cdk-lib": "^2.275.0",
@@ -23,16 +23,19 @@
   "devDependencies": {
     "@sentry/server-utils": "^11.10.0",
     "@types/node": "^24.19.2",
-    "aws-cdk": "^2.1146.1",
+    "aws-cdk": "^2.1147.0",
     "esbuild": "^0.28.2",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },
   "overrides": {
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "@sentry/bundler-plugins": {
+      "glob": "14.0.3"
+    }
   },
   "engines": {
-    "node": ">=24.22.1 <25"
+    "node": ">=24.22.2 <25"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
