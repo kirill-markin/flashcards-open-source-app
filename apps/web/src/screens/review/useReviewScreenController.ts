@@ -462,7 +462,7 @@ export function useReviewScreenController(
   }
 
   function handleRequestTagFilter(tag: string): void {
-    // A tag filter's header title is only a count ("1 tag"), so the dialog names its tags instead.
+    // A multi-tag filter's header title is only a count ("2 tags"), so the dialog names its tags instead.
     // Disjunction ("a, b, or c") matches the any-tag meaning and keeps explicit separators in every locale.
     const currentFilterTitle = resolvedReviewFilter.kind === "tags" && resolvedReviewFilter.tags.length > 0
       ? new Intl.ListFormat(locale, { type: "disjunction" }).format(resolvedReviewFilter.tags)

@@ -762,7 +762,7 @@ describe("ReviewScreen filter controls", () => {
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: [] });
   });
 
-  it("shows the resolved tag count after StrictMode replays the initial load effect", async () => {
+  it("shows the resolved tag name after StrictMode replays the initial load effect", async () => {
     const state = getState();
     const card = createCard({
       cardId: "strict-mode-resolved-filter-card",
@@ -798,7 +798,7 @@ describe("ReviewScreen filter controls", () => {
         throw new Error("Review filter trigger was not found after StrictMode loading");
       }
 
-      expect(trigger.textContent).toContain("1 tag");
+      expect(trigger.textContent).toContain("grammar");
       expect(trigger.textContent).not.toContain("2 tags");
     });
   });
