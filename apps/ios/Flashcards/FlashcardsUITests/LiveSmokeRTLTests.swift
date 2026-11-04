@@ -17,10 +17,15 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
 
         try self.step("switch Arabic RTL to cards tab") {
             try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            // Mac finds toolbar items by English label, so it checks the screen root instead.
+            #if targetEnvironment(macCatalyst)
+            try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #else
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            #endif
         }
 
         try self.step("switch Arabic RTL to AI tab") {
@@ -39,7 +44,16 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.accountStatusSignInButton,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
+            // Mac returns with the Settings command (Command-,) instead of the English-labeled Back item.
+            #if targetEnvironment(macCatalyst)
+            self.app.typeKey(",", modifierFlags: .command)
+            try self.assertElementDoesNotExist(
+                identifier: LiveSmokeIdentifier.accountStatusSignInButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            #else
             try self.tapFirstNavigationBackButton()
+            #endif
             try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
