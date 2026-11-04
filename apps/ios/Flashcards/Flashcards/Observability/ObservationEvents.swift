@@ -51,12 +51,48 @@ enum IOSBreadcrumbEvent: Sendable {
     case appLifecycle(AppLifecycleObservation)
     case foregroundOperation(ForegroundOperationObservation)
     case cloudFlow(CloudFlowObservation)
+    case googleAuthorization(GoogleAuthorizationObservation)
     case workspaceLinkReadFailed(WorkspaceLinkReadFailureObservation)
     case cloudRetry(CloudRetryObservation)
     case aiChatLifecycle(AIChatLifecycleObservation)
     case aiLiveLifecycle(AILiveLifecycleObservation)
     case notificationTap(NotificationTapObservation)
     case premiumPresentation(PremiumPresentationObservation)
+}
+
+enum GoogleAuthorizationAction: String, Sendable {
+    case sdkInvoked = "sdk_invoked"
+    case sdkCallback = "sdk_callback"
+    case hostTaskCancelled = "host_task_cancelled"
+    case willResignActive = "will_resign_active"
+    case didEnterBackground = "did_enter_background"
+    case willEnterForeground = "will_enter_foreground"
+    case didBecomeActive = "did_become_active"
+}
+
+enum GoogleAuthorizationOutcome: String, Sendable {
+    case credentialReceived = "credential_received"
+    case missingCredential = "missing_credential"
+    case cancelled
+    case failure
+}
+
+struct GoogleAuthorizationObservation: Sendable {
+    let action: GoogleAuthorizationAction
+    let diagnosticId: UUID
+    let elapsedMilliseconds: Int64
+    let sdkCallbackReceived: Bool
+    let outcome: GoogleAuthorizationOutcome?
+    let errorDomain: String?
+    let errorCode: Int?
+    let applicationState: Int
+    let sceneActivationState: Int?
+    let presenterAttachedToWindow: Bool
+    let windowHidden: Bool?
+    let windowKey: Bool?
+    let hasPresentedController: Bool
+    let presenterBeingPresented: Bool
+    let presenterBeingDismissed: Bool
 }
 
 enum PremiumPresentationPhase: String, Sendable {
