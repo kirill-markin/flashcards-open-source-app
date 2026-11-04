@@ -69,9 +69,11 @@ do not rotate unrelated credentials. Repeat the required readback after any cons
 
 ## Initial-price console fallback
 
+Resolve `<subscriptionGroupId>` and `<subscriptionId>` from the configured app's catalog, matching product `premium_monthly`, before using the console/API procedures below.
+
 If Apple's initial subscription-price POST returns HTTP 409, first read the product's
 prices again. For a product still without its first price, open App Store Connect →
-app `6760538964` → Subscriptions → Premium group `22415526` → subscription `6816418042`.
+app `APP_STORE_CONNECT_APP_ID` → Subscriptions → Premium group `<subscriptionGroupId>` → subscription `<subscriptionId>`.
 Set the initial USA price to USD 6.99 and apply Apple's equalized prices to all supported
 territories. Save without submitting for review. Rerun the catalog writer from the reviewed
 checkout for API readback and remaining trial/localization configuration. If any existing
@@ -108,7 +110,7 @@ price differs, stop for an explicit commercial correction instead of overwriting
 
 ## Configure and verify Notification V2
 
-1. After the deployment is healthy, open App Store Connect → app `6760538964` → App
+1. After the deployment is healthy, open App Store Connect → app `APP_STORE_CONNECT_APP_ID` → App
    Information → App Store Server Notifications. Set **both Production and Sandbox** URLs
    to `https://api.flashcards-open-source-app.com/v1/billing/apple/notifications`, select
    **Version 2**, and save. Read both fields back. Follow Apple's
@@ -258,23 +260,23 @@ this checklist is not evidence that those gaps have been closed.
    Save build, device, locale, and capture time with the operational evidence. Until this
    image exists, leave screenshot preparation pending. Do not substitute a mockup,
    coming-soon screen, marketing composite, or a locally fabricated StoreKit price.
-2. Read `GET /v1/subscriptions/6816418042` and confirm `productId: premium_monthly`.
+2. Read `GET /v1/subscriptions/<subscriptionId>` and confirm `productId: premium_monthly`.
    Extract only the fenced text from the
    [canonical notes](subscription-store-metadata.md#canonical-english-app-review-notes),
    confirm it still matches the compiled offer and is at most 4000 characters, and JSON
-   encode it as `reviewNote`. Send `PATCH /v1/subscriptions/6816418042` with
-   `data.type: subscriptions`, `data.id: 6816418042` (a string), and
+   encode it as `reviewNote`. Send `PATCH /v1/subscriptions/<subscriptionId>` with
+   `data.type: subscriptions`, `data.id: <subscriptionId>` (a string), and
    `data.attributes.reviewNote` containing that exact text. Send no other attributes.
    Read the subscription again and require an exact text match; a PATCH response alone
    is insufficient. Keep account credentials and unperformed testing claims out of notes.
-3. Read `GET /v1/subscriptions/6816418042/appStoreReviewScreenshot` before reserving an
+3. Read `GET /v1/subscriptions/<subscriptionId>/appStoreReviewScreenshot` before reserving an
    asset. Reuse a matching completed asset. If an existing asset differs or an earlier
    upload is incomplete, inspect its ID and state before replacing or resuming it; do
    not blindly repeat creation after an uncertain response. Reserve a missing screenshot
    with `POST /v1/subscriptionAppStoreReviewScreenshots`: `data.type` is
    `subscriptionAppStoreReviewScreenshots`; `data.attributes` contains the actual
    `fileName` and integer byte `fileSize`; `data.relationships.subscription.data` is
-   `{"type":"subscriptions","id":"6816418042"}`. Retain the returned screenshot ID.
+   `{"type":"subscriptions","id":"<subscriptionId>"}`. Retain the returned screenshot ID.
 4. Follow every returned `uploadOperations` entry: send exactly the file bytes identified
    by `offset` and `length` to its `url`, using its `method` and `requestHeaders`. Do not
    send the App Store Connect bearer token to upload URLs or log their signed query
@@ -292,7 +294,7 @@ this checklist is not evidence that those gaps have been closed.
    Information screenshot field in the console, then perform the same API readbacks.
    This review-only image is separate from the optional 1024-pixel promotional image;
    subscription promotion is outside this procedure.
-6. Read `GET /v1/subscriptions/6816418042` again and require `state: READY_TO_SUBMIT`.
+6. Read `GET /v1/subscriptions/<subscriptionId>` again and require `state: READY_TO_SUBMIT`.
    Recheck notes and screenshot plus the [catalog readback](#required-readback). If Apple
    still reports `MISSING_METADATA`, inspect the remaining fields in App Store Connect
    rather than treating a successful upload as product readiness. In Business, verify

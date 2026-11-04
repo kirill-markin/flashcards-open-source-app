@@ -21,6 +21,7 @@ export interface StoreAnalyticsImportProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   stripeBillingSecretArn: string | undefined;
   appleIapSecretArn: string | undefined;
+  googlePlayReportsConfig: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -126,6 +127,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     DB_SECRET_ARN: props.backendDbSecret.secretArn,
     DB_HOST: props.db.dbInstanceEndpointAddress,
     DB_NAME: "flashcards",
+    ...(hasConfiguredValue(props.googlePlayReportsConfig) ? { GOOGLE_PLAY_REPORTS_CONFIG: props.googlePlayReportsConfig } : {}),
   };
   const importFunction = createCachedNodejsFunction(scope, "StoreAnalyticsImportHandler", {
     ...sharedFunctionProps,

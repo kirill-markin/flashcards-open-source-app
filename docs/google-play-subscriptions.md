@@ -35,26 +35,24 @@ own ownership, acknowledgment, recovery and the native offer states. `{ attached
 processing receipt, not permission to unlock Premium: Android unlocks only on a fresh synced
 entitlement.
 
-## Public configuration identities
+## Deployment configuration
 
-These are identifiers, not credentials. Keep bank details, payment-profile IDs,
-tester addresses, purchase tokens, access tokens, and provider payloads out of
-repository files and public evidence.
+Keep deployment account IDs, service-account addresses, cloud resource names and operator metadata in ignored local configuration or the deployment secret/configuration store. Resolve current values from that configuration and the deployed provider resources. Keep bank details, payment-profile IDs, tester addresses, purchase tokens, access tokens, and provider payloads out of repository files and public evidence.
 
-| Resource | Value |
+| Resource | Source |
 | --- | --- |
-| Play developer | `6698442103294061634` |
-| Play app | `4974229050839345523` |
+| Play developer and app | Operator's Play Console account and selected application |
 | Android package | `com.flashcardsopensourceapp.app` |
-| Google Cloud project / number | `flashcards-open-source-app` / `360001205059` |
-| Billing service account | `google-play-billing@flashcards-open-source-app.iam.gserviceaccount.com` |
-| Push service account / subject | `nibomo-play-notifications@flashcards-open-source-app.iam.gserviceaccount.com` / `117934371221231125176` |
-| RTDN topic | `projects/flashcards-open-source-app/topics/nibomo-play-subscriptions` |
-| Push subscription | `projects/flashcards-open-source-app/subscriptions/nibomo-play-subscriptions-sub` |
-| AWS federation provider | `projects/360001205059/locations/global/workloadIdentityPools/nibomo-aws-billing/providers/aws-backend` |
-| AWS account | `506210661494` |
-| Allowed backend role name | `FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF` |
-| Push endpoint and OIDC audience | `https://api.nibomo.com/v1/billing/google/notifications` |
+| Google Cloud project / number | Operator's Google Cloud project configuration |
+| Billing service account and federation provider | `GOOGLE_PLAY_BILLING_CONFIG.serviceAccountEmail` and `.workloadIdentityProvider` |
+| Push identity, audience and subscription | `GOOGLE_PLAY_BILLING_CONFIG.pushServiceAccountEmail`, `.pushServiceAccountSubject`, `.pushAudience` and `.pushSubscription` |
+| RTDN topic | Operator's Pub/Sub topic selected in Play Console |
+| AWS account and allowed backend role | Current AWS caller identity and deployed BackendHandler execution role |
+| Push endpoint and OIDC audience | Target deployment's `/v1/billing/google/notifications` endpoint and `GOOGLE_PLAY_BILLING_CONFIG.pushAudience` |
+
+Supply the complete `GOOGLE_PLAY_BILLING_CONFIG` JSON through the process environment or an ignored operator `.env`; [`.env.example`](../.env.example) shows the shape and [the runtime schemas](../apps/backend/src/googleCloudConfig.ts) validate it. `setup-github.sh` initializes `CDK_GOOGLE_PLAY_BILLING_CONFIG`; the release workflow passes it through CDK context `googlePlayBillingConfig` into the HTTP backend, including its reconciliation handler. Deploy configuration and code together through CI/CD. Authentication requires the exact configured identity and subscription; it never defaults to another deployment's accounts.
+
+Use the WIF provider's resource path without the `//iam.googleapis.com/` prefix. Set `pushServiceAccountSubject` to the dedicated service account's Google `uniqueId`, and match `pushAudience` and `pushSubscription` to the saved authenticated Pub/Sub delivery settings.
 
 ## Read back runtime access
 
@@ -77,14 +75,13 @@ granted. Reopen the invitation and verify its scope when diagnosing access. Goog
 documents the billing permissions. Do not add catalog or release permissions to
 this runtime identity to perform an operator's setup task.
 
-The enabled federation pool/provider restricts AWS assertions with this saved
-condition:
+Restrict the enabled federation pool/provider to the deployed AWS account and backend role. Substitute their current values in this condition:
 
 ```text
-assertion.account == '506210661494' && assertion.arn.startsWith('arn:aws:sts::506210661494:assumed-role/FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF/')
+assertion.account == '<AWS_ACCOUNT_ID>' && assertion.arn.startsWith('arn:aws:sts::<AWS_ACCOUNT_ID>:assumed-role/<BACKEND_ROLE_NAME>/')
 ```
 
-Both `google.subject` and `attribute.aws_role` use this exact saved CEL expression:
+Set both `google.subject` and `attribute.aws_role` to this CEL expression:
 
 ```text
 assertion.arn.contains('assumed-role') ? assertion.arn.extract('{account_arn}assumed-role/') + 'assumed-role/' + assertion.arn.extract('assumed-role/{role_name}/') : assertion.arn
@@ -93,10 +90,10 @@ assertion.arn.contains('assumed-role') ? assertion.arn.extract('{account_arn}ass
 Google's [federation troubleshooting](https://cloud.google.com/iam/docs/troubleshooting-workload-identity-federation)
 documents the 127-byte subject limit, which the full Lambda session ARN exceeds
 and the normalized role fits. The service account's saved
-Workload Identity User (`roles/iam.workloadIdentityUser`) grant selects only this attribute value:
+Workload Identity User (`roles/iam.workloadIdentityUser`) grant must select only the matching attribute value:
 
 ```text
-arn:aws:sts::506210661494:assumed-role/FlashcardsOpenSourceApp-BackendHandlerServiceRoleE5-gAiVg357pADF
+arn:aws:sts::<AWS_ACCOUNT_ID>:assumed-role/<BACKEND_ROLE_NAME>
 ```
 
 Read back provider ACTIVE status, the exact condition, both mappings and the
@@ -136,7 +133,7 @@ keys. Read back the saved configuration using Google's
 
 1. On the **push service account resource only**, verify the saved
    `roles/iam.serviceAccountTokenCreator` grant to
-   `service-360001205059@gcp-sa-pubsub.iam.gserviceaccount.com`. Read back the
+   `service-<GCP_PROJECT_NUMBER>@gcp-sa-pubsub.iam.gserviceaccount.com`. Read back the
    exact principal, role and resource. Do not accept the subscription editor's
    project-wide grant shortcut.
 2. Verify the named subscription is Push, with the endpoint and audience in the

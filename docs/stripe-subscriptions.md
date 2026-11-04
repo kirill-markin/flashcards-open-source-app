@@ -204,8 +204,7 @@ and never overwrites existing variables. No Stripe secret discovery is needed in
 `scripts/lib/deploy-config.sh`. Update the two repository variables explicitly for
 an existing installation, then use normal CI/CD.
 
-Use the complete vault ARN
-`arn:aws:secretsmanager:eu-central-1:506210661494:secret:flashcards-open-source-app/stripe-billing-juxXCn`.
+Set `STRIPE_BILLING_SECRET_ARN` in operator configuration to the complete vault ARN for the target deployment.
 CDK grants that secret's read access to the HTTP backend and existing hourly
 store-analytics importer and injects its ARN, never its value.
 Chat/MCP/auth functions and frontend/build environments receive
@@ -233,8 +232,8 @@ umask 077
 stripe_secret_file="$(mktemp -t nibomo-stripe-secret.XXXXXX)"
 trap 'rm -f "$stripe_secret_file"' EXIT
 cat > "$stripe_secret_file"
-aws --profile flashcards-open-source-app --region eu-central-1 secretsmanager put-secret-value \
-  --secret-id arn:aws:secretsmanager:eu-central-1:506210661494:secret:flashcards-open-source-app/stripe-billing-juxXCn \
+aws --profile "${AWS_PROFILE:?}" --region "${AWS_REGION:?}" secretsmanager put-secret-value \
+  --secret-id "${STRIPE_BILLING_SECRET_ARN:?}" \
   --secret-string "file://${stripe_secret_file}" \
   --query '{ARN:ARN,VersionId:VersionId}' --output json
 ```

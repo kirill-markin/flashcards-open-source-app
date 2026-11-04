@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createPrivateKey, sign } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -66,8 +66,9 @@ export async function request(url: string, method: string, headers: Record<strin
 export function createClient(repoRoot: string) {
   const commonDirectory = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: repoRoot, encoding: "utf8" }).trim();
   const mainRoot = dirname(commonDirectory);
-  const env = parseEnv(readFileSync(resolve(mainRoot, ".env"), "utf8"));
-  const required = (name: string): string => string(env[name], `main checkout .env: ${name}`);
+  const envFile = resolve(mainRoot, ".env");
+  const env = { ...(existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")) : {}), ...process.env };
+  const required = (name: string): string => string(env[name], `App Store Connect configuration: ${name}`);
   const kind = required("APP_STORE_CONNECT_KEY_KIND");
   if (kind !== "individual" && kind !== "team") throw new Error("APP_STORE_CONNECT_KEY_KIND must be individual or team");
   const appId = required("APP_STORE_CONNECT_APP_ID");

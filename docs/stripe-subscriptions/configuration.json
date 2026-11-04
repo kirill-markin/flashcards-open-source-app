@@ -247,7 +247,7 @@
     "webhookApiVersion": "2026-09-30.endive",
     "liveCheckoutEnabled": false,
     "freeAccountMessageCapEnabled": false,
-    "secretArn": "arn:aws:secretsmanager:eu-central-1:506210661494:secret:flashcards-open-source-app/stripe-billing-juxXCn",
+    "secretArnInput": "STRIPE_BILLING_SECRET_ARN",
     "secretConsumer": "http_backend_only",
     "acceptanceProcedure": "../stripe-subscriptions.md#observed-sandbox-acceptance"
   },

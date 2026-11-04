@@ -21,8 +21,8 @@ country selector. App publication and purchase acceptance remain separate gates 
 
    | Provider | Expected existing resources |
    | --- | --- |
-   | Apple, SAMO DANNI EOOD | App `6760538964`; group `22415526`; subscription `6816418042` / `premium_monthly` |
-   | Google | Developer `6698442103294061634`; app `4974229050839345523`; package `com.flashcardsopensourceapp.app`; product `premium`; base plan `monthly`; offer `free-trial-7d` |
+   | Apple | App `APP_STORE_CONNECT_APP_ID`; resolve group and subscription IDs from the selected app and product `premium_monthly` |
+   | Google | Operator-configured Play developer account and app; package `com.flashcardsopensourceapp.app`; product `premium`; base plan `monthly`; offer `free-trial-7d` |
 
 2. Capture all current and scheduled prices, currencies, availability, trial regions
    and eligibility, and preserved/legacy cohort prices before changing either store.

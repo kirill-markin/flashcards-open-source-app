@@ -15,7 +15,7 @@ The raw catalog, full session report and failed-read diagnostics stay in a priva
 
 Match `catalog.json` and optional `session-full.json` against `.catalog_report.sha256` and `.session_report.sha256`. The full session report retains the private native JUnit/log references for direct retrieval through the linked results procedure. Raw provider error details are in `diagnostics.log`; GitHub displays only a safe failure message. Configuration or authentication failures before collection may produce no artifact.
 
-Keep extracted reports and logs private. Do not attach them to public GitHub artifacts, issues or job logs. Reuse existing access; no new identity, key or IAM grant is required. This workflow submits or cancels no tests and performs no Play operation; its only cloud write is the private diagnostics archive.
+Keep extracted reports and logs private. Do not attach them to public GitHub artifacts, issues or job logs. Configure CLI authentication under [Google Cloud access](android-ci-cd.md#google-cloud-access-and-device-preflight). This workflow submits or cancels no tests and performs no Play operation; its only cloud write is the private diagnostics archive.
 
 ## Build debug APKs or run selected native diagnostics
 

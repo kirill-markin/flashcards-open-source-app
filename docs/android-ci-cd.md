@@ -31,7 +31,7 @@ Download the `android-device-run-submissions` GitHub artifact for the exact rele
 
 Full terminal reports, submission records, the catalog, and every execution's JUnit/logcat/instrument logs are retained in a private `raw.tar.gz` in the results bucket, out of public GitHub artifacts and logs. See Google's [native result layout](https://docs.cloud.google.com/developer-device-platform/device-run/find-logs) and [full-report schema](https://docs.cloud.google.com/developer-device-platform/reference/device-run/rest/v1alpha/projects.locations.sessions).
 
-For private warning/diagnostic review, use an already-authorized Google identity with the workflow's Google Cloud CLI version and its `beta` component, or existing authorized service-account impersonation. Do not create keys, principals or grants. Retrieve the archive programmatically from `.private_archive` in the safe summary:
+For private warning/diagnostic review, use the workflow's Google Cloud CLI version and its `beta` component with an already-authorized identity configured under [Google Cloud access](#google-cloud-access-and-device-preflight). Do not create keys, principals or grants. Retrieve the archive programmatically from `.private_archive` in the safe summary:
 
 ```bash
 archive="$(jq -r '.private_archive' summary.json)"
@@ -48,7 +48,7 @@ The CLI session ID is the basename of `.name` (`session-…`), distinct from `.s
 
 ```bash
 gcloud beta device-run sessions describe "session-ID-FROM-SUMMARY" --full --format=json \
-  --project "flashcards-open-source-app" --location global > /private/path/session.json
+  --project "${GCP_PROJECT_ID:?}" --location global > /private/path/session.json
 ```
 
 In each session's logcat, `event=automation_environment_resolved` must show `isAutomation=true`, `isEmulator=false`, `hasArgumentSignal=true`, and `isFirebaseTestLabDevice=false`: Device Run has no Firebase device marker, so the `isAutomation=true` instrumentation argument that [the helper](../scripts/android/run-android-device-run.sh) passes must reach the app.
@@ -61,16 +61,18 @@ Android app-internal translations are Play-first, as the [add-language checklist
 
 ## Google Cloud access and device preflight
 
-Use the existing project `flashcards-open-source-app`, WIF provider, `github-android-ci@flashcards-open-source-app.iam.gserviceaccount.com`, and dedicated results bucket `flashcards-open-source-app-test-lab-results`. Keep the separate Play upload service account and its app-scoped Play Console permissions.
+Local authentication and credential storage are operator-managed. Use an identity authorized for the target project: an active Google Cloud CLI account, existing service-account impersonation, or configured machine credentials. For credential files, `CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE` selects the CLI identity and `GOOGLE_APPLICATION_CREDENTIALS` selects Application Default Credentials for client libraries. Reuse existing non-interactive access before requesting login; CI's GitHub federation credentials are available inside its jobs.
 
-The verified Device Run setup has these APIs enabled: `devicerun.googleapis.com`, `devicestreaming.googleapis.com`, and `testing.googleapis.com`. The existing Android CI service account has project roles `roles/devicerun.admin` and `roles/serviceusage.serviceUsageConsumer`, with its existing bucket-scoped `roles/storage.admin`. Retain the existing WIF `roles/iam.workloadIdentityUser` binding. Do not add project Viewer/Editor/Owner or reader grants. Play uploads use the existing `androidpublisher.googleapis.com` API and separate `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`.
+Configure `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` and `ANDROID_DEVICE_RUN_RESULTS_BUCKET` through the [GitHub configuration](#github-configuration). Export the relevant values from your operator configuration before running local commands; concrete account addresses, project IDs and bucket names stay out of this guide.
+
+The verified Device Run setup has these APIs enabled: `devicerun.googleapis.com`, `devicestreaming.googleapis.com`, and `testing.googleapis.com`. The existing Android CI service account has project roles `roles/devicerun.admin` and `roles/serviceusage.serviceUsageConsumer`, with its existing bucket-scoped `roles/storage.admin`. Retain the existing CI WIF `roles/iam.workloadIdentityUser` binding. Do not add project Viewer/Editor/Owner or reader grants. Play uploads use the existing `androidpublisher.googleapis.com` API and configured `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`.
 
 ### Choose the Device Run devices
 
 Read the current catalog before a release and preserve it with the release record:
 
 ```bash
-gcloud beta device-run devices list --project "flashcards-open-source-app" \
+gcloud beta device-run devices list --project "${GCP_PROJECT_ID:?}" \
   --location global --format=json > device-run-catalog.json
 ```
 
@@ -147,15 +149,11 @@ Run the retained Android FSRS parity test against the shared vectors:
 cd apps/android && ./gradlew --no-daemon :data:local:testDebugUnitTest --tests com.flashcardsopensourceapp.data.local.model.scheduling.FsrsSchedulerParityTest
 ```
 
-Build the signed release bundle with the same inputs that the release workflow uses. For local release and upload paths, export or source the Sentry variables before invoking Gradle or the helper script: `ANDROID_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_ANDROID_PROJECT`.
+Build the signed release bundle with the same inputs that the release workflow uses. Load `ANDROID_RELEASE_STORE_FILE`, `ANDROID_RELEASE_STORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS` and `ANDROID_RELEASE_KEY_PASSWORD` into the process environment from protected operator configuration. For local release and upload paths, also supply `ANDROID_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_ANDROID_PROJECT`. Keep password values out of command arguments and shell history.
 
 ```bash
 bash scripts/android/run-android-release.sh \
-  --version-code "12345" \
-  --keystore-path "/absolute/path/to/upload-key.jks" \
-  --keystore-password "YOUR_KEYSTORE_PASSWORD" \
-  --key-alias "YOUR_KEY_ALIAS" \
-  --key-password "YOUR_KEY_PASSWORD"
+  --version-code "12345"
 ```
 
 Run one app instrumentation class on a local emulator for ad hoc debugging (requires a running emulator via `adb devices`). `connectedDebugAndroidTest` does not support the `--tests` flag, so filter by class:
@@ -169,15 +167,15 @@ Run the latest full app instrumentation selection in Device Run after authentica
 
 ```bash
 bash scripts/android/run-android-device-run.sh \
-  --project-id "flashcards-open-source-app" \
-  --device "cubs-37" \
+  --project-id "${GCP_PROJECT_ID:?}" \
+  --device "${ANDROID_DEVICE_RUN_DEVICE:?}" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
   --timeout "30m" \
   --max-session-duration "35m" \
   --test-targets "package com.flashcardsopensourceapp.app" \
   --test-targets "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
-  --results-bucket "flashcards-open-source-app-test-lab-results" \
+  --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET:?}" \
   --session-output "/absolute/release-record/device-run-session.json"
 ```
 
