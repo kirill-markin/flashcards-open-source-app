@@ -338,13 +338,19 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         if try self.manualRuntimeConfiguration().orientation == "landscape" {
             try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.revealOpportunityCostReviewAnswer()
-            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             let aiButtonIdentifier = LiveSmokeIdentifier.reviewAiButton
             #if targetEnvironment(macCatalyst)
+            // Mac tests find the native AI toolbar toggle only by its English label;
+            // its menu shortcut works in every fixture language.
+            self.app.typeKey("a", modifierFlags: [.command, .shift])
+            // A disabled shortcut does nothing, and the AI button below would then open the full AI tab.
+            try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.tapButton(identifier: aiButtonIdentifier,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             #else
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             let matchingContainers = self.app.windows.allElementsBoundByIndex.flatMap { window in
                 window.scrollViews.allElementsBoundByIndex
                     .filter { $0.buttons[aiButtonIdentifier].exists }

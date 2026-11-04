@@ -29,22 +29,26 @@ extension View {
             GeometryReader { geometry in
                 if let hint {
                     let target = geometry[hint.bounds]
-                    Text(hint.help)
+                    let label = Text(hint.help)
                         .font(.caption)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("review.shortcutHint")
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
-                        .frame(maxWidth: min(240, target.width))
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5))
-                        .accessibilityIdentifier("review.shortcutHint")
-                        .visualEffect { content, geometry in
-                            content.offset(
-                                x: target.midX - geometry.size.width / 2,
-                                y: target.minY - geometry.size.height - 8
-                            )
-                        }
+                    // As wide as the target; over a target narrower than one line of text, as wide as the text.
+                    ViewThatFits(in: .horizontal) {
+                        label.fixedSize().frame(minWidth: min(240, target.width))
+                        label.fixedSize(horizontal: false, vertical: true).frame(maxWidth: 240)
+                    }
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5))
+                    .frame(maxWidth: 240)
+                    .visualEffect { content, geometry in
+                        content.offset(
+                            x: target.midX - geometry.size.width / 2,
+                            y: target.minY - geometry.size.height - 8
+                        )
+                    }
                 }
             }
             .allowsHitTesting(false)

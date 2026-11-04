@@ -39,6 +39,7 @@ struct ReviewView: View {
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State private var textSelection: ReviewCardTextSelection? = nil
+    @State private var reviewCardSideCopyRequest: ReviewCardSideCopyRequest? = nil
     @State var isReviewScreenVisible: Bool = false
     @State private var reviewReactionPlayback = ReviewReactionPlaybackModel()
     /// Resets on touch-up and on cancellation, which skips `onEnded`.
@@ -889,7 +890,9 @@ struct ReviewView: View {
                 showsAiButton: false,
                 aiButtonAccentColor: self.store.effectiveAccountAccentColor,
                 onOpenAi: {},
-                surfaceStyle: .front
+                surfaceStyle: .front,
+                showsShortcutHints: UIDevice.current.userInterfaceIdiom == .pad && self.reviewScreen.isAnswerVisible == false,
+                copyRequest: self.reviewCardSideCopyRequest
             )
             .onAppear {
                 FlashcardsObservability.finishReviewNextCardVisibleSpan(
@@ -918,7 +921,9 @@ struct ReviewView: View {
                     onOpenAi: {
                         self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
                     },
-                    surfaceStyle: .back
+                    surfaceStyle: .back,
+                    showsShortcutHints: UIDevice.current.userInterfaceIdiom == .pad,
+                    copyRequest: self.reviewCardSideCopyRequest
                 )
                 .id(card.cardId)
                 .id(ReviewCardScrollTarget.back)
@@ -1231,29 +1236,81 @@ struct ReviewView: View {
         guard self.canUseReviewKeyboardShortcuts, self.isTextInputEditing == false, let card = self.currentCard else {
             return nil
         }
+        let revealState = self.displayedRevealState(card: card)
         if self.reviewScreen.isAnswerVisible == false {
-            return ReviewKeyboardActions(
-                revealAnswer: {
-                    self.reviewReactionPlayback.dismissActiveReviewReactions(
-                        reason: "interaction", context: self.reviewReactionContext
-                    )
-                    self.revealReviewAnswer()
-                },
-                rate: nil
-            )
-        }
-        guard self.displayedRevealState(card: card).reviewAnswerGridOptions != nil else {
-            return nil
-        }
-        return ReviewKeyboardActions(
-            revealAnswer: nil,
-            rate: { rating in
+            let revealAnswer: @MainActor () -> Void = {
                 self.reviewReactionPlayback.dismissActiveReviewReactions(
                     reason: "interaction", context: self.reviewReactionContext
                 )
-                self.rateReviewCard(cardId: card.cardId, rating: rating)
+                self.revealReviewAnswer()
             }
+            let toggleSpeech: (@MainActor () -> Void)? = self.keyboardToggleSpeech(
+                side: .front, sourceText: card.frontText, speakableText: revealState.frontSpeakableText
+            )
+            let copy: @MainActor () -> Void = self.keyboardCopy(side: .front)
+            return ReviewKeyboardActions(
+                revealAnswer: revealAnswer,
+                rate: nil,
+                activeSide: .front,
+                isActiveSideSpeaking: self.reviewSpeechController.activeSide == .front,
+                toggleSpeech: toggleSpeech,
+                copy: copy
+            )
+        }
+        let rate: (@MainActor (ReviewRating) -> Void)? = self.keyboardRate(
+            cardId: card.cardId, answerGridOptions: revealState.reviewAnswerGridOptions
         )
+        let toggleSpeech: (@MainActor () -> Void)? = self.keyboardToggleSpeech(
+            side: .back, sourceText: card.backText, speakableText: revealState.backSpeakableText
+        )
+        let copy: @MainActor () -> Void = self.keyboardCopy(side: .back)
+        return ReviewKeyboardActions(
+            revealAnswer: nil,
+            rate: rate,
+            activeSide: .back,
+            isActiveSideSpeaking: self.reviewSpeechController.activeSide == .back,
+            toggleSpeech: toggleSpeech,
+            copy: copy
+        )
+    }
+
+    /// Nil until the rating buttons are ready, matching the grid they mirror.
+    private func keyboardRate(
+        cardId: String,
+        answerGridOptions: ReviewAnswerGridOptions?
+    ) -> (@MainActor (ReviewRating) -> Void)? {
+        guard answerGridOptions != nil else { return nil }
+        return { rating in
+            self.reviewReactionPlayback.dismissActiveReviewReactions(
+                reason: "interaction", context: self.reviewReactionContext
+            )
+            self.rateReviewCard(cardId: cardId, rating: rating)
+        }
+    }
+
+    /// Nil when the side has nothing to speak, matching the hidden speech button.
+    private func keyboardToggleSpeech(
+        side: ReviewSpeechSide,
+        sourceText: String,
+        speakableText: String
+    ) -> (@MainActor () -> Void)? {
+        guard speakableText.isEmpty == false else { return nil }
+        return {
+            self.reviewReactionPlayback.dismissActiveReviewReactions(
+                reason: "interaction", context: self.reviewReactionContext
+            )
+            self.toggleSpeech(side: side, sourceText: sourceText)
+        }
+    }
+
+    /// The side's own copy button action runs it, so the key gives the same feedback as a click.
+    private func keyboardCopy(side: ReviewCardSurfaceStyle) -> @MainActor () -> Void {
+        return {
+            self.reviewReactionPlayback.dismissActiveReviewReactions(
+                reason: "interaction", context: self.reviewReactionContext
+            )
+            self.reviewCardSideCopyRequest = ReviewCardSideCopyRequest(id: UUID(), side: side)
+        }
     }
 
     private func cancelReviewCardEditor() {

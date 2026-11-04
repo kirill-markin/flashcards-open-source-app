@@ -189,19 +189,16 @@ struct MacWindowAppearance: UIViewRepresentable {
             guard let split else { return didChangeSplit }
             if didChangeSplit == false, self.sidebarItem != nil { return false }
             if self.sidebarItem == nil {
-                let button = UIButton(type: .system)
-                var configuration = UIButton.Configuration.plain()
-                configuration.image = UIImage(systemName: "sidebar.left")
-                configuration.baseForegroundColor = .label
-                button.configuration = configuration
+                // Keep SwiftUI's column visibility authoritative for the native split.
+                let button = UIBarButtonItem(image: UIImage(systemName: "sidebar.left"), style: .plain,
+                                             target: self, action: #selector(self.toggleSidebar))
                 button.accessibilityIdentifier = "mac.sidebar.toggle"
                 button.accessibilityLabel = String(localized: "mac.sidebar.title", table: "Foundation")
-                button.addTarget(self, action: #selector(self.toggleSidebar), for: .primaryActionTriggered)
-                // Keep SwiftUI's column visibility authoritative for the native split.
-                let item = NSUIViewToolbarItem(itemIdentifier: self.sidebarIdentifier, uiView: button)
+                let item = NSToolbarItem(itemIdentifier: self.sidebarIdentifier, barButtonItem: button)
                 item.isBordered = true
                 item.label = button.accessibilityLabel ?? ""
                 item.paletteLabel = item.label
+                item.toolTip = item.label
                 item.visibilityPriority = .high
                 item.autovalidates = false
                 self.sidebarItem = item
@@ -326,7 +323,7 @@ struct MacWindowAppearance: UIViewRepresentable {
             if let cached = self.items[action.identifier] {
                 entry = cached
             } else {
-                entry = ActionEntry(action: action) { [weak self] in
+                entry = ActionEntry(identifier: action.identifier) { [weak self] in
                     self?.performAction(identifier: action.identifier)
                 }
                 self.items[action.identifier] = entry
@@ -335,12 +332,8 @@ struct MacWindowAppearance: UIViewRepresentable {
             if let color = action.symbolColor {
                 image = image?.withTintColor(color, renderingMode: .alwaysOriginal)
             }
-            var configuration = UIButton.Configuration.plain()
-            configuration.title = action.title
-            configuration.image = image
-            configuration.baseForegroundColor = .label
-            entry.button.configuration = configuration
-            entry.button.accessibilityIdentifier = action.identifier
+            entry.button.title = action.title
+            entry.button.image = image
             entry.button.accessibilityLabel = action.label
             entry.button.accessibilityValue = action.value
             var traits = UIAccessibilityTraits.button
@@ -559,17 +552,20 @@ struct MacWindowAppearance: UIViewRepresentable {
 
     @MainActor
     private final class ActionEntry: NSObject {
-        let button: UIButton
-        let item: NSUIViewToolbarItem
+        let button = UIBarButtonItem()
+        let item: NSToolbarItem
         private let activate: () -> Void
 
-        init(action: MacToolbarAction, activate: @escaping () -> Void) {
+        init(identifier: String, activate: @escaping () -> Void) {
             self.activate = activate
-            self.button = UIButton(type: .system)
-            self.button.accessibilityIdentifier = action.identifier
-            self.item = NSUIViewToolbarItem(itemIdentifier: NSToolbarItem.Identifier(action.identifier), uiView: self.button)
+            // Catalyst copies the identifier only when it bridges the bar button item.
+            self.button.accessibilityIdentifier = identifier
+            self.item = NSToolbarItem(itemIdentifier: NSToolbarItem.Identifier(identifier), barButtonItem: self.button)
             super.init()
-            self.button.addTarget(self, action: #selector(self.pressed(_:)), for: .primaryActionTriggered)
+            self.button.target = self
+            self.button.action = #selector(self.pressed(_:))
+            self.item.target = self
+            self.item.action = #selector(self.pressed(_:))
             self.item.isBordered = true
             self.item.autovalidates = false
         }

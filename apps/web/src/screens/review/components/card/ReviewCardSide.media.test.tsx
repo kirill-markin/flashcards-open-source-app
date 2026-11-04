@@ -160,6 +160,7 @@ function renderReviewCardSide(
           localReadVersion={localReadVersion}
           onOpenAi={null}
           onToggleSpeech={() => undefined}
+          shortcutTarget={null}
           showAiButton={false}
           showSpeechButton={false}
           speechButtonAriaLabel={null}

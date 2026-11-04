@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useEffectEvent, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import type { Card } from "../../../types";
-import { reviewRevealShortcutKeys, reviewShortcutRatingsByKey } from "./reviewShortcutKeys";
+import type { ReviewCardCopyButtonHandle } from "../components/card/ReviewCardCopyButton";
+import type { ReviewSpeechSide } from "../speech/reviewSpeech";
+import {
+  reviewCopyShortcutKey,
+  reviewRevealShortcutKeys,
+  reviewShortcutLetter,
+  reviewShortcutRatingsByKey,
+  reviewSpeechShortcutKey,
+} from "./reviewShortcutKeys";
 
 export type ReviewShortcutPointerEnterHandler = (event: ReactPointerEvent<HTMLButtonElement>) => void;
 
 type UseReviewKeyboardShortcutsParams = Readonly<{
+  activeSideCopyButtonRef: RefObject<ReviewCardCopyButtonHandle | null>;
   handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<void>;
   isAnswerVisible: boolean;
   isEditorPresented: boolean;
@@ -18,8 +27,11 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
   onShortcutInputStart: () => void;
+  selectedBackSpeakableText: string;
   selectedCard: Card | null;
+  selectedFrontSpeakableText: string;
   setIsAnswerVisible: (value: boolean) => void;
+  toggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
 }>;
 
 type UseReviewKeyboardShortcutsResult = Readonly<{
@@ -42,6 +54,7 @@ function isEditableKeyboardTarget(target: EventTarget | null): target is HTMLEle
 
 export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsParams): UseReviewKeyboardShortcutsResult {
   const {
+    activeSideCopyButtonRef,
     handleReview,
     isAnswerVisible,
     isEditorPresented,
@@ -55,8 +68,11 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     onShortcutInputStart,
+    selectedBackSpeakableText,
     selectedCard,
+    selectedFrontSpeakableText,
     setIsAnswerVisible,
+    toggleSpeech,
   } = params;
   const isImeCompositionActiveRef = useRef<boolean>(false);
   const areShortcutsSuppressed = isSubmitting
@@ -104,6 +120,38 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
       if (!isAnswerVisible) {
         setIsAnswerVisible(true);
       }
+      return;
+    }
+
+    const shortcutLetter = reviewShortcutLetter(event);
+    if (shortcutLetter === reviewSpeechShortcutKey || shortcutLetter === reviewCopyShortcutKey) {
+      if (event.shiftKey || event.repeat) {
+        return;
+      }
+
+      const activeSide: ReviewSpeechSide = isAnswerVisible ? "back" : "front";
+      if (shortcutLetter === reviewSpeechShortcutKey) {
+        const activeSpeakableText = activeSide === "back" ? selectedBackSpeakableText : selectedFrontSpeakableText;
+        if (activeSpeakableText === "") {
+          return;
+        }
+
+        event.preventDefault();
+        onShortcutInputStart();
+        toggleSpeech(activeSide, activeSide === "back" ? selectedCard.backText : selectedCard.frontText);
+        return;
+      }
+
+      // Null until the active card pane has rendered the active side's copy button.
+      const copyButton = activeSideCopyButtonRef.current;
+      if (copyButton === null) {
+        return;
+      }
+
+      event.preventDefault();
+      onShortcutInputStart();
+      // Copying inside this keydown keeps the key press's user activation for the clipboard write.
+      void copyButton.copy();
       return;
     }
 

@@ -22,6 +22,7 @@ import { completeCatalogImmediateStudy } from "../catalog/catalogImmediateAttemp
 import type { Card } from "../../types";
 import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
+import type { ReviewCardCopyButtonHandle } from "./components/card/ReviewCardCopyButton";
 import type { ReviewEditorModalProps } from "./components/card/ReviewEditorModal";
 import type { ReviewTextSelectionDialogProps, ReviewTextSelectionRequest } from "./components/card/ReviewTextSelectionDialog";
 import type { ReviewPaneProps } from "./components/ReviewPane";
@@ -106,6 +107,7 @@ export function useReviewScreenController(
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const revealedCardIdRef = useRef<string | null>(null);
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
+  const activeSideCopyButtonRef = useRef<ReviewCardCopyButtonHandle | null>(null);
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const { message: reviewFeedbackMessage, showMessage: showReviewFeedbackMessage } = useTransientMessage(3000);
   const {
@@ -542,6 +544,7 @@ export function useReviewScreenController(
   }, [stopSpeech]);
 
   const { handleShortcutButtonPointerEnter } = useReviewKeyboardShortcuts({
+    activeSideCopyButtonRef,
     handleReview: async (card, rating) => {
       await handleReview(card, rating);
     },
@@ -557,13 +560,16 @@ export function useReviewScreenController(
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     onShortcutInputStart: dismissReviewReactions,
+    selectedBackSpeakableText,
     selectedCard,
+    selectedFrontSpeakableText,
     setIsAnswerVisible: (value) => {
       if (value) {
         reportCardRevealed();
       }
       setIsAnswerVisible(value);
     },
+    toggleSpeech,
   });
 
   if (isAnswerVisible && selectedCard !== null && workspaceSettings !== null) {
@@ -693,6 +699,7 @@ export function useReviewScreenController(
         && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
         && !isReviewQueuePanelOpen && reviewPaywall?.isPresented !== true
         && !indexedDbOpenRecoveryState.isFailed,
+      activeSideCopyButtonRef,
       activeSpeechSide,
       hasCards,
       isAnswerVisible,

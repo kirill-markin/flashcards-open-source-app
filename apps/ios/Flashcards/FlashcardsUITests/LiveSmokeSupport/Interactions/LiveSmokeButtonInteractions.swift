@@ -48,11 +48,58 @@ extension LiveSmokeTestCase {
             "Native status buttons must have distinct, nonoverlapping hit regions.")
         return pair
     }
+
+    /// macOS 26 XCUITest drops the accessibility identifiers of native toolbar items
+    /// but keeps their labels, so Mac tests find exactly these items by English label.
+    private func macToolbarItemLabel(identifier: String) -> NSPredicate? {
+        switch identifier {
+        // The Review filter's label is its applied filter; these are the ones the tests apply.
+        case LiveSmokeIdentifier.reviewFilterMenu:
+            return NSPredicate(format: "label IN %@", ["All cards", "No tags", "smoke-guest-ai-review"])
+        case "mac.sidebar.toggle": return NSPredicate(format: "label == %@", "Sidebar")
+        case "mac.navigation.back": return NSPredicate(format: "label == %@", "Back")
+        case LiveSmokeIdentifier.aiCompanionToggle:
+            return NSPredicate(format: "label == %@ OR label == %@", "Show AI alongside", "Close AI pane")
+        case LiveSmokeIdentifier.aiHistoryButton: return NSPredicate(format: "label == %@", "History")
+        case LiveSmokeIdentifier.aiNewChatButton: return NSPredicate(format: "label == %@", "New")
+        case "cards.filterButton": return NSPredicate(format: "label BEGINSWITH %@", "Filter cards")
+        case LiveSmokeIdentifier.cardsAddButton: return NSPredicate(format: "label == %@", "Add card")
+        default: return nil
+        }
+    }
+
+    /// The native AI toggle conveys whether the companion is open only through its label.
+    @MainActor
+    func macAiCompanionIsOpen(toggle: XCUIElement) -> Bool {
+        toggle.label == "Close AI pane"
+    }
     #endif
+
+    /// Every button a test addresses by `identifier`.
+    @MainActor
+    func buttons(identifier: String) -> XCUIElementQuery {
+        #if targetEnvironment(macCatalyst)
+        if let label = self.macToolbarItemLabel(identifier: identifier) {
+            return self.app.toolbars.buttons.matching(label)
+        }
+        #endif
+        return self.app.buttons.matching(identifier: identifier)
+    }
+
+    /// The element of any type a test addresses by `identifier`.
+    @MainActor
+    func element(identifier: String) -> XCUIElement {
+        #if targetEnvironment(macCatalyst)
+        if let label = self.macToolbarItemLabel(identifier: identifier) {
+            return self.app.toolbars.buttons.matching(label).firstMatch
+        }
+        #endif
+        return self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
 
     @MainActor
     func tapButton(identifier: String, timeout: TimeInterval) throws {
-        let button = self.app.buttons[identifier].firstMatch
+        let button = self.buttons(identifier: identifier).firstMatch
         try self.tapButton(button: button, identifier: identifier, timeout: timeout)
     }
 
@@ -213,7 +260,7 @@ extension LiveSmokeTestCase {
         var navigationBarButton = self.app.navigationBars.buttons["BackButton"].firstMatch
         let toolbarBackButton = self.app.toolbars.buttons["BackButton"].firstMatch
         #if targetEnvironment(macCatalyst)
-        let compactToolbarBackButton = self.app.toolbars.buttons["mac.navigation.back"].firstMatch
+        let compactToolbarBackButton = self.buttons(identifier: "mac.navigation.back").firstMatch
         #endif
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
             #if !targetEnvironment(macCatalyst)

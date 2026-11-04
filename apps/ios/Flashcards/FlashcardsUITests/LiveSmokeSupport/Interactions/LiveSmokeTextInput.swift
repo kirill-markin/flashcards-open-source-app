@@ -161,15 +161,38 @@ extension LiveSmokeTestCase {
                     timeoutSeconds: formatDuration(seconds: timeout),
                     durationSeconds: formatDuration(seconds: Date().timeIntervalSince(startedAt)),
                     result: "success",
-                    note: "text input exists and is hittable"
+                    note: "text input exists and is hittable; hasKeyboardFocus=\(self.elementHasKeyboardFocus(element: element))"
                 )
                 self.logActionStart(action: "click_text_input", identifier: identifier)
                 element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+                while Date() < deadline && self.elementHasKeyboardFocus(element: element) == false {
+                    RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+                }
+                guard self.elementHasKeyboardFocus(element: element) else {
+                    self.logActionEnd(
+                        action: "click_text_input",
+                        identifier: identifier,
+                        result: "failure",
+                        note: self.textInputFailureNote(element: element)
+                    )
+                    throw LiveSmokeFailure.textInputNotReady(
+                        identifier: identifier,
+                        timeoutSeconds: timeout,
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle,
+                        exists: element.exists,
+                        hittable: element.isHittable,
+                        hasKeyboardFocus: false,
+                        softwareKeyboardVisible: self.softwareKeyboardIsVisible(),
+                        elementLabel: element.label,
+                        elementValue: self.elementValue(element: element)
+                    )
+                }
                 self.logActionEnd(
                     action: "click_text_input",
                     identifier: identifier,
                     result: "success",
-                    note: "interior pointer click completed; text entry remains unverified"
+                    note: "keyboard focus acquired"
                 )
                 return
             }
