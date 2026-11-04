@@ -109,22 +109,23 @@ function buildReviewDeckFilterMenuItems(
     ...(selectedReviewFilter.kind === "catalogImport" ? [{
       key: toReviewFilterMenuItemKey(selectedReviewFilter),
       label: selectedReviewFilter.title,
-      reviewFilter: selectedReviewFilter,
+      reviewFilter: makeTagsReviewFilter([]),
       subtitle: null,
       isSelected: true,
     }] : []),
     ...decks.map((deck) => {
-      const reviewFilter: ReviewFilter = {
+      const deckReviewFilter: ReviewFilter = {
         kind: "deck",
         deckId: deck.deckId,
       };
+      const isSelected = toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(deckReviewFilter);
 
       return {
-        key: toReviewFilterMenuItemKey(reviewFilter),
+        key: toReviewFilterMenuItemKey(deckReviewFilter),
         label: deck.name,
-        reviewFilter,
+        reviewFilter: isSelected ? makeTagsReviewFilter([]) : deckReviewFilter,
         subtitle: deckSubtitle,
-        isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
+        isSelected,
       };
     }),
   ];

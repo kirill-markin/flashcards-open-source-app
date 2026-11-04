@@ -719,7 +719,7 @@ describe("ReviewScreen filter controls", () => {
     expect(queryReviewFilterMenu()).not.toBeNull();
     await pointerDownElementAsync(document.body);
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
-    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: [] });
   });
 
   it("keeps searchable pointer selection owned by the combobox for keyboard activation", async () => {
@@ -759,7 +759,7 @@ describe("ReviewScreen filter controls", () => {
     expect(queryReviewFilterMenu()).not.toBeNull();
     await dispatchDocumentKeydown("Escape");
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
-    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-4" });
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: [] });
   });
 
   it("shows the resolved tag count after StrictMode replays the initial load effect", async () => {
