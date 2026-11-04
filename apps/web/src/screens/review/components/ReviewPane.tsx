@@ -13,8 +13,10 @@ import { useWorkspacePath } from "../../../useWorkspacePath";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { ReviewRepetitionBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
-import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
+import type { ReviewCardCopyButtonHandle } from "./card/ReviewCardCopyButton";
+import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon, type ReviewCardShortcutTarget } from "./card/ReviewCardSide";
 import { ReviewCardTags } from "./ReviewCardTags";
+import { ReviewShortcutHint } from "./ReviewShortcutHint";
 import { ReviewEyeIcon, ReviewRatingIcon } from "./ReviewIcons";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
 import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
@@ -29,7 +31,6 @@ import {
 } from "./reviewScreenTypes";
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
-const REVIEW_SHORTCUT_HINT_KEY_TOKEN = "{{key}}";
 const REVIEW_REVEAL_SHORTCUT_ARIA_KEYS = "Space Enter";
 const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
   behavior: "instant",
@@ -40,6 +41,7 @@ const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
 
 export type ReviewPaneProps = Readonly<{
   showFirstReviewOnboarding: boolean;
+  activeSideCopyButtonRef: RefObject<ReviewCardCopyButtonHandle | null>;
   activeSpeechSide: ReviewSpeechSide | null;
   hasCards: boolean;
   isAnswerVisible: boolean;
@@ -86,6 +88,7 @@ type ReviewEmptyPaneProps = Readonly<{
 type ReviewActiveCardPaneProps = Readonly<{
   showFirstReviewOnboarding: boolean;
   surfaceRef: RefObject<HTMLElement | null>;
+  activeSideCopyButtonRef: RefObject<ReviewCardCopyButtonHandle | null>;
   activeSpeechSide: ReviewSpeechSide | null;
   isAnswerVisible: boolean;
   isSubmitting: boolean;
@@ -114,25 +117,7 @@ type ReviewRatingButtonColumnProps = Readonly<{
   options: ReadonlyArray<ReviewButtonOption>;
 }>;
 
-type ReviewShortcutHintProps = Readonly<{
-  keyLabel: string;
-}>;
-
 function handleDisabledSpeechToggle(): void {
-}
-
-function ReviewShortcutHint(props: ReviewShortcutHintProps): ReactElement {
-  const { keyLabel } = props;
-  const { t } = useI18n();
-  const [hintPrefix, hintSuffix] = t("reviewScreen.shortcuts.hint").split(REVIEW_SHORTCUT_HINT_KEY_TOKEN);
-
-  return (
-    <span className="review-shortcut-hint" aria-hidden="true">
-      {hintPrefix}
-      <kbd className="review-shortcut-hint-key">{keyLabel}</kbd>
-      {hintSuffix}
-    </span>
-  );
 }
 
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
@@ -187,6 +172,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
             onOpenAi={null}
             onOpenTextSelection={() => onRequestTextSelection("front")}
             onToggleSpeech={handleDisabledSpeechToggle}
+            shortcutTarget={null}
             showAiButton={false}
             showSpeechButton={true}
             speechButtonAriaLabel={frontSpeechButtonAriaLabel}
@@ -211,6 +197,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
                 <ReviewCardSpeechButton
                   ariaLabel={frontSpeechButtonAriaLabel}
                   disabled={true}
+                  isShortcutTarget={false}
                   isSpeaking={false}
                   onToggleSpeech={handleDisabledSpeechToggle}
                 />
@@ -314,6 +301,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const {
     showFirstReviewOnboarding,
     surfaceRef,
+    activeSideCopyButtonRef,
     activeSpeechSide,
     isAnswerVisible,
     isSubmitting,
@@ -348,6 +336,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const backTargetRef = useRef<HTMLDivElement>(null);
   const previousCardIdRef = useRef<string | null>(null);
   const wasAnswerVisibleRef = useRef(false);
+  const shortcutTarget: ReviewCardShortcutTarget = { copyButtonRef: activeSideCopyButtonRef };
 
   useLayoutEffect(() => {
     const didCardChange = previousCardIdRef.current !== selectedCard.cardId;
@@ -403,6 +392,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             onOpenAi={null}
             onOpenTextSelection={() => onRequestTextSelection("front")}
             onToggleSpeech={() => onToggleSpeech("front", selectedCard.frontText)}
+            shortcutTarget={isAnswerVisible ? null : shortcutTarget}
             showAiButton={false}
             showSpeechButton={selectedFrontSpeakableText !== ""}
             speechButtonAriaLabel={t(activeSpeechSide === "front" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
@@ -432,6 +422,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
               onOpenAi={() => void onAiHandoff(selectedCard)}
               onOpenTextSelection={() => onRequestTextSelection("back")}
               onToggleSpeech={() => onToggleSpeech("back", selectedCard.backText)}
+              shortcutTarget={shortcutTarget}
               showAiButton={true}
               showSpeechButton={selectedBackSpeakableText !== ""}
               speechButtonAriaLabel={t(activeSpeechSide === "back" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
@@ -508,6 +499,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
   const surfaceRef = useRef<HTMLElement>(null);
   const {
     showFirstReviewOnboarding,
+    activeSideCopyButtonRef,
     activeSpeechSide,
     hasCards,
     isAnswerVisible,
@@ -581,6 +573,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
         <ReviewActiveCardPane
           showFirstReviewOnboarding={showFirstReviewOnboarding}
           surfaceRef={surfaceRef}
+          activeSideCopyButtonRef={activeSideCopyButtonRef}
           activeSpeechSide={activeSpeechSide}
           isAnswerVisible={isAnswerVisible}
           isSubmitting={isSubmitting}

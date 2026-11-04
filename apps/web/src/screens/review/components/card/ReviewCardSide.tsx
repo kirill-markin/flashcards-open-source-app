@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   type ReactElement,
+  type RefObject,
 } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -21,8 +22,10 @@ import reviewMathBlocks, {
   normalizeReviewPlainTextEscapedDollars,
 } from "./reviewMathBlocks";
 import { ReviewMathBlock } from "./ReviewMathBlock";
-import { ReviewCardCopyButton } from "./ReviewCardCopyButton";
+import { ReviewCardCopyButton, type ReviewCardCopyButtonHandle } from "./ReviewCardCopyButton";
 import { useI18n } from "../../../../i18n";
+import { reviewSpeechShortcutKey } from "../../input/reviewShortcutKeys";
+import { ReviewShortcutHint } from "../ReviewShortcutHint";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
@@ -36,6 +39,10 @@ type ReviewMarkdownRenderContextValue = Readonly<{
 
 const ReviewMarkdownRenderContext = createContext<ReviewMarkdownRenderContextValue | null>(null);
 
+export type ReviewCardShortcutTarget = Readonly<{
+  copyButtonRef: RefObject<ReviewCardCopyButtonHandle | null>;
+}>;
+
 export type ReviewCardSideProps = Readonly<{
   aiButtonAriaLabel: string | null;
   contentClassName: string;
@@ -45,6 +52,8 @@ export type ReviewCardSideProps = Readonly<{
   onOpenAi: (() => void) | null;
   onOpenTextSelection?: () => void;
   onToggleSpeech: () => void;
+  /** Set only on the side the speech and copy shortcuts act on. */
+  shortcutTarget: ReviewCardShortcutTarget | null;
   showAiButton: boolean;
   showSpeechButton: boolean;
   speechButtonAriaLabel: string | null;
@@ -61,6 +70,7 @@ export type ReviewCardSideProps = Readonly<{
 export type ReviewCardSpeechButtonProps = Readonly<{
   ariaLabel: string;
   disabled: boolean;
+  isShortcutTarget: boolean;
   isSpeaking: boolean;
   onToggleSpeech: () => void;
 }>;
@@ -356,6 +366,7 @@ export function ReviewCardSpeechButton(props: ReviewCardSpeechButtonProps): Reac
   const {
     ariaLabel,
     disabled,
+    isShortcutTarget,
     isSpeaking,
     onToggleSpeech,
   } = props;
@@ -375,6 +386,7 @@ export function ReviewCardSpeechButton(props: ReviewCardSpeechButtonProps): Reac
       className={className}
       onClick={handleClick}
       aria-label={ariaLabel}
+      aria-keyshortcuts={isShortcutTarget ? reviewSpeechShortcutKey : undefined}
       disabled={disabled}
     >
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -382,6 +394,7 @@ export function ReviewCardSpeechButton(props: ReviewCardSpeechButtonProps): Reac
         <path d="M14 9C15.333 10.2 15.333 13.8 14 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M17.5 6.5C20.5 9.4 20.5 14.6 17.5 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
+      {isShortcutTarget ? <ReviewShortcutHint keyLabel={reviewSpeechShortcutKey} /> : null}
     </button>
   );
 }
@@ -396,6 +409,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     onOpenAi,
     onOpenTextSelection,
     onToggleSpeech,
+    shortcutTarget,
     showAiButton,
     showSpeechButton,
     speechButtonAriaLabel,
@@ -462,12 +476,14 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
                 side={copySource.side}
                 sideLabel={label}
                 sourceText={copySource.sourceText}
+                shortcutHandleRef={shortcutTarget?.copyButtonRef ?? null}
               />
             ) : null}
             {showSpeechButton ? (
               <ReviewCardSpeechButton
                 ariaLabel={speechButtonAriaLabel ?? label}
                 disabled={speechButtonDisabled}
+                isShortcutTarget={shortcutTarget !== null}
                 isSpeaking={isSpeaking}
                 onToggleSpeech={onToggleSpeech}
               />

@@ -1,19 +1,27 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import { copiedFeedbackDurationMs } from "../../../../access/browserAccess";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
+import { reviewCopyShortcutKey } from "../../input/reviewShortcutKeys";
+import { ReviewShortcutHint } from "../ReviewShortcutHint";
 import { reviewSideMarkdownForClipboard } from "./reviewClipboardMarkdown";
+
+export type ReviewCardCopyButtonHandle = Readonly<{
+  copy: () => Promise<void>;
+}>;
 
 type ReviewCardCopyButtonProps = Readonly<{
   side: "front" | "back";
   sideLabel: string;
   sourceText: string;
+  /** Set only on the side the copy shortcut acts on; it exposes `copy` and shows the shortcut hint. */
+  shortcutHandleRef: RefObject<ReviewCardCopyButtonHandle | null> | null;
 }>;
 
 type CopyStatus = "idle" | "copying" | "copied" | "failed" | "unavailable";
 
 export function ReviewCardCopyButton(props: ReviewCardCopyButtonProps): ReactElement {
-  const { side, sideLabel, sourceText } = props;
+  const { side, sideLabel, sourceText, shortcutHandleRef } = props;
   const { t } = useI18n();
   const { showCapturedTechnicalError } = useAppErrorDialog();
   const [status, setStatus] = useState<CopyStatus>("idle");
@@ -73,12 +81,15 @@ export function ReviewCardCopyButton(props: ReviewCardCopyButtonProps): ReactEle
     }
   }
 
+  useImperativeHandle(shortcutHandleRef, () => ({ copy: copySide }));
+
   return (
     <div className="review-card-copy">
       <button
         type="button"
         className="review-card-copy-btn"
         aria-label={ariaLabel}
+        aria-keyshortcuts={shortcutHandleRef === null ? undefined : reviewCopyShortcutKey}
         aria-disabled={status === "copying"}
         aria-busy={status === "copying"}
         title={statusMessage === "" ? ariaLabel : `${ariaLabel}: ${statusMessage}`}
@@ -101,6 +112,7 @@ export function ReviewCardCopyButton(props: ReviewCardCopyButtonProps): ReactEle
             </>
           )}
         </svg>
+        {shortcutHandleRef === null ? null : <ReviewShortcutHint keyLabel={reviewCopyShortcutKey} />}
       </button>
       <span
         className={hasFailed ? "review-card-copy-error" : "review-metadata-chip-accessible-label"}
