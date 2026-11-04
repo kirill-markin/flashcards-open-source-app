@@ -164,11 +164,16 @@ private fun reviewRenderedContentImageAssets(content: ReviewRenderedContent): Li
         return emptyList()
     }
 
-    return content.blocks.mapNotNull { block ->
-        if (block is ReviewManagedMarkdownBlock.ManagedMedia) {
-            reviewManagedMediaImageFileAsset(reference = block.reference)
-        } else {
-            null
+    return content.blocks.flatMap { block ->
+        when (block) {
+            is ReviewManagedMarkdownBlock.ManagedMedia -> listOfNotNull(
+                reviewManagedMediaImageFileAsset(reference = block.reference)
+            )
+            is ReviewManagedMarkdownBlock.ManagedMediaGallery -> block.references.mapNotNull { reference ->
+                reviewManagedMediaImageFileAsset(reference = reference)
+            }
+            is ReviewManagedMarkdownBlock.Markdown,
+            is ReviewManagedMarkdownBlock.Formula -> emptyList()
         }
     }
 }

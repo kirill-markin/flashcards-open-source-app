@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
@@ -106,7 +107,8 @@ private enum class ReviewManagedMediaAttachmentActionState {
 internal fun ReviewManagedMediaContent(
     reference: ReviewManagedMediaReference,
     reviewImagePreparer: ReviewImagePreparer,
-    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl
+    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
+    imageMaxWidth: Dp
 ) {
     val mediaAsset = reference.mediaAsset
     val category = classifyReviewManagedMediaCategory(
@@ -133,7 +135,8 @@ internal fun ReviewManagedMediaContent(
                 ),
                 style = ReviewManagedMediaImageStateStyle.PROGRESS,
                 modifier = Modifier.reviewManagedMediaImageFrame(
-                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
+                    maxWidth = imageMaxWidth
                 )
             )
             return
@@ -151,7 +154,8 @@ internal fun ReviewManagedMediaContent(
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
                 modifier = Modifier.reviewManagedMediaImageFrame(
-                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
+                    maxWidth = imageMaxWidth
                 )
             )
             return
@@ -172,7 +176,8 @@ internal fun ReviewManagedMediaContent(
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
                 modifier = Modifier.reviewManagedMediaImageFrame(
-                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
+                    maxWidth = imageMaxWidth
                 )
             )
         } else {
@@ -189,7 +194,8 @@ internal fun ReviewManagedMediaContent(
         ReviewManagedMediaCategory.IMAGE -> ReviewManagedMediaImageFile(
             mediaAsset = checkNotNull(mediaAsset),
             label = label,
-            reviewImagePreparer = reviewImagePreparer
+            reviewImagePreparer = reviewImagePreparer,
+            imageMaxWidth = imageMaxWidth
         )
 
         ReviewManagedMediaCategory.ATTACHMENT -> ReviewManagedMediaAttachment(
@@ -212,7 +218,8 @@ internal fun ReviewManagedMediaContent(
 private fun ReviewManagedMediaImageFile(
     mediaAsset: MediaAsset,
     label: String,
-    reviewImagePreparer: ReviewImagePreparer
+    reviewImagePreparer: ReviewImagePreparer,
+    imageMaxWidth: Dp
 ) {
     // A resolved file starts ready: sized from its header, and drawn on the first frame once prepared.
     // Only a file not yet known on disk shows the 4:3 loading frame.
@@ -263,7 +270,8 @@ private fun ReviewManagedMediaImageFile(
                 ),
                 style = ReviewManagedMediaImageStateStyle.PROGRESS,
                 modifier = Modifier.reviewManagedMediaImageFrame(
-                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
+                    maxWidth = imageMaxWidth
                 )
             )
         }
@@ -280,7 +288,8 @@ private fun ReviewManagedMediaImageFile(
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
                 modifier = Modifier.reviewManagedMediaImageFrame(
-                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio),
+                    maxWidth = imageMaxWidth
                 )
             )
         }
@@ -288,6 +297,7 @@ private fun ReviewManagedMediaImageFile(
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
             label = label,
             imageFile = state.imageFile,
+            imageMaxWidth = imageMaxWidth,
             onImageLoadFailed = {
                 reviewImagePreparer.forgetResolvedImageFile(mediaAsset = state.imageFile.mediaFile.mediaAsset)
             }
@@ -299,6 +309,7 @@ private fun ReviewManagedMediaImageFile(
 private fun ReviewManagedMediaImage(
     label: String,
     imageFile: ReviewResolvedImageFile,
+    imageMaxWidth: Dp,
     onImageLoadFailed: () -> Unit
 ) {
     val context = LocalContext.current
@@ -354,18 +365,21 @@ private fun ReviewManagedMediaImage(
                 )
             },
             onError = { onImageLoadFailed() },
-            modifier = Modifier.reviewManagedMediaImageFrame(sizeModifier = imageSizeModifier)
+            modifier = Modifier.reviewManagedMediaImageFrame(
+                sizeModifier = imageSizeModifier,
+                maxWidth = imageMaxWidth
+            )
         )
     }
 }
 
-private fun Modifier.reviewManagedMediaImageFrame(sizeModifier: Modifier): Modifier {
+private fun Modifier.reviewManagedMediaImageFrame(sizeModifier: Modifier, maxWidth: Dp): Modifier {
     return fillMaxWidth()
         .wrapContentWidth(
             align = Alignment.CenterHorizontally,
             unbounded = false
         )
-        .widthIn(max = reviewManagedMediaImageMaxWidth)
+        .widthIn(max = maxWidth)
         .fillMaxWidth()
         .then(sizeModifier)
 }

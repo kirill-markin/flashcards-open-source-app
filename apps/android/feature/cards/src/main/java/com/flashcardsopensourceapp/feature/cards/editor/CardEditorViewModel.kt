@@ -530,6 +530,8 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
 }
 
 private val managedImageMarkdownRegex = Regex("""!\[([^\]\n]*)]\((fcasset:[^\s)]+)\)""")
+// An image reference, optionally titled, followed only by spaces/tabs at the end of the text.
+private val trailingImageMarkdownRegex = Regex("""!\[[^\]\n]*]\([^\s)]+(?:\s+"[^"\n]*")?\)[ \t]*\z""")
 
 private fun insertMarkdownAtSelection(
     text: String,
@@ -537,10 +539,12 @@ private fun insertMarkdownAtSelection(
     markdown: String
 ): CardEditorTextEditResult {
     val normalizedSelection = clampCardEditorTextSelection(selection = selection, text = text)
-    val prefix = if (text.substring(startIndex = 0, endIndex = normalizedSelection.start).endsWith("\n") ||
-        normalizedSelection.start == 0
-    ) {
+    val textBeforeSelection = text.substring(startIndex = 0, endIndex = normalizedSelection.start)
+    val prefix = if (textBeforeSelection.endsWith("\n") || normalizedSelection.start == 0) {
         ""
+    } else if (trailingImageMarkdownRegex.containsMatchIn(input = textBeforeSelection)) {
+        // Images in one paragraph render as a gallery.
+        " "
     } else {
         "\n\n"
     }

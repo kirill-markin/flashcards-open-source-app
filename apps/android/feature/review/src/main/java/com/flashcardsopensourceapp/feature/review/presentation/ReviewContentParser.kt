@@ -41,9 +41,15 @@ internal val reviewManagedMediaReferenceRegex: Regex = Regex(
 private val reviewMarkdownLinkOrImageRegex: Regex = Regex(
     pattern = """!?\[[^\]]*]\([^)]+\)"""
 )
+// Images joined by spaces/tabs and at most one line break stay in one Markdown paragraph.
+private val reviewSameParagraphImageSeparatorRegex: Regex = Regex(pattern = """[ \t]*(?:\r\n|\r|\n)?[ \t]*""")
 private data class ReviewManagedMediaMatch(
     val range: IntRange,
     val reference: ReviewManagedMediaReference
+)
+private data class ReviewManagedMediaSegment(
+    val range: IntRange,
+    val block: ReviewManagedMarkdownBlock
 )
 
 fun classifyReviewContentPresentation(text: String): ReviewContentPresentationMode {
@@ -215,13 +221,15 @@ private fun hasInlineMarkdownFormatting(text: String): Boolean {
         return false
     }
 
-    val markdownText: CharSequence = text
-    val tree: ASTNode = MarkdownParser(
+    return hasInlineMarkdownFormattingNode(node = parseReviewMarkdownTree(markdown = text))
+}
+
+private fun parseReviewMarkdownTree(markdown: CharSequence): ASTNode {
+    return MarkdownParser(
         flavour = GFMFlavourDescriptor(),
         assertionsEnabled = true,
         cancellationToken = CancellationToken.NonCancellable
-    ).buildMarkdownTreeFromString(markdownText)
-    return hasInlineMarkdownFormattingNode(node = tree)
+    ).buildMarkdownTreeFromString(markdown)
 }
 
 private fun hasInlineMarkdownFormattingNode(node: ASTNode): Boolean {
@@ -266,14 +274,18 @@ private fun makeReviewManagedMarkdownContent(
     if (matches.isEmpty()) {
         return null
     }
+    val segments: List<ReviewManagedMediaSegment> = groupReviewManagedMediaMatches(
+        text = text,
+        matches = matches
+    )
 
     var currentIndex: Int = 0
     var formulaIndex: Int = 0
     val blocks: List<ReviewManagedMarkdownBlock> = buildList {
-        matches.forEach { match ->
+        segments.forEach { segment ->
             val precedingMarkdown: String = text.substring(
                 startIndex = currentIndex,
-                endIndex = match.range.first
+                endIndex = segment.range.first
             )
             val precedingFormulaCount: Int = countInlineMathMarkers(text = precedingMarkdown)
             if (precedingMarkdown.isNotBlank()) {
@@ -288,8 +300,8 @@ private fun makeReviewManagedMarkdownContent(
                 )
             }
             formulaIndex += precedingFormulaCount
-            add(ReviewManagedMarkdownBlock.ManagedMedia(reference = match.reference))
-            currentIndex = match.range.last + 1
+            add(segment.block)
+            currentIndex = segment.range.last + 1
         }
 
         val trailingMarkdown: String = text.substring(startIndex = currentIndex)
@@ -307,6 +319,86 @@ private fun makeReviewManagedMarkdownContent(
     }
 
     return ReviewRenderedContent.ManagedMarkdown(blocks = blocks)
+}
+
+/**
+ * Consecutive image references that are the whole content of one Markdown paragraph become a
+ * gallery; every other reference stays its own block.
+ */
+private fun groupReviewManagedMediaMatches(
+    text: String,
+    matches: List<ReviewManagedMediaMatch>
+): List<ReviewManagedMediaSegment> {
+    val runs: List<List<ReviewManagedMediaMatch>> = matches.fold(
+        initial = emptyList()
+    ) { currentRuns, match ->
+        val currentRun: List<ReviewManagedMediaMatch>? = currentRuns.lastOrNull()
+        val previousMatch: ReviewManagedMediaMatch? = currentRun?.last()
+        if (currentRun != null &&
+            previousMatch != null &&
+            previousMatch.reference.isImageSyntax &&
+            match.reference.isImageSyntax &&
+            reviewSameParagraphImageSeparatorRegex.matches(
+                input = text.substring(startIndex = previousMatch.range.last + 1, endIndex = match.range.first)
+            )
+        ) {
+            currentRuns.dropLast(n = 1) + listOf(currentRun + match)
+        } else {
+            currentRuns + listOf(listOf(match))
+        }
+    }
+    val paragraphContentRanges: Set<IntRange> = if (runs.any { run -> run.size > 1 }) {
+        reviewMarkdownParagraphContentRanges(text = text)
+    } else {
+        emptySet()
+    }
+
+    return runs.flatMap { run ->
+        val runRange: IntRange = run.first().range.first..run.last().range.last
+        if (run.size > 1 && runRange in paragraphContentRanges) {
+            listOf(
+                ReviewManagedMediaSegment(
+                    range = runRange,
+                    block = ReviewManagedMarkdownBlock.ManagedMediaGallery(
+                        references = run.map(ReviewManagedMediaMatch::reference)
+                    )
+                )
+            )
+        } else {
+            run.map { match ->
+                ReviewManagedMediaSegment(
+                    range = match.range,
+                    block = ReviewManagedMarkdownBlock.ManagedMedia(reference = match.reference)
+                )
+            }
+        }
+    }
+}
+
+/** Each paragraph's range without its surrounding whitespace. */
+private fun reviewMarkdownParagraphContentRanges(text: String): Set<IntRange> {
+    // A same-length line-ending rewrite keeps parser offsets equal to offsets in [text].
+    val parserText: String = text
+        .replace(oldValue = "\r\n", newValue = " \n")
+        .replace(oldChar = '\r', newChar = '\n')
+    return reviewMarkdownParagraphNodes(node = parseReviewMarkdownTree(markdown = parserText))
+        .map { node ->
+            val paragraphText: String = parserText.substring(
+                startIndex = node.startOffset,
+                endIndex = node.endOffset
+            )
+            val contentStart: Int = node.startOffset + paragraphText.length - paragraphText.trimStart().length
+            val contentEndExclusive: Int = node.endOffset - (paragraphText.length - paragraphText.trimEnd().length)
+            contentStart until contentEndExclusive
+        }
+        .toSet()
+}
+
+private fun reviewMarkdownParagraphNodes(node: ASTNode): List<ASTNode> {
+    if (node.type == MarkdownElementTypes.PARAGRAPH) {
+        return listOf(node)
+    }
+    return node.children.flatMap { child -> reviewMarkdownParagraphNodes(node = child) }
 }
 
 private fun findReviewManagedMediaMatches(

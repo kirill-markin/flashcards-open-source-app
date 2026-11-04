@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.content.MathFormulaBlock
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
@@ -63,7 +64,24 @@ internal fun ReviewRenderedContentView(
                                 ReviewManagedMediaContent(
                                     reference = block.reference,
                                     reviewImagePreparer = reviewImagePreparer,
-                                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
+                                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                                    imageMaxWidth = reviewManagedMediaImageMaxWidth
+                                )
+                            }
+
+                            is ReviewManagedMarkdownBlock.ManagedMediaGallery -> DisableSelection {
+                                ReviewImageGallery(
+                                    items = block.references,
+                                    itemContent = { reference ->
+                                        ReviewManagedMediaContent(
+                                            reference = reference,
+                                            reviewImagePreparer = reviewImagePreparer,
+                                            onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                                            // A cell already bounds the image; it fills the cell.
+                                            imageMaxWidth = Dp.Unspecified
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
 

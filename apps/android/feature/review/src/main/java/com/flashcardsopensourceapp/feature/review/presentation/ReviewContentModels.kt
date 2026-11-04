@@ -40,6 +40,11 @@ sealed interface ReviewManagedMarkdownBlock {
         val reference: ReviewManagedMediaReference
     ) : ReviewManagedMarkdownBlock
 
+    /** Two or more image references that form one image-only Markdown paragraph. */
+    data class ManagedMediaGallery(
+        val references: List<ReviewManagedMediaReference>
+    ) : ReviewManagedMarkdownBlock
+
     data class Formula(
         val source: String,
         val delimitedSource: String
