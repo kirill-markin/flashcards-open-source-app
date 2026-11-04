@@ -30,7 +30,7 @@ review/approval and publication state, and immediate public listing/installed
 version and skills evidence. Unknown or unexecuted observations remain explicit
 gaps. Package CI, a server version, an MCP-only listing, and a private import
 cannot establish public bundled-skill availability. Follow the
-[companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+[publishing procedure](../plugin-publishing.md#openai)
 and record the remaining action and next condition independently for each state.
 
 Use these same rows for handoff. While external review is pending, preserve the

@@ -160,7 +160,7 @@ factually and any later operator action, without calling them live. Every coordi
 release includes the established [OpenAI channel](mcp-and-plugins.md#openai):
 inspect its hosted MCP and package independently, then verify unchanged live
 content or complete the applicable update under the
-[companion procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai).
+[publishing procedure](../plugin-publishing.md#openai).
 
 Before a new publication/submission, apply the [release warning policy](#release-warning-policy).
 Already-published matching Apple or Android artifacts count complete under the

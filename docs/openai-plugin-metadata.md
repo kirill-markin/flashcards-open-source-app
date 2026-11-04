@@ -7,7 +7,7 @@ for identity/version and `extensions.com.openai` metadata, with
 for the shared remote MCP and its authentication declaration. Use the complete
 `nibomo-<version>-openai.zip` from successful exact-source companion CI, including
 all intended skills, references and assets. The
-[canonical OpenAI procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
+[canonical OpenAI procedure](plugin-publishing.md#openai)
 owns upload, scans, review, publication and legacy **Download release ZIP**
 reconciliation for the existing plugin; this guide owns reference-copy mapping.
 
