@@ -30,6 +30,7 @@ enum IOSObservationFeature: String, Sendable {
     case storeReview = "store_review"
     case subscription = "subscription"
     case reviewReactions = "review_reactions"
+    case macToolbar = "mac_toolbar"
 }
 
 struct IOSObservationScope: Sendable, Hashable {
@@ -85,6 +86,7 @@ enum IOSWarningEvent: Sendable {
     case invalidCardDueAt(InvalidCardDueAtWarning)
     case notificationSchedulingFailed(NotificationSchedulingFailureWarning)
     case notificationTapDropped(NotificationTapDroppedWarning)
+    case macToolbarClickDropped(MacToolbarClickDroppedWarning)
     case progressCacheRemoved(ProgressCacheRemovedWarning)
     case staleGuestCredentials(StaleGuestCredentialsWarning)
 }
@@ -575,6 +577,11 @@ struct NotificationTapDroppedWarning: Sendable, Hashable {
     let observation: NotificationTapObservation
     let reason: String
     let detailSummary: String?
+}
+
+struct MacToolbarClickDroppedWarning: Sendable, Hashable {
+    let actionIdentifier: String
+    let coveringControllerType: String?
 }
 
 struct AppNotificationPendingRequestBreakdown: Sendable, Hashable {
