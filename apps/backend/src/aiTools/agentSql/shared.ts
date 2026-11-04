@@ -329,8 +329,8 @@ export function toDeletedMutationRows(
 }
 
 /**
- * Rejects AI-authored card text that stores a literal `\n` or `\"` outside
- * code and math. Human editor paths do not pass through here.
+ * Rejects AI-authored card text that findLiteralCardTextEscape flags. Human
+ * editor paths do not pass through here.
  */
 export function assertNoLiteralCardTextEscape(columnName: "front_text" | "back_text", text: string): void {
   const literalEscape = findLiteralCardTextEscape(text);
@@ -338,11 +338,16 @@ export function assertNoLiteralCardTextEscape(columnName: "front_text" | "back_t
     return;
   }
 
-  throw buildInvalidSqlError(
-    `${columnName} contains a literal ${literalEscape.escape} outside code and math, near "${literalEscape.excerpt}". `
+  const message = literalEscape.inMath
+    ? `${columnName} contains a literal \\n that is not LaTeX in the formula "${literalEscape.excerpt}". `
+      + "At the JSON boundary a line break is \\n, never \\\\n. "
+      + "Retry with real line breaks around and inside the formula; a rendered formula line break is \\\\, never \\n."
+    : `${columnName} contains a literal ${literalEscape.escape} outside code and math, near "${literalEscape.excerpt}". `
       + "Card text must hold real line breaks and plain quotes, not the escape sequences \\n or \\\". "
       + "At the JSON boundary a line break is \\n, never \\\\n. "
-      + "Retry with real line breaks and plain quotes; a literal \\n meant as text belongs in inline code or a code block, or is stored as \\\\n.",
+      + "Retry with real line breaks and plain quotes; a literal \\n meant as text belongs in inline code or a code block, or is stored as \\\\n.";
+  throw buildInvalidSqlError(
+    message,
     "invalid_value",
     columnName,
   );
