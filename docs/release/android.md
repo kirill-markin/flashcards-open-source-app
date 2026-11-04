@@ -21,18 +21,12 @@ matching release counts complete under the shared historical evidence rule;
 record its identity and rollout scope at step 9 without reconstructing old logs.
 Otherwise create a new artifact through every gate below.
 
-Apply the [standing best-effort policy](README.md#standing-best-effort-release-policy) to unavailable testing. The [known Device Run network procedure](../android-device-run-network-issue.md)
-provides the explicit alternative to the four-session requirements in steps
-3–4, session correlation in step 6, and completion below. Opt in explicitly at
-dispatch with `known_device_run_network_exception=true`; retain its policy
-artifact and separate operator readiness decision. All other steps/gates remain
-required. Do not claim a native or readiness-CLI pass; keep failed/skipped history.
-The exact-bundle upload recovery contract below is unchanged.
+Apply the [standing best-effort policy](README.md#standing-best-effort-release-policy) to unavailable testing outside the four mandatory physical Device Run sessions.
 
 1. Pin the intended release SHA and confirm its required
    `Repository static checks` passed. Use a checkout with no uncommitted source
    changes and apply the [cloud-first gate](evidence.md#android-cloud-release-gate).
-   Choose the normal four-session route or the known-issue route above before dispatch. Under the known-issue route, complete feasible full latest-OS local acceptance and focused compatibility checks and record coverage gaps. Otherwise use local parity commands only for diagnosis or uncovered OS-specific behavior; routine dispatch does not require duplicate local CI, Release builds or emulator smokes. Check whether the
+   Use local parity commands only for diagnosis or uncovered OS-specific behavior; routine dispatch does not require duplicate local CI, Release builds or emulator smokes. Check whether the
    [API 30 walkthrough](#first-release-api-30-walkthrough) is applicable and
    retain or plan its evidence before publication.
 2. Before dispatch, inspect Play Console's Publishing overview for all pending
@@ -70,7 +64,7 @@ The exact-bundle upload recovery contract below is unchanged.
    counts, failures, errors and skips; zero tests, missing destinations or
    unexpected skipped cases block publication. Retain full reports, per-case
    results and logcat with all four session identities for this SHA/run/attempt.
-   Non-passing results block this normal workflow route. Investigate app/test failures and fix identifiable defects; use the known-issue route for the documented unavailable network acceptance under the standing policy. Preserve the failed attempt's evidence; never relabel it as passed.
+   Non-passing results block publication. Investigate app/test failures and fix identifiable defects. Preserve the failed attempt's evidence; never relabel it as passed.
 5. Require the complete GitHub workflow to succeed as well, including the
    signed Android App Bundle (AAB) upload to the production-track draft.
    For a publisher-only failure after all build/native gates pass, use the
@@ -96,7 +90,7 @@ The exact-bundle upload recovery contract below is unchanged.
    from the chat when the dispatch input was empty. Review the draft and required
    translations, and complete the production publication controls for that
    exact bundle. Keep its identity pinned; do not select a newer unrelated
-   upload. After release gates pass or unavailable testing is recorded under the standing policy, inspect the complete app-wide
+   upload. After required release gates pass and any other unavailable testing is recorded under the standing policy, inspect the complete app-wide
    change set and submit the intended changes when a manual submission is
    required. Verify the actual review status; complete any publication action
    already available.
@@ -117,7 +111,7 @@ The exact-bundle upload recovery contract below is unchanged.
    availability. If approved but unavailable at the selected scope, keep the
    channel open as propagation pending or blocked according to evidence.
 
-Completion: required GitHub gates pass, with normal Device Run/OS-specific acceptance or a recorded operator decision for unavailable testing under the standing policy and known-issue route above; the exact production version is public at the intended rollout scope.
+Completion: required GitHub gates and all four physical Device Run sessions pass; OS-specific acceptance is complete or unavailable coverage is recorded under the standing policy; the exact production version is public at the intended rollout scope.
 Already-published matching releases use the shared historical evidence rule.
 Submission or review approval alone leaves this channel open
 under the [canonical completion contract](README.md#release-inventory-and-completion).

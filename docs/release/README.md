@@ -35,7 +35,7 @@ For every authorized release, run feasible testing with reasonable effort: full 
 
 Fix identifiable app/test defects, actionable build/compiler/lint/configuration or security issues, and actual signing, archive, upload or publication failures before proceeding with the affected action. An unavailable test is a coverage gap; a failed test is investigated and remains failed. Preserve original failures/skips and readiness manifests/reports; never manufacture a pass or change a recorded contract to make it green. Missing build/test evidence may leave the readiness CLI blocked while the separate operator decision permits publication under this policy.
 
-Platform test requirements below describe normal acceptance and are subject to this policy for unavailable checks. Required CI, signing, artifact identity and store/publication guards remain enforced; this policy introduces no generic workflow bypass. For the known Android physical-network issue, select the existing default-off [Device Run exception](../android-device-run-network-issue.md) explicitly during preflight and retain its provenance.
+Platform test requirements below are subject to this policy for unavailable checks, except Android's four physical Device Run sessions, which are mandatory. Required CI, signing, artifact identity and store/publication guards remain enforced; this policy introduces no generic workflow bypass.
 
 ## Required Reading
 
@@ -117,7 +117,7 @@ This adds no release gate.
   exact export and full local native evidence; inspect the required genuine local development certificate/profile and actual host macOS before testing. Preserve pending iOS submissions.
 - Verify authenticated access for the remaining provider/store actions and the
   [saved Xcode Cloud configuration](../ios-ci-cd.md#cloud-configuration-preflight).
-  Choose Android's normal four-session route or the [known-issue route](../android-device-run-network-issue.md) before dispatch; check all four configured [Device Run destinations](../android-ci-cd.md#choose-the-device-run-devices) when using the normal route. Resolve access blockers only where needed; preserve reusable artifacts.
+  Check all four configured [Device Run destinations](../android-ci-cd.md#choose-the-device-run-devices) before Android dispatch. Resolve access blockers only where needed; preserve reusable artifacts.
 
 Machine/provider setup, legal acceptance and runtime provisioning are setup work;
 repeat them only when missing or newly required. Older-OS manual walkthroughs
@@ -143,7 +143,7 @@ submission, approval, and a portal's **Published** label alone do not prove it.
 | --- | --- |
 | iOS | Exact version/build successfully submitted for review with automatic release after approval enabled and its saved setting verified. In manual mode, complete any available final release action and record a later action still awaiting approval as follow-up. |
 | macOS | Exact `MAC_OS` version/build successfully submitted for review, with saved automatic release after approval verified; in manual mode, complete any available final release action and record any action awaiting approval as follow-up. Apply the standing policy to unavailable Mac testing; exact-artifact gates remain mandatory. |
-| Android | Exact production version is publicly available at the selected rollout scope, after required GitHub gates pass, with Device Run/OS-specific acceptance or recorded standing-policy coverage gaps. |
+| Android | Exact production version is publicly available at the selected rollout scope, after required GitHub gates and all four physical Device Run sessions pass; record OS-specific acceptance or standing-policy coverage gaps. |
 | Web/backend and MCP Registry | Intended deployment/runtime or registry version is verified under its procedure. |
 | Established connector/plugin/directory channels | Required CI/scans and focused checks passed, and the exact update/publication request was accepted, or the unchanged publication was verified. |
 
