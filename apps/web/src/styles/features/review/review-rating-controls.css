@@ -179,12 +179,13 @@
     z-index: 2;
   }
 
+  /* The copy error label shares the hint's corner, so the copy hint stays hidden while it shows. */
   .rating-btn:not(:disabled):hover > .review-shortcut-hint,
   .rating-btn:not(:disabled):focus-visible > .review-shortcut-hint,
   .review-reveal-btn:not(:disabled):hover > .review-shortcut-hint,
   .review-reveal-btn:not(:disabled):focus-visible > .review-shortcut-hint,
-  .review-card-copy-btn:hover > .review-shortcut-hint,
-  .review-card-copy-btn:focus-visible > .review-shortcut-hint,
+  .review-card-copy-btn:not([data-copy-status="failed"], [data-copy-status="unavailable"]):hover > .review-shortcut-hint,
+  .review-card-copy-btn:not([data-copy-status="failed"], [data-copy-status="unavailable"]):focus-visible > .review-shortcut-hint,
   .review-card-speech-btn:not(:disabled):hover > .review-shortcut-hint,
   .review-card-speech-btn:not(:disabled):focus-visible > .review-shortcut-hint {
     display: block;
