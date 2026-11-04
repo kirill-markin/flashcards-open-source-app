@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import {
+  imageJpegCardMaxSidePixels,
   imageJpegCardMaximumDecodedPixels,
   imageJpegCardTransparentPixelLightCardGray,
 } from "../../mediaAssets/ingestion/imageNormalization";
@@ -23,11 +24,9 @@ export type CardCollageLayout = Readonly<{
   cells: ReadonlyArray<CardCollageCell>;
 }>;
 
-const collageWidthPixels = 1_200;
 const collageGapPixels = 12;
 const minimumCellAspectRatio = 0.5;
 const maximumCellAspectRatio = 2;
-const collageJpegQuality = 90;
 const supportedSourceFormats: ReadonlyArray<string> = ["jpeg", "png", "webp"];
 
 /** The card gallery's column rule, so the collage reads like the images it replaces. */
@@ -48,17 +47,24 @@ function median(values: ReadonlyArray<number>): number {
 
 /**
  * Equal cells shaped like the median source (width / height, clamped), filled row by row, with an
- * incomplete last row centred.
+ * incomplete last row centred, as large as fits the card image's longest side so ingestion does not
+ * shrink it.
  */
 export function planCardCollageLayout(aspectRatios: ReadonlyArray<number>): CardCollageLayout {
   const columns = countCollageColumns(aspectRatios.length);
   const rows = Math.ceil(aspectRatios.length / columns);
-  const cellWidth = Math.floor((collageWidthPixels - collageGapPixels * (columns - 1)) / columns);
   const cellAspectRatio = Math.min(
     maximumCellAspectRatio,
     Math.max(minimumCellAspectRatio, median(aspectRatios)),
   );
-  const cellHeight = Math.round(cellWidth / cellAspectRatio);
+  const maximumCellHeight = Math.floor(
+    (imageJpegCardMaxSidePixels - collageGapPixels * (rows - 1)) / rows,
+  );
+  const cellWidth = Math.min(
+    Math.floor((imageJpegCardMaxSidePixels - collageGapPixels * (columns - 1)) / columns),
+    Math.round(maximumCellHeight * cellAspectRatio),
+  );
+  const cellHeight = Math.min(maximumCellHeight, Math.round(cellWidth / cellAspectRatio));
   const cells = aspectRatios.map((_, index): CardCollageCell => {
     const row = Math.floor(index / columns);
     const imagesInRow = Math.min(columns, aspectRatios.length - row * columns);
@@ -133,8 +139,9 @@ async function renderCell(
 }
 
 /**
- * One JPEG with every source fitted whole, never cropped, into its own cell, in the given order.
- * Sources are rendered one at a time so only one full-size decode is in memory at once.
+ * One image with every source fitted whole, never cropped, into its own cell, in the given order.
+ * It is lossless PNG because ingestion re-encodes it to the card JPEG, which stays the only lossy
+ * encode. Sources are rendered one at a time so only one full-size decode is in memory at once.
  */
 export async function composeCardCollage(
   sources: ReadonlyArray<CardCollageSourceImage>,
@@ -158,6 +165,6 @@ export async function composeCardCollage(
     },
   })
     .composite(composites)
-    .jpeg({ quality: collageJpegQuality })
+    .png()
     .toBuffer();
 }
