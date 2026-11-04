@@ -64,7 +64,8 @@ def command(arguments: list[str], payload: bytes | None) -> bytes:
 
 def api(repository: str, path: str, method: str, body: Json) -> Json:
     require(repository in [SOURCE, TARGET], "Only the two Nibomo publishing repositories are allowed")
-    arguments = ["gh", "api", "--hostname", "github.com", "--method", method, f"repos/{repository}/{path}"]
+    endpoint = f"repos/{repository}/{path}" if path else f"repos/{repository}"
+    arguments = ["gh", "api", "--hostname", "github.com", "--method", method, endpoint]
     payload = None
     if body is not None:
         arguments.extend(["--input", "-"])
