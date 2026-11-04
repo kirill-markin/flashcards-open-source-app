@@ -54,7 +54,7 @@ SECRET_JSON="$(aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" secretsmanage
   --query 'SecretString' \
   --output text)"
 
-python3 - "$SSM_INSTANCE_ID" "$DB_ENDPOINT" "$DB_NAME" "$SECRET_ARN" "$SECRET_JSON" <<'PY'
+printf '%s' "$SECRET_JSON" | python3 -c '
 import json
 import sys
 
@@ -62,9 +62,7 @@ ssm_instance_id = sys.argv[1]
 db_endpoint = sys.argv[2]
 db_name = sys.argv[3]
 secret_arn = sys.argv[4]
-secret_json = sys.argv[5]
-
-secret_value = json.loads(secret_json)
+secret_value = json.load(sys.stdin)
 username = secret_value.get("username")
 password = secret_value.get("password")
 
@@ -82,4 +80,4 @@ print(json.dumps({
     "secretArn": secret_arn,
     "password": password,
 }, indent=2))
-PY
+' "$SSM_INSTANCE_ID" "$DB_ENDPOINT" "$DB_NAME" "$SECRET_ARN"

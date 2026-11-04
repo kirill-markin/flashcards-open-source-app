@@ -86,8 +86,7 @@ as evidence of first payment.
 
 2. Diagnose actual 401/403 responses before altering permissions. Check Android
    Publisher API enablement and the **existing**
-   `nibomo-store-reports@flashcards-open-source-app.iam.gserviceaccount.com`
-   invitation. Keep its bulk financial report access and restrict Publisher access
+   reports-service-account invitation selected by `GOOGLE_PLAY_REPORTS_CONFIG.serviceAccountEmail`. Keep its bulk financial report access and restrict Publisher access
    to Nibomo, with **View financial data / Purchases API** and the read access
    required for order/subscription data. Read back reports WIF trust and the
    impersonation binding to `FlashcardsStoreReportsImportRole`. Do not grant

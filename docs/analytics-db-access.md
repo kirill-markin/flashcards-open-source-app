@@ -16,9 +16,9 @@ Analytical access is enabled by default, so a normal deploy creates the bastion,
 An installation that predates the SSH removal deletes the stale variables nothing reads any more, and removes the matching `ANALYTICS_SSH_USERNAME`, `ANALYTICS_SSH_ALLOWED_CIDRS`, and `ANALYTICS_SSH_PUBLIC_KEYS` entries from root `.env`:
 
 ```bash
-gh variable delete CDK_ANALYTICS_SSH_PUBLIC_KEYS --repo kirill-markin/flashcards-open-source-app
-gh variable delete CDK_ANALYTICS_SSH_ALLOWED_CIDRS --repo kirill-markin/flashcards-open-source-app
-gh variable delete CDK_ANALYTICS_SSH_USERNAME --repo kirill-markin/flashcards-open-source-app
+gh variable delete CDK_ANALYTICS_SSH_PUBLIC_KEYS --repo "${GITHUB_REPO:?}"
+gh variable delete CDK_ANALYTICS_SSH_ALLOWED_CIDRS --repo "${GITHUB_REPO:?}"
+gh variable delete CDK_ANALYTICS_SSH_USERNAME --repo "${GITHUB_REPO:?}"
 ```
 
 An installation that never enabled analytical access gets the bastion, its instance role, and the `5432` ingress rule into the database security group on its next deploy. To keep it off, set `ANALYTICS_ACCESS_ENABLED=false` in root `.env` and `CDK_ANALYTICS_ACCESS_ENABLED=false` in GitHub before that deploy.
@@ -28,7 +28,7 @@ An installation that never enabled analytical access gets the bastion, its insta
 1. Set the GitHub Actions variable to `false`:
 
 ```bash
-gh variable set CDK_ANALYTICS_ACCESS_ENABLED --body false --repo kirill-markin/flashcards-open-source-app
+gh variable set CDK_ANALYTICS_ACCESS_ENABLED --body false --repo "${GITHUB_REPO:?}"
 ```
 
 2. Trigger the normal AWS deploy flow so CloudFormation removes the analytical access resources.
@@ -40,9 +40,9 @@ This removes the bastion and the operator tunnel only: the `reporting_readonly` 
 
 Session Manager port forwarding is the only operator path. It works from any network, and the bastion needs no inbound port because the SSM Agent establishes the tunnel outbound.
 
-Every AWS command here uses the `flashcards-open-source-app` profile: the default profile reaches a different account, where the registration check returns the same empty list as a bastion that has not registered yet.
+Set `GITHUB_REPO` to the target repository and `AWS_PROFILE` to the target deployment profile. Verify AWS access with `aws sts get-caller-identity` before interpreting an empty registration result; another account can also return an empty list.
 
-Local prerequisite: the AWS CLI plus the `session-manager-plugin`, which the AWS CLI shells out to for `aws ssm start-session`.
+Local prerequisite: the AWS CLI plus the `session-manager-plugin`, which the AWS CLI shells out to for `aws ssm start-session`. On macOS:
 
 ```bash
 brew install --cask session-manager-plugin
@@ -55,20 +55,20 @@ A deploy can change both the instance id and the database endpoint, so always re
 Verify that the bastion is registered with Systems Manager before opening a tunnel:
 
 ```bash
-aws ssm describe-instance-information --profile flashcards-open-source-app \
+aws ssm describe-instance-information --profile "${AWS_PROFILE:?}" \
   --filters Key=InstanceIds,Values=<AnalyticsSsmInstanceId>
 ```
 
 An empty result right after a deploy is normal: the SSM Agent takes a few minutes to register, and backs off for longer while it still has no credentials. Retry before investigating. If it still does not register after several minutes, reboot the bastion and re-run the check, because an agent that came up before its instance role was usable keeps backing off until it restarts:
 
 ```bash
-aws ec2 reboot-instances --profile flashcards-open-source-app --instance-ids <AnalyticsSsmInstanceId>
+aws ec2 reboot-instances --profile "${AWS_PROFILE:?}" --instance-ids <AnalyticsSsmInstanceId>
 ```
 
 Open the tunnel:
 
 ```bash
-aws ssm start-session --profile flashcards-open-source-app \
+aws ssm start-session --profile "${AWS_PROFILE:?}" \
   --target <AnalyticsSsmInstanceId> \
   --document-name AWS-StartPortForwardingSessionToRemoteHost \
   --parameters '{"host":["<DbEndpoint>"],"portNumber":["5432"],"localPortNumber":["15432"]}'
@@ -77,7 +77,7 @@ aws ssm start-session --profile flashcards-open-source-app \
 The session forwards `127.0.0.1:15432` to `<DbEndpoint>:5432` through the bastion, so local clients connect as if the database were local. Close it with the id from the `Starting session with SessionId:` line, because killing the CLI leaves the plugin process and the session running:
 
 ```bash
-aws ssm terminate-session --profile flashcards-open-source-app --session-id <SessionId>
+aws ssm terminate-session --profile "${AWS_PROFILE:?}" --session-id <SessionId>
 ```
 
 `make local-admin` ([scripts/local/admin-prod-readonly.sh](../scripts/local/admin-prod-readonly.sh)) opens this same tunnel for the local admin app and terminates the session on exit.
@@ -106,21 +106,22 @@ The grants deliberately include hosted AI chat content, not metadata alone: `ai.
 
 ## Manual local workflow
 
-1. Resolve the current access bundle with [the helper](../scripts/setup/get-analytics-db-access.sh), which prints the SSM instance id, database endpoint and name, username, secret ARN, and password as JSON from the current stack outputs:
+1. Capture the current access bundle from [the helper](../scripts/setup/get-analytics-db-access.sh). Its JSON contains a password; keep it in process memory or protected operator storage, and display only the nonsecret fields needed to open the tunnel:
 
 ```bash
-AWS_PROFILE=flashcards-open-source-app bash scripts/setup/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
+access_bundle_json="$(AWS_PROFILE="${AWS_PROFILE:?}" bash scripts/setup/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp)"
+printf '%s' "$access_bundle_json" | jq 'del(.password)'
 ```
 
 2. Open the tunnel as in [Operator path: SSM port forwarding](#operator-path-ssm-port-forwarding), with the printed `ssmInstanceId` and `dbEndpoint`.
 
-3. Connect locally with `psql`, or point DataGrip or DBeaver at `127.0.0.1:15432`:
+3. Connect locally with `psql`, or point DataGrip or DBeaver at `127.0.0.1:15432`. Supply the password through the client's protected credential store, an interactive prompt, or a [libpq password file](https://www.postgresql.org/docs/current/libpq-pgpass.html) with mode `600`; never embed it in a connection URL or command argument. Automation can populate a temporary password file from the captured bundle and remove it after use.
 
 ```bash
-psql "postgresql://<dbUsername>:<password>@127.0.0.1:15432/<dbName>?sslmode=require"
+psql "host=127.0.0.1 port=15432 dbname=<dbName> user=<dbUsername> sslmode=require" --password
 ```
 
-4. Close the tunnel as in [Operator path: SSM port forwarding](#operator-path-ssm-port-forwarding).
+4. Unset `access_bundle_json`, then close the tunnel as in [Operator path: SSM port forwarding](#operator-path-ssm-port-forwarding).
 
 ## Usage guidance
 

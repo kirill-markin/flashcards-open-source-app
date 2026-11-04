@@ -203,6 +203,8 @@ values = {
     "resendSenderEmail": os.environ.get("RESEND_SENDER_EMAIL", ""),
     "demoEmailDostip": os.environ.get("DEMO_EMAIL_DOSTIP", ""),
     "demoPasswordSecretArn": os.environ.get("DEMO_PASSWORD_SECRET_ARN", ""),
+    "googlePlayBillingConfig": os.environ.get("GOOGLE_PLAY_BILLING_CONFIG", ""),
+    "googlePlayReportsConfig": os.environ.get("GOOGLE_PLAY_REPORTS_CONFIG", ""),
     "sentryDsnSecretArn": os.environ.get("SENTRY_DSN_SECRET_ARN", ""),
     "sentryEnvironment": os.environ.get("SENTRY_ENVIRONMENT", ""),
     "sentryRelease": os.environ.get("SENTRY_RELEASE", ""),

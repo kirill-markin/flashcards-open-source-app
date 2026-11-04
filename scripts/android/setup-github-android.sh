@@ -49,7 +49,7 @@ set_secret_if_present() {
   local secret_value="$2"
 
   if [[ -n "${secret_value}" ]]; then
-    gh secret set "${secret_name}" --body "${secret_value}" --repo "${REPO}"
+    printf '%s' "${secret_value}" | gh secret set "${secret_name}" --repo "${REPO}"
   fi
 }
 

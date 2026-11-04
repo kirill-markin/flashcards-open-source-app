@@ -16,6 +16,8 @@ Neither financial importer classifies unknown Google tokens. Discovery failures 
 
 ## Google Play
 
+Set `GOOGLE_PLAY_REPORTS_CONFIG` with `workloadIdentityProvider`, `serviceAccountEmail` and `reportsBucket` for the operator's reports identity and private bulk-export bucket ([example](../.env.example), [schema](../apps/backend/src/googleCloudConfig.ts)). `setup-github.sh` initializes `CDK_GOOGLE_PLAY_REPORTS_CONFIG`; CI passes CDK context `googlePlayReportsConfig` to the reports, sandbox and discovery functions. This identity stays separate from billing and release publishing identities. Deploy configuration and code together through CI/CD.
+
 [The importer](../apps/backend/src/storeAnalytics/playImport.ts) reads the Play Console reports bucket through keyless federation as a Play Console user allowed to download bulk reports and view financial data ([client](../apps/backend/src/storeAnalytics/googleStorageClient.ts)); the billing identity in [Google Play subscriptions](google-play-subscriptions.md) is separate. [The file mapping](../apps/backend/src/storeAnalytics/playReports.ts) routes each file to its table. [Sales decoding](../apps/backend/src/storeAnalytics/googleSalesReports.ts) keeps only Nibomo rows and allowlisted financial columns in `play_other_report_rows` with `report_name = sales`; those rows discover orders and reconcile native charges, and are not additional payments.
 
 ## Freshness

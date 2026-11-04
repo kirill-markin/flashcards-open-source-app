@@ -8,6 +8,7 @@ import {
 } from "../observability/sentry";
 import { decodeGoogleSalesArchive } from "./googleSalesReports";
 import { GoogleStorageClient, type GoogleStorageObject } from "./googleStorageClient";
+import { readGoogleReportsConfig } from "../googleCloudConfig";
 import {
   decodePlayReportFile,
   mapPlayReportRows,
@@ -18,7 +19,6 @@ import {
   type PlayReportTable,
 } from "./playReports";
 
-const playReportsBucket = "pubsite_prod_6698442103294061634";
 // stats/ covers installs, ratings, crashes, store_performance and every other statistics family.
 const importedPrefixes: ReadonlyArray<string> = ["stats/", "financial-stats/subscriptions/", "sales/"];
 const insertBatchRows = 1_000;
@@ -168,6 +168,7 @@ async function writeFile(file: DownloadedFile): Promise<Readonly<{ replacedEarli
 }
 
 async function downloadFile(client: GoogleStorageClient, object: GoogleStorageObject): Promise<DownloadedFile> {
+  const playReportsBucket = readGoogleReportsConfig().reportsBucket;
   // "#" separates the object name and generation inside import_files.source_ref.
   if (object.name.includes("#")) {
     throw new Error(`Play report object ${object.name} contains "#", which source_ref uses as its separator`);
@@ -219,6 +220,7 @@ export async function importPlayReports(
     addBackendBreadcrumb({ action: "store_analytics_play_retry", scope, details: retry });
   });
 
+  const playReportsBucket = readGoogleReportsConfig().reportsBucket;
   const listed: Array<GoogleStorageObject> = [];
   for (const prefix of importedPrefixes) {
     listed.push(...await client.listObjects(playReportsBucket, prefix));

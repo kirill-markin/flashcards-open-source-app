@@ -18,9 +18,9 @@ Use this workflow when you need one of these:
 
 ## Required local secrets
 
-The main checkout's `.env` holds App Store Connect credentials for SAMO DANNI EOOD. Use the same access for Xcode Cloud, app metadata, and [analytics reports](app-store-analytics.md).
+Configure the `APP_STORE_CONNECT_*` inputs below for the App Store Connect account that owns the target app. Use the same access for Xcode Cloud, app metadata, and [analytics reports](app-store-analytics.md).
 
-On provisioned Macs, the private key is in `.env.secrets/app-store-connect-api-key.p8`; resolve its machine-local path from `APP_STORE_CONNECT_PRIVATE_KEY_PATH`. Both files are ignored by Git. Check their presence on the execution host; worktrees do not contain these secrets.
+Set `APP_STORE_CONNECT_PRIVATE_KEY_PATH` to an operator-managed private key file with owner-only access. Local helpers can load an ignored `.env` from the main checkout; credentials may also be supplied through the process environment. Check the configured inputs on the execution host before requesting provisioning.
 
 Expected variables:
 
@@ -137,7 +137,7 @@ Those breadcrumbs appear in the cloud `xcodebuild` log as JSON lines under the `
 
 ## Token generation
 
-Example: generate an App Store Connect bearer token from local `.env`.
+Example: generate an App Store Connect bearer token after exporting the configured `APP_STORE_CONNECT_*` inputs into the process environment. The token stays in a shell variable; do not echo it.
 
 ```bash
 TOKEN="$(
@@ -147,13 +147,6 @@ import time
 from pathlib import Path
 
 import jwt
-
-for line in Path('.env').read_text().splitlines():
-    line = line.strip()
-    if not line or line.startswith('#') or '=' not in line:
-        continue
-    key, value = line.split('=', 1)
-    os.environ.setdefault(key, value)
 
 now = int(time.time())
 payload = {

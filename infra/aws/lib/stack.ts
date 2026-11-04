@@ -259,6 +259,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const appleIapSecretArn = getOptionalContextValue(this, "appleIapSecretArn");
+    const googlePlayBillingConfig = getOptionalRawContextValue(this, "googlePlayBillingConfig");
+    const googlePlayReportsConfig = getOptionalRawContextValue(this, "googlePlayReportsConfig");
     const stripeBillingSecretArn = getOptionalContextValue(this, "stripeBillingSecretArn");
     const stripeCheckoutLiveEnabled = getOptionalRawContextValue(this, "stripeCheckoutLiveEnabled") === "true";
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
@@ -410,6 +412,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     });
     const storeAnalyticsImportResult = storeAnalyticsImport(this, {
       appleIapSecretArn,
+      googlePlayReportsConfig,
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
@@ -613,6 +616,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       publicAppOrigin,
       cookieDomain,
       appleIapSecretArn,
+      googlePlayBillingConfig,
       stripeBillingSecretArn,
       stripeCheckoutLiveEnabled,
       openAiApiKeySecretArn,
