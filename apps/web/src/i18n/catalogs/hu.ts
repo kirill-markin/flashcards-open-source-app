@@ -1215,7 +1215,7 @@ const huCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Van ötleted a Nibomóhoz?",
-    body: "Oszd meg, mitől lenne jobb az alkalmazás. A készítő minden üzenetet személyesen elolvas.",
+    body: "Oszd meg, mitől lenne jobb az alkalmazás. A Nibomo készítője, {{creator}}, minden üzenetet személyesen elolvas.",
     fieldLabel: "Visszajelzés",
     placeholder: "Írd ide az ötleted",
     send: "Küldés",

@@ -4,6 +4,7 @@ import {
   feedbackMaximumMessageLength,
   isFeedbackMessageSubmittable,
 } from "./feedbackSubmission";
+import { FeedbackRequestBody } from "./FeedbackRequestBody";
 
 export type FeedbackDialogProps = Readonly<{
   isOpen: boolean;
@@ -54,7 +55,7 @@ export function FeedbackDialog(props: FeedbackDialogProps): ReactElement | null 
       >
         <div>
           <h2 id="feedback-dialog-title" className="title">{t("feedback.title")}</h2>
-          <p id="feedback-dialog-body" className="subtitle feedback-dialog-body">{t("feedback.body")}</p>
+          <p id="feedback-dialog-body" className="subtitle feedback-dialog-body"><FeedbackRequestBody /></p>
         </div>
 
         <label className="form-label feedback-dialog-field">

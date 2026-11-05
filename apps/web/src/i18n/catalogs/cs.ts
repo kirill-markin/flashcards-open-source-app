@@ -1225,7 +1225,7 @@ const csCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Máte nápad pro Nibomo?",
-    body: "Napište, co by aplikaci zlepšilo. Autor čte každou zprávu osobně.",
+    body: "Napište, co by aplikaci zlepšilo. Tvůrce Nibomo, {{creator}}, čte každou zprávu osobně.",
     fieldLabel: "Zpětná vazba",
     placeholder: "Sem napište svůj nápad",
     send: "Odeslat",

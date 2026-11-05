@@ -1225,7 +1225,7 @@ const skCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Máte nápad pre Nibomo?",
-    body: "Napíšte, čo by aplikáciu zlepšilo. Autor si osobne prečíta každú správu.",
+    body: "Napíšte, čo by aplikáciu zlepšilo. Tvorca Nibomo, {{creator}}, si osobne prečíta každú správu.",
     fieldLabel: "Spätná väzba",
     placeholder: "Sem napíšte svoj nápad",
     send: "Odoslať",

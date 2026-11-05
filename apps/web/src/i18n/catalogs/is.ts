@@ -1215,7 +1215,7 @@ const isCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Ertu með hugmynd fyrir Nibomo?",
-    body: "Segðu hvað myndi bæta forritið. Höfundurinn les öll skilaboð sjálfur.",
+    body: "Segðu hvað myndi bæta forritið. Höfundur Nibomo, {{creator}}, les öll skilaboð sjálfur.",
     fieldLabel: "Endurgjöf",
     placeholder: "Skrifaðu hugmyndina þína hér",
     send: "Senda",

@@ -1225,7 +1225,7 @@ const ltCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Turite idėją Nibomo?",
-    body: "Pasidalykite, kas padarytų programėlę geresnę. Kūrėjas asmeniškai skaito kiekvieną žinutę.",
+    body: "Pasidalykite, kas padarytų programėlę geresnę. Nibomo kūrėjas {{creator}} asmeniškai skaito kiekvieną žinutę.",
     fieldLabel: "Atsiliepimas",
     placeholder: "Parašykite savo idėją čia",
     send: "Siųsti",

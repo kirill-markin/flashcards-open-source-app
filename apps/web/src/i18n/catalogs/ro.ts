@@ -1225,7 +1225,7 @@ const roCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Ai o idee pentru Nibomo?",
-    body: "Spune-ne ce ar face aplicația mai bună. Creatorul citește personal fiecare mesaj.",
+    body: "Spune-ne ce ar face aplicația mai bună. Creatorul Nibomo, {{creator}}, citește personal fiecare mesaj.",
     fieldLabel: "Feedback",
     placeholder: "Scrie ideea ta aici",
     send: "Trimite",

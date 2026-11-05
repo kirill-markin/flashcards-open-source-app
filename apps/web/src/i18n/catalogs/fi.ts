@@ -1215,7 +1215,7 @@ const fiCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Onko sinulla idea Nibomoon?",
-    body: "Kerro, mikä tekisi sovelluksesta paremman. Tekijä lukee jokaisen viestin itse.",
+    body: "Kerro, mikä tekisi sovelluksesta paremman. Nibomon tekijä, {{creator}}, lukee jokaisen viestin itse.",
     fieldLabel: "Palaute",
     placeholder: "Kirjoita ideasi tähän",
     send: "Lähetä",

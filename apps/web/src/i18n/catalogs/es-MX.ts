@@ -1215,7 +1215,7 @@ const esMxCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "¿Tienes una idea para Nibomo?",
-    body: "Comparte qué mejoraría la app. El creador lee personalmente cada mensaje.",
+    body: "Comparte qué mejoraría la app. El creador de Nibomo, {{creator}}, lee personalmente cada mensaje.",
     fieldLabel: "Comentarios",
     placeholder: "Escribe tu idea aquí",
     send: "Enviar",

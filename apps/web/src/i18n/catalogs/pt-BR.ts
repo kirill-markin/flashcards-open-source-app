@@ -1215,7 +1215,7 @@ const ptBrCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Tem uma ideia para o Nibomo?",
-    body: "Conte o que deixaria o app melhor. O criador lê cada mensagem pessoalmente.",
+    body: "Conte o que deixaria o app melhor. O criador do Nibomo, {{creator}}, lê cada mensagem pessoalmente.",
     fieldLabel: "Feedback",
     placeholder: "Escreva sua ideia aqui",
     send: "Enviar",

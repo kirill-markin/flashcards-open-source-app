@@ -1235,7 +1235,7 @@ const slCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Imate zamisel za Nibomo?",
-    body: "Povejte, kaj bi aplikacijo izboljšalo. Ustvarjalec osebno prebere vsako sporočilo.",
+    body: "Povejte, kaj bi aplikacijo izboljšalo. Ustvarjalec Niboma, {{creator}}, osebno prebere vsako sporočilo.",
     fieldLabel: "Povratne informacije",
     placeholder: "Tukaj napišite svojo zamisel",
     send: "Pošlji",

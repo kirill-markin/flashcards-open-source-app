@@ -1215,7 +1215,7 @@ const viCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Bạn có ý tưởng cho Nibomo?",
-    body: "Hãy chia sẻ điều gì sẽ làm ứng dụng tốt hơn. Người tạo ra ứng dụng đọc từng tin nhắn.",
+    body: "Hãy chia sẻ điều gì sẽ làm ứng dụng tốt hơn. Người tạo ra Nibomo, {{creator}}, đích thân đọc từng tin nhắn.",
     fieldLabel: "Góp ý",
     placeholder: "Viết ý tưởng của bạn ở đây",
     send: "Gửi",

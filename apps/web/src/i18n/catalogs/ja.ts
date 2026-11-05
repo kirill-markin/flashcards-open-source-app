@@ -1215,7 +1215,7 @@ export const jaCatalog = {
   },
   feedback: {
     title: "Nibomo へのアイデアがありますか？",
-    body: "アプリをより良くするための意見を共有してください。作成者がすべてのメッセージを直接読みます。",
+    body: "アプリをより良くするための意見を共有してください。Nibomo の作者 {{creator}} がすべてのメッセージを直接読みます。",
     fieldLabel: "フィードバック",
     placeholder: "ここにアイデアを書いてください",
     send: "送信",

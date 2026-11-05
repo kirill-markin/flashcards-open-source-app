@@ -1215,7 +1215,7 @@ const svCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Har du en idé till Nibomo?",
-    body: "Berätta vad som skulle göra appen bättre. Skaparen läser varje meddelande personligen.",
+    body: "Berätta vad som skulle göra appen bättre. Nibomos skapare, {{creator}}, läser varje meddelande personligen.",
     fieldLabel: "Feedback",
     placeholder: "Skriv din idé här",
     send: "Skicka",

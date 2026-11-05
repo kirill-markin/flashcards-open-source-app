@@ -1215,7 +1215,7 @@ const koCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Nibomo에 제안할 아이디어가 있나요?",
-    body: "앱을 더 좋게 만들 의견을 들려주세요. 만든 사람이 모든 메시지를 직접 읽습니다.",
+    body: "앱을 더 좋게 만들 의견을 들려주세요. 모든 메시지는 Nibomo 제작자 {{creator}} 본인이 직접 읽습니다.",
     fieldLabel: "피드백",
     placeholder: "여기에 아이디어를 적어 주세요",
     send: "보내기",

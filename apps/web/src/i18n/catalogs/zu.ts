@@ -1215,7 +1215,7 @@ const zuCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Unombono nge-Nibomo?",
-    body: "Yabelana ngalokho okungenza uhlelo lokusebenza lube ngcono. Umdali ufunda wonke umlayezo mathupha.",
+    body: "Yabelana ngalokho okungenza uhlelo lokusebenza lube ngcono. Umdali we-Nibomo, {{creator}}, ufunda wonke umlayezo mathupha.",
     fieldLabel: "Impendulo",
     placeholder: "Bhala umbono wakho lapha",
     send: "Thumela",

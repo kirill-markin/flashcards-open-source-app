@@ -1215,7 +1215,7 @@ const arCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "هل لديك فكرة لـ Nibomo؟",
-    body: "شارك ما قد يجعل التطبيق أفضل. يقرأ المنشئ كل رسالة شخصيًا.",
+    body: "شارك ما قد يجعل التطبيق أفضل. يقرأ منشئ Nibomo، {{creator}}، كل رسالة شخصيًا.",
     fieldLabel: "الملاحظات",
     placeholder: "اكتب فكرتك هنا",
     send: "إرسال",

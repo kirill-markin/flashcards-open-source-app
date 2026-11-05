@@ -1215,7 +1215,7 @@ const paCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Nibomo ਲਈ ਕੋਈ ਵਿਚਾਰ ਹੈ?",
-    body: "ਦੱਸੋ ਕਿ ਐਪ ਨੂੰ ਹੋਰ ਵਧੀਆ ਕੀ ਬਣਾਏਗਾ. ਬਣਾਉਣ ਵਾਲਾ ਹਰ ਸੁਨੇਹਾ ਖੁਦ ਪੜ੍ਹਦਾ ਹੈ.",
+    body: "ਦੱਸੋ ਕਿ ਐਪ ਨੂੰ ਹੋਰ ਵਧੀਆ ਕੀ ਬਣਾਏਗਾ. Nibomo ਦੇ ਸਿਰਜਣਹਾਰ {{creator}} ਹਰ ਸੁਨੇਹਾ ਖੁਦ ਪੜ੍ਹਦੇ ਹਨ.",
     fieldLabel: "ਰਾਏ",
     placeholder: "ਆਪਣਾ ਵਿਚਾਰ ਇੱਥੇ ਲਿਖੋ",
     send: "ਭੇਜੋ",

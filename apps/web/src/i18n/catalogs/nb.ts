@@ -1215,7 +1215,7 @@ const nbCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Har du en idé til Nibomo?",
-    body: "Del hva som ville gjort appen bedre. Utvikleren leser hver melding selv.",
+    body: "Del hva som ville gjort appen bedre. Nibomos skaper, {{creator}}, leser hver melding selv.",
     fieldLabel: "Tilbakemelding",
     placeholder: "Skriv ideen din her",
     send: "Send",
