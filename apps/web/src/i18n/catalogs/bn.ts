@@ -132,7 +132,6 @@ const bnCatalog: TranslationCatalog = {
     ok: "ঠিক আছে",
     off: "বন্ধ",
     on: "চালু",
-    open: "খুলুন",
     perAction: "প্রতি কাজে",
     refresh: "রিফ্রেশ",
     retry: "আবার চেষ্টা করুন",
@@ -213,6 +212,7 @@ const bnCatalog: TranslationCatalog = {
     aiChat: "এআই চ্যাট",
     progress: "অগ্রগতি",
     cards: "কার্ড",
+    library: "Library",
     settings: "সেটিংস",
   },
   shell: {
@@ -758,24 +758,39 @@ const bnCatalog: TranslationCatalog = {
       resetAll: "সব প্রম্পটের অবস্থা রিসেট করুন",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ডেক",
-      description: "পুনরায় ব্যবহারযোগ্য পড়াশোনার পরিধি তৈরি, সম্পাদনা ও দেখুন।",
     },
     tags: {
       title: "ট্যাগ",
-      description: "পুরো কর্মক্ষেত্রে ট্যাগের ব্যবহার ও কার্ড সংখ্যা দেখুন।",
     },
     export: {
       title: "রপ্তানি",
-      description: "এই কর্মক্ষেত্রের সক্রিয় কার্ডগুলো একটি পোর্টেবল flashcards.zip প্যাকেজ হিসেবে ডাউনলোড করুন।",
-      value: "flashcards.zip",
     },
     import: {
       title: "আমদানি",
-      description: "শব্দ ও সংজ্ঞা পেস্ট করুন অথবা Nibomo প্যাকেজ আমদানি করুন।",
-      value: "টেক্সট বা ZIP",
     },
     resetProgress: {
       title: "পড়াশোনার অগ্রগতি রিসেট করুন",

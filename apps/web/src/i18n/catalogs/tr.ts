@@ -132,7 +132,6 @@ const trCatalog: TranslationCatalog = {
     ok: "Tamam",
     off: "Kapalı",
     on: "Açık",
-    open: "Aç",
     perAction: "Her işlemde",
     refresh: "Yenile",
     retry: "Yeniden dene",
@@ -213,6 +212,7 @@ const trCatalog: TranslationCatalog = {
     aiChat: "AI sohbet",
     progress: "İlerleme",
     cards: "Kartlar",
+    library: "Library",
     settings: "Ayarlar",
   },
   shell: {
@@ -758,24 +758,39 @@ const trCatalog: TranslationCatalog = {
       resetAll: "Tüm istemlerin durumunu sıfırla",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Desteler",
-      description: "Yeniden kullanılabilir çalışma kapsamları oluşturun, düzenleyin ve inceleyin.",
     },
     tags: {
       title: "Etiketler",
-      description: "Çalışma alanı genelinde etiket kullanımını ve kart sayılarını inceleyin.",
     },
     export: {
       title: "Dışa aktar",
-      description: "Bu çalışma alanındaki etkin kartları taşınabilir bir flashcards.zip paketi olarak indirin.",
-      value: "flashcards.zip",
     },
     import: {
       title: "İçe aktar",
-      description: "Terimleri ve tanımları yapıştırın ya da bir Nibomo paketi içe aktarın.",
-      value: "Metin veya ZIP",
     },
     resetProgress: {
       title: "Çalışma ilerlemesini sıfırla",

@@ -132,7 +132,6 @@ const deCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Aus",
     on: "Ein",
-    open: "Öffnen",
     perAction: "Pro Aktion",
     refresh: "Aktualisieren",
     retry: "Erneut versuchen",
@@ -213,6 +212,7 @@ const deCatalog: TranslationCatalog = {
     aiChat: "AI-Chat",
     progress: "Fortschritt",
     cards: "Karten",
+    library: "Library",
     settings: "Einstellungen",
   },
   shell: {
@@ -758,24 +758,39 @@ const deCatalog: TranslationCatalog = {
       resetAll: "Status aller Hinweise zurücksetzen",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Decks",
-      description: "Erstelle, bearbeite und prüfe wiederverwendbare Lernbereiche.",
     },
     tags: {
       title: "Tags",
-      description: "Prüfe die arbeitsbereichsweite Tag-Nutzung und Kartenanzahl.",
     },
     export: {
       title: "Export",
-      description: "Lade aktive Karten aus diesem Arbeitsbereich als portables flashcards.zip-Paket herunter.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Füge Begriffe und Definitionen ein oder importiere ein Nibomo-Paket.",
-      value: "Text oder ZIP",
     },
     resetProgress: {
       title: "Lernfortschritt zurücksetzen",

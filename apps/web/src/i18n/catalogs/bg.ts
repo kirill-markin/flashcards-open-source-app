@@ -132,7 +132,6 @@ const bgCatalog: TranslationCatalog = {
     ok: "Добре",
     off: "Изкл.",
     on: "Вкл.",
-    open: "Отваряне",
     perAction: "При всяко действие",
     refresh: "Опресняване",
     retry: "Опитайте отново",
@@ -213,6 +212,7 @@ const bgCatalog: TranslationCatalog = {
     aiChat: "ИИ чат",
     progress: "Напредък",
     cards: "Карти",
+    library: "Library",
     settings: "Настройки",
   },
   shell: {
@@ -758,24 +758,39 @@ const bgCatalog: TranslationCatalog = {
       resetAll: "Нулиране на състоянието на всички подкани",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Тестета",
-      description: "Създавайте, редактирайте и преглеждайте повторно използваеми обхвати за учене.",
     },
     tags: {
       title: "Етикети",
-      description: "Прегледайте използването на етикети и броя карти в цялото работно пространство.",
     },
     export: {
       title: "Експортиране",
-      description: "Изтеглете активните карти от това работно пространство като преносим пакет flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Импортиране",
-      description: "Поставете термини и определения или импортирайте пакет на Nibomo.",
-      value: "Текст или ZIP",
     },
     resetProgress: {
       title: "Нулиране на напредъка",

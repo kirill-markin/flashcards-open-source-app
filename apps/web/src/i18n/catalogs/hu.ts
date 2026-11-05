@@ -132,7 +132,6 @@ const huCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Ki",
     on: "Be",
-    open: "Megnyitás",
     perAction: "Műveletenként",
     refresh: "Frissítés",
     retry: "Újrapróbálás",
@@ -213,6 +212,7 @@ const huCatalog: TranslationCatalog = {
     aiChat: "AI-csevegés",
     progress: "Haladás",
     cards: "Kártyák",
+    library: "Library",
     settings: "Beállítások",
   },
   shell: {
@@ -758,24 +758,39 @@ const huCatalog: TranslationCatalog = {
       resetAll: "Az összes kérés állapotának visszaállítása",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Paklik",
-      description: "Hozz létre, szerkessz és tekints át újrahasználható tanulási hatóköröket.",
     },
     tags: {
       title: "Címkék",
-      description: "Nézd meg a munkaterület címkehasználatát és a kártyák számát.",
     },
     export: {
       title: "Exportálás",
-      description: "Töltsd le a munkaterület aktív kártyáit hordozható flashcards.zip csomagként.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importálás",
-      description: "Illessz be kifejezéseket és meghatározásokat, vagy importálj Nibomo-csomagot.",
-      value: "Szöveg vagy ZIP",
     },
     resetProgress: {
       title: "Tanulási haladás visszaállítása",

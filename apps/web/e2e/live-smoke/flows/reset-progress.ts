@@ -9,7 +9,7 @@ import {
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
-import { primaryNavigationLinkSelector } from "../navigation";
+import { openLibraryRow, primaryNavigationLinkSelector } from "../navigation";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
@@ -32,7 +32,7 @@ export async function runResetProgressFlow(session: LiveSmokeSession): Promise<v
 async function confirmReviewedSeededCardStillExists(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
-  await trackedClick(diagnostics, "open cards navigation before reset", page.locator(primaryNavigationLinkSelector("/cards")).first());
+  await openLibraryRow(page, diagnostics, "open cards before reset", "library-row-cards");
   await trackedFill(
     diagnostics,
     `search cards for ${scenario.seededFrontText}`,

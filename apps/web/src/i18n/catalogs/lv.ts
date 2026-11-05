@@ -132,7 +132,6 @@ const lvCatalog: TranslationCatalog = {
     ok: "Labi",
     off: "Izslēgts",
     on: "Ieslēgts",
-    open: "Atvērt",
     perAction: "Katrai darbībai",
     refresh: "Atsvaidzināt",
     retry: "Mēģināt vēlreiz",
@@ -213,6 +212,7 @@ const lvCatalog: TranslationCatalog = {
     aiChat: "MI saruna",
     progress: "Progress",
     cards: "Kartītes",
+    library: "Library",
     settings: "Iestatījumi",
   },
   shell: {
@@ -758,24 +758,39 @@ const lvCatalog: TranslationCatalog = {
       resetAll: "Atiestatīt visu uzvedņu stāvokli",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kavas",
-      description: "Izveidojiet, rediģējiet un pārskatiet atkārtoti lietojamus mācību tvērumus.",
     },
     tags: {
       title: "Birkas",
-      description: "Pārskatiet birku lietojumu visā darbvietā un kartīšu skaitu.",
     },
     export: {
       title: "Eksportēt",
-      description: "Lejupielādējiet šīs darbvietas aktīvās kartītes pārnēsājamā flashcards.zip pakotnē.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importēt",
-      description: "Ielīmējiet terminus un skaidrojumus vai importējiet Nibomo pakotni.",
-      value: "Teksts vai ZIP",
     },
     resetProgress: {
       title: "Atiestatīt mācību progresu",

@@ -138,7 +138,6 @@ const ltCatalog: TranslationCatalog = {
     ok: "Gerai",
     off: "Išjungta",
     on: "Įjungta",
-    open: "Atidaryti",
     perAction: "Kiekvienam veiksmui",
     refresh: "Atnaujinti",
     retry: "Bandyti dar kartą",
@@ -219,6 +218,7 @@ const ltCatalog: TranslationCatalog = {
     aiChat: "DI pokalbis",
     progress: "Pažanga",
     cards: "Kortelės",
+    library: "Library",
     settings: "Nustatymai",
   },
   shell: {
@@ -766,24 +766,39 @@ const ltCatalog: TranslationCatalog = {
       resetAll: "Atkurti visų raginimų būseną",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kaladės",
-      description: "Kurkite, redaguokite ir peržiūrėkite daugkartinio naudojimo mokymosi aprėptis.",
     },
     tags: {
       title: "Žymos",
-      description: "Peržiūrėkite žymų naudojimą ir kortelių skaičių visoje darbo srityje.",
     },
     export: {
       title: "Eksportuoti",
-      description: "Atsisiųskite aktyvias šios darbo srities korteles kaip perkeliamą flashcards.zip paketą.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importuoti",
-      description: "Įklijuokite terminus ir apibrėžimus arba importuokite Nibomo paketą.",
-      value: "Tekstas arba ZIP",
     },
     resetProgress: {
       title: "Atstatyti mokymosi pažangą",

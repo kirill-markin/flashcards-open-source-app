@@ -4,12 +4,16 @@ import {
   chatRoute,
   devPreviewsRoutePrefix,
   friendInviteRoutePrefix,
+  legacySettingsLibraryRoutes,
+  libraryDecksRoute,
+  libraryExportRoute,
+  libraryImportRoute,
+  libraryRoute,
+  libraryTagsRoute,
   normalizeRoutePath,
   progressRoute,
   reviewRoute,
-  settingsDecksRoute,
   settingsHubRoute,
-  settingsTagsRoute,
   shareRoute,
   splitWorkspaceRoutePath,
 } from "../routes";
@@ -33,11 +37,11 @@ function isSingleSegmentRoute(pathname: string, prefix: string): boolean {
 }
 
 function readDeckRouteSegments(pathname: string): ReadonlyArray<string> {
-  if (pathname.startsWith(`${settingsDecksRoute}/`) === false) {
+  if (pathname.startsWith(`${libraryDecksRoute}/`) === false) {
     return [];
   }
 
-  return pathname.slice(settingsDecksRoute.length + 1).split("/");
+  return pathname.slice(libraryDecksRoute.length + 1).split("/");
 }
 
 function isDeckDetailRoute(pathname: string): boolean {
@@ -45,7 +49,7 @@ function isDeckDetailRoute(pathname: string): boolean {
   return deckSegments.length === 1 && deckSegments[0] !== "" && deckSegments[0] !== "new";
 }
 
-/** `/settings/decks/new` and `/settings/decks/:deckId/edit` are the same deck form component. */
+/** `/library/decks/new` and `/library/decks/:deckId/edit` are the same deck form component. */
 function isDeckEditorRoute(pathname: string): boolean {
   const deckSegments = readDeckRouteSegments(pathname);
   if (deckSegments.length === 1) {
@@ -63,18 +67,21 @@ function isDeckEditorRoute(pathname: string): boolean {
  * `LegacyFlatPathRedirect` forwards it to the review route — so counting it as `review` would emit
  * `screen_viewed` twice for every cold start at the site root — permanently, on an append-only table, and only on
  * web, where iOS and Android have no such route. The legacy `/decks`, `/decks/:deckId`,
- * `/decks/:deckId/edit` and `/tags` redirects reach the same null by falling through.
+ * `/decks/:deckId/edit`, `/tags`, `/cards`, `/cards/new` and `/cards/:cardId` redirects reach the
+ * same null by falling through; the legacy settings addresses of the Library screens, which the
+ * settings catch-all below would otherwise claim, are turned away by name.
  *
  * Two more kinds of route fall through to null on purpose:
  * - `/dev/previews/...` renders real panels out of a developer harness that only mounts under
  *   `import.meta.env.DEV` or `VITE_ENABLE_DEV_PREVIEWS`. Reporting it would file developer traffic
  *   into the same series as the screen it imitates.
  * - a path no `<Route>` matches renders nothing at all, because the app has no not-found screen.
- *   Every `:param` route here is matched on its segment count for that reason, so `/cards/a/b`,
- *   `/invite/a/b` and `/catalog/import/a/b` report nothing rather than the screen their first
- *   segment looks like. `/settings/...` is the one prefix that stays a catch-all: an unmatched path
- *   under it reports `settings`, which is wrong but cheap, and the alternative is a second copy of
- *   the ~25 settings route patterns here that would drift from `routes.ts`.
+ *   Every `:param` route here is matched on its segment count for that reason, so
+ *   `/library/cards/a/b`, `/invite/a/b` and `/catalog/import/a/b` report nothing rather than the
+ *   screen their first segment looks like. `/settings/...` is the one prefix that stays a
+ *   catch-all: an unmatched path under it reports `settings`, which is wrong but cheap, and the
+ *   alternative is a second copy of the ~25 settings route patterns here that would drift from
+ *   `routes.ts`.
  *
  * `/catalog/import/:packageVersionId` is the route's own loading, not-found and error states. The
  * three steps of the install flow behind it are component state rather than routes, so they report
@@ -123,7 +130,11 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
     return "catalog";
   }
 
-  if (pathname === settingsDecksRoute) {
+  if (pathname === libraryRoute || pathname === libraryImportRoute || pathname === libraryExportRoute) {
+    return "library";
+  }
+
+  if (pathname === libraryDecksRoute) {
     return "decks";
   }
 
@@ -135,8 +146,12 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
     return "deck_detail";
   }
 
-  if (pathname === settingsTagsRoute) {
+  if (pathname === libraryTagsRoute) {
     return "tags";
+  }
+
+  if (legacySettingsLibraryRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
+    return null;
   }
 
   // Every remaining settings route, the app preference and account leaves included, collapses into

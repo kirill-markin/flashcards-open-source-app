@@ -132,7 +132,6 @@ const viCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Tắt",
     on: "Bật",
-    open: "Mở",
     perAction: "Theo từng thao tác",
     refresh: "Làm mới",
     retry: "Thử lại",
@@ -213,6 +212,7 @@ const viCatalog: TranslationCatalog = {
     aiChat: "Trò chuyện AI",
     progress: "Tiến độ",
     cards: "Thẻ",
+    library: "Library",
     settings: "Cài đặt",
   },
   shell: {
@@ -758,24 +758,39 @@ const viCatalog: TranslationCatalog = {
       resetAll: "Đặt lại trạng thái của mọi lời nhắc",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Bộ thẻ",
-      description: "Tạo, chỉnh sửa và xem các phạm vi học dùng lại được.",
     },
     tags: {
       title: "Nhãn",
-      description: "Xem mức sử dụng nhãn và số thẻ trên toàn không gian làm việc.",
     },
     export: {
       title: "Xuất",
-      description: "Tải thẻ đang hoạt động trong không gian làm việc này về dưới dạng gói flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Nhập",
-      description: "Dán thuật ngữ và định nghĩa hoặc nhập một gói Nibomo.",
-      value: "Văn bản hoặc ZIP",
     },
     resetProgress: {
       title: "Đặt lại tiến độ học",

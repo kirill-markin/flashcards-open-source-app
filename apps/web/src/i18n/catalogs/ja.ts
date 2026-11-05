@@ -132,7 +132,6 @@ export const jaCatalog = {
     ok: "OK",
     off: "オフ",
     on: "オン",
-    open: "開く",
     perAction: "操作ごと",
     refresh: "更新",
     retry: "再試行",
@@ -213,6 +212,7 @@ export const jaCatalog = {
     aiChat: "AIチャット",
     progress: "進捗",
     cards: "カード",
+    library: "Library",
     settings: "設定",
   },
   shell: {
@@ -758,24 +758,39 @@ export const jaCatalog = {
       resetAll: "すべてのプロンプトの状態をリセット",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "デッキ",
-      description: "再利用できる学習範囲を作成、編集、確認します。",
     },
     tags: {
       title: "タグ",
-      description: "ワークスペース全体のタグ利用状況とカード数を確認します。",
     },
     export: {
       title: "エクスポート",
-      description: "このワークスペースの有効なカードをポータブルな flashcards.zip パッケージとしてダウンロードします。",
-      value: "flashcards.zip",
     },
     import: {
       title: "インポート",
-      description: "用語と定義を貼り付けるか、Nibomo パッケージをインポートします。",
-      value: "テキストまたは ZIP",
     },
     resetProgress: {
       title: "学習進捗をリセット",

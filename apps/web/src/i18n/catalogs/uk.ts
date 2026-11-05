@@ -138,7 +138,6 @@ const ukCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Вимкнено",
     on: "Увімкнено",
-    open: "Відкрити",
     perAction: "Щоразу",
     refresh: "Оновити",
     retry: "Повторити",
@@ -219,6 +218,7 @@ const ukCatalog: TranslationCatalog = {
     aiChat: "AI-чат",
     progress: "Прогрес",
     cards: "Картки",
+    library: "Library",
     settings: "Налаштування",
   },
   shell: {
@@ -766,24 +766,39 @@ const ukCatalog: TranslationCatalog = {
       resetAll: "Скинути стан усіх підказок",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Колоди",
-      description: "Створюйте, редагуйте та переглядайте багаторазові області навчання.",
     },
     tags: {
       title: "Теги",
-      description: "Перегляньте використання тегів і кількість карток у робочому просторі.",
     },
     export: {
       title: "Експорт",
-      description: "Завантажте активні картки цього робочого простору як переносний пакунок flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Імпорт",
-      description: "Вставте терміни й визначення або імпортуйте пакунок Nibomo.",
-      value: "Текст або ZIP",
     },
     resetProgress: {
       title: "Скинути прогрес навчання",

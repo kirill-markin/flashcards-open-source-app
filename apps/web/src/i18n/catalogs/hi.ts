@@ -132,7 +132,6 @@ const hiCatalog: TranslationCatalog = {
     ok: "ठीक है",
     off: "बंद",
     on: "चालू",
-    open: "खोलें",
     perAction: "प्रति कार्रवाई",
     refresh: "रीफ़्रेश",
     retry: "फिर से कोशिश करें",
@@ -213,6 +212,7 @@ const hiCatalog: TranslationCatalog = {
     aiChat: "AI चैट",
     progress: "प्रगति",
     cards: "कार्ड",
+    library: "Library",
     settings: "सेटिंग्स",
   },
   shell: {
@@ -758,24 +758,39 @@ const hiCatalog: TranslationCatalog = {
       resetAll: "सभी प्रॉम्प्ट की स्थिति रीसेट करें",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "डेक",
-      description: "दोबारा उपयोग किए जा सकने वाले अध्ययन दायरे बनाएँ, संपादित करें और देखें।",
     },
     tags: {
       title: "टैग",
-      description: "पूरे वर्कस्पेस में टैग उपयोग और कार्ड गिनती देखें।",
     },
     export: {
       title: "एक्सपोर्ट",
-      description: "इस वर्कस्पेस के सक्रिय कार्ड को पोर्टेबल flashcards.zip पैकेज के रूप में डाउनलोड करें।",
-      value: "flashcards.zip",
     },
     import: {
       title: "इम्पोर्ट",
-      description: "शब्द और परिभाषाएँ पेस्ट करें या Nibomo पैकेज इम्पोर्ट करें।",
-      value: "टेक्स्ट या ZIP",
     },
     resetProgress: {
       title: "अध्ययन प्रगति रीसेट करें",

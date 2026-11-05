@@ -132,7 +132,6 @@ const paCatalog: TranslationCatalog = {
     ok: "ਠੀਕ ਹੈ",
     off: "ਬੰਦ",
     on: "ਚਾਲੂ",
-    open: "ਖੋਲ੍ਹੋ",
     perAction: "ਪ੍ਰਤੀ ਕਾਰਵਾਈ",
     refresh: "ਤਾਜ਼ਾ ਕਰੋ",
     retry: "ਮੁੜ ਕੋਸ਼ਿਸ਼",
@@ -213,6 +212,7 @@ const paCatalog: TranslationCatalog = {
     aiChat: "AI ਚੈਟ",
     progress: "ਤਰੱਕੀ",
     cards: "ਕਾਰਡ",
+    library: "Library",
     settings: "ਸੈਟਿੰਗਾਂ",
   },
   shell: {
@@ -758,24 +758,39 @@ const paCatalog: TranslationCatalog = {
       resetAll: "ਸਾਰੇ ਪ੍ਰੋਂਪਟਾਂ ਦੀ ਸਥਿਤੀ ਰੀਸੈੱਟ ਕਰੋ",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ਡੈੱਕ",
-      description: "ਮੁੜ ਵਰਤਣਯੋਗ ਪੜ੍ਹਾਈ ਦੇ ਦਾਇਰੇ ਬਣਾਓ, ਸੋਧੋ ਅਤੇ ਵੇਖੋ.",
     },
     tags: {
       title: "ਟੈਗ",
-      description: "ਪੂਰੇ ਵਰਕਸਪੇਸ ਵਿੱਚ ਟੈਗਾਂ ਦੀ ਵਰਤੋਂ ਅਤੇ ਕਾਰਡਾਂ ਦੀ ਗਿਣਤੀ ਵੇਖੋ.",
     },
     export: {
       title: "ਨਿਰਯਾਤ",
-      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਰਗਰਮ ਕਾਰਡ ਪੋਰਟੇਬਲ flashcards.zip ਪੈਕੇਜ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ.",
-      value: "flashcards.zip",
     },
     import: {
       title: "ਆਯਾਤ",
-      description: "ਸ਼ਬਦ ਅਤੇ ਪਰਿਭਾਸ਼ਾਵਾਂ ਚੇਪੋ ਜਾਂ Nibomo ਪੈਕੇਜ ਆਯਾਤ ਕਰੋ.",
-      value: "ਲਿਖਤ ਜਾਂ ZIP",
     },
     resetProgress: {
       title: "ਪੜ੍ਹਾਈ ਦੀ ਤਰੱਕੀ ਰੀਸੈੱਟ ਕਰੋ",

@@ -132,7 +132,6 @@ const frCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Désactivé",
     on: "Activé",
-    open: "Ouvrir",
     perAction: "Par action",
     refresh: "Actualiser",
     retry: "Réessayer",
@@ -213,6 +212,7 @@ const frCatalog: TranslationCatalog = {
     aiChat: "Chat IA",
     progress: "Progression",
     cards: "Cartes",
+    library: "Library",
     settings: "Paramètres",
   },
   shell: {
@@ -758,24 +758,39 @@ const frCatalog: TranslationCatalog = {
       resetAll: "Réinitialiser l'état de toutes les invites",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Paquets",
-      description: "Créez, modifiez et consultez des portées d'étude réutilisables.",
     },
     tags: {
       title: "Étiquettes",
-      description: "Inspectez l'utilisation des étiquettes et le nombre de cartes dans tout l'espace de travail.",
     },
     export: {
       title: "Exporter",
-      description: "Téléchargez les cartes actives de cet espace de travail sous forme de paquet portable flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importer",
-      description: "Collez des termes et des définitions ou importez un paquet Nibomo.",
-      value: "Texte ou ZIP",
     },
     resetProgress: {
       title: "Réinitialiser la progression",

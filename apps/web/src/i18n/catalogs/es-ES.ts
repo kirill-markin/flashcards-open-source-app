@@ -132,7 +132,6 @@ const esEsCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Desactivado",
     on: "Activado",
-    open: "Abrir",
     perAction: "Por acción",
     refresh: "Actualizar",
     retry: "Reintentar",
@@ -213,6 +212,7 @@ const esEsCatalog: TranslationCatalog = {
     aiChat: "Chat con IA",
     progress: "Progreso",
     cards: "Tarjetas",
+    library: "Library",
     settings: "Ajustes",
   },
   shell: {
@@ -758,24 +758,39 @@ const esEsCatalog: TranslationCatalog = {
       resetAll: "Restablecer el estado de todos los avisos",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Mazos",
-      description: "Crea, edita y revisa ámbitos de estudio reutilizables.",
     },
     tags: {
       title: "Etiquetas",
-      description: "Consulta el uso de etiquetas y el número de tarjetas de todo el espacio de trabajo.",
     },
     export: {
       title: "Exportar",
-      description: "Descarga las tarjetas activas de este espacio de trabajo como paquete portátil flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importar",
-      description: "Pega términos y definiciones o importa un paquete de Nibomo.",
-      value: "Texto o ZIP",
     },
     resetProgress: {
       title: "Restablecer progreso de estudio",

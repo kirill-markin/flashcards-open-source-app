@@ -9,7 +9,7 @@ import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { createDeckNameComparator } from "../../../../deckNameOrdering";
 import type { Locale } from "../../../../i18n/types";
 import { useI18n } from "../../../../i18n";
-import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
+import { buildLibraryDeckDetailRoute, libraryDeckNewRoute } from "../../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
@@ -26,7 +26,7 @@ type DeckListEntry = Readonly<{
 }>;
 
 function buildDeckDetailPath(deckId: string, workspacePath: WorkspacePathBuilder): string {
-  return workspacePath(buildSettingsDeckDetailRoute(deckId));
+  return workspacePath(buildLibraryDeckDetailRoute(deckId));
 }
 
 function makeDeckListEntries(
@@ -215,7 +215,7 @@ export function DecksScreen(): ReactElement {
           </div>
           <div className="screen-actions">
             <span className="badge">{t("decksScreen.counts.total", { count: formatNumber(deckListEntries.length) })}</span>
-            <Link className="primary-btn" to={workspacePath(settingsDeckNewRoute)} data-testid="decks-new-deck">{t("decksScreen.newDeck")}</Link>
+            <Link className="primary-btn" to={workspacePath(libraryDeckNewRoute)} data-testid="decks-new-deck">{t("decksScreen.newDeck")}</Link>
           </div>
         </div>
 

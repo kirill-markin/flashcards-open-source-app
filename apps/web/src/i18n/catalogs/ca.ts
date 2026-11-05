@@ -132,7 +132,6 @@ const caCatalog: TranslationCatalog = {
     ok: "D'acord",
     off: "Desactivat",
     on: "Activat",
-    open: "Obre",
     perAction: "Per acció",
     refresh: "Actualitza",
     retry: "Torna-ho a provar",
@@ -213,6 +212,7 @@ const caCatalog: TranslationCatalog = {
     aiChat: "Xat d'IA",
     progress: "Progrés",
     cards: "Targetes",
+    library: "Library",
     settings: "Configuració",
   },
   shell: {
@@ -758,24 +758,39 @@ const caCatalog: TranslationCatalog = {
       resetAll: "Restableix l'estat de tots els avisos",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Baralles",
-      description: "Crea, edita i repassa àmbits d'estudi reutilitzables.",
     },
     tags: {
       title: "Etiquetes",
-      description: "Consulta l'ús de les etiquetes i el recompte de targetes de tot l'espai de treball.",
     },
     export: {
       title: "Exporta",
-      description: "Descarrega les targetes actives d'aquest espai de treball com un paquet portàtil flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importa",
-      description: "Enganxa termes i definicions o importa un paquet de Nibomo.",
-      value: "Text o ZIP",
     },
     resetProgress: {
       title: "Restableix el progrés de l'estudi",

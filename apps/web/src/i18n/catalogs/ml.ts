@@ -132,7 +132,6 @@ const mlCatalog: TranslationCatalog = {
     ok: "ശരി",
     off: "ഓഫ്",
     on: "ഓൺ",
-    open: "തുറക്കുക",
     perAction: "ഓരോ പ്രവർത്തനത്തിനും",
     refresh: "പുതുക്കുക",
     retry: "വീണ്ടും ശ്രമിക്കുക",
@@ -213,6 +212,7 @@ const mlCatalog: TranslationCatalog = {
     aiChat: "AI ചാറ്റ്",
     progress: "പുരോഗതി",
     cards: "കാർഡുകൾ",
+    library: "Library",
     settings: "ക്രമീകരണങ്ങൾ",
   },
   shell: {
@@ -758,24 +758,39 @@ const mlCatalog: TranslationCatalog = {
       resetAll: "എല്ലാ പ്രോംപ്റ്റുകളുടെയും നില പുനഃസജ്ജമാക്കുക",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ഡെക്കുകൾ",
-      description: "വീണ്ടും ഉപയോഗിക്കാവുന്ന പഠന പരിധികൾ സൃഷ്ടിക്കുക, തിരുത്തുക, അവലോകനം ചെയ്യുക.",
     },
     tags: {
       title: "ടാഗുകൾ",
-      description: "വർക്ക്‌സ്‌പേസിലുടനീളമുള്ള ടാഗ് ഉപയോഗവും കാർഡ് എണ്ണവും പരിശോധിക്കുക.",
     },
     export: {
       title: "എക്സ്പോർട്ട് ചെയ്യുക",
-      description: "ഈ വർക്ക്‌സ്‌പേസിലെ സജീവ കാർഡുകൾ flashcards.zip പാക്കേജായി ഡൗൺലോഡ് ചെയ്യുക.",
-      value: "flashcards.zip",
     },
     import: {
       title: "ഇംപോർട്ട് ചെയ്യുക",
-      description: "പദങ്ങളും നിർവചനങ്ങളും ഒട്ടിക്കുക അല്ലെങ്കിൽ ഒരു Nibomo പാക്കേജ് ഇംപോർട്ട് ചെയ്യുക.",
-      value: "ടെക്സ്റ്റ് അല്ലെങ്കിൽ ZIP",
     },
     resetProgress: {
       title: "പഠന പുരോഗതി പുനഃസജ്ജമാക്കുക",

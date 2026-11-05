@@ -132,7 +132,6 @@ const mrCatalog: TranslationCatalog = {
     ok: "ठीक आहे",
     off: "बंद",
     on: "सुरू",
-    open: "उघडा",
     perAction: "प्रत्येक कृतीसाठी",
     refresh: "ताजे करा",
     retry: "पुन्हा प्रयत्न करा",
@@ -213,6 +212,7 @@ const mrCatalog: TranslationCatalog = {
     aiChat: "AI चॅट",
     progress: "प्रगती",
     cards: "कार्डे",
+    library: "Library",
     settings: "सेटिंग्ज",
   },
   shell: {
@@ -758,24 +758,39 @@ const mrCatalog: TranslationCatalog = {
       resetAll: "सर्व प्रॉम्प्टची स्थिती रीसेट करा",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "संच",
-      description: "पुन्हा वापरता येणारी अभ्यासाची व्याप्ती तयार करा, संपादित करा आणि पाहा.",
     },
     tags: {
       title: "टॅग",
-      description: "संपूर्ण कार्यक्षेत्रातील टॅगचा वापर आणि कार्डांची संख्या तपासा.",
     },
     export: {
       title: "निर्यात",
-      description: "या कार्यक्षेत्रातील सक्रिय कार्डे पोर्टेबल flashcards.zip पॅकेज म्हणून डाउनलोड करा.",
-      value: "flashcards.zip",
     },
     import: {
       title: "आयात",
-      description: "संज्ञा आणि व्याख्या पेस्ट करा किंवा Nibomo पॅकेज आयात करा.",
-      value: "मजकूर किंवा ZIP",
     },
     resetProgress: {
       title: "अभ्यासाची प्रगती रीसेट करा",

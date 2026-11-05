@@ -138,7 +138,6 @@ const roCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Oprit",
     on: "Pornit",
-    open: "Deschide",
     perAction: "La fiecare acțiune",
     refresh: "Actualizează",
     retry: "Reîncearcă",
@@ -219,6 +218,7 @@ const roCatalog: TranslationCatalog = {
     aiChat: "Chat AI",
     progress: "Progres",
     cards: "Fișe",
+    library: "Library",
     settings: "Setări",
   },
   shell: {
@@ -766,24 +766,39 @@ const roCatalog: TranslationCatalog = {
       resetAll: "Resetează starea tuturor solicitărilor",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Pachete",
-      description: "Creează, editează și recapitulează domenii de studiu reutilizabile.",
     },
     tags: {
       title: "Etichete",
-      description: "Vezi utilizarea etichetelor și numărul de fișe din tot spațiul de lucru.",
     },
     export: {
       title: "Export",
-      description: "Descarcă fișele active din acest spațiu de lucru ca pachet portabil flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Lipește termeni și definiții sau importă un pachet Nibomo.",
-      value: "Text sau ZIP",
     },
     resetProgress: {
       title: "Resetează progresul studiului",

@@ -132,7 +132,6 @@ const nbCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Av",
     on: "På",
-    open: "Åpne",
     perAction: "Per handling",
     refresh: "Oppdater",
     retry: "Prøv igjen",
@@ -213,6 +212,7 @@ const nbCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Fremgang",
     cards: "Kort",
+    library: "Library",
     settings: "Innstillinger",
   },
   shell: {
@@ -758,24 +758,39 @@ const nbCatalog: TranslationCatalog = {
       resetAll: "Tilbakestill tilstanden for alle meldinger",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kortstokker",
-      description: "Lag, rediger og se gjenbrukbare læringsomfang.",
     },
     tags: {
       title: "Tagger",
-      description: "Se hvordan tagger brukes i hele arbeidsområdet, med antall kort.",
     },
     export: {
       title: "Eksport",
-      description: "Last ned de aktive kortene fra dette arbeidsområdet som en flyttbar flashcards.zip-pakke.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Lim inn termer og definisjoner, eller importer en Nibomo-pakke.",
-      value: "Tekst eller ZIP",
     },
     resetProgress: {
       title: "Nullstill læringsfremgang",

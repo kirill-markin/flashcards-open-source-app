@@ -132,7 +132,6 @@ export const zhHansCatalog = {
     ok: "确定",
     off: "关",
     on: "开",
-    open: "打开",
     perAction: "每次操作",
     refresh: "刷新",
     retry: "重试",
@@ -213,6 +212,7 @@ export const zhHansCatalog = {
     aiChat: "AI 聊天",
     progress: "进度",
     cards: "卡片",
+    library: "Library",
     settings: "设置",
   },
   shell: {
@@ -758,24 +758,39 @@ export const zhHansCatalog = {
       resetAll: "重置所有提示状态",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "牌组",
-      description: "创建、编辑和查看可重复使用的学习范围。",
     },
     tags: {
       title: "标签",
-      description: "查看整个工作区的标签使用情况和卡片数量。",
     },
     export: {
       title: "导出",
-      description: "将此工作区的活动卡片下载为可移植的 flashcards.zip 包。",
-      value: "flashcards.zip",
     },
     import: {
       title: "导入",
-      description: "粘贴词条和释义，或导入 Nibomo 包。",
-      value: "文本或 ZIP",
     },
     resetProgress: {
       title: "重置学习进度",

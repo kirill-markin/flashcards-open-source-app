@@ -383,12 +383,14 @@ export const productAnalyticsSurfaces = [
   // reports one value. Every other leaf stays collapsed for exactly the reason it always was.
   "settings_legal",
   "ai",
-  // Workspace content management. These sit under the settings screen on all three clients only as
-  // a routing accident: they act on the person's own decks, cards and tags, which is the same
-  // object family `cards`, `card_editor` and `deck_detail` already name.
+  // Workspace content management under the Library tab on all three clients. They act on the
+  // person's own decks, cards and tags, which is the same object family `cards`, `card_editor` and
+  // `deck_detail` already name.
   "decks",
   "deck_editor",
   "tags",
+  // The Library hub itself and its import and export leaves.
+  "library",
   // Authentication. `signin` is the sign-in screen itself whatever the client splits it into: the
   // email step, the code step and the workspace choice are one screen here.
   // `credential_recovery` is the gate that replaces the whole app root on iOS and Android when

@@ -58,6 +58,7 @@ export type AnalyticsSurface =
   | "decks"
   | "deck_editor"
   | "tags"
+  | "library"
   | "signin"
   | "credential_recovery"
   | "oauth_consent"
@@ -279,7 +280,7 @@ export type AnalyticsEvent =
    * - `friend_invite` is named and takes over, so `FriendInviteCreateDialog` reports both edges.
    * - `card_editor` is named, and the review screen's `ReviewEditorModal` takes over the viewport
    *   with an opaque blurred `position: fixed; inset: 0` backdrop and hosts the same `CardFormFields`
-   *   as `/cards/:cardId`, the route that maps to the same surface. So it reports both edges too,
+   *   as `/library/cards/:cardId`, the route that maps to the same surface. So it reports both edges too,
    *   from `handleOpenEditor` and `handleCloseEditor` in `useReviewCardEditor.ts`, which is what iOS
    *   reports from the equivalent sheet in `CardsScreen.swift`.
    * - the review screen's post-review prompts — the guest sign-in prompt, the mobile-app promotion

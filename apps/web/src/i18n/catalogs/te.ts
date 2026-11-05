@@ -132,7 +132,6 @@ const teCatalog: TranslationCatalog = {
     ok: "సరే",
     off: "ఆఫ్",
     on: "ఆన్",
-    open: "తెరువు",
     perAction: "ప్రతి చర్యకు",
     refresh: "రిఫ్రెష్ చేయి",
     retry: "మళ్లీ ప్రయత్నించు",
@@ -213,6 +212,7 @@ const teCatalog: TranslationCatalog = {
     aiChat: "AI చాట్",
     progress: "పురోగతి",
     cards: "కార్డులు",
+    library: "Library",
     settings: "సెట్టింగ్‌లు",
   },
   shell: {
@@ -758,24 +758,39 @@ const teCatalog: TranslationCatalog = {
       resetAll: "అన్ని ప్రాంప్ట్‌ల స్థితిని రీసెట్ చేయండి",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "డెక్‌లు",
-      description: "మళ్లీ ఉపయోగించగల అధ్యయన పరిధులను సృష్టించండి, సవరించండి, పునశ్చరణ చేయండి.",
     },
     tags: {
       title: "ట్యాగ్‌లు",
-      description: "వర్క్‌స్పేస్ అంతటా ట్యాగ్‌ల వినియోగాన్ని, కార్డుల సంఖ్యలను పరిశీలించండి.",
     },
     export: {
       title: "ఎగుమతి",
-      description: "ఈ వర్క్‌స్పేస్‌లోని సక్రియ కార్డులను పోర్టబుల్ flashcards.zip ప్యాకేజీగా డౌన్‌లోడ్ చేయండి.",
-      value: "flashcards.zip",
     },
     import: {
       title: "దిగుమతి",
-      description: "పదాలు, నిర్వచనాలను అతికించండి లేదా Nibomo ప్యాకేజీని దిగుమతి చేయండి.",
-      value: "టెక్స్ట్ లేదా ZIP",
     },
     resetProgress: {
       title: "అధ్యయన పురోగతిని రీసెట్ చేయి",

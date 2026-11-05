@@ -132,7 +132,6 @@ const zuCatalog: TranslationCatalog = {
     ok: "Kulungile",
     off: "Kuvaliwe",
     on: "Kuvuliwe",
-    open: "Vula",
     perAction: "Ngesenzo ngasinye",
     refresh: "Vuselela",
     retry: "Zama futhi",
@@ -213,6 +212,7 @@ const zuCatalog: TranslationCatalog = {
     aiChat: "Ingxoxo ye-AI",
     progress: "Inqubekelaphambili",
     cards: "Amakhadi",
+    library: "Library",
     settings: "Izilungiselelo",
   },
   shell: {
@@ -758,24 +758,39 @@ const zuCatalog: TranslationCatalog = {
       resetAll: "Setha kabusha isimo sazo zonke iziyalezo",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Izinqwaba",
-      description: "Dala, hlela, futhi ubukeze ububanzi bokufunda obungasetshenziswa kabusha.",
     },
     tags: {
       title: "Amathegi",
-      description: "Hlola ukusetshenziswa kwamathegi kuyo yonke indawo yokusebenza kanye nenani lamakhadi.",
     },
     export: {
       title: "Khipha",
-      description: "Dawuniloda amakhadi asebenzayo kule ndawo yokusebenza njengephakheji ephathekayo ethi flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Ngenisa",
-      description: "Namathisela amatemu nezincazelo noma ungenise iphakheji ye-Nibomo.",
-      value: "Umbhalo noma i-ZIP",
     },
     resetProgress: {
       title: "Setha kabusha inqubekelaphambili yokufunda",

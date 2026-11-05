@@ -132,7 +132,6 @@ const knCatalog: TranslationCatalog = {
     ok: "ಸರಿ",
     off: "ನಿಷ್ಕ್ರಿಯ",
     on: "ಸಕ್ರಿಯ",
-    open: "ತೆರೆಯಿರಿ",
     perAction: "ಪ್ರತಿ ಕ್ರಿಯೆಗೆ",
     refresh: "ನವೀಕರಿಸಿ",
     retry: "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
@@ -213,6 +212,7 @@ const knCatalog: TranslationCatalog = {
     aiChat: "AI ಚಾಟ್",
     progress: "ಪ್ರಗತಿ",
     cards: "ಕಾರ್ಡ್‌ಗಳು",
+    library: "Library",
     settings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
   },
   shell: {
@@ -758,24 +758,39 @@ const knCatalog: TranslationCatalog = {
       resetAll: "ಎಲ್ಲಾ ಪ್ರಾಂಪ್ಟ್‌ಗಳ ಸ್ಥಿತಿಯನ್ನು ಮರುಹೊಂದಿಸಿ",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ಡೆಕ್‌ಗಳು",
-      description: "ಮರುಬಳಕೆ ಮಾಡಬಹುದಾದ ಅಧ್ಯಯನ ವ್ಯಾಪ್ತಿಗಳನ್ನು ರಚಿಸಿ, ಸಂಪಾದಿಸಿ ಮತ್ತು ನೋಡಿ.",
     },
     tags: {
       title: "ಟ್ಯಾಗ್‌ಗಳು",
-      description: "ಕಾರ್ಯಸ್ಥಳದಾದ್ಯಂತ ಟ್ಯಾಗ್ ಬಳಕೆ ಮತ್ತು ಕಾರ್ಡ್ ಎಣಿಕೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
     },
     export: {
       title: "ರಫ್ತು",
-      description: "ಈ ಕಾರ್ಯಸ್ಥಳದ ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳನ್ನು ಪೋರ್ಟಬಲ್ flashcards.zip ಪ್ಯಾಕೇಜ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
-      value: "flashcards.zip",
     },
     import: {
       title: "ಆಮದು",
-      description: "ಪದಗಳು ಮತ್ತು ಅರ್ಥಗಳನ್ನು ಅಂಟಿಸಿ ಅಥವಾ Nibomo ಪ್ಯಾಕೇಜ್ ಆಮದು ಮಾಡಿ.",
-      value: "ಪಠ್ಯ ಅಥವಾ ZIP",
     },
     resetProgress: {
       title: "ಅಧ್ಯಯನ ಪ್ರಗತಿ ಮರುಹೊಂದಿಸಿ",

@@ -132,7 +132,6 @@ const fiCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Pois",
     on: "Päällä",
-    open: "Avaa",
     perAction: "Toimintokohtainen",
     refresh: "Päivitä",
     retry: "Yritä uudelleen",
@@ -213,6 +212,7 @@ const fiCatalog: TranslationCatalog = {
     aiChat: "Tekoäly",
     progress: "Edistyminen",
     cards: "Kortit",
+    library: "Library",
     settings: "Asetukset",
   },
   shell: {
@@ -758,24 +758,39 @@ const fiCatalog: TranslationCatalog = {
       resetAll: "Nollaa kaikkien kehotteiden tila",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Pakat",
-      description: "Luo, muokkaa ja tarkastele uudelleen käytettäviä opiskelurajauksia.",
     },
     tags: {
       title: "Tunnisteet",
-      description: "Tarkastele tunnisteiden käyttöä ja korttimääriä koko työtilassa.",
     },
     export: {
       title: "Vienti",
-      description: "Lataa tämän työtilan aktiiviset kortit siirrettävänä flashcards.zip-pakettina.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Tuonti",
-      description: "Liitä termit ja määritelmät tai tuo Nibomo-paketti.",
-      value: "Teksti tai ZIP",
     },
     resetProgress: {
       title: "Nollaa opiskeluedistyminen",

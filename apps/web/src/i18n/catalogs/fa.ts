@@ -132,7 +132,6 @@ const faCatalog: TranslationCatalog = {
     ok: "تأیید",
     off: "خاموش",
     on: "روشن",
-    open: "باز کردن",
     perAction: "در هر اقدام",
     refresh: "به‌روزرسانی",
     retry: "تلاش دوباره",
@@ -213,6 +212,7 @@ const faCatalog: TranslationCatalog = {
     aiChat: "گفت‌وگوی هوش مصنوعی",
     progress: "پیشرفت",
     cards: "کارت‌ها",
+    library: "Library",
     settings: "تنظیمات",
   },
   shell: {
@@ -758,24 +758,39 @@ const faCatalog: TranslationCatalog = {
       resetAll: "بازنشانی وضعیت همه اعلان‌ها",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "دسته‌ها",
-      description: "دامنه‌های مطالعهٔ قابل استفادهٔ دوباره را بسازید، ویرایش و مرور کنید.",
     },
     tags: {
       title: "برچسب‌ها",
-      description: "استفاده از برچسب‌ها و تعداد کارت‌ها را در کل فضای کاری بررسی کنید.",
     },
     export: {
       title: "برون‌بری",
-      description: "کارت‌های فعال این فضای کاری را به صورت بستهٔ قابل‌حمل flashcards.zip دریافت کنید.",
-      value: "flashcards.zip",
     },
     import: {
       title: "درون‌ریزی",
-      description: "اصطلاحات و تعریف‌ها را بچسبانید یا یک بستهٔ Nibomo درون‌ریزی کنید.",
-      value: "متن یا ZIP",
     },
     resetProgress: {
       title: "بازنشانی پیشرفت مطالعه",

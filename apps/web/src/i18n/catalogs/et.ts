@@ -132,7 +132,6 @@ const etCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Väljas",
     on: "Sees",
-    open: "Ava",
     perAction: "Iga toimingu kohta",
     refresh: "Värskenda",
     retry: "Proovi uuesti",
@@ -213,6 +212,7 @@ const etCatalog: TranslationCatalog = {
     aiChat: "TI-vestlus",
     progress: "Edenemine",
     cards: "Kaardid",
+    library: "Library",
     settings: "Seaded",
   },
   shell: {
@@ -758,24 +758,39 @@ const etCatalog: TranslationCatalog = {
       resetAll: "Lähtesta kõigi viipade olek",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Pakid",
-      description: "Loo, muuda ja korda taaskasutatavaid õppevaldkondi.",
     },
     tags: {
       title: "Sildid",
-      description: "Vaata siltide kasutust ja kaartide arvu kogu tööruumis.",
     },
     export: {
       title: "Eksportimine",
-      description: "Laadi selle tööruumi aktiivsed kaardid alla teisaldatava flashcards.zip paketina.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importimine",
-      description: "Kleebi terminid ja määratlused või impordi Nibomo pakett.",
-      value: "Tekst või ZIP",
     },
     resetProgress: {
       title: "Lähtesta õppimise edenemine",
