@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 interface PackageManifest {
@@ -32,3 +32,10 @@ execFileSync("npm", ["ci", "--omit=dev", "--no-audit", "--no-fund", "--os=linux"
   cwd: outputDir,
   stdio: "inherit",
 });
+
+// Lambda caps unzipped code plus layers at 250 MiB, and nothing reads the installed packages' source
+// maps at runtime. Sentry uses the bundle's own index.js.map, which sits outside node_modules.
+const nodeModulesDir = join(outputDir, "node_modules");
+for (const entry of readdirSync(nodeModulesDir, { recursive: true, withFileTypes: true })) {
+  if (entry.isFile() && entry.name.endsWith(".map")) rmSync(join(entry.parentPath, entry.name));
+}
