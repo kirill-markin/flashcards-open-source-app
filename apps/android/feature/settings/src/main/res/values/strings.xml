@@ -162,8 +162,6 @@
     <string name="settings_language_open_android_settings">Open app language settings</string>
     <string name="settings_language_device_body">On this Android version, Nibomo uses your device language. Changing it applies to every app on this device.</string>
     <string name="settings_language_open_device_settings">Open language settings</string>
-    <string name="settings_decks_summary">Manage decks in this workspace</string>
-    <string name="settings_tags_summary">Browse tags used by workspace cards</string>
     <string name="settings_scheduling_title">Scheduling / FSRS</string>
     <string name="settings_scheduling_summary">Retention, learning steps, and interval behavior</string>
     <string name="settings_device_diagnostics_title">Device</string>
@@ -445,7 +443,6 @@
 
     <string name="settings_workspace_decks_title">Decks</string>
     <string name="settings_workspace_tags_title">Tags</string>
-    <string name="settings_workspace_export_title">Export</string>
     <string name="settings_workspace_reset_body">Reset study progress for every card in this workspace. Card content stays intact.</string>
     <string name="settings_workspace_reset_button">Reset all progress</string>
     <string name="settings_workspace_reset_sign_in_guidance">Sign in to a linked cloud workspace before resetting progress.</string>
@@ -592,7 +589,6 @@
     <string name="settings_export_package_generated_import_tag_not_included">Generated import tags are not included in package exports.</string>
 
     <string name="settings_import_title">Import</string>
-    <string name="settings_import_zip_summary">Import a Nibomo ZIP package</string>
     <string name="settings_import_package_section">Package</string>
     <string name="settings_import_package_body">Choose a portable Nibomo ZIP package to preview before importing.</string>
     <string name="settings_import_choose_package">Choose ZIP package</string>

@@ -1,6 +1,5 @@
 <resources>
     <string name="top_level_review">חזרה</string>
-    <string name="top_level_cards">כרטיסיות</string>
     <string name="top_level_ai">בינה מלאכותית</string>
     <string name="cards_title">כרטיסיות</string>
     <string name="cards_search_label">חיפוש כרטיסיות</string>

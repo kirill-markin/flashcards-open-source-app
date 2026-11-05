@@ -76,7 +76,7 @@ import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
 import com.flashcardsopensourceapp.app.navigation.ReviewWidgetTapHandoffRequest
-import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
@@ -729,7 +729,7 @@ fun FlashcardsApp(
                     appGraph.syncFailureAnalyticsReporter.reportSuccess()
                 }.onFailure { error ->
                     if (error !is CancellationException) {
-                        // This loop polls every 15 s on Review and Cards. Reporting through the
+                        // This loop polls every 15 s on Review and Library. Reporting through the
                         // shared gate makes an offline stretch cost one `sync_failed`, not one per
                         // poll, so the event keeps measuring failure incidence.
                         appGraph.syncFailureAnalyticsReporter.reportFailure(
@@ -775,9 +775,9 @@ fun FlashcardsApp(
                                         allowsVisibleChangeMessage = true
                                     )
                                 }
-                                if (destination == CardsDestination) {
+                                if (destination == LibraryDestination) {
                                     appGraph.autoSyncController.triggerImmediateAutoSync(
-                                        source = AutoSyncSource.CARDS_TAB_SELECTED,
+                                        source = AutoSyncSource.LIBRARY_TAB_SELECTED,
                                         currentTimeMillis = System.currentTimeMillis(),
                                         shouldExtendPolling = true,
                                         allowsVisibleChangeMessage = true

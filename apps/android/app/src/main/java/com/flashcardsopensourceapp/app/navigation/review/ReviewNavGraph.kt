@@ -25,10 +25,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.LibraryNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
-import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
@@ -250,8 +250,8 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     navigateToAiChat(navController = navController)
                 },
                 onOpenDeckManagement = {
-                    appGraph.appHandoffCoordinator.requestSettingsNavigation(
-                        target = SettingsNavigationTarget.WORKSPACE_DECKS
+                    appGraph.appHandoffCoordinator.requestLibraryNavigation(
+                        target = LibraryNavigationTarget.DECKS
                     )
                 },
                 onCreateCard = {

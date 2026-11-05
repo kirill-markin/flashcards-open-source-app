@@ -36,7 +36,6 @@
     <string name="ai_terms_of_service">ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ</string>
     <string name="ai_support">ਮਦਦ</string>
     <string name="ai_consent_workspace_disclosure">%1$s ਵਰਕਸਪੇਸ ਤੋਂ AI ਬੇਨਤੀਆਂ ਹਦਾਇਤਾਂ, ਫ਼ਾਈਲਾਂ, ਤਸਵੀਰਾਂ ਅਤੇ ਬੋਲੀ ਗਈ ਆਵਾਜ਼ AI ਸੇਵਾ ਨੂੰ ਭੇਜ ਸਕਦੀਆਂ ਹਨ।</string>
-    <string name="top_level_cards">ਕਾਰਡ</string>
     <string name="cards_title">ਕਾਰਡ</string>
     <string name="top_level_review">ਦੁਹਰਾਈ</string>
     <string name="review_title">ਦੁਹਰਾਈ</string>

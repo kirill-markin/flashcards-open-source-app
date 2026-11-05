@@ -1,13 +1,22 @@
 <resources>
+    <string name="library_title">Library</string>
+    <string name="library_cards_title">Cards</string>
+    <string name="library_cards_summary">Every card in this workspace.</string>
+    <string name="library_tags_title">Tags</string>
+    <string name="library_tags_summary">Every tag used on at least one card.</string>
+    <string name="library_decks_title">Decks</string>
+    <string name="library_decks_summary">Saved card filters for focused review.</string>
+    <string name="library_import_export_section_title">Import &amp; export</string>
+    <string name="library_import_title">Import</string>
+    <string name="library_import_summary">Add cards from a file.</string>
+    <string name="library_export_title">Export</string>
+    <string name="library_export_summary">Download all your cards as a file.</string>
     <string name="cards_title">Cards</string>
     <string name="cards_filter_content_description">Filter cards</string>
     <plurals name="cards_filter_content_description_active">
         <item quantity="one">Filter cards (%d active)</item>
         <item quantity="other">Filter cards (%d active)</item>
     </plurals>
-    <string name="cards_library_actions_content_description">Library actions</string>
-    <string name="cards_open_decks">Open decks</string>
-    <string name="cards_open_tags">Open tags</string>
     <string name="cards_add_card_content_description">Add card</string>
     <string name="cards_search_label">Search cards</string>
     <string name="cards_active_filters">Active filters</string>

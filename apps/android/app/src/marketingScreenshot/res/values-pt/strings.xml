@@ -1,7 +1,6 @@
 <resources>
     <string name="top_level_review">Revisar</string>
     <string name="top_level_progress">Progresso</string>
-    <string name="top_level_cards">Cartões</string>
     <string name="top_level_ai">IA</string>
     <string name="top_level_settings">Ajustes</string>
 

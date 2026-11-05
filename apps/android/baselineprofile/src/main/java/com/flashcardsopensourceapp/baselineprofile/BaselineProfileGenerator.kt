@@ -74,7 +74,7 @@ class BaselineProfileGenerator {
         const val UI_TIMEOUT_MILLIS = 30_000L
         const val CARD_PROBE_TIMEOUT_MILLIS = 5_000L
 
-        val TOP_LEVEL_ROUTES = listOf("progress", "ai", "cards", "settings", "review")
+        val TOP_LEVEL_ROUTES = listOf("progress", "ai", "library", "settings", "review")
 
         // Lives in the Review top bar, so it is present on every Review frame, card or empty state.
         val REVIEW_SCREEN_SETTLED: BySelector = By.res("review_filter_button")

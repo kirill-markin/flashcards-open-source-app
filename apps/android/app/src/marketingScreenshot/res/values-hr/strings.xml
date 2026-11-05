@@ -1,6 +1,5 @@
 <resources>
     <string name="top_level_review">Ponavljanje</string>
-    <string name="top_level_cards">Kartice</string>
     <string name="top_level_ai">AI</string>
     <string name="cards_title">Kartice</string>
     <string name="cards_search_label">Pretraži kartice</string>

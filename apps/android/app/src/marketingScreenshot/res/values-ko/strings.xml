@@ -36,7 +36,6 @@
     <string name="ai_terms_of_service">서비스 약관</string>
     <string name="ai_support">지원</string>
     <string name="ai_consent_workspace_disclosure">%1$s 작업 공간의 AI 요청은 지시문, 파일, 이미지, 음성 입력을 AI 서비스로 전송할 수 있습니다.</string>
-    <string name="top_level_cards">카드</string>
     <string name="cards_title">카드</string>
     <string name="top_level_review">복습</string>
     <string name="review_title">복습</string>

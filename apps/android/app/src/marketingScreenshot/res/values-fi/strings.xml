@@ -1,6 +1,5 @@
 <resources>
     <string name="top_level_review">Kertaus</string>
-    <string name="top_level_cards">Kortit</string>
     <string name="top_level_ai">Tekoäly</string>
     <string name="cards_title">Kortit</string>
     <string name="cards_search_label">Hae kortteja</string>
