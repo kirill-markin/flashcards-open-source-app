@@ -135,7 +135,7 @@ extension FlashcardsStore {
      * this reset just started, and that is the only identity the report can honestly carry.
      */
     private func restoreSurfaceForPromptsClosedByCloudIdentityReset() {
-        let landingSurface = analyticsSurface(tab: self.currentVisibleTab)
+        let landingSurface = self.currentVisibleAnalyticsSurface
         if self.isReviewNotificationPrePromptPresented {
             Analytics.trackScreenViewedOnDismiss(
                 of: .notificationsPrePrompt,

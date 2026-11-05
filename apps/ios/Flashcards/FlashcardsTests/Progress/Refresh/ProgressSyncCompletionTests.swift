@@ -241,7 +241,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
         let scopeKey = try XCTUnwrap(context.store.progressObservedScopeKey)
         let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
-        context.store.updateCurrentVisibleTab(tab: .cards)
+        context.store.updateCurrentVisibleTab(tab: .library)
 
         await context.store.handleProgressSyncCompletion(
             now: now,

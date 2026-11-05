@@ -28,7 +28,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.tapButton(identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         #endif
 
-        for destination in [LiveSmokeSelectedTab.cards, .progress, .review] {
+        for destination in [LiveSmokeSelectedTab.library, .progress, .review] {
             try self.tapTabBarItem(identifier: destination.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: destination.screen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForAiComposerValue("Keep this unsent companion draft", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)

@@ -814,7 +814,7 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
         )
         try fixture.database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
         if allowsImmediateRefresh == false {
-            fixture.context.store.updateCurrentVisibleTab(tab: .cards)
+            fixture.context.store.updateCurrentVisibleTab(tab: .library)
         }
 
         await fixture.context.store.handleProgressSyncCompletion(

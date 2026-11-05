@@ -105,13 +105,13 @@ struct TagsScreen: View {
         }
         .listStyle(.insetGrouped)
         .rememberedListScroll(
-            topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isWorkspaceTagsOnSettingsPath }),
+            topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isTagsOnLibraryPath }),
             isContentReady: self.isLoading == false
         )
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(
-            tab: .settings,
+            tab: .library,
             role: .navigation,
             search: MacToolbarSearch(
                 text: self.searchText,
@@ -138,7 +138,7 @@ struct TagsScreen: View {
         }
         .onDisappear {
             // Conditional, because this also fires for a tab switch away from an open tags list.
-            Analytics.trackScreenViewedOnDismiss(of: .tags, restoring: .settings)
+            Analytics.trackScreenViewedOnDismiss(of: .tags, restoring: .library)
         }
     }
 

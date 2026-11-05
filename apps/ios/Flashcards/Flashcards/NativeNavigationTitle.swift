@@ -59,6 +59,7 @@ struct MacToolbarBackdropContext: Equatable {
     let selectedTab: AppTab
     let companionVisible: Bool
     let aiDepth: Int
+    let libraryDepth: Int
     let settingsDepth: Int
 }
 

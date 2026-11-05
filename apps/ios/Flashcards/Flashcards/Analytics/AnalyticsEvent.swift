@@ -211,6 +211,8 @@ enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     case deckDetail = "deck_detail"
     case cardEditor = "card_editor"
     case cards
+    // The Library hub and the import and export screens under it.
+    case library
     case progress
     case settings
     // The legal and privacy screen, the one settings leaf the catalog names on its own, because the

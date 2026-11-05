@@ -361,7 +361,7 @@ final class AppleSubscriptionService {
     /// identity, so its outcome is dropped rather than risk filing it under the account that replaced it.
     private func trackForCurrentIdentity(_ event: AnalyticsEvent, identity: AppleSubscriptionIdentity) {
         guard (try? self.store.appleSubscriptionIdentity()) == identity else { return }
-        Analytics.track(event, screen: analyticsSurface(tab: self.store.currentVisibleTab))
+        Analytics.track(event, screen: self.store.currentVisibleAnalyticsSurface)
     }
 
     func reconcileCurrentEntitlements() async throws {
@@ -396,7 +396,7 @@ final class AppleSubscriptionService {
     func manageSubscriptions(in scene: UIWindowScene) async throws {
         Analytics.track(
             .subscriptionManagementOpened(destination: .appStore),
-            screen: analyticsSurface(tab: self.store.currentVisibleTab)
+            screen: self.store.currentVisibleAnalyticsSurface
         )
         #if targetEnvironment(macCatalyst)
         guard let managementURL = URL(string: "https://apps.apple.com/account/subscriptions") else {

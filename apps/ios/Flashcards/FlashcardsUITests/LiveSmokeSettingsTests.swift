@@ -38,7 +38,17 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeGuestNavigationFlow() throws {
         try self.step("verify guest navigation surfaces without login") {
-            try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
+            try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .library)
+            try self.assertScreenVisible(screen: .library, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            for identifier in [
+                LiveSmokeIdentifier.libraryTagsRow,
+                LiveSmokeIdentifier.libraryDecksRow,
+                LiveSmokeIdentifier.libraryImportRow,
+                LiveSmokeIdentifier.libraryExportRow
+            ] {
+                try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+            try self.tapButton(identifier: LiveSmokeIdentifier.libraryCardsRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -130,10 +140,6 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAccessRow)
         try self.assertTextExists("Permissions", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
-
-        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsDecksRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsTagsRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsExportRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         try self.assertSettingsRootTextExistsScrollingIntoView("Support", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertSettingsRootElementExistsScrollingIntoView(identifier: LiveSmokeIdentifier.settingsFeedbackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
@@ -319,7 +325,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
         try self.runSignedInLinkedWorkspaceScenario(context: context, reviewEmail: reviewEmail) {
             try self.step("create one manual card in the linked workspace") {
-                try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.openLibraryCards()
                 try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
             }
 

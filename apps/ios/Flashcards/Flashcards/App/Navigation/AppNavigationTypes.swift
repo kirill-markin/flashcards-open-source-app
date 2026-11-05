@@ -2,8 +2,8 @@ import Foundation
 
 /**
  Keep workspace navigation aligned with web and Android:
- the primary destinations are Review, Progress, AI, Cards, and Settings,
- with shared first-level Settings rows across supported clients.
+ the primary destinations are Review, Progress, AI, Library, and Settings,
+ with shared first-level Library and Settings rows across supported clients.
  Android keeps the same product destinations
  in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt`,
  with nested settings destinations in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/SettingsDestinations.kt`.
@@ -12,7 +12,7 @@ enum AppTab: Hashable, CaseIterable, Sendable {
     case review
     case progress
     case ai
-    case cards
+    case library
     case settings
 
     var localizedTitle: String {
@@ -21,7 +21,7 @@ enum AppTab: Hashable, CaseIterable, Sendable {
         case .review: key = "root_tab.review.title"
         case .progress: key = "root_tab.progress.title"
         case .ai: key = "root_tab.ai.title"
-        case .cards: key = "root_tab.cards.title"
+        case .library: key = "root_tab.library.title"
         case .settings: key = "root_tab.settings.title"
         }
         return String(localized: String.LocalizationValue(key), table: "Foundation")
@@ -32,7 +32,7 @@ enum AppTab: Hashable, CaseIterable, Sendable {
         case .review: "rectangle.on.rectangle"
         case .progress: "chart.bar.xaxis"
         case .ai: "sparkles.rectangle.stack"
-        case .cards: "rectangle.stack"
+        case .library: "books.vertical"
         case .settings: "gearshape"
         }
     }
@@ -46,6 +46,15 @@ enum ProgressPresentationTarget: Hashable, Sendable {
 struct ProgressPresentationRequest: Hashable, Sendable {
     let id: UUID
     let target: ProgressPresentationTarget
+}
+
+enum LibraryNavigationDestination: Hashable, Sendable {
+    case cards
+    case tags
+    case decks
+    case deckDetail(DeckScreenDestination)
+    case importData
+    case exportData
 }
 
 enum SettingsNavigationDestination: Hashable, Sendable {
@@ -70,11 +79,6 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case localSyncDiagnostics
     case notifications
     case workspaceScheduler
-    case workspaceExport
-    case workspaceImport
-    case workspaceDecks
-    case workspaceDeckDetail(DeckScreenDestination)
-    case workspaceTags
     case accountStatus
     case accountLegal
     case accountSupport

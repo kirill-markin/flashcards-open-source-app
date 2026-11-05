@@ -15,12 +15,10 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
             )
         }
 
-        try self.step("switch Arabic RTL to cards tab") {
-            try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            // Mac finds toolbar items by English label, so it checks the screen root instead.
-            #if targetEnvironment(macCatalyst)
-            try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            #else
+        try self.step("switch Arabic RTL to library cards") {
+            try self.openLibraryCards()
+            // Mac finds toolbar items by English label, so it checks only the screen root.
+            #if !targetEnvironment(macCatalyst)
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds

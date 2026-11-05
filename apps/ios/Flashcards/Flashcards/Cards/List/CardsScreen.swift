@@ -30,8 +30,8 @@ private func cardsAIHandoffAppTabDiagnosticValue(_ tab: AppTab) -> String {
         return "progress"
     case .ai:
         return "ai"
-    case .cards:
-        return "cards"
+    case .library:
+        return "library"
     case .settings:
         return "settings"
     }
@@ -133,11 +133,6 @@ struct CardsScreen: View {
         UIDevice.current.userInterfaceIdiom == .pad && self.tabBarPlacement == .topBar
     }
 
-    private var usesPairedCompanionToolbar: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad
-            && self.navigation.isAICompanionVisible && self.navigation.selectedTab == .cards
-    }
-
     private var cardsColumnTitle: some View {
         Text(String(localized: "Cards", table: reviewCardsStringsTableName))
             .font(.headline)
@@ -174,7 +169,7 @@ struct CardsScreen: View {
             onDismiss: {
                 // From the presentation, never from the content, for the reason
                 // `Analytics.trackScreenViewedOnDismiss` gives. The editor only ever presents over
-                // the Cards tab, so the restore is already safe here; it is written conditionally
+                // the Cards screen, so the restore is already safe here; it is written conditionally
                 // anyway because it costs nothing and keeps the one rule for restoring a surface
                 // identical at every site.
                 Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
@@ -226,8 +221,18 @@ struct CardsScreen: View {
             }
         }
         .onAppear {
+            Analytics.trackScreenViewed(.cards)
             self.tagSuggestionsSourceKey = nil
             self.handleCardsPresentationRequest(request: navigation.cardsPresentationRequest)
+        }
+        .onDisappear {
+            // A tab switch away also lands here, where `selectTab` has already reported the
+            // destination; only a pop has taken Cards off the Library stack.
+            guard self.navigation.isCardsOnLibraryPath == false else {
+                return
+            }
+
+            Analytics.trackScreenViewedOnDismiss(of: .cards, restoring: .library)
         }
         .onChange(of: navigation.cardsPresentationRequest) { _, request in
             self.handleCardsPresentationRequest(request: request)
@@ -361,7 +366,11 @@ struct CardsScreen: View {
                 : self.currentWorkspaceCardsSnapshot?.cards.first { self.cardIdsBelowListTop.contains($0.id) }?.id
         }
         .accessibilityIdentifier(UITestIdentifier.cardsScreen)
+        #if targetEnvironment(macCatalyst)
+        .nativeNavigationTitle(String(localized: "Cards", table: reviewCardsStringsTableName))
+        #else
         .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
+        #endif
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)
         .searchable(
@@ -374,7 +383,7 @@ struct CardsScreen: View {
         .toolbar {
             #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
-            if UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false && self.usesPairedCompanionToolbar == false {
+            if UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false {
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) {
                         self.cardsColumnTitle
@@ -396,7 +405,8 @@ struct CardsScreen: View {
     #if targetEnvironment(macCatalyst)
     private var macCardsToolbar: MacToolbarContribution {
         MacToolbarContribution(
-            tab: .cards,
+            tab: .library,
+            role: .navigation,
             trailing: [MacToolbarGroup(identifier: "nibomo.cardsActions", actions: [
                 MacToolbarAction(identifier: UITestIdentifier.cardsFilterButton, symbol: "line.3.horizontal.decrease", label: self.filterToolbarAccessibilityLabel, isSelected: self.activeFilterDimensionCount > 0, perform: { _ in self.beginFiltering() }),
                 MacToolbarAction(identifier: UITestIdentifier.cardsAddButton, symbol: "plus", label: String(localized: "Add card", table: reviewCardsStringsTableName), perform: { _ in self.beginCreatingFromToolbar() })

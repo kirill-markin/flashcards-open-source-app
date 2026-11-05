@@ -1,6 +1,15 @@
 import XCTest
 
 extension LiveSmokeTestCase {
+    /// Opens Cards from the Library hub; the Library stack must be at its root.
+    @MainActor
+    func openLibraryCards() throws {
+        try self.tapTabBarItem(selectedTab: .library, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .library, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.libraryCardsRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
+
     @MainActor
     func assertUnsavedCardDraftSurvivesInteractiveDismissal(frontText: String) throws {
         try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)

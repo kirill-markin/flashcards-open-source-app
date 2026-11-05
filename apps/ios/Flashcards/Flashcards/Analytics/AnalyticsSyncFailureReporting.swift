@@ -6,7 +6,7 @@ extension Analytics {
      * reports it here, so one outage costs one event no matter which surface saw it first.
      *
      * Never call `track(.syncFailed(...))` directly. The sync paths are retried on a timer — every
-     * 15 s on the Review and Cards tabs — so a direct emit turns one outage into hundreds of rows per
+     * 15 s on the Review and Library tabs — so a direct emit turns one outage into hundreds of rows per
      * device per hour on an append-only table.
      */
     static func reportSyncFailure(reason: AnalyticsSyncFailureReason) {

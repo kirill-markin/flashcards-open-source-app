@@ -105,9 +105,17 @@ struct FlashcardsApp: App {
             // it ahead of the first screen_viewed instead of landing after it.
             Analytics.track(.appOpened(launchType: .cold))
         }
-        let selectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
+        let uiTestSelectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
-            .map(\.appTab) ?? .review
+        let selectedTab = uiTestSelectedTab.map(\.appTab) ?? .review
+        let initialNavigation = AppNavigationModel(
+            selectedTab: selectedTab,
+            settingsPath: [],
+            libraryPath: uiTestSelectedTab.map(\.libraryPath) ?? [],
+            cardsPresentationRequest: nil,
+            aiChatPresentationRequest: nil,
+            progressPresentationRequest: nil
+        )
         let launchScenario = processInfo.environment[flashcardsUITestLaunchScenarioEnvironmentKey]
             .flatMap(FlashcardsUITestLaunchScenario.init(rawValue:))
         let aiHandoffCard = makeFlashcardsUITestAIHandoffCard(processInfo: processInfo)
@@ -186,6 +194,7 @@ struct FlashcardsApp: App {
             prepareVisibleTabForPresentationWithBreadcrumb(
                 store: store,
                 selectedTab: selectedTab,
+                librarySurface: initialNavigation.visibleLibraryAnalyticsSurface,
                 previousTab: nil,
                 scenePhase: nil,
                 isStartupReady: false,
@@ -206,15 +215,7 @@ struct FlashcardsApp: App {
 
         _store = State(initialValue: store)
         _appleSubscriptions = State(initialValue: AppleSubscriptionService(store: store, session: .shared))
-        _navigation = State(
-            initialValue: AppNavigationModel(
-                selectedTab: selectedTab,
-                settingsPath: [],
-                cardsPresentationRequest: nil,
-                aiChatPresentationRequest: nil,
-                progressPresentationRequest: nil
-            )
-        )
+        _navigation = State(initialValue: initialNavigation)
         _settingsScroll = State(initialValue: SettingsScrollModel())
         _cardsScreenModel = State(initialValue: CardsScreenModel())
         _reviewScreen = State(initialValue: ReviewScreenModel())
@@ -245,8 +246,9 @@ struct FlashcardsApp: App {
                 .environment(self.appleSubscriptions)
                 .environment(navigation)
                 .environment(self.settingsScroll)
-                .onChange(of: self.navigation.settingsPath) {
-                    self.settingsScroll.forgetRowsOffSettingsPath(navigation: self.navigation)
+                .onChange(of: self.navigation.libraryPath) {
+                    self.settingsScroll.forgetRowsOffLibraryPath(navigation: self.navigation)
+                    self.store.updateCurrentLibraryAnalyticsSurface(surface: self.navigation.visibleLibraryAnalyticsSurface)
                 }
                 .environment(self.cardsScreenModel)
                 .environment(self.reviewScreen)

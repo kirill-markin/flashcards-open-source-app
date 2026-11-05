@@ -214,6 +214,7 @@ struct RootTabView: View {
         prepareVisibleTabForPresentationWithBreadcrumb(
             store: self.store,
             selectedTab: nextTab,
+            librarySurface: self.navigation.visibleLibraryAnalyticsSurface,
             previousTab: previousTab,
             scenePhase: self.scenePhase,
             isStartupReady: nil,
@@ -233,7 +234,7 @@ struct RootTabView: View {
             await self.store.refreshReviewBadgesIfNeeded()
         case .progress:
             await self.store.refreshProgressIfNeeded()
-        case .ai, .cards, .settings:
+        case .ai, .library, .settings:
             return
         }
     }
@@ -308,6 +309,7 @@ struct RootTabView: View {
                 prepareVisibleTabForPresentationWithBreadcrumb(
                     store: self.store,
                     selectedTab: nextTab,
+                    librarySurface: self.navigation.visibleLibraryAnalyticsSurface,
                     previousTab: previousTab,
                     scenePhase: self.scenePhase,
                     isStartupReady: nil,
@@ -366,8 +368,8 @@ struct RootTabView: View {
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabAIItem, isEnabled: true)
 
-            Tab(value: AppTab.cards) {
-                self.cardsTab
+            Tab(value: AppTab.library) {
+                self.libraryTab(libraryPath: $navigation.libraryPath)
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
                             RootTabAccessibilityMetadataAdapter()
@@ -376,9 +378,9 @@ struct RootTabView: View {
                         }
                     }
             } label: {
-                self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
+                self.tabLabel(.library, identifier: UITestIdentifier.rootTabLibraryItem)
             }
-            .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem, isEnabled: true)
+            .accessibilityIdentifier(UITestIdentifier.rootTabLibraryItem, isEnabled: true)
 
             Tab(value: AppTab.settings) {
                 self.settingsTab(settingsPath: $navigation.settingsPath)
@@ -409,6 +411,7 @@ struct RootTabView: View {
                     selectedTab: self.navigation.selectedTab,
                     companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
                     aiDepth: self.navigation.aiPath.count,
+                    libraryDepth: self.navigation.libraryPath.count,
                     settingsDepth: self.navigation.settingsPath.count
                 )))
                 .background {
@@ -444,8 +447,8 @@ struct RootTabView: View {
             self.progressTab
         case .ai:
             self.aiTab(aiPath: self.macSectionPath(\.aiPath, section: .ai))
-        case .cards:
-            self.cardsTab
+        case .library:
+            self.libraryTab(libraryPath: self.macSectionPath(\.libraryPath, section: .library))
         case .settings:
             self.settingsTab(settingsPath: self.macSectionPath(\.settingsPath, section: .settings))
         }
@@ -476,7 +479,7 @@ struct RootTabView: View {
                 .tag(AppTab.review)
             self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
             self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
-            self.macSidebarRow(.cards, identifier: UITestIdentifier.rootTabCardsItem)
+            self.macSidebarRow(.library, identifier: UITestIdentifier.rootTabLibraryItem)
             self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
                 .badge(self.settingsAttentionSummary.settingsTabCount)
                 .tag(AppTab.settings)
@@ -508,7 +511,7 @@ struct RootTabView: View {
             .presentationBackground(Color(uiColor: .systemBackground))
     }
 
-    // Paired Cards and Progress share one native bar in both tab placements.
+    // Paired Progress shares one native bar in both tab placements; Review does under a top tab bar.
     // Their screen-owned drafts and presentations survive sidebar transitions.
     @ViewBuilder
     private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
@@ -543,6 +546,7 @@ struct RootTabView: View {
         }
         let header = preferences.headers.last { $0.tab == tab }
         let isNested = (tab == .ai && self.navigation.aiPath.isEmpty == false)
+            || (tab == .library && self.navigation.libraryPath.isEmpty == false)
             || (tab == .settings && self.navigation.settingsPath.isEmpty == false)
         let role: MacToolbarContribution.Role = isNested ? .navigation : .screen
         let screen = preferences.contributions.last { $0.tab == tab && $0.role == role }
@@ -556,12 +560,15 @@ struct RootTabView: View {
                         header.dismiss()
                     } else if tab == .ai, self.navigation.aiPath.isEmpty == false {
                         self.navigation.aiPath.removeLast()
+                    } else if tab == .library, self.navigation.libraryPath.isEmpty == false {
+                        self.navigation.libraryPath.removeLast()
                     } else if tab == .settings, self.navigation.settingsPath.isEmpty == false {
                         self.navigation.settingsPath.removeLast()
                     }
                 }
             )]))
-        } else if self.navigation.canPresentAICompanion && tab != .ai && tab != .settings {
+        }
+        if self.navigation.canPresentAICompanion && tab != .ai && tab != .settings {
             let companion = preferences.contributions.last { $0.tab == tab && $0.role == .companion }
             let toggle = MacToolbarAction(
                 identifier: UITestIdentifier.aiCompanionToggle,
@@ -685,6 +692,7 @@ struct RootTabView: View {
             prepareVisibleTabForPresentationWithBreadcrumb(
                 store: self.store,
                 selectedTab: self.navigation.selectedTab,
+                librarySurface: self.navigation.visibleLibraryAnalyticsSurface,
                 previousTab: previousTab,
                 scenePhase: self.scenePhase,
                 isStartupReady: nil,
@@ -741,7 +749,7 @@ struct RootTabView: View {
                 return
             }
 
-            let triggerSource: CloudSyncTriggerSource = nextTab == .review ? .reviewTabSelected : .cardsTabSelected
+            let triggerSource: CloudSyncTriggerSource = nextTab == .review ? .reviewTabSelected : .libraryTabSelected
             store.triggerCloudSyncIfLinked(
                 trigger: CloudSyncTrigger(
                     source: triggerSource,
@@ -903,13 +911,43 @@ struct RootTabView: View {
         #endif
     }
 
-    private var cardsTab: some View {
-        self.aiCompanionHost(for: .cards) {
-            CardsScreen()
+    /// The companion pane sits beside the whole stack, so it stays open across Library pages.
+    private func libraryTab(libraryPath: Binding<LibraryNavigationPath>) -> some View {
+        self.aiCompanionColumns(for: .library) {
+            NavigationStack(path: libraryPath) {
+                LibraryScreen()
+                    .navigationDestination(for: LibraryNavigationDestination.self) { destination in
+                        self.libraryDestinationView(destination: destination)
+                            #if targetEnvironment(macCatalyst)
+                            .environment(\.macToolbarOwnerTab, .library)
+                            #endif
+                    }
+                    #if targetEnvironment(macCatalyst)
+                    .toolbar(.hidden, for: .navigationBar)
+                    #endif
+            }
         }
         #if targetEnvironment(macCatalyst)
-        .environment(\.macToolbarOwnerTab, .cards)
+        .environment(\.macToolbarOwnerTab, .library)
         #endif
+    }
+
+    @ViewBuilder
+    private func libraryDestinationView(destination: LibraryNavigationDestination) -> some View {
+        switch destination {
+        case .cards:
+            CardsScreen()
+        case .tags:
+            TagsScreen()
+        case .decks:
+            DecksScreen()
+        case .deckDetail(let deck):
+            DeckDetailScreen(destination: deck)
+        case .importData:
+            WorkspaceImportView()
+        case .exportData:
+            WorkspaceExportView()
+        }
     }
 
     private func settingsTab(settingsPath: Binding<SettingsNavigationPath>) -> some View {
@@ -975,16 +1013,6 @@ struct RootTabView: View {
             NotificationsSettingsView()
         case .workspaceScheduler:
             SchedulerSettingsDetailView()
-        case .workspaceExport:
-            WorkspaceExportView()
-        case .workspaceImport:
-            WorkspaceImportView()
-        case .workspaceDecks:
-            DecksScreen()
-        case .workspaceDeckDetail(let destination):
-            DeckDetailScreen(destination: destination)
-        case .workspaceTags:
-            TagsScreen()
         case .accountStatus:
             AccountStatusView()
         case .accountLegal:

@@ -773,7 +773,7 @@ struct ReviewView: View {
     private func dismissReviewFilterPopoverAndOpenDecks() {
         self.finalizeReviewFilterDraft()
         self.isReviewFilterPopoverPresented = false
-        navigation.openSettings(destination: .workspaceDecks)
+        navigation.openLibrary(destination: .decks)
     }
 
     private var reviewLoadingView: some View {
@@ -1009,6 +1009,7 @@ struct ReviewView: View {
         prepareVisibleTabForPresentationWithBreadcrumb(
             store: self.store,
             selectedTab: .progress,
+            librarySurface: self.navigation.visibleLibraryAnalyticsSurface,
             previousTab: self.navigation.selectedTab,
             scenePhase: self.scenePhase,
             isStartupReady: nil,

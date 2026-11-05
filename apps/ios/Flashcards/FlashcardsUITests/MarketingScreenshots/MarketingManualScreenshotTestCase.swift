@@ -431,8 +431,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
     @MainActor
     func openMarketingCardsList() throws {
-        try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.openLibraryCards()
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.cardsCardRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds

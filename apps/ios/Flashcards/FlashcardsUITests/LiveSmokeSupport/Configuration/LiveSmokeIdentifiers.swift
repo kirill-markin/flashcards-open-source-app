@@ -15,7 +15,7 @@ enum LiveSmokeIdentifier {
     static let rootTabReviewItem: String = "rootTab.review.item"
     static let rootTabAIItem: String = "rootTab.ai.item"
     static let rootTabProgressItem: String = "rootTab.progress.item"
-    static let rootTabCardsItem: String = "rootTab.cards.item"
+    static let rootTabLibraryItem: String = "rootTab.library.item"
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let reviewFilterMenu: String = "review.filter.menu"
@@ -34,6 +34,12 @@ enum LiveSmokeIdentifier {
     static let progressReviewsSection: String = "progress.reviewsSection"
     static let progressLeaderboardSection: String = "progress.leaderboardSection"
     static let cardsScreen: String = "cards.screen"
+    static let libraryScreen: String = "library.screen"
+    static let libraryCardsRow: String = "library.cardsRow"
+    static let libraryTagsRow: String = "library.tagsRow"
+    static let libraryDecksRow: String = "library.decksRow"
+    static let libraryImportRow: String = "library.importRow"
+    static let libraryExportRow: String = "library.exportRow"
     static let settingsScreen: String = "settings.screen"
     static let notificationsSettingsScreen: String = "notificationsSettings.screen"
     static let accessSettingsScreen: String = "accessSettings.screen"
@@ -54,9 +60,6 @@ enum LiveSmokeIdentifier {
     static let settingsLeaderboardParticipationRow: String = "settings.leaderboardParticipationRow"
     static let settingsLanguageRow: String = "settings.languageRow"
     static let settingsAccessRow: String = "settings.accessRow"
-    static let settingsDecksRow: String = "settings.decksRow"
-    static let settingsTagsRow: String = "settings.tagsRow"
-    static let settingsExportRow: String = "settings.exportRow"
     static let settingsFeedbackRow: String = "settings.feedbackRow"
     static let settingsLegalRow: String = "settings.legalRow"
     static let settingsSupportRow: String = "settings.supportRow"
@@ -185,6 +188,9 @@ enum LiveSmokeSelectedTab: String {
     case review
     case progress
     case ai
+    case library
+    /// The Library tab showing Cards: a launch pushes Cards, while a tab tap shows Cards only
+    /// when the Library stack still holds it.
     case cards
     case settings
 
@@ -196,8 +202,8 @@ enum LiveSmokeSelectedTab: String {
             return LiveSmokeIdentifier.rootTabProgressItem
         case .ai:
             return LiveSmokeIdentifier.rootTabAIItem
-        case .cards:
-            return LiveSmokeIdentifier.rootTabCardsItem
+        case .library, .cards:
+            return LiveSmokeIdentifier.rootTabLibraryItem
         case .settings:
             return LiveSmokeIdentifier.rootTabSettingsItem
         }
@@ -211,6 +217,8 @@ enum LiveSmokeSelectedTab: String {
             return .progress
         case .ai:
             return .ai
+        case .library:
+            return .library
         case .cards:
             return .cards
         case .settings:
@@ -234,7 +242,7 @@ enum LiveSmokeSelectedTab: String {
             return 1
         case .ai:
             return 2
-        case .cards:
+        case .library, .cards:
             return 3
         case .settings:
             return 4
@@ -297,24 +305,8 @@ enum LiveSmokeSelectedTab: String {
             return "IA"
         case (.ai, .spanishSpain):
             return "IA"
-        case (.cards, .english):
-            return "Cards"
-        case (.cards, .arabic):
-            return "البطاقات"
-        case (.cards, .chineseSimplified):
-            return "卡片"
-        case (.cards, .german):
-            return "Karten"
-        case (.cards, .hindi):
-            return "कार्ड"
-        case (.cards, .japanese):
-            return "カード"
-        case (.cards, .russian):
-            return "Карточки"
-        case (.cards, .spanishMexico):
-            return "Tarjetas"
-        case (.cards, .spanishSpain):
-            return "Tarjetas"
+        case (.library, _), (.cards, _):
+            return "Library"
         case (.settings, .english):
             return "Settings"
         case (.settings, .arabic):
@@ -346,6 +338,7 @@ enum LiveSmokeScreen: CaseIterable {
     case review
     case ai
     case progress
+    case library
     case cards
     case settings
     case cloudSignIn
@@ -371,6 +364,8 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.aiScreen
         case .progress:
             return LiveSmokeIdentifier.progressScreen
+        case .library:
+            return LiveSmokeIdentifier.libraryScreen
         case .cards:
             return LiveSmokeIdentifier.cardsScreen
         case .settings:
@@ -414,6 +409,8 @@ enum LiveSmokeScreen: CaseIterable {
             return "AI"
         case .progress:
             return "Progress"
+        case .library:
+            return "Library"
         case .cards:
             return "Cards"
         case .settings:
