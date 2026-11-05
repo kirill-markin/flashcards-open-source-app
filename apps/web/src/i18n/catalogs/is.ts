@@ -23,7 +23,7 @@ const isCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Nám er fyrir <em>alla.</em>",
+    heading: "Gerðu Nibomo að <em>þínu</em>.",
     freeTitle: "Ókeypis",
     freeDescription: "Búið til fyrir námsfólk án vinnu. Opið öllum.",
     freeBenefit: "Grunnupprifjun, nám án nettengingar og samstilling",

@@ -23,7 +23,7 @@ const huCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "A tanulás <em>mindenkié.</em>",
+    heading: "Legyen a Nibomo <em>a tiéd</em>.",
     freeTitle: "Ingyenes",
     freeDescription: "Munka nélküli diákoknak készült. Mindenki előtt nyitva áll.",
     freeBenefit: "Alapvető ismétlés, offline tanulás és szinkronizálás",

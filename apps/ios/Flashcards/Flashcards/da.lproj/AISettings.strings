@@ -995,7 +995,7 @@
 "settings.account.connection.restart" = "Beviset er udløbet eller brugt. Start igen med et nyt bevis.";
 "settings.account.connection.restorePaused" = "Konti forbundet. Lokal opdatering er sat på pause; dine offlinedata bevares.";
 
-"premium.offer.heading" = "Læring er for **alle**.";
+"premium.offer.heading" = "Gør Nibomo til **din egen**.";
 "premium.offer.free" = "Gratis";
 "premium.offer.freeDescription" = "Skabt til studerende uden job. Åbent for alle.";
 "premium.offer.freeBenefits" = "Repetition, læring offline og synkronisering";

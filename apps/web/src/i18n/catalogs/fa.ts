@@ -23,7 +23,7 @@ const faCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "یادگیری برای <em>همه</em> است.",
+    heading: "Nibomo را <em>از آنِ خود</em> کنید.",
     freeTitle: "رایگان",
     freeDescription: "برای دانشجویان بدون شغل ساخته شده. در دسترس همه است.",
     freeBenefit: "مرورهای پایه، یادگیری آفلاین و همگام‌سازی",

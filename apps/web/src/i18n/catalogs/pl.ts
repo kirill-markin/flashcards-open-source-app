@@ -23,7 +23,7 @@ const plCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Nauka jest dla <em>każdego.</em>",
+    heading: "Dopasuj Nibomo <em>do siebie</em>.",
     freeTitle: "Bezpłatnie",
     freeDescription: "Stworzone dla studentów bez pracy. Otwarte dla wszystkich.",
     freeBenefit: "Podstawowe powtórki, nauka offline i synchronizacja",
