@@ -13548,7 +13548,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filter kartu tersimpan untuk tinjauan yang terfokus."
+            "value" : "Filter kartu tersimpan untuk pengulangan yang terfokus."
           }
         },
         "is" : {
@@ -13596,7 +13596,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ശ്രദ്ധയോടെയുള്ള അവലോകനത്തിനായി സേവ് ചെയ്ത കാർഡ് ഫിൽട്ടറുകൾ."
+            "value" : "ശ്രദ്ധയോടെയുള്ള ആവർത്തനത്തിനായി സേവ് ചെയ്ത കാർഡ് ഫിൽട്ടറുകൾ."
           }
         },
         "mr" : {
@@ -13829,7 +13829,7 @@
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "הורד את כל הכרטיסיות שלך כקובץ."
+            "value" : "הורדת כל הכרטיסיות שלך כקובץ."
           }
         },
         "hi" : {
@@ -14134,7 +14134,7 @@
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "הוסף כרטיסיות מקובץ."
+            "value" : "הוספת כרטיסיות מקובץ."
           }
         },
         "hi" : {

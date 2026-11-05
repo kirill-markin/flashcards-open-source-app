@@ -780,7 +780,7 @@ const plCatalog: TranslationCatalog = {
       description: "Wszystkie tagi użyte na co najmniej jednej karcie.",
     },
     decks: {
-      description: "Zapisane filtry kart do skupionych powtórek.",
+      description: "Zapisane filtry kart do ukierunkowanych powtórek.",
     },
     import: {
       description: "Dodaj karty z pliku.",

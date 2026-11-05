@@ -422,7 +422,7 @@ const CARD_WEB_APP_ORIGIN: string | undefined = resolveCardWebAppOrigin();
 export const CARD_WEB_URL_LINES: ReadonlyArray<string> = CARD_WEB_APP_ORIGIN === undefined
   ? []
   : [
-    `A card's web link is ${CARD_WEB_APP_ORIGIN}/w/<workspaceId>/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is.`,
+    `A card's web link is ${CARD_WEB_APP_ORIGIN}/w/<workspaceId>/library/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is.`,
   ];
 
 /**

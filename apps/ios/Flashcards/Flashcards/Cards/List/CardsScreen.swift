@@ -369,7 +369,7 @@ struct CardsScreen: View {
         #if targetEnvironment(macCatalyst)
         .nativeNavigationTitle(String(localized: "Cards", table: reviewCardsStringsTableName))
         #else
-        .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
+        .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
         #endif
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)

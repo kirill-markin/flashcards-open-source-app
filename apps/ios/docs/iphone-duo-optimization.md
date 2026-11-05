@@ -4,7 +4,7 @@ The shared adaptive layout uses the owning native window and horizontal size cla
 An eligible landscape window at least 900 × 600 points places the AI companion
 on the physical-left half; smaller or portrait windows use the full AI destination.
 The threshold is an app layout policy rather than device or fold-state detection.
-Review, Cards, and Progress share the existing AI store and retain the companion
+Review, Library, and Progress share the existing AI store and retain the companion
 preference. Ordinary iPhones retain the declared portrait orientation policy.
 See the [iPad layout](ipad-optimization.md) for shared state and accessibility.
 

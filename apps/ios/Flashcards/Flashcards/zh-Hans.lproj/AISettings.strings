@@ -651,7 +651,7 @@
 
 "settings.workspace.row.decks" = "牌组";
 "settings.workspace.row.tags" = "标签";
-"settings.workspace.row.export" = "出口";
+"settings.workspace.row.export" = "导出";
 "settings.workspace.resetProgressDescription" = "永久重置此工作区中每张卡的学习进度。";
 "settings.workspace.resetAllProgress" = "重置所有进度";
 "settings.workspace.resetAlertTitle" = "重置所有进度？";
