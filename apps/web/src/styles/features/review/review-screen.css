@@ -88,7 +88,7 @@
 }
 
 .review-leaderboard-shortcut .review-progress-badge-icon {
-  color: #fbbf24;
+  color: var(--trophy);
 }
 
 .review-progress-shortcuts {

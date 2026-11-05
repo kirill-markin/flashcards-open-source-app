@@ -43,6 +43,13 @@ const fiCatalog: TranslationCatalog = {
     checkoutPrice: "Lopullinen hinta ja valuutta kassalla.",
     renewalDisclosure: "Uusiutuu automaattisesti; peru milloin tahansa tilausasetuksissa.",
   },
+  themeSettings: {
+    title: "Teema",
+    subtitle: "Valitse sovellukselle tumma tai vaalea ulkoasu.",
+    dark: "Tumma",
+    light: "Vaalea",
+    premiumNote: "Vaalea teema sisältyy Premiumiin. Tallentamasi valinta palaa käyttöön, kun Premium on voimassa.",
+  },
   accentColorSettings: {
     title: "Korostusväri",
     subtitle: "Valitse sovelluksen korostusväri.",

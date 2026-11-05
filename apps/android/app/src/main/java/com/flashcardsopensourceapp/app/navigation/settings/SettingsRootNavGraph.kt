@@ -193,6 +193,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenReviewReminders = {
                 navController.navigate(route = SettingsNotificationsDestination.route)
             },
+            onOpenTheme = {
+                navController.navigate(route = SettingsThemeDestination.route)
+            },
             onOpenAccentColor = {
                 navController.navigate(route = SettingsAccentColorDestination.route)
             },

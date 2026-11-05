@@ -42,6 +42,13 @@ const enCatalog = {
     checkoutPrice: "Final price and currency at checkout.",
     renewalDisclosure: "Auto-renews; cancel anytime in Subscription settings.",
   },
+  themeSettings: {
+    title: "Theme",
+    subtitle: "Choose a dark or light look for the app.",
+    dark: "Dark",
+    light: "Light",
+    premiumNote: "The light theme is included with Premium. Your saved choice returns when Premium is active.",
+  },
   accentColorSettings: {
     title: "Accent color",
     subtitle: "Choose the app’s accent color.",

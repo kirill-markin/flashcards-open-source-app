@@ -43,6 +43,13 @@ const bnCatalog: TranslationCatalog = {
     checkoutPrice: "চূড়ান্ত দাম ও মুদ্রা চেকআউটে দেখানো হবে।",
     renewalDisclosure: "স্বয়ংক্রিয়ভাবে নবায়ন হয়; সাবস্ক্রিপশন সেটিংসে যেকোনো সময় বাতিল করুন।",
   },
+  themeSettings: {
+    title: "থিম",
+    subtitle: "অ্যাপের জন্য গাঢ় বা হালকা চেহারা বেছে নিন।",
+    dark: "গাঢ়",
+    light: "হালকা",
+    premiumNote: "হালকা থিম Premium-এ অন্তর্ভুক্ত। Premium সক্রিয় থাকলে আপনার সংরক্ষিত পছন্দ ফিরে আসে।",
+  },
   accentColorSettings: {
     title: "অ্যাকসেন্ট রং",
     subtitle: "অ্যাপের অ্যাকসেন্ট রং বেছে নিন।",

@@ -873,6 +873,11 @@
     </plurals>
     <string name="settings_premium_preview">Preview Premium</string>
     <string name="settings_ai_limit_preview">Preview AI message limit</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_premium_note">The Light theme is included with Premium. Your saved choice is kept while Dark is displayed on the free plan.</string>
+    <string name="settings_theme_update_failed">Could not save your theme. Check your connection and try again.</string>
     <string name="settings_accent_title">Accent color</string>
     <string name="settings_accent_selected">Selected color: %1$s</string>
     <string name="settings_accent_premium_note">Custom accent colors are included with Premium. Your saved choice is kept while Default is displayed on the free plan.</string>

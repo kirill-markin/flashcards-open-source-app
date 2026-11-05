@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 μηνύματα AI τον μήνα και προσαρμοσμένα στυλ. Ο συγχρονισμός είναι δωρεάν για όλους.";
 "premium.aiLimit.title" = "Συμπληρώθηκε το όριο μηνυμάτων AI";
 
+"settings.theme.title" = "Θέμα";
+"settings.theme.dark" = "Σκούρο";
+"settings.theme.light" = "Ανοιχτόχρωμο";
+"settings.theme.premiumNote" = "Το ανοιχτόχρωμο θέμα διατίθεται με το Premium. Το αποθηκευμένο θέμα σας επιστρέφει όταν το Premium είναι ενεργό.";
 "settings.accentColor.title" = "Χρώμα έμφασης";
 "settings.accentColor.default" = "Προεπιλογή";
 "settings.accentColor.blue" = "Μπλε";

@@ -43,6 +43,13 @@ const deCatalog: TranslationCatalog = {
     checkoutPrice: "Endgültiger Preis und Währung beim Checkout.",
     renewalDisclosure: "Automatische Verlängerung; jederzeit in den Abo-Einstellungen kündigen.",
   },
+  themeSettings: {
+    title: "Design",
+    subtitle: "Wähle ein dunkles oder helles Erscheinungsbild für die App.",
+    dark: "Dunkel",
+    light: "Hell",
+    premiumNote: "Das helle Design ist in Premium enthalten. Deine gespeicherte Auswahl gilt wieder, sobald Premium aktiv ist.",
+  },
   accentColorSettings: {
     title: "Akzentfarbe",
     subtitle: "Wähle die Akzentfarbe der App.",

@@ -43,6 +43,13 @@ const slCatalog: TranslationCatalog = {
     checkoutPrice: "Končna cena in valuta ob plačilu.",
     renewalDisclosure: "Samodejno se obnavlja; prekličite kadar koli v nastavitvah naročnine.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Izberite temen ali svetel videz aplikacije.",
+    dark: "Temna",
+    light: "Svetla",
+    premiumNote: "Svetla tema je vključena v Premium. Vaša shranjena izbira se vrne, ko je Premium aktiven.",
+  },
   accentColorSettings: {
     title: "Barva poudarka",
     subtitle: "Izberite barvo poudarka aplikacije.",

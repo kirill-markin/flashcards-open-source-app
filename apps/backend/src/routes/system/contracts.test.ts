@@ -81,6 +81,7 @@ const testApiKeyRequestContext: RequestContext = {
   userSettingsCreatedAt: "2026-03-11T08:50:55.898Z",
   preferences: {
     accentColor: "#FF6719",
+    theme: "dark",
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: false,
     analyticsConsent: null,

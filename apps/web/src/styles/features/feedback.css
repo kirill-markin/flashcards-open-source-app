@@ -4,7 +4,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.58);
+  background: rgba(0, 0, 0, calc(0.58 * var(--backdrop-alpha-scale)));
   z-index: var(--z-index-dialog-backdrop);
   backdrop-filter: blur(14px);
 }

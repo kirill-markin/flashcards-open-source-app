@@ -43,6 +43,13 @@ const plCatalog: TranslationCatalog = {
     checkoutPrice: "Ostateczna cena i waluta przy płatności.",
     renewalDisclosure: "Odnawia się automatycznie; anuluj w dowolnej chwili w ustawieniach subskrypcji.",
   },
+  themeSettings: {
+    title: "Motyw",
+    subtitle: "Wybierz ciemny lub jasny wygląd aplikacji.",
+    dark: "Ciemny",
+    light: "Jasny",
+    premiumNote: "Jasny motyw jest dostępny w Premium. Twój zapisany wybór wróci, gdy Premium będzie aktywne.",
+  },
   accentColorSettings: {
     title: "Kolor akcentu",
     subtitle: "Wybierz kolor akcentu aplikacji.",

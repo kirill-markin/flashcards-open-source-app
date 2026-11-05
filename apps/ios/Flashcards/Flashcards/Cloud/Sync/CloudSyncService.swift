@@ -122,6 +122,7 @@ private func makeCloudAccountContext(
         reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled,
         productAnalyticsEnabled: meResponse.preferences.productAnalyticsEnabled,
         accentColor: meResponse.preferences.accentColor,
+        theme: meResponse.preferences.theme,
         firstReviewOnboardingCompleted: meResponse.preferences.firstReviewOnboardingCompleted
     )
     preferences.firstReviewOnboardingSnapshotGeneration = firstReviewOnboardingSnapshotGeneration

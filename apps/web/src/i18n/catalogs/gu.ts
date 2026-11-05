@@ -43,6 +43,13 @@ const guCatalog: TranslationCatalog = {
     checkoutPrice: "અંતિમ કિંમત અને ચલણ ચેકઆઉટ વખતે.",
     renewalDisclosure: "આપમેળે નવીકરણ થાય છે; સબ્સ્ક્રિપ્શન સેટિંગ્સમાં ગમે ત્યારે રદ કરો.",
   },
+  themeSettings: {
+    title: "થીમ",
+    subtitle: "ઍપ માટે ડાર્ક અથવા લાઇટ દેખાવ પસંદ કરો.",
+    dark: "ડાર્ક",
+    light: "લાઇટ",
+    premiumNote: "લાઇટ થીમ Premiumમાં સામેલ છે. Premium સક્રિય હોય ત્યારે તમારી સાચવેલી પસંદગી પાછી આવે છે.",
+  },
   accentColorSettings: {
     title: "ઍક્સેન્ટ રંગ",
     subtitle: "ઍપનો ઍક્સેન્ટ રંગ પસંદ કરો.",

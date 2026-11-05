@@ -76,20 +76,22 @@ struct AccountPreferences: Codable, Hashable, Sendable {
     /// snapshot would bypass both.
     let productAnalyticsEnabled: Bool?
     let accentColor: AccountAccentColor
+    let theme: AccountTheme
     let firstReviewOnboardingCompleted: Bool?
     // Local provenance travels with persisted snapshots, never with preference PATCH bodies.
     var firstReviewOnboardingSnapshotGeneration: String?
 
-    init(reviewReactionAnimationsEnabled: Bool, productAnalyticsEnabled: Bool?, accentColor: AccountAccentColor, firstReviewOnboardingCompleted: Bool?) {
+    init(reviewReactionAnimationsEnabled: Bool, productAnalyticsEnabled: Bool?, accentColor: AccountAccentColor, theme: AccountTheme, firstReviewOnboardingCompleted: Bool?) {
         self.reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabled
         self.productAnalyticsEnabled = productAnalyticsEnabled
         self.accentColor = accentColor
+        self.theme = theme
         self.firstReviewOnboardingCompleted = firstReviewOnboardingCompleted
         self.firstReviewOnboardingSnapshotGeneration = nil
     }
 
     private enum CodingKeys: String, CodingKey {
-        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor, firstReviewOnboardingCompleted
+        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor, theme, firstReviewOnboardingCompleted
         case firstReviewOnboardingSnapshotGeneration
     }
 
@@ -102,6 +104,7 @@ struct AccountPreferences: Codable, Hashable, Sendable {
         self.accentColor = container.contains(.accentColor)
             ? try container.decode(AccountAccentColor.self, forKey: .accentColor)
             : .defaultColor
+        self.theme = try container.decode(AccountTheme.self, forKey: .theme)
     }
 }
 
@@ -110,7 +113,7 @@ struct LegacyCachedAccountPreferences: Decodable {
     var preferences: AccountPreferences
 
     private enum CodingKeys: String, CodingKey {
-        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor, firstReviewOnboardingCompleted
+        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor, theme, firstReviewOnboardingCompleted
         case firstReviewOnboardingSnapshotGeneration
     }
 
@@ -121,6 +124,8 @@ struct LegacyCachedAccountPreferences: Decodable {
             productAnalyticsEnabled: try fields.decodeIfPresent(Bool.self, forKey: .productAnalyticsEnabled),
             accentColor: fields.contains(.accentColor)
                 ? try fields.decode(AccountAccentColor.self, forKey: .accentColor) : .defaultColor,
+            theme: fields.contains(.theme)
+                ? try fields.decode(AccountTheme.self, forKey: .theme) : .defaultTheme,
             firstReviewOnboardingCompleted: fields.contains(.firstReviewOnboardingCompleted)
                 ? try fields.decode(Bool.self, forKey: .firstReviewOnboardingCompleted) : nil
         )
@@ -131,7 +136,7 @@ struct LegacyCachedAccountPreferences: Decodable {
 }
 
 func makeDefaultAccountPreferences() -> AccountPreferences {
-    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil, accentColor: .defaultColor, firstReviewOnboardingCompleted: nil)
+    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil, accentColor: .defaultColor, theme: .defaultTheme, firstReviewOnboardingCompleted: nil)
 }
 
 /**
@@ -156,6 +161,7 @@ enum AnalyticsPreferenceWriteOrigin: String, Encodable, Hashable, Sendable {
 struct AccountPreferencesPatchRequest: Encodable, Hashable, Sendable {
     var firstReviewOnboardingCompleted: Bool?
     var accentColor: AccountAccentColor?
+    var theme: AccountTheme?
     var reviewReactionAnimationsEnabled: Bool?
     var productAnalyticsEnabled: Bool?
     /// Who asked for `productAnalyticsEnabled`. Named on every push that carries an answer, rather

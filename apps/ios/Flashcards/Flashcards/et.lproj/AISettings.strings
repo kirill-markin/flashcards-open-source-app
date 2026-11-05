@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1000 tehisintellekti sõnumit kuus ja kohandatud stiilid. Sünkroonimine on kõigile tasuta.";
 "premium.aiLimit.title" = "AI-sõnumite limiit on täis";
 
+"settings.theme.title" = "Teema";
+"settings.theme.dark" = "Tume";
+"settings.theme.light" = "Hele";
+"settings.theme.premiumNote" = "Hele teema on saadaval Premiumiga. Salvestatud teema taastub, kui Premium on aktiivne.";
 "settings.accentColor.title" = "Rõhuvärv";
 "settings.accentColor.default" = "Vaikimisi";
 "settings.accentColor.blue" = "Sinine";

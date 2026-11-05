@@ -926,6 +926,10 @@
 "premium.offer.benefits" = "1 000 сообщений ИИ в месяц и собственные стили. Синхронизация бесплатна для всех.";
 "premium.aiLimit.title" = "Достигнут лимит сообщений ИИ";
 
+"settings.theme.title" = "Тема";
+"settings.theme.dark" = "Тёмная";
+"settings.theme.light" = "Светлая";
+"settings.theme.premiumNote" = "Светлая тема доступна с Premium. Сохранённая тема вернётся, когда Premium снова будет активен.";
 "settings.accentColor.title" = "Цвет акцента";
 "settings.accentColor.default" = "По умолчанию";
 "settings.accentColor.blue" = "Синий";

@@ -43,6 +43,13 @@ const huCatalog: TranslationCatalog = {
     checkoutPrice: "Végleges ár és pénznem a fizetéskor.",
     renewalDisclosure: "Automatikusan megújul; bármikor lemondhatod az előfizetés beállításaiban.",
   },
+  themeSettings: {
+    title: "Téma",
+    subtitle: "Válassz sötét vagy világos megjelenést az alkalmazáshoz.",
+    dark: "Sötét",
+    light: "Világos",
+    premiumNote: "A világos téma a Premium része. A mentett választásod visszatér, amikor a Premium aktív.",
+  },
   accentColorSettings: {
     title: "Kiemelőszín",
     subtitle: "Válaszd ki az alkalmazás kiemelőszínét.",

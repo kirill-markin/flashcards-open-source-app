@@ -96,7 +96,7 @@
 
 .chat-resize-handle:hover,
 .chat-resize-handle.dragging {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--overlay-rgb), 0.1);
 }
 
 .chat-header {

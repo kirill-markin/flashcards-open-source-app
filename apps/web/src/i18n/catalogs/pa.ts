@@ -43,6 +43,13 @@ const paCatalog: TranslationCatalog = {
     checkoutPrice: "ਅੰਤਿਮ ਕੀਮਤ ਅਤੇ ਮੁਦਰਾ ਚੈੱਕਆਉਟ ਵੇਲੇ।",
     renewalDisclosure: "ਆਪਣੇ ਆਪ ਨਵਿਆਇਆ ਜਾਂਦਾ ਹੈ; ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਕਿਸੇ ਵੀ ਸਮੇਂ ਰੱਦ ਕਰੋ।",
   },
+  themeSettings: {
+    title: "ਥੀਮ",
+    subtitle: "ਐਪ ਲਈ ਗੂੜ੍ਹੀ ਜਾਂ ਹਲਕੀ ਦਿੱਖ ਚੁਣੋ।",
+    dark: "ਗੂੜ੍ਹਾ",
+    light: "ਹਲਕਾ",
+    premiumNote: "ਹਲਕਾ ਥੀਮ Premium ਵਿੱਚ ਸ਼ਾਮਲ ਹੈ। Premium ਸਰਗਰਮ ਹੋਣ ’ਤੇ ਤੁਹਾਡੀ ਸੰਭਾਲੀ ਹੋਈ ਚੋਣ ਵਾਪਸ ਆ ਜਾਂਦੀ ਹੈ।",
+  },
   accentColorSettings: {
     title: "ਐਕਸੈਂਟ ਰੰਗ",
     subtitle: "ਐਪ ਦਾ ਐਕਸੈਂਟ ਰੰਗ ਚੁਣੋ।",

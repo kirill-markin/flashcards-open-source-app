@@ -134,6 +134,7 @@ import com.flashcardsopensourceapp.data.local.repository.shared.SystemTimeProvid
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.accent.createAccentColorViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.theme.createThemeViewModelFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -537,6 +538,16 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         accountRepository = localCloudAccountRepository
+    )
+    val themeViewModelStoreOwner: ViewModelStoreOwner = object : ViewModelStoreOwner {
+        override val viewModelStore: ViewModelStore = ViewModelStore()
+    }
+    val themeViewModelFactory: ViewModelProvider.Factory = createThemeViewModelFactory(
+        cloudAccountRepository = cloudAccountRepository,
+        preferencesStore = cloudPreferencesStore,
+        operationCoordinator = cloudOperationCoordinator,
+        messageController = appMessageBus,
+        applicationContext = applicationContext
     )
     val accentColorViewModelStoreOwner: ViewModelStoreOwner = object : ViewModelStoreOwner {
         override val viewModelStore: ViewModelStore = ViewModelStore()
@@ -1299,6 +1310,7 @@ class AppGraph(
         }
         analyticsNetworkMonitor.stopObservingConnectivityRestored()
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
+        themeViewModelStoreOwner.viewModelStore.clear()
         accentColorViewModelStoreOwner.viewModelStore.clear()
         cloudIdentityObserverJob?.cancelAndJoin()
         appLocaleSaveObserverJob?.cancelAndJoin()

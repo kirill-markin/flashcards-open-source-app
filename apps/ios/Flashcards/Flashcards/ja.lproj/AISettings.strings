@@ -926,6 +926,10 @@
 "premium.offer.benefits" = "毎月1,000件のAIメッセージとカスタムスタイル。同期はすべての方が無料で利用できます。";
 "premium.aiLimit.title" = "AIメッセージの上限に達しました";
 
+"settings.theme.title" = "テーマ";
+"settings.theme.dark" = "ダーク";
+"settings.theme.light" = "ライト";
+"settings.theme.premiumNote" = "ライトテーマは Premium で利用できます。Premium が有効になると、保存したテーマに戻ります。";
 "settings.accentColor.title" = "アクセントカラー";
 "settings.accentColor.default" = "デフォルト";
 "settings.accentColor.blue" = "ブルー";

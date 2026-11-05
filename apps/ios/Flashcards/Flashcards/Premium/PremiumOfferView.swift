@@ -231,7 +231,7 @@ struct PremiumOfferView: View {
             "Your subscription helps Nibomo’s creator, [Kirill Markin](https://kirill-markin.com/), pay for servers and fuel the next update with coffee and pizza."
         )))
         for run in support.runs where run.link?.absoluteString == "https://kirill-markin.com/" {
-            support[run.range].foregroundColor = .white
+            support[run.range].foregroundColor = .primary
             support[run.range].underlineStyle = .single
         }
         return support

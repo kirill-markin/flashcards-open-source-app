@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "۱٬۰۰۰ پیام هوش مصنوعی در ماه و سبک‌های دلخواه. همگام‌سازی برای همه رایگان است.";
 "premium.aiLimit.title" = "به سقف پیام‌های هوش مصنوعی رسیده‌اید";
 
+"settings.theme.title" = "پوسته";
+"settings.theme.dark" = "تیره";
+"settings.theme.light" = "روشن";
+"settings.theme.premiumNote" = "پوستهٔ روشن با Premium در دسترس است. وقتی Premium فعال باشد، پوستهٔ ذخیره‌شده شما برمی‌گردد.";
 "settings.accentColor.title" = "رنگ تأکیدی";
 "settings.accentColor.default" = "پیش‌فرض";
 "settings.accentColor.blue" = "آبی";

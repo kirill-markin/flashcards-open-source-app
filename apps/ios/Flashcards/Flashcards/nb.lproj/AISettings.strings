@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1 000 AI-meldinger per måned og egendefinerte stiler. Synkronisering er gratis for alle.";
 "premium.aiLimit.title" = "Grensen for AI-meldinger er nådd";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Mørkt";
+"settings.theme.light" = "Lyst";
+"settings.theme.premiumNote" = "Lyst tema er tilgjengelig med Premium. Det lagrede temaet kommer tilbake når Premium er aktivt.";
 "settings.accentColor.title" = "Aksentfarge";
 "settings.accentColor.default" = "Standard";
 "settings.accentColor.blue" = "Blå";

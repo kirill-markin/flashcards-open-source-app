@@ -43,6 +43,13 @@ const elCatalog: TranslationCatalog = {
     checkoutPrice: "Τελική τιμή και νόμισμα κατά την πληρωμή.",
     renewalDisclosure: "Αυτόματη ανανέωση· ακυρώστε οποτεδήποτε στις ρυθμίσεις συνδρομής.",
   },
+  themeSettings: {
+    title: "Θέμα",
+    subtitle: "Επιλέξτε σκούρα ή φωτεινή εμφάνιση για την εφαρμογή.",
+    dark: "Σκούρο",
+    light: "Φωτεινό",
+    premiumNote: "Το φωτεινό θέμα περιλαμβάνεται στο Premium. Η αποθηκευμένη επιλογή σας επανέρχεται όταν το Premium είναι ενεργό.",
+  },
   accentColorSettings: {
     title: "Χρώμα έμφασης",
     subtitle: "Επιλέξτε το χρώμα έμφασης της εφαρμογής.",

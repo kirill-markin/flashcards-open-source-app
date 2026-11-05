@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1 000 DI žinučių per mėnesį ir pasirinktiniai stiliai. Sinchronizavimas visiems nemokamas.";
 "premium.aiLimit.title" = "Pasiektas DI žinučių limitas";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Tamsi";
+"settings.theme.light" = "Šviesi";
+"settings.theme.premiumNote" = "Šviesi tema pasiekiama su Premium. Išsaugota tema grįžta, kai Premium aktyvus.";
 "settings.accentColor.title" = "Akcento spalva";
 "settings.accentColor.default" = "Numatytoji";
 "settings.accentColor.blue" = "Mėlyna";

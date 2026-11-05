@@ -43,6 +43,13 @@ const ptBrCatalog: TranslationCatalog = {
     checkoutPrice: "Preço final e moeda ao finalizar o pagamento.",
     renewalDisclosure: "Renovação automática; cancele quando quiser nas configurações de assinatura.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Escolha uma aparência escura ou clara para o aplicativo.",
+    dark: "Escuro",
+    light: "Claro",
+    premiumNote: "O tema claro está incluído no Premium. Sua escolha salva volta quando o Premium estiver ativo.",
+  },
   accentColorSettings: {
     title: "Cor de destaque",
     subtitle: "Escolha a cor de destaque do aplicativo.",

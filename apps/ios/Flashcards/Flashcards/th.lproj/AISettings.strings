@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "ข้อความ AI 1,000 ข้อความต่อเดือนและสไตล์ที่กำหนดเอง ทุกคนซิงค์ได้ฟรี";
 "premium.aiLimit.title" = "ใช้ข้อความ AI ถึงขีดจำกัดแล้ว";
 
+"settings.theme.title" = "ธีม";
+"settings.theme.dark" = "มืด";
+"settings.theme.light" = "สว่าง";
+"settings.theme.premiumNote" = "ธีมสว่างใช้ได้กับ Premium ธีมที่บันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่";
 "settings.accentColor.title" = "สีเน้น";
 "settings.accentColor.default" = "ค่าเริ่มต้น";
 "settings.accentColor.blue" = "สีน้ำเงิน";

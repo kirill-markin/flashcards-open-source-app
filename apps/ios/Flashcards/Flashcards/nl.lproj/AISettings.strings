@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 AI-berichten per maand en eigen stijlen. Synchronisatie is gratis voor iedereen.";
 "premium.aiLimit.title" = "Limiet voor AI-berichten bereikt";
 
+"settings.theme.title" = "Thema";
+"settings.theme.dark" = "Donker";
+"settings.theme.light" = "Licht";
+"settings.theme.premiumNote" = "Het lichte thema is beschikbaar met Premium. Je opgeslagen thema keert terug wanneer Premium actief is.";
 "settings.accentColor.title" = "Accentkleur";
 "settings.accentColor.default" = "Standaard";
 "settings.accentColor.blue" = "Blauw";

@@ -5,8 +5,13 @@ export type AnalyticsConsentChoice = "granted" | "declined";
 
 export const defaultAccentColor = "#FF6719";
 
+export type AppTheme = "dark" | "light";
+
+export const defaultAppTheme: AppTheme = "dark";
+
 export type AccountPreferences = Readonly<{
   accentColor: string;
+  theme: AppTheme;
   reviewReactionAnimationsEnabled: boolean;
   firstReviewOnboardingCompleted: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
@@ -33,6 +38,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
  */
 export type AccountPreferencesUpdate = Readonly<{
   accentColor?: string;
+  theme?: AppTheme;
   reviewReactionAnimationsEnabled?: boolean;
   firstReviewOnboardingCompleted?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;

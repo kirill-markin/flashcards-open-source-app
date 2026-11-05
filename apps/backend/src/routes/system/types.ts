@@ -1,6 +1,6 @@
 import type { loadAiUsageStatus } from "../../aiUsage";
 import type { loadBrowserGuestAiTrialStatus } from "../../aiUsage/browserGuestTrial/repository";
-import type { AccountPreferences, AnalyticsConsentChoice } from "../../auth/ensureUser";
+import type { AccountPreferences, AccountTheme, AnalyticsConsentChoice } from "../../auth/ensureUser";
 import type {
   FriendInvitationAcceptInput,
   FriendInvitationAcceptResponse,
@@ -80,6 +80,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
  */
 export type AccountPreferencesUpdate = Readonly<{
   accentColor: string | null;
+  theme: AccountTheme | null;
   reviewReactionAnimationsEnabled: boolean | null;
   firstReviewOnboardingCompleted: boolean | null;
   analyticsConsent: AnalyticsConsentChoice | null;

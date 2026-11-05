@@ -73,12 +73,20 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0232_paywall_periodic_shown_at.sql",
-    expectedMigrationCount: 234,
+    migrationFileName: "0237_account_theme.sql",
+    expectedMigrationCount: 239,
     testFiles: Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/auth/accountRetirement.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/aiUsage/browserGuestTrial/budget.postgres.integration.ts",
+      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
+      "src/auth/appleLifecycle.postgres.integration.ts",
+      "src/auth/surrogateUserId.postgres.integration.ts",
+      "src/auth/provedAccountUnion.postgres.integration.ts",
+      "src/workspaces/starterVisibility.postgres.integration.ts",
+      "src/agent/reviews.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -86,8 +94,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 230,
     testFiles: Object.freeze([
       "src/productAnalytics/writer.postgres.integration.ts",
-      "src/auth/provedAccountUnion.postgres.integration.ts",
-      "src/auth/appleLifecycle.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -110,13 +116,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0221_browser_guest_ai_trial.sql",
     expectedMigrationCount: 223,
     testFiles: Object.freeze([
-      "src/aiUsage/browserGuestTrial/budget.postgres.integration.ts",
       "src/aiUsage/aiUsage.postgres.integration.ts",
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
-      "src/workspaces/starterVisibility.postgres.integration.ts",
-      "src/agent/reviews.postgres.integration.ts",
-      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
-      "src/auth/surrogateUserId.postgres.integration.ts",
       "src/chat/runs/canonicalOwner.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",

@@ -43,6 +43,13 @@ const trCatalog: TranslationCatalog = {
     checkoutPrice: "Son fiyat ve para birimi ödeme sırasında gösterilir.",
     renewalDisclosure: "Otomatik yenilenir; Abonelik ayarlarından istediğiniz zaman iptal edin.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Uygulama için koyu veya açık görünüm seçin.",
+    dark: "Koyu",
+    light: "Açık",
+    premiumNote: "Açık tema Premium’a dahildir. Kaydettiğiniz seçim Premium etkin olduğunda geri gelir.",
+  },
   accentColorSettings: {
     title: "Vurgu rengi",
     subtitle: "Uygulamanın vurgu rengini seçin.",

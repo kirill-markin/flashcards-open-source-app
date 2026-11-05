@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "ಪ್ರತಿ ತಿಂಗಳು 1,000 AI ಸಂದೇಶಗಳು ಮತ್ತು ನಿಮ್ಮ ಆಯ್ಕೆಯ ಶೈಲಿಗಳು. ಸಿಂಕ್ ಎಲ್ಲರಿಗೂ ಉಚಿತ.";
 "premium.aiLimit.title" = "AI ಸಂದೇಶಗಳ ಮಿತಿಯನ್ನು ತಲುಪಲಾಗಿದೆ";
 
+"settings.theme.title" = "ಥೀಮ್";
+"settings.theme.dark" = "ಡಾರ್ಕ್";
+"settings.theme.light" = "ಲೈಟ್";
+"settings.theme.premiumNote" = "ಲೈಟ್ ಥೀಮ್ Premium ಜೊತೆಗೆ ಲಭ್ಯವಿದೆ. Premium ಸಕ್ರಿಯವಾದಾಗ ಉಳಿಸಿದ ಥೀಮ್ ಮರಳಿ ಬರುತ್ತದೆ.";
 "settings.accentColor.title" = "ಹೈಲೈಟ್ ಬಣ್ಣ";
 "settings.accentColor.default" = "ಡೀಫಾಲ್ಟ್";
 "settings.accentColor.blue" = "ನೀಲಿ";

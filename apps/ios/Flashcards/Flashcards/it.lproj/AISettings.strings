@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 messaggi IA al mese e stili personalizzati. La sincronizzazione è gratuita per tutti.";
 "premium.aiLimit.title" = "Limite dei messaggi IA raggiunto";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Scuro";
+"settings.theme.light" = "Chiaro";
+"settings.theme.premiumNote" = "Il tema chiaro è disponibile con Premium. Il tema salvato torna quando Premium è attivo.";
 "settings.accentColor.title" = "Colore di risalto";
 "settings.accentColor.default" = "Predefinito";
 "settings.accentColor.blue" = "Blu";

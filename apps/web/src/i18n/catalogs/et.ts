@@ -43,6 +43,13 @@ const etCatalog: TranslationCatalog = {
     checkoutPrice: "Lõplik hind ja valuuta maksmisel.",
     renewalDisclosure: "Uueneb automaatselt; tühista igal ajal tellimuse seadetes.",
   },
+  themeSettings: {
+    title: "Teema",
+    subtitle: "Vali rakendusele tume või hele välimus.",
+    dark: "Tume",
+    light: "Hele",
+    premiumNote: "Hele teema kuulub Premiumi juurde. Sinu salvestatud valik taastub, kui Premium on aktiivne.",
+  },
   accentColorSettings: {
     title: "Rõhuvärv",
     subtitle: "Vali rakenduse rõhuvärv.",

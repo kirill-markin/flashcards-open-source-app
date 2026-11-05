@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "Ayda 1.000 yapay zekâ mesajı ve özel stiller. Senkronizasyon herkes için ücretsizdir.";
 "premium.aiLimit.title" = "Yapay zekâ mesaj sınırına ulaşıldı";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Koyu";
+"settings.theme.light" = "Açık";
+"settings.theme.premiumNote" = "Açık tema Premium ile kullanılabilir. Kaydedilen temanız Premium etkin olduğunda geri gelir.";
 "settings.accentColor.title" = "Vurgu rengi";
 "settings.accentColor.default" = "Varsayılan";
 "settings.accentColor.blue" = "Mavi";

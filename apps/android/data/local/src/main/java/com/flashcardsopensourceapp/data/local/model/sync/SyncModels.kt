@@ -43,8 +43,20 @@ data class SyncStatusSnapshot(
 
 const val defaultAccentColor: String = "#FF6719"
 
+enum class AccountTheme(val wireValue: String) {
+    DARK("dark"),
+    LIGHT("light")
+}
+
+fun parseAccountTheme(wireValue: String): AccountTheme {
+    return requireNotNull(AccountTheme.entries.firstOrNull { theme -> theme.wireValue == wireValue }) {
+        "Account preference theme must be \"dark\" or \"light\": $wireValue"
+    }
+}
+
 data class AccountPreferences(
     val accentColor: String,
+    val theme: AccountTheme,
     val reviewReactionAnimationsEnabled: Boolean,
     /**
      * The product-analytics off switch. Null is "nobody answered", which reads as on: the basis is
@@ -82,6 +94,7 @@ enum class AnalyticsPreferenceWriteOrigin(val wireValue: String) {
 /** Mirrors `PATCH /v1/me/preferences`: a null field is one this update leaves alone. */
 data class AccountPreferencesUpdate(
     val accentColor: String?,
+    val theme: AccountTheme?,
     val reviewReactionAnimationsEnabled: Boolean?,
     val productAnalyticsEnabled: Boolean?,
     /**
@@ -103,6 +116,7 @@ data class SavedAppLocale(
 fun defaultAccountPreferences(): AccountPreferences {
     return AccountPreferences(
         accentColor = defaultAccentColor,
+        theme = AccountTheme.DARK,
         reviewReactionAnimationsEnabled = true,
         productAnalyticsEnabled = null,
         firstReviewOnboardingCompleted = false
@@ -119,6 +133,7 @@ fun applyAccountPreferencesUpdate(
 ): AccountPreferences {
     return AccountPreferences(
         accentColor = update.accentColor ?: preferences.accentColor,
+        theme = update.theme ?: preferences.theme,
         reviewReactionAnimationsEnabled = update.reviewReactionAnimationsEnabled
             ?: preferences.reviewReactionAnimationsEnabled,
         productAnalyticsEnabled = update.productAnalyticsEnabled ?: preferences.productAnalyticsEnabled,

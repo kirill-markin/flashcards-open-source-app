@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 sporočil UI na mesec in slogi po meri. Sinhronizacija je brezplačna za vse.";
 "premium.aiLimit.title" = "Dosežena je omejitev sporočil UI";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Temna";
+"settings.theme.light" = "Svetla";
+"settings.theme.premiumNote" = "Svetla tema je na voljo s Premium. Shranjena tema se vrne, ko je Premium aktiven.";
 "settings.accentColor.title" = "Barva poudarka";
 "settings.accentColor.default" = "Privzeta";
 "settings.accentColor.blue" = "Modra";

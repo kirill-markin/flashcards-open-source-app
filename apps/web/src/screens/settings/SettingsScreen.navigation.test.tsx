@@ -119,6 +119,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       csrfToken: "csrf-token-1",
       preferences: {
         accentColor: "#FF6719",
+        theme: "dark",
         reviewReactionAnimationsEnabled: true,
         firstReviewOnboardingCompleted: true,
       },
@@ -169,6 +170,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     setFirstReviewOnboardingCompleted: vi.fn(async (): Promise<void> => undefined),
     refreshAccountPreferences: vi.fn(async () => ({
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: true,
     })),
@@ -361,6 +363,7 @@ describe("SettingsScreen navigation", () => {
       "settings-row-account-status",
       "settings-row-current-workspace",
       "settings-row-subscription",
+      "settings-row-theme",
       "settings-row-accent-color",
       "settings-row-review-animations",
       "settings-row-ai-chat-suggestions",

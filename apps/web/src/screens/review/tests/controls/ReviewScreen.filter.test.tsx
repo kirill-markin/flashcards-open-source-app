@@ -166,7 +166,7 @@ describe("ReviewScreen filter controls", () => {
     expect(leaderboardShortcut.getAttribute("href")).toBe("/w/workspace-1/progress#leaderboard");
     expect(reviewStylesContain(
       ".review-leaderboard-shortcut .review-progress-badge-icon",
-      "color: #fbbf24",
+      "color: var(--trophy)",
     )).toBe(true);
     const reviewLayout = getContainer().querySelector(".review-layout");
     if (!(reviewLayout instanceof HTMLElement)) {

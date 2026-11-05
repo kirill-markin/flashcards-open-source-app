@@ -115,7 +115,7 @@
 }
 
 .progress-leaderboard-row-button:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
 }
 
 .progress-leaderboard-row-button:focus-visible {
@@ -132,7 +132,7 @@
 }
 
 .progress-leaderboard-row-friend {
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(var(--overlay-rgb), 0.035);
 }
 
 .progress-leaderboard-row-padding {
@@ -208,7 +208,7 @@
   place-items: center;
   padding: 20px;
   overflow-y: auto;
-  background: rgba(9, 10, 15, 0.8);
+  background: rgba(9, 10, 15, calc(0.8 * var(--backdrop-alpha-scale)));
   backdrop-filter: blur(10px);
 }
 
@@ -265,7 +265,7 @@
   place-items: center;
   padding: 20px;
   overflow-y: auto;
-  background: rgba(9, 10, 15, 0.8);
+  background: rgba(9, 10, 15, calc(0.8 * var(--backdrop-alpha-scale)));
   backdrop-filter: blur(10px);
 }
 

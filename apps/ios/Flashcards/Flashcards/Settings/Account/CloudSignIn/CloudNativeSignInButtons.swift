@@ -4,10 +4,13 @@ import SwiftUI
 struct CloudBrandedProviderButton: View {
     let provider: CloudAuthProvider
     let onPress: (UIViewController) -> Void
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 48
 
     var body: some View {
         CloudNativeProviderControl(provider: self.provider, height: self.buttonHeight, onPress: self.onPress)
+            // The Apple button style is fixed at creation, so an appearance change recreates the control.
+            .id(self.colorScheme)
             .frame(maxWidth: .infinity)
             .frame(height: self.buttonHeight)
     }
@@ -22,7 +25,11 @@ private struct CloudNativeProviderControl: UIViewRepresentable {
         let button: UIControl
         switch self.provider {
         case .apple:
-            button = ASAuthorizationAppleIDButton(type: .continue, style: .white)
+            // Apple's white style is for dark backgrounds; white with outline is its light-background variant.
+            button = ASAuthorizationAppleIDButton(
+                type: .continue,
+                style: context.environment.colorScheme == .dark ? .white : .whiteOutline
+            )
         case .google:
             let google = UIButton(type: .system)
             google.configuration = cloudRoundedSignInButtonConfiguration(

@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "ਹਰ ਮਹੀਨੇ 1,000 AI ਸੁਨੇਹੇ ਅਤੇ ਤੁਹਾਡੀ ਪਸੰਦ ਦੀਆਂ ਸ਼ੈਲੀਆਂ। ਸਿੰਕ ਸਾਰਿਆਂ ਲਈ ਮੁਫ਼ਤ ਹੈ।";
 "premium.aiLimit.title" = "AI ਸੁਨੇਹਿਆਂ ਦੀ ਸੀਮਾ ਪੂਰੀ ਹੋ ਗਈ ਹੈ";
 
+"settings.theme.title" = "ਥੀਮ";
+"settings.theme.dark" = "ਡਾਰਕ";
+"settings.theme.light" = "ਲਾਈਟ";
+"settings.theme.premiumNote" = "ਲਾਈਟ ਥੀਮ Premium ਨਾਲ ਉਪਲਬਧ ਹੈ। Premium ਸਰਗਰਮ ਹੋਣ ਉੱਤੇ ਤੁਹਾਡੀ ਸੁਰੱਖਿਅਤ ਕੀਤੀ ਥੀਮ ਵਾਪਸ ਆ ਜਾਂਦੀ ਹੈ।";
 "settings.accentColor.title" = "ਐਕਸੈਂਟ ਰੰਗ";
 "settings.accentColor.default" = "ਡਿਫੌਲਟ";
 "settings.accentColor.blue" = "ਨੀਲਾ";

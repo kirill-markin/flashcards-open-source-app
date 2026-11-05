@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1 000 tekoälyviestiä kuukaudessa ja omat tyylit. Synkronointi on kaikille ilmaista.";
 "premium.aiLimit.title" = "Tekoälyviestien raja saavutettu";
 
+"settings.theme.title" = "Teema";
+"settings.theme.dark" = "Tumma";
+"settings.theme.light" = "Vaalea";
+"settings.theme.premiumNote" = "Vaalea teema on käytettävissä Premiumilla. Tallennettu teemasi palautuu, kun Premium on aktiivinen.";
 "settings.accentColor.title" = "Korostusväri";
 "settings.accentColor.default" = "Oletus";
 "settings.accentColor.blue" = "Sininen";

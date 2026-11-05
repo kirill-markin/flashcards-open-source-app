@@ -926,6 +926,10 @@
 "premium.offer.benefits" = "हर महीने 1,000 AI संदेश और अपनी पसंद की शैलियाँ। सिंक सभी के लिए मुफ़्त है।";
 "premium.aiLimit.title" = "AI संदेशों की सीमा पूरी हो गई है";
 
+"settings.theme.title" = "थीम";
+"settings.theme.dark" = "डार्क";
+"settings.theme.light" = "लाइट";
+"settings.theme.premiumNote" = "लाइट थीम Premium के साथ उपलब्ध है। Premium सक्रिय होने पर आपकी सहेजी गई थीम वापस आ जाती है।";
 "settings.accentColor.title" = "एक्सेंट रंग";
 "settings.accentColor.default" = "डिफ़ॉल्ट";
 "settings.accentColor.blue" = "नीला";

@@ -43,6 +43,13 @@ const hrCatalog: TranslationCatalog = {
     checkoutPrice: "Konačna cijena i valuta pri plaćanju.",
     renewalDisclosure: "Automatski se obnavlja; otkažite bilo kada u postavkama pretplate.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Odaberite tamni ili svijetli izgled aplikacije.",
+    dark: "Tamna",
+    light: "Svijetla",
+    premiumNote: "Svijetla tema uključena je u Premium. Vaš spremljeni odabir vraća se kada je Premium aktivan.",
+  },
   accentColorSettings: {
     title: "Boja naglaska",
     subtitle: "Odaberite boju naglaska aplikacije.",

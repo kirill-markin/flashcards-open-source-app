@@ -69,7 +69,7 @@
   padding: 6px 10px 6px 6px;
   border: 1px solid var(--panel-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
   color: var(--text);
   cursor: pointer;
   font: inherit;
@@ -91,7 +91,7 @@
   width: 46px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(var(--overlay-rgb), 0.18);
   transition: background 140ms ease;
 }
 
@@ -190,7 +190,7 @@
 
 .settings-nav-card-muted {
   color: var(--text-secondary);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(var(--overlay-rgb), 0.08);
 }
 
 .settings-nav-card-muted .badge {
@@ -216,7 +216,7 @@
   border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: var(--panel-inner-radius, var(--radius-md));
   background: rgba(var(--accent-rgb), 0.12);
-  color: #ffd7cb;
+  color: var(--accent-tint-text);
 }
 
 .settings-hidden-trigger {
@@ -407,7 +407,7 @@
 
 .settings-danger-btn {
   border-color: rgba(255, 103, 25, 0.45);
-  color: #ffb8a6;
+  color: var(--danger-zone-text);
 }
 
 .settings-danger-btn:hover:not(:disabled) {
@@ -432,7 +432,7 @@
   place-items: center;
   padding: 20px;
   overflow-y: auto;
-  background: rgba(9, 10, 15, 0.8);
+  background: rgba(9, 10, 15, calc(0.8 * var(--backdrop-alpha-scale)));
   backdrop-filter: blur(10px);
 }
 
@@ -496,7 +496,7 @@
   place-items: center;
   padding: 20px;
   overflow-y: auto;
-  background: rgba(9, 10, 15, 0.8);
+  background: rgba(9, 10, 15, calc(0.8 * var(--backdrop-alpha-scale)));
   backdrop-filter: blur(10px);
 }
 
@@ -688,8 +688,8 @@
 .workspace-text-import-invalid-count {
   padding: 5px 9px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 77, 87, 0.14);
-  color: #ffd6d9;
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--danger-text);
   font-size: 13px;
   font-weight: 700;
 }
@@ -718,7 +718,7 @@
 }
 
 .workspace-text-import-preview-row-invalid {
-  border-color: rgba(255, 77, 87, 0.5);
+  border-color: rgba(var(--danger-rgb), 0.5);
 }
 
 .workspace-text-import-card-number {

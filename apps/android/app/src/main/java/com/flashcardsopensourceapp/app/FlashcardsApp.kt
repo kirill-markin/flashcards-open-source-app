@@ -101,7 +101,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.feature.settings.accent.AccentColorViewModel
+import com.flashcardsopensourceapp.feature.settings.theme.ThemeViewModel
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -113,7 +115,9 @@ import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
+import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.core.ui.theme.displayedAccentColor
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
@@ -141,7 +145,8 @@ fun FlashcardsApp(
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
     consumeAppNotificationTap: (Long) -> Unit,
     reviewWidgetTapRequest: ReviewWidgetTapHandoffRequest?,
-    consumeReviewWidgetTap: (Long) -> Unit
+    consumeReviewWidgetTap: (Long) -> Unit,
+    applySystemBarAppearance: (FlashcardsAppearance) -> Unit
 ) {
     key(appGraph) {
         val accountPreferencesFlow: Flow<AccountPreferences?> =
@@ -160,6 +165,11 @@ fun FlashcardsApp(
             factory = appGraph.accentColorViewModelFactory
         )
         val accentColorState by accentColorViewModel.uiState.collectAsStateWithLifecycle()
+        val themeViewModel = viewModel<ThemeViewModel>(
+            viewModelStoreOwner = appGraph.themeViewModelStoreOwner,
+            factory = appGraph.themeViewModelFactory
+        )
+        val themeState by themeViewModel.uiState.collectAsStateWithLifecycle()
         val entitlement by appGraph.cloudAccountRepository.observeEntitlement()
             .collectAsStateWithLifecycle(initialValue = null)
         val canCustomizeStyle: Boolean = canUseLocalPremiumFeatures(entitlement = entitlement)
@@ -168,7 +178,24 @@ fun FlashcardsApp(
         } else {
             defaultAccentColor
         }
-        FlashcardsTheme(accentColor = Color(effectiveAccentColor.toColorInt())) {
+        val effectiveAppearance: FlashcardsAppearance = if (canCustomizeStyle) {
+            when (themeState.selectedTheme) {
+                AccountTheme.DARK -> FlashcardsAppearance.DARK
+                AccountTheme.LIGHT -> FlashcardsAppearance.LIGHT
+            }
+        } else {
+            FlashcardsAppearance.DARK
+        }
+        LaunchedEffect(effectiveAppearance) {
+            applySystemBarAppearance(effectiveAppearance)
+        }
+        FlashcardsTheme(
+            appearance = effectiveAppearance,
+            accentColor = displayedAccentColor(
+                color = Color(effectiveAccentColor.toColorInt()),
+                appearance = effectiveAppearance
+            )
+        ) {
         val signInApplication = LocalContext.current.applicationContext as FlashcardsApplication
         val appleReturn by signInApplication.appleSignInReturnState.collectAsStateWithLifecycle()
         if (appleReturn == AppleSignInReturnState.OwnershipStorageFailed) {

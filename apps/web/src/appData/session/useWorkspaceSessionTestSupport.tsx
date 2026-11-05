@@ -128,6 +128,7 @@ export const seededSession: SessionInfo = {
   csrfToken: "csrf-seeded",
   preferences: {
     accentColor: "#FF6719",
+    theme: "dark",
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: true,
     analyticsConsent: null,
@@ -223,6 +224,7 @@ export function buildSessionResponseForUser(userId: string, selectedWorkspaceId:
     csrfToken,
     preferences: {
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: true,
       analyticsConsent: null,

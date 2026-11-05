@@ -32,7 +32,7 @@ function measureContent(content: HTMLElement): ReadonlyArray<DOMRect> {
 
 export function FirstReviewOnboardingOverlay(props: Props): ReactPortal {
   const { target, surfaceRef, contentRef, headerRef, controlsRef, stage } = props;
-  const { effectiveColor } = useAccountAccentColor();
+  const { displayedColor } = useAccountAccentColor();
   const overlayRef = useRef<HTMLDivElement>(null);
   const firstFrameRef = useRef<HTMLCanvasElement>(null);
   const secondFrameRef = useRef<HTMLCanvasElement>(null);
@@ -124,7 +124,7 @@ export function FirstReviewOnboardingOverlay(props: Props): ReactPortal {
           surfaceHeight: height,
           contentBounds,
           controlBounds,
-        }, effectiveColor, frame);
+        }, displayedColor, frame);
       });
     }
 
@@ -152,7 +152,7 @@ export function FirstReviewOnboardingOverlay(props: Props): ReactPortal {
       document.removeEventListener("visibilitychange", update);
       document.fonts.removeEventListener("loadingdone", update);
     };
-  }, [contentRef, controlsRef, effectiveColor, headerRef, surfaceRef, target]);
+  }, [contentRef, controlsRef, displayedColor, headerRef, surfaceRef, target]);
 
   return createPortal(
     <div ref={overlayRef} hidden className="first-review-onboarding" aria-hidden="true"

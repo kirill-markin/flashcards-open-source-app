@@ -43,6 +43,13 @@ const csCatalog: TranslationCatalog = {
     checkoutPrice: "Konečná cena a měna při placení.",
     renewalDisclosure: "Automatické obnovení; zrušte kdykoli v nastavení předplatného.",
   },
+  themeSettings: {
+    title: "Motiv",
+    subtitle: "Vyberte tmavý nebo světlý vzhled aplikace.",
+    dark: "Tmavý",
+    light: "Světlý",
+    premiumNote: "Světlý motiv je součástí Premium. Vaše uložená volba se vrátí, jakmile bude Premium aktivní.",
+  },
   accentColorSettings: {
     title: "Barva zvýraznění",
     subtitle: "Vyberte barvu zvýraznění aplikace.",

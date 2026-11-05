@@ -1,11 +1,14 @@
 package com.flashcardsopensourceapp.app
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -15,8 +18,17 @@ import com.flashcardsopensourceapp.app.notifications.consumeAppNotificationTapRe
 import com.flashcardsopensourceapp.app.widget.consumeReviewWidgetTapRequest
 import com.flashcardsopensourceapp.core.ui.markHostActivityStarted
 import com.flashcardsopensourceapp.core.ui.markHostActivityStopped
+import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
+
+// The default `enableEdgeToEdge()` navigation bar scrims, which the library does not expose.
+private val lightNavigationBarScrim: Int = Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
+private val darkNavigationBarScrim: Int = Color.argb(0x80, 0x1B, 0x1B, 0x1B)
 
 class MainHostActivity : ComponentActivity() {
+    // `enableEdgeToEdge` re-runs its first call's setup on configuration changes, so the
+    // `detectDarkMode` lambdas must read the current appearance instead of capturing it.
+    private var systemBarAppearance: FlashcardsAppearance = FlashcardsAppearance.DARK
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val application = application as FlashcardsApplication
         val splashScreen = installSplashScreen()
@@ -24,7 +36,7 @@ class MainHostActivity : ComponentActivity() {
             application.shouldKeepSplashScreenVisible()
         }
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        applySystemBarAppearance(appearance = FlashcardsAppearance.DARK)
 
         handleIntent(intent = intent, application = application)
 
@@ -36,6 +48,10 @@ class MainHostActivity : ComponentActivity() {
             val reviewWidgetTapRequest by application.reviewWidgetTapState.collectAsState()
             val appGraph = currentAppGraph
             if (appGraph == null) {
+                // The loading screen is always dark, whatever theme the detached app graph showed.
+                LaunchedEffect(Unit) {
+                    applySystemBarAppearance(appearance = FlashcardsAppearance.DARK)
+                }
                 FlashcardsAppLoadingScreen()
             } else {
                 DisposableEffect(appGraph) {
@@ -71,10 +87,28 @@ class MainHostActivity : ComponentActivity() {
                     appNotificationTapRequest = appNotificationTapRequest,
                     consumeAppNotificationTap = application::consumeAppNotificationTap,
                     reviewWidgetTapRequest = reviewWidgetTapRequest,
-                    consumeReviewWidgetTap = application::consumeReviewWidgetTap
+                    consumeReviewWidgetTap = application::consumeReviewWidgetTap,
+                    applySystemBarAppearance = { appearance -> applySystemBarAppearance(appearance = appearance) }
                 )
             }
         }
+    }
+
+    /** System bar icons follow the app theme, never the OS dark mode setting. */
+    private fun applySystemBarAppearance(appearance: FlashcardsAppearance) {
+        systemBarAppearance = appearance
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                lightScrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT,
+                detectDarkMode = { systemBarAppearance == FlashcardsAppearance.DARK }
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                lightScrim = lightNavigationBarScrim,
+                darkScrim = darkNavigationBarScrim,
+                detectDarkMode = { systemBarAppearance == FlashcardsAppearance.DARK }
+            )
+        )
     }
 
     // The marks have to be unconditional. `onStop` always precedes a system-initiated `onDestroy`,

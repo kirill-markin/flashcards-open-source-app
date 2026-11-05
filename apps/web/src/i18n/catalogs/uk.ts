@@ -43,6 +43,13 @@ const ukCatalog: TranslationCatalog = {
     checkoutPrice: "Остаточна ціна й валюта під час оплати.",
     renewalDisclosure: "Поновлюється автоматично; скасуйте будь-коли в налаштуваннях підписки.",
   },
+  themeSettings: {
+    title: "Тема",
+    subtitle: "Виберіть темне або світле оформлення застосунку.",
+    dark: "Темна",
+    light: "Світла",
+    premiumNote: "Світла тема доступна в Premium. Ваш збережений вибір повернеться, коли Premium буде активним.",
+  },
   accentColorSettings: {
     title: "Акцентний колір",
     subtitle: "Виберіть акцентний колір застосунку.",

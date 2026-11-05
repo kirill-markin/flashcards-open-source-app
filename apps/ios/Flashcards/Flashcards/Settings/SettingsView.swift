@@ -127,6 +127,17 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.style", "Style")) {
+                NavigationLink(value: SettingsNavigationDestination.theme) {
+                    SettingsNavigationRow(
+                        title: themeSettingsTitle(),
+                        value: store.effectiveAccountTheme.title,
+                        systemImage: "circle.lefthalf.filled",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsThemeRow)
+                .rememberedListRow(id: UITestIdentifier.settingsThemeRow)
+
                 NavigationLink(value: SettingsNavigationDestination.accentColor) {
                     HStack {
                         Label {
@@ -137,7 +148,7 @@ struct SettingsView: View {
                         }
                         Spacer()
                         Circle()
-                            .fill(store.effectiveAccountAccentColor.color)
+                            .fill(store.displayedAccountAccentColor.color)
                             .frame(width: 22, height: 22)
                             .accessibilityLabel(store.effectiveAccountAccentColor.hex)
                     }

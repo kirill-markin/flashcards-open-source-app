@@ -65,7 +65,7 @@ struct AccentColorSettingsView: View {
                     } label: {
                         HStack {
                             Circle()
-                                .fill(preset.color.color)
+                                .fill(preset.color.displayed(theme: self.store.effectiveAccountTheme).color)
                                 .frame(width: 24, height: 24)
                             Text(preset.name)
                                 .foregroundStyle(Color.primary)

@@ -47,6 +47,7 @@ function createRequestContext(): RequestContext {
     userSettingsCreatedAt: "2026-03-30T00:00:00.000Z",
     preferences: {
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: false,
       analyticsConsent: null,

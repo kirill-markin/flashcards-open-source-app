@@ -43,6 +43,13 @@ const lvCatalog: TranslationCatalog = {
     checkoutPrice: "Galīgā cena un valūta apmaksas laikā.",
     renewalDisclosure: "Atjaunojas automātiski; atceliet jebkurā laikā abonementa iestatījumos.",
   },
+  themeSettings: {
+    title: "Motīvs",
+    subtitle: "Izvēlieties lietotnei tumšu vai gaišu izskatu.",
+    dark: "Tumšs",
+    light: "Gaišs",
+    premiumNote: "Gaišais motīvs ir iekļauts Premium. Jūsu saglabātā izvēle atgriežas, kad Premium ir aktīvs.",
+  },
   accentColorSettings: {
     title: "Akcenta krāsa",
     subtitle: "Izvēlieties lietotnes akcenta krāsu.",

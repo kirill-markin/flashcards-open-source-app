@@ -36,6 +36,7 @@ import {
   carryGuestAnalyticsConsentToAccountInExecutor,
   carryGuestFirstReviewOnboardingToAccountInExecutor,
   carryGuestProductAnalyticsEnabledToAccountInExecutor,
+  carryGuestThemeToAccountInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestUpgradeReplayByGuestTokenInExecutor,
@@ -790,6 +791,11 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   );
 
   await carryGuestAccentColorToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
+  await carryGuestThemeToAccountInExecutor(
     executor,
     guestSession.userId,
     guestUpgradeResolution.targetUserId,

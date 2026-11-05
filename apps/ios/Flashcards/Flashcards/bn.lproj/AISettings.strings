@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "প্রতি মাসে ১,০০০টি AI বার্তা এবং নিজের পছন্দের স্টাইল। সিঙ্ক সবার জন্য বিনামূল্যে।";
 "premium.aiLimit.title" = "AI বার্তার সীমায় পৌঁছেছেন";
 
+"settings.theme.title" = "থিম";
+"settings.theme.dark" = "ডার্ক";
+"settings.theme.light" = "লাইট";
+"settings.theme.premiumNote" = "লাইট থিম Premium-এ পাওয়া যায়। Premium সক্রিয় হলে আপনার সংরক্ষিত থিম ফিরে আসে।";
 "settings.accentColor.title" = "অ্যাকসেন্ট রং";
 "settings.accentColor.default" = "ডিফল্ট";
 "settings.accentColor.blue" = "নীল";

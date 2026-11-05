@@ -34,6 +34,7 @@ test("GET /me includes account preferences", async () => {
     },
     preferences: {
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
@@ -66,6 +67,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
       assert.equal(userId, "user-1");
       persistedPreferences = {
         accentColor: update.accentColor ?? persistedPreferences.accentColor,
+        theme: update.theme ?? persistedPreferences.theme,
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled
           ?? persistedPreferences.reviewReactionAnimationsEnabled,
         firstReviewOnboardingCompleted: update.firstReviewOnboardingCompleted
@@ -82,6 +84,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.equal(initialResponse.status, 200);
   assert.deepEqual((await initialResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     accentColor: "#FF6719",
+    theme: "dark",
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: false,
     analyticsConsent: null,
@@ -101,6 +104,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.deepEqual(await patchResponse.json(), {
     preferences: {
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: false,
       firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
@@ -112,6 +116,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.equal(updatedResponse.status, 200);
   assert.deepEqual((await updatedResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     accentColor: "#FF6719",
+    theme: "dark",
     reviewReactionAnimationsEnabled: false,
     firstReviewOnboardingCompleted: false,
     analyticsConsent: null,
@@ -192,6 +197,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
       accountUpdates.push(update);
       return {
         accentColor: update.accentColor ?? "#FF6719",
+        theme: update.theme ?? "dark",
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled ?? true,
         firstReviewOnboardingCompleted: update.firstReviewOnboardingCompleted ?? false,
         analyticsConsent: null,
@@ -219,6 +225,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
   assert.deepEqual(await response.json(), {
     preferences: {
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: false,
       firstReviewOnboardingCompleted: false,
       analyticsConsent: "declined",
@@ -238,6 +245,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
   // The origins ride along and decide nothing while the value beside each of them is null.
   assert.deepEqual(accountUpdates, [{
     accentColor: null,
+    theme: null,
     reviewReactionAnimationsEnabled: false,
     firstReviewOnboardingCompleted: null,
     analyticsConsent: null,
@@ -277,6 +285,7 @@ test("PATCH /me/preferences from a guest with only a consent leaves org.user_set
   assert.deepEqual(await response.json(), {
     preferences: {
       accentColor: "#FF6719",
+      theme: "dark",
       reviewReactionAnimationsEnabled: true,
       firstReviewOnboardingCompleted: false,
       analyticsConsent: "declined",

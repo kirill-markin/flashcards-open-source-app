@@ -43,6 +43,13 @@ const knCatalog: TranslationCatalog = {
     checkoutPrice: "ಅಂತಿಮ ಬೆಲೆ ಮತ್ತು ಕರೆನ್ಸಿ ಚೆಕ್‌ಔಟ್‌ನಲ್ಲಿ.",
     renewalDisclosure: "ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಣಗೊಳ್ಳುತ್ತದೆ; ಚಂದಾದಾರಿಕೆ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಯಾವಾಗ ಬೇಕಾದರೂ ರದ್ದುಗೊಳಿಸಿ.",
   },
+  themeSettings: {
+    title: "ಥೀಮ್",
+    subtitle: "ಆ್ಯಪ್‌ಗೆ ಗಾಢ ಅಥವಾ ತಿಳಿ ನೋಟವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    dark: "ಗಾಢ",
+    light: "ತಿಳಿ",
+    premiumNote: "ತಿಳಿ ಥೀಮ್ Premiumನಲ್ಲಿ ಸೇರಿದೆ. Premium ಸಕ್ರಿಯವಾಗಿದ್ದಾಗ ನಿಮ್ಮ ಉಳಿಸಿದ ಆಯ್ಕೆ ಮರಳಿ ಬರುತ್ತದೆ.",
+  },
   accentColorSettings: {
     title: "ಪ್ರಮುಖ ಬಣ್ಣ",
     subtitle: "ಆ್ಯಪ್‌ನ ಪ್ರಮುಖ ಬಣ್ಣವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",

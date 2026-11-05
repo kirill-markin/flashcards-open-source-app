@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 gervigreindarskilaboð á mánuði og sérsniðnir stílar. Samstilling er ókeypis fyrir alla.";
 "premium.aiLimit.title" = "Hámarki AI-skilaboða náð";
 
+"settings.theme.title" = "Þema";
+"settings.theme.dark" = "Dökkt";
+"settings.theme.light" = "Ljóst";
+"settings.theme.premiumNote" = "Ljóst þema er í boði með Premium. Vistaða þemað þitt kemur aftur þegar Premium er virkt.";
 "settings.accentColor.title" = "Áherslulitur";
 "settings.accentColor.default" = "Sjálfgefið";
 "settings.accentColor.blue" = "Blár";

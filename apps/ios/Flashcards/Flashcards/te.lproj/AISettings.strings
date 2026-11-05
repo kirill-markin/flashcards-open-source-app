@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "నెలకు 1,000 AI సందేశాలు మరియు మీకు నచ్చిన శైలులు. సింక్ అందరికీ ఉచితం.";
 "premium.aiLimit.title" = "AI సందేశాల పరిమితిని చేరుకున్నారు";
 
+"settings.theme.title" = "థీమ్";
+"settings.theme.dark" = "డార్క్";
+"settings.theme.light" = "లైట్";
+"settings.theme.premiumNote" = "లైట్ థీమ్ Premiumతో అందుబాటులో ఉంటుంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన థీమ్ తిరిగి వస్తుంది.";
 "settings.accentColor.title" = "హైలైట్ రంగు";
 "settings.accentColor.default" = "డిఫాల్ట్";
 "settings.accentColor.blue" = "నీలం";

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate, useParams } from "react-router";
 import { AccountAccentTheme } from "./premium/accentColor";
+import { AccountThemeAttribute } from "./premium/theme";
 import { PremiumProvider } from "./premium/PremiumProvider";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
@@ -78,6 +79,7 @@ import {
   settingsTestAppPlatformLinksRoute,
   settingsTestCatalogImportSuccessRoute,
   settingsTestLocalSyncDiagnosticsRoute,
+  settingsThemeRoute,
   settingsTestRoute,
   shareRoute,
   splitWorkspaceRoutePath,
@@ -202,6 +204,9 @@ const OpenSourceSettingsScreen = lazy(async () => import("./screens/settings/acc
 })));
 const NotificationsSettingsScreen = lazy(async () => import("./screens/settings/NotificationsSettingsScreen").then((module) => ({
   default: module.NotificationsSettingsScreen,
+})));
+const ThemeSettingsScreen = lazy(async () => import("./screens/settings/ThemeSettingsScreen").then((module) => ({
+  default: module.ThemeSettingsScreen,
 })));
 const AccentColorSettingsScreen = lazy(async () => import("./screens/settings/AccentColorSettingsScreen").then((module) => ({
   default: module.AccentColorSettingsScreen,
@@ -1089,6 +1094,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsAccessRoute}`} element={renderDeferredRoute(<AccessSettingsScreen />, "loading.accessSettings")} />
           <Route path={`${workspaceRoutePattern}${settingsAccessDetailRoutePattern}`} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
           <Route path={`${workspaceRoutePattern}${settingsNotificationsRoute}`} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
+          <Route path={`${workspaceRoutePattern}${settingsThemeRoute}`} element={renderDeferredRoute(<ThemeSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAccentColorRoute}`} element={renderDeferredRoute(<AccentColorSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
@@ -1180,6 +1186,7 @@ function AuthenticatedApp(): ReactElement {
     <AppDataProvider>
       <GuestConversionGate returnUrl={window.location.href}>
         <PremiumProvider>
+          <AccountThemeAttribute />
           <AccountAccentTheme />
           <AIChatPreferencesProvider>
             <ChatLayoutProvider>

@@ -43,6 +43,13 @@ const heCatalog: TranslationCatalog = {
     checkoutPrice: "מחיר סופי ומטבע בקופה.",
     renewalDisclosure: "מתחדש אוטומטית; ניתן לבטל בכל עת בהגדרות המינוי.",
   },
+  themeSettings: {
+    title: "ערכת נושא",
+    subtitle: "בחרו מראה כהה או בהיר לאפליקציה.",
+    dark: "כהה",
+    light: "בהיר",
+    premiumNote: "ערכת הנושא הבהירה כלולה ב-Premium. הבחירה השמורה שלך חוזרת כש-Premium פעיל.",
+  },
   accentColorSettings: {
     title: "צבע הדגשה",
     subtitle: "בחרו את צבע ההדגשה של האפליקציה.",

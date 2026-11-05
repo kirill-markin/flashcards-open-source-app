@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1 000 správ AI mesačne a vlastné štýly. Synchronizácia je pre všetkých bezplatná.";
 "premium.aiLimit.title" = "Bol dosiahnutý limit správ AI";
 
+"settings.theme.title" = "Motív";
+"settings.theme.dark" = "Tmavý";
+"settings.theme.light" = "Svetlý";
+"settings.theme.premiumNote" = "Svetlý motív je dostupný s Premium. Uložený motív sa vráti, keď bude Premium aktívne.";
 "settings.accentColor.title" = "Farba zvýraznenia";
 "settings.accentColor.default" = "Predvolená";
 "settings.accentColor.blue" = "Modrá";

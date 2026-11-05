@@ -6,10 +6,11 @@ import { useAppData } from "../../appData";
 import { markIndexedDbOpenRecoveryFailureAndCheckActive, useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
-import { accentPresets, useAccountAccentColor } from "../../premium/accentColor";
+import { accentPresets, displayedAccentColor, useAccountAccentColor } from "../../premium/accentColor";
 import { usePremiumPresenter } from "../../premium/PremiumProvider";
 import { subscribeToStripeBillingInvalidation } from "../../premium/stripeIntent";
 import { createPremiumContinuationGuard } from "../../premium/styleSettings";
+import { useAccountTheme } from "../../premium/theme";
 import { defaultAccentColor } from "../../types/account";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
@@ -24,6 +25,7 @@ function AccentColorEditor(): ReactElement {
   const { t } = useI18n();
   const presentPremium = usePremiumPresenter();
   const { effectiveColor, canCustomize } = useAccountAccentColor();
+  const { effectiveTheme } = useAccountTheme();
   const [customColor, setCustomColor] = useState(effectiveColor);
   const [errorMessage, setErrorMessage] = useState("");
   const mountedRef = useRef(false);
@@ -176,7 +178,7 @@ function AccentColorEditor(): ReactElement {
                 onChange={() => chooseColor(preset.color)}
                 data-testid={`accent-preset-${preset.name}`}
               />
-              <span className="accent-swatch" style={{ backgroundColor: preset.color }} aria-hidden="true" />
+              <span className="accent-swatch" style={{ backgroundColor: displayedAccentColor(preset.color, effectiveTheme) }} aria-hidden="true" />
               <span>{t(`accentColorSettings.${preset.name}`)}</span>
               <span className="badge">{preset.color}</span>
             </label>

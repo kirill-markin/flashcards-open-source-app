@@ -3,13 +3,16 @@ package com.flashcardsopensourceapp.data.local.cloud
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.parseAccountTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 private const val accentColorKey: String = "accent-color"
+private const val themeKey: String = "theme"
 private const val reviewReactionAnimationsEnabledKey: String = "review-reaction-animations-enabled"
 private const val productAnalyticsEnabledKey: String = "product-analytics-enabled"
 private const val productAnalyticsEnabledPendingPushKey: String = "product-analytics-enabled-pending-push"
@@ -125,6 +128,7 @@ internal class CloudAccountPreferencesStore(
                 && metadataPreferences.getBoolean(productAnalyticsEnabledPushRefusedKey, false).not()
             metadataPreferences.edit(commit = true) {
                 putString(accentColorKey, resolvedPreferences.accentColor)
+                putString(themeKey, resolvedPreferences.theme.wireValue)
                 putBoolean(
                     reviewReactionAnimationsEnabledKey,
                     resolvedPreferences.reviewReactionAnimationsEnabled
@@ -275,6 +279,7 @@ internal class CloudAccountPreferencesStore(
             val carriedProductAnalyticsEnabled: Boolean? = currentAccountPreferences().productAnalyticsEnabled
             metadataPreferences.edit(commit = true) {
                 remove(accentColorKey)
+                remove(themeKey)
                 remove(reviewReactionAnimationsEnabledKey)
                 // The verdict belonged to the identity being left, not to the answer.
                 remove(productAnalyticsEnabledPushRefusedKey)
@@ -336,6 +341,9 @@ internal class CloudAccountPreferencesStore(
         return AccountPreferences(
             firstReviewOnboardingCompleted = onboardingStore.currentValue(),
             accentColor = requireNotNull(metadataPreferences.getString(accentColorKey, defaultAccentColor)),
+            theme = parseAccountTheme(
+                wireValue = requireNotNull(metadataPreferences.getString(themeKey, AccountTheme.DARK.wireValue))
+            ),
             reviewReactionAnimationsEnabled = metadataPreferences.getBoolean(
                 reviewReactionAnimationsEnabledKey,
                 true

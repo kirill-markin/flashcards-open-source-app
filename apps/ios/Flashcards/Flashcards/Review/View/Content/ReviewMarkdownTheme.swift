@@ -16,6 +16,11 @@ private let reviewMathFormulaColor: Color = Color(
     opacity: 1.0
 )
 
+// Formula colors are literals because RaTeX rejects a resolved dynamic color that lands outside [0, 1].
+private func reviewMathDefaultFormulaColor(colorScheme: ColorScheme) -> Color {
+    colorScheme == .dark ? reviewMathFormulaColor : Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 1)
+}
+
 enum ReviewCardSurfaceStyle {
     case front
     case back
@@ -201,10 +206,18 @@ private func reviewMarkdownInlineCodeTextColor(surfaceStyle: ReviewCardSurfaceSt
     }
 }
 
+// The front surface is a translucent material: white overlays lift it in Dark, black ones in Light.
+private func reviewMarkdownFrontOverlayColor(darkWhiteOpacity: CGFloat, lightBlackOpacity: CGFloat) -> Color {
+    themeAdaptiveColor(
+        light: UIColor.black.withAlphaComponent(lightBlackOpacity),
+        dark: UIColor.white.withAlphaComponent(darkWhiteOpacity)
+    )
+}
+
 private func reviewMarkdownInlineCodeBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
     switch surfaceStyle {
     case .front:
-        return Color.white.opacity(0.4)
+        return reviewMarkdownFrontOverlayColor(darkWhiteOpacity: 0.4, lightBlackOpacity: 0.06)
     case .back:
         return Color(uiColor: .systemBackground)
     }
@@ -213,7 +226,7 @@ private func reviewMarkdownInlineCodeBackgroundColor(surfaceStyle: ReviewCardSur
 private func reviewMarkdownCodeBlockBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
     switch surfaceStyle {
     case .front:
-        return Color.white.opacity(0.3)
+        return reviewMarkdownFrontOverlayColor(darkWhiteOpacity: 0.3, lightBlackOpacity: 0.05)
     case .back:
         return Color(uiColor: .systemBackground)
     }
@@ -231,7 +244,7 @@ private func reviewMarkdownTablePrimaryBackgroundColor(surfaceStyle: ReviewCardS
 private func reviewMarkdownTableSecondaryBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
     switch surfaceStyle {
     case .front:
-        return Color.white.opacity(0.22)
+        return reviewMarkdownFrontOverlayColor(darkWhiteOpacity: 0.22, lightBlackOpacity: 0.03)
     case .back:
         return Color.primary.opacity(0.03)
     }
@@ -240,7 +253,7 @@ private func reviewMarkdownTableSecondaryBackgroundColor(surfaceStyle: ReviewCar
 private func reviewMarkdownBorderColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
     switch surfaceStyle {
     case .front:
-        return Color.white.opacity(0.35)
+        return reviewMarkdownFrontOverlayColor(darkWhiteOpacity: 0.35, lightBlackOpacity: 0.12)
     case .back:
         return Color(uiColor: .separator)
     }
@@ -369,6 +382,7 @@ struct ReviewMathFormulaView: View {
     var textFontSize: CGFloat? = nil
     var textColor: Color? = nil
 
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 18
     #if targetEnvironment(macCatalyst)
     @State private var rendering: MacReviewFormulaState
@@ -425,7 +439,7 @@ struct ReviewMathFormulaView: View {
                         latex: self.formula.latex,
                         fontSize: self.textFontSize ?? self.formulaFontSize,
                         displayMode: true,
-                        color: self.textColor ?? reviewMathFormulaColor,
+                        color: self.textColor ?? reviewMathDefaultFormulaColor(colorScheme: self.colorScheme),
                         onError: { error in
                             reviewMathFormulaLogger.error(
                                 "Review formula rendering failed. latex=\(self.formula.latex, privacy: .private(mask: .hash)) error=\(error.localizedDescription, privacy: .public)"

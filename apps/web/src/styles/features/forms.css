@@ -55,7 +55,7 @@
   padding: 0;
   border: 1px solid var(--panel-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
   color: var(--text-secondary);
   cursor: pointer;
   transition:
@@ -67,7 +67,7 @@
 
 .card-form-media-icon-btn:hover:not(:disabled) {
   border-color: var(--panel-border-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--overlay-rgb), 0.08);
   color: var(--text);
 }
 
@@ -149,7 +149,7 @@
 }
 
 .card-form-media-error {
-  color: #ffd6d9;
+  color: var(--danger-text);
 }
 
 .card-form-managed-media-strip {
@@ -170,7 +170,7 @@
   padding: 6px;
   border: 1px solid var(--panel-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(var(--overlay-rgb), 0.035);
 }
 
 .card-form-managed-media-body {
@@ -240,7 +240,7 @@
 }
 
 .card-form-managed-media-upload-state[data-status="failed"] {
-  color: #ffd6d9;
+  color: var(--danger-text);
 }
 
 .card-form-media-retry-btn {
@@ -251,7 +251,7 @@
   padding: 0 8px;
   border: 1px solid var(--panel-border);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--overlay-rgb), 0.05);
   color: var(--text);
   font-size: 11px;
   font-weight: 700;
@@ -263,7 +263,7 @@
 
 .card-form-media-retry-btn:hover {
   border-color: var(--panel-border-strong);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--overlay-rgb), 0.1);
 }
 
 .meta-list {

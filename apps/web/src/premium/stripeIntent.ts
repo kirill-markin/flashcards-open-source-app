@@ -60,7 +60,7 @@ export function canCollectPaywallAnalytics(): boolean {
 export type PaywallPresentation = Readonly<{ presentationId: string; entryPoint: AnalyticsPaywallEntryPoint }>;
 
 export function parsePaywallPresentation(presentationId: unknown, entryPoint: unknown): PaywallPresentation {
-  const entries: ReadonlyArray<AnalyticsPaywallEntryPoint> = ["subscription_settings", "ai_limit", "accent_color", "review_animations", "ai_chat_suggestions", "app_icon", "guest_return", "review", "ai_low_balance"];
+  const entries: ReadonlyArray<AnalyticsPaywallEntryPoint> = ["subscription_settings", "ai_limit", "accent_color", "theme", "review_animations", "ai_chat_suggestions", "app_icon", "guest_return", "review", "ai_low_balance"];
   if (typeof entryPoint !== "string" || !entries.includes(entryPoint as AnalyticsPaywallEntryPoint)) {
     throw new ApiContractError("Premium return", "entryPoint", "paywall entry point");
   }

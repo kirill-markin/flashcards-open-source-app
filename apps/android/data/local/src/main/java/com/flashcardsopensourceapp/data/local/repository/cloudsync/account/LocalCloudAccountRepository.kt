@@ -327,6 +327,7 @@ class LocalCloudAccountRepository(
             authorizationHeader = pendingSave.session.authorizationHeader,
             update = AccountPreferencesUpdate(
                 accentColor = null,
+                theme = null,
                 reviewReactionAnimationsEnabled = null,
                 productAnalyticsEnabled = null,
                 productAnalyticsEnabledOrigin = null,
@@ -871,6 +872,7 @@ class LocalCloudAccountRepository(
                 authorizationHeader = session.authorizationHeader,
                 update = AccountPreferencesUpdate(
                     accentColor = null,
+                    theme = null,
                     reviewReactionAnimationsEnabled = null,
                     productAnalyticsEnabled = enabled,
                     productAnalyticsEnabledOrigin = origin,

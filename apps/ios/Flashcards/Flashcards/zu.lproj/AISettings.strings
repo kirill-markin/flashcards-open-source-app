@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "Imiyalezo ye-AI engu-1,000 ngenyanga nezitayela ozikhethayo. Ukuvumelanisa kumahhala kubo bonke.";
 "premium.aiLimit.title" = "Usufinyelele emkhawulweni wemiyalezo ye-AI";
 
+"settings.theme.title" = "Itimu";
+"settings.theme.dark" = "Okumnyama";
+"settings.theme.light" = "Okukhanyayo";
+"settings.theme.premiumNote" = "Itimu ekhanyayo iyatholakala nge-Premium. Itimu yakho egciniwe ibuya lapho i-Premium isebenza.";
 "settings.accentColor.title" = "Umbala wokugqamisa";
 "settings.accentColor.default" = "Okuzenzakalelayo";
 "settings.accentColor.blue" = "Okuluhlaza okwesibhakabhaka";

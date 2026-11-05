@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.feature.settings.subscription.SubscriptionUiState
+import com.flashcardsopensourceapp.feature.settings.theme.accountThemeLabel
 import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 
 internal val settingsScreenCardSpacing = 16.dp
@@ -101,6 +102,7 @@ fun SettingsRoute(
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
     onOpenReviewAnimations: () -> Unit,
+    onOpenTheme: () -> Unit,
     onOpenAccentColor: () -> Unit,
     onOpenAiChatSuggestions: () -> Unit,
     onOpenAppIcon: () -> Unit,
@@ -235,6 +237,16 @@ fun SettingsRoute(
             }
 
             if (uiState.canManageAccountPreferences) {
+                item {
+                    SettingsRootRow(
+                        title = stringResource(R.string.settings_theme_title),
+                        summary = stringResource(accountThemeLabel(theme = uiState.theme)),
+                        attentionCount = null,
+                        testTag = settingsThemeRowTag,
+                        onClick = onOpenTheme
+                    )
+                }
+
                 item {
                     SettingsRootRow(
                         title = stringResource(R.string.settings_accent_title),

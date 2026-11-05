@@ -43,6 +43,13 @@ const daCatalog: TranslationCatalog = {
     checkoutPrice: "Endelig pris og valuta ved betaling.",
     renewalDisclosure: "Fornyes automatisk; opsig når som helst i abonnementsindstillingerne.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Vælg et mørkt eller lyst udseende til appen.",
+    dark: "Mørkt",
+    light: "Lyst",
+    premiumNote: "Det lyse tema er inkluderet i Premium. Dit gemte valg vender tilbage, når Premium er aktivt.",
+  },
   accentColorSettings: {
     title: "Accentfarve",
     subtitle: "Vælg appens accentfarve.",

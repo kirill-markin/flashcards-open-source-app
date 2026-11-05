@@ -63,6 +63,7 @@ const requestContext: RequestContext = {
   userSettingsCreatedAt: testTimestamp,
   preferences: {
     accentColor: "#FF6719",
+    theme: "dark",
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: false,
     analyticsConsent: null,

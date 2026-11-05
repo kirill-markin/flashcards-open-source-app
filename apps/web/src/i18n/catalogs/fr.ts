@@ -43,6 +43,13 @@ const frCatalog: TranslationCatalog = {
     checkoutPrice: "Prix final et devise au paiement.",
     renewalDisclosure: "Renouvellement automatique ; annulez à tout moment dans les paramètres d’abonnement.",
   },
+  themeSettings: {
+    title: "Thème",
+    subtitle: "Choisissez une apparence sombre ou claire pour l’application.",
+    dark: "Sombre",
+    light: "Clair",
+    premiumNote: "Le thème clair est inclus avec Premium. Votre choix enregistré revient lorsque Premium est actif.",
+  },
   accentColorSettings: {
     title: "Couleur d’accentuation",
     subtitle: "Choisissez la couleur d’accentuation de l’application.",

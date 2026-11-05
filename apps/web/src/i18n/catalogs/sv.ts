@@ -43,6 +43,13 @@ const svCatalog: TranslationCatalog = {
     checkoutPrice: "Slutpris och valuta i kassan.",
     renewalDisclosure: "Förnyas automatiskt; säg upp när som helst i prenumerationsinställningarna.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Välj ett mörkt eller ljust utseende för appen.",
+    dark: "Mörkt",
+    light: "Ljust",
+    premiumNote: "Det ljusa temat ingår i Premium. Ditt sparade val kommer tillbaka när Premium är aktivt.",
+  },
   accentColorSettings: {
     title: "Accentfärg",
     subtitle: "Välj appens accentfärg.",

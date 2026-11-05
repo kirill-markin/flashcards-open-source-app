@@ -6,6 +6,7 @@ import {
 } from "@kirill-markin/ratex-wasm";
 import "@kirill-markin/ratex-wasm/fonts.css";
 import { useI18n } from "../../../../i18n";
+import { useDocumentTheme } from "../../../../premium/theme";
 
 const REVIEW_MATH_FONT_SIZE_CSS_PIXELS = 18;
 const REVIEW_MATH_BLOCK_PADDING_CSS_PIXELS = 4;
@@ -71,6 +72,8 @@ async function loadReviewMathFonts(signal: AbortSignal): Promise<void> {
 export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
   const { compact = false, delimitedSource, formulaSource, inline } = props;
   const { t } = useI18n();
+  // The canvas is painted with the theme text color, so a theme change repaints it.
+  const documentTheme = useDocumentTheme();
   const containerRef = useRef<HTMLElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [renderState, setRenderState] = useState<ReviewMathRenderState>(null);
@@ -155,7 +158,7 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
 
     void renderFormula();
     return () => controller.abort();
-  }, [formulaSource, inline]);
+  }, [documentTheme, formulaSource, inline]);
 
   const formulaCanvas = (
     <canvas

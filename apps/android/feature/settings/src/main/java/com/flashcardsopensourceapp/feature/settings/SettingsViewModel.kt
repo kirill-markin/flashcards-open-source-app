@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
+import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -99,6 +100,11 @@ class SettingsViewModel(
             },
             accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
             friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
+            theme = if (accountPreferences.canCustomizeStyle) {
+                accountPreferences.preferences.theme
+            } else {
+                AccountTheme.DARK
+            },
             reviewReactionAnimationsEnabled = accountPreferences.canCustomizeStyle.not() ||
                 accountPreferences.preferences.reviewReactionAnimationsEnabled,
             productAnalyticsEnabled = isProductAnalyticsEnabled(preferences = accountPreferences.preferences),
@@ -122,6 +128,7 @@ class SettingsViewModel(
             accountStatusTitle = strings.get(R.string.settings_loading),
             accountStatusAttentionCount = 1,
             friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
+            theme = AccountTheme.DARK,
             reviewReactionAnimationsEnabled = true,
             productAnalyticsEnabled = true,
             firstReviewOnboardingCompleted = null,
@@ -154,6 +161,7 @@ class SettingsViewModel(
                 cloudAccountRepository.updateAccountPreferences(
                     update = AccountPreferencesUpdate(
                         accentColor = null,
+                        theme = null,
                         reviewReactionAnimationsEnabled = isEnabled,
                         productAnalyticsEnabled = null,
                         locale = null,

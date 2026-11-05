@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 tin nhắn AI mỗi tháng và phong cách tùy chỉnh. Đồng bộ miễn phí cho mọi người.";
 "premium.aiLimit.title" = "Đã đạt giới hạn tin nhắn AI";
 
+"settings.theme.title" = "Chủ đề";
+"settings.theme.dark" = "Tối";
+"settings.theme.light" = "Sáng";
+"settings.theme.premiumNote" = "Chủ đề sáng có sẵn với Premium. Chủ đề đã lưu sẽ trở lại khi Premium hoạt động.";
 "settings.accentColor.title" = "Màu nhấn";
 "settings.accentColor.default" = "Mặc định";
 "settings.accentColor.blue" = "Xanh dương";

@@ -43,6 +43,13 @@ export const zhHansCatalog = {
     checkoutPrice: "最终价格和货币以结账页面为准。",
     renewalDisclosure: "自动续订；可随时前往订阅设置取消。",
   },
+  themeSettings: {
+    title: "主题",
+    subtitle: "为应用选择深色或浅色外观。",
+    dark: "深色",
+    light: "浅色",
+    premiumNote: "浅色主题包含在Premium中。Premium激活后，将恢复你保存的选择。",
+  },
   accentColorSettings: {
     title: "强调色",
     subtitle: "选择应用的强调色。",

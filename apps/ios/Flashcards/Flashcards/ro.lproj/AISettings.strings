@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 de mesaje AI pe lună și stiluri personalizate. Sincronizarea este gratuită pentru toată lumea.";
 "premium.aiLimit.title" = "Ai atins limita de mesaje AI";
 
+"settings.theme.title" = "Temă";
+"settings.theme.dark" = "Întunecată";
+"settings.theme.light" = "Luminoasă";
+"settings.theme.premiumNote" = "Tema luminoasă este disponibilă cu Premium. Tema salvată revine când Premium este activ.";
 "settings.accentColor.title" = "Culoare de accent";
 "settings.accentColor.default" = "Implicită";
 "settings.accentColor.blue" = "Albastru";

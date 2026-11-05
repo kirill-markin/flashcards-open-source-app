@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -69,4 +70,9 @@ fun currentDeviceModelLabel(strings: SettingsStringResolver): String {
         .filter(String::isNotEmpty)
         .joinToString(separator = " ")
         .ifEmpty { strings.get(R.string.settings_unavailable) }
+}
+
+/** Scopes an account-preference save to the identity that requested it. */
+internal fun accountPreferencesIdentityKey(settings: CloudSettings): String {
+    return "${settings.installationId}:${settings.cloudState}:${settings.linkedUserId}"
 }
