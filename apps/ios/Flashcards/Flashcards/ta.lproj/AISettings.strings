@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "கருத்தை அனுப்பு";
 "settings.row.sendFeedback.value" = "யோசனையைப் பகிர்";
 "feedback.sheet.title" = "Nibomo-க்காக ஒரு யோசனை உள்ளதா?";
-"feedback.sheet.body" = "செயலியை எவ்வாறு மேம்படுத்தலாம் எனப் பகிருங்கள். உருவாக்கியவர் ஒவ்வொரு செய்தியையும் நேரடியாகப் படிப்பார்.";
+"feedback.sheet.body" = "செயலியை எவ்வாறு மேம்படுத்தலாம் எனப் பகிருங்கள். Nibomo உருவாக்குநர் [Kirill Markin](https://kirill-markin.com/) ஒவ்வொரு செய்தியையும் நேரடியாகப் படிப்பார்.";
 "feedback.sheet.placeholder" = "உங்கள் யோசனையை இங்கே எழுதவும்";
 "feedback.sheet.send" = "அனுப்பு";
 "feedback.sheet.notNow" = "இப்போது வேண்டாம்";

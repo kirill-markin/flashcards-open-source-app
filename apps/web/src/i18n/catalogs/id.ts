@@ -1215,7 +1215,7 @@ const idCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Punya ide untuk Nibomo?",
-    body: "Ceritakan apa yang bisa membuat aplikasi ini lebih baik. Pembuatnya membaca setiap pesan secara pribadi.",
+    body: "Ceritakan apa yang bisa membuat aplikasi ini lebih baik. Pembuat Nibomo, {{creator}}, membaca setiap pesan secara pribadi.",
     fieldLabel: "Masukan",
     placeholder: "Tulis ide Anda di sini",
     send: "Kirim",

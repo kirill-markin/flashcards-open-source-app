@@ -1225,7 +1225,7 @@ const hrCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Imate ideju za Nibomo?",
-    body: "Podijelite što bi poboljšalo aplikaciju. Autor osobno čita svaku poruku.",
+    body: "Podijelite što bi poboljšalo aplikaciju. Tvorac Niboma, {{creator}}, osobno čita svaku poruku.",
     fieldLabel: "Povratne informacije",
     placeholder: "Ovdje napišite svoju ideju",
     send: "Pošalji",

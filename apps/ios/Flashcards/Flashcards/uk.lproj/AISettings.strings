@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Надіслати відгук";
 "settings.row.sendFeedback.value" = "Поділіться ідеєю";
 "feedback.sheet.title" = "Маєте ідею для Nibomo?";
-"feedback.sheet.body" = "Розкажіть, що покращило б застосунок. Автор особисто читає кожне повідомлення.";
+"feedback.sheet.body" = "Розкажіть, що покращило б застосунок. Творець Nibomo, [Kirill Markin](https://kirill-markin.com/), особисто читає кожне повідомлення.";
 "feedback.sheet.placeholder" = "Напишіть свою ідею тут";
 "feedback.sheet.send" = "Надіслати";
 "feedback.sheet.notNow" = "Не зараз";

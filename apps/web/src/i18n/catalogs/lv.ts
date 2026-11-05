@@ -1215,7 +1215,7 @@ const lvCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Vai jums ir ideja par Nibomo?",
-    body: "Pastāstiet, kas padarītu lietotni labāku. Autors personīgi lasa katru ziņu.",
+    body: "Pastāstiet, kas padarītu lietotni labāku. Nibomo veidotājs {{creator}} personīgi lasa katru ziņu.",
     fieldLabel: "Atsauksme",
     placeholder: "Uzrakstiet savu ideju šeit",
     send: "Sūtīt",

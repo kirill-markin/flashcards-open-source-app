@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Siųsti atsiliepimą";
 "settings.row.sendFeedback.value" = "Pasidalyti idėja";
 "feedback.sheet.title" = "Turite idėją Nibomo?";
-"feedback.sheet.body" = "Pasidalykite, kas pagerintų programėlę. Kūrėjas asmeniškai skaito kiekvieną žinutę.";
+"feedback.sheet.body" = "Pasidalykite, kas pagerintų programėlę. Nibomo kūrėjas [Kirill Markin](https://kirill-markin.com/) asmeniškai skaito kiekvieną žinutę.";
 "feedback.sheet.placeholder" = "Čia parašykite savo idėją";
 "feedback.sheet.send" = "Siųsti";
 "feedback.sheet.notNow" = "Ne dabar";

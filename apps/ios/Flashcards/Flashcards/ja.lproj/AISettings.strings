@@ -856,7 +856,7 @@
 "settings.row.sendFeedback" = "フィードバックを送信";
 "settings.row.sendFeedback.value" = "アイデアを共有";
 "feedback.sheet.title" = "Nibomo へのアイデアがありますか？";
-"feedback.sheet.body" = "アプリをより良くするための意見を共有してください。作成者がすべてのメッセージを直接読みます。";
+"feedback.sheet.body" = "アプリをより良くするための意見を共有してください。Nibomo の制作者 [Kirill Markin](https://kirill-markin.com/) がすべてのメッセージを直接読みます。";
 "feedback.sheet.placeholder" = "ここにアイデアを書く";
 "feedback.sheet.send" = "送信";
 "feedback.sheet.notNow" = "今はしない";

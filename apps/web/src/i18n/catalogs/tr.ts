@@ -1215,7 +1215,7 @@ const trCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Nibomo için bir fikriniz mi var?",
-    body: "Uygulamayı neyin daha iyi yapacağını paylaşın. Geliştirici her mesajı bizzat okuyor.",
+    body: "Uygulamayı neyin daha iyi yapacağını paylaşın. Nibomo’nun yaratıcısı {{creator}} her mesajı bizzat okuyor.",
     fieldLabel: "Geri bildirim",
     placeholder: "Fikrinizi buraya yazın",
     send: "Gönder",

@@ -1215,7 +1215,7 @@ const daCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Har du en idé til Nibomo?",
-    body: "Fortæl hvad der ville gøre appen bedre. Manden bag læser hver besked personligt.",
+    body: "Fortæl hvad der ville gøre appen bedre. Nibomos skaber, {{creator}}, læser hver besked personligt.",
     fieldLabel: "Feedback",
     placeholder: "Skriv din idé her",
     send: "Send",

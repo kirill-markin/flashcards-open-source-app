@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Odoslať spätnú väzbu";
 "settings.row.sendFeedback.value" = "Podeliť sa o nápad";
 "feedback.sheet.title" = "Máte nápad pre Nibomo?";
-"feedback.sheet.body" = "Podeľte sa o to, čo by aplikáciu zlepšilo. Tvorca si každú správu číta osobne.";
+"feedback.sheet.body" = "Podeľte sa o to, čo by aplikáciu zlepšilo. Tvorca Nibomo, [Kirill Markin](https://kirill-markin.com/), si každú správu číta osobne.";
 "feedback.sheet.placeholder" = "Sem napíšte svoj nápad";
 "feedback.sheet.send" = "Odoslať";
 "feedback.sheet.notNow" = "Teraz nie";

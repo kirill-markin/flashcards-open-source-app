@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Αποστολή σχολίων";
 "settings.row.sendFeedback.value" = "Κοινοποίηση ιδέας";
 "feedback.sheet.title" = "Έχετε μια ιδέα για το Nibomo;";
-"feedback.sheet.body" = "Πείτε μας τι θα βελτίωνε την εφαρμογή. Ο δημιουργός διαβάζει κάθε μήνυμα προσωπικά.";
+"feedback.sheet.body" = "Πείτε μας τι θα βελτίωνε την εφαρμογή. Ο δημιουργός του Nibomo, [Kirill Markin](https://kirill-markin.com/), διαβάζει κάθε μήνυμα προσωπικά.";
 "feedback.sheet.placeholder" = "Γράψτε την ιδέα σας εδώ";
 "feedback.sheet.send" = "Αποστολή";
 "feedback.sheet.notNow" = "Όχι τώρα";

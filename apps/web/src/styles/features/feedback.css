@@ -24,6 +24,13 @@
   max-width: 54ch;
 }
 
+.feedback-creator-link {
+  white-space: nowrap;
+  color: var(--text-emphasis);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .feedback-dialog-field {
   min-width: 0;
 }

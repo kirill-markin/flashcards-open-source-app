@@ -1215,7 +1215,7 @@ const deCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Hast du eine Idee für Nibomo?",
-    body: "Teile, was die App besser machen würde. Der Ersteller liest jede Nachricht persönlich.",
+    body: "Teile, was die App besser machen würde. Der Nibomo-Entwickler {{creator}} liest jede Nachricht persönlich.",
     fieldLabel: "Feedback",
     placeholder: "Schreibe deine Idee hier",
     send: "Senden",

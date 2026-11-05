@@ -1215,7 +1215,7 @@ export const zhHansCatalog = {
   },
   feedback: {
     title: "对 Nibomo 有想法吗？",
-    body: "告诉我们什么能让应用更好。创建者会亲自阅读每条消息。",
+    body: "告诉我们什么能让应用更好。Nibomo 的创作者 {{creator}} 会亲自阅读每条消息。",
     fieldLabel: "反馈",
     placeholder: "在这里写下你的想法",
     send: "发送",

@@ -11,6 +11,7 @@ import {
   isFeedbackMessageSubmittable,
   normalizeFeedbackMessage,
 } from "../../feedback/feedbackSubmission";
+import { FeedbackRequestBody } from "../../feedback/FeedbackRequestBody";
 import { useI18n } from "../../i18n";
 import {
   buildFeedbackPromptIdentityKey,
@@ -167,7 +168,7 @@ export function FeedbackSettingsScreen(): ReactElement {
   return (
     <SettingsShell
       title={t("settingsHome.feedback.title")}
-      subtitle={t("feedback.body")}
+      subtitle={t("feedback.body", { creator: "Kirill Markin" })}
       activeTab="general"
     >
       {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
@@ -176,7 +177,7 @@ export function FeedbackSettingsScreen(): ReactElement {
         <form className="content-card settings-overview-card" onSubmit={handleSubmit}>
           <div className="cell-stack">
             <h2 className="panel-subtitle">{t("feedback.title")}</h2>
-            <p className="subtitle">{t("feedback.body")}</p>
+            <p className="subtitle"><FeedbackRequestBody /></p>
           </div>
           <label className="form-label feedback-dialog-field">
             <span>{t("feedback.fieldLabel")}</span>

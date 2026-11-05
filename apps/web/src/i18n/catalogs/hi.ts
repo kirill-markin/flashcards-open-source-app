@@ -1215,7 +1215,7 @@ const hiCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Nibomo के लिए कोई विचार है?",
-    body: "ऐप को बेहतर बनाने वाली बात साझा करें। निर्माता हर संदेश खुद पढ़ता है।",
+    body: "ऐप को बेहतर बनाने वाली बात साझा करें। Nibomo के निर्माता, {{creator}}, हर संदेश खुद पढ़ते हैं।",
     fieldLabel: "फ़ीडबैक",
     placeholder: "अपना विचार यहाँ लिखें",
     send: "भेजें",

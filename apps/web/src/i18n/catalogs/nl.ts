@@ -1215,7 +1215,7 @@ const nlCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Heb je een idee voor Nibomo?",
-    body: "Deel wat de app beter zou maken. De maker leest elk bericht persoonlijk.",
+    body: "Deel wat de app beter zou maken. De maker van Nibomo, {{creator}}, leest elk bericht persoonlijk.",
     fieldLabel: "Feedback",
     placeholder: "Schrijf je idee hier",
     send: "Versturen",

@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "رائے بھیجیں";
 "settings.row.sendFeedback.value" = "خیال شیئر کریں";
 "feedback.sheet.title" = "Nibomo کے لیے کوئی خیال ہے؟";
-"feedback.sheet.body" = "بتائیں کہ ایپ کو کیسے بہتر بنایا جا سکتا ہے۔ بنانے والا ہر پیغام خود پڑھتا ہے۔";
+"feedback.sheet.body" = "بتائیں کہ ایپ کو کیسے بہتر بنایا جا سکتا ہے۔ Nibomo کے تخلیق کار [Kirill Markin](https://kirill-markin.com/) ہر پیغام خود پڑھتے ہیں۔";
 "feedback.sheet.placeholder" = "اپنا خیال یہاں لکھیں";
 "feedback.sheet.send" = "بھیجیں";
 "feedback.sheet.notNow" = "ابھی نہیں";

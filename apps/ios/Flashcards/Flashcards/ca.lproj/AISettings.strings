@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Envia comentaris";
 "settings.row.sendFeedback.value" = "Comparteix una idea";
 "feedback.sheet.title" = "Tens una idea per a Nibomo?";
-"feedback.sheet.body" = "Comparteix què milloraria l’app. El creador llegeix cada missatge personalment.";
+"feedback.sheet.body" = "Comparteix què milloraria l’app. El creador de Nibomo, [Kirill Markin](https://kirill-markin.com/), llegeix cada missatge personalment.";
 "feedback.sheet.placeholder" = "Escriu la teva idea aquí";
 "feedback.sheet.send" = "Enviar";
 "feedback.sheet.notNow" = "Ara no";

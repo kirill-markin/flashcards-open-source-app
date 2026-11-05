@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Tuma Maoni";
 "settings.row.sendFeedback.value" = "Shiriki wazo";
 "feedback.sheet.title" = "Una wazo kwa ajili ya Nibomo?";
-"feedback.sheet.body" = "Shiriki nini kingeboresha programu. Mtengenezaji husoma kila ujumbe binafsi.";
+"feedback.sheet.body" = "Shiriki nini kingeboresha programu. Muundaji wa Nibomo, [Kirill Markin](https://kirill-markin.com/), husoma kila ujumbe binafsi.";
 "feedback.sheet.placeholder" = "Andika wazo lako hapa";
 "feedback.sheet.send" = "Tuma";
 "feedback.sheet.notNow" = "Si sasa";

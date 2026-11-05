@@ -1215,7 +1215,7 @@ const heCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "יש לך רעיון ל-Nibomo?",
-    body: "ספר לנו מה ישפר את האפליקציה. היוצר קורא כל הודעה באופן אישי.",
+    body: "ספר לנו מה ישפר את האפליקציה. היוצר של Nibomo, {{creator}}, קורא כל הודעה באופן אישי.",
     fieldLabel: "משוב",
     placeholder: "כתוב כאן את הרעיון שלך",
     send: "שליחה",

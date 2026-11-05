@@ -856,7 +856,7 @@
 "settings.row.sendFeedback" = "Отправить отзыв";
 "settings.row.sendFeedback.value" = "Поделиться идеей";
 "feedback.sheet.title" = "Есть идея для Nibomo?";
-"feedback.sheet.body" = "Расскажите, что сделало бы приложение лучше. Создатель лично читает каждое сообщение.";
+"feedback.sheet.body" = "Расскажите, что сделало бы приложение лучше. Создатель Nibomo, [Kirill Markin](https://kirill-markin.com/), лично читает каждое сообщение.";
 "feedback.sheet.placeholder" = "Напишите идею здесь";
 "feedback.sheet.send" = "Отправить";
 "feedback.sheet.notNow" = "Не сейчас";

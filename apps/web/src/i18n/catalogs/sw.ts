@@ -1215,7 +1215,7 @@ const swCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Una wazo kwa ajili ya Nibomo?",
-    body: "Shiriki nini kingeboresha programu. Mtengenezaji husoma kila ujumbe binafsi.",
+    body: "Shiriki nini kingeboresha programu. Mtengenezaji wa Nibomo, {{creator}}, husoma kila ujumbe binafsi.",
     fieldLabel: "Maoni",
     placeholder: "Andika wazo lako hapa",
     send: "Tuma",

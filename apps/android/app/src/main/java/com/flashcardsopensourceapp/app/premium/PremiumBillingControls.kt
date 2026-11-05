@@ -26,21 +26,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flashcardsopensourceapp.app.CreatorLinkText
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionFailure
@@ -51,9 +45,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsOrange
-import com.flashcardsopensourceapp.core.ui.theme.LocalFlashcardsAppearance
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -130,7 +122,7 @@ internal fun PremiumStoreOffer(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             PremiumPlanHeader(title = stringResource(R.string.premium_title), price = details?.recurringPrice)
-            PremiumCreatorSupport()
+            CreatorLinkText(textWithCreatorName = R.string.premium_creator_support)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_creator_support), modifier = Modifier)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_accent_color), modifier = Modifier)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_review_animations), modifier = Modifier)
@@ -238,34 +230,6 @@ internal fun PremiumStoreOffer(
             modifier = Modifier.testTag("premium_preview_purchase_notice")
         )
     }
-}
-
-@Composable
-private fun PremiumCreatorSupport() {
-    val name = stringResource(R.string.premium_creator_name)
-    val support = stringResource(R.string.premium_creator_support, name)
-    val nameStart = support.indexOf(name)
-    val linkColor = when (LocalFlashcardsAppearance.current) {
-        FlashcardsAppearance.DARK -> Color.White
-        FlashcardsAppearance.LIGHT -> MaterialTheme.colorScheme.onSurface
-    }
-    val text = buildAnnotatedString {
-        if (nameStart < 0) {
-            append(support)
-        } else {
-            append(support.substring(0, nameStart))
-            withLink(LinkAnnotation.Url(
-                url = "https://kirill-markin.com/",
-                styles = TextLinkStyles(style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline))
-            )) { append(name) }
-            append(support.substring(nameStart + name.length))
-        }
-    }
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 }
 
 @Composable

@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Visszajelzés küldése";
 "settings.row.sendFeedback.value" = "Ötlet megosztása";
 "feedback.sheet.title" = "Van ötleted a Nibomóhoz?";
-"feedback.sheet.body" = "Mondd el, mitől lenne jobb az alkalmazás. A készítő minden üzenetet személyesen olvas el.";
+"feedback.sheet.body" = "Mondd el, mitől lenne jobb az alkalmazás. A Nibomo készítője, [Kirill Markin](https://kirill-markin.com/), minden üzenetet személyesen olvas el.";
 "feedback.sheet.placeholder" = "Írd ide az ötletedet";
 "feedback.sheet.send" = "Küldés";
 "feedback.sheet.notNow" = "Most nem";

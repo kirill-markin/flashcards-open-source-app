@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Saada tagasisidet";
 "settings.row.sendFeedback.value" = "Jaga ideed";
 "feedback.sheet.title" = "Kas sul on Nibomo jaoks idee?";
-"feedback.sheet.body" = "Jaga, mis muudaks rakenduse paremaks. Looja loeb iga sõnumit isiklikult.";
+"feedback.sheet.body" = "Jaga, mis muudaks rakenduse paremaks. Nibomo looja [Kirill Markin](https://kirill-markin.com/) loeb iga sõnumit isiklikult.";
 "feedback.sheet.placeholder" = "Kirjuta oma idee siia";
 "feedback.sheet.send" = "Saada";
 "feedback.sheet.notNow" = "Mitte praegu";

@@ -1214,7 +1214,7 @@ const enCatalog = {
   },
   feedback: {
     title: "Have an idea for Nibomo?",
-    body: "Share what would make the app better. The creator reads every message personally.",
+    body: "Share what would make the app better. Nibomo's creator, {{creator}}, reads every message personally.",
     fieldLabel: "Feedback",
     placeholder: "Write your idea here",
     send: "Send",

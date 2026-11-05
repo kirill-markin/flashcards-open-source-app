@@ -1215,7 +1215,7 @@ const caCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Tens una idea per a Nibomo?",
-    body: "Comparteix què milloraria l'app. El creador llegeix cada missatge personalment.",
+    body: "Comparteix què milloraria l'app. El creador de Nibomo, {{creator}}, llegeix cada missatge personalment.",
     fieldLabel: "Comentaris",
     placeholder: "Escriu la teva idea aquí",
     send: "Envia",

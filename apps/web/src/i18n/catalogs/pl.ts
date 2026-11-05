@@ -1225,7 +1225,7 @@ const plCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Masz pomysł na Nibomo?",
-    body: "Napisz, co uczyniłoby aplikację lepszą. Twórca czyta osobiście każdą wiadomość.",
+    body: "Napisz, co uczyniłoby aplikację lepszą. Twórca Nibomo, {{creator}}, czyta osobiście każdą wiadomość.",
     fieldLabel: "Opinia",
     placeholder: "Napisz tutaj swój pomysł",
     send: "Wyślij",

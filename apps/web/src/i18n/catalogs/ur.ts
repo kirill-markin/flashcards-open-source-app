@@ -1215,7 +1215,7 @@ const urCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Nibomo کے لیے کوئی خیال ہے؟",
-    body: "بتائیں کہ ایپ کو کیا بہتر بنائے گا۔ بنانے والا ہر پیغام خود پڑھتا ہے۔",
+    body: "بتائیں کہ ایپ کو کیا بہتر بنائے گا۔ Nibomo کے تخلیق کار، {{creator}}، ہر پیغام خود پڑھتے ہیں۔",
     fieldLabel: "رائے",
     placeholder: "اپنا خیال یہاں لکھیں",
     send: "بھیجیں",

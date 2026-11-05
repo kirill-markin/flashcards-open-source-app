@@ -1215,7 +1215,7 @@ const etCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Kas sul on Nibomo jaoks idee?",
-    body: "Jaga, mis teeks rakenduse paremaks. Looja loeb iga sõnumit isiklikult.",
+    body: "Jaga, mis teeks rakenduse paremaks. Nibomo looja {{creator}} loeb iga sõnumit isiklikult.",
     fieldLabel: "Tagasiside",
     placeholder: "Kirjuta oma idee siia",
     send: "Saada",

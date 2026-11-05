@@ -1215,7 +1215,7 @@ const guCatalog: TranslationCatalog = {
   },
   feedback: {
     title: "Nibomo માટે કોઈ વિચાર છે?",
-    body: "ઍપને વધુ સારી બનાવે એવી વાત શેર કરો. નિર્માતા દરેક સંદેશ જાતે વાંચે છે.",
+    body: "ઍપને વધુ સારી બનાવે એવી વાત શેર કરો. Nibomoના સર્જક {{creator}} દરેક સંદેશ જાતે વાંચે છે.",
     fieldLabel: "પ્રતિસાદ",
     placeholder: "તમારો વિચાર અહીં લખો",
     send: "મોકલો",
