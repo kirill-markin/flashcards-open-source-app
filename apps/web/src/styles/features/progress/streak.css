@@ -57,12 +57,12 @@ button.progress-streak-chip:focus-visible {
 }
 
 .progress-streak-freeze-chip {
-  background: rgba(157, 216, 255, 0.16);
+  background: rgba(var(--freeze-rgb), 0.16);
   color: var(--text);
 }
 
 .progress-streak-freeze-chip .streak-freeze-icon {
-  color: #9dd8ff;
+  color: var(--freeze);
 }
 
 .progress-streak-freeze-info-icon {
@@ -126,7 +126,7 @@ button.progress-streak-chip:focus-visible {
   height: 38px;
   border: 0;
   border-radius: 50%;
-  background: rgba(235, 235, 245, 0.08);
+  background: rgba(var(--label-rgb), 0.08);
   color: var(--text);
   font-size: 14px;
   line-height: 1;
@@ -147,8 +147,8 @@ button.progress-streak-chip:focus-visible {
 }
 
 .progress-streak-day-frozen .progress-streak-marker {
-  background: rgba(157, 216, 255, 0.22);
-  color: #9dd8ff;
+  background: rgba(var(--freeze-rgb), 0.22);
+  color: var(--freeze);
 }
 
 .progress-streak-day-future .progress-streak-marker {

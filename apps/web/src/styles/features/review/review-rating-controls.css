@@ -22,7 +22,7 @@
 
 /* The translucent banner would let scrolled card text show through. */
 .review-actions-dock > .error-banner {
-  background: linear-gradient(rgba(112, 20, 28, 0.38), rgba(112, 20, 28, 0.38)), var(--bg);
+  background: linear-gradient(rgba(var(--danger-surface-rgb), 0.38), rgba(var(--danger-surface-rgb), 0.38)), var(--bg);
 }
 
 .review-reveal-btn {

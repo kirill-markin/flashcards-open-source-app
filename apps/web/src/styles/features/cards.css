@@ -445,7 +445,7 @@
 
 .deck-detail-delete-btn {
   justify-self: start;
-  color: #ffaea9;
+  color: var(--danger-action-text);
 }
 
 .deck-detail-cards-head {

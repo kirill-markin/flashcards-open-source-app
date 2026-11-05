@@ -15,9 +15,9 @@
 
 .chat-msg-user {
   align-self: flex-end;
-  background: rgba(95, 25, 11, 0.54);
+  background: var(--chat-user-bubble);
   border-color: transparent;
-  color: #fff2ee;
+  color: var(--chat-user-bubble-text);
 }
 
 /* Assistant answers read as plain text on the page, without a bubble, across the full

@@ -300,9 +300,9 @@
   width: 32px;
   height: 32px;
   min-height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--overlay-rgb), 0.05);
   color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
@@ -314,13 +314,13 @@
 .review-card-copy-btn:hover,
 .review-card-speech-btn:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(var(--overlay-rgb), 0.08);
+  border-color: rgba(var(--overlay-rgb), 0.12);
 }
 
 .review-card-copy-btn:focus-visible,
 .review-card-speech-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.28);
+  outline: 2px solid rgba(var(--overlay-rgb), 0.28);
   outline-offset: 2px;
 }
 
@@ -352,15 +352,15 @@
 
 .review-card-speech-btn-active {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(var(--overlay-rgb), 0.1);
+  border-color: rgba(var(--overlay-rgb), 0.14);
 }
 
 .review-card-speech-btn:disabled,
 .review-card-speech-btn:disabled:hover {
   color: var(--text-tertiary);
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--overlay-rgb), 0.03);
+  border-color: rgba(var(--overlay-rgb), 0.06);
   cursor: default;
 }
 
@@ -396,7 +396,7 @@
 }
 
 .review-card-ai-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.28);
+  outline: 2px solid rgba(var(--overlay-rgb), 0.28);
   outline-offset: 2px;
 }
 

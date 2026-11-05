@@ -56,7 +56,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(5, 7, 9, 0.72);
+  background: rgba(5, 7, 9, calc(0.72 * var(--backdrop-alpha-scale)));
 }
 
 .chat-error-dialog {
@@ -289,7 +289,7 @@
   inline-size: 8px;
   block-size: 18px;
   border-radius: 999px;
-  background: rgba(255, 244, 239, 0.88);
+  background: var(--dictation-bar);
   animation: chat-dictation-pulse 1.1s ease-in-out infinite;
   transform-origin: center bottom;
 }
@@ -407,8 +407,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 6, 8, 0.86);
-  color: #ffffff;
+  background: var(--chat-drop-overlay);
+  color: var(--chat-drop-overlay-text);
   font-size: 15px;
   font-weight: 600;
 }

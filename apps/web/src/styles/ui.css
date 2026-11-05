@@ -6,7 +6,7 @@
   padding: 0 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--overlay-rgb), 0.05);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
@@ -26,7 +26,7 @@
 
 .review-progress-badge:hover {
   border-color: var(--panel-border-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--overlay-rgb), 0.08);
   color: var(--text);
   text-decoration: none;
 }
@@ -85,7 +85,7 @@
   align-items: center;
   gap: 3px;
   padding-inline-start: 2px;
-  color: #bfeaff;
+  color: var(--freeze-indicator);
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
@@ -289,13 +289,13 @@
 
 .ghost-btn {
   border-color: var(--panel-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
   color: var(--text-secondary);
 }
 
 .ghost-btn:hover {
   border-color: var(--panel-border-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--overlay-rgb), 0.08);
   color: var(--text);
 }
 
@@ -315,15 +315,15 @@
 }
 
 .error-banner {
-  border: 1px solid rgba(255, 77, 87, 0.26);
-  background: rgba(112, 20, 28, 0.38);
-  color: #ffd6d9;
+  border: 1px solid rgba(var(--danger-rgb), 0.26);
+  background: rgba(var(--danger-surface-rgb), 0.38);
+  color: var(--danger-text);
 }
 
 .warning-banner {
-  border: 1px solid #d6a84b;
-  background: #3a2a0a;
-  color: #ffe7b0;
+  border: 1px solid var(--warning-border);
+  background: var(--warning-surface);
+  color: var(--warning-text);
 }
 
 .app-error-dialog-backdrop {
@@ -334,7 +334,7 @@
   place-items: center;
   padding: 20px;
   overflow-y: auto;
-  background: rgba(9, 10, 15, 0.8);
+  background: rgba(9, 10, 15, calc(0.8 * var(--backdrop-alpha-scale)));
   backdrop-filter: blur(10px);
 }
 
@@ -349,7 +349,7 @@
 .app-error-dialog-details {
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
   overflow: hidden;
 }
 
@@ -467,7 +467,7 @@
   padding: 10px 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
   color: var(--text);
   font-size: 16px;
 }
@@ -514,7 +514,7 @@
 
 .workspace-choice-btn:hover:not(:disabled) {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--overlay-rgb), 0.06);
 }
 
 .workspace-choice-btn:disabled {

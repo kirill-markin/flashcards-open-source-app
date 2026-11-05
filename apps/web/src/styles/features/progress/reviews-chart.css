@@ -71,7 +71,7 @@
 }
 
 .progress-chart-guide-line {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(var(--overlay-rgb), 0.08);
 }
 
 .progress-chart-guide-line:last-child {
@@ -142,7 +142,7 @@
 
 .progress-chart-bar-active {
   min-height: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--overlay-rgb), 0.1);
 }
 
 .progress-chart-bar-segment {
@@ -194,7 +194,7 @@
 .progress-chart-column.is-selected .progress-chart-day,
 .progress-chart-column.is-selected .progress-chart-month,
 .progress-chart-column.is-selected .progress-chart-weekday {
-  color: #fff5f2;
+  color: var(--chart-selected-label);
   font-weight: 800;
 }
 

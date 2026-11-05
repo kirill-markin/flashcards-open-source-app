@@ -19,7 +19,7 @@
 }
 
 .premium-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, calc(0.65 * var(--backdrop-alpha-scale)));
 }
 
 .premium-header {
@@ -255,7 +255,7 @@
 
 .premium-creator-support a {
   white-space: nowrap;
-  color: #fff;
+  color: var(--text-emphasis);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

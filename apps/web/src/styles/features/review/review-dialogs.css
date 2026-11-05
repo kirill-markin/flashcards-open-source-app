@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.58);
+  background: rgba(0, 0, 0, calc(0.58 * var(--backdrop-alpha-scale)));
   display: grid;
   place-items: center;
   z-index: var(--z-index-dialog-backdrop);
@@ -24,7 +24,7 @@
   position: fixed;
   inset: 0;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.58);
+  background: rgba(0, 0, 0, calc(0.58 * var(--backdrop-alpha-scale)));
   display: grid;
   place-items: center;
   z-index: var(--z-index-dialog-backdrop);
@@ -110,7 +110,7 @@
   position: fixed;
   inset: 0;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.58);
+  background: rgba(0, 0, 0, calc(0.58 * var(--backdrop-alpha-scale)));
   display: grid;
   place-items: center;
   z-index: var(--z-index-dialog-backdrop);
@@ -150,7 +150,7 @@
 }
 
 .review-editor-delete-btn {
-  color: #ffaea9;
+  color: var(--danger-action-text);
 }
 
 .review-editor-ai-btn {
