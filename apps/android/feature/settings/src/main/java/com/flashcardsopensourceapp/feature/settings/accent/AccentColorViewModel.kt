@@ -9,12 +9,12 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
+import com.flashcardsopensourceapp.feature.settings.accountPreferencesIdentityKey
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -54,7 +54,7 @@ class AccentColorViewModel(
         pendingColor,
         saveError
     ) { _, cloudSettings, pending, error ->
-        val identityKey = accentIdentityKey(settings = cloudSettings)
+        val identityKey = accountPreferencesIdentityKey(settings = cloudSettings)
         val activePending = pending?.takeIf { it.identityKey == identityKey }
         AccentColorUiState(
             selectedColor = activePending?.color ?: preferencesStore.currentAccountPreferences().accentColor,
@@ -69,7 +69,7 @@ class AccentColorViewModel(
         started = SharingStarted.Eagerly,
         initialValue = AccentColorUiState(
             selectedColor = preferencesStore.currentAccountPreferences().accentColor,
-            identityKey = accentIdentityKey(settings = preferencesStore.currentCloudSettings()),
+            identityKey = accountPreferencesIdentityKey(settings = preferencesStore.currentCloudSettings()),
             canManagePreferences = false,
             isSaving = false,
             errorMessage = null
@@ -78,7 +78,7 @@ class AccentColorViewModel(
 
     fun selectColor(color: String, identityKey: String) {
         val settings = preferencesStore.currentCloudSettings()
-        if (identityKey != accentIdentityKey(settings = settings) ||
+        if (identityKey != accountPreferencesIdentityKey(settings = settings) ||
             (settings.cloudState != CloudAccountState.GUEST && settings.cloudState != CloudAccountState.LINKED)
         ) {
             return
@@ -99,12 +99,13 @@ class AccentColorViewModel(
                 val requested = pendingColor.value ?: break
                 try {
                     operationCoordinator.runExclusive {
-                        check(requested.identityKey == accentIdentityKey(settings = preferencesStore.currentCloudSettings())) {
+                        check(requested.identityKey == accountPreferencesIdentityKey(settings = preferencesStore.currentCloudSettings())) {
                             "Account changed before the accent color could be saved."
                         }
                         cloudAccountRepository.updateAccountPreferences(
                             update = AccountPreferencesUpdate(
                                 accentColor = requested.color,
+                                theme = null,
                                 reviewReactionAnimationsEnabled = null,
                                 productAnalyticsEnabled = null,
                                 locale = null,
@@ -122,7 +123,7 @@ class AccentColorViewModel(
                     if (pendingColor.value == requested) {
                         pendingColor.value = null
                     }
-                    if (requested.identityKey == accentIdentityKey(settings = preferencesStore.currentCloudSettings())) {
+                    if (requested.identityKey == accountPreferencesIdentityKey(settings = preferencesStore.currentCloudSettings())) {
                         val message = strings.get(R.string.settings_accent_update_failed)
                         saveError.value = AccentColorSaveError(message = message, identityKey = requested.identityKey)
                         messageController.showMessage(message = message)
@@ -131,10 +132,6 @@ class AccentColorViewModel(
             }
         }
     }
-}
-
-private fun accentIdentityKey(settings: CloudSettings): String {
-    return "${settings.installationId}:${settings.cloudState}:${settings.linkedUserId}"
 }
 
 fun createAccentColorViewModelFactory(

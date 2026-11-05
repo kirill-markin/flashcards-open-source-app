@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptConfigDefaults
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
@@ -359,6 +360,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         accountStatusTitle = "Not signed in",
                         accountStatusAttentionCount = 0,
                         friendInviteAvailability = friendInviteAvailability,
+                        theme = AccountTheme.DARK,
                         reviewReactionAnimationsEnabled = true,
                         productAnalyticsEnabled = true,
                         firstReviewOnboardingCompleted = false,
@@ -393,6 +395,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenReviewReminders = {
                         clickedRows += "review_reminders"
                     },
+                    onOpenTheme = {},
                     onOpenAccentColor = {},
                     onOpenReviewAnimations = {
                         clickedRows += "review_animations"

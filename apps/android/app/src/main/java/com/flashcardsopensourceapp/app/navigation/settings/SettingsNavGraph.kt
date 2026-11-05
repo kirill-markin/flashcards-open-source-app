@@ -30,6 +30,11 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
             isPowerSaveModeState = isPowerSaveModeState,
             premiumPresenter = premiumPresenter
         )
+        registerThemeDestination(
+            appGraph = appGraph,
+            navController = navController,
+            premiumPresenter = premiumPresenter
+        )
         registerAccentColorDestination(
             appGraph = appGraph,
             navController = navController,

@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAuthenticatedAccountIdentity
+import com.flashcardsopensourceapp.data.local.model.sync.parseAccountTheme
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -87,6 +88,9 @@ internal class CloudAccountWorkspaceRemoteApi(
         val body = JSONObject()
         update.accentColor?.let { color ->
             body.put("accentColor", color)
+        }
+        update.theme?.let { theme ->
+            body.put("theme", theme.wireValue)
         }
         update.reviewReactionAnimationsEnabled?.let { enabled ->
             body.put("reviewReactionAnimationsEnabled", enabled)
@@ -329,6 +333,7 @@ internal fun parseAccountPreferences(
 ): AccountPreferences {
     return AccountPreferences(
         accentColor = preferences.requireCloudString("accentColor", "$fieldPath.accentColor"),
+        theme = parseAccountTheme(wireValue = preferences.requireCloudString("theme", "$fieldPath.theme")),
         reviewReactionAnimationsEnabled = preferences.requireCloudBoolean(
             "reviewReactionAnimationsEnabled",
             "$fieldPath.reviewReactionAnimationsEnabled"

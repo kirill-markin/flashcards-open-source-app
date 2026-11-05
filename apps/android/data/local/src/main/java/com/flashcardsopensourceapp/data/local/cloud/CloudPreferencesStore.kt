@@ -31,9 +31,11 @@ import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServi
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
+import com.flashcardsopensourceapp.data.local.model.sync.AccountTheme
 import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.parseAccountTheme
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -257,6 +259,7 @@ class CloudPreferencesStore(
                     authorizationHeader = authorizationHeader,
                     update = AccountPreferencesUpdate(
                         accentColor = null,
+                        theme = null,
                         reviewReactionAnimationsEnabled = null,
                         productAnalyticsEnabled = null,
                         productAnalyticsEnabledOrigin = null,
@@ -846,6 +849,7 @@ private fun decodeAccountSnapshot(jsonObject: JSONObject): CloudAccountSnapshot 
 private fun encodeAccountPreferences(preferences: AccountPreferences): JSONObject {
     return JSONObject()
         .put("accentColor", preferences.accentColor)
+        .put("theme", preferences.theme.wireValue)
         .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
         .put("firstReviewOnboardingCompleted", preferences.firstReviewOnboardingCompleted ?: JSONObject.NULL)
         .put("productAnalyticsEnabled", preferences.productAnalyticsEnabled ?: JSONObject.NULL)
@@ -858,6 +862,11 @@ private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreference
             jsonObject.getString("accentColor")
         } else {
             defaultAccentColor
+        },
+        theme = if (jsonObject.has("theme")) {
+            parseAccountTheme(wireValue = jsonObject.getString("theme"))
+        } else {
+            AccountTheme.DARK
         },
         reviewReactionAnimationsEnabled = jsonObject.getBoolean("reviewReactionAnimationsEnabled"),
         firstReviewOnboardingCompleted = if (
