@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -587,13 +588,13 @@ private fun AccountUpgradeCard(
 
 @Composable
 private fun cardAttachmentTextFormatter(): (String) -> String {
-    val context = LocalContext.current
-    val locale = currentResourceLocale(resources = context.resources)
+    val resources = LocalResources.current
+    val locale = currentResourceLocale(resources = resources)
     return { text ->
         if (text.isBlank()) {
-            context.getString(R.string.ai_card_attachment_fallback_title)
+            resources.getString(R.string.ai_card_attachment_fallback_title)
         } else {
-            context.getString(
+            resources.getString(
                 R.string.ai_card_attachment_title,
                 bidiWrap(text = text.trim().take(72), locale = locale)
             )
