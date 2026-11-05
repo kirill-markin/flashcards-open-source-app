@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Senda ábendingu";
 "settings.row.sendFeedback.value" = "Deila hugmynd";
 "feedback.sheet.title" = "Ertu með hugmynd fyrir Nibomo?";
-"feedback.sheet.body" = "Segðu okkur hvað myndi bæta forritið. Höfundurinn les hvert einasta skilaboð sjálfur.";
+"feedback.sheet.body" = "Segðu okkur hvað myndi bæta forritið. Höfundur Nibomo, [Kirill Markin](https://kirill-markin.com/), les hver einustu skilaboð sjálfur.";
 "feedback.sheet.placeholder" = "Skrifaðu hugmyndina þína hér";
 "feedback.sheet.send" = "Senda";
 "feedback.sheet.notNow" = "Ekki núna";

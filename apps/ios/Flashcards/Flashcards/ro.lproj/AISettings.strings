@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Trimite feedback";
 "settings.row.sendFeedback.value" = "Împărtășește o idee";
 "feedback.sheet.title" = "Ai o idee pentru Nibomo?";
-"feedback.sheet.body" = "Spune-ne ce ar face aplicația mai bună. Creatorul citește personal fiecare mesaj.";
+"feedback.sheet.body" = "Spune-ne ce ar face aplicația mai bună. Creatorul Nibomo, [Kirill Markin](https://kirill-markin.com/), citește personal fiecare mesaj.";
 "feedback.sheet.placeholder" = "Scrie ideea ta aici";
 "feedback.sheet.send" = "Trimite";
 "feedback.sheet.notNow" = "Nu acum";

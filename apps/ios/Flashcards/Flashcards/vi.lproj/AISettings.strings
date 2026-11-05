@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Gửi phản hồi";
 "settings.row.sendFeedback.value" = "Chia sẻ ý tưởng";
 "feedback.sheet.title" = "Bạn có ý tưởng cho Nibomo?";
-"feedback.sheet.body" = "Chia sẻ điều giúp ứng dụng tốt hơn. Người tạo ứng dụng đích thân đọc mọi tin nhắn.";
+"feedback.sheet.body" = "Chia sẻ điều giúp ứng dụng tốt hơn. Người tạo ra Nibomo, [Kirill Markin](https://kirill-markin.com/), đích thân đọc mọi tin nhắn.";
 "feedback.sheet.placeholder" = "Viết ý tưởng của bạn ở đây";
 "feedback.sheet.send" = "Gửi";
 "feedback.sheet.notNow" = "Để sau";

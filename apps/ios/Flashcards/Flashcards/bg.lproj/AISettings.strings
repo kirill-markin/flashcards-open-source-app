@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Изпратете обратна връзка";
 "settings.row.sendFeedback.value" = "Споделете идея";
 "feedback.sheet.title" = "Имате идея за Nibomo?";
-"feedback.sheet.body" = "Споделете какво би подобрило приложението. Създателят му чете лично всяко съобщение.";
+"feedback.sheet.body" = "Споделете какво би подобрило приложението. Създателят на Nibomo, [Kirill Markin](https://kirill-markin.com/), чете лично всяко съобщение.";
 "feedback.sheet.placeholder" = "Напишете вашата идея тук";
 "feedback.sheet.send" = "Изпратете";
 "feedback.sheet.notNow" = "Не сега";

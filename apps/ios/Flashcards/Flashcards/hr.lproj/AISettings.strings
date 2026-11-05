@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Pošalji povratne informacije";
 "settings.row.sendFeedback.value" = "Podijeli ideju";
 "feedback.sheet.title" = "Imate ideju za Nibomo?";
-"feedback.sheet.body" = "Podijelite što bi aplikaciju učinilo boljom. Autor osobno čita svaku poruku.";
+"feedback.sheet.body" = "Podijelite što bi aplikaciju učinilo boljom. Tvorac Niboma, [Kirill Markin](https://kirill-markin.com/), osobno čita svaku poruku.";
 "feedback.sheet.placeholder" = "Ovdje napišite svoju ideju";
 "feedback.sheet.send" = "Pošalji";
 "feedback.sheet.notNow" = "Ne sada";

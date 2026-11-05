@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "ส่งความคิดเห็น";
 "settings.row.sendFeedback.value" = "แชร์ไอเดีย";
 "feedback.sheet.title" = "มีไอเดียสำหรับ Nibomo หรือไม่?";
-"feedback.sheet.body" = "บอกสิ่งที่จะทำให้แอปดีขึ้น ผู้สร้างอ่านทุกข้อความด้วยตนเอง";
+"feedback.sheet.body" = "บอกสิ่งที่จะทำให้แอปดีขึ้น ผู้สร้าง Nibomo [Kirill Markin](https://kirill-markin.com/) อ่านทุกข้อความด้วยตนเอง";
 "feedback.sheet.placeholder" = "เขียนไอเดียของคุณที่นี่";
 "feedback.sheet.send" = "ส่ง";
 "feedback.sheet.notNow" = "ยังไม่ใช่ตอนนี้";

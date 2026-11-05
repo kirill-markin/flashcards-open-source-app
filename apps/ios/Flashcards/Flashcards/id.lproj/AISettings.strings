@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Kirim Masukan";
 "settings.row.sendFeedback.value" = "Bagikan ide";
 "feedback.sheet.title" = "Punya ide untuk Nibomo?";
-"feedback.sheet.body" = "Bagikan apa yang dapat membuat aplikasi lebih baik. Pembuatnya membaca setiap pesan secara pribadi.";
+"feedback.sheet.body" = "Bagikan apa yang dapat membuat aplikasi lebih baik. Pembuat Nibomo, [Kirill Markin](https://kirill-markin.com/), membaca setiap pesan secara pribadi.";
 "feedback.sheet.placeholder" = "Tulis ide Anda di sini";
 "feedback.sheet.send" = "Kirim";
 "feedback.sheet.notNow" = "Nanti saja";

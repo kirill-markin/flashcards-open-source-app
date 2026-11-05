@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "ارسال بازخورد";
 "settings.row.sendFeedback.value" = "مطرح کردن ایده";
 "feedback.sheet.title" = "ایده‌ای برای Nibomo دارید؟";
-"feedback.sheet.body" = "بگویید چه چیزی برنامه را بهتر می‌کند. سازنده شخصاً هر پیام را می‌خواند.";
+"feedback.sheet.body" = "بگویید چه چیزی برنامه را بهتر می‌کند. سازندهٔ Nibomo، [Kirill Markin](https://kirill-markin.com/)، شخصاً هر پیام را می‌خواند.";
 "feedback.sheet.placeholder" = "ایدهٔ خود را اینجا بنویسید";
 "feedback.sheet.send" = "ارسال";
 "feedback.sheet.notNow" = "فعلاً نه";

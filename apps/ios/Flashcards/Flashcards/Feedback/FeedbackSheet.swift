@@ -16,11 +16,16 @@ struct FeedbackSheet: View {
         aiSettingsLocalized("feedback.sheet.title", "Have an idea for Nibomo?")
     }
 
-    private var bodyText: String {
-        aiSettingsLocalized(
+    private var bodyText: AttributedString {
+        var text = AttributedString(localized: String.LocalizationValue(stringLiteral: aiSettingsLocalized(
             "feedback.sheet.body",
-            "Share what would make the app better. The creator reads every message personally."
-        )
+            "Share what would make the app better. Nibomo’s creator, [Kirill Markin](https://kirill-markin.com/), reads every message personally."
+        )))
+        for run in text.runs where run.link?.absoluteString == "https://kirill-markin.com/" {
+            text[run.range].foregroundColor = .primary
+            text[run.range].underlineStyle = .single
+        }
+        return text
     }
 
     private var placeholder: String {

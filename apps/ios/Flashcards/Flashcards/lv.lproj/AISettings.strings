@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Nosūtīt atsauksmi";
 "settings.row.sendFeedback.value" = "Dalīties ar ideju";
 "feedback.sheet.title" = "Vai jums ir ideja Nibomo?";
-"feedback.sheet.body" = "Pastāstiet, kas uzlabotu lietotni. Izstrādātājs personīgi izlasa katru ziņu.";
+"feedback.sheet.body" = "Pastāstiet, kas uzlabotu lietotni. Nibomo veidotājs [Kirill Markin](https://kirill-markin.com/) personīgi izlasa katru ziņu.";
 "feedback.sheet.placeholder" = "Rakstiet savu ideju šeit";
 "feedback.sheet.send" = "Nosūtīt";
 "feedback.sheet.notNow" = "Ne tagad";

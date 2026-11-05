@@ -856,7 +856,7 @@
 "settings.row.sendFeedback" = "发送反馈";
 "settings.row.sendFeedback.value" = "分享想法";
 "feedback.sheet.title" = "对 Nibomo 有想法吗？";
-"feedback.sheet.body" = "告诉我们怎样能让应用变得更好。创建者会亲自阅读每一条消息。";
+"feedback.sheet.body" = "告诉我们怎样能让应用变得更好。Nibomo 的创作者 [Kirill Markin](https://kirill-markin.com/) 会亲自阅读每一条消息。";
 "feedback.sheet.placeholder" = "在这里写下你的想法";
 "feedback.sheet.send" = "发送";
 "feedback.sheet.notNow" = "暂不";

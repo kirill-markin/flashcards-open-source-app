@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Thumela impendulo yakho";
 "settings.row.sendFeedback.value" = "Yabelana ngombono";
 "feedback.sheet.title" = "Unombono we-Nibomo?";
-"feedback.sheet.body" = "Yabelana ngalokho okungenza uhlelo lube ngcono. Umdali uzifundela yena wonke umyalezo.";
+"feedback.sheet.body" = "Yabelana ngalokho okungenza uhlelo lube ngcono. Umdali we-Nibomo, [Kirill Markin](https://kirill-markin.com/), uzifundela yena wonke umyalezo.";
 "feedback.sheet.placeholder" = "Bhala umbono wakho lapha";
 "feedback.sheet.send" = "Thumela";
 "feedback.sheet.notNow" = "Hhayi manje";

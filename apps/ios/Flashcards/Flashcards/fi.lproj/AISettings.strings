@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Lähetä palautetta";
 "settings.row.sendFeedback.value" = "Jaa idea";
 "feedback.sheet.title" = "Onko sinulla idea Nibomolle?";
-"feedback.sheet.body" = "Kerro, mikä tekisi sovelluksesta paremman. Tekijä lukee jokaisen viestin henkilökohtaisesti.";
+"feedback.sheet.body" = "Kerro, mikä tekisi sovelluksesta paremman. Nibomon luoja, [Kirill Markin](https://kirill-markin.com/), lukee jokaisen viestin henkilökohtaisesti.";
 "feedback.sheet.placeholder" = "Kirjoita ideasi tähän";
 "feedback.sheet.send" = "Lähetä";
 "feedback.sheet.notNow" = "Ei nyt";

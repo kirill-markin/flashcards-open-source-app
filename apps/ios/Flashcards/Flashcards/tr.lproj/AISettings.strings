@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "Geri Bildirim Gönder";
 "settings.row.sendFeedback.value" = "Bir fikir paylaşın";
 "feedback.sheet.title" = "Nibomo için bir fikriniz mi var?";
-"feedback.sheet.body" = "Uygulamayı nelerin daha iyi yapacağını paylaşın. Geliştirici her mesajı bizzat okur.";
+"feedback.sheet.body" = "Uygulamayı nelerin daha iyi yapacağını paylaşın. Nibomo’nun yaratıcısı [Kirill Markin](https://kirill-markin.com/) her mesajı bizzat okur.";
 "feedback.sheet.placeholder" = "Fikrinizi buraya yazın";
 "feedback.sheet.send" = "Gönder";
 "feedback.sheet.notNow" = "Şimdi değil";

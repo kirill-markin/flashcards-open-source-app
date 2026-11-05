@@ -829,7 +829,7 @@
 "settings.row.sendFeedback" = "അഭിപ്രായം അയയ്ക്കുക";
 "settings.row.sendFeedback.value" = "ആശയം പങ്കിടുക";
 "feedback.sheet.title" = "Nibomo-യ്ക്ക് ഒരു ആശയമുണ്ടോ?";
-"feedback.sheet.body" = "ആപ്പ് മെച്ചപ്പെടുത്താനുള്ള ആശയങ്ങൾ പങ്കിടുക. സ്രഷ്ടാവ് ഓരോ സന്ദേശവും നേരിട്ട് വായിക്കും.";
+"feedback.sheet.body" = "ആപ്പ് മെച്ചപ്പെടുത്താനുള്ള ആശയങ്ങൾ പങ്കിടുക. Nibomo സ്രഷ്ടാവായ [Kirill Markin](https://kirill-markin.com/) ഓരോ സന്ദേശവും നേരിട്ട് വായിക്കും.";
 "feedback.sheet.placeholder" = "നിങ്ങളുടെ ആശയം ഇവിടെ എഴുതുക";
 "feedback.sheet.send" = "അയയ്ക്കുക";
 "feedback.sheet.notNow" = "ഇപ്പോൾ വേണ്ട";
