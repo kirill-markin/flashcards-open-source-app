@@ -1,0 +1,114 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "widget.all_done.next_due %@" : {
+      "comment" : "When the next card becomes due, shown under All done. Parameter is a localized time of day, or a short date and time when it is not today",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card at %@"
+          }
+        }
+      }
+    },
+    "widget.all_done.title" : {
+      "comment" : "Title when no cards are due in Review",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        }
+      }
+    },
+    "widget.cards_ready" : {
+      "comment" : "Shown instead of the next question when cards became due after the app last updated the widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards are ready to review"
+          }
+        }
+      }
+    },
+    "widget.due_label" : {
+      "comment" : "Caption under the large number of cards waiting in Review",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To review"
+          }
+        }
+      }
+    },
+    "widget.gallery.description" : {
+      "comment" : "Widget gallery description of the Home Screen Review widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due and the next question."
+          }
+        }
+      }
+    },
+    "widget.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that opens Review",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        }
+      }
+    },
+    "widget.no_snapshot" : {
+      "comment" : "Shown before the app has shared any Review data with the widget. Nibomo is the app name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo to start reviewing"
+          }
+        }
+      }
+    },
+    "widget.streak_days %lld" : {
+      "comment" : "Current review streak next to a flame icon. Parameter is the number of consecutive days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

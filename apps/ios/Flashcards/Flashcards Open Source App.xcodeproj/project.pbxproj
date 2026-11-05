@@ -13,6 +13,7 @@
 		ED45BBBE2F61DADF00E259C4 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000002C /* MarkdownUI */; };
 		A10000000000000000000044 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000046 /* GoogleSignIn */; };
 		A10000000000000000000048 /* NetworkImage in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000050 /* NetworkImage */; };
+		A1000000000000000000006C /* Flashcards Widget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* Flashcards Widget.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -30,7 +31,28 @@
 			remoteGlobalIDString = A10000000000000000000004;
 			remoteInfo = "Flashcards Open Source App";
 		};
+		A1000000000000000000006D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000064;
+			remoteInfo = "Flashcards Widget";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1000000000000000000006B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1000000000000000000006C /* Flashcards Widget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000005 /* Flashcards Open Source App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Flashcards Open Source App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -40,7 +62,18 @@
 		A1000000000000000000001B /* Config/Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App UI Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000060 /* Flashcards Widget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Flashcards Widget.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A10000000000000000000063 /* Exceptions for "FlashcardsWidget" folder in "Flashcards Widget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A10000000000000000000064 /* Flashcards Widget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A1000000000000000000000F /* Flashcards */ = {
@@ -56,6 +89,19 @@
 		A10000000000000000000031 /* FlashcardsUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = FlashcardsUITests;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000061 /* FlashcardsWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000063 /* Exceptions for "FlashcardsWidget" folder in "Flashcards Widget" target */,
+			);
+			path = FlashcardsWidget;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000062 /* WidgetShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WidgetShared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +134,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000066 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -98,6 +151,8 @@
 				A1000000000000000000000F /* Flashcards */,
 				A10000000000000000000021 /* FlashcardsTests */,
 				A10000000000000000000031 /* FlashcardsUITests */,
+				A10000000000000000000061 /* FlashcardsWidget */,
+				A10000000000000000000062 /* WidgetShared */,
 				A10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -108,6 +163,7 @@
 				A10000000000000000000005 /* Flashcards Open Source App.app */,
 				A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */,
 				A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */,
+				A10000000000000000000060 /* Flashcards Widget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -133,13 +189,16 @@
 				A10000000000000000000006 /* Sources */,
 				A10000000000000000000007 /* Frameworks */,
 				A10000000000000000000008 /* Resources */,
+				A1000000000000000000006B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1000000000000000000006E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A1000000000000000000000F /* Flashcards */,
+				A10000000000000000000062 /* WidgetShared */,
 			);
 			name = "Flashcards Open Source App";
 			packageProductDependencies = (
@@ -196,6 +255,27 @@
 			productReference = A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		A10000000000000000000064 /* Flashcards Widget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000068 /* Build configuration list for PBXNativeTarget "Flashcards Widget" */;
+			buildPhases = (
+				A10000000000000000000065 /* Sources */,
+				A10000000000000000000066 /* Frameworks */,
+				A10000000000000000000067 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000061 /* FlashcardsWidget */,
+				A10000000000000000000062 /* WidgetShared */,
+			);
+			name = "Flashcards Widget";
+			productName = "Flashcards Widget";
+			productReference = A10000000000000000000060 /* Flashcards Widget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -216,6 +296,9 @@
 					A10000000000000000000035 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = A10000000000000000000004;
+					};
+					A10000000000000000000064 = {
+						CreatedOnToolsVersion = 27.2;
 					};
 				};
 			};
@@ -293,6 +376,7 @@
 				A10000000000000000000004 /* Flashcards Open Source App */,
 				A10000000000000000000022 /* Flashcards Open Source App Tests */,
 				A10000000000000000000035 /* Flashcards Open Source App UI Tests */,
+				A10000000000000000000064 /* Flashcards Widget */,
 			);
 		};
 /* End PBXProject section */
@@ -313,6 +397,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A10000000000000000000034 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000067 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -343,6 +434,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000065 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -355,6 +453,12 @@
 			isa = PBXTargetDependency;
 			target = A10000000000000000000004 /* Flashcards Open Source App */;
 			targetProxy = A10000000000000000000036 /* PBXContainerItemProxy */;
+		};
+		A1000000000000000000006E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = A10000000000000000000064 /* Flashcards Widget */;
+			targetProxy = A1000000000000000000006D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -585,6 +689,56 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000069 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000018 /* Config/Debug.xcconfig */;
+			buildSettings = {
+				/* The widget is iOS/iPadOS only and has no app icon of its own. */
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = FlashcardsWidget/FlashcardsWidget.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlashcardsWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER).widgets";
+				PRODUCT_MODULE_NAME = FlashcardsWidget;
+				PRODUCT_NAME = "Flashcards Widget";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+			};
+			name = Debug;
+		};
+		A1000000000000000000006A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000019 /* Config/Release.xcconfig */;
+			buildSettings = {
+				/* The widget is iOS/iPadOS only and has no app icon of its own. */
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = FlashcardsWidget/FlashcardsWidget.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlashcardsWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER).widgets";
+				PRODUCT_MODULE_NAME = FlashcardsWidget;
+				PRODUCT_NAME = "Flashcards Widget";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -620,6 +774,15 @@
 			buildConfigurations = (
 				A10000000000000000000039 /* Debug */,
 				A1000000000000000000003A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000068 /* Build configuration list for PBXNativeTarget "Flashcards Widget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000069 /* Debug */,
+				A1000000000000000000006A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
