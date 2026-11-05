@@ -305,8 +305,24 @@ enum LiveSmokeSelectedTab: String {
             return "IA"
         case (.ai, .spanishSpain):
             return "IA"
-        case (.library, _), (.cards, _):
+        case (.library, .english), (.cards, .english):
             return "Library"
+        case (.library, .arabic), (.cards, .arabic):
+            return "المكتبة"
+        case (.library, .chineseSimplified), (.cards, .chineseSimplified):
+            return "资料库"
+        case (.library, .german), (.cards, .german):
+            return "Bibliothek"
+        case (.library, .hindi), (.cards, .hindi):
+            return "लाइब्रेरी"
+        case (.library, .japanese), (.cards, .japanese):
+            return "ライブラリ"
+        case (.library, .russian), (.cards, .russian):
+            return "Библиотека"
+        case (.library, .spanishMexico), (.cards, .spanishMexico):
+            return "Biblioteca"
+        case (.library, .spanishSpain), (.cards, .spanishSpain):
+            return "Biblioteca"
         case (.settings, .english):
             return "Settings"
         case (.settings, .arabic):
