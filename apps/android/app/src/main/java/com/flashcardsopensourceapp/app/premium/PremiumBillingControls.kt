@@ -71,20 +71,20 @@ internal fun PremiumFreePlan(onContinueFree: () -> Unit) {
         modifier = Modifier.fillMaxWidth().testTag("premium_free_plan")
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            PremiumPlanHeader(
-                title = stringResource(R.string.premium_free_title),
-                price = stringResource(R.string.premium_free_price)
-            )
+            PremiumPlanHeader(title = stringResource(R.string.premium_free_title), price = null)
             Text(
                 stringResource(R.string.premium_free_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            PremiumMissingBenefit(text = stringResource(R.string.premium_free_no_creator_support))
             PremiumBenefit(text = stringResource(R.string.premium_free_benefits), modifier = Modifier)
+            PremiumMissingBenefit(text = stringResource(R.string.premium_free_limited_ai))
+            PremiumMissingBenefit(text = stringResource(R.string.premium_free_default_styles))
             OutlinedButton(
                 onClick = onContinueFree,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_continue_free")
-            ) { PremiumActionLabel(text = stringResource(R.string.premium_continue_free)) }
+            ) { PremiumActionLabel(text = stringResource(R.string.premium_not_now)) }
         }
     }
 }
@@ -127,10 +127,12 @@ internal fun PremiumStoreOffer(
         modifier = Modifier.fillMaxWidth().testTag("premium_paid_plan")
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            PremiumPlanHeader(
-                title = stringResource(R.string.premium_title),
-                price = details?.recurringPrice.orEmpty()
-            )
+            PremiumPlanHeader(title = stringResource(R.string.premium_title), price = details?.recurringPrice)
+            PremiumCreatorSupport()
+            PremiumBenefit(text = stringResource(R.string.premium_benefit_creator_support), modifier = Modifier)
+            PremiumBenefit(text = stringResource(R.string.premium_benefit_accent_color), modifier = Modifier)
+            PremiumBenefit(text = stringResource(R.string.premium_benefit_review_animations), modifier = Modifier)
+            PremiumBenefit(text = stringResource(R.string.premium_benefit_app_icon), modifier = Modifier)
             if (showsCatalog) when (allowance) {
                 PremiumAllowanceState.Loading -> Text(stringResource(R.string.premium_allowance_loading))
                 PremiumAllowanceState.Failed -> {
@@ -146,8 +148,6 @@ internal fun PremiumStoreOffer(
                     modifier = Modifier.testTag("premium_ai_allowance")
                 )
             }
-            PremiumBenefit(text = stringResource(R.string.premium_benefits), modifier = Modifier)
-            PremiumCreatorSupport()
             if (!showsCatalog) {
                 Text(stringResource(R.string.premium_preview_notice), modifier = Modifier.testTag("premium_preview"))
             } else {
