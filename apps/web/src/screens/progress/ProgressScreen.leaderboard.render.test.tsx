@@ -159,6 +159,7 @@ describe("ProgressScreen leaderboard", () => {
         csrfToken: "csrf-token-1",
         preferences: {
           accentColor: "#FF6719",
+          theme: "dark",
           reviewReactionAnimationsEnabled: true,
           firstReviewOnboardingCompleted: true,
           analyticsConsent: null,

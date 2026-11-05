@@ -43,6 +43,13 @@ const mrCatalog: TranslationCatalog = {
     checkoutPrice: "अंतिम किंमत आणि चलन चेकआउटवेळी.",
     renewalDisclosure: "आपोआप नूतनीकरण होते; सदस्यत्व सेटिंग्जमध्ये कधीही रद्द करा.",
   },
+  themeSettings: {
+    title: "थीम",
+    subtitle: "अॅपसाठी गडद किंवा फिकट रूप निवडा.",
+    dark: "गडद",
+    light: "फिकट",
+    premiumNote: "फिकट थीम Premium मध्ये समाविष्ट आहे. Premium सक्रिय असताना तुमची जतन केलेली निवड पुन्हा लागू होते.",
+  },
   accentColorSettings: {
     title: "अॅक्सेंट रंग",
     subtitle: "अॅपचा अॅक्सेंट रंग निवडा.",

@@ -1,5 +1,5 @@
 import { readBrowserGuestState } from "../guest/browserGuestStorage";
-import { defaultAccentColor } from "../../../types/account";
+import { defaultAccentColor, defaultAppTheme } from "../../../types/account";
 import { isBrowserReauthRequired } from "../../../accountDeletion";
 import type { SessionInfo, WorkspaceSummary } from "../../../types";
 import {
@@ -50,6 +50,7 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     && typeof value.preferences.accentColor === "string"
     && value.preferences.accentColor.length === 7
     && /^#[0-9A-F]{6}$/.test(value.preferences.accentColor)
+    && (value.preferences.theme === "dark" || value.preferences.theme === "light")
     && typeof value.preferences.reviewReactionAnimationsEnabled === "boolean"
     && typeof value.preferences.firstReviewOnboardingCompleted === "boolean"
     && (value.preferences.analyticsConsent === null
@@ -87,12 +88,18 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
       && storedValue.firstReviewOnboardingKnown !== false
       && isRecord(storedValue.session) && isRecord(storedValue.session.preferences)
       && typeof storedValue.session.preferences.firstReviewOnboardingCompleted === "boolean";
-    const parsedValue = isRecord(migratedAccentValue) && isRecord(migratedAccentValue.session)
+    const migratedOnboardingValue = isRecord(migratedAccentValue) && isRecord(migratedAccentValue.session)
       && isRecord(migratedAccentValue.session.preferences)
       && !("firstReviewOnboardingCompleted" in migratedAccentValue.session.preferences)
       ? { ...migratedAccentValue, session: { ...migratedAccentValue.session,
         preferences: { ...migratedAccentValue.session.preferences, firstReviewOnboardingCompleted: true } } }
       : migratedAccentValue;
+    const parsedValue = isRecord(migratedOnboardingValue) && isRecord(migratedOnboardingValue.session)
+      && isRecord(migratedOnboardingValue.session.preferences)
+      && !("theme" in migratedOnboardingValue.session.preferences)
+      ? { ...migratedOnboardingValue, session: { ...migratedOnboardingValue.session,
+        preferences: { ...migratedOnboardingValue.session.preferences, theme: defaultAppTheme } } }
+      : migratedOnboardingValue;
     if (
       isRecord(parsedValue) === false
       || parsedValue.version !== WARM_START_SNAPSHOT_VERSION

@@ -43,6 +43,13 @@ const idCatalog: TranslationCatalog = {
     checkoutPrice: "Harga akhir dan mata uang saat checkout.",
     renewalDisclosure: "Diperpanjang otomatis; batalkan kapan saja di pengaturan Langganan.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Pilih tampilan gelap atau terang untuk aplikasi.",
+    dark: "Gelap",
+    light: "Terang",
+    premiumNote: "Tema terang disertakan dalam Premium. Pilihan tersimpan Anda kembali berlaku saat Premium aktif.",
+  },
   accentColorSettings: {
     title: "Warna aksen",
     subtitle: "Pilih warna aksen aplikasi.",

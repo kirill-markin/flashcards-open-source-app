@@ -8,6 +8,7 @@ import {
 } from "../../appError/AppErrorContext";
 import { useAccountAccentColor } from "../../premium/accentColor";
 import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
+import { useAccountTheme } from "../../premium/theme";
 import { getAppConfig } from "../../config";
 import {
   autoLocalePreference,
@@ -45,6 +46,7 @@ import {
   settingsServerRoute,
   settingsTagsRoute,
   settingsTestRoute,
+  settingsThemeRoute,
   shareRoute,
 } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
@@ -110,6 +112,7 @@ export function SettingsScreen(): ReactElement {
   } = useAppData();
   const workspacePath = useWorkspacePath();
   const { effectiveColor } = useAccountAccentColor();
+  const { effectiveTheme } = useAccountTheme();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
@@ -307,6 +310,13 @@ export function SettingsScreen(): ReactElement {
 
       <SettingsGroup title={t("settingsHome.groups.style")}>
         <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title={t("themeSettings.title")}
+            description={t("themeSettings.subtitle")}
+            value={t(`themeSettings.${effectiveTheme}`)}
+            to={workspacePath(settingsThemeRoute)}
+            testId="settings-row-theme"
+          />
           <SettingsNavigationCard
             title={t("accentColorSettings.title")}
             description={t("accentColorSettings.subtitle")}

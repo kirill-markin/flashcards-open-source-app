@@ -43,6 +43,13 @@ const bgCatalog: TranslationCatalog = {
     checkoutPrice: "Крайна цена и валута при плащане.",
     renewalDisclosure: "Подновява се автоматично; отменете по всяко време в настройките за абонамента.",
   },
+  themeSettings: {
+    title: "Тема",
+    subtitle: "Изберете тъмен или светъл вид на приложението.",
+    dark: "Тъмна",
+    light: "Светла",
+    premiumNote: "Светлата тема е включена в Premium. Запазеният ви избор се връща, когато Premium е активен.",
+  },
   accentColorSettings: {
     title: "Акцентен цвят",
     subtitle: "Изберете акцентния цвят на приложението.",

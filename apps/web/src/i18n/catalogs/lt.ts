@@ -43,6 +43,13 @@ const ltCatalog: TranslationCatalog = {
     checkoutPrice: "Galutinė kaina ir valiuta atsiskaitant.",
     renewalDisclosure: "Pratęsiama automatiškai; atšaukite bet kada prenumeratos nustatymuose.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Pasirinkite tamsią arba šviesią programėlės išvaizdą.",
+    dark: "Tamsi",
+    light: "Šviesi",
+    premiumNote: "Šviesi tema įtraukta į Premium. Jūsų išsaugotas pasirinkimas grįžta, kai Premium aktyvus.",
+  },
   accentColorSettings: {
     title: "Akcento spalva",
     subtitle: "Pasirinkite programėlės akcento spalvą.",

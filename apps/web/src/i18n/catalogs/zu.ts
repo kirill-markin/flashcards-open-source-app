@@ -43,6 +43,13 @@ const zuCatalog: TranslationCatalog = {
     checkoutPrice: "Intengo yokugcina nemali yokukhokha kuvela lapho ukhokha.",
     renewalDisclosure: "Kuvuselelwa ngokuzenzakalela; khansela noma nini kuzilungiselelo Zokubhalisa.",
   },
+  themeSettings: {
+    title: "Itimu",
+    subtitle: "Khetha ukubukeka okumnyama noma okukhanyayo kohlelo lokusebenza.",
+    dark: "Okumnyama",
+    light: "Okukhanyayo",
+    premiumNote: "Itimu ekhanyayo ifakiwe ku-Premium. Ukukhetha kwakho okulondoloziwe kubuya lapho i-Premium isebenza.",
+  },
   accentColorSettings: {
     title: "Umbala wokugqamisa",
     subtitle: "Khetha umbala wokugqamisa wohlelo lokusebenza.",

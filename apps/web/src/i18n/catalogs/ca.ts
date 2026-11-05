@@ -43,6 +43,13 @@ const caCatalog: TranslationCatalog = {
     checkoutPrice: "Preu final i moneda en pagar.",
     renewalDisclosure: "Renovació automàtica; cancel·la quan vulguis a la configuració de la subscripció.",
   },
+  themeSettings: {
+    title: "Tema",
+    subtitle: "Tria un aspecte fosc o clar per a l’aplicació.",
+    dark: "Fosc",
+    light: "Clar",
+    premiumNote: "El tema clar s’inclou amb Premium. La teva elecció desada torna quan Premium està actiu.",
+  },
   accentColorSettings: {
     title: "Color d’accent",
     subtitle: "Tria el color d’accent de l’aplicació.",

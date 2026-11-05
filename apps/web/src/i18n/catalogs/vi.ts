@@ -43,6 +43,13 @@ const viCatalog: TranslationCatalog = {
     checkoutPrice: "Giá cuối cùng và loại tiền tại bước thanh toán.",
     renewalDisclosure: "Tự động gia hạn; hủy bất cứ lúc nào trong cài đặt Gói đăng ký.",
   },
+  themeSettings: {
+    title: "Chủ đề",
+    subtitle: "Chọn giao diện tối hoặc sáng cho ứng dụng.",
+    dark: "Tối",
+    light: "Sáng",
+    premiumNote: "Chủ đề sáng được bao gồm trong Premium. Lựa chọn bạn đã lưu sẽ được áp dụng lại khi Premium đang hoạt động.",
+  },
   accentColorSettings: {
     title: "Màu nhấn",
     subtitle: "Chọn màu nhấn của ứng dụng.",

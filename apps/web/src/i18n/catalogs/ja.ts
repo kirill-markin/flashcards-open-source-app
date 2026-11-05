@@ -43,6 +43,13 @@ export const jaCatalog = {
     checkoutPrice: "最終価格と通貨は決済画面で確認できます。",
     renewalDisclosure: "自動更新されます。サブスクリプション設定でいつでも解約できます。",
   },
+  themeSettings: {
+    title: "テーマ",
+    subtitle: "アプリのダークまたはライトの外観を選択します。",
+    dark: "ダーク",
+    light: "ライト",
+    premiumNote: "ライトテーマはPremiumに含まれます。保存した設定はPremiumが有効になると再び適用されます。",
+  },
   accentColorSettings: {
     title: "アクセントカラー",
     subtitle: "アプリのアクセントカラーを選択します。",

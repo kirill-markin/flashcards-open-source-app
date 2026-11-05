@@ -43,6 +43,13 @@ const swCatalog: TranslationCatalog = {
     checkoutPrice: "Bei ya mwisho na sarafu wakati wa kulipa.",
     renewalDisclosure: "Hujisasisha kiotomatiki; ghairi wakati wowote katika mipangilio ya Usajili.",
   },
+  themeSettings: {
+    title: "Mandhari",
+    subtitle: "Chagua mwonekano wa giza au angavu kwa programu.",
+    dark: "Giza",
+    light: "Angavu",
+    premiumNote: "Mandhari angavu yamejumuishwa katika Premium. Chaguo lako lililohifadhiwa hurudi Premium ikiwa hai.",
+  },
   accentColorSettings: {
     title: "Rangi ya msisitizo",
     subtitle: "Chagua rangi ya msisitizo ya programu.",

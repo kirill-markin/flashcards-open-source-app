@@ -43,6 +43,13 @@ const arCatalog: TranslationCatalog = {
     checkoutPrice: "السعر النهائي والعملة عند إتمام الدفع.",
     renewalDisclosure: "يتجدد تلقائيًا؛ ألغِ في أي وقت في إعدادات الاشتراك.",
   },
+  themeSettings: {
+    title: "المظهر",
+    subtitle: "اختر مظهرًا داكنًا أو فاتحًا للتطبيق.",
+    dark: "داكن",
+    light: "فاتح",
+    premiumNote: "المظهر الفاتح متاح مع Premium. يعود اختيارك المحفوظ عندما يكون Premium نشطًا.",
+  },
   accentColorSettings: {
     title: "لون التمييز",
     subtitle: "اختر لون التمييز للتطبيق.",

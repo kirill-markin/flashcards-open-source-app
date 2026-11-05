@@ -43,6 +43,13 @@ const thCatalog: TranslationCatalog = {
     checkoutPrice: "ราคาสุดท้ายและสกุลเงินแสดงในหน้าชำระเงิน",
     renewalDisclosure: "ต่ออายุอัตโนมัติ ยกเลิกได้ทุกเมื่อในการตั้งค่าการสมัครสมาชิก",
   },
+  themeSettings: {
+    title: "ธีม",
+    subtitle: "เลือกรูปลักษณ์สีเข้มหรือสีอ่อนสำหรับแอป",
+    dark: "สีเข้ม",
+    light: "สีอ่อน",
+    premiumNote: "ธีมสีอ่อนรวมอยู่ใน Premium ตัวเลือกที่คุณบันทึกไว้จะกลับมาเมื่อ Premium ใช้งานอยู่",
+  },
   accentColorSettings: {
     title: "สีเน้น",
     subtitle: "เลือกสีเน้นของแอป",

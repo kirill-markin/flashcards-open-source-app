@@ -43,6 +43,13 @@ const nlCatalog: TranslationCatalog = {
     checkoutPrice: "Definitieve prijs en valuta bij het afrekenen.",
     renewalDisclosure: "Wordt automatisch verlengd; zeg op elk moment op in de abonnementsinstellingen.",
   },
+  themeSettings: {
+    title: "Thema",
+    subtitle: "Kies een donkere of lichte weergave voor de app.",
+    dark: "Donker",
+    light: "Licht",
+    premiumNote: "Het lichte thema is inbegrepen bij Premium. Je opgeslagen keuze keert terug zodra Premium actief is.",
+  },
   accentColorSettings: {
     title: "Accentkleur",
     subtitle: "Kies de accentkleur van de app.",

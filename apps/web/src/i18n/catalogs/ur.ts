@@ -43,6 +43,13 @@ const urCatalog: TranslationCatalog = {
     checkoutPrice: "حتمی قیمت اور کرنسی ادائیگی کے وقت۔",
     renewalDisclosure: "خودکار تجدید ہوتی ہے؛ سبسکرپشن کی ترتیبات میں کسی بھی وقت منسوخ کریں۔",
   },
+  themeSettings: {
+    title: "تھیم",
+    subtitle: "ایپ کے لیے گہری یا ہلکی شکل منتخب کریں۔",
+    dark: "گہری",
+    light: "ہلکی",
+    premiumNote: "ہلکی تھیم Premium میں شامل ہے۔ Premium فعال ہونے پر آپ کا محفوظ کردہ انتخاب واپس آ جاتا ہے۔",
+  },
   accentColorSettings: {
     title: "نمایاں رنگ",
     subtitle: "ایپ کا نمایاں رنگ منتخب کریں۔",

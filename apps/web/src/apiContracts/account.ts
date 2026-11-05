@@ -4,6 +4,7 @@ import type {
   AccountPreferencesEnvelope,
   AgentApiKeyConnection,
   AnalyticsConsentChoice,
+  AppTheme,
   CommunityPublicProfile,
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
@@ -60,10 +61,15 @@ function parseAccentColor(value: unknown, endpoint: string, path: string): strin
   return color;
 }
 
+function parseTheme(value: unknown, endpoint: string, path: string): AppTheme {
+  return parseEnum<AppTheme>(value, endpoint, path, ["dark", "light"]);
+}
+
 function parseAccountPreferences(value: unknown, endpoint: string, path: string): AccountPreferences {
   const objectValue = parseObject(value, endpoint, path);
   return {
     accentColor: parseRequiredField(objectValue, "accentColor", endpoint, path, parseAccentColor),
+    theme: parseRequiredField(objectValue, "theme", endpoint, path, parseTheme),
     reviewReactionAnimationsEnabled: parseRequiredField(
       objectValue,
       "reviewReactionAnimationsEnabled",

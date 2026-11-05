@@ -43,6 +43,13 @@ const isCatalog: TranslationCatalog = {
     checkoutPrice: "Lokaverð og gjaldmiðill við greiðslu.",
     renewalDisclosure: "Endurnýjast sjálfkrafa; segðu upp hvenær sem er í áskriftarstillingum.",
   },
+  themeSettings: {
+    title: "Þema",
+    subtitle: "Veldu dökkt eða ljóst útlit fyrir appið.",
+    dark: "Dökkt",
+    light: "Ljóst",
+    premiumNote: "Ljósa þemað fylgir Premium. Vistaða valið þitt tekur aftur gildi þegar Premium er virkt.",
+  },
   accentColorSettings: {
     title: "Áherslulitur",
     subtitle: "Veldu áherslulit appsins.",

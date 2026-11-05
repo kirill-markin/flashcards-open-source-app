@@ -43,6 +43,13 @@ const faCatalog: TranslationCatalog = {
     checkoutPrice: "قیمت نهایی و ارز هنگام پرداخت مشخص می‌شود.",
     renewalDisclosure: "خودکار تمدید می‌شود؛ هر زمان در تنظیمات اشتراک لغو کنید.",
   },
+  themeSettings: {
+    title: "پوسته",
+    subtitle: "ظاهر تیره یا روشن را برای برنامه انتخاب کنید.",
+    dark: "تیره",
+    light: "روشن",
+    premiumNote: "پوستهٔ روشن در Premium گنجانده شده است. وقتی Premium فعال باشد، انتخاب ذخیره‌شده شما بازمی‌گردد.",
+  },
   accentColorSettings: {
     title: "رنگ تأکیدی",
     subtitle: "رنگ تأکیدی برنامه را انتخاب کنید.",

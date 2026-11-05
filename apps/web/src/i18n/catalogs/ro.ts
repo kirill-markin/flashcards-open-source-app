@@ -43,6 +43,13 @@ const roCatalog: TranslationCatalog = {
     checkoutPrice: "Preț final și monedă la plată.",
     renewalDisclosure: "Se reînnoiește automat; anulează oricând în setările abonamentului.",
   },
+  themeSettings: {
+    title: "Temă",
+    subtitle: "Alege un aspect întunecat sau luminos pentru aplicație.",
+    dark: "Întunecată",
+    light: "Luminoasă",
+    premiumNote: "Tema luminoasă este inclusă în Premium. Alegerea ta salvată revine când Premium este activ.",
+  },
   accentColorSettings: {
     title: "Culoare de accent",
     subtitle: "Alege culoarea de accent a aplicației.",

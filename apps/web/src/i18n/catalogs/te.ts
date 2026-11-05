@@ -43,6 +43,13 @@ const teCatalog: TranslationCatalog = {
     checkoutPrice: "తుది ధర మరియు కరెన్సీ చెక్‌అవుట్‌లో.",
     renewalDisclosure: "స్వయంచాలకంగా పునరుద్ధరించబడుతుంది; సబ్‌స్క్రిప్షన్ సెట్టింగ్‌లలో ఎప్పుడైనా రద్దు చేయండి.",
   },
+  themeSettings: {
+    title: "థీమ్",
+    subtitle: "యాప్ కోసం ముదురు లేదా లేత రూపాన్ని ఎంచుకోండి.",
+    dark: "ముదురు",
+    light: "లేత",
+    premiumNote: "లేత థీమ్ Premiumలో ఉంది. Premium సక్రియంగా ఉన్నప్పుడు మీరు సేవ్ చేసిన ఎంపిక తిరిగి వస్తుంది.",
+  },
   accentColorSettings: {
     title: "ప్రధాన రంగు",
     subtitle: "యాప్ ప్రధాన రంగును ఎంచుకోండి.",

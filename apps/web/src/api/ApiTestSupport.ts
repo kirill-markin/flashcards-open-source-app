@@ -11,6 +11,7 @@ type SessionResponseProfile = Readonly<{
 
 type SessionResponsePreferences = Readonly<{
   accentColor: string;
+  theme: "dark" | "light";
   reviewReactionAnimationsEnabled: boolean;
   firstReviewOnboardingCompleted: boolean;
   analyticsConsent: "granted" | "declined" | null;
@@ -124,6 +125,7 @@ export function createSessionResponse(overrides: SessionResponseOverrides | null
   };
   const basePreferences: SessionResponsePreferences = {
     accentColor: "#FF6719",
+    theme: "dark",
     reviewReactionAnimationsEnabled: true,
     firstReviewOnboardingCompleted: true,
     analyticsConsent: null,

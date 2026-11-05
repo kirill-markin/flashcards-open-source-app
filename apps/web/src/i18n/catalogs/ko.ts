@@ -43,6 +43,13 @@ const koCatalog: TranslationCatalog = {
     checkoutPrice: "최종 가격과 통화는 결제 화면에서 확인하세요.",
     renewalDisclosure: "자동 갱신되며, 구독 설정에서 언제든 해지할 수 있습니다.",
   },
+  themeSettings: {
+    title: "테마",
+    subtitle: "앱의 다크 또는 라이트 모양을 선택하세요.",
+    dark: "다크",
+    light: "라이트",
+    premiumNote: "라이트 테마는 Premium에 포함됩니다. Premium이 활성화되면 저장한 선택이 다시 적용됩니다.",
+  },
   accentColorSettings: {
     title: "강조 색상",
     subtitle: "앱의 강조 색상을 선택하세요.",

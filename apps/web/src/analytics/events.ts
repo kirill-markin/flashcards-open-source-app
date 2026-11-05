@@ -220,6 +220,7 @@ export type AnalyticsPaywallEntryPoint =
   | "subscription_settings"
   | "ai_limit"
   | "accent_color"
+  | "theme"
   | "review_animations"
   | "ai_chat_suggestions"
   | "app_icon"

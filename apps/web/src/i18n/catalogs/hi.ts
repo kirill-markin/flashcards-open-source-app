@@ -43,6 +43,13 @@ const hiCatalog: TranslationCatalog = {
     checkoutPrice: "अंतिम कीमत और मुद्रा चेकआउट पर।",
     renewalDisclosure: "अपने आप नवीनीकृत होता है; सब्सक्रिप्शन सेटिंग्स में कभी भी रद्द करें।",
   },
+  themeSettings: {
+    title: "थीम",
+    subtitle: "ऐप के लिए डार्क या लाइट रूप चुनें।",
+    dark: "डार्क",
+    light: "लाइट",
+    premiumNote: "लाइट थीम Premium में शामिल है। Premium सक्रिय होने पर आपकी सहेजी गई पसंद फिर से लागू हो जाती है।",
+  },
   accentColorSettings: {
     title: "एक्सेंट रंग",
     subtitle: "ऐप का एक्सेंट रंग चुनें।",
