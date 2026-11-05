@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 struct AIChatToolSection: Hashable, Sendable, Identifiable {
     let id: String
@@ -122,23 +121,5 @@ func aiChatToolStatusLabel(status: AIChatToolCallStatus) -> String {
         return aiSettingsLocalized("ai.tool.status.running", "Running")
     case .completed:
         return aiSettingsLocalized("ai.tool.status.done", "Done")
-    }
-}
-
-func aiChatToolBorderColor(status: AIChatToolCallStatus) -> Color {
-    switch status {
-    case .started:
-        return Color.secondary.opacity(0.4)
-    case .completed:
-        return Color(.separator)
-    }
-}
-
-func aiChatToolBorderStrokeStyle(status: AIChatToolCallStatus) -> StrokeStyle {
-    switch status {
-    case .started:
-        return StrokeStyle(lineWidth: 1, dash: [6, 4])
-    case .completed:
-        return StrokeStyle(lineWidth: 1)
     }
 }

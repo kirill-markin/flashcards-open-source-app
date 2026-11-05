@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "غیر معاون مواد";
 "ai.message.unsupportedContent.type" = "قسم: %@";
 "ai.message.assistantTyping" = "معاون لکھ رہا ہے";
-"ai.message.role.you" = "آپ";
 "ai.message.role.assistant" = "معاون";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "تصویر منسلک ہو گئی";
 "ai.message.card.tags" = "ٹیگز: %@";
 "ai.message.card.promptContext" = "پرامپٹ کا سیاق";
 "ai.message.reasoning.title" = "استدلال";
-"ai.message.reasoning.status.running" = "جاری ہے";
-"ai.message.reasoning.status.done" = "مکمل";
 "ai.message.reasoning.thinking" = "سوچا جا رہا ہے...";
 "ai.message.fullResponse.show" = "پورا جواب دکھائیں";
 "ai.message.fullResponse.title" = "پورا جواب";

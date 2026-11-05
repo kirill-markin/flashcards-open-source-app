@@ -1561,7 +1561,6 @@ const ukCatalog: TranslationCatalog = {
     request: "Запит",
     response: "Відповідь",
     statuses: {
-      completed: "Готово",
       started: "Виконується",
     },
     thinking: "Думаю...",

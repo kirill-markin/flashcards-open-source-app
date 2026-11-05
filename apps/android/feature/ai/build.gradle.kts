@@ -29,6 +29,7 @@ dependencies {
     api(project(":core:observability"))
     implementation(project(":core:ui"))
     implementation(project(":data:local"))
+    implementation(project(":feature:review"))
     implementation(project(":feature:settings"))
 
     implementation(libs.androidx.activity.compose)

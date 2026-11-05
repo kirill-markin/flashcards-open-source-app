@@ -46,6 +46,9 @@ extension LiveSmokeTestCase {
                 aiCreatePromptText,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+#if targetEnvironment(macCatalyst)
+            self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+#else
             try self.tapButton(
                 identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -54,6 +57,7 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+#endif
             let messageRowsBeforeSend = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
                 .count
@@ -114,11 +118,11 @@ extension LiveSmokeTestCase {
         let assistantErrorMessagesBeforeReset = self.visibleAssistantErrorMessageCount()
 
         try self.replaceAiComposerText("Hi", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#if !targetEnvironment(macCatalyst)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
-#if !targetEnvironment(macCatalyst)
         guard self.softwareKeyboardIsVisible() else {
             throw LiveSmokeFailure.unexpectedAiConversationState(
                 message: "Expected the software keyboard to remain visible for the focused AI draft before New.",

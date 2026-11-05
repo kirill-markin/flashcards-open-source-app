@@ -278,6 +278,8 @@ extension AIChatView {
                     }
 
                     HStack(spacing: 8) {
+                        // Mac has no software keyboard to dismiss; Escape leaves the composer.
+                        #if !targetEnvironment(macCatalyst)
                         if self.isComposerFocused {
                             Button {
                                 self.dismissComposerFocus()
@@ -292,6 +294,7 @@ extension AIChatView {
                             .nativeActionButtonStyle()
                             .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
                         }
+                        #endif
 
                         if self.chatStore.serverChatConfig.features.attachmentsEnabled {
                             Menu {

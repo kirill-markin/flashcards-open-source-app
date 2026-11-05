@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +60,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatOptimisticAssistantStatusToken
 import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatCardContextXml
 import com.flashcardsopensourceapp.feature.ai.R
@@ -68,7 +68,9 @@ import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
+import com.flashcardsopensourceapp.feature.ai.toolcall.AiTranscriptDisclosureRow
 import com.flashcardsopensourceapp.feature.ai.toolcall.ToolCallCard
+import com.flashcardsopensourceapp.feature.ai.toolcall.aiTranscriptRowIndent
 
 private val aiTypingIndicatorHeight = 20.dp
 private val aiTypingIndicatorDotSize = 6.dp
@@ -88,11 +90,6 @@ internal fun MessageRow(
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
     val alignment = if (message.role == AiChatRole.USER) Alignment.CenterEnd else Alignment.CenterStart
-    val containerColor = if (message.role == AiChatRole.USER) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
-    }
     val hasOptimisticAssistantStatus = message.content.any { contentPart ->
         contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusToken
     }
@@ -110,7 +107,7 @@ internal fun MessageRow(
         if (message.role == AiChatRole.USER) {
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = containerColor),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     modifier = Modifier
                         .align(alignment = Alignment.CenterEnd)
                         .widthIn(max = maxWidth * 0.88f)
@@ -126,21 +123,16 @@ internal fun MessageRow(
                 }
             }
         } else {
-            Card(
+            MessageBubbleContent(
+                message = message,
+                showsStreamingIndicator = showsStreamingIndicator,
+                onOpenAccountStatus = onOpenAccountStatus,
+                textProvider = textProvider,
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(tag = aiAssistantMessageBubbleTag)
-            ) {
-                MessageBubbleContent(
-                    message = message,
-                    showsStreamingIndicator = showsStreamingIndicator,
-                    onOpenAccountStatus = onOpenAccountStatus,
-                    textProvider = textProvider,
-                    modifier = Modifier
-                        .background(color = containerColor)
-                        .padding(all = 16.dp)
-                )
-            }
+                    .padding(vertical = 4.dp)
+            )
         }
     }
 }
@@ -160,16 +152,6 @@ private fun MessageBubbleContent(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
     ) {
-        Text(
-            text = if (message.role == AiChatRole.USER) {
-                stringResource(id = R.string.ai_you)
-            } else {
-                stringResource(id = R.string.ai_title)
-            },
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-
         message.content.forEach { contentPart ->
             when (contentPart) {
                 is AiChatContentPart.Text -> {
@@ -179,7 +161,7 @@ private fun MessageBubbleContent(
                         }
                     } else {
                         SelectionContainer {
-                            MathText(
+                            AiMarkdownText(
                                 text = textProvider.chatErrorText(
                                     errorCode = message.errorCode,
                                     storedText = contentPart.text
@@ -195,7 +177,7 @@ private fun MessageBubbleContent(
                 }
 
                 is AiChatContentPart.ReasoningSummary -> {
-                    ReasoningSummaryCard(reasoningSummary = contentPart.reasoningSummary)
+                    ReasoningSummaryRow(reasoningSummary = contentPart.reasoningSummary)
                 }
 
                 is AiChatContentPart.Image -> {
@@ -261,37 +243,51 @@ private fun MessageBubbleContent(
 }
 
 @Composable
-private fun ReasoningSummaryCard(reasoningSummary: AiChatReasoningSummary) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+private fun ReasoningSummaryRow(reasoningSummary: AiChatReasoningSummary) {
+    var isExpanded by rememberSaveable(reasoningSummary.reasoningId) {
+        mutableStateOf(value = false)
+    }
+    val thinkingText = stringResource(id = R.string.ai_thinking)
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        AiTranscriptDisclosureRow(
+            label = reasoningSummaryHeadline(summary = reasoningSummary.summary).ifBlank { thinkingText },
+            status = reasoningSummary.status,
+            isExpanded = isExpanded,
+            onClickLabel = null,
+            onToggle = {
+                isExpanded = isExpanded.not()
+            },
+            labelModifier = Modifier,
+            statusModifier = Modifier,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = if (reasoningSummary.status == AiChatToolCallStatus.STARTED) {
-                    stringResource(id = R.string.ai_reasoning_summary_running)
-                } else {
-                    stringResource(id = R.string.ai_reasoning_summary_done)
-                },
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
+        )
+        if (isExpanded) {
             SelectionContainer {
                 MathText(
-                    text = reasoningSummary.summary.ifBlank {
-                        stringResource(id = R.string.ai_thinking)
-                    },
-                    style = MaterialTheme.typography.bodyMedium
+                    text = reasoningSummary.summary.ifBlank { thinkingText },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = aiTranscriptRowIndent)
                 )
             }
         }
     }
+}
+
+/**
+ * The collapsed reasoning line shows the summary's first line, which the model usually writes
+ * as a bold or heading title, without its markdown markers.
+ */
+private fun reasoningSummaryHeadline(summary: String): String {
+    val firstLine = summary.lineSequence()
+        .map { line -> line.trim() }
+        .firstOrNull { line -> line.isNotEmpty() }
+        ?: return ""
+    return firstLine.trimStart('#').trim().trim('*').trim()
 }
 
 @Composable

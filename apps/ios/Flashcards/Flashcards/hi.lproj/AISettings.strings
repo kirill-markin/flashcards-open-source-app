@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "असमर्थित सामग्री";
 "ai.message.unsupportedContent.type" = "प्रकार: %@";
 "ai.message.assistantTyping" = "सहायक लिख रहा है";
-"ai.message.role.you" = "आप";
 "ai.message.role.assistant" = "सहायक";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "छवि संलग्न";
 "ai.message.card.tags" = "टैग: %@";
 "ai.message.card.promptContext" = "संदेश संदर्भ";
 "ai.message.reasoning.title" = "तर्क";
-"ai.message.reasoning.status.running" = "प्रगति पर";
-"ai.message.reasoning.status.done" = "हो गया";
 "ai.message.reasoning.thinking" = "सोच रहा हूँ...";
 "ai.message.fullResponse.show" = "पूरा जवाब दिखाएँ";
 "ai.message.fullResponse.title" = "पूरा जवाब";

@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Nepodprta vsebina";
 "ai.message.unsupportedContent.type" = "Vrsta: %@";
 "ai.message.assistantTyping" = "Pomočnik piše";
-"ai.message.role.you" = "Vi";
 "ai.message.role.assistant" = "Pomočnik";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Slika je priložena";
 "ai.message.card.tags" = "Oznake: %@";
 "ai.message.card.promptContext" = "Kontekst poziva";
 "ai.message.reasoning.title" = "Razmišljanje";
-"ai.message.reasoning.status.running" = "V TEKU";
-"ai.message.reasoning.status.done" = "KONČANO";
 "ai.message.reasoning.thinking" = "Razmišljanje ...";
 "ai.message.fullResponse.show" = "Pokaži celoten odgovor";
 "ai.message.fullResponse.title" = "Celoten odgovor";

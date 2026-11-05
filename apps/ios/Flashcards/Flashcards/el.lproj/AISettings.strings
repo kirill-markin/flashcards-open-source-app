@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Μη υποστηριζόμενο περιεχόμενο";
 "ai.message.unsupportedContent.type" = "Τύπος: %@";
 "ai.message.assistantTyping" = "Ο βοηθός πληκτρολογεί";
-"ai.message.role.you" = "Εσείς";
 "ai.message.role.assistant" = "Βοηθός";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Επισυνάφθηκε εικόνα";
 "ai.message.card.tags" = "Ετικέτες: %@";
 "ai.message.card.promptContext" = "Πλαίσιο εντολής";
 "ai.message.reasoning.title" = "Συλλογισμός";
-"ai.message.reasoning.status.running" = "ΣΕ ΕΞΕΛΙΞΗ";
-"ai.message.reasoning.status.done" = "ΟΛΟΚΛΗΡΩΘΗΚΕ";
 "ai.message.reasoning.thinking" = "Σκέψη…";
 "ai.message.fullResponse.show" = "Εμφάνιση πλήρους απάντησης";
 "ai.message.fullResponse.title" = "Πλήρης απάντηση";

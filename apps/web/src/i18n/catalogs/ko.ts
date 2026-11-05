@@ -1546,7 +1546,6 @@ const koCatalog: TranslationCatalog = {
     request: "요청",
     response: "응답",
     statuses: {
-      completed: "완료",
       started: "실행 중",
     },
     thinking: "생각하는 중...",

@@ -1546,7 +1546,6 @@ const bnCatalog: TranslationCatalog = {
     request: "অনুরোধ",
     response: "প্রতিক্রিয়া",
     statuses: {
-      completed: "সম্পন্ন",
       started: "চলছে",
     },
     thinking: "ভাবছে...",

@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.feature.ai.toolcall
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,63 +55,38 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
         mutableStateOf(value = false)
     }
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp,
-        modifier = Modifier.testTag(tag = aiToolCallCardTag)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(tag = aiToolCallCardTag)
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(14.dp)
-        ) {
-            ListItem(
-                headlineContent = {
-                    Text(
-                        text = formatAiToolCallSummaryText(
-                            name = toolCall.name,
-                            input = toolCall.input,
-                            textProvider = textProvider
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.testTag(tag = aiToolCallSummaryTag)
-                    )
-                },
-                supportingContent = {
-                    Text(
-                        text = formatAiToolCallStatus(status = toolCall.status, textProvider = textProvider),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag(tag = aiToolCallStatusTag)
-                    )
-                },
-                trailingContent = {
-                    IconButton(
-                        onClick = {
-                            isExpanded = isExpanded.not()
-                        },
-                        modifier = Modifier.testTag(tag = aiToolCallExpandButtonTag)
-                    ) {
-                        Icon(
-                            imageVector = if (isExpanded) {
-                                Icons.Outlined.ExpandLess
-                            } else {
-                                Icons.Outlined.ExpandMore
-                            },
-                            contentDescription = if (isExpanded) {
-                                stringResource(id = R.string.ai_tool_collapse_details)
-                            } else {
-                                stringResource(id = R.string.ai_tool_expand_details)
-                            }
-                        )
-                    }
-                },
-                modifier = Modifier.clickable {
-                    isExpanded = isExpanded.not()
-                }
-            )
+        AiTranscriptDisclosureRow(
+            label = formatAiToolCallSummaryText(
+                name = toolCall.name,
+                input = toolCall.input,
+                textProvider = textProvider
+            ),
+            status = toolCall.status,
+            isExpanded = isExpanded,
+            onClickLabel = if (isExpanded) {
+                stringResource(id = R.string.ai_tool_collapse_details)
+            } else {
+                stringResource(id = R.string.ai_tool_expand_details)
+            },
+            onToggle = {
+                isExpanded = isExpanded.not()
+            },
+            labelModifier = Modifier.testTag(tag = aiToolCallSummaryTag),
+            statusModifier = Modifier.testTag(tag = aiToolCallStatusTag),
+            modifier = Modifier.testTag(tag = aiToolCallExpandButtonTag)
+        )
 
-            if (isExpanded) {
+        if (isExpanded) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(start = aiTranscriptRowIndent)
+            ) {
                 toolCall.input?.let { input ->
                     ToolCallDetailCard(
                         title = stringResource(id = R.string.ai_tool_input),
@@ -164,7 +134,7 @@ private fun ToolCallDetailCard(
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),

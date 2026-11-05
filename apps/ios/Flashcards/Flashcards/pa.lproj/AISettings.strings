@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "ਗੈਰ-ਸਮਰਥਿਤ ਸਮੱਗਰੀ";
 "ai.message.unsupportedContent.type" = "ਕਿਸਮ: %@";
 "ai.message.assistantTyping" = "ਸਹਾਇਕ ਲਿਖ ਰਿਹਾ ਹੈ";
-"ai.message.role.you" = "ਤੁਸੀਂ";
 "ai.message.role.assistant" = "ਸਹਾਇਕ";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "ਚਿੱਤਰ ਨੱਥੀ ਕੀਤਾ";
 "ai.message.card.tags" = "ਟੈਗ: %@";
 "ai.message.card.promptContext" = "ਪ੍ਰੌਂਪਟ ਦਾ ਸੰਦਰਭ";
 "ai.message.reasoning.title" = "ਤਰਕ";
-"ai.message.reasoning.status.running" = "ਚੱਲ ਰਿਹਾ ਹੈ";
-"ai.message.reasoning.status.done" = "ਮੁਕੰਮਲ";
 "ai.message.reasoning.thinking" = "ਸੋਚ ਰਿਹਾ ਹੈ...";
 "ai.message.fullResponse.show" = "ਪੂਰਾ ਜਵਾਬ ਦਿਖਾਓ";
 "ai.message.fullResponse.title" = "ਪੂਰਾ ਜਵਾਬ";

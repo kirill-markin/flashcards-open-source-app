@@ -1545,7 +1545,6 @@ const enCatalog = {
     request: "Request",
     response: "Response",
     statuses: {
-      completed: "Done",
       started: "Running",
     },
     thinking: "Thinking...",

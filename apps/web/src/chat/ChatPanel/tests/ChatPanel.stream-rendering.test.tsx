@@ -460,7 +460,7 @@ describe("ChatPanel stream rendering", () => {
     expect(getContainer().querySelector(".chat-tool-call-completed")).not.toBeNull();
     expect(getContainer().querySelector(".chat-tool-call-started")).toBeNull();
     expect(getContainer().textContent).toContain("Reasoning");
-    expect(getContainer().textContent).toContain("Done");
+    expect(getContainer().querySelector('[data-tool-call-status="completed"] .chat-tool-call-status')).toBeNull();
   });
 
   it("does not open an error dialog when assistant_message_done is followed by stream close", async () => {

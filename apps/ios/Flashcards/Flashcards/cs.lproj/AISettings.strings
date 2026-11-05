@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Nepodporovaný obsah";
 "ai.message.unsupportedContent.type" = "Typ: %@";
 "ai.message.assistantTyping" = "Asistent píše";
-"ai.message.role.you" = "Vy";
 "ai.message.role.assistant" = "Asistent";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Obrázek přiložen";
 "ai.message.card.tags" = "Štítky: %@";
 "ai.message.card.promptContext" = "Kontext požadavku";
 "ai.message.reasoning.title" = "Uvažování";
-"ai.message.reasoning.status.running" = "PROBÍHÁ";
-"ai.message.reasoning.status.done" = "HOTOVO";
 "ai.message.reasoning.thinking" = "Přemýšlení…";
 "ai.message.fullResponse.show" = "Zobrazit celou odpověď";
 "ai.message.fullResponse.title" = "Celá odpověď";

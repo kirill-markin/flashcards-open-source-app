@@ -3,8 +3,9 @@ import XCTest
 extension LiveSmokeTestCase {
     @MainActor
     func visibleAssistantRowTexts(ignoredExactLabels: Set<String>) -> [String] {
+        // Markdown replies render as a text view rather than static text.
         self.app.collectionViews[LiveSmokeIdentifier.aiScreen].firstMatch.cells
-            .containing(.staticText, identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+            .containing(.any, identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
             .allElementsBoundByAccessibilityElement
         .filter { row in
             row.identifier != LiveSmokeIdentifier.aiAssistantErrorMessage
@@ -12,7 +13,7 @@ extension LiveSmokeTestCase {
                 .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage).firstMatch.exists == false
         }
         .compactMap { row in
-            row.staticTexts.matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+            row.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
                 .allElementsBoundByAccessibilityElement
                 .lazy
             .compactMap { element in

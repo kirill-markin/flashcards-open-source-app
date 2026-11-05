@@ -1546,7 +1546,6 @@ const heCatalog: TranslationCatalog = {
     request: "בקשה",
     response: "תשובה",
     statuses: {
-      completed: "הושלם",
       started: "פועל",
     },
     thinking: "חושב...",

@@ -11,7 +11,7 @@ func makeReviewSelectableContent(
     textFont: UIFont? = nil,
     textColor: UIColor = .label
 ) throws -> NSAttributedString {
-    let font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: surfaceStyle == .front ? 18 : 17))
+    let font = textFont ?? UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: surfaceStyle == .front ? 18 : 17))
     let result = NSMutableAttributedString()
 
     func appendAttachment(view: AnyView, text: String, layout: ReviewContentAttachmentLayout, attributes: [NSAttributedString.Key: Any], to destination: NSMutableAttributedString) {

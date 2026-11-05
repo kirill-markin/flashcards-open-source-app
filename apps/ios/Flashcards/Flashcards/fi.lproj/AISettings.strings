@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Sisältöä ei tueta";
 "ai.message.unsupportedContent.type" = "Tyyppi: %@";
 "ai.message.assistantTyping" = "Avustaja kirjoittaa";
-"ai.message.role.you" = "Sinä";
 "ai.message.role.assistant" = "Avustaja";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Kuva liitetty";
 "ai.message.card.tags" = "Tunnisteet: %@";
 "ai.message.card.promptContext" = "Kehotteen konteksti";
 "ai.message.reasoning.title" = "Päättely";
-"ai.message.reasoning.status.running" = "KÄYNNISSÄ";
-"ai.message.reasoning.status.done" = "VALMIS";
 "ai.message.reasoning.thinking" = "Mietitään...";
 "ai.message.fullResponse.show" = "Näytä koko vastaus";
 "ai.message.fullResponse.title" = "Koko vastaus";

@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Nội dung không được hỗ trợ";
 "ai.message.unsupportedContent.type" = "Loại: %@";
 "ai.message.assistantTyping" = "Trợ lý đang nhập";
-"ai.message.role.you" = "Bạn";
 "ai.message.role.assistant" = "Trợ lý";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Đã đính kèm ảnh";
 "ai.message.card.tags" = "Nhãn: %@";
 "ai.message.card.promptContext" = "Ngữ cảnh yêu cầu";
 "ai.message.reasoning.title" = "Suy luận";
-"ai.message.reasoning.status.running" = "ĐANG CHẠY";
-"ai.message.reasoning.status.done" = "XONG";
 "ai.message.reasoning.thinking" = "Đang suy nghĩ...";
 "ai.message.fullResponse.show" = "Hiện toàn bộ phản hồi";
 "ai.message.fullResponse.title" = "Phản hồi đầy đủ";

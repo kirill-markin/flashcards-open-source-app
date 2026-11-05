@@ -20,10 +20,13 @@
   color: #fff2ee;
 }
 
+/* Assistant answers read as plain text on the page, without a bubble. */
 .chat-msg-assistant {
   align-self: flex-start;
-  background: var(--surface-elevated);
-  border-color: transparent;
+  padding-inline: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
 }
 
 .chat-message-copy {

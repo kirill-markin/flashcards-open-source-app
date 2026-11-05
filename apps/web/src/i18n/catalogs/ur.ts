@@ -1546,7 +1546,6 @@ const urCatalog: TranslationCatalog = {
     request: "درخواست",
     response: "جواب",
     statuses: {
-      completed: "مکمل",
       started: "جاری",
     },
     thinking: "سوچ رہا ہے...",

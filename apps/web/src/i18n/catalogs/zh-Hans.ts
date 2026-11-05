@@ -1546,7 +1546,6 @@ export const zhHansCatalog = {
     request: "请求",
     response: "响应",
     statuses: {
-      completed: "完成",
       started: "运行中",
     },
     thinking: "思考中...",

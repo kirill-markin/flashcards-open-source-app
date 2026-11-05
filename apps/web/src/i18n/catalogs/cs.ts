@@ -1561,7 +1561,6 @@ const csCatalog: TranslationCatalog = {
     request: "Požadavek",
     response: "Odpověď",
     statuses: {
-      completed: "Hotovo",
       started: "Probíhá",
     },
     thinking: "Přemýšlení...",

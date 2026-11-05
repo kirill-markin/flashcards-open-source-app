@@ -1546,7 +1546,6 @@ const etCatalog: TranslationCatalog = {
     request: "Päring",
     response: "Vastus",
     statuses: {
-      completed: "Valmis",
       started: "Töötab",
     },
     thinking: "Mõtlemine...",

@@ -1546,7 +1546,6 @@ const deCatalog: TranslationCatalog = {
     request: "Anfrage",
     response: "Antwort",
     statuses: {
-      completed: "Fertig",
       started: "Läuft",
     },
     thinking: "Denkt nach...",

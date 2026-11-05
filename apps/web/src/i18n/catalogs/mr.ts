@@ -1546,7 +1546,6 @@ const mrCatalog: TranslationCatalog = {
     request: "विनंती",
     response: "प्रतिसाद",
     statuses: {
-      completed: "पूर्ण",
       started: "सुरू आहे",
     },
     thinking: "विचार करत आहे...",

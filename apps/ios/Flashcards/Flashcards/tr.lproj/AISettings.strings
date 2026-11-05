@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Desteklenmeyen içerik";
 "ai.message.unsupportedContent.type" = "Tür: %@";
 "ai.message.assistantTyping" = "Asistan yazıyor";
-"ai.message.role.you" = "Siz";
 "ai.message.role.assistant" = "Asistan";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Görsel eklendi";
 "ai.message.card.tags" = "Etiketler: %@";
 "ai.message.card.promptContext" = "İstem bağlamı";
 "ai.message.reasoning.title" = "Akıl yürütme";
-"ai.message.reasoning.status.running" = "ÇALIŞIYOR";
-"ai.message.reasoning.status.done" = "TAMAMLANDI";
 "ai.message.reasoning.thinking" = "Düşünüyor...";
 "ai.message.fullResponse.show" = "Tam yanıtı göster";
 "ai.message.fullResponse.title" = "Tam yanıt";

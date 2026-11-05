@@ -1546,7 +1546,6 @@ const svCatalog: TranslationCatalog = {
     request: "Förfrågan",
     response: "Svar",
     statuses: {
-      completed: "Klar",
       started: "Kör",
     },
     thinking: "Tänker...",

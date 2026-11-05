@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "不支持的内容";
 "ai.message.unsupportedContent.type" = "型号：%@";
 "ai.message.assistantTyping" = "助理正在写";
-"ai.message.role.you" = "你";
 "ai.message.role.assistant" = "助理";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "附图";
 "ai.message.card.tags" = "标签： %@";
 "ai.message.card.promptContext" = "消息上下文";
 "ai.message.reasoning.title" = "推理";
-"ai.message.reasoning.status.running" = "进行中";
-"ai.message.reasoning.status.done" = "完成";
 "ai.message.reasoning.thinking" = "思考...";
 "ai.message.fullResponse.show" = "显示完整回复";
 "ai.message.fullResponse.title" = "完整回复";

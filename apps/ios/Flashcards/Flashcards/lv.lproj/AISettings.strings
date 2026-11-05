@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Neatbalstīts saturs";
 "ai.message.unsupportedContent.type" = "Tips: %@";
 "ai.message.assistantTyping" = "Asistents raksta";
-"ai.message.role.you" = "Jūs";
 "ai.message.role.assistant" = "Asistents";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Attēls pievienots";
 "ai.message.card.tags" = "Birkas: %@";
 "ai.message.card.promptContext" = "Pieprasījuma konteksts";
 "ai.message.reasoning.title" = "Spriešana";
-"ai.message.reasoning.status.running" = "IZPILDA";
-"ai.message.reasoning.status.done" = "PABEIGTS";
 "ai.message.reasoning.thinking" = "Domā...";
 "ai.message.fullResponse.show" = "Rādīt pilnu atbildi";
 "ai.message.fullResponse.title" = "Pilna atbilde";

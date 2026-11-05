@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Nepalaikomas turinys";
 "ai.message.unsupportedContent.type" = "Tipas: %@";
 "ai.message.assistantTyping" = "Asistentas rašo";
-"ai.message.role.you" = "Jūs";
 "ai.message.role.assistant" = "Asistentas";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Paveikslėlis pridėtas";
 "ai.message.card.tags" = "Žymos: %@";
 "ai.message.card.promptContext" = "Užklausos kontekstas";
 "ai.message.reasoning.title" = "Samprotavimas";
-"ai.message.reasoning.status.running" = "VYKDOMA";
-"ai.message.reasoning.status.done" = "BAIGTA";
 "ai.message.reasoning.thinking" = "Galvojama...";
 "ai.message.fullResponse.show" = "Rodyti visą atsakymą";
 "ai.message.fullResponse.title" = "Visas atsakymas";

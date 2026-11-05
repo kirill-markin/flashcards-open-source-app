@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Contingut no compatible";
 "ai.message.unsupportedContent.type" = "Tipus: %@";
 "ai.message.assistantTyping" = "L'assistent està escrivint";
-"ai.message.role.you" = "Tu";
 "ai.message.role.assistant" = "Assistent";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Imatge adjunta";
 "ai.message.card.tags" = "Etiquetes: %@";
 "ai.message.card.promptContext" = "Context de la petició";
 "ai.message.reasoning.title" = "Raonament";
-"ai.message.reasoning.status.running" = "EN CURS";
-"ai.message.reasoning.status.done" = "FET";
 "ai.message.reasoning.thinking" = "S’està pensant...";
 "ai.message.fullResponse.show" = "Mostra la resposta completa";
 "ai.message.fullResponse.title" = "Resposta completa";

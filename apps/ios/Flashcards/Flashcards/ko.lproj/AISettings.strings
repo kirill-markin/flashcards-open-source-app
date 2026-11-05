@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "지원하지 않는 콘텐츠";
 "ai.message.unsupportedContent.type" = "유형: %@";
 "ai.message.assistantTyping" = "어시스턴트가 입력 중";
-"ai.message.role.you" = "나";
 "ai.message.role.assistant" = "어시스턴트";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "이미지 첨부됨";
 "ai.message.card.tags" = "태그: %@";
 "ai.message.card.promptContext" = "프롬프트 맥락";
 "ai.message.reasoning.title" = "추론";
-"ai.message.reasoning.status.running" = "실행 중";
-"ai.message.reasoning.status.done" = "완료";
 "ai.message.reasoning.thinking" = "생각 중...";
 "ai.message.fullResponse.show" = "전체 응답 보기";
 "ai.message.fullResponse.title" = "전체 응답";

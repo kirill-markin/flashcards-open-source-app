@@ -1546,7 +1546,6 @@ const nlCatalog: TranslationCatalog = {
     request: "Verzoek",
     response: "Antwoord",
     statuses: {
-      completed: "Klaar",
       started: "Bezig",
     },
     thinking: "Nadenken...",

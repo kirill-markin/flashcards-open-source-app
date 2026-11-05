@@ -1548,7 +1548,6 @@ const hiCatalog: TranslationCatalog = {
     request: "अनुरोध",
     response: "प्रतिक्रिया",
     statuses: {
-      completed: "पूरा",
       started: "चल रहा है",
     },
     thinking: "सोच रहा है...",

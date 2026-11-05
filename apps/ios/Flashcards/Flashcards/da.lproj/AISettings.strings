@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Ikke-understøttet indhold";
 "ai.message.unsupportedContent.type" = "Type: %@";
 "ai.message.assistantTyping" = "Assistenten skriver";
-"ai.message.role.you" = "Dig";
 "ai.message.role.assistant" = "Assistent";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Billede vedhæftet";
 "ai.message.card.tags" = "Mærkater: %@";
 "ai.message.card.promptContext" = "Beskedkontekst";
 "ai.message.reasoning.title" = "Ræsonnement";
-"ai.message.reasoning.status.running" = "KØRER";
-"ai.message.reasoning.status.done" = "FÆRDIG";
 "ai.message.reasoning.thinking" = "Tænker…";
 "ai.message.fullResponse.show" = "Vis hele svaret";
 "ai.message.fullResponse.title" = "Hele svaret";

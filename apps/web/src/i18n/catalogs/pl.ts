@@ -1561,7 +1561,6 @@ const plCatalog: TranslationCatalog = {
     request: "Żądanie",
     response: "Odpowiedź",
     statuses: {
-      completed: "Gotowe",
       started: "W toku",
     },
     thinking: "Myślę...",

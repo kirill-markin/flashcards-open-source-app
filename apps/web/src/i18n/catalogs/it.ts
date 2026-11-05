@@ -1546,7 +1546,6 @@ const itCatalog: TranslationCatalog = {
     request: "Richiesta",
     response: "Risposta",
     statuses: {
-      completed: "Completato",
       started: "In esecuzione",
     },
     thinking: "Sto pensando...",
