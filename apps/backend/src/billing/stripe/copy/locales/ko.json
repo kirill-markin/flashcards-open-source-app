@@ -10,8 +10,6 @@
   "offer.accentBenefit": "설정 > 스타일에서 강조 색상, 복습 애니메이션, AI 채팅 추천을 원하는 대로 바꾸세요.",
   "offer.price": "월 {price}",
   "offer.trial": "7일 무료. 이후 월 {price}.",
-  "offer.startTrial": "무료 체험 시작",
-  "offer.subscribe": "구독하기",
   "offer.renewalDisclosure": "취소할 때까지 구독이 자동으로 갱신됩니다. 구독 설정에서 관리하거나 취소할 수 있습니다.",
   "offer.guestExplanation": "다른 기기에서 이용 권한을 복구할 수 있도록 구독하기 전에 계정에 이메일을 추가하세요.",
   "offer.addEmail": "이메일 추가",
