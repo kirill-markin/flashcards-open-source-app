@@ -1562,6 +1562,11 @@ const bgCatalog: TranslationCatalog = {
       submitReview: "Изпращане на преговора",
       webSearch: "Търсене в мрежата",
     },
+    workBlock: {
+      worked: "Работата е завършена",
+      workedFor: "Работи {{duration}}",
+      workingFor: "Работи от {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

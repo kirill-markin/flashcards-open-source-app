@@ -1562,6 +1562,11 @@ const nlCatalog: TranslationCatalog = {
       submitReview: "Herhaling vastleggen",
       webSearch: "Zoeken op internet",
     },
+    workBlock: {
+      worked: "Gewerkt",
+      workedFor: "Heeft {{duration}} gewerkt",
+      workingFor: "Werkt al {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

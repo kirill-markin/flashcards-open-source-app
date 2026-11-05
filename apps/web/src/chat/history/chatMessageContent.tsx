@@ -8,6 +8,7 @@ import { MathText } from "../../components/MathText";
 import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
 import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
+import { ChatWorkBlock, findLastWorkPartIndex, isWorkBlockAutoOpen } from "./ChatWorkBlock";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
@@ -235,20 +236,24 @@ function renderCardAttachment(
   );
 }
 
+type MessageRenderContext = Readonly<{ workspaceId: string | null; localReadVersion: number }>;
+
 /**
- * Live and persisted messages share the review renderer; stored source remains unchanged.
+ * Renders `message.content[startIndex..endIndex)`; keys use absolute part indexes.
  */
-export function renderStoredMessageContent(
+function renderContentPartRange(
   message: StoredMessage,
+  startIndex: number,
+  endIndex: number,
   t: Translate,
   onTechnicalError: ChatMessageTechnicalErrorHandler,
   canStartAction: () => boolean,
-  renderContext: Readonly<{ workspaceId: string | null; localReadVersion: number }> = { workspaceId: null, localReadVersion: 0 },
-): ReactElement {
+  renderContext: MessageRenderContext,
+): Array<ReactElement> {
   const elements: Array<ReactElement> = [];
   let previousPartNeedsTextSeparator = false;
 
-  for (let index = 0; index < message.content.length; index += 1) {
+  for (let index = startIndex; index < endIndex; index += 1) {
     const part = message.content[index];
     if (part.type === "text") {
       if (previousPartNeedsTextSeparator) {
@@ -322,6 +327,43 @@ export function renderStoredMessageContent(
       </details>,
     );
   }
+
+  return elements;
+}
+
+/**
+ * Live and persisted messages share the review renderer; stored source remains unchanged.
+ * Assistant work parts sit in one collapsible work block before the answer.
+ */
+export function renderStoredMessageContent(
+  message: StoredMessage,
+  t: Translate,
+  onTechnicalError: ChatMessageTechnicalErrorHandler,
+  canStartAction: () => boolean,
+  isRunActive: boolean,
+  renderContext: MessageRenderContext = { workspaceId: null, localReadVersion: 0 },
+): ReactElement {
+  const contentLength = message.content.length;
+  const lastWorkPartIndex = message.role === "assistant" ? findLastWorkPartIndex(message.content) : -1;
+  const elements = lastWorkPartIndex < 0
+    ? renderContentPartRange(message, 0, contentLength, t, onTechnicalError, canStartAction, renderContext)
+    : [
+      <ChatWorkBlock
+        key="work-block"
+        timestamp={message.timestamp}
+        completedAt={message.completedAt}
+        isRunActive={isRunActive}
+        isAutoOpen={isWorkBlockAutoOpen(
+          message.content.slice(lastWorkPartIndex + 1),
+          isRunActive,
+          message.isStopped,
+          message.isError,
+        )}
+      >
+        {renderContentPartRange(message, 0, lastWorkPartIndex + 1, t, onTechnicalError, canStartAction, renderContext)}
+      </ChatWorkBlock>,
+      ...renderContentPartRange(message, lastWorkPartIndex + 1, contentLength, t, onTechnicalError, canStartAction, renderContext),
+    ];
 
   const textParts = message.content.filter((part) => part.type === "text");
   const sourceText = textParts.map((part) => part.text).join("\n\n");

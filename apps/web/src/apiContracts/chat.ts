@@ -241,6 +241,7 @@ function parseChatSessionHistoryMessage(
     isStopped: parseRequiredField(objectValue, "isStopped", endpoint, path, parseBoolean),
     cursor: parseOptionalField(objectValue, "cursor", endpoint, path, parseNullableString) ?? null,
     itemId: parseOptionalField(objectValue, "itemId", endpoint, path, parseNullableString) ?? null,
+    completedAt: parseOptionalField(objectValue, "completedAt", endpoint, path, parseNullableNumber) ?? null,
   };
 }
 

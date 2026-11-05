@@ -1561,6 +1561,11 @@ const enCatalog = {
       submitReview: "Submit review",
       webSearch: "Web search",
     },
+    workBlock: {
+      worked: "Worked",
+      workedFor: "Worked for {{duration}}",
+      workingFor: "Working for {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -1577,6 +1577,11 @@ const roCatalog: TranslationCatalog = {
       submitReview: "Trimite recapitularea",
       webSearch: "Căutare web",
     },
+    workBlock: {
+      worked: "A lucrat",
+      workedFor: "A lucrat {{duration}}",
+      workingFor: "Lucrează de {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -61,6 +61,7 @@ export type ChatSessionHistoryMessage = Readonly<{
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
+  completedAt: number | null;
 }>;
 
 export type ChatConfig = Readonly<{

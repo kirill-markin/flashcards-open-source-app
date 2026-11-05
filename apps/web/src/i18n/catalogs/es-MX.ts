@@ -1562,6 +1562,11 @@ const esMxCatalog: TranslationCatalog = {
       submitReview: "Enviar calificación",
       webSearch: "Búsqueda web",
     },
+    workBlock: {
+      worked: "Trabajó",
+      workedFor: "Trabajó durante {{duration}}",
+      workingFor: "Trabajando durante {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

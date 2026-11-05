@@ -1562,6 +1562,11 @@ const swCatalog: TranslationCatalog = {
       submitReview: "Wasilisha marudio",
       webSearch: "Utafutaji wa wavuti",
     },
+    workBlock: {
+      worked: "Kazi imekamilika",
+      workedFor: "Ilifanya kazi kwa {{duration}}",
+      workingFor: "Inafanya kazi kwa {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -180,6 +180,7 @@ export function areMessagesEqual(
       || leftMessage.isStopped !== rightMessage.isStopped
       || leftMessage.itemId !== rightMessage.itemId
       || leftMessage.cursor !== rightMessage.cursor
+      || leftMessage.completedAt !== rightMessage.completedAt
       || areContentPartsEqual(leftMessage.content, rightMessage.content) === false
     ) {
       return false;

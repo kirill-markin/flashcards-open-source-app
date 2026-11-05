@@ -21,7 +21,8 @@
   background: var(--surface-hover);
 }
 
-.chat-tool-call-summary {
+.chat-tool-call-summary,
+.chat-work-block-summary {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -33,11 +34,13 @@
   user-select: none;
 }
 
-.chat-tool-call-summary:hover {
+.chat-tool-call-summary:hover,
+.chat-work-block-summary:hover {
   color: var(--text);
 }
 
-.chat-tool-call-summary-main {
+.chat-tool-call-summary-main,
+.chat-work-block-title {
   flex: 0 1 auto;
   min-width: 0;
   display: block;
@@ -65,7 +68,8 @@
   animation: chat-send-btn-spin 0.8s linear infinite;
 }
 
-.chat-tool-call-summary::before {
+.chat-tool-call-summary::before,
+.chat-work-block-summary::before {
   content: "";
   flex: 0 0 auto;
   inline-size: 5px;
@@ -77,15 +81,18 @@
   transition: transform 0.15s ease;
 }
 
-[dir="rtl"] .chat-tool-call-summary::before {
+[dir="rtl"] .chat-tool-call-summary::before,
+[dir="rtl"] .chat-work-block-summary::before {
   transform: rotate(135deg);
 }
 
-.chat-tool-call[open] > .chat-tool-call-summary::before {
+.chat-tool-call[open] > .chat-tool-call-summary::before,
+.chat-work-block[open] > .chat-work-block-summary::before {
   transform: rotate(45deg);
 }
 
-.chat-tool-call-summary::-webkit-details-marker {
+.chat-tool-call-summary::-webkit-details-marker,
+.chat-work-block-summary::-webkit-details-marker {
   display: none;
 }
 
@@ -134,4 +141,22 @@
 
 .chat-tool-call-input {
   color: var(--text);
+}
+
+/* The header's bottom border is the divider that stays visible when the block is closed;
+   the closing divider is inside the details, so it shows only when open. */
+.chat-work-block {
+  display: block;
+  margin-block-end: 8px;
+}
+
+.chat-work-block-summary {
+  border-block-end: 1px solid var(--divider);
+  font-size: 13px;
+}
+
+.chat-work-block-divider {
+  margin: 8px 0 0;
+  border: none;
+  border-block-start: 1px solid var(--divider);
 }

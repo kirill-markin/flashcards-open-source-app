@@ -1577,6 +1577,11 @@ const skCatalog: TranslationCatalog = {
       submitReview: "Odoslať hodnotenie",
       webSearch: "Vyhľadávanie na webe",
     },
+    workBlock: {
+      worked: "Pracoval",
+      workedFor: "Pracoval {{duration}}",
+      workingFor: "Pracuje {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

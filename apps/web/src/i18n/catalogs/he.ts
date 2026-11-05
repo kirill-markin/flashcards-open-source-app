@@ -1562,6 +1562,11 @@ const heCatalog: TranslationCatalog = {
       submitReview: "שליחת חזרה",
       webSearch: "חיפוש באינטרנט",
     },
+    workBlock: {
+      worked: "העבודה הושלמה",
+      workedFor: "עבד {{duration}}",
+      workingFor: "עובד כבר {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

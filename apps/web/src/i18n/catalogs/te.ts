@@ -1562,6 +1562,11 @@ const teCatalog: TranslationCatalog = {
       submitReview: "పునశ్చరణను సమర్పించు",
       webSearch: "వెబ్ శోధన",
     },
+    workBlock: {
+      worked: "పని పూర్తయింది",
+      workedFor: "{{duration}} పని చేసింది",
+      workingFor: "{{duration}} నుండి పని చేస్తోంది",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -1577,6 +1577,11 @@ const csCatalog: TranslationCatalog = {
       submitReview: "Odeslat hodnocení opakování",
       webSearch: "Vyhledávání na webu",
     },
+    workBlock: {
+      worked: "Pracoval",
+      workedFor: "Pracoval {{duration}}",
+      workingFor: "Pracuje {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

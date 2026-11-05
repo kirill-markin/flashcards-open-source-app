@@ -1562,6 +1562,11 @@ const daCatalog: TranslationCatalog = {
       submitReview: "Send vurdering",
       webSearch: "Websøgning",
     },
+    workBlock: {
+      worked: "Arbejdede",
+      workedFor: "Arbejdede i {{duration}}",
+      workingFor: "Arbejder i {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

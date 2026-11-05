@@ -1564,6 +1564,11 @@ const hiCatalog: TranslationCatalog = {
       submitReview: "रेटिंग भेजें",
       webSearch: "वेब खोज",
     },
+    workBlock: {
+      worked: "काम पूरा हुआ",
+      workedFor: "{{duration}} तक काम किया",
+      workingFor: "{{duration}} से काम कर रहा है",
+    },
   },
   accountSettings: {
     accountStatus: {

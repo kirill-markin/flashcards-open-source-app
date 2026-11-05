@@ -1562,6 +1562,11 @@ const frCatalog: TranslationCatalog = {
       submitReview: "Envoyer la révision",
       webSearch: "Recherche web",
     },
+    workBlock: {
+      worked: "A travaillé",
+      workedFor: "A travaillé pendant {{duration}}",
+      workingFor: "Travaille depuis {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

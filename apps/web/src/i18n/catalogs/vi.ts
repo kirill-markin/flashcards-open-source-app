@@ -1562,6 +1562,11 @@ const viCatalog: TranslationCatalog = {
       submitReview: "Gửi kết quả ôn tập",
       webSearch: "Tìm kiếm web",
     },
+    workBlock: {
+      worked: "Đã làm việc",
+      workedFor: "Đã làm việc {{duration}}",
+      workingFor: "Đang làm việc {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

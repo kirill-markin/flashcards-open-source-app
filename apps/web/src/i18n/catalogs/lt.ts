@@ -1577,6 +1577,11 @@ const ltCatalog: TranslationCatalog = {
       submitReview: "Pateikti kartojimą",
       webSearch: "Paieška internete",
     },
+    workBlock: {
+      worked: "Dirbo",
+      workedFor: "Dirbo {{duration}}",
+      workingFor: "Dirba {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

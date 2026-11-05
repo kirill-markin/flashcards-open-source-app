@@ -1562,6 +1562,11 @@ const mrCatalog: TranslationCatalog = {
       submitReview: "उजळणी सादर करा",
       webSearch: "वेब शोध",
     },
+    workBlock: {
+      worked: "काम पूर्ण झाले",
+      workedFor: "{{duration}} काम केले",
+      workingFor: "{{duration}}पासून काम करत आहे",
+    },
   },
   accountSettings: {
     accountStatus: {

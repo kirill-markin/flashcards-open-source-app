@@ -1562,6 +1562,11 @@ const mlCatalog: TranslationCatalog = {
       submitReview: "അവലോകനം സമർപ്പിക്കുക",
       webSearch: "വെബ് തിരയൽ",
     },
+    workBlock: {
+      worked: "പ്രവർത്തനം പൂർത്തിയായി",
+      workedFor: "{{duration}} പ്രവർത്തിച്ചു",
+      workingFor: "{{duration}} ആയി പ്രവർത്തിക്കുന്നു",
+    },
   },
   accountSettings: {
     accountStatus: {

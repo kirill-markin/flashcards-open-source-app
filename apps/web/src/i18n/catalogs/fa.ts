@@ -1562,6 +1562,11 @@ const faCatalog: TranslationCatalog = {
       submitReview: "ثبت مرور",
       webSearch: "جست‌وجوی وب",
     },
+    workBlock: {
+      worked: "کار انجام شد",
+      workedFor: "به مدت {{duration}} کار کرد",
+      workingFor: "در حال کار به مدت {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -1562,6 +1562,11 @@ const huCatalog: TranslationCatalog = {
       submitReview: "Ismétlés beküldése",
       webSearch: "Webes keresés",
     },
+    workBlock: {
+      worked: "Dolgozott",
+      workedFor: "Dolgozott: {{duration}}",
+      workingFor: "Dolgozik: {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

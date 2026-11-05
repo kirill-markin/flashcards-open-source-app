@@ -1562,6 +1562,11 @@ const trCatalog: TranslationCatalog = {
       submitReview: "Tekrarı gönder",
       webSearch: "Web araması",
     },
+    workBlock: {
+      worked: "Çalıştı",
+      workedFor: "{{duration}} çalıştı",
+      workingFor: "{{duration}} süredir çalışıyor",
+    },
   },
   accountSettings: {
     accountStatus: {
