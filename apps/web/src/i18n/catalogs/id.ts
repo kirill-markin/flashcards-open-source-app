@@ -23,7 +23,7 @@ const idCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Belajar adalah hak <em>semua orang.</em>",
+    heading: "Jadikan Nibomo <em>milikmu</em>.",
     freeTitle: "Gratis",
     freeDescription: "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua. Ranselmu kini lebih ringan.",
     freeBenefit: "Ulasan inti, belajar offline & sinkronisasi",

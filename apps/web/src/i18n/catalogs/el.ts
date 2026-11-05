@@ -23,7 +23,7 @@ const elCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Η μάθηση ανήκει σε <em>όλους.</em>",
+    heading: "Κάντε το Nibomo <em>δικό σας</em>.",
     freeTitle: "Δωρεάν",
     freeDescription: "Δημιουργήθηκε για φοιτητές χωρίς δουλειά. Ανοιχτό σε όλους. Το σακίδιό σου μόλις έγινε ελαφρύτερο.",
     freeBenefit: "Βασικές επαναλήψεις, μάθηση εκτός σύνδεσης και συγχρονισμός",

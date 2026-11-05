@@ -1023,7 +1023,7 @@
 "settings.account.connection.restart" = "प्रमाण की अवधि समाप्त हो गई या उसका उपयोग हो चुका है। नए प्रमाण के साथ फिर शुरू करें।";
 "settings.account.connection.restorePaused" = "खाते जुड़ गए। स्थानीय अपडेट रुका है; आपका ऑफ़लाइन डेटा सुरक्षित है।";
 
-"premium.offer.heading" = "सीखना **सभी** का अधिकार है।";
+"premium.offer.heading" = "Nibomo को **अपना** बनाएँ।";
 "premium.offer.free" = "मुफ़्त";
 "premium.offer.freeDescription" = "नौकरी न करने वाले छात्रों के लिए बनाया गया। सभी के लिए खुला। आपका बस्ता अब हल्का हो गया।";
 "premium.offer.freeBenefits" = "ज़रूरी दोहराव, ऑफ़लाइन पढ़ाई और सिंक";

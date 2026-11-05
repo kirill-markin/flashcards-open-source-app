@@ -23,7 +23,7 @@ const heCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "הלמידה שייכת <em>לכולם.</em>",
+    heading: "להפוך את Nibomo <em>לשלך</em>.",
     freeTitle: "חינם",
     freeDescription: "נוצר לסטודנטים בלי עבודה. פתוח לכולם. התיק שלך הרגע נהיה קל יותר.",
     freeBenefit: "חזרות בסיסיות, למידה ללא חיבור וסנכרון",

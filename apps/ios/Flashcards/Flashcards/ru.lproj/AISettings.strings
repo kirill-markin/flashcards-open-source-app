@@ -1023,7 +1023,7 @@
 "settings.account.connection.restart" = "Подтверждение доступа истекло или использовано. Начните заново с новым подтверждением.";
 "settings.account.connection.restorePaused" = "Аккаунты объединены. Локальное обновление приостановлено; ваши офлайн-данные сохранены.";
 
-"premium.offer.heading" = "Учиться может **каждый**.";
+"premium.offer.heading" = "Сделайте Nibomo **своим**.";
 "premium.offer.free" = "Бесплатно";
 "premium.offer.freeDescription" = "Создано для студентов без работы. Открыто для всех. Ваш рюкзак стал легче.";
 "premium.offer.freeBenefits" = "Повторение, обучение офлайн и синхронизация";

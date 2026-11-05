@@ -23,7 +23,7 @@ const viCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Học tập dành cho <em>tất cả mọi người.</em>",
+    heading: "Biến Nibomo thành <em>của riêng bạn</em>.",
     freeTitle: "Miễn phí",
     freeDescription: "Được tạo cho sinh viên chưa có việc làm. Mở cửa cho tất cả. Ba lô của bạn vừa nhẹ đi một chút.",
     freeBenefit: "Ôn tập cơ bản, học ngoại tuyến và đồng bộ",

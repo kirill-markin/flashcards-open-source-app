@@ -23,7 +23,7 @@ const trCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Öğrenmek <em>herkesin</em> hakkı.",
+    heading: "Nibomo’yu <em>size özel</em> yapın.",
     freeTitle: "Ücretsiz",
     freeDescription: "İşi olmayan öğrenciler için oluşturuldu. Herkese açık. Sırt çantan biraz daha hafifledi.",
     freeBenefit: "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme",

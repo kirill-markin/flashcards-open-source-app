@@ -23,7 +23,7 @@ const csCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Učení patří <em>všem.</em>",
+    heading: "Nibomo po <em>svém</em>.",
     freeTitle: "Zdarma",
     freeDescription: "Vytvořeno pro studenty bez práce. Otevřeno všem. Tvůj batoh je právě o něco lehčí.",
     freeBenefit: "Základní opakování, učení offline a synchronizace",

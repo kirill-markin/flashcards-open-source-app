@@ -23,7 +23,7 @@ const taCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "கற்றல் <em>அனைவருக்கும்</em> உரியது.",
+    heading: "Nibomo-வை <em>உங்களுடையதாக்குங்கள்</em>.",
     freeTitle: "இலவசம்",
     freeDescription: "வேலை இல்லாத மாணவர்களுக்காக உருவாக்கப்பட்டது. அனைவருக்கும் திறந்தது. உங்கள் புத்தகப் பை இப்போது சற்று இலகுவாகிவிட்டது.",
     freeBenefit: "அடிப்படை மீள்பயிற்சி, ஆஃப்லைன் கற்றல் மற்றும் ஒத்திசைவு",

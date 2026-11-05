@@ -23,7 +23,7 @@ const swCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Kujifunza ni kwa <em>kila mtu.</em>",
+    heading: "Ifanye Nibomo iwe <em>yako</em>.",
     freeTitle: "Bure",
     freeDescription: "Imetengenezwa kwa wanafunzi wasio na kazi. Iko wazi kwa kila mtu. Mkoba wako umekuwa mwepesi zaidi.",
     freeBenefit: "Marudio ya msingi, kujifunza bila intaneti na kusawazisha",

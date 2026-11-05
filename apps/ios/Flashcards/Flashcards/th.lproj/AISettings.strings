@@ -995,7 +995,7 @@
 "settings.account.connection.restart" = "หลักฐานหมดอายุหรือถูกใช้แล้ว โปรดเริ่มใหม่ด้วยหลักฐานใหม่";
 "settings.account.connection.restorePaused" = "เชื่อมบัญชีแล้ว การรีเฟรชในเครื่องหยุดชั่วคราว ข้อมูลออฟไลน์ของคุณยังคงอยู่";
 
-"premium.offer.heading" = "การเรียนรู้เป็นของ**ทุกคน**";
+"premium.offer.heading" = "Nibomo ในแบบ**ของคุณ**";
 "premium.offer.free" = "ฟรี";
 "premium.offer.freeDescription" = "สร้างขึ้นเพื่อนักเรียนที่ยังไม่มีงานทำ เปิดรับทุกคน กระเป๋าของคุณเบาลงแล้ว";
 "premium.offer.freeBenefits" = "ทบทวนพื้นฐาน เรียนแบบออฟไลน์ และซิงค์";

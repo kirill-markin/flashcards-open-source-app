@@ -136,8 +136,8 @@
     <string name="premium_own_key_help">Add your own OpenAI key, then return to this chat and send your message again when you’re ready. Your key enables AI usage; it doesn’t change your plan.</string>
     <string name="premium_own_key_action">Use your own OpenAI key</string>
     <string name="premium_sign_in">Create account or Log in</string>
-    <string name="premium_heading">Learning belongs to <xliff:g id="everyone" example="everyone">%1$s</xliff:g>.</string>
-    <string name="premium_heading_everyone">everyone</string>
+    <string name="premium_heading">Make Nibomo <xliff:g id="yours" example="yours">%1$s</xliff:g>.</string>
+    <string name="premium_heading_emphasis">yours</string>
     <string name="premium_free_title">Free</string>
     <string name="premium_welcome">Same app. Same welcome. Your choice.</string>
     <string name="premium_free_description">Created for students without a job. Open to everyone. Your backpack just got lighter.</string>

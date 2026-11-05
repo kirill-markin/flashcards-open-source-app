@@ -23,7 +23,7 @@ const koCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "배움은 <em>모두</em>의 것입니다.",
+    heading: "<em>나만의</em> Nibomo를 만들어 보세요.",
     freeTitle: "무료",
     freeDescription: "일자리가 없는 학생을 위해 만들었습니다. 누구나 사용할 수 있습니다. 배낭이 조금 더 가벼워졌네요.",
     freeBenefit: "기본 복습, 오프라인 학습 및 동기화",

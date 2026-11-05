@@ -23,7 +23,7 @@ const skCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Učenie patrí <em>všetkým.</em>",
+    heading: "Nibomo po <em>svojom</em>.",
     freeTitle: "Zadarmo",
     freeDescription: "Vytvorené pre študentov bez práce. Otvorené pre všetkých. Tvoj batoh je práve ľahší.",
     freeBenefit: "Základné opakovanie, učenie offline a synchronizácia",

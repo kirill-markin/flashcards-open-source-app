@@ -995,7 +995,7 @@
 "settings.account.connection.restart" = "A bizonyíték lejárt vagy felhasználták. Kezdje újra friss bizonyítékkal.";
 "settings.account.connection.restorePaused" = "Fiókok összekapcsolva. A helyi frissítés szünetel; az offline adatok megmaradnak.";
 
-"premium.offer.heading" = "A tanulás **mindenkié**.";
+"premium.offer.heading" = "Legyen a Nibomo **a tiéd**.";
 "premium.offer.free" = "Ingyenes";
 "premium.offer.freeDescription" = "Állás nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod most könnyebb lett.";
 "premium.offer.freeBenefits" = "Ismétlés, offline tanulás és szinkronizálás";

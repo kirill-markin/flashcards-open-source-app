@@ -217,7 +217,7 @@ struct PremiumOfferView: View {
 
     private var offerHeading: AttributedString {
         var heading = AttributedString(localized: String.LocalizationValue(stringLiteral: aiSettingsLocalized(
-            "premium.offer.heading", "Learning belongs to **everyone**."
+            "premium.offer.heading", "Make Nibomo **yours**."
         )))
         for run in heading.runs where run.inlinePresentationIntent?.contains(.stronglyEmphasized) == true {
             heading[run.range].foregroundColor = .orange

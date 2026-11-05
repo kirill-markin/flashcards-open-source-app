@@ -23,7 +23,7 @@ const mlCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "പഠനം <em>എല്ലാവർക്കും</em> അവകാശപ്പെട്ടതാണ്.",
+    heading: "Nibomo <em>നിങ്ങളുടേതാക്കി</em> മാറ്റൂ.",
     freeTitle: "സൗജന്യം",
     freeDescription: "ജോലിയില്ലാത്ത വിദ്യാർഥികൾക്കായി സൃഷ്ടിച്ചത്. എല്ലാവർക്കും ലഭ്യം. നിങ്ങളുടെ ബാഗിന് ഭാരം അൽപ്പം കുറഞ്ഞു.",
     freeBenefit: "അടിസ്ഥാന ആവർത്തനം, ഓഫ്‌ലൈൻ പഠനം, സമന്വയം",

@@ -23,7 +23,7 @@ const lvCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Mācīšanās pieder <em>visiem.</em>",
+    heading: "Padari Nibomo <em>par savu</em>.",
     freeTitle: "Bezmaksas",
     freeDescription: "Radīts studentiem bez darba. Atvērts ikvienam. Tava mugursoma tikko kļuva vieglāka.",
     freeBenefit: "Pamata atkārtošana, mācīšanās bezsaistē un sinhronizācija",

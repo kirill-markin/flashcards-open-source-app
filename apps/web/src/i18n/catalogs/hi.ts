@@ -23,7 +23,7 @@ const hiCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "सीखना <em>सबका</em> अधिकार है।",
+    heading: "Nibomo को <em>अपना</em> बनाएँ।",
     freeTitle: "मुफ़्त",
     freeDescription: "बिना नौकरी वाले छात्रों के लिए बनाया गया। सभी के लिए खुला। आपका बैग अब थोड़ा हल्का हो गया।",
     freeBenefit: "बुनियादी रिव्यू, ऑफ़लाइन पढ़ाई और सिंक",

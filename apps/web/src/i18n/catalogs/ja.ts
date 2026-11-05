@@ -23,7 +23,7 @@ export const jaCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "学びは、<em>みんな</em>のもの。",
+    heading: "Nibomo を、<em>あなたらしく</em>。",
     freeTitle: "無料",
     freeDescription: "仕事をしていない学生のために。誰もが使えます。リュックが少し軽くなりました。",
     freeBenefit: "基本の復習、オフライン学習と同期",

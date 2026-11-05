@@ -23,7 +23,7 @@ const teCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "నేర్చుకోవడం <em>అందరి</em> హక్కు.",
+    heading: "Nibomo ను <em>మీదిగా</em> మార్చుకోండి.",
     freeTitle: "ఉచితం",
     freeDescription: "ఉద్యోగం లేని విద్యార్థుల కోసం రూపొందించాం. అందరికీ అందుబాటులో ఉంది. మీ బ్యాగ్ ఇప్పుడు కొంచెం తేలికైంది.",
     freeBenefit: "ప్రాథమిక పునశ్చరణ, ఆఫ్‌లైన్ అభ్యాసం మరియు సింక్",

@@ -28,7 +28,7 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsOrange
 
 @Composable
 internal fun PremiumOfferHeading() {
-    val emphasis = stringResource(R.string.premium_heading_everyone)
+    val emphasis = stringResource(R.string.premium_heading_emphasis)
     val heading = stringResource(R.string.premium_heading, emphasis)
     val emphasisStart = heading.indexOf(emphasis)
     val text = buildAnnotatedString {

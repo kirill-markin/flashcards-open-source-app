@@ -23,7 +23,7 @@ const nlCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Leren is voor <em>iedereen.</em>",
+    heading: "Maak Nibomo <em>helemaal van jou</em>.",
     freeTitle: "Gratis",
     freeDescription: "Gemaakt voor studenten zonder baan. Voor iedereen toegankelijk. Je rugzak is zojuist lichter geworden.",
     freeBenefit: "Basisherhalingen, offline leren en synchronisatie",

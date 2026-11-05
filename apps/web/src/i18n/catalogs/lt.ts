@@ -23,7 +23,7 @@ const ltCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Mokymasis priklauso <em>visiems.</em>",
+    heading: "Padaryk Nibomo <em>savu</em>.",
     freeTitle: "Nemokamai",
     freeDescription: "Sukurta darbo neturintiems studentams. Atvira visiems. Tavo kuprinė ką tik palengvėjo.",
     freeBenefit: "Pagrindiniai kartojimai, mokymasis neprisijungus ir sinchronizavimas",
