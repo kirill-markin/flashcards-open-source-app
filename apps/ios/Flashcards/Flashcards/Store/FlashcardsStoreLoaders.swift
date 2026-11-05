@@ -167,13 +167,15 @@ func loadReviewDueBadgeSnapshotInBackground(
 #if !targetEnvironment(macCatalyst)
 struct WidgetSnapshotDatabaseRead: Sendable {
     let upcomingDueAt: [Date]
-    let currentCard: CurrentReviewNotificationCard?
+    let reviewHeadCard: Card?
 }
 
+/// Reads the head card only when Review shows no card, since the widget prefers the card on screen.
 func loadWidgetSnapshotDatabaseReadInBackground(
     databaseURL: URL,
     workspaceId: String,
     reviewFilter: ReviewFilter,
+    isReviewCardPresented: Bool,
     upcomingDueLimit: Int,
     now: Date
 ) async throws -> WidgetSnapshotDatabaseRead {
@@ -184,6 +186,18 @@ func loadWidgetSnapshotDatabaseReadInBackground(
                 workspaceId: workspaceId,
                 reviewFilter: reviewFilter
             )
+            let reviewHeadCard: Card?
+            if isReviewCardPresented {
+                reviewHeadCard = nil
+            } else {
+                reviewHeadCard = try database.loadReviewHead(
+                    workspaceId: workspaceId,
+                    resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+                    reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+                    now: now,
+                    limit: 1
+                ).seedReviewQueue.first
+            }
             return WidgetSnapshotDatabaseRead(
                 upcomingDueAt: try database.loadReviewUpcomingDueDates(
                     workspaceId: workspaceId,
@@ -191,11 +205,7 @@ func loadWidgetSnapshotDatabaseReadInBackground(
                     now: now,
                     limit: upcomingDueLimit
                 ),
-                currentCard: try database.loadCurrentReviewNotificationCard(
-                    workspaceId: workspaceId,
-                    reviewFilter: reviewFilter,
-                    now: now
-                )
+                reviewHeadCard: reviewHeadCard
             )
         }
     }.value

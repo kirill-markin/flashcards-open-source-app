@@ -187,12 +187,17 @@ private struct ReviewWidgetAllDoneView: View {
     }
 }
 
-/// The next due time can be days away, so a later day also shows its date.
+/// The next due time can be days away, so a later day also shows its date, and a later year its year.
 private func reviewWidgetNextDueText(nextDueAt: Date, entryDate: Date) -> Text {
-    if Calendar.current.isDate(nextDueAt, inSameDayAs: entryDate) {
+    let calendar = Calendar.current
+    if calendar.isDate(nextDueAt, inSameDayAs: entryDate) {
         return Text(nextDueAt, style: .time)
     }
-    return Text(nextDueAt, format: .dateTime.month(.abbreviated).day().hour().minute())
+    let laterDayFormat = Date.FormatStyle.dateTime.month(.abbreviated).day().hour().minute()
+    if calendar.isDate(nextDueAt, equalTo: entryDate, toGranularity: .year) {
+        return Text(nextDueAt, format: laterDayFormat)
+    }
+    return Text(nextDueAt, format: laterDayFormat.year())
 }
 
 private struct ReviewWidgetNoSnapshotView: View {

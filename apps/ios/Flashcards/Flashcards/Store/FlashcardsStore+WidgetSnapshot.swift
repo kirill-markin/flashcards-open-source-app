@@ -26,6 +26,7 @@ extension FlashcardsStore {
                 databaseURL: database.databaseURL,
                 workspaceId: workspaceId,
                 reviewFilter: self.selectedReviewFilter,
+                isReviewCardPresented: presentedReviewCard != nil,
                 upcomingDueLimit: widgetSnapshotUpcomingDueLimit,
                 now: now
             )
@@ -44,7 +45,7 @@ extension FlashcardsStore {
                 streakDays: streakDays,
                 nextCard: makeWidgetSnapshotCard(
                     presentedReviewCard: presentedReviewCard,
-                    currentCard: databaseRead.currentCard
+                    reviewHeadCard: databaseRead.reviewHeadCard
                 )
             )
             if let lastWrittenWidgetSnapshot = self.lastWrittenWidgetSnapshot,
@@ -105,29 +106,21 @@ private func makeWidgetSnapshotStreakDays(badgeState: ReviewProgressBadgeState) 
 /// Prefers the card Review is showing; a card without readable question text yields no widget card.
 private func makeWidgetSnapshotCard(
     presentedReviewCard: Card?,
-    currentCard: CurrentReviewNotificationCard?
+    reviewHeadCard: Card?
 ) -> WidgetSnapshotCard? {
-    let cardId: String
-    let frontText: String
-    if let presentedReviewCard {
-        cardId = presentedReviewCard.cardId
-        frontText = presentedReviewCard.frontText
-    } else if let currentCard {
-        cardId = currentCard.cardId
-        frontText = currentCard.frontText
-    } else {
+    guard let card = presentedReviewCard ?? reviewHeadCard else {
         return nil
     }
 
     let frontPlainText = String(
-        makeReviewSpeakableText(text: frontText)
+        makeReviewSpeakableText(text: card.frontText)
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .prefix(widgetSnapshotFrontTextCharacterLimit)
     )
     guard frontPlainText.isEmpty == false else {
         return nil
     }
-    return WidgetSnapshotCard(cardId: cardId, frontPlainText: frontPlainText)
+    return WidgetSnapshotCard(cardId: card.cardId, frontPlainText: frontPlainText)
 }
 
 /// Compares in-memory values: the file's ISO 8601 dates drop fractional seconds.
