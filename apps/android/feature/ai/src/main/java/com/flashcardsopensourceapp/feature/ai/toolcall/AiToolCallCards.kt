@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -45,6 +46,7 @@ import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 @Composable
 internal fun ToolCallCard(toolCall: AiChatToolCall) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
     val clipboardManager = remember(context) {
         checkNotNull(context.getSystemService(ClipboardManager::class.java)) {
@@ -96,7 +98,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                         onCopy = {
                             clipboardManager.setPrimaryClip(
                                 ClipData.newPlainText(
-                                    context.getString(R.string.ai_tool_input),
+                                    resources.getString(R.string.ai_tool_input),
                                     input
                                 )
                             )
@@ -112,7 +114,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                         onCopy = {
                             clipboardManager.setPrimaryClip(
                                 ClipData.newPlainText(
-                                    context.getString(R.string.ai_tool_output),
+                                    resources.getString(R.string.ai_tool_output),
                                     output
                                 )
                             )
