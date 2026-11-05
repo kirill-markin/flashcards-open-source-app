@@ -55,6 +55,14 @@ internal fun splitAssistantMessageSections(content: List<AiChatContentPart>): Ai
     )
 }
 
+private fun hasAnswerText(answerParts: List<AiChatContentPart>): Boolean {
+    return answerParts.any { part ->
+        part is AiChatContentPart.Text &&
+            part.text != aiChatOptimisticAssistantStatusToken &&
+            part.text.isNotBlank()
+    }
+}
+
 /** Open while the run works, and afterwards whenever the answer alone cannot stand for the reply. */
 private fun isWorkBlockAutoExpanded(
     isRunActive: Boolean,
@@ -65,11 +73,7 @@ private fun isWorkBlockAutoExpanded(
     if (isRunActive || isStopped || isError) {
         return true
     }
-    return answerParts.none { part ->
-        part is AiChatContentPart.Text &&
-            part.text != aiChatOptimisticAssistantStatusToken &&
-            part.text.isNotBlank()
-    }
+    return hasAnswerText(answerParts = answerParts).not()
 }
 
 /** Whole seconds with abbreviated units: `22s`, `1m 5s`, `1h 3m`. */
@@ -143,7 +147,10 @@ internal fun AiWorkBlock(
             sections.workParts.forEach { part ->
                 workPartContent(part)
             }
-            HorizontalDivider()
+            // The closing line marks where the answer begins, so an active run waits for answer text.
+            if (isRunActive.not() || hasAnswerText(answerParts = sections.answerParts)) {
+                HorizontalDivider()
+            }
         }
     }
 }
