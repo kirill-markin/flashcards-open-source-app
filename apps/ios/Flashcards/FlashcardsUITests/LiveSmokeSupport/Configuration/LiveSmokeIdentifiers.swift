@@ -160,6 +160,9 @@ enum LiveSmokeIdentifier {
     static let aiToolCallRequestText: String = "ai.toolCallRequestText"
     static let aiToolCallResponseText: String = "ai.toolCallResponseText"
     static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
+    static let aiWorkBlock: String = "ai.workBlock"
+    static let aiWorkBlockToggle: String = "ai.workBlockToggle"
+    static let aiWorkBlockContent: String = "ai.workBlockContent"
     static let aiAssistantErrorMessage: String = "ai.assistantErrorMessage"
     static let aiAssistantVisibleText: String = "ai.assistantVisibleText"
 }

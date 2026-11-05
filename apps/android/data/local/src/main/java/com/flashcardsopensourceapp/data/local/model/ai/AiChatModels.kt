@@ -293,7 +293,9 @@ data class AiChatMessage(
     val errorCode: String?,
     val isStopped: Boolean,
     val cursor: String?,
-    val itemId: String?
+    val itemId: String?,
+    /** Server-clock time the assistant item reached a terminal state; null while running, for user messages, and when the server did not send it. */
+    val completedAtMillis: Long?
 )
 
 data class AiChatPersistedState(
@@ -545,7 +547,8 @@ sealed interface AiChatLiveEvent {
         val content: List<AiChatContentPart>,
         val isError: Boolean,
         val errorCode: String?,
-        val isStopped: Boolean
+        val isStopped: Boolean,
+        val completedAtMillis: Long?
     ) : AiChatLiveEvent
 
     data class ComposerSuggestionsUpdated(

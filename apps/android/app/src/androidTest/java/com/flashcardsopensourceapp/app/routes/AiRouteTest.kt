@@ -59,6 +59,7 @@ import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiToolCallExpandButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
+import com.flashcardsopensourceapp.feature.ai.aiWorkBlockToggleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import java.util.concurrent.atomic.AtomicBoolean
@@ -172,14 +173,16 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                             input = "{\"sql\":\"SELECT 1\"}",
                                             output = toolOutput
                                         )
-                                    )
+                                    ),
+                                    AiChatContentPart.Text(text = "One row matched.")
                                 ),
                                 timestampMillis = 1L,
                                 isError = false,
                                 errorCode = null,
                                 isStopped = false,
                                 cursor = null,
-                                itemId = null
+                                itemId = null,
+                                completedAtMillis = null
                             )
                         )
                     ),
@@ -218,6 +221,9 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
+        // A finished reply with an answer starts with its work block closed.
+        composeRule.onNodeWithTag(aiToolCallExpandButtonTag).assertDoesNotExist()
+        composeRule.onNodeWithTag(aiWorkBlockToggleTag).performClick()
         composeRule.onNodeWithTag(aiToolCallExpandButtonTag).performClick()
         composeRule.onNodeWithText("{\"sql\":\"SELECT 1\"}").assertIsDisplayed()
         composeRule.onNodeWithText(toolOutput).assertIsDisplayed()
@@ -246,7 +252,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 errorCode = null,
                                 isStopped = false,
                                 cursor = null,
-                                itemId = null
+                                itemId = null,
+                                completedAtMillis = null
                             )
                         ),
                         isStreaming = true,
@@ -597,7 +604,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 errorCode = null,
                                 isStopped = false,
                                 cursor = null,
-                                itemId = null
+                                itemId = null,
+                                completedAtMillis = null
                             )
                         ),
                         draftMessage = "Add examples.",
@@ -669,7 +677,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 errorCode = null,
                                 isStopped = false,
                                 cursor = null,
-                                itemId = null
+                                itemId = null,
+                                completedAtMillis = null
                             )
                         )
                     ),
@@ -747,7 +756,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                         errorCode = null,
                                         isStopped = false,
                                         cursor = null,
-                                        itemId = null
+                                        itemId = null,
+                                        completedAtMillis = null
                                     )
                                 )
                             ),
@@ -890,7 +900,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 errorCode = null,
                                 isStopped = false,
                                 cursor = null,
-                                itemId = "item-1"
+                                itemId = "item-1",
+                                completedAtMillis = null
                             )
                         )
                     ),

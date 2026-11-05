@@ -203,7 +203,8 @@ class AiChatRuntimeGuestQuotaPromptTest {
             errorCode = null,
             isStopped = false,
             cursor = null,
-            itemId = null
+            itemId = null,
+            completedAtMillis = null
         )
     }
 }

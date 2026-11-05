@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Užklausos kontekstas";
 "ai.message.reasoning.title" = "Samprotavimas";
 "ai.message.reasoning.thinking" = "Galvojama...";
+"ai.message.work.running" = "Dirba %@";
+"ai.message.work.finished" = "Dirbo %@";
+"ai.message.work.finishedWithoutDuration" = "Darbas baigtas";
 "ai.message.fullResponse.show" = "Rodyti visą atsakymą";
 "ai.message.fullResponse.title" = "Visas atsakymas";
 "ai.tool.label.codeExecution" = "Kodo vykdymas";

@@ -88,5 +88,6 @@ export function createCompletedToolCallAssistantMessage(
     isStopped: params.isStopped,
     itemId: params.itemId,
     cursor: params.cursor,
+    completedAt: null,
   };
 }

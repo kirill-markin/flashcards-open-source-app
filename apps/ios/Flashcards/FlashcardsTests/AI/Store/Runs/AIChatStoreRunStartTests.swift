@@ -727,7 +727,8 @@ final class AIChatStoreRunStartTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-history-user-1",
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let restoredAssistantMessage = AIChatMessage(
             id: "message-history-assistant-1",
@@ -738,7 +739,8 @@ final class AIChatStoreRunStartTests: XCTestCase {
             errorCode: nil,
             isStopped: true,
             cursor: "cursor-history-assistant-1",
-            itemId: "item-history-assistant-1"
+            itemId: "item-history-assistant-1",
+            completedAt: nil
         )
         let draftAttachment = AIChatAttachment(
             id: "attachment-card-1",

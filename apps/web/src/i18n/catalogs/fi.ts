@@ -1562,6 +1562,11 @@ const fiCatalog: TranslationCatalog = {
       submitReview: "Lähetä kertaus",
       webSearch: "Verkkohaku",
     },
+    workBlock: {
+      worked: "Työskenteli",
+      workedFor: "Työskenteli {{duration}}",
+      workingFor: "Työskentelee {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

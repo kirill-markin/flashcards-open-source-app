@@ -70,7 +70,8 @@ extension AIChatStoreTestSupport {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-1",
-            itemId: "item-1"
+            itemId: "item-1",
+            completedAt: nil
         )
     }
 
@@ -84,7 +85,8 @@ extension AIChatStoreTestSupport {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-1",
-            itemId: itemId
+            itemId: itemId,
+            completedAt: nil
         )
     }
 
@@ -98,7 +100,8 @@ extension AIChatStoreTestSupport {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
     }
 
@@ -117,7 +120,8 @@ extension AIChatStoreTestSupport {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-\(id)",
-            itemId: itemId
+            itemId: itemId,
+            completedAt: nil
         )
     }
 

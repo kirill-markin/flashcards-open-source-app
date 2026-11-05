@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Kontext požadavku";
 "ai.message.reasoning.title" = "Uvažování";
 "ai.message.reasoning.thinking" = "Přemýšlení…";
+"ai.message.work.running" = "Pracuje se %@";
+"ai.message.work.finished" = "Pracovalo se %@";
+"ai.message.work.finishedWithoutDuration" = "Práce dokončena";
 "ai.message.fullResponse.show" = "Zobrazit celou odpověď";
 "ai.message.fullResponse.title" = "Celá odpověď";
 "ai.tool.label.codeExecution" = "Spuštění kódu";

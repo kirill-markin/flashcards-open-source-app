@@ -1577,6 +1577,11 @@ const ukCatalog: TranslationCatalog = {
       submitReview: "Надіслати повторення",
       webSearch: "Пошук в інтернеті",
     },
+    workBlock: {
+      worked: "Працював",
+      workedFor: "Працював {{duration}}",
+      workingFor: "Працює {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -1592,6 +1592,11 @@ const slCatalog: TranslationCatalog = {
       submitReview: "Pošlji ponovitev",
       webSearch: "Spletno iskanje",
     },
+    workBlock: {
+      worked: "Delal je",
+      workedFor: "Delal je {{duration}}",
+      workingFor: "Dela že {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

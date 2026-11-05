@@ -1562,6 +1562,11 @@ const elCatalog: TranslationCatalog = {
       submitReview: "Υποβολή επανάληψης",
       webSearch: "Αναζήτηση στον ιστό",
     },
+    workBlock: {
+      worked: "Εργάστηκε",
+      workedFor: "Εργάστηκε για {{duration}}",
+      workingFor: "Εργάζεται για {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

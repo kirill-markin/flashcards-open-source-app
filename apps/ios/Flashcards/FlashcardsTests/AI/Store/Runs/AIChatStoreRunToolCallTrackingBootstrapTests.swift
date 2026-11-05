@@ -36,7 +36,8 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                     errorCode: nil,
                     isStopped: true,
                     cursor: "cursor-1",
-                    itemId: "item-1"
+                    itemId: "item-1",
+                    completedAt: nil
                 ),
                 AIChatStoreTestSupport.makeUserTextMessage(
                     id: "message-2",
@@ -93,7 +94,8 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                     errorCode: nil,
                     isStopped: true,
                     cursor: "cursor-1",
-                    itemId: "item-1"
+                    itemId: "item-1",
+                    completedAt: nil
                 ),
                 AIChatStoreTestSupport.makeUserTextMessage(
                     id: "message-2",

@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Instruktionskontext";
 "ai.message.reasoning.title" = "Resonemang";
 "ai.message.reasoning.thinking" = "Tänker...";
+"ai.message.work.running" = "Arbetar i %@";
+"ai.message.work.finished" = "Arbetade i %@";
+"ai.message.work.finishedWithoutDuration" = "Arbete klart";
 "ai.message.fullResponse.show" = "Visa hela svaret";
 "ai.message.fullResponse.title" = "Hela svaret";
 "ai.tool.label.codeExecution" = "Kodkörning";

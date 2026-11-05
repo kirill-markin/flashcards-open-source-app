@@ -1562,6 +1562,11 @@ const arCatalog: TranslationCatalog = {
       submitReview: "إرسال التقييم",
       webSearch: "بحث الويب",
     },
+    workBlock: {
+      worked: "اكتمل العمل",
+      workedFor: "عمل لمدة {{duration}}",
+      workingFor: "يعمل منذ {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

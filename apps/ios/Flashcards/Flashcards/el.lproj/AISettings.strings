@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Πλαίσιο εντολής";
 "ai.message.reasoning.title" = "Συλλογισμός";
 "ai.message.reasoning.thinking" = "Σκέψη…";
+"ai.message.work.running" = "Εργάζεται για %@";
+"ai.message.work.finished" = "Εργάστηκε για %@";
+"ai.message.work.finishedWithoutDuration" = "Η εργασία ολοκληρώθηκε";
 "ai.message.fullResponse.show" = "Εμφάνιση πλήρους απάντησης";
 "ai.message.fullResponse.title" = "Πλήρης απάντηση";
 "ai.tool.label.codeExecution" = "Εκτέλεση κώδικα";

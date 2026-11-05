@@ -38,7 +38,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -49,7 +50,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let canonicalMessages = baselineMessages + [
             AIChatStoreTestSupport.makeUserTextMessage(
@@ -131,7 +133,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                 content: [],
                 isError: false,
                 errorCode: nil,
-                isStopped: false
+                isStopped: false,
+                completedAt: nil
             )
         )
 
@@ -229,7 +232,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let stampedOptimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -240,7 +244,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
-            itemId: "item-current"
+            itemId: "item-current",
+            completedAt: nil
         )
         let activeRun = AIChatStoreTestSupport.makeActiveRun()
 
@@ -296,7 +301,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: stampedOptimisticAssistantMessage.cursor,
-                itemId: stampedOptimisticAssistantMessage.itemId
+                itemId: stampedOptimisticAssistantMessage.itemId,
+                completedAt: stampedOptimisticAssistantMessage.completedAt
             )
         ])
         XCTAssertNil(store.activeStreamingMessageId)
@@ -348,7 +354,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -359,7 +366,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
-            itemId: "item-current"
+            itemId: "item-current",
+            completedAt: nil
         )
         let activeRun = AIChatStoreTestSupport.makeActiveRun()
 
@@ -415,7 +423,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: optimisticAssistantMessage.cursor,
-                itemId: optimisticAssistantMessage.itemId
+                itemId: optimisticAssistantMessage.itemId,
+                completedAt: optimisticAssistantMessage.completedAt
             )
         ])
         XCTAssertNil(store.activeStreamingMessageId)
@@ -456,7 +465,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -467,7 +477,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
-            itemId: "item-current"
+            itemId: "item-current",
+            completedAt: nil
         )
         let canonicalMessages = baselineMessages + [
             AIChatStoreTestSupport.makeUserTextMessage(

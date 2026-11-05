@@ -1562,6 +1562,11 @@ const koCatalog: TranslationCatalog = {
       submitReview: "복습 제출",
       webSearch: "웹 검색",
     },
+    workBlock: {
+      worked: "작업함",
+      workedFor: "{{duration}} 동안 작업함",
+      workingFor: "{{duration}} 동안 작업 중",
+    },
   },
   accountSettings: {
     accountStatus: {

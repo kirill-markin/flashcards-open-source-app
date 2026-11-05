@@ -432,6 +432,7 @@ export function useChatSessionSnapshotSync(
         event.isError,
         event.errorCode,
         event.isStopped,
+        event.completedAt,
       );
       if (didFinish === false) {
         clearAssistantMessageDoneTerminalReconcileTimer();

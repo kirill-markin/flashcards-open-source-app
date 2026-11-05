@@ -23,7 +23,7 @@ export {
   STOPPED_BY_USER_TOOL_OUTPUT,
 } from "./store/types";
 
-export { buildLocalChatMessages } from "./store/mappers";
+export { buildLocalChatMessages, getAssistantMessageCompletedAt } from "./store/mappers";
 
 export {
   insertChatItemWithExecutor,

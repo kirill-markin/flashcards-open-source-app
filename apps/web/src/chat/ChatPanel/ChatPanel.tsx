@@ -550,6 +550,7 @@ export function ChatPanel(props: Props): ReactElement {
                   t,
                   handleMessageTechnicalError,
                   canStartMessageAction,
+                  isLastAssistant,
                   { workspaceId: activeWorkspaceId, localReadVersion: appData.localReadVersion },
                 )}
                 {isLastAssistant ? (

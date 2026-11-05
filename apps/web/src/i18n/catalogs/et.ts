@@ -1562,6 +1562,11 @@ const etCatalog: TranslationCatalog = {
       submitReview: "Esita kordamine",
       webSearch: "Veebiotsing",
     },
+    workBlock: {
+      worked: "Töötas",
+      workedFor: "Töötas {{duration}}",
+      workingFor: "Töötab {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

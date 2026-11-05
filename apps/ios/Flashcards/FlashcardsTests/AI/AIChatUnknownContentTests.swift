@@ -96,7 +96,8 @@ final class AIChatUnknownContentTests: XCTestCase {
             content: let content,
             isError: _,
             errorCode: _,
-            isStopped: _
+            isStopped: _,
+            completedAt: _
         ) = event else {
             return XCTFail("Expected assistant_message_done event.")
         }
@@ -147,7 +148,8 @@ final class AIChatUnknownContentTests: XCTestCase {
                     errorCode: nil,
                     isStopped: true,
                     cursor: "cursor-1",
-                    itemId: "item-1"
+                    itemId: "item-1",
+                    completedAt: nil
                 )
             ],
             chatSessionId: "session-1",

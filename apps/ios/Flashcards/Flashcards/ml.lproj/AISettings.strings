@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "നിർദ്ദേശത്തിന്റെ പശ്ചാത്തലം";
 "ai.message.reasoning.title" = "ചിന്തനം";
 "ai.message.reasoning.thinking" = "ചിന്തിക്കുന്നു...";
+"ai.message.work.running" = "%@ ആയി പ്രവർത്തിക്കുന്നു";
+"ai.message.work.finished" = "%@ പ്രവർത്തിച്ചു";
+"ai.message.work.finishedWithoutDuration" = "പ്രവർത്തനം പൂർത്തിയായി";
 "ai.message.fullResponse.show" = "മുഴുവൻ മറുപടി കാണിക്കുക";
 "ai.message.fullResponse.title" = "മുഴുവൻ മറുപടി";
 "ai.tool.label.codeExecution" = "കോഡ് പ്രവർത്തിപ്പിക്കൽ";

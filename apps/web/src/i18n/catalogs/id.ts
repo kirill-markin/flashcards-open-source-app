@@ -1562,6 +1562,11 @@ const idCatalog: TranslationCatalog = {
       submitReview: "Kirim tinjauan",
       webSearch: "Pencarian web",
     },
+    workBlock: {
+      worked: "Selesai bekerja",
+      workedFor: "Telah bekerja selama {{duration}}",
+      workingFor: "Bekerja selama {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "บริบทคำสั่ง";
 "ai.message.reasoning.title" = "การให้เหตุผล";
 "ai.message.reasoning.thinking" = "กำลังคิด...";
+"ai.message.work.running" = "กำลังทำงาน %@";
+"ai.message.work.finished" = "ทำงาน %@";
+"ai.message.work.finishedWithoutDuration" = "ทำงานเสร็จแล้ว";
 "ai.message.fullResponse.show" = "แสดงคำตอบทั้งหมด";
 "ai.message.fullResponse.title" = "คำตอบทั้งหมด";
 "ai.tool.label.codeExecution" = "การรันโค้ด";

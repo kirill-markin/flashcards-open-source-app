@@ -224,6 +224,7 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
       isError: false,
       errorCode: null,
       isStopped: false,
+      completedAt: 1,
     },
     {
       type: "run_terminal",
@@ -532,6 +533,7 @@ test("terminal replay emits assistant_message_done before run_terminal when the 
       isError: false,
       errorCode: null,
       isStopped: false,
+      completedAt: 1,
     },
     {
       type: "run_terminal",
@@ -765,6 +767,7 @@ test("recovered session read emits terminal events when the attached run finaliz
       isError: false,
       errorCode: null,
       isStopped: false,
+      completedAt: 1,
     },
     {
       type: "run_terminal",

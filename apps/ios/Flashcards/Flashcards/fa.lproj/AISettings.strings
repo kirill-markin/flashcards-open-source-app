@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "زمینهٔ درخواست";
 "ai.message.reasoning.title" = "استدلال";
 "ai.message.reasoning.thinking" = "در حال فکر کردن...";
+"ai.message.work.running" = "در حال کار به مدت %@";
+"ai.message.work.finished" = "به مدت %@ کار کرد";
+"ai.message.work.finishedWithoutDuration" = "کار انجام شد";
 "ai.message.fullResponse.show" = "نمایش پاسخ کامل";
 "ai.message.fullResponse.title" = "پاسخ کامل";
 "ai.tool.label.codeExecution" = "اجرای کد";

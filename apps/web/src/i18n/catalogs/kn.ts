@@ -1562,6 +1562,11 @@ const knCatalog: TranslationCatalog = {
       submitReview: "ಪುನರಾವರ್ತನೆ ಸಲ್ಲಿಸಿ",
       webSearch: "ವೆಬ್ ಹುಡುಕಾಟ",
     },
+    workBlock: {
+      worked: "ಕೆಲಸ ಮುಗಿದಿದೆ",
+      workedFor: "{{duration}} ಕೆಲಸ ಮಾಡಿದೆ",
+      workingFor: "{{duration}}ದಿಂದ ಕೆಲಸ ಮಾಡುತ್ತಿದೆ",
+    },
   },
   accountSettings: {
     accountStatus: {

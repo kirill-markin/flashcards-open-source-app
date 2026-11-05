@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "消息上下文";
 "ai.message.reasoning.title" = "推理";
 "ai.message.reasoning.thinking" = "思考...";
+"ai.message.work.running" = "正在工作，已用时 %@";
+"ai.message.work.finished" = "工作用时 %@";
+"ai.message.work.finishedWithoutDuration" = "工作已完成";
 "ai.message.fullResponse.show" = "显示完整回复";
 "ai.message.fullResponse.title" = "完整回复";
 "ai.tool.label.codeExecution" = "代码执行";

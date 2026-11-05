@@ -1562,6 +1562,11 @@ const isCatalog: TranslationCatalog = {
       submitReview: "Senda upprifjun",
       webSearch: "Vefleit",
     },
+    workBlock: {
+      worked: "Vann",
+      workedFor: "Vann í {{duration}}",
+      workingFor: "Vinnur í {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

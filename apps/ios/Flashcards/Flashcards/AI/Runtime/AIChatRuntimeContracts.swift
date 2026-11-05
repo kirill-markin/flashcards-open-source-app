@@ -18,7 +18,8 @@ enum AIChatLiveEvent: Sendable {
         content: [AIChatContentPart],
         isError: Bool,
         errorCode: String?,
-        isStopped: Bool
+        isStopped: Bool,
+        completedAt: Int?
     )
     case composerSuggestionsUpdated(
         metadata: AIChatLiveEventMetadata,

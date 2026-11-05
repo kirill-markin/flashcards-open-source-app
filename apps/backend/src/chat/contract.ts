@@ -1,11 +1,12 @@
 import { getChatConfig, type ChatConfig } from "./config";
 import type { ChatLiveStreamEnvelope } from "./live/auth";
-import type {
-  ArchivedChatSession,
-  ChatSessionHistorySummary,
-  PaginatedChatMessages,
-  PersistedChatMessageItem,
-  ChatSessionSnapshot,
+import {
+  getAssistantMessageCompletedAt,
+  type ArchivedChatSession,
+  type ChatSessionHistorySummary,
+  type PaginatedChatMessages,
+  type PersistedChatMessageItem,
+  type ChatSessionSnapshot,
 } from "./store";
 import type { ChatComposerSuggestion } from "./composerSuggestions";
 import type { ContentPart, FileContentPart, ImageContentPart } from "./types";
@@ -20,6 +21,8 @@ type ChatConversationMessage = Readonly<{
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
+  /** Server epoch ms when a terminal assistant message finished; null otherwise. */
+  completedAt: number | null;
 }>;
 
 export type ChatConversation = Readonly<{
@@ -129,6 +132,7 @@ export type ChatLiveEvent =
     isError: boolean;
     errorCode: string | null;
     isStopped: boolean;
+    completedAt: number | null;
   }>)
   | (ChatLiveEventMetadata & Readonly<{
     type: "composer_suggestions_updated";
@@ -199,6 +203,7 @@ export type ChatLiveEventPayload =
     isError: boolean;
     errorCode: string | null;
     isStopped: boolean;
+    completedAt: number | null;
   }>
   | Readonly<{
     type: "composer_suggestions_updated";
@@ -286,6 +291,7 @@ export function toConversationMessage(
     isStopped: boolean;
     cursor: string | null;
     itemId: string | null;
+    completedAt: number | null;
   }>,
 ): ChatConversationMessage {
   return {
@@ -297,6 +303,7 @@ export function toConversationMessage(
     isStopped: message.isStopped,
     cursor: message.cursor,
     itemId: message.itemId,
+    completedAt: message.completedAt,
   };
 }
 
@@ -312,6 +319,7 @@ export function toConversationMessageFromPersisted(
     isStopped: message.isStopped,
     cursor: String(message.itemOrder),
     itemId: message.role === "assistant" ? message.itemId : null,
+    completedAt: getAssistantMessageCompletedAt(message),
   });
 }
 

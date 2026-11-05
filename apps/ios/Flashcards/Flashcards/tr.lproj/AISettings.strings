@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "İstem bağlamı";
 "ai.message.reasoning.title" = "Akıl yürütme";
 "ai.message.reasoning.thinking" = "Düşünüyor...";
+"ai.message.work.running" = "%@ süredir çalışıyor";
+"ai.message.work.finished" = "%@ çalıştı";
+"ai.message.work.finishedWithoutDuration" = "Çalışma tamamlandı";
 "ai.message.fullResponse.show" = "Tam yanıtı göster";
 "ai.message.fullResponse.title" = "Tam yanıt";
 "ai.tool.label.codeExecution" = "Kod çalıştırma";

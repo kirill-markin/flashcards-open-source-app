@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Контекст сообщения";
 "ai.message.reasoning.title" = "Рассуждение";
 "ai.message.reasoning.thinking" = "Думая...";
+"ai.message.work.running" = "Работает уже %@";
+"ai.message.work.finished" = "Работал %@";
+"ai.message.work.finishedWithoutDuration" = "Работа завершена";
 "ai.message.fullResponse.show" = "Показать ответ полностью";
 "ai.message.fullResponse.title" = "Полный ответ";
 "ai.tool.label.codeExecution" = "Выполнение кода";

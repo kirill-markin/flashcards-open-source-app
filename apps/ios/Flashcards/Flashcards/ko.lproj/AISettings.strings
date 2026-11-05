@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "프롬프트 맥락";
 "ai.message.reasoning.title" = "추론";
 "ai.message.reasoning.thinking" = "생각 중...";
+"ai.message.work.running" = "%@째 작업 중";
+"ai.message.work.finished" = "%@ 동안 작업함";
+"ai.message.work.finishedWithoutDuration" = "작업 완료";
 "ai.message.fullResponse.show" = "전체 응답 보기";
 "ai.message.fullResponse.title" = "전체 응답";
 "ai.tool.label.codeExecution" = "코드 실행";

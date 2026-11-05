@@ -19,6 +19,7 @@ export type StoredMessage = Readonly<{
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
+  completedAt: number | null;
 }>;
 
 type OrderedAssistantPart = TextContentPart | ToolCallContentPart | ReasoningSummaryContentPart;
@@ -351,6 +352,7 @@ export const applyAssistantError = (
     isStopped: false,
     cursor: null,
     itemId: null,
+    completedAt: null,
   };
 
   const last = messages[messages.length - 1];

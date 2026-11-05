@@ -463,7 +463,8 @@ internal class AiChatLiveStreamCoordinator(
                     cursor = event.metadata.cursor ?: "",
                     isError = event.isError,
                     errorCode = event.errorCode,
-                    isStopped = event.isStopped
+                    isStopped = event.isStopped,
+                    completedAtMillis = event.completedAtMillis
                 )
                 if (finalizedState == null) {
                     restartConversationBootstrap(true, null)

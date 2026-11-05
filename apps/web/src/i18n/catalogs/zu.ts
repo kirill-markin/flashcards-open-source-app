@@ -1562,6 +1562,11 @@ const zuCatalog: TranslationCatalog = {
       submitReview: "Thumela ukubukeza",
       webSearch: "Usesho lwewebhu",
     },
+    workBlock: {
+      worked: "Umsebenzi uqediwe",
+      workedFor: "Isebenze {{duration}}",
+      workingFor: "Isisebenza {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

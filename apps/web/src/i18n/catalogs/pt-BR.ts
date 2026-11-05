@@ -1562,6 +1562,11 @@ const ptBrCatalog: TranslationCatalog = {
       submitReview: "Enviar revisão",
       webSearch: "Busca na web",
     },
+    workBlock: {
+      worked: "Trabalhou",
+      workedFor: "Trabalhou por {{duration}}",
+      workingFor: "Trabalhando há {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

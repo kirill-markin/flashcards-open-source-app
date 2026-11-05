@@ -1562,6 +1562,11 @@ const deCatalog: TranslationCatalog = {
       submitReview: "Bewertung senden",
       webSearch: "Websuche",
     },
+    workBlock: {
+      worked: "Gearbeitet",
+      workedFor: "Hat {{duration}} gearbeitet",
+      workingFor: "Arbeitet seit {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

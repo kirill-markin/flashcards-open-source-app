@@ -43,6 +43,9 @@
     <string name="ai_image_attachment_title">Image attachment</string>
     <string name="ai_unknown_type_subtitle">Type: %1$s</string>
     <string name="ai_thinking">Thinking...</string>
+    <string name="ai_work_block_working_for">Working for %1$s</string>
+    <string name="ai_work_block_worked_for">Worked for %1$s</string>
+    <string name="ai_work_block_worked">Worked</string>
     <string name="ai_card_id_label">ID: %1$s</string>
     <string name="ai_card_tags_label">Tags: %1$s</string>
     <string name="ai_hide_prompt_context">Hide prompt context</string>

@@ -60,6 +60,7 @@ export type ChatLiveEvent =
     isError: boolean;
     errorCode: string | null;
     isStopped: boolean;
+    completedAt: number | null;
   }>)
   | (ChatLiveEventMetadata<string | null> & Readonly<{
     type: "composer_suggestions_updated";
@@ -324,6 +325,31 @@ function requireNumberField(
   return value;
 }
 
+/**
+ * Missing is accepted as null so the client works against a backend that predates the field.
+ */
+function readOptionalNullableNumberField(
+  objectValue: JsonObject,
+  key: string,
+  eventType: string | null,
+  payload: string,
+): number | null {
+  const value = objectValue[key];
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== "number") {
+    throw new ChatLiveContractError(
+      `AI live stream event is invalid: ${key} must be a number or null.`,
+      eventType,
+      payload,
+    );
+  }
+
+  return value;
+}
+
 function requireType(
   value: string | null,
   eventType: string | null,
@@ -460,6 +486,7 @@ export function parseChatLiveEvent(
       isError: requireBooleanField(objectValue, "isError", type, payload),
       errorCode: readNullableStringField(objectValue, "errorCode") ?? null,
       isStopped: requireBooleanField(objectValue, "isStopped", type, payload),
+      completedAt: readOptionalNullableNumberField(objectValue, "completedAt", type, payload),
     };
   }
 

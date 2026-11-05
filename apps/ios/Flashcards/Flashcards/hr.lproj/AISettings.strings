@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Kontekst upita";
 "ai.message.reasoning.title" = "Rasuđivanje";
 "ai.message.reasoning.thinking" = "Razmišljanje...";
+"ai.message.work.running" = "Radi već %@";
+"ai.message.work.finished" = "Radilo se %@";
+"ai.message.work.finishedWithoutDuration" = "Rad završen";
 "ai.message.fullResponse.show" = "Prikaži cijeli odgovor";
 "ai.message.fullResponse.title" = "Cijeli odgovor";
 "ai.tool.label.codeExecution" = "Izvršavanje koda";

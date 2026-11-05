@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Forespørselskontekst";
 "ai.message.reasoning.title" = "Resonnering";
 "ai.message.reasoning.thinking" = "Tenker...";
+"ai.message.work.running" = "Jobber i %@";
+"ai.message.work.finished" = "Jobbet i %@";
+"ai.message.work.finishedWithoutDuration" = "Arbeid fullført";
 "ai.message.fullResponse.show" = "Vis hele svaret";
 "ai.message.fullResponse.title" = "Hele svaret";
 "ai.tool.label.codeExecution" = "Kodekjøring";

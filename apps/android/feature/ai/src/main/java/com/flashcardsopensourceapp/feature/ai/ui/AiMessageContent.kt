@@ -99,6 +99,7 @@ internal fun MessageRow(
     val showsStreamingIndicator = message.role == AiChatRole.ASSISTANT
         && isLastMessage
         && (isStreaming || canShowOptimisticIndicator)
+    val isRunActive = message.role == AiChatRole.ASSISTANT && isLastMessage && isStreaming
 
     Box(
         contentAlignment = alignment,
@@ -116,6 +117,7 @@ internal fun MessageRow(
                     MessageBubbleContent(
                         message = message,
                         showsStreamingIndicator = showsStreamingIndicator,
+                        isRunActive = isRunActive,
                         onOpenAccountStatus = onOpenAccountStatus,
                         textProvider = textProvider,
                         modifier = Modifier.padding(all = 16.dp)
@@ -126,6 +128,7 @@ internal fun MessageRow(
             MessageBubbleContent(
                 message = message,
                 showsStreamingIndicator = showsStreamingIndicator,
+                isRunActive = isRunActive,
                 onOpenAccountStatus = onOpenAccountStatus,
                 textProvider = textProvider,
                 modifier = Modifier
@@ -141,96 +144,41 @@ internal fun MessageRow(
 private fun MessageBubbleContent(
     message: AiChatMessage,
     showsStreamingIndicator: Boolean,
+    isRunActive: Boolean,
     onOpenAccountStatus: () -> Unit,
     textProvider: AiTextProvider,
     modifier: Modifier
 ) {
-    val context = LocalContext.current
-    val locale = currentResourceLocale(resources = context.resources)
+    val sections = if (message.role == AiChatRole.ASSISTANT) {
+        splitAssistantMessageSections(content = message.content)
+    } else {
+        null
+    }
+    val contentPartRow: @Composable (AiChatContentPart) -> Unit = { contentPart ->
+        MessageContentPart(
+            contentPart = contentPart,
+            message = message,
+            showsStreamingIndicator = showsStreamingIndicator,
+            onOpenAccountStatus = onOpenAccountStatus,
+            textProvider = textProvider
+        )
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
     ) {
-        message.content.forEach { contentPart ->
-            when (contentPart) {
-                is AiChatContentPart.Text -> {
-                    if (contentPart.text == aiChatOptimisticAssistantStatusToken) {
-                        if (showsStreamingIndicator) {
-                            TypingIndicatorRow()
-                        }
-                    } else {
-                        SelectionContainer {
-                            AiMarkdownText(
-                                text = textProvider.chatErrorText(
-                                    errorCode = message.errorCode,
-                                    storedText = contentPart.text
-                                ),
-                                modifier = if (message.role == AiChatRole.ASSISTANT) {
-                                    Modifier.testTag(tag = aiAssistantTextPartTag)
-                                } else {
-                                    Modifier
-                                }
-                            )
-                        }
-                    }
-                }
-
-                is AiChatContentPart.ReasoningSummary -> {
-                    ReasoningSummaryRow(reasoningSummary = contentPart.reasoningSummary)
-                }
-
-                is AiChatContentPart.Image -> {
-                    AttachmentContentCard(
-                        title = contentPart.fileName ?: stringResource(id = R.string.ai_image_attachment_title),
-                        subtitle = contentPart.mediaType,
-                        icon = Icons.Outlined.Image
-                    )
-                }
-
-                is AiChatContentPart.File -> {
-                    AttachmentContentCard(
-                        title = contentPart.fileName,
-                        subtitle = contentPart.mediaType,
-                        icon = Icons.Outlined.Description
-                    )
-                }
-
-                is AiChatContentPart.Card -> {
-                    CardContextContentCard(
-                        cardId = contentPart.cardId,
-                        frontText = contentPart.frontText,
-                        backText = contentPart.backText,
-                        tags = contentPart.tags
-                    )
-                }
-
-                is AiChatContentPart.ToolCall -> {
-                    ToolCallCard(toolCall = contentPart.toolCall)
-                }
-
-                is AiChatContentPart.AccountUpgradePrompt -> {
-                    AccountUpgradeCard(
-                        message = contentPart.message,
-                        buttonTitle = contentPart.buttonTitle,
-                        onOpenAccountStatus = onOpenAccountStatus
-                    )
-                }
-
-                is AiChatContentPart.Unknown -> {
-                    AttachmentContentCard(
-                        title = contentPart.summaryText,
-                        subtitle = stringResource(
-                            id = R.string.ai_unknown_type_subtitle,
-                            bidiWrap(
-                                text = contentPart.originalType,
-                                locale = locale
-                            )
-                        ),
-                        icon = Icons.Outlined.WarningAmber
-                    )
-                }
-            }
+        if (sections == null) {
+            message.content.forEach { contentPart -> contentPartRow(contentPart) }
+        } else {
+            AiWorkBlock(
+                message = message,
+                sections = sections,
+                isRunActive = isRunActive,
+                workPartContent = contentPartRow,
+                modifier = Modifier
+            )
+            sections.answerParts.forEach { contentPart -> contentPartRow(contentPart) }
         }
 
         if (showsStreamingIndicator && message.content.none { contentPart ->
@@ -238,6 +186,97 @@ private fun MessageBubbleContent(
             }
         ) {
             TypingIndicatorRow()
+        }
+    }
+}
+
+@Composable
+private fun MessageContentPart(
+    contentPart: AiChatContentPart,
+    message: AiChatMessage,
+    showsStreamingIndicator: Boolean,
+    onOpenAccountStatus: () -> Unit,
+    textProvider: AiTextProvider
+) {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
+
+    when (contentPart) {
+        is AiChatContentPart.Text -> {
+            if (contentPart.text == aiChatOptimisticAssistantStatusToken) {
+                if (showsStreamingIndicator) {
+                    TypingIndicatorRow()
+                }
+            } else {
+                SelectionContainer {
+                    AiMarkdownText(
+                        text = textProvider.chatErrorText(
+                            errorCode = message.errorCode,
+                            storedText = contentPart.text
+                        ),
+                        modifier = if (message.role == AiChatRole.ASSISTANT) {
+                            Modifier.testTag(tag = aiAssistantTextPartTag)
+                        } else {
+                            Modifier
+                        }
+                    )
+                }
+            }
+        }
+
+        is AiChatContentPart.ReasoningSummary -> {
+            ReasoningSummaryRow(reasoningSummary = contentPart.reasoningSummary)
+        }
+
+        is AiChatContentPart.Image -> {
+            AttachmentContentCard(
+                title = contentPart.fileName ?: stringResource(id = R.string.ai_image_attachment_title),
+                subtitle = contentPart.mediaType,
+                icon = Icons.Outlined.Image
+            )
+        }
+
+        is AiChatContentPart.File -> {
+            AttachmentContentCard(
+                title = contentPart.fileName,
+                subtitle = contentPart.mediaType,
+                icon = Icons.Outlined.Description
+            )
+        }
+
+        is AiChatContentPart.Card -> {
+            CardContextContentCard(
+                cardId = contentPart.cardId,
+                frontText = contentPart.frontText,
+                backText = contentPart.backText,
+                tags = contentPart.tags
+            )
+        }
+
+        is AiChatContentPart.ToolCall -> {
+            ToolCallCard(toolCall = contentPart.toolCall)
+        }
+
+        is AiChatContentPart.AccountUpgradePrompt -> {
+            AccountUpgradeCard(
+                message = contentPart.message,
+                buttonTitle = contentPart.buttonTitle,
+                onOpenAccountStatus = onOpenAccountStatus
+            )
+        }
+
+        is AiChatContentPart.Unknown -> {
+            AttachmentContentCard(
+                title = contentPart.summaryText,
+                subtitle = stringResource(
+                    id = R.string.ai_unknown_type_subtitle,
+                    bidiWrap(
+                        text = contentPart.originalType,
+                        locale = locale
+                    )
+                ),
+                icon = Icons.Outlined.WarningAmber
+            )
         }
     }
 }
