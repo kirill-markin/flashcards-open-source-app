@@ -162,7 +162,7 @@ private fun ColumnScope.ReviewWidgetAllDone(content: ReviewWidgetContent, showSt
 private fun ColumnScope.ReviewWidgetSmallDue(content: ReviewWidgetContent) {
     val context = LocalContext.current
     Text(
-        text = content.dueCount.toString(),
+        text = context.getString(R.string.review_widget_due_count, content.dueCount),
         style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 40.sp, fontWeight = FontWeight.Bold),
         maxLines = 1
     )
