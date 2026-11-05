@@ -138,8 +138,7 @@ icon are stored per device. The launcher icon follows the displayed App icon on
 
 Theme offers Dark and Light. Dark is the default, including when the operating system is in light
 mode: there is no System option and the OS appearance is never followed. Light is for Premium and
-lifetime like the other styles. The launch screen stays dark for everyone. An upgraded guest's theme
-lands only on an account still on Dark ([guest merge](../apps/backend/src/guestAuth/store/identity.ts)).
+lifetime like the other styles. The launch screen stays dark for everyone.
 
 ### Accent color
 
@@ -153,7 +152,8 @@ available to everyone. Card themes are outside this feature.
 
 The wire contract is [account preference parsing](../apps/backend/src/routes/system/support.ts) and
 [persistence](../apps/backend/src/routes/system/account/accountPreferences.ts);
-[guest merge](../apps/backend/src/guestAuth/store/identity.ts) states which color an upgraded guest keeps.
+[guest merge](../apps/backend/src/guestAuth/store/identity.ts) states which accent color and theme an
+upgraded guest keeps.
 
 ## Review paywall schedule
 
