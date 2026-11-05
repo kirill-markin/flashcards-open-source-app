@@ -1,8 +1,9 @@
 import { isAnalyticsEnabledForCurrentRuntime, isAwaitingAnalyticsConsentDecision, isProductAnalyticsCollectionEnabled, type AnalyticsPaywallEntryPoint } from "../analytics";
-import { ApiContractError, parseObject, parseString } from "../apiContracts/core";
+import { ApiContractError, parseEnum, parseObject, parseString } from "../apiContracts/core";
 import { parseStripeSessionId, parseStripeUuid } from "../apiContracts/stripeBilling";
 import { validatedPricingCountry } from "./regionalCountry";
 import type { SessionInfo } from "../types";
+import type { AppTheme } from "../types/account";
 
 const intentKey = "flashcards-stripe-intent";
 const invalidationKey = "flashcards-stripe-invalidation";
@@ -72,15 +73,31 @@ export function readPaywallReturn(query: URLSearchParams): PaywallPresentation |
   return parsePaywallPresentation(query.get("premium_presentation_id"), query.get("premium_entry_point"));
 }
 
-export type PremiumContinuation = Readonly<{ accentColor: string; requiredRank: number }>;
+export type PremiumContinuation =
+  | Readonly<{ accentColor: string; requiredRank: number }>
+  | Readonly<{ theme: AppTheme; requiredRank: number }>;
 
 function parsePremiumContinuation(value: unknown): PremiumContinuation {
   const pending = parseObject(value, "Premium continuation", "continuation");
+  if (pending.theme !== undefined) {
+    const theme = parseEnum<AppTheme>(pending.theme, "Premium continuation", "theme", ["dark", "light"]);
+    if (pending.requiredRank !== 20) {
+      throw new ApiContractError("Premium continuation", "continuation", "theme Premium intent");
+    }
+    return { theme, requiredRank: 20 };
+  }
   const color = parseString(pending.accentColor, "Premium continuation", "accentColor");
   if (!/^#[0-9A-F]{6}$/.test(color) || pending.requiredRank !== 20) {
     throw new ApiContractError("Premium continuation", "continuation", "accent color Premium intent");
   }
   return { accentColor: color, requiredRank: 20 };
+}
+
+export function isSamePremiumContinuation(left: PremiumContinuation | null, right: PremiumContinuation | null): boolean {
+  if (left === null || right === null) return left === right;
+  return left.requiredRank === right.requiredRank && ("accentColor" in left
+    ? "accentColor" in right && left.accentColor === right.accentColor
+    : "theme" in right && left.theme === right.theme);
 }
 
 export function readPremiumReturnContinuation(query: URLSearchParams): PremiumContinuation | null {
@@ -147,8 +164,7 @@ export function isCurrentStripeIntent(expected: StripeIntent): boolean {
   return current !== null && current.attemptId === expected.attemptId && current.sessionId === expected.sessionId
     && (current.country ?? null) === (expected.country ?? null)
     && (current.checkoutAfterSignIn ?? null) === (expected.checkoutAfterSignIn ?? null)
-    && current.continuation?.accentColor === expected.continuation?.accentColor
-    && current.continuation?.requiredRank === expected.continuation?.requiredRank;
+    && isSamePremiumContinuation(current.continuation, expected.continuation);
 }
 
 export function consumeStripeIntent(expected: StripeIntent): StripeIntent | null {
