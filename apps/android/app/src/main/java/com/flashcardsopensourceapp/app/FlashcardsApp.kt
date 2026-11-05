@@ -75,6 +75,7 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
+import com.flashcardsopensourceapp.app.navigation.ReviewWidgetTapHandoffRequest
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
@@ -138,7 +139,9 @@ internal const val accountDeletionBlockingTechnicalDetailsTag: String =
 fun FlashcardsApp(
     appGraph: AppGraph,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
-    consumeAppNotificationTap: (Long) -> Unit
+    consumeAppNotificationTap: (Long) -> Unit,
+    reviewWidgetTapRequest: ReviewWidgetTapHandoffRequest?,
+    consumeReviewWidgetTap: (Long) -> Unit
 ) {
     key(appGraph) {
         val accountPreferencesFlow: Flow<AccountPreferences?> =
@@ -783,6 +786,8 @@ fun FlashcardsApp(
                     isPowerSaveMode = isPowerSaveMode,
                     appNotificationTapRequest = appNotificationTapRequest,
                     consumeAppNotificationTap = consumeAppNotificationTap,
+                    reviewWidgetTapRequest = reviewWidgetTapRequest,
+                    consumeReviewWidgetTap = consumeReviewWidgetTap,
                     premiumPresenter = premiumPresenter
                 )
                 SnackbarHost(

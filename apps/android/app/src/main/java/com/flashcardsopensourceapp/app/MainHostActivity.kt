@@ -12,6 +12,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.flashcardsopensourceapp.app.notifications.consumeAppNotificationTapRequest
+import com.flashcardsopensourceapp.app.widget.consumeReviewWidgetTapRequest
 import com.flashcardsopensourceapp.core.ui.markHostActivityStarted
 import com.flashcardsopensourceapp.core.ui.markHostActivityStopped
 
@@ -32,6 +33,7 @@ class MainHostActivity : ComponentActivity() {
             // must stay current even outside STARTED to avoid reusing a closed graph.
             val currentAppGraph by application.appGraphState.collectAsState()
             val appNotificationTapRequest by application.appNotificationTapState.collectAsState()
+            val reviewWidgetTapRequest by application.reviewWidgetTapState.collectAsState()
             val appGraph = currentAppGraph
             if (appGraph == null) {
                 FlashcardsAppLoadingScreen()
@@ -67,7 +69,9 @@ class MainHostActivity : ComponentActivity() {
                 FlashcardsApp(
                     appGraph = appGraph,
                     appNotificationTapRequest = appNotificationTapRequest,
-                    consumeAppNotificationTap = application::consumeAppNotificationTap
+                    consumeAppNotificationTap = application::consumeAppNotificationTap,
+                    reviewWidgetTapRequest = reviewWidgetTapRequest,
+                    consumeReviewWidgetTap = application::consumeReviewWidgetTap
                 )
             }
         }
@@ -99,7 +103,15 @@ class MainHostActivity : ComponentActivity() {
             application.acceptAppleSignInReturn(uri.toString())
             return
         }
-        val request = intent?.let(::consumeAppNotificationTapRequest) ?: return
+        if (intent == null) {
+            return
+        }
+        val reviewWidgetTapRequest = consumeReviewWidgetTapRequest(intent = intent)
+        if (reviewWidgetTapRequest != null) {
+            application.requestReviewWidgetTap(request = reviewWidgetTapRequest)
+            return
+        }
+        val request = consumeAppNotificationTapRequest(intent = intent) ?: return
         application.requestAppNotificationTap(request = request)
     }
 }

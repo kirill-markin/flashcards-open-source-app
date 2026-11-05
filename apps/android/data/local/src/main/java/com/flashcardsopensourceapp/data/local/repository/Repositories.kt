@@ -153,7 +153,8 @@ interface ReviewRepository {
 
     suspend fun loadReviewPromptCounters(nowMillis: Long, zoneId: ZoneId): ReviewPromptCounters
 
-    suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
+    /** The card while it is due and in [selectedFilter] in the current workspace; pending ratings are the caller's to exclude. */
+    suspend fun loadActiveReviewCard(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
 
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)
 }

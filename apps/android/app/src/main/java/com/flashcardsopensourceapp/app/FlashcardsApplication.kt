@@ -12,10 +12,13 @@ import com.flashcardsopensourceapp.app.analytics.markAnalyticsProcessBackgrounde
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
+import com.flashcardsopensourceapp.app.navigation.ReviewWidgetTapHandoffRequest
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.notifications.analyticsNotificationKind
 import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
+import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
+import com.flashcardsopensourceapp.app.widget.analyticsWidgetSize
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
 import com.flashcardsopensourceapp.data.local.model.cloud.parseCloudAppleBrowserReturn
@@ -39,8 +42,10 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     private val appGraphResetMutex = Mutex()
     private val appGraphLock = Any()
     private val nextAppNotificationTapRequestId = AtomicLong(0L)
+    private val nextReviewWidgetTapRequestId = AtomicLong(0L)
     private val appGraphStateMutable = MutableStateFlow<AppGraph?>(value = null)
     private val appNotificationTapStateMutable = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
+    private val reviewWidgetTapStateMutable = MutableStateFlow<ReviewWidgetTapHandoffRequest?>(value = null)
     private val appleSignInScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val appleSignInReturnStateMutable = MutableStateFlow<AppleSignInReturnState>(AppleSignInReturnState.Idle)
     private var appleSignInReturnForRetry: String? = null
@@ -141,6 +146,9 @@ class FlashcardsApplication : Application(), Configuration.Provider {
 
     val appNotificationTapState: StateFlow<AppNotificationTapHandoffRequest?>
         get() = appNotificationTapStateMutable.asStateFlow()
+
+    val reviewWidgetTapState: StateFlow<ReviewWidgetTapHandoffRequest?>
+        get() = reviewWidgetTapStateMutable.asStateFlow()
 
     @get:OptIn(ExperimentalConfigurationApi::class)
     override val workManagerConfiguration: Configuration
@@ -254,6 +262,25 @@ class FlashcardsApplication : Application(), Configuration.Provider {
         }
 
         appNotificationTapStateMutable.value = null
+    }
+
+    /** The single point every widget tap passes through, for the reasons [requestAppNotificationTap] gives. */
+    fun requestReviewWidgetTap(request: ReviewWidgetTapRequest) {
+        appGraphOrNull?.analytics?.track(
+            event = AnalyticsEvent.WidgetOpened(widgetSize = analyticsWidgetSize(size = request.size))
+        )
+        reviewWidgetTapStateMutable.value = ReviewWidgetTapHandoffRequest(
+            requestId = nextReviewWidgetTapRequestId.incrementAndGet(),
+            request = request
+        )
+    }
+
+    fun consumeReviewWidgetTap(requestId: Long) {
+        if (reviewWidgetTapStateMutable.value?.requestId != requestId) {
+            return
+        }
+
+        reviewWidgetTapStateMutable.value = null
     }
 
     private fun publishAppGraph(appGraph: AppGraph) {

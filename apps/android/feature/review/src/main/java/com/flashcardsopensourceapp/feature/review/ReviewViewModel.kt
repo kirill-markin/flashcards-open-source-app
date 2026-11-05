@@ -304,6 +304,61 @@ class ReviewViewModel(
         return true
     }
 
+    /**
+     * Starts a new session showing [cardId] first when it is still in review in [workspaceId]; otherwise
+     * the current session stays. Returns false until the workspace is known, so the caller retries.
+     */
+    fun startSessionOnCardForHandoff(workspaceId: String, cardId: String): Boolean {
+        val currentWorkspaceId = activeWorkspaceId ?: return false
+        if (currentWorkspaceId != workspaceId || isShowingOrRatingCard(cardId = cardId)) {
+            return true
+        }
+
+        val operationWorkspaceGeneration = workspaceGeneration
+        val operationFilterGeneration = reviewFilterGeneration
+        val requestedFilter = draftState.value.requestedFilter
+        viewModelScope.launch {
+            val card = try {
+                reviewRepository.loadActiveReviewCard(selectedFilter = requestedFilter, cardId = cardId)
+            } catch (error: Throwable) {
+                if (error is CancellationException) {
+                    throw error
+                }
+                technicalErrorController.showTechnicalError(
+                    error = makeAppTechnicalError(
+                        title = textProvider.technicalErrorTitle,
+                        message = textProvider.reviewQueueCouldNotBeLoaded,
+                        throwable = error
+                    ),
+                    throwable = error
+                )
+                return@launch
+            } ?: return@launch
+            if (
+                operationWorkspaceGeneration != workspaceGeneration
+                || operationFilterGeneration != reviewFilterGeneration
+                || isShowingOrRatingCard(cardId = cardId)
+            ) {
+                return@launch
+            }
+
+            // A new session, like a filter change, so ratings still in flight from the old one leave it alone.
+            reviewFilterGeneration += 1L
+            lastObservedReviewSessionSignature = null
+            ownedReviewSubmissions = emptyMap()
+            reviewSessionNowMillis.value = System.currentTimeMillis()
+            draftState.update { state ->
+                applyReviewSessionStartOnCard(state = state, card = card)
+            }
+        }
+        return true
+    }
+
+    private fun isShowingOrRatingCard(cardId: String): Boolean {
+        return uiState.value.preparedCurrentCard?.card?.cardId == cardId
+            || draftState.value.pendingReviewedCards.any { pendingReviewedCard -> pendingReviewedCard.cardId == cardId }
+    }
+
     private fun persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
         val workspaceId = activeWorkspaceId ?: return
         reviewPreferencesStore.saveSelectedReviewFilter(
@@ -732,7 +787,7 @@ class ReviewViewModel(
                     submittedContext = submittedSessionContext,
                     currentContextBeforeLookup = currentSessionContextBeforeLookup,
                     cardId = cardId,
-                    loadRollbackCard = reviewRepository::loadReviewCardForRollback,
+                    loadRollbackCard = reviewRepository::loadActiveReviewCard,
                     captureCurrentContext = ::captureReviewSubmissionSessionContext
                 )
                 if (operationWorkspaceGeneration != workspaceGeneration) {

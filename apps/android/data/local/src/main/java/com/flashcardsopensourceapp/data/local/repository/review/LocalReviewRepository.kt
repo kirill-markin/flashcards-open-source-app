@@ -651,7 +651,7 @@ class LocalReviewRepository(
         )
     }
 
-    override suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {
+    override suspend fun loadActiveReviewCard(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {
         val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
             database = database,
             preferencesStore = preferencesStore

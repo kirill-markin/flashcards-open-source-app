@@ -61,7 +61,7 @@ class LocalReviewRollbackContractTest {
         database.cardDao().insertCard(card = currentCard)
 
         val rollbackCard = requireNotNull(
-            reviewRepository.loadReviewCardForRollback(
+            reviewRepository.loadActiveReviewCard(
                 selectedFilter = ReviewFilter.AllCards,
                 cardId = currentCard.cardId
             )
@@ -109,7 +109,7 @@ class LocalReviewRollbackContractTest {
                 )
             )
         ).first()
-        val rollbackCard = reviewRepository.loadReviewCardForRollback(
+        val rollbackCard = reviewRepository.loadActiveReviewCard(
             selectedFilter = sessionSnapshot.selectedFilter,
             cardId = submittedCard.cardId
         )
@@ -163,19 +163,19 @@ class LocalReviewRollbackContractTest {
         )
 
         assertNull(
-            reviewRepository.loadReviewCardForRollback(
+            reviewRepository.loadActiveReviewCard(
                 selectedFilter = ReviewFilter.AllCards,
                 cardId = otherWorkspaceCard.cardId
             )
         )
         assertNull(
-            reviewRepository.loadReviewCardForRollback(
+            reviewRepository.loadActiveReviewCard(
                 selectedFilter = ReviewFilter.AllCards,
                 cardId = futureCard.cardId
             )
         )
         assertNull(
-            reviewRepository.loadReviewCardForRollback(
+            reviewRepository.loadActiveReviewCard(
                 selectedFilter = ReviewFilter.AllCards,
                 cardId = deletedCard.cardId
             )
@@ -256,15 +256,15 @@ class LocalReviewRollbackContractTest {
         }.deckId
 
         val activeReviewTagNames = database.tagDao().loadReviewTagNames(workspaceId = workspaceId)
-        val missingTagRollbackCard = reviewRepository.loadReviewCardForRollback(
+        val missingTagRollbackCard = reviewRepository.loadActiveReviewCard(
             selectedFilter = ReviewFilter.Tags(tags = listOf("Stale")),
             cardId = visibleCard.cardId
         )
-        val missingDeckRollbackCard = reviewRepository.loadReviewCardForRollback(
+        val missingDeckRollbackCard = reviewRepository.loadActiveReviewCard(
             selectedFilter = ReviewFilter.Deck(deckId = "missing-rollback-deck"),
             cardId = visibleCard.cardId
         )
-        val mismatchedDeckRollbackCard = reviewRepository.loadReviewCardForRollback(
+        val mismatchedDeckRollbackCard = reviewRepository.loadActiveReviewCard(
             selectedFilter = ReviewFilter.Deck(deckId = visibleDeckId),
             cardId = excludedCard.cardId
         )
