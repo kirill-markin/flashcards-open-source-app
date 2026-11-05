@@ -239,29 +239,27 @@ struct PremiumOfferView: View {
 
     private var freePlan: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
-                    self.freeTitle.fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 12)
-                    self.alwaysFreeText.fixedSize(horizontal: true, vertical: false)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    self.freeTitle
-                    self.alwaysFreeText
-                }
-            }
+            Text(aiSettingsLocalized("premium.offer.free", "Free"))
+                .font(.title3.bold())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
             Text(aiSettingsLocalized("premium.offer.freeDescription", "Created for students without a job. Open to everyone. Your backpack just got lighter."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
-                .font(.subheadline)
+            VStack(alignment: .leading, spacing: 6) {
+                self.missingBenefit(aiSettingsLocalized("premium.offer.noCreatorSupport", "Doesn’t support the app’s creator"))
+                Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
+                self.missingBenefit(aiSettingsLocalized("premium.offer.limitedAI", "Limited AI chat"))
+                self.missingBenefit(aiSettingsLocalized("premium.offer.defaultStylesOnly", "Default styles only"))
+            }
+            .font(.subheadline)
             Button {
                 guard self.presenter.request?.id == self.request.id else { return }
                 self.presenter.recordChoice(requestId: self.request.id, outcome: .free)
                 self.presenter.finish(outcome: .continuedFree)
             } label: {
                 HStack {
-                    Text(aiSettingsLocalized("premium.offer.continueFree", "Continue free"))
+                    Text(aiSettingsLocalized("premium.offer.notNow", "Not now"))
                         .frame(maxWidth: .infinity)
                     Image(systemName: "arrow.forward").accessibilityHidden(true)
                 }
@@ -274,18 +272,12 @@ struct PremiumOfferView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var freeTitle: some View {
-        Text(aiSettingsLocalized("premium.offer.free", "Free"))
-            .font(.title3.bold())
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
-    }
-
-    private var alwaysFreeText: some View {
-        Text(aiSettingsLocalized("premium.offer.alwaysFree", "Always free"))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+    private func missingBenefit(_ title: String) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: "xmark").foregroundStyle(.red)
+        }
     }
 
     private var premiumPlan: some View {
@@ -304,25 +296,25 @@ struct PremiumOfferView: View {
                 }
             }
 
+            Text(self.creatorSupport)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+
             VStack(alignment: .leading, spacing: 6) {
+                Label(aiSettingsLocalized("premium.offer.supportsCreator", "Supports the app’s creator"), systemImage: "checkmark")
+                Label(aiSettingsLocalized("premium.offer.accentColor", "Any accent color"), systemImage: "checkmark")
+                Label(aiSettingsLocalized("premium.offer.reviewAnimations", "Review animations on or off"), systemImage: "checkmark")
+                Label(aiSettingsLocalized("premium.offer.appIcon", "Custom app icon"), systemImage: "checkmark")
                 if let allowance = self.premiumAIAllowance {
                     Label(
                         allowance.premiumAiMonthlyMessages.map { count in
-                            aiSettingsLocalizedFormat("premium.offer.monthlyAI", "%@ AI messages every month", count.formatted())
+                            aiSettingsLocalizedFormat("premium.offer.monthlyAI", "%@ AI chat messages per month", count.formatted())
                         } ?? aiSettingsLocalized("premium.offer.unlimitedAI", "AI messages with no monthly cap"),
                         systemImage: "checkmark"
                     )
                 }
-                Label(aiSettingsLocalized("premium.offer.styles", "Custom colors and styles"), systemImage: "checkmark")
-                if UIApplication.shared.supportsAlternateIcons {
-                    Label(aiSettingsLocalized("settings.appIcon.title", "App icon"), systemImage: "checkmark")
-                }
             }
             .font(.subheadline)
-
-            Text(self.creatorSupport)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
 
             if self.isTestOfferPreview == false, self.hasAccess, let entitlement = self.store.cloudEntitlement {
                 LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {
@@ -419,11 +411,13 @@ struct PremiumOfferView: View {
         guard let subscription = offer.product.subscription else { throw AppleSubscriptionError.productUnavailable }
         let period = try appleSubscriptionPeriodText(period: subscription.subscriptionPeriod, count: 1)
         var trial: String? = nil
-        var title = aiSettingsLocalized("premium.offer.subscribe", "Subscribe")
+        var title = aiSettingsLocalizedFormat("premium.offer.subscribeWithPrice", "Subscribe — %@", offer.displayPrice)
         if offer.includesFreeTrial, let intro = subscription.introductoryOffer {
             let duration = try appleSubscriptionPeriodText(period: intro.period, count: intro.periodCount)
             trial = aiSettingsLocalizedFormat("premium.apple.trial", "%@ free, then", duration)
-            title = aiSettingsLocalizedFormat("premium.offer.startTrial", "Start free trial: %@", duration)
+            title = isSevenDayPeriod(period: intro.period, count: intro.periodCount)
+                ? aiSettingsLocalized("premium.offer.startSevenDayTrial", "Start 7-day free trial")
+                : aiSettingsLocalizedFormat("premium.offer.startTrial", "Start free trial: %@", duration)
         }
         guard self.presenter.request?.id == self.request.id else { return }
         self.offer = offer
@@ -468,6 +462,14 @@ struct PremiumOfferView: View {
                 self.errorMessage = aiSettingsLocalized("premium.apple.failed", "Purchase could not be confirmed. Restore purchases to retry without buying again.") + "\n" + error.localizedDescription
             }
         }
+    }
+}
+
+private func isSevenDayPeriod(period: Product.SubscriptionPeriod, count: Int) -> Bool {
+    switch period.unit {
+    case .day: return period.value * count == 7
+    case .week: return period.value * count == 1
+    default: return false
     }
 }
 

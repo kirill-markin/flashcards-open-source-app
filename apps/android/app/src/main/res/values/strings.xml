@@ -72,7 +72,10 @@
     <string name="review_widget_preview_question">What does the mitochondria produce for the cell?</string>
     <string name="review_widget_preview_streak">7-day streak</string>
     <string name="premium_title">Premium</string>
-    <string name="premium_benefits">Custom colors, styles &amp; app icons</string>
+    <string name="premium_benefit_creator_support">Supports the app’s creator</string>
+    <string name="premium_benefit_accent_color">Any accent color</string>
+    <string name="premium_benefit_review_animations">Review animations on or off</string>
+    <string name="premium_benefit_app_icon">Custom app icon</string>
     <string name="premium_already_active">Your plan already includes Premium benefits.</string>
     <string name="premium_offer_loading">Loading the offer from Google Play…</string>
     <string name="premium_offer_unavailable">Premium is not available from Google Play for this account right now. You can try again or restore an existing purchase.</string>
@@ -136,11 +139,13 @@
     <string name="premium_heading">Learning belongs to <xliff:g id="everyone" example="everyone">%1$s</xliff:g>.</string>
     <string name="premium_heading_everyone">everyone</string>
     <string name="premium_free_title">Free</string>
-    <string name="premium_free_price">Always free</string>
     <string name="premium_welcome">Same app. Same welcome. Your choice.</string>
     <string name="premium_free_description">Created for students without a job. Open to everyone. Your backpack just got lighter.</string>
+    <string name="premium_free_no_creator_support">Doesn’t support the app’s creator</string>
     <string name="premium_free_benefits">Core reviews, offline learning &amp; sync</string>
-    <string name="premium_continue_free">Continue free</string>
+    <string name="premium_free_limited_ai">Limited AI chat</string>
+    <string name="premium_free_default_styles">Default styles only</string>
+    <string name="premium_not_now">Not now</string>
     <string name="premium_creator_name" translatable="false">Kirill Markin</string>
     <string name="premium_creator_support">Your subscription helps Nibomo’s creator, %1$s, pay for servers and fuel the next update with coffee and pizza.</string>
     <string name="premium_start_seven_day_trial">Start 7-day free trial</string>
@@ -151,7 +156,7 @@
     <string name="premium_preview_purchase_notice">Test mode: no purchase was made. Your plan has not changed.</string>
     <string name="premium_preview_notice">Preview only. Open Premium from Subscription to see your Google Play offer.</string>
     <plurals name="premium_ai_messages">
-        <item quantity="one">%1$d AI message every month</item>
-        <item quantity="other">%1$d AI messages every month</item>
+        <item quantity="one">%1$d AI chat message per month</item>
+        <item quantity="other">%1$d AI chat messages per month</item>
     </plurals>
 </resources>

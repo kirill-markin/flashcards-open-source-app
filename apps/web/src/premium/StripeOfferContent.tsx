@@ -34,7 +34,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
   const countries = pricingCountryCodes.map((code) => ({ code, name: countryNames.of(code) ?? code }))
     .sort((left, right) => left.name.localeCompare(right.name, locale));
   const actionArrow = <span className="premium-action-arrow" aria-hidden="true">{direction === "rtl" ? "←" : "→"}</span>;
-  const priceCopy = t("paywall.basePrice").split("{{price}}");
+  const priceCopy = t("paywall.monthlyPrice").split("{{price}}");
   const creatorCopy = t("paywall.creatorSupport").split("{{creator}}");
   const isPurchasing = !props.isPreview && billing.busy && billing.status === "opening";
   const showsTrial = guest || offer?.trialEligible === true;
@@ -59,16 +59,19 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
         <h3 id="premium-paid-title" className="panel-subtitle">{t("stripe.offer.title")} <span aria-hidden="true">✦</span></h3>
         {price === null ? null : <p className="premium-price" data-testid="premium-price">{priceCopy[0]}<strong><bdi>{price}</bdi></strong>{priceCopy[1]}</p>}
       </div>
+      <p className="premium-creator-support">{creatorCopy[0]}<a href="https://kirill-markin.com/" target="_blank" rel="noreferrer">Kirill Markin</a>{creatorCopy[1]}</p>
       <ul className="premium-benefits">
+        <li>{t("paywall.supportsCreator")}</li>
+        <li>{t("paywall.accentColorBenefit")}</li>
+        <li>{t("paywall.reviewAnimationsBenefit")}</li>
+        <li>{t("paywall.appIconBenefit")}</li>
         {offer?.premiumAiMonthlyMessages === undefined || offer.premiumAiMonthlyMessages === null ? null : <li>
           {t("stripe.offer.aiBenefit", { count: formatNumber(offer.premiumAiMonthlyMessages) })}
         </li>}
-        <li>{t("stripe.product.accentFeature")}</li>
       </ul>
-      <p className="premium-creator-support">{creatorCopy[0]}<a href="https://kirill-markin.com/" target="_blank" rel="noreferrer">Kirill Markin</a>{creatorCopy[1]}</p>
-      {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
+      {canPurchase && price !== null ? <button type="button" className="premium-plan-button premium-paid-button"
         disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase" onClick={choosePremium}>
-        <span>{t(showsTrial ? "paywall.startTrial" : "stripe.offer.subscribe")}</span>{actionArrow}
+        <span>{showsTrial ? t("paywall.startTrial") : t("paywall.subscribe", { price })}</span>{actionArrow}
       </button> : <p data-testid="premium-purchase-unavailable" role="status">
         {t(billing.busy ? "common.loading" : !props.isPreview && offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
           : !props.isPreview && offer?.checkoutUnavailableReason === "existing_subscription" ? "stripe.portal.headline" : "common.unavailable")}
@@ -86,12 +89,16 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
     <section className="premium-plan premium-free-plan" aria-labelledby="premium-free-title">
       <div className="premium-plan-header">
         <h3 id="premium-free-title" className="panel-subtitle">{t("paywall.freeTitle")}</h3>
-        <p className="premium-free-price">{t("paywall.alwaysFree")}</p>
       </div>
       <p>{t("paywall.freeDescription")}</p>
-      <ul className="premium-benefits"><li>{t("paywall.freeBenefit")}</li></ul>
+      <ul className="premium-benefits">
+        <li className="premium-benefit-missing">{t("paywall.noCreatorSupport")}</li>
+        <li>{t("paywall.freeBenefit")}</li>
+        <li className="premium-benefit-missing">{t("paywall.limitedAi")}</li>
+        <li className="premium-benefit-missing">{t("paywall.defaultStyles")}</li>
+      </ul>
       <button type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
-        <span>{t("paywall.continueFree")}</span>{actionArrow}
+        <span>{t("paywall.notNow")}</span>{actionArrow}
       </button>
     </section>
     <footer className="premium-footer">

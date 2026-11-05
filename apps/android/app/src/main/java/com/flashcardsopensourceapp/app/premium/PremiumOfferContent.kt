@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -42,14 +45,14 @@ internal fun PremiumOfferHeading() {
 }
 
 @Composable
-internal fun PremiumPlanHeader(title: String, price: String) {
+internal fun PremiumPlanHeader(title: String, price: String?) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(title, style = MaterialTheme.typography.titleLarge)
-        if (price.isNotEmpty()) {
+        if (price != null) {
             Text(
                 price,
                 style = MaterialTheme.typography.titleMedium,
@@ -61,15 +64,30 @@ internal fun PremiumPlanHeader(title: String, price: String) {
 
 @Composable
 internal fun PremiumBenefit(text: String, modifier: Modifier) {
+    PremiumPlanFeature(imageVector = Icons.Outlined.Check, tint = FlashcardsOrange, text = text, modifier = modifier)
+}
+
+@Composable
+internal fun PremiumMissingBenefit(text: String) {
+    PremiumPlanFeature(
+        imageVector = Icons.Outlined.Close,
+        tint = MaterialTheme.colorScheme.error,
+        text = text,
+        modifier = Modifier
+    )
+}
+
+@Composable
+private fun PremiumPlanFeature(imageVector: ImageVector, tint: Color, text: String, modifier: Modifier) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.Top,
         modifier = Modifier.fillMaxWidth()
     ) {
         Icon(
-            imageVector = Icons.Outlined.Check,
+            imageVector = imageVector,
             contentDescription = null,
-            tint = FlashcardsOrange,
+            tint = tint,
             modifier = Modifier.size(20.dp)
         )
         Text(text, style = MaterialTheme.typography.bodyMedium, modifier = modifier.weight(1f))
