@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Učenie patrí **všetkým**.";
 "premium.offer.free" = "Zadarmo";
-"premium.offer.freeDescription" = "Vytvorené pre študentov bez práce. Otvorené všetkým. Váš batoh je práve o niečo ľahší.";
+"premium.offer.freeDescription" = "Vytvorené pre študentov bez práce. Otvorené všetkým.";
 "premium.offer.freeBenefits" = "Opakovanie, učenie offline a synchronizácia";
 "premium.offer.monthlyAI" = "%@ správ v AI chate mesačne";
 "premium.offer.supportsCreator" = "Podporuje tvorcu aplikácie";
 "premium.offer.accentColor" = "Ľubovoľná farba zvýraznenia";
-"premium.offer.reviewAnimations" = "Animácie pri opakovaní: zapnuté alebo vypnuté";
+"premium.offer.themes" = "Tmavý a svetlý motív";
+"premium.offer.reviewAnimations" = "Ovládanie animácií pri opakovaní";
 "premium.offer.appIcon" = "Vlastná ikona aplikácie";
 "premium.offer.startSevenDayTrial" = "Začať 7-dňové skúšobné obdobie zadarmo";
 "premium.offer.subscribeWithPrice" = "Predplatiť — %@";
 "premium.offer.noCreatorSupport" = "Nepodporuje tvorcu aplikácie";
 "premium.offer.limitedAI" = "Obmedzený AI chat";
 "premium.offer.defaultStylesOnly" = "Iba predvolené štýly";
-"premium.offer.notNow" = "Teraz nie";
+"premium.offer.noOtherPremiumFeatures" = "Žiadne ďalšie funkcie Premium";
+"premium.offer.dontPayCreator" = "Neplaťte tvorcovi aplikácie";
 "premium.offer.unlimitedAI" = "Správy AI bez mesačného limitu";
 "premium.offer.creatorSupport" = "Vaše predplatné pomáha tvorcovi Nibomo, [Kirill Markin](https://kirill-markin.com/), platiť servery a pripravovať ďalšiu aktualizáciu s kávou a pizzou.";
 "premium.offer.previewPurchaseMessage" = "Toto je testovací náhľad. Žiadny nákup sa nevykoná.";

@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Mācīšanās ir **visiem**.";
 "premium.offer.free" = "Bezmaksas";
-"premium.offer.freeDescription" = "Radīts studentiem bez darba. Atvērts visiem. Tava mugursoma tikko kļuva vieglāka.";
+"premium.offer.freeDescription" = "Radīts studentiem bez darba. Atvērts visiem.";
 "premium.offer.freeBenefits" = "Atkārtošana, mācības bezsaistē un sinhronizācija";
 "premium.offer.monthlyAI" = "%@ MI sarunas ziņojumu mēnesī";
 "premium.offer.supportsCreator" = "Atbalsta lietotnes veidotāju";
 "premium.offer.accentColor" = "Jebkura akcenta krāsa";
-"premium.offer.reviewAnimations" = "Atkārtošanas animācijas: ieslēgtas vai izslēgtas";
+"premium.offer.themes" = "Tumšs un gaišs motīvs";
+"premium.offer.reviewAnimations" = "Atkārtošanas animāciju vadība";
 "premium.offer.appIcon" = "Pielāgota lietotnes ikona";
 "premium.offer.startSevenDayTrial" = "Sākt 7 dienu bezmaksas izmēģinājumu";
 "premium.offer.subscribeWithPrice" = "Abonēt — %@";
 "premium.offer.noCreatorSupport" = "Neatbalsta lietotnes veidotāju";
 "premium.offer.limitedAI" = "Ierobežota MI saruna";
 "premium.offer.defaultStylesOnly" = "Tikai noklusējuma stili";
-"premium.offer.notNow" = "Ne tagad";
+"premium.offer.noOtherPremiumFeatures" = "Nav citu Premium funkciju";
+"premium.offer.dontPayCreator" = "Nemaksā lietotnes veidotājam";
 "premium.offer.unlimitedAI" = "MI ziņojumi bez mēneša ierobežojuma";
 "premium.offer.creatorSupport" = "Tavs abonements palīdz Nibomo veidotājam [Kirill Markin](https://kirill-markin.com/) apmaksāt serverus un ar kafiju un picu gatavot nākamo atjauninājumu.";
 "premium.offer.previewPurchaseMessage" = "Šis ir testa priekšskatījums. Pirkums netiks veikts.";

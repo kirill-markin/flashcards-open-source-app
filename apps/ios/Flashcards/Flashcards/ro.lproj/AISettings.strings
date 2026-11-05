@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Învățarea este pentru **toți**.";
 "premium.offer.free" = "Gratuit";
-"premium.offer.freeDescription" = "Creat pentru studenți fără un loc de muncă. Deschis tuturor. Rucsacul tău tocmai a devenit mai ușor.";
+"premium.offer.freeDescription" = "Creat pentru studenți fără un loc de muncă. Deschis tuturor.";
 "premium.offer.freeBenefits" = "Recapitulări, învățare offline și sincronizare";
 "premium.offer.monthlyAI" = "%@ mesaje în chatul AI pe lună";
 "premium.offer.supportsCreator" = "Îl susține pe creatorul aplicației";
 "premium.offer.accentColor" = "Orice culoare de accent";
-"premium.offer.reviewAnimations" = "Animații de recapitulare: activate sau dezactivate";
+"premium.offer.themes" = "Temă întunecată și luminoasă";
+"premium.offer.reviewAnimations" = "Controlul animațiilor de recapitulare";
 "premium.offer.appIcon" = "Pictogramă personalizată a aplicației";
 "premium.offer.startSevenDayTrial" = "Începe perioada de probă gratuită de 7 zile";
 "premium.offer.subscribeWithPrice" = "Abonează-te — %@";
 "premium.offer.noCreatorSupport" = "Nu îl susține pe creatorul aplicației";
 "premium.offer.limitedAI" = "Chat AI limitat";
 "premium.offer.defaultStylesOnly" = "Doar stiluri implicite";
-"premium.offer.notNow" = "Nu acum";
+"premium.offer.noOtherPremiumFeatures" = "Fără alte funcții Premium";
+"premium.offer.dontPayCreator" = "Nu-l plăti pe creatorul aplicației";
 "premium.offer.unlimitedAI" = "Mesaje AI fără limită lunară";
 "premium.offer.creatorSupport" = "Abonamentul tău îl ajută pe creatorul Nibomo, [Kirill Markin](https://kirill-markin.com/), să plătească serverele și să pregătească următoarea actualizare cu cafea și pizza.";
 "premium.offer.previewPurchaseMessage" = "Aceasta este o previzualizare de test. Nu se va efectua nicio achiziție.";

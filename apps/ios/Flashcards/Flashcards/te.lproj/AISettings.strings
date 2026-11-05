@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "నేర్చుకోవడం **అందరి** హక్కు.";
 "premium.offer.free" = "ఉచితం";
-"premium.offer.freeDescription" = "ఉద్యోగం లేని విద్యార్థుల కోసం రూపొందించబడింది. అందరికీ అందుబాటులో ఉంది. మీ పుస్తకాల సంచి ఇప్పుడు తేలికైంది.";
+"premium.offer.freeDescription" = "ఉద్యోగం లేని విద్యార్థుల కోసం రూపొందించబడింది. అందరికీ అందుబాటులో ఉంది.";
 "premium.offer.freeBenefits" = "ముఖ్యమైన పునశ్చరణ, ఆఫ్‌లైన్ అభ్యాసం మరియు సింక్";
 "premium.offer.monthlyAI" = "ప్రతి నెల %@ AI చాట్ సందేశాలు";
 "premium.offer.supportsCreator" = "యాప్ సృష్టికర్తకు మద్దతు ఇస్తుంది";
 "premium.offer.accentColor" = "ఏ హైలైట్ రంగైనా";
-"premium.offer.reviewAnimations" = "పునశ్చరణ యానిమేషన్‌లు: ఆన్ లేదా ఆఫ్";
+"premium.offer.themes" = "డార్క్, లైట్ థీమ్‌లు";
+"premium.offer.reviewAnimations" = "పునశ్చరణ యానిమేషన్‌ల నియంత్రణ";
 "premium.offer.appIcon" = "మీకు నచ్చిన యాప్ ఐకాన్";
 "premium.offer.startSevenDayTrial" = "7 రోజుల ఉచిత ట్రయల్ ప్రారంభించండి";
 "premium.offer.subscribeWithPrice" = "సభ్యత్వం పొందండి — %@";
 "premium.offer.noCreatorSupport" = "యాప్ సృష్టికర్తకు మద్దతు ఇవ్వదు";
 "premium.offer.limitedAI" = "పరిమిత AI చాట్";
 "premium.offer.defaultStylesOnly" = "డిఫాల్ట్ శైలులు మాత్రమే";
-"premium.offer.notNow" = "ఇప్పుడు కాదు";
+"premium.offer.noOtherPremiumFeatures" = "ఇతర Premium ఫీచర్‌లు లేవు";
+"premium.offer.dontPayCreator" = "యాప్ సృష్టికర్తకు డబ్బు చెల్లించవద్దు";
 "premium.offer.unlimitedAI" = "నెలవారీ పరిమితి లేని AI సందేశాలు";
 "premium.offer.creatorSupport" = "మీ సభ్యత్వం Nibomo సృష్టికర్త [Kirill Markin](https://kirill-markin.com/) కు సర్వర్ ఖర్చులు చెల్లించడానికి, కాఫీ మరియు పిజ్జాతో తదుపరి అప్‌డేట్ సిద్ధం చేయడానికి సహాయపడుతుంది.";
 "premium.offer.previewPurchaseMessage" = "ఇది పరీక్ష ప్రివ్యూ. ఎలాంటి కొనుగోలు జరగదు.";

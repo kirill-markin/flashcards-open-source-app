@@ -115,7 +115,7 @@ Checkout and resumes any pending feature choice.
 
 Every shared Premium offer shows the Premium plan first and the Free plan second. The offer shows
 the monthly price alone, with no base-price label or discount wording. The Premium plan leads with
-supporting the creator; the Free plan marks what it lacks with red crosses, and its button reads "Not now".
+supporting the creator; the Free plan marks what it lacks with red crosses, and its button reads "Don’t pay the app’s creator".
 
 ## Style settings
 

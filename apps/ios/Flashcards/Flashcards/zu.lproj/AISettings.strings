@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Ukufunda kungokwawo **wonke umuntu**.";
 "premium.offer.free" = "Mahhala";
-"premium.offer.freeDescription" = "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu. Ubhaka wakho usulula manje.";
+"premium.offer.freeDescription" = "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu.";
 "premium.offer.freeBenefits" = "Ukubuyekeza okuyisisekelo, ukufunda ungaxhunyiwe nokuvumelanisa";
 "premium.offer.monthlyAI" = "Imilayezo yengxoxo ye-AI engu-%@ ngenyanga";
 "premium.offer.supportsCreator" = "Isekela umdali wohlelo";
 "premium.offer.accentColor" = "Noma imuphi umbala wokugqamisa";
-"premium.offer.reviewAnimations" = "Ukugqwayiza kokubukeza: kuvuliwe noma kuvaliwe";
+"premium.offer.themes" = "Itimu emnyama nekhanyayo";
+"premium.offer.reviewAnimations" = "Ukulawula ukugqwayiza kokubukeza";
 "premium.offer.appIcon" = "Isithonjana sohlelo ozikhethela sona";
 "premium.offer.startSevenDayTrial" = "Qala isivivinyo samahhala sezinsuku ezi-7";
 "premium.offer.subscribeWithPrice" = "Bhalisa — %@";
 "premium.offer.noCreatorSupport" = "Ayisekeli umdali wohlelo";
 "premium.offer.limitedAI" = "Ingxoxo ye-AI enomkhawulo";
 "premium.offer.defaultStylesOnly" = "Izitayela ezizenzakalelayo kuphela";
-"premium.offer.notNow" = "Hhayi manje";
+"premium.offer.noOtherPremiumFeatures" = "Azikho ezinye izici ze-Premium";
+"premium.offer.dontPayCreator" = "Ungamkhokheli umdali wohlelo";
 "premium.offer.unlimitedAI" = "Imilayezo ye-AI engenamkhawulo wanyanga zonke";
 "premium.offer.creatorSupport" = "Ukubhalisa kwakho kusiza umdali we-Nibomo, [Kirill Markin](https://kirill-markin.com/), ukukhokhela amaseva nokulungiselela isibuyekezo esilandelayo ngekhofi ne-pizza.";
 "premium.offer.previewPurchaseMessage" = "Lokhu ukubuka kuqala kokuhlola. Akukho kuthenga okuzokwenziwa.";

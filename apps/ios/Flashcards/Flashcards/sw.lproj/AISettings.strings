@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Kujifunza ni kwa **kila mtu**.";
 "premium.offer.free" = "Bure";
-"premium.offer.freeDescription" = "Imeundwa kwa wanafunzi wasio na kazi. Wazi kwa kila mtu. Begi lako limekuwa jepesi zaidi.";
+"premium.offer.freeDescription" = "Imeundwa kwa wanafunzi wasio na kazi. Wazi kwa kila mtu.";
 "premium.offer.freeBenefits" = "Marudio ya msingi, kujifunza bila mtandao na usawazishaji";
 "premium.offer.monthlyAI" = "Ujumbe %@ wa gumzo la AI kwa mwezi";
 "premium.offer.supportsCreator" = "Humuunga mkono muundaji wa programu";
 "premium.offer.accentColor" = "Rangi yoyote ya msisitizo";
-"premium.offer.reviewAnimations" = "Uhuishaji wa marudio: washa au zima";
+"premium.offer.themes" = "Mandhari ya giza na angavu";
+"premium.offer.reviewAnimations" = "Udhibiti wa uhuishaji wa marudio";
 "premium.offer.appIcon" = "Ikoni maalum ya programu";
 "premium.offer.startSevenDayTrial" = "Anza jaribio la bure la siku 7";
 "premium.offer.subscribeWithPrice" = "Jisajili — %@";
 "premium.offer.noCreatorSupport" = "Haumuungi mkono muundaji wa programu";
 "premium.offer.limitedAI" = "Gumzo la AI lenye kikomo";
 "premium.offer.defaultStylesOnly" = "Mitindo chaguomsingi pekee";
-"premium.offer.notNow" = "Si sasa";
+"premium.offer.noOtherPremiumFeatures" = "Hakuna vipengele vingine vya Premium";
+"premium.offer.dontPayCreator" = "Usimlipe muundaji wa programu";
 "premium.offer.unlimitedAI" = "Ujumbe wa AI bila kikomo cha kila mwezi";
 "premium.offer.creatorSupport" = "Usajili wako humsaidia muundaji wa Nibomo, [Kirill Markin](https://kirill-markin.com/), kulipia seva na kuandaa sasisho lijalo kwa kahawa na pizza.";
 "premium.offer.previewPurchaseMessage" = "Huu ni mwonekano wa majaribio. Hakuna ununuzi utakaofanywa.";
