@@ -55,6 +55,8 @@
     <string name="review_widget_question_without_text">Image question</string>
     <!-- The placeholder is a time today, otherwise a date and time. -->
     <string name="review_widget_next_due">Next card: <xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
+    <!-- The big due count on the small widget, in the locale's digits. -->
+    <string name="review_widget_due_count" translatable="false">%1$d</string>
     <!-- Shown under the big due count on the small widget. -->
     <string name="review_widget_due_label">due</string>
     <plurals name="review_widget_cards_due">
