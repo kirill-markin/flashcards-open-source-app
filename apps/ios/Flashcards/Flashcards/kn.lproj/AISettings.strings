@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "ಕಲಿಕೆ **ಎಲ್ಲರಿಗೂ** ಸೇರಿದ್ದು.";
 "premium.offer.free" = "ಉಚಿತ";
-"premium.offer.freeDescription" = "ಕೆಲಸವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತ. ನಿಮ್ಮ ಚೀಲ ಈಗ ಹಗುರವಾಗಿದೆ.";
+"premium.offer.freeDescription" = "ಕೆಲಸವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತ.";
 "premium.offer.freeBenefits" = "ಮುಖ್ಯ ಪುನರಾವರ್ತನೆ, ಆಫ್‌ಲೈನ್ ಕಲಿಕೆ ಮತ್ತು ಸಿಂಕ್";
 "premium.offer.monthlyAI" = "ಪ್ರತಿ ತಿಂಗಳು %@ AI ಚಾಟ್ ಸಂದೇಶಗಳು";
 "premium.offer.supportsCreator" = "ಆ್ಯಪ್‌ನ ಸೃಷ್ಟಿಕರ್ತರನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ";
 "premium.offer.accentColor" = "ಯಾವುದೇ ಹೈಲೈಟ್ ಬಣ್ಣ";
-"premium.offer.reviewAnimations" = "ಪುನರಾವರ್ತನೆ ಅನಿಮೇಶನ್‌ಗಳು: ಆನ್ ಅಥವಾ ಆಫ್";
+"premium.offer.themes" = "ಡಾರ್ಕ್ ಮತ್ತು ಲೈಟ್ ಥೀಮ್‌ಗಳು";
+"premium.offer.reviewAnimations" = "ಪುನರಾವರ್ತನೆ ಅನಿಮೇಶನ್‌ಗಳ ನಿಯಂತ್ರಣ";
 "premium.offer.appIcon" = "ನಿಮ್ಮಿಷ್ಟದ ಆ್ಯಪ್ ಐಕಾನ್";
 "premium.offer.startSevenDayTrial" = "7 ದಿನಗಳ ಉಚಿತ ಪ್ರಯೋಗ ಪ್ರಾರಂಭಿಸಿ";
 "premium.offer.subscribeWithPrice" = "ಚಂದಾದಾರರಾಗಿ — %@";
 "premium.offer.noCreatorSupport" = "ಆ್ಯಪ್‌ನ ಸೃಷ್ಟಿಕರ್ತರನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ";
 "premium.offer.limitedAI" = "ಸೀಮಿತ AI ಚಾಟ್";
 "premium.offer.defaultStylesOnly" = "ಡೀಫಾಲ್ಟ್ ಶೈಲಿಗಳು ಮಾತ್ರ";
-"premium.offer.notNow" = "ಈಗ ಬೇಡ";
+"premium.offer.noOtherPremiumFeatures" = "ಬೇರೆ ಯಾವುದೇ Premium ವೈಶಿಷ್ಟ್ಯಗಳಿಲ್ಲ";
+"premium.offer.dontPayCreator" = "ಆ್ಯಪ್‌ನ ಸೃಷ್ಟಿಕರ್ತರಿಗೆ ಹಣ ಪಾವತಿಸಬೇಡಿ";
 "premium.offer.unlimitedAI" = "ಮಾಸಿಕ ಮಿತಿಯಿಲ್ಲದ AI ಸಂದೇಶಗಳು";
 "premium.offer.creatorSupport" = "ನಿಮ್ಮ ಚಂದಾದಾರಿಕೆ Nibomo ಸೃಷ್ಟಿಕರ್ತ [Kirill Markin](https://kirill-markin.com/) ಅವರಿಗೆ ಸರ್ವರ್ ವೆಚ್ಚ ಭರಿಸಲು ಮತ್ತು ಕಾಫಿ ಹಾಗೂ ಪಿಜ್ಜಾದೊಂದಿಗೆ ಮುಂದಿನ ನವೀಕರಣ ಸಿದ್ಧಪಡಿಸಲು ನೆರವಾಗುತ್ತದೆ.";
 "premium.offer.previewPurchaseMessage" = "ಇದು ಪರೀಕ್ಷಾ ಪೂರ್ವವೀಕ್ಷಣೆ. ಯಾವುದೇ ಖರೀದಿ ಮಾಡಲಾಗುವುದಿಲ್ಲ.";

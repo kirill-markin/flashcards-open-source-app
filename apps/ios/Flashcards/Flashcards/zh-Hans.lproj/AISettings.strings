@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "学习属于**每一个人**。";
 "premium.offer.free" = "免费";
-"premium.offer.freeDescription" = "为尚未就业的学生打造，向所有人开放。你的书包又轻了一点。";
+"premium.offer.freeDescription" = "为尚未就业的学生打造，向所有人开放。";
 "premium.offer.freeBenefits" = "核心复习、离线学习和同步";
 "premium.offer.monthlyAI" = "每月 %@ 条 AI 聊天消息";
 "premium.offer.supportsCreator" = "资助应用的创作者";
 "premium.offer.accentColor" = "任意强调色";
-"premium.offer.reviewAnimations" = "复习动画可开可关";
+"premium.offer.themes" = "深色和浅色主题";
+"premium.offer.reviewAnimations" = "复习动画控制";
 "premium.offer.appIcon" = "自定义应用图标";
 "premium.offer.startSevenDayTrial" = "开始 7 天免费试用";
 "premium.offer.subscribeWithPrice" = "订阅 — %@";
 "premium.offer.noCreatorSupport" = "不资助应用的创作者";
 "premium.offer.limitedAI" = "AI 聊天受限";
 "premium.offer.defaultStylesOnly" = "仅限默认样式";
-"premium.offer.notNow" = "暂不";
+"premium.offer.noOtherPremiumFeatures" = "无其他 Premium 功能";
+"premium.offer.dontPayCreator" = "不付费给应用的创作者";
 "premium.offer.unlimitedAI" = "AI 消息无月度上限";
 "premium.offer.creatorSupport" = "你的订阅帮助 Nibomo 的创作者 [Kirill Markin](https://kirill-markin.com/) 支付服务器费用，也为下一次更新提供咖啡和披萨的动力。";
 "premium.offer.previewPurchaseMessage" = "这是测试预览，不会进行任何购买。";

@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "শেখা **সবার** অধিকার।";
 "premium.offer.free" = "বিনামূল্যে";
-"premium.offer.freeDescription" = "চাকরি নেই এমন শিক্ষার্থীদের জন্য তৈরি। সবার জন্য উন্মুক্ত। আপনার ব্যাগ এখন আরও হালকা।";
+"premium.offer.freeDescription" = "চাকরি নেই এমন শিক্ষার্থীদের জন্য তৈরি। সবার জন্য উন্মুক্ত।";
 "premium.offer.freeBenefits" = "প্রয়োজনীয় পুনরাবৃত্তি, অফলাইন শেখা ও সিঙ্ক";
 "premium.offer.monthlyAI" = "প্রতি মাসে %@টি এআই চ্যাট বার্তা";
 "premium.offer.supportsCreator" = "অ্যাপের নির্মাতাকে সমর্থন করে";
 "premium.offer.accentColor" = "যেকোনো অ্যাকসেন্ট রং";
-"premium.offer.reviewAnimations" = "পুনরালোচনার অ্যানিমেশন: চালু বা বন্ধ";
+"premium.offer.themes" = "ডার্ক ও লাইট থিম";
+"premium.offer.reviewAnimations" = "পুনরালোচনার অ্যানিমেশন নিয়ন্ত্রণ";
 "premium.offer.appIcon" = "নিজস্ব অ্যাপ আইকন";
 "premium.offer.startSevenDayTrial" = "৭ দিনের বিনামূল্যে ট্রায়াল শুরু করুন";
 "premium.offer.subscribeWithPrice" = "সাবস্ক্রাইব করুন — %@";
 "premium.offer.noCreatorSupport" = "অ্যাপের নির্মাতাকে সমর্থন করে না";
 "premium.offer.limitedAI" = "সীমিত এআই চ্যাট";
 "premium.offer.defaultStylesOnly" = "শুধু ডিফল্ট স্টাইল";
-"premium.offer.notNow" = "এখন নয়";
+"premium.offer.noOtherPremiumFeatures" = "অন্য কোনো Premium ফিচার নেই";
+"premium.offer.dontPayCreator" = "অ্যাপের নির্মাতাকে টাকা দেবেন না";
 "premium.offer.unlimitedAI" = "মাসিক সীমা ছাড়াই AI বার্তা";
 "premium.offer.creatorSupport" = "আপনার সাবস্ক্রিপশন Nibomo-এর নির্মাতা [Kirill Markin](https://kirill-markin.com/)-কে সার্ভারের খরচ দিতে এবং কফি ও পিৎজা নিয়ে পরের আপডেট তৈরিতে সাহায্য করে।";
 "premium.offer.previewPurchaseMessage" = "এটি একটি পরীক্ষামূলক প্রিভিউ। কোনো কেনাকাটা করা হবে না।";

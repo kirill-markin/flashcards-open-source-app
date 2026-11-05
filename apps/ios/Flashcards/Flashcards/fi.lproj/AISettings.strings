@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Oppiminen kuuluu **kaikille**.";
 "premium.offer.free" = "Ilmainen";
-"premium.offer.freeDescription" = "Luotu opiskelijoille, joilla ei ole työtä. Avoin kaikille. Reppusi keveni juuri.";
+"premium.offer.freeDescription" = "Luotu opiskelijoille, joilla ei ole työtä. Avoin kaikille.";
 "premium.offer.freeBenefits" = "Kertaus, offline-oppiminen ja synkronointi";
 "premium.offer.monthlyAI" = "%@ tekoälykeskusteluviestiä kuukaudessa";
 "premium.offer.supportsCreator" = "Tukee sovelluksen luojaa";
 "premium.offer.accentColor" = "Mikä tahansa korostusväri";
-"premium.offer.reviewAnimations" = "Kertausanimaatiot: päällä tai pois";
+"premium.offer.themes" = "Tumma ja vaalea teema";
+"premium.offer.reviewAnimations" = "Kertausanimaatioiden hallinta";
 "premium.offer.appIcon" = "Oma sovelluskuvake";
 "premium.offer.startSevenDayTrial" = "Aloita 7 päivän ilmainen kokeilu";
 "premium.offer.subscribeWithPrice" = "Tilaa — %@";
 "premium.offer.noCreatorSupport" = "Ei tue sovelluksen luojaa";
 "premium.offer.limitedAI" = "Rajoitettu tekoälykeskustelu";
 "premium.offer.defaultStylesOnly" = "Vain oletustyylit";
-"premium.offer.notNow" = "Ei nyt";
+"premium.offer.noOtherPremiumFeatures" = "Ei muita Premium-ominaisuuksia";
+"premium.offer.dontPayCreator" = "Älä maksa sovelluksen luojalle";
 "premium.offer.unlimitedAI" = "Tekoälyviestit ilman kuukausirajaa";
 "premium.offer.creatorSupport" = "Tilauksesi auttaa Nibomon luojaa, [Kirill Markin](https://kirill-markin.com/), maksamaan palvelimet ja valmistelemaan seuraavaa päivitystä kahvin ja pizzan voimin.";
 "premium.offer.previewPurchaseMessage" = "Tämä on testiesikatselu. Ostosta ei tehdä.";

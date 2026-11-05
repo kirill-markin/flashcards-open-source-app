@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Lärande är för **alla**.";
 "premium.offer.free" = "Gratis";
-"premium.offer.freeDescription" = "Skapat för studenter utan jobb. Öppet för alla. Din ryggsäck blev just lättare.";
+"premium.offer.freeDescription" = "Skapat för studenter utan jobb. Öppet för alla.";
 "premium.offer.freeBenefits" = "Repetition, lärande offline och synkronisering";
 "premium.offer.monthlyAI" = "%@ AI-chattmeddelanden per månad";
 "premium.offer.supportsCreator" = "Stöttar appens skapare";
 "premium.offer.accentColor" = "Valfri accentfärg";
-"premium.offer.reviewAnimations" = "Repetitionsanimationer: på eller av";
+"premium.offer.themes" = "Mörkt och ljust tema";
+"premium.offer.reviewAnimations" = "Styrning av repetitionsanimationer";
 "premium.offer.appIcon" = "Egen appikon";
 "premium.offer.startSevenDayTrial" = "Starta 7 dagars gratis provperiod";
 "premium.offer.subscribeWithPrice" = "Prenumerera — %@";
 "premium.offer.noCreatorSupport" = "Stöttar inte appens skapare";
 "premium.offer.limitedAI" = "Begränsad AI-chatt";
 "premium.offer.defaultStylesOnly" = "Endast standardstilar";
-"premium.offer.notNow" = "Inte nu";
+"premium.offer.noOtherPremiumFeatures" = "Inga andra Premium-funktioner";
+"premium.offer.dontPayCreator" = "Betala inte appens skapare";
 "premium.offer.unlimitedAI" = "AI-meddelanden utan månadsgräns";
 "premium.offer.creatorSupport" = "Din prenumeration hjälper Nibomos skapare, [Kirill Markin](https://kirill-markin.com/), att betala servrarna och förbereda nästa uppdatering med kaffe och pizza.";
 "premium.offer.previewPurchaseMessage" = "Det här är en testförhandsvisning. Inget köp kommer att genomföras.";

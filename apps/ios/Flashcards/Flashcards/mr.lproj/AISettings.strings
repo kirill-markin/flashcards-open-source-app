@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "शिकणे **सर्वांसाठी** आहे.";
 "premium.offer.free" = "मोफत";
-"premium.offer.freeDescription" = "नोकरी नसलेल्या विद्यार्थ्यांसाठी तयार केलेले. सर्वांसाठी खुले. तुमचे दप्तर आता हलके झाले.";
+"premium.offer.freeDescription" = "नोकरी नसलेल्या विद्यार्थ्यांसाठी तयार केलेले. सर्वांसाठी खुले.";
 "premium.offer.freeBenefits" = "आवश्यक उजळणी, ऑफलाइन शिक्षण आणि सिंक";
 "premium.offer.monthlyAI" = "दर महिन्याला %@ AI चॅट संदेश";
 "premium.offer.supportsCreator" = "अ‍ॅपच्या निर्मात्याला पाठिंबा देते";
 "premium.offer.accentColor" = "कोणताही ठळक रंग";
-"premium.offer.reviewAnimations" = "उजळणीतील अ‍ॅनिमेशन: चालू किंवा बंद";
+"premium.offer.themes" = "डार्क आणि लाइट थीम";
+"premium.offer.reviewAnimations" = "उजळणीतील अ‍ॅनिमेशनवर नियंत्रण";
 "premium.offer.appIcon" = "स्वतःचे अ‍ॅप चिन्ह";
 "premium.offer.startSevenDayTrial" = "7 दिवसांची मोफत चाचणी सुरू करा";
 "premium.offer.subscribeWithPrice" = "सदस्यता घ्या — %@";
 "premium.offer.noCreatorSupport" = "अ‍ॅपच्या निर्मात्याला पाठिंबा देत नाही";
 "premium.offer.limitedAI" = "मर्यादित AI चॅट";
 "premium.offer.defaultStylesOnly" = "फक्त डीफॉल्ट शैली";
-"premium.offer.notNow" = "आता नको";
+"premium.offer.noOtherPremiumFeatures" = "इतर कोणतीही Premium वैशिष्ट्ये नाहीत";
+"premium.offer.dontPayCreator" = "अ‍ॅपच्या निर्मात्याला पैसे देऊ नका";
 "premium.offer.unlimitedAI" = "मासिक मर्यादेशिवाय AI संदेश";
 "premium.offer.creatorSupport" = "तुमची सदस्यता Nibomo चे निर्माते [Kirill Markin](https://kirill-markin.com/) यांना सर्व्हरचा खर्च भागवण्यासाठी आणि कॉफी व पिझ्झासोबत पुढील अपडेट तयार करण्यासाठी मदत करते.";
 "premium.offer.previewPurchaseMessage" = "हे चाचणी पूर्वावलोकन आहे. कोणतीही खरेदी केली जाणार नाही.";
