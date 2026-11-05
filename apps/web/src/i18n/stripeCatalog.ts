@@ -34,8 +34,6 @@ export function createStripeCatalog(copy: StripeCopy): StripeCatalog {
       accentBenefit: formatStripeMessage(copy["offer.accentBenefit"]),
       price: formatStripeMessage(copy["offer.price"]),
       trial: formatStripeMessage(copy["offer.trial"]),
-      startTrial: formatStripeMessage(copy["offer.startTrial"]),
-      subscribe: formatStripeMessage(copy["offer.subscribe"]),
       renewalDisclosure: formatStripeMessage(copy["offer.renewalDisclosure"]),
       guestExplanation: formatStripeMessage(copy["offer.guestExplanation"]),
       addEmail: formatStripeMessage(copy["offer.addEmail"]),

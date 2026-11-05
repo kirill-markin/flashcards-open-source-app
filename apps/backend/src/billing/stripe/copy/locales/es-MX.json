@@ -10,8 +10,6 @@
   "offer.accentBenefit": "Personaliza el color de acento, las animaciones de repaso y las sugerencias del chat de IA en Configuración > Estilo.",
   "offer.price": "{price} al mes",
   "offer.trial": "7 días gratis. Después, {price} al mes.",
-  "offer.startTrial": "Iniciar prueba gratis",
-  "offer.subscribe": "Suscribirse",
   "offer.renewalDisclosure": "Tu suscripción se renueva automáticamente hasta que la canceles. Puedes administrarla o cancelarla en la configuración de la suscripción.",
   "offer.guestExplanation": "Agrega un correo electrónico a tu cuenta antes de suscribirte para poder recuperar el acceso en otro dispositivo.",
   "offer.addEmail": "Agregar correo electrónico",

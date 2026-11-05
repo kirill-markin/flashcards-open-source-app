@@ -10,8 +10,6 @@
   "offer.accentBenefit": "Anpassa accentfärg, repetitionsanimationer och förslag i AI-chatten under Inställningar > Stil.",
   "offer.price": "{price} per månad",
   "offer.trial": "7 dagar gratis. Därefter {price} per månad.",
-  "offer.startTrial": "Starta gratis provperiod",
-  "offer.subscribe": "Prenumerera",
   "offer.renewalDisclosure": "Din prenumeration förnyas automatiskt tills du säger upp den. Hantera eller säg upp den i prenumerationsinställningarna.",
   "offer.guestExplanation": "Lägg till en e-postadress på ditt konto innan du prenumererar så att du kan återställa åtkomsten på en annan enhet.",
   "offer.addEmail": "Lägg till e-postadress",
