@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Pieprasījuma konteksts";
 "ai.message.reasoning.title" = "Spriešana";
 "ai.message.reasoning.thinking" = "Domā...";
+"ai.message.work.running" = "Strādā %@";
+"ai.message.work.finished" = "Strādāja %@";
+"ai.message.work.finishedWithoutDuration" = "Darbs pabeigts";
 "ai.message.fullResponse.show" = "Rādīt pilnu atbildi";
 "ai.message.fullResponse.title" = "Pilna atbilde";
 "ai.tool.label.codeExecution" = "Koda izpilde";

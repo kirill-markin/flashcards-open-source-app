@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Muktadha wa ombi";
 "ai.message.reasoning.title" = "Ufikiri";
 "ai.message.reasoning.thinking" = "Inafikiri...";
+"ai.message.work.running" = "Inafanya kazi kwa %@";
+"ai.message.work.finished" = "Ilifanya kazi kwa %@";
+"ai.message.work.finishedWithoutDuration" = "Kazi imekamilika";
 "ai.message.fullResponse.show" = "Onyesha jibu lote";
 "ai.message.fullResponse.title" = "Jibu lote";
 "ai.tool.label.codeExecution" = "Utekelezaji wa msimbo";

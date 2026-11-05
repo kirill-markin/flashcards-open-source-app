@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "ವಿನಂತಿಯ ಸಂದರ್ಭ";
 "ai.message.reasoning.title" = "ತಾರ್ಕಿಕ ಚಿಂತನೆ";
 "ai.message.reasoning.thinking" = "ಯೋಚಿಸಲಾಗುತ್ತಿದೆ...";
+"ai.message.work.running" = "%@ ನಿಂದ ಕೆಲಸ ನಡೆಯುತ್ತಿದೆ";
+"ai.message.work.finished" = "%@ ಕೆಲಸ ಮಾಡಿದೆ";
+"ai.message.work.finishedWithoutDuration" = "ಕೆಲಸ ಮುಗಿದಿದೆ";
 "ai.message.fullResponse.show" = "ಪೂರ್ಣ ಉತ್ತರ ತೋರಿಸಿ";
 "ai.message.fullResponse.title" = "ಪೂರ್ಣ ಉತ್ತರ";
 "ai.tool.label.codeExecution" = "ಕೋಡ್ ಕಾರ್ಯಗತಗೊಳಿಸುವಿಕೆ";

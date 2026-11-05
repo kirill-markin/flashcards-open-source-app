@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Kehotteen konteksti";
 "ai.message.reasoning.title" = "Päättely";
 "ai.message.reasoning.thinking" = "Mietitään...";
+"ai.message.work.running" = "Työskentelee: %@";
+"ai.message.work.finished" = "Työskenteli %@";
+"ai.message.work.finishedWithoutDuration" = "Työ valmis";
 "ai.message.fullResponse.show" = "Näytä koko vastaus";
 "ai.message.fullResponse.title" = "Koko vastaus";
 "ai.tool.label.codeExecution" = "Koodin suoritus";

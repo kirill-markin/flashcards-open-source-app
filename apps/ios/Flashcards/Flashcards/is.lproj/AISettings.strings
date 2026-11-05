@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Samhengi fyrirmæla";
 "ai.message.reasoning.title" = "Röksemdafærsla";
 "ai.message.reasoning.thinking" = "Hugsa...";
+"ai.message.work.running" = "Vinnur í %@";
+"ai.message.work.finished" = "Vann í %@";
+"ai.message.work.finishedWithoutDuration" = "Vinnu lokið";
 "ai.message.fullResponse.show" = "Sýna allt svarið";
 "ai.message.fullResponse.title" = "Allt svarið";
 "ai.tool.label.codeExecution" = "Keyrsla kóða";

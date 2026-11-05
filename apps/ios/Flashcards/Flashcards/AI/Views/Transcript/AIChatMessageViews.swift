@@ -87,6 +87,41 @@ func aiChatTypingIndicatorActiveDotCount(date: Date) -> Int {
 }
 
 /// The whole line toggles, because a system `DisclosureGroup` on Mac Catalyst toggles only from its chevron.
+private struct AIChatDisclosureToggleButton<Label: View>: View {
+    @Binding var isExpanded: Bool
+    let onExpand: () -> Void
+    let label: () -> Label
+
+    var body: some View {
+        Button {
+            self.toggleExpansion()
+        } label: {
+            HStack(alignment: .center, spacing: 6) {
+                self.label()
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
+                    .accessibilityHidden(true)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func toggleExpansion() {
+        let didExpand = self.isExpanded == false
+        withAnimation {
+            self.isExpanded.toggle()
+        }
+
+        if didExpand {
+            self.onExpand()
+        }
+    }
+}
+
 private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View {
     @State private var isExpanded: Bool
     /// Nil keeps the identifier inherited from the enclosing row.
@@ -124,32 +159,176 @@ private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View
     }
 
     private var toggleButton: some View {
-        Button {
-            self.toggleExpansion()
-        } label: {
-            HStack(alignment: .center, spacing: 6) {
-                self.label()
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
-                    .accessibilityHidden(true)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
+        AIChatDisclosureToggleButton(isExpanded: self.$isExpanded, onExpand: self.onExpand, label: self.label)
+    }
+}
+
+/// Work is every part up to and including the last tool call or reasoning step; the answer is the rest.
+struct AIChatWorkContentSplit {
+    let workParts: [AIChatContentPart]
+    let answerParts: [AIChatContentPart]
+}
+
+/// Nil when the content has no tool call or reasoning step, so the message renders without a work block.
+func aiChatWorkContentSplit(content: [AIChatContentPart]) -> AIChatWorkContentSplit? {
+    guard let lastWorkIndex = content.lastIndex(where: { part in
+        switch part {
+        case .toolCall, .reasoningSummary:
+            return true
+        case .text, .image, .file, .card, .accountUpgradePrompt, .unknown:
+            return false
         }
-        .buttonStyle(.plain)
+    }) else {
+        return nil
     }
 
-    private func toggleExpansion() {
-        let didExpand = self.isExpanded == false
-        withAnimation {
-            self.isExpanded.toggle()
+    return AIChatWorkContentSplit(
+        workParts: Array(content[...lastWorkIndex]),
+        answerParts: Array(content[content.index(after: lastWorkIndex)...])
+    )
+}
+
+/// After the run ends, a block stays open only when the user would otherwise see no answer text.
+func aiChatWorkBlockAutomaticIsExpanded(
+    message: AIChatMessage,
+    isRunActive: Bool,
+    answerParts: [AIChatContentPart]
+) -> Bool {
+    if isRunActive || message.isStopped || message.isError {
+        return true
+    }
+
+    let hasAnswerText = answerParts.contains { part in
+        guard let text = part.textValue else {
+            return false
         }
 
-        if didExpand {
-            self.onExpand()
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+    return hasAnswerText == false
+}
+
+enum AIChatWorkBlockTiming {
+    case running(startedAt: Date)
+    case finished(durationSeconds: Int)
+    case finishedWithoutDuration
+}
+
+/// An unparseable timestamp has no duration; `completedAt` is on the server clock, so a negative difference is clamped to zero.
+func aiChatWorkBlockTiming(message: AIChatMessage, isRunActive: Bool) -> AIChatWorkBlockTiming {
+    guard let startedAt = parseIsoTimestamp(value: message.timestamp) else {
+        return .finishedWithoutDuration
+    }
+
+    if isRunActive {
+        return .running(startedAt: startedAt)
+    }
+
+    guard let completedAt = message.completedAt else {
+        return .finishedWithoutDuration
+    }
+
+    let startedAtMilliseconds = Int((startedAt.timeIntervalSince1970 * 1000).rounded())
+    return .finished(durationSeconds: max(0, completedAt - startedAtMilliseconds) / 1000)
+}
+
+private let aiChatWorkDurationFormatter: DateComponentsFormatter = {
+    let formatter = DateComponentsFormatter()
+    formatter.unitsStyle = .abbreviated
+    formatter.allowedUnits = [.hour, .minute, .second]
+    formatter.maximumUnitCount = 2
+    return formatter
+}()
+
+func aiChatWorkDurationText(seconds: Int) -> String {
+    aiChatWorkDurationFormatter.string(from: TimeInterval(seconds)) ?? seconds.formatted()
+}
+
+func aiChatWorkBlockTitle(timing: AIChatWorkBlockTiming, now: Date) -> String {
+    switch timing {
+    case .running(let startedAt):
+        return aiSettingsLocalizedFormat(
+            "ai.message.work.running",
+            "Working for %@",
+            aiChatWorkDurationText(seconds: max(0, Int(now.timeIntervalSince(startedAt))))
+        )
+    case .finished(let durationSeconds):
+        return aiSettingsLocalizedFormat(
+            "ai.message.work.finished",
+            "Worked for %@",
+            aiChatWorkDurationText(seconds: durationSeconds)
+        )
+    case .finishedWithoutDuration:
+        return aiSettingsLocalized("ai.message.work.finishedWithoutDuration", "Worked")
+    }
+}
+
+/// Follows the automatic open state whenever it changes, such as when the run ends, and otherwise keeps the user's toggle.
+private struct AIChatWorkBlock<WorkContent: View>: View {
+    @State private var isExpanded: Bool
+    let automaticIsExpanded: Bool
+    let timing: AIChatWorkBlockTiming
+    let onExpand: () -> Void
+    let workContent: () -> WorkContent
+
+    init(
+        automaticIsExpanded: Bool,
+        timing: AIChatWorkBlockTiming,
+        onExpand: @escaping () -> Void,
+        @ViewBuilder workContent: @escaping () -> WorkContent
+    ) {
+        self._isExpanded = State(initialValue: automaticIsExpanded)
+        self.automaticIsExpanded = automaticIsExpanded
+        self.timing = timing
+        self.onExpand = onExpand
+        self.workContent = workContent
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AIChatDisclosureToggleButton(isExpanded: self.$isExpanded, onExpand: self.onExpand) {
+                self.title
+            }
+            .accessibilityIdentifier(UITestIdentifier.aiWorkBlockToggle)
+
+            Divider()
+
+            if self.isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    self.workContent()
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(UITestIdentifier.aiWorkBlockContent)
+
+                Divider()
+            }
         }
+        .onChange(of: self.automaticIsExpanded) { _, nextIsExpanded in
+            withAnimation {
+                self.isExpanded = nextIsExpanded
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(UITestIdentifier.aiWorkBlock)
+    }
+
+    @ViewBuilder
+    private var title: some View {
+        switch self.timing {
+        case .running(let startedAt):
+            TimelineView(.periodic(from: startedAt, by: 1)) { context in
+                self.titleText(now: context.date)
+            }
+        case .finished, .finishedWithoutDuration:
+            self.titleText(now: .now)
+        }
+    }
+
+    private func titleText(now: Date) -> some View {
+        Text(aiChatWorkBlockTitle(timing: self.timing, now: now))
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .padding(.vertical, aiChatActivityRowVerticalPadding)
     }
 }
 
@@ -182,6 +361,8 @@ private let aiChatActivityRowVerticalPadding: CGFloat = 2
 /// Renders one transcript message; the live chat and the read-only history reader share it.
 struct AIChatMessageRow: View {
     let message: AIChatMessage
+    /// True only for the transcript's latest assistant message while its run streams.
+    let isRunActive: Bool
     let repairStatus: AIChatRepairAttemptStatus?
     let showsTypingIndicator: Bool
     let onExpandContent: () -> Void
@@ -241,9 +422,32 @@ struct AIChatMessageRow: View {
         repairStatus: AIChatRepairAttemptStatus?,
         showsTypingIndicator: Bool
     ) -> some View {
+        let displayedContent = aiChatDisplayedMessageContent(message: message)
+        let workContentSplit = message.role == .assistant ? aiChatWorkContentSplit(content: displayedContent) : nil
         let content = VStack(alignment: .leading, spacing: 8) {
-            ForEach(Array(aiChatDisplayedMessageContent(message: message).enumerated()), id: \.offset) { _, part in
-                self.messageContent(part: part, message: message)
+            if let workContentSplit {
+                AIChatWorkBlock(
+                    automaticIsExpanded: aiChatWorkBlockAutomaticIsExpanded(
+                        message: message,
+                        isRunActive: self.isRunActive,
+                        answerParts: workContentSplit.answerParts
+                    ),
+                    timing: aiChatWorkBlockTiming(message: message, isRunActive: self.isRunActive),
+                    onExpand: {
+                        self.onExpandContent()
+                    }
+                ) {
+                    ForEach(Array(workContentSplit.workParts.enumerated()), id: \.offset) { _, part in
+                        self.messageContent(part: part, message: message)
+                    }
+                }
+                ForEach(Array(workContentSplit.answerParts.enumerated()), id: \.offset) { _, part in
+                    self.messageContent(part: part, message: message)
+                }
+            } else {
+                ForEach(Array(displayedContent.enumerated()), id: \.offset) { _, part in
+                    self.messageContent(part: part, message: message)
+                }
             }
 
             if let repairStatus {

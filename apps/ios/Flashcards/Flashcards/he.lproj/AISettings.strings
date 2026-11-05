@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "הקשר ההנחיה";
 "ai.message.reasoning.title" = "תהליך החשיבה";
 "ai.message.reasoning.thinking" = "חושב...";
+"ai.message.work.running" = "עובד כבר %@";
+"ai.message.work.finished" = "עבד במשך %@";
+"ai.message.work.finishedWithoutDuration" = "העבודה הושלמה";
 "ai.message.fullResponse.show" = "הצגת התשובה המלאה";
 "ai.message.fullResponse.title" = "התשובה המלאה";
 "ai.tool.label.codeExecution" = "הרצת קוד";

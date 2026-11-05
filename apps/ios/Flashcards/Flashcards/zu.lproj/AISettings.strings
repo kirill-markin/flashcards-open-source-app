@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Umongo womyalelo";
 "ai.message.reasoning.title" = "Ukucabanga";
 "ai.message.reasoning.thinking" = "Kuyacatshangwa...";
+"ai.message.work.running" = "Isebenza isikhathi esingu-%@";
+"ai.message.work.finished" = "Isebenze isikhathi esingu-%@";
+"ai.message.work.finishedWithoutDuration" = "Umsebenzi uqediwe";
 "ai.message.fullResponse.show" = "Bonisa impendulo ephelele";
 "ai.message.fullResponse.title" = "Impendulo ephelele";
 "ai.tool.label.codeExecution" = "Ukusebenzisa ikhodi";

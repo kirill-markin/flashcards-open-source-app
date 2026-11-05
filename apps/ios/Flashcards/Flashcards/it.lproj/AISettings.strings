@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Contesto della richiesta";
 "ai.message.reasoning.title" = "Ragionamento";
 "ai.message.reasoning.thinking" = "Sto pensando...";
+"ai.message.work.running" = "Al lavoro da %@";
+"ai.message.work.finished" = "Ha lavorato per %@";
+"ai.message.work.finishedWithoutDuration" = "Lavoro completato";
 "ai.message.fullResponse.show" = "Mostra risposta completa";
 "ai.message.fullResponse.title" = "Risposta completa";
 "ai.tool.label.codeExecution" = "Esecuzione di codice";

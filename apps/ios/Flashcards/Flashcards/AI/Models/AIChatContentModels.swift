@@ -666,6 +666,8 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let isStopped: Bool
     let cursor: String?
     let itemId: String?
+    /// Server-clock epoch milliseconds when a terminal assistant message finished; nil while running, for user messages, and for data from older backends.
+    let completedAt: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id = "messageId"
@@ -678,6 +680,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         case isStopped
         case cursor
         case itemId
+        case completedAt
     }
 
     init(
@@ -689,7 +692,8 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         errorCode: String?,
         isStopped: Bool,
         cursor: String?,
-        itemId: String?
+        itemId: String?,
+        completedAt: Int?
     ) {
         self.id = id
         self.role = role
@@ -700,6 +704,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         self.isStopped = isStopped
         self.cursor = cursor
         self.itemId = itemId
+        self.completedAt = completedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -727,6 +732,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
         self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
         self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
+        self.completedAt = try container.decodeIfPresent(Int.self, forKey: .completedAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -740,6 +746,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         try container.encode(self.isStopped, forKey: .isStopped)
         try container.encodeIfPresent(self.cursor, forKey: .cursor)
         try container.encodeIfPresent(self.itemId, forKey: .itemId)
+        try container.encodeIfPresent(self.completedAt, forKey: .completedAt)
     }
 }
 

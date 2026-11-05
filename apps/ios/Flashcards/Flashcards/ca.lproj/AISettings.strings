@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Context de la petició";
 "ai.message.reasoning.title" = "Raonament";
 "ai.message.reasoning.thinking" = "S’està pensant...";
+"ai.message.work.running" = "Treballant des de fa %@";
+"ai.message.work.finished" = "Ha treballat %@";
+"ai.message.work.finishedWithoutDuration" = "Feina acabada";
 "ai.message.fullResponse.show" = "Mostra la resposta completa";
 "ai.message.fullResponse.title" = "Resposta completa";
 "ai.tool.label.codeExecution" = "Execució de codi";

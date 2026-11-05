@@ -80,6 +80,7 @@ struct AIChatConversationMessageWire: Decodable, Hashable, Sendable {
     let isStopped: Bool
     let cursor: String?
     let itemId: String?
+    let completedAt: Int?
 
     private enum CodingKeys: String, CodingKey {
         case role
@@ -91,6 +92,7 @@ struct AIChatConversationMessageWire: Decodable, Hashable, Sendable {
         case isStopped
         case cursor
         case itemId
+        case completedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -117,6 +119,7 @@ struct AIChatConversationMessageWire: Decodable, Hashable, Sendable {
         self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
         self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
         self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
+        self.completedAt = try container.decodeIfPresent(Int.self, forKey: .completedAt)
     }
 }
 
@@ -224,7 +227,8 @@ func mapConversationMessage(
         errorCode: message.errorCode,
         isStopped: message.isStopped,
         cursor: message.cursor,
-        itemId: message.itemId
+        itemId: message.itemId,
+        completedAt: message.completedAt
     )
     logAIChatUnknownContentParts(
         content: mappedMessage.content,

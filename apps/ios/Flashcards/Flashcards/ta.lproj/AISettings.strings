@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "கோரிக்கையின் சூழல்";
 "ai.message.reasoning.title" = "பகுத்தாய்வு";
 "ai.message.reasoning.thinking" = "சிந்திக்கிறது...";
+"ai.message.work.running" = "%@ ஆக வேலை நடக்கிறது";
+"ai.message.work.finished" = "%@ வேலை செய்தது";
+"ai.message.work.finishedWithoutDuration" = "வேலை முடிந்தது";
 "ai.message.fullResponse.show" = "முழுப் பதிலைக் காட்டு";
 "ai.message.fullResponse.title" = "முழுப் பதில்";
 "ai.tool.label.codeExecution" = "நிரல் இயக்கம்";

@@ -51,7 +51,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             logAIChatStoreEvent(
                 action: "ai_live_event_handle_applied",
@@ -93,7 +94,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             self.markRunHadToolCalls()
             logAIChatStoreEvent(
@@ -143,7 +145,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             logAIChatStoreEvent(
                 action: "ai_live_event_handle_applied",
@@ -194,7 +197,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             logAIChatStoreEvent(
                 action: "ai_live_event_handle_applied",
@@ -239,7 +243,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             logAIChatStoreEvent(
                 action: "ai_live_event_handle_applied",
@@ -260,7 +265,8 @@ extension AIChatStore {
             content: let content,
             isError: let isError,
             errorCode: let errorCode,
-            isStopped: let isStopped
+            isStopped: let isStopped,
+            completedAt: let completedAt
         ):
             guard let cursor = metadata.cursor else {
                 self.reloadConversationFromBootstrap()
@@ -340,7 +346,8 @@ extension AIChatStore {
                 errorCode: errorCode,
                 isStopped: isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: completedAt
             )
             self.schedulePersistCurrentState()
             logAIChatStoreEvent(
@@ -492,7 +499,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             self.activeStreamingItemId = itemId
             return existingIndex
@@ -516,7 +524,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             self.activeStreamingMessageId = message.id
             self.activeStreamingItemId = itemId
@@ -532,7 +541,8 @@ extension AIChatStore {
             errorCode: nil,
             isStopped: false,
             cursor: cursor,
-            itemId: itemId
+            itemId: itemId,
+            completedAt: nil
         )
         self.messages.append(message)
         self.activeStreamingMessageId = message.id
@@ -595,7 +605,8 @@ extension AIChatStore {
             content: let content,
             isError: let isError,
             errorCode: _,
-            isStopped: let isStopped
+            isStopped: let isStopped,
+            completedAt: _
         ):
             values["eventType"] = "assistant_message_done"
             values["itemId"] = itemId
@@ -683,7 +694,8 @@ extension AIChatStore {
             content: _,
             isError: _,
             errorCode: _,
-            isStopped: _
+            isStopped: _,
+            completedAt: _
         ):
             return metadata
         case .composerSuggestionsUpdated(metadata: let metadata, suggestions: _):
@@ -802,7 +814,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             self.activeStreamingItemId = itemId
             return existingIndex
@@ -822,7 +835,8 @@ extension AIChatStore {
                 errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
-                itemId: itemId
+                itemId: itemId,
+                completedAt: message.completedAt
             )
             self.activeStreamingMessageId = message.id
             self.activeStreamingItemId = itemId

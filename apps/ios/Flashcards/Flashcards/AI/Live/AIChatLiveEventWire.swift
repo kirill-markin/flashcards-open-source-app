@@ -83,6 +83,7 @@ private struct AIChatLiveAssistantMessageDoneWirePayload: Decodable {
     let isError: Bool
     let errorCode: String?
     let isStopped: Bool
+    let completedAt: Int?
 }
 
 private struct AIChatLiveRepairStatusWirePayload: Decodable {
@@ -269,7 +270,8 @@ func decodeAIChatLiveEventResult(
                 content: event.content,
                 isError: event.isError,
                 errorCode: event.errorCode,
-                isStopped: event.isStopped
+                isStopped: event.isStopped,
+                completedAt: event.completedAt
             ))
         case .composerSuggestionsUpdated:
             let event = try decoder.decode(AIChatLiveComposerSuggestionsUpdatedWirePayload.self, from: data)

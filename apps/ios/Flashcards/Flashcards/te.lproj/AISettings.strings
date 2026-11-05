@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "ప్రాంప్ట్ సందర్భం";
 "ai.message.reasoning.title" = "తార్కిక ఆలోచన";
 "ai.message.reasoning.thinking" = "ఆలోచిస్తోంది...";
+"ai.message.work.running" = "%@ నుండి పని చేస్తోంది";
+"ai.message.work.finished" = "%@ పని చేసింది";
+"ai.message.work.finishedWithoutDuration" = "పని పూర్తయింది";
 "ai.message.fullResponse.show" = "పూర్తి ప్రతిస్పందన చూపు";
 "ai.message.fullResponse.title" = "పూర్తి ప్రతిస్పందన";
 "ai.tool.label.codeExecution" = "కోడ్ అమలు";

@@ -267,7 +267,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                     errorCode: nil,
                     isStopped: false,
                     cursor: nil,
-                    itemId: nil
+                    itemId: nil,
+                    completedAt: nil
                 )],
                 composerDraft: emptyDraft,
                 composerPhase: .idle,
@@ -316,7 +317,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: nil,
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             )
         ]
 
@@ -335,7 +337,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: nil,
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             )
         ]
 
@@ -353,7 +356,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: nil,
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             )
         ]
 

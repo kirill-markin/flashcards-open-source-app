@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Utasítás környezete";
 "ai.message.reasoning.title" = "Gondolatmenet";
 "ai.message.reasoning.thinking" = "Gondolkodás…";
+"ai.message.work.running" = "Dolgozik: %@";
+"ai.message.work.finished" = "Dolgozott: %@";
+"ai.message.work.finishedWithoutDuration" = "Munka kész";
 "ai.message.fullResponse.show" = "Teljes válasz megjelenítése";
 "ai.message.fullResponse.title" = "Teljes válasz";
 "ai.tool.label.codeExecution" = "Kódfuttatás";

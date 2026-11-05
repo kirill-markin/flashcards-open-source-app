@@ -22,7 +22,8 @@ extension AIChatStore {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         self.messages.append(userMessage)
         let assistantMessage = AIChatMessage(
@@ -34,7 +35,8 @@ extension AIChatStore {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         self.messages.append(assistantMessage)
         self.setOptimisticOutgoingTurnState(
