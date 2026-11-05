@@ -161,7 +161,7 @@ private fun MessageBubbleContent(
                         }
                     } else {
                         SelectionContainer {
-                            MathText(
+                            AiMarkdownText(
                                 text = textProvider.chatErrorText(
                                     errorCode = message.errorCode,
                                     storedText = contentPart.text
