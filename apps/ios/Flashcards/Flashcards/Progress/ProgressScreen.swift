@@ -100,13 +100,14 @@ struct ProgressScreen: View {
             }
             .scrollPosition($progressState.scrollPosition)
             .onScrollPhaseChange { _, newPhase, context in
-                let geometry = context.geometry
+                // `ScrollPosition` measures y from the inset-adjusted top, unlike `contentOffset`.
+                let offsetY = context.geometry.contentOffset.y + context.geometry.contentInsets.top
                 // A recreated scroll view starts at the bound position, so the resting offset becomes it.
                 // Pull-to-refresh rests above the top edge; binding that offset would hold the refresh gap open.
-                guard newPhase == .idle, geometry.contentOffset.y >= -geometry.contentInsets.top else {
+                guard newPhase == .idle, offsetY >= 0 else {
                     return
                 }
-                self.progressState.scrollPosition = ScrollPosition(point: geometry.contentOffset)
+                self.progressState.scrollPosition = ScrollPosition(y: offsetY)
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .accessibilityIdentifier(UITestIdentifier.progressScreen)
