@@ -294,9 +294,9 @@ review account and a controlled real inbox:
    then complete the eligible trial through the actual owned flow. Confirm its
    verified billing email differs safely from any synthetic review login.
 2. Trigger Stripe's real trial-will-end event and inspect the inbox: exact end
-   date/time, explicitly labeled verified monthly base price, final billing
-   currency disclosure, localized text and fixed settings URL. Shorten/end/cancel
-   the trial and replay the old event; no stale future charge reminder may arrive.
+   date/time, verified monthly price, final billing currency disclosure,
+   localized text and fixed settings URL. Shorten/end/cancel the trial and
+   replay the old event; no stale future charge reminder may arrive.
 3. Complete first payment and renewal, including a converted currency. Compare
    the received amount/currency and hosted receipt with actual charge presentment
    data. Redeliver `invoice.paid` and `invoice.payment_succeeded`: one receipt per
@@ -326,7 +326,7 @@ distinguishes those observations from application work:
 | Tax | Tax active in both environments; explicit inclusive prices and product code `txcd_10105001`. Sandbox defaults use Stripe/inclusive/the same code | Exercise implemented session automatic tax and customer-location collection |
 | Registrations | Existing live BG standard and Union OSS registrations read back; their configuration and head office copied into the isolated sandbox only. Live global Tax settings preserved | Verify applicable collection in real sandbox flows; these test copies create no new real-world registration |
 | Receipts | Shared live successful-payment and refund emails off; Nibomo dispatch uses the existing private Resend sender | Verify real localized payment/refund delivery and customer presentment amounts using the procedure above |
-| Trial reminders | Shared live trial reminder off; Nibomo handles `customer.subscription.trial_will_end` | Verify future-trial guards, clearly labeled base price and sender delivery |
+| Trial reminders | Shared live trial reminder off; Nibomo handles `customer.subscription.trial_will_end` | Verify future-trial guards, the verified monthly price and sender delivery |
 | Other billing emails | Live renewal, expiring-card, failed-card-payment and failed-bank-debit emails on | Inspect the actual messages and management destination for Nibomo before launch |
 | Recovery | Smart retries enabled, maximum 4 attempts over 3 weeks; first failure leaves overdue, exhaustion cancels; incomplete authentication cancels after 15 days; disputed payment leaves overdue | Exercise grace, recovery, terminal cancellation and explicit refund/dispute handling against the entitlement mapping |
 | Billing defaults | Live Classic and sandbox Flexible Dashboard billing modes; live upcoming-invoice event 7 days before and shared Checkout one-subscription limit off | Exercise explicit flexible mode and owned trial/session orchestration |
