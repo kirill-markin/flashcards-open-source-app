@@ -738,6 +738,7 @@ extension FlashcardsStore {
                 reviewReactionAnimationsEnabled: isEnabled,
                 productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
                 accentColor: previousPreferences.accentColor,
+                theme: previousPreferences.theme,
                 firstReviewOnboardingCompleted: previousPreferences.firstReviewOnboardingCompleted
             )
             self.accountPreferences.firstReviewOnboardingSnapshotGeneration = previousPreferences.firstReviewOnboardingSnapshotGeneration
@@ -755,6 +756,72 @@ extension FlashcardsStore {
                               self.accountPreferencesIdentityKey == identityKey,
                               self.accentColorIdentityGeneration == identityGeneration else {
                             throw LocalStoreError.validation("The account changed before review animations could be saved")
+                        }
+                    }
+                )
+                if self.isCurrentAccountPreferencesUpdate(
+                    identityKey: identityKey,
+                    updateGeneration: updateGeneration
+                ), self.accentColorIdentityGeneration == identityGeneration {
+                    self.applyCloudAccountPreferences(preferences: updateResult.preferences, session: updateResult.session)
+                }
+            } catch {
+                if self.isCurrentAccountPreferencesUpdate(
+                    identityKey: identityKey,
+                    updateGeneration: updateGeneration
+                ), self.accentColorIdentityGeneration == identityGeneration {
+                    self.accountPreferences = previousPreferences
+                }
+                outcome.failure = error
+            }
+        }
+        if let failure = outcome.failure {
+            throw failure
+        }
+        self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
+    }
+
+    func updateTheme(_ theme: AccountTheme) async throws {
+        guard theme == .defaultTheme || self.canCustomizeStyle else {
+            throw LocalStoreError.validation("The light theme requires Premium")
+        }
+        let identityKey = self.accountPreferencesIdentityKey
+        let identityGeneration = self.accentColorIdentityGeneration
+        let outcome = AccountPreferencesUpdateOutcome()
+        await self.serializedAccountPreferencesUpdate {
+            guard self.accountPreferencesIdentityKey == identityKey,
+                  self.accentColorIdentityGeneration == identityGeneration else {
+                outcome.failure = LocalStoreError.validation("The account changed before the theme could be saved")
+                return
+            }
+            guard theme == .defaultTheme || self.canCustomizeStyle else {
+                outcome.failure = LocalStoreError.validation("The light theme requires Premium")
+                return
+            }
+            let previousPreferences = self.accountPreferences
+            let updateGeneration = self.accountPreferencesRefreshGeneration
+            self.accountPreferences = AccountPreferences(
+                reviewReactionAnimationsEnabled: previousPreferences.reviewReactionAnimationsEnabled,
+                productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
+                accentColor: previousPreferences.accentColor,
+                theme: theme,
+                firstReviewOnboardingCompleted: previousPreferences.firstReviewOnboardingCompleted
+            )
+            self.accountPreferences.firstReviewOnboardingSnapshotGeneration = previousPreferences.firstReviewOnboardingSnapshotGeneration
+
+            do {
+                let updateResult = try await self.updateCloudAccountPreferences(
+                    patch: AccountPreferencesPatchRequest(theme: theme),
+                    validateResolvedSession: { session in
+                        let identity = AccountPreferencesIdentity(
+                            userId: session.userId,
+                            configurationMode: session.configurationMode,
+                            apiBaseUrl: session.apiBaseUrl
+                        )
+                        guard identity.storageKey == identityKey,
+                              self.accountPreferencesIdentityKey == identityKey,
+                              self.accentColorIdentityGeneration == identityGeneration else {
+                            throw LocalStoreError.validation("The account changed before the theme could be saved")
                         }
                     }
                 )

@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1 000 повідомлень ШІ на місяць і власні стилі. Синхронізація безкоштовна для всіх.";
 "premium.aiLimit.title" = "Досягнуто ліміту повідомлень ШІ";
 
+"settings.theme.title" = "Тема";
+"settings.theme.dark" = "Темна";
+"settings.theme.light" = "Світла";
+"settings.theme.premiumNote" = "Світла тема доступна з Premium. Збережена тема повернеться, коли Premium буде активним.";
 "settings.accentColor.title" = "Колір акценту";
 "settings.accentColor.default" = "За замовчуванням";
 "settings.accentColor.blue" = "Синій";

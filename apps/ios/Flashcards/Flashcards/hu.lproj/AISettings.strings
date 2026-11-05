@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "Havi 1000 AI-üzenet és egyéni stílusok. A szinkronizálás mindenkinek ingyenes.";
 "premium.aiLimit.title" = "Elérted az AI-üzenetek korlátját";
 
+"settings.theme.title" = "Téma";
+"settings.theme.dark" = "Sötét";
+"settings.theme.light" = "Világos";
+"settings.theme.premiumNote" = "A világos téma a Premium része. A mentett téma visszatér, amikor a Premium aktív.";
 "settings.accentColor.title" = "Kiemelőszín";
 "settings.accentColor.default" = "Alapértelmezett";
 "settings.accentColor.blue" = "Kék";

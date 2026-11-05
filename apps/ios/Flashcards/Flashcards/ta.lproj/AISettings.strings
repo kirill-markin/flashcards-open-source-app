@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "மாதத்திற்கு 1,000 AI செய்திகள் மற்றும் தனிப்பயன் பாணிகள். ஒத்திசைவு அனைவருக்கும் இலவசம்.";
 "premium.aiLimit.title" = "AI செய்திகளின் வரம்பை எட்டிவிட்டீர்கள்";
 
+"settings.theme.title" = "தீம்";
+"settings.theme.dark" = "டார்க்";
+"settings.theme.light" = "லைட்";
+"settings.theme.premiumNote" = "லைட் தீம் Premium உடன் கிடைக்கும். Premium செயலில் இருக்கும்போது சேமித்த தீம் திரும்ப வரும்.";
 "settings.accentColor.title" = "சிறப்பம்ச நிறம்";
 "settings.accentColor.default" = "இயல்புநிலை";
 "settings.accentColor.blue" = "நீலம்";

@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "દર મહિને ૧,૦૦૦ AI સંદેશા અને તમારી પસંદની શૈલીઓ. સિંક દરેક માટે મફત છે.";
 "premium.aiLimit.title" = "AI સંદેશાઓની મર્યાદા પૂરી થઈ છે";
 
+"settings.theme.title" = "થીમ";
+"settings.theme.dark" = "ડાર્ક";
+"settings.theme.light" = "લાઇટ";
+"settings.theme.premiumNote" = "લાઇટ થીમ Premium સાથે ઉપલબ્ધ છે. Premium સક્રિય હોય ત્યારે તમારી સાચવેલી થીમ પાછી આવે છે.";
 "settings.accentColor.title" = "એક્સેન્ટ રંગ";
 "settings.accentColor.default" = "ડિફૉલ્ટ";
 "settings.accentColor.blue" = "વાદળી";

@@ -493,6 +493,7 @@ enum AnalyticsSyncFailureReason: String, Sendable, Equatable {
 enum AnalyticsPaywallEntryPoint: String, Sendable, Equatable {
     case subscriptionSettings = "subscription_settings"
     case aiLimit = "ai_limit"
+    case theme
     case accentColor = "accent_color"
     case reviewAnimations = "review_animations"
     case aiChatSuggestions = "ai_chat_suggestions"

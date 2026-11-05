@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1,000 הודעות AI בחודש וסגנונות מותאמים אישית. הסנכרון חינם לכולם.";
 "premium.aiLimit.title" = "הגעת למגבלת הודעות ה-AI";
 
+"settings.theme.title" = "ערכת נושא";
+"settings.theme.dark" = "כהה";
+"settings.theme.light" = "בהיר";
+"settings.theme.premiumNote" = "ערכת הנושא הבהירה זמינה עם Premium. ערכת הנושא השמורה שלך חוזרת כאשר Premium פעיל.";
 "settings.accentColor.title" = "צבע הדגשה";
 "settings.accentColor.default" = "ברירת מחדל";
 "settings.accentColor.blue" = "כחול";

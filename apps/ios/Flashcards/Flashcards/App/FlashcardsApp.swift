@@ -233,6 +233,7 @@ struct FlashcardsApp: App {
             ReviewKeyCommandOwner { RootTabView() }
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
+                .preferredColorScheme(store.effectiveAccountTheme.colorScheme)
                 .onOpenURL { url in
                     if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
                         self.pendingWidgetDeepLink = widgetDeepLink

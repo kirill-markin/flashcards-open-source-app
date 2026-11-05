@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1000 MI ziņojumu mēnesī un pielāgoti stili. Sinhronizācija visiem ir bez maksas.";
 "premium.aiLimit.title" = "Sasniegts MI ziņojumu limits";
 
+"settings.theme.title" = "Motīvs";
+"settings.theme.dark" = "Tumšs";
+"settings.theme.light" = "Gaišs";
+"settings.theme.premiumNote" = "Gaišais motīvs ir pieejams ar Premium. Saglabātais motīvs atgriežas, kad Premium ir aktīvs.";
 "settings.accentColor.title" = "Akcenta krāsa";
 "settings.accentColor.default" = "Noklusējuma";
 "settings.accentColor.blue" = "Zila";

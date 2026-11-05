@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1000 wiadomości AI miesięcznie i własne style. Synchronizacja jest bezpłatna dla wszystkich.";
 "premium.aiLimit.title" = "Osiągnięto limit wiadomości AI";
 
+"settings.theme.title" = "Motyw";
+"settings.theme.dark" = "Ciemny";
+"settings.theme.light" = "Jasny";
+"settings.theme.premiumNote" = "Jasny motyw jest dostępny z Premium. Zapisany motyw powróci, gdy Premium będzie aktywne.";
 "settings.accentColor.title" = "Kolor akcentu";
 "settings.accentColor.default" = "Domyślny";
 "settings.accentColor.blue" = "Niebieski";

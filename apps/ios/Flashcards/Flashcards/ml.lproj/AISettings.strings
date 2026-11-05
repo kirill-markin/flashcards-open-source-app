@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "പ്രതിമാസം 1,000 AI സന്ദേശങ്ങളും ഇഷ്ടാനുസൃത ശൈലികളും. സിങ്ക് എല്ലാവർക്കും സൗജന്യമാണ്.";
 "premium.aiLimit.title" = "AI സന്ദേശങ്ങളുടെ പരിധിയിലെത്തി";
 
+"settings.theme.title" = "തീം";
+"settings.theme.dark" = "ഡാർക്ക്";
+"settings.theme.light" = "ലൈറ്റ്";
+"settings.theme.premiumNote" = "ലൈറ്റ് തീം Premium-ൽ ലഭ്യമാണ്. Premium സജീവമാകുമ്പോൾ സംരക്ഷിച്ച തീം തിരിച്ചുവരും.";
 "settings.accentColor.title" = "ഹൈലൈറ്റ് നിറം";
 "settings.accentColor.default" = "ഡിഫോൾട്ട്";
 "settings.accentColor.blue" = "നീല";

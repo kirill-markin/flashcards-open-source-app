@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 missatges d’IA al mes i estils personalitzats. La sincronització és gratuïta per a tothom.";
 "premium.aiLimit.title" = "Has arribat al límit de missatges d’IA";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Fosc";
+"settings.theme.light" = "Clar";
+"settings.theme.premiumNote" = "El tema clar està disponible amb Premium. El tema desat torna quan Premium està actiu.";
 "settings.accentColor.title" = "Color d’accent";
 "settings.accentColor.default" = "Per defecte";
 "settings.accentColor.blue" = "Blau";

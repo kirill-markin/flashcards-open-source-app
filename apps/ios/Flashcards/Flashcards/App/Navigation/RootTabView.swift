@@ -937,6 +937,8 @@ struct RootTabView: View {
             SubscriptionSettingsView()
         case .currentWorkspace:
             CurrentWorkspaceView()
+        case .theme:
+            ThemeSettingsView()
         case .accentColor:
             AccentColorSettingsView()
         case .reviewAnimations:

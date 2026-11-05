@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "1.000 pesan AI per bulan dan gaya khusus. Sinkronisasi gratis untuk semua orang.";
 "premium.aiLimit.title" = "Batas pesan AI tercapai";
 
+"settings.theme.title" = "Tema";
+"settings.theme.dark" = "Gelap";
+"settings.theme.light" = "Terang";
+"settings.theme.premiumNote" = "Tema terang tersedia dengan Premium. Tema tersimpan Anda kembali saat Premium aktif.";
 "settings.accentColor.title" = "Warna aksen";
 "settings.accentColor.default" = "Default";
 "settings.accentColor.blue" = "Biru";

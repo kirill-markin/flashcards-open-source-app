@@ -926,6 +926,10 @@
 "premium.offer.benefits" = "١٬٠٠٠ رسالة ذكاء اصطناعي شهريًا وأنماط مخصصة. المزامنة مجانية للجميع.";
 "premium.aiLimit.title" = "تم بلوغ حد رسائل الذكاء الاصطناعي";
 
+"settings.theme.title" = "السمة";
+"settings.theme.dark" = "داكن";
+"settings.theme.light" = "فاتح";
+"settings.theme.premiumNote" = "السمة الفاتحة متاحة مع Premium. تعود سمتك المحفوظة عندما يكون Premium نشطًا.";
 "settings.accentColor.title" = "لون التمييز";
 "settings.accentColor.default" = "الافتراضي";
 "settings.accentColor.blue" = "أزرق";

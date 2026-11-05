@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "ہر ماہ 1,000 AI پیغامات اور اپنی پسند کے انداز۔ سنک سب کے لیے مفت ہے۔";
 "premium.aiLimit.title" = "AI پیغامات کی حد پوری ہو گئی ہے";
 
+"settings.theme.title" = "تھیم";
+"settings.theme.dark" = "ڈارک";
+"settings.theme.light" = "لائٹ";
+"settings.theme.premiumNote" = "لائٹ تھیم Premium کے ساتھ دستیاب ہے۔ Premium فعال ہونے پر آپ کی محفوظ کردہ تھیم واپس آ جاتی ہے۔";
 "settings.accentColor.title" = "نمایاں رنگ";
 "settings.accentColor.default" = "طے شدہ";
 "settings.accentColor.blue" = "نیلا";

@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "매월 AI 메시지 1,000개와 사용자 지정 스타일을 이용하세요. 동기화는 누구나 무료로 사용할 수 있습니다.";
 "premium.aiLimit.title" = "AI 메시지 한도에 도달했습니다";
 
+"settings.theme.title" = "테마";
+"settings.theme.dark" = "다크";
+"settings.theme.light" = "라이트";
+"settings.theme.premiumNote" = "라이트 테마는 Premium에서 사용할 수 있습니다. Premium이 활성화되면 저장된 테마로 돌아갑니다.";
 "settings.accentColor.title" = "강조 색상";
 "settings.accentColor.default" = "기본값";
 "settings.accentColor.blue" = "파란색";

@@ -926,6 +926,10 @@
 "premium.offer.benefits" = "1.000 KI-Nachrichten pro Monat und eigene Stile. Die Synchronisierung ist für alle kostenlos.";
 "premium.aiLimit.title" = "Limit für KI-Nachrichten erreicht";
 
+"settings.theme.title" = "Design";
+"settings.theme.dark" = "Dunkel";
+"settings.theme.light" = "Hell";
+"settings.theme.premiumNote" = "Das helle Design ist mit Premium verfügbar. Dein gespeichertes Design wird wieder verwendet, sobald Premium aktiv ist.";
 "settings.accentColor.title" = "Akzentfarbe";
 "settings.accentColor.default" = "Standard";
 "settings.accentColor.blue" = "Blau";

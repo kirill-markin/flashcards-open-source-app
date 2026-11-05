@@ -898,6 +898,10 @@
 "premium.offer.benefits" = "Ujumbe 1,000 wa AI kwa mwezi na mitindo maalum. Usawazishaji ni bure kwa kila mtu.";
 "premium.aiLimit.title" = "Umefikia kikomo cha ujumbe wa AI";
 
+"settings.theme.title" = "Mandhari";
+"settings.theme.dark" = "Giza";
+"settings.theme.light" = "Angavu";
+"settings.theme.premiumNote" = "Mandhari angavu yanapatikana kwa Premium. Mandhari uliyohifadhi yatarudi Premium inapokuwa hai.";
 "settings.accentColor.title" = "Rangi ya msisitizo";
 "settings.accentColor.default" = "Chaguomsingi";
 "settings.accentColor.blue" = "Buluu";
