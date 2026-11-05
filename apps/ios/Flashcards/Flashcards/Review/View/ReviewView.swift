@@ -318,7 +318,7 @@ struct ReviewView: View {
                        CGRect(origin: .zero, size: geometry.size).contains(target) {
                         FirstReviewOnboardingOverlay(
                             target: target, size: geometry.size,
-                            accent: self.store.effectiveAccountAccentColor,
+                            accent: self.store.displayedAccountAccentColor,
                             animates: self.reduceMotion == false && self.isLowPowerModeEnabled == false
                         )
                     }
@@ -399,7 +399,7 @@ struct ReviewView: View {
         actions.append(MacToolbarAction(
             identifier: UITestIdentifier.reviewProgressBadge, symbol: badge.iconSystemName,
             label: self.reviewProgressBadgeAccessibilityLabel(badgeState: streak),
-            symbolColor: streak.hasReviewedToday ? UIColor(self.store.effectiveAccountAccentColor.color) : nil,
+            symbolColor: streak.hasReviewedToday ? UIColor(self.store.displayedAccountAccentColor.color) : nil,
             title: formatReviewProgressBadgeValue(badgeState: streak),
             value: self.reviewProgressBadgeAccessibilityValue(badgeState: streak),
             isEnabled: streak.isInteractive,
@@ -417,7 +417,7 @@ struct ReviewView: View {
                         onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
                     )
                     .environment(\.locale, self.locale)
-                    .tint(self.store.effectiveAccountAccentColor.color)
+                    .tint(self.store.displayedAccountAccentColor.color)
                 }
             }
         )
@@ -888,7 +888,7 @@ struct ReviewView: View {
                 },
                 showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
                 showsAiButton: false,
-                aiButtonAccentColor: self.store.effectiveAccountAccentColor,
+                aiButtonAccentColor: self.store.displayedAccountAccentColor,
                 onOpenAi: {},
                 surfaceStyle: .front,
                 showsShortcutHints: UIDevice.current.userInterfaceIdiom == .pad && self.reviewScreen.isAnswerVisible == false,
@@ -917,7 +917,7 @@ struct ReviewView: View {
                     },
                     showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
                     showsAiButton: true,
-                    aiButtonAccentColor: self.store.effectiveAccountAccentColor,
+                    aiButtonAccentColor: self.store.displayedAccountAccentColor,
                     onOpenAi: {
                         self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
                     },

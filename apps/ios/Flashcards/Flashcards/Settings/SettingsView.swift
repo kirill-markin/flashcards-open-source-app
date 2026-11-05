@@ -148,7 +148,7 @@ struct SettingsView: View {
                         }
                         Spacer()
                         Circle()
-                            .fill(store.effectiveAccountAccentColor.color)
+                            .fill(store.displayedAccountAccentColor.color)
                             .frame(width: 22, height: 22)
                             .accessibilityLabel(store.effectiveAccountAccentColor.hex)
                     }

@@ -8,6 +8,11 @@ private let progressStreakCalendarHeaderSpacing: CGFloat = 10
 private let progressStreakCalendarWeekSpacing: CGFloat = 12
 private let progressFrozenStreakBorderColor = Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
 private let progressFrozenStreakContentColor = Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255)
+// A white disk disappears on the white Light cell, so Light uses a pale ice tint.
+private let progressFrozenStreakBackgroundColor = themeAdaptiveColor(
+    light: UIColor(red: 0xE6 / 255, green: 0xF4 / 255, blue: 0xFF / 255, alpha: 1),
+    dark: .white
+)
 
 struct ProgressStreakSection: View {
     let weeks: [ProgressCalendarWeek]
@@ -319,7 +324,7 @@ private struct ProgressStreakDayCell: View {
         }
 
         if self.isFrozenDay {
-            return .white
+            return progressFrozenStreakBackgroundColor
         }
 
         return Color(uiColor: .secondarySystemGroupedBackground)
