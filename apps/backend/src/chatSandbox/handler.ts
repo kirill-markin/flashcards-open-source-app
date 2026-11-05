@@ -28,6 +28,8 @@ async function runOperation(request: ChatSandboxRequest): Promise<CompletedOpera
         uploadedSlotIds: response.writtenFiles.map((file) => file.slotId),
         sqlCallCount: response.sqlCallCount,
         sqlExecuteCallCount: response.sqlExecuteCallCount,
+        mediaGetCount: response.mediaGetCount,
+        mediaPutCount: response.mediaPutCount,
       },
     };
   }
@@ -66,14 +68,14 @@ async function runOperation(request: ChatSandboxRequest): Promise<CompletedOpera
  * The chat sandbox runs model-written commands over one chat session's files, and parses the files
  * people attach, which no other backend code parses. Its boundary is the Lambda microVM: the execution
  * role can only write this function's logs and the function is in no VPC, so the only stored data it
- * can reach is the objects the chat worker pre-signed for this call and, through the SQL bridge
- * (`./sqlBridge/`), the agent SQL of this call's user under a capability that expires within minutes;
- * the shell itself gets no network. Every call builds its files in memory and writes nothing to the
+ * can reach is the objects the chat worker pre-signed for this call and, through the SQL and media
+ * bridges (`./sqlBridge/`, `./mediaBridge/`), the agent SQL and the managed images of this call's user
+ * under a capability that expires within minutes; the shell itself gets no network. Every call builds its files in memory and writes nothing to the
  * Lambda's own disk.
  *
  * Accepted residual risk: Lambda reuses a warm instance for later calls, including other users' calls,
  * so an escape from the shell interpreter, the Python or JavaScript WASM runtime or a document parser
- * could observe a later call on the same instance, and use its SQL capability until that expires or
+ * could observe a later call on the same instance, and use its bridge capability until that expires or
  * its chat run ends.
  *
  * One record per call, metadata only: never a command, its output, a file's content, or a pre-signed

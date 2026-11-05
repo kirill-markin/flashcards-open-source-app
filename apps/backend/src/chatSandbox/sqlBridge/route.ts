@@ -30,7 +30,7 @@ const maximumLoggedSqlChars = 64_000;
  * run under the claim the worker minted it with, so a stopped, finished or reclaimed run refuses the
  * calls its sandbox still makes. Returns that run's stored device, which the writes the call makes carry.
  */
-async function readActiveChatRunClientDevice(capability: ChatSandboxSqlCapability): Promise<AiChatRunClientDevice> {
+export async function readActiveChatRunClientDevice(capability: ChatSandboxSqlCapability): Promise<AiChatRunClientDevice> {
   const scope = { userId: capability.userId, workspaceId: capability.workspaceId };
   const device = await transactionWithWorkspaceScope(scope, async (executor) => getActiveChatRunClientDeviceWithExecutor(
     executor,
@@ -39,7 +39,7 @@ async function readActiveChatRunClientDevice(capability: ChatSandboxSqlCapabilit
   if (device === null) {
     throw new HttpError(
       403,
-      "The chat run this command belongs to is no longer running, so its code may not run SQL.",
+      "The chat run this command belongs to is no longer running, so its code may not reach the user's flashcards.",
       "CHAT_SANDBOX_SQL_RUN_INACTIVE",
     );
   }

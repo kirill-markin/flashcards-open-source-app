@@ -497,8 +497,7 @@ their existing rendering. A gallery adds no tap behavior.
 When a person inserts an image directly after an image reference, with only
 spaces or tabs between it and the cursor, the editor inserts one space instead
 of line breaks. The server appends a generated image the same way when the card
-side ends with an image. A chat collage is appended as its own block, below the
-images it combines.
+side ends with an image.
 
 ## Manual parity sample
 

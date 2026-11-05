@@ -1,9 +1,15 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Command, ExecResult, decodeBytesToUtf8 } from "just-bash";
 import { z } from "zod";
-import { cutHeadAtCodePoint } from "../../shared/codePointCuts";
+import {
+  bridgeRetryDelaysMs,
+  describeBridgeOutcome,
+  isBridgeAttemptRetryable,
+  isUnsentRequestError,
+  sendBridgeAttempt,
+  type BridgeAttemptOutcome,
+} from "../bridgeTransport";
 import { maximumSqlCallsPerCommand, type ChatSandboxSqlBridge } from "../contract";
-import { describeNetworkError, readNetworkErrorCode } from "../presignedTransfer";
 
 type SqlCallKind = "query" | "execute";
 
@@ -20,26 +26,7 @@ const sqlCallKindByToolPath: ReadonlyMap<string, SqlCallKind> = new Map<string, 
   ["sql.execute", "execute"],
 ]);
 
-const retryDelaysMs: ReadonlyArray<number> = [500, 1_000, 2_000];
-/** Outlives API Gateway's 29-second integration timeout, so a slow call ends in the gateway's own answer. */
-const attemptTimeoutMs = 35_000;
-/** Failures raised before the request left, so a write may repeat it without landing twice. */
-const unsentRequestErrorCodes: ReadonlySet<string> = new Set([
-  "ECONNREFUSED",
-  "ENOTFOUND",
-  "EAI_AGAIN",
-  "UND_ERR_CONNECT_TIMEOUT",
-]);
-/** API Gateway's answers for a request the backend did not finish. */
-const gatewayFailureStatuses: ReadonlySet<number> = new Set([502, 503, 504]);
-const throttledStatus = 429;
-const maximumFailureBodyChars = 1_000;
-
 const toolEnvelopeSchema = z.object({ ok: z.boolean() });
-
-type AttemptOutcome =
-  | Readonly<{ answered: true; status: number; body: string }>
-  | Readonly<{ answered: false; error: unknown }>;
 
 /** A call that did not return the tool's success result; its message is what the command's code sees. */
 class ChatSandboxSqlCallError extends Error {
@@ -49,35 +36,12 @@ class ChatSandboxSqlCallError extends Error {
   }
 }
 
-function isUnsentRequestError(error: unknown): boolean {
-  const code = readNetworkErrorCode(error);
-  return code !== null && unsentRequestErrorCodes.has(code);
-}
-
-/**
- * Throttling, and a request that failed before it left, refuse a call before it runs; anything else is
- * repeated only for a read.
- */
-function isRetryable(kind: SqlCallKind, outcome: AttemptOutcome): boolean {
-  if (outcome.answered) {
-    return outcome.status === throttledStatus || (kind === "query" && gatewayFailureStatuses.has(outcome.status));
-  }
-
-  return kind === "query" || isUnsentRequestError(outcome.error);
-}
-
-function isWriteOutcomeUnknown(kind: SqlCallKind, outcome: AttemptOutcome): boolean {
+function isWriteOutcomeUnknown(kind: SqlCallKind, outcome: BridgeAttemptOutcome): boolean {
   if (kind === "query") {
     return false;
   }
 
   return outcome.answered ? outcome.status >= 500 : !isUnsentRequestError(outcome.error);
-}
-
-function describeOutcome(outcome: AttemptOutcome): string {
-  return outcome.answered
-    ? `HTTP ${outcome.status} ${cutHeadAtCodePoint(outcome.body, maximumFailureBodyChars)}`
-    : describeNetworkError(outcome.error);
 }
 
 /** The success envelope travels on as it arrived, for js-exec to parse; a failure envelope becomes the error. */
@@ -186,14 +150,20 @@ export class ChatSandboxSqlBridgeClient {
   private async send(kind: SqlCallKind, args: SqlCallArguments, signal: AbortSignal | undefined): Promise<string> {
     const body = JSON.stringify({ kind, sql: args.sql, workspaceId: args.workspaceId ?? null });
     for (let attempt = 1; ; attempt += 1) {
-      const outcome = await this.attempt(body, signal);
+      const outcome = await sendBridgeAttempt({
+        url: this.bridge.url,
+        method: "POST",
+        authorization: this.bridge.authorization,
+        contentType: "application/json",
+        body,
+      }, signal);
       if (outcome.answered && outcome.status === 200) {
         return readToolResult(outcome.body);
       }
 
-      const failure = describeOutcome(outcome);
-      const retryDelayMs = retryDelaysMs[attempt - 1];
-      if (retryDelayMs === undefined || !isRetryable(kind, outcome)) {
+      const failure = describeBridgeOutcome(outcome);
+      const retryDelayMs = bridgeRetryDelaysMs[attempt - 1];
+      if (retryDelayMs === undefined || !isBridgeAttemptRetryable(kind === "query", outcome)) {
         throw new ChatSandboxSqlCallError(isWriteOutcomeUnknown(kind, outcome)
           ? `The SQL bridge did not confirm this write (${failure}), so it may have been applied: read back with a SELECT before sending it again.`
           : `The SQL bridge did not complete this ${kind} call: ${failure}`);
@@ -201,23 +171,6 @@ export class ChatSandboxSqlBridgeClient {
 
       console.warn({ action: "chat_sandbox_sql_retried", sessionId: this.sessionId, kind, attempt, failure, retryDelayMs });
       await sleep(retryDelayMs, undefined, signal === undefined ? {} : { signal });
-    }
-  }
-
-  /** The URL and the capability never reach a message: the command's code reads every one of them. */
-  private async attempt(body: string, signal: AbortSignal | undefined): Promise<AttemptOutcome> {
-    const timeout = AbortSignal.timeout(attemptTimeoutMs);
-    try {
-      const response = await fetch(this.bridge.url, {
-        method: "POST",
-        headers: { authorization: this.bridge.authorization, "content-type": "application/json" },
-        body,
-        signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
-      });
-      return { answered: true, status: response.status, body: await response.text() };
-    } catch (error) {
-      signal?.throwIfAborted();
-      return { answered: false, error };
     }
   }
 }

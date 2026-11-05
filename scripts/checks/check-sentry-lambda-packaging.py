@@ -29,6 +29,8 @@ function packageFiles(directory) {
       if (current === directory && entry.name === 'node_modules') continue;
       const file = path.join(current, entry.name);
       if (entry.isDirectory()) visit(file);
+      // Same rule as apps/backend/scripts/install-lambda-node-modules.mts, which deletes these from ChatSandbox.
+      else if (entry.isFile() && entry.name.endsWith('.map')) continue;
       else {
         assert.ok(entry.isFile(), `Unexpected vendor file type: ${file}`);
         files[path.relative(directory, file)] = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');

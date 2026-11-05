@@ -49,14 +49,15 @@ on MCP, [`tools.ts`](../apps/backend/src/chat/openai/tools/tools.ts) and
 [`toolResults.ts`](../apps/backend/src/chat/openai/tools/toolResults.ts) on the
 chat.
 
-The chat also sends four tools that are not registry specs, so no other
+The chat also sends three tools that are not registry specs, so no other
 surface has them:
 
 - `bash` and `view_file`: [`bashToolContract.ts`](../apps/backend/src/chat/openai/tools/bashToolContract.ts)
   and [`viewFileToolContract.ts`](../apps/backend/src/chat/openai/tools/viewFileToolContract.ts)
   say why they stay chat-only. Code a `bash` command runs reaches the SQL tools
   through the sandbox's [SQL bridge](../apps/backend/src/chatSandbox/sqlBridge/)
-  (`executeChatSandboxSqlCall` in `tools.ts`).
+  (`executeChatSandboxSqlCall` in `tools.ts`), and copies or uploads managed images
+  through its [media bridge](../apps/backend/src/chatSandbox/mediaBridge/).
 - `add_generated_image_to_card`: appended by `buildOpenAIChatTools` in `tools.ts`
   for the runs `isGeneratedImageEligibleForWorker`
   ([`chat/worker/index.ts`](../apps/backend/src/chat/worker/index.ts)) admits.
@@ -65,8 +66,6 @@ surface has them:
   Image generation is chat-only by decision; extending it to MCP and REST is the
   planned TODO at `generateRunlessCardImage` in
   [`cardImages/operation.ts`](../apps/backend/src/chat/cardImages/operation.ts).
-- `add_image_collage_to_card`: [`cardCollageToolContract.ts`](../apps/backend/src/chat/openai/tools/cardCollageToolContract.ts)
-  says why it stays chat-only.
 
 Two things a spec cannot pin differ by surface: the workspace an omitted
 `workspaceId` falls back to, and the sync replica a review dedupes within. On
