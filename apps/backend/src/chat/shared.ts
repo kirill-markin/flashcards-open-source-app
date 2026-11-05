@@ -213,7 +213,7 @@ function buildSandboxSqlSection(): string {
     `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
     "- Writes from code follow the rules above, like sql_execute calls.",
     "- Imported cards start as new cards: review history and scheduling cannot be imported.",
-    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image and prints its id, which an SQL write then puts on a card as ![alt](fcasset:<id>).",
+    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image of the open workspace and prints its id, which an SQL write that omits workspaceId then puts on a card as ![alt](fcasset:<id>).",
     "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);
 }
