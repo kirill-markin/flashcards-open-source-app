@@ -158,6 +158,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 initialValue = com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences().copy(firstReviewOnboardingCompleted = null)
             )
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
+            val reviewWidgetCardRequest by appGraph.appHandoffCoordinator.observeReviewWidgetCard().collectAsStateWithLifecycle()
             // Resolved when the prompt appears, so its button text and its action stay one decision.
             val notificationPermissionPromptContinueAction = remember(uiState.isNotificationPermissionPromptVisible) {
                 if (
@@ -178,6 +179,17 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 val didSelectFilter = reviewViewModel.selectFilterForHandoff(reviewFilter = request.reviewFilter)
                 if (didSelectFilter) {
                     appGraph.appHandoffCoordinator.consumeReviewFilter(requestId = request.requestId)
+                }
+            }
+
+            LaunchedEffect(reviewWidgetCardRequest?.requestId, uiState) {
+                val request = reviewWidgetCardRequest ?: return@LaunchedEffect
+                val didHandle = reviewViewModel.startSessionOnCardForHandoff(
+                    workspaceId = request.workspaceId,
+                    cardId = request.cardId
+                )
+                if (didHandle) {
+                    appGraph.appHandoffCoordinator.consumeReviewWidgetCard(requestId = request.requestId)
                 }
             }
 

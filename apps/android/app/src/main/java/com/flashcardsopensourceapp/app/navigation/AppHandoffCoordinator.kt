@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
+import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import java.util.concurrent.atomic.AtomicLong
@@ -31,6 +32,13 @@ data class ReviewFilterRequest(
     val reviewFilter: ReviewFilter
 )
 
+/** A widget tap's card, which Review shows first when it is still in review in [workspaceId]. */
+data class ReviewWidgetCardRequest(
+    val requestId: Long,
+    val workspaceId: String,
+    val cardId: String
+)
+
 enum class ProgressNavigationTarget {
     STREAK,
     LEADERBOARD
@@ -44,6 +52,11 @@ data class ProgressNavigationRequest(
 data class AppNotificationTapHandoffRequest(
     val requestId: Long,
     val request: AppNotificationTapRequest
+)
+
+data class ReviewWidgetTapHandoffRequest(
+    val requestId: Long,
+    val request: ReviewWidgetTapRequest
 )
 
 enum class SettingsNavigationTarget {
@@ -62,6 +75,7 @@ class AppHandoffCoordinator {
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
+    private val reviewWidgetCardState = MutableStateFlow<ReviewWidgetCardRequest?>(value = null)
     private val progressNavigationState = MutableStateFlow<ProgressNavigationRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
@@ -79,6 +93,10 @@ class AppHandoffCoordinator {
 
     fun observeReviewFilter(): StateFlow<ReviewFilterRequest?> {
         return reviewFilterState.asStateFlow()
+    }
+
+    fun observeReviewWidgetCard(): StateFlow<ReviewWidgetCardRequest?> {
+        return reviewWidgetCardState.asStateFlow()
     }
 
     fun observeProgressNavigation(): StateFlow<ProgressNavigationRequest?> {
@@ -155,6 +173,22 @@ class AppHandoffCoordinator {
         }
 
         reviewFilterState.value = null
+    }
+
+    fun requestReviewWidgetCard(workspaceId: String, cardId: String) {
+        reviewWidgetCardState.value = ReviewWidgetCardRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            workspaceId = workspaceId,
+            cardId = cardId
+        )
+    }
+
+    fun consumeReviewWidgetCard(requestId: Long) {
+        if (reviewWidgetCardState.value?.requestId != requestId) {
+            return
+        }
+
+        reviewWidgetCardState.value = null
     }
 
     fun requestProgressNavigation(target: ProgressNavigationTarget) {

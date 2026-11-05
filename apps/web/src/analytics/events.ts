@@ -23,7 +23,8 @@
  * outcome the page never observes. That is a product difference from iOS and Android, not a gap.
  *
  * `notification_scheduled` and `notification_opened` are omitted for the same reason: the web client
- * has no reminders, and `purchase_restore_finished` because it has no store purchase to restore.
+ * has no reminders, `widget_opened` because it has no Home Screen widget, and
+ * `purchase_restore_finished` because it has no store purchase to restore.
  *
  * `signin_failed` is declared but never tracked from here. The web sign-in surface is the auth
  * service's own login page on a different origin, reached by a full page navigation, so this app

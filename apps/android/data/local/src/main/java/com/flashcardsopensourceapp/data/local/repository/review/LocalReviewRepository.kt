@@ -30,6 +30,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
@@ -323,6 +324,35 @@ class LocalReviewRepository(
     }
 
     override fun observeReviewDueBadgeCount(): Flow<Int> {
+        return observeCurrentReviewQueuePredicate().flatMapLatest { current ->
+            if (current == null) {
+                flowOf(0)
+            } else {
+                observeReviewDueBadgeCountForPredicate(
+                    database = database,
+                    workspaceId = current.workspaceId,
+                    predicate = current.predicate
+                )
+            }
+        }.distinctUntilChanged()
+    }
+
+    override fun observeReviewQueueHead(): Flow<ReviewQueueHead?> {
+        return observeCurrentReviewQueuePredicate().flatMapLatest { current ->
+            if (current == null) {
+                flowOf(null)
+            } else {
+                observeReviewQueueHeadForPredicate(
+                    database = database,
+                    workspaceId = current.workspaceId,
+                    predicate = current.predicate
+                )
+            }
+        }.distinctUntilChanged()
+    }
+
+    /** The current workspace's persisted Review filter as a queue predicate; null without a workspace. */
+    private fun observeCurrentReviewQueuePredicate(): Flow<CurrentReviewQueuePredicate?> {
         return observeCurrentWorkspace(
             database = database,
             preferencesStore = preferencesStore
@@ -330,7 +360,7 @@ class LocalReviewRepository(
             workspace?.workspaceId
         }.distinctUntilChanged().flatMapLatest { workspaceId ->
             if (workspaceId == null) {
-                return@flatMapLatest flowOf(0)
+                return@flatMapLatest flowOf(null)
             }
 
             combine(
@@ -346,23 +376,20 @@ class LocalReviewRepository(
                         dueCards = 0
                     )
                 }
-                makeReviewQueuePredicate(
-                    selectedFilter = resolveReviewFilterFromTagNames(
-                        selectedFilter = selectedFilter,
-                        decks = decksForResolution,
-                        tagNames = storedTagNames
-                    ),
-                    decks = decksForResolution,
-                    storedTagNames = storedTagNames
-                )
-            }.distinctUntilChanged().flatMapLatest { predicate ->
-                observeReviewDueBadgeCountForPredicate(
-                    database = database,
+                CurrentReviewQueuePredicate(
                     workspaceId = workspaceId,
-                    predicate = predicate
+                    predicate = makeReviewQueuePredicate(
+                        selectedFilter = resolveReviewFilterFromTagNames(
+                            selectedFilter = selectedFilter,
+                            decks = decksForResolution,
+                            tagNames = storedTagNames
+                        ),
+                        decks = decksForResolution,
+                        storedTagNames = storedTagNames
+                    )
                 )
-            }
-        }.distinctUntilChanged()
+            }.distinctUntilChanged()
+        }
     }
 
     override fun observeReviewMediaAssets(): Flow<List<MediaAsset>> {
@@ -624,7 +651,7 @@ class LocalReviewRepository(
         )
     }
 
-    override suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {
+    override suspend fun loadActiveReviewCard(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {
         val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
             database = database,
             preferencesStore = preferencesStore

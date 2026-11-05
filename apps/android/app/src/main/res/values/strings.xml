@@ -46,6 +46,29 @@
     <string name="notification_diagnostics_failed_message">Notification diagnostics failed.</string>
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
+    <!-- Home Screen widget name in the launcher's widget picker. -->
+    <string name="review_widget_label">Review</string>
+    <string name="review_widget_description">Cards due, your next question and your streak.</string>
+    <string name="review_widget_open_app_message">Open the app to start reviewing.</string>
+    <string name="review_widget_all_done">All done</string>
+    <!-- Shown instead of the next card's question when its front has no text, such as an image only. -->
+    <string name="review_widget_question_without_text">Image question</string>
+    <!-- The placeholder is a time today, otherwise a date and time. -->
+    <string name="review_widget_next_due">Next card: <xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
+    <!-- Shown under the big due count on the small widget. -->
+    <string name="review_widget_due_label">due</string>
+    <plurals name="review_widget_cards_due">
+        <item quantity="one">%1$d card due</item>
+        <item quantity="other">%1$d cards due</item>
+    </plurals>
+    <plurals name="review_widget_streak_days">
+        <item quantity="one">%1$d-day streak</item>
+        <item quantity="other">%1$d-day streak</item>
+    </plurals>
+    <!-- Sample content of the widget preview in the launcher's widget picker. -->
+    <string name="review_widget_preview_cards_due">12 cards due</string>
+    <string name="review_widget_preview_question">What does the mitochondria produce for the cell?</string>
+    <string name="review_widget_preview_streak">7-day streak</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefits">Custom colors, styles &amp; app icons</string>
     <string name="premium_already_active">Your plan already includes Premium benefits.</string>

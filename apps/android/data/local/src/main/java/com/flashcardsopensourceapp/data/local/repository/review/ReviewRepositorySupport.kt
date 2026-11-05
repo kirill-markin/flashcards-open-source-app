@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
+import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHeadCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
@@ -57,6 +59,11 @@ internal sealed interface ReviewTagPredicate {
 
 internal data class ReviewQueuePredicate(
     val tagPredicate: ReviewTagPredicate
+)
+
+internal data class CurrentReviewQueuePredicate(
+    val workspaceId: String,
+    val predicate: ReviewQueuePredicate
 )
 
 internal data class ReviewSessionQueryBase(
@@ -195,32 +202,78 @@ internal fun observeActiveReviewQueue(
     }
 }
 
-/**
- * Re-queries with a fresh `now` once the next card becomes due, so the count stays current without
- * polling. Every collection owns its own clock.
- */
-@OptIn(ExperimentalCoroutinesApi::class)
 internal fun observeReviewDueBadgeCountForPredicate(
     database: AppDatabase,
     workspaceId: String,
     predicate: ReviewQueuePredicate
 ): Flow<Int> {
-    return flow {
-        val nowMillisState = MutableStateFlow(value = System.currentTimeMillis())
-        emitAll(
-            nowMillisState.flatMapLatest { nowMillis ->
+    return observeAtReviewDueClock(
+        observeAt = { nowMillis ->
+            observeReviewDueCountRow(
+                database = database,
+                workspaceId = workspaceId,
+                nowMillis = nowMillis,
+                predicate = predicate
+            )
+        },
+        nextDueAtMillis = ReviewDueBadgeCountRow::nextDueAtMillis
+    ).map { row -> row.dueCount }
+}
+
+internal fun observeReviewQueueHeadForPredicate(
+    database: AppDatabase,
+    workspaceId: String,
+    predicate: ReviewQueuePredicate
+): Flow<ReviewQueueHead> {
+    return observeAtReviewDueClock(
+        observeAt = { nowMillis ->
+            combine(
                 observeReviewDueCountRow(
                     database = database,
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     predicate = predicate
+                ),
+                observeActiveReviewQueue(
+                    database = database,
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    predicate = predicate,
+                    limit = 1
                 )
-            }.transformLatest { row ->
-                emit(row.dueCount)
-                val nextDueAtMillis: Long = row.nextDueAtMillis ?: return@transformLatest
-                delay(timeMillis = nextDueAtMillis - System.currentTimeMillis())
+            ) { row, cards ->
+                ReviewQueueHead(
+                    workspaceId = workspaceId,
+                    dueCount = row.dueCount,
+                    nextDueAtMillis = row.nextDueAtMillis,
+                    topCard = cards.firstOrNull()?.card?.let { card ->
+                        ReviewQueueHeadCard(cardId = card.cardId, frontText = card.frontText)
+                    }
+                )
+            }
+        },
+        nextDueAtMillis = ReviewQueueHead::nextDueAtMillis
+    )
+}
+
+/**
+ * Re-queries with a fresh `now` once the next card becomes due, so due counts stay current without
+ * polling. Every collection owns its own clock.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+private fun <T> observeAtReviewDueClock(
+    observeAt: (nowMillis: Long) -> Flow<T>,
+    nextDueAtMillis: (T) -> Long?
+): Flow<T> {
+    return flow {
+        val nowMillisState = MutableStateFlow(value = System.currentTimeMillis())
+        emitAll(
+            nowMillisState.flatMapLatest(observeAt).transformLatest { value ->
+                emit(value)
+                val dueAtMillis: Long = nextDueAtMillis(value) ?: return@transformLatest
+                delay(timeMillis = dueAtMillis - System.currentTimeMillis())
                 // At least the next due time, so that card counts even if the wall clock lags the delay.
-                nowMillisState.value = maxOf(System.currentTimeMillis(), nextDueAtMillis)
+                nowMillisState.value = maxOf(System.currentTimeMillis(), dueAtMillis)
             }
         )
     }

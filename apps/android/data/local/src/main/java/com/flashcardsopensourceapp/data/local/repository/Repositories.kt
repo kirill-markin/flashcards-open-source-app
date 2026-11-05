@@ -68,6 +68,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
@@ -134,6 +135,9 @@ interface ReviewRepository {
     /** New and due cards in the current workspace under its persisted Review filter. */
     fun observeReviewDueBadgeCount(): Flow<Int>
 
+    /** [observeReviewDueBadgeCount] with the card Review shows first; null without a current workspace. */
+    fun observeReviewQueueHead(): Flow<ReviewQueueHead?>
+
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 
     suspend fun loadReviewMediaAssetFile(mediaAssetId: String): ReviewMediaAssetFile
@@ -149,7 +153,8 @@ interface ReviewRepository {
 
     suspend fun loadReviewPromptCounters(nowMillis: Long, zoneId: ZoneId): ReviewPromptCounters
 
-    suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
+    /** The card while it is due and in [selectedFilter] in the current workspace; pending ratings are the caller's to exclude. */
+    suspend fun loadActiveReviewCard(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
 
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)
 }

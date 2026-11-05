@@ -309,6 +309,12 @@ enum class AnalyticsNotificationKind(val wireValue: String) {
     STRICT_REMINDER(wireValue = "strict_reminder")
 }
 
+enum class AnalyticsWidgetSize(val wireValue: String) {
+    SMALL(wireValue = "small"),
+    MEDIUM(wireValue = "medium"),
+    LARGE(wireValue = "large")
+}
+
 enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
     CARDS(wireValue = "cards"),
     DECK_DETAIL(wireValue = "deck_detail"),
@@ -890,6 +896,17 @@ sealed interface AnalyticsEvent {
         override val screen: AnalyticsSurface? = null
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "notification_kind" to AnalyticsPropertyValue.Text(value = notificationKind.wireValue)
+        )
+    }
+
+    /** A Home Screen widget tap, reported where the tap intent reaches the process, like [NotificationOpened]. */
+    data class WidgetOpened(
+        val widgetSize: AnalyticsWidgetSize
+    ) : AnalyticsEvent {
+        override val eventName: String = "widget_opened"
+        override val screen: AnalyticsSurface? = null
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "widget_size" to AnalyticsPropertyValue.Text(value = widgetSize.wireValue)
         )
     }
 

@@ -1124,6 +1124,14 @@ export const productAnalyticsEventCatalog = {
       notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
     },
   },
+  // A launch from the Home Screen widget, its own name for the reason given for `notification_opened`.
+  widget_opened: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      widget_size: { kind: "enum", values: ["small", "medium", "large"] },
+    },
+  },
   card_create_started: {
     serverOnly: false,
     requiresScreen: false,

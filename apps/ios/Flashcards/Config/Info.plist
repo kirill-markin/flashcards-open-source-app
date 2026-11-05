@@ -90,6 +90,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>FLASHCARDS_API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
+	<key>FLASHCARDS_APP_GROUP_IDENTIFIER</key>
+	<string>group.$(APP_BUNDLE_IDENTIFIER)</string>
 	<key>FLASHCARDS_AUTH_BASE_URL</key>
 	<string>$(AUTH_BASE_URL)</string>
 	<key>FLASHCARDS_PRIVACY_POLICY_URL</key>

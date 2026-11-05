@@ -49,9 +49,11 @@ enum ReviewDataRebuildReason: Hashable {
 }
 
 /// What a review load does with the card on screen.
-enum ReviewShownCardIntent {
+enum ReviewShownCardIntent: Equatable {
     /// A new scope starts a new session without the shown card.
     case startNewSession
+    /// A widget tap starts a new session that shows this card first while it is still in the resolved scope.
+    case startNewSessionShowingCard(cardId: String)
     /// The shown card stays while it still belongs to the resolved scope.
     case keepShownCard
 }

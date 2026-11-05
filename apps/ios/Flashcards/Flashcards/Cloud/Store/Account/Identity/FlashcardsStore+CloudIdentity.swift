@@ -66,6 +66,9 @@ extension FlashcardsStore {
         // database reset below and leave the departing person's local data on the device.
         self.resetOwnOpenAIKeyForCloudIdentityReset()
         try database.resetForAccountDeletion()
+        #if !targetEnvironment(macCatalyst)
+        self.deleteWidgetSnapshotForCloudIdentityReset()
+        #endif
         let nextStrictReminderNotificationScope = rotateStrictReminderNotificationScope(
             userDefaults: self.userDefaults
         )

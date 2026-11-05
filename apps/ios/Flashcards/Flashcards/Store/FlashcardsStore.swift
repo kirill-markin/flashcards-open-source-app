@@ -245,6 +245,8 @@ final class FlashcardsStore {
     @ObservationIgnored var visibleProgressRefreshTasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored var deferredProgressRefreshTask: Task<Void, Never>?
     @ObservationIgnored var reviewProgressBadgeSource: ReviewProgressBadgeSource?
+    /// What the app last handed the Home Screen widget in this process; see `FlashcardsStore+WidgetSnapshot`.
+    @ObservationIgnored var lastWrittenWidgetSnapshot: WidgetSnapshot? = nil
     @ObservationIgnored var progressSnapshotPublishedClientRevision: Int?
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressErrorState: ProgressErrorState

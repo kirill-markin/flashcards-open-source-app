@@ -131,6 +131,20 @@ extension LocalDatabase {
         )
     }
 
+    func loadReviewUpcomingDueDates(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int
+    ) throws -> [Date] {
+        try self.cardStore.loadReviewUpcomingDueDates(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit
+        )
+    }
+
     func loadReviewTimelinePage(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,

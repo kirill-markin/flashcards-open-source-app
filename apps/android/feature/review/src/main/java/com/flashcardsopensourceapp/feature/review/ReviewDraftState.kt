@@ -112,6 +112,17 @@ internal fun applyReviewFilterChange(
     )
 }
 
+/** A new session in the same scope that shows [card] first. */
+internal fun applyReviewSessionStartOnCard(
+    state: ReviewDraftState,
+    card: ReviewCard
+): ReviewDraftState {
+    return applyReviewFilterChange(
+        state = state,
+        reviewFilter = state.requestedFilter
+    ).copy(presentedCard = card)
+}
+
 internal fun applyResolvedReviewFilter(
     state: ReviewDraftState,
     reviewFilter: ReviewFilter

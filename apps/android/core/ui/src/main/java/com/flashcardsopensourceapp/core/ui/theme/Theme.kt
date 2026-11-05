@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
-private val FlashcardsDarkColorScheme = darkColorScheme(
+val FlashcardsDarkColorScheme = darkColorScheme(
     primary = FlashcardsOrange,
     onPrimary = Color.Black,
     secondary = FlashcardsOrange,

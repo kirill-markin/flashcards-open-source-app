@@ -155,6 +155,8 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// A reminder tap that brought the person back, reported where the OS hands the response to the
     /// app. It is the numerator `notificationScheduled` is the denominator of.
     case notificationOpened(notificationKind: AnalyticsNotificationKind)
+    /// A Home Screen widget tap, reported once when the app consumes it.
+    case widgetOpened(widgetSize: AnalyticsWidgetSize)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /**
      * Voice input reached the microphone: the recorder really started, not the button being pressed.
@@ -435,6 +437,12 @@ enum AnalyticsNotificationKind: String, Sendable, Equatable {
     case strictReminder = "strict_reminder"
 }
 
+enum AnalyticsWidgetSize: String, Sendable, Equatable {
+    case small
+    case medium
+    case large
+}
+
 enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
     case cards
     case deckDetail = "deck_detail"
@@ -693,6 +701,8 @@ extension AnalyticsEvent {
             return "notification_scheduled"
         case .notificationOpened:
             return "notification_opened"
+        case .widgetOpened:
+            return "widget_opened"
         case .cardCreateStarted:
             return "card_create_started"
         case .dictationStarted:
@@ -844,6 +854,8 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .notificationScheduled(let notificationKind), .notificationOpened(let notificationKind):
             return ["notification_kind": .string(notificationKind.rawValue)]
+        case .widgetOpened(let widgetSize):
+            return ["widget_size": .string(widgetSize.rawValue)]
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
         case .dictationStarted:

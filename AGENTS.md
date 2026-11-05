@@ -36,6 +36,7 @@ Before releasing or bumping versions, read [Release All Platforms](docs/release/
 The Web, iOS, and Android clients are multilingual, so always account for localization and follow the existing translation patterns in the surrounding code and dedicated client documentation.
 Adding a new language spans more surfaces than any single client guide covers, so read [docs/add-language.md](docs/add-language.md) before starting one.
 The demo onboarding card seeded for new users is a cross-client contract, so before changing it on any client, read [docs/demo-card.md](docs/demo-card.md).
+Before changing the Home Screen widget on any client, read [docs/home-screen-widgets.md](docs/home-screen-widgets.md).
 Before changing auth (`apps/auth/`, passwordless email OTP via AWS Cognito), read [docs/auth-service.md](docs/auth-service.md).
 Before changing card reappearance or FSRS scheduling, read [docs/fsrs-scheduling-logic.md](docs/fsrs-scheduling-logic.md).
 

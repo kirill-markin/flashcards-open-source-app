@@ -34,6 +34,8 @@ internal fun AppNavHost(
     isPowerSaveMode: Boolean,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
     consumeAppNotificationTap: (Long) -> Unit,
+    reviewWidgetTapRequest: ReviewWidgetTapHandoffRequest?,
+    consumeReviewWidgetTap: (Long) -> Unit,
     premiumPresenter: PremiumPresenter
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -83,6 +85,20 @@ internal fun AppNavHost(
             }
         }
         consumeAppNotificationTap(request.requestId)
+    }
+
+    LaunchedEffect(reviewWidgetTapRequest?.requestId) {
+        val request = reviewWidgetTapRequest ?: return@LaunchedEffect
+        navigateToTopLevelDestination(
+            navController = navController,
+            destination = ReviewDestination
+        )
+        val workspaceId = request.request.workspaceId
+        val cardId = request.request.cardId
+        if (workspaceId != null && cardId != null) {
+            appGraph.appHandoffCoordinator.requestReviewWidgetCard(workspaceId = workspaceId, cardId = cardId)
+        }
+        consumeReviewWidgetTap(request.requestId)
     }
 
     LaunchedEffect(settingsNavigationRequest?.requestId) {

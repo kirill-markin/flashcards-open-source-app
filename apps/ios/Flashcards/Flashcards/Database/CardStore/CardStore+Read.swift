@@ -440,6 +440,31 @@ extension CardStore {
         return snapshot
     }
 
+    /// Due times strictly after `now`, ascending, with one entry per card so equal times keep their count.
+    func loadReviewUpcomingDueDates(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int
+    ) throws -> [Date] {
+        precondition(limit > 0, "Upcoming due dates limit must be greater than zero")
+
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+
+        return try self.core.query(
+            sql: """
+            SELECT due_at_millis
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL AND due_at IS NOT NULL AND due_at_millis > ?\(querySQL.clause)
+            ORDER BY due_at_millis ASC
+            LIMIT ?
+            """,
+            values: [.text(workspaceId), .integer(epochMillis(date: now))] + querySQL.values + [.integer(Int64(limit))]
+        ) { statement in
+            Date(timeIntervalSince1970: TimeInterval(DatabaseCore.columnInt64(statement: statement, index: 0)) / 1_000)
+        }
+    }
+
     /**
      Loads the first review queue page directly from SQLite so the review tab
      can show the first card without hydrating all cards in memory.
