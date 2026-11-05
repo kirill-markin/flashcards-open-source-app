@@ -23,7 +23,7 @@ const fiCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Oppiminen kuuluu <em>kaikille.</em>",
+    heading: "Tee Nibomosta <em>omasi</em>.",
     freeTitle: "Ilmainen",
     freeDescription: "Luotu opiskelijoille ilman työpaikkaa. Avoin kaikille.",
     freeBenefit: "Peruskertaukset, opiskelu offline-tilassa ja synkronointi",

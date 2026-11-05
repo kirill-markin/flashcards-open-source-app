@@ -23,7 +23,7 @@ const hrCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Učenje pripada <em>svima.</em>",
+    heading: "Nibomo po <em>svom</em>.",
     freeTitle: "Besplatno",
     freeDescription: "Stvoreno za studente bez posla. Otvoreno svima.",
     freeBenefit: "Osnovno ponavljanje, učenje izvan mreže i sinkronizacija",

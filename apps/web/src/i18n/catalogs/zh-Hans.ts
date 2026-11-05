@@ -23,7 +23,7 @@ export const zhHansCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "学习属于<em>每一个人。</em>",
+    heading: "让 Nibomo <em>专属于你</em>。",
     freeTitle: "免费",
     freeDescription: "为尚未工作的学生而创。向所有人开放。",
     freeBenefit: "基础复习、离线学习与同步",

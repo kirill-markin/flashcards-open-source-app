@@ -23,7 +23,7 @@ const etCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Õppimine kuulub <em>kõigile.</em>",
+    heading: "Tee Nibomo <em>enda omaks</em>.",
     freeTitle: "Tasuta",
     freeDescription: "Loodud tööta üliõpilastele. Avatud kõigile.",
     freeBenefit: "Põhikordused, võrguühenduseta õppimine ja sünkroonimine",

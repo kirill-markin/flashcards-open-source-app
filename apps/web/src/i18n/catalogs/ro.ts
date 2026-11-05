@@ -23,7 +23,7 @@ const roCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Învățarea este pentru <em>toți.</em>",
+    heading: "Fă Nibomo <em>al tău</em>.",
     freeTitle: "Gratuit",
     freeDescription: "Creat pentru studenții fără loc de muncă. Deschis tuturor.",
     freeBenefit: "Recapitulări de bază, învățare offline și sincronizare",

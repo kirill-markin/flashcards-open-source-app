@@ -23,7 +23,7 @@ const bgCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Ученето е за <em>всички.</em>",
+    heading: "Nibomo по <em>свой</em> вкус.",
     freeTitle: "Безплатно",
     freeDescription: "Създадено за студенти без работа. Отворено за всички.",
     freeBenefit: "Основни преговори, учене офлайн и синхронизация",

@@ -23,7 +23,7 @@ const frCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Apprendre est un droit pour <em>tous.</em>",
+    heading: "Nibomo, <em>à votre image</em>.",
     freeTitle: "Gratuit",
     freeDescription: "Créé pour les étudiants sans emploi. Ouvert à tous.",
     freeBenefit: "Révisions essentielles, apprentissage hors ligne et synchronisation",

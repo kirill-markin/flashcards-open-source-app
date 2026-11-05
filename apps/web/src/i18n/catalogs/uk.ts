@@ -23,7 +23,7 @@ const ukCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Навчання належить <em>кожному.</em>",
+    heading: "Зробіть Nibomo <em>своїм</em>.",
     freeTitle: "Безкоштовно",
     freeDescription: "Створено для студентів без роботи. Відкрито для всіх.",
     freeBenefit: "Повторення карток, навчання офлайн і синхронізація",
