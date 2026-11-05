@@ -285,8 +285,8 @@ export type ChatFileCleanupRetryDetails = Readonly<{
 
 /**
  * One `bash` tool call run in the chat sandbox: the command, but never its output or a file's content.
- * `command` is null when the arguments were invalid, and `exitCode`, the byte counts and the SQL call
- * counts are null when the sandbox did not answer with a response.
+ * `command` is null when the arguments were invalid, and `exitCode`, the byte counts and the SQL and
+ * media call counts are null when the sandbox did not answer with a response.
  */
 export type ChatSandboxCommandDetails = Readonly<{
   toolCallId: string;
@@ -300,6 +300,8 @@ export type ChatSandboxCommandDetails = Readonly<{
   filesDeleted: number;
   sqlCallCount: number | null;
   sqlExecuteCallCount: number | null;
+  mediaGetCount: number | null;
+  mediaPutCount: number | null;
   sandboxRequestId: string | null;
   errorClass: string | null;
 }>;
@@ -321,6 +323,14 @@ export type ChatSandboxSqlDetails = Readonly<{
   errorCode: string | null;
   dialectReason: string | null;
   errorClass: string | null;
+}>;
+
+/** One image a `bash` command's code copied into /work (`get`) or uploaded as a new managed image (`put`). */
+export type ChatSandboxMediaDetails = Readonly<{
+  kind: "get" | "put";
+  mediaAssetId: string;
+  mimeType: string;
+  sizeBytes: number;
 }>;
 
 /** A chat sandbox invoke that Lambda throttled or that got no answer, about to be retried. */
@@ -473,6 +483,7 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_file_cleanup_batch_completed", ChatFileCleanupBatchDetails>
   | EventByAction<"chat_sandbox_command", ChatSandboxCommandDetails>
   | EventByAction<"chat_sandbox_sql", ChatSandboxSqlDetails>
+  | EventByAction<"chat_sandbox_media", ChatSandboxMediaDetails>
   | EventByAction<"chat_file_derivatives_prepared", ChatFileDerivativesPreparedDetails>
   | EventByAction<"chat_view_file", ChatViewFileDetails>
   | EventByAction<"chat_composer_suggestions_declined", ChatComposerSuggestionsResponseDetails>

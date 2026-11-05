@@ -3,13 +3,14 @@ import { z } from "zod";
 import { getBackendChatLiveAuthSecret } from "../../aws/secrets";
 import { getBackendChatLiveAuthSecretArn } from "../../chat/live/auth";
 import { HttpError } from "../../shared/errors";
-import type { ChatSandboxSqlBridge } from "../contract";
+import type { ChatSandboxMediaBridge, ChatSandboxSqlBridge } from "../contract";
 
 /**
- * The capability one `bash` command's code calls agent SQL with: it names one claimed chat run of one
- * user and workspace and expires within minutes, and the bridge route also requires that run to still
- * be running under the same claim. Its key is derived for this purpose alone from the chat live signing
- * secret, so neither token passes for the other and no secret of its own is needed.
+ * The capability one `bash` command's code calls agent SQL and the media bridge with: it names one
+ * claimed chat run of one user and workspace and expires within minutes, and each bridge route also
+ * requires that run to still be running under the same claim. Its key is derived for this purpose alone
+ * from the chat live signing secret, so neither token passes for the other and no secret of its own is
+ * needed.
  */
 
 const capabilityVersion = 1;
@@ -19,6 +20,7 @@ const capabilityTtlMs = 5 * 60 * 1000;
 const authorizationScheme = "ChatSandbox ";
 
 export const chatSandboxSqlRoutePath = "/chat/sandbox/sql";
+export const chatSandboxMediaRoutePath = "/chat/sandbox/media";
 
 const capabilityPayloadSchema = z.object({
   version: z.literal(capabilityVersion),
@@ -41,7 +43,7 @@ export type ChatSandboxSqlCapability = Readonly<{
 }>;
 
 function createInvalidCapabilityError(reason: string): HttpError {
-  return new HttpError(401, `The chat sandbox SQL capability ${reason}.`, "CHAT_SANDBOX_SQL_AUTH_INVALID");
+  return new HttpError(401, `The chat sandbox bridge capability ${reason}.`, "CHAT_SANDBOX_SQL_AUTH_INVALID");
 }
 
 async function loadSigningKey(): Promise<Buffer> {
@@ -54,13 +56,13 @@ function signPayload(encodedPayload: string, key: Buffer): Buffer {
 }
 
 /** The published API origin: the sandbox runs in no VPC, so it reaches the API over the internet. */
-function getBridgeUrl(): string {
+function getBridgeUrl(routePath: string): string {
   const apiBaseUrl = process.env.PUBLIC_API_BASE_URL?.trim();
   if (apiBaseUrl === undefined || apiBaseUrl === "") {
-    throw new Error("PUBLIC_API_BASE_URL is required for the chat sandbox SQL bridge");
+    throw new Error("PUBLIC_API_BASE_URL is required for the chat sandbox bridges");
   }
 
-  return `${apiBaseUrl.replace(/\/+$/u, "")}${chatSandboxSqlRoutePath}`;
+  return `${apiBaseUrl.replace(/\/+$/u, "")}${routePath}`;
 }
 
 function decodePayload(encodedPayload: string): CapabilityPayload {
@@ -71,8 +73,13 @@ function decodePayload(encodedPayload: string): CapabilityPayload {
   }
 }
 
-/** Minted by the chat worker for every sandbox attempt of a `bash` call. */
-export async function createChatSandboxSqlBridge(capability: ChatSandboxSqlCapability): Promise<ChatSandboxSqlBridge> {
+export type ChatSandboxBridges = Readonly<{
+  sqlBridge: ChatSandboxSqlBridge;
+  mediaBridge: ChatSandboxMediaBridge;
+}>;
+
+/** Minted by the chat worker for every sandbox attempt of a `bash` call; both bridges carry the one capability. */
+export async function createChatSandboxBridges(capability: ChatSandboxSqlCapability): Promise<ChatSandboxBridges> {
   const payload: CapabilityPayload = {
     version: capabilityVersion,
     runId: capability.runId,
@@ -84,9 +91,10 @@ export async function createChatSandboxSqlBridge(capability: ChatSandboxSqlCapab
   };
   const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const signature = signPayload(encodedPayload, await loadSigningKey()).toString("base64url");
+  const authorization = `${authorizationScheme}${encodedPayload}.${signature}`;
   return {
-    url: getBridgeUrl(),
-    authorization: `${authorizationScheme}${encodedPayload}.${signature}`,
+    sqlBridge: { url: getBridgeUrl(chatSandboxSqlRoutePath), authorization },
+    mediaBridge: { url: getBridgeUrl(chatSandboxMediaRoutePath), authorization },
   };
 }
 
@@ -114,7 +122,7 @@ export async function verifyChatSandboxSqlAuthorization(
 
   const payload = decodePayload(encodedPayload);
   if (payload.expiresAt <= Date.now()) {
-    throw new HttpError(401, "The chat sandbox SQL capability expired.", "CHAT_SANDBOX_SQL_AUTH_EXPIRED");
+    throw new HttpError(401, "The chat sandbox bridge capability expired.", "CHAT_SANDBOX_SQL_AUTH_EXPIRED");
   }
 
   return {

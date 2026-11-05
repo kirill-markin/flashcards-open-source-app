@@ -191,14 +191,16 @@ function buildChatFilesSection(): string {
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
+    "- magick edits images with an ImageMagick subset, such as magick a.jpg b.jpg -resize x400 +append out.jpg: -resize WxH|W|xH|N%, -crop WxH+X+Y, -rotate DEG, -flip, -flop, +append, -append, -background COLOR, -gravity center, -extent WxH, -quality N; the output's .jpg, .png or .webp picks its format; magick identify FILE prints format and size.",
     `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
   ]);
 }
 
 /**
- * Code reaches agent SQL through the bridge in `apps/backend/src/chatSandbox/sqlBridge/`, so a bulk job
- * runs as one script and only its summary returns to the turn. just-bash gives python3 neither a tool
- * nor a command bridge, so it cannot reach the functions.
+ * Code reaches agent SQL through the bridge in `apps/backend/src/chatSandbox/sqlBridge/`, and managed
+ * images through `apps/backend/src/chatSandbox/mediaBridge/`, so a bulk job runs as one script and only
+ * its summary returns to the turn. just-bash gives python3 neither a tool nor a command bridge, so it
+ * cannot reach the functions.
  */
 function buildSandboxSqlSection(): string {
   return joinLines([
@@ -211,6 +213,7 @@ function buildSandboxSqlSection(): string {
     `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
     "- Writes from code follow the rules above, like sql_execute calls.",
     "- Imported cards start as new cards: review history and scheduling cannot be imported.",
+    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image of the open workspace and prints its id, which an SQL write that omits workspaceId then puts on a card as ![alt](fcasset:<id>).",
     "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);
 }
@@ -222,7 +225,7 @@ function buildGeneratedImagePolicySection(): string {
     "- add_generated_image_to_card works only on cards in the workspace the user has open, so never give it a card that was read with a different workspaceId.",
     "- Prefer the back unless specified otherwise; create teaching-relevant imagery with focused, private-data-free, moderation-compliant prompts, and never put an answer or answer-revealing image on the front.",
     "- Treat queued as accepted for durable attachment processing, not as proof that presentation is already visible; for already_queued, failure, ambiguity, or cancellation, never claim a new image or expose fcasset markdown, base64, or storage internals.",
-    "- Never type an fcasset: destination you did not just read on that card, and never repeat one to the user.",
+    "- Never type an fcasset: destination other than one you just read on that card or an id fc-media-put just printed, and never repeat one to the user.",
   ]);
 }
 
