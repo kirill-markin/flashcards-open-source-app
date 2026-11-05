@@ -1546,7 +1546,6 @@ const huCatalog: TranslationCatalog = {
     request: "Kérés",
     response: "Válasz",
     statuses: {
-      completed: "Kész",
       started: "Fut",
     },
     thinking: "Gondolkodom...",

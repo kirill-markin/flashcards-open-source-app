@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Неподдерживаемый контент";
 "ai.message.unsupportedContent.type" = "Тип: %@";
 "ai.message.assistantTyping" = "Ассистент пишет";
-"ai.message.role.you" = "Вы";
 "ai.message.role.assistant" = "Ассистент";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Изображение прикреплено";
 "ai.message.card.tags" = "Теги: %@";
 "ai.message.card.promptContext" = "Контекст сообщения";
 "ai.message.reasoning.title" = "Рассуждение";
-"ai.message.reasoning.status.running" = "В ПРОГРЕССЕ";
-"ai.message.reasoning.status.done" = "СОВЕРШЕНО";
 "ai.message.reasoning.thinking" = "Думая...";
 "ai.message.fullResponse.show" = "Показать ответ полностью";
 "ai.message.fullResponse.title" = "Полный ответ";

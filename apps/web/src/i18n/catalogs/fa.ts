@@ -1546,7 +1546,6 @@ const faCatalog: TranslationCatalog = {
     request: "درخواست",
     response: "پاسخ",
     statuses: {
-      completed: "انجام شد",
       started: "در حال اجرا",
     },
     thinking: "در حال فکر کردن...",

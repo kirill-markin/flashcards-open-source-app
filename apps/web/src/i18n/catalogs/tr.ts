@@ -1546,7 +1546,6 @@ const trCatalog: TranslationCatalog = {
     request: "İstek",
     response: "Yanıt",
     statuses: {
-      completed: "Bitti",
       started: "Çalışıyor",
     },
     thinking: "Düşünüyor...",

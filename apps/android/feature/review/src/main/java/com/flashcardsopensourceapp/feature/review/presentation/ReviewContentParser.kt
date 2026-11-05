@@ -141,6 +141,43 @@ private fun makeReviewMathMarkdownContent(
     mathBlocks: List<MathBlock>,
     mediaAssetsById: Map<String, MediaAsset>
 ): ReviewRenderedContent.ManagedMarkdown {
+    return ReviewRenderedContent.ManagedMarkdown(
+        blocks = reviewMathMarkdownBlocks(
+            mathBlocks = mathBlocks,
+            markdownBlocks = { markdown, inlineFormulas ->
+                reviewManagedMarkdownBlocks(
+                    text = markdown,
+                    inlineFormulas = inlineFormulas,
+                    mediaAssetsById = mediaAssetsById
+                )
+            }
+        )
+    )
+}
+
+/** Markdown that is not a card side has no card media, so it splits only at display formulas. */
+internal fun makeReviewDocumentMarkdownBlocks(text: String): List<ReviewManagedMarkdownBlock> {
+    return reviewMathMarkdownBlocks(
+        mathBlocks = extractMathBlocks(markdown = removeInlineMathMarkers(text = text)).blocks,
+        markdownBlocks = { markdown, inlineFormulas ->
+            if (markdown.isBlank()) {
+                emptyList()
+            } else {
+                listOf(
+                    ReviewManagedMarkdownBlock.Markdown(
+                        markdown = markdown,
+                        inlineFormulas = inlineFormulas
+                    )
+                )
+            }
+        }
+    )
+}
+
+private fun reviewMathMarkdownBlocks(
+    mathBlocks: List<MathBlock>,
+    markdownBlocks: (String, List<InlineMathFormula>) -> List<ReviewManagedMarkdownBlock>
+): List<ReviewManagedMarkdownBlock> {
     val renderedBlocks: MutableList<ReviewManagedMarkdownBlock> = mutableListOf()
     val pendingMarkdown: StringBuilder = StringBuilder()
     val pendingFormulas: MutableList<InlineMathFormula> = mutableListOf()
@@ -148,11 +185,7 @@ private fun makeReviewMathMarkdownContent(
 
     fun flushPendingMarkdown() {
         renderedBlocks.addAll(
-            elements = reviewManagedMarkdownBlocks(
-                text = pendingMarkdown.toString(),
-                inlineFormulas = pendingFormulas.toList(),
-                mediaAssetsById = mediaAssetsById
-            )
+            elements = markdownBlocks(pendingMarkdown.toString(), pendingFormulas.toList())
         )
         pendingMarkdown.clear()
         pendingFormulas.clear()
@@ -187,7 +220,7 @@ private fun makeReviewMathMarkdownContent(
     }
     flushPendingMarkdown()
 
-    return ReviewRenderedContent.ManagedMarkdown(blocks = renderedBlocks.toList())
+    return renderedBlocks.toList()
 }
 
 private fun reviewManagedMarkdownBlocks(

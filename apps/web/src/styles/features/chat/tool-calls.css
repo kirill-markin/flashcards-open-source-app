@@ -1,28 +1,35 @@
+/* Tool calls and reasoning collapse to one muted line; the box appears only when expanded. */
 .chat-tool-call {
   display: block;
   overflow: hidden;
   border-radius: var(--chat-msg-inner-radius, var(--radius-sm));
-  margin: 10px 0 6px;
-  background: var(--surface-hover);
-  font-size: 12px;
+  margin: 2px 0;
+  font-size: 13px;
   scroll-margin-block-end: 24px;
+}
+
+.chat-tool-call[open] {
+  background: var(--surface-hover);
 }
 
 .chat-tool-call-summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 4px 8px;
   cursor: pointer;
   color: var(--text-secondary);
   list-style: none;
   user-select: none;
 }
 
+.chat-tool-call-summary:hover {
+  color: var(--text);
+}
+
 .chat-tool-call-summary-main {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: block;
   overflow: hidden;
@@ -32,22 +39,41 @@
 
 .chat-tool-call-status {
   flex: 0 0 auto;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
+.chat-tool-call-status::before {
+  content: "";
+  inline-size: 10px;
+  block-size: 10px;
+  border: 1.5px solid var(--divider);
+  border-block-start-color: currentColor;
+  border-radius: 999px;
+  animation: chat-send-btn-spin 0.8s linear infinite;
+}
+
 .chat-tool-call-summary::before {
-  content: "\25B6";
-  display: inline-block;
-  margin-inline-end: 8px;
-  font-size: 9px;
+  content: "";
+  flex: 0 0 auto;
+  inline-size: 5px;
+  block-size: 5px;
+  margin-inline: 1px 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
   transition: transform 0.15s ease;
 }
 
+[dir="rtl"] .chat-tool-call-summary::before {
+  transform: rotate(135deg);
+}
+
 .chat-tool-call[open] > .chat-tool-call-summary::before {
-  transform: rotate(90deg);
+  transform: rotate(45deg);
 }
 
 .chat-tool-call-summary::-webkit-details-marker {

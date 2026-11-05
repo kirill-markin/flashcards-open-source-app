@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "പിന്തുണയ്ക്കാത്ത ഉള്ളടക്കം";
 "ai.message.unsupportedContent.type" = "തരം: %@";
 "ai.message.assistantTyping" = "അസിസ്റ്റന്റ് ടൈപ്പ് ചെയ്യുന്നു";
-"ai.message.role.you" = "നിങ്ങൾ";
 "ai.message.role.assistant" = "അസിസ്റ്റന്റ്";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "ചിത്രം ചേർത്തു";
 "ai.message.card.tags" = "ടാഗുകൾ: %@";
 "ai.message.card.promptContext" = "നിർദ്ദേശത്തിന്റെ പശ്ചാത്തലം";
 "ai.message.reasoning.title" = "ചിന്തനം";
-"ai.message.reasoning.status.running" = "പ്രവർത്തിക്കുന്നു";
-"ai.message.reasoning.status.done" = "പൂർത്തിയായി";
 "ai.message.reasoning.thinking" = "ചിന്തിക്കുന്നു...";
 "ai.message.fullResponse.show" = "മുഴുവൻ മറുപടി കാണിക്കുക";
 "ai.message.fullResponse.title" = "മുഴുവൻ മറുപടി";

@@ -1561,7 +1561,6 @@ const ltCatalog: TranslationCatalog = {
     request: "Užklausa",
     response: "Atsakymas",
     statuses: {
-      completed: "Atlikta",
       started: "Vykdoma",
     },
     thinking: "Galvojama...",

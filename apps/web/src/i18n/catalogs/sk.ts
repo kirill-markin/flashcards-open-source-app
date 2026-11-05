@@ -1561,7 +1561,6 @@ const skCatalog: TranslationCatalog = {
     request: "Požiadavka",
     response: "Odpoveď",
     statuses: {
-      completed: "Hotovo",
       started: "Prebieha",
     },
     thinking: "Premýšľa sa...",

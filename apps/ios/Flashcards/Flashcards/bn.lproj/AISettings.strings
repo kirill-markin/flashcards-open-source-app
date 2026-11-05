@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "অসমর্থিত বিষয়বস্তু";
 "ai.message.unsupportedContent.type" = "প্রকার: %@";
 "ai.message.assistantTyping" = "সহকারী টাইপ করছে";
-"ai.message.role.you" = "আপনি";
 "ai.message.role.assistant" = "সহকারী";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "ছবি সংযুক্ত";
 "ai.message.card.tags" = "ট্যাগ: %@";
 "ai.message.card.promptContext" = "নির্দেশনার প্রসঙ্গ";
 "ai.message.reasoning.title" = "যুক্তি";
-"ai.message.reasoning.status.running" = "চলছে";
-"ai.message.reasoning.status.done" = "সম্পন্ন";
 "ai.message.reasoning.thinking" = "ভাবছে...";
 "ai.message.fullResponse.show" = "সম্পূর্ণ প্রতিক্রিয়া দেখান";
 "ai.message.fullResponse.title" = "সম্পূর্ণ প্রতিক্রিয়া";

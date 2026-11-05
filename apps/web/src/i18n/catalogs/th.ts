@@ -1546,7 +1546,6 @@ const thCatalog: TranslationCatalog = {
     request: "คำขอ",
     response: "การตอบกลับ",
     statuses: {
-      completed: "เสร็จแล้ว",
       started: "กำลังทำงาน",
     },
     thinking: "กำลังคิด...",

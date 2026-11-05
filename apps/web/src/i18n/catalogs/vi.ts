@@ -1546,7 +1546,6 @@ const viCatalog: TranslationCatalog = {
     request: "Yêu cầu",
     response: "Phản hồi",
     statuses: {
-      completed: "Xong",
       started: "Đang chạy",
     },
     thinking: "Đang suy nghĩ...",

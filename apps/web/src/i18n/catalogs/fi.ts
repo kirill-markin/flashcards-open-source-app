@@ -1546,7 +1546,6 @@ const fiCatalog: TranslationCatalog = {
     request: "Pyyntö",
     response: "Vastaus",
     statuses: {
-      completed: "Valmis",
       started: "Käynnissä",
     },
     thinking: "Ajattelee...",

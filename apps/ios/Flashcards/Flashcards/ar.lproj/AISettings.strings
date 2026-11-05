@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "محتوى غير مدعوم";
 "ai.message.unsupportedContent.type" = "النوع: %@";
 "ai.message.assistantTyping" = "المساعد يكتب";
-"ai.message.role.you" = "أنت";
 "ai.message.role.assistant" = "مساعد";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "الصورة مرفقة";
 "ai.message.card.tags" = "العلامات: %@";
 "ai.message.card.promptContext" = "سياق الرسالة";
 "ai.message.reasoning.title" = "الاستدلال";
-"ai.message.reasoning.status.running" = "قيد التقدم";
-"ai.message.reasoning.status.done" = "تم";
 "ai.message.reasoning.thinking" = "أفكر...";
 "ai.message.fullResponse.show" = "عرض الرد الكامل";
 "ai.message.fullResponse.title" = "الرد الكامل";

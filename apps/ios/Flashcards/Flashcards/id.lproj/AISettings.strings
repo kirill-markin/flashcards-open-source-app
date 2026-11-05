@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Konten tidak didukung";
 "ai.message.unsupportedContent.type" = "Jenis: %@";
 "ai.message.assistantTyping" = "Asisten sedang mengetik";
-"ai.message.role.you" = "Anda";
 "ai.message.role.assistant" = "Asisten";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Gambar dilampirkan";
 "ai.message.card.tags" = "Tag: %@";
 "ai.message.card.promptContext" = "Konteks prompt";
 "ai.message.reasoning.title" = "Penalaran";
-"ai.message.reasoning.status.running" = "BERJALAN";
-"ai.message.reasoning.status.done" = "SELESAI";
 "ai.message.reasoning.thinking" = "Berpikir...";
 "ai.message.fullResponse.show" = "Tampilkan respons lengkap";
 "ai.message.fullResponse.title" = "Respons lengkap";

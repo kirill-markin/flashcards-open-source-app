@@ -1561,7 +1561,6 @@ const hrCatalog: TranslationCatalog = {
     request: "Zahtjev",
     response: "Odgovor",
     statuses: {
-      completed: "Gotovo",
       started: "U tijeku",
     },
     thinking: "Razmišljanje...",

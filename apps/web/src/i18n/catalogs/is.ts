@@ -1546,7 +1546,6 @@ const isCatalog: TranslationCatalog = {
     request: "Beiðni",
     response: "Svar",
     statuses: {
-      completed: "Lokið",
       started: "Í gangi",
     },
     thinking: "Hugsa...",

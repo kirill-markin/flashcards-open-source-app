@@ -1546,7 +1546,6 @@ const swCatalog: TranslationCatalog = {
     request: "Ombi",
     response: "Jibu",
     statuses: {
-      completed: "Nimemaliza",
       started: "Inaendelea",
     },
     thinking: "Inafikiri...",

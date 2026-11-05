@@ -1561,7 +1561,6 @@ export const ruCatalog = {
     request: "Запрос",
     response: "Ответ",
     statuses: {
-      completed: "Готово",
       started: "Выполняется",
     },
     thinking: "Думает...",

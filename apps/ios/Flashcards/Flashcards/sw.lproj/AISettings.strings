@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Maudhui yasiyotumika";
 "ai.message.unsupportedContent.type" = "Aina: %@";
 "ai.message.assistantTyping" = "Msaidizi anaandika";
-"ai.message.role.you" = "Wewe";
 "ai.message.role.assistant" = "Msaidizi";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Picha imeambatishwa";
 "ai.message.card.tags" = "Lebo: %@";
 "ai.message.card.promptContext" = "Muktadha wa ombi";
 "ai.message.reasoning.title" = "Ufikiri";
-"ai.message.reasoning.status.running" = "INAENDELEA";
-"ai.message.reasoning.status.done" = "IMEKAMILIKA";
 "ai.message.reasoning.thinking" = "Inafikiri...";
 "ai.message.fullResponse.show" = "Onyesha jibu lote";
 "ai.message.fullResponse.title" = "Jibu lote";

@@ -1,8 +1,11 @@
 package com.flashcardsopensourceapp.feature.review
 
 import android.net.Uri
+import android.util.Log
 import com.flashcardsopensourceapp.core.ui.R as CoreUiR
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -19,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.stringResource
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.content.InlineMathContent
 import com.flashcardsopensourceapp.core.ui.content.InlineMathFormula
 import com.flashcardsopensourceapp.core.ui.content.InlineMathRenderState
+import com.flashcardsopensourceapp.core.ui.content.MathFormulaBlock
 import com.flashcardsopensourceapp.core.ui.content.countInlineMathMarkers
 import com.flashcardsopensourceapp.core.ui.content.inlineMathMarker
 import com.flashcardsopensourceapp.core.ui.content.rememberInlineMathContent
@@ -48,15 +53,18 @@ import com.mikepenz.markdown.m3.markdownTypography
 import com.mikepenz.markdown.model.ImageData
 import com.mikepenz.markdown.model.ImageTransformer
 import com.mikepenz.markdown.model.MarkdownAnnotator
+import com.mikepenz.markdown.model.MarkdownState
 import com.mikepenz.markdown.model.markdownAnnotator
 import com.mikepenz.markdown.model.markdownDimens
 import com.mikepenz.markdown.model.markdownInlineContent
 import com.mikepenz.markdown.model.markdownPadding
+import com.mikepenz.markdown.model.rememberMarkdownState
 import com.mikepenz.markdown.utils.EntityConverter
 import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes
 
+private const val reviewMarkdownLogTag: String = "ReviewMarkdownText"
 private val reviewMarkdownLoadingIndicatorSize = 24.dp
 private val reviewMarkdownLoadingMinimumHeight = 48.dp
 private val reviewMathSoftBreakRegex: Regex = Regex(pattern = """[ \t]*(?:\r\n|\r|\n)[ \t]*""")
@@ -105,9 +113,83 @@ internal fun ReviewMarkdownText(
     components: MarkdownComponents,
     modifier: Modifier
 ) {
+    // The parse state lives as long as its composition, so a new text starts from the loading slot.
+    key(markdown) {
+        ReviewMarkdownStateText(
+            markdownState = rememberMarkdownState(
+                content = markdown,
+                lookupLinks = true,
+                retainState = false,
+                immediate = LocalInspectionMode.current
+            ),
+            inlineFormulas = inlineFormulas,
+            components = components,
+            makeUriHandler = ::makeReviewMarkdownUriHandler,
+            modifier = modifier
+        )
+    }
+}
+
+/**
+ * Markdown that is not a card side, such as an AI chat answer, rendered with card math and no card
+ * media. A changed [markdown] keeps its previous render while it parses, so a streaming text never
+ * flashes the loading slot.
+ */
+@Composable
+fun ReviewMarkdownDocument(
+    markdown: String,
+    modifier: Modifier
+) {
+    val blocks: List<ReviewManagedMarkdownBlock> = remember(markdown) {
+        makeReviewDocumentMarkdownBlocks(text = markdown)
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        blocks.forEachIndexed { index, block ->
+            key(index) {
+                when (block) {
+                    is ReviewManagedMarkdownBlock.Markdown -> ReviewMarkdownStateText(
+                        markdownState = rememberMarkdownState(
+                            content = block.markdown,
+                            lookupLinks = true,
+                            retainState = true,
+                            immediate = true
+                        ),
+                        inlineFormulas = block.inlineFormulas,
+                        components = reviewMarkdownGalleryComponents,
+                        makeUriHandler = ::makeReviewDocumentUriHandler,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    is ReviewManagedMarkdownBlock.Formula -> MathFormulaBlock(
+                        source = block.source,
+                        delimitedSource = block.delimitedSource,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    is ReviewManagedMarkdownBlock.ManagedMedia,
+                    is ReviewManagedMarkdownBlock.ImageGallery -> throw IllegalStateException(
+                        "A Markdown document splits only at display formulas, not at card media: $block"
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewMarkdownStateText(
+    markdownState: MarkdownState,
+    inlineFormulas: List<InlineMathFormula>,
+    components: MarkdownComponents,
+    makeUriHandler: (UriHandler) -> UriHandler,
+    modifier: Modifier
+) {
     val platformUriHandler: UriHandler = LocalUriHandler.current
-    val reviewUriHandler: UriHandler = remember(platformUriHandler) {
-        makeReviewMarkdownUriHandler(platformUriHandler = platformUriHandler)
+    val reviewUriHandler: UriHandler = remember(platformUriHandler, makeUriHandler) {
+        makeUriHandler(platformUriHandler)
     }
     val inlineMathContent: InlineMathContent = rememberInlineMathContent(
         formulas = inlineFormulas
@@ -129,88 +211,86 @@ internal fun ReviewMarkdownText(
     }
 
     CompositionLocalProvider(LocalUriHandler provides reviewUriHandler) {
-        key(markdown) {
-            Markdown(
-                content = markdown,
-                colors = markdownColor(
-                    text = MaterialTheme.colorScheme.onSurface,
-                    codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    dividerColor = MaterialTheme.colorScheme.outlineVariant,
-                    tableBackground = MaterialTheme.colorScheme.surfaceContainer
+        Markdown(
+            markdownState = markdownState,
+            colors = markdownColor(
+                text = MaterialTheme.colorScheme.onSurface,
+                codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
+                inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
+                dividerColor = MaterialTheme.colorScheme.outlineVariant,
+                tableBackground = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            typography = markdownTypography(
+                h1 = MaterialTheme.typography.headlineSmall,
+                h2 = MaterialTheme.typography.titleLarge,
+                h3 = MaterialTheme.typography.titleMedium,
+                h4 = MaterialTheme.typography.titleMedium,
+                h5 = MaterialTheme.typography.titleMedium,
+                h6 = MaterialTheme.typography.titleMedium,
+                text = MaterialTheme.typography.bodyLarge,
+                code = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = FontFamily.Monospace
                 ),
-                typography = markdownTypography(
-                    h1 = MaterialTheme.typography.headlineSmall,
-                    h2 = MaterialTheme.typography.titleLarge,
-                    h3 = MaterialTheme.typography.titleMedium,
-                    h4 = MaterialTheme.typography.titleMedium,
-                    h5 = MaterialTheme.typography.titleMedium,
-                    h6 = MaterialTheme.typography.titleMedium,
-                    text = MaterialTheme.typography.bodyLarge,
-                    code = MaterialTheme.typography.bodyMedium.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    inlineCode = MaterialTheme.typography.bodyLarge.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    quote = MaterialTheme.typography.bodyLarge,
-                    paragraph = MaterialTheme.typography.bodyLarge,
-                    ordered = MaterialTheme.typography.bodyLarge,
-                    bullet = MaterialTheme.typography.bodyLarge,
-                    list = MaterialTheme.typography.bodyLarge,
-                    textLink = TextLinkStyles(
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                            textDecoration = TextDecoration.Underline
-                        ).toSpanStyle()
-                    ),
-                    table = MaterialTheme.typography.bodyMedium
+                inlineCode = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = FontFamily.Monospace
                 ),
-                modifier = modifier.fillMaxWidth(),
-                padding = markdownPadding(
-                    block = 8.dp,
-                    list = 4.dp,
-                    listItemTop = 4.dp,
-                    listItemBottom = 4.dp,
-                    listIndent = 20.dp,
-                    codeBlock = PaddingValues(12.dp),
-                    blockQuote = PaddingValues(horizontal = 16.dp),
-                    blockQuoteText = PaddingValues(vertical = 4.dp),
-                    blockQuoteBar = PaddingValues.Absolute(
-                        left = 4.dp,
-                        top = 2.dp,
-                        right = 4.dp,
-                        bottom = 2.dp
+                quote = MaterialTheme.typography.bodyLarge,
+                paragraph = MaterialTheme.typography.bodyLarge,
+                ordered = MaterialTheme.typography.bodyLarge,
+                bullet = MaterialTheme.typography.bodyLarge,
+                list = MaterialTheme.typography.bodyLarge,
+                textLink = TextLinkStyles(
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = TextDecoration.Underline
+                    ).toSpanStyle()
+                ),
+                table = MaterialTheme.typography.bodyMedium
+            ),
+            modifier = modifier.fillMaxWidth(),
+            padding = markdownPadding(
+                block = 8.dp,
+                list = 4.dp,
+                listItemTop = 4.dp,
+                listItemBottom = 4.dp,
+                listIndent = 20.dp,
+                codeBlock = PaddingValues(12.dp),
+                blockQuote = PaddingValues(horizontal = 16.dp),
+                blockQuoteText = PaddingValues(vertical = 4.dp),
+                blockQuoteBar = PaddingValues.Absolute(
+                    left = 4.dp,
+                    top = 2.dp,
+                    right = 4.dp,
+                    bottom = 2.dp
+                )
+            ),
+            dimens = markdownDimens(
+                dividerThickness = 1.dp,
+                codeBackgroundCornerSize = 12.dp,
+                blockQuoteThickness = 4.dp,
+                tableMaxWidth = Dp.Unspecified,
+                tableCellWidth = 140.dp,
+                tableCellPadding = 12.dp,
+                tableCornerSize = 12.dp
+            ),
+            imageTransformer = ReviewNetworkImageTransformer,
+            components = components,
+            annotator = inlineMathAnnotator,
+            inlineContent = markdownInlineContent(content = inlineMathContent.inlineContent),
+            loading = { loadingModifier ->
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = loadingModifier
+                        .fillMaxWidth()
+                        .heightIn(min = reviewMarkdownLoadingMinimumHeight)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(reviewMarkdownLoadingIndicatorSize)
                     )
-                ),
-                dimens = markdownDimens(
-                    dividerThickness = 1.dp,
-                    codeBackgroundCornerSize = 12.dp,
-                    blockQuoteThickness = 4.dp,
-                    tableMaxWidth = Dp.Unspecified,
-                    tableCellWidth = 140.dp,
-                    tableCellPadding = 12.dp,
-                    tableCornerSize = 12.dp
-                ),
-                imageTransformer = ReviewNetworkImageTransformer,
-                components = components,
-                annotator = inlineMathAnnotator,
-                inlineContent = markdownInlineContent(content = inlineMathContent.inlineContent),
-                loading = { loadingModifier ->
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = loadingModifier
-                            .fillMaxWidth()
-                            .heightIn(min = reviewMarkdownLoadingMinimumHeight)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(reviewMarkdownLoadingIndicatorSize)
-                        )
-                    }
                 }
-            )
-        }
+            }
+        )
     }
 }
 
@@ -328,6 +408,21 @@ private fun makeReviewMarkdownUriHandler(
                 "Review Markdown links must use an absolute HTTPS URL: $uri"
             }
             platformUriHandler.openUri(uri = uri)
+        }
+    }
+}
+
+/** A document such as an AI answer may link anywhere, so a link Review cannot open is ignored. */
+private fun makeReviewDocumentUriHandler(
+    platformUriHandler: UriHandler
+): UriHandler {
+    return object : UriHandler {
+        override fun openUri(uri: String) {
+            if (isSupportedReviewMarkdownExternalUrl(url = uri)) {
+                platformUriHandler.openUri(uri = uri)
+            } else {
+                Log.w(reviewMarkdownLogTag, "event=review_markdown_document_link_rejected url=$uri")
+            }
         }
     }
 }

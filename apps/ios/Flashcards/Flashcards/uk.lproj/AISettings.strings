@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Непідтримуваний вміст";
 "ai.message.unsupportedContent.type" = "Тип: %@";
 "ai.message.assistantTyping" = "Асистент набирає текст";
-"ai.message.role.you" = "Ви";
 "ai.message.role.assistant" = "Асистент";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Зображення прикріплено";
 "ai.message.card.tags" = "Мітки: %@";
 "ai.message.card.promptContext" = "Контекст запиту";
 "ai.message.reasoning.title" = "Міркування";
-"ai.message.reasoning.status.running" = "ВИКОНУЄТЬСЯ";
-"ai.message.reasoning.status.done" = "ГОТОВО";
 "ai.message.reasoning.thinking" = "Міркую...";
 "ai.message.fullResponse.show" = "Показати повну відповідь";
 "ai.message.fullResponse.title" = "Повна відповідь";

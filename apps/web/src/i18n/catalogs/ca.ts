@@ -1546,7 +1546,6 @@ const caCatalog: TranslationCatalog = {
     request: "Sol·licitud",
     response: "Resposta",
     statuses: {
-      completed: "Fet",
       started: "En curs",
     },
     thinking: "S'està pensant...",

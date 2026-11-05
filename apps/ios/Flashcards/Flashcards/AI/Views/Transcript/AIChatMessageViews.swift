@@ -86,47 +86,95 @@ func aiChatTypingIndicatorActiveDotCount(date: Date) -> Int {
     return animationStep.quotientAndRemainder(dividingBy: aiChatTypingIndicatorDotCount + 1).remainder
 }
 
+/// The whole line toggles, because a system `DisclosureGroup` on Mac Catalyst toggles only from its chevron.
 private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View {
     @State private var isExpanded: Bool
+    /// Nil keeps the identifier inherited from the enclosing row.
+    let toggleAccessibilityIdentifier: String?
     let onExpand: () -> Void
     let content: () -> Content
     let label: () -> Label
 
     init(
+        toggleAccessibilityIdentifier: String?,
         onExpand: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder label: @escaping () -> Label
     ) {
         self._isExpanded = State(initialValue: false)
+        self.toggleAccessibilityIdentifier = toggleAccessibilityIdentifier
         self.onExpand = onExpand
         self.content = content
         self.label = label
     }
 
     var body: some View {
-        DisclosureGroup(isExpanded: self.isExpandedBinding) {
-            self.content()
-        } label: {
-            self.label()
+        VStack(alignment: .leading, spacing: 0) {
+            if let toggleAccessibilityIdentifier = self.toggleAccessibilityIdentifier {
+                self.toggleButton
+                    .accessibilityIdentifier(toggleAccessibilityIdentifier)
+            } else {
+                self.toggleButton
+            }
+
+            if self.isExpanded {
+                self.content()
+            }
         }
     }
 
-    private var isExpandedBinding: Binding<Bool> {
-        Binding(
-            get: {
-                self.isExpanded
-            },
-            set: { nextValue in
-                let didExpand = self.isExpanded == false && nextValue
-                self.isExpanded = nextValue
-
-                if didExpand {
-                    self.onExpand()
-                }
+    private var toggleButton: some View {
+        Button {
+            self.toggleExpansion()
+        } label: {
+            HStack(alignment: .center, spacing: 6) {
+                self.label()
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(self.isExpanded ? 90 : 0))
+                    .accessibilityHidden(true)
+                Spacer(minLength: 0)
             }
-        )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func toggleExpansion() {
+        let didExpand = self.isExpanded == false
+        withAnimation {
+            self.isExpanded.toggle()
+        }
+
+        if didExpand {
+            self.onExpand()
+        }
     }
 }
+
+/// One muted line for a tool call or reasoning step; a finished step shows no status.
+private struct AIChatActivityRowLabel: View {
+    let title: String
+    let status: AIChatToolCallStatus
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 6) {
+            Text(self.title)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            if self.status == .started {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel(aiChatToolStatusLabel(status: self.status))
+            }
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+    }
+}
+
+private let aiChatActivityRowLeadingIndent: CGFloat = 4
 
 /// Renders one transcript message; the live chat and the read-only history reader share it.
 struct AIChatMessageRow: View {
@@ -184,20 +232,13 @@ struct AIChatMessageRow: View {
         }
     }
 
+    @ViewBuilder
     func messageBubble(
         message: AIChatMessage,
         repairStatus: AIChatRepairAttemptStatus?,
         showsTypingIndicator: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(
-                message.role == .user
-                    ? aiSettingsLocalized("ai.message.role.you", "You")
-                    : aiSettingsLocalized("ai.message.role.assistant", "Assistant")
-            )
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
+        let content = VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(aiChatDisplayedMessageContent(message: message).enumerated()), id: \.offset) { _, part in
                 self.messageContent(part: part, message: message)
             }
@@ -225,14 +266,15 @@ struct AIChatMessageRow: View {
             }
         }
         .frame(maxWidth: aiChatBubbleMaximumWidth, alignment: .leading)
-        .padding(12)
-        .background(
-            message.role == .user
-                ? AnyShapeStyle(.tint.opacity(0.12))
-                : AnyShapeStyle(.thinMaterial),
-            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+        if message.role == .user {
+            content
+                .padding(12)
+                .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else {
+            content
+        }
     }
 
     @ViewBuilder
@@ -256,6 +298,7 @@ struct AIChatMessageRow: View {
                 .foregroundStyle(.secondary)
         case .card(let card):
             AIChatExpandableDisclosureGroup(
+                toggleAccessibilityIdentifier: nil,
                 onExpand: {
                     self.onExpandContent()
                 }
@@ -297,76 +340,58 @@ struct AIChatMessageRow: View {
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         case .toolCall(let toolCall):
-            let summaryText = aiChatToolSummaryText(name: toolCall.name, input: toolCall.input)
             let sections = aiChatToolSections(input: toolCall.input, output: toolCall.output)
-            VStack(alignment: .leading, spacing: 0) {
-                AIChatExpandableDisclosureGroup(
-                    onExpand: {
-                        self.onExpandContent()
-                    }
-                ) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                    Text(section.title)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                    Spacer(minLength: 0)
-                                    Button {
-                                        UIPasteboard.general.string = section.text
-                                    } label: {
-                                        Text(section.copyButtonTitle)
-                                            .contentShape(Rectangle())
-                                    }
-                                    .nativeInlineActionButtonStyle()
+            AIChatExpandableDisclosureGroup(
+                toggleAccessibilityIdentifier: UITestIdentifier.aiToolCallSummary,
+                onExpand: {
+                    self.onExpandContent()
+                }
+            ) {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                Text(section.title)
                                     .font(.caption.weight(.semibold))
-                                    .accessibilityLabel(section.copyAccessibilityLabel)
+                                    .foregroundStyle(.secondary)
+                                Spacer(minLength: 0)
+                                Button {
+                                    UIPasteboard.general.string = section.text
+                                } label: {
+                                    Text(section.copyButtonTitle)
+                                        .contentShape(Rectangle())
                                 }
-
-                                Text(section.text)
-                                    .font(.caption.monospaced())
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .textSelection(.enabled)
-                                    .accessibilityIdentifier(aiChatToolSectionAccessibilityIdentifier(sectionId: section.id))
+                                .nativeInlineActionButtonStyle()
+                                .font(.caption.weight(.semibold))
+                                .accessibilityLabel(section.copyAccessibilityLabel)
                             }
 
-                            if index < sections.count - 1 {
-                                Divider()
-                            }
+                            Text(section.text)
+                                .font(.caption.monospaced())
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                                .accessibilityIdentifier(aiChatToolSectionAccessibilityIdentifier(sectionId: section.id))
+                        }
+
+                        if index < sections.count - 1 {
+                            Divider()
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 4)
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(summaryText)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityIdentifier(UITestIdentifier.aiToolCallSummary)
-                        Text(aiChatToolStatusLabel(status: toolCall.status))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier(aiChatToolStatusAccessibilityIdentifier(status: toolCall.status))
-                    }
-                    .font(.subheadline)
                 }
-                .tint(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(
-                        aiChatToolBorderColor(status: toolCall.status),
-                        style: aiChatToolBorderStrokeStyle(status: toolCall.status)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
+            } label: {
+                AIChatActivityRowLabel(
+                    title: aiChatToolSummaryText(name: toolCall.name, input: toolCall.input),
+                    status: toolCall.status
                 )
-            )
+            }
+            .padding(.leading, aiChatActivityRowLeadingIndent)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(aiChatToolStatusAccessibilityIdentifier(status: toolCall.status))
         case .reasoningSummary(let reasoningSummary):
             AIChatExpandableDisclosureGroup(
+                toggleAccessibilityIdentifier: nil,
                 onExpand: {
                     self.onExpandContent()
                 }
@@ -382,33 +407,14 @@ struct AIChatMessageRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
                     .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
-                    .padding(.top, 4)
+                    .padding(.top, 8)
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(aiSettingsLocalized("ai.message.reasoning.title", "Reasoning"))
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(
-                        reasoningSummary.status == .started
-                            ? aiSettingsLocalized("ai.message.reasoning.status.running", "RUNNING")
-                            : aiSettingsLocalized("ai.message.reasoning.status.done", "DONE")
-                    )
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
+                AIChatActivityRowLabel(
+                    title: aiSettingsLocalized("ai.message.reasoning.title", "Reasoning"),
+                    status: reasoningSummary.status
+                )
             }
-            .tint(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(
-                        aiChatToolBorderColor(status: reasoningSummary.status),
-                        style: aiChatToolBorderStrokeStyle(status: reasoningSummary.status)
-                    )
-            )
+            .padding(.leading, aiChatActivityRowLeadingIndent)
         case .accountUpgradePrompt(let message, let buttonTitle):
             VStack(alignment: .leading, spacing: 12) {
                 Text(message)

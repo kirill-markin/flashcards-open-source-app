@@ -1546,7 +1546,6 @@ const nbCatalog: TranslationCatalog = {
     request: "Forespørsel",
     response: "Svar",
     statuses: {
-      completed: "Ferdig",
       started: "Kjører",
     },
     thinking: "Tenker...",

@@ -1546,7 +1546,6 @@ const guCatalog: TranslationCatalog = {
     request: "વિનંતી",
     response: "જવાબ",
     statuses: {
-      completed: "પૂર્ણ",
       started: "ચાલી રહ્યું છે",
     },
     thinking: "વિચારી રહ્યું છે...",

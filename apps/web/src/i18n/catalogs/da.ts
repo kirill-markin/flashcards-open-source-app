@@ -1546,7 +1546,6 @@ const daCatalog: TranslationCatalog = {
     request: "Anmodning",
     response: "Svar",
     statuses: {
-      completed: "Færdig",
       started: "Kører",
     },
     thinking: "Tænker...",

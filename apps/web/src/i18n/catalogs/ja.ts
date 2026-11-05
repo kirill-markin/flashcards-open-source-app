@@ -1546,7 +1546,6 @@ export const jaCatalog = {
     request: "リクエスト",
     response: "応答",
     statuses: {
-      completed: "完了",
       started: "実行中",
     },
     thinking: "考え中...",
