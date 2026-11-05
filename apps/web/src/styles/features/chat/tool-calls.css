@@ -144,7 +144,8 @@
 }
 
 /* The header's bottom border is the divider that stays visible when the block is closed;
-   the closing divider is inside the details, so it shows only when open. */
+   the closing divider is inside the details, so it shows only when open, and it renders
+   only once the answer has started or the run has ended. */
 .chat-work-block {
   display: block;
   margin-block-end: 8px;

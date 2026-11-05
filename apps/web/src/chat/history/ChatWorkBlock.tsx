@@ -17,6 +17,10 @@ export function findLastWorkPartIndex(content: ReadonlyArray<ContentPart>): numb
   return -1;
 }
 
+export function hasAnswerText(answerParts: ReadonlyArray<ContentPart>): boolean {
+  return answerParts.some((part) => part.type === "text" && part.text.trim() !== "");
+}
+
 /**
  * Open while the run is active; once finished, open only when the answer is missing
  * or the run did not end normally.
@@ -27,8 +31,7 @@ export function isWorkBlockAutoOpen(
   isStopped: boolean,
   isError: boolean,
 ): boolean {
-  const hasAnswerText = answerParts.some((part) => part.type === "text" && part.text.trim() !== "");
-  return isRunActive || isStopped || isError || hasAnswerText === false;
+  return isRunActive || isStopped || isError || hasAnswerText(answerParts) === false;
 }
 
 function formatDurationUnit(locale: Locale, value: number, unit: "hour" | "minute" | "second"): string {
@@ -73,9 +76,10 @@ export function ChatWorkBlock(props: Readonly<{
   completedAt: number | null;
   isRunActive: boolean;
   isAutoOpen: boolean;
+  showsClosingDivider: boolean;
   children: ReactNode;
 }>): ReactElement {
-  const { timestamp, completedAt, isRunActive, isAutoOpen, children } = props;
+  const { timestamp, completedAt, isRunActive, isAutoOpen, showsClosingDivider, children } = props;
   const { t, locale } = useI18n();
   const now = useWorkBlockNow(isRunActive);
   const [isOpen, setIsOpen] = useState(isAutoOpen);
@@ -103,7 +107,7 @@ export function ChatWorkBlock(props: Readonly<{
         <span className="chat-work-block-title">{title}</span>
       </summary>
       {children}
-      <hr className="chat-work-block-divider" />
+      {showsClosingDivider ? <hr className="chat-work-block-divider" /> : null}
     </details>
   );
 }
