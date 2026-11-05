@@ -1546,7 +1546,6 @@ const teCatalog: TranslationCatalog = {
     request: "అభ్యర్థన",
     response: "ప్రతిస్పందన",
     statuses: {
-      completed: "పూర్తయింది",
       started: "నడుస్తోంది",
     },
     thinking: "ఆలోచిస్తోంది...",

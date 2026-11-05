@@ -1546,7 +1546,6 @@ const esMxCatalog: TranslationCatalog = {
     request: "Solicitud",
     response: "Respuesta",
     statuses: {
-      completed: "Completado",
       started: "En curso",
     },
     thinking: "Pensando...",

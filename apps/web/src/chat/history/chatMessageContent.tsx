@@ -73,12 +73,15 @@ function extractToolCallPreview(name: string, input: string | null): string | nu
   return input;
 }
 
-function toolCallStatusLabel(status: "started" | "completed", t: Translate): string {
-  return status === "started" ? t("chatMessageContent.statuses.started") : t("chatMessageContent.statuses.completed");
-}
+/**
+ * Only a running row carries a status; a finished row stays a quiet one-line summary.
+ */
+function renderRunningStatus(status: "started" | "completed", t: Translate): ReactElement | null {
+  if (status === "completed") {
+    return null;
+  }
 
-function reasoningStatusLabel(status: "started" | "completed" | undefined, t: Translate): string {
-  return status === "started" ? t("chatMessageContent.statuses.started") : t("chatMessageContent.statuses.completed");
+  return <span className="chat-tool-call-status">{t("chatMessageContent.statuses.started")}</span>;
 }
 
 function buildToolCallSummaryText(name: string, input: string | null, t: Translate): string {
@@ -288,7 +291,7 @@ export function renderStoredMessageContent(
         >
           <summary className="chat-tool-call-summary">
             <span className="chat-tool-call-summary-main" title={reasoningText}>{t("chatMessageContent.reasoning")}</span>
-            <span className="chat-tool-call-status">{reasoningStatusLabel(part.status, t)}</span>
+            {renderRunningStatus(reasoningStatus, t)}
           </summary>
           <div className="chat-tool-call-output"><ContentText text={reasoningText} {...renderContext} /></div>
           <ChatMathCopyButton text={reasoningText} sectionTitle={t("chatMessageContent.reasoning")} t={t} onTechnicalError={onTechnicalError} canStartAction={canStartAction} />
@@ -312,7 +315,7 @@ export function renderStoredMessageContent(
       >
         <summary className="chat-tool-call-summary">
           <span className="chat-tool-call-summary-main" title={summaryText}>{summaryText}</span>
-          <span className="chat-tool-call-status">{toolCallStatusLabel(part.status, t)}</span>
+          {renderRunningStatus(part.status, t)}
         </summary>
         {renderToolCallSection(t("chatMessageContent.request"), part.input, "input", t, onTechnicalError, canStartAction)}
         {renderToolCallSection(t("chatMessageContent.response"), part.output, "output", t, onTechnicalError, canStartAction)}

@@ -1576,7 +1576,6 @@ const slCatalog: TranslationCatalog = {
     request: "Zahteva",
     response: "Odgovor",
     statuses: {
-      completed: "Končano",
       started: "Poteka",
     },
     thinking: "Razmišljanje ...",

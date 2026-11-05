@@ -1546,7 +1546,6 @@ const mlCatalog: TranslationCatalog = {
     request: "അഭ്യർത്ഥന",
     response: "മറുപടി",
     statuses: {
-      completed: "പൂർത്തിയായി",
       started: "നടക്കുന്നു",
     },
     thinking: "ചിന്തിക്കുന്നു...",

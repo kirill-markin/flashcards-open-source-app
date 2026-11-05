@@ -1546,7 +1546,6 @@ const arCatalog: TranslationCatalog = {
     request: "الطلب",
     response: "الاستجابة",
     statuses: {
-      completed: "تم",
       started: "قيد التشغيل",
     },
     thinking: "جارٍ التفكير...",

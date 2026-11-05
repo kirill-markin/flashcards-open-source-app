@@ -1546,7 +1546,6 @@ const bgCatalog: TranslationCatalog = {
     request: "Заявка",
     response: "Отговор",
     statuses: {
-      completed: "Готово",
       started: "Изпълнява се",
     },
     thinking: "Мисли...",

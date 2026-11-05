@@ -1546,7 +1546,6 @@ const elCatalog: TranslationCatalog = {
     request: "Αίτημα",
     response: "Απάντηση",
     statuses: {
-      completed: "Τέλος",
       started: "Σε εξέλιξη",
     },
     thinking: "Σκέψη...",

@@ -1546,7 +1546,6 @@ const knCatalog: TranslationCatalog = {
     request: "ವಿನಂತಿ",
     response: "ಪ್ರತಿಕ್ರಿಯೆ",
     statuses: {
-      completed: "ಮುಗಿದಿದೆ",
       started: "ಚಾಲನೆಯಲ್ಲಿದೆ",
     },
     thinking: "ಯೋಚಿಸಲಾಗುತ್ತಿದೆ...",

@@ -1546,7 +1546,6 @@ const taCatalog: TranslationCatalog = {
     request: "கோரிக்கை",
     response: "பதில்",
     statuses: {
-      completed: "முடிந்தது",
       started: "இயங்குகிறது",
     },
     thinking: "சிந்திக்கிறது...",

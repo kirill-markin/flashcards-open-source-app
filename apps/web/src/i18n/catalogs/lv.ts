@@ -1546,7 +1546,6 @@ const lvCatalog: TranslationCatalog = {
     request: "Pieprasījums",
     response: "Atbilde",
     statuses: {
-      completed: "Gatavs",
       started: "Izpilda",
     },
     thinking: "Domā...",

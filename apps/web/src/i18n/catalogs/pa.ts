@@ -1546,7 +1546,6 @@ const paCatalog: TranslationCatalog = {
     request: "ਬੇਨਤੀ",
     response: "ਜਵਾਬ",
     statuses: {
-      completed: "ਮੁਕੰਮਲ",
       started: "ਚੱਲ ਰਿਹਾ ਹੈ",
     },
     thinking: "ਸੋਚ ਰਹੀ ਹੈ...",

@@ -1546,7 +1546,6 @@ const idCatalog: TranslationCatalog = {
     request: "Permintaan",
     response: "Respons",
     statuses: {
-      completed: "Selesai",
       started: "Berjalan",
     },
     thinking: "Berpikir...",

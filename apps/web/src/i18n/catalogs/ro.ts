@@ -1561,7 +1561,6 @@ const roCatalog: TranslationCatalog = {
     request: "Cerere",
     response: "Răspuns",
     statuses: {
-      completed: "Gata",
       started: "În curs",
     },
     thinking: "Se gândește...",

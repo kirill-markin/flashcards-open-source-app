@@ -1546,7 +1546,6 @@ const zuCatalog: TranslationCatalog = {
     request: "Isicelo",
     response: "Impendulo",
     statuses: {
-      completed: "Kwenziwe",
       started: "Kuyasebenza",
     },
     thinking: "Kuyacatshangwa...",

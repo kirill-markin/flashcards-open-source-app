@@ -1546,7 +1546,6 @@ const ptBrCatalog: TranslationCatalog = {
     request: "Requisição",
     response: "Resposta",
     statuses: {
-      completed: "Concluído",
       started: "Em execução",
     },
     thinking: "Pensando...",
