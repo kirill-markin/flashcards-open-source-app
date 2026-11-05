@@ -117,6 +117,7 @@ import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.core.ui.theme.displayedAccentColor
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
@@ -190,7 +191,10 @@ fun FlashcardsApp(
         }
         FlashcardsTheme(
             appearance = effectiveAppearance,
-            accentColor = Color(effectiveAccentColor.toColorInt())
+            accentColor = displayedAccentColor(
+                color = Color(effectiveAccentColor.toColorInt()),
+                appearance = effectiveAppearance
+            )
         ) {
         val signInApplication = LocalContext.current.applicationContext as FlashcardsApplication
         val appleReturn by signInApplication.appleSignInReturnState.collectAsStateWithLifecycle()

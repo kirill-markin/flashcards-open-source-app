@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -47,6 +48,10 @@ class MainHostActivity : ComponentActivity() {
             val reviewWidgetTapRequest by application.reviewWidgetTapState.collectAsState()
             val appGraph = currentAppGraph
             if (appGraph == null) {
+                // The loading screen is always dark, whatever theme the detached app graph showed.
+                LaunchedEffect(Unit) {
+                    applySystemBarAppearance(appearance = FlashcardsAppearance.DARK)
+                }
                 FlashcardsAppLoadingScreen()
             } else {
                 DisposableEffect(appGraph) {

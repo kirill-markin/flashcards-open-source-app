@@ -26,6 +26,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:ui"))
     implementation(project(":data:local"))
     implementation(project(":feature:friendinvite"))
 

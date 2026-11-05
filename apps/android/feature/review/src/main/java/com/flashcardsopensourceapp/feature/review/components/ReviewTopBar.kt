@@ -34,9 +34,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
+import com.flashcardsopensourceapp.core.ui.theme.LocalFlashcardsAppearance
 
 private val reviewTopBarFilterMaxWidth = 128.dp
-private val reviewLeaderboardTrophyColor = Color(0xFFFFD60A)
+private val reviewLeaderboardTrophyDarkColor = Color(0xFFFFD60A)
+private val reviewLeaderboardTrophyLightColor = Color(0xFFC98A00)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,7 +177,10 @@ private fun ReviewLeaderboardAction(
         Icon(
             imageVector = Icons.Outlined.EmojiEvents,
             contentDescription = null,
-            tint = reviewLeaderboardTrophyColor
+            tint = when (LocalFlashcardsAppearance.current) {
+                FlashcardsAppearance.DARK -> reviewLeaderboardTrophyDarkColor
+                FlashcardsAppearance.LIGHT -> reviewLeaderboardTrophyLightColor
+            }
         )
         if (rank != null) {
             Text(text = rank.toString())

@@ -5,12 +5,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
 enum class FlashcardsAppearance {
     DARK,
     LIGHT
+}
+
+/** The appearance of the enclosing [FlashcardsTheme], for colors that differ between Dark and Light. */
+val LocalFlashcardsAppearance: ProvidableCompositionLocal<FlashcardsAppearance> = staticCompositionLocalOf {
+    error("LocalFlashcardsAppearance is read outside FlashcardsTheme.")
 }
 
 val FlashcardsDarkColorScheme = darkColorScheme(
@@ -30,7 +38,27 @@ private val FlashcardsLightColorScheme = lightColorScheme(
     primary = FlashcardsOrange,
     onPrimary = Color.Black,
     secondary = FlashcardsOrange,
-    tertiary = FlashcardsOrange
+    tertiary = FlashcardsOrange,
+    secondaryContainer = FlashcardsLightSecondaryContainer,
+    onSecondaryContainer = FlashcardsLightOnSurface,
+    background = FlashcardsLightBackground,
+    onBackground = FlashcardsLightOnSurface,
+    surface = FlashcardsLightSurface,
+    onSurface = FlashcardsLightOnSurface,
+    surfaceVariant = FlashcardsLightSurfaceVariant,
+    onSurfaceVariant = FlashcardsLightOnSurfaceVariant,
+    outline = FlashcardsLightOutline,
+    outlineVariant = FlashcardsLightOutlineVariant,
+    inverseSurface = FlashcardsLightInverseSurface,
+    inverseOnSurface = FlashcardsLightInverseOnSurface,
+    surfaceBright = FlashcardsLightSurface,
+    surfaceDim = FlashcardsLightSurfaceDim,
+    // Cards sit on the gray background as white, like list rows; High and Highest stay gray for content inside them.
+    surfaceContainerLowest = FlashcardsLightSurface,
+    surfaceContainerLow = FlashcardsLightSurface,
+    surfaceContainer = FlashcardsLightSurface,
+    surfaceContainerHigh = FlashcardsLightSurfaceContainerHigh,
+    surfaceContainerHighest = FlashcardsLightSurfaceContainerHighest
 )
 
 @Composable
@@ -44,14 +72,16 @@ fun FlashcardsTheme(appearance: FlashcardsAppearance, accentColor: Color, conten
         FlashcardsAppearance.DARK -> FlashcardsDarkColorScheme
         FlashcardsAppearance.LIGHT -> FlashcardsLightColorScheme
     }
-    MaterialTheme(
-        colorScheme = colorScheme.copy(
-            primary = accentColor,
-            onPrimary = if (accentColor.luminance() > 0.179f) Color.Black else Color.White,
-            secondary = accentColor,
-            tertiary = accentColor
-        ),
-        typography = FlashcardsTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalFlashcardsAppearance provides appearance) {
+        MaterialTheme(
+            colorScheme = colorScheme.copy(
+                primary = accentColor,
+                onPrimary = if (accentColor.luminance() > 0.179f) Color.Black else Color.White,
+                secondary = accentColor,
+                tertiary = accentColor
+            ),
+            typography = FlashcardsTypography,
+            content = content
+        )
+    }
 }

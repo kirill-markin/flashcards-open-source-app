@@ -42,6 +42,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
+import com.flashcardsopensourceapp.core.ui.theme.LocalFlashcardsAppearance
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.feature.progress.ProgressFreezeBankUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakDayUiState
@@ -52,6 +54,8 @@ import com.flashcardsopensourceapp.feature.progress.R
 private const val progressStreakOverflowThreshold: Int = 99
 private val frozenStreakBorderColor = Color(0xFF90CAF9)
 private val frozenStreakContentColor = Color(0xFF1E88E5)
+// A white disk disappears on the white Light card, so Light uses a pale ice tint.
+private val frozenStreakLightBackgroundColor = Color(0xFFE6F4FF)
 
 @Composable
 internal fun StreakSectionCard(
@@ -378,7 +382,12 @@ private fun FrozenStreakMarker() {
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(Color.White)
+            .background(
+                when (LocalFlashcardsAppearance.current) {
+                    FlashcardsAppearance.DARK -> Color.White
+                    FlashcardsAppearance.LIGHT -> frozenStreakLightBackgroundColor
+                }
+            )
             .border(
                 width = 1.dp,
                 color = frozenStreakBorderColor,

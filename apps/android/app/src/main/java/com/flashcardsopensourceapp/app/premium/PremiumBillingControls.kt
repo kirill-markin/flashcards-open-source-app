@@ -51,7 +51,9 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
+import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsOrange
+import com.flashcardsopensourceapp.core.ui.theme.LocalFlashcardsAppearance
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -243,6 +245,10 @@ private fun PremiumCreatorSupport() {
     val name = stringResource(R.string.premium_creator_name)
     val support = stringResource(R.string.premium_creator_support, name)
     val nameStart = support.indexOf(name)
+    val linkColor = when (LocalFlashcardsAppearance.current) {
+        FlashcardsAppearance.DARK -> Color.White
+        FlashcardsAppearance.LIGHT -> MaterialTheme.colorScheme.onSurface
+    }
     val text = buildAnnotatedString {
         if (nameStart < 0) {
             append(support)
@@ -250,7 +256,7 @@ private fun PremiumCreatorSupport() {
             append(support.substring(0, nameStart))
             withLink(LinkAnnotation.Url(
                 url = "https://kirill-markin.com/",
-                styles = TextLinkStyles(style = SpanStyle(color = Color.White, textDecoration = TextDecoration.Underline))
+                styles = TextLinkStyles(style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline))
             )) { append(name) }
             append(support.substring(nameStart + name.length))
         }

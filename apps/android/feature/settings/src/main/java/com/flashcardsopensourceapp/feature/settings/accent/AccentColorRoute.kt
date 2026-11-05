@@ -40,6 +40,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
+import com.flashcardsopensourceapp.core.ui.theme.LocalFlashcardsAppearance
+import com.flashcardsopensourceapp.core.ui.theme.displayedAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
@@ -167,7 +169,10 @@ fun AccentColorRoute(
 private fun AccentSwatch(color: String) {
     Box(
         modifier = Modifier.size(32.dp)
-            .background(Color(color.toColorInt()), CircleShape)
+            .background(
+                displayedAccentColor(color = Color(color.toColorInt()), appearance = LocalFlashcardsAppearance.current),
+                CircleShape
+            )
     )
 }
 
