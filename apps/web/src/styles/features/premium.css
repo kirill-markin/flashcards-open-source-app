@@ -142,11 +142,6 @@
   line-height: 1.3;
 }
 
-.premium-plan .premium-free-price {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
 .premium-plan .premium-price {
   flex: 1 1 140px;
   color: var(--text-secondary);
@@ -193,6 +188,11 @@
 
 .premium-paid-plan .premium-benefits li::before {
   color: var(--premium-orange);
+}
+
+.premium-benefits .premium-benefit-missing::before {
+  content: "✕";
+  color: var(--danger);
 }
 
 .premium-plan-button {
