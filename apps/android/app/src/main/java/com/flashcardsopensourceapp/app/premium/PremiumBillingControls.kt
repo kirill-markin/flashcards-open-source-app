@@ -72,13 +72,14 @@ internal fun PremiumFreePlan(onContinueFree: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             PremiumMissingBenefit(text = stringResource(R.string.premium_free_no_creator_support))
-            PremiumBenefit(text = stringResource(R.string.premium_free_benefits), modifier = Modifier)
             PremiumMissingBenefit(text = stringResource(R.string.premium_free_limited_ai))
             PremiumMissingBenefit(text = stringResource(R.string.premium_free_default_styles))
+            PremiumMissingBenefit(text = stringResource(R.string.premium_free_no_other_premium_features))
+            PremiumBenefit(text = stringResource(R.string.premium_free_benefits), modifier = Modifier)
             OutlinedButton(
                 onClick = onContinueFree,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_continue_free")
-            ) { PremiumActionLabel(text = stringResource(R.string.premium_not_now)) }
+            ) { PremiumActionLabel(text = stringResource(R.string.premium_dont_pay_creator)) }
         }
     }
 }
@@ -125,6 +126,7 @@ internal fun PremiumStoreOffer(
             CreatorLinkText(textWithCreatorName = R.string.premium_creator_support)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_creator_support), modifier = Modifier)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_accent_color), modifier = Modifier)
+            PremiumBenefit(text = stringResource(R.string.premium_benefit_themes), modifier = Modifier)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_review_animations), modifier = Modifier)
             PremiumBenefit(text = stringResource(R.string.premium_benefit_app_icon), modifier = Modifier)
             if (showsCatalog) when (allowance) {
