@@ -11,7 +11,7 @@ import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-projec
 // A chat run waits for each sandbox call, so the chat worker's own reservation bounds normal use; the
 // rest absorbs invocations a transport retry left running.
 const chatSandboxReservedConcurrency = 10;
-const chatSandboxNodeModules = ["just-bash", "pdfjs-dist", sentryRuntimeInjectionModule] as const;
+const chatSandboxNodeModules = ["just-bash", "pdfjs-dist", "sharp", sentryRuntimeInjectionModule] as const;
 
 /**
  * Runs model-written commands over one chat session's files and parses the files people attach
@@ -49,8 +49,9 @@ export function createChatSandboxFunction(scope: Construct): lambdaNodejs.Nodejs
     bundling: {
       minify: true,
       sourceMap: true,
-      // just-bash loads its workers and the Python runtime, and pdf.js its worker, font metrics and
-      // character maps, from their own package directories, which a single-file bundle does not carry.
+      // just-bash loads its workers and the Python runtime, pdf.js its worker, font metrics and
+      // character maps, and sharp its native libvips binary, from their own package directories, which
+      // a single-file bundle does not carry.
       externalModules: [...chatSandboxNodeModules],
       commandHooks: {
         beforeBundling: () => [],

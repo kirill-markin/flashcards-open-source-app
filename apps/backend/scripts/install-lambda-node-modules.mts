@@ -27,7 +27,8 @@ writeFileSync(join(outputDir, "package.json"), JSON.stringify({
   allowScripts: manifest.allowScripts,
 }));
 copyFileSync(join(inputDir, "package-lock.json"), join(outputDir, "package-lock.json"));
-execFileSync("npm", ["ci", "--omit=dev", "--no-audit", "--no-fund"], {
+// Native packages such as sharp install their binary for the ARM64 Lambda, whatever host bundles it.
+execFileSync("npm", ["ci", "--omit=dev", "--no-audit", "--no-fund", "--os=linux", "--cpu=arm64", "--libc=glibc"], {
   cwd: outputDir,
   stdio: "inherit",
 });

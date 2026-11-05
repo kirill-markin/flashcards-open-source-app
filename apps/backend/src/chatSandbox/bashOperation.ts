@@ -9,6 +9,7 @@ import {
   type ChatSandboxBashRequest,
   type ChatSandboxBashResponse,
 } from "./contract";
+import { createMagickCommand } from "./magick/command";
 import { PresignedObjectReader, PresignedReadOnlyFs, type PresignedFile } from "./presignedFs";
 import { sha256Hex, uploadToWriteSlots, type SlotFile } from "./slotUploads";
 import { ChatSandboxMediaBridgeClient } from "./mediaBridge/sandboxClient";
@@ -253,7 +254,11 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     env: { HOME: workMountPoint },
     python: true,
     javascript: { invokeTool: async (path, argsJson, signal) => sqlBridge.invokeTool(path, argsJson, signal) },
-    customCommands: [...sqlBridge.createCommands(decodeBytesToUtf8), ...mediaBridge.createCommands()],
+    customCommands: [
+      ...sqlBridge.createCommands(decodeBytesToUtf8),
+      ...mediaBridge.createCommands(),
+      createMagickCommand(),
+    ],
     executionLimitProfile: "hardened",
     executionLimits,
   });

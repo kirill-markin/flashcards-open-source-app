@@ -191,6 +191,7 @@ function buildChatFilesSection(): string {
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
+    "- magick edits images with an ImageMagick subset, such as magick a.jpg b.jpg -resize x400 +append out.jpg: -resize WxH|W|xH|N%, -crop WxH+X+Y, -rotate DEG, -flip, -flop, +append, -append, -background COLOR, -gravity center, -extent WxH, -quality N; the output's .jpg, .png or .webp picks its format; magick identify FILE prints format and size.",
     `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
   ]);
 }
