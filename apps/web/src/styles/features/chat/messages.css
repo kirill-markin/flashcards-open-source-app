@@ -20,9 +20,11 @@
   color: #fff2ee;
 }
 
-/* Assistant answers read as plain text on the page, without a bubble. */
+/* Assistant answers read as plain text on the page, without a bubble, across the full
+   column so the work block's dividers keep one width while content streams. */
 .chat-msg-assistant {
-  align-self: flex-start;
+  align-self: stretch;
+  max-width: none;
   padding-inline: 0;
   border: none;
   border-radius: 0;
