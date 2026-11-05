@@ -197,7 +197,7 @@ export function ThemeSettingsScreen(): ReactElement {
       reason: "feature",
       entryPoint: "theme",
       requiredRank: 20,
-      continuation: null,
+      continuation: { theme: nextTheme, requiredRank: 20 },
       onResult: (result): void => {
         if (result !== "granted" || !mountedRef.current || !isCurrentContinuation()) return;
         void persistTheme(nextTheme);

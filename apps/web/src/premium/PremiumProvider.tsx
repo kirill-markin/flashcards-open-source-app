@@ -12,7 +12,7 @@ import { readEntitlementSnapshot, useEntitlementSnapshot } from "./entitlementSt
 import { useRegionalCountry, type RegionalCountry } from "./regionalCountry";
 import { PremiumOffer } from "./PremiumOffer";
 import { StripeBillingContext, useAccountStripeBilling } from "./useStripeBilling";
-import { canCollectPaywallAnalytics, isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
+import { canCollectPaywallAnalytics, isSamePremiumContinuation, isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
 
 export type PremiumRequest =
   | Readonly<{ reason: "offer"; isTestPreview?: true; entryPoint: AnalyticsPaywallEntryPoint | null; presentation?: PaywallPresentation | null; reviewTrigger?: ReviewPaywallTrigger; continuation?: PremiumContinuation | null }>
@@ -71,8 +71,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode; regional: Regiona
     const pending = pendingRef.current;
     if (pending === null || pending.userId !== currentUserIdRef.current
       || pending.billingGeneration !== readStripeBillingGeneration()
-      || pending.request.reason !== "offer" || pending.request.continuation?.accentColor !== continuation.accentColor
-      || pending.request.continuation.requiredRank !== continuation.requiredRank) return;
+      || pending.request.reason !== "offer" || !isSamePremiumContinuation(pending.request.continuation ?? null, continuation)) return;
     pendingRef.current = null;
     setPresentation(null);
   }, []);

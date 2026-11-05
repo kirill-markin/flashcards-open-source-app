@@ -12,10 +12,11 @@ import { useAppData } from "../appData";
 import { beginGuestSignIn } from "../appData/session/guest/browserGuestConversion";
 import { readPendingGuestConversion } from "../appData/session/guest/browserGuestStorage";
 import { useI18n } from "../i18n";
-import { queueAccentColorWrite } from "../appData/session/accentColorWrite";
+import { beginAccountPreferenceWrite, finishAccountPreferenceWrite, isCurrentAccountPreferenceWrite, queueAccentColorWrite } from "../appData/session/accentColorWrite";
+import type { AppTheme } from "../types/account";
 import type { RegionalCountry } from "./regionalCountry";
 import { readEntitlementIdentityGeneration, readEntitlementSnapshot, subscribeToEntitlement } from "./entitlementStore";
-import { activateVerifiedStripeBillingSession, cancelGuestStripeCheckout, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isStripeBillingInvalidated,
+import { activateVerifiedStripeBillingSession, cancelGuestStripeCheckout, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isSamePremiumContinuation, isStripeBillingInvalidated,
   guestStripeCheckoutReturnUrl, readStripeBillingGeneration, readStripeIntent, storeGuestStripeCheckout, storeStripeIntent,
   subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation, type StripeIntent } from "./stripeIntent";
 
@@ -118,15 +119,36 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     }
   }, [isCurrent, userId]);
 
+  const applyThemeContinuation = useCallback(async (identity: BillingIdentity, theme: AppTheme, previousTheme: AppTheme): Promise<void> => {
+    const write = beginAccountPreferenceWrite(identity.userId, "theme");
+    const controller = new AbortController();
+    const unsubscribe = subscribeToStripeBillingInvalidation(() => controller.abort());
+    setAccountPreferences(identity.userId, { theme });
+    try {
+      const response = await updateAccountPreferences({ theme }, { userId: identity.userId, signal: controller.signal });
+      if (isCurrent(identity) && isCurrentAccountPreferenceWrite(write)) setAccountPreferences(identity.userId, { theme: response.preferences.theme });
+    } catch (caught) {
+      if (!isCurrent(identity) || !isCurrentAccountPreferenceWrite(write)) return;
+      setAccountPreferences(identity.userId, { theme: previousTheme });
+      report(caught);
+    } finally {
+      unsubscribe();
+      finishAccountPreferenceWrite(write);
+    }
+  }, [isCurrent, setAccountPreferences]);
+
   const applyPremiumContinuation = useCallback((identity: BillingIdentity, continuation: PremiumContinuation): void => {
     const entitlement = readEntitlementSnapshot(identity.userId);
     const currentSession = sessionRef.current;
     if (!isCurrent(identity) || entitlement === null || entitlement.status === "none"
       || entitlement.tierRank < continuation.requiredRank || currentSession?.userId !== identity.userId) return;
     const intent = readStripeIntent(identity.userId);
-    if (intent?.continuation?.accentColor === continuation.accentColor
-      && intent.continuation.requiredRank === continuation.requiredRank) consumeStripeContinuation(intent);
+    if (intent !== null && isSamePremiumContinuation(intent.continuation, continuation)) consumeStripeContinuation(intent);
     consumePendingOfferContinuation(continuation);
+    if ("theme" in continuation) {
+      void applyThemeContinuation(identity, continuation.theme, currentSession.preferences.theme);
+      return;
+    }
     queueAccentColorWrite(identity.userId, continuation.accentColor, currentSession.preferences.accentColor, {
       apply: (accentColor): void => { if (isCurrent(identity)) setAccountPreferences(identity.userId, { accentColor }); },
       save: async (accentColor, signal): Promise<string> => {
@@ -145,7 +167,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       },
       onError: (caught): void => { if (isCurrent(identity)) report(caught); },
     });
-  }, [consumePendingOfferContinuation, isCurrent, setAccountPreferences]);
+  }, [applyThemeContinuation, consumePendingOfferContinuation, isCurrent, setAccountPreferences]);
 
   const resumePremiumContinuation = useCallback((continuation: PremiumContinuation): void => {
     if (userId === null || generationRef.current !== readEntitlementIdentityGeneration()) return;
