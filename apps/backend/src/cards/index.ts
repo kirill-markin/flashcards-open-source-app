@@ -45,7 +45,6 @@ export {
 } from "./filters";
 
 export {
-  appendManagedImageBlockToCardSideInExecutor,
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
   createManagedImageRestoreLedger,

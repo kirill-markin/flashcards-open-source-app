@@ -148,25 +148,20 @@ function hasExactManagedImageUrl(text: string, url: string): boolean {
   return extractMarkdownImageDestinationUrls(text).some((candidate) => candidate === url);
 }
 
-/** A trailing block, separated from whatever is already there by exactly one blank line. */
-function appendMarkdownBlock(text: string, markdownBlock: string): string {
-  const separator = text === "" || text.endsWith("\n\n")
-    ? ""
-    : text.endsWith("\n") ? "\n" : "\n\n";
-  return `${text}${separator}${markdownBlock}`;
-}
-
 /**
  * Where a generated image goes: on the same line as an image that ends the side, so the two form a
- * gallery (docs/review-markdown-rendering.md#image-galleries), otherwise its own block.
- * ./managedImageSnapshotMerge.ts reuses it for every restored reference; it cannot tell a collage
- * from a generated image, so a restored collage joins the line too.
+ * gallery (docs/review-markdown-rendering.md#image-galleries), otherwise a trailing block separated
+ * from whatever is already there by exactly one blank line. ./managedImageSnapshotMerge.ts reuses
+ * it for every restored reference.
  */
 export function appendMarkdownImageJoiningEndingImage(text: string, markdownImage: string): string {
   if (endsWithMarkdownImage(text)) {
     return `${text}${/[ \t]$/u.test(text) ? "" : " "}${markdownImage}`;
   }
-  return appendMarkdownBlock(text, markdownImage);
+  const separator = text === "" || text.endsWith("\n\n")
+    ? ""
+    : text.endsWith("\n") ? "\n" : "\n\n";
+  return `${text}${separator}${markdownImage}`;
 }
 
 function appendNormalizedManagedImageToCardText(
@@ -174,13 +169,12 @@ function appendNormalizedManagedImageToCardText(
   mediaAssetId: string,
   markdownReference: string,
   expectedUrl: string,
-  appendReference: (text: string, markdownReference: string) => string,
 ): AppendedManagedImageCardText {
   if (hasManagedImageMarkdownReference(text, mediaAssetId)) {
     return { text, applied: false };
   }
 
-  const appendedText = appendReference(text, markdownReference);
+  const appendedText = appendMarkdownImageJoiningEndingImage(text, markdownReference);
   if (!hasExactManagedImageUrl(appendedText, expectedUrl)) {
     throw new HttpError(
       409,
@@ -222,7 +216,6 @@ export function appendManagedImageToCardText(
     normalizedMediaAssetId,
     markdownReference,
     buildReadyManagedImageUrl(normalizedMediaAssetId),
-    appendMarkdownImageJoiningEndingImage,
   );
 }
 
@@ -353,12 +346,11 @@ async function applyManagedImageLifecycleTransitionInExecutor(
   );
 }
 
-async function appendReadyManagedImageToCardSideInExecutor(
+export async function appendManagedImageToCardSideInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   input: AppendManagedImageToCardSideInput,
   metadata: CardMutationMetadata,
-  appendReference: (text: string, markdownReference: string) => string,
 ): Promise<AppendManagedImageToCardSideResult> {
   const targetSide = normalizeCardTextSide(input.targetSide);
   const cardId = expectUuidString(input.cardId, "cardId");
@@ -378,39 +370,7 @@ async function appendReadyManagedImageToCardSideInExecutor(
       mediaAssetId,
       buildNormalizedManagedImageMarkdownReference(mediaAssetId, normalizedAltText),
       readyUrl,
-      appendReference,
     ),
-  );
-}
-
-export async function appendManagedImageToCardSideInExecutor(
-  executor: DatabaseExecutor,
-  workspaceId: string,
-  input: AppendManagedImageToCardSideInput,
-  metadata: CardMutationMetadata,
-): Promise<AppendManagedImageToCardSideResult> {
-  return appendReadyManagedImageToCardSideInExecutor(
-    executor,
-    workspaceId,
-    input,
-    metadata,
-    appendMarkdownImageJoiningEndingImage,
-  );
-}
-
-/** Appends the image as its own block, never joining an image line that ends the side. */
-export async function appendManagedImageBlockToCardSideInExecutor(
-  executor: DatabaseExecutor,
-  workspaceId: string,
-  input: AppendManagedImageToCardSideInput,
-  metadata: CardMutationMetadata,
-): Promise<AppendManagedImageToCardSideResult> {
-  return appendReadyManagedImageToCardSideInExecutor(
-    executor,
-    workspaceId,
-    input,
-    metadata,
-    appendMarkdownBlock,
   );
 }
 
@@ -440,7 +400,6 @@ export async function appendPendingManagedImageToCardSideInExecutor(
       mediaAssetId,
       markdownReference,
       pendingUrl,
-      appendMarkdownImageJoiningEndingImage,
     ),
   );
   const cardText = targetSide === "front" ? result.card.frontText : result.card.backText;
