@@ -134,7 +134,6 @@ const urCatalog: TranslationCatalog = {
     ok: "ٹھیک ہے",
     off: "بند",
     on: "چالو",
-    open: "کھولیں",
     perAction: "فی عمل",
     refresh: "تازہ کریں",
     retry: "دوبارہ کوشش کریں",
@@ -215,6 +214,7 @@ const urCatalog: TranslationCatalog = {
     aiChat: "AI چیٹ",
     progress: "پیش رفت",
     cards: "کارڈز",
+    library: "لائبریری",
     settings: "ترتیبات",
   },
   shell: {
@@ -760,24 +760,39 @@ const urCatalog: TranslationCatalog = {
       resetAll: "تمام پرامپٹس کی حالت ری سیٹ کریں",
     },
   },
+  libraryScreen: {
+    title: "لائبریری",
+    groups: {
+      importExport: "درآمد اور برآمد",
+    },
+    cards: {
+      description: "اس ورک اسپیس کے تمام کارڈز۔",
+    },
+    tags: {
+      description: "کم از کم ایک کارڈ پر استعمال ہونے والے تمام ٹیگز۔",
+    },
+    decks: {
+      description: "مرکوز دہرائی کے لیے محفوظ کیے گئے کارڈ فلٹرز۔",
+    },
+    import: {
+      description: "فائل سے کارڈز شامل کریں۔",
+    },
+    export: {
+      description: "اپنے تمام کارڈز ایک فائل کے طور پر ڈاؤن لوڈ کریں۔",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ڈیکس",
-      description: "دوبارہ استعمال ہونے والے مطالعے کے دائرے بنائیں، ان میں ترمیم کریں اور انہیں دہرائیں۔",
     },
     tags: {
       title: "ٹیگز",
-      description: "پوری ورک اسپیس میں ٹیگز کا استعمال اور کارڈز کی تعداد دیکھیں۔",
     },
     export: {
       title: "برآمد",
-      description: "اس ورک اسپیس کے سرگرم کارڈز قابلِ منتقلی flashcards.zip پیکیج کے طور پر ڈاؤن لوڈ کریں۔",
-      value: "flashcards.zip",
     },
     import: {
       title: "درآمد",
-      description: "اصطلاحات اور تعریفیں چسپاں کریں یا Nibomo پیکیج درآمد کریں۔",
-      value: "متن یا ZIP",
     },
     resetProgress: {
       title: "مطالعے کی پیش رفت ری سیٹ کریں",

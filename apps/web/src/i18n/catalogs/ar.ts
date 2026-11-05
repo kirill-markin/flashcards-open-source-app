@@ -134,7 +134,6 @@ const arCatalog: TranslationCatalog = {
     ok: "موافق",
     off: "إيقاف",
     on: "تشغيل",
-    open: "فتح",
     perAction: "لكل إجراء",
     refresh: "تحديث",
     retry: "إعادة المحاولة",
@@ -215,6 +214,7 @@ const arCatalog: TranslationCatalog = {
     aiChat: "دردشة الذكاء الاصطناعي",
     progress: "التقدم",
     cards: "بطاقات",
+    library: "المكتبة",
     settings: "الإعدادات",
   },
   shell: {
@@ -760,24 +760,39 @@ const arCatalog: TranslationCatalog = {
       resetAll: "إعادة تعيين حالة كل التنبيهات",
     },
   },
+  libraryScreen: {
+    title: "المكتبة",
+    groups: {
+      importExport: "الاستيراد والتصدير",
+    },
+    cards: {
+      description: "كل البطاقات في مساحة العمل هذه.",
+    },
+    tags: {
+      description: "كل الوسوم المستخدمة في بطاقة واحدة على الأقل.",
+    },
+    decks: {
+      description: "فلاتر بطاقات محفوظة لمراجعة مركّزة.",
+    },
+    import: {
+      description: "أضف بطاقات من ملف.",
+    },
+    export: {
+      description: "نزّل كل بطاقاتك كملف.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "المجموعات",
-      description: "أنشئ نطاقات دراسة قابلة لإعادة الاستخدام وحرّرها وراجعها.",
     },
     tags: {
       title: "الوسوم",
-      description: "افحص استخدام الوسوم على مستوى مساحة العمل وعدد البطاقات.",
     },
     export: {
       title: "تصدير",
-      description: "نزّل البطاقات النشطة من مساحة العمل هذه كحزمة flashcards.zip محمولة.",
-      value: "flashcards.zip",
     },
     import: {
       title: "استيراد",
-      description: "الصق المصطلحات والتعريفات أو استورد حزمة Nibomo.",
-      value: "نص أو ZIP",
     },
     resetProgress: {
       title: "إعادة تعيين تقدم الدراسة",

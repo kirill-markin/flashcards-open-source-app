@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.app
 
-import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
@@ -44,5 +44,5 @@ fun foregroundSyncPollingIntervalMillis(destination: TopLevelDestination): Long 
 }
 
 fun usesFastForegroundSyncPolling(destination: TopLevelDestination): Boolean {
-    return destination == ReviewDestination || destination == CardsDestination
+    return destination == ReviewDestination || destination == LibraryDestination
 }

@@ -9,6 +9,10 @@ import {
   accountStatusRoute,
   accountLegalRoute,
   accountSupportRoute,
+  libraryDecksRoute,
+  libraryExportRoute,
+  libraryImportRoute,
+  libraryTagsRoute,
   settingsAccessRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeviceRoute,
@@ -19,7 +23,7 @@ import {
   workspaceRoutePrefix,
 } from "../../../src/routes";
 import { localUiTimeoutMs } from "../config";
-import { primaryNavigationLinkSelector } from "../navigation";
+import { openLibraryRow, primaryNavigationLinkSelector } from "../navigation";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
@@ -27,6 +31,12 @@ type SettingsDetailTarget = Readonly<{
   rowTestId: string;
   route: string;
   actionName: string;
+}>;
+
+type LibraryDetailTarget = Readonly<{
+  rowTestId: string;
+  route: string;
+  screenSelector: string;
 }>;
 
 const settingsDetailTargets: ReadonlyArray<SettingsDetailTarget> = [
@@ -90,10 +100,6 @@ const rootRowTestIds: ReadonlyArray<string> = [
   "settings-row-review-reminders",
   "settings-row-language",
   "settings-row-access",
-  "settings-row-decks",
-  "settings-row-tags",
-  "settings-row-import",
-  "settings-row-export",
   "settings-row-feedback",
   "settings-row-support",
   "settings-row-legal",
@@ -107,6 +113,13 @@ const rootRowTestIds: ReadonlyArray<string> = [
   "settings-row-delete-account",
 ];
 
+const libraryDetailTargets: ReadonlyArray<LibraryDetailTarget> = [
+  { rowTestId: "library-row-tags", route: libraryTagsRoute, screenSelector: ".tags-screen-panel" },
+  { rowTestId: "library-row-decks", route: libraryDecksRoute, screenSelector: "[data-testid='decks-screen']" },
+  { rowTestId: "library-row-import", route: libraryImportRoute, screenSelector: ".settings-panel" },
+  { rowTestId: "library-row-export", route: libraryExportRoute, screenSelector: ".settings-panel" },
+];
+
 export async function runSettingsIaFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "verify Settings first-level IA and detail navigation", async () => {
     await assertSettingsRootTree(session);
@@ -115,6 +128,31 @@ export async function runSettingsIaFlow(session: LiveSmokeSession): Promise<void
       await openSettingsDetailFromRoot(session, target);
     }
   });
+
+  await runLiveSmokeStep(session, "verify the Library hub opens Tags, Decks, Import and Export", async () => {
+    for (const target of libraryDetailTargets) {
+      await openLibraryDetail(session, target);
+    }
+  });
+}
+
+async function openLibraryDetail(session: LiveSmokeSession, target: LibraryDetailTarget): Promise<void> {
+  const { page, diagnostics, baseUrl } = session;
+  const actionName = `open ${target.rowTestId} from Library`;
+  await openLibraryRow(page, diagnostics, actionName, target.rowTestId);
+  await trackedWaitForUrl(
+    page,
+    diagnostics,
+    `confirm route after ${actionName}`,
+    buildRouteUrlPattern(baseUrl, target.route),
+    localUiTimeoutMs,
+  );
+  await trackedExpectVisible(
+    diagnostics,
+    `confirm screen is visible after ${actionName}`,
+    page.locator(target.screenSelector),
+    localUiTimeoutMs,
+  );
 }
 
 async function assertSettingsRootTree(session: LiveSmokeSession): Promise<void> {
@@ -141,6 +179,12 @@ async function assertSettingsRootTree(session: LiveSmokeSession): Promise<void> 
 
   await diagnostics.runAction("confirm Settings Test row is hidden when test mode is off", async () => {
     await expect(page.getByTestId("settings-row-test")).toHaveCount(0);
+  });
+
+  await diagnostics.runAction("confirm Library rows are not in Settings", async () => {
+    for (const rowTestId of ["settings-row-decks", "settings-row-tags", "settings-row-import", "settings-row-export"]) {
+      await expect(page.getByTestId(rowTestId)).toHaveCount(0);
+    }
   });
 }
 

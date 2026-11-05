@@ -146,7 +146,6 @@ const slCatalog: TranslationCatalog = {
     ok: "V redu",
     off: "Izklopljeno",
     on: "Vklopljeno",
-    open: "Odpri",
     perAction: "Za vsako dejanje",
     refresh: "Osveži",
     retry: "Poskusi znova",
@@ -227,6 +226,7 @@ const slCatalog: TranslationCatalog = {
     aiChat: "Klepet z UI",
     progress: "Napredek",
     cards: "Kartice",
+    library: "Knjižnica",
     settings: "Nastavitve",
   },
   shell: {
@@ -776,24 +776,39 @@ const slCatalog: TranslationCatalog = {
       resetAll: "Ponastavi stanje vseh pozivov",
     },
   },
+  libraryScreen: {
+    title: "Knjižnica",
+    groups: {
+      importExport: "Uvoz in izvoz",
+    },
+    cards: {
+      description: "Vse kartice v tem delovnem prostoru.",
+    },
+    tags: {
+      description: "Vse oznake, uporabljene na vsaj eni kartici.",
+    },
+    decks: {
+      description: "Shranjeni filtri kartic za osredotočeno ponavljanje.",
+    },
+    import: {
+      description: "Dodajte kartice iz datoteke.",
+    },
+    export: {
+      description: "Prenesite vse svoje kartice kot datoteko.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kompleti",
-      description: "Ustvarjajte, urejajte in pregledujte obsege učenja za večkratno uporabo.",
     },
     tags: {
       title: "Oznake",
-      description: "Preglejte uporabo oznak in število kartic v celotnem delovnem prostoru.",
     },
     export: {
       title: "Izvoz",
-      description: "Prenesite aktivne kartice iz tega delovnega prostora kot prenosni paket flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Uvoz",
-      description: "Prilepite pojme in definicije ali uvozite paket Nibomo.",
-      value: "Besedilo ali ZIP",
     },
     resetProgress: {
       title: "Ponastavi napredek učenja",

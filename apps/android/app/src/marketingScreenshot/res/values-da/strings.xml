@@ -1,6 +1,6 @@
 <resources>
     <string name="top_level_review">Repetition</string>
-    <string name="top_level_cards">Kort</string>
+    <string name="top_level_library">Bibliotek</string>
     <string name="top_level_ai">AI</string>
     <string name="cards_title">Kort</string>
     <string name="cards_search_label">Søg efter kort</string>

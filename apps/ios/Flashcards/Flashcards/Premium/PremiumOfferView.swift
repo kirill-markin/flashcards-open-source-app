@@ -71,7 +71,7 @@ struct PremiumOfferView: View {
                             .onAppear {
                                 self.presenter.recordShown(
                                     requestId: self.request.id,
-                                    screen: analyticsSurface(tab: self.store.currentVisibleTab),
+                                    screen: self.store.currentVisibleAnalyticsSurface,
                                     store: self.store
                                 )
                             }

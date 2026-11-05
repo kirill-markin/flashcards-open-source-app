@@ -134,7 +134,6 @@ const caCatalog: TranslationCatalog = {
     ok: "D'acord",
     off: "Desactivat",
     on: "Activat",
-    open: "Obre",
     perAction: "Per acció",
     refresh: "Actualitza",
     retry: "Torna-ho a provar",
@@ -215,6 +214,7 @@ const caCatalog: TranslationCatalog = {
     aiChat: "Xat d'IA",
     progress: "Progrés",
     cards: "Targetes",
+    library: "Biblioteca",
     settings: "Configuració",
   },
   shell: {
@@ -760,24 +760,39 @@ const caCatalog: TranslationCatalog = {
       resetAll: "Restableix l'estat de tots els avisos",
     },
   },
+  libraryScreen: {
+    title: "Biblioteca",
+    groups: {
+      importExport: "Importació i exportació",
+    },
+    cards: {
+      description: "Totes les targetes d'aquest espai de treball.",
+    },
+    tags: {
+      description: "Totes les etiquetes usades en almenys una targeta.",
+    },
+    decks: {
+      description: "Filtres de targetes desats per a un repàs centrat.",
+    },
+    import: {
+      description: "Afegeix targetes des d'un fitxer.",
+    },
+    export: {
+      description: "Descarrega totes les teves targetes en un fitxer.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Baralles",
-      description: "Crea, edita i repassa àmbits d'estudi reutilitzables.",
     },
     tags: {
       title: "Etiquetes",
-      description: "Consulta l'ús de les etiquetes i el recompte de targetes de tot l'espai de treball.",
     },
     export: {
       title: "Exporta",
-      description: "Descarrega les targetes actives d'aquest espai de treball com un paquet portàtil flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importa",
-      description: "Enganxa termes i definicions o importa un paquet de Nibomo.",
-      value: "Text o ZIP",
     },
     resetProgress: {
       title: "Restableix el progrés de l'estudi",

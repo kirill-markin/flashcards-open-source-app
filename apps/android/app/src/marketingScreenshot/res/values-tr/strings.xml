@@ -44,7 +44,7 @@
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 gün</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 yıl</string>
     <string name="progress_review_schedule_bucket_later">Daha sonra</string>
-    <string name="top_level_cards">Kartlar</string>
+    <string name="top_level_library">Kitaplık</string>
     <string name="cards_title">Kartlar</string>
     <string name="top_level_review">Tekrar</string>
     <string name="review_title">Tekrar</string>

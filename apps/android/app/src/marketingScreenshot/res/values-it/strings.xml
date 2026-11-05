@@ -36,7 +36,7 @@
     <string name="ai_terms_of_service">Termini di servizio</string>
     <string name="ai_support">Assistenza</string>
     <string name="ai_consent_workspace_disclosure">Le richieste IA dall’area di lavoro %1$s possono inviare istruzioni, file, immagini e audio dettato al servizio IA.</string>
-    <string name="top_level_cards">Carte</string>
+    <string name="top_level_library">Libreria</string>
     <string name="cards_title">Carte</string>
     <string name="top_level_review">Ripasso</string>
     <string name="review_title">Ripasso</string>

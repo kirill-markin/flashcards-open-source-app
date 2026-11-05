@@ -31,15 +31,12 @@ import com.flashcardsopensourceapp.feature.settings.settingsAiChatSuggestionsRow
 import com.flashcardsopensourceapp.feature.settings.settingsAppIconRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOwnOpenAiKeyRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
-import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendButtonTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
@@ -58,7 +55,6 @@ import com.flashcardsopensourceapp.feature.settings.settingsShareAppRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsShareSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsAnimationsRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsLocalSyncDiagnosticsRowTag
@@ -116,10 +112,6 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsProductAnalyticsRowTag,
             settingsLanguageRowTag,
             settingsAccessRowTag,
-            settingsDecksRowTag,
-            settingsTagsRowTag,
-            settingsImportRowTag,
-            settingsExportRowTag,
             settingsFeedbackRowTag,
             settingsSupportRowTag,
             settingsLegalRowTag,
@@ -220,11 +212,6 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsServerRowTag,
             expectedClick = "server",
-            clickedRows = clickedRows
-        )
-        assertRowClick(
-            rowTag = settingsImportRowTag,
-            expectedClick = "import",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -421,18 +408,6 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenAccess = {
                         clickedRows += "access"
-                    },
-                    onOpenDecks = {
-                        clickedRows += "decks"
-                    },
-                    onOpenTags = {
-                        clickedRows += "tags"
-                    },
-                    onOpenImport = {
-                        clickedRows += "import"
-                    },
-                    onOpenExport = {
-                        clickedRows += "export"
                     },
                     onOpenFeedback = {
                         clickedRows += "feedback"

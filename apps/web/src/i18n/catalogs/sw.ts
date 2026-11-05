@@ -134,7 +134,6 @@ const swCatalog: TranslationCatalog = {
     ok: "Sawa",
     off: "Imezimwa",
     on: "Imewashwa",
-    open: "Fungua",
     perAction: "Kwa kila kitendo",
     refresh: "Onyesha upya",
     retry: "Jaribu tena",
@@ -215,6 +214,7 @@ const swCatalog: TranslationCatalog = {
     aiChat: "Gumzo la AI",
     progress: "Maendeleo",
     cards: "Kadi",
+    library: "Maktaba",
     settings: "Mipangilio",
   },
   shell: {
@@ -760,24 +760,39 @@ const swCatalog: TranslationCatalog = {
       resetAll: "Weka upya hali ya vidokezo vyote",
     },
   },
+  libraryScreen: {
+    title: "Maktaba",
+    groups: {
+      importExport: "Kuingiza na kuhamisha",
+    },
+    cards: {
+      description: "Kadi zote katika nafasi hii ya kazi.",
+    },
+    tags: {
+      description: "Lebo zote zinazotumika kwenye angalau kadi moja.",
+    },
+    decks: {
+      description: "Vichujio vya kadi vilivyohifadhiwa kwa marudio yenye umakini.",
+    },
+    import: {
+      description: "Ongeza kadi kutoka kwenye faili.",
+    },
+    export: {
+      description: "Pakua kadi zako zote kama faili.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Mafungu",
-      description: "Unda, hariri na kagua upeo wa kujifunza unaoweza kutumika tena.",
     },
     tags: {
       title: "Lebo",
-      description: "Kagua matumizi ya lebo na hesabu za kadi katika nafasi nzima ya kazi.",
     },
     export: {
       title: "Hamisha",
-      description: "Pakua kadi zinazotumika kutoka nafasi hii ya kazi kama kifurushi cha flashcards.zip kinachohamishika.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Ingiza",
-      description: "Bandika istilahi na fasili au ingiza kifurushi cha Nibomo.",
-      value: "Maandishi au ZIP",
     },
     resetProgress: {
       title: "Weka upya maendeleo ya kujifunza",

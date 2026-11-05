@@ -52,7 +52,7 @@ struct DecksScreen: View {
                 } else {
                     ForEach(self.filteredDeckListEntries) { deckListEntry in
                         if let persistedDeckId = deckListEntry.persistedDeckId {
-                            NavigationLink(value: SettingsNavigationDestination.workspaceDeckDetail(deckListEntry.destination)) {
+                            NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
                             .rememberedListRow(id: deckListEntry.id)
@@ -68,7 +68,7 @@ struct DecksScreen: View {
                                 .tint(.red)
                             }
                         } else {
-                            NavigationLink(value: SettingsNavigationDestination.workspaceDeckDetail(deckListEntry.destination)) {
+                            NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
                             .rememberedListRow(id: deckListEntry.id)
@@ -80,13 +80,13 @@ struct DecksScreen: View {
         .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
         .listStyle(.insetGrouped)
         .rememberedListScroll(
-            topRowID: self.settingsScroll.topRowID(\.decksTopRowID, whileOnPath: { self.navigation.isWorkspaceDecksOnSettingsPath }),
+            topRowID: self.settingsScroll.topRowID(\.decksTopRowID, whileOnPath: { self.navigation.isDecksOnLibraryPath }),
             isContentReady: self.isLoading == false
         )
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(
-            tab: .settings,
+            tab: .library,
             role: .navigation,
             trailing: [MacToolbarGroup(identifier: "settings.decks.actions", actions: [
                 MacToolbarAction(
@@ -119,21 +119,22 @@ struct DecksScreen: View {
             Analytics.trackScreenViewed(.decks)
         }
         .onDisappear {
-            // This also fires when a deck detail is pushed on top, and naming Settings then would
-            // record a view the person never had and hide their next real one behind the dedupe. The
-            // tracker guard cannot settle that one, because it would depend on
-            // `DeckDetailScreen.onAppear` winning a race SwiftUI does not order — and every deck open
-            // would take that race. The settings path answers it from state instead: the push appends
-            // the deck detail and leaves `workspaceDecks` on the path, a tab switch away leaves it
-            // there too, and only the pop back to Settings has removed it. This screen is reachable
-            // no other way, so the path is the whole question. `DeckDetailScreen.onDisappear` reads
-            // the same value for the opposite decision — the list still on the path is what it lands
-            // on — so the two must stay separate rather than be merged into one guard.
-            guard self.navigation.isWorkspaceDecksOnSettingsPath == false else {
+            // This also fires when a deck detail is pushed on top, and naming Library then would
+            // record a view the person never had and hide their next real one behind the dedupe.
+            // The tracker guard cannot settle that one, because it would depend on
+            // `DeckDetailScreen.onAppear` winning a race SwiftUI does not order — and every deck
+            // open would take that race. The Library path answers it from state instead: the push
+            // appends the deck detail and leaves `decks` on the path, a tab switch away leaves it
+            // there too, and only the pop back to the Library hub has removed it. This screen is
+            // reachable no other way, so the path is the whole question.
+            // `DeckDetailScreen.onDisappear` reads the same value for the opposite decision — the
+            // list still on the path is what it lands on — so the two must stay separate rather
+            // than be merged into one guard.
+            guard self.navigation.isDecksOnLibraryPath == false else {
                 return
             }
 
-            Analytics.trackScreenViewedOnDismiss(of: .decks, restoring: .settings)
+            Analytics.trackScreenViewedOnDismiss(of: .decks, restoring: .library)
         }
         #if !targetEnvironment(macCatalyst)
         .toolbar {
@@ -200,8 +201,8 @@ struct DecksScreen: View {
             let createdDeck: Deck = try store.createDeck(input: makeDeckEditorInput(formState: deckFormState))
             self.editorErrorMessage = ""
             self.isEditorPresented = false
-            self.navigation.settingsPath.append(
-                SettingsNavigationDestination.workspaceDeckDetail(.deck(deckId: createdDeck.deckId))
+            self.navigation.libraryPath.append(
+                LibraryNavigationDestination.deckDetail(.deck(deckId: createdDeck.deckId))
             )
         } catch {
             self.store.presentTechnicalError(error)
@@ -494,24 +495,24 @@ struct DeckDetailScreen: View {
         .onDisappear {
             // Popping back usually lands on the decks list, which now has a surface of its own, but
             // not always: the long-press menu on the standard back button pops several levels at
-            // once, and jumping straight to Settings takes the list away with the detail. Naming the
-            // list then would record a view the person never had and park the tracker on it, so the
-            // Settings arrival is never reported and their genuine next arrival on the list is
-            // swallowed by the dedupe. The settings path is the same settled state the list's own
-            // guard reads, and it still holds `workspaceDecks` for as long as the list is in the
+            // once, and jumping straight to the Library hub takes the list away with the detail.
+            // Naming the list then would record a view the person never had and park the tracker on
+            // it, so the Library arrival is never reported and their genuine next arrival on the
+            // list is swallowed by the dedupe. The Library path is the same settled state the
+            // list's own guard reads, and it still holds `decks` for as long as the list is in the
             // stack; only a pop that removed the list has cleared it. The list uses that to return
-            // early on the push, this uses it to land on Settings — the same value, opposite
+            // early on the push, this uses it to land on the Library hub — the same value, opposite
             // decisions, so the two guards must not be merged. Conditional, because this also fires
-            // for a tab switch away from an open deck detail, where `selectTab` has already reported
-            // the destination and the tracker guard refuses.
+            // for a tab switch away from an open deck detail, where `selectTab` has already
+            // reported the destination and the tracker guard refuses.
             Analytics.trackScreenViewedOnDismiss(
                 of: .deckDetail,
-                restoring: self.navigation.isWorkspaceDecksOnSettingsPath ? .decks : .settings
+                restoring: self.navigation.isDecksOnLibraryPath ? .decks : .library
             )
         }
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(
-            tab: .settings,
+            tab: .library,
             role: .navigation,
             trailing: self.detailState?.allowsEditing == true ? [
                 MacToolbarGroup(identifier: "settings.deckDetail.actions", actions: [

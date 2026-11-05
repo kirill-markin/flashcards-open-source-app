@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.feature.cards.editor.CardEditorViewModel
+import com.flashcardsopensourceapp.feature.cards.library.LibraryViewModel
 import com.flashcardsopensourceapp.feature.cards.list.CardsViewModel
 
 fun createCardsViewModelFactory(
@@ -49,6 +50,16 @@ fun createCardEditorViewModelFactory(
                 editingCardId = editingCardId,
                 textProvider = cardsTextProvider(context = application)
             )
+        }
+    }
+}
+
+fun createLibraryViewModelFactory(
+    workspaceRepository: WorkspaceRepository
+): ViewModelProvider.Factory {
+    return viewModelFactory {
+        initializer {
+            LibraryViewModel(workspaceRepository = workspaceRepository)
         }
     }
 }

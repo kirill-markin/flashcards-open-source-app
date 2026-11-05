@@ -134,7 +134,6 @@ const zuCatalog: TranslationCatalog = {
     ok: "Kulungile",
     off: "Kuvaliwe",
     on: "Kuvuliwe",
-    open: "Vula",
     perAction: "Ngesenzo ngasinye",
     refresh: "Vuselela",
     retry: "Zama futhi",
@@ -215,6 +214,7 @@ const zuCatalog: TranslationCatalog = {
     aiChat: "Ingxoxo ye-AI",
     progress: "Inqubekelaphambili",
     cards: "Amakhadi",
+    library: "Umtapo wolwazi",
     settings: "Izilungiselelo",
   },
   shell: {
@@ -760,24 +760,39 @@ const zuCatalog: TranslationCatalog = {
       resetAll: "Setha kabusha isimo sazo zonke iziyalezo",
     },
   },
+  libraryScreen: {
+    title: "Umtapo wolwazi",
+    groups: {
+      importExport: "Ukungenisa nokukhipha",
+    },
+    cards: {
+      description: "Wonke amakhadi akule ndawo yokusebenza.",
+    },
+    tags: {
+      description: "Wonke amathegi asetshenziswe okungenani ekhadini elilodwa.",
+    },
+    decks: {
+      description: "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile.",
+    },
+    import: {
+      description: "Engeza amakhadi kusuka kufayela.",
+    },
+    export: {
+      description: "Dawuniloda wonke amakhadi akho njengefayela.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Izinqwaba",
-      description: "Dala, hlela, futhi ubukeze ububanzi bokufunda obungasetshenziswa kabusha.",
     },
     tags: {
       title: "Amathegi",
-      description: "Hlola ukusetshenziswa kwamathegi kuyo yonke indawo yokusebenza kanye nenani lamakhadi.",
     },
     export: {
       title: "Khipha",
-      description: "Dawuniloda amakhadi asebenzayo kule ndawo yokusebenza njengephakheji ephathekayo ethi flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Ngenisa",
-      description: "Namathisela amatemu nezincazelo noma ungenise iphakheji ye-Nibomo.",
-      value: "Umbhalo noma i-ZIP",
     },
     resetProgress: {
       title: "Setha kabusha inqubekelaphambili yokufunda",

@@ -134,7 +134,6 @@ const svCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Av",
     on: "På",
-    open: "Öppna",
     perAction: "Per åtgärd",
     refresh: "Uppdatera",
     retry: "Försök igen",
@@ -215,6 +214,7 @@ const svCatalog: TranslationCatalog = {
     aiChat: "AI-chatt",
     progress: "Framsteg",
     cards: "Kort",
+    library: "Bibliotek",
     settings: "Inställningar",
   },
   shell: {
@@ -760,24 +760,39 @@ const svCatalog: TranslationCatalog = {
       resetAll: "Återställ status för alla uppmaningar",
     },
   },
+  libraryScreen: {
+    title: "Bibliotek",
+    groups: {
+      importExport: "Import och export",
+    },
+    cards: {
+      description: "Alla kort i den här arbetsytan.",
+    },
+    tags: {
+      description: "Alla taggar som används på minst ett kort.",
+    },
+    decks: {
+      description: "Sparade kortfilter för fokuserad repetition.",
+    },
+    import: {
+      description: "Lägg till kort från en fil.",
+    },
+    export: {
+      description: "Ladda ner alla dina kort som en fil.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kortlekar",
-      description: "Skapa, redigera och gå igenom återanvändbara urval att plugga.",
     },
     tags: {
       title: "Taggar",
-      description: "Se hur taggar används i hela arbetsytan och hur många kort de har.",
     },
     export: {
       title: "Exportera",
-      description: "Ladda ner aktiva kort från arbetsytan som ett flyttbart flashcards.zip-paket.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importera",
-      description: "Klistra in termer och definitioner eller importera ett Nibomo-paket.",
-      value: "Text eller ZIP",
     },
     resetProgress: {
       title: "Återställ pluggframsteg",

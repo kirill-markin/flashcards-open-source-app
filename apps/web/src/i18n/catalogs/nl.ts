@@ -134,7 +134,6 @@ const nlCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Uit",
     on: "Aan",
-    open: "Openen",
     perAction: "Per actie",
     refresh: "Vernieuwen",
     retry: "Opnieuw proberen",
@@ -215,6 +214,7 @@ const nlCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Voortgang",
     cards: "Kaarten",
+    library: "Bibliotheek",
     settings: "Instellingen",
   },
   shell: {
@@ -760,24 +760,39 @@ const nlCatalog: TranslationCatalog = {
       resetAll: "Status van alle meldingen resetten",
     },
   },
+  libraryScreen: {
+    title: "Bibliotheek",
+    groups: {
+      importExport: "Importeren en exporteren",
+    },
+    cards: {
+      description: "Alle kaarten in deze werkruimte.",
+    },
+    tags: {
+      description: "Alle tags die op minstens één kaart worden gebruikt.",
+    },
+    decks: {
+      description: "Opgeslagen kaartfilters om gericht te herhalen.",
+    },
+    import: {
+      description: "Voeg kaarten toe uit een bestand.",
+    },
+    export: {
+      description: "Download al je kaarten als bestand.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Decks",
-      description: "Maak, bewerk en bekijk herbruikbare leerselecties.",
     },
     tags: {
       title: "Tags",
-      description: "Bekijk het taggebruik en het aantal kaarten in de hele werkruimte.",
     },
     export: {
       title: "Exporteren",
-      description: "Download de actieve kaarten uit deze werkruimte als een overdraagbaar flashcards.zip-pakket.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importeren",
-      description: "Plak termen en definities of importeer een Nibomo-pakket.",
-      value: "Tekst of ZIP",
     },
     resetProgress: {
       title: "Leervoortgang resetten",

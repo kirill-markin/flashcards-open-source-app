@@ -59,14 +59,13 @@ data class ReviewWidgetTapHandoffRequest(
     val request: ReviewWidgetTapRequest
 )
 
-enum class SettingsNavigationTarget {
-    WORKSPACE_DECKS,
-    WORKSPACE_TAGS
+enum class LibraryNavigationTarget {
+    DECKS
 }
 
-data class SettingsNavigationRequest(
+data class LibraryNavigationRequest(
     val requestId: Long,
-    val target: SettingsNavigationTarget
+    val target: LibraryNavigationTarget
 )
 
 class AppHandoffCoordinator {
@@ -77,7 +76,7 @@ class AppHandoffCoordinator {
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
     private val reviewWidgetCardState = MutableStateFlow<ReviewWidgetCardRequest?>(value = null)
     private val progressNavigationState = MutableStateFlow<ProgressNavigationRequest?>(value = null)
-    private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
+    private val libraryNavigationState = MutableStateFlow<LibraryNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
         return aiEntryPrefillState.asStateFlow()
@@ -103,8 +102,8 @@ class AppHandoffCoordinator {
         return progressNavigationState.asStateFlow()
     }
 
-    fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
-        return settingsNavigationState.asStateFlow()
+    fun observeLibraryNavigation(): StateFlow<LibraryNavigationRequest?> {
+        return libraryNavigationState.asStateFlow()
     }
 
     fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
@@ -206,18 +205,18 @@ class AppHandoffCoordinator {
         progressNavigationState.value = null
     }
 
-    fun requestSettingsNavigation(target: SettingsNavigationTarget) {
-        settingsNavigationState.value = SettingsNavigationRequest(
+    fun requestLibraryNavigation(target: LibraryNavigationTarget) {
+        libraryNavigationState.value = LibraryNavigationRequest(
             requestId = nextRequestId.incrementAndGet(),
             target = target
         )
     }
 
-    fun consumeSettingsNavigation(requestId: Long) {
-        if (settingsNavigationState.value?.requestId != requestId) {
+    fun consumeLibraryNavigation(requestId: Long) {
+        if (libraryNavigationState.value?.requestId != requestId) {
             return
         }
 
-        settingsNavigationState.value = null
+        libraryNavigationState.value = null
     }
 }

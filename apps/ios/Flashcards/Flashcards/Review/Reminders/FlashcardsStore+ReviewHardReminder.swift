@@ -51,7 +51,7 @@ extension FlashcardsStore {
     private func restoreSurfaceAfterReviewHardReminder() {
         Analytics.trackScreenViewedOnDismiss(
             of: .reviewHardReminder,
-            restoring: analyticsSurface(tab: self.currentVisibleTab)
+            restoring: self.currentVisibleAnalyticsSurface
         )
     }
 }

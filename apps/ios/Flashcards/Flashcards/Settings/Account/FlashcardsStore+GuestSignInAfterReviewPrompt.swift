@@ -62,7 +62,7 @@ extension FlashcardsStore {
         )
         Analytics.trackScreenViewedOnDismiss(
             of: .signInAfterReviewPrompt,
-            restoring: analyticsSurface(tab: self.currentVisibleTab)
+            restoring: self.currentVisibleAnalyticsSurface
         )
     }
 

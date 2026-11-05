@@ -140,7 +140,6 @@ const hrCatalog: TranslationCatalog = {
     ok: "U redu",
     off: "Isključeno",
     on: "Uključeno",
-    open: "Otvori",
     perAction: "Po radnji",
     refresh: "Osvježi",
     retry: "Pokušaj ponovno",
@@ -221,6 +220,7 @@ const hrCatalog: TranslationCatalog = {
     aiChat: "AI razgovor",
     progress: "Napredak",
     cards: "Kartice",
+    library: "Knjižnica",
     settings: "Postavke",
   },
   shell: {
@@ -768,24 +768,39 @@ const hrCatalog: TranslationCatalog = {
       resetAll: "Poništi stanje svih upita",
     },
   },
+  libraryScreen: {
+    title: "Knjižnica",
+    groups: {
+      importExport: "Uvoz i izvoz",
+    },
+    cards: {
+      description: "Sve kartice u ovom radnom prostoru.",
+    },
+    tags: {
+      description: "Sve oznake korištene na barem jednoj kartici.",
+    },
+    decks: {
+      description: "Spremljeni filtri kartica za usredotočeno ponavljanje.",
+    },
+    import: {
+      description: "Dodajte kartice iz datoteke.",
+    },
+    export: {
+      description: "Preuzmite sve svoje kartice kao datoteku.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Špilovi",
-      description: "Stvarajte, uređujte i pregledajte višekratne opsege učenja.",
     },
     tags: {
       title: "Oznake",
-      description: "Pregledajte korištenje oznaka i broj kartica u cijelom radnom prostoru.",
     },
     export: {
       title: "Izvoz",
-      description: "Preuzmite aktivne kartice iz ovog radnog prostora kao prenosivi paket flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Uvoz",
-      description: "Zalijepite pojmove i definicije ili uvezite Nibomo paket.",
-      value: "Tekst ili ZIP",
     },
     resetProgress: {
       title: "Poništi napredak učenja",

@@ -15,7 +15,7 @@ import java.util.Locale
 private val navigationStringIds: List<Int> = listOf(
     R.string.top_level_review,
     R.string.top_level_progress,
-    R.string.top_level_cards,
+    R.string.top_level_library,
     R.string.top_level_settings
 )
 

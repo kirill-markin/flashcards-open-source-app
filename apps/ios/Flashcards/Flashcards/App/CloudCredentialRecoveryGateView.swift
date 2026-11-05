@@ -110,7 +110,7 @@ struct CloudCredentialRecoveryGateView: View {
                 ofAnyOf: self.isCloudSignInPresented
                     ? [.credentialRecovery, .signin]
                     : [.credentialRecovery],
-                restoring: analyticsSurface(tab: self.store.currentVisibleTab)
+                restoring: self.store.currentVisibleAnalyticsSurface
             )
         }
         .cloudSignInSheet(

@@ -6,10 +6,54 @@ import UIKit
 #if targetEnvironment(macCatalyst)
 /// The Mac split view keeps one navigation state for its detail column and compares the paths
 /// of every tab's stack inside it; a typed array beside `NavigationPath` stacks traps SwiftUI
-/// with `AnyNavigationPath.Error.comparisonTypeMismatch`, so Settings uses `NavigationPath` there.
+/// with `AnyNavigationPath.Error.comparisonTypeMismatch`, so Settings and Library use `NavigationPath` there.
 typealias SettingsNavigationPath = NavigationPath
+typealias LibraryNavigationPath = NavigationPath
 #else
 typealias SettingsNavigationPath = [SettingsNavigationDestination]
+typealias LibraryNavigationPath = [LibraryNavigationDestination]
+#endif
+
+#if targetEnvironment(macCatalyst)
+/// A Library page as the Mac sidebar section it sits under and the pages pushed above it.
+struct LibraryLocation {
+    let section: LibrarySection
+    let pages: [LibraryNavigationDestination]
+}
+
+func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLocation {
+    switch destination {
+    case .cards:
+        return LibraryLocation(section: .cards, pages: [])
+    case .tags:
+        return LibraryLocation(section: .tags, pages: [])
+    case .decks:
+        return LibraryLocation(section: .decks, pages: [])
+    case .deckDetail(let deck):
+        return LibraryLocation(section: .decks, pages: [.deckDetail(deck)])
+    case .importData:
+        return LibraryLocation(section: .importData, pages: [])
+    case .exportData:
+        return LibraryLocation(section: .exportData, pages: [])
+    }
+}
+#else
+func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [LibraryNavigationDestination] {
+    switch destination {
+    case .cards:
+        return [.cards]
+    case .tags:
+        return [.tags]
+    case .decks:
+        return [.decks]
+    case .deckDetail(let deck):
+        return [.decks, .deckDetail(deck)]
+    case .importData:
+        return [.importData]
+    case .exportData:
+        return [.exportData]
+    }
+}
 #endif
 
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
@@ -56,16 +100,6 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.notifications]
     case .workspaceScheduler:
         return [.workspaceScheduler]
-    case .workspaceExport:
-        return [.workspaceExport]
-    case .workspaceImport:
-        return [.workspaceImport]
-    case .workspaceDecks:
-        return [.workspaceDecks]
-    case .workspaceDeckDetail(let destination):
-        return [.workspaceDecks, .workspaceDeckDetail(destination)]
-    case .workspaceTags:
-        return [.workspaceTags]
     case .accountStatus:
         return [.accountStatus]
     case .accountLegal:
@@ -96,6 +130,12 @@ final class AppNavigationModel {
     private(set) var cardSearchFocusRequestID: UUID? = nil
     #endif
     var settingsPath: SettingsNavigationPath
+    #if targetEnvironment(macCatalyst)
+    /// The Mac sidebar section at the bottom of the Library stack, below `libraryPath`; nil until
+    /// Library is first shown.
+    private(set) var librarySection: LibrarySection? = nil
+    #endif
+    var libraryPath: LibraryNavigationPath
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
@@ -118,6 +158,7 @@ final class AppNavigationModel {
         self.selectedTab = .review
         self.aiTabVisitID = UUID()
         self.settingsPath = SettingsNavigationPath()
+        self.libraryPath = LibraryNavigationPath()
         self.aiPath = NavigationPath()
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
@@ -127,6 +168,7 @@ final class AppNavigationModel {
     init(
         selectedTab: AppTab,
         settingsPath: [SettingsNavigationDestination],
+        libraryPath: [LibraryNavigationDestination],
         cardsPresentationRequest: CardsPresentationRequest?,
         aiChatPresentationRequest: AIChatPresentationRequest?,
         progressPresentationRequest: ProgressPresentationRequest?
@@ -134,6 +176,17 @@ final class AppNavigationModel {
         self.selectedTab = selectedTab
         self.aiTabVisitID = UUID()
         self.settingsPath = SettingsNavigationPath(settingsPath)
+        #if targetEnvironment(macCatalyst)
+        if let root = libraryPath.first {
+            self.librarySection = makeLibraryLocation(destination: root).section
+            self.libraryPath = LibraryNavigationPath(libraryPath.dropFirst())
+        } else {
+            self.librarySection = selectedTab == .library ? .cards : nil
+            self.libraryPath = LibraryNavigationPath()
+        }
+        #else
+        self.libraryPath = LibraryNavigationPath(libraryPath)
+        #endif
         self.aiPath = NavigationPath()
         self.cardsPresentationRequest = cardsPresentationRequest
         self.aiChatPresentationRequest = aiChatPresentationRequest
@@ -141,8 +194,14 @@ final class AppNavigationModel {
     }
 
     func selectTab(_ tab: AppTab) {
+        #if targetEnvironment(macCatalyst)
+        // The Mac has no hub.
+        if tab == .library, self.librarySection == nil {
+            self.showLibrarySection(.cards)
+        }
+        #endif
         if self.selectedTab != tab {
-            Analytics.trackScreenViewed(analyticsSurface(tab: tab))
+            Analytics.trackScreenViewed(self.visibleAnalyticsSurface(tab: tab))
         }
         if self.selectedTab != .ai, tab == .ai {
             self.aiTabVisitID = UUID()
@@ -165,7 +224,7 @@ final class AppNavigationModel {
 
     #if targetEnvironment(macCatalyst)
     func searchCards() {
-        self.selectTab(.cards)
+        self.openLibrary(destination: .cards)
         self.cardSearchFocusRequestID = UUID()
     }
 
@@ -175,7 +234,7 @@ final class AppNavigationModel {
     #endif
 
     func openCardCreation() {
-        self.selectTab(.cards)
+        self.openLibrary(destination: .cards)
         self.cardsPresentationRequest = .createCard
     }
 
@@ -239,36 +298,85 @@ final class AppNavigationModel {
         self.settingsPath = SettingsNavigationPath(makeSettingsNavigationPath(destination: destination))
     }
 
-    /// Whether the Decks list is still on the Settings stack.
-    var isWorkspaceDecksOnSettingsPath: Bool {
+    func openLibrary(destination: LibraryNavigationDestination) {
+        // The path goes first so the tab switch reports the page it lands on.
         #if targetEnvironment(macCatalyst)
-        self.isSettingsPathRoot(.workspaceDecks)
+        let location = makeLibraryLocation(destination: destination)
+        self.librarySection = location.section
+        self.libraryPath = LibraryNavigationPath(location.pages)
         #else
-        self.settingsPath.contains(.workspaceDecks)
+        self.libraryPath = LibraryNavigationPath(makeLibraryNavigationPath(destination: destination))
         #endif
-    }
-
-    /// Whether the Tags list is still on the Settings stack.
-    var isWorkspaceTagsOnSettingsPath: Bool {
-        #if targetEnvironment(macCatalyst)
-        self.isSettingsPathRoot(.workspaceTags)
-        #else
-        self.settingsPath.contains(.workspaceTags)
-        #endif
+        self.selectTab(.library)
     }
 
     #if targetEnvironment(macCatalyst)
-    /// `NavigationPath` is opaque, so this compares its first page; Decks and Tags are reachable
-    /// only as the first Settings screen.
-    private func isSettingsPathRoot(_ destination: SettingsNavigationDestination) -> Bool {
-        guard self.settingsPath.isEmpty == false else {
-            return false
+    /// A sidebar row: puts the section at the bottom of the Library stack. Reselecting the shown
+    /// section keeps its pages.
+    func showLibrarySection(_ section: LibrarySection) {
+        guard self.librarySection != section else {
+            return
         }
-        var root = self.settingsPath
-        root.removeLast(root.count - 1)
-        return root == NavigationPath([destination])
+        self.libraryPath = LibraryNavigationPath()
+        self.librarySection = section
+        // A tab switch reports its destination itself; a section switch inside Library does not.
+        if self.selectedTab == .library {
+            Analytics.trackScreenViewed(self.visibleLibraryAnalyticsSurface)
+        }
     }
     #endif
+
+    /// The surface a tab shows: Library names the page on top of its stack.
+    func visibleAnalyticsSurface(tab: AppTab) -> AnalyticsSurface {
+        tab == .library ? self.visibleLibraryAnalyticsSurface : analyticsSurface(tab: tab)
+    }
+
+    /// The hub, Import and Export report `library`.
+    var visibleLibraryAnalyticsSurface: AnalyticsSurface {
+        #if targetEnvironment(macCatalyst)
+        let depth = self.libraryPath.count + (self.librarySection == nil ? 0 : 1)
+        #else
+        let depth = self.libraryPath.count
+        #endif
+        if depth > 1 {
+            return .deckDetail
+        }
+        if self.isLibraryPathRoot(.cards) {
+            return .cards
+        }
+        if self.isLibraryPathRoot(.tags) {
+            return .tags
+        }
+        if self.isLibraryPathRoot(.decks) {
+            return .decks
+        }
+        return .library
+    }
+
+    /// Whether the Cards list is still on the Library stack.
+    var isCardsOnLibraryPath: Bool {
+        self.isLibraryPathRoot(.cards)
+    }
+
+    /// Whether the Decks list is still on the Library stack.
+    var isDecksOnLibraryPath: Bool {
+        self.isLibraryPathRoot(.decks)
+    }
+
+    /// Whether the Tags list is still on the Library stack.
+    var isTagsOnLibraryPath: Bool {
+        self.isLibraryPathRoot(.tags)
+    }
+
+    /// Every Library screen except a deck detail is reachable only as the first page of the stack,
+    /// which on Mac is the sidebar section.
+    private func isLibraryPathRoot(_ destination: LibraryNavigationDestination) -> Bool {
+        #if targetEnvironment(macCatalyst)
+        return self.librarySection?.destination == destination
+        #else
+        return self.libraryPath.first == destination
+        #endif
+    }
 
     func clearCardsPresentationRequest() {
         self.cardsPresentationRequest = nil

@@ -134,7 +134,6 @@ const thCatalog: TranslationCatalog = {
     ok: "ตกลง",
     off: "ปิด",
     on: "เปิด",
-    open: "เปิด",
     perAction: "ต่อการกระทำ",
     refresh: "รีเฟรช",
     retry: "ลองใหม่",
@@ -215,6 +214,7 @@ const thCatalog: TranslationCatalog = {
     aiChat: "แชท AI",
     progress: "ความคืบหน้า",
     cards: "การ์ด",
+    library: "คลัง",
     settings: "การตั้งค่า",
   },
   shell: {
@@ -760,24 +760,39 @@ const thCatalog: TranslationCatalog = {
       resetAll: "รีเซ็ตสถานะข้อความแจ้งทั้งหมด",
     },
   },
+  libraryScreen: {
+    title: "คลัง",
+    groups: {
+      importExport: "นำเข้าและส่งออก",
+    },
+    cards: {
+      description: "การ์ดทั้งหมดในพื้นที่ทำงานนี้",
+    },
+    tags: {
+      description: "แท็กทั้งหมดที่ใช้กับการ์ดอย่างน้อยหนึ่งใบ",
+    },
+    decks: {
+      description: "ตัวกรองการ์ดที่บันทึกไว้สำหรับการทบทวนแบบเจาะจง",
+    },
+    import: {
+      description: "เพิ่มการ์ดจากไฟล์",
+    },
+    export: {
+      description: "ดาวน์โหลดการ์ดทั้งหมดของคุณเป็นไฟล์",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "เด็ค",
-      description: "สร้าง แก้ไข และทบทวนขอบเขตการเรียนที่ใช้ซ้ำได้",
     },
     tags: {
       title: "แท็ก",
-      description: "ดูการใช้แท็กและจำนวนการ์ดทั้งพื้นที่ทำงาน",
     },
     export: {
       title: "ส่งออก",
-      description: "ดาวน์โหลดการ์ดที่ใช้งานอยู่ในพื้นที่ทำงานนี้เป็นแพ็กเกจ flashcards.zip",
-      value: "flashcards.zip",
     },
     import: {
       title: "นำเข้า",
-      description: "วางคำศัพท์และคำนิยาม หรือนำเข้าแพ็กเกจ Nibomo",
-      value: "ข้อความหรือ ZIP",
     },
     resetProgress: {
       title: "รีเซ็ตความคืบหน้าการเรียน",

@@ -44,7 +44,7 @@
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 dagar</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 år</string>
     <string name="progress_review_schedule_bucket_later">Senare</string>
-    <string name="top_level_cards">Kort</string>
+    <string name="top_level_library">Bibliotek</string>
     <string name="cards_title">Kort</string>
     <string name="top_level_review">Repetition</string>
     <string name="review_title">Repetition</string>

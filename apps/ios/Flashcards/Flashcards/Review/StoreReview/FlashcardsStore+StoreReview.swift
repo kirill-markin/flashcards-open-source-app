@@ -82,7 +82,7 @@ extension FlashcardsStore {
         )
         Analytics.track(
             .storeReviewRequested(reviewPromptConfigVersion: requestAttempt.reviewPromptConfigVersion),
-            screen: analyticsSurface(tab: self.currentVisibleTab)
+            screen: self.currentVisibleAnalyticsSurface
         )
 
         return true

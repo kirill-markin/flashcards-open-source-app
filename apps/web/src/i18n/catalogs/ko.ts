@@ -134,7 +134,6 @@ const koCatalog: TranslationCatalog = {
     ok: "확인",
     off: "끔",
     on: "켬",
-    open: "열기",
     perAction: "작업할 때마다",
     refresh: "새로 고침",
     retry: "다시 시도",
@@ -215,6 +214,7 @@ const koCatalog: TranslationCatalog = {
     aiChat: "AI 채팅",
     progress: "진행 상황",
     cards: "카드",
+    library: "보관함",
     settings: "설정",
   },
   shell: {
@@ -760,24 +760,39 @@ const koCatalog: TranslationCatalog = {
       resetAll: "모든 안내 상태 초기화",
     },
   },
+  libraryScreen: {
+    title: "보관함",
+    groups: {
+      importExport: "가져오기 및 내보내기",
+    },
+    cards: {
+      description: "이 워크스페이스의 모든 카드입니다.",
+    },
+    tags: {
+      description: "카드 한 장 이상에 사용된 모든 태그입니다.",
+    },
+    decks: {
+      description: "집중 복습을 위해 저장한 카드 필터입니다.",
+    },
+    import: {
+      description: "파일에서 카드를 추가합니다.",
+    },
+    export: {
+      description: "모든 카드를 파일로 내려받습니다.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "덱",
-      description: "다시 사용할 학습 범위를 만들고, 편집하고, 확인합니다.",
     },
     tags: {
       title: "태그",
-      description: "워크스페이스 전체의 태그 사용 현황과 카드 수를 확인합니다.",
     },
     export: {
       title: "내보내기",
-      description: "이 워크스페이스의 활성 카드를 flashcards.zip 패키지로 내려받습니다.",
-      value: "flashcards.zip",
     },
     import: {
       title: "가져오기",
-      description: "용어와 정의를 붙여넣거나 Nibomo 패키지를 가져옵니다.",
-      value: "텍스트 또는 ZIP",
     },
     resetProgress: {
       title: "학습 진행 상황 초기화",
