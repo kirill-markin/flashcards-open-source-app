@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.app.CreatorLinkText
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 
@@ -82,7 +83,7 @@ internal fun FeedbackPromptDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(text = stringResource(id = R.string.feedback_prompt_body))
+                CreatorLinkText(textWithCreatorName = R.string.feedback_prompt_body)
                 OutlinedTextField(
                     value = uiState.message,
                     onValueChange = onMessageChange,

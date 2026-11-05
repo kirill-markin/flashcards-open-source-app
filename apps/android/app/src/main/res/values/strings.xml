@@ -23,7 +23,7 @@
     <string name="guest_sign_in_after_review_prompt_sign_in">Sign in</string>
     <string name="guest_sign_in_after_review_prompt_later">Later</string>
     <string name="feedback_prompt_title">Have an idea for Nibomo?</string>
-    <string name="feedback_prompt_body">Share what would make the app better. The creator reads every message personally.</string>
+    <string name="feedback_prompt_body">Share what would make the app better. Nibomo’s creator, %1$s, reads every message personally.</string>
     <string name="feedback_prompt_message_label">Write your idea here</string>
     <string name="feedback_prompt_send">Send</string>
     <string name="feedback_prompt_cancel">Cancel</string>
