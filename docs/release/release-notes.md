@@ -7,7 +7,9 @@ following this procedure.
 Compare each platform's release target with its previous version actually
 released to users. Start with the commit range between that release tag and the
 target; inspect the relevant native implementation when a change's platform or
-user-visible effect is unclear.
+user-visible effect is unclear. An App Store version
+[replaced while in review](ios.md#replacing-a-version-still-in-review) never
+reached users, so its changes belong in the new notes.
 
 Prepare separate texts for each destination:
 

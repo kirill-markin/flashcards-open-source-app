@@ -13,7 +13,8 @@ continue at step 8. An already-published matching build counts complete under
 the shared reuse rules; record its identity and observed availability in step 9
 without reconstructing historical logs. Preserve an existing review submission
 and verify its identity and release setting at step 7 instead of uploading or
-resubmitting the same artifact. New artifacts follow all pre-submission gates under the [standing best-effort policy](README.md#standing-best-effort-release-policy), including its separate operator decision for unavailable testing.
+resubmitting the same artifact. An older version still in review is
+[replaced](#replacing-a-version-still-in-review). New artifacts follow all pre-submission gates under the [standing best-effort policy](README.md#standing-best-effort-release-policy), including its separate operator decision for unavailable testing.
 For a user-reserved final Submit, apply the [handoff and resume rules](#user-reserved-final-submit).
 
 1. Prepare production build values using [iOS Local Setup](../ios-local-setup.md).
@@ -50,7 +51,7 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    uploaded-build identity. Retries may retain an unchanged successful archive
    only under step 5 and the shared reuse rules.
 4. While it runs, create or verify the App Store version draft for the current
-   version. Fill and save What's New for every locale using the texts already
+   version, or reuse the [replaced version](#replacing-a-version-still-in-review). Fill and save What's New for every locale using the texts already
    in the chat. For localized listing text and iPhone/iPad screenshot uploads,
    follow [App Store metadata](../app-store-connect-metadata.md); its editable-draft
    requirements apply. Verify each saved field and required metadata; request
@@ -116,6 +117,21 @@ evidence rule. Public availability is a separate observed state.
 
 Build configuration: [iOS CI/CD](../ios-ci-cd.md). API diagnostics and result
 bundles: [Xcode Cloud data access](../xcode-cloud-data-access.md).
+
+## Replacing a Version Still in Review
+
+Do not wait on an older version still **Waiting for Review** or **In Review**:
+
+1. Cancel its submission (`PATCH /v1/reviewSubmissions/{id}` with
+   `canceled: true`, or **Remove from Review**); the release request authorizes
+   this. Record it in the [ledger](evidence.md#release-ledger).
+2. Reuse that version record (one open version per platform): set the new
+   version string and attach the new build.
+3. Each locale's What's New covers its saved unreleased notes plus the new
+   changes.
+
+Then submit normally. Approved versions are released, not replaced; the old
+GitHub tag and Release stay.
 
 ## User-Reserved Final Submit
 
