@@ -11,6 +11,7 @@ import {
 } from "./contract";
 import { PresignedObjectReader, PresignedReadOnlyFs, type PresignedFile } from "./presignedFs";
 import { sha256Hex, uploadToWriteSlots, type SlotFile } from "./slotUploads";
+import { ChatSandboxMediaBridgeClient } from "./mediaBridge/sandboxClient";
 import { ChatSandboxSqlBridgeClient } from "./sqlBridge/sandboxClient";
 
 const filesMountPoint = "/files";
@@ -245,13 +246,14 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     ],
   });
   const sqlBridge = new ChatSandboxSqlBridgeClient(request.sqlBridge, request.sessionId);
+  const mediaBridge = new ChatSandboxMediaBridgeClient(request.mediaBridge, request.sessionId);
   const bash = new Bash({
     fs,
     cwd: workMountPoint,
     env: { HOME: workMountPoint },
     python: true,
     javascript: { invokeTool: async (path, argsJson, signal) => sqlBridge.invokeTool(path, argsJson, signal) },
-    customCommands: [...sqlBridge.createCommands(decodeBytesToUtf8)],
+    customCommands: [...sqlBridge.createCommands(decodeBytesToUtf8), ...mediaBridge.createCommands()],
     executionLimitProfile: "hardened",
     executionLimits,
   });
@@ -276,5 +278,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     deletedPaths: refusal === null ? [...changes.deletedPaths] : [],
     sqlCallCount: sqlBridge.callCount,
     sqlExecuteCallCount: sqlBridge.executeCallCount,
+    mediaGetCount: mediaBridge.getCount,
+    mediaPutCount: mediaBridge.putCount,
   };
 }

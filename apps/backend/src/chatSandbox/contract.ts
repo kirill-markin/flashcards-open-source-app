@@ -26,6 +26,16 @@ export const maximumWholeEncryptedPdfPages = 10;
 export const maximumDerivativeErrorChars = 300;
 /** The SQL calls one `bash` command's code may make through the SQL bridge, counted by the sandbox host. */
 export const maximumSqlCallsPerCommand = 500;
+/** The images one `bash` command's code may upload through the media bridge; each one runs a full image ingestion. */
+export const maximumMediaPutsPerCommand = 20;
+/**
+ * The images one `bash` command's code may copy into /work through the media bridge; each copy is a
+ * changed /work file, so this stays well below the command's write slots (`writeSlotCount` in
+ * `chat/openai/tools/bashTool.ts`) to leave room for its results.
+ */
+export const maximumMediaGetsPerCommand = 40;
+/** The largest image `fc-media-get` copies, so a few copies held in memory cannot exhaust the sandbox. */
+export const maximumMediaGetBytes = 16_000_000;
 /** The `errorType` of a call that downloaded an object whose size is not the one its row records. */
 export const chatSandboxSizeMismatchErrorType = "PresignedObjectSizeMismatchError";
 /** The `errorType` of a call whose pre-signed download or upload failed once its retries ran out. */
@@ -99,6 +109,15 @@ const chatSandboxSqlBridgeSchema = z.object({
   authorization: z.string().min(1),
 }).strict();
 
+/**
+ * Where `fc-media-get` and `fc-media-put` reach the managed images of the open workspace: the media
+ * route on the backend API, with the same capability as the SQL bridge.
+ */
+const chatSandboxMediaBridgeSchema = z.object({
+  url: z.string().url(),
+  authorization: z.string().min(1),
+}).strict();
+
 export const chatSandboxBashRequestSchema = z.object({
   operation: z.literal("bash"),
   sessionId: z.string().uuid(),
@@ -106,6 +125,7 @@ export const chatSandboxBashRequestSchema = z.object({
   files: z.array(chatSandboxFileSchema),
   writeSlots: z.array(chatSandboxWriteSlotSchema),
   sqlBridge: chatSandboxSqlBridgeSchema,
+  mediaBridge: chatSandboxMediaBridgeSchema,
 }).strict();
 
 /** Derives text, CSV or sqlite files from one attachment; the write slots fit its kind. */
@@ -132,7 +152,8 @@ export const chatSandboxRequestSchema = z.discriminatedUnion("operation", [
 
 /**
  * `stdout` and `stderr` are cut by `cutToHeadAndTail`; the byte counts are those of the whole streams.
- * `sqlCallCount` counts the SQL calls the command's code sent, `sqlExecuteCallCount` the writes among them.
+ * `sqlCallCount` counts the SQL calls the command's code sent, `sqlExecuteCallCount` the writes among them;
+ * `mediaGetCount` and `mediaPutCount` count the media bridge calls it sent.
  */
 export const chatSandboxBashResponseSchema = z.object({
   stdout: z.string().max(maximumTransportedStreamChars),
@@ -150,6 +171,8 @@ export const chatSandboxBashResponseSchema = z.object({
   deletedPaths: z.array(workPathSchema),
   sqlCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand),
   sqlExecuteCallCount: z.number().int().nonnegative().max(maximumSqlCallsPerCommand),
+  mediaGetCount: z.number().int().nonnegative().max(maximumMediaGetsPerCommand),
+  mediaPutCount: z.number().int().nonnegative().max(maximumMediaPutsPerCommand),
 }).strict();
 
 /**
@@ -181,6 +204,7 @@ export const chatSandboxPdfPageResponseSchema = z.discriminatedUnion("outcome", 
 
 export type ChatSandboxWriteSlot = z.infer<typeof chatSandboxWriteSlotSchema>;
 export type ChatSandboxSqlBridge = z.infer<typeof chatSandboxSqlBridgeSchema>;
+export type ChatSandboxMediaBridge = z.infer<typeof chatSandboxMediaBridgeSchema>;
 export type ChatSandboxRequest = z.infer<typeof chatSandboxRequestSchema>;
 export type ChatSandboxBashRequest = z.infer<typeof chatSandboxBashRequestSchema>;
 export type ChatSandboxBashResponse = z.infer<typeof chatSandboxBashResponseSchema>;

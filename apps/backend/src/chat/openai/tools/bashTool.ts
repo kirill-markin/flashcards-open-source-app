@@ -20,7 +20,7 @@ import {
   type ChatSandboxBashRequest,
   type ChatSandboxBashResponse,
 } from "../../../chatSandbox/contract";
-import { createChatSandboxSqlBridge } from "../../../chatSandbox/sqlBridge/capability";
+import { createChatSandboxBridges } from "../../../chatSandbox/sqlBridge/capability";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
 import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
 import { toJsonbSafeText } from "../../../shared/jsonbSafeText";
@@ -108,7 +108,7 @@ function readSavedWorkFiles(
 
 /**
  * Lists the session's files and runs the command in the sandbox. Every attempt is signed anew: one GET
- * URL per session file, fresh PUT slots and a fresh SQL bridge capability. The slots of an attempt whose
+ * URL per session file, fresh PUT slots and a fresh bridge capability. The slots of an attempt whose
  * answer is lost are logged as possibly orphaned, because the sandbox may still fill them. The model
  * never sees a URL or the capability.
  */
@@ -132,7 +132,7 @@ async function invokeSandbox(command: string, context: OpenAIToolContext): Promi
         getUrl: await createChatFileDownloadUrl(file.s3Key),
       }))),
       writeSlots: await signChatFileWriteSlots(attemptSlots),
-      sqlBridge: await createChatSandboxSqlBridge({
+      ...await createChatSandboxBridges({
         runId: context.runId,
         sessionId: context.sessionId,
         userId: context.userId,
@@ -281,6 +281,8 @@ function logSandboxCommand(context: OpenAIToolContext, log: SandboxCommandLog): 
       filesDeleted: log.filesDeleted,
       sqlCallCount: response?.sqlCallCount ?? null,
       sqlExecuteCallCount: response?.sqlExecuteCallCount ?? null,
+      mediaGetCount: response?.mediaGetCount ?? null,
+      mediaPutCount: response?.mediaPutCount ?? null,
       sandboxRequestId: log.invocation?.sandboxRequestId ?? null,
       errorClass: log.errorClass,
     },
@@ -386,7 +388,10 @@ export async function executeBashToolCall(
   return createBashToolResult(
     rendered.output,
     true,
-    savedFiles.length > 0 || invocation.response.deletedPaths.length > 0 || sentSqlWrites,
+    savedFiles.length > 0
+      || invocation.response.deletedPaths.length > 0
+      || sentSqlWrites
+      || invocation.response.mediaPutCount > 0,
     sentSqlWrites,
     null,
   );

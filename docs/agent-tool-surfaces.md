@@ -56,7 +56,8 @@ surface has them:
   and [`viewFileToolContract.ts`](../apps/backend/src/chat/openai/tools/viewFileToolContract.ts)
   say why they stay chat-only. Code a `bash` command runs reaches the SQL tools
   through the sandbox's [SQL bridge](../apps/backend/src/chatSandbox/sqlBridge/)
-  (`executeChatSandboxSqlCall` in `tools.ts`).
+  (`executeChatSandboxSqlCall` in `tools.ts`), and copies or uploads managed images
+  through its [media bridge](../apps/backend/src/chatSandbox/mediaBridge/).
 - `add_generated_image_to_card`: appended by `buildOpenAIChatTools` in `tools.ts`
   for the runs `isGeneratedImageEligibleForWorker`
   ([`chat/worker/index.ts`](../apps/backend/src/chat/worker/index.ts)) admits.

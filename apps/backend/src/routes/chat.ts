@@ -16,7 +16,8 @@ import {
   createPostChatStopHandler,
   type ChatRoutesOptions,
 } from "../chat/http";
-import { chatSandboxSqlRoutePath } from "../chatSandbox/sqlBridge/capability";
+import { handleChatSandboxMediaGetRequest, handleChatSandboxMediaPutRequest } from "../chatSandbox/mediaBridge/route";
+import { chatSandboxMediaRoutePath, chatSandboxSqlRoutePath } from "../chatSandbox/sqlBridge/capability";
 import { handleChatSandboxSqlRequest } from "../chatSandbox/sqlBridge/route";
 
 export type {
@@ -32,7 +33,7 @@ export {
 
 /**
  * Mounts the backend-owned `/chat` routes for history, start, new-session, stop, and chat-list operations,
- * and the chat sandbox's SQL bridge.
+ * and the chat sandbox's SQL and media bridges.
  */
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -47,6 +48,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   app.post("/chat/sessions/:sessionId/rename", createPostChatSessionRenameHandler(dependencies));
   app.post("/chat/sessions/:sessionId/archive", createPostChatSessionArchiveHandler(dependencies));
   app.post(chatSandboxSqlRoutePath, handleChatSandboxSqlRequest);
+  app.get(`${chatSandboxMediaRoutePath}/:mediaAssetId`, handleChatSandboxMediaGetRequest);
+  app.post(chatSandboxMediaRoutePath, handleChatSandboxMediaPutRequest);
 
   return app;
 }
