@@ -8,7 +8,7 @@ import { MathText } from "../../components/MathText";
 import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
 import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
-import { ChatWorkBlock, findLastWorkPartIndex, isWorkBlockAutoOpen } from "./ChatWorkBlock";
+import { ChatWorkBlock, findLastWorkPartIndex, hasAnswerText, isWorkBlockAutoOpen } from "./ChatWorkBlock";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
@@ -345,6 +345,7 @@ export function renderStoredMessageContent(
 ): ReactElement {
   const contentLength = message.content.length;
   const lastWorkPartIndex = message.role === "assistant" ? findLastWorkPartIndex(message.content) : -1;
+  const answerParts = message.content.slice(lastWorkPartIndex + 1);
   const elements = lastWorkPartIndex < 0
     ? renderContentPartRange(message, 0, contentLength, t, onTechnicalError, canStartAction, renderContext)
     : [
@@ -353,12 +354,8 @@ export function renderStoredMessageContent(
         timestamp={message.timestamp}
         completedAt={message.completedAt}
         isRunActive={isRunActive}
-        isAutoOpen={isWorkBlockAutoOpen(
-          message.content.slice(lastWorkPartIndex + 1),
-          isRunActive,
-          message.isStopped,
-          message.isError,
-        )}
+        isAutoOpen={isWorkBlockAutoOpen(answerParts, isRunActive, message.isStopped, message.isError)}
+        showsClosingDivider={isRunActive === false || hasAnswerText(answerParts)}
       >
         {renderContentPartRange(message, 0, lastWorkPartIndex + 1, t, onTechnicalError, canStartAction, renderContext)}
       </ChatWorkBlock>,
