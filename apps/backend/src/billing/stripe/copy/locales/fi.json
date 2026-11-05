@@ -10,8 +10,6 @@
   "offer.accentBenefit": "Mukauta korostusväriä, kertausanimaatioita ja tekoälykeskustelun ehdotuksia kohdassa Asetukset > Tyyli.",
   "offer.price": "{price} kuukaudessa",
   "offer.trial": "7 päivää ilmaiseksi. Sen jälkeen {price} kuukaudessa.",
-  "offer.startTrial": "Aloita ilmainen kokeilujakso",
-  "offer.subscribe": "Tilaa",
   "offer.renewalDisclosure": "Tilauksesi uusiutuu automaattisesti, kunnes peruutat sen. Voit hallita tai peruuttaa tilauksen tilausasetuksissa.",
   "offer.guestExplanation": "Lisää tilillesi sähköpostiosoite ennen tilaamista, jotta voit palauttaa käyttöoikeutesi toisella laitteella.",
   "offer.addEmail": "Lisää sähköpostiosoite",

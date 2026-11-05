@@ -1028,13 +1028,13 @@
 "premium.offer.freeDescription" = "为尚未就业的学生打造，向所有人开放。你的书包又轻了一点。";
 "premium.offer.freeBenefits" = "核心复习、离线学习和同步";
 "premium.offer.monthlyAI" = "每月 %@ 条 AI 聊天消息";
-"premium.offer.supportsCreator" = "支持应用的创作者";
+"premium.offer.supportsCreator" = "资助应用的创作者";
 "premium.offer.accentColor" = "任意强调色";
 "premium.offer.reviewAnimations" = "复习动画可开可关";
 "premium.offer.appIcon" = "自定义应用图标";
 "premium.offer.startSevenDayTrial" = "开始 7 天免费试用";
 "premium.offer.subscribeWithPrice" = "订阅 — %@";
-"premium.offer.noCreatorSupport" = "不支持应用的创作者";
+"premium.offer.noCreatorSupport" = "不资助应用的创作者";
 "premium.offer.limitedAI" = "AI 聊天受限";
 "premium.offer.defaultStylesOnly" = "仅限默认样式";
 "premium.offer.notNow" = "暂不";

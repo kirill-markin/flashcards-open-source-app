@@ -10,8 +10,6 @@
   "offer.accentBenefit": "在“设置 > 样式”中自定义强调色、复习动画和 AI 聊天建议。",
   "offer.price": "每月 {price}",
   "offer.trial": "免费试用 7 天，之后每月 {price}。",
-  "offer.startTrial": "开始免费试用",
-  "offer.subscribe": "订阅",
   "offer.renewalDisclosure": "订阅会自动续订，直至你取消。你可以在订阅设置中管理或取消订阅。",
   "offer.guestExplanation": "订阅前，请为账户添加电子邮箱，以便在其他设备上恢复访问权限。",
   "offer.addEmail": "添加电子邮箱",
