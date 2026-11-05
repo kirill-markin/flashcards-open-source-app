@@ -164,6 +164,44 @@ func loadReviewDueBadgeSnapshotInBackground(
     }.value
 }
 
+#if !targetEnvironment(macCatalyst)
+struct WidgetSnapshotDatabaseRead: Sendable {
+    let upcomingDueAt: [Date]
+    let currentCard: CurrentReviewNotificationCard?
+}
+
+func loadWidgetSnapshotDatabaseReadInBackground(
+    databaseURL: URL,
+    workspaceId: String,
+    reviewFilter: ReviewFilter,
+    upcomingDueLimit: Int,
+    now: Date
+) async throws -> WidgetSnapshotDatabaseRead {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
+            let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+                workspaceId: workspaceId,
+                reviewFilter: reviewFilter
+            )
+            return WidgetSnapshotDatabaseRead(
+                upcomingDueAt: try database.loadReviewUpcomingDueDates(
+                    workspaceId: workspaceId,
+                    reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+                    now: now,
+                    limit: upcomingDueLimit
+                ),
+                currentCard: try database.loadCurrentReviewNotificationCard(
+                    workspaceId: workspaceId,
+                    reviewFilter: reviewFilter,
+                    now: now
+                )
+            )
+        }
+    }.value
+}
+#endif
+
 func defaultReviewQueueChunkLoader(
     databaseURL: URL,
     workspaceId: String,

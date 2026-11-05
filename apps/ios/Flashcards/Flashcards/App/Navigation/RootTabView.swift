@@ -16,6 +16,17 @@ private struct ReviewDueBadgeTaskID: Hashable {
     let isSceneActive: Bool
 }
 
+#if !targetEnvironment(macCatalyst)
+private struct WidgetSnapshotTaskID: Hashable {
+    let workspaceId: String?
+    let reviewFilter: ReviewFilter
+    let dueCount: Int
+    let presentedReviewCardId: String?
+    let progressBadgeState: ReviewProgressBadgeState
+    let scenePhase: ScenePhase
+}
+#endif
+
 struct RootTabView: View {
     @Environment(\.requestReview) private var requestReview
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -72,6 +83,19 @@ struct RootTabView: View {
             isSceneActive: self.scenePhase == .active
         )
     }
+
+    #if !targetEnvironment(macCatalyst)
+    private var widgetSnapshotTaskID: WidgetSnapshotTaskID {
+        WidgetSnapshotTaskID(
+            workspaceId: store.workspace?.workspaceId,
+            reviewFilter: store.selectedReviewFilter,
+            dueCount: store.reviewDueBadgeCount,
+            presentedReviewCardId: store.presentedReviewCard?.cardId,
+            progressBadgeState: store.reviewProgressBadgeState,
+            scenePhase: self.scenePhase
+        )
+    }
+    #endif
 
     private var reviewDueBadgeLabel: Text? {
         makeReviewDueBadgeLabel(dueCount: store.reviewDueBadgeCount).map { label in
@@ -677,6 +701,20 @@ struct RootTabView: View {
         .task(id: self.reviewDueBadgeTaskID) {
             await self.store.runReviewDueBadgeUpdates()
         }
+        #if !targetEnvironment(macCatalyst)
+        .task(id: self.widgetSnapshotTaskID) {
+            // Leaving the foreground writes at once; while active the widget is hidden, so it trails
+            // the last rating like other non-visible screens instead of re-reading after every rating.
+            if self.scenePhase == .active {
+                do {
+                    try await Task.sleep(for: progressDeferredRefreshDelay)
+                } catch {
+                    return
+                }
+            }
+            await self.store.refreshWidgetSnapshot()
+        }
+        #endif
         .overlay {
             ZStack {
                 GlobalTransientBannerHost()

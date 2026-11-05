@@ -31,6 +31,7 @@ enum IOSObservationFeature: String, Sendable {
     case subscription = "subscription"
     case reviewReactions = "review_reactions"
     case macToolbar = "mac_toolbar"
+    case widget = "widget"
 }
 
 struct IOSObservationScope: Sendable, Hashable {
