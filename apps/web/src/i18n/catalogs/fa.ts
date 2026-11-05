@@ -31,7 +31,7 @@ const faCatalog: TranslationCatalog = {
     limitedAi: "گفتگوی محدود با هوش مصنوعی",
     defaultStyles: "فقط سبک‌های پیش‌فرض",
     noOtherPremiumFeatures: "بدون سایر ویژگی‌های Premium",
-    dontPayCreator: "به سازندهٔ برنامه پول نده",
+    dontPayCreator: "به سازندهٔ برنامه پول ندهید",
     creatorSupport: "اشتراک شما به سازندهٔ Nibomo، {{creator}}، کمک می‌کند هزینهٔ سرورها را بپردازد و با قهوه و پیتزا به‌روزرسانی بعدی را آماده کند.",
     monthlyPrice: "{{price}} / ماه",
     supportsCreator: "از سازندهٔ برنامه حمایت می‌کند",
