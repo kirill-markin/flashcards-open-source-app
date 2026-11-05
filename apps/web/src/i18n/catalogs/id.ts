@@ -775,10 +775,10 @@ const idCatalog: TranslationCatalog = {
       description: "Filter kartu tersimpan untuk tinjauan yang terfokus.",
     },
     import: {
-      description: "Tambahkan kartu dari file.",
+      description: "Tambahkan kartu dari berkas.",
     },
     export: {
-      description: "Unduh semua kartu Anda sebagai file.",
+      description: "Unduh semua kartu Anda sebagai berkas.",
     },
   },
   settingsWorkspace: {
