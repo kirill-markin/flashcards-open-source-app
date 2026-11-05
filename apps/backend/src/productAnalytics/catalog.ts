@@ -215,6 +215,7 @@ const productAnalyticsPurchaseErrorCodePattern = /^(storekit|play|stripe|app|nse
 const productAnalyticsPaywallEntryPoints = [
   "subscription_settings",
   "ai_limit",
+  "theme",
   "accent_color",
   "review_animations",
   "ai_chat_suggestions",

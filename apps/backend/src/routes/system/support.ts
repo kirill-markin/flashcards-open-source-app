@@ -7,7 +7,7 @@ import { productAnalyticsUiLocaleSchema } from "../../productAnalytics/validatio
 import { expectBoolean } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 import type { AuthTransport } from "../../auth";
-import type { AnalyticsConsentChoice } from "../../auth/ensureUser";
+import type { AccountTheme, AnalyticsConsentChoice } from "../../auth/ensureUser";
 import type {
   AccountPreferencesUpdate,
   AnalyticsPreferenceWriteOrigin,
@@ -95,6 +95,7 @@ export function assertFriendInvitationPublicPreviewTransport(request: Request): 
 
 const accountPreferenceFieldNames: ReadonlyArray<string> = [
   "accentColor",
+  "theme",
   "reviewReactionAnimationsEnabled",
   "firstReviewOnboardingCompleted",
   "analyticsConsent",
@@ -143,6 +144,14 @@ function expectAccentColor(value: unknown): string {
   return value.toUpperCase();
 }
 
+function expectTheme(value: unknown): AccountTheme {
+  if (value === "dark" || value === "light") {
+    return value;
+  }
+
+  throw new HttpError(400, 'theme must be "dark" or "light"');
+}
+
 /** The interface language a client displays, in the same shape as the analytics `uiLocale`. */
 function expectLocale(value: unknown): string {
   const parsed = productAnalyticsUiLocaleSchema.safeParse(value);
@@ -167,6 +176,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
 
   const update: AccountPreferencesUpdate = {
     accentColor: "accentColor" in body ? expectAccentColor(body.accentColor) : null,
+    theme: "theme" in body ? expectTheme(body.theme) : null,
     reviewReactionAnimationsEnabled: "reviewReactionAnimationsEnabled" in body
       ? expectBoolean(body.reviewReactionAnimationsEnabled, "reviewReactionAnimationsEnabled")
       : null,
@@ -198,6 +208,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
 
   if (
     update.accentColor === null
+    && update.theme === null
     && update.reviewReactionAnimationsEnabled === null
     && update.firstReviewOnboardingCompleted === null
     && update.analyticsConsent === null

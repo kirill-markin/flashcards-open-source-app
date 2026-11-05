@@ -119,8 +119,8 @@ supporting the creator; the Free plan marks what it lacks with red crosses, and 
 
 ## Style settings
 
-The Style section of Settings holds the custom styles: Accent color, Review Animations, AI Chat
-Suggestions, and, on iOS and Android, App icon. Premium and lifetime (effective rank at least 20)
+The Style section of Settings holds the custom styles: Theme, Accent color, Review Animations, AI
+Chat Suggestions, and, on iOS and Android, App icon. Premium and lifetime (effective rank at least 20)
 can change them. Free users see each setting's default and a premium note, and a change opens the
 shared Premium offer on every client.
 
@@ -129,17 +129,27 @@ confirmed downgrade displays the default while retaining the selection; resubscr
 While a person cannot customize, choosing the default writes nothing, so the retained selection survives.
 Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
 Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
-selection. Accent color and Review Animations are account-wide; AI Chat Suggestions and App icon are
-stored per device. The launcher icon follows the displayed App icon on
+selection. Theme, Accent color and Review Animations are account-wide; AI Chat Suggestions and App
+icon are stored per device. The launcher icon follows the displayed App icon on
 [iOS](../apps/ios/Flashcards/Flashcards/Store/FlashcardsStore+AppIcon.swift) and
 [Android](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/appicon/LauncherAppIcon.kt).
+
+### Theme
+
+Theme offers Dark and Light. Dark is the default, including when the operating system is in light
+mode: there is no System option and the OS appearance is never followed. Light is for Premium and
+lifetime like the other styles. The launch screen stays dark for everyone. An upgraded guest's theme
+lands only on an account still on Dark ([guest merge](../apps/backend/src/guestAuth/store/identity.ts)).
 
 ### Accent color
 
 Accent color offers Default `#FF6719`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#F472B6`, Teal
-`#2DD4BF`, Gold `#EAB308`, or an arbitrary opaque RGB color with explicit HEX entry. The exact chosen
-RGB is used without contrast correction; alpha is unsupported. Default remains available to everyone.
-Card themes are outside this feature.
+`#2DD4BF`, Gold `#EAB308`, or an arbitrary opaque RGB color with explicit HEX entry. Dark displays the
+exact chosen RGB. Light displays it darkened in the same hue until its contrast against white
+`#FFFFFF` is at least 3:1 (WCAG relative luminance); a color already at 3:1 is unchanged, the saved
+color never changes, and the darkened accent is used everywhere the accent appears in Light,
+including filled controls and the Accent color screen. Alpha is unsupported. Default remains
+available to everyone. Card themes are outside this feature.
 
 The wire contract is [account preference parsing](../apps/backend/src/routes/system/support.ts) and
 [persistence](../apps/backend/src/routes/system/account/accountPreferences.ts);

@@ -122,7 +122,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   if (
     text.startsWith(
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,"
-      + " product_analytics_enabled, accent_color, first_review_onboarding_completed, created_at",
+      + " product_analytics_enabled, accent_color, theme, first_review_onboarding_completed, created_at",
     )
     && text.includes("FROM org.user_settings")
     && text.includes("FOR UPDATE")
@@ -135,6 +135,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       email: row.email,
       locale: "en",
       accent_color: row.accent_color,
+      theme: row.theme,
       review_reaction_animations_enabled: true,
       first_review_onboarding_completed: row.first_review_onboarding_completed,
       analytics_consent: row.analytics_consent,
@@ -208,6 +209,34 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     state.userSettings.set(userId, {
       ...current,
       accent_color: current.accent_color === "#FF6719" ? String(params[1]) : current.accent_color,
+    });
+    return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
+  }
+
+  if (text === "SELECT theme FROM org.user_settings WHERE user_id = $1") {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [{ theme: row.theme } as unknown as Row]);
+  }
+
+  if (
+    text === "UPDATE org.user_settings SET theme = CASE WHEN theme = 'dark'"
+      + " THEN $2::TEXT ELSE theme END WHERE user_id = $1 RETURNING user_id"
+  ) {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current === undefined) {
+      return createQueryResult<Row>([]);
+    }
+    const guestTheme = params[1];
+    if (guestTheme !== "dark" && guestTheme !== "light") {
+      throw new Error(`Guest auth test harness received an invalid theme: ${String(guestTheme)}`);
+    }
+    state.userSettings.set(userId, {
+      ...current,
+      theme: current.theme === "dark" ? guestTheme : current.theme,
     });
     return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }

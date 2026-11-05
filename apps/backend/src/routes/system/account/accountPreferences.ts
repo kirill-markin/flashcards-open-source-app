@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { queryWithUserScope } from "../../../database";
-import type { AccountPreferences, AnalyticsConsentChoice } from "../../../auth/ensureUser";
+import type { AccountPreferences, AccountTheme, AnalyticsConsentChoice } from "../../../auth/ensureUser";
 import type { AppEnv } from "../../../server/app";
 import type { loadRequestContextFromRequest } from "../../../server/requestContext";
 import { expectRecord, parseJsonBody } from "../../../server/requestParsing";
@@ -23,6 +23,7 @@ type AccountPreferencesRoutesOptions = Readonly<{
 
 type AccountPreferencesRow = Readonly<{
   accent_color: string;
+  theme: AccountTheme;
   review_reaction_animations_enabled: boolean;
   first_review_onboarding_completed: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
@@ -32,6 +33,7 @@ type AccountPreferencesRow = Readonly<{
 function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreferences {
   return {
     accentColor: row.accent_color,
+    theme: row.theme,
     reviewReactionAnimationsEnabled: row.review_reaction_animations_enabled,
     firstReviewOnboardingCompleted: row.first_review_onboarding_completed,
     analyticsConsent: row.analytics_consent,
@@ -94,10 +96,11 @@ export async function updateAccountPreferences(
       "ELSE $5::BOOLEAN END,",
       "accent_color = COALESCE($7::TEXT, accent_color),",
       "locale = COALESCE($8::TEXT, locale),",
-      "first_review_onboarding_completed = COALESCE($9::BOOLEAN, first_review_onboarding_completed)",
+      "first_review_onboarding_completed = COALESCE($9::BOOLEAN, first_review_onboarding_completed),",
+      "theme = COALESCE($10::TEXT, theme)",
       "WHERE user_id = $1",
       "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled, accent_color,",
-      "first_review_onboarding_completed",
+      "theme, first_review_onboarding_completed",
     ].join(" "),
     [
       userId,
@@ -109,6 +112,7 @@ export async function updateAccountPreferences(
       update.accentColor,
       update.locale,
       update.firstReviewOnboardingCompleted,
+      update.theme,
     ],
   );
 
@@ -219,6 +223,7 @@ export function registerAccountPreferencesRoutes(
       preferencesUpdate.reviewReactionAnimationsEnabled === null
       && preferencesUpdate.firstReviewOnboardingCompleted === null
       && preferencesUpdate.accentColor === null
+      && preferencesUpdate.theme === null
       && preferencesUpdate.locale === null
     ) {
       return context.json({
@@ -232,6 +237,7 @@ export function registerAccountPreferencesRoutes(
 
     const accountPreferences = await options.updateAccountPreferencesFn(requestContext.userId, {
       accentColor: preferencesUpdate.accentColor,
+      theme: preferencesUpdate.theme,
       reviewReactionAnimationsEnabled: preferencesUpdate.reviewReactionAnimationsEnabled,
       firstReviewOnboardingCompleted: preferencesUpdate.firstReviewOnboardingCompleted,
       // Both analytics columns are the guest session's on this branch, so neither is written here.

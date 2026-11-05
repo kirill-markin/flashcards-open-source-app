@@ -258,7 +258,7 @@ test("a bound guest refuses a second subject and a merge into another account, a
   }
 });
 
-test("guest merge adopts a guest accent only for a default destination and preserves it on replay", async () => {
+test("guest merge adopts a guest accent and theme only for a default destination and preserves them on replay", async () => {
   const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
   const userIds: Array<string> = [];
   const workspaceIds: Array<string> = [];
@@ -276,18 +276,28 @@ test("guest merge adopts a guest accent only for a default destination and prese
         throw new Error(`Account ${target.userId} has no workspace.`);
       }
       workspaceIds.push(targetWorkspaceId);
-      await updateAccountPreferences(guest.userId, parseAccountPreferencesInput({ accentColor: "#F472B6" }));
+      await updateAccountPreferences(
+        guest.userId,
+        parseAccountPreferencesInput({ accentColor: "#F472B6", theme: "light" }),
+      );
       await updateAccountPreferences(target.userId, parseAccountPreferencesInput({ accentColor: targetColor }));
       assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "merge_required");
       const selection = { type: "existing", workspaceId: targetWorkspaceId } as const;
       await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
       const expectedColor = targetColor === "#FF6719" ? "#F472B6" : targetColor;
-      assert.equal((await ensureCognitoUserProfile(subject, null)).preferences.accentColor, expectedColor);
+      const merged = (await ensureCognitoUserProfile(subject, null)).preferences;
+      assert.equal(merged.accentColor, expectedColor);
+      assert.equal(merged.theme, "light");
 
-      await updateAccountPreferences(target.userId, parseAccountPreferencesInput({ accentColor: "#EAB308" }));
+      await updateAccountPreferences(
+        target.userId,
+        parseAccountPreferencesInput({ accentColor: "#EAB308", theme: "dark" }),
+      );
       const replay = await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
       assert.equal(replay.outcome, "idempotent_replay");
-      assert.equal((await ensureCognitoUserProfile(subject, null)).preferences.accentColor, "#EAB308");
+      const replayed = (await ensureCognitoUserProfile(subject, null)).preferences;
+      assert.equal(replayed.accentColor, "#EAB308");
+      assert.equal(replayed.theme, "dark");
     }
   } finally {
     try {
