@@ -57,6 +57,7 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
+import com.flashcardsopensourceapp.feature.ai.aiToolCallExpandButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
@@ -152,7 +153,6 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     @Test
     fun toolCallDetailsExpandAndCopyOutput() {
         val toolOutput = "{\"rows\":[1]}"
-        val expandDetails = composeRule.activity.getString(AiFeatureR.string.ai_tool_expand_details)
         val copyOutput = composeRule.activity.getString(AiFeatureR.string.ai_tool_copy_output)
 
         composeRule.setContent {
@@ -218,7 +218,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithContentDescription(expandDetails).performClick()
+        composeRule.onNodeWithTag(aiToolCallExpandButtonTag).performClick()
         composeRule.onNodeWithText("{\"sql\":\"SELECT 1\"}").assertIsDisplayed()
         composeRule.onNodeWithText(toolOutput).assertIsDisplayed()
         composeRule.onNode(

@@ -40,11 +40,8 @@
     <string name="ai_send">Send</string>
     <string name="ai_empty_title">Start a new AI chat</string>
     <string name="ai_empty_body">Ask about cards, review history, or attach notes for extraction in %1$s.</string>
-    <string name="ai_you">You</string>
     <string name="ai_image_attachment_title">Image attachment</string>
     <string name="ai_unknown_type_subtitle">Type: %1$s</string>
-    <string name="ai_reasoning_summary_running">Reasoning summary · Running</string>
-    <string name="ai_reasoning_summary_done">Reasoning summary · Done</string>
     <string name="ai_thinking">Thinking...</string>
     <string name="ai_card_id_label">ID: %1$s</string>
     <string name="ai_card_tags_label">Tags: %1$s</string>
