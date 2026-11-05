@@ -5,7 +5,7 @@ and bounded reading widths. Review ratings use four or two columns at standard
 text sizes and one scrollable column at accessibility sizes. Controls retain
 44-point tap targets.
 
-Review, Cards, and Progress share an AI companion when the owning window is
+Review, Library, and Progress share an AI companion when the owning window is
 landscape, regular width, and at least 900 × 600 points. Portrait and narrower
 windows use the full AI destination. AI and Settings hide the companion while
 remembering its presentation preference. The existing AI store owns conversation,

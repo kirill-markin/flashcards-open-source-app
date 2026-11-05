@@ -15,6 +15,11 @@ struct WorkspaceExportView: View {
         }
         .listStyle(.insetGrouped)
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.export", "Export"))
+        #if !targetEnvironment(macCatalyst)
+        .toolbar {
+            AICompanionToolbarItem()
+        }
+        #endif
         .sheet(
             item: self.$exportShareItem,
             onDismiss: {
@@ -61,5 +66,6 @@ struct WorkspaceExportView: View {
     NavigationStack {
         WorkspaceExportView()
             .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
     }
 }

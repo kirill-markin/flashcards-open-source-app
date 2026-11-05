@@ -138,6 +138,11 @@ struct WorkspaceImportView: View {
         .listStyle(.insetGrouped)
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.import.title", "Import"))
         .accessibilityIdentifier(UITestIdentifier.workspaceImportScreen)
+        #if !targetEnvironment(macCatalyst)
+        .toolbar {
+            AICompanionToolbarItem()
+        }
+        #endif
         .fileImporter(
             isPresented: self.$isFileImporterPresented,
             allowedContentTypes: workspacePackageImportAllowedContentTypes(),
@@ -424,5 +429,6 @@ struct WorkspaceImportView: View {
     NavigationStack {
         WorkspaceImportView()
             .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
     }
 }

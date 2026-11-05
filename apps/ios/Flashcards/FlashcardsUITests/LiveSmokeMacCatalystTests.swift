@@ -260,7 +260,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
     }
 
     /// Review's Edit decks selects the Decks sidebar section whether Library was never shown or
-    /// showed another section, and Command-4 returns to the section Library last showed.
+    /// showed another section, and Command-4 returns to the section Library last showed. Switching
+    /// sections and returning from a pushed deck keeps Decks selected.
     @MainActor
     func testMacEditDecksLandsOnDecksFromReview() throws {
         self.addMacWindowRestorationTeardown()
@@ -277,6 +278,22 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.openDecksFromReviewFilter()
+        }
+        try self.step("switch Library sections and return from a deck") {
+            try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryCardsItem)
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabLibraryTagsItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryTagsItem)
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.decksAllCardsRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.element(identifier: LiveSmokeIdentifier.decksAllCardsRow).click()
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.deckDetailScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.deckDetailScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.decksScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
 

@@ -228,7 +228,7 @@ final class FlashcardsStore {
     @ObservationIgnored var cachedAIConsentStore: AIConsentStore?
     @ObservationIgnored var aiConsentRegistrationTask: Task<Void, Never>?
     @ObservationIgnored var currentVisibleTab: AppTab
-    /// `AppNavigationModel.visibleLibraryAnalyticsSurface`, kept for the store's surface reports.
+    /// `AppNavigationModel.visibleLibraryAnalyticsSurface`, kept for the store's own reads.
     @ObservationIgnored var currentLibraryAnalyticsSurface: AnalyticsSurface
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?

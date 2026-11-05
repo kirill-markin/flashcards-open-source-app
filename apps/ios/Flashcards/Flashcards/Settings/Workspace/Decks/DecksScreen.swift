@@ -71,6 +71,7 @@ struct DecksScreen: View {
                             NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
+                            .accessibilityIdentifier(UITestIdentifier.decksAllCardsRow)
                             .rememberedListRow(id: deckListEntry.id)
                         }
                     }
@@ -83,6 +84,7 @@ struct DecksScreen: View {
             topRowID: self.settingsScroll.topRowID(\.decksTopRowID, whileOnPath: { self.navigation.isDecksOnLibraryPath }),
             isContentReady: self.isLoading == false
         )
+        .accessibilityIdentifier(UITestIdentifier.decksScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(
@@ -138,6 +140,7 @@ struct DecksScreen: View {
         }
         #if !targetEnvironment(macCatalyst)
         .toolbar {
+            AICompanionToolbarItem()
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     self.beginCreating()
@@ -485,6 +488,7 @@ struct DeckDetailScreen: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.deckDetailScreen)
         .nativeNavigationTitle(detailState?.title ?? aiSettingsLocalized("settings.workspace.decks.deck", "Deck"))
         .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)|\(store.reviewScheduleVersion)") {
             await self.reloadDetailState()
@@ -526,6 +530,7 @@ struct DeckDetailScreen: View {
         ))
         #else
         .toolbar {
+            AICompanionToolbarItem()
             if detailState?.allowsEditing == true {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(aiSettingsLocalized("common.edit", "Edit")) {

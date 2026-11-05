@@ -233,7 +233,8 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
   scroll views, toolbar search text, and Settings after AI history;
 - Library's sidebar sections opened from another section: Review's Edit decks
   selects Decks before and after another section was shown, and Command-4
-  returns to it.
+  returns to it; after switching Cards, Tags and Decks, Back from a pushed
+  deck returns to the still-selected Decks list.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.
