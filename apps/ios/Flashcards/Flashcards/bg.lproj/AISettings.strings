@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Контекст на заявката";
 "ai.message.reasoning.title" = "Разсъждение";
 "ai.message.reasoning.thinking" = "Обмисляне...";
+"ai.message.work.running" = "Работи от %@";
+"ai.message.work.finished" = "Работи %@";
+"ai.message.work.finishedWithoutDuration" = "Работата е завършена";
 "ai.message.fullResponse.show" = "Показване на пълния отговор";
 "ai.message.fullResponse.title" = "Пълен отговор";
 "ai.tool.label.codeExecution" = "Изпълнение на код";

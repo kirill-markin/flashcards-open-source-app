@@ -1562,6 +1562,11 @@ export const zhHansCatalog = {
       submitReview: "提交评分",
       webSearch: "网页搜索",
     },
+    workBlock: {
+      worked: "已完成工作",
+      workedFor: "工作了 {{duration}}",
+      workingFor: "正在工作 {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

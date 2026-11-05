@@ -1577,6 +1577,11 @@ const plCatalog: TranslationCatalog = {
       submitReview: "Zapisz powtórkę",
       webSearch: "Wyszukiwanie w sieci",
     },
+    workBlock: {
+      worked: "Pracował",
+      workedFor: "Pracował przez {{duration}}",
+      workingFor: "Pracuje od {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

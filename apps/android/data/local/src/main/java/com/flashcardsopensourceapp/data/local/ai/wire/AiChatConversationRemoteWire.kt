@@ -116,7 +116,8 @@ private data class AiChatConversationMessageWire(
     val errorCode: StrictRemoteString? = null,
     val isStopped: StrictRemoteBoolean,
     val cursor: StrictRemoteString? = null,
-    val itemId: StrictRemoteString? = null
+    val itemId: StrictRemoteString? = null,
+    val completedAt: StrictRemoteLong? = null
 )
 
 @Serializable
@@ -278,7 +279,8 @@ private fun AiChatConversationMessageWire.asDomain(sessionId: String, index: Int
         errorCode = this.errorCode?.value?.ifBlank { null },
         isStopped = this.isStopped.value,
         cursor = cursor,
-        itemId = resolvedItemId
+        itemId = resolvedItemId,
+        completedAtMillis = this.completedAt?.value
     )
 }
 

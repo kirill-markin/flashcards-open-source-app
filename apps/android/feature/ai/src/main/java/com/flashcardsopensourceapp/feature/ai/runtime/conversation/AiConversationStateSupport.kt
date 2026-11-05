@@ -25,7 +25,8 @@ internal fun makeUserMessage(
         errorCode = null,
         isStopped = false,
         cursor = null,
-        itemId = null
+        itemId = null,
+        completedAtMillis = null
     )
 }
 
@@ -41,7 +42,8 @@ internal fun makeAssistantStatusMessage(timestampMillis: Long): AiChatMessage {
         errorCode = null,
         isStopped = false,
         cursor = null,
-        itemId = null
+        itemId = null,
+        completedAtMillis = null
     )
 }
 
@@ -348,7 +350,8 @@ internal fun finalizeAssistantMessage(
     cursor: String,
     isError: Boolean,
     errorCode: String?,
-    isStopped: Boolean
+    isStopped: Boolean,
+    completedAtMillis: Long?
 ): AiChatPersistedState? {
     val resolution = resolveExistingStreamingAssistantMessage(
         state = state,
@@ -370,7 +373,8 @@ internal fun finalizeAssistantMessage(
                 errorCode = errorCode,
                 isStopped = isStopped,
                 cursor = cursor,
-                itemId = itemId
+                itemId = itemId,
+                completedAtMillis = completedAtMillis
             )
         )
     )
@@ -393,7 +397,8 @@ internal fun markAssistantError(
                     errorCode = null,
                     isStopped = false,
                     cursor = null,
-                    itemId = null
+                    itemId = null,
+                    completedAtMillis = null
                 )
             )
         )
@@ -411,7 +416,8 @@ internal fun markAssistantError(
                 errorCode = null,
                 isStopped = false,
                 cursor = null,
-                itemId = null
+                itemId = null,
+                completedAtMillis = null
             )
         )
     }
@@ -454,7 +460,8 @@ internal fun appendAssistantAccountUpgradePrompt(
         errorCode = null,
         isStopped = false,
         cursor = null,
-        itemId = null
+        itemId = null,
+        completedAtMillis = null
     )
 
     if (state.messages.isEmpty()) {
@@ -669,7 +676,8 @@ private fun resolveStreamingAssistantMessage(
         errorCode = null,
         isStopped = false,
         cursor = cursor,
-        itemId = itemId
+        itemId = itemId,
+        completedAtMillis = null
     )
     val nextMessages = state.messages + message
     return StreamingAssistantMessageResolution(

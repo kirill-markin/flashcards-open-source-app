@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Opdrachtcontext";
 "ai.message.reasoning.title" = "Redenering";
 "ai.message.reasoning.thinking" = "Nadenken...";
+"ai.message.work.running" = "Werkt al %@";
+"ai.message.work.finished" = "Heeft %@ gewerkt";
+"ai.message.work.finishedWithoutDuration" = "Werk voltooid";
 "ai.message.fullResponse.show" = "Volledig antwoord tonen";
 "ai.message.fullResponse.title" = "Volledig antwoord";
 "ai.tool.label.codeExecution" = "Code uitvoeren";

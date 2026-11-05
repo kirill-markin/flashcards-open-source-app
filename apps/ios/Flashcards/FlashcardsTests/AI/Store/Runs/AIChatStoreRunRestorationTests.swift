@@ -19,7 +19,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -30,7 +31,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
 
         store.restorePersistedState(
@@ -72,7 +74,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -83,7 +86,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         store.restorePersistedState(
             AIChatPersistedState(
@@ -157,7 +161,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -168,7 +173,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         store.restorePersistedState(
             AIChatPersistedState(
@@ -266,7 +272,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let stampedOptimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -277,7 +284,8 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
-            itemId: "item-restore"
+            itemId: "item-restore",
+            completedAt: nil
         )
 
         await context.historyStore.saveState(

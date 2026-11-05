@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "سياق الرسالة";
 "ai.message.reasoning.title" = "الاستدلال";
 "ai.message.reasoning.thinking" = "أفكر...";
+"ai.message.work.running" = "جارٍ العمل منذ %@";
+"ai.message.work.finished" = "عمل لمدة %@";
+"ai.message.work.finishedWithoutDuration" = "تم العمل";
 "ai.message.fullResponse.show" = "عرض الرد الكامل";
 "ai.message.fullResponse.title" = "الرد الكامل";
 "ai.tool.label.codeExecution" = "تنفيذ التعليمات البرمجية";

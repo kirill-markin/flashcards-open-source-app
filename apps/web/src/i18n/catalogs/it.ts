@@ -1562,6 +1562,11 @@ const itCatalog: TranslationCatalog = {
       submitReview: "Invia il ripasso",
       webSearch: "Ricerca sul web",
     },
+    workBlock: {
+      worked: "Ha lavorato",
+      workedFor: "Ha lavorato per {{duration}}",
+      workingFor: "Al lavoro da {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

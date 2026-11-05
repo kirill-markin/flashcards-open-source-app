@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "ਪ੍ਰੌਂਪਟ ਦਾ ਸੰਦਰਭ";
 "ai.message.reasoning.title" = "ਤਰਕ";
 "ai.message.reasoning.thinking" = "ਸੋਚ ਰਿਹਾ ਹੈ...";
+"ai.message.work.running" = "%@ ਤੋਂ ਕੰਮ ਚੱਲ ਰਿਹਾ ਹੈ";
+"ai.message.work.finished" = "%@ ਕੰਮ ਕੀਤਾ";
+"ai.message.work.finishedWithoutDuration" = "ਕੰਮ ਪੂਰਾ ਹੋਇਆ";
 "ai.message.fullResponse.show" = "ਪੂਰਾ ਜਵਾਬ ਦਿਖਾਓ";
 "ai.message.fullResponse.title" = "ਪੂਰਾ ਜਵਾਬ";
 "ai.tool.label.codeExecution" = "ਕੋਡ ਚਲਾਉਣਾ";

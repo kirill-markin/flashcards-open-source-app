@@ -28,6 +28,7 @@ import {
   type ChatRunSnapshot,
 } from "../runs";
 import {
+  getAssistantMessageCompletedAt,
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
   type PersistedChatMessageItem,
@@ -255,6 +256,7 @@ function buildAssistantMessageDonePayload(
     isError: message.isError,
     errorCode: message.errorCode,
     isStopped: message.isStopped,
+    completedAt: getAssistantMessageCompletedAt(message),
   };
 }
 

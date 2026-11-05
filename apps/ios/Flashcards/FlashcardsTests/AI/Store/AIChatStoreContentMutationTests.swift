@@ -13,7 +13,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-1",
@@ -34,7 +35,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             )
         ]
 
@@ -52,7 +54,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-1",
@@ -73,7 +76,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-2",
@@ -84,7 +88,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-3",
@@ -95,7 +100,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-3",
-                itemId: "item-3"
+                itemId: "item-3",
+                completedAt: nil
             )
         ]
 
@@ -123,7 +129,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             )
         ]
 
@@ -141,7 +148,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-1",
@@ -152,7 +160,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-2",
@@ -163,7 +172,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
-                itemId: "item-2"
+                itemId: "item-2",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-3",
@@ -184,7 +194,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-3",
-                itemId: "item-3"
+                itemId: "item-3",
+                completedAt: nil
             )
         ]
 
@@ -212,7 +223,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             )
         ]
 
@@ -240,7 +252,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-2",
@@ -251,7 +264,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-2",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             )
         ]
 
@@ -269,7 +283,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-1",
@@ -290,7 +305,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-2",
@@ -301,7 +317,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-3",
@@ -312,7 +329,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-3",
-                itemId: "item-3"
+                itemId: "item-3",
+                completedAt: nil
             )
         ]
 
@@ -340,7 +358,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-2",
@@ -351,7 +370,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-2",
-                itemId: "item-2"
+                itemId: "item-2",
+                completedAt: nil
             )
         ]
 
@@ -369,7 +389,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-1",
@@ -390,7 +411,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             ),
             AIChatMessage(
                 id: "message-2",
@@ -401,7 +423,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
-                itemId: "item-2"
+                itemId: "item-2",
+                completedAt: nil
             )
         ]
 
@@ -446,7 +469,8 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
-                itemId: "item-1"
+                itemId: "item-1",
+                completedAt: nil
             )
         ]
 

@@ -1577,6 +1577,11 @@ export const ruCatalog = {
       submitReview: "Отправить оценку",
       webSearch: "Веб-поиск",
     },
+    workBlock: {
+      worked: "Работал",
+      workedFor: "Работал {{duration}}",
+      workingFor: "Работает {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

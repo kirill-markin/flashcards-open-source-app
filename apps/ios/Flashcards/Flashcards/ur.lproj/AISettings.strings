@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "پرامپٹ کا سیاق";
 "ai.message.reasoning.title" = "استدلال";
 "ai.message.reasoning.thinking" = "سوچا جا رہا ہے...";
+"ai.message.work.running" = "%@ سے کام جاری ہے";
+"ai.message.work.finished" = "%@ کام کیا";
+"ai.message.work.finishedWithoutDuration" = "کام مکمل ہو گیا";
 "ai.message.fullResponse.show" = "پورا جواب دکھائیں";
 "ai.message.fullResponse.title" = "پورا جواب";
 "ai.tool.label.codeExecution" = "کوڈ چلانا";

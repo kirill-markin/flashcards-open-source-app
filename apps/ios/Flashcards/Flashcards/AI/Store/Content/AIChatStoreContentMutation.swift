@@ -28,7 +28,8 @@ extension AIChatStore {
                     : nil,
                 isStopped: lastMessage.isStopped,
                 cursor: lastMessage.cursor,
-                itemId: lastMessage.itemId
+                itemId: lastMessage.itemId,
+                completedAt: lastMessage.completedAt
             )
         } else {
             self.messages.append(
@@ -41,7 +42,8 @@ extension AIChatStore {
                     errorCode: nil,
                     isStopped: false,
                     cursor: nil,
-                    itemId: nil
+                    itemId: nil,
+                    completedAt: nil
                 )
             )
         }
@@ -65,7 +67,8 @@ extension AIChatStore {
                     errorCode: nil,
                     isStopped: lastMessage.isStopped,
                     cursor: lastMessage.cursor,
-                    itemId: lastMessage.itemId
+                    itemId: lastMessage.itemId,
+                    completedAt: lastMessage.completedAt
                 )
                 return
             }
@@ -81,7 +84,8 @@ extension AIChatStore {
                 errorCode: nil,
                 isStopped: false,
                 cursor: nil,
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             )
         )
     }
@@ -100,7 +104,8 @@ extension AIChatStore {
                 errorCode: nil,
                 isStopped: false,
                 cursor: nil,
-                itemId: nil
+                itemId: nil,
+                completedAt: nil
             )
         )
         self.schedulePersistCurrentState()
@@ -120,7 +125,8 @@ extension AIChatStore {
             errorCode: optimisticTurn.assistantMessage.errorCode,
             isStopped: optimisticTurn.assistantMessage.isStopped,
             cursor: optimisticTurn.assistantMessage.cursor,
-            itemId: optimisticTurn.assistantMessage.itemId
+            itemId: optimisticTurn.assistantMessage.itemId,
+            completedAt: optimisticTurn.assistantMessage.completedAt
         )
         self.clearOptimisticOutgoingTurnState()
     }
@@ -147,7 +153,8 @@ extension AIChatStore {
             errorCode: message.errorCode,
             isStopped: true,
             cursor: message.cursor,
-            itemId: message.itemId
+            itemId: message.itemId,
+            completedAt: message.completedAt
         )
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil

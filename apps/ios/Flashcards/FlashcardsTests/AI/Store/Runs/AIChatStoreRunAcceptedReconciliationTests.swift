@@ -33,7 +33,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -44,7 +45,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         store.messages = [
             baselineMessages[0],
@@ -145,7 +147,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -156,7 +159,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         store.messages = [
             baselineMessages[0],
@@ -268,7 +272,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -279,7 +284,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         store.messages = baselineMessages + [
             optimisticUserMessage,
@@ -374,7 +380,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -385,7 +392,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let acceptedMessages = baselineMessages + [
             AIChatStoreTestSupport.makeUserTextMessage(
@@ -519,7 +527,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
@@ -530,7 +539,8 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             errorCode: nil,
             isStopped: false,
             cursor: nil,
-            itemId: nil
+            itemId: nil,
+            completedAt: nil
         )
         store.messages = [
             baselineMessages[0],

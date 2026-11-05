@@ -1562,6 +1562,11 @@ const caCatalog: TranslationCatalog = {
       submitReview: "Envia el repàs",
       webSearch: "Cerca web",
     },
+    workBlock: {
+      worked: "Ha treballat",
+      workedFor: "Ha treballat {{duration}}",
+      workingFor: "Treballant des de fa {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

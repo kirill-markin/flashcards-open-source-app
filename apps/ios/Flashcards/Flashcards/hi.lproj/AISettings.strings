@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "संदेश संदर्भ";
 "ai.message.reasoning.title" = "तर्क";
 "ai.message.reasoning.thinking" = "सोच रहा हूँ...";
+"ai.message.work.running" = "%@ से काम चल रहा है";
+"ai.message.work.finished" = "%@ तक काम किया";
+"ai.message.work.finishedWithoutDuration" = "काम पूरा हुआ";
 "ai.message.fullResponse.show" = "पूरा जवाब दिखाएँ";
 "ai.message.fullResponse.title" = "पूरा जवाब";
 "ai.tool.label.codeExecution" = "कोड निष्पादन";

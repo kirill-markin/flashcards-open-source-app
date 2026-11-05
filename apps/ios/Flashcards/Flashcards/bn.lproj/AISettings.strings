@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "নির্দেশনার প্রসঙ্গ";
 "ai.message.reasoning.title" = "যুক্তি";
 "ai.message.reasoning.thinking" = "ভাবছে...";
+"ai.message.work.running" = "%@ ধরে কাজ চলছে";
+"ai.message.work.finished" = "%@ ধরে কাজ করেছে";
+"ai.message.work.finishedWithoutDuration" = "কাজ শেষ হয়েছে";
 "ai.message.fullResponse.show" = "সম্পূর্ণ প্রতিক্রিয়া দেখান";
 "ai.message.fullResponse.title" = "সম্পূর্ণ প্রতিক্রিয়া";
 "ai.tool.label.codeExecution" = "কোড এক্সিকিউশন";

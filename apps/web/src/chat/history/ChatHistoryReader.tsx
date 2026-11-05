@@ -120,6 +120,7 @@ export function ChatHistoryReader(props: {
                   t,
                   onMessageTechnicalError,
                   canStartMessageAction,
+                  false,
                   { workspaceId, localReadVersion: 0 },
                 )}
               </div>

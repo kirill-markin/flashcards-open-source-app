@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Konteks prompt";
 "ai.message.reasoning.title" = "Penalaran";
 "ai.message.reasoning.thinking" = "Berpikir...";
+"ai.message.work.running" = "Bekerja selama %@";
+"ai.message.work.finished" = "Selesai bekerja dalam %@";
+"ai.message.work.finishedWithoutDuration" = "Selesai bekerja";
 "ai.message.fullResponse.show" = "Tampilkan respons lengkap";
 "ai.message.fullResponse.title" = "Respons lengkap";
 "ai.tool.label.codeExecution" = "Eksekusi kode";

@@ -1562,6 +1562,11 @@ const paCatalog: TranslationCatalog = {
       submitReview: "ਦੁਹਰਾਈ ਦਰਜ ਕਰੋ",
       webSearch: "ਵੈੱਬ ਖੋਜ",
     },
+    workBlock: {
+      worked: "ਕੰਮ ਪੂਰਾ ਹੋਇਆ",
+      workedFor: "{{duration}} ਕੰਮ ਕੀਤਾ",
+      workingFor: "{{duration}} ਤੋਂ ਕੰਮ ਕਰ ਰਿਹਾ ਹੈ",
+    },
   },
   accountSettings: {
     accountStatus: {

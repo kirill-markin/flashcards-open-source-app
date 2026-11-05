@@ -904,6 +904,7 @@ extension LiveSmokeTestCase {
                 )
             }
 
+            try self.expandLatestAiWorkBlockIfCollapsed()
             let completedSqlSummaries = self.visibleCompletedAiSqlToolCallSummaries()
             if completedSqlSummaries.contains(where: { summary in
                 summary.contains("INSERT INTO cards")
@@ -930,6 +931,35 @@ extension LiveSmokeTestCase {
             message: "AI create flow did not surface a completed SQL INSERT INTO cards within \(formatDuration(seconds: timeout)). CompletedSqlToolCalls: \(toolCallCheck.completedSqlSummaries). AssistantMessages: \(assistantMessages)",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
+        )
+    }
+
+    /// A finished reply collapses its work block and stops rendering its tool-call rows; earlier blocks stay as they are.
+    @MainActor
+    func expandLatestAiWorkBlockIfCollapsed() throws {
+        let workBlocks = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiWorkBlock)
+        let workBlockCount = workBlocks.count
+        guard workBlockCount > 0 else {
+            return
+        }
+
+        let latestWorkBlock = workBlocks.element(boundBy: workBlockCount - 1)
+        let isExpanded = latestWorkBlock.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiWorkBlockContent)
+            .firstMatch
+            .exists
+        guard isExpanded == false else {
+            return
+        }
+
+        try self.tapExistingButton(
+            latestWorkBlock.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiWorkBlockToggle)
+                .firstMatch,
+            identifier: LiveSmokeIdentifier.aiWorkBlockToggle,
+            action: "expand_latest_ai_work_block",
+            note: "latest AI work block expanded"
         )
     }
 

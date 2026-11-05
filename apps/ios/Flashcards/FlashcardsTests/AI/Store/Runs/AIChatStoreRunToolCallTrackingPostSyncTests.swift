@@ -74,7 +74,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
-                        itemId: "item-1"
+                        itemId: "item-1",
+                        completedAt: nil
                     )
                 ],
                 activeRun: nil
@@ -127,7 +128,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
-                        itemId: "item-1"
+                        itemId: "item-1",
+                        completedAt: nil
                     ),
                     AIChatStoreTestSupport.makeAssistantTextMessage(
                         id: "message-2",
@@ -383,7 +385,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
-                        itemId: "item-1"
+                        itemId: "item-1",
+                        completedAt: nil
                     ),
                     AIChatStoreTestSupport.makeUserTextMessage(
                         id: "message-2",
@@ -399,7 +402,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-3",
-                        itemId: "item-3"
+                        itemId: "item-3",
+                        completedAt: nil
                     )
                 ],
                 activeRun: nil
@@ -594,7 +598,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
-                        itemId: "item-1"
+                        itemId: "item-1",
+                        completedAt: nil
                     ),
                     AIChatStoreTestSupport.makeUserTextMessage(
                         id: "message-2",
@@ -610,7 +615,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-3",
-                        itemId: "item-3"
+                        itemId: "item-3",
+                        completedAt: nil
                     )
                 ],
                 chatSessionId: "session-1",
@@ -649,7 +655,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
-                        itemId: "item-1"
+                        itemId: "item-1",
+                        completedAt: nil
                     ),
                     AIChatStoreTestSupport.makeUserTextMessage(
                         id: "message-2",
@@ -665,7 +672,8 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-3",
-                        itemId: "item-3"
+                        itemId: "item-3",
+                        completedAt: nil
                     )
                 ],
                 activeRun: nil

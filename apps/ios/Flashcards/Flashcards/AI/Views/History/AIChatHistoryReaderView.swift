@@ -92,6 +92,7 @@ struct AIChatHistoryReaderView: View {
             ForEach(messages) { message in
                 AIChatMessageRow(
                     message: message,
+                    isRunActive: false,
                     repairStatus: nil,
                     showsTypingIndicator: false,
                     onExpandContent: {},

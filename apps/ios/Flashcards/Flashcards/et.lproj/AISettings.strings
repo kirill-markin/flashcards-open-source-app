@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Päringu kontekst";
 "ai.message.reasoning.title" = "Arutluskäik";
 "ai.message.reasoning.thinking" = "Mõtlemine...";
+"ai.message.work.running" = "Töötab %@";
+"ai.message.work.finished" = "Töötas %@";
+"ai.message.work.finishedWithoutDuration" = "Töö tehtud";
 "ai.message.fullResponse.show" = "Näita kogu vastust";
 "ai.message.fullResponse.title" = "Kogu vastus";
 "ai.tool.label.codeExecution" = "Koodi käivitamine";

@@ -1562,6 +1562,11 @@ const taCatalog: TranslationCatalog = {
       submitReview: "மீள்பயிற்சியைச் சமர்ப்பி",
       webSearch: "வலைத் தேடல்",
     },
+    workBlock: {
+      worked: "வேலை முடிந்தது",
+      workedFor: "{{duration}} வேலை செய்தது",
+      workingFor: "{{duration}} ஆக வேலை செய்கிறது",
+    },
   },
   accountSettings: {
     accountStatus: {

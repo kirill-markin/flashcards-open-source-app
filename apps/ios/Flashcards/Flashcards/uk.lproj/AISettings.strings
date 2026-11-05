@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Контекст запиту";
 "ai.message.reasoning.title" = "Міркування";
 "ai.message.reasoning.thinking" = "Міркую...";
+"ai.message.work.running" = "Працює вже %@";
+"ai.message.work.finished" = "Працював %@";
+"ai.message.work.finishedWithoutDuration" = "Роботу завершено";
 "ai.message.fullResponse.show" = "Показати повну відповідь";
 "ai.message.fullResponse.title" = "Повна відповідь";
 "ai.tool.label.codeExecution" = "Виконання коду";

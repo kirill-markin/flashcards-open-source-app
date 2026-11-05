@@ -1562,6 +1562,11 @@ const svCatalog: TranslationCatalog = {
       submitReview: "Skicka repetition",
       webSearch: "Webbsökning",
     },
+    workBlock: {
+      worked: "Arbetade",
+      workedFor: "Arbetade i {{duration}}",
+      workingFor: "Arbetar i {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

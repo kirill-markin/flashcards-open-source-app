@@ -1562,6 +1562,11 @@ export const jaCatalog = {
       submitReview: "評価を送信",
       webSearch: "Web 検索",
     },
+    workBlock: {
+      worked: "作業しました",
+      workedFor: "{{duration}}作業しました",
+      workingFor: "{{duration}}作業中",
+    },
   },
   accountSettings: {
     accountStatus: {

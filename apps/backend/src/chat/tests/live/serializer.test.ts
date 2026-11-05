@@ -33,6 +33,7 @@ test("assistant_message_done live serialization keeps legacy card effortLevel", 
     isError: false,
     errorCode: null,
     isStopped: false,
+    completedAt: 7,
   });
 
   assert.deepEqual(parseSerializedEvent(formatSSEEvent(event)), {
@@ -55,5 +56,6 @@ test("assistant_message_done live serialization keeps legacy card effortLevel", 
     isError: false,
     errorCode: null,
     isStopped: false,
+    completedAt: 7,
   });
 });

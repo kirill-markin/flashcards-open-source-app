@@ -304,6 +304,7 @@ class AiChatHistoryStore(
             .put("isStopped", message.isStopped)
             .put("cursor", message.cursor ?: JSONObject.NULL)
             .put("itemId", message.itemId ?: JSONObject.NULL)
+            .put("completedAtMillis", message.completedAtMillis ?: JSONObject.NULL)
     }
 
     private fun decodeMessages(jsonArray: JSONArray, sessionId: String): List<AiChatMessage> {
@@ -334,7 +335,8 @@ class AiChatHistoryStore(
             errorCode = if (jsonObject.isNull("errorCode")) null else jsonObject.getString("errorCode"),
             isStopped = jsonObject.optBoolean("isStopped", false),
             cursor = jsonObject.optString("cursor", "").ifBlank { null },
-            itemId = jsonObject.optString("itemId", "").ifBlank { null }
+            itemId = jsonObject.optString("itemId", "").ifBlank { null },
+            completedAtMillis = if (jsonObject.isNull("completedAtMillis")) null else jsonObject.getLong("completedAtMillis")
         )
     }
 

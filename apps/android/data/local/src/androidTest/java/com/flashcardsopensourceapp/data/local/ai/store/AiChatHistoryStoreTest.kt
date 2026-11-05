@@ -199,7 +199,8 @@ class AiChatHistoryStoreTest {
                     errorCode = null,
                     isStopped = false,
                     cursor = "cursor-1",
-                    itemId = "item-1"
+                    itemId = "item-1",
+                    completedAtMillis = null
                 )
             ),
             composerSuggestions = emptyList(),

@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Nachrichtenkontext";
 "ai.message.reasoning.title" = "Begründung";
 "ai.message.reasoning.thinking" = "Denken...";
+"ai.message.work.running" = "Arbeitet seit %@";
+"ai.message.work.finished" = "%@ gearbeitet";
+"ai.message.work.finishedWithoutDuration" = "Arbeit abgeschlossen";
 "ai.message.fullResponse.show" = "Vollständige Antwort anzeigen";
 "ai.message.fullResponse.title" = "Vollständige Antwort";
 "ai.tool.label.codeExecution" = "Codeausführung";

@@ -1562,6 +1562,11 @@ const thCatalog: TranslationCatalog = {
       submitReview: "ส่งผลการทบทวน",
       webSearch: "ค้นหาบนเว็บ",
     },
+    workBlock: {
+      worked: "ทำงานเสร็จแล้ว",
+      workedFor: "ทำงานไป {{duration}}",
+      workingFor: "กำลังทำงาน {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

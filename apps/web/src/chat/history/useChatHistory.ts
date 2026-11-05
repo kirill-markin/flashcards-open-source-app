@@ -10,6 +10,7 @@ export type StoredMessage = Readonly<{
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
+  completedAt: number | null;
 }>;
 
 export type ChatHistoryState = Readonly<{
@@ -28,6 +29,7 @@ export type ChatHistoryState = Readonly<{
     isError: boolean,
     errorCode: string | null,
     isStopped: boolean,
+    completedAt: number | null,
   ) => boolean;
   markAssistantError: (errorText: string) => void;
   clearHistory: () => void;
@@ -262,6 +264,7 @@ function resolveStreamingAssistantMessage(
       isStopped: false,
       cursor,
       itemId,
+      completedAt: null,
     },
   ];
 
@@ -324,6 +327,7 @@ export function useChatHistory(
         isStopped: false,
         cursor: null,
         itemId: null,
+        completedAt: null,
       },
     ]);
   }, [commitMessages]);
@@ -340,6 +344,7 @@ export function useChatHistory(
         isStopped: false,
         cursor: null,
         itemId: null,
+        completedAt: null,
       },
     ]);
   }, [commitMessages]);
@@ -431,6 +436,7 @@ export function useChatHistory(
     isError: boolean,
     errorCode: string | null,
     isStopped: boolean,
+    completedAt: number | null,
   ): boolean => {
     const currentMessages = messagesRef.current;
     const resolution = resolveExistingStreamingAssistantMessage(currentMessages, itemId, cursor);
@@ -456,6 +462,7 @@ export function useChatHistory(
           isError,
           errorCode,
           isStopped,
+          completedAt,
         }
         : message
     ));
@@ -479,6 +486,7 @@ export function useChatHistory(
             isStopped: false,
             cursor: null,
             itemId: null,
+            completedAt: null,
           },
         ];
       }

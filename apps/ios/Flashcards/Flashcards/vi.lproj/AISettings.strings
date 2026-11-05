@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Ngữ cảnh yêu cầu";
 "ai.message.reasoning.title" = "Suy luận";
 "ai.message.reasoning.thinking" = "Đang suy nghĩ...";
+"ai.message.work.running" = "Đang làm việc %@";
+"ai.message.work.finished" = "Đã làm việc %@";
+"ai.message.work.finishedWithoutDuration" = "Đã hoàn tất";
 "ai.message.fullResponse.show" = "Hiện toàn bộ phản hồi";
 "ai.message.fullResponse.title" = "Phản hồi đầy đủ";
 "ai.tool.label.codeExecution" = "Thực thi mã";

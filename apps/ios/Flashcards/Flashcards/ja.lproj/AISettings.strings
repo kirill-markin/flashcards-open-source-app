@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "メッセージ コンテキスト";
 "ai.message.reasoning.title" = "推論";
 "ai.message.reasoning.thinking" = "考え中...";
+"ai.message.work.running" = "作業中（%@）";
+"ai.message.work.finished" = "作業時間 %@";
+"ai.message.work.finishedWithoutDuration" = "作業完了";
 "ai.message.fullResponse.show" = "回答をすべて表示";
 "ai.message.fullResponse.title" = "回答全文";
 "ai.tool.label.codeExecution" = "コードの実行";

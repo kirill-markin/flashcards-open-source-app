@@ -1562,6 +1562,11 @@ const lvCatalog: TranslationCatalog = {
       submitReview: "Iesniegt atkārtojumu",
       webSearch: "Meklēšana tīmeklī",
     },
+    workBlock: {
+      worked: "Strādāja",
+      workedFor: "Strādāja {{duration}}",
+      workingFor: "Strādā {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

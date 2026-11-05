@@ -1577,6 +1577,11 @@ const hrCatalog: TranslationCatalog = {
       submitReview: "Pošalji ocjenu",
       webSearch: "Pretraživanje weba",
     },
+    workBlock: {
+      worked: "Radio",
+      workedFor: "Radio {{duration}}",
+      workingFor: "Radi {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

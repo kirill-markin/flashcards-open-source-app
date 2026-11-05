@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Contextul instrucțiunii";
 "ai.message.reasoning.title" = "Raționament";
 "ai.message.reasoning.thinking" = "Se gândește...";
+"ai.message.work.running" = "Lucrează de %@";
+"ai.message.work.finished" = "A lucrat %@";
+"ai.message.work.finishedWithoutDuration" = "Lucru finalizat";
 "ai.message.fullResponse.show" = "Arată răspunsul complet";
 "ai.message.fullResponse.title" = "Răspuns complet";
 "ai.tool.label.codeExecution" = "Executarea codului";

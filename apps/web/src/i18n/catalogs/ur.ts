@@ -1562,6 +1562,11 @@ const urCatalog: TranslationCatalog = {
       submitReview: "دہرائی جمع کریں",
       webSearch: "ویب تلاش",
     },
+    workBlock: {
+      worked: "کام مکمل ہوا",
+      workedFor: "{{duration}} کام کیا",
+      workingFor: "{{duration}} سے کام کر رہا ہے",
+    },
   },
   accountSettings: {
     accountStatus: {

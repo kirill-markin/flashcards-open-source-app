@@ -108,6 +108,9 @@
 "ai.message.card.promptContext" = "Kontekst poziva";
 "ai.message.reasoning.title" = "Razmišljanje";
 "ai.message.reasoning.thinking" = "Razmišljanje ...";
+"ai.message.work.running" = "Dela že %@";
+"ai.message.work.finished" = "Delo je trajalo %@";
+"ai.message.work.finishedWithoutDuration" = "Delo končano";
 "ai.message.fullResponse.show" = "Pokaži celoten odgovor";
 "ai.message.fullResponse.title" = "Celoten odgovor";
 "ai.tool.label.codeExecution" = "Izvajanje kode";

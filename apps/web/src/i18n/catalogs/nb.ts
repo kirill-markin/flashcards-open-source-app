@@ -1562,6 +1562,11 @@ const nbCatalog: TranslationCatalog = {
       submitReview: "Send inn vurdering",
       webSearch: "Nettsøk",
     },
+    workBlock: {
+      worked: "Arbeidet",
+      workedFor: "Arbeidet i {{duration}}",
+      workingFor: "Arbeider i {{duration}}",
+    },
   },
   accountSettings: {
     accountStatus: {

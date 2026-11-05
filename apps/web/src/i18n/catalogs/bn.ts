@@ -1562,6 +1562,11 @@ const bnCatalog: TranslationCatalog = {
       submitReview: "পুনরালোচনা জমা দিন",
       webSearch: "ওয়েব অনুসন্ধান",
     },
+    workBlock: {
+      worked: "কাজ শেষ",
+      workedFor: "{{duration}} কাজ করেছে",
+      workingFor: "{{duration}} ধরে কাজ করছে",
+    },
   },
   accountSettings: {
     accountStatus: {

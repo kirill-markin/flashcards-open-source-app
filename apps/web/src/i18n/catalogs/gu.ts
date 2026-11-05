@@ -1562,6 +1562,11 @@ const guCatalog: TranslationCatalog = {
       submitReview: "પુનરાવર્તન મોકલો",
       webSearch: "વેબ શોધ",
     },
+    workBlock: {
+      worked: "કામ પૂર્ણ થયું",
+      workedFor: "{{duration}} કામ કર્યું",
+      workingFor: "{{duration}}થી કામ કરી રહ્યું છે",
+    },
   },
   accountSettings: {
     accountStatus: {

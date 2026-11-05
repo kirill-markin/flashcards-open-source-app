@@ -139,6 +139,9 @@ extension AIChatView {
                     ForEach(self.chatStore.messages) { message in
                         AIChatMessageRow(
                             message: message,
+                            isRunActive: message.role == .assistant
+                                && message.id == tailMessageId
+                                && self.chatStore.isStreaming,
                             repairStatus: self.repairStatus(for: message),
                             showsTypingIndicator: aiChatShouldShowTypingIndicator(
                                 message: message,
