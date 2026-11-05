@@ -13,12 +13,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.cards.R
+import com.flashcardsopensourceapp.feature.cards.formatCardsCount
 import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryDecksRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryExportRowTag
@@ -119,10 +121,11 @@ private fun LibraryRow(
     testTag: String,
     onClick: () -> Unit
 ) {
+    val resources = LocalResources.current
     val trailingContent: (@Composable () -> Unit)? = count?.let { rowCount ->
         {
             Text(
-                text = rowCount.toString(),
+                text = formatCardsCount(resources = resources, count = rowCount),
                 style = MaterialTheme.typography.labelLarge
             )
         }
