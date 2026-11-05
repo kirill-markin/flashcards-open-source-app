@@ -1,5 +1,6 @@
 <resources>
     <string name="top_level_review">পুনরালোচনা</string>
+    <string name="top_level_library">লাইব্রেরি</string>
     <string name="top_level_ai">এআই</string>
     <string name="cards_title">কার্ড</string>
     <string name="cards_search_label">কার্ড খুঁজুন</string>

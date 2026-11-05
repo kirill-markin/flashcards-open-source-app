@@ -1,5 +1,6 @@
 <resources>
     <string name="top_level_review">Opakování</string>
+    <string name="top_level_library">Knihovna</string>
     <string name="top_level_ai">AI</string>
     <string name="cards_title">Kartičky</string>
     <string name="cards_search_label">Hledat kartičky</string>

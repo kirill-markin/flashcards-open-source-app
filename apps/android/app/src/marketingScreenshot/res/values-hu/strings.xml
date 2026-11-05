@@ -1,5 +1,6 @@
 <resources>
     <string name="top_level_review">Ismétlés</string>
+    <string name="top_level_library">Könyvtár</string>
     <string name="top_level_ai">MI</string>
     <string name="cards_title">Kártyák</string>
     <string name="cards_search_label">Kártyák keresése</string>

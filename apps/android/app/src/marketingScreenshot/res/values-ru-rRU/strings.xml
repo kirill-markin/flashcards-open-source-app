@@ -1,6 +1,7 @@
 <resources>
     <string name="top_level_review">Повторение</string>
     <string name="top_level_progress">Прогресс</string>
+    <string name="top_level_library">Библиотека</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">Настройки</string>
 

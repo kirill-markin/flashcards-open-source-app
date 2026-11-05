@@ -36,6 +36,7 @@
     <string name="ai_terms_of_service">Gebruiksvoorwaarden</string>
     <string name="ai_support">Hulp</string>
     <string name="ai_consent_workspace_disclosure">AI-verzoeken uit werkruimte %1$s kunnen instructies, bestanden, afbeeldingen en gedicteerde audio naar de AI-dienst sturen.</string>
+    <string name="top_level_library">Bibliotheek</string>
     <string name="cards_title">Kaarten</string>
     <string name="top_level_review">Herhalen</string>
     <string name="review_title">Herhalen</string>

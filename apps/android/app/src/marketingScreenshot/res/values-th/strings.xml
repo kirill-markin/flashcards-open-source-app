@@ -44,6 +44,7 @@
     <string name="progress_review_schedule_bucket_days_91_to_360">91–360 วัน</string>
     <string name="progress_review_schedule_bucket_years_1_to_2">1–2 ปี</string>
     <string name="progress_review_schedule_bucket_later">ภายหลัง</string>
+    <string name="top_level_library">คลัง</string>
     <string name="cards_title">บัตรคำ</string>
     <string name="top_level_review">ทบทวน</string>
     <string name="review_title">ทบทวน</string>

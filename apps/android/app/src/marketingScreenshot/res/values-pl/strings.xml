@@ -36,6 +36,7 @@
     <string name="ai_terms_of_service">Warunki korzystania</string>
     <string name="ai_support">Pomoc</string>
     <string name="ai_consent_workspace_disclosure">Zapytania AI z obszaru roboczego %1$s mogą wysyłać polecenia, pliki, obrazy i dyktowane nagrania do usługi AI.</string>
+    <string name="top_level_library">Biblioteka</string>
     <string name="cards_title">Karty</string>
     <string name="top_level_review">Powtórki</string>
     <string name="review_title">Powtórki</string>
