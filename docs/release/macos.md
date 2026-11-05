@@ -20,6 +20,8 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    version and its saved release mode without resubmission; a matching approved
    `PENDING_DEVELOPER_RELEASE` build goes to publication below. Record an
    already-live matching artifact without reconstructing historical native logs.
+   Replace an older `MAC_OS` version still in review as in
+   [iOS](ios.md#replacing-a-version-still-in-review).
    New artifacts require all gates below. For a new coordinated version follow
    [release preparation](versioning.md#release-preparation); a same-version Mac
    release uses [Mac source/tag handling](versioning.md#mac-only-source-and-tags).
