@@ -25,17 +25,19 @@ const thCatalog: TranslationCatalog = {
   paywall: {
     heading: "Nibomo ในแบบ<em>ของคุณ</em>",
     freeTitle: "ฟรี",
-    freeDescription: "สร้างขึ้นเพื่อนักศึกษาที่ยังไม่มีงานทำ เปิดให้ทุกคนใช้ กระเป๋าของคุณเบาลงอีกนิดแล้ว",
+    freeDescription: "สร้างขึ้นเพื่อนักศึกษาที่ยังไม่มีงานทำ เปิดให้ทุกคนใช้",
     freeBenefit: "ทบทวนพื้นฐาน เรียนแบบออฟไลน์ และซิงค์ข้อมูล",
     noCreatorSupport: "ไม่ได้สนับสนุนผู้สร้างแอป",
     limitedAi: "แชต AI แบบจำกัด",
     defaultStyles: "สไตล์เริ่มต้นเท่านั้น",
-    notNow: "ไว้ทีหลัง",
+    noOtherPremiumFeatures: "ไม่มีฟีเจอร์ Premium อื่น",
+    dontPayCreator: "ไม่จ่ายเงินให้ผู้สร้างแอป",
     creatorSupport: "การสมัครของคุณช่วยให้ผู้สร้าง Nibomo อย่าง {{creator}} จ่ายค่าเซิร์ฟเวอร์และเตรียมอัปเดตครั้งต่อไปด้วยกาแฟและพิซซ่า",
     monthlyPrice: "{{price}} / เดือน",
     supportsCreator: "สนับสนุนผู้สร้างแอป",
     accentColorBenefit: "สีเน้นได้ทุกสี",
-    reviewAnimationsBenefit: "เปิดหรือปิดแอนิเมชันหลังทบทวน",
+    themesBenefit: "ธีมสีเข้มและสีอ่อน",
+    reviewAnimationsBenefit: "ควบคุมแอนิเมชันหลังทบทวน",
     appIconBenefit: "ไอคอนแอปแบบกำหนดเอง",
     startTrial: "เริ่มทดลองใช้ฟรี 7 วัน",
     subscribe: "สมัครสมาชิก — {{price}}",
@@ -132,7 +134,6 @@ const thCatalog: TranslationCatalog = {
     ok: "ตกลง",
     off: "ปิด",
     on: "เปิด",
-    open: "เปิด",
     perAction: "ต่อการกระทำ",
     refresh: "รีเฟรช",
     retry: "ลองใหม่",
@@ -213,6 +214,7 @@ const thCatalog: TranslationCatalog = {
     aiChat: "แชท AI",
     progress: "ความคืบหน้า",
     cards: "การ์ด",
+    library: "คลัง",
     settings: "การตั้งค่า",
   },
   shell: {
@@ -758,24 +760,39 @@ const thCatalog: TranslationCatalog = {
       resetAll: "รีเซ็ตสถานะข้อความแจ้งทั้งหมด",
     },
   },
+  libraryScreen: {
+    title: "คลัง",
+    groups: {
+      importExport: "นำเข้าและส่งออก",
+    },
+    cards: {
+      description: "การ์ดทั้งหมดในพื้นที่ทำงานนี้",
+    },
+    tags: {
+      description: "แท็กทั้งหมดที่ใช้กับการ์ดอย่างน้อยหนึ่งใบ",
+    },
+    decks: {
+      description: "ตัวกรองการ์ดที่บันทึกไว้สำหรับการทบทวนแบบเจาะจง",
+    },
+    import: {
+      description: "เพิ่มการ์ดจากไฟล์",
+    },
+    export: {
+      description: "ดาวน์โหลดการ์ดทั้งหมดของคุณเป็นไฟล์",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "เด็ค",
-      description: "สร้าง แก้ไข และทบทวนขอบเขตการเรียนที่ใช้ซ้ำได้",
     },
     tags: {
       title: "แท็ก",
-      description: "ดูการใช้แท็กและจำนวนการ์ดทั้งพื้นที่ทำงาน",
     },
     export: {
       title: "ส่งออก",
-      description: "ดาวน์โหลดการ์ดที่ใช้งานอยู่ในพื้นที่ทำงานนี้เป็นแพ็กเกจ flashcards.zip",
-      value: "flashcards.zip",
     },
     import: {
       title: "นำเข้า",
-      description: "วางคำศัพท์และคำนิยาม หรือนำเข้าแพ็กเกจ Nibomo",
-      value: "ข้อความหรือ ZIP",
     },
     resetProgress: {
       title: "รีเซ็ตความคืบหน้าการเรียน",

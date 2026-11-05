@@ -15,6 +15,12 @@ const val cardTextEditorAddMediaButtonTag: String = "card_text_editor_add_media_
 const val cardTextEditorManagedMediaPreviewStripTag: String = "card_text_editor_managed_media_preview_strip"
 const val cardTagsInputFieldTag: String = "card_tags_input_field"
 const val cardTagsAddButtonTag: String = "card_tags_add_button"
+const val libraryScreenTag: String = "library_screen"
+const val libraryCardsRowTag: String = "library_row_cards"
+const val libraryTagsRowTag: String = "library_row_tags"
+const val libraryDecksRowTag: String = "library_row_decks"
+const val libraryImportRowTag: String = "library_row_import"
+const val libraryExportRowTag: String = "library_row_export"
 
 fun cardTextEditorManagedMediaPreviewItemTag(mediaAssetId: String): String {
     return "card_text_editor_managed_media_preview_item_$mediaAssetId"

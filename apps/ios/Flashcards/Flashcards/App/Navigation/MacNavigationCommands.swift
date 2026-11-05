@@ -38,7 +38,7 @@ struct MacNavigationCommands: Commands {
                 self.perform {
                     Analytics.track(
                         .cardCreateStarted(entryPoint: .quickAction),
-                        screen: analyticsSurface(tab: self.navigation.selectedTab)
+                        screen: self.navigation.visibleAnalyticsSurface(tab: self.navigation.selectedTab)
                     )
                     self.navigation.openCardCreation()
                 }

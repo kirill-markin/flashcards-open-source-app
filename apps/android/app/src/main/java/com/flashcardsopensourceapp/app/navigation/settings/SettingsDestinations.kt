@@ -62,52 +62,12 @@ data object SettingsFeedbackDestination {
     const val route: String = "settings/feedback"
 }
 
-data object SettingsWorkspaceDecksDestination {
-    const val route: String = "settings/decks"
-}
-
-data object SettingsWorkspaceAllCardsDeckDetailDestination {
-    const val route: String = "settings/decks/all-cards"
-}
-
-data object SettingsWorkspaceDeckDetailDestination {
-    const val routePrefix: String = "settings/decks/detail"
-    const val routeArgument: String = "deckId"
-    const val routePattern: String = "$routePrefix/{$routeArgument}"
-
-    fun createRoute(deckId: String): String {
-        return "$routePrefix/$deckId"
-    }
-}
-
-data object SettingsWorkspaceDeckEditorDestination {
-    const val routePrefix: String = "settings/decks/editor"
-    const val routeArgument: String = "deckId"
-    const val routePattern: String = "$routePrefix/{$routeArgument}"
-
-    fun createRoute(deckId: String): String {
-        return "$routePrefix/$deckId"
-    }
-}
-
-data object SettingsWorkspaceTagsDestination {
-    const val route: String = "settings/tags"
-}
-
 data object SettingsWorkspaceSchedulerDestination {
     const val route: String = "settings/scheduling"
 }
 
 data object SettingsNotificationsDestination {
     const val route: String = "settings/review-reminders"
-}
-
-data object SettingsWorkspaceExportDestination {
-    const val route: String = "settings/export"
-}
-
-data object SettingsWorkspaceImportDestination {
-    const val route: String = "settings/import"
 }
 
 data object SettingsWorkspaceResetStudyProgressDestination {

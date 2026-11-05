@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "Mach Nibomo zu **deinem**.";
 "premium.offer.free" = "Kostenlos";
-"premium.offer.freeDescription" = "Für Studierende ohne Job entwickelt. Für alle offen. Dein Rucksack ist gerade leichter geworden.";
+"premium.offer.freeDescription" = "Für Studierende ohne Job entwickelt. Für alle offen.";
 "premium.offer.freeBenefits" = "Wiederholen, offline lernen und synchronisieren";
 "premium.offer.monthlyAI" = "%@ KI-Chat-Nachrichten pro Monat";
 "premium.offer.supportsCreator" = "Unterstützt den Entwickler der App";
 "premium.offer.accentColor" = "Beliebige Akzentfarbe";
-"premium.offer.reviewAnimations" = "Wiederholungsanimationen: an oder aus";
+"premium.offer.themes" = "Dunkles und helles Design";
+"premium.offer.reviewAnimations" = "Steuerung der Wiederholungsanimationen";
 "premium.offer.appIcon" = "Eigenes App-Symbol";
 "premium.offer.startSevenDayTrial" = "7 Tage kostenlos testen";
 "premium.offer.subscribeWithPrice" = "Abonnieren — %@";
 "premium.offer.noCreatorSupport" = "Unterstützt den Entwickler der App nicht";
 "premium.offer.limitedAI" = "Eingeschränkter KI-Chat";
 "premium.offer.defaultStylesOnly" = "Nur Standardstile";
-"premium.offer.notNow" = "Nicht jetzt";
+"premium.offer.noOtherPremiumFeatures" = "Keine weiteren Premium-Funktionen";
+"premium.offer.dontPayCreator" = "Den Entwickler der App nicht bezahlen";
 "premium.offer.unlimitedAI" = "KI-Nachrichten ohne monatliches Limit";
 "premium.offer.creatorSupport" = "Dein Abo hilft dem Nibomo-Entwickler [Kirill Markin](https://kirill-markin.com/), die Server zu bezahlen und das nächste Update mit Kaffee und Pizza voranzubringen.";
 "premium.offer.previewPurchaseMessage" = "Dies ist eine Testvorschau. Es wird kein Kauf getätigt.";

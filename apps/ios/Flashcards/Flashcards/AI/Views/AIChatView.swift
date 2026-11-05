@@ -86,8 +86,8 @@ private func appTabDiagnosticValue(_ tab: AppTab) -> String {
         return "progress"
     case .ai:
         return "ai"
-    case .cards:
-        return "cards"
+    case .library:
+        return "library"
     case .settings:
         return "settings"
     }

@@ -13,10 +13,8 @@ import {
   buildWorkspaceRoute,
   settingsAIChatSuggestionsRoute,
   settingsCurrentWorkspaceRoute,
-  settingsExportRoute,
   settingsFeedbackRoute,
   settingsHubRoute,
-  settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
@@ -371,10 +369,6 @@ describe("SettingsScreen navigation", () => {
       "settings-row-leaderboard-participation",
       "settings-row-language",
       "settings-row-access",
-      "settings-row-decks",
-      "settings-row-tags",
-      "settings-row-import",
-      "settings-row-export",
       "settings-row-feedback",
       "settings-row-support",
       "settings-row-legal",
@@ -408,13 +402,20 @@ describe("SettingsScreen navigation", () => {
     expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-review-reminders"));
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
     expect(rowIndex("settings-row-leaderboard-participation")).toBeLessThan(rowIndex("settings-row-language"));
-    expect(rowIndex("settings-row-import")).toBeLessThan(rowIndex("settings-row-export"));
     expect(rowIndex("settings-row-support")).toBeLessThan(rowIndex("settings-row-legal"));
     expect(rowIndex("settings-row-open-source")).toBeLessThan(rowIndex("settings-row-own-openai-key"));
     expect(rowIndex("settings-row-own-openai-key")).toBeLessThan(rowIndex("settings-row-scheduling"));
     expect(rowIndex("settings-row-device-diagnostics")).toBeLessThan(rowIndex("settings-row-analytics"));
     expect(rowIndex("settings-row-analytics")).toBeLessThan(rowIndex("settings-row-reset-study-progress"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
+    [
+      "settings-row-decks",
+      "settings-row-tags",
+      "settings-row-import",
+      "settings-row-export",
+    ].forEach((testId) => {
+      expect(getContainer().querySelector(`[data-testid='${testId}']`)).toBeNull();
+    });
   });
 
   it("shows the Test row under Advanced when test mode is enabled", async () => {
@@ -500,12 +501,6 @@ describe("SettingsScreen navigation", () => {
 
     await clickRow("settings-row-scheduling");
     expect(currentPathname()).toBe(workspacePath(settingsSchedulerRoute));
-
-    await clickRow("settings-row-import");
-    expect(currentPathname()).toBe(workspacePath(settingsImportRoute));
-
-    await clickRow("settings-row-export");
-    expect(currentPathname()).toBe(workspacePath(settingsExportRoute));
 
     await clickRow("settings-row-server");
     expect(currentPathname()).toBe(workspacePath(settingsServerRoute));

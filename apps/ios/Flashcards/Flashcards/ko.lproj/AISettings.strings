@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "**나만의** Nibomo를 만들어 보세요.";
 "premium.offer.free" = "무료";
-"premium.offer.freeDescription" = "일자리가 없는 학생을 위해 만들었습니다. 누구에게나 열려 있습니다. 책가방이 조금 가벼워졌어요.";
+"premium.offer.freeDescription" = "일자리가 없는 학생을 위해 만들었습니다. 누구에게나 열려 있습니다.";
 "premium.offer.freeBenefits" = "기본 복습, 오프라인 학습 및 동기화";
 "premium.offer.monthlyAI" = "매월 AI 채팅 메시지 %@개";
 "premium.offer.supportsCreator" = "앱 제작자 후원";
 "premium.offer.accentColor" = "원하는 강조 색상";
-"premium.offer.reviewAnimations" = "복습 애니메이션 켜기 또는 끄기";
+"premium.offer.themes" = "다크 및 라이트 테마";
+"premium.offer.reviewAnimations" = "복습 애니메이션 제어";
 "premium.offer.appIcon" = "맞춤 앱 아이콘";
 "premium.offer.startSevenDayTrial" = "7일 무료 체험 시작";
 "premium.offer.subscribeWithPrice" = "구독하기 — %@";
 "premium.offer.noCreatorSupport" = "앱 제작자 후원 불가";
 "premium.offer.limitedAI" = "제한된 AI 채팅";
 "premium.offer.defaultStylesOnly" = "기본 스타일만";
-"premium.offer.notNow" = "나중에";
+"premium.offer.noOtherPremiumFeatures" = "기타 Premium 기능 없음";
+"premium.offer.dontPayCreator" = "앱 제작자에게 결제하지 않기";
 "premium.offer.unlimitedAI" = "월 제한 없는 AI 메시지";
 "premium.offer.creatorSupport" = "구독은 Nibomo 제작자 [Kirill Markin](https://kirill-markin.com/)이 서버 비용을 내고 커피와 피자와 함께 다음 업데이트를 준비하는 데 도움이 됩니다.";
 "premium.offer.previewPurchaseMessage" = "테스트 미리보기입니다. 구매는 진행되지 않습니다.";

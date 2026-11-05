@@ -29,12 +29,9 @@ import {
   settingsAIChatSuggestionsRoute,
   settingsAnalyticsRoute,
   settingsCurrentWorkspaceRoute,
-  settingsDecksRoute,
   settingsDeleteCurrentWorkspaceRoute,
   settingsDeviceRoute,
-  settingsExportRoute,
   settingsFeedbackRoute,
-  settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
@@ -44,7 +41,6 @@ import {
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
-  settingsTagsRoute,
   settingsTestRoute,
   settingsThemeRoute,
   shareRoute,
@@ -370,34 +366,6 @@ export function SettingsScreen(): ReactElement {
             value={t("settingsHome.access.value")}
             to={workspacePath(settingsAccessRoute)}
             testId="settings-row-access"
-          />
-          <SettingsNavigationCard
-            title={t("settingsWorkspace.decks.title")}
-            description={t("settingsWorkspace.decks.description")}
-            value={t("common.open")}
-            to={workspacePath(settingsDecksRoute)}
-            testId="settings-row-decks"
-          />
-          <SettingsNavigationCard
-            title={t("settingsWorkspace.tags.title")}
-            description={t("settingsWorkspace.tags.description")}
-            value={t("common.open")}
-            to={workspacePath(settingsTagsRoute)}
-            testId="settings-row-tags"
-          />
-          <SettingsNavigationCard
-            title={t("settingsWorkspace.import.title")}
-            description={t("settingsWorkspace.import.description")}
-            value={t("settingsWorkspace.import.value")}
-            to={workspacePath(settingsImportRoute)}
-            testId="settings-row-import"
-          />
-          <SettingsNavigationCard
-            title={t("settingsWorkspace.export.title")}
-            description={t("settingsWorkspace.export.description")}
-            value={t("settingsWorkspace.export.value")}
-            to={workspacePath(settingsExportRoute)}
-            testId="settings-row-export"
           />
         </div>
       </SettingsGroup>

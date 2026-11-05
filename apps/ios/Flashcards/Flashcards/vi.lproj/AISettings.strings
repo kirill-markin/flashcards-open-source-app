@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Biến Nibomo thành **của riêng bạn**.";
 "premium.offer.free" = "Miễn phí";
-"premium.offer.freeDescription" = "Được tạo cho sinh viên chưa có việc làm. Chào đón tất cả mọi người. Ba lô của bạn vừa nhẹ hơn rồi.";
+"premium.offer.freeDescription" = "Được tạo cho sinh viên chưa có việc làm. Chào đón tất cả mọi người.";
 "premium.offer.freeBenefits" = "Ôn tập cơ bản, học ngoại tuyến và đồng bộ";
 "premium.offer.monthlyAI" = "%@ tin nhắn trò chuyện AI mỗi tháng";
 "premium.offer.supportsCreator" = "Ủng hộ người tạo ra ứng dụng";
 "premium.offer.accentColor" = "Bất kỳ màu nhấn nào";
-"premium.offer.reviewAnimations" = "Bật hoặc tắt hiệu ứng ôn tập";
+"premium.offer.themes" = "Chủ đề tối và sáng";
+"premium.offer.reviewAnimations" = "Kiểm soát hiệu ứng ôn tập";
 "premium.offer.appIcon" = "Biểu tượng ứng dụng tùy chỉnh";
 "premium.offer.startSevenDayTrial" = "Bắt đầu dùng thử miễn phí 7 ngày";
 "premium.offer.subscribeWithPrice" = "Đăng ký — %@";
 "premium.offer.noCreatorSupport" = "Không ủng hộ người tạo ra ứng dụng";
 "premium.offer.limitedAI" = "Trò chuyện AI có giới hạn";
 "premium.offer.defaultStylesOnly" = "Chỉ kiểu mặc định";
-"premium.offer.notNow" = "Để sau";
+"premium.offer.noOtherPremiumFeatures" = "Không có tính năng Premium nào khác";
+"premium.offer.dontPayCreator" = "Không trả tiền cho người tạo ra ứng dụng";
 "premium.offer.unlimitedAI" = "Tin nhắn AI không giới hạn theo tháng";
 "premium.offer.creatorSupport" = "Gói đăng ký của bạn giúp người tạo ra Nibomo, [Kirill Markin](https://kirill-markin.com/), trả phí máy chủ và chuẩn bị bản cập nhật tiếp theo với cà phê và pizza.";
 "premium.offer.previewPurchaseMessage" = "Đây là bản xem trước thử nghiệm. Sẽ không có giao dịch mua nào được thực hiện.";

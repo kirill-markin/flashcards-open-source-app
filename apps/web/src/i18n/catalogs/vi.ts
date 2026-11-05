@@ -25,17 +25,19 @@ const viCatalog: TranslationCatalog = {
   paywall: {
     heading: "Biến Nibomo thành <em>của riêng bạn</em>.",
     freeTitle: "Miễn phí",
-    freeDescription: "Được tạo cho sinh viên chưa có việc làm. Mở cửa cho tất cả. Ba lô của bạn vừa nhẹ đi một chút.",
+    freeDescription: "Được tạo cho sinh viên chưa có việc làm. Mở cửa cho tất cả.",
     freeBenefit: "Ôn tập cơ bản, học ngoại tuyến và đồng bộ",
     noCreatorSupport: "Không ủng hộ người tạo ra ứng dụng",
     limitedAi: "Trò chuyện AI có giới hạn",
     defaultStyles: "Chỉ kiểu mặc định",
-    notNow: "Để sau",
+    noOtherPremiumFeatures: "Không có tính năng Premium nào khác",
+    dontPayCreator: "Không trả tiền cho người tạo ra ứng dụng",
     creatorSupport: "Gói đăng ký của bạn giúp người tạo ra Nibomo, {{creator}}, trả phí máy chủ và chuẩn bị bản cập nhật tiếp theo cùng cà phê và pizza.",
     monthlyPrice: "{{price}} / tháng",
     supportsCreator: "Ủng hộ người tạo ra ứng dụng",
     accentColorBenefit: "Mọi màu nhấn",
-    reviewAnimationsBenefit: "Bật hoặc tắt hoạt ảnh khi ôn tập",
+    themesBenefit: "Chủ đề tối và sáng",
+    reviewAnimationsBenefit: "Điều chỉnh hoạt ảnh khi ôn tập",
     appIconBenefit: "Biểu tượng ứng dụng tùy chỉnh",
     startTrial: "Bắt đầu dùng thử miễn phí 7 ngày",
     subscribe: "Đăng ký — {{price}}",
@@ -132,7 +134,6 @@ const viCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Tắt",
     on: "Bật",
-    open: "Mở",
     perAction: "Theo từng thao tác",
     refresh: "Làm mới",
     retry: "Thử lại",
@@ -213,6 +214,7 @@ const viCatalog: TranslationCatalog = {
     aiChat: "Trò chuyện AI",
     progress: "Tiến độ",
     cards: "Thẻ",
+    library: "Thư viện",
     settings: "Cài đặt",
   },
   shell: {
@@ -758,24 +760,39 @@ const viCatalog: TranslationCatalog = {
       resetAll: "Đặt lại trạng thái của mọi lời nhắc",
     },
   },
+  libraryScreen: {
+    title: "Thư viện",
+    groups: {
+      importExport: "Nhập và xuất",
+    },
+    cards: {
+      description: "Mọi thẻ trong không gian làm việc này.",
+    },
+    tags: {
+      description: "Mọi nhãn được dùng trên ít nhất một thẻ.",
+    },
+    decks: {
+      description: "Bộ lọc thẻ đã lưu để ôn tập tập trung.",
+    },
+    import: {
+      description: "Thêm thẻ từ tệp.",
+    },
+    export: {
+      description: "Tải tất cả thẻ của bạn về dưới dạng tệp.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Bộ thẻ",
-      description: "Tạo, chỉnh sửa và xem các phạm vi học dùng lại được.",
     },
     tags: {
       title: "Nhãn",
-      description: "Xem mức sử dụng nhãn và số thẻ trên toàn không gian làm việc.",
     },
     export: {
       title: "Xuất",
-      description: "Tải thẻ đang hoạt động trong không gian làm việc này về dưới dạng gói flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Nhập",
-      description: "Dán thuật ngữ và định nghĩa hoặc nhập một gói Nibomo.",
-      value: "Văn bản hoặc ZIP",
     },
     resetProgress: {
       title: "Đặt lại tiến độ học",

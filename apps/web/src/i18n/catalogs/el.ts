@@ -25,17 +25,19 @@ const elCatalog: TranslationCatalog = {
   paywall: {
     heading: "Κάντε το Nibomo <em>δικό σας</em>.",
     freeTitle: "Δωρεάν",
-    freeDescription: "Δημιουργήθηκε για φοιτητές χωρίς δουλειά. Ανοιχτό σε όλους. Το σακίδιό σου μόλις έγινε ελαφρύτερο.",
+    freeDescription: "Δημιουργήθηκε για φοιτητές χωρίς δουλειά. Ανοιχτό σε όλους.",
     freeBenefit: "Βασικές επαναλήψεις, μάθηση εκτός σύνδεσης και συγχρονισμός",
     noCreatorSupport: "Δεν στηρίζει τον δημιουργό της εφαρμογής",
     limitedAi: "Περιορισμένη συνομιλία AI",
     defaultStyles: "Μόνο προεπιλεγμένα στιλ",
-    notNow: "Όχι τώρα",
+    noOtherPremiumFeatures: "Καμία άλλη λειτουργία Premium",
+    dontPayCreator: "Μην πληρώσεις τον δημιουργό της εφαρμογής",
     creatorSupport: "Η συνδρομή σου βοηθά τον δημιουργό του Nibomo, {{creator}}, να πληρώνει τους διακομιστές και να ετοιμάζει την επόμενη ενημέρωση με καφέ και πίτσα.",
     monthlyPrice: "{{price}} / μήνα",
     supportsCreator: "Στηρίζει τον δημιουργό της εφαρμογής",
     accentColorBenefit: "Οποιοδήποτε χρώμα έμφασης",
-    reviewAnimationsBenefit: "Κινούμενα σχέδια επανάληψης ενεργά ή ανενεργά",
+    themesBenefit: "Σκούρο και φωτεινό θέμα",
+    reviewAnimationsBenefit: "Έλεγχος κινούμενων σχεδίων επανάληψης",
     appIconBenefit: "Προσαρμοσμένο εικονίδιο εφαρμογής",
     startTrial: "Έναρξη δωρεάν δοκιμής 7 ημερών",
     subscribe: "Εγγραφή σε συνδρομή — {{price}}",
@@ -132,7 +134,6 @@ const elCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Ανενεργό",
     on: "Ενεργό",
-    open: "Άνοιγμα",
     perAction: "Ανά ενέργεια",
     refresh: "Ανανέωση",
     retry: "Δοκιμή ξανά",
@@ -213,6 +214,7 @@ const elCatalog: TranslationCatalog = {
     aiChat: "Συνομιλία ΤΝ",
     progress: "Πρόοδος",
     cards: "Κάρτες",
+    library: "Βιβλιοθήκη",
     settings: "Ρυθμίσεις",
   },
   shell: {
@@ -758,24 +760,39 @@ const elCatalog: TranslationCatalog = {
       resetAll: "Επαναφορά κατάστασης όλων των προτροπών",
     },
   },
+  libraryScreen: {
+    title: "Βιβλιοθήκη",
+    groups: {
+      importExport: "Εισαγωγή και εξαγωγή",
+    },
+    cards: {
+      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
+    },
+    tags: {
+      description: "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα.",
+    },
+    decks: {
+      description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
+    },
+    import: {
+      description: "Προσθέστε κάρτες από αρχείο.",
+    },
+    export: {
+      description: "Κατεβάστε όλες τις κάρτες σας ως αρχείο.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Δέσμες",
-      description: "Δημιουργήστε, επεξεργαστείτε και επαναλάβετε επαναχρησιμοποιήσιμα σύνολα μελέτης.",
     },
     tags: {
       title: "Ετικέτες",
-      description: "Δείτε τη χρήση των ετικετών και τον αριθμό καρτών σε όλον τον χώρο εργασίας.",
     },
     export: {
       title: "Εξαγωγή",
-      description: "Κατεβάστε τις ενεργές κάρτες αυτού του χώρου εργασίας ως φορητό πακέτο flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Εισαγωγή",
-      description: "Επικολλήστε όρους και ορισμούς ή εισαγάγετε ένα πακέτο Nibomo.",
-      value: "Κείμενο ή ZIP",
     },
     resetProgress: {
       title: "Μηδενισμός προόδου μελέτης",

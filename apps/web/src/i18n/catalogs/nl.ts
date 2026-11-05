@@ -25,17 +25,19 @@ const nlCatalog: TranslationCatalog = {
   paywall: {
     heading: "Maak Nibomo <em>helemaal van jou</em>.",
     freeTitle: "Gratis",
-    freeDescription: "Gemaakt voor studenten zonder baan. Voor iedereen toegankelijk. Je rugzak is zojuist lichter geworden.",
+    freeDescription: "Gemaakt voor studenten zonder baan. Voor iedereen toegankelijk.",
     freeBenefit: "Basisherhalingen, offline leren en synchronisatie",
     noCreatorSupport: "Steunt de maker van de app niet",
     limitedAi: "Beperkte AI-chat",
     defaultStyles: "Alleen standaardstijlen",
-    notNow: "Niet nu",
+    noOtherPremiumFeatures: "Geen andere Premium-functies",
+    dontPayCreator: "Betaal de maker van de app niet",
     creatorSupport: "Je abonnement helpt de maker van Nibomo, {{creator}}, de servers te betalen en met koffie en pizza aan de volgende update te werken.",
     monthlyPrice: "{{price}} / maand",
     supportsCreator: "Steunt de maker van de app",
     accentColorBenefit: "Elke accentkleur",
-    reviewAnimationsBenefit: "Herhalingsanimaties aan of uit",
+    themesBenefit: "Donker en licht thema",
+    reviewAnimationsBenefit: "Controle over herhalingsanimaties",
     appIconBenefit: "Eigen app-icoon",
     startTrial: "Start een gratis proefperiode van 7 dagen",
     subscribe: "Abonneren — {{price}}",
@@ -132,7 +134,6 @@ const nlCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Uit",
     on: "Aan",
-    open: "Openen",
     perAction: "Per actie",
     refresh: "Vernieuwen",
     retry: "Opnieuw proberen",
@@ -213,6 +214,7 @@ const nlCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Voortgang",
     cards: "Kaarten",
+    library: "Bibliotheek",
     settings: "Instellingen",
   },
   shell: {
@@ -758,24 +760,39 @@ const nlCatalog: TranslationCatalog = {
       resetAll: "Status van alle meldingen resetten",
     },
   },
+  libraryScreen: {
+    title: "Bibliotheek",
+    groups: {
+      importExport: "Importeren en exporteren",
+    },
+    cards: {
+      description: "Alle kaarten in deze werkruimte.",
+    },
+    tags: {
+      description: "Alle tags die op minstens één kaart worden gebruikt.",
+    },
+    decks: {
+      description: "Opgeslagen kaartfilters om gericht te herhalen.",
+    },
+    import: {
+      description: "Voeg kaarten toe uit een bestand.",
+    },
+    export: {
+      description: "Download al je kaarten als bestand.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Decks",
-      description: "Maak, bewerk en bekijk herbruikbare leerselecties.",
     },
     tags: {
       title: "Tags",
-      description: "Bekijk het taggebruik en het aantal kaarten in de hele werkruimte.",
     },
     export: {
       title: "Exporteren",
-      description: "Download de actieve kaarten uit deze werkruimte als een overdraagbaar flashcards.zip-pakket.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importeren",
-      description: "Plak termen en definities of importeer een Nibomo-pakket.",
-      value: "Tekst of ZIP",
     },
     resetProgress: {
       title: "Leervoortgang resetten",

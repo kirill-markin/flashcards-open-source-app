@@ -25,17 +25,19 @@ export const jaCatalog = {
   paywall: {
     heading: "Nibomo を、<em>あなたらしく</em>。",
     freeTitle: "無料",
-    freeDescription: "仕事をしていない学生のために。誰もが使えます。リュックが少し軽くなりました。",
+    freeDescription: "仕事をしていない学生のために。誰もが使えます。",
     freeBenefit: "基本の復習、オフライン学習と同期",
     noCreatorSupport: "アプリの作者を支援しない",
     limitedAi: "AIチャットに制限あり",
     defaultStyles: "標準スタイルのみ",
-    notNow: "今はしない",
+    noOtherPremiumFeatures: "その他のPremium機能なし",
+    dontPayCreator: "アプリの作者に支払わない",
     creatorSupport: "サブスクリプションは Nibomo の作者 {{creator}} のサーバー代を支え、コーヒーとピザで次のアップデートを後押しします。",
     monthlyPrice: "{{price}} / 月",
     supportsCreator: "アプリの作者を支援",
     accentColorBenefit: "好きなアクセントカラー",
-    reviewAnimationsBenefit: "復習アニメーションのオン／オフ",
+    themesBenefit: "ダークテーマとライトテーマ",
+    reviewAnimationsBenefit: "復習アニメーションの設定",
     appIconBenefit: "アプリアイコンのカスタマイズ",
     startTrial: "7日間の無料体験を始める",
     subscribe: "サブスクリプションに登録 — {{price}}",
@@ -132,7 +134,6 @@ export const jaCatalog = {
     ok: "OK",
     off: "オフ",
     on: "オン",
-    open: "開く",
     perAction: "操作ごと",
     refresh: "更新",
     retry: "再試行",
@@ -213,6 +214,7 @@ export const jaCatalog = {
     aiChat: "AIチャット",
     progress: "進捗",
     cards: "カード",
+    library: "ライブラリ",
     settings: "設定",
   },
   shell: {
@@ -758,24 +760,39 @@ export const jaCatalog = {
       resetAll: "すべてのプロンプトの状態をリセット",
     },
   },
+  libraryScreen: {
+    title: "ライブラリ",
+    groups: {
+      importExport: "インポートとエクスポート",
+    },
+    cards: {
+      description: "このワークスペースのすべてのカード。",
+    },
+    tags: {
+      description: "1枚以上のカードで使われているすべてのタグ。",
+    },
+    decks: {
+      description: "集中して復習するための保存済みカードフィルター。",
+    },
+    import: {
+      description: "ファイルからカードを追加します。",
+    },
+    export: {
+      description: "すべてのカードをファイルとしてダウンロードします。",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "デッキ",
-      description: "再利用できる学習範囲を作成、編集、確認します。",
     },
     tags: {
       title: "タグ",
-      description: "ワークスペース全体のタグ利用状況とカード数を確認します。",
     },
     export: {
       title: "エクスポート",
-      description: "このワークスペースの有効なカードをポータブルな flashcards.zip パッケージとしてダウンロードします。",
-      value: "flashcards.zip",
     },
     import: {
       title: "インポート",
-      description: "用語と定義を貼り付けるか、Nibomo パッケージをインポートします。",
-      value: "テキストまたは ZIP",
     },
     resetProgress: {
       title: "学習進捗をリセット",

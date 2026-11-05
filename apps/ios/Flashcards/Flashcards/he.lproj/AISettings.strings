@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "להפוך את Nibomo **לשלך**.";
 "premium.offer.free" = "חינם";
-"premium.offer.freeDescription" = "נוצר לסטודנטים ללא עבודה. פתוח לכולם. התרמיל שלך נעשה קל יותר.";
+"premium.offer.freeDescription" = "נוצר לסטודנטים ללא עבודה. פתוח לכולם.";
 "premium.offer.freeBenefits" = "חזרות בסיסיות, למידה ללא חיבור וסנכרון";
 "premium.offer.monthlyAI" = "%@ הודעות צ׳אט AI בחודש";
 "premium.offer.supportsCreator" = "תומך ביוצר האפליקציה";
 "premium.offer.accentColor" = "כל צבע הדגשה";
-"premium.offer.reviewAnimations" = "הנפשות חזרה: מופעלות או מושבתות";
+"premium.offer.themes" = "ערכות נושא כהה ובהירה";
+"premium.offer.reviewAnimations" = "שליטה בהנפשות חזרה";
 "premium.offer.appIcon" = "סמל אפליקציה מותאם אישית";
 "premium.offer.startSevenDayTrial" = "התחלת ניסיון חינם ל-7 ימים";
 "premium.offer.subscribeWithPrice" = "להירשם למינוי — %@";
 "premium.offer.noCreatorSupport" = "לא תומך ביוצר האפליקציה";
 "premium.offer.limitedAI" = "צ׳אט AI מוגבל";
 "premium.offer.defaultStylesOnly" = "סגנונות ברירת מחדל בלבד";
-"premium.offer.notNow" = "לא עכשיו";
+"premium.offer.noOtherPremiumFeatures" = "ללא תכונות Premium נוספות";
+"premium.offer.dontPayCreator" = "לא לשלם ליוצר האפליקציה";
 "premium.offer.unlimitedAI" = "הודעות AI ללא מכסה חודשית";
 "premium.offer.creatorSupport" = "המינוי שלך עוזר ליוצר Nibomo, [Kirill Markin](https://kirill-markin.com/), לשלם על השרתים ולהכין את העדכון הבא עם קפה ופיצה.";
 "premium.offer.previewPurchaseMessage" = "זוהי תצוגה מקדימה לבדיקה. לא תתבצע רכישה.";

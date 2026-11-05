@@ -25,17 +25,19 @@ const caCatalog: TranslationCatalog = {
   paywall: {
     heading: "Fes <em>teu</em> Nibomo.",
     freeTitle: "Gratuït",
-    freeDescription: "Creat per a estudiants sense feina. Obert a tothom. La teva motxilla s’acaba d’alleugerir.",
+    freeDescription: "Creat per a estudiants sense feina. Obert a tothom.",
     freeBenefit: "Repassos essencials, aprenentatge sense connexió i sincronització",
     noCreatorSupport: "No dona suport al creador de l’app",
     limitedAi: "Xat amb IA limitat",
     defaultStyles: "Només estils predeterminats",
-    notNow: "Ara no",
+    noOtherPremiumFeatures: "Sense altres funcions Premium",
+    dontPayCreator: "No paguis al creador de l’app",
     creatorSupport: "La teva subscripció ajuda el creador de Nibomo, {{creator}}, a pagar els servidors i preparar la pròxima actualització amb cafè i pizza.",
     monthlyPrice: "{{price}} / mes",
     supportsCreator: "Dona suport al creador de l’app",
     accentColorBenefit: "Qualsevol color d’accent",
-    reviewAnimationsBenefit: "Animacions de repàs activades o desactivades",
+    themesBenefit: "Temes fosc i clar",
+    reviewAnimationsBenefit: "Control de les animacions de repàs",
     appIconBenefit: "Icona de l’app personalitzada",
     startTrial: "Comença la prova gratuïta de 7 dies",
     subscribe: "Subscriu-t’hi — {{price}}",
@@ -132,7 +134,6 @@ const caCatalog: TranslationCatalog = {
     ok: "D'acord",
     off: "Desactivat",
     on: "Activat",
-    open: "Obre",
     perAction: "Per acció",
     refresh: "Actualitza",
     retry: "Torna-ho a provar",
@@ -213,6 +214,7 @@ const caCatalog: TranslationCatalog = {
     aiChat: "Xat d'IA",
     progress: "Progrés",
     cards: "Targetes",
+    library: "Biblioteca",
     settings: "Configuració",
   },
   shell: {
@@ -758,24 +760,39 @@ const caCatalog: TranslationCatalog = {
       resetAll: "Restableix l'estat de tots els avisos",
     },
   },
+  libraryScreen: {
+    title: "Biblioteca",
+    groups: {
+      importExport: "Importació i exportació",
+    },
+    cards: {
+      description: "Totes les targetes d'aquest espai de treball.",
+    },
+    tags: {
+      description: "Totes les etiquetes usades en almenys una targeta.",
+    },
+    decks: {
+      description: "Filtres de targetes desats per a un repàs centrat.",
+    },
+    import: {
+      description: "Afegeix targetes des d'un fitxer.",
+    },
+    export: {
+      description: "Descarrega totes les teves targetes en un fitxer.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Baralles",
-      description: "Crea, edita i repassa àmbits d'estudi reutilitzables.",
     },
     tags: {
       title: "Etiquetes",
-      description: "Consulta l'ús de les etiquetes i el recompte de targetes de tot l'espai de treball.",
     },
     export: {
       title: "Exporta",
-      description: "Descarrega les targetes actives d'aquest espai de treball com un paquet portàtil flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importa",
-      description: "Enganxa termes i definicions o importa un paquet de Nibomo.",
-      value: "Text o ZIP",
     },
     resetProgress: {
       title: "Restableix el progrés de l'estudi",

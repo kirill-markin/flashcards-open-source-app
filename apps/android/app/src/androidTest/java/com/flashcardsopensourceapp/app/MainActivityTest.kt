@@ -32,7 +32,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.navigation.AiDestination
-import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.support.AppStateResetRule
@@ -48,6 +48,12 @@ import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
+import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryDecksRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryExportRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryImportRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryScreenTag
+import com.flashcardsopensourceapp.feature.cards.libraryTagsRowTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
@@ -69,14 +75,10 @@ import com.flashcardsopensourceapp.feature.settings.settingsAccessRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.workspaceExportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportPreviewButtonTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerApplyButtonTag
@@ -107,7 +109,7 @@ import org.junit.runner.RunWith
 class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     companion object {
         private const val uiTimeoutMillis: Long = 20_000L
-        private const val settingsBackStackPopLimit: Int = 6
+        private const val backStackPopLimit: Int = 6
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
     }
 
@@ -333,7 +335,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         val matchingCardFrontText: String = "SQLite note"
         val matchingCardId: String = requireCardId(frontText = matchingCardFrontText)
 
-        openSettingsRow(rowTag = settingsDecksRowTag)
+        openLibraryRow(rowTag = libraryDecksRowTag)
 
         composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_decks_add_content_description)).performClick()
         waitForTagToExist(tag = deckEditorScreenTag)
@@ -356,7 +358,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
         createCardsForWorkspaceSettingsFlows()
 
-        openSettingsRow(rowTag = settingsTagsRowTag)
+        openLibraryRow(rowTag = libraryTagsRowTag)
         waitForWorkspaceTagsScreen()
         composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performClick()
         composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performTextReplacement("ui")
@@ -473,7 +475,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceExportShowsPackagePreviewFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsRow(rowTag = settingsExportRowTag, destinationTag = workspaceExportScreenTag)
+        openLibraryRow(rowTag = libraryExportRowTag, destinationTag = workspaceExportScreenTag)
         waitForTagToExist(tag = workspacePackageExportPreviewButtonTag)
         composeRule.onNodeWithTag(workspacePackageExportPreviewButtonTag).assertIsNotEnabled()
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_package_cloud_required))
@@ -483,7 +485,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceImportShowsCloudRequiredStateFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsRow(rowTag = settingsImportRowTag, destinationTag = workspaceImportScreenTag)
+        openLibraryRow(rowTag = libraryImportRowTag, destinationTag = workspaceImportScreenTag)
         waitForTagToExist(tag = workspaceImportChooseFileButtonTag)
         composeRule.onNodeWithTag(workspaceImportChooseFileButtonTag).assertIsNotEnabled()
         waitForTextToExist(text = settingsString(SettingsR.string.settings_import_cloud_required))
@@ -845,7 +847,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun openCardsTab() {
-        openTopLevelDestination(destinationTag = CardsDestination.testTag)
+        openLibraryRow(rowTag = libraryCardsRowTag)
     }
 
     private fun openReviewTab() {
@@ -889,31 +891,37 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun openSettingsTab() {
         openTopLevelDestination(destinationTag = SettingsDestination.testTag)
-        waitForSettingsRoot()
+        popBackToScreen(screenTag = settingsRootScreenTag)
+    }
+
+    private fun openLibraryTab() {
+        openTopLevelDestination(destinationTag = LibraryDestination.testTag)
+        popBackToScreen(screenTag = libraryScreenTag)
     }
 
     private fun openTopLevelDestination(destinationTag: String) {
         composeRule.onNodeWithTag(testTag = destinationTag).performClick()
     }
 
-    private fun waitForSettingsRoot() {
-        repeat(settingsBackStackPopLimit) {
+    /** A re-selected tab restores its back stack, so the tab's root may sit under sub-screens. */
+    private fun popBackToScreen(screenTag: String) {
+        repeat(backStackPopLimit) {
             composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-                isSettingsRootVisible() || isSettingsBackButtonVisible()
+                isScreenVisible(screenTag = screenTag) || isSettingsBackButtonVisible()
             }
-            if (isSettingsRootVisible()) {
+            if (isScreenVisible(screenTag = screenTag)) {
                 return
             }
             tapSettingsBackButton()
             composeRule.waitForIdle()
         }
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            isSettingsRootVisible()
+            isScreenVisible(screenTag = screenTag)
         }
     }
 
-    private fun isSettingsRootVisible(): Boolean {
-        return composeRule.onAllNodesWithTag(testTag = settingsRootScreenTag).fetchSemanticsNodes().isNotEmpty()
+    private fun isScreenVisible(screenTag: String): Boolean {
+        return composeRule.onAllNodesWithTag(testTag = screenTag).fetchSemanticsNodes().isNotEmpty()
     }
 
     private fun isSettingsBackButtonVisible(): Boolean {
@@ -972,6 +980,16 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun openSettingsRow(rowTag: String, destinationTag: String) {
         openSettingsRow(rowTag = rowTag)
+        waitForTagToExist(tag = destinationTag)
+    }
+
+    private fun openLibraryRow(rowTag: String) {
+        openLibraryTab()
+        openScrollableRow(containerTag = libraryScreenTag, rowTag = rowTag)
+    }
+
+    private fun openLibraryRow(rowTag: String, destinationTag: String) {
+        openLibraryRow(rowTag = rowTag)
         waitForTagToExist(tag = destinationTag)
     }
 

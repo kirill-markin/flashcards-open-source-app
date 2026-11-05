@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "اجعل Nibomo **خاصًا بك**.";
 "premium.offer.free" = "مجاني";
-"premium.offer.freeDescription" = "صُمّم للطلاب الذين لا يعملون. متاح للجميع. أصبحت حقيبتك أخفّ.";
+"premium.offer.freeDescription" = "صُمّم للطلاب الذين لا يعملون. متاح للجميع.";
 "premium.offer.freeBenefits" = "المراجعات الأساسية والتعلّم بلا اتصال والمزامنة";
 "premium.offer.monthlyAI" = "%@ رسالة في دردشة الذكاء الاصطناعي شهريًا";
 "premium.offer.supportsCreator" = "يدعم صانع التطبيق";
 "premium.offer.accentColor" = "أي لون تمييز";
-"premium.offer.reviewAnimations" = "رسوم المراجعة المتحركة: تشغيل أو إيقاف";
+"premium.offer.themes" = "السمتان الداكنة والفاتحة";
+"premium.offer.reviewAnimations" = "التحكم في رسوم المراجعة المتحركة";
 "premium.offer.appIcon" = "أيقونة تطبيق مخصّصة";
 "premium.offer.startSevenDayTrial" = "بدء تجربة مجانية لمدة 7 أيام";
 "premium.offer.subscribeWithPrice" = "اشتراك — %@";
 "premium.offer.noCreatorSupport" = "لا يدعم صانع التطبيق";
 "premium.offer.limitedAI" = "دردشة ذكاء اصطناعي محدودة";
 "premium.offer.defaultStylesOnly" = "الأنماط الافتراضية فقط";
-"premium.offer.notNow" = "ليس الآن";
+"premium.offer.noOtherPremiumFeatures" = "لا توجد ميزات Premium أخرى";
+"premium.offer.dontPayCreator" = "لا تدفع لصانع التطبيق";
 "premium.offer.unlimitedAI" = "رسائل ذكاء اصطناعي بلا حد شهري";
 "premium.offer.creatorSupport" = "يساعد اشتراكك مبتكر Nibomo، [Kirill Markin](https://kirill-markin.com/)، على دفع تكاليف الخوادم وإعداد التحديث القادم مع القهوة والبيتزا.";
 "premium.offer.previewPurchaseMessage" = "هذه معاينة تجريبية. لن تُجرى أي عملية شراء.";

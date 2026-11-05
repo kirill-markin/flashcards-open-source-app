@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Jadikan Nibomo **milikmu**.";
 "premium.offer.free" = "Gratis";
-"premium.offer.freeDescription" = "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua. Tasmu kini lebih ringan.";
+"premium.offer.freeDescription" = "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua.";
 "premium.offer.freeBenefits" = "Ulasan inti, belajar offline & sinkronisasi";
 "premium.offer.monthlyAI" = "%@ pesan obrolan AI per bulan";
 "premium.offer.supportsCreator" = "Mendukung pembuat aplikasi";
 "premium.offer.accentColor" = "Warna aksen apa pun";
-"premium.offer.reviewAnimations" = "Animasi pengulangan: aktif atau nonaktif";
+"premium.offer.themes" = "Tema gelap dan terang";
+"premium.offer.reviewAnimations" = "Kontrol animasi pengulangan";
 "premium.offer.appIcon" = "Ikon aplikasi khusus";
 "premium.offer.startSevenDayTrial" = "Mulai uji coba gratis 7 hari";
 "premium.offer.subscribeWithPrice" = "Berlangganan — %@";
 "premium.offer.noCreatorSupport" = "Tidak mendukung pembuat aplikasi";
 "premium.offer.limitedAI" = "Obrolan AI terbatas";
 "premium.offer.defaultStylesOnly" = "Hanya gaya bawaan";
-"premium.offer.notNow" = "Lain kali";
+"premium.offer.noOtherPremiumFeatures" = "Tanpa fitur Premium lainnya";
+"premium.offer.dontPayCreator" = "Jangan bayar pembuat aplikasi";
 "premium.offer.unlimitedAI" = "Pesan AI tanpa batas bulanan";
 "premium.offer.creatorSupport" = "Langgananmu membantu pembuat Nibomo, [Kirill Markin](https://kirill-markin.com/), membayar server dan menyiapkan pembaruan berikutnya dengan kopi dan pizza.";
 "premium.offer.previewPurchaseMessage" = "Ini adalah pratinjau uji coba. Tidak ada pembelian yang akan dilakukan.";

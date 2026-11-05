@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "Deixe o Nibomo **com a sua cara**.";
 "premium.offer.free" = "Grátis";
-"premium.offer.freeDescription" = "Criado para estudantes sem emprego. Aberto a todos. Sua mochila acabou de ficar mais leve.";
+"premium.offer.freeDescription" = "Criado para estudantes sem emprego. Aberto a todos.";
 "premium.offer.freeBenefits" = "Revisões essenciais, estudo offline e sincronização";
 "premium.offer.monthlyAI" = "%@ mensagens no chat com IA por mês";
 "premium.offer.supportsCreator" = "Apoia o criador do app";
 "premium.offer.accentColor" = "Qualquer cor de destaque";
-"premium.offer.reviewAnimations" = "Animações de revisão: ativadas ou desativadas";
+"premium.offer.themes" = "Temas escuro e claro";
+"premium.offer.reviewAnimations" = "Controle das animações de revisão";
 "premium.offer.appIcon" = "Ícone do app personalizado";
 "premium.offer.startSevenDayTrial" = "Iniciar teste grátis de 7 dias";
 "premium.offer.subscribeWithPrice" = "Assinar — %@";
 "premium.offer.noCreatorSupport" = "Não apoia o criador do app";
 "premium.offer.limitedAI" = "Chat com IA limitado";
 "premium.offer.defaultStylesOnly" = "Somente estilos padrão";
-"premium.offer.notNow" = "Agora não";
+"premium.offer.noOtherPremiumFeatures" = "Sem outros recursos Premium";
+"premium.offer.dontPayCreator" = "Não pague o criador do app";
 "premium.offer.unlimitedAI" = "Mensagens de IA sem limite mensal";
 "premium.offer.creatorSupport" = "Sua assinatura ajuda o criador do Nibomo, [Kirill Markin](https://kirill-markin.com/), a pagar os servidores e preparar a próxima atualização com café e pizza.";
 "premium.offer.previewPurchaseMessage" = "Esta é uma prévia de teste. Nenhuma compra será realizada.";

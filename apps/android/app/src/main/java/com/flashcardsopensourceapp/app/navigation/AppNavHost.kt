@@ -13,7 +13,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.navigation.ai.registerAiNavGraph
-import com.flashcardsopensourceapp.app.navigation.cards.registerCardsNavGraph
+import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
+import com.flashcardsopensourceapp.app.navigation.cards.registerCardEditorNavGraph
+import com.flashcardsopensourceapp.app.navigation.library.LibraryCardsDestination
+import com.flashcardsopensourceapp.app.navigation.library.registerLibraryNavGraph
 import com.flashcardsopensourceapp.app.navigation.progress.registerProgressNavGraph
 import com.flashcardsopensourceapp.app.navigation.review.ReviewPreviewDestination
 import com.flashcardsopensourceapp.app.navigation.review.ReviewRootGraph
@@ -45,7 +48,7 @@ internal fun AppNavHost(
     val isPowerSaveModeState: State<Boolean> = rememberUpdatedState(newValue = isPowerSaveMode)
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
     val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
-    val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
+    val libraryNavigationRequest by appGraph.appHandoffCoordinator.observeLibraryNavigation().collectAsStateWithLifecycle()
     val packageInfo = appGraph.appPackageInfo
 
     LaunchedEffect(cardEditorRequest?.requestId) {
@@ -101,13 +104,13 @@ internal fun AppNavHost(
         consumeReviewWidgetTap(request.requestId)
     }
 
-    LaunchedEffect(settingsNavigationRequest?.requestId) {
-        val request = settingsNavigationRequest ?: return@LaunchedEffect
-        navigateToSettingsNavigationTarget(
+    LaunchedEffect(libraryNavigationRequest?.requestId) {
+        val request = libraryNavigationRequest ?: return@LaunchedEffect
+        navigateToLibraryNavigationTarget(
             navController = navController,
             target = request.target
         )
-        appGraph.appHandoffCoordinator.consumeSettingsNavigation(requestId = request.requestId)
+        appGraph.appHandoffCoordinator.consumeLibraryNavigation(requestId = request.requestId)
     }
 
     NavHost(
@@ -120,7 +123,12 @@ internal fun AppNavHost(
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
             reviewReactionAnimationsEnabledState = reviewReactionAnimationsEnabledState
         )
-        registerCardsNavGraph(
+        registerLibraryNavGraph(
+            appGraph = appGraph,
+            navController = navController,
+            coroutineScope = coroutineScope
+        )
+        registerCardEditorNavGraph(
             appGraph = appGraph,
             navController = navController,
             coroutineScope = coroutineScope
@@ -152,7 +160,9 @@ fun currentTopLevelDestination(navController: NavHostController): TopLevelDestin
 
     return when {
         route == null -> ReviewDestination
-        route.isWithinTopLevelDestination(destination = CardsDestination) -> CardsDestination
+        // The card editor lives outside the Library graph so any tab can push it, yet it belongs to Library.
+        route.isWithinTopLevelDestination(destination = LibraryDestination) ||
+            route.isWithinRoutePrefix(routePrefix = CardEditorGraph.routePrefix) -> LibraryDestination
         route.isWithinTopLevelDestination(destination = AiDestination) -> AiDestination
         route.isWithinTopLevelDestination(destination = ProgressDestination) -> ProgressDestination
         route.isWithinTopLevelDestination(destination = SettingsDestination) -> SettingsDestination
@@ -169,7 +179,7 @@ fun currentVisibleAppScreen(navController: NavHostController): VisibleAppScreen 
         route == null -> VisibleAppScreen.OTHER
         route == ReviewDestination.route || route == ReviewPreviewDestination.route -> VisibleAppScreen.REVIEW
         route == ProgressDestination.route -> VisibleAppScreen.PROGRESS
-        route == CardsDestination.route -> VisibleAppScreen.CARDS
+        route == LibraryCardsDestination.route -> VisibleAppScreen.CARDS
         route == SettingsDestination.route -> VisibleAppScreen.SETTINGS_ROOT
         route == SettingsCurrentWorkspaceDestination.route -> VisibleAppScreen.SETTINGS_CURRENT_WORKSPACE
         route == SettingsWorkspaceDeleteCurrentDestination.route -> VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW

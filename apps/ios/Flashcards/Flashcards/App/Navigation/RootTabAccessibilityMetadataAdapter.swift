@@ -40,7 +40,7 @@ struct RootTabAccessibilityMetadataAdapter: UIViewControllerRepresentable {
                 UITestIdentifier.rootTabReviewItem,
                 UITestIdentifier.rootTabProgressItem,
                 UITestIdentifier.rootTabAIItem,
-                UITestIdentifier.rootTabCardsItem,
+                UITestIdentifier.rootTabLibraryItem,
                 UITestIdentifier.rootTabSettingsItem
             ]
             guard UIDevice.current.userInterfaceIdiom == .phone,

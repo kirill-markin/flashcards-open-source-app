@@ -25,17 +25,19 @@ const faCatalog: TranslationCatalog = {
   paywall: {
     heading: "Nibomo را <em>از آنِ خود</em> کنید.",
     freeTitle: "رایگان",
-    freeDescription: "برای دانشجویان بدون شغل ساخته شده. در دسترس همه است. کوله‌پشتی‌ات کمی سبک‌تر شد.",
+    freeDescription: "برای دانشجویان بدون شغل ساخته شده. در دسترس همه است.",
     freeBenefit: "مرورهای پایه، یادگیری آفلاین و همگام‌سازی",
     noCreatorSupport: "از سازندهٔ برنامه حمایت نمی‌کند",
     limitedAi: "گفتگوی محدود با هوش مصنوعی",
     defaultStyles: "فقط سبک‌های پیش‌فرض",
-    notNow: "اکنون نه",
+    noOtherPremiumFeatures: "بدون سایر ویژگی‌های Premium",
+    dontPayCreator: "به سازندهٔ برنامه پول نده",
     creatorSupport: "اشتراک شما به سازندهٔ Nibomo، {{creator}}، کمک می‌کند هزینهٔ سرورها را بپردازد و با قهوه و پیتزا به‌روزرسانی بعدی را آماده کند.",
     monthlyPrice: "{{price}} / ماه",
     supportsCreator: "از سازندهٔ برنامه حمایت می‌کند",
     accentColorBenefit: "هر رنگ تأکیدی",
-    reviewAnimationsBenefit: "پویانمایی‌های مرور: روشن یا خاموش",
+    themesBenefit: "پوسته‌های تیره و روشن",
+    reviewAnimationsBenefit: "کنترل پویانمایی‌های مرور",
     appIconBenefit: "نماد سفارشی برنامه",
     startTrial: "شروع دورهٔ آزمایشی رایگان ۷ روزه",
     subscribe: "خرید اشتراک — {{price}}",
@@ -132,7 +134,6 @@ const faCatalog: TranslationCatalog = {
     ok: "تأیید",
     off: "خاموش",
     on: "روشن",
-    open: "باز کردن",
     perAction: "در هر اقدام",
     refresh: "به‌روزرسانی",
     retry: "تلاش دوباره",
@@ -213,6 +214,7 @@ const faCatalog: TranslationCatalog = {
     aiChat: "گفت‌وگوی هوش مصنوعی",
     progress: "پیشرفت",
     cards: "کارت‌ها",
+    library: "کتابخانه",
     settings: "تنظیمات",
   },
   shell: {
@@ -758,24 +760,39 @@ const faCatalog: TranslationCatalog = {
       resetAll: "بازنشانی وضعیت همه اعلان‌ها",
     },
   },
+  libraryScreen: {
+    title: "کتابخانه",
+    groups: {
+      importExport: "درون‌ریزی و برون‌بری",
+    },
+    cards: {
+      description: "همهٔ کارت‌های این فضای کاری.",
+    },
+    tags: {
+      description: "همهٔ برچسب‌هایی که دست‌کم روی یک کارت استفاده شده‌اند.",
+    },
+    decks: {
+      description: "فیلترهای ذخیره‌شدهٔ کارت برای مرور متمرکز.",
+    },
+    import: {
+      description: "کارت‌ها را از یک فایل اضافه کنید.",
+    },
+    export: {
+      description: "همهٔ کارت‌هایتان را به صورت یک فایل دریافت کنید.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "دسته‌ها",
-      description: "دامنه‌های مطالعهٔ قابل استفادهٔ دوباره را بسازید، ویرایش و مرور کنید.",
     },
     tags: {
       title: "برچسب‌ها",
-      description: "استفاده از برچسب‌ها و تعداد کارت‌ها را در کل فضای کاری بررسی کنید.",
     },
     export: {
       title: "برون‌بری",
-      description: "کارت‌های فعال این فضای کاری را به صورت بستهٔ قابل‌حمل flashcards.zip دریافت کنید.",
-      value: "flashcards.zip",
     },
     import: {
       title: "درون‌ریزی",
-      description: "اصطلاحات و تعریف‌ها را بچسبانید یا یک بستهٔ Nibomo درون‌ریزی کنید.",
-      value: "متن یا ZIP",
     },
     resetProgress: {
       title: "بازنشانی پیشرفت مطالعه",

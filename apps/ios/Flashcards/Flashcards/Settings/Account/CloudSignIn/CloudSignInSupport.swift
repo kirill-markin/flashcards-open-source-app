@@ -348,7 +348,7 @@ extension FlashcardsStore {
     private var cloudSignInReturnSurface: AnalyticsSurface {
         self.isCloudCredentialRecoveryGateActive
             ? .credentialRecovery
-            : analyticsSurface(tab: self.currentVisibleTab)
+            : self.currentVisibleAnalyticsSurface
     }
 
     private func trackCloudSignInFailed(reason: AnalyticsSignInFailureReason) {

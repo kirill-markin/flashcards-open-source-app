@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "Nibomo को **अपना** बनाएँ।";
 "premium.offer.free" = "मुफ़्त";
-"premium.offer.freeDescription" = "नौकरी न करने वाले छात्रों के लिए बनाया गया। सभी के लिए खुला। आपका बस्ता अब हल्का हो गया।";
+"premium.offer.freeDescription" = "नौकरी न करने वाले छात्रों के लिए बनाया गया। सभी के लिए खुला।";
 "premium.offer.freeBenefits" = "ज़रूरी दोहराव, ऑफ़लाइन पढ़ाई और सिंक";
 "premium.offer.monthlyAI" = "हर महीने %@ AI चैट संदेश";
 "premium.offer.supportsCreator" = "ऐप के निर्माता को सहयोग देता है";
 "premium.offer.accentColor" = "कोई भी एक्सेंट रंग";
-"premium.offer.reviewAnimations" = "समीक्षा एनिमेशन: चालू या बंद";
+"premium.offer.themes" = "डार्क और लाइट थीम";
+"premium.offer.reviewAnimations" = "समीक्षा एनिमेशन पर नियंत्रण";
 "premium.offer.appIcon" = "अपना ऐप आइकन";
 "premium.offer.startSevenDayTrial" = "7 दिन का मुफ़्त ट्रायल शुरू करें";
 "premium.offer.subscribeWithPrice" = "सदस्यता लें — %@";
 "premium.offer.noCreatorSupport" = "ऐप के निर्माता को सहयोग नहीं देता";
 "premium.offer.limitedAI" = "सीमित AI चैट";
 "premium.offer.defaultStylesOnly" = "केवल डिफ़ॉल्ट स्टाइल";
-"premium.offer.notNow" = "अभी नहीं";
+"premium.offer.noOtherPremiumFeatures" = "कोई अन्य Premium सुविधा नहीं";
+"premium.offer.dontPayCreator" = "ऐप के निर्माता को भुगतान न करें";
 "premium.offer.unlimitedAI" = "मासिक सीमा के बिना AI संदेश";
 "premium.offer.creatorSupport" = "आपकी सदस्यता Nibomo के निर्माता [Kirill Markin](https://kirill-markin.com/) को सर्वर का खर्च उठाने और कॉफ़ी व पिज़्ज़ा के साथ अगला अपडेट तैयार करने में मदद करती है।";
 "premium.offer.previewPurchaseMessage" = "यह एक परीक्षण पूर्वावलोकन है। कोई खरीदारी नहीं की जाएगी।";

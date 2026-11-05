@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Nibomo’yu **size özel** yapın.";
 "premium.offer.free" = "Ücretsiz";
-"premium.offer.freeDescription" = "İşi olmayan öğrenciler için tasarlandı. Herkese açık. Sırt çantanız biraz daha hafifledi.";
+"premium.offer.freeDescription" = "İşi olmayan öğrenciler için tasarlandı. Herkese açık.";
 "premium.offer.freeBenefits" = "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme";
 "premium.offer.monthlyAI" = "Ayda %@ AI sohbet mesajı";
 "premium.offer.supportsCreator" = "Uygulamanın yaratıcısını destekler";
 "premium.offer.accentColor" = "Dilediğiniz vurgu rengi";
-"premium.offer.reviewAnimations" = "Tekrar animasyonları: açık veya kapalı";
+"premium.offer.themes" = "Koyu ve açık temalar";
+"premium.offer.reviewAnimations" = "Tekrar animasyonları kontrolü";
 "premium.offer.appIcon" = "Özel uygulama simgesi";
 "premium.offer.startSevenDayTrial" = "7 günlük ücretsiz denemeyi başlat";
 "premium.offer.subscribeWithPrice" = "Abone ol — %@";
 "premium.offer.noCreatorSupport" = "Uygulamanın yaratıcısını desteklemez";
 "premium.offer.limitedAI" = "Sınırlı AI sohbeti";
 "premium.offer.defaultStylesOnly" = "Yalnızca varsayılan stiller";
-"premium.offer.notNow" = "Şimdi değil";
+"premium.offer.noOtherPremiumFeatures" = "Başka Premium özelliği yok";
+"premium.offer.dontPayCreator" = "Uygulamanın yaratıcısına ödeme yapmayın";
 "premium.offer.unlimitedAI" = "Aylık sınır olmadan yapay zekâ mesajları";
 "premium.offer.creatorSupport" = "Aboneliğiniz, Nibomo’nun yaratıcısı [Kirill Markin](https://kirill-markin.com/) için sunucu masraflarını karşılamaya ve kahve ile pizza eşliğinde sonraki güncellemeyi hazırlamaya yardımcı olur.";
 "premium.offer.previewPurchaseMessage" = "Bu bir test önizlemesidir. Satın alma işlemi yapılmayacaktır.";

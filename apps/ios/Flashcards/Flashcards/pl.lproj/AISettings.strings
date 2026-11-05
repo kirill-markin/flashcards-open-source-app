@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Dopasuj Nibomo **do siebie**.";
 "premium.offer.free" = "Bezpłatnie";
-"premium.offer.freeDescription" = "Stworzone dla studentów bez pracy. Otwarte dla wszystkich. Twój plecak właśnie stał się lżejszy.";
+"premium.offer.freeDescription" = "Stworzone dla studentów bez pracy. Otwarte dla wszystkich.";
 "premium.offer.freeBenefits" = "Powtórki, nauka offline i synchronizacja";
 "premium.offer.monthlyAI" = "%@ wiadomości na czacie AI miesięcznie";
 "premium.offer.supportsCreator" = "Wspiera twórcę aplikacji";
 "premium.offer.accentColor" = "Dowolny kolor akcentu";
-"premium.offer.reviewAnimations" = "Animacje powtórek: włączone lub wyłączone";
+"premium.offer.themes" = "Ciemny i jasny motyw";
+"premium.offer.reviewAnimations" = "Sterowanie animacjami powtórek";
 "premium.offer.appIcon" = "Własna ikona aplikacji";
 "premium.offer.startSevenDayTrial" = "Rozpocznij 7-dniowy bezpłatny okres próbny";
 "premium.offer.subscribeWithPrice" = "Subskrybuj — %@";
 "premium.offer.noCreatorSupport" = "Nie wspiera twórcy aplikacji";
 "premium.offer.limitedAI" = "Ograniczony czat AI";
 "premium.offer.defaultStylesOnly" = "Tylko domyślne style";
-"premium.offer.notNow" = "Nie teraz";
+"premium.offer.noOtherPremiumFeatures" = "Brak innych funkcji Premium";
+"premium.offer.dontPayCreator" = "Nie płać twórcy aplikacji";
 "premium.offer.unlimitedAI" = "Wiadomości AI bez miesięcznego limitu";
 "premium.offer.creatorSupport" = "Twoja subskrypcja pomaga twórcy Nibomo, [Kirill Markin](https://kirill-markin.com/), opłacać serwery i przygotowywać kolejną aktualizację przy kawie i pizzy.";
 "premium.offer.previewPurchaseMessage" = "To jest podgląd testowy. Zakup nie zostanie dokonany.";

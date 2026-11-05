@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Nibomo را **از آنِ خود** کنید.";
 "premium.offer.free" = "رایگان";
-"premium.offer.freeDescription" = "ساخته‌شده برای دانشجویان بدون شغل. در دسترس همه. کوله‌پشتی‌تان سبک‌تر شد.";
+"premium.offer.freeDescription" = "ساخته‌شده برای دانشجویان بدون شغل. در دسترس همه.";
 "premium.offer.freeBenefits" = "مرورهای اصلی، یادگیری آفلاین و همگام‌سازی";
 "premium.offer.monthlyAI" = "%@ پیام گفت‌وگوی هوش مصنوعی در ماه";
 "premium.offer.supportsCreator" = "از سازندهٔ برنامه حمایت می‌کند";
 "premium.offer.accentColor" = "هر رنگ تأکیدی";
-"premium.offer.reviewAnimations" = "پویانمایی‌های مرور: روشن یا خاموش";
+"premium.offer.themes" = "پوسته‌های تیره و روشن";
+"premium.offer.reviewAnimations" = "کنترل پویانمایی‌های مرور";
 "premium.offer.appIcon" = "نماد دلخواه برای برنامه";
 "premium.offer.startSevenDayTrial" = "شروع دورهٔ آزمایشی رایگان ۷ روزه";
 "premium.offer.subscribeWithPrice" = "اشتراک — %@";
 "premium.offer.noCreatorSupport" = "از سازندهٔ برنامه حمایت نمی‌کند";
 "premium.offer.limitedAI" = "گفت‌وگوی هوش مصنوعی محدود";
 "premium.offer.defaultStylesOnly" = "فقط سبک‌های پیش‌فرض";
-"premium.offer.notNow" = "اکنون نه";
+"premium.offer.noOtherPremiumFeatures" = "بدون ویژگی‌های دیگر Premium";
+"premium.offer.dontPayCreator" = "به سازندهٔ برنامه پول ندهید";
 "premium.offer.unlimitedAI" = "پیام‌های هوش مصنوعی بدون سقف ماهانه";
 "premium.offer.creatorSupport" = "اشتراک شما به سازندهٔ Nibomo، [Kirill Markin](https://kirill-markin.com/)، کمک می‌کند هزینهٔ سرورها را بپردازد و با قهوه و پیتزا به‌روزرسانی بعدی را آماده کند.";
 "premium.offer.previewPurchaseMessage" = "این یک پیش‌نمایش آزمایشی است. هیچ خریدی انجام نخواهد شد.";

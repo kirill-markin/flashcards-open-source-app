@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Maak Nibomo **helemaal van jou**.";
 "premium.offer.free" = "Gratis";
-"premium.offer.freeDescription" = "Gemaakt voor studenten zonder baan. Open voor iedereen. Je rugzak is net wat lichter geworden.";
+"premium.offer.freeDescription" = "Gemaakt voor studenten zonder baan. Open voor iedereen.";
 "premium.offer.freeBenefits" = "Herhalen, offline leren en synchroniseren";
 "premium.offer.monthlyAI" = "%@ AI-chatberichten per maand";
 "premium.offer.supportsCreator" = "Steunt de maker van de app";
 "premium.offer.accentColor" = "Elke accentkleur";
-"premium.offer.reviewAnimations" = "Herhaalanimaties: aan of uit";
+"premium.offer.themes" = "Donker en licht thema";
+"premium.offer.reviewAnimations" = "Controle over herhaalanimaties";
 "premium.offer.appIcon" = "Eigen appicoon";
 "premium.offer.startSevenDayTrial" = "Start 7 dagen gratis proefperiode";
 "premium.offer.subscribeWithPrice" = "Abonneren — %@";
 "premium.offer.noCreatorSupport" = "Steunt de maker van de app niet";
 "premium.offer.limitedAI" = "Beperkte AI-chat";
 "premium.offer.defaultStylesOnly" = "Alleen standaardstijlen";
-"premium.offer.notNow" = "Niet nu";
+"premium.offer.noOtherPremiumFeatures" = "Geen andere Premium-functies";
+"premium.offer.dontPayCreator" = "Betaal de maker van de app niet";
 "premium.offer.unlimitedAI" = "AI-berichten zonder maandlimiet";
 "premium.offer.creatorSupport" = "Je abonnement helpt de maker van Nibomo, [Kirill Markin](https://kirill-markin.com/), de servers te betalen en met koffie en pizza aan de volgende update te werken.";
 "premium.offer.previewPurchaseMessage" = "Dit is een testvoorbeeld. Er wordt geen aankoop gedaan.";

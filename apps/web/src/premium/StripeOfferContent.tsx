@@ -63,6 +63,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       <ul className="premium-benefits">
         <li>{t("paywall.supportsCreator")}</li>
         <li>{t("paywall.accentColorBenefit")}</li>
+        <li>{t("paywall.themesBenefit")}</li>
         <li>{t("paywall.reviewAnimationsBenefit")}</li>
         <li>{t("paywall.appIconBenefit")}</li>
         {offer?.premiumAiMonthlyMessages === undefined || offer.premiumAiMonthlyMessages === null ? null : <li>
@@ -93,12 +94,13 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       <p>{t("paywall.freeDescription")}</p>
       <ul className="premium-benefits">
         <li className="premium-benefit-missing">{t("paywall.noCreatorSupport")}</li>
-        <li>{t("paywall.freeBenefit")}</li>
         <li className="premium-benefit-missing">{t("paywall.limitedAi")}</li>
         <li className="premium-benefit-missing">{t("paywall.defaultStyles")}</li>
+        <li className="premium-benefit-missing">{t("paywall.noOtherPremiumFeatures")}</li>
+        <li>{t("paywall.freeBenefit")}</li>
       </ul>
       <button type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
-        <span>{t("paywall.notNow")}</span>{actionArrow}
+        <span>{t("paywall.dontPayCreator")}</span>{actionArrow}
       </button>
     </section>
     <footer className="premium-footer">

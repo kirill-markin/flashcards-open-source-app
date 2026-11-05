@@ -3,7 +3,7 @@
     <string name="top_level_review">Review</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_progress">Progress</string>
-    <string name="top_level_cards">Cards</string>
+    <string name="top_level_library">Library</string>
     <string name="top_level_settings">Settings</string>
     <string name="startup_error_title">Startup failed</string>
     <string name="startup_error_message">Nibomo could not finish starting. Retry startup, or open technical details if support asks for them.</string>
@@ -74,7 +74,8 @@
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>
-    <string name="premium_benefit_review_animations">Review animations on or off</string>
+    <string name="premium_benefit_themes">Dark and light themes</string>
+    <string name="premium_benefit_review_animations">Review animations control</string>
     <string name="premium_benefit_app_icon">Custom app icon</string>
     <string name="premium_already_active">Your plan already includes Premium benefits.</string>
     <string name="premium_offer_loading">Loading the offer from Google Play…</string>
@@ -140,12 +141,13 @@
     <string name="premium_heading_emphasis">yours</string>
     <string name="premium_free_title">Free</string>
     <string name="premium_welcome">Same app. Same welcome. Your choice.</string>
-    <string name="premium_free_description">Created for students without a job. Open to everyone. Your backpack just got lighter.</string>
+    <string name="premium_free_description">Created for students without a job. Open to everyone.</string>
     <string name="premium_free_no_creator_support">Doesn’t support the app’s creator</string>
     <string name="premium_free_benefits">Core reviews, offline learning &amp; sync</string>
     <string name="premium_free_limited_ai">Limited AI chat</string>
     <string name="premium_free_default_styles">Default styles only</string>
-    <string name="premium_not_now">Not now</string>
+    <string name="premium_free_no_other_premium_features">No other premium features</string>
+    <string name="premium_dont_pay_creator">Don’t pay the app’s creator</string>
     <string name="premium_creator_name" translatable="false">Kirill Markin</string>
     <string name="premium_creator_support">Your subscription helps Nibomo’s creator, %1$s, pay for servers and fuel the next update with coffee and pizza.</string>
     <string name="premium_start_seven_day_trial">Start 7-day free trial</string>

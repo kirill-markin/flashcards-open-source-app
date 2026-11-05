@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
@@ -21,7 +22,11 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
+import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryScreenTag
 import com.flashcardsopensourceapp.feature.settings.access.accessSettingsScreenTag
 import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenTag
 import com.flashcardsopensourceapp.feature.settings.device.deviceDiagnosticsScreenTag
@@ -37,15 +42,12 @@ import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowT
 import com.flashcardsopensourceapp.feature.settings.settingsAccountSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAdvancedSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
-import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
@@ -59,13 +61,32 @@ import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
-import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceListTag
 
+/** A re-selected Library tab restores the Cards screen it was left on instead of showing the hub. */
 internal fun LiveSmokeContext.openCardsTab() {
     clickNode(
-        matcher = hasText("Cards").and(other = hasClickAction()),
-        label = "Cards tab"
+        matcher = hasTestTag(LibraryDestination.testTag).and(other = hasClickAction()),
+        label = "Library tab"
+    )
+    waitUntilWithMitigation(
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for the Library hub or Cards"
+    ) {
+        composeRule.onAllNodesWithTag(libraryScreenTag).fetchSemanticsNodes().isNotEmpty() ||
+            composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty()
+    }
+    if (composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty()) {
+        return
+    }
+    clickNode(
+        matcher = hasTestTag(libraryCardsRowTag).and(other = hasClickAction()),
+        label = "Library Cards row"
+    )
+    waitForTagToExist(
+        tag = cardsSearchFieldTag,
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for Cards after opening it from the Library hub"
     )
 }
 
@@ -141,10 +162,6 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
         settingsLeaderboardParticipationRowTag to "Leaderboard participation",
         settingsLanguageRowTag to "Language",
         settingsAccessRowTag to "Access",
-        settingsDecksRowTag to "Decks",
-        settingsTagsRowTag to "Tags",
-        settingsImportRowTag to "Import",
-        settingsExportRowTag to "Export",
         settingsFeedbackRowTag to "Send feedback",
         settingsSupportRowTag to "Support",
         settingsLegalRowTag to "Legal",

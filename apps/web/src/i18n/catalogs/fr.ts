@@ -25,17 +25,19 @@ const frCatalog: TranslationCatalog = {
   paywall: {
     heading: "Nibomo, <em>à votre image</em>.",
     freeTitle: "Gratuit",
-    freeDescription: "Créé pour les étudiants sans emploi. Ouvert à tous. Votre sac à dos vient de s’alléger.",
+    freeDescription: "Créé pour les étudiants sans emploi. Ouvert à tous.",
     freeBenefit: "Révisions essentielles, apprentissage hors ligne et synchronisation",
     noCreatorSupport: "Ne soutient pas le créateur de l’application",
     limitedAi: "Chat IA limité",
     defaultStyles: "Styles par défaut uniquement",
-    notNow: "Pas maintenant",
+    noOtherPremiumFeatures: "Aucune autre fonctionnalité Premium",
+    dontPayCreator: "Ne payez pas le créateur de l’application",
     creatorSupport: "Votre abonnement aide le créateur de Nibomo, {{creator}}, à payer les serveurs et à préparer la prochaine mise à jour avec du café et de la pizza.",
     monthlyPrice: "{{price}} / mois",
     supportsCreator: "Soutient le créateur de l’application",
     accentColorBenefit: "N’importe quelle couleur d’accentuation",
-    reviewAnimationsBenefit: "Animations de révision activées ou désactivées",
+    themesBenefit: "Thèmes sombre et clair",
+    reviewAnimationsBenefit: "Contrôle des animations de révision",
     appIconBenefit: "Icône d’application personnalisée",
     startTrial: "Commencer l’essai gratuit de 7 jours",
     subscribe: "S’abonner — {{price}}",
@@ -132,7 +134,6 @@ const frCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Désactivé",
     on: "Activé",
-    open: "Ouvrir",
     perAction: "Par action",
     refresh: "Actualiser",
     retry: "Réessayer",
@@ -213,6 +214,7 @@ const frCatalog: TranslationCatalog = {
     aiChat: "Chat IA",
     progress: "Progression",
     cards: "Cartes",
+    library: "Bibliothèque",
     settings: "Paramètres",
   },
   shell: {
@@ -758,24 +760,39 @@ const frCatalog: TranslationCatalog = {
       resetAll: "Réinitialiser l'état de toutes les invites",
     },
   },
+  libraryScreen: {
+    title: "Bibliothèque",
+    groups: {
+      importExport: "Importer et exporter",
+    },
+    cards: {
+      description: "Toutes les cartes de cet espace de travail.",
+    },
+    tags: {
+      description: "Toutes les étiquettes utilisées sur au moins une carte.",
+    },
+    decks: {
+      description: "Filtres de cartes enregistrés pour une révision ciblée.",
+    },
+    import: {
+      description: "Ajoutez des cartes depuis un fichier.",
+    },
+    export: {
+      description: "Téléchargez toutes vos cartes dans un fichier.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Paquets",
-      description: "Créez, modifiez et consultez des portées d'étude réutilisables.",
     },
     tags: {
       title: "Étiquettes",
-      description: "Inspectez l'utilisation des étiquettes et le nombre de cartes dans tout l'espace de travail.",
     },
     export: {
       title: "Exporter",
-      description: "Téléchargez les cartes actives de cet espace de travail sous forme de paquet portable flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importer",
-      description: "Collez des termes et des définitions ou importez un paquet Nibomo.",
-      value: "Texte ou ZIP",
     },
     resetProgress: {
       title: "Réinitialiser la progression",

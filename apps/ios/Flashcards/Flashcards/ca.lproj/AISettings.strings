@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Fes **teu** Nibomo.";
 "premium.offer.free" = "Gratuït";
-"premium.offer.freeDescription" = "Creat per a estudiants sense feina. Obert a tothom. La teva motxilla s’acaba d’alleugerir.";
+"premium.offer.freeDescription" = "Creat per a estudiants sense feina. Obert a tothom.";
 "premium.offer.freeBenefits" = "Repassos essencials, aprenentatge sense connexió i sincronització";
 "premium.offer.monthlyAI" = "%@ missatges de xat d’IA al mes";
 "premium.offer.supportsCreator" = "Dona suport al creador de l’aplicació";
 "premium.offer.accentColor" = "Qualsevol color d’accent";
-"premium.offer.reviewAnimations" = "Animacions de repàs: activades o desactivades";
+"premium.offer.themes" = "Temes fosc i clar";
+"premium.offer.reviewAnimations" = "Control de les animacions de repàs";
 "premium.offer.appIcon" = "Icona de l’aplicació personalitzada";
 "premium.offer.startSevenDayTrial" = "Comença la prova gratuïta de 7 dies";
 "premium.offer.subscribeWithPrice" = "Subscriu-t’hi — %@";
 "premium.offer.noCreatorSupport" = "No dona suport al creador de l’aplicació";
 "premium.offer.limitedAI" = "Xat d’IA limitat";
 "premium.offer.defaultStylesOnly" = "Només estils per defecte";
-"premium.offer.notNow" = "Ara no";
+"premium.offer.noOtherPremiumFeatures" = "Sense altres funcions Premium";
+"premium.offer.dontPayCreator" = "No paguis al creador de l’aplicació";
 "premium.offer.unlimitedAI" = "Missatges d’IA sense límit mensual";
 "premium.offer.creatorSupport" = "La teva subscripció ajuda el creador de Nibomo, [Kirill Markin](https://kirill-markin.com/), a pagar els servidors i preparar la pròxima actualització amb cafè i pizza.";
 "premium.offer.previewPurchaseMessage" = "Aquesta és una previsualització de prova. No es farà cap compra.";

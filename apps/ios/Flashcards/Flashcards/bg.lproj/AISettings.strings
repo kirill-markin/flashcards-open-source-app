@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Nibomo по **свой** вкус.";
 "premium.offer.free" = "Безплатно";
-"premium.offer.freeDescription" = "Създадено за студенти без работа. Отворено за всички. Раницата ви току-що олекна.";
+"premium.offer.freeDescription" = "Създадено за студенти без работа. Отворено за всички.";
 "premium.offer.freeBenefits" = "Преговор, учене офлайн и синхронизация";
 "premium.offer.monthlyAI" = "%@ съобщения в ИИ чата на месец";
 "premium.offer.supportsCreator" = "Подкрепя създателя на приложението";
 "premium.offer.accentColor" = "Всякакъв цвят на акцента";
-"premium.offer.reviewAnimations" = "Анимации при преговор: вкл. или изкл.";
+"premium.offer.themes" = "Тъмна и светла тема";
+"premium.offer.reviewAnimations" = "Управление на анимациите при преговор";
 "premium.offer.appIcon" = "Собствена икона на приложението";
 "premium.offer.startSevenDayTrial" = "Започни 7-дневен безплатен пробен период";
 "premium.offer.subscribeWithPrice" = "Абонирай се — %@";
 "premium.offer.noCreatorSupport" = "Не подкрепя създателя на приложението";
 "premium.offer.limitedAI" = "Ограничен ИИ чат";
 "premium.offer.defaultStylesOnly" = "Само стандартни стилове";
-"premium.offer.notNow" = "Не сега";
+"premium.offer.noOtherPremiumFeatures" = "Без други функции на Premium";
+"premium.offer.dontPayCreator" = "Не плащайте на създателя на приложението";
 "premium.offer.unlimitedAI" = "Съобщения с ИИ без месечен лимит";
 "premium.offer.creatorSupport" = "Абонаментът ви помага на създателя на Nibomo, [Kirill Markin](https://kirill-markin.com/), да плаща сървърите и да подготвя следващата актуализация с кафе и пица.";
 "premium.offer.previewPurchaseMessage" = "Това е тестов преглед. Няма да бъде извършена покупка.";

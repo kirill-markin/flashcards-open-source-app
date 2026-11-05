@@ -226,18 +226,6 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenAccess = {
                 navController.navigate(route = SettingsAccessDestination.route)
             },
-            onOpenDecks = {
-                navController.navigate(route = SettingsWorkspaceDecksDestination.route)
-            },
-            onOpenTags = {
-                navController.navigate(route = SettingsWorkspaceTagsDestination.route)
-            },
-            onOpenImport = {
-                navController.navigate(route = SettingsWorkspaceImportDestination.route)
-            },
-            onOpenExport = {
-                navController.navigate(route = SettingsWorkspaceExportDestination.route)
-            },
             onOpenFeedback = {
                 navController.navigate(route = SettingsFeedbackDestination.route)
             },

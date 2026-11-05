@@ -25,17 +25,19 @@ const zuCatalog: TranslationCatalog = {
   paywall: {
     heading: "Yenza i-Nibomo ibe <em>ngeyakho</em>.",
     freeTitle: "Mahhala",
-    freeDescription: "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu. Ubhaka wakho usulula manje.",
+    freeDescription: "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu.",
     freeBenefit: "Ukubuyekeza okuyisisekelo, ukufunda ungaxhunyiwe nokuvumelanisa",
     noCreatorSupport: "Ayimsekeli umdali wohlelo lokusebenza",
     limitedAi: "Ingxoxo ye-AI enomkhawulo",
     defaultStyles: "Izitayela ezizenzakalelayo kuphela",
-    notNow: "Hhayi manje",
+    noOtherPremiumFeatures: "Azikho ezinye izici ze-Premium",
+    dontPayCreator: "Ungamkhokheli umdali wohlelo lokusebenza",
     creatorSupport: "Ukubhalisa kwakho kusiza umdali we-Nibomo, {{creator}}, ukukhokhela amaseva nokulungiselela isibuyekezo esilandelayo ngekhofi ne-pizza.",
     monthlyPrice: "{{price}} / ngenyanga",
     supportsCreator: "Isekela umdali wohlelo lokusebenza",
     accentColorBenefit: "Noma yimuphi umbala wokugqamisa",
-    reviewAnimationsBenefit: "Opopayi bokubukeza buvuliwe noma buvaliwe",
+    themesBenefit: "Amatimu amnyama nakhanyayo",
+    reviewAnimationsBenefit: "Ukulawula opopayi bokubukeza",
     appIconBenefit: "Isithonjana sohlelo lokusebenza ozikhethela sona",
     startTrial: "Qala isivivinyo samahhala sezinsuku eziyi-7",
     subscribe: "Bhalisa — {{price}}",
@@ -132,7 +134,6 @@ const zuCatalog: TranslationCatalog = {
     ok: "Kulungile",
     off: "Kuvaliwe",
     on: "Kuvuliwe",
-    open: "Vula",
     perAction: "Ngesenzo ngasinye",
     refresh: "Vuselela",
     retry: "Zama futhi",
@@ -213,6 +214,7 @@ const zuCatalog: TranslationCatalog = {
     aiChat: "Ingxoxo ye-AI",
     progress: "Inqubekelaphambili",
     cards: "Amakhadi",
+    library: "Umtapo wolwazi",
     settings: "Izilungiselelo",
   },
   shell: {
@@ -758,24 +760,39 @@ const zuCatalog: TranslationCatalog = {
       resetAll: "Setha kabusha isimo sazo zonke iziyalezo",
     },
   },
+  libraryScreen: {
+    title: "Umtapo wolwazi",
+    groups: {
+      importExport: "Ukungenisa nokukhipha",
+    },
+    cards: {
+      description: "Wonke amakhadi akule ndawo yokusebenza.",
+    },
+    tags: {
+      description: "Wonke amathegi asetshenziswe okungenani ekhadini elilodwa.",
+    },
+    decks: {
+      description: "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile.",
+    },
+    import: {
+      description: "Engeza amakhadi kusuka kufayela.",
+    },
+    export: {
+      description: "Dawuniloda wonke amakhadi akho njengefayela.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Izinqwaba",
-      description: "Dala, hlela, futhi ubukeze ububanzi bokufunda obungasetshenziswa kabusha.",
     },
     tags: {
       title: "Amathegi",
-      description: "Hlola ukusetshenziswa kwamathegi kuyo yonke indawo yokusebenza kanye nenani lamakhadi.",
     },
     export: {
       title: "Khipha",
-      description: "Dawuniloda amakhadi asebenzayo kule ndawo yokusebenza njengephakheji ephathekayo ethi flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Ngenisa",
-      description: "Namathisela amatemu nezincazelo noma ungenise iphakheji ye-Nibomo.",
-      value: "Umbhalo noma i-ZIP",
     },
     resetProgress: {
       title: "Setha kabusha inqubekelaphambili yokufunda",

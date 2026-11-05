@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Nibomo po **svom**.";
 "premium.offer.free" = "Besplatno";
-"premium.offer.freeDescription" = "Stvoreno za studente bez posla. Otvoreno svima. Vaš je ruksak upravo postao lakši.";
+"premium.offer.freeDescription" = "Stvoreno za studente bez posla. Otvoreno svima.";
 "premium.offer.freeBenefits" = "Ponavljanje, učenje izvan mreže i sinkronizacija";
 "premium.offer.monthlyAI" = "%@ poruka AI razgovora mjesečno";
 "premium.offer.supportsCreator" = "Podržava tvorca aplikacije";
 "premium.offer.accentColor" = "Bilo koja boja naglaska";
-"premium.offer.reviewAnimations" = "Animacije ponavljanja: uključene ili isključene";
+"premium.offer.themes" = "Tamna i svijetla tema";
+"premium.offer.reviewAnimations" = "Upravljanje animacijama ponavljanja";
 "premium.offer.appIcon" = "Prilagođena ikona aplikacije";
 "premium.offer.startSevenDayTrial" = "Pokreni besplatno probno razdoblje od 7 dana";
 "premium.offer.subscribeWithPrice" = "Pretplati se — %@";
 "premium.offer.noCreatorSupport" = "Ne podržava tvorca aplikacije";
 "premium.offer.limitedAI" = "Ograničen AI razgovor";
 "premium.offer.defaultStylesOnly" = "Samo zadani stilovi";
-"premium.offer.notNow" = "Ne sada";
+"premium.offer.noOtherPremiumFeatures" = "Bez drugih Premium značajki";
+"premium.offer.dontPayCreator" = "Ne plaćajte tvorcu aplikacije";
 "premium.offer.unlimitedAI" = "AI poruke bez mjesečnog ograničenja";
 "premium.offer.creatorSupport" = "Vaša pretplata pomaže tvorcu Niboma, [Kirill Markin](https://kirill-markin.com/), plaćati poslužitelje i pripremati sljedeće ažuriranje uz kavu i pizzu.";
 "premium.offer.previewPurchaseMessage" = "Ovo je testni pretpregled. Kupnja se neće izvršiti.";

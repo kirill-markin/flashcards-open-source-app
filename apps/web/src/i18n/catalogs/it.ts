@@ -25,17 +25,19 @@ const itCatalog: TranslationCatalog = {
   paywall: {
     heading: "Fai <em>tuo</em> Nibomo.",
     freeTitle: "Gratis",
-    freeDescription: "Creato per studenti senza lavoro. Aperto a tutti. Il tuo zaino è appena diventato più leggero.",
+    freeDescription: "Creato per studenti senza lavoro. Aperto a tutti.",
     freeBenefit: "Ripassi essenziali, studio offline e sincronizzazione",
     noCreatorSupport: "Non sostiene il creatore dell’app",
     limitedAi: "Chat IA limitata",
     defaultStyles: "Solo stili predefiniti",
-    notNow: "Non ora",
+    noOtherPremiumFeatures: "Nessun’altra funzione Premium",
+    dontPayCreator: "Non pagare il creatore dell’app",
     creatorSupport: "Il tuo abbonamento aiuta il creatore di Nibomo, {{creator}}, a pagare i server e preparare il prossimo aggiornamento con caffè e pizza.",
     monthlyPrice: "{{price}} / mese",
     supportsCreator: "Sostiene il creatore dell’app",
     accentColorBenefit: "Qualsiasi colore di accento",
-    reviewAnimationsBenefit: "Animazioni dei ripassi attive o disattivate",
+    themesBenefit: "Temi scuro e chiaro",
+    reviewAnimationsBenefit: "Controllo delle animazioni dei ripassi",
     appIconBenefit: "Icona dell’app personalizzata",
     startTrial: "Inizia la prova gratuita di 7 giorni",
     subscribe: "Abbonati — {{price}}",
@@ -132,7 +134,6 @@ const itCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Off",
     on: "On",
-    open: "Apri",
     perAction: "Per azione",
     refresh: "Aggiorna",
     retry: "Riprova",
@@ -213,6 +214,7 @@ const itCatalog: TranslationCatalog = {
     aiChat: "Chat AI",
     progress: "Progressi",
     cards: "Carte",
+    library: "Libreria",
     settings: "Impostazioni",
   },
   shell: {
@@ -758,24 +760,39 @@ const itCatalog: TranslationCatalog = {
       resetAll: "Reimposta lo stato di tutti gli avvisi",
     },
   },
+  libraryScreen: {
+    title: "Libreria",
+    groups: {
+      importExport: "Importa ed esporta",
+    },
+    cards: {
+      description: "Tutte le carte di quest’area di lavoro.",
+    },
+    tags: {
+      description: "Tutti i tag usati su almeno una carta.",
+    },
+    decks: {
+      description: "Filtri di carte salvati per un ripasso mirato.",
+    },
+    import: {
+      description: "Aggiungi carte da un file.",
+    },
+    export: {
+      description: "Scarica tutte le tue carte in un file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Mazzi",
-      description: "Crea, modifica e consulta ambiti di studio riutilizzabili.",
     },
     tags: {
       title: "Tag",
-      description: "Consulta l’uso dei tag e il numero di carte in tutta l’area di lavoro.",
     },
     export: {
       title: "Esporta",
-      description: "Scarica le carte attive di quest’area di lavoro come pacchetto portabile flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importa",
-      description: "Incolla termini e definizioni oppure importa un pacchetto Nibomo.",
-      value: "Testo o ZIP",
     },
     resetProgress: {
       title: "Azzera i progressi di studio",

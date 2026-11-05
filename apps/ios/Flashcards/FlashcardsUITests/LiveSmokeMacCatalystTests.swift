@@ -65,8 +65,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(0.7))
         try self.checkMacToolbar(name: "readonly-progress-scrolled-500", identifiers: [LiveSmokeIdentifier.aiCompanionToggle])
         // Screenshots establish blur appearance; AX geometry alone cannot prove an edge effect.
-        try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.cards.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.openLibraryCards()
         try self.checkMacToolbar(name: "readonly-cards-top", identifiers: ["cards.filterButton", "cards.addButton"])
         self.app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.55))
             .scroll(byDeltaX: 0, deltaY: -300)
@@ -231,7 +230,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
     }
 
-    /// Nondestructive: the split detail swaps section stacks, so writing Settings' path after
+    /// Nondestructive: the split detail swaps section stacks, so writing Library's path after
     /// the AI stack was used must not trap SwiftUI. Opens only read-only screens.
     @MainActor
     func testMacCrossSectionNavigationKeepsSplitDetailAlive() throws {
@@ -251,12 +250,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         let editDecks = self.app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Edit decks")).firstMatch
         XCTAssertTrue(editDecks.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         editDecks.click()
-        // Edit decks pushes Decks onto Settings: the toolbar offers Back.
-        XCTAssertTrue(self.app.staticTexts["mac.toolbar.title.settings"].waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
-        XCTAssertTrue(self.buttons(identifier: "mac.navigation.back").firstMatch.exists, "Edit decks must open a pushed Settings page.")
+        self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
         self.attachMacWindowScreenshot(name: "mac-edit-decks-opened")
-        try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
         try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.review.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         self.app.typeKey(",", modifierFlags: .command)
@@ -264,29 +259,24 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         XCTAssertEqual(self.app.state, .runningForeground)
     }
 
-    /// Review's Edit decks lands on Decks whether Settings was never shown or was left scrolled,
-    /// and Settings keeps that page while another section is shown.
+    /// Review's Edit decks selects the Decks sidebar section whether Library was never shown or
+    /// showed another section, and Command-4 returns to the section Library last showed.
     @MainActor
     func testMacEditDecksLandsOnDecksFromReview() throws {
         self.addMacWindowRestorationTeardown()
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
-        try self.step("open Decks before Settings was ever shown") {
+        try self.step("open Decks before Library was ever shown") {
             try self.openDecksFromReviewFilter()
             try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            self.waitForMacSettingsPage(title: "Decks")
-            try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.app.typeKey("4", modifierFlags: .command)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
         }
-        try self.step("open Decks after Settings was scrolled") {
-            for _ in 0..<3 {
-                try self.scrollSettingsRootContent(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            }
+        try self.step("open Decks after Library showed another section") {
+            try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.openDecksFromReviewFilter()
-            try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
 
@@ -297,17 +287,19 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         let editDecks = self.app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Edit decks")).firstMatch
         XCTAssertTrue(editDecks.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         editDecks.click()
-        self.waitForMacSettingsPage(title: "Decks")
+        self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
         self.attachMacWindowScreenshot(name: "mac-edit-decks-opened")
     }
 
+    /// A Library section opens as a root page: its sidebar row is selected, with no Back or title.
     @MainActor
-    private func waitForMacSettingsPage(title: String) {
-        let header = self.app.staticTexts["mac.toolbar.title.settings"]
-        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND label == %@", title), object: header)
-        XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), .completed,
-            "Expected the pushed Settings page \(title); found \(header.exists ? header.label : "no title").")
-        XCTAssertTrue(self.buttons(identifier: "mac.navigation.back").firstMatch.exists, "A pushed Settings page offers Back.")
+    private func waitForMacLibrarySection(identifier: String) {
+        let row = self.app.cells.containing(.staticText, identifier: identifier).firstMatch
+        let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND isSelected == true"), object: row)
+        XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), .completed,
+            "Expected the selected Library sidebar row \(identifier).")
+        XCTAssertFalse(self.buttons(identifier: "mac.navigation.back").firstMatch.exists, "A Library section is a root page without Back.")
+        XCTAssertFalse(self.app.staticTexts["mac.toolbar.title.library"].exists, "The selected sidebar row names a root page.")
     }
 
     /// Undo the launcher's one Fill before the app terminates, whatever the test's outcome.
@@ -675,7 +667,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(0.5))
         self.attachMacScreenshot(name: "mac-toolbar-" + name)
         if !["settings-color", "ai-history"].contains(name) {
-            for identifier in ["review.companionTitle", "mac.toolbar.title.progress", "mac.toolbar.title.cards", "mac.toolbar.title.settings", "mac.toolbar.title.ai"] {
+            for identifier in ["review.companionTitle", "mac.toolbar.title.progress", "mac.toolbar.title.library", "mac.toolbar.title.settings", "mac.toolbar.title.ai"] {
                 XCTAssertFalse(self.app.staticTexts[identifier].exists, "The selected sidebar row identifies root pages; no duplicate toolbar title.")
             }
         }

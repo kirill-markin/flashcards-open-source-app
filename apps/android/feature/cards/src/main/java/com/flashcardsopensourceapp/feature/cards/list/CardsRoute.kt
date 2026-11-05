@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -58,13 +56,11 @@ fun CardsRoute(
     onClearFilter: () -> Unit,
     onCreateCard: () -> Unit,
     onOpenCard: (String) -> Unit,
-    onOpenDecks: () -> Unit,
-    onOpenTags: () -> Unit,
-    onDeleteCard: (String) -> Unit
+    onDeleteCard: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     val resources = LocalContext.current.resources
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
-    var isLibraryMenuVisible by remember { mutableStateOf(value = false) }
     var draftFilter by remember(uiState.activeFilter) {
         mutableStateOf(uiState.activeFilter)
     }
@@ -76,6 +72,14 @@ fun CardsRoute(
             TopAppBar(
                 title = {
                     Text(stringResource(id = R.string.cards_title))
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = stringResource(id = R.string.cards_editor_back_content_description)
+                        )
+                    }
                 },
                 actions = {
                     IconButton(
@@ -94,41 +98,6 @@ fun CardsRoute(
                                     count = activeFilterCount,
                                     activeFilterCount
                                 )
-                            }
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            isLibraryMenuVisible = true
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = stringResource(id = R.string.cards_library_actions_content_description)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = isLibraryMenuVisible,
-                        onDismissRequest = {
-                            isLibraryMenuVisible = false
-                        }
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(stringResource(id = R.string.cards_open_decks))
-                            },
-                            onClick = {
-                                isLibraryMenuVisible = false
-                                onOpenDecks()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(stringResource(id = R.string.cards_open_tags))
-                            },
-                            onClick = {
-                                isLibraryMenuVisible = false
-                                onOpenTags()
                             }
                         )
                     }

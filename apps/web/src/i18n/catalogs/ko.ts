@@ -25,17 +25,19 @@ const koCatalog: TranslationCatalog = {
   paywall: {
     heading: "<em>나만의</em> Nibomo를 만들어 보세요.",
     freeTitle: "무료",
-    freeDescription: "일자리가 없는 학생을 위해 만들었습니다. 누구나 사용할 수 있습니다. 배낭이 조금 더 가벼워졌네요.",
+    freeDescription: "일자리가 없는 학생을 위해 만들었습니다. 누구나 사용할 수 있습니다.",
     freeBenefit: "기본 복습, 오프라인 학습 및 동기화",
     noCreatorSupport: "앱 제작자 후원 없음",
     limitedAi: "제한된 AI 채팅",
     defaultStyles: "기본 스타일만",
-    notNow: "나중에",
+    noOtherPremiumFeatures: "기타 Premium 기능 없음",
+    dontPayCreator: "앱 제작자에게 지불하지 않기",
     creatorSupport: "구독은 Nibomo 제작자 {{creator}}의 서버 비용을 지원하고, 커피와 피자로 다음 업데이트를 준비할 힘을 보탭니다.",
     monthlyPrice: "{{price}} / 월",
     supportsCreator: "앱 제작자 후원",
     accentColorBenefit: "원하는 강조 색상",
-    reviewAnimationsBenefit: "복습 애니메이션 켜기 또는 끄기",
+    themesBenefit: "다크 및 라이트 테마",
+    reviewAnimationsBenefit: "복습 애니메이션 제어",
     appIconBenefit: "맞춤 앱 아이콘",
     startTrial: "7일 무료 체험 시작",
     subscribe: "구독하기 — {{price}}",
@@ -132,7 +134,6 @@ const koCatalog: TranslationCatalog = {
     ok: "확인",
     off: "끔",
     on: "켬",
-    open: "열기",
     perAction: "작업할 때마다",
     refresh: "새로 고침",
     retry: "다시 시도",
@@ -213,6 +214,7 @@ const koCatalog: TranslationCatalog = {
     aiChat: "AI 채팅",
     progress: "진행 상황",
     cards: "카드",
+    library: "보관함",
     settings: "설정",
   },
   shell: {
@@ -758,24 +760,39 @@ const koCatalog: TranslationCatalog = {
       resetAll: "모든 안내 상태 초기화",
     },
   },
+  libraryScreen: {
+    title: "보관함",
+    groups: {
+      importExport: "가져오기 및 내보내기",
+    },
+    cards: {
+      description: "이 워크스페이스의 모든 카드입니다.",
+    },
+    tags: {
+      description: "카드 한 장 이상에 사용된 모든 태그입니다.",
+    },
+    decks: {
+      description: "집중 복습을 위해 저장한 카드 필터입니다.",
+    },
+    import: {
+      description: "파일에서 카드를 추가합니다.",
+    },
+    export: {
+      description: "모든 카드를 파일로 내려받습니다.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "덱",
-      description: "다시 사용할 학습 범위를 만들고, 편집하고, 확인합니다.",
     },
     tags: {
       title: "태그",
-      description: "워크스페이스 전체의 태그 사용 현황과 카드 수를 확인합니다.",
     },
     export: {
       title: "내보내기",
-      description: "이 워크스페이스의 활성 카드를 flashcards.zip 패키지로 내려받습니다.",
-      value: "flashcards.zip",
     },
     import: {
       title: "가져오기",
-      description: "용어와 정의를 붙여넣거나 Nibomo 패키지를 가져옵니다.",
-      value: "텍스트 또는 ZIP",
     },
     resetProgress: {
       title: "학습 진행 상황 초기화",

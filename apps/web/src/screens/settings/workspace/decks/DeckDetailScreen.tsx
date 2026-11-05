@@ -9,7 +9,7 @@ import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { MathText } from "../../../../components/MathText";
-import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../../../../routes";
+import { buildLibraryDeckEditRoute, libraryDecksRoute, reviewRoute } from "../../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/decks";
@@ -30,7 +30,7 @@ type DeckDetailState = Readonly<{
 }>;
 
 function buildDeckEditPath(deckId: string, workspacePath: WorkspacePathBuilder): string {
-  return workspacePath(buildSettingsDeckEditRoute(deckId));
+  return workspacePath(buildLibraryDeckEditRoute(deckId));
 }
 
 function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
@@ -248,7 +248,7 @@ export function DeckDetailScreen(): ReactElement {
             </p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to={workspacePath(settingsDecksRoute)}>{t("deckDetail.actions.back")}</Link>
+            <Link className="ghost-btn" to={workspacePath(libraryDecksRoute)}>{t("deckDetail.actions.back")}</Link>
             {detailState !== null ? (
               <button type="button" className="primary-btn" onClick={handleOpenReview} data-testid="deck-detail-open-review">
                 {detailState.isPersistedDeck ? t("deckDetail.actions.reviewDeck") : t("deckDetail.actions.reviewAllCards")}

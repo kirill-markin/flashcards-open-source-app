@@ -36,7 +36,7 @@
     <string name="ai_terms_of_service">Vilkår for bruk</string>
     <string name="ai_support">Hjelp</string>
     <string name="ai_consent_workspace_disclosure">KI-forespørsler fra arbeidsområdet %1$s kan sende instrukser, filer, bilder og diktert lyd til KI-tjenesten.</string>
-    <string name="top_level_cards">Kort</string>
+    <string name="top_level_library">Bibliotek</string>
     <string name="cards_title">Kort</string>
     <string name="top_level_review">Repetisjon</string>
     <string name="review_title">Repetisjon</string>

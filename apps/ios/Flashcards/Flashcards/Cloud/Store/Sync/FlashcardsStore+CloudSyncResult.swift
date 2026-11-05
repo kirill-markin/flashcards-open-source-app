@@ -153,7 +153,7 @@ extension FlashcardsStore {
     private func enqueueBackgroundSyncVisibleChangeBannerIfNeeded(
         bootstrapRefreshOutcome: BootstrapSnapshotRefreshOutcome
     ) {
-        guard self.currentVisibleTab == .cards else {
+        guard self.currentVisibleTab == .library else {
             return
         }
         guard bootstrapRefreshOutcome.workspaceChanged

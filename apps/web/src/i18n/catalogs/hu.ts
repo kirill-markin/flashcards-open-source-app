@@ -25,17 +25,19 @@ const huCatalog: TranslationCatalog = {
   paywall: {
     heading: "Legyen a Nibomo <em>a tiéd</em>.",
     freeTitle: "Ingyenes",
-    freeDescription: "Munka nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod épp könnyebb lett.",
+    freeDescription: "Munka nélküli diákoknak készült. Mindenki előtt nyitva áll.",
     freeBenefit: "Alapvető ismétlés, offline tanulás és szinkronizálás",
     noCreatorSupport: "Nem támogatja az alkalmazás készítőjét",
     limitedAi: "Korlátozott MI-csevegés",
     defaultStyles: "Csak alapértelmezett stílusok",
-    notNow: "Most nem",
+    noOtherPremiumFeatures: "Nincs más Premium funkció",
+    dontPayCreator: "Ne fizess az alkalmazás készítőjének",
     creatorSupport: "Előfizetésed segít a Nibomo készítőjének, {{creator}}, kifizetni a szervereket, és kávéval meg pizzával dolgozni a következő frissítésen.",
     monthlyPrice: "{{price}} / hó",
     supportsCreator: "Támogatja az alkalmazás készítőjét",
     accentColorBenefit: "Bármilyen kiemelőszín",
-    reviewAnimationsBenefit: "Ismétlési animációk be- vagy kikapcsolva",
+    themesBenefit: "Sötét és világos téma",
+    reviewAnimationsBenefit: "Ismétlési animációk szabályozása",
     appIconBenefit: "Egyéni alkalmazásikon",
     startTrial: "7 napos ingyenes próba indítása",
     subscribe: "Előfizetés — {{price}}",
@@ -132,7 +134,6 @@ const huCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Ki",
     on: "Be",
-    open: "Megnyitás",
     perAction: "Műveletenként",
     refresh: "Frissítés",
     retry: "Újrapróbálás",
@@ -213,6 +214,7 @@ const huCatalog: TranslationCatalog = {
     aiChat: "AI-csevegés",
     progress: "Haladás",
     cards: "Kártyák",
+    library: "Könyvtár",
     settings: "Beállítások",
   },
   shell: {
@@ -758,24 +760,39 @@ const huCatalog: TranslationCatalog = {
       resetAll: "Az összes kérés állapotának visszaállítása",
     },
   },
+  libraryScreen: {
+    title: "Könyvtár",
+    groups: {
+      importExport: "Importálás és exportálás",
+    },
+    cards: {
+      description: "A munkaterület összes kártyája.",
+    },
+    tags: {
+      description: "Minden címke, amely legalább egy kártyán szerepel.",
+    },
+    decks: {
+      description: "Mentett kártyaszűrők a célzott ismétléshez.",
+    },
+    import: {
+      description: "Adj hozzá kártyákat fájlból.",
+    },
+    export: {
+      description: "Töltsd le az összes kártyádat egy fájlként.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Paklik",
-      description: "Hozz létre, szerkessz és tekints át újrahasználható tanulási hatóköröket.",
     },
     tags: {
       title: "Címkék",
-      description: "Nézd meg a munkaterület címkehasználatát és a kártyák számát.",
     },
     export: {
       title: "Exportálás",
-      description: "Töltsd le a munkaterület aktív kártyáit hordozható flashcards.zip csomagként.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importálás",
-      description: "Illessz be kifejezéseket és meghatározásokat, vagy importálj Nibomo-csomagot.",
-      value: "Szöveg vagy ZIP",
     },
     resetProgress: {
       title: "Tanulási haladás visszaállítása",

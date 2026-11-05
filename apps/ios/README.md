@@ -19,7 +19,7 @@ On iOS, the UI and interaction design should stay maximally native to iOS.
 - Dedicated Mac app: Mac Catalyst on macOS 15.0+, Scale Interface to Match iPad; shared Apple target, bundle ID, version, offline data and product flows. See [Mac Catalyst CI/CD and release](../../docs/macos-ci-cd.md).
 - Default visual direction: dark appearance with the existing orange accent color
 - Primary local storage: SQLite on device
-- Product scope should stay aligned with the supported top-level flows: Review, Progress, AI, Cards, Settings
+- Product scope should stay aligned with the supported top-level flows: Review, Progress, AI, Library, Settings
 
 We optimize for the latest supported iOS release. Small native availability adapters preserve the same flows on iOS 18: glass buttons and bottom bars on 26+, bordered buttons and safe-area insets on 18. Keep state, navigation, domain logic and storage shared.
 

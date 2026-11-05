@@ -296,7 +296,7 @@ extension View {
             onDismiss: {
                 Analytics.trackScreenViewedOnDismiss(
                     of: .friendInvite,
-                    restoring: analyticsSurface(tab: store.currentVisibleTab)
+                    restoring: store.currentVisibleAnalyticsSurface
                 )
             }
         ) {

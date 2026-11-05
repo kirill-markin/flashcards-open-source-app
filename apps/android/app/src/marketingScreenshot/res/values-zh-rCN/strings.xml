@@ -1,7 +1,7 @@
 <resources>
     <string name="top_level_review">复习</string>
     <string name="top_level_progress">进度</string>
-    <string name="top_level_cards">卡片</string>
+    <string name="top_level_library">资料库</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">设置</string>
 

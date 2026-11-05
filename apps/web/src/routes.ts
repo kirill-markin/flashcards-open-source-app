@@ -1,8 +1,8 @@
 /**
- * Keep web settings navigation aligned with:
+ * Keep web primary, Library and settings navigation aligned with:
  * - apps/ios/Flashcards/Flashcards/App/Navigation/AppNavigationTypes.swift
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt
- * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/SettingsDestinations.kt
+ * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/settings/SettingsDestinations.kt
  */
 export const reviewRoute: string = "/review";
 export const chatRoute: string = "/chat";
@@ -26,7 +26,25 @@ export const devPreviewsRoutePrefix: string = "/dev/previews";
 export const friendInvitePreviewRoutePrefix: string = `${devPreviewsRoutePrefix}/invite`;
 export const friendInvitePreviewIndexRoute: string = friendInvitePreviewRoutePrefix;
 export const friendInvitePreviewRoutePattern: string = `${friendInvitePreviewRoutePrefix}/:state`;
-export const cardsRoute: string = "/cards";
+export const libraryRoute: string = "/library";
+export const cardsRoute: string = `${libraryRoute}/cards`;
+export const libraryDecksRoute: string = `${libraryRoute}/decks`;
+export const libraryDeckNewRoute: string = `${libraryDecksRoute}/new`;
+export const libraryTagsRoute: string = `${libraryRoute}/tags`;
+export const libraryImportRoute: string = `${libraryRoute}/import`;
+export const libraryExportRoute: string = `${libraryRoute}/export`;
+/** Addresses the Library screens had before the Library tab; `App.tsx` redirects each to its Library equivalent. */
+export const legacyCardsRoute: string = "/cards";
+export const legacySettingsDecksRoute: string = "/settings/decks";
+export const legacySettingsTagsRoute: string = "/settings/tags";
+export const legacySettingsImportRoute: string = "/settings/import";
+export const legacySettingsExportRoute: string = "/settings/export";
+export const legacySettingsLibraryRoutes: ReadonlyArray<string> = [
+  legacySettingsDecksRoute,
+  legacySettingsTagsRoute,
+  legacySettingsImportRoute,
+  legacySettingsExportRoute,
+];
 export const settingsHubRoute: string = "/settings";
 export const settingsCurrentWorkspaceRoute: string = "/settings/current-workspace";
 export const settingsDeviceRoute: string = "/settings/device";
@@ -51,12 +69,7 @@ export const settingsTestCatalogImportSuccessRoute: string = "/settings/test/cat
 export const settingsTestLocalSyncDiagnosticsRoute: string = "/settings/test/local-sync-diagnostics";
 export const settingsSchedulerRoute: string = "/settings/scheduling";
 export const settingsNotificationsRoute: string = "/settings/review-reminders";
-export const settingsImportRoute: string = "/settings/import";
-export const settingsExportRoute: string = "/settings/export";
 export const settingsAccessDetailRoutePattern: string = "/settings/access/:accessKind";
-export const settingsDecksRoute: string = "/settings/decks";
-export const settingsDeckNewRoute: string = "/settings/decks/new";
-export const settingsTagsRoute: string = "/settings/tags";
 export const accountStatusRoute: string = "/settings/account-status";
 export const accountLegalRoute: string = "/settings/legal";
 export const accountSupportRoute: string = "/settings/support";
@@ -76,12 +89,12 @@ export const accountDangerZoneRoute: string = "/settings/delete-account";
 export const workspaceRoutePrefix: string = "/w";
 export const workspaceRoutePattern: string = `${workspaceRoutePrefix}/:workspaceId`;
 
-export function buildSettingsDeckDetailRoute(deckId: string): string {
-  return `${settingsDecksRoute}/${deckId}`;
+export function buildLibraryDeckDetailRoute(deckId: string): string {
+  return `${libraryDecksRoute}/${deckId}`;
 }
 
-export function buildSettingsDeckEditRoute(deckId: string): string {
-  return `${settingsDecksRoute}/${deckId}/edit`;
+export function buildLibraryDeckEditRoute(deckId: string): string {
+  return `${libraryDecksRoute}/${deckId}/edit`;
 }
 
 export function buildFriendInviteRoute(token: string): string {

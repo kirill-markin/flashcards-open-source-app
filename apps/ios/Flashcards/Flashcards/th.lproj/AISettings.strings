@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Nibomo ในแบบ**ของคุณ**";
 "premium.offer.free" = "ฟรี";
-"premium.offer.freeDescription" = "สร้างขึ้นเพื่อนักเรียนที่ยังไม่มีงานทำ เปิดรับทุกคน กระเป๋าของคุณเบาลงแล้ว";
+"premium.offer.freeDescription" = "สร้างขึ้นเพื่อนักเรียนที่ยังไม่มีงานทำ เปิดรับทุกคน";
 "premium.offer.freeBenefits" = "ทบทวนพื้นฐาน เรียนแบบออฟไลน์ และซิงค์";
 "premium.offer.monthlyAI" = "ข้อความแชต AI %@ ข้อความต่อเดือน";
 "premium.offer.supportsCreator" = "สนับสนุนผู้สร้างแอป";
 "premium.offer.accentColor" = "สีเน้นแบบใดก็ได้";
-"premium.offer.reviewAnimations" = "เปิดหรือปิดภาพเคลื่อนไหวการทบทวน";
+"premium.offer.themes" = "ธีมมืดและสว่าง";
+"premium.offer.reviewAnimations" = "ควบคุมภาพเคลื่อนไหวการทบทวน";
 "premium.offer.appIcon" = "ไอคอนแอปที่กำหนดเอง";
 "premium.offer.startSevenDayTrial" = "เริ่มทดลองใช้ฟรี 7 วัน";
 "premium.offer.subscribeWithPrice" = "สมัครสมาชิก — %@";
 "premium.offer.noCreatorSupport" = "ไม่ได้สนับสนุนผู้สร้างแอป";
 "premium.offer.limitedAI" = "แชต AI แบบจำกัด";
 "premium.offer.defaultStylesOnly" = "สไตล์เริ่มต้นเท่านั้น";
-"premium.offer.notNow" = "ไว้ทีหลัง";
+"premium.offer.noOtherPremiumFeatures" = "ไม่มีฟีเจอร์ Premium อื่น";
+"premium.offer.dontPayCreator" = "ไม่จ่ายเงินให้ผู้สร้างแอป";
 "premium.offer.unlimitedAI" = "ข้อความ AI ไม่จำกัดรายเดือน";
 "premium.offer.creatorSupport" = "การสมัครของคุณช่วยให้ผู้สร้าง Nibomo อย่าง [Kirill Markin](https://kirill-markin.com/) จ่ายค่าเซิร์ฟเวอร์และเตรียมอัปเดตถัดไปพร้อมกาแฟและพิซซ่า";
 "premium.offer.previewPurchaseMessage" = "นี่คือหน้าตัวอย่างสำหรับทดสอบ จะไม่มีการซื้อใด ๆ";

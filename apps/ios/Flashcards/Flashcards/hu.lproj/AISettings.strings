@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Legyen a Nibomo **a tiéd**.";
 "premium.offer.free" = "Ingyenes";
-"premium.offer.freeDescription" = "Állás nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod most könnyebb lett.";
+"premium.offer.freeDescription" = "Állás nélküli diákoknak készült. Mindenki előtt nyitva áll.";
 "premium.offer.freeBenefits" = "Ismétlés, offline tanulás és szinkronizálás";
 "premium.offer.monthlyAI" = "Havi %@ AI-csevegési üzenet";
 "premium.offer.supportsCreator" = "Támogatja az alkalmazás készítőjét";
 "premium.offer.accentColor" = "Bármilyen kiemelőszín";
-"premium.offer.reviewAnimations" = "Ismétlési animációk: be- vagy kikapcsolva";
+"premium.offer.themes" = "Sötét és világos téma";
+"premium.offer.reviewAnimations" = "Ismétlési animációk vezérlése";
 "premium.offer.appIcon" = "Egyéni alkalmazásikon";
 "premium.offer.startSevenDayTrial" = "7 napos ingyenes próba indítása";
 "premium.offer.subscribeWithPrice" = "Előfizetés — %@";
 "premium.offer.noCreatorSupport" = "Nem támogatja az alkalmazás készítőjét";
 "premium.offer.limitedAI" = "Korlátozott AI-csevegés";
 "premium.offer.defaultStylesOnly" = "Csak alapértelmezett stílusok";
-"premium.offer.notNow" = "Most nem";
+"premium.offer.noOtherPremiumFeatures" = "Nincs más Premium funkció";
+"premium.offer.dontPayCreator" = "Ne fizess az alkalmazás készítőjének";
 "premium.offer.unlimitedAI" = "AI-üzenetek havi korlát nélkül";
 "premium.offer.creatorSupport" = "Előfizetésed segít a Nibomo készítőjének, [Kirill Markin](https://kirill-markin.com/), fizetni a szervereket, és kávéval, pizzával készülni a következő frissítésre.";
 "premium.offer.previewPurchaseMessage" = "Ez egy tesztelőnézet. Nem történik vásárlás.";

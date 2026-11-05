@@ -270,7 +270,7 @@ extension FlashcardsStore {
     private func restoreSurfaceAfterNotificationPrePrompt() {
         Analytics.trackScreenViewedOnDismiss(
             of: .notificationsPrePrompt,
-            restoring: analyticsSurface(tab: self.currentVisibleTab)
+            restoring: self.currentVisibleAnalyticsSurface
         )
     }
 

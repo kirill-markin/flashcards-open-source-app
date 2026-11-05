@@ -25,17 +25,19 @@ const arCatalog: TranslationCatalog = {
   paywall: {
     heading: "اجعل Nibomo <em>خاصًا بك</em>.",
     freeTitle: "مجاني",
-    freeDescription: "صُمّم للطلاب الذين لا يعملون. متاح للجميع. أصبحت حقيبتك أخفّ قليلًا.",
+    freeDescription: "صُمّم للطلاب الذين لا يعملون. متاح للجميع.",
     freeBenefit: "المراجعات الأساسية والتعلّم دون اتصال والمزامنة",
     noCreatorSupport: "لا يدعم مُنشئ التطبيق",
     limitedAi: "دردشة ذكاء اصطناعي محدودة",
     defaultStyles: "الأنماط الافتراضية فقط",
-    notNow: "ليس الآن",
+    noOtherPremiumFeatures: "لا توجد ميزات Premium أخرى",
+    dontPayCreator: "لا تدفع لمُنشئ التطبيق",
     creatorSupport: "يساعد اشتراكك منشئ Nibomo، {{creator}}، في دفع تكاليف الخوادم والعمل على التحديث التالي مع القهوة والبيتزا.",
     monthlyPrice: "{{price}} / شهريًا",
     supportsCreator: "يدعم مُنشئ التطبيق",
     accentColorBenefit: "أي لون تمييز",
-    reviewAnimationsBenefit: "تشغيل رسوم المراجعة المتحركة أو إيقافها",
+    themesBenefit: "المظهران الداكن والفاتح",
+    reviewAnimationsBenefit: "التحكم في رسوم المراجعة المتحركة",
     appIconBenefit: "أيقونة تطبيق مخصصة",
     startTrial: "ابدأ تجربة مجانية لمدة 7 أيام",
     subscribe: "اشتراك — {{price}}",
@@ -132,7 +134,6 @@ const arCatalog: TranslationCatalog = {
     ok: "موافق",
     off: "إيقاف",
     on: "تشغيل",
-    open: "فتح",
     perAction: "لكل إجراء",
     refresh: "تحديث",
     retry: "إعادة المحاولة",
@@ -213,6 +214,7 @@ const arCatalog: TranslationCatalog = {
     aiChat: "دردشة الذكاء الاصطناعي",
     progress: "التقدم",
     cards: "بطاقات",
+    library: "المكتبة",
     settings: "الإعدادات",
   },
   shell: {
@@ -758,24 +760,39 @@ const arCatalog: TranslationCatalog = {
       resetAll: "إعادة تعيين حالة كل التنبيهات",
     },
   },
+  libraryScreen: {
+    title: "المكتبة",
+    groups: {
+      importExport: "الاستيراد والتصدير",
+    },
+    cards: {
+      description: "كل البطاقات في مساحة العمل هذه.",
+    },
+    tags: {
+      description: "كل الوسوم المستخدمة في بطاقة واحدة على الأقل.",
+    },
+    decks: {
+      description: "فلاتر بطاقات محفوظة لمراجعة مركّزة.",
+    },
+    import: {
+      description: "أضف بطاقات من ملف.",
+    },
+    export: {
+      description: "نزّل كل بطاقاتك كملف.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "المجموعات",
-      description: "أنشئ نطاقات دراسة قابلة لإعادة الاستخدام وحرّرها وراجعها.",
     },
     tags: {
       title: "الوسوم",
-      description: "افحص استخدام الوسوم على مستوى مساحة العمل وعدد البطاقات.",
     },
     export: {
       title: "تصدير",
-      description: "نزّل البطاقات النشطة من مساحة العمل هذه كحزمة flashcards.zip محمولة.",
-      value: "flashcards.zip",
     },
     import: {
       title: "استيراد",
-      description: "الصق المصطلحات والتعريفات أو استورد حزمة Nibomo.",
-      value: "نص أو ZIP",
     },
     resetProgress: {
       title: "إعادة تعيين تقدم الدراسة",
