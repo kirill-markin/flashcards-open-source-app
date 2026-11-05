@@ -38,6 +38,18 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeGuestNavigationFlow() throws {
         try self.step("verify guest navigation surfaces without login") {
+            #if targetEnvironment(macCatalyst)
+            // The Mac sidebar lists the Library sections instead of a hub.
+            try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
+            for identifier in [
+                LiveSmokeIdentifier.rootTabLibraryTagsItem,
+                LiveSmokeIdentifier.rootTabLibraryDecksItem,
+                LiveSmokeIdentifier.rootTabLibraryImportItem,
+                LiveSmokeIdentifier.rootTabLibraryExportItem
+            ] {
+                try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+            #else
             try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .library)
             try self.assertScreenVisible(screen: .library, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             for identifier in [
@@ -49,6 +61,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
                 try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
             try self.tapButton(identifier: LiveSmokeIdentifier.libraryCardsRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #endif
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds

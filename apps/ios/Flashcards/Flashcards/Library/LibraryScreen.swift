@@ -18,9 +18,9 @@ struct LibraryScreen: View {
             Section {
                 NavigationLink(value: LibraryNavigationDestination.cards) {
                     LibraryRow(
-                        title: String(localized: "Cards", table: "ReviewCards"),
+                        title: LibrarySection.cards.localizedTitle,
                         subtitle: String(localized: "library.row.cards.subtitle", table: libraryStringsTableName),
-                        systemImage: "rectangle.stack",
+                        systemImage: LibrarySection.cards.systemImage,
                         count: self.store.cards.count
                     )
                 }
@@ -28,9 +28,9 @@ struct LibraryScreen: View {
 
                 NavigationLink(value: LibraryNavigationDestination.tags) {
                     LibraryRow(
-                        title: aiSettingsLocalized("settings.workspace.row.tags", "Tags"),
+                        title: LibrarySection.tags.localizedTitle,
                         subtitle: String(localized: "library.row.tags.subtitle", table: libraryStringsTableName),
-                        systemImage: "tag",
+                        systemImage: LibrarySection.tags.systemImage,
                         count: self.tagsCount
                     )
                 }
@@ -38,9 +38,9 @@ struct LibraryScreen: View {
 
                 NavigationLink(value: LibraryNavigationDestination.decks) {
                     LibraryRow(
-                        title: aiSettingsLocalized("settings.workspace.row.decks", "Decks"),
+                        title: LibrarySection.decks.localizedTitle,
                         subtitle: String(localized: "library.row.decks.subtitle", table: libraryStringsTableName),
-                        systemImage: "square.stack.3d.up",
+                        systemImage: LibrarySection.decks.systemImage,
                         count: self.store.decks.count
                     )
                 }
@@ -50,9 +50,9 @@ struct LibraryScreen: View {
             Section(String(localized: "library.section.import_export", table: libraryStringsTableName)) {
                 NavigationLink(value: LibraryNavigationDestination.importData) {
                     LibraryRow(
-                        title: aiSettingsLocalized("settings.workspace.import.title", "Import"),
+                        title: LibrarySection.importData.localizedTitle,
                         subtitle: String(localized: "library.row.import.subtitle", table: libraryStringsTableName),
-                        systemImage: "square.and.arrow.down",
+                        systemImage: LibrarySection.importData.systemImage,
                         count: nil
                     )
                 }
@@ -60,9 +60,9 @@ struct LibraryScreen: View {
 
                 NavigationLink(value: LibraryNavigationDestination.exportData) {
                     LibraryRow(
-                        title: aiSettingsLocalized("settings.workspace.row.export", "Export"),
+                        title: LibrarySection.exportData.localizedTitle,
                         subtitle: String(localized: "library.row.export.subtitle", table: libraryStringsTableName),
-                        systemImage: "square.and.arrow.up",
+                        systemImage: LibrarySection.exportData.systemImage,
                         count: nil
                     )
                 }

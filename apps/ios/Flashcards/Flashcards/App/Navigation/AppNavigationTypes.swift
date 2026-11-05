@@ -57,6 +57,45 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case exportData
 }
 
+/// A first-level Library page: a hub row, and on the Mac sidebar a row under Library.
+enum LibrarySection: Hashable, CaseIterable, Sendable {
+    case cards
+    case tags
+    case decks
+    case importData
+    case exportData
+
+    var destination: LibraryNavigationDestination {
+        switch self {
+        case .cards: .cards
+        case .tags: .tags
+        case .decks: .decks
+        case .importData: .importData
+        case .exportData: .exportData
+        }
+    }
+
+    var localizedTitle: String {
+        switch self {
+        case .cards: String(localized: "Cards", table: "ReviewCards")
+        case .tags: aiSettingsLocalized("settings.workspace.row.tags", "Tags")
+        case .decks: aiSettingsLocalized("settings.workspace.row.decks", "Decks")
+        case .importData: aiSettingsLocalized("settings.workspace.import.title", "Import")
+        case .exportData: aiSettingsLocalized("settings.workspace.row.export", "Export")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .cards: "rectangle.stack"
+        case .tags: "tag"
+        case .decks: "square.stack.3d.up"
+        case .importData: "square.and.arrow.down"
+        case .exportData: "square.and.arrow.up"
+        }
+    }
+}
+
 enum SettingsNavigationDestination: Hashable, Sendable {
     case subscription
     case currentWorkspace

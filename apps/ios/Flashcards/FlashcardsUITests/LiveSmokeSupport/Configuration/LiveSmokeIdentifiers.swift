@@ -16,6 +16,11 @@ enum LiveSmokeIdentifier {
     static let rootTabAIItem: String = "rootTab.ai.item"
     static let rootTabProgressItem: String = "rootTab.progress.item"
     static let rootTabLibraryItem: String = "rootTab.library.item"
+    static let rootTabLibraryCardsItem: String = "rootTab.library.cards.item"
+    static let rootTabLibraryTagsItem: String = "rootTab.library.tags.item"
+    static let rootTabLibraryDecksItem: String = "rootTab.library.decks.item"
+    static let rootTabLibraryImportItem: String = "rootTab.library.import.item"
+    static let rootTabLibraryExportItem: String = "rootTab.library.export.item"
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let reviewFilterMenu: String = "review.filter.menu"
@@ -190,7 +195,7 @@ enum LiveSmokeSelectedTab: String {
     case ai
     case library
     /// The Library tab showing Cards: a launch pushes Cards, while a tab tap shows Cards only
-    /// when the Library stack still holds it.
+    /// when the Library stack still holds it. The Mac sidebar lists Cards itself.
     case cards
     case settings
 
@@ -202,8 +207,14 @@ enum LiveSmokeSelectedTab: String {
             return LiveSmokeIdentifier.rootTabProgressItem
         case .ai:
             return LiveSmokeIdentifier.rootTabAIItem
-        case .library, .cards:
+        case .library:
             return LiveSmokeIdentifier.rootTabLibraryItem
+        case .cards:
+            #if targetEnvironment(macCatalyst)
+            return LiveSmokeIdentifier.rootTabLibraryCardsItem
+            #else
+            return LiveSmokeIdentifier.rootTabLibraryItem
+            #endif
         case .settings:
             return LiveSmokeIdentifier.rootTabSettingsItem
         }

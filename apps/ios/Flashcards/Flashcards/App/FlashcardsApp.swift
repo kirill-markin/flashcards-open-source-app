@@ -247,9 +247,13 @@ struct FlashcardsApp: App {
                 .environment(navigation)
                 .environment(self.settingsScroll)
                 .onChange(of: self.navigation.libraryPath) {
-                    self.settingsScroll.forgetRowsOffLibraryPath(navigation: self.navigation)
-                    self.store.updateCurrentLibraryAnalyticsSurface(surface: self.navigation.visibleLibraryAnalyticsSurface)
+                    self.libraryPageDidChange()
                 }
+                #if targetEnvironment(macCatalyst)
+                .onChange(of: self.navigation.librarySection) {
+                    self.libraryPageDidChange()
+                }
+                #endif
                 .environment(self.cardsScreenModel)
                 .environment(self.reviewScreen)
                 .environment(self.progressScreenState)
@@ -430,6 +434,12 @@ struct FlashcardsApp: App {
 
     private var isCloudCredentialRecoveryGateActive: Bool {
         self.store.cloudCredentialRecoveryState != nil
+    }
+
+    @MainActor
+    private func libraryPageDidChange() {
+        self.settingsScroll.forgetRowsOffLibraryPath(navigation: self.navigation)
+        self.store.updateCurrentLibraryAnalyticsSurface(surface: self.navigation.visibleLibraryAnalyticsSurface)
     }
 
     @MainActor
