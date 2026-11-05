@@ -123,6 +123,42 @@ extension FlashcardsStore {
         self.startReviewLoad(reviewFilter: self.selectedReviewFilter, shownCardIntent: .keepShownCard, now: now)
     }
 
+    /// Opens Review from a widget tap. A tapped card that is still in review in the current workspace starts a new
+    /// session shown first; otherwise the current session stays as it is.
+    func openReviewFromWidget(deepLink: WidgetDeepLink, navigation: AppNavigationModel, now: Date) {
+        defer {
+            navigation.selectTab(.review)
+        }
+        guard let cardId = deepLink.cardId, deepLink.workspaceId == self.workspace?.workspaceId else {
+            return
+        }
+        let reviewState = self.currentReviewPublishedState()
+        let shownCardId = currentReviewCard(
+            reviewQueue: self.reviewRuntime.effectiveReviewQueue(publishedState: reviewState)
+        )?.cardId
+        guard cardId != shownCardId else {
+            return
+        }
+        let tappedReviewCard = presentedReviewCardForBackgroundRefresh(
+            reviewQueue: [],
+            presentedCardId: cardId,
+            pendingReviewCardIds: reviewState.pendingReviewCardIds,
+            resolvedReviewFilter: reviewState.selectedReviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
+        guard tappedReviewCard != nil else {
+            return
+        }
+        self.startReviewLoad(
+            reviewFilter: reviewState.selectedReviewFilter,
+            shownCardIntent: .startNewSessionShowingCard(cardId: cardId),
+            now: now
+        )
+    }
+
+    @discardableResult
     private func startReviewLoad(reviewFilter: ReviewFilter, shownCardIntent: ReviewShownCardIntent, now: Date) -> Bool {
         do {
             try self.startReviewLoadOrThrow(reviewFilter: reviewFilter, shownCardIntent: shownCardIntent, now: now)
@@ -161,13 +197,20 @@ extension FlashcardsStore {
         let currentReviewState = self.currentReviewPublishedState()
         // The shown card and the prepared next card must never change before the shown card is rated: replacing
         // either during a reload reads as a blink. Only a new scope starts empty, including the fallback when the
-        // requested deck no longer exists. Both cards are validated against the fresh `cards`, not the queue being
-        // replaced. See docs/fsrs-scheduling-logic.md#non-blocking-review.
-        let startsNewSession = shownCardIntent == .startNewSession
+        // requested deck no longer exists; a widget tap starts a new session showing its card first. The cards are
+        // validated against the fresh `cards`, not the queue being replaced.
+        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+        let startsNewSession = shownCardIntent != .keepShownCard
             || isMissingDeckReviewFilterFallback(
                 requestedReviewFilter: requestedReviewFilter,
                 resolvedReviewFilter: resolvedReviewQuery.reviewFilter
             )
+        let requestedFirstCardId: String?
+        if case .startNewSessionShowingCard(let cardId) = shownCardIntent {
+            requestedFirstCardId = cardId
+        } else {
+            requestedFirstCardId = nil
+        }
         let currentEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState)
         let validatedShownReviewCard = startsNewSession ? nil : presentedReviewCardForBackgroundRefresh(
             reviewQueue: [],
@@ -188,9 +231,20 @@ extension FlashcardsStore {
             cards: self.cards,
             now: now
         )
+        let validatedRequestedFirstReviewCard = presentedReviewCardForBackgroundRefresh(
+            reviewQueue: [],
+            presentedCardId: requestedFirstCardId,
+            pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
         // A shown card that left review advances to the prepared next card; the head load prepares a new next card.
         // See docs/fsrs-scheduling-logic.md#non-blocking-review.
-        let preservedPresentedReviewCard = validatedShownReviewCard ?? validatedNextReviewCard
+        let preservedPresentedReviewCard = validatedRequestedFirstReviewCard
+            ?? validatedShownReviewCard
+            ?? validatedNextReviewCard
         let preservedNextReviewCard = validatedShownReviewCard == nil ? nil : validatedNextReviewCard
         let plan = self.reviewRuntime.startReviewLoad(
             publishedState: currentReviewState,

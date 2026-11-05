@@ -17,6 +17,11 @@ private struct CloudSyncPollingTaskID: Hashable {
     let isSyncBlocked: Bool
 }
 
+private struct WidgetTapConsumptionTaskID: Equatable {
+    let isConsumptionReady: Bool
+    let pendingWidgetDeepLink: WidgetDeepLink?
+}
+
 private struct ProgressContextWatcherTaskID: Hashable {
     let isStartupReady: Bool
     let isSceneActive: Bool
@@ -32,6 +37,17 @@ private func nextProgressContextRolloverDate(now: Date) -> Date {
     }
 
     return nextDay
+}
+
+private func analyticsWidgetSize(size: WidgetDeepLinkSize) -> AnalyticsWidgetSize {
+    switch size {
+    case .small:
+        return .small
+    case .medium:
+        return .medium
+    case .large:
+        return .large
+    }
 }
 
 @main
@@ -51,6 +67,8 @@ struct FlashcardsApp: App {
     @State private var hasRunInitialStartup: Bool
     @State private var isStartupReadyForBackgroundWork: Bool
     @State private var isLowPowerModeEnabled: Bool
+    /// The latest widget tap, held until the app can open Review; a newer tap replaces it.
+    @State private var pendingWidgetDeepLink: WidgetDeepLink?
 
     @MainActor
     init() {
@@ -207,6 +225,7 @@ struct FlashcardsApp: App {
         _hasRunInitialStartup = State(initialValue: false)
         _isStartupReadyForBackgroundWork = State(initialValue: false)
         _isLowPowerModeEnabled = State(initialValue: processInfo.isLowPowerModeEnabled)
+        _pendingWidgetDeepLink = State(initialValue: nil)
     }
 
     var body: some Scene {
@@ -215,6 +234,10 @@ struct FlashcardsApp: App {
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
                 .onOpenURL { url in
+                    if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
+                        self.pendingWidgetDeepLink = widgetDeepLink
+                        return
+                    }
                     _ = GIDSignIn.sharedInstance.handle(url)
                 }
                 .environment(store)
@@ -325,6 +348,9 @@ struct FlashcardsApp: App {
                 .task(id: self.isAppNotificationTapConsumptionReady) {
                     await self.consumePendingAppNotificationTapIfNeeded()
                 }
+                .task(id: self.widgetTapConsumptionTaskID) {
+                    await self.consumePendingWidgetTapIfNeeded()
+                }
                 .task(id: self.progressContextWatcherTaskID) {
                     await self.runProgressContextWatcherLoop()
                 }
@@ -381,6 +407,13 @@ struct FlashcardsApp: App {
         self.isStartupReadyForBackgroundWork
             && self.scenePhase == .active
             && self.isCloudCredentialRecoveryGateActive == false
+    }
+
+    private var widgetTapConsumptionTaskID: WidgetTapConsumptionTaskID {
+        WidgetTapConsumptionTaskID(
+            isConsumptionReady: self.isAppNotificationTapConsumptionReady,
+            pendingWidgetDeepLink: self.pendingWidgetDeepLink
+        )
     }
 
     private var progressContextWatcherTaskID: ProgressContextWatcherTaskID {
@@ -739,6 +772,22 @@ struct FlashcardsApp: App {
             details: nil
         )
         logAppNotificationTapEvent(action: "notification_tap_consumed", metadata: consumedMetadata)
+    }
+
+    @MainActor
+    private func consumePendingWidgetTapIfNeeded() async {
+        guard self.isAppNotificationTapConsumptionReady, self.pendingWidgetDeepLink != nil else {
+            return
+        }
+
+        await Task.yield()
+        guard self.isAppNotificationTapConsumptionReady, let deepLink = self.pendingWidgetDeepLink else {
+            return
+        }
+
+        self.pendingWidgetDeepLink = nil
+        self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
+        Analytics.track(.widgetOpened(widgetSize: analyticsWidgetSize(size: deepLink.size)))
     }
 
     @MainActor
