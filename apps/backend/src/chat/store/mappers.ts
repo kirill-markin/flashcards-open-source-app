@@ -89,6 +89,15 @@ export function mapChatItemRow(row: ChatItemRow): PersistedChatMessageItem {
   };
 }
 
+/** Nothing writes a terminal assistant item again, so its updated_at is the completion time. */
+export function getAssistantMessageCompletedAt(
+  message: Pick<PersistedChatMessageItem, "role" | "state" | "updatedAt">,
+): number | null {
+  return message.role === "assistant" && message.state !== "in_progress"
+    ? message.updatedAt
+    : null;
+}
+
 export function mapPersistedMessagesToStoredMessages(
   messages: ReadonlyArray<PersistedChatMessageItem>,
 ): ReadonlyArray<StoredMessage> {
@@ -101,6 +110,7 @@ export function mapPersistedMessagesToStoredMessages(
     isStopped: message.isStopped,
     cursor: String(message.itemOrder),
     itemId: message.role === "assistant" ? message.itemId : null,
+    completedAt: getAssistantMessageCompletedAt(message),
   }));
 }
 
