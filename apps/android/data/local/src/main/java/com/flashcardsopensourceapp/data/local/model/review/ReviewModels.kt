@@ -139,6 +139,20 @@ data class ReviewSessionQueryInputs(
     val nowMillis: Long
 )
 
+/** The Review tab badge count with the card Review shows first, for the Home Screen widget. */
+data class ReviewQueueHead(
+    val workspaceId: String,
+    val dueCount: Int,
+    /** The earliest future due time in the filter. */
+    val nextDueAtMillis: Long?,
+    val topCard: ReviewQueueHeadCard?
+)
+
+data class ReviewQueueHeadCard(
+    val cardId: String,
+    val frontText: String
+)
+
 /** Filter sheet choices with their due counts, loaded only while the filter sheet is open. */
 data class ReviewFilterOptions(
     val deckFilters: List<ReviewDeckFilterOption>,

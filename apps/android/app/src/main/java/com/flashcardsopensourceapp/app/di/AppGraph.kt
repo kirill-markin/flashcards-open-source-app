@@ -75,6 +75,8 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.repository.billing.GooglePlayBillingRepository
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
+import com.flashcardsopensourceapp.app.widget.observeReviewWidgetContent
+import com.flashcardsopensourceapp.app.widget.updateReviewWidgetsOnContentChange
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
@@ -212,6 +214,7 @@ class AppGraph(
     private var productAnalyticsPreferenceJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
     private var notificationsWorkspaceObserverJob: Job? = null
+    private var reviewWidgetUpdatesJob: Job? = null
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
     // One decision per process, taken before anything can sync or upload an event.
@@ -935,6 +938,7 @@ class AppGraph(
                     )
                 }
                 startNotificationsWorkspaceObserver(initialWorkspaceId = initialWorkspaceId)
+                startReviewWidgetUpdates()
                 withContext(Dispatchers.Main.immediate) {
                     if (!isGooglePlayLifecycleBound) {
                         ProcessLifecycleOwner.get().lifecycle.addObserver(googlePlaySubscriptionConnector)
@@ -1000,6 +1004,16 @@ class AppGraph(
                 reconcileNotificationsForWorkspaceUntilSuccessful(workspaceId = workspaceId)
                 previousWorkspaceId = workspaceId
             }
+        }
+    }
+
+    private fun startReviewWidgetUpdates() {
+        reviewWidgetUpdatesJob?.cancel()
+        reviewWidgetUpdatesJob = appScope.launch {
+            updateReviewWidgetsOnContentChange(
+                context = applicationContext,
+                content = observeReviewWidgetContent(appGraph = this@AppGraph)
+            )
         }
     }
 
@@ -1292,6 +1306,7 @@ class AppGraph(
         productAnalyticsPreferenceJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()
         notificationsWorkspaceObserverJob?.cancelAndJoin()
+        reviewWidgetUpdatesJob?.cancelAndJoin()
         reviewNotificationsManager.close()
         strictRemindersManager.close()
         appJob.cancelAndJoin()

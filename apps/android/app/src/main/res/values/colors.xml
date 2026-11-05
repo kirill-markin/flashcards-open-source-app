@@ -1,4 +1,9 @@
 <resources>
     <color name="launch_background">#101417</color>
     <color name="launcher_light_background">#FFFFFF</color>
+    <!-- The widget picker preview's copy of FlashcardsDarkColorScheme in core/ui theme. -->
+    <color name="review_widget_background">#171D21</color>
+    <color name="review_widget_primary">#FF6719</color>
+    <color name="review_widget_on_surface">#F1F3F4</color>
+    <color name="review_widget_on_surface_variant">#C2C8CC</color>
 </resources>

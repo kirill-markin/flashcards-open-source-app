@@ -391,6 +391,8 @@ dependencies {
     implementation(libs.androidx.compose.adaptive.navigation.suite)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
     implementation(libs.google.play.review)
     implementation(libs.google.play.billing.ktx)
     implementation(libs.okhttp)

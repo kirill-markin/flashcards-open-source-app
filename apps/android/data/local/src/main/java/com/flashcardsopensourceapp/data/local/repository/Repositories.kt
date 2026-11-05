@@ -68,6 +68,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
@@ -133,6 +134,9 @@ interface ReviewRepository {
 
     /** New and due cards in the current workspace under its persisted Review filter. */
     fun observeReviewDueBadgeCount(): Flow<Int>
+
+    /** [observeReviewDueBadgeCount] with the card Review shows first; null without a current workspace. */
+    fun observeReviewQueueHead(): Flow<ReviewQueueHead?>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 
