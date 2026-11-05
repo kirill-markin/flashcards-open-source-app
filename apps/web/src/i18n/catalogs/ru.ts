@@ -23,7 +23,7 @@ export const ruCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Учёба доступна <em>каждому.</em>",
+    heading: "Сделайте Nibomo <em>своим</em>.",
     freeTitle: "Бесплатно",
     freeDescription: "Создано для студентов без работы. Открыто для всех.",
     freeBenefit: "Повторение карточек, учёба офлайн и синхронизация",

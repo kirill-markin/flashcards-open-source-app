@@ -22,7 +22,7 @@ const enCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Learning belongs to <em>everyone.</em>",
+    heading: "Make Nibomo <em>yours</em>.",
     freeTitle: "Free",
     freeDescription: "Created for students without a job. Open to everyone.",
     freeBenefit: "Core reviews, offline learning & sync",

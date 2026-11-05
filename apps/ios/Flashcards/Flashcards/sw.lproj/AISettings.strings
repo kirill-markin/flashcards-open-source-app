@@ -995,7 +995,7 @@
 "settings.account.connection.restart" = "Ushahidi umeisha muda au umetumika. Anza tena kwa ushahidi mpya.";
 "settings.account.connection.restorePaused" = "Akaunti zimeunganishwa. Usasishaji wa ndani umesitishwa; data yako ya nje ya mtandao imehifadhiwa.";
 
-"premium.offer.heading" = "Kujifunza ni kwa **kila mtu**.";
+"premium.offer.heading" = "Ifanye Nibomo iwe **yako**.";
 "premium.offer.free" = "Bure";
 "premium.offer.freeDescription" = "Imeundwa kwa wanafunzi wasio na kazi. Wazi kwa kila mtu.";
 "premium.offer.freeBenefits" = "Marudio ya msingi, kujifunza bila mtandao na usawazishaji";

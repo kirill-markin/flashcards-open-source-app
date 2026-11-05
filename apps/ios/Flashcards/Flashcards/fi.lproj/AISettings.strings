@@ -995,7 +995,7 @@
 "settings.account.connection.restart" = "Todiste vanheni tai käytettiin. Aloita uudelleen uudella todisteella.";
 "settings.account.connection.restorePaused" = "Tilit yhdistetty. Paikallinen päivitys on keskeytetty; offline-tietosi säilyvät.";
 
-"premium.offer.heading" = "Oppiminen kuuluu **kaikille**.";
+"premium.offer.heading" = "Tee Nibomosta **omasi**.";
 "premium.offer.free" = "Ilmainen";
 "premium.offer.freeDescription" = "Luotu opiskelijoille, joilla ei ole työtä. Avoin kaikille.";
 "premium.offer.freeBenefits" = "Kertaus, offline-oppiminen ja synkronointi";

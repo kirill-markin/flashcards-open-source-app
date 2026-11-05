@@ -23,7 +23,7 @@ const knCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "ಕಲಿಕೆ <em>ಎಲ್ಲರಿಗೂ</em> ಸೇರಿದ್ದು.",
+    heading: "Nibomo <em>ನಿಮ್ಮದೇ</em> ಆಗಲಿ.",
     freeTitle: "ಉಚಿತ",
     freeDescription: "ಉದ್ಯೋಗವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತವಾಗಿದೆ.",
     freeBenefit: "ಮೂಲ ಮರುಅಭ್ಯಾಸ, ಆಫ್‌ಲೈನ್ ಕಲಿಕೆ ಮತ್ತು ಸಿಂಕ್",

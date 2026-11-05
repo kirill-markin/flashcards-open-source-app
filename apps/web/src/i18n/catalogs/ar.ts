@@ -23,7 +23,7 @@ const arCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "التعلّم حق <em>للجميع.</em>",
+    heading: "اجعل Nibomo <em>خاصًا بك</em>.",
     freeTitle: "مجاني",
     freeDescription: "صُمّم للطلاب الذين لا يعملون. متاح للجميع.",
     freeBenefit: "المراجعات الأساسية والتعلّم دون اتصال والمزامنة",

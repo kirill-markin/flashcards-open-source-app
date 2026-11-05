@@ -23,7 +23,7 @@ const zuCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Ukufunda kungokwawo <em>wonke umuntu.</em>",
+    heading: "Yenza i-Nibomo ibe <em>ngeyakho</em>.",
     freeTitle: "Mahhala",
     freeDescription: "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu.",
     freeBenefit: "Ukubuyekeza okuyisisekelo, ukufunda ungaxhunyiwe nokuvumelanisa",
