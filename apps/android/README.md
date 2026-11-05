@@ -76,7 +76,7 @@ The Android app should mirror the current top-level product structure:
 - Review
 - Progress
 - AI
-- Cards
+- Library
 - Settings
 
 The goal is a working Android app that can run in an emulator and on-device while staying aligned with the shared product contract.

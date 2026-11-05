@@ -132,7 +132,6 @@ const idCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Nonaktif",
     on: "Aktif",
-    open: "Buka",
     perAction: "Per tindakan",
     refresh: "Segarkan",
     retry: "Coba lagi",
@@ -213,6 +212,7 @@ const idCatalog: TranslationCatalog = {
     aiChat: "Obrolan AI",
     progress: "Progres",
     cards: "Kartu",
+    library: "Pustaka",
     settings: "Pengaturan",
   },
   shell: {
@@ -758,24 +758,39 @@ const idCatalog: TranslationCatalog = {
       resetAll: "Atur ulang status semua prompt",
     },
   },
+  libraryScreen: {
+    title: "Pustaka",
+    groups: {
+      importExport: "Impor dan ekspor",
+    },
+    cards: {
+      description: "Semua kartu di ruang kerja ini.",
+    },
+    tags: {
+      description: "Semua tag yang dipakai di setidaknya satu kartu.",
+    },
+    decks: {
+      description: "Filter kartu tersimpan untuk tinjauan yang terfokus.",
+    },
+    import: {
+      description: "Tambahkan kartu dari file.",
+    },
+    export: {
+      description: "Unduh semua kartu Anda sebagai file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Dek",
-      description: "Buat, edit, dan tinjau cakupan belajar yang bisa dipakai ulang.",
     },
     tags: {
       title: "Tag",
-      description: "Periksa penggunaan tag dan jumlah kartu di seluruh ruang kerja.",
     },
     export: {
       title: "Ekspor",
-      description: "Unduh kartu aktif dari ruang kerja ini sebagai paket flashcards.zip yang portabel.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Impor",
-      description: "Tempel istilah dan definisi atau impor paket Nibomo.",
-      value: "Teks atau ZIP",
     },
     resetProgress: {
       title: "Setel ulang progres belajar",

@@ -74,6 +74,7 @@ extension FlashcardsStore {
 
     func prepareVisibleTabForPresentation(
         tab: AppTab,
+        librarySurface: AnalyticsSurface,
         now: Date
     ) {
         // Single funnel for every top-level destination, including the one selected at launch.
@@ -88,10 +89,14 @@ extension FlashcardsStore {
         // The tab shown at launch arrives with the tab already stored, and is the only such call that
         // must still be reported. Nothing has been viewed yet at that point, which is what the initial
         // report keys on.
+        //
+        // The Library page arrives with the call because a programmatic open replaces the Library
+        // path in the same update that selects the tab, before the path's own change is observed.
+        self.updateCurrentLibraryAnalyticsSurface(surface: librarySurface)
         if self.currentVisibleTab == tab {
-            Analytics.trackInitialScreenViewed(analyticsSurface(tab: tab))
+            Analytics.trackInitialScreenViewed(self.visibleAnalyticsSurface(tab: tab))
         } else {
-            Analytics.trackScreenViewed(analyticsSurface(tab: tab))
+            Analytics.trackScreenViewed(self.visibleAnalyticsSurface(tab: tab))
         }
         self.updateCurrentVisibleTab(tab: tab)
 
@@ -1067,7 +1072,7 @@ extension FlashcardsStore {
             await self.refreshReviewBadgesIfNeeded(now: now)
         case .progress:
             await self.refreshProgressIfNeeded(now: now)
-        case .cards, .ai, .settings:
+        case .library, .ai, .settings:
             return
         }
     }

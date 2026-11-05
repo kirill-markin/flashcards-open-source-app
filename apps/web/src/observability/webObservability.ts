@@ -413,6 +413,7 @@ export type WebAppOperation =
   | "deck_save"
   | "deck_delete"
   | "tags_load"
+  | "library_counts_load"
   | "workspace_overview_load"
   | "workspace_rename"
   | "workspace_delete_preview_load"

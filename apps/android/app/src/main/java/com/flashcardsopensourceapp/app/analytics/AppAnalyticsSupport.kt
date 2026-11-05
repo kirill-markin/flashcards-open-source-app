@@ -2,18 +2,21 @@ package com.flashcardsopensourceapp.app.analytics
 
 import android.database.sqlite.SQLiteFullException
 import com.flashcardsopensourceapp.app.navigation.AiDestination
-import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
 import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
+import com.flashcardsopensourceapp.app.navigation.library.LibraryAllCardsDeckDetailDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryCardsDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryDeckDetailDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryDeckEditorDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryDecksDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryExportDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryImportDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryTagsDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceAllCardsDeckDetailDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeckDetailDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeckEditorDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDecksDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTagsDestination
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredential
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredentialProvider
@@ -315,22 +318,18 @@ private fun isSilentAnalyticsGuestMintFailure(error: Throwable): Boolean {
  * names are never sent: cross-platform funnel comparison is the only reason the enum is shared.
  *
  * Every destination registered in `navigation/` is covered today, so nothing reachable falls
- * through to `null`: `review` and `review/preview`; `cards`; `ai`; `progress`; the three
- * `cards/editor/…` steps; `settings` and every `settings/…` leaf.
+ * through to `null`: `review` and `review/preview`; `library` and every `library/…` leaf; `ai`;
+ * `progress`; the three `cards/editor/…` steps; `settings` and every `settings/…` leaf.
  *
- * Five families of `settings/…` leaf report something other than `settings`, because they are
- * screens of their own that merely happen to be routed under settings on every client. The workspace
- * content ones — `settings/decks`, `settings/decks/editor/{deckId}`, `settings/tags`, and the
- * `settings/decks/detail/{deckId}` and `settings/decks/all-cards` pair that already reported
- * `deck_detail` — act on the person's own decks, cards and tags. The sign-in flow reports `signin`
- * for all three of its steps, which is `screen` in its ordinary reading, where the person is now.
- * That is *not* the entry-point reading `signin_failed` needs: the surface that owned the tapped
- * sign-in control rides in on the route's `origin` argument instead, so nothing here may be used to
- * attribute a sign-in failure. The remaining app-preference and account leaves collapse into
- * `settings` on purpose.
+ * Each workspace content leaf of `library/…` reports its own surface, and the hub, `library/import`
+ * and `library/export` report `library`. The sign-in flow reports `signin` for all three of its
+ * steps, which is `screen` in its ordinary reading, where the person is now. That is *not* the
+ * entry-point reading `signin_failed` needs: the surface that owned the tapped sign-in control rides
+ * in on the route's `origin` argument instead, so nothing here may be used to attribute a sign-in
+ * failure. The remaining app-preference and account leaves collapse into `settings` on purpose.
  *
  * The order below is load-bearing: the specific `settings/…` branches must stay above the catch-all
- * one, and the two `settings/decks/…` sub-screens above the exact `settings/decks` list.
+ * one, and the two `library/decks/…` sub-screens above the exact `library/decks` list.
  *
  * Two surfaces this client does reach are deliberately absent, because neither is a route.
  * `credential_recovery` is the gate that replaces the whole app root, reported by `FlashcardsApp`
@@ -349,19 +348,22 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
 
     return when {
         normalizedRoute.startsWith(prefix = CardEditorGraph.routePrefix) -> AnalyticsSurface.CARD_EDITOR
-        normalizedRoute.startsWith(prefix = SettingsWorkspaceDeckDetailDestination.routePrefix) ||
-            normalizedRoute == SettingsWorkspaceAllCardsDeckDetailDestination.route -> AnalyticsSurface.DECK_DETAIL
-        normalizedRoute.startsWith(prefix = SettingsWorkspaceDeckEditorDestination.routePrefix) ->
+        normalizedRoute.startsWith(prefix = LibraryDeckDetailDestination.routePrefix) ||
+            normalizedRoute == LibraryAllCardsDeckDetailDestination.route -> AnalyticsSurface.DECK_DETAIL
+        normalizedRoute.startsWith(prefix = LibraryDeckEditorDestination.routePrefix) ->
             AnalyticsSurface.DECK_EDITOR
-        normalizedRoute == SettingsWorkspaceDecksDestination.route -> AnalyticsSurface.DECKS
-        normalizedRoute == SettingsWorkspaceTagsDestination.route -> AnalyticsSurface.TAGS
+        normalizedRoute == LibraryDecksDestination.route -> AnalyticsSurface.DECKS
+        normalizedRoute == LibraryTagsDestination.route -> AnalyticsSurface.TAGS
+        normalizedRoute == LibraryCardsDestination.route -> AnalyticsSurface.CARDS
+        normalizedRoute == LibraryDestination.route ||
+            normalizedRoute == LibraryImportDestination.route ||
+            normalizedRoute == LibraryExportDestination.route -> AnalyticsSurface.LIBRARY
         normalizedRoute.isWithinRoutePrefix(routePrefix = SettingsAccountSignInEmailDestination.routePrefix) ->
             AnalyticsSurface.SIGNIN
         normalizedRoute == SettingsDestination.route ||
             normalizedRoute.startsWith(prefix = "${SettingsDestination.route}/") -> AnalyticsSurface.SETTINGS
         normalizedRoute == ReviewDestination.route ||
             normalizedRoute.startsWith(prefix = "${ReviewDestination.route}/") -> AnalyticsSurface.REVIEW
-        normalizedRoute == CardsDestination.route -> AnalyticsSurface.CARDS
         normalizedRoute == AiDestination.route ||
             normalizedRoute.startsWith(prefix = "${AiDestination.route}/") -> AnalyticsSurface.AI
         normalizedRoute == ProgressDestination.route -> AnalyticsSurface.PROGRESS

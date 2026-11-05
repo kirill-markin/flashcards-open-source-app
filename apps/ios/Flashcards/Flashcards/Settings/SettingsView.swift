@@ -238,50 +238,6 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAccessRow)
                 .rememberedListRow(id: UITestIdentifier.settingsAccessRow)
-
-                NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.decks", "Decks"),
-                        value: aiSettingsLocalized("settings.row.workspaceScoped.value", "Workspace"),
-                        systemImage: "rectangle.stack",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsDecksRow)
-                .rememberedListRow(id: UITestIdentifier.settingsDecksRow)
-
-                NavigationLink(value: SettingsNavigationDestination.workspaceTags) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.tags", "Tags"),
-                        value: aiSettingsLocalized("settings.row.workspaceScoped.value", "Workspace"),
-                        systemImage: "tag",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsTagsRow)
-                .rememberedListRow(id: UITestIdentifier.settingsTagsRow)
-
-                NavigationLink(value: SettingsNavigationDestination.workspaceImport) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.import", "Import"),
-                        value: aiSettingsLocalized("settings.row.import.value", "ZIP"),
-                        systemImage: "square.and.arrow.down",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsImportRow)
-                .rememberedListRow(id: UITestIdentifier.settingsImportRow)
-
-                NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.export", "Export"),
-                        value: aiSettingsLocalized("settings.row.export.value", "flashcards.zip"),
-                        systemImage: "square.and.arrow.up",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
-                .rememberedListRow(id: UITestIdentifier.settingsExportRow)
             }
 
             Section(aiSettingsLocalized("settings.section.support", "Support")) {

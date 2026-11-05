@@ -2,8 +2,8 @@ package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.FlipToFront
+import androidx.compose.material.icons.outlined.LocalLibrary
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Settings
 import androidx.annotation.StringRes
@@ -37,10 +37,10 @@ data object ReviewDestination : TopLevelDestination {
     override val icon: ImageVector = Icons.Outlined.FlipToFront
 }
 
-data object CardsDestination : TopLevelDestination {
-    override val route: String = "cards"
-    override val labelResId: Int = R.string.top_level_cards
-    override val icon: ImageVector = Icons.Outlined.CollectionsBookmark
+data object LibraryDestination : TopLevelDestination {
+    override val route: String = "library"
+    override val labelResId: Int = R.string.top_level_library
+    override val icon: ImageVector = Icons.Outlined.LocalLibrary
 }
 
 data object AiDestination : TopLevelDestination {
@@ -65,6 +65,6 @@ val topLevelDestinations: List<TopLevelDestination> = listOf(
     ReviewDestination,
     ProgressDestination,
     AiDestination,
-    CardsDestination,
+    LibraryDestination,
     SettingsDestination
 )

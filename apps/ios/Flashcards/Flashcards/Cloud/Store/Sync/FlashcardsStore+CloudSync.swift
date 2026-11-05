@@ -55,6 +55,10 @@ extension FlashcardsStore {
         self.currentVisibleTab = tab
     }
 
+    func updateCurrentLibraryAnalyticsSurface(surface: AnalyticsSurface) {
+        self.currentLibraryAnalyticsSurface = surface
+    }
+
     private func addCloudSyncForegroundOperationBreadcrumb(
         stage: String,
         phase: ForegroundOperationPhase,

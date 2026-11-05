@@ -132,7 +132,6 @@ const elCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Ανενεργό",
     on: "Ενεργό",
-    open: "Άνοιγμα",
     perAction: "Ανά ενέργεια",
     refresh: "Ανανέωση",
     retry: "Δοκιμή ξανά",
@@ -213,6 +212,7 @@ const elCatalog: TranslationCatalog = {
     aiChat: "Συνομιλία ΤΝ",
     progress: "Πρόοδος",
     cards: "Κάρτες",
+    library: "Βιβλιοθήκη",
     settings: "Ρυθμίσεις",
   },
   shell: {
@@ -758,24 +758,39 @@ const elCatalog: TranslationCatalog = {
       resetAll: "Επαναφορά κατάστασης όλων των προτροπών",
     },
   },
+  libraryScreen: {
+    title: "Βιβλιοθήκη",
+    groups: {
+      importExport: "Εισαγωγή και εξαγωγή",
+    },
+    cards: {
+      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
+    },
+    tags: {
+      description: "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα.",
+    },
+    decks: {
+      description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
+    },
+    import: {
+      description: "Προσθέστε κάρτες από αρχείο.",
+    },
+    export: {
+      description: "Κατεβάστε όλες τις κάρτες σας ως αρχείο.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Δέσμες",
-      description: "Δημιουργήστε, επεξεργαστείτε και επαναλάβετε επαναχρησιμοποιήσιμα σύνολα μελέτης.",
     },
     tags: {
       title: "Ετικέτες",
-      description: "Δείτε τη χρήση των ετικετών και τον αριθμό καρτών σε όλον τον χώρο εργασίας.",
     },
     export: {
       title: "Εξαγωγή",
-      description: "Κατεβάστε τις ενεργές κάρτες αυτού του χώρου εργασίας ως φορητό πακέτο flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Εισαγωγή",
-      description: "Επικολλήστε όρους και ορισμούς ή εισαγάγετε ένα πακέτο Nibomo.",
-      value: "Κείμενο ή ZIP",
     },
     resetProgress: {
       title: "Μηδενισμός προόδου μελέτης",

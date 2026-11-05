@@ -132,7 +132,6 @@ const guCatalog: TranslationCatalog = {
     ok: "ઠીક છે",
     off: "બંધ",
     on: "ચાલુ",
-    open: "ખોલો",
     perAction: "ક્રિયા દીઠ",
     refresh: "રિફ્રેશ કરો",
     retry: "ફરી પ્રયાસ કરો",
@@ -213,6 +212,7 @@ const guCatalog: TranslationCatalog = {
     aiChat: "AI ચૅટ",
     progress: "પ્રગતિ",
     cards: "કાર્ડ",
+    library: "લાઇબ્રેરી",
     settings: "સેટિંગ્સ",
   },
   shell: {
@@ -758,24 +758,39 @@ const guCatalog: TranslationCatalog = {
       resetAll: "બધા પ્રોમ્પ્ટની સ્થિતિ રીસેટ કરો",
     },
   },
+  libraryScreen: {
+    title: "લાઇબ્રેરી",
+    groups: {
+      importExport: "આયાત અને નિકાસ",
+    },
+    cards: {
+      description: "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ.",
+    },
+    tags: {
+      description: "ઓછામાં ઓછા એક કાર્ડ પર વપરાયેલા બધા ટૅગ.",
+    },
+    decks: {
+      description: "કેન્દ્રિત પુનરાવર્તન માટે સાચવેલાં કાર્ડ ફિલ્ટર.",
+    },
+    import: {
+      description: "ફાઇલમાંથી કાર્ડ ઉમેરો.",
+    },
+    export: {
+      description: "તમારાં બધાં કાર્ડ ફાઇલ તરીકે ડાઉનલોડ કરો.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ડેક",
-      description: "ફરી વાપરી શકાય તેવા અભ્યાસના વ્યાપ બનાવો, સંપાદિત કરો અને જુઓ.",
     },
     tags: {
       title: "ટૅગ",
-      description: "આખા કાર્યક્ષેત્રમાં ટૅગનો ઉપયોગ અને કાર્ડની સંખ્યા તપાસો.",
     },
     export: {
       title: "નિકાસ",
-      description: "આ કાર્યક્ષેત્રનાં સક્રિય કાર્ડ પોર્ટેબલ flashcards.zip પૅકેજ તરીકે ડાઉનલોડ કરો.",
-      value: "flashcards.zip",
     },
     import: {
       title: "આયાત",
-      description: "શબ્દો અને વ્યાખ્યાઓ પેસ્ટ કરો અથવા Nibomo પૅકેજ આયાત કરો.",
-      value: "ટેક્સ્ટ કે ZIP",
     },
     resetProgress: {
       title: "અભ્યાસની પ્રગતિ રીસેટ કરો",

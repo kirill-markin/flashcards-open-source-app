@@ -24,7 +24,7 @@ enum CloudSyncTriggerSource: Hashable, Sendable {
     case appLaunch
     case appForeground
     case reviewTabSelected
-    case cardsTabSelected
+    case libraryTabSelected
     case polling
     case localMutation
     case manualSyncNow
@@ -32,7 +32,7 @@ enum CloudSyncTriggerSource: Hashable, Sendable {
 
     var usesImmediateStartDebounce: Bool {
         switch self {
-        case .appLaunch, .appForeground, .reviewTabSelected, .cardsTabSelected:
+        case .appLaunch, .appForeground, .reviewTabSelected, .libraryTabSelected:
             return true
         case .polling, .localMutation, .manualSyncNow, .postAuth:
             return false
@@ -47,8 +47,8 @@ enum CloudSyncTriggerSource: Hashable, Sendable {
             return "app_foreground"
         case .reviewTabSelected:
             return "review_tab_selected"
-        case .cardsTabSelected:
-            return "cards_tab_selected"
+        case .libraryTabSelected:
+            return "library_tab_selected"
         case .polling:
             return "polling"
         case .localMutation:

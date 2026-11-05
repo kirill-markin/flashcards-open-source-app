@@ -1,7 +1,7 @@
 <resources>
     <string name="top_level_review">Révision</string>
     <string name="top_level_progress">Progression</string>
-    <string name="top_level_cards">Cartes</string>
+    <string name="top_level_library">Bibliothèque</string>
     <string name="top_level_ai">IA</string>
     <string name="top_level_settings">Paramètres</string>
 

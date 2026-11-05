@@ -176,7 +176,8 @@ Check all of these on a simulator or device:
    words, scrolling as needed, on iPhone and iPad at normal and enlarged Dynamic
    Type sizes. Check LTR and RTL text for unintended ellipses; full accessibility
    labels and green catalog checks do not prove the full text is drawn.
-3. Cards tab
+3. Library tab: the hub's rows, section header and subtitles, then Cards, Tags,
+   Decks, Import and Export
 4. AI tab, including a card attached from Review and its localized chip label.
    Use long translated labels and long user content on iPhone and iPad, including
    RTL: keep the chip and Remove control inside the viewport and removal usable.

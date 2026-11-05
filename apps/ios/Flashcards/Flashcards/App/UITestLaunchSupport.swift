@@ -26,6 +26,8 @@ enum FlashcardsUITestSelectedTab: String {
     case review
     case progress
     case ai
+    case library
+    /// The Library tab with Cards already pushed, where the card flows start.
     case cards
     case settings
 
@@ -37,10 +39,19 @@ enum FlashcardsUITestSelectedTab: String {
             return .progress
         case .ai:
             return .ai
-        case .cards:
-            return .cards
+        case .library, .cards:
+            return .library
         case .settings:
             return .settings
+        }
+    }
+
+    var libraryPath: [LibraryNavigationDestination] {
+        switch self {
+        case .cards:
+            return [.cards]
+        case .review, .progress, .ai, .library, .settings:
+            return []
         }
     }
 }

@@ -10,7 +10,7 @@ let cloudSyncFastPollingDurationSeconds: TimeInterval = 120
 let cloudImmediateSyncDebounceIntervalSeconds: TimeInterval = 1
 
 func usesFastCloudSyncPolling(tab: AppTab) -> Bool {
-    tab == .review || tab == .cards
+    tab == .review || tab == .library
 }
 
 func isProgressConsumerTab(tab: AppTab) -> Bool {
@@ -228,6 +228,8 @@ final class FlashcardsStore {
     @ObservationIgnored var cachedAIConsentStore: AIConsentStore?
     @ObservationIgnored var aiConsentRegistrationTask: Task<Void, Never>?
     @ObservationIgnored var currentVisibleTab: AppTab
+    /// `AppNavigationModel.visibleLibraryAnalyticsSurface`, kept for the store's surface reports.
+    @ObservationIgnored var currentLibraryAnalyticsSurface: AnalyticsSurface
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
     @ObservationIgnored var reviewNotificationsRescheduleGeneration: Int
@@ -612,6 +614,7 @@ final class FlashcardsStore {
         self.reportedAnalyticsGuestCredentialFailureStages = []
         self.reportedProductAnalyticsPushFailureStages = []
         self.currentVisibleTab = .review
+        self.currentLibraryAnalyticsSurface = .library
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil
         self.reviewNotificationsRescheduleGeneration = 0

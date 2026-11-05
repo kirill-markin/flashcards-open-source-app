@@ -138,7 +138,6 @@ const skCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Vypnuté",
     on: "Zapnuté",
-    open: "Otvoriť",
     perAction: "Pri každej akcii",
     refresh: "Obnoviť",
     retry: "Skúsiť znova",
@@ -219,6 +218,7 @@ const skCatalog: TranslationCatalog = {
     aiChat: "AI chat",
     progress: "Pokrok",
     cards: "Karty",
+    library: "Knižnica",
     settings: "Nastavenia",
   },
   shell: {
@@ -766,24 +766,39 @@ const skCatalog: TranslationCatalog = {
       resetAll: "Obnoviť stav všetkých výziev",
     },
   },
+  libraryScreen: {
+    title: "Knižnica",
+    groups: {
+      importExport: "Import a export",
+    },
+    cards: {
+      description: "Všetky karty v tomto pracovnom priestore.",
+    },
+    tags: {
+      description: "Všetky značky použité aspoň na jednej karte.",
+    },
+    decks: {
+      description: "Uložené filtre kariet na sústredené opakovanie.",
+    },
+    import: {
+      description: "Pridajte karty zo súboru.",
+    },
+    export: {
+      description: "Stiahnite všetky svoje karty ako súbor.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Balíčky",
-      description: "Vytvárajte, upravujte a prezerajte opakovane použiteľné rozsahy učenia.",
     },
     tags: {
       title: "Značky",
-      description: "Pozrite si používanie značiek a počty kariet v celom pracovnom priestore.",
     },
     export: {
       title: "Export",
-      description: "Stiahnite aktívne karty z tohto pracovného priestoru ako prenosný balík flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Prilepte pojmy a definície alebo importujte balík Nibomo.",
-      value: "Text alebo ZIP",
     },
     resetProgress: {
       title: "Vynulovať pokrok v učení",

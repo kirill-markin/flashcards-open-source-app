@@ -132,7 +132,6 @@ const daCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Fra",
     on: "Til",
-    open: "Åbn",
     perAction: "Pr. handling",
     refresh: "Opdater",
     retry: "Prøv igen",
@@ -213,6 +212,7 @@ const daCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Fremskridt",
     cards: "Kort",
+    library: "Bibliotek",
     settings: "Indstillinger",
   },
   shell: {
@@ -758,24 +758,39 @@ const daCatalog: TranslationCatalog = {
       resetAll: "Nulstil tilstanden for alle opfordringer",
     },
   },
+  libraryScreen: {
+    title: "Bibliotek",
+    groups: {
+      importExport: "Import og eksport",
+    },
+    cards: {
+      description: "Alle kort i dette arbejdsområde.",
+    },
+    tags: {
+      description: "Alle tags, der bruges på mindst ét kort.",
+    },
+    decks: {
+      description: "Gemte kortfiltre til fokuseret repetition.",
+    },
+    import: {
+      description: "Tilføj kort fra en fil.",
+    },
+    export: {
+      description: "Download alle dine kort som en fil.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Bunker",
-      description: "Opret, rediger og gennemgå genbrugelige udvalg af kort.",
     },
     tags: {
       title: "Tags",
-      description: "Se brugen af tags og antal kort i hele arbejdsområdet.",
     },
     export: {
       title: "Eksport",
-      description: "Download de aktive kort fra dette arbejdsområde som en flytbar flashcards.zip-pakke.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Indsæt begreber og definitioner, eller importér en Nibomo-pakke.",
-      value: "Tekst eller ZIP",
     },
     resetProgress: {
       title: "Nulstil fremskridt",

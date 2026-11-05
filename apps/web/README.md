@@ -9,7 +9,7 @@ The web client should stay aligned with the shared flashcards product contract w
 The top-level product scope matches the other clients:
 
 - Review
-- Cards
+- Library
 - AI
 - Settings
 

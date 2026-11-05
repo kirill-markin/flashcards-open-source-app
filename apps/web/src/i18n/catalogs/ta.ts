@@ -132,7 +132,6 @@ const taCatalog: TranslationCatalog = {
     ok: "சரி",
     off: "முடக்கம்",
     on: "இயக்கம்",
-    open: "திற",
     perAction: "ஒரு செயலுக்கு",
     refresh: "புதுப்பி",
     retry: "மீண்டும் முயல்",
@@ -213,6 +212,7 @@ const taCatalog: TranslationCatalog = {
     aiChat: "AI அரட்டை",
     progress: "முன்னேற்றம்",
     cards: "அட்டைகள்",
+    library: "நூலகம்",
     settings: "அமைப்புகள்",
   },
   shell: {
@@ -758,24 +758,39 @@ const taCatalog: TranslationCatalog = {
       resetAll: "அனைத்து அறிவுறுத்தல்களின் நிலையையும் மீட்டமை",
     },
   },
+  libraryScreen: {
+    title: "நூலகம்",
+    groups: {
+      importExport: "இறக்குமதியும் ஏற்றுமதியும்",
+    },
+    cards: {
+      description: "இந்தப் பணியிடத்தில் உள்ள எல்லா அட்டைகளும்.",
+    },
+    tags: {
+      description: "குறைந்தது ஒரு அட்டையில் பயன்படுத்தப்பட்ட எல்லா குறிச்சொற்களும்.",
+    },
+    decks: {
+      description: "கவனம் செலுத்திய மீள்பயிற்சிக்காகச் சேமித்த அட்டை வடிகட்டிகள்.",
+    },
+    import: {
+      description: "கோப்பிலிருந்து அட்டைகளைச் சேர்க்கவும்.",
+    },
+    export: {
+      description: "உங்கள் எல்லா அட்டைகளையும் ஒரு கோப்பாகப் பதிவிறக்கவும்.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "தொகுப்புகள்",
-      description: "மீண்டும் பயன்படுத்தக்கூடிய படிப்பு வரம்புகளை உருவாக்கவும், திருத்தவும், பார்க்கவும்.",
     },
     tags: {
       title: "குறிச்சொற்கள்",
-      description: "பணியிடம் முழுவதும் குறிச்சொல் பயன்பாட்டையும் அட்டை எண்ணிக்கையையும் பரிசோதிக்கவும்.",
     },
     export: {
       title: "ஏற்றுமதி",
-      description: "இந்தப் பணியிடத்தின் செயலில் உள்ள அட்டைகளை எடுத்துச் செல்லக்கூடிய flashcards.zip தொகுப்பாகப் பதிவிறக்கவும்.",
-      value: "flashcards.zip",
     },
     import: {
       title: "இறக்குமதி",
-      description: "சொற்களையும் விளக்கங்களையும் ஒட்டவும் அல்லது Nibomo தொகுப்பை இறக்குமதி செய்யவும்.",
-      value: "உரை அல்லது ZIP",
     },
     resetProgress: {
       title: "படிப்பு முன்னேற்றத்தை மீட்டமை",

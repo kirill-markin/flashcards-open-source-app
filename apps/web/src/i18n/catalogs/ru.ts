@@ -138,7 +138,6 @@ export const ruCatalog = {
     ok: "OK",
     off: "Выкл.",
     on: "Вкл.",
-    open: "Открыть",
     perAction: "За действие",
     refresh: "Обновить",
     retry: "Повторить",
@@ -219,6 +218,7 @@ export const ruCatalog = {
     aiChat: "AI-чат",
     progress: "Прогресс",
     cards: "Карточки",
+    library: "Библиотека",
     settings: "Настройки",
   },
   shell: {
@@ -766,24 +766,39 @@ export const ruCatalog = {
       resetAll: "Сбросить состояние всех подсказок",
     },
   },
+  libraryScreen: {
+    title: "Библиотека",
+    groups: {
+      importExport: "Импорт и экспорт",
+    },
+    cards: {
+      description: "Все карточки в этом рабочем пространстве.",
+    },
+    tags: {
+      description: "Все теги, которые есть хотя бы на одной карточке.",
+    },
+    decks: {
+      description: "Сохранённые фильтры карточек для сосредоточенного повторения.",
+    },
+    import: {
+      description: "Добавьте карточки из файла.",
+    },
+    export: {
+      description: "Скачайте все свои карточки одним файлом.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Колоды",
-      description: "Создавайте, редактируйте и просматривайте повторно используемые области обучения.",
     },
     tags: {
       title: "Теги",
-      description: "Просматривайте использование тегов и количество карточек по всему рабочему пространству.",
     },
     export: {
       title: "Экспорт",
-      description: "Скачайте активные карточки этого рабочего пространства как переносимый пакет flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Импорт",
-      description: "Вставьте термины и определения или импортируйте пакет Nibomo.",
-      value: "Текст или ZIP",
     },
     resetProgress: {
       title: "Сбросить прогресс обучения",

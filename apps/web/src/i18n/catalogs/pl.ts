@@ -138,7 +138,6 @@ const plCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Wył.",
     on: "Wł.",
-    open: "Otwórz",
     perAction: "Na akcję",
     refresh: "Odśwież",
     retry: "Ponów",
@@ -219,6 +218,7 @@ const plCatalog: TranslationCatalog = {
     aiChat: "Czat AI",
     progress: "Postępy",
     cards: "Karty",
+    library: "Biblioteka",
     settings: "Ustawienia",
   },
   shell: {
@@ -766,24 +766,39 @@ const plCatalog: TranslationCatalog = {
       resetAll: "Zresetuj stan wszystkich monitów",
     },
   },
+  libraryScreen: {
+    title: "Biblioteka",
+    groups: {
+      importExport: "Import i eksport",
+    },
+    cards: {
+      description: "Wszystkie karty w tej przestrzeni roboczej.",
+    },
+    tags: {
+      description: "Wszystkie tagi użyte na co najmniej jednej karcie.",
+    },
+    decks: {
+      description: "Zapisane filtry kart do skupionych powtórek.",
+    },
+    import: {
+      description: "Dodaj karty z pliku.",
+    },
+    export: {
+      description: "Pobierz wszystkie swoje karty jako plik.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Talie",
-      description: "Twórz i edytuj zakresy nauki wielokrotnego użytku.",
     },
     tags: {
       title: "Tagi",
-      description: "Sprawdź użycie tagów i liczbę kart w całej przestrzeni roboczej.",
     },
     export: {
       title: "Eksport",
-      description: "Pobierz aktywne karty z tej przestrzeni roboczej jako przenośny pakiet flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Wklej terminy i definicje lub zaimportuj pakiet Nibomo.",
-      value: "Tekst lub ZIP",
     },
     resetProgress: {
       title: "Zresetuj postęp nauki",
