@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -408,13 +409,13 @@ internal fun AiComposer(
 
 @Composable
 private fun cardAttachmentTextFormatter(): (String) -> String {
-    val context = LocalContext.current
-    val locale = currentResourceLocale(resources = context.resources)
+    val resources = LocalResources.current
+    val locale = currentResourceLocale(resources = resources)
     return { text ->
         if (text.isBlank()) {
-            context.getString(R.string.ai_card_attachment_fallback_title)
+            resources.getString(R.string.ai_card_attachment_fallback_title)
         } else {
-            context.getString(
+            resources.getString(
                 R.string.ai_card_attachment_title,
                 bidiWrap(text = text.trim().take(72), locale = locale)
             )
