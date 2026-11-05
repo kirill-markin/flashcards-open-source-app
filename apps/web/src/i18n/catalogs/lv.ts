@@ -212,7 +212,7 @@ const lvCatalog: TranslationCatalog = {
     aiChat: "MI saruna",
     progress: "Progress",
     cards: "Kartītes",
-    library: "Library",
+    library: "Bibliotēka",
     settings: "Iestatījumi",
   },
   shell: {
@@ -759,24 +759,24 @@ const lvCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Bibliotēka",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importēšana un eksportēšana",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Visas šīs darbvietas kartītes.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Visas birkas, kas izmantotas vismaz vienā kartītē.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Saglabāti kartīšu filtri mērķtiecīgai atkārtošanai.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Pievienojiet kartītes no faila.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Lejupielādējiet visas savas kartītes kā failu.",
     },
   },
   settingsWorkspace: {

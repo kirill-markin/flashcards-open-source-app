@@ -218,7 +218,7 @@ const ltCatalog: TranslationCatalog = {
     aiChat: "DI pokalbis",
     progress: "Pažanga",
     cards: "Kortelės",
-    library: "Library",
+    library: "Biblioteka",
     settings: "Nustatymai",
   },
   shell: {
@@ -767,24 +767,24 @@ const ltCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Biblioteka",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importavimas ir eksportavimas",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Visos šios darbo srities kortelės.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Visos žymos, naudojamos bent vienoje kortelėje.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Išsaugoti kortelių filtrai susitelkusiam kartojimui.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Pridėkite korteles iš failo.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Atsisiųskite visas savo korteles kaip failą.",
     },
   },
   settingsWorkspace: {

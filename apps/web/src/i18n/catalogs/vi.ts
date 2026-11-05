@@ -212,7 +212,7 @@ const viCatalog: TranslationCatalog = {
     aiChat: "Trò chuyện AI",
     progress: "Tiến độ",
     cards: "Thẻ",
-    library: "Library",
+    library: "Thư viện",
     settings: "Cài đặt",
   },
   shell: {
@@ -759,24 +759,24 @@ const viCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Thư viện",
     groups: {
-      importExport: "Import & export",
+      importExport: "Nhập và xuất",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Mọi thẻ trong không gian làm việc này.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Mọi nhãn được dùng trên ít nhất một thẻ.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Bộ lọc thẻ đã lưu để ôn tập tập trung.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Thêm thẻ từ tệp.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Tải tất cả thẻ của bạn về dưới dạng tệp.",
     },
   },
   settingsWorkspace: {

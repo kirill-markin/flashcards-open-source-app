@@ -218,7 +218,7 @@ const skCatalog: TranslationCatalog = {
     aiChat: "AI chat",
     progress: "Pokrok",
     cards: "Karty",
-    library: "Library",
+    library: "Knižnica",
     settings: "Nastavenia",
   },
   shell: {
@@ -767,24 +767,24 @@ const skCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Knižnica",
     groups: {
-      importExport: "Import & export",
+      importExport: "Import a export",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Všetky karty v tomto pracovnom priestore.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Všetky značky použité aspoň na jednej karte.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Uložené filtre kariet na sústredené opakovanie.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Pridajte karty zo súboru.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Stiahnite všetky svoje karty ako súbor.",
     },
   },
   settingsWorkspace: {

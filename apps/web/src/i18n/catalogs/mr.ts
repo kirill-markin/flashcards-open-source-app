@@ -212,7 +212,7 @@ const mrCatalog: TranslationCatalog = {
     aiChat: "AI चॅट",
     progress: "प्रगती",
     cards: "कार्डे",
-    library: "Library",
+    library: "लायब्ररी",
     settings: "सेटिंग्ज",
   },
   shell: {
@@ -759,24 +759,24 @@ const mrCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "लायब्ररी",
     groups: {
-      importExport: "Import & export",
+      importExport: "आयात आणि निर्यात",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "या कार्यक्षेत्रातील सर्व कार्डे.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "किमान एका कार्डवर वापरलेले सर्व टॅग.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "एकाग्र उजळणीसाठी जतन केलेले कार्ड फिल्टर.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "फाइलमधून कार्डे जोडा.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "तुमची सर्व कार्डे फाइल म्हणून डाउनलोड करा.",
     },
   },
   settingsWorkspace: {

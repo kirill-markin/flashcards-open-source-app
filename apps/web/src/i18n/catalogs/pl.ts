@@ -218,7 +218,7 @@ const plCatalog: TranslationCatalog = {
     aiChat: "Czat AI",
     progress: "Postępy",
     cards: "Karty",
-    library: "Library",
+    library: "Biblioteka",
     settings: "Ustawienia",
   },
   shell: {
@@ -767,24 +767,24 @@ const plCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Biblioteka",
     groups: {
-      importExport: "Import & export",
+      importExport: "Import i eksport",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Wszystkie karty w tej przestrzeni roboczej.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Wszystkie tagi użyte na co najmniej jednej karcie.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Zapisane filtry kart do skupionych powtórek.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Dodaj karty z pliku.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Pobierz wszystkie swoje karty jako plik.",
     },
   },
   settingsWorkspace: {

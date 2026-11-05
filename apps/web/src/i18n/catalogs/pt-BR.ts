@@ -212,7 +212,7 @@ const ptBrCatalog: TranslationCatalog = {
     aiChat: "Chat com IA",
     progress: "Progresso",
     cards: "Cartões",
-    library: "Library",
+    library: "Biblioteca",
     settings: "Configurações",
   },
   shell: {
@@ -759,24 +759,24 @@ const ptBrCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Biblioteca",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importar e exportar",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Todos os cartões deste espaço de trabalho.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Todas as etiquetas usadas em pelo menos um cartão.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Filtros de cartões salvos para uma revisão focada.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Adicione cartões a partir de um arquivo.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Baixe todos os seus cartões como um arquivo.",
     },
   },
   settingsWorkspace: {

@@ -224,7 +224,7 @@ const slCatalog: TranslationCatalog = {
     aiChat: "Klepet z UI",
     progress: "Napredek",
     cards: "Kartice",
-    library: "Library",
+    library: "Knjižnica",
     settings: "Nastavitve",
   },
   shell: {
@@ -775,24 +775,24 @@ const slCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Knjižnica",
     groups: {
-      importExport: "Import & export",
+      importExport: "Uvoz in izvoz",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Vse kartice v tem delovnem prostoru.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Vse oznake, uporabljene na vsaj eni kartici.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Shranjeni filtri kartic za osredotočeno ponavljanje.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Dodajte kartice iz datoteke.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Prenesite vse svoje kartice kot datoteko.",
     },
   },
   settingsWorkspace: {

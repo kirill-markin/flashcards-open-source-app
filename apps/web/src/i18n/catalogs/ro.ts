@@ -218,7 +218,7 @@ const roCatalog: TranslationCatalog = {
     aiChat: "Chat AI",
     progress: "Progres",
     cards: "Fișe",
-    library: "Library",
+    library: "Bibliotecă",
     settings: "Setări",
   },
   shell: {
@@ -767,24 +767,24 @@ const roCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Bibliotecă",
     groups: {
-      importExport: "Import & export",
+      importExport: "Import și export",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Toate fișele din acest spațiu de lucru.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Toate etichetele folosite pe cel puțin o fișă.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Filtre de fișe salvate pentru o recapitulare concentrată.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Adaugă fișe dintr-un fișier.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Descarcă toate fișele tale într-un fișier.",
     },
   },
   settingsWorkspace: {

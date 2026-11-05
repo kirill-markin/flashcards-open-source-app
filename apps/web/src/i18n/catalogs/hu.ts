@@ -212,7 +212,7 @@ const huCatalog: TranslationCatalog = {
     aiChat: "AI-csevegés",
     progress: "Haladás",
     cards: "Kártyák",
-    library: "Library",
+    library: "Könyvtár",
     settings: "Beállítások",
   },
   shell: {
@@ -759,24 +759,24 @@ const huCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Könyvtár",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importálás és exportálás",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "A munkaterület összes kártyája.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Minden címke, amely legalább egy kártyán szerepel.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Mentett kártyaszűrők a célzott ismétléshez.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Adj hozzá kártyákat fájlból.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Töltsd le az összes kártyádat egy fájlként.",
     },
   },
   settingsWorkspace: {

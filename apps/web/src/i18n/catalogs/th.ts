@@ -212,7 +212,7 @@ const thCatalog: TranslationCatalog = {
     aiChat: "แชท AI",
     progress: "ความคืบหน้า",
     cards: "การ์ด",
-    library: "Library",
+    library: "คลัง",
     settings: "การตั้งค่า",
   },
   shell: {
@@ -759,24 +759,24 @@ const thCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "คลัง",
     groups: {
-      importExport: "Import & export",
+      importExport: "นำเข้าและส่งออก",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "การ์ดทั้งหมดในพื้นที่ทำงานนี้",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "แท็กทั้งหมดที่ใช้กับการ์ดอย่างน้อยหนึ่งใบ",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "ตัวกรองการ์ดที่บันทึกไว้สำหรับการทบทวนแบบเจาะจง",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "เพิ่มการ์ดจากไฟล์",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "ดาวน์โหลดการ์ดทั้งหมดของคุณเป็นไฟล์",
     },
   },
   settingsWorkspace: {

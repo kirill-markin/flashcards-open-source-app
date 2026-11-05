@@ -218,7 +218,7 @@ const hrCatalog: TranslationCatalog = {
     aiChat: "AI razgovor",
     progress: "Napredak",
     cards: "Kartice",
-    library: "Library",
+    library: "Knjižnica",
     settings: "Postavke",
   },
   shell: {
@@ -767,24 +767,24 @@ const hrCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Knjižnica",
     groups: {
-      importExport: "Import & export",
+      importExport: "Uvoz i izvoz",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Sve kartice u ovom radnom prostoru.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Sve oznake korištene na barem jednoj kartici.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Spremljeni filtri kartica za usredotočeno ponavljanje.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Dodajte kartice iz datoteke.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Preuzmite sve svoje kartice kao datoteku.",
     },
   },
   settingsWorkspace: {

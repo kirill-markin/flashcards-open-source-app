@@ -212,7 +212,7 @@ const nlCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Voortgang",
     cards: "Kaarten",
-    library: "Library",
+    library: "Bibliotheek",
     settings: "Instellingen",
   },
   shell: {
@@ -759,24 +759,24 @@ const nlCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Bibliotheek",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importeren en exporteren",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Alle kaarten in deze werkruimte.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Alle tags die op minstens één kaart worden gebruikt.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Opgeslagen kaartfilters om gericht te herhalen.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Voeg kaarten toe uit een bestand.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Download al je kaarten als bestand.",
     },
   },
   settingsWorkspace: {

@@ -212,7 +212,7 @@ const fiCatalog: TranslationCatalog = {
     aiChat: "Tekoäly",
     progress: "Edistyminen",
     cards: "Kortit",
-    library: "Library",
+    library: "Kirjasto",
     settings: "Asetukset",
   },
   shell: {
@@ -759,24 +759,24 @@ const fiCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Kirjasto",
     groups: {
-      importExport: "Import & export",
+      importExport: "Tuonti ja vienti",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Kaikki tämän työtilan kortit.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Kaikki tunnisteet, joita on käytetty vähintään yhdessä kortissa.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Tallennetut korttisuodattimet keskittyneeseen kertaukseen.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Lisää kortteja tiedostosta.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Lataa kaikki korttisi tiedostona.",
     },
   },
   settingsWorkspace: {

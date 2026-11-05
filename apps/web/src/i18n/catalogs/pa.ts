@@ -212,7 +212,7 @@ const paCatalog: TranslationCatalog = {
     aiChat: "AI ਚੈਟ",
     progress: "ਤਰੱਕੀ",
     cards: "ਕਾਰਡ",
-    library: "Library",
+    library: "ਲਾਇਬ੍ਰੇਰੀ",
     settings: "ਸੈਟਿੰਗਾਂ",
   },
   shell: {
@@ -759,24 +759,24 @@ const paCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "ਲਾਇਬ੍ਰੇਰੀ",
     groups: {
-      importExport: "Import & export",
+      importExport: "ਆਯਾਤ ਅਤੇ ਨਿਰਯਾਤ",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ 'ਤੇ ਵਰਤੇ ਗਏ ਸਾਰੇ ਟੈਗ.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "ਫਾਈਲ ਤੋਂ ਕਾਰਡ ਜੋੜੋ.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "ਆਪਣੇ ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਫਾਈਲ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ.",
     },
   },
   settingsWorkspace: {

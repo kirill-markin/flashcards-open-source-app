@@ -212,7 +212,7 @@ const trCatalog: TranslationCatalog = {
     aiChat: "AI sohbet",
     progress: "İlerleme",
     cards: "Kartlar",
-    library: "Library",
+    library: "Kitaplık",
     settings: "Ayarlar",
   },
   shell: {
@@ -759,24 +759,24 @@ const trCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Kitaplık",
     groups: {
-      importExport: "Import & export",
+      importExport: "İçe ve dışa aktarma",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Bu çalışma alanındaki tüm kartlar.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "En az bir kartta kullanılan tüm etiketler.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Odaklı tekrar için kaydedilmiş kart filtreleri.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Bir dosyadan kart ekleyin.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Tüm kartlarınızı bir dosya olarak indirin.",
     },
   },
   settingsWorkspace: {

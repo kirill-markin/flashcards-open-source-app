@@ -212,7 +212,7 @@ const taCatalog: TranslationCatalog = {
     aiChat: "AI அரட்டை",
     progress: "முன்னேற்றம்",
     cards: "அட்டைகள்",
-    library: "Library",
+    library: "நூலகம்",
     settings: "அமைப்புகள்",
   },
   shell: {
@@ -759,24 +759,24 @@ const taCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "நூலகம்",
     groups: {
-      importExport: "Import & export",
+      importExport: "இறக்குமதியும் ஏற்றுமதியும்",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "இந்தப் பணியிடத்தில் உள்ள எல்லா அட்டைகளும்.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "குறைந்தது ஒரு அட்டையில் பயன்படுத்தப்பட்ட எல்லா குறிச்சொற்களும்.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "கவனம் செலுத்திய மீள்பயிற்சிக்காகச் சேமித்த அட்டை வடிகட்டிகள்.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "கோப்பிலிருந்து அட்டைகளைச் சேர்க்கவும்.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "உங்கள் எல்லா அட்டைகளையும் ஒரு கோப்பாகப் பதிவிறக்கவும்.",
     },
   },
   settingsWorkspace: {

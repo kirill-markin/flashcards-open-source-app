@@ -212,7 +212,7 @@ const hiCatalog: TranslationCatalog = {
     aiChat: "AI चैट",
     progress: "प्रगति",
     cards: "कार्ड",
-    library: "Library",
+    library: "लाइब्रेरी",
     settings: "सेटिंग्स",
   },
   shell: {
@@ -759,24 +759,24 @@ const hiCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "लाइब्रेरी",
     groups: {
-      importExport: "Import & export",
+      importExport: "इम्पोर्ट और एक्सपोर्ट",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "इस वर्कस्पेस के सभी कार्ड।",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "कम से कम एक कार्ड पर इस्तेमाल हुए सभी टैग।",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "केंद्रित रिव्यू के लिए सहेजे गए कार्ड फ़िल्टर।",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "फ़ाइल से कार्ड जोड़ें।",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "अपने सभी कार्ड एक फ़ाइल के रूप में डाउनलोड करें।",
     },
   },
   settingsWorkspace: {

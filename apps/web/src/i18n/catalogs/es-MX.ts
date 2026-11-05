@@ -212,7 +212,7 @@ const esMxCatalog: TranslationCatalog = {
     aiChat: "Chat con IA",
     progress: "Progreso",
     cards: "Tarjetas",
-    library: "Library",
+    library: "Biblioteca",
     settings: "Configuración",
   },
   shell: {
@@ -759,24 +759,24 @@ const esMxCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Biblioteca",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importar y exportar",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Todas las tarjetas de este espacio de trabajo.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Todas las etiquetas usadas en al menos una tarjeta.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Filtros de tarjetas guardados para un repaso enfocado.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Agrega tarjetas desde un archivo.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Descarga todas tus tarjetas en un archivo.",
     },
   },
   settingsWorkspace: {

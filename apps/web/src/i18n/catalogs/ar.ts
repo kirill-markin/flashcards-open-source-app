@@ -212,7 +212,7 @@ const arCatalog: TranslationCatalog = {
     aiChat: "دردشة الذكاء الاصطناعي",
     progress: "التقدم",
     cards: "بطاقات",
-    library: "Library",
+    library: "المكتبة",
     settings: "الإعدادات",
   },
   shell: {
@@ -759,24 +759,24 @@ const arCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "المكتبة",
     groups: {
-      importExport: "Import & export",
+      importExport: "الاستيراد والتصدير",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "كل البطاقات في مساحة العمل هذه.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "كل الوسوم المستخدمة في بطاقة واحدة على الأقل.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "فلاتر بطاقات محفوظة لمراجعة مركّزة.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "أضف بطاقات من ملف.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "نزّل كل بطاقاتك كملف.",
     },
   },
   settingsWorkspace: {

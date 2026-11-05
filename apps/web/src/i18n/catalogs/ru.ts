@@ -218,7 +218,7 @@ export const ruCatalog = {
     aiChat: "AI-чат",
     progress: "Прогресс",
     cards: "Карточки",
-    library: "Library",
+    library: "Библиотека",
     settings: "Настройки",
   },
   shell: {
@@ -767,24 +767,24 @@ export const ruCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Библиотека",
     groups: {
-      importExport: "Import & export",
+      importExport: "Импорт и экспорт",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Все карточки в этом рабочем пространстве.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Все теги, которые есть хотя бы на одной карточке.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Сохранённые фильтры карточек для сосредоточенного повторения.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Добавьте карточки из файла.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Скачайте все свои карточки одним файлом.",
     },
   },
   settingsWorkspace: {

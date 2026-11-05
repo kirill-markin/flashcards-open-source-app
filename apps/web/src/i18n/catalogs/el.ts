@@ -212,7 +212,7 @@ const elCatalog: TranslationCatalog = {
     aiChat: "Συνομιλία ΤΝ",
     progress: "Πρόοδος",
     cards: "Κάρτες",
-    library: "Library",
+    library: "Βιβλιοθήκη",
     settings: "Ρυθμίσεις",
   },
   shell: {
@@ -759,24 +759,24 @@ const elCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Βιβλιοθήκη",
     groups: {
-      importExport: "Import & export",
+      importExport: "Εισαγωγή και εξαγωγή",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Προσθέστε κάρτες από αρχείο.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Κατεβάστε όλες τις κάρτες σας ως αρχείο.",
     },
   },
   settingsWorkspace: {

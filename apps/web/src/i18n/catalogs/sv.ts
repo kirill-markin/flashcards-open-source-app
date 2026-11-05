@@ -212,7 +212,7 @@ const svCatalog: TranslationCatalog = {
     aiChat: "AI-chatt",
     progress: "Framsteg",
     cards: "Kort",
-    library: "Library",
+    library: "Bibliotek",
     settings: "Inställningar",
   },
   shell: {
@@ -759,24 +759,24 @@ const svCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Bibliotek",
     groups: {
-      importExport: "Import & export",
+      importExport: "Import och export",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Alla kort i den här arbetsytan.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Alla taggar som används på minst ett kort.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Sparade kortfilter för fokuserad repetition.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Lägg till kort från en fil.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Ladda ner alla dina kort som en fil.",
     },
   },
   settingsWorkspace: {

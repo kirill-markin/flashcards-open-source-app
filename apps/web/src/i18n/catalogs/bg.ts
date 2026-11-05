@@ -212,7 +212,7 @@ const bgCatalog: TranslationCatalog = {
     aiChat: "ИИ чат",
     progress: "Напредък",
     cards: "Карти",
-    library: "Library",
+    library: "Библиотека",
     settings: "Настройки",
   },
   shell: {
@@ -759,24 +759,24 @@ const bgCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Библиотека",
     groups: {
-      importExport: "Import & export",
+      importExport: "Импортиране и експортиране",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Всички карти в това работно пространство.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Всички етикети, използвани в поне една карта.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Запазени филтри на карти за фокусиран преговор.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Добавете карти от файл.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Изтеглете всичките си карти като файл.",
     },
   },
   settingsWorkspace: {

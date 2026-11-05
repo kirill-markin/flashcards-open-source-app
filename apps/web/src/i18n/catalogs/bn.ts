@@ -212,7 +212,7 @@ const bnCatalog: TranslationCatalog = {
     aiChat: "এআই চ্যাট",
     progress: "অগ্রগতি",
     cards: "কার্ড",
-    library: "Library",
+    library: "লাইব্রেরি",
     settings: "সেটিংস",
   },
   shell: {
@@ -759,24 +759,24 @@ const bnCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "লাইব্রেরি",
     groups: {
-      importExport: "Import & export",
+      importExport: "আমদানি ও রপ্তানি",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "এই কর্মক্ষেত্রের সব কার্ড।",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "অন্তত একটি কার্ডে ব্যবহৃত সব ট্যাগ।",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "মনোযোগী পুনরালোচনার জন্য সংরক্ষিত কার্ড ফিল্টার।",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "ফাইল থেকে কার্ড যোগ করুন।",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "আপনার সব কার্ড একটি ফাইল হিসেবে ডাউনলোড করুন।",
     },
   },
   settingsWorkspace: {

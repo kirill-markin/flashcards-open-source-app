@@ -212,7 +212,7 @@ const mlCatalog: TranslationCatalog = {
     aiChat: "AI ചാറ്റ്",
     progress: "പുരോഗതി",
     cards: "കാർഡുകൾ",
-    library: "Library",
+    library: "ലൈബ്രറി",
     settings: "ക്രമീകരണങ്ങൾ",
   },
   shell: {
@@ -759,24 +759,24 @@ const mlCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "ലൈബ്രറി",
     groups: {
-      importExport: "Import & export",
+      importExport: "ഇംപോർട്ടും എക്സ്പോർട്ടും",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "ഈ വർക്ക്‌സ്‌പേസിലെ എല്ലാ കാർഡുകളും.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "കുറഞ്ഞത് ഒരു കാർഡിലെങ്കിലും ഉപയോഗിച്ച എല്ലാ ടാഗുകളും.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "ശ്രദ്ധയോടെയുള്ള അവലോകനത്തിനായി സേവ് ചെയ്ത കാർഡ് ഫിൽട്ടറുകൾ.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "ഒരു ഫയലിൽ നിന്ന് കാർഡുകൾ ചേർക്കുക.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "നിങ്ങളുടെ എല്ലാ കാർഡുകളും ഒരു ഫയലായി ഡൗൺലോഡ് ചെയ്യുക.",
     },
   },
   settingsWorkspace: {

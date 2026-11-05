@@ -212,7 +212,7 @@ export const zhHansCatalog = {
     aiChat: "AI 聊天",
     progress: "进度",
     cards: "卡片",
-    library: "Library",
+    library: "资料库",
     settings: "设置",
   },
   shell: {
@@ -759,24 +759,24 @@ export const zhHansCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "资料库",
     groups: {
-      importExport: "Import & export",
+      importExport: "导入与导出",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "此工作区中的所有卡片。",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "至少用于一张卡片的所有标签。",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "为专注复习保存的卡片筛选条件。",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "从文件添加卡片。",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "将你的所有卡片下载为一个文件。",
     },
   },
   settingsWorkspace: {

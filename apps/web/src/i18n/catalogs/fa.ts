@@ -212,7 +212,7 @@ const faCatalog: TranslationCatalog = {
     aiChat: "گفت‌وگوی هوش مصنوعی",
     progress: "پیشرفت",
     cards: "کارت‌ها",
-    library: "Library",
+    library: "کتابخانه",
     settings: "تنظیمات",
   },
   shell: {
@@ -759,24 +759,24 @@ const faCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "کتابخانه",
     groups: {
-      importExport: "Import & export",
+      importExport: "درون‌ریزی و برون‌بری",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "همهٔ کارت‌های این فضای کاری.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "همهٔ برچسب‌هایی که دست‌کم روی یک کارت استفاده شده‌اند.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "فیلترهای ذخیره‌شدهٔ کارت برای مرور متمرکز.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "کارت‌ها را از یک فایل اضافه کنید.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "همهٔ کارت‌هایتان را به صورت یک فایل دریافت کنید.",
     },
   },
   settingsWorkspace: {

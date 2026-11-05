@@ -212,7 +212,7 @@ const teCatalog: TranslationCatalog = {
     aiChat: "AI చాట్",
     progress: "పురోగతి",
     cards: "కార్డులు",
-    library: "Library",
+    library: "లైబ్రరీ",
     settings: "సెట్టింగ్‌లు",
   },
   shell: {
@@ -759,24 +759,24 @@ const teCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "లైబ్రరీ",
     groups: {
-      importExport: "Import & export",
+      importExport: "దిగుమతి మరియు ఎగుమతి",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "ఈ వర్క్‌స్పేస్‌లోని అన్ని కార్డులు.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "కనీసం ఒక కార్డుపై ఉపయోగించిన అన్ని ట్యాగ్‌లు.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "దృష్టి పెట్టిన పునశ్చరణ కోసం సేవ్ చేసిన కార్డ్ ఫిల్టర్‌లు.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "ఫైల్ నుండి కార్డులను జోడించండి.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "మీ అన్ని కార్డులను ఫైల్‌గా డౌన్‌లోడ్ చేయండి.",
     },
   },
   settingsWorkspace: {

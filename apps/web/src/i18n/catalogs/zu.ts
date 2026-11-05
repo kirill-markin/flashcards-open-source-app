@@ -212,7 +212,7 @@ const zuCatalog: TranslationCatalog = {
     aiChat: "Ingxoxo ye-AI",
     progress: "Inqubekelaphambili",
     cards: "Amakhadi",
-    library: "Library",
+    library: "Umtapo wolwazi",
     settings: "Izilungiselelo",
   },
   shell: {
@@ -759,24 +759,24 @@ const zuCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Umtapo wolwazi",
     groups: {
-      importExport: "Import & export",
+      importExport: "Ukungenisa nokukhipha",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Wonke amakhadi akule ndawo yokusebenza.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Wonke amathegi asetshenziswe okungenani ekhadini elilodwa.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Engeza amakhadi kusuka kufayela.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Dawuniloda wonke amakhadi akho njengefayela.",
     },
   },
   settingsWorkspace: {

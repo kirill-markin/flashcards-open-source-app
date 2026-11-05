@@ -212,7 +212,7 @@ const etCatalog: TranslationCatalog = {
     aiChat: "TI-vestlus",
     progress: "Edenemine",
     cards: "Kaardid",
-    library: "Library",
+    library: "Teek",
     settings: "Seaded",
   },
   shell: {
@@ -759,24 +759,24 @@ const etCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Teek",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importimine ja eksportimine",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Kõik selle tööruumi kaardid.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Kõik sildid, mida on kasutatud vähemalt ühel kaardil.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Salvestatud kaardifiltrid keskendunud kordamiseks.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Lisa kaardid failist.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Laadi kõik oma kaardid failina alla.",
     },
   },
   settingsWorkspace: {

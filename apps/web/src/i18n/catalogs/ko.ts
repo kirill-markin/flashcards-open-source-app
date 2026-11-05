@@ -212,7 +212,7 @@ const koCatalog: TranslationCatalog = {
     aiChat: "AI 채팅",
     progress: "진행 상황",
     cards: "카드",
-    library: "Library",
+    library: "보관함",
     settings: "설정",
   },
   shell: {
@@ -759,24 +759,24 @@ const koCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "보관함",
     groups: {
-      importExport: "Import & export",
+      importExport: "가져오기 및 내보내기",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "이 워크스페이스의 모든 카드입니다.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "카드 한 장 이상에 사용된 모든 태그입니다.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "집중 복습을 위해 저장한 카드 필터입니다.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "파일에서 카드를 추가합니다.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "모든 카드를 파일로 내려받습니다.",
     },
   },
   settingsWorkspace: {

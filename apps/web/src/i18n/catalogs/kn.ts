@@ -212,7 +212,7 @@ const knCatalog: TranslationCatalog = {
     aiChat: "AI ಚಾಟ್",
     progress: "ಪ್ರಗತಿ",
     cards: "ಕಾರ್ಡ್‌ಗಳು",
-    library: "Library",
+    library: "ಲೈಬ್ರರಿ",
     settings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
   },
   shell: {
@@ -759,24 +759,24 @@ const knCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "ಲೈಬ್ರರಿ",
     groups: {
-      importExport: "Import & export",
+      importExport: "ಆಮದು ಮತ್ತು ರಫ್ತು",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿನ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "ಕನಿಷ್ಠ ಒಂದು ಕಾರ್ಡ್‌ನಲ್ಲಿ ಬಳಸಲಾದ ಎಲ್ಲಾ ಟ್ಯಾಗ್‌ಗಳು.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "ಕೇಂದ್ರೀಕೃತ ಪುನರಾವರ್ತನೆಗಾಗಿ ಉಳಿಸಿದ ಕಾರ್ಡ್ ಫಿಲ್ಟರ್‌ಗಳು.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "ಫೈಲ್‌ನಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "ನಿಮ್ಮ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳನ್ನು ಫೈಲ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
     },
   },
   settingsWorkspace: {

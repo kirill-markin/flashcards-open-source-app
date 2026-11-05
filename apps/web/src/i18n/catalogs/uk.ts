@@ -218,7 +218,7 @@ const ukCatalog: TranslationCatalog = {
     aiChat: "AI-чат",
     progress: "Прогрес",
     cards: "Картки",
-    library: "Library",
+    library: "Бібліотека",
     settings: "Налаштування",
   },
   shell: {
@@ -767,24 +767,24 @@ const ukCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Бібліотека",
     groups: {
-      importExport: "Import & export",
+      importExport: "Імпорт і експорт",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Усі картки в цьому робочому просторі.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Усі теги, використані хоча б на одній картці.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Збережені фільтри карток для зосередженого повторення.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Додайте картки з файлу.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Завантажте всі свої картки одним файлом.",
     },
   },
   settingsWorkspace: {

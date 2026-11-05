@@ -212,7 +212,7 @@ const isCatalog: TranslationCatalog = {
     aiChat: "Gervigreindarspjall",
     progress: "Framvinda",
     cards: "Spjöld",
-    library: "Library",
+    library: "Safn",
     settings: "Stillingar",
   },
   shell: {
@@ -759,24 +759,24 @@ const isCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Safn",
     groups: {
-      importExport: "Import & export",
+      importExport: "Inn- og útflutningur",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Öll spjöld á þessu vinnusvæði.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Öll merki sem eru notuð á minnst einu spjaldi.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Vistaðar spjaldasíur fyrir markvissa upprifjun.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Bættu við spjöldum úr skrá.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Sæktu öll spjöldin þín sem skrá.",
     },
   },
   settingsWorkspace: {

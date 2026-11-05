@@ -212,7 +212,7 @@ const swCatalog: TranslationCatalog = {
     aiChat: "Gumzo la AI",
     progress: "Maendeleo",
     cards: "Kadi",
-    library: "Library",
+    library: "Maktaba",
     settings: "Mipangilio",
   },
   shell: {
@@ -759,24 +759,24 @@ const swCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Maktaba",
     groups: {
-      importExport: "Import & export",
+      importExport: "Kuingiza na kuhamisha",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Kadi zote katika nafasi hii ya kazi.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Lebo zote zinazotumika kwenye angalau kadi moja.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Vichujio vya kadi vilivyohifadhiwa kwa marudio yenye umakini.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Ongeza kadi kutoka kwenye faili.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Pakua kadi zako zote kama faili.",
     },
   },
   settingsWorkspace: {

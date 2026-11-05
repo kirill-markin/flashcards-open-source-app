@@ -212,7 +212,7 @@ const caCatalog: TranslationCatalog = {
     aiChat: "Xat d'IA",
     progress: "Progrés",
     cards: "Targetes",
-    library: "Library",
+    library: "Biblioteca",
     settings: "Configuració",
   },
   shell: {
@@ -759,24 +759,24 @@ const caCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Biblioteca",
     groups: {
-      importExport: "Import & export",
+      importExport: "Importació i exportació",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Totes les targetes d'aquest espai de treball.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Totes les etiquetes usades en almenys una targeta.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Filtres de targetes desats per a un repàs centrat.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Afegeix targetes des d'un fitxer.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Descarrega totes les teves targetes en un fitxer.",
     },
   },
   settingsWorkspace: {

@@ -212,7 +212,7 @@ export const jaCatalog = {
     aiChat: "AIチャット",
     progress: "進捗",
     cards: "カード",
-    library: "Library",
+    library: "ライブラリ",
     settings: "設定",
   },
   shell: {
@@ -759,24 +759,24 @@ export const jaCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "ライブラリ",
     groups: {
-      importExport: "Import & export",
+      importExport: "インポートとエクスポート",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "このワークスペースのすべてのカード。",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "1枚以上のカードで使われているすべてのタグ。",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "集中して復習するための保存済みカードフィルター。",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "ファイルからカードを追加します。",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "すべてのカードをファイルとしてダウンロードします。",
     },
   },
   settingsWorkspace: {

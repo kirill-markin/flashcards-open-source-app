@@ -212,7 +212,7 @@ const idCatalog: TranslationCatalog = {
     aiChat: "Obrolan AI",
     progress: "Progres",
     cards: "Kartu",
-    library: "Library",
+    library: "Pustaka",
     settings: "Pengaturan",
   },
   shell: {
@@ -759,24 +759,24 @@ const idCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "Pustaka",
     groups: {
-      importExport: "Import & export",
+      importExport: "Impor dan ekspor",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "Semua kartu di ruang kerja ini.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "Semua tag yang dipakai di setidaknya satu kartu.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "Filter kartu tersimpan untuk tinjauan yang terfokus.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "Tambahkan kartu dari file.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "Unduh semua kartu Anda sebagai file.",
     },
   },
   settingsWorkspace: {

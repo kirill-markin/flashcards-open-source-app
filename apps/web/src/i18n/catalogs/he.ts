@@ -212,7 +212,7 @@ const heCatalog: TranslationCatalog = {
     aiChat: "צ'אט AI",
     progress: "התקדמות",
     cards: "כרטיסים",
-    library: "Library",
+    library: "ספרייה",
     settings: "הגדרות",
   },
   shell: {
@@ -759,24 +759,24 @@ const heCatalog: TranslationCatalog = {
     },
   },
   libraryScreen: {
-    title: "Library",
+    title: "ספרייה",
     groups: {
-      importExport: "Import & export",
+      importExport: "ייבוא וייצוא",
     },
     cards: {
-      description: "Every card in this workspace.",
+      description: "כל הכרטיסים בסביבת העבודה הזו.",
     },
     tags: {
-      description: "Every tag used on at least one card.",
+      description: "כל התגיות שמשמשות לפחות בכרטיס אחד.",
     },
     decks: {
-      description: "Saved card filters for focused review.",
+      description: "מסנני כרטיסים שמורים לחזרה ממוקדת.",
     },
     import: {
-      description: "Add cards from a file.",
+      description: "הוסף כרטיסים מקובץ.",
     },
     export: {
-      description: "Download all your cards as a file.",
+      description: "הורד את כל הכרטיסים שלך כקובץ.",
     },
   },
   settingsWorkspace: {
