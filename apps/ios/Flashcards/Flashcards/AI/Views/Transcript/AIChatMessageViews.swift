@@ -171,10 +171,13 @@ private struct AIChatActivityRowLabel: View {
         }
         .font(.footnote)
         .foregroundStyle(.secondary)
+        .padding(.vertical, aiChatActivityRowVerticalPadding)
     }
 }
 
 private let aiChatActivityRowLeadingIndent: CGFloat = 4
+/// Added to the 8pt part spacing, it puts activity rows at the markdown paragraph rhythm.
+private let aiChatActivityRowVerticalPadding: CGFloat = 2
 
 /// Renders one transcript message; the live chat and the read-only history reader share it.
 struct AIChatMessageRow: View {

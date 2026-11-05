@@ -1,11 +1,20 @@
-/* Tool calls and reasoning collapse to one muted line; the box appears only when expanded. */
+/* Tool calls and reasoning collapse to one muted line; the box appears only when expanded.
+   The block margin plus the summary padding keeps rows on the markdown paragraph rhythm. */
 .chat-tool-call {
   display: block;
   overflow: hidden;
   border-radius: var(--chat-msg-inner-radius, var(--radius-sm));
-  margin: 2px 0;
+  margin: 8px 0;
   font-size: 13px;
   scroll-margin-block-end: 24px;
+}
+
+.chat-tool-call:first-child {
+  margin-block-start: 0;
+}
+
+.chat-tool-call:last-child {
+  margin-block-end: 0;
 }
 
 .chat-tool-call[open] {
