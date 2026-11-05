@@ -25,17 +25,19 @@ const plCatalog: TranslationCatalog = {
   paywall: {
     heading: "Nauka jest dla <em>każdego.</em>",
     freeTitle: "Bezpłatnie",
-    freeDescription: "Stworzone dla studentów bez pracy. Otwarte dla wszystkich. Twój plecak właśnie stał się lżejszy.",
+    freeDescription: "Stworzone dla studentów bez pracy. Otwarte dla wszystkich.",
     freeBenefit: "Podstawowe powtórki, nauka offline i synchronizacja",
     noCreatorSupport: "Nie wspiera twórcy aplikacji",
     limitedAi: "Ograniczony czat AI",
     defaultStyles: "Tylko domyślne style",
-    notNow: "Nie teraz",
+    noOtherPremiumFeatures: "Brak innych funkcji Premium",
+    dontPayCreator: "Nie płać twórcy aplikacji",
     creatorSupport: "Twoja subskrypcja pomaga twórcy Nibomo, {{creator}}, opłacać serwery i przygotowywać kolejną aktualizację przy kawie i pizzy.",
     monthlyPrice: "{{price}} / miesiąc",
     supportsCreator: "Wspiera twórcę aplikacji",
     accentColorBenefit: "Dowolny kolor akcentu",
-    reviewAnimationsBenefit: "Animacje powtórek włączone lub wyłączone",
+    themesBenefit: "Ciemny i jasny motyw",
+    reviewAnimationsBenefit: "Sterowanie animacjami powtórek",
     appIconBenefit: "Własna ikona aplikacji",
     startTrial: "Rozpocznij 7-dniowy bezpłatny okres próbny",
     subscribe: "Subskrybuj — {{price}}",
@@ -138,7 +140,6 @@ const plCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Wył.",
     on: "Wł.",
-    open: "Otwórz",
     perAction: "Na akcję",
     refresh: "Odśwież",
     retry: "Ponów",
@@ -219,6 +220,7 @@ const plCatalog: TranslationCatalog = {
     aiChat: "Czat AI",
     progress: "Postępy",
     cards: "Karty",
+    library: "Biblioteka",
     settings: "Ustawienia",
   },
   shell: {
@@ -766,24 +768,39 @@ const plCatalog: TranslationCatalog = {
       resetAll: "Zresetuj stan wszystkich monitów",
     },
   },
+  libraryScreen: {
+    title: "Biblioteka",
+    groups: {
+      importExport: "Import i eksport",
+    },
+    cards: {
+      description: "Wszystkie karty w tej przestrzeni roboczej.",
+    },
+    tags: {
+      description: "Wszystkie tagi użyte na co najmniej jednej karcie.",
+    },
+    decks: {
+      description: "Zapisane filtry kart do skupionych powtórek.",
+    },
+    import: {
+      description: "Dodaj karty z pliku.",
+    },
+    export: {
+      description: "Pobierz wszystkie swoje karty jako plik.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Talie",
-      description: "Twórz i edytuj zakresy nauki wielokrotnego użytku.",
     },
     tags: {
       title: "Tagi",
-      description: "Sprawdź użycie tagów i liczbę kart w całej przestrzeni roboczej.",
     },
     export: {
       title: "Eksport",
-      description: "Pobierz aktywne karty z tej przestrzeni roboczej jako przenośny pakiet flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Wklej terminy i definicje lub zaimportuj pakiet Nibomo.",
-      value: "Tekst lub ZIP",
     },
     resetProgress: {
       title: "Zresetuj postęp nauki",

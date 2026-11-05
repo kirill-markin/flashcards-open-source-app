@@ -1,7 +1,7 @@
 <resources>
     <string name="top_level_review">المراجعة</string>
     <string name="top_level_progress">التقدم</string>
-    <string name="top_level_cards">البطاقات</string>
+    <string name="top_level_library">المكتبة</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">الإعدادات</string>
 

@@ -24,17 +24,19 @@ const enCatalog = {
   paywall: {
     heading: "Learning belongs to <em>everyone.</em>",
     freeTitle: "Free",
-    freeDescription: "Created for students without a job. Open to everyone. Your backpack just got lighter.",
+    freeDescription: "Created for students without a job. Open to everyone.",
     freeBenefit: "Core reviews, offline learning & sync",
     noCreatorSupport: "Doesn’t support the app’s creator",
     limitedAi: "Limited AI chat",
     defaultStyles: "Default styles only",
-    notNow: "Not now",
+    noOtherPremiumFeatures: "No other premium features",
+    dontPayCreator: "Don’t pay the app’s creator",
     creatorSupport: "Your subscription helps Nibomo’s creator, {{creator}}, pay for servers and fuel the next update with coffee and pizza.",
     monthlyPrice: "{{price}} / month",
     supportsCreator: "Supports the app’s creator",
     accentColorBenefit: "Any accent color",
-    reviewAnimationsBenefit: "Review animations on or off",
+    themesBenefit: "Dark and light themes",
+    reviewAnimationsBenefit: "Review animations control",
     appIconBenefit: "Custom app icon",
     startTrial: "Start 7-day free trial",
     subscribe: "Subscribe — {{price}}",
@@ -131,7 +133,6 @@ const enCatalog = {
     ok: "OK",
     off: "Off",
     on: "On",
-    open: "Open",
     perAction: "Per action",
     refresh: "Refresh",
     retry: "Retry",
@@ -212,6 +213,7 @@ const enCatalog = {
     aiChat: "AI chat",
     progress: "Progress",
     cards: "Cards",
+    library: "Library",
     settings: "Settings",
   },
   shell: {
@@ -757,24 +759,39 @@ const enCatalog = {
       resetAll: "Reset all prompt state",
     },
   },
+  libraryScreen: {
+    title: "Library",
+    groups: {
+      importExport: "Import & export",
+    },
+    cards: {
+      description: "Every card in this workspace.",
+    },
+    tags: {
+      description: "Every tag used on at least one card.",
+    },
+    decks: {
+      description: "Saved card filters for focused review.",
+    },
+    import: {
+      description: "Add cards from a file.",
+    },
+    export: {
+      description: "Download all your cards as a file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Decks",
-      description: "Create, edit, and review reusable study scopes.",
     },
     tags: {
       title: "Tags",
-      description: "Inspect workspace-wide tag usage and card counts.",
     },
     export: {
       title: "Export",
-      description: "Download active cards from this workspace as a portable flashcards.zip package.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Paste terms and definitions or import a Nibomo package.",
-      value: "Text or ZIP",
     },
     resetProgress: {
       title: "Reset study progress",

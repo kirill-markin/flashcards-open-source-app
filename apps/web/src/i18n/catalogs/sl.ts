@@ -25,17 +25,19 @@ const slCatalog: TranslationCatalog = {
   paywall: {
     heading: "Učenje pripada <em>vsem.</em>",
     freeTitle: "Brezplačno",
-    freeDescription: "Ustvarjeno za študente brez službe. Odprto vsem. Tvoj nahrbtnik je pravkar postal lažji.",
+    freeDescription: "Ustvarjeno za študente brez službe. Odprto vsem.",
     freeBenefit: "Osnovno ponavljanje, učenje brez povezave in sinhronizacija",
     noCreatorSupport: "Ne podpira ustvarjalca aplikacije",
     limitedAi: "Omejen klepet z UI",
     defaultStyles: "Samo privzeti slogi",
-    notNow: "Ne zdaj",
+    noOtherPremiumFeatures: "Brez drugih funkcij Premium",
+    dontPayCreator: "Ne plačaj ustvarjalcu aplikacije",
     creatorSupport: "Tvoja naročnina pomaga ustvarjalcu Niboma, {{creator}}, plačevati strežnike in pripravljati naslednjo posodobitev ob kavi in pici.",
     monthlyPrice: "{{price}} / mesec",
     supportsCreator: "Podpira ustvarjalca aplikacije",
     accentColorBenefit: "Poljubna barva poudarka",
-    reviewAnimationsBenefit: "Animacije pri ponavljanju vklopljene ali izklopljene",
+    themesBenefit: "Temna in svetla tema",
+    reviewAnimationsBenefit: "Nadzor animacij pri ponavljanju",
     appIconBenefit: "Lastna ikona aplikacije",
     startTrial: "Začni 7-dnevno brezplačno preskusno obdobje",
     subscribe: "Naročite se — {{price}}",
@@ -144,7 +146,6 @@ const slCatalog: TranslationCatalog = {
     ok: "V redu",
     off: "Izklopljeno",
     on: "Vklopljeno",
-    open: "Odpri",
     perAction: "Za vsako dejanje",
     refresh: "Osveži",
     retry: "Poskusi znova",
@@ -225,6 +226,7 @@ const slCatalog: TranslationCatalog = {
     aiChat: "Klepet z UI",
     progress: "Napredek",
     cards: "Kartice",
+    library: "Knjižnica",
     settings: "Nastavitve",
   },
   shell: {
@@ -774,24 +776,39 @@ const slCatalog: TranslationCatalog = {
       resetAll: "Ponastavi stanje vseh pozivov",
     },
   },
+  libraryScreen: {
+    title: "Knjižnica",
+    groups: {
+      importExport: "Uvoz in izvoz",
+    },
+    cards: {
+      description: "Vse kartice v tem delovnem prostoru.",
+    },
+    tags: {
+      description: "Vse oznake, uporabljene na vsaj eni kartici.",
+    },
+    decks: {
+      description: "Shranjeni filtri kartic za osredotočeno ponavljanje.",
+    },
+    import: {
+      description: "Dodajte kartice iz datoteke.",
+    },
+    export: {
+      description: "Prenesite vse svoje kartice kot datoteko.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kompleti",
-      description: "Ustvarjajte, urejajte in pregledujte obsege učenja za večkratno uporabo.",
     },
     tags: {
       title: "Oznake",
-      description: "Preglejte uporabo oznak in število kartic v celotnem delovnem prostoru.",
     },
     export: {
       title: "Izvoz",
-      description: "Prenesite aktivne kartice iz tega delovnega prostora kot prenosni paket flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Uvoz",
-      description: "Prilepite pojme in definicije ali uvozite paket Nibomo.",
-      value: "Besedilo ali ZIP",
     },
     resetProgress: {
       title: "Ponastavi napredek učenja",

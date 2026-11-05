@@ -67,11 +67,12 @@ enum class AnalyticsSurface(val wireValue: String) {
     SETTINGS_LEGAL(wireValue = "settings_legal"),
     AI(wireValue = "ai"),
 
-    // Workspace content management. These sit under the settings screen only as a routing accident:
-    // they act on the person's own decks, cards and tags.
+    // Workspace content management: the person's own decks, cards and tags. `LIBRARY` is the hub
+    // that opens them, together with its Import and Export screens.
     DECKS(wireValue = "decks"),
     DECK_EDITOR(wireValue = "deck_editor"),
     TAGS(wireValue = "tags"),
+    LIBRARY(wireValue = "library"),
 
     // Authentication. `SIGNIN` is the sign-in screen itself, whatever the client splits it into:
     // the email step, the code step and the workspace choice are one screen here.

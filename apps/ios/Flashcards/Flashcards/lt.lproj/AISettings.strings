@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Mokytis gali **visi**.";
 "premium.offer.free" = "Nemokamai";
-"premium.offer.freeDescription" = "Sukurta nedirbantiems studentams. Atvira visiems. Tavo kuprinė ką tik palengvėjo.";
+"premium.offer.freeDescription" = "Sukurta nedirbantiems studentams. Atvira visiems.";
 "premium.offer.freeBenefits" = "Kartojimas, mokymasis be interneto ir sinchronizavimas";
 "premium.offer.monthlyAI" = "%@ DI pokalbio žinučių per mėnesį";
 "premium.offer.supportsCreator" = "Remia programėlės kūrėją";
 "premium.offer.accentColor" = "Bet kokia akcento spalva";
-"premium.offer.reviewAnimations" = "Kartojimo animacijos: įjungtos arba išjungtos";
+"premium.offer.themes" = "Tamsi ir šviesi tema";
+"premium.offer.reviewAnimations" = "Kartojimo animacijų valdymas";
 "premium.offer.appIcon" = "Pasirinktinė programėlės piktograma";
 "premium.offer.startSevenDayTrial" = "Pradėti 7 dienų nemokamą bandomąjį laikotarpį";
 "premium.offer.subscribeWithPrice" = "Prenumeruoti — %@";
 "premium.offer.noCreatorSupport" = "Neremia programėlės kūrėjo";
 "premium.offer.limitedAI" = "Ribotas DI pokalbis";
 "premium.offer.defaultStylesOnly" = "Tik numatytieji stiliai";
-"premium.offer.notNow" = "Ne dabar";
+"premium.offer.noOtherPremiumFeatures" = "Jokių kitų Premium funkcijų";
+"premium.offer.dontPayCreator" = "Nemokėk programėlės kūrėjui";
 "premium.offer.unlimitedAI" = "DI žinutės be mėnesio ribos";
 "premium.offer.creatorSupport" = "Tavo prenumerata padeda Nibomo kūrėjui [Kirill Markin](https://kirill-markin.com/) mokėti už serverius ir su kava bei pica ruošti kitą atnaujinimą.";
 "premium.offer.previewPurchaseMessage" = "Tai bandomoji peržiūra. Pirkimas nebus atliktas.";

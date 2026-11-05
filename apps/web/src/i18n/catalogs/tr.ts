@@ -25,17 +25,19 @@ const trCatalog: TranslationCatalog = {
   paywall: {
     heading: "Öğrenmek <em>herkesin</em> hakkı.",
     freeTitle: "Ücretsiz",
-    freeDescription: "İşi olmayan öğrenciler için oluşturuldu. Herkese açık. Sırt çantan biraz daha hafifledi.",
+    freeDescription: "İşi olmayan öğrenciler için oluşturuldu. Herkese açık.",
     freeBenefit: "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme",
     noCreatorSupport: "Uygulamanın yaratıcısını desteklemez",
     limitedAi: "Sınırlı yapay zekâ sohbeti",
     defaultStyles: "Yalnızca varsayılan stiller",
-    notNow: "Şimdi değil",
+    noOtherPremiumFeatures: "Başka Premium özellik yok",
+    dontPayCreator: "Uygulamanın yaratıcısına ödeme yapma",
     creatorSupport: "Aboneliğin, Nibomo’nun yaratıcısı {{creator}}’in sunucuları ödemesine ve bir sonraki güncellemeyi kahve ve pizzayla hazırlamasına yardımcı olur.",
     monthlyPrice: "{{price}} / ay",
     supportsCreator: "Uygulamanın yaratıcısını destekler",
     accentColorBenefit: "Dilediğin vurgu rengi",
-    reviewAnimationsBenefit: "Tekrar animasyonları açık veya kapalı",
+    themesBenefit: "Koyu ve açık tema",
+    reviewAnimationsBenefit: "Tekrar animasyonları kontrolü",
     appIconBenefit: "Özel uygulama simgesi",
     startTrial: "7 günlük ücretsiz denemeyi başlat",
     subscribe: "Abone ol — {{price}}",
@@ -132,7 +134,6 @@ const trCatalog: TranslationCatalog = {
     ok: "Tamam",
     off: "Kapalı",
     on: "Açık",
-    open: "Aç",
     perAction: "Her işlemde",
     refresh: "Yenile",
     retry: "Yeniden dene",
@@ -213,6 +214,7 @@ const trCatalog: TranslationCatalog = {
     aiChat: "AI sohbet",
     progress: "İlerleme",
     cards: "Kartlar",
+    library: "Kitaplık",
     settings: "Ayarlar",
   },
   shell: {
@@ -758,24 +760,39 @@ const trCatalog: TranslationCatalog = {
       resetAll: "Tüm istemlerin durumunu sıfırla",
     },
   },
+  libraryScreen: {
+    title: "Kitaplık",
+    groups: {
+      importExport: "İçe ve dışa aktarma",
+    },
+    cards: {
+      description: "Bu çalışma alanındaki tüm kartlar.",
+    },
+    tags: {
+      description: "En az bir kartta kullanılan tüm etiketler.",
+    },
+    decks: {
+      description: "Odaklı tekrar için kaydedilmiş kart filtreleri.",
+    },
+    import: {
+      description: "Bir dosyadan kart ekleyin.",
+    },
+    export: {
+      description: "Tüm kartlarınızı bir dosya olarak indirin.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Desteler",
-      description: "Yeniden kullanılabilir çalışma kapsamları oluşturun, düzenleyin ve inceleyin.",
     },
     tags: {
       title: "Etiketler",
-      description: "Çalışma alanı genelinde etiket kullanımını ve kart sayılarını inceleyin.",
     },
     export: {
       title: "Dışa aktar",
-      description: "Bu çalışma alanındaki etkin kartları taşınabilir bir flashcards.zip paketi olarak indirin.",
-      value: "flashcards.zip",
     },
     import: {
       title: "İçe aktar",
-      description: "Terimleri ve tanımları yapıştırın ya da bir Nibomo paketi içe aktarın.",
-      value: "Metin veya ZIP",
     },
     resetProgress: {
       title: "Çalışma ilerlemesini sıfırla",

@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "学びは、**すべての人**に。";
 "premium.offer.free" = "無料";
-"premium.offer.freeDescription" = "仕事をしていない学生のために作りました。どなたでも使えます。バックパックが少し軽くなりました。";
+"premium.offer.freeDescription" = "仕事をしていない学生のために作りました。どなたでも使えます。";
 "premium.offer.freeBenefits" = "基本の復習、オフライン学習と同期";
 "premium.offer.monthlyAI" = "毎月 %@ 件の AI チャットメッセージ";
 "premium.offer.supportsCreator" = "アプリの制作者を支援できる";
 "premium.offer.accentColor" = "好きなアクセントカラー";
-"premium.offer.reviewAnimations" = "復習アニメーションのオン／オフ";
+"premium.offer.themes" = "ダークとライトのテーマ";
+"premium.offer.reviewAnimations" = "復習アニメーションの設定";
 "premium.offer.appIcon" = "アプリアイコンのカスタマイズ";
 "premium.offer.startSevenDayTrial" = "7日間の無料トライアルを開始";
 "premium.offer.subscribeWithPrice" = "登録する — %@";
 "premium.offer.noCreatorSupport" = "アプリの制作者を支援できない";
 "premium.offer.limitedAI" = "AI チャットに制限あり";
 "premium.offer.defaultStylesOnly" = "デフォルトのスタイルのみ";
-"premium.offer.notNow" = "今はしない";
+"premium.offer.noOtherPremiumFeatures" = "その他の Premium 機能なし";
+"premium.offer.dontPayCreator" = "アプリの制作者に支払わない";
 "premium.offer.unlimitedAI" = "AI メッセージの月間上限なし";
 "premium.offer.creatorSupport" = "サブスクリプションは、Nibomo の制作者 [Kirill Markin](https://kirill-markin.com/) のサーバー代を支え、コーヒーとピザで次のアップデートを作る力になります。";
 "premium.offer.previewPurchaseMessage" = "これはテスト用プレビューです。購入は行われません。";

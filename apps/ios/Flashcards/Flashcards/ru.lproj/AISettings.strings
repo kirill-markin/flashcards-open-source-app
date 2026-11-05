@@ -1025,19 +1025,21 @@
 
 "premium.offer.heading" = "Учиться может **каждый**.";
 "premium.offer.free" = "Бесплатно";
-"premium.offer.freeDescription" = "Создано для студентов без работы. Открыто для всех. Ваш рюкзак стал легче.";
+"premium.offer.freeDescription" = "Создано для студентов без работы. Открыто для всех.";
 "premium.offer.freeBenefits" = "Повторение, обучение офлайн и синхронизация";
 "premium.offer.monthlyAI" = "%@ сообщений AI-чата в месяц";
 "premium.offer.supportsCreator" = "Поддерживает создателя приложения";
 "premium.offer.accentColor" = "Любой акцентный цвет";
-"premium.offer.reviewAnimations" = "Анимации повторения: вкл. или выкл.";
+"premium.offer.themes" = "Тёмная и светлая темы";
+"premium.offer.reviewAnimations" = "Управление анимациями повторения";
 "premium.offer.appIcon" = "Своя иконка приложения";
 "premium.offer.startSevenDayTrial" = "Начать 7-дневный пробный период";
 "premium.offer.subscribeWithPrice" = "Подписаться — %@";
 "premium.offer.noCreatorSupport" = "Не поддерживает создателя приложения";
 "premium.offer.limitedAI" = "Ограниченный AI-чат";
 "premium.offer.defaultStylesOnly" = "Только стандартные стили";
-"premium.offer.notNow" = "Не сейчас";
+"premium.offer.noOtherPremiumFeatures" = "Нет других функций Premium";
+"premium.offer.dontPayCreator" = "Не платить создателю приложения";
 "premium.offer.unlimitedAI" = "Сообщения ИИ без месячного лимита";
 "premium.offer.creatorSupport" = "Ваша подписка помогает создателю Nibomo, [Kirill Markin](https://kirill-markin.com/), оплачивать серверы и готовить следующее обновление с кофе и пиццей.";
 "premium.offer.previewPurchaseMessage" = "Это тестовый предпросмотр. Покупка не будет совершена.";

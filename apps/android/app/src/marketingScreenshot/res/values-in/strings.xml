@@ -36,7 +36,7 @@
     <string name="ai_terms_of_service">Ketentuan Layanan</string>
     <string name="ai_support">Bantuan</string>
     <string name="ai_consent_workspace_disclosure">Permintaan AI dari ruang kerja %1$s dapat mengirim perintah, berkas, gambar, dan audio dikte ke layanan AI.</string>
-    <string name="top_level_cards">Kartu</string>
+    <string name="top_level_library">Pustaka</string>
     <string name="cards_title">Kartu</string>
     <string name="top_level_review">Ulangi</string>
     <string name="review_title">Ulangi</string>

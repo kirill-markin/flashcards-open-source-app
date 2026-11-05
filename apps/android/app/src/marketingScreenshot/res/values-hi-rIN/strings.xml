@@ -1,7 +1,7 @@
 <resources>
     <string name="top_level_review">पुनरावलोकन</string>
     <string name="top_level_progress">प्रगति</string>
-    <string name="top_level_cards">कार्ड</string>
+    <string name="top_level_library">लाइब्रेरी</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">सेटिंग्स</string>
 

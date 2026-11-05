@@ -71,7 +71,7 @@ struct PremiumOfferView: View {
                             .onAppear {
                                 self.presenter.recordShown(
                                     requestId: self.request.id,
-                                    screen: analyticsSurface(tab: self.store.currentVisibleTab),
+                                    screen: self.store.currentVisibleAnalyticsSurface,
                                     store: self.store
                                 )
                             }
@@ -243,14 +243,15 @@ struct PremiumOfferView: View {
                 .font(.title3.bold())
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            Text(aiSettingsLocalized("premium.offer.freeDescription", "Created for students without a job. Open to everyone. Your backpack just got lighter."))
+            Text(aiSettingsLocalized("premium.offer.freeDescription", "Created for students without a job. Open to everyone."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
                 self.missingBenefit(aiSettingsLocalized("premium.offer.noCreatorSupport", "Doesn’t support the app’s creator"))
-                Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
                 self.missingBenefit(aiSettingsLocalized("premium.offer.limitedAI", "Limited AI chat"))
                 self.missingBenefit(aiSettingsLocalized("premium.offer.defaultStylesOnly", "Default styles only"))
+                self.missingBenefit(aiSettingsLocalized("premium.offer.noOtherPremiumFeatures", "No other premium features"))
+                Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
             }
             .font(.subheadline)
             Button {
@@ -259,7 +260,7 @@ struct PremiumOfferView: View {
                 self.presenter.finish(outcome: .continuedFree)
             } label: {
                 HStack {
-                    Text(aiSettingsLocalized("premium.offer.notNow", "Not now"))
+                    Text(aiSettingsLocalized("premium.offer.dontPayCreator", "Don’t pay the app’s creator"))
                         .frame(maxWidth: .infinity)
                     Image(systemName: "arrow.forward").accessibilityHidden(true)
                 }
@@ -303,7 +304,8 @@ struct PremiumOfferView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Label(aiSettingsLocalized("premium.offer.supportsCreator", "Supports the app’s creator"), systemImage: "checkmark")
                 Label(aiSettingsLocalized("premium.offer.accentColor", "Any accent color"), systemImage: "checkmark")
-                Label(aiSettingsLocalized("premium.offer.reviewAnimations", "Review animations on or off"), systemImage: "checkmark")
+                Label(aiSettingsLocalized("premium.offer.themes", "Dark and light themes"), systemImage: "checkmark")
+                Label(aiSettingsLocalized("premium.offer.reviewAnimations", "Review animations control"), systemImage: "checkmark")
                 Label(aiSettingsLocalized("premium.offer.appIcon", "Custom app icon"), systemImage: "checkmark")
                 if let allowance = self.premiumAIAllowance {
                     Label(

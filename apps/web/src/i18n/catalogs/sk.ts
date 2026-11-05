@@ -25,17 +25,19 @@ const skCatalog: TranslationCatalog = {
   paywall: {
     heading: "Učenie patrí <em>všetkým.</em>",
     freeTitle: "Zadarmo",
-    freeDescription: "Vytvorené pre študentov bez práce. Otvorené pre všetkých. Tvoj batoh je práve ľahší.",
+    freeDescription: "Vytvorené pre študentov bez práce. Otvorené pre všetkých.",
     freeBenefit: "Základné opakovanie, učenie offline a synchronizácia",
     noCreatorSupport: "Nepodporuje tvorcu aplikácie",
     limitedAi: "Obmedzený AI chat",
     defaultStyles: "Iba predvolené štýly",
-    notNow: "Teraz nie",
+    noOtherPremiumFeatures: "Žiadne ďalšie funkcie Premium",
+    dontPayCreator: "Neplať tvorcovi aplikácie",
     creatorSupport: "Tvoje predplatné pomáha tvorcovi Nibomo, {{creator}}, platiť servery a pripravovať ďalšiu aktualizáciu s kávou a pizzou.",
     monthlyPrice: "{{price}} / mesiac",
     supportsCreator: "Podporuje tvorcu aplikácie",
     accentColorBenefit: "Ľubovoľná farba zvýraznenia",
-    reviewAnimationsBenefit: "Animácie pri opakovaní zapnuté alebo vypnuté",
+    themesBenefit: "Tmavý a svetlý motív",
+    reviewAnimationsBenefit: "Ovládanie animácií pri opakovaní",
     appIconBenefit: "Vlastná ikona aplikácie",
     startTrial: "Začať 7-dňové skúšobné obdobie zadarmo",
     subscribe: "Predplatiť — {{price}}",
@@ -138,7 +140,6 @@ const skCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Vypnuté",
     on: "Zapnuté",
-    open: "Otvoriť",
     perAction: "Pri každej akcii",
     refresh: "Obnoviť",
     retry: "Skúsiť znova",
@@ -219,6 +220,7 @@ const skCatalog: TranslationCatalog = {
     aiChat: "AI chat",
     progress: "Pokrok",
     cards: "Karty",
+    library: "Knižnica",
     settings: "Nastavenia",
   },
   shell: {
@@ -766,24 +768,39 @@ const skCatalog: TranslationCatalog = {
       resetAll: "Obnoviť stav všetkých výziev",
     },
   },
+  libraryScreen: {
+    title: "Knižnica",
+    groups: {
+      importExport: "Import a export",
+    },
+    cards: {
+      description: "Všetky karty v tomto pracovnom priestore.",
+    },
+    tags: {
+      description: "Všetky značky použité aspoň na jednej karte.",
+    },
+    decks: {
+      description: "Uložené filtre kariet na sústredené opakovanie.",
+    },
+    import: {
+      description: "Pridajte karty zo súboru.",
+    },
+    export: {
+      description: "Stiahnite všetky svoje karty ako súbor.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Balíčky",
-      description: "Vytvárajte, upravujte a prezerajte opakovane použiteľné rozsahy učenia.",
     },
     tags: {
       title: "Značky",
-      description: "Pozrite si používanie značiek a počty kariet v celom pracovnom priestore.",
     },
     export: {
       title: "Export",
-      description: "Stiahnite aktívne karty z tohto pracovného priestoru ako prenosný balík flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Prilepte pojmy a definície alebo importujte balík Nibomo.",
-      value: "Text alebo ZIP",
     },
     resetProgress: {
       title: "Vynulovať pokrok v učení",

@@ -25,17 +25,19 @@ const bgCatalog: TranslationCatalog = {
   paywall: {
     heading: "Ученето е за <em>всички.</em>",
     freeTitle: "Безплатно",
-    freeDescription: "Създадено за студенти без работа. Отворено за всички. Раницата ти току-що олекна.",
+    freeDescription: "Създадено за студенти без работа. Отворено за всички.",
     freeBenefit: "Основни преговори, учене офлайн и синхронизация",
     noCreatorSupport: "Не подкрепя създателя на приложението",
     limitedAi: "Ограничен ИИ чат",
     defaultStyles: "Само стандартни стилове",
-    notNow: "Не сега",
+    noOtherPremiumFeatures: "Без други Premium функции",
+    dontPayCreator: "Не плащай на създателя на приложението",
     creatorSupport: "Абонаментът ти помага на създателя на Nibomo, {{creator}}, да плаща за сървърите и да подготвя следващата актуализация с кафе и пица.",
     monthlyPrice: "{{price}} / месец",
     supportsCreator: "Подкрепя създателя на приложението",
     accentColorBenefit: "Всеки акцентен цвят",
-    reviewAnimationsBenefit: "Анимации при преговор: вкл. или изкл.",
+    themesBenefit: "Тъмна и светла тема",
+    reviewAnimationsBenefit: "Контрол на анимациите при преговор",
     appIconBenefit: "Собствена икона на приложението",
     startTrial: "Започни 7-дневен безплатен пробен период",
     subscribe: "Абонирайте се — {{price}}",
@@ -132,7 +134,6 @@ const bgCatalog: TranslationCatalog = {
     ok: "Добре",
     off: "Изкл.",
     on: "Вкл.",
-    open: "Отваряне",
     perAction: "При всяко действие",
     refresh: "Опресняване",
     retry: "Опитайте отново",
@@ -213,6 +214,7 @@ const bgCatalog: TranslationCatalog = {
     aiChat: "ИИ чат",
     progress: "Напредък",
     cards: "Карти",
+    library: "Библиотека",
     settings: "Настройки",
   },
   shell: {
@@ -758,24 +760,39 @@ const bgCatalog: TranslationCatalog = {
       resetAll: "Нулиране на състоянието на всички подкани",
     },
   },
+  libraryScreen: {
+    title: "Библиотека",
+    groups: {
+      importExport: "Импортиране и експортиране",
+    },
+    cards: {
+      description: "Всички карти в това работно пространство.",
+    },
+    tags: {
+      description: "Всички етикети, използвани в поне една карта.",
+    },
+    decks: {
+      description: "Запазени филтри на карти за фокусиран преговор.",
+    },
+    import: {
+      description: "Добавете карти от файл.",
+    },
+    export: {
+      description: "Изтеглете всичките си карти като файл.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Тестета",
-      description: "Създавайте, редактирайте и преглеждайте повторно използваеми обхвати за учене.",
     },
     tags: {
       title: "Етикети",
-      description: "Прегледайте използването на етикети и броя карти в цялото работно пространство.",
     },
     export: {
       title: "Експортиране",
-      description: "Изтеглете активните карти от това работно пространство като преносим пакет flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Импортиране",
-      description: "Поставете термини и определения или импортирайте пакет на Nibomo.",
-      value: "Текст или ZIP",
     },
     resetProgress: {
       title: "Нулиране на напредъка",

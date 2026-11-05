@@ -25,17 +25,19 @@ const hiCatalog: TranslationCatalog = {
   paywall: {
     heading: "सीखना <em>सबका</em> अधिकार है।",
     freeTitle: "मुफ़्त",
-    freeDescription: "बिना नौकरी वाले छात्रों के लिए बनाया गया। सभी के लिए खुला। आपका बैग अब थोड़ा हल्का हो गया।",
+    freeDescription: "बिना नौकरी वाले छात्रों के लिए बनाया गया। सभी के लिए खुला।",
     freeBenefit: "बुनियादी रिव्यू, ऑफ़लाइन पढ़ाई और सिंक",
     noCreatorSupport: "ऐप के निर्माता का समर्थन नहीं करता",
     limitedAi: "सीमित AI चैट",
     defaultStyles: "सिर्फ़ डिफ़ॉल्ट स्टाइल",
-    notNow: "अभी नहीं",
+    noOtherPremiumFeatures: "कोई और Premium फ़ीचर नहीं",
+    dontPayCreator: "ऐप के निर्माता को पैसे न दें",
     creatorSupport: "आपकी सदस्यता Nibomo के निर्माता, {{creator}}, को सर्वर का खर्च उठाने और कॉफ़ी व पिज़्ज़ा के साथ अगला अपडेट तैयार करने में मदद करती है।",
     monthlyPrice: "{{price}} / माह",
     supportsCreator: "ऐप के निर्माता का समर्थन करता है",
     accentColorBenefit: "कोई भी एक्सेंट रंग",
-    reviewAnimationsBenefit: "रिव्यू एनिमेशन चालू या बंद",
+    themesBenefit: "डार्क और लाइट थीम",
+    reviewAnimationsBenefit: "रिव्यू एनिमेशन पर नियंत्रण",
     appIconBenefit: "अपना ऐप आइकन",
     startTrial: "7 दिन का मुफ़्त ट्रायल शुरू करें",
     subscribe: "सदस्यता लें — {{price}}",
@@ -132,7 +134,6 @@ const hiCatalog: TranslationCatalog = {
     ok: "ठीक है",
     off: "बंद",
     on: "चालू",
-    open: "खोलें",
     perAction: "प्रति कार्रवाई",
     refresh: "रीफ़्रेश",
     retry: "फिर से कोशिश करें",
@@ -213,6 +214,7 @@ const hiCatalog: TranslationCatalog = {
     aiChat: "AI चैट",
     progress: "प्रगति",
     cards: "कार्ड",
+    library: "लाइब्रेरी",
     settings: "सेटिंग्स",
   },
   shell: {
@@ -758,24 +760,39 @@ const hiCatalog: TranslationCatalog = {
       resetAll: "सभी प्रॉम्प्ट की स्थिति रीसेट करें",
     },
   },
+  libraryScreen: {
+    title: "लाइब्रेरी",
+    groups: {
+      importExport: "इम्पोर्ट और एक्सपोर्ट",
+    },
+    cards: {
+      description: "इस वर्कस्पेस के सभी कार्ड।",
+    },
+    tags: {
+      description: "कम से कम एक कार्ड पर इस्तेमाल हुए सभी टैग।",
+    },
+    decks: {
+      description: "केंद्रित रिव्यू के लिए सहेजे गए कार्ड फ़िल्टर।",
+    },
+    import: {
+      description: "फ़ाइल से कार्ड जोड़ें।",
+    },
+    export: {
+      description: "अपने सभी कार्ड एक फ़ाइल के रूप में डाउनलोड करें।",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "डेक",
-      description: "दोबारा उपयोग किए जा सकने वाले अध्ययन दायरे बनाएँ, संपादित करें और देखें।",
     },
     tags: {
       title: "टैग",
-      description: "पूरे वर्कस्पेस में टैग उपयोग और कार्ड गिनती देखें।",
     },
     export: {
       title: "एक्सपोर्ट",
-      description: "इस वर्कस्पेस के सक्रिय कार्ड को पोर्टेबल flashcards.zip पैकेज के रूप में डाउनलोड करें।",
-      value: "flashcards.zip",
     },
     import: {
       title: "इम्पोर्ट",
-      description: "शब्द और परिभाषाएँ पेस्ट करें या Nibomo पैकेज इम्पोर्ट करें।",
-      value: "टेक्स्ट या ZIP",
     },
     resetProgress: {
       title: "अध्ययन प्रगति रीसेट करें",

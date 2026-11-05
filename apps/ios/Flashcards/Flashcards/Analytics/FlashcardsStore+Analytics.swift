@@ -34,6 +34,16 @@ extension FlashcardsStore {
             authorizationHeaderValue: CloudAuthorization.guest(storedGuestSession.guestToken).headerValue
         )
     }
+
+    /// The surface the person is on now, for reports that name or restore it.
+    var currentVisibleAnalyticsSurface: AnalyticsSurface {
+        self.visibleAnalyticsSurface(tab: self.currentVisibleTab)
+    }
+
+    /// The surface a tab shows: Library names the page on top of its stack.
+    func visibleAnalyticsSurface(tab: AppTab) -> AnalyticsSurface {
+        tab == .library ? self.currentLibraryAnalyticsSurface : analyticsSurface(tab: tab)
+    }
 }
 
 /// Maps a top-level tab onto the shared, platform-independent surface enum. A native screen name is
@@ -46,8 +56,8 @@ func analyticsSurface(tab: AppTab) -> AnalyticsSurface {
         return .progress
     case .ai:
         return .ai
-    case .cards:
-        return .cards
+    case .library:
+        return .library
     case .settings:
         return .settings
     }

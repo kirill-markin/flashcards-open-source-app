@@ -25,17 +25,19 @@ const fiCatalog: TranslationCatalog = {
   paywall: {
     heading: "Oppiminen kuuluu <em>kaikille.</em>",
     freeTitle: "Ilmainen",
-    freeDescription: "Luotu opiskelijoille ilman työpaikkaa. Avoin kaikille. Reppusi keveni juuri.",
+    freeDescription: "Luotu opiskelijoille ilman työpaikkaa. Avoin kaikille.",
     freeBenefit: "Peruskertaukset, opiskelu offline-tilassa ja synkronointi",
     noCreatorSupport: "Ei tue sovelluksen tekijää",
     limitedAi: "Rajoitettu tekoälykeskustelu",
     defaultStyles: "Vain oletustyylit",
-    notNow: "Ei nyt",
+    noOtherPremiumFeatures: "Ei muita Premium-ominaisuuksia",
+    dontPayCreator: "Älä maksa sovelluksen tekijälle",
     creatorSupport: "Tilauksesi auttaa Nibomon tekijää, {{creator}}, maksamaan palvelimet ja tekemään seuraavaa päivitystä kahvin ja pizzan voimalla.",
     monthlyPrice: "{{price}} / kuukausi",
     supportsCreator: "Tukee sovelluksen tekijää",
     accentColorBenefit: "Mikä tahansa korostusväri",
-    reviewAnimationsBenefit: "Kertausanimaatiot päälle tai pois",
+    themesBenefit: "Tumma ja vaalea teema",
+    reviewAnimationsBenefit: "Kertausanimaatioiden hallinta",
     appIconBenefit: "Oma sovelluskuvake",
     startTrial: "Aloita 7 päivän ilmainen kokeilu",
     subscribe: "Tilaa — {{price}}",
@@ -132,7 +134,6 @@ const fiCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Pois",
     on: "Päällä",
-    open: "Avaa",
     perAction: "Toimintokohtainen",
     refresh: "Päivitä",
     retry: "Yritä uudelleen",
@@ -213,6 +214,7 @@ const fiCatalog: TranslationCatalog = {
     aiChat: "Tekoäly",
     progress: "Edistyminen",
     cards: "Kortit",
+    library: "Kirjasto",
     settings: "Asetukset",
   },
   shell: {
@@ -758,24 +760,39 @@ const fiCatalog: TranslationCatalog = {
       resetAll: "Nollaa kaikkien kehotteiden tila",
     },
   },
+  libraryScreen: {
+    title: "Kirjasto",
+    groups: {
+      importExport: "Tuonti ja vienti",
+    },
+    cards: {
+      description: "Kaikki tämän työtilan kortit.",
+    },
+    tags: {
+      description: "Kaikki tunnisteet, joita on käytetty vähintään yhdessä kortissa.",
+    },
+    decks: {
+      description: "Tallennetut korttisuodattimet keskittyneeseen kertaukseen.",
+    },
+    import: {
+      description: "Lisää kortteja tiedostosta.",
+    },
+    export: {
+      description: "Lataa kaikki korttisi tiedostona.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Pakat",
-      description: "Luo, muokkaa ja tarkastele uudelleen käytettäviä opiskelurajauksia.",
     },
     tags: {
       title: "Tunnisteet",
-      description: "Tarkastele tunnisteiden käyttöä ja korttimääriä koko työtilassa.",
     },
     export: {
       title: "Vienti",
-      description: "Lataa tämän työtilan aktiiviset kortit siirrettävänä flashcards.zip-pakettina.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Tuonti",
-      description: "Liitä termit ja määritelmät tai tuo Nibomo-paketti.",
-      value: "Teksti tai ZIP",
     },
     resetProgress: {
       title: "Nollaa opiskeluedistyminen",

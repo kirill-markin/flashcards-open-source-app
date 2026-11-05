@@ -46,8 +46,8 @@ private func appForegroundOperationTabName(tab: AppTab) -> String {
         return "progress"
     case .ai:
         return "ai"
-    case .cards:
-        return "cards"
+    case .library:
+        return "library"
     case .settings:
         return "settings"
     }
@@ -177,6 +177,7 @@ func logAppForegroundOperationBreadcrumb(
 func prepareVisibleTabForPresentationWithBreadcrumb(
     store: FlashcardsStore,
     selectedTab: AppTab,
+    librarySurface: AnalyticsSurface,
     previousTab: AppTab?,
     scenePhase: ScenePhase?,
     isStartupReady: Bool?,
@@ -196,7 +197,7 @@ func prepareVisibleTabForPresentationWithBreadcrumb(
         finishedAt: nil,
         error: nil
     )
-    store.prepareVisibleTabForPresentation(tab: selectedTab, now: now)
+    store.prepareVisibleTabForPresentation(tab: selectedTab, librarySurface: librarySurface, now: now)
     logAppForegroundOperationBreadcrumb(
         action: .visibleTabPresentation,
         phase: .success,

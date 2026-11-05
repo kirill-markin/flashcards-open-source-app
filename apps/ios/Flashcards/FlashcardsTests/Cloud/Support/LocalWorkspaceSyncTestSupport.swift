@@ -150,7 +150,7 @@ class LocalWorkspaceSyncTestCase: XCTestCase {
             reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
             initialGlobalErrorMessage: ""
         )
-        store.updateCurrentVisibleTab(tab: .cards)
+        store.updateCurrentVisibleTab(tab: .library)
         return store
     }
 

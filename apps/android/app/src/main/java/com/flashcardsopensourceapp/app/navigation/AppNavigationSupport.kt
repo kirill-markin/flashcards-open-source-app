@@ -7,8 +7,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDecksDestination
-import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTagsDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryDecksDestination
 
 /**
  * A prefix owns the route when the route is the prefix itself or continues past it at a character
@@ -37,7 +36,7 @@ import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTags
  *
  * Pass a prefix that does not itself end in a boundary. One that does — `"settings/"` rather than
  * `SettingsDestination.route` — makes this read the character past the separator, so
- * `settings/decks` would not be within `settings/` and every leaf would fall through. A call site
+ * `settings/language` would not be within `settings/` and every leaf would fall through. A call site
  * that spells the rule out longhand as an equality plus a trailing-slash `startsWith` converts by
  * passing the bare route, never the trailing form.
  *
@@ -78,14 +77,19 @@ internal fun navigateToCardEditor(
     }
 }
 
-internal fun navigateToSettingsNavigationTarget(
+/**
+ * Pops to the hub after the restore, so Back from the target returns to the hub rather than to
+ * whichever Library screen the restored back stack ended on.
+ */
+internal fun navigateToLibraryNavigationTarget(
     navController: NavHostController,
-    target: SettingsNavigationTarget
+    target: LibraryNavigationTarget
 ) {
     navigateToTopLevelDestination(
         navController = navController,
-        destination = SettingsDestination
+        destination = LibraryDestination
     )
+    navController.popBackStack(route = LibraryDestination.route, inclusive = false)
     navController.navigate(route = target.route) {
         launchSingleTop = true
     }
@@ -116,10 +120,9 @@ fun navigateToTopLevelDestination(
     }
 }
 
-internal val SettingsNavigationTarget.route: String
+internal val LibraryNavigationTarget.route: String
     get() = when (this) {
-        SettingsNavigationTarget.WORKSPACE_DECKS -> SettingsWorkspaceDecksDestination.route
-        SettingsNavigationTarget.WORKSPACE_TAGS -> SettingsWorkspaceTagsDestination.route
+        LibraryNavigationTarget.DECKS -> LibraryDecksDestination.route
     }
 
 internal data class AppPackageInfo(

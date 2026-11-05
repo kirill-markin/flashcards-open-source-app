@@ -25,17 +25,19 @@ export const zhHansCatalog = {
   paywall: {
     heading: "学习属于<em>每一个人。</em>",
     freeTitle: "免费",
-    freeDescription: "为尚未工作的学生而创。向所有人开放。你的书包又轻了一点。",
+    freeDescription: "为尚未工作的学生而创。向所有人开放。",
     freeBenefit: "基础复习、离线学习与同步",
     noCreatorSupport: "不资助应用的创作者",
     limitedAi: "AI 聊天有限",
     defaultStyles: "仅限默认样式",
-    notNow: "暂不",
+    noOtherPremiumFeatures: "无其他Premium功能",
+    dontPayCreator: "不向应用的创作者付费",
     creatorSupport: "你的订阅帮助 Nibomo 的创作者 {{creator}} 支付服务器费用，并用咖啡和披萨为下一次更新补充能量。",
     monthlyPrice: "{{price}} / 月",
     supportsCreator: "资助应用的创作者",
     accentColorBenefit: "任意强调色",
-    reviewAnimationsBenefit: "复习动画可开可关",
+    themesBenefit: "深色和浅色主题",
+    reviewAnimationsBenefit: "复习动画控制",
     appIconBenefit: "自定义应用图标",
     startTrial: "开始 7 天免费试用",
     subscribe: "订阅 — {{price}}",
@@ -132,7 +134,6 @@ export const zhHansCatalog = {
     ok: "确定",
     off: "关",
     on: "开",
-    open: "打开",
     perAction: "每次操作",
     refresh: "刷新",
     retry: "重试",
@@ -213,6 +214,7 @@ export const zhHansCatalog = {
     aiChat: "AI 聊天",
     progress: "进度",
     cards: "卡片",
+    library: "资料库",
     settings: "设置",
   },
   shell: {
@@ -758,24 +760,39 @@ export const zhHansCatalog = {
       resetAll: "重置所有提示状态",
     },
   },
+  libraryScreen: {
+    title: "资料库",
+    groups: {
+      importExport: "导入与导出",
+    },
+    cards: {
+      description: "此工作区中的所有卡片。",
+    },
+    tags: {
+      description: "至少用于一张卡片的所有标签。",
+    },
+    decks: {
+      description: "为专注复习保存的卡片筛选条件。",
+    },
+    import: {
+      description: "从文件添加卡片。",
+    },
+    export: {
+      description: "将你的所有卡片下载为一个文件。",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "牌组",
-      description: "创建、编辑和查看可重复使用的学习范围。",
     },
     tags: {
       title: "标签",
-      description: "查看整个工作区的标签使用情况和卡片数量。",
     },
     export: {
       title: "导出",
-      description: "将此工作区的活动卡片下载为可移植的 flashcards.zip 包。",
-      value: "flashcards.zip",
     },
     import: {
       title: "导入",
-      description: "粘贴词条和释义，或导入 Nibomo 包。",
-      value: "文本或 ZIP",
     },
     resetProgress: {
       title: "重置学习进度",

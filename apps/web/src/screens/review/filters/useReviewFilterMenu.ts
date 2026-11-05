@@ -9,7 +9,7 @@ import {
 import { useAnchoredFloatingHiddenTriggerDismiss, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { createDeckNameComparator } from "../../../deckNameOrdering";
 import { useI18n } from "../../../i18n";
-import { settingsDecksRoute } from "../../../routes";
+import { libraryDecksRoute } from "../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../useWorkspacePath";
 import type { DeckSummary, ReviewFilter, WorkspaceTagSummary } from "../../../types";
 
@@ -203,7 +203,7 @@ function buildReviewFilterMenuItems(
     kind: "action",
     key: "edit-decks",
     label,
-    href: workspacePath(settingsDecksRoute),
+    href: workspacePath(libraryDecksRoute),
   }];
 }
 

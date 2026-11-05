@@ -25,17 +25,19 @@ const idCatalog: TranslationCatalog = {
   paywall: {
     heading: "Belajar adalah hak <em>semua orang.</em>",
     freeTitle: "Gratis",
-    freeDescription: "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua. Ranselmu kini lebih ringan.",
+    freeDescription: "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua.",
     freeBenefit: "Ulasan inti, belajar offline & sinkronisasi",
     noCreatorSupport: "Tidak mendukung pembuat aplikasi",
     limitedAi: "Obrolan AI terbatas",
     defaultStyles: "Hanya gaya bawaan",
-    notNow: "Nanti saja",
+    noOtherPremiumFeatures: "Tanpa fitur Premium lainnya",
+    dontPayCreator: "Jangan bayar pembuat aplikasi",
     creatorSupport: "Langgananmu membantu pembuat Nibomo, {{creator}}, membayar server dan menyiapkan pembaruan berikutnya dengan kopi dan pizza.",
     monthlyPrice: "{{price}} / bulan",
     supportsCreator: "Mendukung pembuat aplikasi",
     accentColorBenefit: "Warna aksen apa pun",
-    reviewAnimationsBenefit: "Animasi tinjauan aktif atau nonaktif",
+    themesBenefit: "Tema gelap dan terang",
+    reviewAnimationsBenefit: "Kontrol animasi tinjauan",
     appIconBenefit: "Ikon aplikasi kustom",
     startTrial: "Mulai uji coba gratis 7 hari",
     subscribe: "Berlangganan — {{price}}",
@@ -132,7 +134,6 @@ const idCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Nonaktif",
     on: "Aktif",
-    open: "Buka",
     perAction: "Per tindakan",
     refresh: "Segarkan",
     retry: "Coba lagi",
@@ -213,6 +214,7 @@ const idCatalog: TranslationCatalog = {
     aiChat: "Obrolan AI",
     progress: "Progres",
     cards: "Kartu",
+    library: "Pustaka",
     settings: "Pengaturan",
   },
   shell: {
@@ -758,24 +760,39 @@ const idCatalog: TranslationCatalog = {
       resetAll: "Atur ulang status semua prompt",
     },
   },
+  libraryScreen: {
+    title: "Pustaka",
+    groups: {
+      importExport: "Impor dan ekspor",
+    },
+    cards: {
+      description: "Semua kartu di ruang kerja ini.",
+    },
+    tags: {
+      description: "Semua tag yang dipakai di setidaknya satu kartu.",
+    },
+    decks: {
+      description: "Filter kartu tersimpan untuk tinjauan yang terfokus.",
+    },
+    import: {
+      description: "Tambahkan kartu dari file.",
+    },
+    export: {
+      description: "Unduh semua kartu Anda sebagai file.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Dek",
-      description: "Buat, edit, dan tinjau cakupan belajar yang bisa dipakai ulang.",
     },
     tags: {
       title: "Tag",
-      description: "Periksa penggunaan tag dan jumlah kartu di seluruh ruang kerja.",
     },
     export: {
       title: "Ekspor",
-      description: "Unduh kartu aktif dari ruang kerja ini sebagai paket flashcards.zip yang portabel.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Impor",
-      description: "Tempel istilah dan definisi atau impor paket Nibomo.",
-      value: "Teks atau ZIP",
     },
     resetProgress: {
       title: "Setel ulang progres belajar",

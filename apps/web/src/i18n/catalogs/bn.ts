@@ -25,17 +25,19 @@ const bnCatalog: TranslationCatalog = {
   paywall: {
     heading: "শেখা <em>সবার</em> অধিকার।",
     freeTitle: "বিনামূল্যে",
-    freeDescription: "চাকরি নেই এমন শিক্ষার্থীদের জন্য তৈরি। সবার জন্য উন্মুক্ত। আপনার ব্যাগটা একটু হালকা হলো।",
+    freeDescription: "চাকরি নেই এমন শিক্ষার্থীদের জন্য তৈরি। সবার জন্য উন্মুক্ত।",
     freeBenefit: "মূল রিভিউ, অফলাইনে শেখা ও সিঙ্ক",
     noCreatorSupport: "অ্যাপের নির্মাতাকে সমর্থন করে না",
     limitedAi: "সীমিত AI চ্যাট",
     defaultStyles: "শুধু ডিফল্ট স্টাইল",
-    notNow: "এখন নয়",
+    noOtherPremiumFeatures: "অন্য কোনো Premium ফিচার নেই",
+    dontPayCreator: "অ্যাপের নির্মাতাকে টাকা দেবেন না",
     creatorSupport: "আপনার সাবস্ক্রিপশন Nibomo-এর নির্মাতা {{creator}}-কে সার্ভারের খরচ মেটাতে এবং কফি ও পিৎজা নিয়ে পরের আপডেট তৈরি করতে সাহায্য করে।",
     monthlyPrice: "{{price}} / মাস",
     supportsCreator: "অ্যাপের নির্মাতাকে সমর্থন করে",
     accentColorBenefit: "যেকোনো অ্যাকসেন্ট রং",
-    reviewAnimationsBenefit: "পুনরালোচনার অ্যানিমেশন চালু বা বন্ধ",
+    themesBenefit: "গাঢ় ও হালকা থিম",
+    reviewAnimationsBenefit: "পুনরালোচনার অ্যানিমেশন নিয়ন্ত্রণ",
     appIconBenefit: "নিজের পছন্দের অ্যাপ আইকন",
     startTrial: "৭ দিনের বিনামূল্যের ট্রায়াল শুরু করুন",
     subscribe: "সাবস্ক্রাইব করুন — {{price}}",
@@ -132,7 +134,6 @@ const bnCatalog: TranslationCatalog = {
     ok: "ঠিক আছে",
     off: "বন্ধ",
     on: "চালু",
-    open: "খুলুন",
     perAction: "প্রতি কাজে",
     refresh: "রিফ্রেশ",
     retry: "আবার চেষ্টা করুন",
@@ -213,6 +214,7 @@ const bnCatalog: TranslationCatalog = {
     aiChat: "এআই চ্যাট",
     progress: "অগ্রগতি",
     cards: "কার্ড",
+    library: "লাইব্রেরি",
     settings: "সেটিংস",
   },
   shell: {
@@ -758,24 +760,39 @@ const bnCatalog: TranslationCatalog = {
       resetAll: "সব প্রম্পটের অবস্থা রিসেট করুন",
     },
   },
+  libraryScreen: {
+    title: "লাইব্রেরি",
+    groups: {
+      importExport: "আমদানি ও রপ্তানি",
+    },
+    cards: {
+      description: "এই কর্মক্ষেত্রের সব কার্ড।",
+    },
+    tags: {
+      description: "অন্তত একটি কার্ডে ব্যবহৃত সব ট্যাগ।",
+    },
+    decks: {
+      description: "মনোযোগী পুনরালোচনার জন্য সংরক্ষিত কার্ড ফিল্টার।",
+    },
+    import: {
+      description: "ফাইল থেকে কার্ড যোগ করুন।",
+    },
+    export: {
+      description: "আপনার সব কার্ড একটি ফাইল হিসেবে ডাউনলোড করুন।",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ডেক",
-      description: "পুনরায় ব্যবহারযোগ্য পড়াশোনার পরিধি তৈরি, সম্পাদনা ও দেখুন।",
     },
     tags: {
       title: "ট্যাগ",
-      description: "পুরো কর্মক্ষেত্রে ট্যাগের ব্যবহার ও কার্ড সংখ্যা দেখুন।",
     },
     export: {
       title: "রপ্তানি",
-      description: "এই কর্মক্ষেত্রের সক্রিয় কার্ডগুলো একটি পোর্টেবল flashcards.zip প্যাকেজ হিসেবে ডাউনলোড করুন।",
-      value: "flashcards.zip",
     },
     import: {
       title: "আমদানি",
-      description: "শব্দ ও সংজ্ঞা পেস্ট করুন অথবা Nibomo প্যাকেজ আমদানি করুন।",
-      value: "টেক্সট বা ZIP",
     },
     resetProgress: {
       title: "পড়াশোনার অগ্রগতি রিসেট করুন",

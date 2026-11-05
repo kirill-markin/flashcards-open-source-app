@@ -7,6 +7,7 @@ extension AIChatView {
         #else
         self.isCompanion && self.isPresentationActive
             && UIDevice.current.userInterfaceIdiom == .pad
+            && self.companionHostTab != .library
             && (self.companionHostTab != .review || self.tabBarPlacement == .topBar)
         #endif
     }
@@ -53,7 +54,8 @@ extension AIChatView {
     }
     #endif
 
-    /// Sidebar Review and phone companions keep controls inside the inset header.
+    /// Sidebar Review, Library and phone companions keep controls inside the inset header;
+    /// Library's pane sits beside its navigation stack, outside any navigation bar.
     @ViewBuilder
     var companionHeader: some View {
         if #available(iOS 26.0, *) {

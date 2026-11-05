@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Õppimine kuulub **kõigile**.";
 "premium.offer.free" = "Tasuta";
-"premium.offer.freeDescription" = "Loodud tööta tudengitele. Avatud kõigile. Sinu seljakott muutus just kergemaks.";
+"premium.offer.freeDescription" = "Loodud tööta tudengitele. Avatud kõigile.";
 "premium.offer.freeBenefits" = "Kordamine, võrguühenduseta õpe ja sünkroonimine";
 "premium.offer.monthlyAI" = "%@ tehisintellekti vestluse sõnumit kuus";
 "premium.offer.supportsCreator" = "Toetab rakenduse loojat";
 "premium.offer.accentColor" = "Mis tahes rõhuvärv";
-"premium.offer.reviewAnimations" = "Kordamise animatsioonid: sees või väljas";
+"premium.offer.themes" = "Tume ja hele teema";
+"premium.offer.reviewAnimations" = "Kordamise animatsioonide juhtimine";
 "premium.offer.appIcon" = "Kohandatud rakenduse ikoon";
 "premium.offer.startSevenDayTrial" = "Alusta 7-päevast tasuta prooviperioodi";
 "premium.offer.subscribeWithPrice" = "Telli — %@";
 "premium.offer.noCreatorSupport" = "Ei toeta rakenduse loojat";
 "premium.offer.limitedAI" = "Piiratud tehisintellekti vestlus";
 "premium.offer.defaultStylesOnly" = "Ainult vaikestiilid";
-"premium.offer.notNow" = "Mitte praegu";
+"premium.offer.noOtherPremiumFeatures" = "Muid Premiumi funktsioone pole";
+"premium.offer.dontPayCreator" = "Ära maksa rakenduse loojale";
 "premium.offer.unlimitedAI" = "AI-sõnumid ilma kuupiiranguta";
 "premium.offer.creatorSupport" = "Sinu tellimus aitab Nibomo loojal [Kirill Markin](https://kirill-markin.com/) tasuda serverite eest ja valmistada kohvi ning pitsa toel järgmist uuendust.";
 "premium.offer.previewPurchaseMessage" = "See on testieelvaade. Ühtegi ostu ei tehta.";

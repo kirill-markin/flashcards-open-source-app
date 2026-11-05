@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Nám er fyrir **alla**.";
 "premium.offer.free" = "Ókeypis";
-"premium.offer.freeDescription" = "Búið til fyrir námsfólk án vinnu. Opið öllum. Bakpokinn þinn varð rétt í þessu léttari.";
+"premium.offer.freeDescription" = "Búið til fyrir námsfólk án vinnu. Opið öllum.";
 "premium.offer.freeBenefits" = "Upprifjun, nám án nettengingar og samstilling";
 "premium.offer.monthlyAI" = "%@ skilaboð í gervigreindarspjalli á mánuði";
 "premium.offer.supportsCreator" = "Styður höfund forritsins";
 "premium.offer.accentColor" = "Hvaða áherslulitur sem er";
-"premium.offer.reviewAnimations" = "Hreyfimyndir við upprifjun: kveikt eða slökkt";
+"premium.offer.themes" = "Dökkt og ljóst þema";
+"premium.offer.reviewAnimations" = "Stjórn á hreyfimyndum við upprifjun";
 "premium.offer.appIcon" = "Sérsniðið forritstákn";
 "premium.offer.startSevenDayTrial" = "Hefja 7 daga ókeypis prufu";
 "premium.offer.subscribeWithPrice" = "Gerast áskrifandi — %@";
 "premium.offer.noCreatorSupport" = "Styður ekki höfund forritsins";
 "premium.offer.limitedAI" = "Takmarkað gervigreindarspjall";
 "premium.offer.defaultStylesOnly" = "Aðeins sjálfgefnir stílar";
-"premium.offer.notNow" = "Ekki núna";
+"premium.offer.noOtherPremiumFeatures" = "Engir aðrir Premium-eiginleikar";
+"premium.offer.dontPayCreator" = "Ekki borga höfundi forritsins";
 "premium.offer.unlimitedAI" = "Gervigreindarskilaboð án mánaðarlegra takmarkana";
 "premium.offer.creatorSupport" = "Áskriftin þín hjálpar höfundi Nibomo, [Kirill Markin](https://kirill-markin.com/), að greiða fyrir netþjóna og vinna að næstu uppfærslu með kaffi og pítsu.";
 "premium.offer.previewPurchaseMessage" = "Þetta er prufuforskoðun. Engin kaup verða gerð.";

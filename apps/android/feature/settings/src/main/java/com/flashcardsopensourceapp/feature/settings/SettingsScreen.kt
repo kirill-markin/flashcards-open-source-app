@@ -112,10 +112,6 @@ fun SettingsRoute(
     onOpenFirstReviewOnboarding: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
-    onOpenDecks: () -> Unit,
-    onOpenTags: () -> Unit,
-    onOpenImport: () -> Unit,
-    onOpenExport: () -> Unit,
     onOpenFeedback: () -> Unit,
     onOpenLegal: () -> Unit,
     onOpenSupport: () -> Unit,
@@ -340,46 +336,6 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsAccessRowTag,
                     onClick = onOpenAccess
-                )
-            }
-
-            item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_workspace_decks_title),
-                    summary = stringResource(R.string.settings_decks_summary),
-                    attentionCount = null,
-                    testTag = settingsDecksRowTag,
-                    onClick = onOpenDecks
-                )
-            }
-
-            item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_workspace_tags_title),
-                    summary = stringResource(R.string.settings_tags_summary),
-                    attentionCount = null,
-                    testTag = settingsTagsRowTag,
-                    onClick = onOpenTags
-                )
-            }
-
-            item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_import_title),
-                    summary = stringResource(R.string.settings_import_zip_summary),
-                    attentionCount = null,
-                    testTag = settingsImportRowTag,
-                    onClick = onOpenImport
-                )
-            }
-
-            item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_workspace_export_title),
-                    summary = stringResource(R.string.settings_export_package_summary),
-                    attentionCount = null,
-                    testTag = settingsExportRowTag,
-                    onClick = onOpenExport
                 )
             }
 

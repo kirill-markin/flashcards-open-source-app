@@ -25,17 +25,19 @@ const daCatalog: TranslationCatalog = {
   paywall: {
     heading: "Læring er for <em>alle.</em>",
     freeTitle: "Gratis",
-    freeDescription: "Skabt til studerende uden job. Åbent for alle. Din rygsæk blev lige lettere.",
+    freeDescription: "Skabt til studerende uden job. Åbent for alle.",
     freeBenefit: "Grundlæggende repetition, offline læring og synkronisering",
     noCreatorSupport: "Støtter ikke appens skaber",
     limitedAi: "Begrænset AI-chat",
     defaultStyles: "Kun standardstile",
-    notNow: "Ikke nu",
+    noOtherPremiumFeatures: "Ingen andre Premium-funktioner",
+    dontPayCreator: "Betal ikke appens skaber",
     creatorSupport: "Dit abonnement hjælper Nibomos skaber, {{creator}}, med at betale serverne og arbejde på den næste opdatering med kaffe og pizza.",
     monthlyPrice: "{{price}} / måned",
     supportsCreator: "Støtter appens skaber",
     accentColorBenefit: "Enhver accentfarve",
-    reviewAnimationsBenefit: "Repetitionsanimationer til eller fra",
+    themesBenefit: "Mørkt og lyst tema",
+    reviewAnimationsBenefit: "Styring af repetitionsanimationer",
     appIconBenefit: "Eget appikon",
     startTrial: "Start 7 dages gratis prøveperiode",
     subscribe: "Tegn abonnement — {{price}}",
@@ -132,7 +134,6 @@ const daCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Fra",
     on: "Til",
-    open: "Åbn",
     perAction: "Pr. handling",
     refresh: "Opdater",
     retry: "Prøv igen",
@@ -213,6 +214,7 @@ const daCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Fremskridt",
     cards: "Kort",
+    library: "Bibliotek",
     settings: "Indstillinger",
   },
   shell: {
@@ -758,24 +760,39 @@ const daCatalog: TranslationCatalog = {
       resetAll: "Nulstil tilstanden for alle opfordringer",
     },
   },
+  libraryScreen: {
+    title: "Bibliotek",
+    groups: {
+      importExport: "Import og eksport",
+    },
+    cards: {
+      description: "Alle kort i dette arbejdsområde.",
+    },
+    tags: {
+      description: "Alle tags, der bruges på mindst ét kort.",
+    },
+    decks: {
+      description: "Gemte kortfiltre til fokuseret repetition.",
+    },
+    import: {
+      description: "Tilføj kort fra en fil.",
+    },
+    export: {
+      description: "Download alle dine kort som en fil.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Bunker",
-      description: "Opret, rediger og gennemgå genbrugelige udvalg af kort.",
     },
     tags: {
       title: "Tags",
-      description: "Se brugen af tags og antal kort i hele arbejdsområdet.",
     },
     export: {
       title: "Eksport",
-      description: "Download de aktive kort fra dette arbejdsområde som en flytbar flashcards.zip-pakke.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Indsæt begreber og definitioner, eller importér en Nibomo-pakke.",
-      value: "Tekst eller ZIP",
     },
     resetProgress: {
       title: "Nulstil fremskridt",

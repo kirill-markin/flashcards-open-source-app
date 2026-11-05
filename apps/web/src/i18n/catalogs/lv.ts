@@ -25,17 +25,19 @@ const lvCatalog: TranslationCatalog = {
   paywall: {
     heading: "Mācīšanās pieder <em>visiem.</em>",
     freeTitle: "Bezmaksas",
-    freeDescription: "Radīts studentiem bez darba. Atvērts ikvienam. Tava mugursoma tikko kļuva vieglāka.",
+    freeDescription: "Radīts studentiem bez darba. Atvērts ikvienam.",
     freeBenefit: "Pamata atkārtošana, mācīšanās bezsaistē un sinhronizācija",
     noCreatorSupport: "Neatbalsta lietotnes veidotāju",
     limitedAi: "Ierobežota MI saruna",
     defaultStyles: "Tikai noklusējuma stili",
-    notNow: "Ne tagad",
+    noOtherPremiumFeatures: "Nav citu Premium funkciju",
+    dontPayCreator: "Nemaksā lietotnes veidotājam",
     creatorSupport: "Tavs abonements palīdz Nibomo veidotājam {{creator}} apmaksāt serverus un ar kafiju un picu gatavot nākamo atjauninājumu.",
     monthlyPrice: "{{price}} / mēnesī",
     supportsCreator: "Atbalsta lietotnes veidotāju",
     accentColorBenefit: "Jebkura akcenta krāsa",
-    reviewAnimationsBenefit: "Atkārtošanas animācijas ieslēgtas vai izslēgtas",
+    themesBenefit: "Tumšs un gaišs motīvs",
+    reviewAnimationsBenefit: "Atkārtošanas animāciju vadība",
     appIconBenefit: "Sava lietotnes ikona",
     startTrial: "Sākt 7 dienu bezmaksas izmēģinājumu",
     subscribe: "Abonēt — {{price}}",
@@ -132,7 +134,6 @@ const lvCatalog: TranslationCatalog = {
     ok: "Labi",
     off: "Izslēgts",
     on: "Ieslēgts",
-    open: "Atvērt",
     perAction: "Katrai darbībai",
     refresh: "Atsvaidzināt",
     retry: "Mēģināt vēlreiz",
@@ -213,6 +214,7 @@ const lvCatalog: TranslationCatalog = {
     aiChat: "MI saruna",
     progress: "Progress",
     cards: "Kartītes",
+    library: "Bibliotēka",
     settings: "Iestatījumi",
   },
   shell: {
@@ -758,24 +760,39 @@ const lvCatalog: TranslationCatalog = {
       resetAll: "Atiestatīt visu uzvedņu stāvokli",
     },
   },
+  libraryScreen: {
+    title: "Bibliotēka",
+    groups: {
+      importExport: "Importēšana un eksportēšana",
+    },
+    cards: {
+      description: "Visas šīs darbvietas kartītes.",
+    },
+    tags: {
+      description: "Visas birkas, kas izmantotas vismaz vienā kartītē.",
+    },
+    decks: {
+      description: "Saglabāti kartīšu filtri mērķtiecīgai atkārtošanai.",
+    },
+    import: {
+      description: "Pievienojiet kartītes no faila.",
+    },
+    export: {
+      description: "Lejupielādējiet visas savas kartītes kā failu.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kavas",
-      description: "Izveidojiet, rediģējiet un pārskatiet atkārtoti lietojamus mācību tvērumus.",
     },
     tags: {
       title: "Birkas",
-      description: "Pārskatiet birku lietojumu visā darbvietā un kartīšu skaitu.",
     },
     export: {
       title: "Eksportēt",
-      description: "Lejupielādējiet šīs darbvietas aktīvās kartītes pārnēsājamā flashcards.zip pakotnē.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importēt",
-      description: "Ielīmējiet terminus un skaidrojumus vai importējiet Nibomo pakotni.",
-      value: "Teksts vai ZIP",
     },
     resetProgress: {
       title: "Atiestatīt mācību progresu",

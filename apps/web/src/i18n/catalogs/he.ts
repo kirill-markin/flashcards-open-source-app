@@ -25,17 +25,19 @@ const heCatalog: TranslationCatalog = {
   paywall: {
     heading: "הלמידה שייכת <em>לכולם.</em>",
     freeTitle: "חינם",
-    freeDescription: "נוצר לסטודנטים בלי עבודה. פתוח לכולם. התיק שלך הרגע נהיה קל יותר.",
+    freeDescription: "נוצר לסטודנטים בלי עבודה. פתוח לכולם.",
     freeBenefit: "חזרות בסיסיות, למידה ללא חיבור וסנכרון",
     noCreatorSupport: "לא תומך ביוצר האפליקציה",
     limitedAi: "צ׳אט AI מוגבל",
     defaultStyles: "סגנונות ברירת מחדל בלבד",
-    notNow: "לא עכשיו",
+    noOtherPremiumFeatures: "אין תכונות Premium נוספות",
+    dontPayCreator: "לא לשלם ליוצר האפליקציה",
     creatorSupport: "המינוי שלך עוזר ליוצר של Nibomo, {{creator}}, לשלם על שרתים ולהכין את העדכון הבא עם קפה ופיצה.",
     monthlyPrice: "{{price}} / חודש",
     supportsCreator: "תומך ביוצר האפליקציה",
     accentColorBenefit: "כל צבע הדגשה",
-    reviewAnimationsBenefit: "אנימציות חזרה מופעלות או כבויות",
+    themesBenefit: "ערכות נושא כהה ובהירה",
+    reviewAnimationsBenefit: "שליטה באנימציות חזרה",
     appIconBenefit: "סמל אפליקציה מותאם אישית",
     startTrial: "התחלת ניסיון חינם ל-7 ימים",
     subscribe: "רכישת מינוי — {{price}}",
@@ -132,7 +134,6 @@ const heCatalog: TranslationCatalog = {
     ok: "אישור",
     off: "כבוי",
     on: "פועל",
-    open: "פתיחה",
     perAction: "לכל פעולה",
     refresh: "רענון",
     retry: "נסה שוב",
@@ -213,6 +214,7 @@ const heCatalog: TranslationCatalog = {
     aiChat: "צ'אט AI",
     progress: "התקדמות",
     cards: "כרטיסים",
+    library: "ספרייה",
     settings: "הגדרות",
   },
   shell: {
@@ -758,24 +760,39 @@ const heCatalog: TranslationCatalog = {
       resetAll: "איפוס המצב של כל ההנחיות",
     },
   },
+  libraryScreen: {
+    title: "ספרייה",
+    groups: {
+      importExport: "ייבוא וייצוא",
+    },
+    cards: {
+      description: "כל הכרטיסים בסביבת העבודה הזו.",
+    },
+    tags: {
+      description: "כל התגיות שמשמשות לפחות בכרטיס אחד.",
+    },
+    decks: {
+      description: "מסנני כרטיסים שמורים לחזרה ממוקדת.",
+    },
+    import: {
+      description: "הוסף כרטיסים מקובץ.",
+    },
+    export: {
+      description: "הורד את כל הכרטיסים שלך כקובץ.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "חפיסות",
-      description: "צור, ערוך ובדוק היקפי לימוד לשימוש חוזר.",
     },
     tags: {
       title: "תגיות",
-      description: "בדוק את השימוש בתגיות ואת מספרי הכרטיסים בכל סביבת העבודה.",
     },
     export: {
       title: "ייצוא",
-      description: "הורד את הכרטיסים הפעילים בסביבת העבודה הזו כחבילת flashcards.zip ניידת.",
-      value: "flashcards.zip",
     },
     import: {
       title: "ייבוא",
-      description: "הדבק מונחים והגדרות או ייבא חבילת Nibomo.",
-      value: "טקסט או ZIP",
     },
     resetProgress: {
       title: "איפוס התקדמות הלימוד",

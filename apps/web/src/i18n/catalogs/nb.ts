@@ -25,17 +25,19 @@ const nbCatalog: TranslationCatalog = {
   paywall: {
     heading: "Læring er for <em>alle.</em>",
     freeTitle: "Gratis",
-    freeDescription: "Laget for studenter uten jobb. Åpent for alle. Sekken din ble nettopp lettere.",
+    freeDescription: "Laget for studenter uten jobb. Åpent for alle.",
     freeBenefit: "Grunnleggende repetisjon, læring uten nett og synkronisering",
     noCreatorSupport: "Støtter ikke appens skaper",
     limitedAi: "Begrenset AI-chat",
     defaultStyles: "Bare standardstiler",
-    notNow: "Ikke nå",
+    noOtherPremiumFeatures: "Ingen andre Premium-funksjoner",
+    dontPayCreator: "Ikke betal appens skaper",
     creatorSupport: "Abonnementet ditt hjelper Nibomos skaper, {{creator}}, med å betale for serverne og jobbe med neste oppdatering med kaffe og pizza.",
     monthlyPrice: "{{price}} / måned",
     supportsCreator: "Støtter appens skaper",
     accentColorBenefit: "Hvilken som helst aksentfarge",
-    reviewAnimationsBenefit: "Repetisjonsanimasjoner av eller på",
+    themesBenefit: "Mørkt og lyst tema",
+    reviewAnimationsBenefit: "Kontroll over repetisjonsanimasjoner",
     appIconBenefit: "Eget appikon",
     startTrial: "Start 7 dagers gratis prøveperiode",
     subscribe: "Abonner — {{price}}",
@@ -132,7 +134,6 @@ const nbCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Av",
     on: "På",
-    open: "Åpne",
     perAction: "Per handling",
     refresh: "Oppdater",
     retry: "Prøv igjen",
@@ -213,6 +214,7 @@ const nbCatalog: TranslationCatalog = {
     aiChat: "AI-chat",
     progress: "Fremgang",
     cards: "Kort",
+    library: "Bibliotek",
     settings: "Innstillinger",
   },
   shell: {
@@ -758,24 +760,39 @@ const nbCatalog: TranslationCatalog = {
       resetAll: "Tilbakestill tilstanden for alle meldinger",
     },
   },
+  libraryScreen: {
+    title: "Bibliotek",
+    groups: {
+      importExport: "Import og eksport",
+    },
+    cards: {
+      description: "Alle kort i dette arbeidsområdet.",
+    },
+    tags: {
+      description: "Alle tagger som brukes på minst ett kort.",
+    },
+    decks: {
+      description: "Lagrede kortfiltre for fokusert repetisjon.",
+    },
+    import: {
+      description: "Legg til kort fra en fil.",
+    },
+    export: {
+      description: "Last ned alle kortene dine som en fil.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Kortstokker",
-      description: "Lag, rediger og se gjenbrukbare læringsomfang.",
     },
     tags: {
       title: "Tagger",
-      description: "Se hvordan tagger brukes i hele arbeidsområdet, med antall kort.",
     },
     export: {
       title: "Eksport",
-      description: "Last ned de aktive kortene fra dette arbeidsområdet som en flyttbar flashcards.zip-pakke.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Import",
-      description: "Lim inn termer og definisjoner, eller importer en Nibomo-pakke.",
-      value: "Tekst eller ZIP",
     },
     resetProgress: {
       title: "Nullstill læringsfremgang",

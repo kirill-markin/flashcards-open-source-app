@@ -6,7 +6,7 @@ import {
   trackedFill,
 } from "../../live-smoke.actions";
 import { externalUiTimeoutMs, localUiTimeoutMs, reviewPostSubmitTimeoutMs } from "../config";
-import { primaryNavigationLinkSelector } from "../navigation";
+import { openLibraryRow, primaryNavigationLinkSelector } from "../navigation";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
@@ -35,7 +35,7 @@ export async function runSeededCardReviewFlow(session: LiveSmokeSession): Promis
 
 async function assertSeededCardVisibleInCards(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open cards navigation for verification", page.locator(primaryNavigationLinkSelector("/cards")).first());
+  await openLibraryRow(page, diagnostics, "open cards for verification", "library-row-cards");
   const searchInput = page.getByTestId("cards-search-input");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
   const seededCardRow = page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.seededFrontText)}]`).first();
@@ -64,7 +64,6 @@ async function assertMultipleCardNavigation(session: LiveSmokeSession): Promise<
   const navigationFrontText = `${scenario.seededFrontText} navigation`;
   const navigationBackText = "Temporary navigation answer\nSecond answer line\nThird answer line";
   const navigationCardRow = page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(navigationFrontText)}]`);
-  const cardsNavigation = page.locator(primaryNavigationLinkSelector("/cards")).first();
   const frontField = page.getByTestId("card-form-front-text");
   const backField = page.getByTestId("card-form-back-text");
 
@@ -83,7 +82,7 @@ async function assertMultipleCardNavigation(session: LiveSmokeSession): Promise<
     await expect(backField).toHaveValue("");
     await expect(page.getByTestId("card-form-delete")).toHaveCount(0);
   });
-  await trackedClick(diagnostics, "return to multiple cards for list controls", cardsNavigation);
+  await openLibraryRow(page, diagnostics, "return to multiple cards for list controls", "library-row-cards");
   const filterTrigger = page.getByTestId("cards-filter-trigger");
   await trackedClick(diagnostics, "open Filter while multiple rows are visible", filterTrigger);
   await trackedExpectAttribute(diagnostics, "confirm Filter opens without navigating", filterTrigger, "aria-expanded", "true", localUiTimeoutMs);

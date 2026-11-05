@@ -25,17 +25,19 @@ const ptBrCatalog: TranslationCatalog = {
   paywall: {
     heading: "Aprender é para <em>todos.</em>",
     freeTitle: "Grátis",
-    freeDescription: "Criado para estudantes sem emprego. Aberto a todos. Sua mochila acabou de ficar mais leve.",
+    freeDescription: "Criado para estudantes sem emprego. Aberto a todos.",
     freeBenefit: "Revisões essenciais, estudo offline e sincronização",
     noCreatorSupport: "Não apoia o criador do app",
     limitedAi: "Chat com IA limitado",
     defaultStyles: "Apenas estilos padrão",
-    notNow: "Agora não",
+    noOtherPremiumFeatures: "Sem outros recursos Premium",
+    dontPayCreator: "Não pague o criador do app",
     creatorSupport: "Sua assinatura ajuda o criador do Nibomo, {{creator}}, a pagar os servidores e preparar a próxima atualização com café e pizza.",
     monthlyPrice: "{{price}} / mês",
     supportsCreator: "Apoia o criador do app",
     accentColorBenefit: "Qualquer cor de destaque",
-    reviewAnimationsBenefit: "Animações da revisão ativadas ou desativadas",
+    themesBenefit: "Temas escuro e claro",
+    reviewAnimationsBenefit: "Controle das animações da revisão",
     appIconBenefit: "Ícone do app personalizado",
     startTrial: "Iniciar teste grátis de 7 dias",
     subscribe: "Assinar — {{price}}",
@@ -132,7 +134,6 @@ const ptBrCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Desligado",
     on: "Ligado",
-    open: "Abrir",
     perAction: "Por ação",
     refresh: "Atualizar",
     retry: "Tentar novamente",
@@ -213,6 +214,7 @@ const ptBrCatalog: TranslationCatalog = {
     aiChat: "Chat com IA",
     progress: "Progresso",
     cards: "Cartões",
+    library: "Biblioteca",
     settings: "Configurações",
   },
   shell: {
@@ -758,24 +760,39 @@ const ptBrCatalog: TranslationCatalog = {
       resetAll: "Redefinir o estado de todos os avisos",
     },
   },
+  libraryScreen: {
+    title: "Biblioteca",
+    groups: {
+      importExport: "Importar e exportar",
+    },
+    cards: {
+      description: "Todos os cartões deste espaço de trabalho.",
+    },
+    tags: {
+      description: "Todas as etiquetas usadas em pelo menos um cartão.",
+    },
+    decks: {
+      description: "Filtros de cartões salvos para uma revisão focada.",
+    },
+    import: {
+      description: "Adicione cartões a partir de um arquivo.",
+    },
+    export: {
+      description: "Baixe todos os seus cartões como um arquivo.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Baralhos",
-      description: "Crie, edite e revise escopos de estudo reutilizáveis.",
     },
     tags: {
       title: "Etiquetas",
-      description: "Consulte o uso de etiquetas e a contagem de cartões em todo o espaço de trabalho.",
     },
     export: {
       title: "Exportar",
-      description: "Baixe os cartões ativos deste espaço de trabalho como um pacote portátil flashcards.zip.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importar",
-      description: "Cole termos e definições ou importe um pacote do Nibomo.",
-      value: "Texto ou ZIP",
     },
     resetProgress: {
       title: "Zerar progresso de estudo",

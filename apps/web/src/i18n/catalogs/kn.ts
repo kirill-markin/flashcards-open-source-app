@@ -25,17 +25,19 @@ const knCatalog: TranslationCatalog = {
   paywall: {
     heading: "ಕಲಿಕೆ <em>ಎಲ್ಲರಿಗೂ</em> ಸೇರಿದ್ದು.",
     freeTitle: "ಉಚಿತ",
-    freeDescription: "ಉದ್ಯೋಗವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತವಾಗಿದೆ. ನಿಮ್ಮ ಚೀಲ ಈಗ ಸ್ವಲ್ಪ ಹಗುರವಾಗಿದೆ.",
+    freeDescription: "ಉದ್ಯೋಗವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತವಾಗಿದೆ.",
     freeBenefit: "ಮೂಲ ಮರುಅಭ್ಯಾಸ, ಆಫ್‌ಲೈನ್ ಕಲಿಕೆ ಮತ್ತು ಸಿಂಕ್",
     noCreatorSupport: "ಆ್ಯಪ್‌ನ ಸೃಷ್ಟಿಕರ್ತರನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ",
     limitedAi: "ಸೀಮಿತ AI ಚಾಟ್",
     defaultStyles: "ಡೀಫಾಲ್ಟ್ ಶೈಲಿಗಳು ಮಾತ್ರ",
-    notNow: "ಈಗ ಬೇಡ",
+    noOtherPremiumFeatures: "ಬೇರೆ Premium ವೈಶಿಷ್ಟ್ಯಗಳಿಲ್ಲ",
+    dontPayCreator: "ಆ್ಯಪ್‌ನ ಸೃಷ್ಟಿಕರ್ತರಿಗೆ ಹಣ ಪಾವತಿಸಬೇಡಿ",
     creatorSupport: "ನಿಮ್ಮ ಚಂದಾದಾರಿಕೆ Nibomo ಸೃಷ್ಟಿಕರ್ತ {{creator}} ಅವರಿಗೆ ಸರ್ವರ್ ವೆಚ್ಚ ಪಾವತಿಸಲು ಮತ್ತು ಕಾಫಿ ಹಾಗೂ ಪಿಜ್ಜಾದೊಂದಿಗೆ ಮುಂದಿನ ನವೀಕರಣ ಸಿದ್ಧಪಡಿಸಲು ನೆರವಾಗುತ್ತದೆ.",
     monthlyPrice: "{{price}} / ತಿಂಗಳು",
     supportsCreator: "ಆ್ಯಪ್‌ನ ಸೃಷ್ಟಿಕರ್ತರನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ",
     accentColorBenefit: "ಯಾವುದೇ ಪ್ರಮುಖ ಬಣ್ಣ",
-    reviewAnimationsBenefit: "ಪುನರಾವರ್ತನೆ ಅನಿಮೇಶನ್‌ಗಳು ಆನ್ ಅಥವಾ ಆಫ್",
+    themesBenefit: "ಗಾಢ ಮತ್ತು ತಿಳಿ ಥೀಮ್‌ಗಳು",
+    reviewAnimationsBenefit: "ಪುನರಾವರ್ತನೆ ಅನಿಮೇಶನ್‌ಗಳ ನಿಯಂತ್ರಣ",
     appIconBenefit: "ನಿಮ್ಮದೇ ಆ್ಯಪ್ ಐಕಾನ್",
     startTrial: "7 ದಿನಗಳ ಉಚಿತ ಪ್ರಯೋಗ ಪ್ರಾರಂಭಿಸಿ",
     subscribe: "ಚಂದಾದಾರರಾಗಿ — {{price}}",
@@ -132,7 +134,6 @@ const knCatalog: TranslationCatalog = {
     ok: "ಸರಿ",
     off: "ನಿಷ್ಕ್ರಿಯ",
     on: "ಸಕ್ರಿಯ",
-    open: "ತೆರೆಯಿರಿ",
     perAction: "ಪ್ರತಿ ಕ್ರಿಯೆಗೆ",
     refresh: "ನವೀಕರಿಸಿ",
     retry: "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
@@ -213,6 +214,7 @@ const knCatalog: TranslationCatalog = {
     aiChat: "AI ಚಾಟ್",
     progress: "ಪ್ರಗತಿ",
     cards: "ಕಾರ್ಡ್‌ಗಳು",
+    library: "ಲೈಬ್ರರಿ",
     settings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
   },
   shell: {
@@ -758,24 +760,39 @@ const knCatalog: TranslationCatalog = {
       resetAll: "ಎಲ್ಲಾ ಪ್ರಾಂಪ್ಟ್‌ಗಳ ಸ್ಥಿತಿಯನ್ನು ಮರುಹೊಂದಿಸಿ",
     },
   },
+  libraryScreen: {
+    title: "ಲೈಬ್ರರಿ",
+    groups: {
+      importExport: "ಆಮದು ಮತ್ತು ರಫ್ತು",
+    },
+    cards: {
+      description: "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿನ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು.",
+    },
+    tags: {
+      description: "ಕನಿಷ್ಠ ಒಂದು ಕಾರ್ಡ್‌ನಲ್ಲಿ ಬಳಸಲಾದ ಎಲ್ಲಾ ಟ್ಯಾಗ್‌ಗಳು.",
+    },
+    decks: {
+      description: "ಕೇಂದ್ರೀಕೃತ ಪುನರಾವರ್ತನೆಗಾಗಿ ಉಳಿಸಿದ ಕಾರ್ಡ್ ಫಿಲ್ಟರ್‌ಗಳು.",
+    },
+    import: {
+      description: "ಫೈಲ್‌ನಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ.",
+    },
+    export: {
+      description: "ನಿಮ್ಮ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳನ್ನು ಫೈಲ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ಡೆಕ್‌ಗಳು",
-      description: "ಮರುಬಳಕೆ ಮಾಡಬಹುದಾದ ಅಧ್ಯಯನ ವ್ಯಾಪ್ತಿಗಳನ್ನು ರಚಿಸಿ, ಸಂಪಾದಿಸಿ ಮತ್ತು ನೋಡಿ.",
     },
     tags: {
       title: "ಟ್ಯಾಗ್‌ಗಳು",
-      description: "ಕಾರ್ಯಸ್ಥಳದಾದ್ಯಂತ ಟ್ಯಾಗ್ ಬಳಕೆ ಮತ್ತು ಕಾರ್ಡ್ ಎಣಿಕೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
     },
     export: {
       title: "ರಫ್ತು",
-      description: "ಈ ಕಾರ್ಯಸ್ಥಳದ ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳನ್ನು ಪೋರ್ಟಬಲ್ flashcards.zip ಪ್ಯಾಕೇಜ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
-      value: "flashcards.zip",
     },
     import: {
       title: "ಆಮದು",
-      description: "ಪದಗಳು ಮತ್ತು ಅರ್ಥಗಳನ್ನು ಅಂಟಿಸಿ ಅಥವಾ Nibomo ಪ್ಯಾಕೇಜ್ ಆಮದು ಮಾಡಿ.",
-      value: "ಪಠ್ಯ ಅಥವಾ ZIP",
     },
     resetProgress: {
       title: "ಅಧ್ಯಯನ ಪ್ರಗತಿ ಮರುಹೊಂದಿಸಿ",

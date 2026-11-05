@@ -25,17 +25,19 @@ const paCatalog: TranslationCatalog = {
   paywall: {
     heading: "ਸਿੱਖਣਾ <em>ਹਰ ਕਿਸੇ</em> ਦਾ ਹੱਕ ਹੈ।",
     freeTitle: "ਮੁਫ਼ਤ",
-    freeDescription: "ਨੌਕਰੀ ਤੋਂ ਬਿਨਾਂ ਵਿਦਿਆਰਥੀਆਂ ਲਈ ਬਣਾਇਆ। ਸਭ ਲਈ ਖੁੱਲ੍ਹਾ। ਤੁਹਾਡਾ ਬੈਗ ਹੁਣ ਥੋੜ੍ਹਾ ਹਲਕਾ ਹੋ ਗਿਆ।",
+    freeDescription: "ਨੌਕਰੀ ਤੋਂ ਬਿਨਾਂ ਵਿਦਿਆਰਥੀਆਂ ਲਈ ਬਣਾਇਆ। ਸਭ ਲਈ ਖੁੱਲ੍ਹਾ।",
     freeBenefit: "ਬੁਨਿਆਦੀ ਦੁਹਰਾਈ, ਆਫ਼ਲਾਈਨ ਸਿੱਖਿਆ ਅਤੇ ਸਿੰਕ",
     noCreatorSupport: "ਐਪ ਦੇ ਸਿਰਜਣਹਾਰ ਦਾ ਸਮਰਥਨ ਨਹੀਂ ਕਰਦਾ",
     limitedAi: "ਸੀਮਤ AI ਚੈਟ",
     defaultStyles: "ਸਿਰਫ਼ ਡਿਫ਼ਾਲਟ ਸਟਾਈਲ",
-    notNow: "ਹੁਣ ਨਹੀਂ",
+    noOtherPremiumFeatures: "ਹੋਰ ਕੋਈ Premium ਫ਼ੀਚਰ ਨਹੀਂ",
+    dontPayCreator: "ਐਪ ਦੇ ਸਿਰਜਣਹਾਰ ਨੂੰ ਪੈਸੇ ਨਾ ਦਿਓ",
     creatorSupport: "ਤੁਹਾਡੀ ਮੈਂਬਰਸ਼ਿਪ Nibomo ਦੇ ਸਿਰਜਣਹਾਰ {{creator}} ਨੂੰ ਸਰਵਰਾਂ ਦੇ ਖ਼ਰਚੇ ਭਰਨ ਅਤੇ ਕੌਫ਼ੀ ਤੇ ਪੀਜ਼ੇ ਨਾਲ ਅਗਲਾ ਅੱਪਡੇਟ ਤਿਆਰ ਕਰਨ ਵਿੱਚ ਮਦਦ ਕਰਦੀ ਹੈ।",
     monthlyPrice: "{{price}} / ਮਹੀਨਾ",
     supportsCreator: "ਐਪ ਦੇ ਸਿਰਜਣਹਾਰ ਦਾ ਸਮਰਥਨ ਕਰਦਾ ਹੈ",
     accentColorBenefit: "ਕੋਈ ਵੀ ਐਕਸੈਂਟ ਰੰਗ",
-    reviewAnimationsBenefit: "ਦੁਹਰਾਈ ਐਨੀਮੇਸ਼ਨਾਂ ਚਾਲੂ ਜਾਂ ਬੰਦ",
+    themesBenefit: "ਗੂੜ੍ਹਾ ਅਤੇ ਹਲਕਾ ਥੀਮ",
+    reviewAnimationsBenefit: "ਦੁਹਰਾਈ ਐਨੀਮੇਸ਼ਨਾਂ ’ਤੇ ਕੰਟਰੋਲ",
     appIconBenefit: "ਆਪਣਾ ਐਪ ਆਈਕਨ",
     startTrial: "7 ਦਿਨਾਂ ਦੀ ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼ ਸ਼ੁਰੂ ਕਰੋ",
     subscribe: "ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਲਓ — {{price}}",
@@ -132,7 +134,6 @@ const paCatalog: TranslationCatalog = {
     ok: "ਠੀਕ ਹੈ",
     off: "ਬੰਦ",
     on: "ਚਾਲੂ",
-    open: "ਖੋਲ੍ਹੋ",
     perAction: "ਪ੍ਰਤੀ ਕਾਰਵਾਈ",
     refresh: "ਤਾਜ਼ਾ ਕਰੋ",
     retry: "ਮੁੜ ਕੋਸ਼ਿਸ਼",
@@ -213,6 +214,7 @@ const paCatalog: TranslationCatalog = {
     aiChat: "AI ਚੈਟ",
     progress: "ਤਰੱਕੀ",
     cards: "ਕਾਰਡ",
+    library: "ਲਾਇਬ੍ਰੇਰੀ",
     settings: "ਸੈਟਿੰਗਾਂ",
   },
   shell: {
@@ -758,24 +760,39 @@ const paCatalog: TranslationCatalog = {
       resetAll: "ਸਾਰੇ ਪ੍ਰੋਂਪਟਾਂ ਦੀ ਸਥਿਤੀ ਰੀਸੈੱਟ ਕਰੋ",
     },
   },
+  libraryScreen: {
+    title: "ਲਾਇਬ੍ਰੇਰੀ",
+    groups: {
+      importExport: "ਆਯਾਤ ਅਤੇ ਨਿਰਯਾਤ",
+    },
+    cards: {
+      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ.",
+    },
+    tags: {
+      description: "ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ 'ਤੇ ਵਰਤੇ ਗਏ ਸਾਰੇ ਟੈਗ.",
+    },
+    decks: {
+      description: "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ.",
+    },
+    import: {
+      description: "ਫਾਈਲ ਤੋਂ ਕਾਰਡ ਜੋੜੋ.",
+    },
+    export: {
+      description: "ਆਪਣੇ ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਫਾਈਲ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "ਡੈੱਕ",
-      description: "ਮੁੜ ਵਰਤਣਯੋਗ ਪੜ੍ਹਾਈ ਦੇ ਦਾਇਰੇ ਬਣਾਓ, ਸੋਧੋ ਅਤੇ ਵੇਖੋ.",
     },
     tags: {
       title: "ਟੈਗ",
-      description: "ਪੂਰੇ ਵਰਕਸਪੇਸ ਵਿੱਚ ਟੈਗਾਂ ਦੀ ਵਰਤੋਂ ਅਤੇ ਕਾਰਡਾਂ ਦੀ ਗਿਣਤੀ ਵੇਖੋ.",
     },
     export: {
       title: "ਨਿਰਯਾਤ",
-      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਰਗਰਮ ਕਾਰਡ ਪੋਰਟੇਬਲ flashcards.zip ਪੈਕੇਜ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ.",
-      value: "flashcards.zip",
     },
     import: {
       title: "ਆਯਾਤ",
-      description: "ਸ਼ਬਦ ਅਤੇ ਪਰਿਭਾਸ਼ਾਵਾਂ ਚੇਪੋ ਜਾਂ Nibomo ਪੈਕੇਜ ਆਯਾਤ ਕਰੋ.",
-      value: "ਲਿਖਤ ਜਾਂ ZIP",
     },
     resetProgress: {
       title: "ਪੜ੍ਹਾਈ ਦੀ ਤਰੱਕੀ ਰੀਸੈੱਟ ਕਰੋ",

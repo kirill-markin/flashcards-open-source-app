@@ -25,17 +25,19 @@ const etCatalog: TranslationCatalog = {
   paywall: {
     heading: "Õppimine kuulub <em>kõigile.</em>",
     freeTitle: "Tasuta",
-    freeDescription: "Loodud tööta üliõpilastele. Avatud kõigile. Sinu seljakott muutus just kergemaks.",
+    freeDescription: "Loodud tööta üliõpilastele. Avatud kõigile.",
     freeBenefit: "Põhikordused, võrguühenduseta õppimine ja sünkroonimine",
     noCreatorSupport: "Ei toeta rakenduse loojat",
     limitedAi: "Piiratud tehisaru vestlus",
     defaultStyles: "Ainult vaikestiilid",
-    notNow: "Mitte praegu",
+    noOtherPremiumFeatures: "Muid Premiumi funktsioone pole",
+    dontPayCreator: "Ära maksa rakenduse loojale",
     creatorSupport: "Sinu tellimus aitab Nibomo loojal {{creator}} maksta serverite eest ning valmistada kohvi ja pitsa toel ette järgmist uuendust.",
     monthlyPrice: "{{price}} / kuu",
     supportsCreator: "Toetab rakenduse loojat",
     accentColorBenefit: "Mis tahes rõhuvärv",
-    reviewAnimationsBenefit: "Kordamise animatsioonid sees või väljas",
+    themesBenefit: "Tume ja hele teema",
+    reviewAnimationsBenefit: "Kordamise animatsioonide juhtimine",
     appIconBenefit: "Oma rakenduse ikoon",
     startTrial: "Alusta 7-päevast tasuta prooviperioodi",
     subscribe: "Telli — {{price}}",
@@ -132,7 +134,6 @@ const etCatalog: TranslationCatalog = {
     ok: "OK",
     off: "Väljas",
     on: "Sees",
-    open: "Ava",
     perAction: "Iga toimingu kohta",
     refresh: "Värskenda",
     retry: "Proovi uuesti",
@@ -213,6 +214,7 @@ const etCatalog: TranslationCatalog = {
     aiChat: "TI-vestlus",
     progress: "Edenemine",
     cards: "Kaardid",
+    library: "Teek",
     settings: "Seaded",
   },
   shell: {
@@ -758,24 +760,39 @@ const etCatalog: TranslationCatalog = {
       resetAll: "Lähtesta kõigi viipade olek",
     },
   },
+  libraryScreen: {
+    title: "Teek",
+    groups: {
+      importExport: "Importimine ja eksportimine",
+    },
+    cards: {
+      description: "Kõik selle tööruumi kaardid.",
+    },
+    tags: {
+      description: "Kõik sildid, mida on kasutatud vähemalt ühel kaardil.",
+    },
+    decks: {
+      description: "Salvestatud kaardifiltrid keskendunud kordamiseks.",
+    },
+    import: {
+      description: "Lisa kaardid failist.",
+    },
+    export: {
+      description: "Laadi kõik oma kaardid failina alla.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Pakid",
-      description: "Loo, muuda ja korda taaskasutatavaid õppevaldkondi.",
     },
     tags: {
       title: "Sildid",
-      description: "Vaata siltide kasutust ja kaartide arvu kogu tööruumis.",
     },
     export: {
       title: "Eksportimine",
-      description: "Laadi selle tööruumi aktiivsed kaardid alla teisaldatava flashcards.zip paketina.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Importimine",
-      description: "Kleebi terminid ja määratlused või impordi Nibomo pakett.",
-      value: "Tekst või ZIP",
     },
     resetProgress: {
       title: "Lähtesta õppimise edenemine",

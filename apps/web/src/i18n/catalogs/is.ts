@@ -25,17 +25,19 @@ const isCatalog: TranslationCatalog = {
   paywall: {
     heading: "Nám er fyrir <em>alla.</em>",
     freeTitle: "Ókeypis",
-    freeDescription: "Búið til fyrir námsfólk án vinnu. Opið öllum. Bakpokinn þinn varð rétt í þessu léttari.",
+    freeDescription: "Búið til fyrir námsfólk án vinnu. Opið öllum.",
     freeBenefit: "Grunnupprifjun, nám án nettengingar og samstilling",
     noCreatorSupport: "Styður ekki höfund forritsins",
     limitedAi: "Takmarkað gervigreindarspjall",
     defaultStyles: "Aðeins sjálfgefnir stílar",
-    notNow: "Ekki núna",
+    noOtherPremiumFeatures: "Engir aðrir Premium-eiginleikar",
+    dontPayCreator: "Ekki borga höfundi forritsins",
     creatorSupport: "Áskriftin þín hjálpar höfundi Nibomo, {{creator}}, að greiða fyrir netþjóna og vinna að næstu uppfærslu með kaffi og pítsu.",
     monthlyPrice: "{{price}} / mánuði",
     supportsCreator: "Styður höfund forritsins",
     accentColorBenefit: "Hvaða áherslulitur sem er",
-    reviewAnimationsBenefit: "Hreyfimyndir í upprifjun af eða á",
+    themesBenefit: "Dökkt og ljóst þema",
+    reviewAnimationsBenefit: "Stjórn á hreyfimyndum í upprifjun",
     appIconBenefit: "Eigið forritstákn",
     startTrial: "Hefja 7 daga ókeypis prufu",
     subscribe: "Gerast áskrifandi — {{price}}",
@@ -132,7 +134,6 @@ const isCatalog: TranslationCatalog = {
     ok: "Í lagi",
     off: "Slökkt",
     on: "Kveikt",
-    open: "Opna",
     perAction: "Fyrir hverja aðgerð",
     refresh: "Uppfæra",
     retry: "Reyna aftur",
@@ -213,6 +214,7 @@ const isCatalog: TranslationCatalog = {
     aiChat: "Gervigreindarspjall",
     progress: "Framvinda",
     cards: "Spjöld",
+    library: "Safn",
     settings: "Stillingar",
   },
   shell: {
@@ -758,24 +760,39 @@ const isCatalog: TranslationCatalog = {
       resetAll: "Endurstilla stöðu allra kvaðninga",
     },
   },
+  libraryScreen: {
+    title: "Safn",
+    groups: {
+      importExport: "Inn- og útflutningur",
+    },
+    cards: {
+      description: "Öll spjöld á þessu vinnusvæði.",
+    },
+    tags: {
+      description: "Öll merki sem eru notuð á minnst einu spjaldi.",
+    },
+    decks: {
+      description: "Vistaðar spjaldasíur fyrir markvissa upprifjun.",
+    },
+    import: {
+      description: "Bættu við spjöldum úr skrá.",
+    },
+    export: {
+      description: "Sæktu öll spjöldin þín sem skrá.",
+    },
+  },
   settingsWorkspace: {
     decks: {
       title: "Stokkar",
-      description: "Búðu til, breyttu og rifjaðu upp endurnýtanleg námssvið.",
     },
     tags: {
       title: "Merki",
-      description: "Skoðaðu notkun merkja og fjölda spjalda á öllu vinnusvæðinu.",
     },
     export: {
       title: "Flytja út",
-      description: "Sæktu virk spjöld úr þessu vinnusvæði sem flytjanlegan flashcards.zip-pakka.",
-      value: "flashcards.zip",
     },
     import: {
       title: "Flytja inn",
-      description: "Límdu inn hugtök og skilgreiningar eða flyttu inn Nibomo-pakka.",
-      value: "Texti eða ZIP",
     },
     resetProgress: {
       title: "Endurstilla námsframvindu",

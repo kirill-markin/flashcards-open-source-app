@@ -997,19 +997,21 @@
 
 "premium.offer.heading" = "Učení patří **všem**.";
 "premium.offer.free" = "Zdarma";
-"premium.offer.freeDescription" = "Vytvořeno pro studenty bez práce. Otevřeno všem. Váš batoh je právě o něco lehčí.";
+"premium.offer.freeDescription" = "Vytvořeno pro studenty bez práce. Otevřeno všem.";
 "premium.offer.freeBenefits" = "Opakování, učení offline a synchronizace";
 "premium.offer.monthlyAI" = "%@ zpráv v chatu s AI měsíčně";
 "premium.offer.supportsCreator" = "Podporuje tvůrce aplikace";
 "premium.offer.accentColor" = "Libovolná barva zvýraznění";
-"premium.offer.reviewAnimations" = "Animace při opakování: zapnuté, nebo vypnuté";
+"premium.offer.themes" = "Tmavý a světlý motiv";
+"premium.offer.reviewAnimations" = "Ovládání animací při opakování";
 "premium.offer.appIcon" = "Vlastní ikona aplikace";
 "premium.offer.startSevenDayTrial" = "Zahájit 7denní zkušební období zdarma";
 "premium.offer.subscribeWithPrice" = "Předplatit — %@";
 "premium.offer.noCreatorSupport" = "Nepodporuje tvůrce aplikace";
 "premium.offer.limitedAI" = "Omezený chat s AI";
 "premium.offer.defaultStylesOnly" = "Pouze výchozí styly";
-"premium.offer.notNow" = "Teď ne";
+"premium.offer.noOtherPremiumFeatures" = "Žádné další funkce Premium";
+"premium.offer.dontPayCreator" = "Neplaťte tvůrci aplikace";
 "premium.offer.unlimitedAI" = "Zprávy AI bez měsíčního limitu";
 "premium.offer.creatorSupport" = "Vaše předplatné pomáhá tvůrci Nibomo, [Kirill Markin](https://kirill-markin.com/), platit servery a připravovat další aktualizaci s kávou a pizzou.";
 "premium.offer.previewPurchaseMessage" = "Toto je testovací náhled. Žádný nákup se neprovede.";

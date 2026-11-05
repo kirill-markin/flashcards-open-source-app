@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
-import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate, useParams } from "react-router";
+import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate } from "react-router";
 import { AccountAccentTheme } from "./premium/accentColor";
 import { AccountThemeAttribute } from "./premium/theme";
 import { PremiumProvider } from "./premium/PremiumProvider";
@@ -39,8 +39,6 @@ import {
   accountOpenSourceRoute,
   accountStatusRoute,
   accountSupportRoute,
-  buildSettingsDeckDetailRoute,
-  buildSettingsDeckEditRoute,
   buildWorkspaceRoute,
   catalogImportRoutePattern,
   cardsRoute,
@@ -48,6 +46,17 @@ import {
   friendInviteRoutePattern,
   friendInvitePreviewIndexRoute,
   friendInvitePreviewRoutePattern,
+  legacyCardsRoute,
+  legacySettingsDecksRoute,
+  legacySettingsExportRoute,
+  legacySettingsImportRoute,
+  legacySettingsTagsRoute,
+  libraryDeckNewRoute,
+  libraryDecksRoute,
+  libraryExportRoute,
+  libraryImportRoute,
+  libraryRoute,
+  libraryTagsRoute,
   normalizeRoutePath,
   progressRoute,
   reviewRoute,
@@ -58,14 +67,10 @@ import {
   settingsOwnOpenAIKeyRoute,
   settingsSubscriptionRoute,
   settingsCurrentWorkspaceRoute,
-  settingsDeckNewRoute,
-  settingsDecksRoute,
   settingsDeleteCurrentWorkspaceRoute,
   settingsDeviceRoute,
-  settingsExportRoute,
   settingsFeedbackRoute,
   settingsHubRoute,
-  settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
@@ -74,7 +79,6 @@ import {
   settingsResetStudyProgressRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
-  settingsTagsRoute,
   settingsTestAnimationsRoute,
   settingsTestAppPlatformLinksRoute,
   settingsTestCatalogImportSuccessRoute,
@@ -93,6 +97,7 @@ import { AIChatPreferencesProvider } from "./chat/preferences/AIChatPreferencesC
 import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
+import { LibraryScreen } from "./screens/library/LibraryScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
@@ -113,7 +118,7 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { route: reviewRoute, labelKey: "navigation.review" },
   { route: progressRoute, labelKey: "navigation.progress" },
   { route: chatRoute, labelKey: "navigation.aiChat" },
-  { route: cardsRoute, labelKey: "navigation.cards" },
+  { route: libraryRoute, labelKey: "navigation.library" },
   { route: settingsHubRoute, labelKey: "navigation.settings" },
 ];
 
@@ -409,24 +414,28 @@ function renderDeferredRoute(
   );
 }
 
-function LegacyDeckDetailRedirect(): ReactElement {
-  const { deckId } = useParams();
+/**
+ * Forwards a pre-Library address to the same screen under the Library tab: whatever follows
+ * `legacyRoute` in the path, such as a card or deck id, is kept, and so are `search` and `hash`.
+ * The prefix is cut by length because route matching is case-insensitive.
+ */
+function LegacyLibraryRedirect(props: Readonly<{ legacyRoute: string; libraryRoute: string }>): ReactElement {
+  const { legacyRoute, libraryRoute: libraryTargetRoute } = props;
+  const location = useLocation();
+  const workspacePath = useWorkspacePath();
+  const remainder: string = splitWorkspaceRoutePath(location.pathname).appPath.slice(legacyRoute.length);
 
-  if (deckId === undefined || deckId === "") {
-    throw new Error("Legacy deck redirect is missing deckId");
-  }
-
-  return <Navigate replace to={buildSettingsDeckDetailRoute(deckId)} />;
+  return <Navigate replace to={`${workspacePath(`${libraryTargetRoute}${remainder}`)}${location.search}${location.hash}`} />;
 }
 
-function LegacyDeckEditRedirect(): ReactElement {
-  const { deckId } = useParams();
-
-  if (deckId === undefined || deckId === "") {
-    throw new Error("Legacy deck edit redirect is missing deckId");
-  }
-
-  return <Navigate replace to={buildSettingsDeckEditRoute(deckId)} />;
+function renderLegacyLibraryRedirects(legacyRoute: string, libraryTargetRoute: string, suffixes: ReadonlyArray<string>): ReadonlyArray<ReactElement> {
+  return suffixes.map((suffix) => (
+    <Route
+      key={`${legacyRoute}${suffix}`}
+      path={`${workspaceRoutePattern}${legacyRoute}${suffix}`}
+      element={<LegacyLibraryRedirect legacyRoute={legacyRoute} libraryRoute={libraryTargetRoute} />}
+    />
+  ));
 }
 
 /**
@@ -1072,14 +1081,24 @@ export function RoutedShell(): ReactElement {
       <div ref={contentRef} className={contentClassName}>
         <SentryRoutes>
           <Route path={workspaceRoutePattern} element={<Navigate replace to={reviewRoute} />} />
+          <Route path={`${workspaceRoutePattern}${libraryRoute}`} element={<LibraryScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}`} element={<CardsScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/new`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
-          <Route path={`${workspaceRoutePattern}/decks`} element={<Navigate replace to={settingsDecksRoute} />} />
-          <Route path={`${workspaceRoutePattern}/decks/new`} element={<Navigate replace to={settingsDeckNewRoute} />} />
-          <Route path={`${workspaceRoutePattern}/decks/:deckId/edit`} element={<LegacyDeckEditRedirect />} />
-          <Route path={`${workspaceRoutePattern}/decks/:deckId`} element={<LegacyDeckDetailRedirect />} />
-          <Route path={`${workspaceRoutePattern}/tags`} element={<Navigate replace to={settingsTagsRoute} />} />
+          <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryDecksRoute}`} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
+          <Route path={`${workspaceRoutePattern}${libraryDeckNewRoute}`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
+          <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
+          <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
+          <Route path={`${workspaceRoutePattern}${libraryTagsRoute}`} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
+          {renderLegacyLibraryRedirects(legacyCardsRoute, cardsRoute, ["", "/new", "/:cardId"])}
+          {renderLegacyLibraryRedirects(legacySettingsDecksRoute, libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
+          {renderLegacyLibraryRedirects(legacySettingsTagsRoute, libraryTagsRoute, [""])}
+          {renderLegacyLibraryRedirects(legacySettingsImportRoute, libraryImportRoute, [""])}
+          {renderLegacyLibraryRedirects(legacySettingsExportRoute, libraryExportRoute, [""])}
+          {renderLegacyLibraryRedirects("/decks", libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
+          {renderLegacyLibraryRedirects("/tags", libraryTagsRoute, [""])}
           <Route path={`${workspaceRoutePattern}${reviewRoute}`} element={<ReviewScreen />} />
           <Route path={`${workspaceRoutePattern}${progressRoute}`} element={<ProgressScreen />} />
           <Route path={`${workspaceRoutePattern}${settingsHubRoute}`} element={renderDeferredRoute(<SettingsScreen />, "loading.settings")} />
@@ -1102,15 +1121,8 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsOwnOpenAIKeyRoute}`} element={renderDeferredRoute(<OwnOpenAIKeySettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsSchedulerRoute}`} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
-          <Route path={`${workspaceRoutePattern}${settingsImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
-          <Route path={`${workspaceRoutePattern}${settingsExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
           <Route path={`${workspaceRoutePattern}${settingsResetStudyProgressRoute}`} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsDeleteCurrentWorkspaceRoute}`} element={renderDeferredRoute(<DeleteCurrentWorkspaceScreen />, "loading.currentWorkspace")} />
-          <Route path={`${workspaceRoutePattern}${settingsDecksRoute}`} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
-          <Route path={`${workspaceRoutePattern}${settingsDeckNewRoute}`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
-          <Route path={`${workspaceRoutePattern}${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
-          <Route path={`${workspaceRoutePattern}${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
-          <Route path={`${workspaceRoutePattern}${settingsTagsRoute}`} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
           <Route path={`${workspaceRoutePattern}${settingsDeviceRoute}`} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "loading.deviceDetails")} />
           <Route
             path={`${workspaceRoutePattern}${settingsTestRoute}`}

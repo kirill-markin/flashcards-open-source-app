@@ -36,7 +36,7 @@
     <string name="ai_terms_of_service">Pakalpojuma noteikumi</string>
     <string name="ai_support">Atbalsts</string>
     <string name="ai_consent_workspace_disclosure">MI pieprasījumi no darbvietas %1$s var nosūtīt norādījumus, failus, attēlus un diktētu audio MI pakalpojumam.</string>
-    <string name="top_level_cards">Kartītes</string>
+    <string name="top_level_library">Bibliotēka</string>
     <string name="cards_title">Kartītes</string>
     <string name="top_level_review">Atkārtošana</string>
     <string name="review_title">Atkārtošana</string>

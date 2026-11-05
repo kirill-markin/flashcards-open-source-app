@@ -1,7 +1,7 @@
 import Observation
 import SwiftUI
 
-/// The top visible row of each Settings list, owned by the app so a recreated Settings stack
+/// The top visible row of each Settings and Library list, owned by the app so a recreated stack
 /// reopens each list where the person left it; `nil` is the list's top.
 @MainActor
 @Observable
@@ -10,19 +10,19 @@ final class SettingsScrollModel {
     var decksTopRowID: String? = nil
     var tagsTopRowID: String? = nil
 
-    /// Call on every Settings path change. A pushed list can leave the path while hidden, with no
+    /// Call on every Library path change. A pushed list can leave the path while hidden, with no
     /// `onDisappear` of its own, so the path decides, and the next push starts at the top.
-    func forgetRowsOffSettingsPath(navigation: AppNavigationModel) {
-        if navigation.isWorkspaceDecksOnSettingsPath == false {
+    func forgetRowsOffLibraryPath(navigation: AppNavigationModel) {
+        if navigation.isDecksOnLibraryPath == false {
             self.decksTopRowID = nil
         }
-        if navigation.isWorkspaceTagsOnSettingsPath == false {
+        if navigation.isTagsOnLibraryPath == false {
             self.tagsTopRowID = nil
         }
     }
 
     /// Writes only while the list is on the path, because the outgoing list keeps reporting rows
-    /// through its pop animation, after `forgetRowsOffSettingsPath` has run.
+    /// through its pop animation, after `forgetRowsOffLibraryPath` has run.
     func topRowID(
         _ row: ReferenceWritableKeyPath<SettingsScrollModel, String?>,
         whileOnPath isOnPath: @escaping () -> Bool

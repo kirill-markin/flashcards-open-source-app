@@ -31,7 +31,7 @@ import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.MainHostActivity
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.navigation.AiDestination
-import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
@@ -41,6 +41,7 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
+import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
 import com.flashcardsopensourceapp.feature.progress.R as ProgressFeatureR
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardResolvedContentTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardSectionTag
@@ -264,7 +265,11 @@ internal class MarketingScreenshotRobot(
     }
 
     private fun openCardsTab() {
-        clickTag(tag = CardsDestination.testTag)
+        clickTag(tag = LibraryDestination.testTag)
+        waitUntilWithSystemDialogMitigation {
+            composeRule.onAllNodesWithTag(libraryCardsRowTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        clickTag(tag = libraryCardsRowTag)
     }
 
     private fun openAiTab() {
