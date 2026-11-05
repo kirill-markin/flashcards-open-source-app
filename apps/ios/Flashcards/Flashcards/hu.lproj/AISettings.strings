@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Nem támogatott tartalom";
 "ai.message.unsupportedContent.type" = "Típus: %@";
 "ai.message.assistantTyping" = "Az asszisztens gépel";
-"ai.message.role.you" = "Te";
 "ai.message.role.assistant" = "Asszisztens";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Kép csatolva";
 "ai.message.card.tags" = "Címkék: %@";
 "ai.message.card.promptContext" = "Utasítás környezete";
 "ai.message.reasoning.title" = "Gondolatmenet";
-"ai.message.reasoning.status.running" = "FOLYAMATBAN";
-"ai.message.reasoning.status.done" = "KÉSZ";
 "ai.message.reasoning.thinking" = "Gondolkodás…";
 "ai.message.fullResponse.show" = "Teljes válasz megjelenítése";
 "ai.message.fullResponse.title" = "Teljes válasz";

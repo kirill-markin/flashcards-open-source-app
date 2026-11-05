@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Toetamata sisu";
 "ai.message.unsupportedContent.type" = "Tüüp: %@";
 "ai.message.assistantTyping" = "Assistent kirjutab";
-"ai.message.role.you" = "Sina";
 "ai.message.role.assistant" = "Assistent";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Pilt manustatud";
 "ai.message.card.tags" = "Sildid: %@";
 "ai.message.card.promptContext" = "Päringu kontekst";
 "ai.message.reasoning.title" = "Arutluskäik";
-"ai.message.reasoning.status.running" = "TÖÖTAB";
-"ai.message.reasoning.status.done" = "VALMIS";
 "ai.message.reasoning.thinking" = "Mõtlemine...";
 "ai.message.fullResponse.show" = "Näita kogu vastust";
 "ai.message.fullResponse.title" = "Kogu vastus";

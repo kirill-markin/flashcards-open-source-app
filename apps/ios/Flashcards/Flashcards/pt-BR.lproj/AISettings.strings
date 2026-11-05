@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Conteúdo não compatível";
 "ai.message.unsupportedContent.type" = "Tipo: %@";
 "ai.message.assistantTyping" = "O assistente está digitando";
-"ai.message.role.you" = "Você";
 "ai.message.role.assistant" = "Assistente";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Imagem anexada";
 "ai.message.card.tags" = "Etiquetas: %@";
 "ai.message.card.promptContext" = "Contexto da solicitação";
 "ai.message.reasoning.title" = "Raciocínio";
-"ai.message.reasoning.status.running" = "EM EXECUÇÃO";
-"ai.message.reasoning.status.done" = "CONCLUÍDO";
 "ai.message.reasoning.thinking" = "Pensando...";
 "ai.message.fullResponse.show" = "Mostrar resposta completa";
 "ai.message.fullResponse.title" = "Resposta completa";

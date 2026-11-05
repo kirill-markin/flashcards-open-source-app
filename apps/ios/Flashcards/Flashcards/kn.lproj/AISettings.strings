@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "ಬೆಂಬಲವಿಲ್ಲದ ವಿಷಯ";
 "ai.message.unsupportedContent.type" = "ಪ್ರಕಾರ: %@";
 "ai.message.assistantTyping" = "ಸಹಾಯಕ ಟೈಪ್ ಮಾಡುತ್ತಿದೆ";
-"ai.message.role.you" = "ನೀವು";
 "ai.message.role.assistant" = "ಸಹಾಯಕ";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "ಚಿತ್ರ ಲಗತ್ತಿಸಲಾಗಿದೆ";
 "ai.message.card.tags" = "ಟ್ಯಾಗ್‌ಗಳು: %@";
 "ai.message.card.promptContext" = "ವಿನಂತಿಯ ಸಂದರ್ಭ";
 "ai.message.reasoning.title" = "ತಾರ್ಕಿಕ ಚಿಂತನೆ";
-"ai.message.reasoning.status.running" = "ಚಾಲನೆಯಲ್ಲಿದೆ";
-"ai.message.reasoning.status.done" = "ಮುಗಿದಿದೆ";
 "ai.message.reasoning.thinking" = "ಯೋಚಿಸಲಾಗುತ್ತಿದೆ...";
 "ai.message.fullResponse.show" = "ಪೂರ್ಣ ಉತ್ತರ ತೋರಿಸಿ";
 "ai.message.fullResponse.title" = "ಪೂರ್ಣ ಉತ್ತರ";

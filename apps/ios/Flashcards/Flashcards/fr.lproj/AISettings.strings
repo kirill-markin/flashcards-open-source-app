@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Contenu non pris en charge";
 "ai.message.unsupportedContent.type" = "Type : %@";
 "ai.message.assistantTyping" = "L’assistant écrit";
-"ai.message.role.you" = "Vous";
 "ai.message.role.assistant" = "Assistant";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Image jointe";
 "ai.message.card.tags" = "Tags : %@";
 "ai.message.card.promptContext" = "Contexte du message";
 "ai.message.reasoning.title" = "Raisonnement";
-"ai.message.reasoning.status.running" = "EN COURS";
-"ai.message.reasoning.status.done" = "TERMINÉ";
 "ai.message.reasoning.thinking" = "Réflexion...";
 "ai.message.fullResponse.show" = "Afficher la réponse complète";
 "ai.message.fullResponse.title" = "Réponse complète";

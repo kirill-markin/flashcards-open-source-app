@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Conținut neacceptat";
 "ai.message.unsupportedContent.type" = "Tip: %@";
 "ai.message.assistantTyping" = "Asistentul scrie";
-"ai.message.role.you" = "Tu";
 "ai.message.role.assistant" = "Asistent";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Imagine atașată";
 "ai.message.card.tags" = "Etichete: %@";
 "ai.message.card.promptContext" = "Contextul instrucțiunii";
 "ai.message.reasoning.title" = "Raționament";
-"ai.message.reasoning.status.running" = "ÎN CURS";
-"ai.message.reasoning.status.done" = "FINALIZAT";
 "ai.message.reasoning.thinking" = "Se gândește...";
 "ai.message.fullResponse.show" = "Arată răspunsul complet";
 "ai.message.fullResponse.title" = "Răspuns complet";

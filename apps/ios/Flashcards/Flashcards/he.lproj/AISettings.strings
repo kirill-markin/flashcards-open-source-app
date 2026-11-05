@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "תוכן לא נתמך";
 "ai.message.unsupportedContent.type" = "סוג: %@";
 "ai.message.assistantTyping" = "העוזר מקליד";
-"ai.message.role.you" = "אני";
 "ai.message.role.assistant" = "עוזר";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "צורפה תמונה";
 "ai.message.card.tags" = "תגיות: %@";
 "ai.message.card.promptContext" = "הקשר ההנחיה";
 "ai.message.reasoning.title" = "תהליך החשיבה";
-"ai.message.reasoning.status.running" = "בביצוע";
-"ai.message.reasoning.status.done" = "הושלם";
 "ai.message.reasoning.thinking" = "חושב...";
 "ai.message.fullResponse.show" = "הצגת התשובה המלאה";
 "ai.message.fullResponse.title" = "התשובה המלאה";

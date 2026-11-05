@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "સામગ્રી સમર્થિત નથી";
 "ai.message.unsupportedContent.type" = "પ્રકાર: %@";
 "ai.message.assistantTyping" = "સહાયક લખી રહ્યો છે";
-"ai.message.role.you" = "તમે";
 "ai.message.role.assistant" = "સહાયક";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "છબી જોડી";
 "ai.message.card.tags" = "ટૅગ: %@";
 "ai.message.card.promptContext" = "પ્રોમ્પ્ટનો સંદર્ભ";
 "ai.message.reasoning.title" = "તર્ક";
-"ai.message.reasoning.status.running" = "ચાલુ";
-"ai.message.reasoning.status.done" = "પૂર્ણ";
 "ai.message.reasoning.thinking" = "વિચારી રહ્યું છે...";
 "ai.message.fullResponse.show" = "આખો જવાબ બતાવો";
 "ai.message.fullResponse.title" = "આખો જવાબ";

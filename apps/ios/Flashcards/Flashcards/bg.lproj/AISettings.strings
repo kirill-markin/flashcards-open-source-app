@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Неподдържано съдържание";
 "ai.message.unsupportedContent.type" = "Тип: %@";
 "ai.message.assistantTyping" = "Асистентът пише";
-"ai.message.role.you" = "Вие";
 "ai.message.role.assistant" = "Помощник";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Приложено изображение";
 "ai.message.card.tags" = "Етикети: %@";
 "ai.message.card.promptContext" = "Контекст на заявката";
 "ai.message.reasoning.title" = "Разсъждение";
-"ai.message.reasoning.status.running" = "ИЗПЪЛНЯВА СЕ";
-"ai.message.reasoning.status.done" = "ГОТОВО";
 "ai.message.reasoning.thinking" = "Обмисляне...";
 "ai.message.fullResponse.show" = "Показване на пълния отговор";
 "ai.message.fullResponse.title" = "Пълен отговор";

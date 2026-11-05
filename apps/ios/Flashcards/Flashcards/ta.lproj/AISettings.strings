@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "ஆதரிக்கப்படாத உள்ளடக்கம்";
 "ai.message.unsupportedContent.type" = "வகை: %@";
 "ai.message.assistantTyping" = "உதவியாளர் தட்டச்சு செய்கிறார்";
-"ai.message.role.you" = "நீங்கள்";
 "ai.message.role.assistant" = "உதவியாளர்";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "படம் இணைக்கப்பட்டது";
 "ai.message.card.tags" = "குறிச்சொற்கள்: %@";
 "ai.message.card.promptContext" = "கோரிக்கையின் சூழல்";
 "ai.message.reasoning.title" = "பகுத்தாய்வு";
-"ai.message.reasoning.status.running" = "இயங்குகிறது";
-"ai.message.reasoning.status.done" = "முடிந்தது";
 "ai.message.reasoning.thinking" = "சிந்திக்கிறது...";
 "ai.message.fullResponse.show" = "முழுப் பதிலைக் காட்டு";
 "ai.message.fullResponse.title" = "முழுப் பதில்";

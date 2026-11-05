@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "محتوای پشتیبانی‌نشده";
 "ai.message.unsupportedContent.type" = "نوع: %@";
 "ai.message.assistantTyping" = "دستیار در حال نوشتن است";
-"ai.message.role.you" = "شما";
 "ai.message.role.assistant" = "دستیار";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "تصویر پیوست شد";
 "ai.message.card.tags" = "برچسب‌ها: %@";
 "ai.message.card.promptContext" = "زمینهٔ درخواست";
 "ai.message.reasoning.title" = "استدلال";
-"ai.message.reasoning.status.running" = "در حال اجرا";
-"ai.message.reasoning.status.done" = "انجام شد";
 "ai.message.reasoning.thinking" = "در حال فکر کردن...";
 "ai.message.fullResponse.show" = "نمایش پاسخ کامل";
 "ai.message.fullResponse.title" = "پاسخ کامل";

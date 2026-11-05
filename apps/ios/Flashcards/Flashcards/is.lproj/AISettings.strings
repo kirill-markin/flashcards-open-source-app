@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "Óstutt efni";
 "ai.message.unsupportedContent.type" = "Tegund: %@";
 "ai.message.assistantTyping" = "Aðstoðarmaður skrifar";
-"ai.message.role.you" = "Þú";
 "ai.message.role.assistant" = "Aðstoðarmaður";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "Mynd hengd við";
 "ai.message.card.tags" = "Merki: %@";
 "ai.message.card.promptContext" = "Samhengi fyrirmæla";
 "ai.message.reasoning.title" = "Röksemdafærsla";
-"ai.message.reasoning.status.running" = "Í GANGI";
-"ai.message.reasoning.status.done" = "LOKIÐ";
 "ai.message.reasoning.thinking" = "Hugsa...";
 "ai.message.fullResponse.show" = "Sýna allt svarið";
 "ai.message.fullResponse.title" = "Allt svarið";

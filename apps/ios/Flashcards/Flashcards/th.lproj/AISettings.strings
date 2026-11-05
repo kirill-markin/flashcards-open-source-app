@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "ไม่รองรับเนื้อหา";
 "ai.message.unsupportedContent.type" = "ประเภท: %@";
 "ai.message.assistantTyping" = "ผู้ช่วยกำลังพิมพ์";
-"ai.message.role.you" = "คุณ";
 "ai.message.role.assistant" = "ผู้ช่วย";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "แนบรูปภาพแล้ว";
 "ai.message.card.tags" = "แท็ก: %@";
 "ai.message.card.promptContext" = "บริบทคำสั่ง";
 "ai.message.reasoning.title" = "การให้เหตุผล";
-"ai.message.reasoning.status.running" = "กำลังทำงาน";
-"ai.message.reasoning.status.done" = "เสร็จแล้ว";
 "ai.message.reasoning.thinking" = "กำลังคิด...";
 "ai.message.fullResponse.show" = "แสดงคำตอบทั้งหมด";
 "ai.message.fullResponse.title" = "คำตอบทั้งหมด";

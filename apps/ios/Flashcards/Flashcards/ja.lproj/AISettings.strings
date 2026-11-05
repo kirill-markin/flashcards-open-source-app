@@ -101,15 +101,12 @@
 "ai.message.unsupportedContent" = "サポートされていないコンテンツ";
 "ai.message.unsupportedContent.type" = "タイプ: %@";
 "ai.message.assistantTyping" = "アシスタントが書いています";
-"ai.message.role.you" = "あなた";
 "ai.message.role.assistant" = "アシスタント";
 "ai.message.repairStatus" = "%@ %d/%d";
 "ai.message.imageAttached" = "画像添付";
 "ai.message.card.tags" = "タグ: %@";
 "ai.message.card.promptContext" = "メッセージ コンテキスト";
 "ai.message.reasoning.title" = "推論";
-"ai.message.reasoning.status.running" = "進行中";
-"ai.message.reasoning.status.done" = "完了";
 "ai.message.reasoning.thinking" = "考え中...";
 "ai.message.fullResponse.show" = "回答をすべて表示";
 "ai.message.fullResponse.title" = "回答全文";
