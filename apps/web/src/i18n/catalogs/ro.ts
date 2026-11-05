@@ -36,7 +36,7 @@ const roCatalog: TranslationCatalog = {
     monthlyPrice: "{{price}} / lună",
     supportsCreator: "Îl sprijină pe creatorul aplicației",
     accentColorBenefit: "Orice culoare de accent",
-    themesBenefit: "Teme întunecată și luminoasă",
+    themesBenefit: "Temă întunecată și luminoasă",
     reviewAnimationsBenefit: "Controlul animațiilor de recapitulare",
     appIconBenefit: "Pictogramă personalizată pentru aplicație",
     startTrial: "Începe proba gratuită de 7 zile",
