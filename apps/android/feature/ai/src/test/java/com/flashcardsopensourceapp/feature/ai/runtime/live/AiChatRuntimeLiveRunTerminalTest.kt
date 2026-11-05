@@ -125,7 +125,8 @@ class AiChatRuntimeLiveRunTerminalTest {
                 content = listOf(AiChatContentPart.Text(text = "Done")),
                 isError = false,
                 errorCode = null,
-                isStopped = false
+                isStopped = false,
+                completedAtMillis = null
             )
         )
         advanceUntilIdle()
