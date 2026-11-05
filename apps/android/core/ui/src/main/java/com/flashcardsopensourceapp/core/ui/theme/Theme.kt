@@ -39,8 +39,13 @@ private val FlashcardsLightColorScheme = lightColorScheme(
     onPrimary = Color.Black,
     secondary = FlashcardsOrange,
     tertiary = FlashcardsOrange,
+    // Primary, secondary and tertiary containers stay neutral gray instead of Material's default lavender and pink.
+    primaryContainer = FlashcardsLightSecondaryContainer,
+    onPrimaryContainer = FlashcardsLightOnSurface,
     secondaryContainer = FlashcardsLightSecondaryContainer,
     onSecondaryContainer = FlashcardsLightOnSurface,
+    tertiaryContainer = FlashcardsLightSecondaryContainer,
+    onTertiaryContainer = FlashcardsLightOnSurface,
     background = FlashcardsLightBackground,
     onBackground = FlashcardsLightOnSurface,
     surface = FlashcardsLightSurface,
