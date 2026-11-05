@@ -198,14 +198,17 @@ func aiChatWorkBlockAutomaticIsExpanded(
         return true
     }
 
-    let hasAnswerText = answerParts.contains { part in
+    return aiChatWorkBlockHasAnswerText(answerParts: answerParts) == false
+}
+
+func aiChatWorkBlockHasAnswerText(answerParts: [AIChatContentPart]) -> Bool {
+    answerParts.contains { part in
         guard let text = part.textValue else {
             return false
         }
 
         return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
-    return hasAnswerText == false
 }
 
 enum AIChatWorkBlockTiming {
@@ -267,18 +270,21 @@ func aiChatWorkBlockTitle(timing: AIChatWorkBlockTiming, now: Date) -> String {
 private struct AIChatWorkBlock<WorkContent: View>: View {
     @State private var isExpanded: Bool
     let automaticIsExpanded: Bool
+    let showsClosingDivider: Bool
     let timing: AIChatWorkBlockTiming
     let onExpand: () -> Void
     let workContent: () -> WorkContent
 
     init(
         automaticIsExpanded: Bool,
+        showsClosingDivider: Bool,
         timing: AIChatWorkBlockTiming,
         onExpand: @escaping () -> Void,
         @ViewBuilder workContent: @escaping () -> WorkContent
     ) {
         self._isExpanded = State(initialValue: automaticIsExpanded)
         self.automaticIsExpanded = automaticIsExpanded
+        self.showsClosingDivider = showsClosingDivider
         self.timing = timing
         self.onExpand = onExpand
         self.workContent = workContent
@@ -300,7 +306,9 @@ private struct AIChatWorkBlock<WorkContent: View>: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier(UITestIdentifier.aiWorkBlockContent)
 
-                Divider()
+                if self.showsClosingDivider {
+                    Divider()
+                }
             }
         }
         .onChange(of: self.automaticIsExpanded) { _, nextIsExpanded in
@@ -432,6 +440,8 @@ struct AIChatMessageRow: View {
                         isRunActive: self.isRunActive,
                         answerParts: workContentSplit.answerParts
                     ),
+                    showsClosingDivider: self.isRunActive == false
+                        || aiChatWorkBlockHasAnswerText(answerParts: workContentSplit.answerParts),
                     timing: aiChatWorkBlockTiming(message: message, isRunActive: self.isRunActive),
                     onExpand: {
                         self.onExpandContent()
