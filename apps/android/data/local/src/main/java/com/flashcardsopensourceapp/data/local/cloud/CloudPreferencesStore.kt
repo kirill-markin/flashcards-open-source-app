@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
+import com.flashcardsopensourceapp.data.local.cloud.sync.LocalOutboxWriteGate
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
@@ -36,7 +37,6 @@ import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.parseAccountTheme
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,9 +49,6 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.UUID
-import kotlin.coroutines.AbstractCoroutineContextElement
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 
 private const val cloudMetadataPreferencesName: String = "flashcards-cloud-metadata"
 private const val installationIdKey: String = "installation-id"
@@ -68,19 +65,6 @@ private const val customOriginKey: String = "custom-origin"
 private const val cloudCredentialRecoveryStateKey: String = "cloud-credential-recovery-state"
 private const val savedAppLocaleUserIdKey: String = "saved-app-locale-user-id"
 private const val savedAppLocaleKey: String = "saved-app-locale"
-private const val pendingGuestUpgradeLocalOutboxBlockReason: String =
-    "Guest upgrade recovery is pending. Wait for account linking recovery to finish before changing cards."
-
-private object LocalOutboxMutationContextKey : CoroutineContext.Key<LocalOutboxMutationContextElement>
-
-private class LocalOutboxMutationContextElement :
-    AbstractCoroutineContextElement(LocalOutboxMutationContextKey)
-
-private fun completedUnitSignal(): CompletableDeferred<Unit> {
-    val signal: CompletableDeferred<Unit> = CompletableDeferred()
-    signal.complete(Unit)
-    return signal
-}
 
 class CloudPreferencesStore(
     context: Context,
@@ -99,10 +83,7 @@ class CloudPreferencesStore(
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
     private val cloudCredentialRecoveryStateJson = MutableStateFlow(loadCloudCredentialRecoveryStateJsonFromPreferences())
     private val firstReviewOnboardingDeliveryGate = Mutex()
-    private val localOutboxWriteGate = Mutex()
-    private var localOutboxWriteBlockReason: String? = null
-    private var activeLocalOutboxMutationTransactions: Int = 0
-    private var localOutboxMutationTransactionsDrained: CompletableDeferred<Unit> = completedUnitSignal()
+    private val localOutboxWriteGate = LocalOutboxWriteGate(hasPendingGuestUpgrade = ::hasPendingGuestUpgrade)
 
     fun observeCloudSettings(): StateFlow<CloudSettings> {
         return cloudSettingsState.asStateFlow()
@@ -361,103 +342,15 @@ class CloudPreferencesStore(
         reason: String,
         block: suspend () -> Result
     ): Result {
-        val transactionsDrained = activateLocalOutboxWriteBlock(reason = reason)
-        try {
-            transactionsDrained.await()
-            return block()
-        } finally {
-            clearLocalOutboxWriteBlock()
-        }
+        return localOutboxWriteGate.runWithLocalOutboxWritesBlocked(reason = reason, block = block)
     }
 
     internal suspend fun <Result> runWithLocalOutboxMutationAllowed(block: suspend () -> Result): Result {
-        beginLocalOutboxMutationTransaction()
-        try {
-            return withContext(LocalOutboxMutationContextElement()) {
-                block()
-            }
-        } finally {
-            finishLocalOutboxMutationTransaction()
-        }
+        return localOutboxWriteGate.runWithLocalOutboxMutationAllowed(block = block)
     }
 
     internal suspend fun <Result> runWithLocalOutboxWritesAllowed(block: suspend () -> Result): Result {
-        if (isLocalOutboxMutationTransactionActive()) {
-            return block()
-        }
-
-        localOutboxWriteGate.lock()
-        try {
-            requireLocalOutboxWritesAllowedLocked()
-            return block()
-        } finally {
-            localOutboxWriteGate.unlock()
-        }
-    }
-
-    private suspend fun activateLocalOutboxWriteBlock(reason: String): CompletableDeferred<Unit> {
-        localOutboxWriteGate.lock()
-        try {
-            check(localOutboxWriteBlockReason == null) {
-                "Local outbox writes are already blocked. Existing reason='$localOutboxWriteBlockReason'"
-            }
-            check(hasPendingGuestUpgrade().not()) {
-                pendingGuestUpgradeLocalOutboxBlockReason
-            }
-            localOutboxWriteBlockReason = reason
-            return localOutboxMutationTransactionsDrained
-        } finally {
-            localOutboxWriteGate.unlock()
-        }
-    }
-
-    private suspend fun clearLocalOutboxWriteBlock() {
-        localOutboxWriteGate.lock()
-        try {
-            localOutboxWriteBlockReason = null
-        } finally {
-            localOutboxWriteGate.unlock()
-        }
-    }
-
-    private suspend fun beginLocalOutboxMutationTransaction() {
-        localOutboxWriteGate.lock()
-        try {
-            requireLocalOutboxWritesAllowedLocked()
-            if (activeLocalOutboxMutationTransactions == 0) {
-                localOutboxMutationTransactionsDrained = CompletableDeferred()
-            }
-            activeLocalOutboxMutationTransactions += 1
-        } finally {
-            localOutboxWriteGate.unlock()
-        }
-    }
-
-    private suspend fun finishLocalOutboxMutationTransaction() {
-        localOutboxWriteGate.lock()
-        try {
-            check(activeLocalOutboxMutationTransactions > 0) {
-                "Local outbox mutation transaction finished without a matching start."
-            }
-            activeLocalOutboxMutationTransactions -= 1
-            if (activeLocalOutboxMutationTransactions == 0) {
-                localOutboxMutationTransactionsDrained.complete(Unit)
-            }
-        } finally {
-            localOutboxWriteGate.unlock()
-        }
-    }
-
-    private suspend fun isLocalOutboxMutationTransactionActive(): Boolean {
-        return coroutineContext[LocalOutboxMutationContextKey] != null
-    }
-
-    private suspend fun requireLocalOutboxWritesAllowedLocked() {
-        if (hasPendingGuestUpgrade()) {
-            throw IllegalStateException(pendingGuestUpgradeLocalOutboxBlockReason)
-        }
-        val blockedReason = localOutboxWriteBlockReason ?: return
-        throw IllegalStateException(blockedReason)
+        return localOutboxWriteGate.runWithLocalOutboxWritesAllowed(block = block)
     }
 
     private suspend fun hasPendingGuestUpgrade(): Boolean {
