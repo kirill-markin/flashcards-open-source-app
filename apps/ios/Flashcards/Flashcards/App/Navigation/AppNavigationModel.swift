@@ -339,15 +339,19 @@ final class AppNavigationModel {
         tab == .library ? self.visibleLibraryAnalyticsSurface : analyticsSurface(tab: tab)
     }
 
-    /// The hub, Import and Export report `library`.
+    /// The catalog list and its deck pages report `catalog`; the hub, Import and Export report
+    /// `library`.
     var visibleLibraryAnalyticsSurface: AnalyticsSurface {
+        if self.isLibraryPathRoot(.deckCatalog) {
+            return .catalog
+        }
         #if targetEnvironment(macCatalyst)
         let depth = self.libraryPath.count + (self.librarySection == nil ? 0 : 1)
         #else
         let depth = self.libraryPath.count
         #endif
         if depth > 1 {
-            return self.isLibraryPathRoot(.deckCatalog) ? .catalog : .deckDetail
+            return .deckDetail
         }
         if self.isLibraryPathRoot(.cards) {
             return .cards

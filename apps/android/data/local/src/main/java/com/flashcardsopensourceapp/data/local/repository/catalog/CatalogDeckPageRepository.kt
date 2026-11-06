@@ -122,16 +122,25 @@ class CloudCatalogDeckPageRepository(
             packageDetailResponse = packageDetailResponse,
             cardPreviewResponse = cardPreviewResponse
         )
-        writeDiskPage(
-            packageVersionId = deck.packageVersionId,
-            entry = JSONObject()
-                .put(cachedPackageDetailKey, packageDetailResponse)
-                .put(cachedCardPreviewKey, cardPreviewResponse)
-        )
+        try {
+            writeDiskPage(
+                packageVersionId = deck.packageVersionId,
+                entry = JSONObject()
+                    .put(cachedPackageDetailKey, packageDetailResponse)
+                    .put(cachedCardPreviewKey, cardPreviewResponse)
+            )
+        } catch (error: IOException) {
+            Log.w(
+                catalogDeckPageLogTag,
+                "event=catalog_deck_page_cache_write_failed packageVersionId=${deck.packageVersionId} " +
+                    "path=${cacheDirectory.absolutePath}",
+                error
+            )
+        }
         return page
     }
 
-    /** An entry this app version cannot read is deleted and loaded again rather than shown. */
+    /** An entry this app version or the disk cannot read is deleted and loaded again rather than shown. */
     private suspend fun readDiskPage(packageVersionId: String): CatalogDeckPage? = diskCacheMutex.withLock {
         withContext(Dispatchers.IO) {
             val file = cacheFile(packageVersionId = packageVersionId)
@@ -149,6 +158,8 @@ class CloudCatalogDeckPageRepository(
                 discardUnreadableDiskPage(file = file, error = error)
             } catch (error: CloudContractMismatchException) {
                 discardUnreadableDiskPage(file = file, error = error)
+            } catch (error: IOException) {
+                discardUnreadableDiskPage(file = file, error = error)
             }
         }
     }
@@ -159,8 +170,9 @@ class CloudCatalogDeckPageRepository(
             "event=catalog_deck_page_cache_unreadable path=${file.absolutePath} sizeBytes=${file.length()}",
             error
         )
+        // The network load writes over an entry that stays.
         if (file.delete().not()) {
-            throw IOException("Cannot delete unreadable catalog deck page cache: ${file.absolutePath}", error)
+            Log.w(catalogDeckPageLogTag, "event=catalog_deck_page_cache_delete_failed path=${file.absolutePath}")
         }
         return null
     }

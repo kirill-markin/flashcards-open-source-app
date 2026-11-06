@@ -120,6 +120,9 @@ struct CatalogDeckScreen: View {
         }
         .buttonStyle(.borderedProminent)
         // Not disabled while busy: the dimmed disabled fill hides the spinner, and study() ignores repeat taps.
+        .accessibilityValue(
+            self.isStudying ? String(localized: "catalog.deck.study_in_progress", table: catalogStringsTableName) : ""
+        )
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .accessibilityIdentifier(UITestIdentifier.catalogDeckStudyButton)
     }
