@@ -1,5 +1,17 @@
 import Foundation
 
+/// The install routes answered that this deck version left the catalog.
+enum CatalogDeckInstallError: LocalizedError {
+    case deckUnavailable(packageVersionId: String, underlyingError: Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .deckUnavailable(let packageVersionId, let underlyingError):
+            return "Catalog package version \(packageVersionId) is no longer available to install: \(errorMessage(error: underlyingError))"
+        }
+    }
+}
+
 @MainActor
 extension FlashcardsStore {
     /// Installs a public deck version into the current workspace with the default options, unless
@@ -20,13 +32,16 @@ extension FlashcardsStore {
         }
         let replicaId = try workspacePackageImportReplicaId(workspaceId: workspaceId, installationId: installationId)
 
+        var didStartSync = false
         do {
             try await self.withCloudSessionPreservingStableContext(linkedSession: session) { refreshedSession in
-                let installContext = try await cloudSyncService.loadCatalogPackageInstallContext(
-                    apiBaseUrl: refreshedSession.apiBaseUrl,
-                    authorizationHeader: refreshedSession.authorizationHeaderValue,
-                    packageVersionId: packageVersionId
-                )
+                let installContext = try await withCatalogDeckUnavailableMapping(packageVersionId: packageVersionId) {
+                    try await cloudSyncService.loadCatalogPackageInstallContext(
+                        apiBaseUrl: refreshedSession.apiBaseUrl,
+                        authorizationHeader: refreshedSession.authorizationHeaderValue,
+                        packageVersionId: packageVersionId
+                    )
+                }
                 guard let workspaceContext = installContext.workspaces.first(where: { $0.workspaceId == workspaceId }) else {
                     throw LocalStoreError.validation(
                         "Catalog install context does not list the current workspace. workspaceId=\(workspaceId) packageVersionId=\(packageVersionId)"
@@ -38,21 +53,23 @@ extension FlashcardsStore {
 
                 let installId = UUID().uuidString.lowercased()
                 let installedAt = formatIsoTimestamp(date: Date())
-                let response = try await cloudSyncService.installCatalogPackageVersion(
-                    apiBaseUrl: refreshedSession.apiBaseUrl,
-                    authorizationHeader: refreshedSession.authorizationHeaderValue,
-                    workspaceId: workspaceId,
-                    packageVersionId: packageVersionId,
-                    request: CatalogPackageInstallRequest(
-                        installId: installId,
-                        installedAt: installedAt,
-                        clientUpdatedAt: installedAt,
-                        lastModifiedByReplicaId: replicaId,
-                        operationIdPrefix: installId,
-                        addImportTag: false,
-                        removeTags: []
+                let response = try await withCatalogDeckUnavailableMapping(packageVersionId: packageVersionId) {
+                    try await cloudSyncService.installCatalogPackageVersion(
+                        apiBaseUrl: refreshedSession.apiBaseUrl,
+                        authorizationHeader: refreshedSession.authorizationHeaderValue,
+                        workspaceId: workspaceId,
+                        packageVersionId: packageVersionId,
+                        request: CatalogPackageInstallRequest(
+                            installId: installId,
+                            installedAt: installedAt,
+                            clientUpdatedAt: installedAt,
+                            lastModifiedByReplicaId: replicaId,
+                            operationIdPrefix: installId,
+                            addImportTag: false,
+                            removeTags: []
+                        )
                     )
-                )
+                }
                 guard response.summary.installId == installId else {
                     throw LocalStoreError.validation(
                         "Catalog install returned install \(response.summary.installId), but the request sent \(installId). packageVersionId=\(packageVersionId)"
@@ -61,6 +78,7 @@ extension FlashcardsStore {
             }
 
             self.syncStatus = .syncing
+            didStartSync = true
             // A sync already running may have pulled before the install, so this waits for a new one.
             let syncResult = try await self.withCloudSessionPreservingStableContext(linkedSession: session) { refreshedSession in
                 try await self.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: refreshedSession)
@@ -68,15 +86,15 @@ extension FlashcardsStore {
             try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date(), trigger: trigger)
         } catch {
             if isRequestCancellationError(error: error) {
-                if self.syncStatus == .syncing {
+                if didStartSync {
                     self.syncStatus = .idle
                 }
                 throw error
             }
-            if self.syncStatus == .syncing {
+            if didStartSync {
                 self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             }
-            if isCatalogDeckUnavailableError(error: error) {
+            if error is CatalogDeckInstallError {
                 throw error
             }
             let didCapture = self.captureCloudSyncFailureIfNeeded(
@@ -101,5 +119,21 @@ extension FlashcardsStore {
         }
 
         return try await self.restoreGuestCloudSessionIfNeeded(trigger: trigger).session
+    }
+}
+
+/// Only the install routes can report the deck itself gone; every other failure stays raw.
+@MainActor
+private func withCatalogDeckUnavailableMapping<Result>(
+    packageVersionId: String,
+    operation: () async throws -> Result
+) async throws -> Result {
+    do {
+        return try await operation()
+    } catch {
+        if isCatalogDeckUnavailableError(error: error) {
+            throw CatalogDeckInstallError.deckUnavailable(packageVersionId: packageVersionId, underlyingError: error)
+        }
+        throw error
     }
 }

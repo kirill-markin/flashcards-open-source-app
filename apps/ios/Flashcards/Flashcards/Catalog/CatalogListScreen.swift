@@ -19,24 +19,16 @@ struct CatalogListScreen: View {
     @State private var isOptionsPopoverPresented: Bool = false
     #endif
 
-    private var decks: [CatalogBrowseIndexDeck] {
-        self.catalog.index?.decks ?? []
-    }
-
-    private var languageCodes: Set<String> {
-        catalogLanguageCodes(decks: self.decks)
-    }
-
     private var defaultLanguageFilter: CatalogLanguageFilter {
         defaultCatalogLanguageFilter(
-            languageCodes: self.languageCodes,
+            languageCodes: self.catalog.languageCodes,
             appLocaleIdentifier: currentAppUILocaleIdentifier()
         )
     }
 
-    private var visibleDecks: [CatalogBrowseIndexDeck] {
+    private func matchingDecks() -> [CatalogBrowseIndexDeck] {
         catalogDecksMatching(
-            decks: self.decks,
+            listedDecks: self.catalog.listedDecks,
             languageFilter: self.languageChoice ?? self.defaultLanguageFilter,
             searchText: self.searchText,
             sortOrder: self.sortOrder
@@ -56,11 +48,12 @@ struct CatalogListScreen: View {
     }
 
     var body: some View {
+        let visibleDecks = self.matchingDecks()
         List {
             if self.catalog.index == nil {
                 self.indexUnavailableContent
             } else {
-                self.indexContent
+                self.indexContent(visibleDecks: visibleDecks)
             }
         }
         .listStyle(.insetGrouped)
@@ -92,8 +85,8 @@ struct CatalogListScreen: View {
         .task {
             await self.revalidateIfStale()
         }
-        .task(id: self.visibleDecks.prefix(catalogDeckPreviewPrefetchCount).map(\.packageVersionId)) {
-            await self.prefetchVisibleDeckPreviews()
+        .task(id: visibleDecks.prefix(catalogDeckPreviewPrefetchCount).map(\.packageVersionId)) {
+            await self.prefetchDeckPreviews(decks: visibleDecks)
         }
     }
 
@@ -126,7 +119,7 @@ struct CatalogListScreen: View {
     }
 
     @ViewBuilder
-    private var indexContent: some View {
+    private func indexContent(visibleDecks: [CatalogBrowseIndexDeck]) -> some View {
         if let failureMessage = self.catalog.failureMessage {
             Section {
                 Label(
@@ -140,19 +133,19 @@ struct CatalogListScreen: View {
         }
 
         Section {
-            if self.decks.isEmpty {
+            if self.catalog.listedDecks.isEmpty {
                 ContentUnavailableView(
                     String(localized: "catalog.list.empty.title", table: catalogStringsTableName),
                     systemImage: "books.vertical"
                 )
-            } else if self.visibleDecks.isEmpty {
+            } else if visibleDecks.isEmpty {
                 ContentUnavailableView(
                     String(localized: "catalog.list.no_matches.title", table: catalogStringsTableName),
                     systemImage: "magnifyingglass",
                     description: Text(String(localized: "catalog.list.no_matches.description", table: catalogStringsTableName))
                 )
             } else {
-                ForEach(self.visibleDecks) { deck in
+                ForEach(visibleDecks) { deck in
                     NavigationLink(value: LibraryNavigationDestination.catalogDeck(deck)) {
                         CatalogDeckRow(deck: deck)
                     }
@@ -167,7 +160,7 @@ struct CatalogListScreen: View {
         CatalogLanguagePicker(
             languageChoice: self.$languageChoice,
             defaultLanguageFilter: self.defaultLanguageFilter,
-            languageCodes: sortedCatalogLanguageCodes(codes: self.languageCodes, locale: self.locale),
+            languageCodes: self.catalog.languageCodes,
             locale: self.locale
         )
         .pickerStyle(.menu)
@@ -227,11 +220,11 @@ struct CatalogListScreen: View {
         await self.catalog.revalidateIfStale(apiBaseUrl: apiBaseUrl, now: Date())
     }
 
-    private func prefetchVisibleDeckPreviews() async {
+    private func prefetchDeckPreviews(decks: [CatalogBrowseIndexDeck]) async {
         guard self.catalog.index != nil, let apiBaseUrl = self.apiBaseUrl() else {
             return
         }
-        await self.catalog.prefetchDeckPreviews(apiBaseUrl: apiBaseUrl, decks: self.visibleDecks)
+        await self.catalog.prefetchDeckPreviews(apiBaseUrl: apiBaseUrl, decks: decks)
     }
 
     private func revalidate() async {

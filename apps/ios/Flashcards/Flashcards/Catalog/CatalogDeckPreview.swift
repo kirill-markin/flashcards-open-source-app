@@ -115,6 +115,15 @@ func loadCachedCatalogDeckPreview(packageVersionId: String) throws -> CatalogDec
     return try JSONDecoder().decode(CatalogDeckPreview.self, from: Data(contentsOf: fileURL))
 }
 
+func deleteCachedCatalogDeckPreview(packageVersionId: String) throws {
+    let fileURL = try catalogDeckPreviewCacheFileURL(packageVersionId: packageVersionId)
+    guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        return
+    }
+
+    try FileManager.default.removeItem(at: fileURL)
+}
+
 /// Writes the preview, then drops the oldest-written entries beyond the cache limit.
 func saveCachedCatalogDeckPreview(packageVersionId: String, preview: CatalogDeckPreview) throws {
     try JSONEncoder().encode(preview).write(
@@ -197,10 +206,11 @@ func isCatalogDeckUnavailableError(error: Error) -> Bool {
     }
 }
 
-/// A 404 with another error code is a different missing resource, such as the workspace.
+/// A 404 or 410 with another error code is a different failure, such as a missing workspace or
+/// `ACCOUNT_DELETED`.
 private func isCatalogDeckUnavailableResponse(statusCode: Int, code: String?) -> Bool {
     if let code {
-        return catalogDeckUnavailableErrorCodes.contains(code) || statusCode == 410
+        return catalogDeckUnavailableErrorCodes.contains(code)
     }
 
     return statusCode == 404 || statusCode == 410

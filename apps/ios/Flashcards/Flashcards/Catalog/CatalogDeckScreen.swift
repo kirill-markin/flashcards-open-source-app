@@ -111,7 +111,6 @@ struct CatalogDeckScreen: View {
             HStack(spacing: 8) {
                 if self.isStudying {
                     ProgressView()
-                        .tint(.white)
                 }
                 Text(String(localized: "catalog.deck.study", table: catalogStringsTableName))
                     .font(.headline)
@@ -230,7 +229,7 @@ struct CatalogDeckScreen: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
-                if isCatalogDeckUnavailableError(error: error) {
+                if case CatalogDeckInstallError.deckUnavailable = error {
                     self.handleUnavailableDeck(apiBaseUrl: apiBaseUrl)
                     return
                 }

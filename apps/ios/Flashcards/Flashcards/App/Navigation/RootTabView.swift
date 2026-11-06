@@ -1187,4 +1187,5 @@ private extension View {
         .environment(CardsScreenModel())
         .environment(ReviewScreenModel())
         .environment(ProgressScreenState())
+        .environment(CatalogIndexStore(urlSession: .shared))
 }

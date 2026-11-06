@@ -19,6 +19,9 @@ private let catalogIndexStoreLogger: Logger = Logger(
 @Observable
 final class CatalogIndexStore {
     private(set) var index: CatalogBrowseIndex?
+    private(set) var listedDecks: [CatalogListedDeck]
+    /// Every base language code in the index, sorted by its name in the current locale.
+    private(set) var languageCodes: [String]
     private(set) var isRefreshing: Bool
     /// The last failed cache read or refresh; cleared by the next successful refresh.
     private(set) var failureMessage: String?
@@ -31,6 +34,8 @@ final class CatalogIndexStore {
 
     init(urlSession: URLSession) {
         self.index = nil
+        self.listedDecks = []
+        self.languageCodes = []
         self.isRefreshing = false
         self.failureMessage = nil
         self.urlSession = urlSession
@@ -53,8 +58,7 @@ final class CatalogIndexStore {
             }
 
             let data = try Data(contentsOf: fileURL)
-            self.index = try decodeCatalogBrowseIndex(data: data)
-            self.indexSha256 = catalogBrowseIndexSha256(data: data)
+            self.publish(index: try decodeCatalogBrowseIndex(data: data), sha256: catalogBrowseIndexSha256(data: data))
         } catch {
             self.failureMessage = errorMessage(error: error)
         }
@@ -86,8 +90,7 @@ final class CatalogIndexStore {
                 let data = try await loadCatalogBrowseIndexData(urlSession: self.urlSession, pointer: pointer)
                 let index = try decodeCatalogBrowseIndex(data: data)
                 try data.write(to: try catalogBrowseIndexCacheFileURL(), options: .atomic)
-                self.index = index
-                self.indexSha256 = pointer.sha256
+                self.publish(index: index, sha256: pointer.sha256)
             }
             self.lastCheckedAt = Date()
             self.failureMessage = nil
@@ -99,11 +102,23 @@ final class CatalogIndexStore {
         }
     }
 
+    private func publish(index: CatalogBrowseIndex, sha256: String) {
+        let listedDecks = makeCatalogListedDecks(decks: index.decks)
+        self.index = index
+        self.listedDecks = listedDecks
+        self.languageCodes = sortedCatalogLanguageCodes(
+            codes: catalogLanguageCodes(listedDecks: listedDecks),
+            locale: Locale.current
+        )
+        self.indexSha256 = sha256
+    }
+
     /// The cached preview of this deck version, else both requests at once. A package whose latest
     /// version is not the indexed one means the index is stale: the preview is shown uncached and
-    /// the index revalidated.
+    /// the index revalidated. The cache only saves requests, so its failures are logged and
+    /// the network answers instead.
     func loadDeckPreview(apiBaseUrl: String, deck: CatalogBrowseIndexDeck) async throws -> CatalogDeckPreview {
-        if let cachedPreview = try loadCachedCatalogDeckPreview(packageVersionId: deck.packageVersionId) {
+        if let cachedPreview = loadCachedDeckPreview(packageVersionId: deck.packageVersionId) {
             return cachedPreview
         }
         if let activeLoad = self.deckPreviewLoads[deck.packageVersionId] {
@@ -127,13 +142,39 @@ final class CatalogIndexStore {
 
         let preview = try await load.value
         if preview.package.latestVersion.packageVersionId == deck.packageVersionId {
-            try saveCachedCatalogDeckPreview(packageVersionId: deck.packageVersionId, preview: preview)
+            do {
+                try saveCachedCatalogDeckPreview(packageVersionId: deck.packageVersionId, preview: preview)
+            } catch {
+                catalogIndexStoreLogger.error(
+                    "catalog_deck_preview_cache_write_failed packageVersionId=\(deck.packageVersionId, privacy: .public) error=\(errorMessage(error: error), privacy: .public)"
+                )
+            }
         } else {
             Task { @MainActor in
                 await self.revalidate(apiBaseUrl: apiBaseUrl)
             }
         }
         return preview
+    }
+
+    /// An unreadable entry is deleted, so the next save replaces it.
+    private func loadCachedDeckPreview(packageVersionId: String) -> CatalogDeckPreview? {
+        do {
+            return try loadCachedCatalogDeckPreview(packageVersionId: packageVersionId)
+        } catch {
+            catalogIndexStoreLogger.error(
+                "catalog_deck_preview_cache_read_failed packageVersionId=\(packageVersionId, privacy: .public) error=\(errorMessage(error: error), privacy: .public)"
+            )
+        }
+
+        do {
+            try deleteCachedCatalogDeckPreview(packageVersionId: packageVersionId)
+        } catch {
+            catalogIndexStoreLogger.error(
+                "catalog_deck_preview_cache_delete_failed packageVersionId=\(packageVersionId, privacy: .public) error=\(errorMessage(error: error), privacy: .public)"
+            )
+        }
+        return nil
     }
 
     /// Warms the first visible deck pages; a failure only matters once the page opens, so it is

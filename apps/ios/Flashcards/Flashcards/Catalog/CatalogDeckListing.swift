@@ -28,12 +28,27 @@ func catalogBaseLanguageCode(languageIdentifier: String) -> String {
     Locale.Language(identifier: languageIdentifier).languageCode?.identifier ?? languageIdentifier
 }
 
-func catalogLanguageCodes(decks: [CatalogBrowseIndexDeck]) -> Set<String> {
-    Set(decks.flatMap { deck in
-        deck.languageTags.map { tag in
-            catalogBaseLanguageCode(languageIdentifier: tag)
-        }
-    })
+/// An index deck with its base language codes, resolved once per published index.
+struct CatalogListedDeck: Hashable, Sendable {
+    let deck: CatalogBrowseIndexDeck
+    let languageCodes: Set<String>
+}
+
+func makeCatalogListedDecks(decks: [CatalogBrowseIndexDeck]) -> [CatalogListedDeck] {
+    decks.map { deck in
+        CatalogListedDeck(
+            deck: deck,
+            languageCodes: Set(deck.languageTags.map { tag in
+                catalogBaseLanguageCode(languageIdentifier: tag)
+            })
+        )
+    }
+}
+
+func catalogLanguageCodes(listedDecks: [CatalogListedDeck]) -> Set<String> {
+    listedDecks.reduce(into: Set<String>()) { codes, listedDeck in
+        codes.formUnion(listedDeck.languageCodes)
+    }
 }
 
 func catalogLanguageDisplayName(code: String, locale: Locale) -> String {
@@ -45,15 +60,16 @@ func catalogLanguageDisplayName(code: String, locale: Locale) -> String {
 }
 
 func sortedCatalogLanguageCodes(codes: Set<String>, locale: Locale) -> [String] {
-    codes.sorted { left, right in
-        catalogLanguageDisplayName(code: left, locale: locale)
-            .compare(catalogLanguageDisplayName(code: right, locale: locale), locale: locale) == .orderedAscending
-    }
+    codes.map { code in
+        (code: code, name: catalogLanguageDisplayName(code: code, locale: locale))
+    }.sorted { left, right in
+        left.name.compare(right.name, locale: locale) == .orderedAscending
+    }.map(\.code)
 }
 
 /// The app's language when the catalog has decks in it, otherwise every language.
 func defaultCatalogLanguageFilter(
-    languageCodes: Set<String>,
+    languageCodes: [String],
     appLocaleIdentifier: String?
 ) -> CatalogLanguageFilter {
     guard let appLocaleIdentifier else {
@@ -65,19 +81,19 @@ func defaultCatalogLanguageFilter(
 }
 
 func catalogDecksMatching(
-    decks: [CatalogBrowseIndexDeck],
+    listedDecks: [CatalogListedDeck],
     languageFilter: CatalogLanguageFilter,
     searchText: String,
     sortOrder: CatalogSortOrder
 ) -> [CatalogBrowseIndexDeck] {
     let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-    let rankedDecks: [(deck: CatalogBrowseIndexDeck, rank: Int)] = decks.compactMap { deck in
-        guard catalogDeckMatchesLanguage(deck: deck, languageFilter: languageFilter),
-              let rank = catalogSearchRank(deck: deck, query: query) else {
+    let rankedDecks: [(deck: CatalogBrowseIndexDeck, rank: Int)] = listedDecks.compactMap { listedDeck in
+        guard catalogDeckMatchesLanguage(listedDeck: listedDeck, languageFilter: languageFilter),
+              let rank = catalogSearchRank(deck: listedDeck.deck, query: query) else {
             return nil
         }
 
-        return (deck: deck, rank: rank)
+        return (deck: listedDeck.deck, rank: rank)
     }
 
     return rankedDecks.sorted { left, right in
@@ -99,14 +115,12 @@ func catalogDecksMatching(
     }.map(\.deck)
 }
 
-private func catalogDeckMatchesLanguage(deck: CatalogBrowseIndexDeck, languageFilter: CatalogLanguageFilter) -> Bool {
+private func catalogDeckMatchesLanguage(listedDeck: CatalogListedDeck, languageFilter: CatalogLanguageFilter) -> Bool {
     switch languageFilter {
     case .allLanguages:
         return true
     case .language(let code):
-        return deck.languageTags.contains { tag in
-            catalogBaseLanguageCode(languageIdentifier: tag) == code
-        }
+        return listedDeck.languageCodes.contains(code)
     }
 }
 
