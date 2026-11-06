@@ -104,7 +104,11 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogBrowseIndexRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckInstallRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckPageRepository
 import com.flashcardsopensourceapp.data.local.repository.catalog.CloudCatalogBrowseIndexRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CloudCatalogDeckInstallRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CloudCatalogDeckPageRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
@@ -636,6 +640,19 @@ class AppGraph(
         okHttpClient = okHttpClient,
         cacheDirectory = context.cacheDir,
         elapsedRealtimeMillisProvider = SystemClock::elapsedRealtime
+    )
+    val catalogDeckPageRepository: CatalogDeckPageRepository = CloudCatalogDeckPageRepository(
+        preferencesStore = cloudPreferencesStore,
+        remoteService = cloudRemoteService,
+        cacheDirectory = context.cacheDir
+    )
+    val catalogDeckInstallRepository: CatalogDeckInstallRepository = CloudCatalogDeckInstallRepository(
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        remoteService = cloudRemoteService,
+        cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        operationCoordinator = cloudOperationCoordinator,
+        syncRepository = syncRepository
     )
     private val paywallRepository = LocalPaywallRepository(
         preferencesStore = cloudPreferencesStore,

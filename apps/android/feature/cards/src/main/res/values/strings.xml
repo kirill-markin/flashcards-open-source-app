@@ -31,6 +31,14 @@
     <string name="catalog_load_failed">Couldn\'t load the deck catalog. Check your connection and try again.</string>
     <string name="catalog_retry">Try again</string>
     <string name="catalog_refresh_failed">Couldn\'t update the deck catalog. Showing saved decks.</string>
+    <string name="catalog_deck_author_and_card_count">%1$s · %2$s</string>
+    <string name="catalog_deck_study">Study this deck</string>
+    <string name="catalog_deck_study_failed">Couldn\'t start this deck. Check your connection and try again.</string>
+    <string name="catalog_deck_unavailable">This deck is no longer available</string>
+    <string name="catalog_deck_page_load_failed">Couldn\'t load this deck\'s details. Check your connection and try again.</string>
+    <string name="catalog_deck_about_title">About this deck</string>
+    <string name="catalog_deck_first_cards_title">First cards</string>
+    <string name="catalog_technical_error_title">Something went wrong</string>
     <string name="cards_title">Cards</string>
     <string name="cards_filter_content_description">Filter cards</string>
     <plurals name="cards_filter_content_description_active">

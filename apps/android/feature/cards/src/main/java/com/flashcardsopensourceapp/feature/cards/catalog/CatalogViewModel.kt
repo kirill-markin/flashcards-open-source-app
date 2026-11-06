@@ -7,8 +7,10 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexCacheState
 import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexDeck
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogBrowseIndexRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckPageRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,9 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 private const val catalogViewModelLogTag: String = "CatalogViewModel"
+private const val catalogPrefetchDeckCount: Int = 10
+// Lets typing in search settle, so only the list the person stops on is prefetched.
+private const val catalogPrefetchDelayMillis: Long = 500L
 
 sealed interface CatalogContentUiState {
     data object Loading : CatalogContentUiState
@@ -63,6 +68,7 @@ private data class CatalogQueryInputs(
 
 class CatalogViewModel(
     private val catalogBrowseIndexRepository: CatalogBrowseIndexRepository,
+    private val catalogDeckPageRepository: CatalogDeckPageRepository,
     private val messageController: TransientMessageController,
     private val refreshFailedMessage: String
 ) : ViewModel() {
@@ -73,6 +79,7 @@ class CatalogViewModel(
     private val locale = MutableStateFlow(value = Locale.getDefault())
     private val refreshStatus = MutableStateFlow(value = CatalogRefreshStatus.IDLE)
     private var refreshJob: Job? = null
+    private var prefetchJob: Job? = null
 
     private val searchableIndex = catalogBrowseIndexRepository.observeCacheState().map { cacheState ->
         when (cacheState) {
@@ -162,6 +169,15 @@ class CatalogViewModel(
 
     fun selectSortOrder(sortOrder: CatalogSortOrder) {
         this.sortOrder.value = sortOrder
+    }
+
+    /** Prepares the deck pages of the first decks [shownDecks] puts on screen. */
+    fun prefetchDeckPages(shownDecks: List<CatalogBrowseIndexDeck>) {
+        prefetchJob?.cancel()
+        prefetchJob = viewModelScope.launch {
+            delay(catalogPrefetchDelayMillis)
+            catalogDeckPageRepository.prefetchDeckPages(decks = shownDecks.take(catalogPrefetchDeckCount))
+        }
     }
 
     /** Shows the cached index at once and checks the server in the background. */

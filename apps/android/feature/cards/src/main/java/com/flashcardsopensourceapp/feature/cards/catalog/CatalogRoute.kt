@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.cards.catalog
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,6 +88,8 @@ fun CatalogRoute(
     onSearchQueryChange: (String) -> Unit,
     onSelectLanguageFilter: (CatalogLanguageFilter) -> Unit,
     onSelectSortOrder: (CatalogSortOrder) -> Unit,
+    onOpenDeck: (CatalogBrowseIndexDeck) -> Unit,
+    onDecksShown: (List<CatalogBrowseIndexDeck>) -> Unit,
     onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -132,6 +135,8 @@ fun CatalogRoute(
                 onSearchQueryChange = onSearchQueryChange,
                 onSelectLanguageFilter = onSelectLanguageFilter,
                 onSelectSortOrder = onSelectSortOrder,
+                onOpenDeck = onOpenDeck,
+                onDecksShown = onDecksShown,
                 modifier = contentModifier
             )
         }
@@ -170,9 +175,14 @@ private fun CatalogReadyContent(
     onSearchQueryChange: (String) -> Unit,
     onSelectLanguageFilter: (CatalogLanguageFilter) -> Unit,
     onSelectSortOrder: (CatalogSortOrder) -> Unit,
+    onOpenDeck: (CatalogBrowseIndexDeck) -> Unit,
+    onDecksShown: (List<CatalogBrowseIndexDeck>) -> Unit,
     modifier: Modifier
 ) {
     val listState = rememberLazyListState()
+    LaunchedEffect(content.decks) {
+        onDecksShown(content.decks)
+    }
     // A new query, filter or order is a new list: start it from the top. The applied key is saved
     // so coming back to this screen keeps the scroll position.
     val listQueryKey = "${uiState.searchQuery}|${uiState.languageFilter}|${uiState.sortOrder}"
@@ -202,14 +212,15 @@ private fun CatalogReadyContent(
                 onSelectSortOrder = onSelectSortOrder
             )
         }
-        CatalogDeckList(listState = listState, content = content)
+        CatalogDeckList(listState = listState, content = content, onOpenDeck = onOpenDeck)
     }
 }
 
 @Composable
 private fun ColumnScope.CatalogDeckList(
     listState: LazyListState,
-    content: CatalogContentUiState.Ready
+    content: CatalogContentUiState.Ready,
+    onOpenDeck: (CatalogBrowseIndexDeck) -> Unit
 ) {
     LazyColumn(
         state = listState,
@@ -232,7 +243,7 @@ private fun ColumnScope.CatalogDeckList(
             }
         } else {
             items(content.decks, key = { deck -> deck.packageId }) { deck ->
-                CatalogDeckRow(deck = deck)
+                CatalogDeckRow(deck = deck, onClick = { onOpenDeck(deck) })
             }
         }
     }
@@ -409,7 +420,10 @@ private fun CatalogMenuItem(
 }
 
 @Composable
-private fun CatalogDeckRow(deck: CatalogBrowseIndexDeck) {
+private fun CatalogDeckRow(
+    deck: CatalogBrowseIndexDeck,
+    onClick: () -> Unit
+) {
     val resources = LocalResources.current
     val coverModifier = Modifier
         .size(width = 80.dp, height = 45.dp)
@@ -462,7 +476,9 @@ private fun CatalogDeckRow(deck: CatalogBrowseIndexDeck) {
                 )
             }
         },
-        modifier = Modifier.testTag(catalogDeckRowTag)
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .testTag(catalogDeckRowTag)
     )
 }
 

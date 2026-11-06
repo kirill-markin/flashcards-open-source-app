@@ -42,6 +42,9 @@ interface CatalogBrowseIndexRepository {
      * checked in the last five minutes. Throws when the check fails; the cached index stays.
      */
     suspend fun revalidateIfStale()
+
+    /** Checks the server now, even right after a check: a deck page has shown the index is stale. */
+    suspend fun revalidateNow()
 }
 
 class CatalogBrowseIndexDownloadException(
@@ -93,21 +96,38 @@ class CloudCatalogBrowseIndexRepository(
                 ) {
                     return@withContext
                 }
+                checkServer(apiBaseUrl = apiBaseUrl, nowElapsedMillis = nowElapsedMillis)
+            }
+        }
+    }
 
-                val pointer = remoteService.loadCatalogBrowseIndexPointer(apiBaseUrl = apiBaseUrl)
-                if (pointer.sha256 != cachedSha256) {
-                    val indexBytes = downloadIndexBytes(pointer = pointer)
-                    val index = parseCatalogBrowseIndex(json = indexBytes.toString(Charsets.UTF_8))
-                    writeCacheAtomically(bytes = indexBytes)
-                    cachedSha256 = pointer.sha256
-                    cacheStateMutable.value = CatalogBrowseIndexCacheState.Ready(index = index)
+    override suspend fun revalidateNow() {
+        revalidateMutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (cacheStateMutable.value == CatalogBrowseIndexCacheState.Loading) {
+                    loadCachedIndex()
                 }
-                lastSuccessfulCheck = CatalogBrowseIndexCheck(
-                    apiBaseUrl = apiBaseUrl,
-                    checkedAtElapsedMillis = nowElapsedMillis
+                checkServer(
+                    apiBaseUrl = preferencesStore.currentServerConfiguration().apiBaseUrl,
+                    nowElapsedMillis = elapsedRealtimeMillisProvider()
                 )
             }
         }
+    }
+
+    private suspend fun checkServer(apiBaseUrl: String, nowElapsedMillis: Long) {
+        val pointer = remoteService.loadCatalogBrowseIndexPointer(apiBaseUrl = apiBaseUrl)
+        if (pointer.sha256 != cachedSha256) {
+            val indexBytes = downloadIndexBytes(pointer = pointer)
+            val index = parseCatalogBrowseIndex(json = indexBytes.toString(Charsets.UTF_8))
+            writeCacheAtomically(bytes = indexBytes)
+            cachedSha256 = pointer.sha256
+            cacheStateMutable.value = CatalogBrowseIndexCacheState.Ready(index = index)
+        }
+        lastSuccessfulCheck = CatalogBrowseIndexCheck(
+            apiBaseUrl = apiBaseUrl,
+            checkedAtElapsedMillis = nowElapsedMillis
+        )
     }
 
     /**
