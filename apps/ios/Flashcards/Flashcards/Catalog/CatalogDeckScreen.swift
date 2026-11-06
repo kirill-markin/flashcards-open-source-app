@@ -111,6 +111,7 @@ struct CatalogDeckScreen: View {
             HStack(spacing: 8) {
                 if self.isStudying {
                     ProgressView()
+                        .tint(.white)
                 }
                 Text(String(localized: "catalog.deck.study", table: catalogStringsTableName))
                     .font(.headline)
@@ -118,7 +119,7 @@ struct CatalogDeckScreen: View {
             .frame(maxWidth: .infinity, minHeight: appMinimumTouchTarget)
         }
         .buttonStyle(.borderedProminent)
-        .disabled(self.isStudying)
+        // Not disabled while busy: the dimmed disabled fill hides the spinner, and study() ignores repeat taps.
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .accessibilityIdentifier(UITestIdentifier.catalogDeckStudyButton)
     }
