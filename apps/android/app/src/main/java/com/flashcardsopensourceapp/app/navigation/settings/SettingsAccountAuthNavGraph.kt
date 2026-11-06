@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -161,6 +162,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
 
         composable(route = SettingsAccountPostAuthDestination.route) { backStackEntry ->
             val context = LocalContext.current
+            val keyboardController = LocalSoftwareKeyboardController.current
             val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
             val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
@@ -194,6 +196,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 LaunchedEffect(uiState.completionToken) {
                     signInViewModel.acknowledgePostAuthCompletion()
                     runAuthNavigationOnMainThread {
+                        // The IME can reopen while Android detaches the sign-in text field.
+                        keyboardController?.hide()
                         navigateToSettingsAccountStatus(navController = navController)
                     }
                 }
