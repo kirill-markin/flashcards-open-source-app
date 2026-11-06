@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.catalog
 
+import android.util.Log
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
@@ -21,6 +22,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+private const val catalogDeckPageLogTag: String = "CatalogDeckPage"
 private const val catalogBrowseIndexPointerPath: String = "/catalog/browse-index"
 private const val supportedCatalogBrowseIndexSchemaVersion: Int = 1
 private val catalogBrowseIndexSha256Pattern: Regex = Regex("^[0-9a-f]{64}$")
@@ -162,9 +164,15 @@ internal fun parseCatalogDeckPage(
         )
     }
     val cards = cardPreviewResponse.requireCloudArray("cards", "catalogCardPreview.cards")
-    return CatalogDeckPage(
+    val downloadUrlsByMediaKey = parseCatalogMediaDownloadUrls(
+        mediaAssets = catalogPackage.requireCloudArray("mediaAssets", "catalogPackageDetail.catalogPackage.mediaAssets")
+    )
+    val page = CatalogDeckPage(
         packageVersionId = packageVersionId,
-        description = catalogPackage.requireCloudString("description", "catalogPackageDetail.catalogPackage.description"),
+        description = rewriteCatalogMediaReferences(
+            text = catalogPackage.requireCloudString("description", "catalogPackageDetail.catalogPackage.description"),
+            downloadUrlsByMediaKey = downloadUrlsByMediaKey
+        ),
         latestPackageVersionId = latestVersion.requireCloudString(
             "packageVersionId",
             "catalogPackageDetail.catalogPackage.latestVersion.packageVersionId"
@@ -174,11 +182,50 @@ internal fun parseCatalogDeckPage(
             val card = cards.requireCloudObject(index, fieldPath)
             CatalogDeckCardPreview(
                 ordinal = card.requireCloudInt("ordinal", "$fieldPath.ordinal"),
-                frontText = card.requireCloudString("frontText", "$fieldPath.frontText"),
-                backText = card.requireCloudString("backText", "$fieldPath.backText")
+                frontText = rewriteCatalogMediaReferences(
+                    text = card.requireCloudString("frontText", "$fieldPath.frontText"),
+                    downloadUrlsByMediaKey = downloadUrlsByMediaKey
+                ),
+                backText = rewriteCatalogMediaReferences(
+                    text = card.requireCloudString("backText", "$fieldPath.backText"),
+                    downloadUrlsByMediaKey = downloadUrlsByMediaKey
+                )
             )
         }
     )
+    val unpublishedMediaKeys = (listOf(page.description) + page.cards.flatMap { card -> listOf(card.frontText, card.backText) })
+        .flatMap { text -> catalogMediaReferenceRegex.findAll(input = text).map { match -> match.groupValues[1] } }
+        .toSortedSet()
+    if (unpublishedMediaKeys.isNotEmpty()) {
+        Log.w(
+            catalogDeckPageLogTag,
+            "event=catalog_deck_page_media_unpublished packageVersionId=$packageVersionId " +
+                "packageMediaKeys=${unpublishedMediaKeys.joinToString(separator = ",")}"
+        )
+    }
+    return page
+}
+
+/** Keys whose asset the public catalog never published have a null `downloadUrl` and are left out. */
+private fun parseCatalogMediaDownloadUrls(mediaAssets: JSONArray): Map<String, String> {
+    return (0 until mediaAssets.length()).mapNotNull { index ->
+        val fieldPath = "catalogPackageDetail.catalogPackage.mediaAssets[$index]"
+        val mediaAsset = mediaAssets.requireCloudObject(index, fieldPath)
+        val downloadUrl = mediaAsset.requireCloudNullableString("downloadUrl", "$fieldPath.downloadUrl")
+        downloadUrl?.let { url -> mediaAsset.requireCloudString("packageMediaKey", "$fieldPath.packageMediaKey") to url }
+    }.toMap()
+}
+
+private val catalogMediaReferenceRegex: Regex = Regex("""fcasset:([A-Za-z0-9][A-Za-z0-9._-]*)""")
+
+/**
+ * Points catalog `fcasset:<packageMediaKey>` references at their published CDN objects, so the card
+ * renderer shows them as linked images; a key without a published object stays as it is.
+ */
+private fun rewriteCatalogMediaReferences(text: String, downloadUrlsByMediaKey: Map<String, String>): String {
+    return catalogMediaReferenceRegex.replace(input = text) { match ->
+        downloadUrlsByMediaKey[match.groupValues[1]] ?: match.value
+    }
 }
 
 internal fun parseCatalogBrowseIndexPointer(response: JSONObject): CatalogBrowseIndexPointer {
