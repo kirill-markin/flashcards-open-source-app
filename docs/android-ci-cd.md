@@ -2,12 +2,11 @@
 
 Before builds or release dispatch, complete the [RaTeX dependency preflight](ratex-dependency.md).
 
-This repository uses one reusable Android validation workflow, called only by the manual release, and a publisher-only recovery entrypoint:
+GitHub Actions is the primary Android CI/CD entrypoint.
 
-- GitHub Actions is the primary Android CI/CD entrypoint
 - [android-ci-reusable.yml](../.github/workflows/android-ci-reusable.yml) is the Android validation itself: unit tests, debug builds and lint, plus `data:local` instrumentation on a GitHub-hosted emulator. It intentionally does not make the emulator job depend on the build job, because the emulator job does its own checkout and Gradle build, so a failing build does not prevent or cancel the emulator run
-- pull requests and pushes to `main` run no Android CI: `main` reaches users only through an Android release, which runs every check, so `main` can fail to compile for Android unnoticed until the next release; fix forward
-- [android-release.yml](../.github/workflows/android-release.yml) is the manual release: the validation gate, four sequential Device Run sessions on Google-managed devices, the signed bundle with its R8 coverage gate, and a Google Play production-track draft; follow [the Android release procedure](release/android.md)
+- pull requests have no Android CI. The path-selected [Android Tooling Lint](../.github/workflows/android-tooling-lint.yml) runs shared debug lint on `main` for tooling inputs. Full build, unit and device checks run during the manual release.
+- [android-release.yml](../.github/workflows/android-release.yml) runs hosted validation, four sequential Device Run sessions and a parallel signed AAB/R8 gate. Successful required gates unlock the production-track draft upload. See [Android release](release/android.md).
 - [android-release-upload-recovery.yml](../.github/workflows/android-release-upload-recovery.yml) recovers only a failed publisher for a pinned, already-tested signed bundle ([exact-bundle recovery](release/android.md#exact-bundle-upload-recovery))
 - the manual Android release is fully independent from the AWS/Web release workflow
 - read-only operations: [Device Run diagnostics](android-device-run-diagnostics.md) and [Play release status](android-play-status.md)
@@ -23,11 +22,19 @@ Historical networking evidence is retained in the [Device Run incident and recov
 
 ## GitHub configuration
 
-[setup-github-android.sh](../scripts/android/setup-github-android.sh) syncs the Android repository variables and secrets from the root `.env`, separately from the AWS deploy bootstrap `scripts/setup/setup-github.sh`, and names every value it requires. The Play upload also requires values the script treats as optional; the `Validate Google Play configuration`, `Validate Android Sentry configuration` and `Validate Android signing secrets` steps of [the release workflow](../.github/workflows/android-release.yml) are the authoritative list, and they run only in `publish_android`, after all four Device Run sessions. CI signs the release bundle with the upload keystore held in the `ANDROID_UPLOAD_*` repository secrets. Run the script with the complete root `.env` only when configuration sync is authorized: it writes secrets only when they are present locally and deletes optional variables that are empty there. `ANDROID_PLAY_PACKAGE_NAME` matches the Android `applicationId`, `com.flashcardsopensourceapp.app`. A missing local upload key does not block CI signing and is not grounds for key reset or recovery.
+[setup-github-android.sh](../scripts/android/setup-github-android.sh) syncs the Android repository variables and secrets from the root `.env`, separately from the AWS deploy bootstrap `scripts/setup/setup-github.sh`, and names every value it requires. The configuration steps in [the release workflow](../.github/workflows/android-release.yml) list the required signing, Sentry and Play inputs. The signed build uses the `ANDROID_UPLOAD_*` keystore secrets. Play configuration and authentication run in the publisher after the signed and native gates. Run the script with the complete root `.env` only when configuration sync is authorized: it writes secrets only when they are present locally and deletes optional variables that are empty there. `ANDROID_PLAY_PACKAGE_NAME` matches the Android `applicationId`, `com.flashcardsopensourceapp.app`. A missing local upload key does not block CI signing and is not grounds for key reset or recovery.
 
 ## Device Run results and release correlation
 
-Download the `android-device-run-submissions` GitHub artifact for the exact release run/attempt. Its only file is the public-safe `summary.json`, which correlates the SHA, release ID, all four sessions, their named results and the private evidence references. Require all four `.sessions[].passed == true` and `.private_archive_uploaded == true`. The [collector](../scripts/android/collect-device-run-evidence.py) fails the workflow before the signed bundle build and Play draft upload on any missing, duplicate, failed or unexpectedly skipped selected case and on any report or APK hash mismatch; an unsupported test declaration form fails explicitly and needs collector inventory support before releasing.
+Download the exact run/attempt's `android-device-run-submissions` artifact
+(`summary.json`). It records the source, release, four effective sessions,
+named cases, APK hashes and private evidence references. The
+[collector](../scripts/android/collect-device-run-evidence.py) requires
+`DONE`/`PASSED` at session, job and execution levels, one job per device,
+exact APK inputs and complete reconciled JUnit selections before publication. Retain any
+`initial_failure` report separately from its passing retry. Use the
+[readiness generator](release/readiness.md#generate-the-android-manifest)
+after manual diagnostic review.
 
 Full terminal reports, submission records, the catalog, and every execution's JUnit/logcat/instrument logs are retained in a private `raw.tar.gz` in the results bucket, out of public GitHub artifacts and logs. See Google's [native result layout](https://docs.cloud.google.com/developer-device-platform/device-run/find-logs) and [full-report schema](https://docs.cloud.google.com/developer-device-platform/reference/device-run/rest/v1alpha/projects.locations.sessions).
 
@@ -89,7 +96,9 @@ Catalog availability can change. The `Require configured Device Run destinations
 
 Set the IDs and bucket name in the local root `.env` or environment (`ANDROID_DEVICE_RUN_COMPAT_DEVICES='["redfin-30","a21-31","oriole-33"]'`), then sync them with [setup-github-android.sh](../scripts/android/setup-github-android.sh) when configuration sync is authorized.
 
-The latest session runs the full app package excluding `ManualOnlyAndroidTest`; each compatibility session runs the four methods in [the configured selection](../scripts/android/device-run-test-selection.json), which also drives workflow submission.
+See the [Android release flow](release/android.md) for submission order. API 37
+runs the full app package excluding `ManualOnlyAndroidTest`. The other APIs use
+the four methods in [the configured selection](../scripts/android/device-run-test-selection.json).
 
 ## One-time Play Console setup
 

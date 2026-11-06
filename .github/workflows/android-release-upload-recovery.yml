@@ -16,7 +16,7 @@ on:
         type: string
         required: true
       bundle_artifact_id:
-        description: Exact original android-release-bundle artifact ID
+        description: Exact original signed bundle artifact ID (android-release-bundle-r<runId>a<attempt>, or legacy android-release-bundle)
         type: string
         required: true
       native_artifact_id:

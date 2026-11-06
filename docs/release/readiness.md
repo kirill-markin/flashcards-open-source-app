@@ -48,6 +48,47 @@ and [Mac procedure](macos.md). This is manually inspected readiness evidence,
 not CLI-validated readiness; refresh the decision when source, artifact,
 selected attempt or evidence changes.
 
+## Generate the Android manifest
+
+For a green `Android Release`, use the routine offline generator from the
+repository root. Retain the exact attempt's signed AAB
+(`android-release-bundle-r<runId>a<attempt>`, legacy `android-release-bundle`),
+[Device Run summary and private evidence](../android-ci-cd.md#device-run-results-and-release-correlation),
+and `play-publisher-provenance.json`. Verify artifact IDs/attempt and pin the
+SHA, version, code and bundle checksum from the release/build records. Retain
+the signed-binary, warning and native diagnostics inspections required by the
+[Android procedure](android.md). Use a fresh output path for each attempt
+or review revision. Save the attempt-specific job record:
+
+```bash
+gh run view "$run_id" --attempt "$attempt" --json databaseId,attempt,status,conclusion,headSha,url,jobs \
+  > "$record/github-run.json" &&
+node scripts/release/assemble-android-readiness.mjs "$record/review.json" "$record/github-run.json" \
+  "$record/summary.json" "$record/play-publisher-provenance.json" "$record/app-release.aab" \
+  > "$record/mobile-manifest.json" &&
+node scripts/release/check-mobile-readiness.mjs "$record/mobile-manifest.json" > "$record/mobile-readiness.json"
+```
+
+In `review.json`, supply string fields `sourceSha`, `version`, `versionCode`,
+`runId`, `attempt`, `aabSha256`, and `reviewedBy`. Set `devices` to the
+verified catalog IDs keyed by API (`30`, `31`, `33`, `37`). Under `reviews`,
+give both `cloud-release` and `firebase-tests` their own `inventoryRef`,
+`evidenceRef`, `warningReview`, `warningReviewRef` and `warnings`. Use the
+[warning fields](#results-and-warning-review) below. Set review complete
+only after inspecting the logs and adjudicating notices. An empty warnings
+array records a completed inspection only with that explicit decision.
+References resolve within the private release record.
+
+The generator reads the pinned source's version and compatibility selection
+from local Git, checks the exact GitHub run and attempt, publisher, AAB and
+named native results, and records the original failure separately when CI
+retried a destination.
+Keep source and artifact provenance, the retained native attempts and review
+records alongside the output. For a failed/missing gate or
+[exact-bundle upload recovery](android.md#exact-bundle-upload-recovery), build
+the schema-2 record manually using the contract below. iOS and historical
+records use their original native evidence paths and schemas.
+
 ## Collect and correlate evidence
 
 1. Record the target source SHA, marketing version, distribution build/version
@@ -268,6 +309,8 @@ including manual and destination exclusions, must appear. A skipped case require
 not authorize skipping a required smoke. Failed/pending cases always fail, even
 if excluded. An excluded case that executes and passes is acceptable, subject
 to the destination counterpart requirement below.
+
+<a id="results-and-warning-review"></a>
 
 `warningReview` is `complete` or `pending`; pending inspection blocks readiness.
 Use an empty warnings array only after inspecting retained evidence and finding
