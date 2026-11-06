@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ProductAnalyticsCancellationSurveyReason } from "../../productAnalytics/catalog";
 import { loadGoogleAuthClient } from "./config";
 import {
-  GoogleBillingError, googleBasePlanId, googlePackageName, googleProductId, googleTrialOfferId,
+  GoogleBillingError, GoogleResponseInvalidError, googleBasePlanId, googlePackageName, googleProductId, googleTrialOfferId,
   type GoogleOfferPhase, type GooglePurchaseState,
 } from "./contracts";
 
@@ -49,7 +49,7 @@ const subscriptionSchema = z.object({
     productId: z.literal(googleProductId),
     expiryTime: timestampSchema.optional(),
     latestSuccessfulOrderId: z.string().min(1).optional(),
-    autoRenewingPlan: z.object({ autoRenewEnabled: z.boolean(), recurringPrice: moneySchema.optional() }),
+    autoRenewingPlan: z.object({ autoRenewEnabled: z.boolean().optional(), recurringPrice: moneySchema.optional() }),
     offerDetails: z.object({ basePlanId: z.literal(googleBasePlanId), offerId: z.literal(googleTrialOfferId).optional() }),
     offerPhase: phaseSchema.optional(),
   })).length(1),
@@ -149,7 +149,8 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
     },
     status: inGrace ? "in_grace" : active ? "active" : "expired", providerStatus, environment, currentPhase,
     isTrial: currentPhase === "free_trial",
-    willRenew: item.autoRenewingPlan.autoRenewEnabled && providerStatus !== "SUBSCRIPTION_STATE_CANCELED",
+    // Play omits default values, so a missing autoRenewEnabled is false.
+    willRenew: item.autoRenewingPlan.autoRenewEnabled === true && providerStatus !== "SUBSCRIPTION_STATE_CANCELED",
     autorenewDisabledReason: canceled?.userInitiatedCancellation !== undefined ? "voluntary"
       : canceled?.systemInitiatedCancellation !== undefined ? "billing_error" : "unknown",
     cancellationSurveyReason: surveyReason === undefined ? null : cancelSurveyReasons.get(surveyReason) ?? null,
@@ -179,7 +180,7 @@ export class GoogleProvider {
     }));
     const subscription = subscriptionSchema.safeParse(response.data);
     if (!subscription.success) {
-      throw new GoogleBillingError("GOOGLE_RESPONSE_INVALID", false, null,
+      throw new GoogleResponseInvalidError(subscription.error.issues.map((issue) => issue.path.join(".")),
         "Google response must contain one premium/monthly auto-renewing subscription with valid state, acknowledgement and offer fields.");
     }
     return purchaseState(token, subscription.data, new Date());

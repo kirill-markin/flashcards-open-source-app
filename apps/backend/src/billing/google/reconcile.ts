@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { unsafeTransaction } from "../../database/unsafe";
 import { getDatabaseErrorFields } from "../../database/transient";
-import { GoogleBillingError, type GoogleEnvironment } from "./contracts";
+import { GoogleBillingError, GoogleResponseInvalidError, type GoogleEnvironment } from "./contracts";
 import { GoogleProvider } from "./provider";
 import { acknowledgeGoogleTransition, persistGoogleCurrentState, settleUnavailableGoogleToken } from "./service";
 import { publishGoogleTransition } from "./facts";
@@ -67,6 +67,7 @@ export async function reconcileGoogleSubscriptions(remainingTimeMs: () => number
       } else failed += 1;
       console.warn(JSON.stringify({ event: "google_reconciliation_purchase_failed", purchaseId: candidate.purchase_id,
         environment: candidate.environment, errorCode: code,
+        invalidFields: error instanceof GoogleResponseInvalidError ? error.invalidFields : null,
         providerHttpStatus: error instanceof GoogleBillingError ? error.httpStatus : null }));
     }
   }
