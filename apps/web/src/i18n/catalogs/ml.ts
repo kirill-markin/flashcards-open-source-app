@@ -763,7 +763,8 @@ const mlCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "ലൈബ്രറി",
     groups: {
-      importExport: "ഇംപോർട്ടും എക്സ്പോർട്ടും",
+      yourCards: "നിങ്ങളുടെ കാർഡുകൾ",
+      addCards: "കാർഡുകൾ ചേർക്കുക",
     },
     cards: {
       description: "ഈ വർക്ക്‌സ്‌പേസിലെ എല്ലാ കാർഡുകളും.",
@@ -773,6 +774,10 @@ const mlCatalog: TranslationCatalog = {
     },
     decks: {
       description: "ശ്രദ്ധയോടെയുള്ള അവലോകനത്തിനായി സേവ് ചെയ്ത കാർഡ് ഫിൽട്ടറുകൾ.",
+    },
+    deckCatalog: {
+      title: "ഡെക്ക് കാറ്റലോഗ്",
+      description: "പഠിക്കാൻ സൗജന്യമായ തയ്യാറായ ഡെക്കുകൾ.",
     },
     import: {
       description: "ഒരു ഫയലിൽ നിന്ന് കാർഡുകൾ ചേർക്കുക.",

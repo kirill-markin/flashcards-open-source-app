@@ -763,7 +763,8 @@ const caCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Biblioteca",
     groups: {
-      importExport: "Importació i exportació",
+      yourCards: "Les teves targetes",
+      addCards: "Afegeix targetes",
     },
     cards: {
       description: "Totes les targetes d'aquest espai de treball.",
@@ -773,6 +774,10 @@ const caCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filtres de targetes desats per a un repàs centrat.",
+    },
+    deckCatalog: {
+      title: "Catàleg de baralles",
+      description: "Baralles gratuïtes i llestes per estudiar.",
     },
     import: {
       description: "Afegeix targetes des d'un fitxer.",

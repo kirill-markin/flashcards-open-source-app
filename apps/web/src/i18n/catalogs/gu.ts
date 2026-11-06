@@ -763,7 +763,8 @@ const guCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "લાઇબ્રેરી",
     groups: {
-      importExport: "આયાત અને નિકાસ",
+      yourCards: "તમારાં કાર્ડ",
+      addCards: "કાર્ડ ઉમેરો",
     },
     cards: {
       description: "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ.",
@@ -773,6 +774,10 @@ const guCatalog: TranslationCatalog = {
     },
     decks: {
       description: "કેન્દ્રિત પુનરાવર્તન માટે સાચવેલાં કાર્ડ ફિલ્ટર.",
+    },
+    deckCatalog: {
+      title: "ડેક કૅટલૉગ",
+      description: "અભ્યાસ માટે મફત તૈયાર ડેક.",
     },
     import: {
       description: "ફાઇલમાંથી કાર્ડ ઉમેરો.",

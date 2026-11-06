@@ -11,9 +11,22 @@ const publicSiteNonDefaultLocales: ReadonlySet<string> = new Set([
   "te", "ur", "sw", "bg", "et", "hr", "is", "lt", "lv", "sk", "sl", "zu",
 ]);
 
-export function getPublicSiteHomeUrl(locale: Locale): string {
+function getPublicSiteLanguage(locale: Locale): string | null {
   const language = locale.split("-")[0];
-  return publicSiteNonDefaultLocales.has(language)
-    ? `${publicSiteBaseUrl}/${language}/`
-    : `${publicSiteBaseUrl}/`;
+  return publicSiteNonDefaultLocales.has(language) ? language : null;
+}
+
+export function getPublicSiteHomeUrl(locale: Locale): string {
+  const language = getPublicSiteLanguage(locale);
+  return language === null
+    ? `${publicSiteBaseUrl}/`
+    : `${publicSiteBaseUrl}/${language}/`;
+}
+
+// Mirrors getPublicCatalogRootUrl in the website repository's src/lib/publicCatalogUrls.ts.
+export function getPublicSiteCatalogUrl(locale: Locale): string {
+  const language = getPublicSiteLanguage(locale);
+  return language === null
+    ? `${publicSiteBaseUrl}/catalog/?language=en`
+    : `${publicSiteBaseUrl}/${language}/catalog/?language=${language}`;
 }

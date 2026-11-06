@@ -763,7 +763,8 @@ const etCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Teek",
     groups: {
-      importExport: "Importimine ja eksportimine",
+      yourCards: "Sinu kaardid",
+      addCards: "Lisa kaarte",
     },
     cards: {
       description: "Kõik selle tööruumi kaardid.",
@@ -773,6 +774,10 @@ const etCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Salvestatud kaardifiltrid keskendunud kordamiseks.",
+    },
+    deckCatalog: {
+      title: "Pakkide kataloog",
+      description: "Tasuta valmis pakid õppimiseks.",
     },
     import: {
       description: "Lisa kaardid failist.",

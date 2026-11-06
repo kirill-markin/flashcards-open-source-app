@@ -763,7 +763,8 @@ const viCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Thư viện",
     groups: {
-      importExport: "Nhập và xuất",
+      yourCards: "Thẻ của bạn",
+      addCards: "Thêm thẻ",
     },
     cards: {
       description: "Mọi thẻ trong không gian làm việc này.",
@@ -773,6 +774,10 @@ const viCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Bộ lọc thẻ đã lưu để ôn tập tập trung.",
+    },
+    deckCatalog: {
+      title: "Danh mục bộ thẻ",
+      description: "Bộ thẻ miễn phí, có sẵn để học.",
     },
     import: {
       description: "Thêm thẻ từ tệp.",

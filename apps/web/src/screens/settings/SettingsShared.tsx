@@ -39,6 +39,13 @@ type SettingsExternalLinkCardProps = Readonly<{
   testId: string;
 }>;
 
+type SettingsLinkCardProps = Readonly<{
+  title: string;
+  description: string;
+  href: string;
+  testId: string;
+}>;
+
 type SettingsGroupProps = Readonly<{
   title?: string;
   children: ReactNode;
@@ -117,6 +124,20 @@ export function SettingsExternalLinkCard(props: SettingsExternalLinkCardProps): 
       rel="noreferrer"
       data-testid={testId}
     >
+      <div className="settings-nav-card-copy">
+        <strong className="panel-subtitle">{title}</strong>
+        <p className="subtitle">{description}</p>
+      </div>
+    </a>
+  );
+}
+
+/** Same-tab link to a page outside the app router. */
+export function SettingsLinkCard(props: SettingsLinkCardProps): ReactElement {
+  const { title, description, href, testId } = props;
+
+  return (
+    <a className="settings-nav-card content-card" href={href} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
         <p className="subtitle">{description}</p>

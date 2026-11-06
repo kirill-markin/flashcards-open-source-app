@@ -763,7 +763,8 @@ const bnCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "লাইব্রেরি",
     groups: {
-      importExport: "আমদানি ও রপ্তানি",
+      yourCards: "আপনার কার্ড",
+      addCards: "কার্ড যোগ করুন",
     },
     cards: {
       description: "এই কর্মক্ষেত্রের সব কার্ড।",
@@ -773,6 +774,10 @@ const bnCatalog: TranslationCatalog = {
     },
     decks: {
       description: "মনোযোগী পুনরালোচনার জন্য সংরক্ষিত কার্ড ফিল্টার।",
+    },
+    deckCatalog: {
+      title: "ডেক ক্যাটালগ",
+      description: "পড়ার জন্য বিনামূল্যের তৈরি ডেক।",
     },
     import: {
       description: "ফাইল থেকে কার্ড যোগ করুন।",

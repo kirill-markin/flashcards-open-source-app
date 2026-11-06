@@ -763,7 +763,8 @@ const ptBrCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Biblioteca",
     groups: {
-      importExport: "Importar e exportar",
+      yourCards: "Seus cartões",
+      addCards: "Adicionar cartões",
     },
     cards: {
       description: "Todos os cartões deste espaço de trabalho.",
@@ -773,6 +774,10 @@ const ptBrCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filtros de cartões salvos para uma revisão focada.",
+    },
+    deckCatalog: {
+      title: "Catálogo de baralhos",
+      description: "Baralhos prontos e gratuitos para estudar.",
     },
     import: {
       description: "Adicione cartões a partir de um arquivo.",

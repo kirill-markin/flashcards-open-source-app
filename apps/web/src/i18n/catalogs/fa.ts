@@ -763,7 +763,8 @@ const faCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "کتابخانه",
     groups: {
-      importExport: "درون‌ریزی و برون‌بری",
+      yourCards: "کارت‌های شما",
+      addCards: "افزودن کارت",
     },
     cards: {
       description: "همهٔ کارت‌های این فضای کاری.",
@@ -773,6 +774,10 @@ const faCatalog: TranslationCatalog = {
     },
     decks: {
       description: "فیلترهای ذخیره‌شدهٔ کارت برای مرور متمرکز.",
+    },
+    deckCatalog: {
+      title: "فهرست دسته‌ها",
+      description: "دسته‌های آمادهٔ رایگان برای مطالعه.",
     },
     import: {
       description: "کارت‌ها را از یک فایل اضافه کنید.",

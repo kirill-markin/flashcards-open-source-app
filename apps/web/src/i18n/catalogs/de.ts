@@ -763,7 +763,8 @@ const deCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliothek",
     groups: {
-      importExport: "Import & Export",
+      yourCards: "Deine Karten",
+      addCards: "Karten hinzufügen",
     },
     cards: {
       description: "Alle Karten in diesem Arbeitsbereich.",
@@ -773,6 +774,10 @@ const deCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Gespeicherte Kartenfilter für gezieltes Wiederholen.",
+    },
+    deckCatalog: {
+      title: "Deck-Katalog",
+      description: "Kostenlose fertige Decks zum Lernen.",
     },
     import: {
       description: "Füge Karten aus einer Datei hinzu.",

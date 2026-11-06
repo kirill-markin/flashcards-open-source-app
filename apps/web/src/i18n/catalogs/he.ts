@@ -763,7 +763,8 @@ const heCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "ספרייה",
     groups: {
-      importExport: "ייבוא וייצוא",
+      yourCards: "הכרטיסים שלך",
+      addCards: "הוספת כרטיסים",
     },
     cards: {
       description: "כל הכרטיסים בסביבת העבודה הזו.",
@@ -773,6 +774,10 @@ const heCatalog: TranslationCatalog = {
     },
     decks: {
       description: "מסנני כרטיסים שמורים לחזרה ממוקדת.",
+    },
+    deckCatalog: {
+      title: "קטלוג חפיסות",
+      description: "חפיסות מוכנות בחינם ללמידה.",
     },
     import: {
       description: "הוסף כרטיסים מקובץ.",

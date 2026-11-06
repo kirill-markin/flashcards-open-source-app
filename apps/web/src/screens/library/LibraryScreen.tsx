@@ -8,6 +8,7 @@ import { useI18n } from "../../i18n";
 import { loadAllActiveDecksForSql } from "../../localDb/cards/decks";
 import { loadWorkspaceTagsSummary } from "../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
+import { getPublicSiteCatalogUrl } from "../../publicSiteUrl";
 import {
   cardsRoute,
   libraryDecksRoute,
@@ -16,7 +17,7 @@ import {
   libraryTagsRoute,
 } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
-import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "../settings/SettingsShared";
+import { SettingsGroup, SettingsLinkCard, SettingsNavigationCard, SettingsShell } from "../settings/SettingsShared";
 
 type LibraryCounts = Readonly<{
   cards: number;
@@ -41,7 +42,7 @@ async function loadLibraryCounts(workspaceId: string): Promise<LibraryCounts> {
 export function LibraryScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatNumber } = useI18n();
+  const { t, formatNumber, locale } = useI18n();
   const workspacePath = useWorkspacePath();
   const [counts, setCounts] = useState<LibraryCounts | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -127,7 +128,7 @@ export function LibraryScreen(): ReactElement {
     >
       {errorMessage === "" ? null : <p className="error-banner" role="alert">{errorMessage}</p>}
 
-      <SettingsGroup>
+      <SettingsGroup title={t("libraryScreen.groups.yourCards")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("navigation.cards")}
@@ -153,8 +154,14 @@ export function LibraryScreen(): ReactElement {
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title={t("libraryScreen.groups.importExport")}>
+      <SettingsGroup title={t("libraryScreen.groups.addCards")}>
         <div className="settings-nav-list">
+          <SettingsLinkCard
+            title={t("libraryScreen.deckCatalog.title")}
+            description={t("libraryScreen.deckCatalog.description")}
+            href={getPublicSiteCatalogUrl(locale)}
+            testId="library-row-deck-catalog"
+          />
           <SettingsNavigationCard
             title={t("settingsWorkspace.import.title")}
             description={t("libraryScreen.import.description")}
@@ -162,6 +169,11 @@ export function LibraryScreen(): ReactElement {
             to={workspacePath(libraryImportRoute)}
             testId="library-row-import"
           />
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup>
+        <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("settingsWorkspace.export.title")}
             description={t("libraryScreen.export.description")}

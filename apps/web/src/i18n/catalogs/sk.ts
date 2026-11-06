@@ -771,7 +771,8 @@ const skCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Knižnica",
     groups: {
-      importExport: "Import a export",
+      yourCards: "Vaše karty",
+      addCards: "Pridať karty",
     },
     cards: {
       description: "Všetky karty v tomto pracovnom priestore.",
@@ -781,6 +782,10 @@ const skCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Uložené filtre kariet na sústredené opakovanie.",
+    },
+    deckCatalog: {
+      title: "Katalóg balíčkov",
+      description: "Bezplatné hotové balíčky na štúdium.",
     },
     import: {
       description: "Pridajte karty zo súboru.",

@@ -763,7 +763,8 @@ const hiCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "लाइब्रेरी",
     groups: {
-      importExport: "इम्पोर्ट और एक्सपोर्ट",
+      yourCards: "आपके कार्ड",
+      addCards: "कार्ड जोड़ें",
     },
     cards: {
       description: "इस वर्कस्पेस के सभी कार्ड।",
@@ -773,6 +774,10 @@ const hiCatalog: TranslationCatalog = {
     },
     decks: {
       description: "केंद्रित रिव्यू के लिए सहेजे गए कार्ड फ़िल्टर।",
+    },
+    deckCatalog: {
+      title: "डेक कैटलॉग",
+      description: "पढ़ाई के लिए मुफ़्त तैयार डेक।",
     },
     import: {
       description: "फ़ाइल से कार्ड जोड़ें।",

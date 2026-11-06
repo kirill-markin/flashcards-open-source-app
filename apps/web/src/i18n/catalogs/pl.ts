@@ -771,7 +771,8 @@ const plCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Biblioteka",
     groups: {
-      importExport: "Import i eksport",
+      yourCards: "Twoje karty",
+      addCards: "Dodaj karty",
     },
     cards: {
       description: "Wszystkie karty w tej przestrzeni roboczej.",
@@ -781,6 +782,10 @@ const plCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Zapisane filtry kart do ukierunkowanych powtórek.",
+    },
+    deckCatalog: {
+      title: "Katalog talii",
+      description: "Darmowe gotowe talie do nauki.",
     },
     import: {
       description: "Dodaj karty z pliku.",

@@ -763,7 +763,8 @@ const swCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Maktaba",
     groups: {
-      importExport: "Kuingiza na kuhamisha",
+      yourCards: "Kadi zako",
+      addCards: "Ongeza kadi",
     },
     cards: {
       description: "Kadi zote katika nafasi hii ya kazi.",
@@ -773,6 +774,10 @@ const swCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Vichujio vya kadi vilivyohifadhiwa kwa marudio yenye umakini.",
+    },
+    deckCatalog: {
+      title: "Katalogi ya mafungu",
+      description: "Mafungu ya bure yaliyo tayari kwa kujifunza.",
     },
     import: {
       description: "Ongeza kadi kutoka kwenye faili.",

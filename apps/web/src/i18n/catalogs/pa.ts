@@ -763,7 +763,8 @@ const paCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "ਲਾਇਬ੍ਰੇਰੀ",
     groups: {
-      importExport: "ਆਯਾਤ ਅਤੇ ਨਿਰਯਾਤ",
+      yourCards: "ਤੁਹਾਡੇ ਕਾਰਡ",
+      addCards: "ਕਾਰਡ ਜੋੜੋ",
     },
     cards: {
       description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ.",
@@ -773,6 +774,10 @@ const paCatalog: TranslationCatalog = {
     },
     decks: {
       description: "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ.",
+    },
+    deckCatalog: {
+      title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",
+      description: "ਪੜ੍ਹਨ ਲਈ ਮੁਫ਼ਤ ਤਿਆਰ ਡੈੱਕ.",
     },
     import: {
       description: "ਫਾਈਲ ਤੋਂ ਕਾਰਡ ਜੋੜੋ.",

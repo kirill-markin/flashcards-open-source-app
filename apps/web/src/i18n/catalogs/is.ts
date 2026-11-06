@@ -763,7 +763,8 @@ const isCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Safn",
     groups: {
-      importExport: "Inn- og útflutningur",
+      yourCards: "Spjöldin þín",
+      addCards: "Bæta við spjöldum",
     },
     cards: {
       description: "Öll spjöld á þessu vinnusvæði.",
@@ -773,6 +774,10 @@ const isCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Vistaðar spjaldasíur fyrir markvissa upprifjun.",
+    },
+    deckCatalog: {
+      title: "Stokkasafn",
+      description: "Ókeypis tilbúnir stokkar til að læra.",
     },
     import: {
       description: "Bættu við spjöldum úr skrá.",

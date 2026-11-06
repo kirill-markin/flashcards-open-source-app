@@ -763,7 +763,8 @@ const koCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "보관함",
     groups: {
-      importExport: "가져오기 및 내보내기",
+      yourCards: "내 카드",
+      addCards: "카드 추가",
     },
     cards: {
       description: "이 워크스페이스의 모든 카드입니다.",
@@ -773,6 +774,10 @@ const koCatalog: TranslationCatalog = {
     },
     decks: {
       description: "집중 복습을 위해 저장한 카드 필터입니다.",
+    },
+    deckCatalog: {
+      title: "덱 카탈로그",
+      description: "바로 학습할 수 있는 무료 덱입니다.",
     },
     import: {
       description: "파일에서 카드를 추가합니다.",

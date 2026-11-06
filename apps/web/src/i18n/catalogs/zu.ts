@@ -763,7 +763,8 @@ const zuCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Umtapo wolwazi",
     groups: {
-      importExport: "Ukungenisa nokukhipha",
+      yourCards: "Amakhadi akho",
+      addCards: "Engeza amakhadi",
     },
     cards: {
       description: "Wonke amakhadi akule ndawo yokusebenza.",
@@ -773,6 +774,10 @@ const zuCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile.",
+    },
+    deckCatalog: {
+      title: "Ikhathalogi yezinqwaba",
+      description: "Izinqwaba zamahhala ezilungele ukufundwa.",
     },
     import: {
       description: "Engeza amakhadi kusuka kufayela.",

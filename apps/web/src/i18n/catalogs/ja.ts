@@ -763,7 +763,8 @@ export const jaCatalog = {
   libraryScreen: {
     title: "ライブラリ",
     groups: {
-      importExport: "インポートとエクスポート",
+      yourCards: "自分のカード",
+      addCards: "カードを追加",
     },
     cards: {
       description: "このワークスペースのすべてのカード。",
@@ -773,6 +774,10 @@ export const jaCatalog = {
     },
     decks: {
       description: "集中して復習するための保存済みカードフィルター。",
+    },
+    deckCatalog: {
+      title: "デッキカタログ",
+      description: "すぐに学習できる無料のデッキ。",
     },
     import: {
       description: "ファイルからカードを追加します。",

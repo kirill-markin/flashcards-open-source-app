@@ -763,7 +763,8 @@ const huCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Könyvtár",
     groups: {
-      importExport: "Importálás és exportálás",
+      yourCards: "Kártyáid",
+      addCards: "Kártyák hozzáadása",
     },
     cards: {
       description: "A munkaterület összes kártyája.",
@@ -773,6 +774,10 @@ const huCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Mentett kártyaszűrők a célzott ismétléshez.",
+    },
+    deckCatalog: {
+      title: "Paklikatalógus",
+      description: "Ingyenes, kész paklik tanuláshoz.",
     },
     import: {
       description: "Adj hozzá kártyákat fájlból.",

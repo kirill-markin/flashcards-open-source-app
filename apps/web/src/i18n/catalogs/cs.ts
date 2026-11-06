@@ -771,7 +771,8 @@ const csCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Knihovna",
     groups: {
-      importExport: "Import a export",
+      yourCards: "Vaše kartičky",
+      addCards: "Přidat kartičky",
     },
     cards: {
       description: "Všechny kartičky v tomto pracovním prostoru.",
@@ -781,6 +782,10 @@ const csCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Uložené filtry kartiček pro soustředěné opakování.",
+    },
+    deckCatalog: {
+      title: "Katalog balíčků",
+      description: "Bezplatné hotové balíčky ke studiu.",
     },
     import: {
       description: "Přidejte kartičky ze souboru.",
