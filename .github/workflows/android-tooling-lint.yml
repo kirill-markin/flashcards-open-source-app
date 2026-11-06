@@ -1,0 +1,36 @@
+name: Android Tooling Lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-tooling-lint.yml'
+      - '.github/workflows/android-ci-reusable.yml'
+      - '.github/workflows/android-release.yml'
+      - '.github/workflows/android-targeted-diagnostics.yml'
+      - 'apps/android/**/*.gradle'
+      - 'apps/android/**/*.gradle.kts'
+      - 'apps/android/**/gradle.properties'
+      - 'apps/android/gradle/**'
+      - 'apps/android/gradlew'
+      - 'apps/android/gradlew.bat'
+      - 'apps/android/buildSrc/**'
+      - 'apps/android/build-logic/**'
+      - 'apps/android/ci/**'
+      - 'apps/android/app/src/main/res/resources.properties'
+      - 'apps/android/app/src/main/res/xml/locales_config.xml'
+      - 'cloudbuild.android.yaml'
+      - 'scripts/android/run-android-ci.sh'
+      - 'scripts/android/run-android-release.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    uses: ./.github/workflows/android-ci-reusable.yml
+    with:
+      target_ref: ${{ github.sha }}
+      android_version_code: ''
+      lint_only: true
