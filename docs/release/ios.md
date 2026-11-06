@@ -13,8 +13,9 @@ continue at step 8. An already-published matching build counts complete under
 the shared reuse rules; record its identity and observed availability in step 9
 without reconstructing historical logs. Preserve an existing review submission
 and verify its identity and release setting at step 7 instead of uploading or
-resubmitting the same artifact. An older version still in review is
-[replaced](#replacing-a-version-still-in-review). New artifacts follow all pre-submission gates under the [standing best-effort policy](README.md#standing-best-effort-release-policy), including its separate operator decision for unavailable testing.
+resubmitting the same artifact. If an older version is still in review, complete
+the [exact-artifact checks in step 6](#exact-artifact-checks) before replacing it.
+New artifacts follow all pre-submission gates under the [standing best-effort policy](README.md#standing-best-effort-release-policy), including its separate operator decision for unavailable testing.
 For a user-reserved final Submit, apply the [handoff and resume rules](#user-reserved-final-submit).
 
 1. Merge release preparation through `Repository static checks` and pin the
@@ -69,7 +70,8 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    targeted recovery. Preserve the original results and readiness contracts.
 
    Restore any temporary workflow filters after the accepted runs finish, with saved readback under the configuration preflight. Apply the [release warning policy](README.md#release-warning-policy) before submission; ask for help when blocking issues cannot be resolved autonomously. Record actual local-test/Cloud-archive elapsed times and evidence sizes.
-6. Wait for the successful archive to finish processing in App Store Connect.
+6. <a id="exact-artifact-checks"></a>
+   Wait for the successful archive to finish processing in App Store Connect.
    Establish its exact [run/archive/uploaded-build correlation](../xcode-cloud-data-access.md#correlate-an-archive-with-the-uploaded-build).
    Verify its [uploaded binary localizations](../ios-localization.md#bundlebuild-validation)
    before submission. For the exact correlated archive, read the app bundle's
@@ -155,7 +157,9 @@ bundles: [Xcode Cloud data access](../xcode-cloud-data-access.md).
 
 ## Replacing a Version Still in Review
 
-Do not wait on an older version still **Waiting for Review** or **In Review**:
+Complete the replacement's checks in [iOS step 6](#exact-artifact-checks) or
+[macOS steps 8–9](macos.md#exact-artifact-and-review-preparation), as applicable,
+before cancelling an older submission still **Waiting for Review** or **In Review**.
 
 1. Cancel its submission (`PATCH /v1/reviewSubmissions/{id}` with
    `canceled: true`, or **Remove from Review**); the release request authorizes

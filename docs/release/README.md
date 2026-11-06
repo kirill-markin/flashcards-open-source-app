@@ -74,8 +74,9 @@ for a new release and follow exception/legacy references only when applicable.
 
 ### Early preflight
 
-Complete the [RaTeX preflight](../ratex-dependency.md) for Apple, Android and
-web before any release-preparation merge that triggers builds or deployment.
+Complete [RaTeX preflight](../ratex-dependency.md#release-preflight-and-updates)
+for Apple, Android and web before remaining affected testing, builds,
+deployment or publication and before any merge that triggers them.
 Check provider access, disk for the planned artifacts
 and installed [iOS destinations](../ios-local-setup.md#local-testing-rules),
 [Mac signing and desktop](macos.md#preflight-and-cloud-gates) and
