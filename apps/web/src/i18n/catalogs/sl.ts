@@ -779,7 +779,8 @@ const slCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Knjižnica",
     groups: {
-      importExport: "Uvoz in izvoz",
+      yourCards: "Vaše kartice",
+      addCards: "Dodajanje kartic",
     },
     cards: {
       description: "Vse kartice v tem delovnem prostoru.",
@@ -789,6 +790,10 @@ const slCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Shranjeni filtri kartic za osredotočeno ponavljanje.",
+    },
+    deckCatalog: {
+      title: "Katalog kompletov",
+      description: "Brezplačni pripravljeni kompleti za učenje.",
     },
     import: {
       description: "Dodajte kartice iz datoteke.",

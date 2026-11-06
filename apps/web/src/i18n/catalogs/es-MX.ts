@@ -763,7 +763,8 @@ const esMxCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Biblioteca",
     groups: {
-      importExport: "Importar y exportar",
+      yourCards: "Tus tarjetas",
+      addCards: "Agregar tarjetas",
     },
     cards: {
       description: "Todas las tarjetas de este espacio de trabajo.",
@@ -773,6 +774,10 @@ const esMxCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filtros de tarjetas guardados para un repaso enfocado.",
+    },
+    deckCatalog: {
+      title: "Catálogo de mazos",
+      description: "Mazos gratuitos y listos para estudiar.",
     },
     import: {
       description: "Agrega tarjetas desde un archivo.",

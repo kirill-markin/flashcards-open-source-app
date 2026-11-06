@@ -763,7 +763,8 @@ const thCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "คลัง",
     groups: {
-      importExport: "นำเข้าและส่งออก",
+      yourCards: "การ์ดของคุณ",
+      addCards: "เพิ่มการ์ด",
     },
     cards: {
       description: "การ์ดทั้งหมดในพื้นที่ทำงานนี้",
@@ -773,6 +774,10 @@ const thCatalog: TranslationCatalog = {
     },
     decks: {
       description: "ตัวกรองการ์ดที่บันทึกไว้สำหรับการทบทวนแบบเจาะจง",
+    },
+    deckCatalog: {
+      title: "แคตตาล็อกเด็ค",
+      description: "เด็คสำเร็จรูปฟรีสำหรับเรียน",
     },
     import: {
       description: "เพิ่มการ์ดจากไฟล์",

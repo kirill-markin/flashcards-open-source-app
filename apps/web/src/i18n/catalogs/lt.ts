@@ -771,7 +771,8 @@ const ltCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Biblioteka",
     groups: {
-      importExport: "Importavimas ir eksportavimas",
+      yourCards: "Jūsų kortelės",
+      addCards: "Pridėti korteles",
     },
     cards: {
       description: "Visos šios darbo srities kortelės.",
@@ -781,6 +782,10 @@ const ltCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Išsaugoti kortelių filtrai susitelkusiam kartojimui.",
+    },
+    deckCatalog: {
+      title: "Kaladžių katalogas",
+      description: "Nemokamos paruoštos kaladės mokytis.",
     },
     import: {
       description: "Pridėkite korteles iš failo.",

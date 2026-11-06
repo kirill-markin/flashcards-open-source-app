@@ -771,7 +771,8 @@ const hrCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Knjižnica",
     groups: {
-      importExport: "Uvoz i izvoz",
+      yourCards: "Vaše kartice",
+      addCards: "Dodavanje kartica",
     },
     cards: {
       description: "Sve kartice u ovom radnom prostoru.",
@@ -781,6 +782,10 @@ const hrCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Spremljeni filtri kartica za usredotočeno ponavljanje.",
+    },
+    deckCatalog: {
+      title: "Katalog špilova",
+      description: "Besplatni gotovi špilovi za učenje.",
     },
     import: {
       description: "Dodajte kartice iz datoteke.",

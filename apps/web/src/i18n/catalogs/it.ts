@@ -763,7 +763,8 @@ const itCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Libreria",
     groups: {
-      importExport: "Importa ed esporta",
+      yourCards: "Le tue carte",
+      addCards: "Aggiungi carte",
     },
     cards: {
       description: "Tutte le carte di quest’area di lavoro.",
@@ -773,6 +774,10 @@ const itCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filtri di carte salvati per un ripasso mirato.",
+    },
+    deckCatalog: {
+      title: "Catalogo di mazzi",
+      description: "Mazzi pronti e gratuiti da studiare.",
     },
     import: {
       description: "Aggiungi carte da un file.",

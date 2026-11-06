@@ -763,7 +763,8 @@ const svCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliotek",
     groups: {
-      importExport: "Import och export",
+      yourCards: "Dina kort",
+      addCards: "Lägg till kort",
     },
     cards: {
       description: "Alla kort i den här arbetsytan.",
@@ -773,6 +774,10 @@ const svCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Sparade kortfilter för fokuserad repetition.",
+    },
+    deckCatalog: {
+      title: "Kortlekskatalog",
+      description: "Gratis färdiga kortlekar att studera.",
     },
     import: {
       description: "Lägg till kort från en fil.",

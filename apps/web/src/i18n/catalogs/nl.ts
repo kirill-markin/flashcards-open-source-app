@@ -763,7 +763,8 @@ const nlCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliotheek",
     groups: {
-      importExport: "Importeren en exporteren",
+      yourCards: "Jouw kaarten",
+      addCards: "Kaarten toevoegen",
     },
     cards: {
       description: "Alle kaarten in deze werkruimte.",
@@ -773,6 +774,10 @@ const nlCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Opgeslagen kaartfilters om gericht te herhalen.",
+    },
+    deckCatalog: {
+      title: "Deckcatalogus",
+      description: "Gratis kant-en-klare decks om te leren.",
     },
     import: {
       description: "Voeg kaarten toe uit een bestand.",

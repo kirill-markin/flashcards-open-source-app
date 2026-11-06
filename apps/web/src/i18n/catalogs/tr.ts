@@ -763,7 +763,8 @@ const trCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Kitaplık",
     groups: {
-      importExport: "İçe ve dışa aktarma",
+      yourCards: "Kartlarınız",
+      addCards: "Kart ekle",
     },
     cards: {
       description: "Bu çalışma alanındaki tüm kartlar.",
@@ -773,6 +774,10 @@ const trCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Odaklı tekrar için kaydedilmiş kart filtreleri.",
+    },
+    deckCatalog: {
+      title: "Deste kataloğu",
+      description: "Çalışmak için ücretsiz hazır desteler.",
     },
     import: {
       description: "Bir dosyadan kart ekleyin.",

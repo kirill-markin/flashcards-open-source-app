@@ -763,7 +763,8 @@ const idCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Pustaka",
     groups: {
-      importExport: "Impor dan ekspor",
+      yourCards: "Kartu Anda",
+      addCards: "Tambahkan kartu",
     },
     cards: {
       description: "Semua kartu di ruang kerja ini.",
@@ -773,6 +774,10 @@ const idCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filter kartu tersimpan untuk tinjauan yang terfokus.",
+    },
+    deckCatalog: {
+      title: "Katalog dek",
+      description: "Dek siap pakai gratis untuk dipelajari.",
     },
     import: {
       description: "Tambahkan kartu dari berkas.",

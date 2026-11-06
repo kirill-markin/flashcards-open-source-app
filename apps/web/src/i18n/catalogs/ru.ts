@@ -771,7 +771,8 @@ export const ruCatalog = {
   libraryScreen: {
     title: "Библиотека",
     groups: {
-      importExport: "Импорт и экспорт",
+      yourCards: "Ваши карточки",
+      addCards: "Добавить карточки",
     },
     cards: {
       description: "Все карточки в этом рабочем пространстве.",
@@ -781,6 +782,10 @@ export const ruCatalog = {
     },
     decks: {
       description: "Сохранённые фильтры карточек для целенаправленного повторения.",
+    },
+    deckCatalog: {
+      title: "Каталог колод",
+      description: "Бесплатные готовые колоды для изучения.",
     },
     import: {
       description: "Добавьте карточки из файла.",

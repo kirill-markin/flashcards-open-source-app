@@ -763,7 +763,8 @@ const elCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Βιβλιοθήκη",
     groups: {
-      importExport: "Εισαγωγή και εξαγωγή",
+      yourCards: "Οι κάρτες σας",
+      addCards: "Προσθήκη καρτών",
     },
     cards: {
       description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
@@ -773,6 +774,10 @@ const elCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
+    },
+    deckCatalog: {
+      title: "Κατάλογος δεσμών",
+      description: "Δωρεάν έτοιμες δέσμες για μελέτη.",
     },
     import: {
       description: "Προσθέστε κάρτες από αρχείο.",

@@ -763,7 +763,8 @@ const frCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliothèque",
     groups: {
-      importExport: "Importer et exporter",
+      yourCards: "Vos cartes",
+      addCards: "Ajouter des cartes",
     },
     cards: {
       description: "Toutes les cartes de cet espace de travail.",
@@ -773,6 +774,10 @@ const frCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filtres de cartes enregistrés pour une révision ciblée.",
+    },
+    deckCatalog: {
+      title: "Catalogue de paquets",
+      description: "Paquets gratuits prêts à réviser.",
     },
     import: {
       description: "Ajoutez des cartes depuis un fichier.",

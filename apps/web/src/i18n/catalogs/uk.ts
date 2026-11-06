@@ -771,7 +771,8 @@ const ukCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Бібліотека",
     groups: {
-      importExport: "Імпорт і експорт",
+      yourCards: "Ваші картки",
+      addCards: "Додати картки",
     },
     cards: {
       description: "Усі картки в цьому робочому просторі.",
@@ -781,6 +782,10 @@ const ukCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Збережені фільтри карток для цілеспрямованого повторення.",
+    },
+    deckCatalog: {
+      title: "Каталог колод",
+      description: "Безкоштовні готові колоди для вивчення.",
     },
     import: {
       description: "Додайте картки з файлу.",

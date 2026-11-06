@@ -763,7 +763,8 @@ export const zhHansCatalog = {
   libraryScreen: {
     title: "资料库",
     groups: {
-      importExport: "导入与导出",
+      yourCards: "你的卡片",
+      addCards: "添加卡片",
     },
     cards: {
       description: "此工作区中的所有卡片。",
@@ -773,6 +774,10 @@ export const zhHansCatalog = {
     },
     decks: {
       description: "为专注复习保存的卡片筛选条件。",
+    },
+    deckCatalog: {
+      title: "牌组目录",
+      description: "可直接学习的免费现成牌组。",
     },
     import: {
       description: "从文件添加卡片。",

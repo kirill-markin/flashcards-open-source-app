@@ -763,7 +763,8 @@ const nbCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliotek",
     groups: {
-      importExport: "Import og eksport",
+      yourCards: "Kortene dine",
+      addCards: "Legg til kort",
     },
     cards: {
       description: "Alle kort i dette arbeidsområdet.",
@@ -773,6 +774,10 @@ const nbCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Lagrede kortfiltre for fokusert repetisjon.",
+    },
+    deckCatalog: {
+      title: "Katalog med kortstokker",
+      description: "Gratis ferdige kortstokker å studere.",
     },
     import: {
       description: "Legg til kort fra en fil.",

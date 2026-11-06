@@ -763,7 +763,8 @@ const lvCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliotēka",
     groups: {
-      importExport: "Importēšana un eksportēšana",
+      yourCards: "Jūsu kartītes",
+      addCards: "Pievienot kartītes",
     },
     cards: {
       description: "Visas šīs darbvietas kartītes.",
@@ -773,6 +774,10 @@ const lvCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Saglabāti kartīšu filtri mērķtiecīgai atkārtošanai.",
+    },
+    deckCatalog: {
+      title: "Kavu katalogs",
+      description: "Bezmaksas gatavas kavas mācībām.",
     },
     import: {
       description: "Pievienojiet kartītes no faila.",

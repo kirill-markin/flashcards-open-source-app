@@ -742,7 +742,7 @@ test("create, approve, and publish accepts fully resolved supported media", asyn
       frontText: "Prompt ![cover](fcasset:cover)",
       backText: "Answer",
       cardType: "basic",
-      tags: [],
+      tags: ["spanish"],
       mediaAssetKeys: ["cover"],
     },
   );

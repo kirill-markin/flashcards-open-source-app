@@ -11,7 +11,7 @@ import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
-import { catalogDumpPointerObjectKey } from "../catalog-dump";
+import { catalogBrowseIndexPointerObjectKey, catalogDumpPointerObjectKey } from "../catalog-dump";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import {
@@ -583,10 +583,10 @@ function addGlobalMetricsEnvironment(
 }
 
 /**
- * Lets `GET /v1/catalog` redirect to the current immutable catalog artifact
- * instead of recomputing the snapshot per request. The route reads only the
- * pointer alias, so the grant names that single object rather than the prefix
- * the builder writes.
+ * Lets `GET /v1/catalog` and `GET /v1/catalog/browse-index` serve the current
+ * immutable catalog artifacts instead of recomputing them per request. The
+ * routes read only the pointer aliases, so the grant names those objects rather
+ * than the prefix the builder writes.
  */
 function addCatalogDumpArtifactEnvironment(
   fn: lambdaNodejs.NodejsFunction,
@@ -596,7 +596,10 @@ function addCatalogDumpArtifactEnvironment(
   fn.addEnvironment("CATALOG_DUMP_CDN_BASE_URL", config.cdnBaseUrl);
   fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
     actions: ["s3:GetObject"],
-    resources: [config.bucket.arnForObjects(catalogDumpPointerObjectKey)],
+    resources: [
+      config.bucket.arnForObjects(catalogDumpPointerObjectKey),
+      config.bucket.arnForObjects(catalogBrowseIndexPointerObjectKey),
+    ],
   }));
 }
 

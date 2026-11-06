@@ -771,7 +771,8 @@ const roCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliotecă",
     groups: {
-      importExport: "Import și export",
+      yourCards: "Fișele tale",
+      addCards: "Adaugă fișe",
     },
     cards: {
       description: "Toate fișele din acest spațiu de lucru.",
@@ -781,6 +782,10 @@ const roCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Filtre de fișe salvate pentru o recapitulare concentrată.",
+    },
+    deckCatalog: {
+      title: "Catalog de pachete",
+      description: "Pachete gratuite, gata de studiat.",
     },
     import: {
       description: "Adaugă fișe dintr-un fișier.",

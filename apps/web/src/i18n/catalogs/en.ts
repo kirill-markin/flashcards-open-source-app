@@ -762,7 +762,8 @@ const enCatalog = {
   libraryScreen: {
     title: "Library",
     groups: {
-      importExport: "Import & export",
+      yourCards: "Your cards",
+      addCards: "Add cards",
     },
     cards: {
       description: "Every card in this workspace.",
@@ -772,6 +773,10 @@ const enCatalog = {
     },
     decks: {
       description: "Saved card filters for focused review.",
+    },
+    deckCatalog: {
+      title: "Deck catalog",
+      description: "Free ready-made decks to study.",
     },
     import: {
       description: "Add cards from a file.",

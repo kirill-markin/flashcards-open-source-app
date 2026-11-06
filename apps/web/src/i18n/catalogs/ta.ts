@@ -763,7 +763,8 @@ const taCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "நூலகம்",
     groups: {
-      importExport: "இறக்குமதியும் ஏற்றுமதியும்",
+      yourCards: "உங்கள் அட்டைகள்",
+      addCards: "அட்டைகளைச் சேர்க்கவும்",
     },
     cards: {
       description: "இந்தப் பணியிடத்தில் உள்ள எல்லா அட்டைகளும்.",
@@ -773,6 +774,10 @@ const taCatalog: TranslationCatalog = {
     },
     decks: {
       description: "கவனம் செலுத்திய மீள்பயிற்சிக்காகச் சேமித்த அட்டை வடிகட்டிகள்.",
+    },
+    deckCatalog: {
+      title: "தொகுப்புப் பட்டியல்",
+      description: "படிப்பதற்கான இலவச, தயாரான தொகுப்புகள்.",
     },
     import: {
       description: "கோப்பிலிருந்து அட்டைகளைச் சேர்க்கவும்.",

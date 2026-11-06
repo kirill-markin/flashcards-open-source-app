@@ -763,7 +763,8 @@ const bgCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Библиотека",
     groups: {
-      importExport: "Импортиране и експортиране",
+      yourCards: "Вашите карти",
+      addCards: "Добавяне на карти",
     },
     cards: {
       description: "Всички карти в това работно пространство.",
@@ -773,6 +774,10 @@ const bgCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Запазени филтри на карти за фокусиран преговор.",
+    },
+    deckCatalog: {
+      title: "Каталог с тестета",
+      description: "Безплатни готови тестета за учене.",
     },
     import: {
       description: "Добавете карти от файл.",

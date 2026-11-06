@@ -763,7 +763,8 @@ const fiCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Kirjasto",
     groups: {
-      importExport: "Tuonti ja vienti",
+      yourCards: "Korttisi",
+      addCards: "Lisää kortteja",
     },
     cards: {
       description: "Kaikki tämän työtilan kortit.",
@@ -773,6 +774,10 @@ const fiCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Tallennetut korttisuodattimet keskittyneeseen kertaukseen.",
+    },
+    deckCatalog: {
+      title: "Pakkakatalogi",
+      description: "Ilmaisia valmiita pakkoja opiskeluun.",
     },
     import: {
       description: "Lisää kortteja tiedostosta.",

@@ -763,7 +763,8 @@ const daCatalog: TranslationCatalog = {
   libraryScreen: {
     title: "Bibliotek",
     groups: {
-      importExport: "Import og eksport",
+      yourCards: "Dine kort",
+      addCards: "Tilføj kort",
     },
     cards: {
       description: "Alle kort i dette arbejdsområde.",
@@ -773,6 +774,10 @@ const daCatalog: TranslationCatalog = {
     },
     decks: {
       description: "Gemte kortfiltre til fokuseret repetition.",
+    },
+    deckCatalog: {
+      title: "Bunkekatalog",
+      description: "Gratis færdige bunker at studere.",
     },
     import: {
       description: "Tilføj kort fra en fil.",
