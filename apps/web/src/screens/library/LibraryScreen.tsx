@@ -17,7 +17,7 @@ import {
   libraryTagsRoute,
 } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
-import { SettingsGroup, SettingsLinkCard, SettingsNavigationCard, SettingsShell } from "../settings/SettingsShared";
+import { SettingsExternalLinkCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../settings/SettingsShared";
 
 type LibraryCounts = Readonly<{
   cards: number;
@@ -156,11 +156,12 @@ export function LibraryScreen(): ReactElement {
 
       <SettingsGroup title={t("libraryScreen.groups.addCards")}>
         <div className="settings-nav-list">
-          <SettingsLinkCard
+          <SettingsExternalLinkCard
             title={t("libraryScreen.deckCatalog.title")}
             description={t("libraryScreen.deckCatalog.description")}
             href={getPublicSiteCatalogUrl(locale)}
             testId="library-row-deck-catalog"
+            opensInNewTab={false}
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.import.title")}
