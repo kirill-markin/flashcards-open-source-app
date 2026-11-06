@@ -534,9 +534,11 @@ struct RootTabView: View {
                         .tag(MacSidebarSelection.librarySection(section))
                 }
             }
-            self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
-                .badge(self.settingsAttentionSummary.settingsTabCount)
-                .tag(MacSidebarSelection.tab(.settings))
+            Section(String(localized: "mac.sidebar.app_section.title", table: "Foundation")) {
+                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
+                    .badge(self.settingsAttentionSummary.settingsTabCount)
+                    .tag(MacSidebarSelection.tab(.settings))
+            }
         }
         .listStyle(.sidebar)
         .environment(\.defaultMinListRowHeight, MacSidebarRowMetrics(size: self.sidebarRowSize).rowHeight)
