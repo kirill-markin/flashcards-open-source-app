@@ -79,10 +79,8 @@ struct CatalogListScreen: View {
         .refreshable {
             await self.revalidate()
         }
-        .onAppear {
-            self.catalog.loadCachedIndexIfNeeded()
-        }
         .task {
+            await self.catalog.loadCachedIndexIfNeeded()
             await self.revalidateIfStale()
         }
         .task(id: visibleDecks.prefix(catalogDeckPreviewPrefetchCount).map(\.packageVersionId)) {

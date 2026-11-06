@@ -45,20 +45,32 @@ final class CatalogIndexStore {
         self.deckPreviewLoads = [:]
     }
 
-    func loadCachedIndexIfNeeded() {
+    func loadCachedIndexIfNeeded() async {
         guard self.hasLoadedCache == false else {
             return
         }
         self.hasLoadedCache = true
 
         do {
-            let fileURL = try catalogBrowseIndexCacheFileURL()
-            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            let locale = Locale.current
+            let snapshot = try await Task.detached(priority: .userInitiated) { () -> CatalogBrowseIndexSnapshot? in
+                let fileURL = try catalogBrowseIndexCacheFileURL()
+                guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                    return nil
+                }
+
+                let data = try Data(contentsOf: fileURL)
+                return makeCatalogBrowseIndexSnapshot(
+                    index: try decodeCatalogBrowseIndex(data: data),
+                    sha256: catalogBrowseIndexSha256(data: data),
+                    locale: locale
+                )
+            }.value
+            // A refresh that finished during the read has already published a newer index.
+            guard let snapshot, self.indexSha256 == nil else {
                 return
             }
-
-            let data = try Data(contentsOf: fileURL)
-            self.publish(index: try decodeCatalogBrowseIndex(data: data), sha256: catalogBrowseIndexSha256(data: data))
+            self.publish(snapshot: snapshot)
         } catch {
             self.failureMessage = errorMessage(error: error)
         }
@@ -88,9 +100,13 @@ final class CatalogIndexStore {
             let pointer = try await loadCatalogBrowseIndexPointer(urlSession: self.urlSession, apiBaseUrl: apiBaseUrl)
             if pointer.sha256 != self.indexSha256 {
                 let data = try await loadCatalogBrowseIndexData(urlSession: self.urlSession, pointer: pointer)
-                let index = try decodeCatalogBrowseIndex(data: data)
-                try data.write(to: try catalogBrowseIndexCacheFileURL(), options: .atomic)
-                self.publish(index: index, sha256: pointer.sha256)
+                let locale = Locale.current
+                let snapshot = try await Task.detached(priority: .userInitiated) { () -> CatalogBrowseIndexSnapshot in
+                    let index = try decodeCatalogBrowseIndex(data: data)
+                    try data.write(to: try catalogBrowseIndexCacheFileURL(), options: .atomic)
+                    return makeCatalogBrowseIndexSnapshot(index: index, sha256: pointer.sha256, locale: locale)
+                }.value
+                self.publish(snapshot: snapshot)
             }
             self.lastCheckedAt = Date()
             self.failureMessage = nil
@@ -102,15 +118,11 @@ final class CatalogIndexStore {
         }
     }
 
-    private func publish(index: CatalogBrowseIndex, sha256: String) {
-        let listedDecks = makeCatalogListedDecks(decks: index.decks)
-        self.index = index
-        self.listedDecks = listedDecks
-        self.languageCodes = sortedCatalogLanguageCodes(
-            codes: catalogLanguageCodes(listedDecks: listedDecks),
-            locale: Locale.current
-        )
-        self.indexSha256 = sha256
+    private func publish(snapshot: CatalogBrowseIndexSnapshot) {
+        self.index = snapshot.index
+        self.listedDecks = snapshot.listedDecks
+        self.languageCodes = snapshot.languageCodes
+        self.indexSha256 = snapshot.sha256
     }
 
     /// The cached preview of this deck version, else both requests at once. A package whose latest
@@ -196,6 +208,28 @@ final class CatalogIndexStore {
             }
         }
     }
+}
+
+/// A decoded index with the listing derived from it, built off the main actor.
+private struct CatalogBrowseIndexSnapshot: Sendable {
+    let index: CatalogBrowseIndex
+    let sha256: String
+    let listedDecks: [CatalogListedDeck]
+    let languageCodes: [String]
+}
+
+private func makeCatalogBrowseIndexSnapshot(
+    index: CatalogBrowseIndex,
+    sha256: String,
+    locale: Locale
+) -> CatalogBrowseIndexSnapshot {
+    let listedDecks = makeCatalogListedDecks(decks: index.decks)
+    return CatalogBrowseIndexSnapshot(
+        index: index,
+        sha256: sha256,
+        listedDecks: listedDecks,
+        languageCodes: sortedCatalogLanguageCodes(codes: catalogLanguageCodes(listedDecks: listedDecks), locale: locale)
+    )
 }
 
 private func catalogBrowseIndexCacheFileURL() throws -> URL {
