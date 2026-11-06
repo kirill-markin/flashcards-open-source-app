@@ -178,7 +178,7 @@ Check all of these on a simulator or device:
    labels and green catalog checks do not prove the full text is drawn.
 3. Library tab: the hub's rows, the Your cards and Add cards section headers and
    subtitles, then Cards, Tags, Decks, Deck catalog (search, language and sort
-   menus, card counts), Import and Export
+   menus, card counts, a deck page and its Study button), Import and Export
 4. AI tab, including a card attached from Review and its localized chip label.
    Use long translated labels and long user content on iPhone and iPad, including
    RTL: keep the chip and Remove control inside the viewport and removal usable.

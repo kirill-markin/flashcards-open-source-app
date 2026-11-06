@@ -1,7 +1,7 @@
 import SwiftUI
 
 private let catalogStringsTableName: String = "Foundation"
-private let catalogDeckCoverSize: CGFloat = 56
+private let catalogDeckRowCoverSize: CGFloat = 56
 
 /// The public deck catalog: the cached index at once, revalidated in the background.
 struct CatalogListScreen: View {
@@ -27,22 +27,17 @@ struct CatalogListScreen: View {
         catalogLanguageCodes(decks: self.decks)
     }
 
-    private var languageFilter: Binding<CatalogLanguageFilter> {
-        Binding(
-            get: {
-                self.languageChoice ?? defaultCatalogLanguageFilter(
-                    languageCodes: self.languageCodes,
-                    appLocaleIdentifier: currentAppUILocaleIdentifier()
-                )
-            },
-            set: { self.languageChoice = $0 }
+    private var defaultLanguageFilter: CatalogLanguageFilter {
+        defaultCatalogLanguageFilter(
+            languageCodes: self.languageCodes,
+            appLocaleIdentifier: currentAppUILocaleIdentifier()
         )
     }
 
     private var visibleDecks: [CatalogBrowseIndexDeck] {
         catalogDecksMatching(
             decks: self.decks,
-            languageFilter: self.languageFilter.wrappedValue,
+            languageFilter: self.languageChoice ?? self.defaultLanguageFilter,
             searchText: self.searchText,
             sortOrder: self.sortOrder
         )
@@ -96,6 +91,9 @@ struct CatalogListScreen: View {
         }
         .task {
             await self.revalidateIfStale()
+        }
+        .task(id: self.visibleDecks.prefix(catalogDeckPreviewPrefetchCount).map(\.packageVersionId)) {
+            await self.prefetchVisibleDeckPreviews()
         }
     }
 
@@ -155,7 +153,10 @@ struct CatalogListScreen: View {
                 )
             } else {
                 ForEach(self.visibleDecks) { deck in
-                    CatalogDeckRow(deck: deck)
+                    NavigationLink(value: LibraryNavigationDestination.catalogDeck(deck)) {
+                        CatalogDeckRow(deck: deck)
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.catalogListDeckRow)
                 }
             }
         }
@@ -164,7 +165,8 @@ struct CatalogListScreen: View {
     @ViewBuilder
     private var optionPickers: some View {
         CatalogLanguagePicker(
-            languageFilter: self.languageFilter,
+            languageChoice: self.$languageChoice,
+            defaultLanguageFilter: self.defaultLanguageFilter,
             languageCodes: sortedCatalogLanguageCodes(codes: self.languageCodes, locale: self.locale),
             locale: self.locale
         )
@@ -225,6 +227,13 @@ struct CatalogListScreen: View {
         await self.catalog.revalidateIfStale(apiBaseUrl: apiBaseUrl, now: Date())
     }
 
+    private func prefetchVisibleDeckPreviews() async {
+        guard self.catalog.index != nil, let apiBaseUrl = self.apiBaseUrl() else {
+            return
+        }
+        await self.catalog.prefetchDeckPreviews(apiBaseUrl: apiBaseUrl, decks: self.visibleDecks)
+    }
+
     private func revalidate() async {
         guard let apiBaseUrl = self.apiBaseUrl() else {
             return
@@ -242,13 +251,19 @@ struct CatalogListScreen: View {
     }
 }
 
+/// Takes the screen's state binding itself: the Mac options popover is hosted outside the screen,
+/// and only a state binding read here refreshes the shown choice there.
 private struct CatalogLanguagePicker: View {
-    @Binding var languageFilter: CatalogLanguageFilter
+    @Binding var languageChoice: CatalogLanguageFilter?
+    let defaultLanguageFilter: CatalogLanguageFilter
     let languageCodes: [String]
     let locale: Locale
 
     var body: some View {
-        Picker(selection: self.$languageFilter) {
+        Picker(selection: Binding(
+            get: { self.languageChoice ?? self.defaultLanguageFilter },
+            set: { self.languageChoice = $0 }
+        )) {
             Text(String(localized: "catalog.list.language.all", table: catalogStringsTableName))
                 .tag(CatalogLanguageFilter.allLanguages)
             ForEach(self.languageCodes, id: \.self) { code in
@@ -281,7 +296,7 @@ private struct CatalogDeckRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            CatalogDeckCover(url: self.deck.coverImageUrl)
+            CatalogDeckCover(url: self.deck.coverImageUrl, size: catalogDeckRowCoverSize)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(self.deck.title)
@@ -300,8 +315,9 @@ private struct CatalogDeckRow: View {
     }
 }
 
-private struct CatalogDeckCover: View {
+struct CatalogDeckCover: View {
     let url: URL?
+    let size: CGFloat
 
     var body: some View {
         Group {
@@ -319,8 +335,8 @@ private struct CatalogDeckCover: View {
                 self.placeholder
             }
         }
-        .frame(width: catalogDeckCoverSize, height: catalogDeckCoverSize)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .frame(width: self.size, height: self.size)
+        .clipShape(RoundedRectangle(cornerRadius: self.size / 5.6, style: .continuous))
         .accessibilityHidden(true)
     }
 

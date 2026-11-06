@@ -8848,6 +8848,94 @@
         }
       }
     },
+    "catalog.deck.about" : {
+      "comment" : "Deck catalog page: section header above a public deck's description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About this deck"
+          }
+        }
+      }
+    },
+    "catalog.deck.author %@" : {
+      "comment" : "Deck catalog page: the public deck's author, shown after the card count",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By %@"
+          }
+        }
+      }
+    },
+    "catalog.deck.first_cards" : {
+      "comment" : "Deck catalog page: section header above the first cards of a public deck",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First cards"
+          }
+        }
+      }
+    },
+    "catalog.deck.load_failed" : {
+      "comment" : "Deck catalog page: notice when the description and first cards could not be loaded",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load this deck"
+          }
+        }
+      }
+    },
+    "catalog.deck.loading" : {
+      "comment" : "Deck catalog page: loading state while the description and first cards load",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading deck…"
+          }
+        }
+      }
+    },
+    "catalog.deck.study" : {
+      "comment" : "Deck catalog page: button that adds the public deck to the current workspace and opens Review on it",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Study this deck"
+          }
+        }
+      }
+    },
+    "catalog.deck.study_failed" : {
+      "comment" : "Deck catalog page: notice above the error when adding the deck or opening Review failed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't start studying this deck"
+          }
+        }
+      }
+    },
+    "catalog.deck.unavailable.title" : {
+      "comment" : "Deck catalog page: alert when the public deck was removed from the catalog",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deck is no longer available"
+          }
+        }
+      }
+    },
     "catalog.list.card_count %lld" : {
       "comment" : "Deck catalog row: number of cards in a public deck",
       "localizations" : {

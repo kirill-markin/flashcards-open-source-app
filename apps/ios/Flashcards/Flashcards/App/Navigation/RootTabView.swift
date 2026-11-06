@@ -1019,6 +1019,8 @@ struct RootTabView: View {
             DeckDetailScreen(destination: deck)
         case .deckCatalog:
             CatalogListScreen()
+        case .catalogDeck(let deck):
+            CatalogDeckScreen(deck: deck)
         case .importData:
             WorkspaceImportView()
         case .exportData:

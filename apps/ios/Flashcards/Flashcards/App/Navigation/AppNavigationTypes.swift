@@ -54,6 +54,7 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case decks
     case deckDetail(DeckScreenDestination)
     case deckCatalog
+    case catalogDeck(CatalogBrowseIndexDeck)
     case importData
     case exportData
 }

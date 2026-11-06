@@ -173,7 +173,7 @@ func loadCatalogBrowseIndexData(urlSession: URLSession, pointer: CatalogBrowseIn
 }
 
 /// A public GET with no auth header, retried on transport failures and 5xx responses.
-private func loadCatalogData(urlSession: URLSession, url: URL) async throws -> Data {
+func loadCatalogData(urlSession: URLSession, url: URL) async throws -> Data {
     var attempt = 1
     while true {
         do {

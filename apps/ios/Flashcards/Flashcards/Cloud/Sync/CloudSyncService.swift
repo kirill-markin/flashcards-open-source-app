@@ -537,6 +537,36 @@ final class CloudSyncService: @unchecked Sendable {
         return response.feedbackState
     }
 
+    func loadCatalogPackageInstallContext(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        packageVersionId: String
+    ) async throws -> CatalogPackageInstallContext {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/catalog/package-versions/\(packageVersionId)/install-context",
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
+    func installCatalogPackageVersion(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageVersionId: String,
+        request: CatalogPackageInstallRequest
+    ) async throws -> CatalogPackageInstallResponse {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/workspaces/\(workspaceId)/catalog/package-versions/\(packageVersionId)/install",
+            method: "POST",
+            body: request
+        )
+    }
+
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
         logCloudFlowPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
         let response: WorkspaceEnvelope = try await self.transport.request(
