@@ -5,15 +5,31 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tarfile
 import time
 import xml.etree.ElementTree as ET
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import cast
+from urllib.request import urlopen
 
 
 Json = dict[str, object]
+LINKED_WORKSPACE_CASE = "com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest#linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible"
+
+
+@dataclass(frozen=True)
+class Destination:
+    selection: str
+    api: str
+    device: str
+    targets: list[str]
+    labels: Json
+    expected: set[str]
+    excluded: set[str]
 
 
 def obj(value: object) -> Json:
@@ -49,16 +65,33 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def release_apk_hashes() -> dict[str, str]:
+    hashes = {kind: os.environ[f"{kind.upper()}_APK_SHA256"] for kind in ("app", "test")}
+    if any(not re.fullmatch(r"[a-f0-9]{64}", sha) for sha in hashes.values()):
+        raise ValueError("Invalid pinned GitHub run APK hashes")
+    return hashes
+
+
 def gcloud(args: list[str], destination: Path, diagnostics: Path) -> None:
-    for attempt in range(1, 4):
-        with destination.open("wb") as output, diagnostics.open("ab") as errors:
-            result = subprocess.run(["gcloud", *args, "--quiet"], stdout=output, stderr=errors, check=False)
-        if result.returncode == 0:
-            return
-        print(f"WARNING: Google evidence operation attempt {attempt}/3 failed; diagnostics retained privately")
-        if attempt < 3:
-            time.sleep(5)
+    with TemporaryDirectory(dir=destination.parent) as directory:
+        pending = Path(directory) / destination.name
+        for attempt in range(1, 4):
+            with pending.open("wb") as output, diagnostics.open("ab") as errors:
+                result = subprocess.run(["gcloud", *args, "--quiet"], stdout=output, stderr=errors, check=False)
+            if result.returncode == 0:
+                pending.replace(destination)
+                return
+            print(f"WARNING: Google evidence operation attempt {attempt}/3 failed; diagnostics retained privately")
+            if attempt < 3:
+                time.sleep(5)
     raise ValueError(f"Google evidence operation failed with exit {result.returncode}; inspect private collector diagnostics")
+
+
+def download(uri: str, destination: Path, transfer_log: Path, diagnostics: Path) -> None:
+    with TemporaryDirectory(dir=destination.parent) as directory:
+        pending = Path(directory) / destination.name
+        gcloud(["storage", "cp", uri, str(pending)], transfer_log, diagnostics)
+        pending.replace(destination)
 
 
 # The expected latest inventory comes from the checked-out declarations, never from passing results, so a
@@ -161,6 +194,7 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
     if len(installs) != 1 or len(records(installs[0]["installables"])) != 1:
         raise ValueError("Expected one app installation action")
     artifacts: list[Json] = []
+    expected_hashes = release_apk_hashes()
     for kind, installable, original in (
         ("test", obj(action["testInstallable"]), Path(os.environ["TEST_APK_PATH"])),
         ("app", records(installs[0]["installables"])[0], Path(os.environ["APP_APK_PATH"])),
@@ -173,10 +207,10 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
         if not re.fullmatch(input_pattern, uri):
             raise ValueError("Submitted APK reference is outside the private input directory")
         apk = local / (kind + ".apk")
-        gcloud(["storage", "cp", uri, str(apk)], local / "transfer.log", diagnostics)
+        download(uri, apk, local / "transfer.log", diagnostics)
         sha = digest(apk)
-        if sha != digest(original):
-            raise ValueError("Submitted APK hash differs from this GitHub run artifact")
+        if sha != expected_hashes[kind]:
+            raise ValueError(f"Submitted {kind} APK hash differs from the pinned GitHub run artifact")
         artifacts.append({"kind": kind, "object": uri, "sha256": sha})
         apk.unlink()
     executions = records(job_reports[0].get("executionReports", []))
@@ -200,7 +234,7 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
             path = local / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             try:
-                gcloud(["storage", "cp", uri, str(path)], local / "transfer.log", diagnostics)
+                download(uri, path, local / "transfer.log", diagnostics)
             except ValueError:
                 problems.append("native_download_failed")
                 continue
@@ -249,6 +283,173 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
             "artifacts": artifacts, "problems": problems, "passed": not problems}
 
 
+def release_destinations() -> list[Destination]:
+    selected, excluded = inventory()
+    selection = read(Path("scripts/android/device-run-test-selection.json"))
+    latest = strings(selection["latest"])
+    if latest != ["package com.flashcardsopensourceapp.app", "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"]:
+        raise ValueError("Latest configured filters require explicit inventory support")
+    compat_targets = strings(selection["compat"])
+    compat = {target.removeprefix("class ") for target in compat_targets}
+    if len(compat) != 4 or len(compat_targets) != 4 or not compat <= selected or any(not target.startswith("class ") for target in compat_targets):
+        raise ValueError("Four configured compatibility methods must belong to the declared latest inventory")
+    devices = [os.environ["ANDROID_DEVICE_RUN_DEVICE"], *json.loads(os.environ["ANDROID_DEVICE_RUN_COMPAT_DEVICES"])]
+    if len(devices) != 4 or any(not isinstance(device, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", device) for device in devices):
+        raise ValueError("Expected four configured device IDs")
+    labels: Json = {"target_sha": os.environ["TARGET_SHA"], "github_run_id": os.environ["GITHUB_RUN_ID"],
+                    "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"], "release_id": os.environ["RELEASE_ID"]}
+    return [
+        Destination("latest", "37", devices[0], latest, {**labels, "suite": "latest"}, selected, excluded),
+        *(Destination(f"compat-api{api}", api, device, compat_targets, {**labels, "suite": "compat"}, compat, set())
+          for api, device in zip(("30", "31", "33"), devices[1:], strict=True)),
+    ]
+
+
+def session_ids(log: Path) -> list[str]:
+    return re.findall(r"Creating session \[(session-[a-f0-9-]+)\]", log.read_text()) if log.exists() else []
+
+
+def collect_destination(report: Path, session_id: str, destination: Destination, private: Path) -> Json:
+    return collect_session(read(report), session_id, destination.device, destination.targets, destination.labels,
+                           destination.expected, destination.excluded, os.environ["ANDROID_DEVICE_RUN_RESULTS_BUCKET"],
+                           report.parent, private / "collector.log")
+
+
+def auth_dns_log_matches(logcat: Path) -> bool:
+    class_name, method = LINKED_WORKSPACE_CASE.split("#")
+    test = f"{method}({class_name})"
+    prefix = re.compile(r"^\S+ \S+\s+(\d+)\s+\d+\s+[A-Z] (TestRunner|AppObservability): (.*)$")
+    # Orchestrator also logs a discovery invocation. Bind DNS to the failed test process.
+    active: dict[str, list[dict[str, str]]] = {}
+    failed: set[str] = set()
+    completed: list[list[dict[str, str]]] = []
+    with logcat.open() as lines:
+        for line in lines:
+            match = prefix.match(line)
+            if match is None:
+                continue
+            pid, tag, message = match.groups()
+            if tag == "TestRunner":
+                if message == f"started: {test}":
+                    if pid in active:
+                        return False
+                    active[pid] = []
+                elif message == f"failed: {test}":
+                    if pid not in active or pid in failed:
+                        return False
+                    failed.add(pid)
+                elif message == f"finished: {test}":
+                    if pid not in active:
+                        return False
+                    attempts = active.pop(pid)
+                    if pid in failed:
+                        failed.remove(pid)
+                        completed.append(attempts)
+                    elif attempts:
+                        return False
+                continue
+            if pid in active and pid not in failed:
+                fields = dict(re.findall(r"\b(\w+)=([^\s]+)", message))
+                if fields.get("action") == "http_attempt_finished" and fields.get("endpointName") == "/api/auth-methods":
+                    active[pid].append(fields)
+    if active or len(completed) != 1 or len(completed[0]) != 4:
+        return False
+    required = {"event": "breadcrumb", "platform": "android", "feature": "auth", "method": "GET",
+                "statusCode": "null", "requestId": "null", "requestHeadersCompleted": "false",
+                "responseBodyRead": "false", "cancelled": "false", "exceptionClass": "java.net.UnknownHostException"}
+    return all(fields.get("attemptNumber") == str(index) and all(fields.get(key) == value for key, value in required.items())
+               for index, fields in enumerate(completed[0], start=1))
+
+
+def auth_dns_failure(report: Json, evidence: Json, local: Path) -> bool:
+    if set(strings(evidence["problems"])) != {"selected_case_not_passed", "terminal_result_not_passed"}:
+        return False
+    if [case for case in records(evidence["cases"]) if case["status"] != "passed"] != [
+        {"identity": LINKED_WORKSPACE_CASE, "status": "failure", "count": 1},
+    ]:
+        return False
+    session = obj(report["sessionReport"])
+    job, = records(session["jobReports"])
+    executions = records(job["executionReports"])
+    if len(executions) != 1:
+        return False
+    for owner, reason in zip([session, job, *executions], ("SESSION_HAS_FAILED_JOBS", "JOB_HAS_FAILED_TESTS", "TEST_CASE_FAILURE"), strict=True):
+        result = obj(owner["result"])
+        if (obj(owner["status"])["statusType"] != "DONE" or result["resultType"] != "FAILED" or
+                obj(obj(result["cause"])["summary"])["reason"] != reason):
+            return False
+    junit_files = sorted((local / "job-000").rglob("*junit.xml"))
+    logcats = list((local / "job-000").glob("execution-*/logcat.txt"))
+    if len(junit_files) != 2 or len(logcats) != 1:
+        return False
+    for junit_file in junit_files:
+        failures = list(ET.parse(junit_file).iter("failure"))
+        if len(failures) != 1:
+            return False
+        stack = failures[0].text or ""
+        if not stack.startswith("java.lang.AssertionError: Android live smoke step failed: sign in with the configured review account\n"):
+            return False
+        if not re.search(
+            r"^Caused by: androidx\.compose\.ui\.test\.ComposeTimeoutException:[^\n]*\n"
+            r"(?:[ \t]+at [^\n]+\n)*"
+            r"[ \t]+at com\.flashcardsopensourceapp\.app\.livesmoke\.diagnostics\.LiveSmokeDiagnosticsKt"
+            r"\.waitUntilAtLeastOneExistsOrFail\(LiveSmokeDiagnostics\.kt:\d+\)\n"
+            r"[ \t]+at com\.flashcardsopensourceapp\.app\.livesmoke\.flows\.LiveSmokeAuthFlowsKt"
+            r"\.signInWithReviewAccount\(LiveSmokeAuthFlows\.kt:\d+\)$",
+            stack, re.M,
+        ):
+            return False
+    return auth_dns_log_matches(logcats[0])
+
+
+def public_json(url: str) -> Json:
+    with urlopen(url, timeout=10) as response:
+        if response.status != 200 or response.geturl() != url:
+            raise ValueError("Production health probe returned a non-200 or redirected response")
+        return obj(json.loads(response.read(65536)))
+
+
+def verify_production_health() -> None:
+    configuration = Path("apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cloud/CloudSupport.kt").read_text()
+    auth, = re.findall(r'^private const val flashcardsOfficialAuthBaseUrl: String = "(https://auth\.(?:nibomo|flashcards-open-source-app)\.com)"$', configuration, re.M)
+    api, = re.findall(r'^private const val flashcardsOfficialApiBaseUrl: String = "(https://api\.(?:nibomo|flashcards-open-source-app)\.com/v1)"$', configuration, re.M)
+    methods = public_json(auth + "/api/auth-methods?client=android")
+    health = public_json(api + "/health")
+    if (methods.get("client") != "android" or obj(obj(methods["methods"])["email"]).get("available") is not True or
+            health.get("status") != "ok" or not health.get("dbTime")):
+        raise ValueError("Production Android auth methods or API database health did not verify")
+
+
+def classify_lab_dns(selection: str) -> None:
+    temporary = Path(os.environ["RUNNER_TEMP"])
+    private = temporary / "device-run-private"
+    private.mkdir(exist_ok=True)
+    diagnostics = private / "collector.log"
+    try:
+        destination, = [item for item in release_destinations() if item.selection == selection]
+        log = temporary / f"device-run-{selection}-submit.log"
+        session_id, = session_ids(log)
+        if re.findall(r"^DEVICE_RUN_TERMINAL_TEST_FAILURE=(.+)$", log.read_text(), re.M) != [session_id]:
+            raise ValueError("Device Run wrapper did not confirm a terminal test failure for the submitted session")
+        first = temporary / f"device-run-{selection}-session.json"
+        local = private / session_id
+        local.mkdir()
+        report = local / "session-full.json"
+        report.write_bytes(first.read_bytes())
+        evidence = collect_destination(report, session_id, destination, private)
+        if not auth_dns_failure(read(report), evidence, local):
+            raise ValueError("First session does not match the known auth DNS failure")
+        verify_production_health()
+        retry_record: Json = {"selection": selection, "session_id": session_id, "reason": "lab_dns_before_auth_request",
+                              "report": {"member": f"{session_id}/session-full.json", "sha256": digest(report)},
+                              "apk_sha256": {text(item["kind"]): item["sha256"] for item in records(evidence["artifacts"]) if "kind" in item}}
+        (temporary / "device-run-retry-evidence.json").write_text(json.dumps(retry_record) + "\n")
+    except (ValueError, KeyError, OSError, ET.ParseError) as error:
+        with diagnostics.open("a") as stream:
+            stream.write(f"{selection}: DNS retry classification declined: {error}\n")
+        raise SystemExit("Device Run DNS retry eligibility could not be verified; inspect private diagnostics")
+
+
 def main() -> None:
     temporary = Path(os.environ["RUNNER_TEMP"])
     bucket = os.environ["ANDROID_DEVICE_RUN_RESULTS_BUCKET"]
@@ -263,24 +464,27 @@ def main() -> None:
                      "release_id": os.environ["RELEASE_ID"], "private_archive": archive + "raw.tar.gz", "sessions": []}
     sessions: list[Json] = []
     try:
-        selected, excluded = inventory()
-        selection = read(Path("scripts/android/device-run-test-selection.json"))
-        compat_targets = strings(selection["compat"])
-        if strings(selection["latest"]) != ["package com.flashcardsopensourceapp.app", "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"]:
-            raise ValueError("Latest configured filters require explicit inventory support")
-        compat = {target.removeprefix("class ") for target in compat_targets}
-        if len(compat) != 4 or len(compat_targets) != 4 or not compat <= selected or any(not target.startswith("class ") for target in compat_targets):
-            raise ValueError("Four configured compatibility methods must belong to the declared latest inventory")
-        summary["latest_inventory"] = sorted(selected)
-        summary["manual_exclusions"] = sorted(excluded)
-        destinations = [os.environ["ANDROID_DEVICE_RUN_DEVICE"], *json.loads(os.environ["ANDROID_DEVICE_RUN_COMPAT_DEVICES"])]
-        if len(destinations) != 4 or any(not isinstance(device, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", device) for device in destinations):
-            raise ValueError("Expected four configured device IDs")
-        for suffix, device, suite in zip(("latest", "compat-api30", "compat-api31", "compat-api33"), destinations, ("latest", "compat", "compat", "compat")):
-            record: Json = {"selection": suffix, "device": device, "api": "37" if suffix == "latest" else suffix.removeprefix("compat-api"), "passed": False}
+        destinations = release_destinations()
+        summary["latest_inventory"] = sorted(destinations[0].expected)
+        summary["manual_exclusions"] = sorted(destinations[0].excluded)
+        retry_path = temporary / "device-run-retry-evidence.json"
+        retry = read(retry_path) if retry_path.exists() else {}
+        if retry and retry.get("selection") not in {destination.selection for destination in destinations}:
+            raise ValueError("Retry record does not identify a configured destination")
+        for destination in destinations:
+            suffix = destination.selection
+            record: Json = {"selection": suffix, "device": destination.device, "api": destination.api, "passed": False}
             sessions.append(record)
-            log = temporary / f"device-run-{suffix}-submit.log"
-            ids = re.findall(r"Creating session \[(session-[a-f0-9-]+)\]", log.read_text()) if log.exists() else []
+            ids = session_ids(temporary / f"device-run-{suffix}-submit.log")
+            if retry.get("selection") == suffix:
+                first_id, = ids
+                ids = session_ids(temporary / f"device-run-{suffix}-retry-submit.log")
+                first_report = f"{first_id}/session-full.json"
+                if (first_id in ids or retry.get("session_id") != first_id or
+                        retry.get("report") != {"member": first_report, "sha256": digest(private / first_report)} or
+                        retry.get("apk_sha256") != release_apk_hashes()):
+                    raise ValueError("Initial failed report, retry session identity or APK hashes do not match the retained evidence")
+                record["initial_failure"] = {key: retry[key] for key in ("selection", "session_id", "reason", "report")}
             if len(ids) != 1:
                 record["problem"] = "session_not_created"
                 continue
@@ -293,10 +497,7 @@ def main() -> None:
                         "--project", os.environ["GCP_PROJECT_ID"], "--location", "global"], refreshed, diagnostics)
                 record["session_id"] = session_id
                 record["report"] = {"member": session_id + "/session-full.json", "sha256": digest(refreshed)}
-                labels: Json = {"target_sha": sha, "github_run_id": run_id, "github_run_attempt": attempt,
-                                "release_id": os.environ["RELEASE_ID"], "suite": suite}
-                record.update(collect_session(read(refreshed), session_id, device, strings(selection[suite]), labels,
-                                              selected if suite == "latest" else compat, excluded if suite == "latest" else set(), bucket, local, diagnostics))
+                record.update(collect_destination(refreshed, session_id, destination, private))
             except (ValueError, KeyError, OSError, ET.ParseError) as error:
                 record["problem"] = "evidence_collection_failed"
                 with diagnostics.open("a") as stream:
@@ -325,6 +526,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--classify-lab-dns":
+        classify_lab_dns(sys.argv[2])
+        raise SystemExit(0)
+    if len(sys.argv) != 1:
+        raise SystemExit("Expected no arguments or --classify-lab-dns <selection>")
     try:
         main()
     except (ValueError, KeyError, OSError, ET.ParseError):
