@@ -239,7 +239,11 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
+            #if targetEnvironment(macCatalyst)
             scrollSurface.scrollTowardLaterContent()
+            #else
+            try self.dragReviewFilterScrollSurface(scrollSurface, from: 0.75, to: 0.25)
+            #endif
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -261,7 +265,11 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
+            #if targetEnvironment(macCatalyst)
             scrollSurface.scrollTowardEarlierContent()
+            #else
+            try self.dragReviewFilterScrollSurface(scrollSurface, from: 0.25, to: 0.75)
+            #endif
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -272,6 +280,33 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             step: self.currentStepTitle
         )
     }
+
+    #if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func dragReviewFilterScrollSurface(
+        _ scrollSurface: XCUIElement,
+        from startFraction: CGFloat,
+        to endFraction: CGFloat
+    ) throws {
+        let appFrame = self.app.frame
+        let viewport = scrollSurface.frame.intersection(appFrame)
+        guard !viewport.isEmpty else {
+            throw LiveSmokeFailure.unexpectedReviewState(
+                message: "The review filter has no on-screen scroll viewport.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        // A zero-size accessibility ancestor prevents XCTest from swiping the visible scroll view directly.
+        let origin = self.app.coordinate(withNormalizedOffset: .zero)
+        let x = viewport.midX - appFrame.minX
+        let top = viewport.minY - appFrame.minY
+        let start = origin.withOffset(CGVector(dx: x, dy: top + viewport.height * startFraction))
+        let end = origin.withOffset(CGVector(dx: x, dy: top + viewport.height * endFraction))
+        start.press(forDuration: 0, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
+    }
+    #endif
 
     @MainActor
     private func dismissReviewFilterPopoverWithOutsideTap() throws {
