@@ -8848,6 +8848,194 @@
         }
       }
     },
+    "catalog.list.card_count %lld" : {
+      "comment" : "Deck catalog row: number of cards in a public deck",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld card"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cards"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "catalog.list.empty.title" : {
+      "comment" : "Deck catalog empty state when the catalog has no public decks",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No decks in the catalog yet"
+          }
+        }
+      }
+    },
+    "catalog.list.language.all" : {
+      "comment" : "Deck catalog language filter option that shows decks in every language",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All languages"
+          }
+        }
+      }
+    },
+    "catalog.list.language.title" : {
+      "comment" : "Deck catalog filter menu: language picker label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        }
+      }
+    },
+    "catalog.list.load_failed.title" : {
+      "comment" : "Deck catalog error title when no saved catalog exists and loading failed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the catalog"
+          }
+        }
+      }
+    },
+    "catalog.list.loading" : {
+      "comment" : "Deck catalog loading state before any decks are saved on the device",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading decks…"
+          }
+        }
+      }
+    },
+    "catalog.list.no_matches.description" : {
+      "comment" : "Deck catalog empty state description when search or language filter hides every deck",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try a different search or language."
+          }
+        }
+      }
+    },
+    "catalog.list.no_matches.title" : {
+      "comment" : "Deck catalog empty state title when search or language filter hides every deck",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching decks"
+          }
+        }
+      }
+    },
+    "catalog.list.options" : {
+      "comment" : "Deck catalog toolbar menu accessibility label for language and sort options",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter and sort"
+          }
+        }
+      }
+    },
+    "catalog.list.refresh_failed" : {
+      "comment" : "Deck catalog non-blocking notice when a refresh failed and saved decks are shown",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't refresh the catalog. Showing the saved decks."
+          }
+        }
+      }
+    },
+    "catalog.list.retry" : {
+      "comment" : "Deck catalog button that retries loading the catalog",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        }
+      }
+    },
+    "catalog.list.search_prompt" : {
+      "comment" : "Deck catalog search field placeholder",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search decks"
+          }
+        }
+      }
+    },
+    "catalog.list.sort.newest" : {
+      "comment" : "Deck catalog sort option: most recently published first",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest"
+          }
+        }
+      }
+    },
+    "catalog.list.sort.relevance" : {
+      "comment" : "Deck catalog sort option: best search match first",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relevance"
+          }
+        }
+      }
+    },
+    "catalog.list.sort.title" : {
+      "comment" : "Deck catalog filter menu: sort picker label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort"
+          }
+        }
+      }
+    },
+    "catalog.list.sort.title_option" : {
+      "comment" : "Deck catalog sort option: alphabetical by deck title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
     "cloud_account_state.disconnected.title" : {
       "comment" : "Cloud account state title for disconnected",
       "localizations" : {
@@ -13728,6 +13916,28 @@
         }
       }
     },
+    "library.row.deck_catalog.subtitle" : {
+      "comment" : "Library hub row subtitle for the Deck catalog screen",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free ready-made decks to study."
+          }
+        }
+      }
+    },
+    "library.row.deck_catalog.title" : {
+      "comment" : "Library hub row and screen title for the public deck catalog",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deck catalog"
+          }
+        }
+      }
+    },
     "library.row.decks.subtitle" : {
       "comment" : "Library hub row subtitle for the Decks screen",
       "localizations" : {
@@ -14948,307 +15158,24 @@
         }
       }
     },
-    "library.section.import_export" : {
-      "comment" : "Library hub section header above the Import and Export rows",
+    "library.section.add_cards" : {
+      "comment" : "Library hub section header above the Deck catalog and Import rows",
       "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الاستيراد والتصدير"
-          }
-        },
-        "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Импортиране и експортиране"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "আমদানি ও রপ্তানি"
-          }
-        },
-        "ca" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importació i exportació"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import a export"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import og eksport"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import & Export"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Εισαγωγή και εξαγωγή"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import & export"
+            "value" : "Add cards"
           }
-        },
-        "es-ES" : {
+        }
+      }
+    },
+    "library.section.your_cards" : {
+      "comment" : "Library hub section header above the Cards, Tags and Decks rows",
+      "localizations" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Importar y exportar"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importar y exportar"
-          }
-        },
-        "et" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importimine ja eksportimine"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "درون‌ریزی و برون‌بری"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tuonti ja vienti"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importer et exporter"
-          }
-        },
-        "gu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "આયાત અને નિકાસ"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ייבוא וייצוא"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "आयात और निर्यात"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uvoz i izvoz"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importálás és exportálás"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impor dan ekspor"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inn- og útflutningur"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importa ed esporta"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "インポートとエクスポート"
-          }
-        },
-        "kn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ಆಮದು ಮತ್ತು ರಫ್ತು"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "가져오기 및 내보내기"
-          }
-        },
-        "lt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importavimas ir eksportavimas"
-          }
-        },
-        "lv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importēšana un eksportēšana"
-          }
-        },
-        "ml" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ഇംപോർട്ടും എക്സ്പോർട്ടും"
-          }
-        },
-        "mr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "आयात आणि निर्यात"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import og eksport"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importeren en exporteren"
-          }
-        },
-        "pa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ਆਯਾਤ ਅਤੇ ਨਿਰਯਾਤ"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import i eksport"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importar e exportar"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import și export"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Импорт и экспорт"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import a export"
-          }
-        },
-        "sl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uvoz in izvoz"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import och export"
-          }
-        },
-        "sw" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kuingiza na kuhamisha"
-          }
-        },
-        "ta" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "இறக்குமதியும் ஏற்றுமதியும்"
-          }
-        },
-        "te" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "దిగుమతి మరియు ఎగుమతి"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "นำเข้าและส่งออก"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "İçe ve dışa aktarma"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Імпорт і експорт"
-          }
-        },
-        "ur" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "درآمد اور برآمد"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nhập và xuất"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导入与导出"
-          }
-        },
-        "zu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ukungenisa nokukhipha"
+            "value" : "Your cards"
           }
         }
       }

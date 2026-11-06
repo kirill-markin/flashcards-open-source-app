@@ -28,6 +28,7 @@ private func librarySidebarItemIdentifier(_ section: LibrarySection) -> String {
     case .cards: UITestIdentifier.rootTabLibraryCardsItem
     case .tags: UITestIdentifier.rootTabLibraryTagsItem
     case .decks: UITestIdentifier.rootTabLibraryDecksItem
+    case .deckCatalog: UITestIdentifier.rootTabLibraryDeckCatalogItem
     case .importData: UITestIdentifier.rootTabLibraryImportItem
     case .exportData: UITestIdentifier.rootTabLibraryExportItem
     }
@@ -1016,6 +1017,8 @@ struct RootTabView: View {
             DecksScreen()
         case .deckDetail(let deck):
             DeckDetailScreen(destination: deck)
+        case .deckCatalog:
+            CatalogListScreen()
         case .importData:
             WorkspaceImportView()
         case .exportData:

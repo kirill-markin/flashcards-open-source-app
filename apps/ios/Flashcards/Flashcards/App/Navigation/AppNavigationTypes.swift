@@ -53,6 +53,7 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case tags
     case decks
     case deckDetail(DeckScreenDestination)
+    case deckCatalog
     case importData
     case exportData
 }
@@ -62,6 +63,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
     case cards
     case tags
     case decks
+    case deckCatalog
     case importData
     case exportData
 
@@ -70,6 +72,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .cards: .cards
         case .tags: .tags
         case .decks: .decks
+        case .deckCatalog: .deckCatalog
         case .importData: .importData
         case .exportData: .exportData
         }
@@ -80,6 +83,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .cards: String(localized: "Cards", table: "ReviewCards")
         case .tags: aiSettingsLocalized("settings.workspace.row.tags", "Tags")
         case .decks: aiSettingsLocalized("settings.workspace.row.decks", "Decks")
+        case .deckCatalog: String(localized: "library.row.deck_catalog.title", table: "Foundation")
         case .importData: aiSettingsLocalized("settings.workspace.import.title", "Import")
         case .exportData: aiSettingsLocalized("settings.workspace.row.export", "Export")
         }
@@ -90,6 +94,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .cards: "rectangle.stack"
         case .tags: "tag"
         case .decks: "square.stack.3d.up"
+        case .deckCatalog: "rectangle.stack.badge.plus"
         case .importData: "square.and.arrow.down"
         case .exportData: "square.and.arrow.up"
         }
