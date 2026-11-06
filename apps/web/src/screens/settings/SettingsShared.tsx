@@ -37,13 +37,7 @@ type SettingsExternalLinkCardProps = Readonly<{
   description: string;
   href: string;
   testId: string;
-}>;
-
-type SettingsLinkCardProps = Readonly<{
-  title: string;
-  description: string;
-  href: string;
-  testId: string;
+  opensInNewTab: boolean;
 }>;
 
 type SettingsGroupProps = Readonly<{
@@ -114,30 +108,16 @@ export function SettingsActionCard(props: SettingsActionCardProps): ReactElement
 }
 
 export function SettingsExternalLinkCard(props: SettingsExternalLinkCardProps): ReactElement {
-  const { title, description, href, testId } = props;
+  const { title, description, href, testId, opensInNewTab } = props;
 
   return (
     <a
       className="settings-nav-card content-card"
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      target={opensInNewTab ? "_blank" : undefined}
+      rel={opensInNewTab ? "noreferrer" : undefined}
       data-testid={testId}
     >
-      <div className="settings-nav-card-copy">
-        <strong className="panel-subtitle">{title}</strong>
-        <p className="subtitle">{description}</p>
-      </div>
-    </a>
-  );
-}
-
-/** Same-tab link to a page outside the app router. */
-export function SettingsLinkCard(props: SettingsLinkCardProps): ReactElement {
-  const { title, description, href, testId } = props;
-
-  return (
-    <a className="settings-nav-card content-card" href={href} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
         <p className="subtitle">{description}</p>

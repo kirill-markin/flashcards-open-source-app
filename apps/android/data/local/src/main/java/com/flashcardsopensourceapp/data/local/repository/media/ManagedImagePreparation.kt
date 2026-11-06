@@ -259,7 +259,7 @@ private fun requireSupportedManagedImageMimeType(mimeType: String?) {
     }
 }
 
-private fun sha256Hex(bytes: ByteArray): String {
+internal fun sha256Hex(bytes: ByteArray): String {
     return encodeDigestHex(bytes = MessageDigest.getInstance("SHA-256").digest(bytes))
 }
 

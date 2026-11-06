@@ -15,7 +15,7 @@ struct LibraryScreen: View {
 
     var body: some View {
         List {
-            Section {
+            Section(String(localized: "library.section.your_cards", table: libraryStringsTableName)) {
                 NavigationLink(value: LibraryNavigationDestination.cards) {
                     LibraryRow(
                         title: LibrarySection.cards.localizedTitle,
@@ -47,7 +47,17 @@ struct LibraryScreen: View {
                 .accessibilityIdentifier(UITestIdentifier.libraryDecksRow)
             }
 
-            Section(String(localized: "library.section.import_export", table: libraryStringsTableName)) {
+            Section(String(localized: "library.section.add_cards", table: libraryStringsTableName)) {
+                NavigationLink(value: LibraryNavigationDestination.deckCatalog) {
+                    LibraryRow(
+                        title: LibrarySection.deckCatalog.localizedTitle,
+                        subtitle: String(localized: "library.row.deck_catalog.subtitle", table: libraryStringsTableName),
+                        systemImage: LibrarySection.deckCatalog.systemImage,
+                        count: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.libraryDeckCatalogRow)
+
                 NavigationLink(value: LibraryNavigationDestination.importData) {
                     LibraryRow(
                         title: LibrarySection.importData.localizedTitle,
@@ -57,7 +67,9 @@ struct LibraryScreen: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.libraryImportRow)
+            }
 
+            Section {
                 NavigationLink(value: LibraryNavigationDestination.exportData) {
                     LibraryRow(
                         title: LibrarySection.exportData.localizedTitle,

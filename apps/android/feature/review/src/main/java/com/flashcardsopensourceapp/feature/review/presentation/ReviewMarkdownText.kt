@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -39,6 +40,7 @@ import com.flashcardsopensourceapp.core.ui.content.InlineMathContent
 import com.flashcardsopensourceapp.core.ui.content.InlineMathFormula
 import com.flashcardsopensourceapp.core.ui.content.InlineMathRenderState
 import com.flashcardsopensourceapp.core.ui.content.MathFormulaBlock
+import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.core.ui.content.countInlineMathMarkers
 import com.flashcardsopensourceapp.core.ui.content.inlineMathMarker
 import com.flashcardsopensourceapp.core.ui.content.rememberInlineMathContent
@@ -176,6 +178,27 @@ fun ReviewMarkdownDocument(
                 }
             }
         }
+    }
+}
+
+/**
+ * Text outside a card side, such as an AI chat answer or a catalog card preview: a Markdown document
+ * only where the shared review-content classifier finds Markdown, as the web chat does, else plain
+ * text with math in [style].
+ */
+@Composable
+fun ReviewClassifiedMarkdownText(
+    text: String,
+    style: TextStyle,
+    modifier: Modifier
+) {
+    val rendersMarkdown: Boolean = remember(text) {
+        classifyReviewContentPresentation(text = text) == ReviewContentPresentationMode.RICH
+    }
+    if (rendersMarkdown) {
+        ReviewMarkdownDocument(markdown = text, modifier = modifier)
+    } else {
+        MathText(text = text, modifier = modifier, style = style)
     }
 }
 

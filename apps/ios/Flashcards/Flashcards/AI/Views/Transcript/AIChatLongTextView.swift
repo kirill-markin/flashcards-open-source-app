@@ -146,22 +146,11 @@ private struct AIChatMarkdownText: View {
         // An explicit font also keeps the caller's accessibility identifier on the text view.
         ReviewSelectableTextView(
             sourceText: self.text,
-            content: makeAIChatMarkdownContent(text: self.text),
+            content: makeReviewProseRenderedContent(text: self.text),
             surfaceStyle: .back,
             textFont: UIFont.preferredFont(forTextStyle: self.textStyle, compatibleWith: traits),
             isSelectable: self.isSelectable
         )
-    }
-}
-
-/// `makeReviewRenderedContent` classifies the text again and returns plain prose when it finds no cue.
-private func makeAIChatMarkdownContent(text: String) -> ReviewRenderedContent {
-    let content = makeReviewRenderedContent(text: text)
-    switch content {
-    case .shortPlain, .paragraphPlain:
-        return .markdown(makeReviewMarkdownContent(text: text))
-    case .markdown, .managedMarkdown, .mathText:
-        return content
     }
 }
 

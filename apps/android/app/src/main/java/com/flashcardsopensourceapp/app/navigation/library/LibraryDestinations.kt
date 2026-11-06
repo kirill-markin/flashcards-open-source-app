@@ -40,6 +40,20 @@ data object LibraryTagsDestination {
     const val route: String = "library/tags"
 }
 
+data object LibraryDeckCatalogDestination {
+    const val route: String = "library/catalog"
+}
+
+data object LibraryCatalogDeckDestination {
+    const val routePrefix: String = "library/catalog/deck"
+    const val routeArgument: String = "packageId"
+    const val routePattern: String = "$routePrefix/{$routeArgument}"
+
+    fun createRoute(packageId: String): String {
+        return "$routePrefix/$packageId"
+    }
+}
+
 data object LibraryImportDestination {
     const val route: String = "library/import"
 }

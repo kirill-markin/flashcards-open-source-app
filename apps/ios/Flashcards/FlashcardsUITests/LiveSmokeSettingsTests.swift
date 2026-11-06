@@ -55,11 +55,14 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             for identifier in [
                 LiveSmokeIdentifier.libraryTagsRow,
                 LiveSmokeIdentifier.libraryDecksRow,
-                LiveSmokeIdentifier.libraryImportRow,
-                LiveSmokeIdentifier.libraryExportRow
+                LiveSmokeIdentifier.libraryImportRow
             ] {
                 try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
+            try self.assertElementExistsScrollingIntoView(
+                identifier: LiveSmokeIdentifier.libraryExportRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
             try self.tapButton(identifier: LiveSmokeIdentifier.libraryCardsRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             #endif
             try self.assertElementExists(

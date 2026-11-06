@@ -179,6 +179,18 @@ func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
     }
 }
 
+/// Card content for body-text surfaces outside Review: plain text keeps the body style instead of
+/// the centered card-face title that `makeReviewRenderedContent` gives short text.
+func makeReviewProseRenderedContent(text: String) -> ReviewRenderedContent {
+    let content = makeReviewRenderedContent(text: text)
+    switch content {
+    case .shortPlain, .paragraphPlain:
+        return .markdown(makeReviewMarkdownContent(text: text))
+    case .markdown, .managedMarkdown, .mathText:
+        return content
+    }
+}
+
 func parseManagedMediaAssetId(reference: String) -> String? {
     managedMediaAssetId(reference: reference)
 }

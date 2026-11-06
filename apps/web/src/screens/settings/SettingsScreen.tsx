@@ -231,6 +231,7 @@ export function SettingsScreen(): ReactElement {
             description={t("settingsHome.reviewAppStore.description")}
             href={appStoreListingUrl}
             testId="settings-row-review-app-store"
+            opensInNewTab={true}
           />
           <SettingsNavigationCard
             title={t("settingsHome.privateFeedback.title")}

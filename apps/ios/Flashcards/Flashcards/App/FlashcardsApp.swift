@@ -61,6 +61,7 @@ struct FlashcardsApp: App {
     @State private var cardsScreenModel: CardsScreenModel
     @State private var reviewScreen: ReviewScreenModel
     @State private var progressScreenState: ProgressScreenState
+    @State private var catalogIndexStore: CatalogIndexStore
     @State private var progressContextWatcherRefreshToken: Int
     @State private var uiTestLaunchScenario: FlashcardsUITestLaunchScenario?
     @State private var uiTestAIHandoffCard: FlashcardsUITestAIHandoffCard?
@@ -220,6 +221,7 @@ struct FlashcardsApp: App {
         _cardsScreenModel = State(initialValue: CardsScreenModel())
         _reviewScreen = State(initialValue: ReviewScreenModel())
         _progressScreenState = State(initialValue: ProgressScreenState())
+        _catalogIndexStore = State(initialValue: CatalogIndexStore(urlSession: .shared))
         _progressContextWatcherRefreshToken = State(initialValue: 0)
         _uiTestLaunchScenario = State(initialValue: launchScenario)
         _uiTestAIHandoffCard = State(initialValue: aiHandoffCard)
@@ -257,6 +259,7 @@ struct FlashcardsApp: App {
                 .environment(self.cardsScreenModel)
                 .environment(self.reviewScreen)
                 .environment(self.progressScreenState)
+                .environment(self.catalogIndexStore)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
                     await self.runInitialAppStartupIfNeeded()

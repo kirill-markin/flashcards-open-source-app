@@ -27,6 +27,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodResu
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodPurpose
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.catalog.CatalogPackageInstallRequest
+import com.flashcardsopensourceapp.data.local.cloud.remote.catalog.CatalogPackageInstallWorkspaceState
+import com.flashcardsopensourceapp.data.local.cloud.remote.catalog.CloudCatalogRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.CloudCommunityProfileRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.feedback.CloudFeedbackRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.CloudGuestUpgradeRemoteApi
@@ -45,6 +48,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.NoopCloudHt
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.createCloudHttpObservationVersions
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudAccountWorkspaceRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudWorkspacePackageRemoteApi
+import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexPointer
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialCredentialResult
@@ -161,6 +165,40 @@ class CloudRemoteService private constructor(
         clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
+    private val catalogApi = CloudCatalogRemoteApi(httpClient = httpClient)
+
+    suspend fun loadCatalogBrowseIndexPointer(apiBaseUrl: String): CatalogBrowseIndexPointer =
+        catalogApi.loadBrowseIndexPointer(apiBaseUrl = apiBaseUrl)
+
+    suspend fun loadCatalogPackageDetailResponse(apiBaseUrl: String, packageSlug: String): JSONObject =
+        catalogApi.loadPackageDetailResponse(apiBaseUrl = apiBaseUrl, packageSlug = packageSlug)
+
+    suspend fun loadCatalogCardPreviewResponse(apiBaseUrl: String, packageVersionId: String, limit: Int): JSONObject =
+        catalogApi.loadCardPreviewResponse(apiBaseUrl = apiBaseUrl, packageVersionId = packageVersionId, limit = limit)
+
+    internal suspend fun loadCatalogPackageInstallContext(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        packageVersionId: String
+    ): List<CatalogPackageInstallWorkspaceState> = catalogApi.loadInstallContext(
+        apiBaseUrl = apiBaseUrl,
+        authorizationHeader = authorizationHeader,
+        packageVersionId = packageVersionId
+    )
+
+    internal suspend fun installCatalogPackageVersion(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageVersionId: String,
+        request: CatalogPackageInstallRequest
+    ): Unit = catalogApi.installPackageVersion(
+        apiBaseUrl = apiBaseUrl,
+        authorizationHeader = authorizationHeader,
+        workspaceId = workspaceId,
+        packageVersionId = packageVersionId,
+        request = request
+    )
 
     suspend fun loadPaywallState(apiBaseUrl: String, authorizationHeader: String): CloudPaywallState =
         paywallApi.load(apiBaseUrl, authorizationHeader)

@@ -719,6 +719,72 @@ check_catalog_snapshot_redirect() {
   return 1
 }
 
+validate_catalog_browse_index_payload() {
+  local response_file="$1"
+
+  python3 - "$response_file" <<'PY'
+import json
+import pathlib
+import re
+import sys
+
+payload = json.loads(pathlib.Path(sys.argv[1]).read_text())
+
+if not isinstance(payload, dict):
+    raise SystemExit(f"ERROR: browse index pointer must be a JSON object, received {payload!r}")
+
+url = payload.get("url")
+sha256 = payload.get("sha256")
+generated_at = payload.get("generatedAt")
+url_match = re.fullmatch(r"https://[^/]+/catalog/browse-index/([0-9a-f]{64})\.json", url) if isinstance(url, str) else None
+
+if url_match is None:
+    raise SystemExit(f"ERROR: browse index url must match https://*/catalog/browse-index/<64 hex>.json, received {url!r}")
+if sha256 != url_match.group(1):
+    raise SystemExit(f"ERROR: browse index sha256 {sha256!r} must equal the url hash {url_match.group(1)!r}")
+if not isinstance(generated_at, str) or generated_at == "":
+    raise SystemExit(f"ERROR: browse index generatedAt must be a non-empty string, received {generated_at!r}")
+PY
+}
+
+# GET /v1/catalog/browse-index answers 200 with an uncached pointer to the
+# content-addressed browse index on the CDN; native clients follow it.
+check_catalog_browse_index() {
+  local url="$1"
+  local description="$2"
+  local response_file
+  local headers_file
+  local http_status
+  local attempt
+  local cache_control
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1)); do
+    http_status=$(curl_with_dns_resolution_and_headers "$url" "$response_file" "$headers_file" || true)
+    cache_control=$(get_header_value "$headers_file" "cache-control")
+
+    if [[ "$http_status" == "200" && "$cache_control" == "no-store" ]] && validate_catalog_browse_index_payload "$response_file"; then
+      echo "Public catalog browse index check passed: ${description} (${url})"
+      cat "$response_file"
+      echo ""
+      return 0
+    fi
+
+    echo "Public catalog browse index check attempt ${attempt}/${MAX_ATTEMPTS} failed for ${description}: status ${http_status}, cache-control ${cache_control}, url ${url}" >&2
+    if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]]; then
+      sleep "$SLEEP_SECONDS"
+    fi
+  done
+
+  echo "ERROR: Public catalog browse index check failed for ${description}: expected 200, Cache-Control no-store, and a well-formed {url, sha256, generatedAt} pointer, url ${url}" >&2
+  cat "$headers_file" >&2 || true
+  cat "$response_file" >&2 || true
+  return 1
+}
+
 check_redirect_url() {
   local url="$1"
   local expected_status="$2"
@@ -795,6 +861,7 @@ ME_URL="${API_PUBLIC_BASE%/}/me"
 GLOBAL_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/global/snapshot"
 LEGACY_GLOBAL_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/public/global/snapshot"
 CATALOG_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/catalog"
+CATALOG_BROWSE_INDEX_URL="${API_PUBLIC_BASE%/}/catalog/browse-index"
 
 check_url "${API_PUBLIC_BASE}/health" "200" "public API health"
 check_url "${AUTH_PUBLIC_BASE}/health" "200" "public auth health"
@@ -829,6 +896,7 @@ fi
 
 check_api_route_absent "$LEGACY_GLOBAL_SNAPSHOT_URL" "$WEB_PUBLIC_BASE" "legacy public global metrics snapshot endpoint"
 check_catalog_snapshot_redirect "$CATALOG_SNAPSHOT_URL" "public catalog snapshot endpoint"
+check_catalog_browse_index "$CATALOG_BROWSE_INDEX_URL" "public catalog browse index endpoint"
 
 if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
   check_url "${APP_PUBLIC_BASE}" "200" "public web root"

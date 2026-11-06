@@ -317,9 +317,10 @@ private fun isSilentAnalyticsGuestMintFailure(error: Throwable): Boolean {
  * Maps a Compose navigation route onto the shared cross-platform surface enum. Native destination
  * names are never sent: cross-platform funnel comparison is the only reason the enum is shared.
  *
- * Every destination registered in `navigation/` is covered today, so nothing reachable falls
- * through to `null`: `review` and `review/preview`; `library` and every `library/…` leaf; `ai`;
- * `progress`; the three `cards/editor/…` steps; `settings` and every `settings/…` leaf.
+ * Every destination registered in `navigation/` is covered today except the two `library/catalog…`
+ * screens, which deliberately report no surface and fall through to `null`: `review` and
+ * `review/preview`; `library` and every other `library/…` leaf; `ai`; `progress`; the three
+ * `cards/editor/…` steps; `settings` and every `settings/…` leaf.
  *
  * Each workspace content leaf of `library/…` reports its own surface, and the hub, `library/import`
  * and `library/export` report `library`. The sign-in flow reports `signin` for all three of its

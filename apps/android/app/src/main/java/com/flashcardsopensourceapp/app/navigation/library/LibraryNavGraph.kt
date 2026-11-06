@@ -40,6 +40,9 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
                 onOpenDecks = {
                     navController.navigate(route = LibraryDecksDestination.route)
                 },
+                onOpenDeckCatalog = {
+                    navController.navigate(route = LibraryDeckCatalogDestination.route)
+                },
                 onOpenImport = {
                     navController.navigate(route = LibraryImportDestination.route)
                 },
@@ -57,6 +60,10 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
             appGraph = appGraph,
             navController = navController,
             coroutineScope = coroutineScope
+        )
+        registerLibraryCatalogDestinations(
+            appGraph = appGraph,
+            navController = navController
         )
     }
 }

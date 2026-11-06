@@ -31,6 +31,10 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .decks, pages: [])
     case .deckDetail(let deck):
         return LibraryLocation(section: .decks, pages: [.deckDetail(deck)])
+    case .deckCatalog:
+        return LibraryLocation(section: .deckCatalog, pages: [])
+    case .catalogDeck(let deck):
+        return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
     case .exportData:
@@ -48,6 +52,10 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.decks]
     case .deckDetail(let deck):
         return [.decks, .deckDetail(deck)]
+    case .deckCatalog:
+        return [.deckCatalog]
+    case .catalogDeck(let deck):
+        return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
     case .exportData:
@@ -339,7 +347,7 @@ final class AppNavigationModel {
         let depth = self.libraryPath.count
         #endif
         if depth > 1 {
-            return .deckDetail
+            return self.isLibraryPathRoot(.deckCatalog) ? .catalog : .deckDetail
         }
         if self.isLibraryPathRoot(.cards) {
             return .cards
@@ -368,8 +376,8 @@ final class AppNavigationModel {
         self.isLibraryPathRoot(.tags)
     }
 
-    /// Every Library screen except a deck detail is reachable only as the first page of the stack,
-    /// which on Mac is the sidebar section.
+    /// Every Library screen except a deck detail and a catalog deck page is reachable only as the
+    /// first page of the stack, which on Mac is the sidebar section.
     private func isLibraryPathRoot(_ destination: LibraryNavigationDestination) -> Bool {
         #if targetEnvironment(macCatalyst)
         return self.librarySection?.destination == destination

@@ -76,6 +76,18 @@ protocol CloudSyncServing {
         authorizationHeader: String,
         request: FeedbackSubmissionRequest
     ) async throws -> FeedbackState
+    func loadCatalogPackageInstallContext(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        packageVersionId: String
+    ) async throws -> CatalogPackageInstallContext
+    func installCatalogPackageVersion(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageVersionId: String,
+        request: CatalogPackageInstallRequest
+    ) async throws -> CatalogPackageInstallResponse
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary
     func renameWorkspace(
         apiBaseUrl: String,
@@ -369,6 +381,32 @@ extension CloudSyncServing {
         _ = bearerToken
         _ = inviteeDisplayName
         throw LocalStoreError.validation("Friend invitation creation is unavailable")
+    }
+
+    func loadCatalogPackageInstallContext(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        packageVersionId: String
+    ) async throws -> CatalogPackageInstallContext {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = packageVersionId
+        throw LocalStoreError.validation("Catalog install context is unavailable")
+    }
+
+    func installCatalogPackageVersion(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageVersionId: String,
+        request: CatalogPackageInstallRequest
+    ) async throws -> CatalogPackageInstallResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = packageVersionId
+        _ = request
+        throw LocalStoreError.validation("Catalog install is unavailable")
     }
 }
 

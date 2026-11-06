@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.formatCardsCount
 import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryDeckCatalogRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryDecksRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryExportRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportRowTag
@@ -35,6 +37,7 @@ fun LibraryRoute(
     onOpenCards: () -> Unit,
     onOpenTags: () -> Unit,
     onOpenDecks: () -> Unit,
+    onOpenDeckCatalog: () -> Unit,
     onOpenImport: () -> Unit,
     onOpenExport: () -> Unit
 ) {
@@ -54,6 +57,9 @@ fun LibraryRoute(
                 .consumeWindowInsets(innerPadding)
                 .testTag(libraryScreenTag)
         ) {
+            item {
+                LibrarySectionTitle(title = stringResource(id = R.string.library_your_cards_section_title))
+            }
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_cards_title),
@@ -82,13 +88,15 @@ fun LibraryRoute(
                 )
             }
             item {
-                Text(
-                    text = stringResource(id = R.string.library_import_export_section_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 8.dp)
-                        .semantics { heading() }
+                LibrarySectionTitle(title = stringResource(id = R.string.library_add_cards_section_title))
+            }
+            item {
+                LibraryRow(
+                    title = stringResource(id = R.string.library_deck_catalog_title),
+                    summary = stringResource(id = R.string.library_deck_catalog_summary),
+                    count = null,
+                    testTag = libraryDeckCatalogRowTag,
+                    onClick = onOpenDeckCatalog
                 )
             }
             item {
@@ -101,6 +109,9 @@ fun LibraryRoute(
                 )
             }
             item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_export_title),
                     summary = stringResource(id = R.string.library_export_summary),
@@ -111,6 +122,18 @@ fun LibraryRoute(
             }
         }
     }
+}
+
+@Composable
+private fun LibrarySectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 8.dp)
+            .semantics { heading() }
+    )
 }
 
 @Composable
