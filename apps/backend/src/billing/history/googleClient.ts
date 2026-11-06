@@ -22,6 +22,17 @@ export class GoogleHistoryApiError extends Error {
   }
 }
 
+// Names fields only: Play payload values can carry purchase tokens.
+export class GoogleHistoryResponseInvalidError extends GoogleHistoryApiError {
+  constructor(code: string, operation: string, readonly invalidFields: ReadonlyArray<string>) {
+    super(code, null, operation);
+  }
+}
+
+function invalidFieldPaths(error: z.ZodError): ReadonlyArray<string> {
+  return error.issues.map((issue) => issue.path.join("."));
+}
+
 export type VerifiedGoogleOrder = Readonly<{ purchaseToken: string; order: GoogleOrderHistory }>;
 export type VerifiedGoogleSubscription = Readonly<{
   subscription: GoogleSubscriptionHistory; linkedPurchaseToken: string | null; observedAt: Date; observationId: string;
@@ -50,7 +61,8 @@ export class GoogleHistoryClient {
     const response = orderResponseSchema.safeParse(await this.get(
       `${publisherOrigin}/orders/${encodeURIComponent(orderId)}`, "orders.get"));
     if (!response.success || response.data.orderId !== orderId || response.data.lineItems.length === 0) {
-      throw new GoogleHistoryApiError("GOOGLE_HISTORY_ORDER_INVALID", null, "order validation");
+      throw new GoogleHistoryResponseInvalidError("GOOGLE_HISTORY_ORDER_INVALID", "order validation",
+        !response.success ? invalidFieldPaths(response.error) : response.data.orderId !== orderId ? ["orderId"] : ["lineItems"]);
     }
     return { purchaseToken: response.data.purchaseToken, order: googleOrderHistorySchema.parse(response.data) };
   }
@@ -62,7 +74,8 @@ export class GoogleHistoryClient {
     const response = subscriptionResponseSchema.safeParse(await this.get(
       `${publisherOrigin}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`, "subscriptionsv2.get"));
     if (!response.success || response.data.lineItems.length === 0) {
-      throw new GoogleHistoryApiError("GOOGLE_HISTORY_SUBSCRIPTION_INVALID", null, "subscription validation");
+      throw new GoogleHistoryResponseInvalidError("GOOGLE_HISTORY_SUBSCRIPTION_INVALID", "subscription validation",
+        response.success ? ["lineItems"] : invalidFieldPaths(response.error));
     }
     const linked = response.data.linkedPurchaseToken;
     const expired = response.data.outOfAppPurchaseContext?.expiredPurchaseToken;

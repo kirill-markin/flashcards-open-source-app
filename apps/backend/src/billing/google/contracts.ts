@@ -53,3 +53,10 @@ export class GoogleBillingError extends Error {
     this.name = "GoogleBillingError";
   }
 }
+
+// Names fields only: Play payload values can carry purchase tokens.
+export class GoogleResponseInvalidError extends GoogleBillingError {
+  constructor(readonly invalidFields: ReadonlyArray<string>, message: string) {
+    super("GOOGLE_RESPONSE_INVALID", false, null, `${message} Invalid fields: ${invalidFields.join(", ")}.`);
+  }
+}
