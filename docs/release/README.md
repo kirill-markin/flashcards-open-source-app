@@ -74,9 +74,13 @@ for a new release and follow exception/legacy references only when applicable.
 
 ### Early preflight
 
-Complete [RaTeX preflight](../ratex-dependency.md#release-preflight-and-updates)
-for Apple, Android and web before remaining affected testing, builds,
-deployment or publication and before any merge that triggers them.
+For remaining Apple, Android and web release work, follow the
+[RaTeX dependency guide](../ratex-dependency.md#release-preflight-and-updates)
+to compare sources and verify any replacement packages before repinning. Merge
+any required consumer pin before affected release tests, builds or publication
+and before or with the release version-alignment merge. Let the merge containing
+a verified web pin trigger the normal deployment.
+
 Check provider access, disk for the planned artifacts
 and installed [iOS destinations](../ios-local-setup.md#local-testing-rules),
 [Mac signing and desktop](macos.md#preflight-and-cloud-gates) and
