@@ -45,32 +45,21 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    `Git SHA to release` (`target_sha`) set to the release commit and optionally
    supply the [localized notes JSON](release-notes.md#android-draft-upload-input). Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
-3. Require four sequential Device Run sessions from `device_run_submission`: the full
-   package on API 37, then one four-method smoke session each on API 30, 31 and 33.
-   The shared linked test account requires sequential workspace mutations.
-   Verify all four current catalog IDs/APIs under
-   [device preflight](../android-ci-cd.md#choose-the-device-run-devices).
-   Record all four session IDs, selected targets, job labels and GCS results paths
-   and retain the [workflow-defined artifacts](../../.github/workflows/android-release.yml).
-   The workflow waits for terminal success before building/uploading the signed draft.
-   Inspect the [CLI/GCS evidence](../android-ci-cd.md#device-run-results-and-release-correlation).
-4. Require all four full reports to show `.sessionReport.status.statusType=DONE`
-   and `.sessionReport.result.resultType=PASSED`, with every job and execution
-   `DONE`/`PASSED`. A successful CLI `wait` exit is insufficient. Require one
-   job per session on the exact configured API 37, 30, 31 and 33 destinations.
-   Inspect every execution's named JUnit cases:
-   API 37 must execute and pass the full automated selection; each older
-   destination must execute and pass all four selected methods. Reconcile
-   counts, failures, errors and skips; zero tests, missing destinations or
-   unexpected skipped cases block publication. Retain full reports, per-case
-   results and logcat with all four session identities for this SHA/run/attempt.
-   Non-passing results block publication. Investigate app/test failures and fix identifiable defects. Preserve the failed attempt's evidence; never relabel it as passed.
-5. Require the complete GitHub workflow to succeed as well, including the
-   signed Android App Bundle (AAB) upload to the production-track draft.
-   For a publisher-only failure after all build/native gates pass, use the
-   [exact-bundle upload recovery](#exact-bundle-upload-recovery) below.
-   Inspect build/lint logs and apply the
-   [release warning policy](README.md#release-warning-policy) even if the run is green.
+3. Device Run submits sequentially on API 31 (smoke), 37 (full), 30 (smoke)
+   and 33 (smoke), using the shared linked test account. The signed AAB build
+   and R8 checks run in parallel with the native gate. Play draft upload waits
+   for successful hosted CI, signed build and all four passing sessions.
+4. Verify the four effective physical sessions, every job/execution and every
+   selected named case with the [Device Run evidence](../android-ci-cd.md#device-run-results-and-release-correlation).
+   Preserve original failures. CI allows one same-run retry of the affected
+   destination only for its narrowly classified lab DNS failure. Keep the
+   initial failed session and the retry as separate attempts. Failed, missing
+   or unexpectedly skipped required results block publication.
+5. Require green `Android Release` and signed AAB publisher provenance, or
+   [recover an exact bundle](#exact-bundle-upload-recovery) after a publisher-only
+   failure. Inspect build/lint and native diagnostics under the
+   [warning policy](README.md#release-warning-policy), then retain the
+   [readiness manifest and report](readiness.md#generate-the-android-manifest).
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code. Confirm it belongs
    to the same SHA/run/attempt as all four passing Device Run sessions. Confirm the uploaded
@@ -141,14 +130,17 @@ Verify the exact production version is public before calling Android complete.
 Use `Android Release Upload Recovery`
 ([workflow](../../.github/workflows/android-release-upload-recovery.yml)) only
 when the original release's CI, four Device Run sessions, signed build and R8
-checks passed and only its Play publisher failed. Diagnose and review the
-publisher fix, merge it through green PR checks, and retain the failed run.
+checks passed and only its Play publisher failed. This includes a failed
+upload or, with a separate signed-build job, a skipped upload following a
+failed publisher configuration, checkout, artifact/notes download or Play
+authentication step. Resolve the cause, merge any publisher code fix through
+green PR checks and retain the failed run.
 Source changes require the bounded comparisons and affected gates in
 [artifact reuse](evidence.md#resume-and-artifact-reuse).
 
 1. Retain the original full native reports, named inventory, diagnostics,
    signed AAB, signing verification and resolved failure. Record the original
-   source SHA, run/attempt, version/code, bundle and native-summary artifact IDs,
+   source SHA, run/attempt, version/code, signed bundle and native-summary artifact IDs,
    and independently verified AAB and summary SHA-256 values. For workflows with
    localized-notes support, also retain the separate original run/attempt notes
    artifact and its preflight SHA-256, including an explicitly empty input.

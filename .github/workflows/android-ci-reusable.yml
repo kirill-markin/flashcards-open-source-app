@@ -9,10 +9,12 @@ on:
       android_version_code:
         required: true
         type: string
+      lint_only:
+        type: boolean
 
 jobs:
   build:
-    name: Android build, unit tests, and lint
+    name: ${{ inputs.lint_only && 'Android debug lint' || 'Android build, unit tests, and lint' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -20,6 +22,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.target_ref }}
+          persist-credentials: ${{ !inputs.lint_only }}
 
       - uses: actions/setup-java@v6
         with:
@@ -27,6 +30,8 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v6.4.1
+        with:
+          cache-read-only: ${{ (inputs.lint_only && github.event_name == 'workflow_dispatch') || (github.event.repository != null && github.ref_name != github.event.repository.default_branch) }}
 
       - name: Install Android SDK packages
         env:
@@ -38,13 +43,21 @@ jobs:
             "build-tools;37.0.0" \
             "ndk;28.2.13676358"
 
+      - name: Run Android debug lint
+        if: inputs.lint_only
+        id: android-lint
+        working-directory: apps/android
+        run: ./gradlew --no-daemon --warning-mode all :app:lintDebug
+
       - name: Run Android unit tests, build debug artifacts, and lint
+        if: ${{ !inputs.lint_only }}
         id: android-build
         env:
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
         run: bash scripts/android/run-android-ci.sh
 
       - name: Upload debug APKs
+        if: ${{ !inputs.lint_only }}
         uses: actions/upload-artifact@v7
         with:
           name: android-debug-apks
@@ -54,7 +67,7 @@ jobs:
             apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
       - name: Upload lint report
-        if: always() && (steps.android-build.outcome == 'success' || hashFiles('apps/android/app/build/reports/lint-results-debug.html') != '')
+        if: always() && (steps.android-lint.outcome == 'success' || steps.android-build.outcome == 'success' || hashFiles('apps/android/app/build/reports/lint-results-debug.html') != '')
         uses: actions/upload-artifact@v7
         with:
           name: android-lint-report
@@ -62,7 +75,7 @@ jobs:
           path: apps/android/app/build/reports/lint-results-debug.html
 
       - name: Upload unit test reports
-        if: always() && (steps.android-build.outcome == 'success' || hashFiles('apps/android/**/build/reports/tests/**', 'apps/android/**/build/test-results/**') != '')
+        if: always() && !inputs.lint_only && (steps.android-build.outcome == 'success' || hashFiles('apps/android/**/build/reports/tests/**', 'apps/android/**/build/test-results/**') != '')
         uses: actions/upload-artifact@v7
         with:
           name: android-unit-test-reports
@@ -72,6 +85,7 @@ jobs:
             apps/android/**/build/test-results/**
 
   emulator-data-local-instrumentation:
+    if: ${{ !inputs.lint_only }}
     name: Android emulator data:local instrumentation
     runs-on: ubuntu-24.04
     timeout-minutes: 20

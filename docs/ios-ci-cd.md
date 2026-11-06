@@ -2,12 +2,14 @@
 
 The dedicated Mac Catalyst app uses the [Mac cloud and release procedure](macos-ci-cd.md).
 
-This repository uses full local native acceptance followed by explicitly dispatched Xcode Cloud archive/signing for iOS releases. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
+The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud
+on `main`.
 We do not aim for exhaustive iOS test coverage in this pipeline. The most trusted automated signal is the native simulator-backed live smoke because it exercises the real app closest to production behavior, while any non-smoke tests should stay targeted to important native contracts.
 
 ## Native release gate
 
-Complete the [local native acceptance](ios-local-setup.md#local-native-acceptance) and unsigned device Release archive before dispatching **iOS Release Build** under the [iOS release procedure](release/ios.md#ios). Require all five schema-4 gates green, or recovered under [targeted recovery](release/evidence.md#targeted-recovery), before App Review submission. Mac releases require their full [signed local acceptance](macos-ci-cd.md#signed-local-native-acceptance) or its targeted recovery.
+Follow the [iOS](release/ios.md#ios) and [macOS](release/macos.md#preflight-and-cloud-gates)
+release procedures for dispatch and the local and Cloud evidence required for App Review.
 
 Exactly two Cloud workflows remain enabled:
 
@@ -26,9 +28,11 @@ The acceptance plans set `diagnosticCollectionPolicy` to `Never`, disabling auto
 
 ## Supported OS destinations
 
-The app supports iOS/iPadOS 18.0 onward with the current SDK and pinned packages. Local acceptance uses one latest iPhone, one latest iPad on the same latest iOS major, and one actual iOS 18.x iPhone or iPad for compatibility. Verify latest-OS eligibility against the actual local runtimes; an SDK version does not establish the destination OS. If a required local destination is unavailable, block release until it is available; a newer runtime or `My Mac` cannot substitute for iOS 18 evidence. Do not downgrade Xcode/SDK or add a routine Cloud test matrix.
-
-Static PR checks establish neither native compilation nor runtime behavior. Every new release requires recorded complete native evidence and the [binary compatibility checks](release/ios.md#ios). The [iOS 18 manual checklist](ios-local-setup.md#ios-18-compatibility-smoke) applies to the first support expansion or changes affecting OS-specific behavior.
+Use the [local acceptance destinations](ios-local-setup.md#local-native-acceptance)
+and verify their actual OS versions. If a destination is unavailable, follow the
+[standing release policy](release/README.md#standing-best-effort-release-policy).
+Check the [exact signed build's minimum OS](release/ios.md#ios) and complete the
+[iOS 18 manual checklist](ios-local-setup.md#ios-18-compatibility-smoke) when applicable.
 
 ## Xcode Cloud inputs
 

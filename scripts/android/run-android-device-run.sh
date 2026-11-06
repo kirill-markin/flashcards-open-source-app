@@ -224,6 +224,10 @@ if ! jq -e --argjson count "${#DEVICES[@]}" '
     (.executionReports | length > 0) and
     all(.executionReports[]; .status.statusType == "DONE" and .result.resultType == "PASSED"))
 ' "${SESSION_OUTPUT}" >/dev/null; then
+  if [[ "${SESSION_ACTIVE}" == "false" ]] &&
+    jq -e '.sessionReport.result.resultType == "FAILED"' "${SESSION_OUTPUT}" >/dev/null; then
+    echo "DEVICE_RUN_TERMINAL_TEST_FAILURE=${SESSION_ID}"
+  fi
   echo "ERROR: Device Run session or a required job/execution did not pass. Session=${SESSION_ID}." >&2
   cat "${SESSION_OUTPUT}" >&2
   exit 1

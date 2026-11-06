@@ -67,7 +67,9 @@ submission/publication decision with durable private evidence references.
 
 ## Validation Activities
 
-1. **Local diagnosis** on uncommitted changes needs no commit or merge; [local-execution authorization](../macos-ci-cd.md#signed-local-native-acceptance) and the [preflight](#local-mobile-release-gate) desktop, test-data and automation-marker rules still apply.
+1. **Local diagnosis** can run on uncommitted changes. Follow
+   [Mac local signing, desktop and test-data rules](../macos-ci-cd.md#signed-local-native-acceptance)
+   and the Apple [automation marker](../ios-ci-cd.md#automation-marker).
 2. **Accepted validation evidence** binds results to a precisely recorded [source snapshot](#source-snapshots), committed or not; Android gates keep the [Android procedure](android.md)'s pinned SHA and clean checkout.
 3. **Distribution builds and publication** use only clean, accepted merged source, retaining exact archive/uploaded-artifact provenance and the platform's signed-artifact checks.
 
@@ -167,26 +169,14 @@ Example: `LocalMac` failed on a clipped workspace-picker row. Commit `87031c682`
 
 ## Local Mobile Release Gate
 
-Before dispatching an iOS cloud release, complete its local preflight in the
-[iOS](ios.md) procedure on a recorded [source snapshot](#source-snapshots) matching the intended release source.
-Use the supported SDK/toolchain and production service values: Release for the device archive, and the acceptance scheme's Debug build configuration for its test plans.
-This is the normal local release gate even when PR checks are already green; apply the standing policy when testing is unavailable. Require the unsigned device Release archive, full latest-iPhone UI and existing non-UI plan, three focused latest-iPad flows, and three actual iOS 18 compatibility flows under the [canonical plan commands](../ios-local-setup.md#local-native-acceptance). Every configured required case must pass in one complete attempt or under [targeted recovery](#targeted-recovery). Preserve every failure artifact.
-
-Before expensive native work, check the [early preflight](README.md#early-preflight), Mac [signing and disposable test data](../macos-ci-cd.md#signed-local-native-acceptance), an [exclusive desktop](macos.md#preflight-and-cloud-gates) for Mac UI and the [automation marker](../ios-ci-cd.md#automation-marker). No extra suite or warm-up run is required; a recently repaired fragile flow may run first.
-
-Keep full build logs and test reports; when piping output through `tee`, enable
-`set -o pipefail` so logging cannot hide a failed command. Inspect compiler,
-linker, Gradle, and lint warnings even after a successful exit. Apply the
-[release warning policy](README.md#release-warning-policy), fix blocking issues
-and smoke failures, repeat the affected local preflight on the corrected
-snapshot, and merge fixes through normal CI before cloud dispatch.
-Record the snapshot, commands, toolchain versions, and results in the chat. Record unavailable local test tooling and any feasible alternative under the standing policy; a cloud archive does not establish a local test pass. Missing inputs needed to produce/sign the release artifact still block dispatch.
-
-For iOS, local success does not replace any cloud gate in its platform procedure.
-Cloud signing/archive, build environments and store processing can fail independently;
-still run and inspect them, including their errors and warnings. After cloud
-failures require source fixes, repeat the affected local preflight before
-retrying the cloud flow.
+Run [iOS local acceptance](ios.md) alongside the pinned Cloud archive after
+[Cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight).
+Both tracks must be reconciled before review. Keep build logs, native reports,
+toolchain versions, [source snapshots](#source-snapshots) and every failed
+attempt. Use `set -o pipefail` when recording logs through `tee` and apply
+the [warning policy](README.md#release-warning-policy). For unavailable
+testing follow the standing policy. For fixes repeat affected checks under
+[artifact reuse](#reuse-existing-artifacts) and [targeted recovery](#targeted-recovery).
 
 ## Android Cloud Release Gate
 
@@ -194,10 +184,9 @@ For new Android artifacts, follow the [Android procedure](android.md) on the
 intended release SHA with no uncommitted source changes. Require the complete
 `Android Release` workflow, cloud checks and optimized signed Release AAB,
 and all four sequential physical Device Run sessions with their complete named results.
-Retain full logs and reports, inspect diagnostics under the
-[release warning policy](README.md#release-warning-policy), and preserve
-source/run/attempt/artifact correlation. A green summary does not replace
-native results or signed-binary verification. A publisher-only failure can use
+Generate the [recorded readiness](readiness.md#generate-the-android-manifest)
+from the exact signed build, native summary and publisher provenance after
+reviewing the retained logs and diagnostics. A publisher-only failure can use
 [exact-bundle recovery](android.md#exact-bundle-upload-recovery): keep the original
 passing build/native gates and failed workflow conclusion, plus the separate
 successful publisher workflow bound to the same signed AAB hash and code.

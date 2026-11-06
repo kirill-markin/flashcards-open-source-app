@@ -77,22 +77,51 @@ def main() -> None:
     jobs_page = github(f'repos/{repository}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')
     jobs = [object_value(job) for job in array_value(jobs_page.get('jobs'))]
     require(jobs_page.get('total_count') == len(jobs), 'Original attempt job export is incomplete')
-    required_jobs = {
+    publish_name = 'Upload Android bundle to Google Play production draft release'
+    signed_build_name = 'Build and verify signed Android App Bundle'
+    combined_jobs = {
         'Resolve Android release target', 'Android CI / Android build, unit tests, and lint',
         'Android CI / Android emulator data:local instrumentation', 'Device Run app instrumentation',
-        'Android release summary', 'Upload Android bundle to Google Play production draft release',
+        'Android release summary', publish_name,
     }
-    require(len(jobs) == len(required_jobs) and {job.get('name') for job in jobs} == required_jobs, 'Original release job inventory differs')
-    publish = next(job for job in jobs if job.get('name') == 'Upload Android bundle to Google Play production draft release')
-    require(publish.get('conclusion') == 'failure' and all(job.get('conclusion') == 'success' for job in jobs if job != publish), 'Original release has a failure outside the publisher gate')
-    steps = {step.get('name'): step.get('conclusion') for step in (object_value(item) for item in array_value(publish.get('steps')))}
-    for name in ('Build signed Android App Bundle', 'Upload signed Android App Bundle artifact', 'Report and gate R8 optimization coverage'):
-        require(steps.get(name) == 'success', f'Original signed build/artifact/R8 step did not pass: {name}')
-    require(steps.get('Upload bundle to Google Play production track as draft release') == 'failure', 'Original publisher failure does not match the supported recovery boundary')
+    split_jobs = combined_jobs | {signed_build_name}
+    jobs_by_name = {str(job.get('name')): job for job in jobs}
+    require(len(jobs_by_name) == len(jobs) and jobs_by_name.keys() in (combined_jobs, split_jobs), 'Original release job inventory differs')
+    publish = jobs_by_name[publish_name]
+    require(publish.get('conclusion') == 'failure' and all(job.get('conclusion') == 'success' for name, job in jobs_by_name.items() if name != publish_name), 'Original release has a failure outside the publisher gate')
+    build_steps = ('Build signed Android App Bundle', 'Upload signed Android App Bundle artifact', 'Report and gate R8 optimization coverage')
+    is_split_release = signed_build_name in jobs_by_name
+    if is_split_release:
+        signed_build = jobs_by_name[signed_build_name]
+        bundle_name = f'android-release-bundle-r{run_id}a{attempt}'
+        build_steps += ('Record signed Android App Bundle checksum',)
+    else:
+        signed_build = publish
+        bundle_name = 'android-release-bundle'
+    signed_steps = {step.get('name'): step.get('conclusion') for step in (object_value(item) for item in array_value(signed_build.get('steps')))}
+    for name in build_steps:
+        require(signed_steps.get(name) == 'success', f'Original signed build/artifact/R8 step did not pass: {name}')
+    publish_steps = {step.get('name'): step.get('conclusion') for step in (object_value(item) for item in array_value(publish.get('steps')))}
+    upload_conclusion = publish_steps.get('Upload bundle to Google Play production track as draft release')
+    failed_before_upload = (
+        is_split_release
+        and upload_conclusion == 'skipped'
+        and any(
+            publish_steps.get(name) == 'failure'
+            for name in (
+                'Validate Google Play configuration',
+                'Check out publisher tooling from the workflow source',
+                'Download signed Android App Bundle for this attempt',
+                'Download original Play release notes',
+                'Authenticate to Google Play',
+            )
+        )
+    )
+    require(upload_conclusion == 'failure' or failed_before_upload, 'Original publisher failure does not match the supported recovery boundary')
     started = run.get('run_started_at')
     finished = max(str(job['completed_at']) for job in jobs)
     require(isinstance(started, str), 'Original attempt start time is missing')
-    preflight = next(job for job in jobs if job.get('name') == 'Resolve Android release target')
+    preflight = jobs_by_name['Resolve Android release target']
     preflight_log = subprocess.check_output(['gh', 'api', f'repos/{repository}/actions/jobs/{preflight["id"]}/logs', '--allow-escape-sequences']).decode()
     clean_preflight_log = re.sub(r'\x1b\[[0-9;]*m', '', preflight_log)
     resolved_targets = re.findall(r'(?m)^\S+\s+TARGET_SHA:\s*([a-f0-9]{40})\s*$', clean_preflight_log)
@@ -101,7 +130,7 @@ def main() -> None:
     require(set(workflow_targets) == {workflow_sha}, 'Original preflight workflow head differs from GitHub run metadata')
     output = Path(os.environ['RECOVERY_EVIDENCE_DIR'])
     output.mkdir(parents=True, exist_ok=True)
-    bundle_metadata = artifact_file(os.environ['BUNDLE_ARTIFACT_ID'], 'android-release-bundle', 'app-release.aab', run_id, workflow_sha, started, finished, output / 'app-release.aab')
+    bundle_metadata = artifact_file(os.environ['BUNDLE_ARTIFACT_ID'], bundle_name, 'app-release.aab', run_id, workflow_sha, started, finished, output / 'app-release.aab')
     native_metadata = artifact_file(os.environ['NATIVE_ARTIFACT_ID'], 'android-device-run-submissions', 'summary.json', run_id, workflow_sha, started, finished, output / 'summary.json')
     require(hashlib.sha256((output / 'app-release.aab').read_bytes()).hexdigest() == expected_hash, 'Original signed AAB SHA-256 differs')
     require(hashlib.sha256((output / 'summary.json').read_bytes()).hexdigest() == summary_hash, 'Original native summary SHA-256 differs')

@@ -19,7 +19,9 @@ Pushes to `main` use independent release and check streams:
 - rollback is automatic only when the failed AWS release did not include new DB migrations
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
 - Android production draft upload is manual-only through `.github/workflows/android-release.yml` ([where Android CI runs](android-ci-cd.md)); that workflow requires terminal success from all four sequential Device Run sessions before the signed Play draft upload starts
-- for an iOS release, complete full local native acceptance (latest iPhone UI and existing non-UI, focused latest iPad, actual iOS 18) and unsigned device Release compilation, then explicitly start and monitor **iOS Release Build** archive/signing under the [iOS release procedure](release/ios.md#ios); require all five schema-4 gates green, or recovered under [targeted recovery](release/evidence.md#targeted-recovery), before App Review submission; Mac requires complete signed `LocalMac` acceptance, or its targeted recovery, before **macOS Release Build**. Only these two Cloud release builds remain enabled; test workflows/configuration/history remain disabled and are not routine release gates
+- Manually dispatched Apple archives run in Xcode Cloud alongside local acceptance. Follow the
+  [iOS](release/ios.md#ios) and [macOS](release/macos.md#preflight-and-cloud-gates)
+  procedures for dispatch and the evidence required before App Review.
 
 Automatic web/backend deployments continue between coordinated releases while
 source versions stay unchanged. Use deployed component SHAs and CI run/artifact
@@ -124,7 +126,9 @@ New publication/submission actions retain every required gate and apply the
 [release warning policy](release/README.md#release-warning-policy).
 
 When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, including the post-deploy smoke jobs of the selected components. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed; dispatching Xcode Cloud workflows requires a full-release request or an explicit request for those actions, as defined in the release runbook.
-For Android, a green manual `Android Release` means the GitHub-hosted gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a production-track Play draft. Inspect all four sessions, configured destinations and named test results before publication under [the Android release procedure](release/android.md). Translation review, Play-delivered build verification and final publication remain in Play Console; a non-green workflow blocks publication.
+For Android publication, follow the [Android release procedure](release/android.md),
+including [exact-bundle upload recovery](release/android.md#exact-bundle-upload-recovery)
+when applicable.
 For Android release identity, session CLI/GCS inspection and named-case evidence, follow [Android CI/CD](android-ci-cd.md#device-run-results-and-release-correlation).
 For Xcode Cloud inspection, use `docs/xcode-cloud-data-access.md`. It documents the local `.env` secrets, App Store Connect API flow, example commands, returned data formats, artifact types, and how to extract timing/debugging insights from cloud test runs.
 

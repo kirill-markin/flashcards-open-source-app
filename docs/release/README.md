@@ -2,180 +2,122 @@
 
 # Release All Platforms
 
-A human or an AI with API/CLI and browser access can execute this runbook.
-A request to run the full release authorizes the documented platform workflow dispatches
-and existing distribution update/publication actions: store metadata, Android
-rollout, iOS and dedicated macOS App Review and final Apple publication, MCP
-Registry, existing connector/plugin/directory updates, companion tags and CI-produced packages,
-necessary website distribution-link updates, release-version preparation, and closeout.
-This includes committing, pushing, and merging release fixes and version
-alignment in this repository, `kirill-markin/nibomo-plugins`, and necessary link
-changes in `kirill-markin/flashcards-open-source-app-website` through each
-repository's normal PR/CI gates. New directory creation and optional marketplace
-expansion require their own scope; they are not required by every release.
-Confirm the version choice under [release preparation](versioning.md#release-preparation)
-before a new release; do not ask for separate approval at every later step.
-A request only to explain or edit this guide, draft notes, or bump versions
-does not authorize a full release.
+A full release request authorizes the documented workflow dispatches, review,
+publication, existing listing and website link updates, companion packages/tags,
+and release fixes and version alignment through the normal PR/CI gates in
+the core, `nibomo-plugins` and website repositories. Confirm the
+[version choice](versioning.md#release-preparation) for a new release.
+Version bumps, notes, guide edits and explanations have their own scope.
+New listings and optional marketplace expansion require explicit scope.
 
-An explicit user reservation of a final action overrides this general release
-authorization. Prepare and verify the handoff, then leave that exact action to
-the user; do not execute an equivalent API or console action. Follow the
-[iOS final-Submit handoff](ios.md#user-reserved-final-submit) when applicable.
-
-Prefer APIs/CLIs where supported; use the browser for store consoles and actions
-without adequate API access. Ask the user for login, MFA, missing permissions,
-or help with unexpected state or a decision the available evidence cannot
-resolve. Pause the affected action until resolved; continue independent work.
-Do not guess store declarations. Skip a platform only when the user explicitly asks to skip it.
+A user-reserved action takes precedence. Verify the handoff and leave the
+reserved action to the user, including [iOS final Submit](ios.md#user-reserved-final-submit).
+Prefer API/CLI, then the browser for unsupported actions or diagnosed access
+blockers. Ask for help with missing access, declarations or unresolved decisions
+and continue independent work. Skip platforms only at the user's request.
 
 ## Standing Best-Effort Release Policy
 
-For every authorized release, run feasible testing with reasonable effort: full existing latest-OS acceptance and focused compatibility checks wherever available. When external test infrastructure, destinations or required local test tooling remain unavailable after bounded diagnosis, record the unexecuted checks, reason, retained evidence, feasible alternatives and coverage limits in the [ledger](evidence.md#release-ledger), with a dated operator readiness decision bound to the exact source and artifact. Continue authorized dispatch, submission and publication, then fix forward, without requesting the same waiver each release. Reuse known diagnoses while unresolved and unchanged; retry on remediation or material new evidence.
+Run feasible testing with reasonable effort, including full latest-OS
+acceptance and focused compatibility. After bounded diagnosis of unavailable
+infrastructure, destinations or local tooling, record unexecuted checks,
+reasons, alternatives, coverage limits, retained evidence and a dated operator
+decision for the exact source and artifact in the [ledger](evidence.md#release-ledger).
+Continue authorized publication on that decision, even when the readiness
+report remains blocked. Reuse unchanged diagnoses and retry on remediation
+or material new evidence.
 
-Fix identifiable app/test defects, actionable build/compiler/lint/configuration or security issues, and actual signing, archive, upload or publication failures before proceeding with the affected action. An unavailable test is a coverage gap; a failed test is investigated and remains failed. Preserve original failures/skips and readiness manifests/reports; never manufacture a pass or change a recorded contract to make it green. Missing build/test evidence may leave the readiness CLI blocked while the separate operator decision permits publication under this policy.
-
-Platform test requirements below are subject to this policy for unavailable checks, except Android's four physical Device Run sessions, which are mandatory. Required CI, signing, artifact identity and store/publication guards remain enforced; this policy introduces no generic workflow bypass.
+Fix identifiable app/test defects, actionable build/toolchain/configuration
+or security issues, and signing, archive, upload or publication failures
+before the affected action. Preserve failed and skipped results and blocked
+reports. Required CI, signing, artifact identity, store guards and all four
+Android physical Device Run sessions remain mandatory.
 
 ## Required Reading
 
-Before any release or version-only work, read this entry point's authorization,
-completion, and sequence rules. For a full release, also read
-[shared evidence](evidence.md), [release notes](release-notes.md),
-[versioning](versioning.md), and **every in-scope platform/topic file** below.
-For a single-platform release, read shared evidence, versioning, and the relevant
-platform procedure; for version-only work, read versioning. These shared rules remain
-mandatory when following a linked procedure directly.
+Read [shared evidence](evidence.md) and [versioning](versioning.md) for release
+work. For a version-only change, read versioning. For each active channel
+follow its procedure when you reach it. Read [release notes](release-notes.md)
+for a new release and follow exception/legacy references only when applicable.
 
-| Platform/topic | Procedure |
-| --- | --- |
-| iOS | [Local preflight, Xcode Cloud, App Review, and publication](ios.md) |
-| macOS | [Dedicated Catalyst archive, full native tests, App Review, and publication](macos.md) |
-| Android | [Cloud validation, Device Run, and Play publication](android.md) |
-| Web and backend | [Deployment and public runtime verification](web-backend.md) |
-| MCP and plugins | [Canonical channel inventory, directories, website links, and publication](mcp-and-plugins.md) |
-
-Here, "manual" means explicitly dispatched rather than automatically triggered
-by a push; either a human or an authorized AI can operate workflows and consoles.
+- [iOS](ios.md) · [macOS](macos.md) · [Android](android.md)
+- [Web and backend](web-backend.md) · [MCP and plugins](mcp-and-plugins.md)
 
 ## Release Sequence
 
-Use this routine checklist; the linked procedures own the detailed gates.
-
-1. **Resume or choose a version.** Inspect the [ledger](evidence.md#release-ledger),
-   current publications and [inventory](mcp-and-plugins.md#release-inventory).
-   [Reuse matching artifacts](evidence.md#reuse-existing-artifacts); for a new
-   release, obtain the [version choice](versioning.md#release-preparation).
-2. **Preflight remaining work.** Check the essentials below before expensive
-   local work, downloads or dispatches; reused artifacts resume at their next unfinished step.
-3. **Merge preparation.** Align app/companion versions through normal PR/cloud
-   CI, [verify them](versioning.md#verify-the-release-version), pin both SHAs and
-   prepare separate reusable [store notes and GitHub changelog](release-notes.md)
-   in the chat. Keep that version through fixes.
-4. **Run platform flows in parallel.** Follow the [platform procedures](#required-reading):
-   complete feasible iOS and signed `LocalMac` acceptance under the [standing policy](#standing-best-effort-release-policy) before their Xcode Cloud release-build dispatches, use Android's
-   [cloud-first gate](evidence.md#android-cloud-release-gate), and follow the independent
-   [macOS local acceptance and Cloud archive flow](macos.md). Prepare metadata while builds run.
-   Use [optional Sentry monitoring and cleanup](#optional-sentry-monitoring-and-cleanup)
-   alongside testing and publication when available.
-5. **Verify results and artifacts.** Inspect native results, warnings, source/build
-   correlation, uploaded binaries and saved metadata under those procedures;
-   retain [readiness evidence](evidence.md#release-ledger) before new Apple or Android submission/publication.
-6. **Complete distribution actions.** Submit/publish the exact verified artifacts
-   and existing channel updates to their [completion boundaries](#release-inventory-and-completion).
-7. **Preserve and close out.** Verify app/companion [tags, Releases and package assets](versioning.md#github-tag-and-release),
-   then apply [closeout and development safeguards](versioning.md#release-closeout-and-development).
-   Tags/assets may be needed earlier by a channel or preserved while external review continues; retain the selected version.
-8. **Hand off actual states.** Report [channel status and remaining actions](evidence.md#release-ledger),
-   public links, both Releases/source SHAs and retained version. Separate completed work from external review and public availability.
-
-On failure, inspect evidence, fix, repeat only affected gates on a recorded
-[source snapshot](evidence.md#source-snapshots) or under [targeted recovery](evidence.md#targeted-recovery),
-merge through normal CI and revalidate artifact reuse; Android gates follow the [Android procedure](android.md). Update the target SHA and notes.
-If a fix affects an already published artifact, ask the user how to handle that platform.
-
-### Optional Sentry monitoring and cleanup
-
-Optionally check Sentry during testing and publication, filtering by project, environment
-and build. Archive only confirmed test noise with no production impact; resolve verified
-fixes under [Sentry rules](../../AGENTS.md#data-sources-for-analysis). Follow the
-[release policy](#standing-best-effort-release-policy) for real defects, leave uncertain
-issues unresolved, and record outcomes in the [ledger](evidence.md#release-ledger).
-This adds no release gate.
+1. Inspect current publications against the [inventory](mcp-and-plugins.md#release-inventory).
+   Open the [ledger](evidence.md#release-ledger), resume the recorded version
+   and [reuse matching artifacts](evidence.md#reuse-existing-artifacts).
+2. Complete [early preflight](#early-preflight) for the remaining work.
+3. For a new release, align app and companion versions through normal PR/CI,
+   [verify version surfaces](versioning.md#verify-the-release-version), pin
+   both SHAs and prepare [store notes and GitHub changelog](release-notes.md).
+4. Run the [platform flows](#required-reading) in parallel.
+   After saved-workflow preflight, dispatch only **iOS Release Build**
+   and **macOS Release Build** alongside their respective local acceptance.
+   Android's signed build runs alongside the native gate. Prepare metadata
+   while builds run.
+5. Before new submission or publication, reconcile exact build and native
+   results, retain [readiness evidence](evidence.md#release-ledger), apply the
+   [warning policy](#release-warning-policy) and complete store checks.
+   For a blocking failure, preserve its evidence, merge the
+   fix through normal CI and repeat affected gates under
+   [artifact reuse](evidence.md#resume-and-artifact-reuse) or
+   [targeted recovery](evidence.md#targeted-recovery). Update the pinned SHA
+   and notes as applicable. Ask the user when a fix affects a published artifact.
+6. Complete each channel at its [boundary](#release-inventory-and-completion).
+   Preserve and verify app/companion [tags, Releases and package assets](versioning.md#github-tag-and-release)
+   when required by a channel or at closeout. Apply the
+   [development safeguards](versioning.md#release-closeout-and-development).
+7. Report channel states, public links, both Releases/source SHAs, the
+   retained version and remaining actions from the [ledger](evidence.md#release-ledger).
 
 ### Early preflight
 
-- For Android, web and iOS/macOS, complete the [RaTeX dependency preflight](../ratex-dependency.md)
-  before testing, builds, deployment or publication; merge any required pin update
-  and retain the affected platform gate evidence.
-- Before required local Xcode work or runtime downloads, check available disk
-  against the actual archive/result/runtime needs; there is no universal free-space threshold.
-  Inspect installed [iOS runtimes/devices](../ios-local-setup.md#local-testing-rules)
-  and the actual supported OS versions under [destination requirements](../ios-ci-cd.md#supported-os-destinations).
-- For macOS, inspect the [saved Mac release workflow and local destination](macos.md#preflight-and-cloud-gates),
-  shared Apple version and separate `MAC_OS` build/draft. Reserve disk for the
-  exact export and full local native evidence; inspect the required genuine local development certificate/profile and actual host macOS before testing. Preserve pending iOS submissions.
-- Verify authenticated access for the remaining provider/store actions and the
-  [saved Xcode Cloud configuration](../ios-ci-cd.md#cloud-configuration-preflight).
-  Check all four configured [Device Run destinations](../android-ci-cd.md#choose-the-device-run-devices) before Android dispatch. Resolve access blockers only where needed; preserve reusable artifacts.
+For remaining Apple, Android and web release work, follow the
+[RaTeX dependency guide](../ratex-dependency.md#release-preflight-and-updates)
+to compare sources and verify any replacement packages before repinning. Merge
+any required consumer pin before affected release tests, builds or publication
+and before or with the release version-alignment merge. Let the merge containing
+a verified web pin trigger the normal deployment.
 
-Machine/provider setup, legal acceptance and runtime provisioning are setup work;
-repeat them only when missing or newly required. Older-OS manual walkthroughs
-apply to first support expansion or affected OS-specific changes, as defined in
-[iOS](ios.md) and [Android](android.md#first-release-api-30-walkthrough).
-Under the [standing policy](#standing-best-effort-release-policy), for every new iOS release complete [full local native acceptance](../ios-local-setup.md#local-native-acceptance) on latest iPhone, focused latest iPad and actual iOS 18, then retain Cloud archive/signing. Mac requires full signed `LocalMac` acceptance before its Cloud archive. Either may pass under [targeted recovery](evidence.md#targeted-recovery). Only **iOS Release Build** and **macOS Release Build** stay enabled; do not routinely dispatch disabled test workflows. Android retains its four sequential Device Run sessions.
+Check provider access, disk for the planned artifacts
+and installed [iOS destinations](../ios-local-setup.md#local-testing-rules),
+[Mac signing and desktop](macos.md#preflight-and-cloud-gates) and
+[Android catalog destinations](../android-ci-cd.md#choose-the-device-run-devices)
+as applicable. Resolve missing setup when needed.
+
+### Optional Sentry monitoring and cleanup
+
+Filter by project, environment and build. Archive only confirmed test noise
+without production impact. Resolve verified fixes under the
+[Sentry rules](../../AGENTS.md#data-sources-for-analysis) and record outcomes.
 
 ## Release Inventory and Completion
 
-For each channel, inspect the existing publication first. Verify/reuse unchanged
-publication when its inputs still match; update the existing listing or artifact
-when source, version, tools, auth, or metadata requires it. Never blindly
-republish, recreate a listing, or silently omit a channel.
-
-See the [canonical channel inventory](mcp-and-plugins.md#release-inventory) and
-maintain the [release ledger](evidence.md#release-ledger).
-
-Operational completion means our required publication or submission actions are
-finished at the boundary below. Track observed public availability separately:
-submission, approval, and a portal's **Published** label alone do not prove it.
+Inspect each [existing channel](mcp-and-plugins.md#release-inventory) before
+updating it. Verify unchanged inputs and publication when applicable. Track
+observed public availability separately from required operator actions.
 
 | Channel | Operator completion boundary |
 | --- | --- |
-| iOS | Exact version/build successfully submitted for review with automatic release after approval enabled and its saved setting verified. In manual mode, complete any available final release action and record a later action still awaiting approval as follow-up. |
-| macOS | Exact `MAC_OS` version/build successfully submitted for review, with saved automatic release after approval verified; in manual mode, complete any available final release action and record any action awaiting approval as follow-up. Apply the standing policy to unavailable Mac testing; exact-artifact gates remain mandatory. |
-| Android | Exact production version is publicly available at the selected rollout scope, after required GitHub gates and all four physical Device Run sessions pass; record OS-specific acceptance or standing-policy coverage gaps. |
-| Web/backend and MCP Registry | Intended deployment/runtime or registry version is verified under its procedure. |
-| Established connector/plugin/directory channels | Required CI/scans and focused checks passed, and the exact update/publication request was accepted, or the unchanged publication was verified. |
+| iOS and macOS | Exact platform/version/build submitted for review with saved automatic release verified. In manual mode, complete available release actions and record actions awaiting approval as follow-up. |
+| Android | Required CI and four Device Run sessions pass, applicable OS-specific checks or coverage decisions are recorded, and the exact production version is public at the intended rollout scope. |
+| Web/backend and MCP Registry | Intended runtime or registry version verified. |
+| Established connectors, plugins and directories | Required scans/checks pass and the exact update is accepted or unchanged publication is verified. For OpenAI, verify [hosted MCP and package](mcp-and-plugins.md#openai) separately. |
 
-A user-reserved final action or [reviewer-disabled plugin publication](mcp-and-plugins.md#reviewer-disabled-plugin-publication)
-remains pending at its unchanged boundary. Close out independently completed
-work and preserve required tags, Releases, assets and safeguards, with the
-exact remaining action, owner and next condition in the ledger. Do not call
-the pending channel or the whole release complete; complete every available
-required action on the other channels.
-
-External iOS/macOS/provider review and directory crawl/propagation are follow-up; they
-do not hold overall closeout open after these boundaries. Record pending states
-factually and any later operator action, without calling them live. Every coordinated
-release includes the established [OpenAI channel](mcp-and-plugins.md#openai):
-inspect its hosted MCP and package independently, then verify unchanged live
-content or complete the applicable update under the
-[publishing procedure](../plugin-publishing.md#openai).
-
-Before a new publication/submission, apply the [release warning policy](#release-warning-policy).
-Already-published matching Apple or Android artifacts count complete under the
-[reuse rules](evidence.md#reuse-existing-artifacts); historical gaps do not reopen
-them. Reuse valid evidence on unchanged inputs and do not extend completed
-publication with optional tests. These boundaries, together with mandatory tags,
-Releases, assets, and development safeguards, control
-[release closeout](versioning.md#release-closeout-and-development).
+A user-reserved action or [reviewer-disabled plugin publication](mcp-and-plugins.md#reviewer-disabled-plugin-publication)
+leaves that channel and the overall release pending. Record its owner and next
+condition, complete independent work and retain required tags and assets.
+External review and propagation are follow-up after the applicable operator
+boundary. [Matching live mobile artifacts](evidence.md#reuse-existing-artifacts)
+count complete with their retained evidence.
 
 ## Release Warning Policy
 
 Before a new publication/submission, fix release errors, identifiable app/test failures,
 applicable security vulnerabilities, and actionable first-party, configuration,
 build, compiler, lint, and toolchain warnings. Apply the [standing policy](#standing-best-effort-release-policy) to unavailable testing; it does not waive these defects or security, signing and publication failures.
-The [Mac procedure](macos.md) defines signed local native acceptance; retain historical failed Cloud actions and diagnoses unchanged. Disabled Cloud test workflows are not current gates, and local evidence never converts a Cloud failure to a pass.
 Only the bounded warning exceptions below may remain.
 
 Vendor-owned, non-actionable deprecation, tool, or runtime notices may remain

@@ -247,7 +247,10 @@ During diagnosis, append `-only-testing:'<target>/<class>/<method>'` before `tes
 
 Every new release requires the `IOS18Compatibility` plan on one actual 18.x destination locally, in addition to latest-iPhone full acceptance and focused latest-iPad acceptance. Cloud test workflows remain disabled.
 
-Use the current Xcode/SDK and pinned packages with deployment target 18.0. Inspect installed runtimes/devices; if no supported 18.x simulator is available, use a physical iPhone or iPad actually running 18.x. Tell the user before downloading a runtime. A newer runtime or `My Mac` provides no 18.x evidence. If neither eligible simulator nor hardware is available, record the exact toolchain/runtime restriction and block release.
+Use the current Xcode/SDK and pinned packages with deployment target 18.0. If
+no supported 18.x simulator is installed, use an iPhone or iPad running 18.x.
+Tell the user before downloading a runtime. If neither destination is available,
+record the restriction under the [standing release policy](release/README.md#standing-best-effort-release-policy).
 
 ```bash
 set -o pipefail

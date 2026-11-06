@@ -54,7 +54,10 @@ signing only for `macosx`; iOS test signing settings remain unchanged.
 
 Inspect saved settings through [Xcode Cloud access](xcode-cloud-data-access.md); the [macOS release procedure](release/macos.md) owns preflight and dispatch. Only the two [Apple release builds](ios-ci-cd.md#native-release-gate) stay enabled; preserve disabled test workflows and masked secrets. TestFlight internal distribution is not XCTest or proof of the new uploaded build.
 
-Xcode Cloud owns distribution archives. Full signed local acceptance below, or its [targeted recovery](release/evidence.md#targeted-recovery), is the normal mandatory pre-dispatch path; PR static checks cannot establish Catalyst compatibility. Do not retry Cloud tests each release. Retain historical failed Cloud results and their signing diagnosis: Cloud's ad hoc Mac Test identity can fail to authorize the private Keychain identity ([Apple DTS](https://developer.apple.com/forums/thread/724812)). Local evidence never rewrites that failure.
+Follow the [macOS release sequence](release/macos.md#preflight-and-cloud-gates)
+for Cloud archives and signed local acceptance. Retain historical Cloud failures
+and their signing diagnosis. Cloud's ad hoc Mac Test identity can fail to authorize
+the private Keychain identity ([Apple DTS](https://developer.apple.com/forums/thread/724812)).
 
 <a id="signed-local-native-alternative"></a>
 
@@ -120,6 +123,8 @@ and decode its embedded profile with `security cms -D -i '<embedded-profile>'`. 
 profile-authorized private app identity. Confirm the profile includes the
 current signing certificate and execution Mac.
 An absent explicit Keychain access group is valid for default private access.
+Run the [desktop launch preflight](#desktop-launch-preflight) before starting
+the suite below.
 
 ```bash
 TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL='<configured-review-email>' \
@@ -136,7 +141,30 @@ disable signing or bypass Keychain cleanup. Keep the same Xcode and built
 products for both phases; do not edit the generated manifest, and add test filters only for [targeted recovery](release/evidence.md#targeted-recovery).
 Inspect the completed `.xcresult`, every selected named result, warnings and
 attachments. Build/signature success, partial or interrupted runs do not count
-as a passing suite. Every selected required non-UI/UI case must execute and pass; unexpected skips, missing cases or failures block release. Save actual local evidence, retaining any historical failed Cloud results separately, in the [release ledger](release/evidence.md#release-ledger).
+as a passing suite. Apply the [local result rules](release/macos.md#preflight-and-cloud-gates)
+and save actual evidence in the [release ledger](release/evidence.md#release-ledger).
+
+#### Desktop launch preflight
+
+Reserve the same idle, logged-in Mac desktop for this check and `LocalMac`.
+Quit other development app instances. Confirm the desktop observation tool can
+show system dialogs outside Nibomo's window and check the full desktop.
+If clear, start `log stream --predicate 'category == "automation_run"'` in a
+separate terminal and launch the verified signed Debug app from the build above
+with disposable development state:
+
+```bash
+bash scripts/ios/launch-macos-test-app.sh '<absolute-path-to-built-Nibomo.app>'
+```
+
+Within one minute of launch, verify the fresh process's [automation marker](ios-ci-cd.md#automation-marker)
+(`automation_run_decided`, `isAutomation=true`). Bring its window forward,
+confirm it responds and recheck the desktop for blocking system dialogs,
+including screen or audio recording prompts. Quit the app before XCTest.
+If a dialog appears before or during launch, or the check times out, record the
+outcome and stop for diagnosis.
+Leave privacy settings to the desktop owner. Record the preflight separately
+from suite results.
 
 ## Native smoke evidence
 
