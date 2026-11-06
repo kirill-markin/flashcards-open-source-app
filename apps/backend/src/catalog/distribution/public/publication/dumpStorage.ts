@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import {
   addBackendBreadcrumb,
   type BackendObservationScope,
 } from "../../../../observability/sentry";
-import type { CatalogPublicSnapshot } from "../../../types";
+import type { CatalogBrowseIndex, CatalogPublicSnapshot } from "../../../types";
 
 export type CatalogDumpStorageConfig = Readonly<{
   bucketName: string;
@@ -19,6 +20,14 @@ export type CatalogDumpWriteResult = Readonly<{
   byteLength: number;
 }>;
 
+export type CatalogBrowseIndexWriteResult = Readonly<{
+  objectKey: string;
+  sha256: string;
+  deckCount: number;
+  byteLength: number;
+  gzipByteLength: number;
+}>;
+
 const maxS3AttemptCount = 3;
 const catalogDumpObjectKeyPrefix = "catalog";
 const latestCatalogDumpObjectKey = `${catalogDumpObjectKeyPrefix}/latest.json`;
@@ -26,6 +35,8 @@ const pointerCatalogDumpObjectKey = `${catalogDumpObjectKeyPrefix}/pointer.json`
 const catalogDumpContentType = "application/json; charset=utf-8";
 export const immutableCatalogDumpCacheControl = "public, max-age=31536000, immutable";
 const revalidatedCatalogDumpCacheControl = "public, max-age=60";
+export const catalogBrowseIndexObjectKeyPrefix = `${catalogDumpObjectKeyPrefix}/browse-index`;
+export const catalogBrowseIndexPointerObjectKey = `${catalogBrowseIndexObjectKeyPrefix}/pointer.json`;
 
 let catalogDumpS3Client: S3Client | undefined;
 
@@ -133,7 +144,8 @@ async function putCatalogDumpObjectWithRetries(params: Readonly<{
   observationScope: BackendObservationScope;
   bucketName: string;
   objectKey: string;
-  body: string;
+  body: string | Uint8Array;
+  contentEncoding: "gzip" | undefined;
   cacheControl: string;
 }>): Promise<void> {
   try {
@@ -147,6 +159,7 @@ async function putCatalogDumpObjectWithRetries(params: Readonly<{
         Key: params.objectKey,
         Body: params.body,
         ContentType: catalogDumpContentType,
+        ContentEncoding: params.contentEncoding,
         CacheControl: params.cacheControl,
       })),
     });
@@ -176,6 +189,7 @@ export async function writeCatalogDumpToS3(
     bucketName: config.bucketName,
     objectKey,
     body,
+    contentEncoding: undefined,
     cacheControl: immutableCatalogDumpCacheControl,
   });
   await putCatalogDumpObjectWithRetries({
@@ -183,6 +197,7 @@ export async function writeCatalogDumpToS3(
     bucketName: config.bucketName,
     objectKey: latestCatalogDumpObjectKey,
     body,
+    contentEncoding: undefined,
     cacheControl: revalidatedCatalogDumpCacheControl,
   });
   await putCatalogDumpObjectWithRetries({
@@ -194,6 +209,7 @@ export async function writeCatalogDumpToS3(
       url: `${config.cdnBaseUrl}/${objectKey}`,
       generatedAt: snapshot.generatedAt,
     }),
+    contentEncoding: undefined,
     cacheControl: revalidatedCatalogDumpCacheControl,
   });
 
@@ -203,5 +219,51 @@ export async function writeCatalogDumpToS3(
     sha256,
     generatedAt: snapshot.generatedAt,
     byteLength: Buffer.byteLength(body, "utf8"),
+  };
+}
+
+/**
+ * Publishes the browse index as an immutable gzip-encoded object plus the
+ * `pointer.json` alias native clients revalidate against. `sha256` is over the
+ * uncompressed JSON, the bytes a client holds after decoding, and the immutable
+ * object is written first so the pointer never names a missing object.
+ */
+export async function writeCatalogBrowseIndexToS3(
+  observationScope: BackendObservationScope,
+  browseIndex: CatalogBrowseIndex,
+): Promise<CatalogBrowseIndexWriteResult> {
+  const config = getCatalogDumpStorageConfig();
+  const body = JSON.stringify(browseIndex);
+  const sha256 = createHash("sha256").update(body).digest("hex");
+  const objectKey = `${catalogBrowseIndexObjectKeyPrefix}/${sha256}.json`;
+  const gzipBody = gzipSync(body);
+
+  await putCatalogDumpObjectWithRetries({
+    observationScope,
+    bucketName: config.bucketName,
+    objectKey,
+    body: gzipBody,
+    contentEncoding: "gzip",
+    cacheControl: immutableCatalogDumpCacheControl,
+  });
+  await putCatalogDumpObjectWithRetries({
+    observationScope,
+    bucketName: config.bucketName,
+    objectKey: catalogBrowseIndexPointerObjectKey,
+    body: JSON.stringify({
+      url: `${config.cdnBaseUrl}/${objectKey}`,
+      sha256,
+      generatedAt: browseIndex.generatedAt,
+    }),
+    contentEncoding: undefined,
+    cacheControl: revalidatedCatalogDumpCacheControl,
+  });
+
+  return {
+    objectKey,
+    sha256,
+    deckCount: browseIndex.decks.length,
+    byteLength: Buffer.byteLength(body, "utf8"),
+    gzipByteLength: gzipBody.byteLength,
   };
 }

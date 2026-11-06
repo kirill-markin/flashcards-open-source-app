@@ -139,6 +139,14 @@ export type CatalogDumpGeneratedDetails = Readonly<{
   triggerRoute: string | null;
 }>;
 
+export type CatalogBrowseIndexGeneratedDetails = Readonly<{
+  objectKey: string;
+  sha256: string;
+  deckCount: number;
+  byteLength: number;
+  gzipByteLength: number;
+}>;
+
 /**
  * One completed media reconcile of the `catalog/media/` prefix of the dump
  * bucket. `desiredObjectCount` is what the public catalog currently exposes;
@@ -165,8 +173,8 @@ export type CatalogDumpRefreshFailureDetails = Readonly<{
 }>;
 
 /**
- * Emitted when `GET /v1/catalog` cannot read the pointer naming the current
- * immutable artifact and answers 503 instead of redirecting. Distinct from
+ * Emitted when `GET /v1/catalog` or `GET /v1/catalog/browse-index` cannot read
+ * the pointer naming its current immutable artifact and answers 503. Distinct from
  * `catalog_dump_failed`: that one is the builder failing to publish an
  * artifact, this one is the public route failing to serve the published one.
  */
@@ -881,6 +889,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
   | EventByAction<"global_metrics_snapshot_version_failed", GlobalMetricsSnapshotVersionFailureDetails>
   | EventByAction<"catalog_dump_generated", CatalogDumpGeneratedDetails>
+  | EventByAction<"catalog_browse_index_generated", CatalogBrowseIndexGeneratedDetails>
   | EventByAction<"catalog_dump_media_published", CatalogDumpMediaPublishedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
@@ -931,6 +940,8 @@ export type OperationsWarningEvent =
     storageErrorMessage: string;
   }>> & Readonly<{ message: string }>)
   | (EventByAction<"catalog_snapshot_pointer_error", CatalogSnapshotPointerErrorDetails>
+    & Readonly<{ message: string }>)
+  | (EventByAction<"catalog_browse_index_pointer_error", CatalogSnapshotPointerErrorDetails>
     & Readonly<{ message: string }>)
   | EventByAction<"unsafe_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"database_pool_error", DatabasePoolErrorDetails>

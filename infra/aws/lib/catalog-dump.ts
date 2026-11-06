@@ -55,6 +55,13 @@ const catalogDumpObjectKeyPrefix = "catalog";
 export const catalogDumpPointerObjectKey = `${catalogDumpObjectKeyPrefix}/pointer.json`;
 
 /**
+ * Alias object `GET /v1/catalog/browse-index` reads. Must stay in sync with
+ * `catalogBrowseIndexPointerObjectKey` in
+ * `apps/backend/src/catalog/distribution/public/publication/dumpStorage.ts`.
+ */
+export const catalogBrowseIndexPointerObjectKey = `${catalogDumpObjectKeyPrefix}/browse-index/pointer.json`;
+
+/**
  * Prefix of the dump bucket the builder publishes public catalog media blobs to.
  * Must stay in sync with `catalogMediaObjectKeyPrefix` in
  * `apps/backend/src/catalog/distribution/public/publication/mediaPublication.ts`.

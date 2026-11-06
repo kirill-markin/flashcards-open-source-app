@@ -530,6 +530,30 @@ export type CatalogPublicSnapshot = Readonly<{
   collectionPackages: ReadonlyArray<CatalogPublicSnapshotCollectionPackage>;
 }>;
 
+/** Native clients cache the browse index on device and reject a schema version they do not know. */
+export const catalogBrowseIndexSchemaVersion = 1 as const;
+
+export type CatalogBrowseIndexDeck = Readonly<{
+  packageId: string;
+  packageVersionId: string;
+  slug: string;
+  title: string;
+  summary: string;
+  languageTags: ReadonlyArray<string>;
+  educationalSubject: string;
+  cardCount: number;
+  publishedAt: string;
+  authorDisplayName: string;
+  coverImageUrl: string | null;
+  reviewTag: string;
+}>;
+
+export type CatalogBrowseIndex = Readonly<{
+  schemaVersion: typeof catalogBrowseIndexSchemaVersion;
+  generatedAt: string;
+  decks: ReadonlyArray<CatalogBrowseIndexDeck>;
+}>;
+
 export type CatalogPackageDraft = Readonly<{
   catalogPackage: CatalogPackage;
   mediaAssets: ReadonlyArray<CatalogPackageMediaAsset>;

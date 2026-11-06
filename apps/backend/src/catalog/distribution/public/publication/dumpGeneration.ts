@@ -1,9 +1,14 @@
 import { unsafeRepeatableReadReadOnlyTransaction } from "../../../../database/core";
 import { parsePublicOrigin } from "../../../../shared/publicUrls";
-import type { BackendObservationScope } from "../../../../observability/sentry";
+import {
+  addBackendBreadcrumb,
+  type BackendObservationScope,
+} from "../../../../observability/sentry";
 import { loadPublicCatalogSnapshotInExecutor } from "../snapshot";
+import { buildCatalogBrowseIndex } from "./browseIndex";
 import {
   getCatalogDumpStorageConfig,
+  writeCatalogBrowseIndexToS3,
   writeCatalogDumpToS3,
   type CatalogDumpWriteResult,
 } from "./dumpStorage";
@@ -34,6 +39,9 @@ function getRequiredCatalogDumpEnv(envName: string): string {
  * Media blobs are reconciled onto the CDN before the snapshot is written, and a
  * failed reconcile fails the whole run, so a published snapshot never precedes
  * the media objects it references.
+ *
+ * The browse index is derived from the same snapshot and written only after the
+ * full dump, so an index failure fails the run without withholding the dump.
  */
 export async function generateAndWriteCatalogDump(
   observationScope: BackendObservationScope,
@@ -62,5 +70,30 @@ export async function generateAndWriteCatalogDump(
   );
 
   await publishPublicCatalogMediaToCatalogDumpBucket(observationScope, mediaBlobs);
-  return writeCatalogDumpToS3(observationScope, snapshot);
+  const dumpResult = await writeCatalogDumpToS3(observationScope, snapshot);
+
+  try {
+    const browseIndexResult = await writeCatalogBrowseIndexToS3(
+      observationScope,
+      buildCatalogBrowseIndex(snapshot),
+    );
+    addBackendBreadcrumb({
+      action: "catalog_browse_index_generated",
+      scope: observationScope,
+      details: {
+        objectKey: browseIndexResult.objectKey,
+        sha256: browseIndexResult.sha256,
+        deckCount: browseIndexResult.deckCount,
+        byteLength: browseIndexResult.byteLength,
+        gzipByteLength: browseIndexResult.gzipByteLength,
+      },
+    });
+  } catch (error) {
+    throw new Error(
+      `Public catalog dump ${dumpResult.objectKey} was published, but its browse index was not: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+
+  return dumpResult;
 }

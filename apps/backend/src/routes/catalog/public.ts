@@ -15,8 +15,11 @@ import {
 // Narrow path on purpose: the catalog barrels must not start carrying the dump
 // reader into Lambdas that never touch the artifact bucket.
 import {
+  catalogBrowseIndexUnavailableCode,
   catalogDumpPointerUnavailableCode,
+  loadCatalogBrowseIndexPointerFromS3,
   loadCatalogDumpPointerFromS3,
+  type CatalogBrowseIndexPointer,
   type CatalogDumpPointer,
 } from "../../catalog/distribution/public/publication/reader";
 import {
@@ -46,6 +49,9 @@ type CatalogPublicRoutesOptions = Readonly<{
   loadCatalogDumpPointerFn?: (
     observationScope: BackendObservationScope,
   ) => Promise<CatalogDumpPointer>;
+  loadCatalogBrowseIndexPointerFn?: (
+    observationScope: BackendObservationScope,
+  ) => Promise<CatalogBrowseIndexPointer>;
   listPublicCatalogPackagesFn?: (
     input: CatalogPublicPackageListInput,
   ) => Promise<ReadonlyArray<CatalogPublicPackageSummary>>;
@@ -74,6 +80,7 @@ const defaultPackageListLimit = 50;
 const defaultCardPreviewLimit = 25;
 const maximumPublicCatalogLimit = 100;
 const catalogSnapshotUnavailableMessage = "Public catalog snapshot is unavailable.";
+const catalogBrowseIndexUnavailableMessage = "Public catalog browse index is unavailable.";
 
 function parseLimitQuery(
   value: string | undefined,
@@ -220,10 +227,10 @@ function resolveCatalogMediaCdnBaseUrl(): string {
   return cdnBaseUrl.trim();
 }
 
-function isCatalogDumpPointerUnavailableError(error: unknown): error is HttpError {
+function isCatalogPointerUnavailableError(error: unknown, code: string): error is HttpError {
   return error instanceof HttpError
     && error.statusCode === 503
-    && error.code === catalogDumpPointerUnavailableCode;
+    && error.code === code;
 }
 
 /**
@@ -277,6 +284,8 @@ function resolvePublicCatalogMediaCdnUrl(
 export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadCatalogDumpPointerFn = options.loadCatalogDumpPointerFn ?? loadCatalogDumpPointerFromS3;
+  const loadCatalogBrowseIndexPointerFn = options.loadCatalogBrowseIndexPointerFn
+    ?? loadCatalogBrowseIndexPointerFromS3;
   const listPublicCatalogPackagesFn = options.listPublicCatalogPackagesFn ?? listPublicCatalogPackages;
   const loadPublicCatalogPackageDetailFn = options.loadPublicCatalogPackageDetailFn
     ?? loadPublicCatalogPackageDetail;
@@ -311,7 +320,7 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     try {
       pointer = await loadCatalogDumpPointerFn(observationScope);
     } catch (error) {
-      if (!isCatalogDumpPointerUnavailableError(error)) {
+      if (!isCatalogPointerUnavailableError(error, catalogDumpPointerUnavailableCode)) {
         throw error;
       }
 
@@ -334,6 +343,54 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     }
 
     return context.redirect(pointer.url, 302);
+  });
+
+  /**
+   * Names the current immutable browse index on the catalog CDN. Native clients
+   * cache the index on device and compare `sha256` here to revalidate, so this
+   * answer is never cached and never recomputes the index.
+   */
+  app.get("/catalog/browse-index", async (context) => {
+    const observationScope = createCatalogPublicScope(
+      context.get("requestId"),
+      context.req.path,
+      context.req.method,
+      context.get("clientAppVersion"),
+      context.get("clientPlatform"),
+    );
+    context.header("Cache-Control", "no-store");
+
+    let pointer: CatalogBrowseIndexPointer;
+    try {
+      pointer = await loadCatalogBrowseIndexPointerFn(observationScope);
+    } catch (error) {
+      if (!isCatalogPointerUnavailableError(error, catalogBrowseIndexUnavailableCode)) {
+        throw error;
+      }
+
+      captureBackendWarning({
+        action: "catalog_browse_index_pointer_error",
+        message: catalogBrowseIndexUnavailableMessage,
+        scope: observationScope,
+        details: {
+          statusCode: error.statusCode,
+          code: error.code,
+          storageErrorMessage: error.message,
+        },
+      });
+
+      return context.json({
+        error: catalogBrowseIndexUnavailableMessage,
+        requestId: context.get("requestId"),
+        code: catalogBrowseIndexUnavailableCode,
+      }, 503);
+    }
+
+    return context.json({
+      url: pointer.url,
+      sha256: pointer.sha256,
+      generatedAt: pointer.generatedAt,
+    });
   });
 
   app.get("/catalog/packages", async (context) => {
