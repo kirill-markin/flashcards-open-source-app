@@ -9,7 +9,9 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogBrowseIndexRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
+import com.flashcardsopensourceapp.feature.cards.catalog.CatalogViewModel
 import com.flashcardsopensourceapp.feature.cards.editor.CardEditorViewModel
 import com.flashcardsopensourceapp.feature.cards.library.LibraryViewModel
 import com.flashcardsopensourceapp.feature.cards.list.CardsViewModel
@@ -60,6 +62,22 @@ fun createLibraryViewModelFactory(
     return viewModelFactory {
         initializer {
             LibraryViewModel(workspaceRepository = workspaceRepository)
+        }
+    }
+}
+
+fun createCatalogViewModelFactory(
+    catalogBrowseIndexRepository: CatalogBrowseIndexRepository,
+    messageController: TransientMessageController
+): ViewModelProvider.Factory {
+    return viewModelFactory {
+        initializer {
+            val application = requireApplication()
+            CatalogViewModel(
+                catalogBrowseIndexRepository = catalogBrowseIndexRepository,
+                messageController = messageController,
+                refreshFailedMessage = application.getString(R.string.catalog_refresh_failed)
+            )
         }
     }
 }

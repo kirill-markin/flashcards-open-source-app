@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelStore
@@ -102,6 +103,8 @@ import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptConfigS
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogBrowseIndexRepository
+import com.flashcardsopensourceapp.data.local.repository.catalog.CloudCatalogBrowseIndexRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
@@ -626,6 +629,13 @@ class AppGraph(
         appVersion = appPackageInfo.versionName,
         currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" },
         currentClientDeviceType = clientDeviceTypeProvider
+    )
+    val catalogBrowseIndexRepository: CatalogBrowseIndexRepository = CloudCatalogBrowseIndexRepository(
+        preferencesStore = cloudPreferencesStore,
+        remoteService = cloudRemoteService,
+        okHttpClient = okHttpClient,
+        cacheDirectory = context.cacheDir,
+        elapsedRealtimeMillisProvider = SystemClock::elapsedRealtime
     )
     private val paywallRepository = LocalPaywallRepository(
         preferencesStore = cloudPreferencesStore,

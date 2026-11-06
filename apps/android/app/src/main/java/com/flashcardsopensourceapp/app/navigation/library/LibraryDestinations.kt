@@ -40,6 +40,10 @@ data object LibraryTagsDestination {
     const val route: String = "library/tags"
 }
 
+data object LibraryDeckCatalogDestination {
+    const val route: String = "library/catalog"
+}
+
 data object LibraryImportDestination {
     const val route: String = "library/import"
 }

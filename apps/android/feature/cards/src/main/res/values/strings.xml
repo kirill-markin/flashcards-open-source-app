@@ -1,16 +1,36 @@
 <resources>
     <string name="library_title">Library</string>
+    <string name="library_your_cards_section_title">Your cards</string>
     <string name="library_cards_title">Cards</string>
     <string name="library_cards_summary">Every card in this workspace.</string>
     <string name="library_tags_title">Tags</string>
     <string name="library_tags_summary">Every tag used on at least one card.</string>
     <string name="library_decks_title">Decks</string>
     <string name="library_decks_summary">Saved card filters for focused review.</string>
-    <string name="library_import_export_section_title">Import &amp; export</string>
+    <string name="library_add_cards_section_title">Add cards</string>
+    <string name="library_deck_catalog_title">Deck catalog</string>
+    <string name="library_deck_catalog_summary">Free ready-made decks to study.</string>
     <string name="library_import_title">Import</string>
     <string name="library_import_summary">Add cards from a file.</string>
     <string name="library_export_title">Export</string>
     <string name="library_export_summary">Download all your cards as a file.</string>
+    <string name="catalog_back_content_description">Back</string>
+    <string name="catalog_search_placeholder">Search decks</string>
+    <string name="catalog_clear_search_content_description">Clear search</string>
+    <string name="catalog_language_all">All languages</string>
+    <string name="catalog_sort_relevance">Relevance</string>
+    <string name="catalog_sort_title">Title</string>
+    <string name="catalog_sort_newest">Newest</string>
+    <string name="catalog_sort_content_description">Sort decks by %1$s</string>
+    <plurals name="catalog_deck_card_count">
+        <item quantity="one">%1$s card</item>
+        <item quantity="other">%1$s cards</item>
+    </plurals>
+    <string name="catalog_empty_no_decks">No decks are available yet.</string>
+    <string name="catalog_empty_no_matches">No decks match your search.</string>
+    <string name="catalog_load_failed">Couldn\'t load the deck catalog. Check your connection and try again.</string>
+    <string name="catalog_retry">Try again</string>
+    <string name="catalog_refresh_failed">Couldn\'t update the deck catalog. Showing saved decks.</string>
     <string name="cards_title">Cards</string>
     <string name="cards_filter_content_description">Filter cards</string>
     <plurals name="cards_filter_content_description_active">
