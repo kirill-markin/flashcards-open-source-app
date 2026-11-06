@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.refreshExpiredStoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.buildClientWorkspaceReplicaId
@@ -92,7 +93,7 @@ class CloudCatalogDeckInstallRepository(
         syncRepository.syncNow()
     }
 
-    /** Linked and guest sessions as they are; a disconnected or linking-ready device becomes a guest. */
+    /** Linked and guest sessions as they are; a disconnected device becomes a guest. */
     private suspend fun cloudSession(): CatalogInstallSession {
         val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudState()
         val configuration = preferencesStore.currentServerConfiguration()
@@ -117,16 +118,30 @@ class CloudCatalogDeckInstallRepository(
             )
         }
 
-        val guestSession = cloudGuestSessionCoordinator.restoreGuestCloudSessionIfNeeded(
-            workspaceId = requireCurrentWorkspace(
-                database = database,
-                preferencesStore = preferencesStore,
-                missingWorkspaceMessage = "Catalog deck install requires a current local workspace."
-            ).workspaceId,
-            createSessionIfMissing = true
-        )
-        // A new guest workspace registers this installation's replica on its first sync, and the
-        // install names that replica.
+        val guestSession = when (val cloudState = reconciliation.cloudSettings.cloudState) {
+            CloudAccountState.GUEST -> GuestCloudSessionRestoreResult(
+                session = requireNotNull(reconciliation.restoredGuestSession) {
+                    "Guest cloud state is missing a stored guest session."
+                },
+                shouldSync = reconciliation.guestRestoreRequiresSync
+            )
+
+            CloudAccountState.DISCONNECTED -> cloudGuestSessionCoordinator.restoreGuestCloudSessionIfNeeded(
+                workspaceId = requireCurrentWorkspace(
+                    database = database,
+                    preferencesStore = preferencesStore,
+                    missingWorkspaceMessage = "Catalog deck install requires a current local workspace."
+                ).workspaceId,
+                createSessionIfMissing = true
+            )
+
+            CloudAccountState.LINKED,
+            CloudAccountState.LINKING_READY -> throw IllegalStateException(
+                "Catalog deck install cannot prepare a guest session in cloud state $cloudState."
+            )
+        }
+        // Linking the guest already registered this installation's replica through the bootstrap
+        // probe; this sync only pulls an existing guest workspace's content before the install.
         if (guestSession.shouldSync) {
             syncRepository.syncNow()
         }

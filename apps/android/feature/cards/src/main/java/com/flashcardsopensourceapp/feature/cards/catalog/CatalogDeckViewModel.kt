@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogBrowseIndexRepository
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckInstallRepository
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckPageRepository
+import com.flashcardsopensourceapp.feature.cards.R
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -70,9 +71,7 @@ class CatalogDeckViewModel(
     private val messageController: TransientMessageController,
     private val technicalErrorController: AppTechnicalErrorController,
     private val requestReviewFilter: (ReviewFilter) -> Unit,
-    private val unavailableMessage: String,
-    private val technicalErrorTitle: String,
-    private val studyFailedMessage: String
+    private val strings: CatalogStringResolver
 ) : ViewModel() {
     private val pageState = MutableStateFlow<CatalogDeckPageUiState>(value = CatalogDeckPageUiState.Loading)
     private val studyStatus = MutableStateFlow(value = CatalogDeckStudyStatus.IDLE)
@@ -176,8 +175,8 @@ class CatalogDeckViewModel(
                 if (error !is IOException) {
                     technicalErrorController.showTechnicalError(
                         error = makeAppTechnicalError(
-                            title = technicalErrorTitle,
-                            message = studyFailedMessage,
+                            title = strings.get(R.string.catalog_technical_error_title),
+                            message = strings.get(R.string.catalog_deck_study_failed),
                             throwable = error
                         ),
                         throwable = error
@@ -227,7 +226,7 @@ class CatalogDeckViewModel(
             return
         }
         isClosing = true
-        messageController.showMessage(message = unavailableMessage)
+        messageController.showMessage(message = strings.get(R.string.catalog_deck_unavailable))
         viewModelScope.launch {
             revalidateIndexNow()
             eventsChannel.send(CatalogDeckEvent.Close)

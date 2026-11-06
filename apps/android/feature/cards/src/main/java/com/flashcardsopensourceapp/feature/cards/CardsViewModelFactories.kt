@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckPage
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.feature.cards.catalog.CatalogDeckViewModel
 import com.flashcardsopensourceapp.feature.cards.catalog.CatalogViewModel
+import com.flashcardsopensourceapp.feature.cards.catalog.createCatalogStringResolver
 import com.flashcardsopensourceapp.feature.cards.editor.CardEditorViewModel
 import com.flashcardsopensourceapp.feature.cards.library.LibraryViewModel
 import com.flashcardsopensourceapp.feature.cards.list.CardsViewModel
@@ -83,7 +84,7 @@ fun createCatalogViewModelFactory(
                 catalogBrowseIndexRepository = catalogBrowseIndexRepository,
                 catalogDeckPageRepository = catalogDeckPageRepository,
                 messageController = messageController,
-                refreshFailedMessage = application.getString(R.string.catalog_refresh_failed)
+                strings = createCatalogStringResolver(context = application)
             )
         }
     }
@@ -109,9 +110,7 @@ fun createCatalogDeckViewModelFactory(
                 messageController = messageController,
                 technicalErrorController = technicalErrorController,
                 requestReviewFilter = requestReviewFilter,
-                unavailableMessage = application.getString(R.string.catalog_deck_unavailable),
-                technicalErrorTitle = application.getString(R.string.catalog_technical_error_title),
-                studyFailedMessage = application.getString(R.string.catalog_deck_study_failed)
+                strings = createCatalogStringResolver(context = application)
             )
         }
     }

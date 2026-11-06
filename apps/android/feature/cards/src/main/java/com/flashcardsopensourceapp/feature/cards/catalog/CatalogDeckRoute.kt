@@ -30,7 +30,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,7 +41,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexDeck
 import com.flashcardsopensourceapp.data.local.model.catalog.CatalogDeckCardPreview
 import com.flashcardsopensourceapp.feature.cards.R
@@ -55,9 +53,7 @@ import com.flashcardsopensourceapp.feature.cards.catalogDeckScreenTag
 import com.flashcardsopensourceapp.feature.cards.catalogDeckStudyButtonTag
 import com.flashcardsopensourceapp.feature.cards.catalogDeckStudyErrorTag
 import com.flashcardsopensourceapp.feature.cards.formatCardsCount
-import com.flashcardsopensourceapp.feature.review.ReviewContentPresentationMode
-import com.flashcardsopensourceapp.feature.review.ReviewMarkdownDocument
-import com.flashcardsopensourceapp.feature.review.classifyReviewContentPresentation
+import com.flashcardsopensourceapp.feature.review.ReviewClassifiedMarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,8 +213,9 @@ private fun LazyListScope.catalogDeckPageContent(
                             text = stringResource(id = R.string.catalog_deck_about_title),
                             style = MaterialTheme.typography.titleMedium
                         )
-                        CatalogMarkdownText(
+                        ReviewClassifiedMarkdownText(
                             text = page.page.description,
+                            style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag(catalogDeckDescriptionTag)
@@ -252,25 +249,17 @@ private fun CatalogDeckCardPreviewItem(card: CatalogDeckCardPreview) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            CatalogMarkdownText(text = card.frontText, modifier = Modifier.fillMaxWidth())
+            ReviewClassifiedMarkdownText(
+                text = card.frontText,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.fillMaxWidth()
+            )
             HorizontalDivider()
-            CatalogMarkdownText(text = card.backText, modifier = Modifier.fillMaxWidth())
+            ReviewClassifiedMarkdownText(
+                text = card.backText,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
-    }
-}
-
-/** Card and deck text the way Review and AI chat render it: Markdown only where the shared classifier finds it. */
-@Composable
-private fun CatalogMarkdownText(
-    text: String,
-    modifier: Modifier
-) {
-    val rendersMarkdown: Boolean = remember(text) {
-        classifyReviewContentPresentation(text = text) == ReviewContentPresentationMode.RICH
-    }
-    if (rendersMarkdown) {
-        ReviewMarkdownDocument(markdown = text, modifier = modifier)
-    } else {
-        MathText(text = text, modifier = modifier, style = MaterialTheme.typography.bodyLarge)
     }
 }

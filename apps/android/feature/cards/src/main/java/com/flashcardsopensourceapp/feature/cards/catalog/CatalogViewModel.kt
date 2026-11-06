@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexCa
 import com.flashcardsopensourceapp.data.local.model.catalog.CatalogBrowseIndexDeck
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogBrowseIndexRepository
 import com.flashcardsopensourceapp.data.local.repository.catalog.CatalogDeckPageRepository
+import com.flashcardsopensourceapp.feature.cards.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -70,7 +71,7 @@ class CatalogViewModel(
     private val catalogBrowseIndexRepository: CatalogBrowseIndexRepository,
     private val catalogDeckPageRepository: CatalogDeckPageRepository,
     private val messageController: TransientMessageController,
-    private val refreshFailedMessage: String
+    private val strings: CatalogStringResolver
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
     // Null until the person picks a language, so the default follows the app language and the index.
@@ -196,7 +197,7 @@ class CatalogViewModel(
                 Log.w(catalogViewModelLogTag, "event=catalog_browse_index_revalidate_failed", error)
                 refreshStatus.value = CatalogRefreshStatus.FAILED
                 if (catalogBrowseIndexRepository.observeCacheState().value is CatalogBrowseIndexCacheState.Ready) {
-                    messageController.showMessage(message = refreshFailedMessage)
+                    messageController.showMessage(message = strings.get(R.string.catalog_refresh_failed))
                 }
             }
         }
