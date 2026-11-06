@@ -63,7 +63,7 @@ export const googleSubscriptionHistorySchema = z.object({
     productId: nativeIdSchema, expiryTime: providerTimestampSchema.optional(),
     latestSuccessfulOrderId: nativeIdSchema.optional(),
     autoRenewingPlan: z.object({
-      autoRenewEnabled: z.boolean(), recurringPrice: moneySchema.optional(),
+      autoRenewEnabled: z.boolean().optional(), recurringPrice: moneySchema.optional(),
     }).optional(),
     prepaidPlan: z.object({ allowExtendAfterTime: providerTimestampSchema.optional() }).optional(),
     offerDetails: z.object({

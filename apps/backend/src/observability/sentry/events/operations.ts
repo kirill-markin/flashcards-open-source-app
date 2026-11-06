@@ -851,6 +851,8 @@ export type GoogleHistorySourceFailureDetails = Readonly<{
   environment: "production" | "sandbox" | null;
   code: string;
   httpStatus: number | null;
+  // Schema paths of an invalid Play response, never its values.
+  invalidFields: ReadonlyArray<string> | null;
 }>;
 
 /**

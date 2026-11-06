@@ -4,7 +4,9 @@ import { unsafeQuery, unsafeTransaction } from "../../database/unsafe";
 import { addBackendBreadcrumb, type BackendObservationScope } from "../../observability/sentry";
 import type { PlayImportSummary } from "../../storeAnalytics/playImport";
 import { googlePackageName } from "../google/contracts";
-import { GoogleHistoryApiError, GoogleHistoryClient, type VerifiedGoogleSubscription } from "./googleClient";
+import {
+  GoogleHistoryApiError, GoogleHistoryClient, GoogleHistoryResponseInvalidError, type VerifiedGoogleSubscription,
+} from "./googleClient";
 import { persistGoogleOrderInExecutor, persistGoogleSubscriptionObservationInExecutor } from "./google";
 import { beginHistoryImportInExecutor, checkpointHistoryImportInExecutor, completeHistoryImportInExecutor,
   failHistoryImportInExecutor, loadLatestHistoryImportInExecutor, type HistoryImportInput,
@@ -346,7 +348,8 @@ export async function discoverGoogleBillingTokens(
         : new GoogleHistoryApiError("GOOGLE_HISTORY_DISCOVERY_FAILED", null, "unclassified RTDN token discovery");
       failures.push(failure);
       addBackendBreadcrumb({ action: "google_history_source_failed", scope,
-        details: { source: "unclassified_rtdn_tokens", environment: null, code: failure.code, httpStatus: failure.httpStatus } });
+        details: { source: "unclassified_rtdn_tokens", environment: null, code: failure.code, httpStatus: failure.httpStatus,
+          invalidFields: failure instanceof GoogleHistoryResponseInvalidError ? failure.invalidFields : null } });
     }
   }
   if (failures.length > 0) {
@@ -408,7 +411,8 @@ export async function importGoogleBillingHistory(
         : new GoogleHistoryApiError("GOOGLE_HISTORY_IMPORT_FAILED", null, "persistence; inspect database diagnostics");
       failures.push(failure);
       addBackendBreadcrumb({ action: "google_history_source_failed", scope,
-        details: { source, environment, code: failure.code, httpStatus: failure.httpStatus } });
+        details: { source, environment, code: failure.code, httpStatus: failure.httpStatus,
+          invalidFields: failure instanceof GoogleHistoryResponseInvalidError ? failure.invalidFields : null } });
     }
   }
   const summary = { ordersHandled, subscriptionsObserved, unfinishedSources,
