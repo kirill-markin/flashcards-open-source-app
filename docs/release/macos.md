@@ -20,8 +20,7 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    version and its saved release mode without resubmission; a matching approved
    `PENDING_DEVELOPER_RELEASE` build goes to publication below. Record an
    already-live matching artifact without reconstructing historical native logs.
-   Replace an older `MAC_OS` version still in review as in
-   [iOS](ios.md#replacing-a-version-still-in-review).
+   Handle an older `MAC_OS` version still in review in step 10.
    New artifacts require all gates below. For a new coordinated version follow
    [release preparation](versioning.md#release-preparation); a same-version Mac
    release uses [Mac source/tag handling](versioning.md#mac-only-source-and-tags).
@@ -30,9 +29,8 @@ authorize dispatch, signed local execution, submission or publication. Apply the
 
 ## Preflight and Cloud gates
 
-3. Require the normal strict `Repository static checks` gate on merged
-   preparation/fixes. Pin intended `main` SHA for the Cloud archive; local
-   acceptance binds to a matching [source snapshot](evidence.md#source-snapshots).
+3. Merge release preparation through `Repository static checks` and pin the
+   intended `main` SHA. Use a matching [local source snapshot](evidence.md#source-snapshots).
    Inspect saved [Mac workflow configuration](../macos-ci-cd.md#xcode-cloud)
    API-first: **macOS Release Build** enabled, main-only manual eligibility,
    SCM repository/ref, current Xcode/SDK, shared project and original
@@ -42,53 +40,36 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    are enabled; preserve disabled test workflows/configuration/history.
    Verify production service values, secure-value presence, review-account access
    and Sentry archive hooks under [Cloud inputs](../ios-ci-cd.md#xcode-cloud-inputs).
-   Preserve iOS configuration and masked secrets. Check disk, actual execution
-   macOS and genuine local development certificate/profile before native work.
-   Record host OS separately from SDK; a current SDK does not establish latest
-   host OS. Diagnose API access before browser fallback; resolve missing factual
-   declarations/access with the user.
-4. Before Cloud dispatch, complete the [signed local native acceptance](../macos-ci-cd.md#signed-local-native-acceptance)
-   on a registered real Mac with supported macOS and current Xcode.
-   Reserve an idle desktop for UI acceptance: coordinate with the user and
-   other chats so no simultaneous mouse/keyboard input or other UI automation
-   runs during acceptance. Preserve and investigate failures; do not assume
-   desktop interference or waive failed cases.
-   Use **Flashcards Native Acceptance** / **LocalMac** / **Acceptance**, Debug,
-   production service values, genuine authorized development certificate/profile,
-   original generated `.xctestrun` and the same built products. Require the full
-   existing non-UI bundle and all Mac-eligible UI flows. Independently discover
-   the full inventory from source, plan, target/configuration and destination;
-   never infer it from green results or freeze a historical count.
-   Every selected required case must pass, in one complete attempt or under
-   [targeted recovery](evidence.md#targeted-recovery). Retain full logs,
-   `.xcresult`, named non-UI/UI results, diagnostics and inspected
-   [formula/focus screenshots](../macos-ci-cd.md#native-smoke-evidence).
-   Investigate missing cases, unexpected skips, failures or interrupted runs; fix identifiable app/test defects and apply the standing policy to unavailable testing before dispatch.
-   Keep genuine app provisioning, automatic test-runner signing, sandbox and
-   private Keychain storage; do not fabricate identities, disable signing or
-   filter required tests outside [targeted recovery](evidence.md#targeted-recovery). Verify the app-process automation marker before
-   interaction under [the automation marker](../ios-ci-cd.md#automation-marker).
-5. During an authorized release, start only **macOS Release Build**
-   (`9d704b65-5254-4f04-be24-bebc0f0cfc7d`) on that accepted `main` SHA.
-   Save workflow/run/Archive action IDs, source SHA, Xcode/SDK/OS, configuration
-   and times from actual resources; require successful archive, signing,
-   hooks, upload and processing. Inspect full logs, actions, warnings and artifacts
-   under [Cloud data access](../xcode-cloud-data-access.md). Apply the
-   [warning policy](README.md#release-warning-policy). Archive/upload success
-   never proves local test success; the TestFlight internal-testers postaction
-   is distribution, not XCTest, App Review or proof of a current uploaded build.
-6. Keep Cloud test workflows disabled; neither a prior Cloud failure nor a new
-   retry is a prerequisite for local acceptance. Retain historical Cloud failures
-   and signing/Keychain diagnoses unchanged, separately from current local
-   evidence; no old failure becomes a pass. Record unavailable local acceptance under the standing policy; identifiable app/test failures still require fixes. Cloud distribution archive remains mandatory.
-7. Fix all source/build/test failures through normal PR/CI and repeat the
-   affected gates on the corrected [source snapshot](evidence.md#source-snapshots). Retain a successful archive only under
-   [bounded source equivalence](evidence.md#resume-and-artifact-reuse): compare
-   app code/resources/localizations, dependencies/lockfiles, project/scheme/test plans,
-   settings, relevant test source/selection, hooks, remote workflow values, toolchain/signing/distribution inputs.
+   Preserve iOS configuration and masked secrets. Diagnose API access before
+   browser fallback and resolve missing factual declarations/access with the user.
+4. Run [signed local native acceptance](../macos-ci-cd.md#signed-local-native-acceptance)
+   in parallel with step 5. Check disk, host macOS and local signing first.
+   On the same reserved desktop, complete the [launch preflight](../macos-ci-cd.md#desktop-launch-preflight) before starting
+   `LocalMac`. Independently discover the full non-UI and Mac-eligible UI
+   inventory. Retain every named result, full logs, `.xcresult`, diagnostics
+   and inspected [formula/focus screenshots](../macos-ci-cd.md#native-smoke-evidence).
+5. After step 3, dispatch only **macOS Release Build**
+   (`9d704b65-5254-4f04-be24-bebc0f0cfc7d`) on the pinned merged `main` SHA.
+   Verify the accepted run source. Save workflow/run/Archive action IDs, source
+   SHA, Xcode/SDK/OS, configuration and times. Inspect full logs, actions,
+   warnings and artifacts under [Cloud data access](../xcode-cloud-data-access.md).
+   Require archive, signing, hooks, upload and processing. Keep TestFlight
+   distribution internal during acceptance.
+6. Before review preparation, reconcile signed `LocalMac` and Cloud results.
+   Require every available selected case to pass, in a complete attempt or under
+   [targeted recovery](evidence.md#targeted-recovery). Investigate missing cases,
+   unexpected skips, failures and interruptions. Record any unavailable coverage
+   for the decision in step 9. Apply the [warning policy](README.md#release-warning-policy)
+   and preserve historical Cloud test results separately.
+7. If either track finds a blocking defect, hold review, merge the fix through
+   normal PR/CI and repeat affected gates on the corrected
+   [source snapshot](evidence.md#source-snapshots). If app or archive inputs
+   change, archive the corrected merged source. Retain a successful archive
+   only under [bounded source equivalence](evidence.md#resume-and-artifact-reuse),
+   including saved workflow inputs, toolchain, signing and distribution settings.
    Save original archive SHA/run and corrected test SHA/run, exact scope/diff
    and why each retained gate applies. Test-only fixes follow
-   [targeted recovery](evidence.md#targeted-recovery); equivalence never changes a failure to a pass.
+   [targeted recovery](evidence.md#targeted-recovery).
 
 ## Exact artifact and review preparation
 
@@ -117,14 +98,27 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    on the verified signed release app, with artifact/source/version/build, OS,
    steps and outcomes. Launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"` and verify `automation_run_decided` reports `isAutomation=true` before interaction, including TestFlight. Cover resizing/dark layout, pointer/keyboard/composer focus,
    math, editor/speech, offline relaunch/sync, AI media/dictation permissions,
-   notifications and sandbox subscriptions/purchase/restore/manage. Record
-   unexecuted permission/payment checks and their coverage limits honestly;
-   do not claim them passed. Resolve observed failures and required store
-   blockers before submission; handle unavailable manual/native coverage under the standing policy.
-10. Create or resume only the intended editable `MAC_OS` version draft. Review
-    localized Mac fields and every locale's [release notes](release-notes.md),
-    privacy/support/legal URLs, review credentials and Mac-specific capability
-    instructions; copied iOS notes require inspection. Use
+   notifications and sandbox subscriptions/purchase/restore/manage. Require all
+   available exact-artifact checks to pass and resolve any observed blocking
+   failure before withdrawing an older submission or attaching the verified
+   build. For unavailable coverage only, record the unexecuted checks and a
+   dated [standing-policy](README.md#standing-best-effort-release-policy)
+   decision bound to the verified source and artifact before either action.
+   Resolve required store blockers before submission.
+10. Re-read the current Mac version and submission state through the App Store
+    Connect API. If an older version is in `PENDING_DEVELOPER_RELEASE`,
+    complete its manual publication in step 12 before continuing, honoring any
+    [user reservation](README.md).
+    If an older Mac version is still in review, follow the
+    [replacement procedure](ios.md#replacing-a-version-still-in-review).
+    Otherwise, create or resume the intended editable `MAC_OS` version draft.
+    Before saving What's New, recheck the last Mac version actually released to
+    users. If step 12 just published an older version, confirm it as the baseline
+    first. Regenerate every locale's [release notes](release-notes.md) if the
+    baseline or target changed since preparation.
+    Review every locale's notes and other localized Mac fields, privacy/support/legal
+    URLs, review credentials and Mac-specific capability instructions. Inspect any
+    copied iOS notes. Use
     [locale mapping/source text](../app-store-connect-metadata.md) as inputs,
     but do not run the iOS-only screenshot uploader on Mac. Inspect actual Mac
     screenshots and upload accepted-size Mac images per
@@ -141,17 +135,17 @@ authorize dispatch, signed local execution, submission or publication. Apply the
 11. Attach the exact verified Mac build and read back its ID/version/build,
     `MAC_OS` version ID, localized fields and required declarations. Choose
     automatic release after approval unless manual mode is explicitly intended;
-    verify the saved setting. Add for Review, then Submit for Review only that
-    platform. If authorized Add for Review API requests repeatedly fail after
+    verify the saved setting. Choose **Add for Review** for Mac only. If
+    authorized Add for Review API requests repeatedly fail after
     diagnosis, reconcile the existing `MAC_OS` draft, review submission and items
     before using the existing authenticated main browser. Reuse matching records;
-    avoid duplicate or cross-platform submissions. Verify the exact
-    platform/version/build and accepted submission state after submission.
-    Record the submission ID, accepted Waiting for Review/In Review
-    or approved state, saved mode, observation time and native/artifact evidence.
-    A Ready for Review draft is not submitted; rejection blocks completion.
-    If the user reserved final Submit, leave that exact action pending with
-    the verified draft/submission identity and handoff; do not submit via API or browser.
+    avoid duplicate or cross-platform submissions. If the user reserved final
+    Submit, stop at the [Ready for Review handoff](ios.md#user-reserved-final-submit)
+    with the exact Mac version, build and submission. Otherwise choose
+    **Submit for Review** and verify the exact platform/version/build and accepted
+    **Waiting for Review**, **In Review** or approved state. Record the submission
+    ID, saved release mode, observation time and native/artifact evidence.
+    Rejection blocks completion.
 12. In manual mode, complete an available `PENDING_DEVELOPER_RELEASE` action
     through the supported API or Release This Version, then verify success.
     If approval is pending, record the operator's later action and condition

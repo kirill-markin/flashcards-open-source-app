@@ -17,7 +17,17 @@ resubmitting the same artifact. An older version still in review is
 [replaced](#replacing-a-version-still-in-review). New artifacts follow all pre-submission gates under the [standing best-effort policy](README.md#standing-best-effort-release-policy), including its separate operator decision for unavailable testing.
 For a user-reserved final Submit, apply the [handoff and resume rules](#user-reserved-final-submit).
 
-1. Prepare production build values using [iOS Local Setup](../ios-local-setup.md).
+1. Merge release preparation through `Repository static checks` and pin the
+   intended `main` SHA. Use matching [local source snapshots](evidence.md#source-snapshots).
+   Access App Store Connect [API-first](../xcode-cloud-data-access.md#required-local-secrets).
+   After the [saved Cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight),
+   run steps 2 and 3 in parallel.
+2. Dispatch only **iOS Release Build** (`97ECE547-B59E-4970-ACFA-52ED8F6F7B29`)
+   on the pinned SHA. Verify the accepted run source, record workflow/run/action
+   IDs, and monitor `Archive - iOS`, Release signing, upload and the internal
+   TestFlight postaction. Keep distribution internal during acceptance.
+   Correlate the exact processed upload in step 6.
+3. Prepare production build values using [iOS Local Setup](../ios-local-setup.md).
    From the repository root, compile an unsigned device Release archive:
 
    ```bash
@@ -34,33 +44,29 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
 
    Use a fresh archive output path on retries and retain full build logs. The archive validates device Release compilation without upload; Cloud signing and distribution remain mandatory.
 
-   Complete all three [local native acceptance plans](../ios-local-setup.md#local-native-acceptance): `LocalFull` on one latest iPhone (full eligible UI plus the entire existing non-UI bundle), `LocalIPad` on one latest iPad (three eligible flows), and `IOS18Compatibility` on one actual 18.x iPhone or iPad (three compatibility flows). Use scheme `Flashcards Native Acceptance`, test-plan configuration `Acceptance`, and the exact commands/signing and runner-email setup there. For normal acceptance, every required case must pass before Cloud dispatch, in one complete attempt or under [targeted recovery](evidence.md#targeted-recovery); unexpected skips and missing cases cannot satisfy acceptance. If a required destination or test tooling is unavailable, apply the standing policy. Record exact source, toolchain, plan/configuration, destinations, named results, logs and `.xcresult` evidence in the [ledger](evidence.md#release-ledger), applying the [local gate](evidence.md#local-mobile-release-gate) and warning policy. Valid unchanged evidence may be reused under step 5; a docs-only root SHA change alone does not force native reruns.
-2. Access the app and Xcode Cloud through the App Store Connect API using
-   [local credentials](../xcode-cloud-data-access.md#required-local-secrets). Use
-   the browser for unsupported operations or diagnosed API access blockers;
-   ask the user to complete Apple login/MFA if needed, then resume.
-3. Identify **iOS Release Build** (`97ECE547-B59E-4970-ACFA-52ED8F6F7B29`).
-   Complete the [Cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight)
-   and the local gates in step 1 under the standing policy before dispatch. Verify the required
-   `Archive - iOS` action, original `Flashcards Open Source App` scheme,
-   Release/App Store eligible signing and retained TestFlight internal-testers
-   postaction. Start only this release-build workflow for the accepted SHA;
-   record run/action/source identities and monitor it. Both Cloud test
-   workflows remain disabled and are not new release gates. Archive/upload
-   success or TestFlight distribution does not establish a test pass or exact
-   uploaded-build identity. Retries may retain an unchanged successful archive
-   only under step 5 and the shared reuse rules.
-4. While it runs, create or verify the App Store version draft for the current
-   version, or reuse the [replaced version](#replacing-a-version-still-in-review). Fill and save What's New for every locale using the texts already
-   in the chat. For localized listing text and iPhone/iPad screenshot uploads,
-   follow [App Store metadata](../app-store-connect-metadata.md); its editable-draft
-   requirements apply. Verify each saved field and required metadata; request
-   help for missing declarations or unexpected store requirements.
-5. For normal acceptance, require all five [schema-4 readiness gates](readiness.md#ios-local-acceptance-schema-4): unsigned `local-archive`, `local-full`, `local-ipad`, `local-ios18` and signed `cloud-archive`; the three local test gates may instead pass under [targeted recovery](evidence.md#targeted-recovery). Inspect every named native result, action status, error and warning even when the overall summary is green. All selected required methods must execute and pass. Preserve failure artifacts and investigate unexpected skips or missing cases. The acceptance plans exclude marketing and ineligible device methods through explicit selection; do not invent passed/skipped records for unselected methods or use historical destination exclusions to excuse current required tests.
+   Run all three [local native acceptance plans](../ios-local-setup.md#local-native-acceptance)
+   with the selections, signing and review-email setup there. Record the
+   [local gate evidence](evidence.md#local-mobile-release-gate) in the ledger.
+4. While both tracks run, prepare [What's New for every iOS locale](release-notes.md)
+   locally and record the released version used as the baseline. Update the
+   App Store draft in step 6.
+5. Reconcile all five [schema-4 gates](readiness.md#ios-local-acceptance-schema-4):
+   unsigned `local-archive`, `local-full`, `local-ipad`, `local-ios18` and signed
+   `cloud-archive`. Inspect every named result, warning and failure artifact.
+   Require every available selected case to pass, with
+   [targeted recovery](evidence.md#targeted-recovery) for affected cases. Record
+   any unavailable coverage for the decision in step 6. Apply the
+   [iOS 18 manual checklist](../ios-local-setup.md#ios-18-compatibility-smoke)
+   for the first expanded release or changes affecting OS-specific behavior.
 
-   Complete the [iOS 18 manual checklist](../ios-local-setup.md#ios-18-compatibility-smoke) for the first expanded release or changes affecting OS-specific behavior. Fix blocking code/build/test issues, repeat affected local plans or apply [targeted recovery](evidence.md#targeted-recovery), and merge through normal PR/CI before retrying an affected Cloud archive.
-
-   Reuse successful archives or test gates only under [bounded source comparison](evidence.md#resume-and-artifact-reuse): compare app source, resources/localizations, relevant test source and plan selections, dependencies/lockfiles, project/settings/schemes, CI hooks, remote workflow values, toolchain, signing and distribution inputs. Record original source/run/action/build/artifact identities, corrected source and exact comparison scope/diff, reviewer, and why each named gate remains valid. Docs-only/unrelated changes do not require native reruns when that comparison proves unchanged native inputs; a filename or version match alone is insufficient. Test-only changes may retain an unchanged signed archive; their test gates follow [targeted recovery](evidence.md#targeted-recovery). Never rewrite old failures as passes. Production/archive changes or uncertain equivalence require a fresh archive and affected gates. Historical manifests retain their original contract under [readiness](readiness.md).
+   If either track finds a blocking defect, hold review, merge the fix through
+   normal PR/CI, and repeat affected gates. If app or archive inputs change,
+   archive the corrected merged source before proceeding. Retain an unchanged
+   archive or test result only with [bounded source comparison](evidence.md#resume-and-artifact-reuse).
+   Compare production, test and saved workflow inputs, toolchain, signing and
+   distribution settings. Record both SHAs, original identities, exact scope/diff,
+   reviewer and why each retained gate still applies. Test-only fixes use
+   targeted recovery. Preserve the original results and readiness contracts.
 
    Restore any temporary workflow filters after the accepted runs finish, with saved readback under the configuration preflight. Apply the [release warning policy](README.md#release-warning-policy) before submission; ask for help when blocking issues cannot be resolved autonomously. Record actual local-test/Cloud-archive elapsed times and evidence sizes.
 6. Wait for the successful archive to finish processing in App Store Connect.
@@ -74,12 +80,41 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    build's `minOsVersion` and app bundle's `minimumOsVersion` to report 18.0
    (Apple's [build metadata fields](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-builds)).
    Do not infer binary compatibility from source settings or another build.
-   Before attachment, run short checks on that exact signed Release/TestFlight artifact: launch with `FLASHCARDS_AUTOMATION_RUN=1` in the app process, verify `automation_run_decided` reports `isAutomation=true`, then navigate, create/reveal/rate a disposable card, and confirm offline relaunch persistence. Record artifact/version/build, actual OS, steps and outcomes; complete applicable [iOS 18 manual checks](../ios-local-setup.md#ios-18-compatibility-smoke). Diagnose failures before submission; Debug acceptance alone does not establish release-artifact behavior.
-   Attach that verified build to the version draft, with successful test
-   evidence from the same SHA or the proven unchanged-archive reuse in step 5.
-   Verify the uploaded build ID, build number/version,
-   saved localized notes, and required fields; choose **Add for Review** to
-   place the version in a **Ready for Review** draft submission.
+   Before attachment, run short checks on that exact signed Release/TestFlight artifact: launch with `FLASHCARDS_AUTOMATION_RUN=1` in the app process, verify `automation_run_decided` reports `isAutomation=true`, then navigate, create/reveal/rate a disposable card, and confirm offline relaunch persistence. Record artifact/version/build, actual OS, steps and outcomes, and complete applicable [iOS 18 manual checks](../ios-local-setup.md#ios-18-compatibility-smoke).
+   Require all available exact-artifact checks to pass and resolve any observed
+   blocking failure before withdrawing an older submission or attaching the
+   verified build. For unavailable coverage only, record the unexecuted checks
+   and a dated [standing-policy](README.md#standing-best-effort-release-policy)
+   decision bound to the verified source and artifact before either action.
+   Re-read the current iOS version and submission state through the App Store
+   Connect API. If an older version is in `PENDING_DEVELOPER_RELEASE`, complete
+   its manual publication in step 8 before continuing, honoring any
+   [user reservation](README.md).
+   If the older version is still in review, [replace it](#replacing-a-version-still-in-review).
+   Otherwise, create or reuse the intended editable iOS draft.
+
+   Before saving What's New, recheck the last iOS version actually released to
+   users. If step 8 just published an older version, confirm it as the baseline
+   first. Regenerate every locale if the baseline or target changed since step 4.
+
+   After creating, reusing or renaming the draft, read the intended app's versions
+   again with `GET /v1/apps/{appId}/appStoreVersions`. Require the resolved draft
+   ID to have platform `IOS`, the target `versionString` and an `appVersionState`
+   of `PREPARE_FOR_SUBMISSION` or `DEVELOPER_REJECTED`. Stop on any mismatch.
+
+   List all localizations on the verified draft with
+   `GET /v1/appStoreVersions/{versionId}/appStoreVersionLocalizations`, following
+   pagination. Before the first notes-only PATCH, require exactly one localization
+   ID for each planned [App Store locale](../app-store-connect-metadata.md).
+   Stop on duplicates. Follow that guide's full upload procedure for missing
+   locales or changes to other listing fields or screenshots. For notes-only
+   updates, use `PATCH /v1/appStoreVersionLocalizations/{id}` with the
+   localization type and ID and only `whatsNew` in `data.attributes`.
+   List the draft's localizations again and compare every locale's
+   saved text with the prepared notes. Attach the verified build and verify its
+   ID, build number/version and required fields.
+   Choose **Add for Review** to place the version in a **Ready for Review**
+   draft submission.
 7. Select automatic release after approval unless manual release is explicitly
    intended, and verify the saved release setting. Verify the exact version/build
    in the submission. If the user reserved final Submit, stop at the
@@ -125,18 +160,19 @@ Do not wait on an older version still **Waiting for Review** or **In Review**:
 1. Cancel its submission (`PATCH /v1/reviewSubmissions/{id}` with
    `canceled: true`, or **Remove from Review**); the release request authorizes
    this. Record it in the [ledger](evidence.md#release-ledger).
-2. Reuse that version record (one open version per platform): set the new
-   version string and attach the new build.
+2. Reuse that version record (one open version per platform) and set the new
+   version string.
 3. Each locale's What's New covers its saved unreleased notes plus the new
    changes.
 
-Then submit normally. Approved versions are released, not replaced; the old
-GitHub tag and Release stay.
+Return to the platform procedure to attach the verified build and submit.
+Release approved versions and keep the existing GitHub tag and Release.
 
 ## User-Reserved Final Submit
 
-After required gates pass or unavailable testing is recorded under the standing policy, complete preparation and verify the **Ready for Review**
-draft's exact version, version ID, build number/build ID and submission ID.
+After native and exact-artifact gates are resolved under the platform procedure,
+verify the **Ready for Review** draft's platform, version, version ID, build
+number, build ID and submission ID.
 Verify the saved automatic-release-after-approval setting, unless manual mode
 was explicitly intended. Record these identities, gate evidence, saved mode
 and observation timestamp in the [ledger](evidence.md#release-ledger), with
