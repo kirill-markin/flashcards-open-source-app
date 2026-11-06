@@ -59,6 +59,66 @@ type CatalogPackageVersionPublicCardRow = Readonly<{
   media_asset_keys: ReadonlyArray<string>;
 }>;
 
+type CatalogPackageVersionCardTagsRow = Readonly<{
+  ordinal: string | number;
+  tags: ReadonlyArray<string>;
+}>;
+
+/**
+ * A public deck groups every card under one deck-wide root tag that comes first on each card.
+ * Checked only at publish, not in the public-eligibility check the catalog artifact reuses, so
+ * already published versions stay public.
+ */
+function getCatalogPackageVersionRootTagIssue(
+  cards: ReadonlyArray<CatalogPackageVersionCardTagsRow>,
+): string | null {
+  const firstCard = cards[0];
+  if (firstCard === undefined) {
+    return "reason=version has no cards";
+  }
+
+  const expectedRootTag = firstCard.tags[0];
+  const offendingCard = cards.find((card) => expectedRootTag === undefined || card.tags[0] !== expectedRootTag);
+  if (offendingCard === undefined) {
+    return null;
+  }
+
+  return [
+    `expectedRootTag=${expectedRootTag ?? "(none)"}`,
+    `ordinal=${offendingCard.ordinal}`,
+    `tags=${JSON.stringify(offendingCard.tags)}`,
+  ].join(" ");
+}
+
+async function assertCatalogPackageVersionRootTagInExecutor(
+  executor: DatabaseExecutor,
+  packageVersionId: string,
+): Promise<void> {
+  const result = await executor.query<CatalogPackageVersionCardTagsRow>(
+    [
+      "SELECT ordinal, tags",
+      "FROM catalog.package_cards",
+      "WHERE package_version_id = $1",
+      "ORDER BY ordinal ASC, package_card_id ASC",
+    ].join(" "),
+    [packageVersionId],
+  );
+  const issue = getCatalogPackageVersionRootTagIssue(result.rows);
+  if (issue === null) {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    [
+      "Every card of a published catalog package version must have the same deck-wide root tag as its first tag.",
+      `packageVersionId=${packageVersionId}`,
+      issue,
+    ].join(" "),
+    "CATALOG_PACKAGE_VERSION_ROOT_TAG_INVALID",
+  );
+}
+
 export function isCatalogPackageVersionStatusTransitionAllowed(
   fromStatus: CatalogPackageStatus,
   toStatus: CatalogPackageStatus,
@@ -406,6 +466,7 @@ export async function publishCatalogPackageVersionInExecutor(
       executor,
       versionRow,
     );
+    await assertCatalogPackageVersionRootTagInExecutor(executor, packageVersionId);
     const result = await executor.query<CatalogPackageVersionRow>(
       [
         "UPDATE catalog.package_versions",

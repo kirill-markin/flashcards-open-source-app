@@ -481,7 +481,7 @@ test("catalog package update locks the package before its selected author", asyn
         "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
         "language_tags, license, card_count, created_by_admin_email, reviewed_by_admin_email, submitted_at, reviewed_at,",
         "educational_subject)",
-        "VALUES ($1, $2, 1, 'approved', $3, $4, $5, $6, $7, $8, 0, $9, $9, now(), now(), $10)",
+        "VALUES ($1, $2, 1, 'approved', $3, $4, $5, $6, $7, $8, 1, $9, $9, now(), now(), $10)",
       ].join(" "),
       [
         packageVersionId,
@@ -494,6 +494,24 @@ test("catalog package update locks the package before its selected author", asyn
         "CC-BY-4.0",
         "catalog-lock-order@example.test",
         "Lock order subject",
+      ],
+    );
+    await pool.query(
+      [
+        "INSERT INTO catalog.package_cards",
+        "(package_card_id, package_version_id, stable_card_key, ordinal, front_text, back_text,",
+        "card_type, metadata, tags, media_asset_keys)",
+        "VALUES ($1, $2, $3, 1, $4, $5, 'basic', $6::jsonb, $7, $8)",
+      ].join(" "),
+      [
+        randomUUID(),
+        packageVersionId,
+        "lock-order-card",
+        "Lock order question",
+        "Lock order answer",
+        JSON.stringify({ version: 1, source: null }),
+        ["lock-order"],
+        [],
       ],
     );
 
