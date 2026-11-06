@@ -626,23 +626,20 @@ jobs:
             exit 1
           fi
 
-  publish_android:
-    name: Upload Android bundle to Google Play production draft release
+  build_signed_android:
+    name: Build and verify signed Android App Bundle
     needs:
       - preflight
       - android_ci
-      - device_run_submission
-    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' && needs.device_run_submission.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    concurrency:
-      group: android-release-publish-main
-      cancel-in-progress: false
+    permissions:
+      contents: read
+    outputs:
+      aab_sha256: ${{ steps.bundle.outputs.sha256 }}
     env:
+      AAB_PATH: apps/android/app/build/outputs/bundle/release/app-release.aab
       ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
-      ANDROID_VERSION_NAME: ${{ needs.preflight.outputs.android_version_name }}
-      ANDROID_RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
-      ANDROID_PLAY_RELEASE_NAME: ${{ needs.preflight.outputs.android_play_release_name }}
       ANDROID_SENTRY_DSN: ${{ vars.ANDROID_SENTRY_DSN }}
       ANDROID_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.ANDROID_SENTRY_TRACES_SAMPLE_RATE || '0' }}
       SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -652,31 +649,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.preflight.outputs.target_sha }}
-
-      - name: Validate Google Play configuration
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          GCP_PLAY_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
-          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
-        run: |
-          missing_values=()
-
-          for variable_name in \
-            GCP_PROJECT_ID \
-            GCP_WORKLOAD_IDENTITY_PROVIDER \
-            GCP_PLAY_SERVICE_ACCOUNT_EMAIL \
-            ANDROID_PLAY_PACKAGE_NAME; do
-            if [[ -z "${!variable_name}" ]]; then
-              missing_values+=("${variable_name}")
-            fi
-          done
-
-          if [[ "${#missing_values[@]}" -gt 0 ]]; then
-            printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
-            echo "Configure them in the GitHub repository settings or with bash scripts/android/setup-github-android.sh." >&2
-            exit 1
-          fi
 
       - name: Validate Android Sentry configuration
         env:
@@ -709,15 +681,6 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v6.4.1
-
-      - uses: google-github-actions/auth@v3
-        id: auth
-        with:
-          token_format: access_token
-          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - name: Install Android SDK packages
         env:
@@ -780,12 +743,20 @@ jobs:
           bash scripts/android/run-android-release.sh \
             --version-code "${ANDROID_VERSION_CODE}"
 
+      - name: Record signed Android App Bundle checksum
+        id: bundle
+        run: |
+          set -euo pipefail
+          aab_sha256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
+          echo "sha256=${aab_sha256}" >> "${GITHUB_OUTPUT}"
+
       - name: Upload signed Android App Bundle artifact
+        id: upload-bundle
         uses: actions/upload-artifact@v7
         with:
-          name: android-release-bundle
+          name: android-release-bundle-r${{ github.run_id }}a${{ github.run_attempt }}
           if-no-files-found: error
-          path: apps/android/app/build/outputs/bundle/release/app-release.aab
+          path: ${{ env.AAB_PATH }}
 
       - name: Report and gate R8 optimization coverage
         env:
@@ -793,16 +764,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          bundle_path="apps/android/app/build/outputs/bundle/release/app-release.aab"
           r8_metadata_path="${RUNNER_TEMP}/android-release-r8.json"
 
-          if ! unzip -p "${bundle_path}" "BUNDLE-METADATA/com.android.tools/r8.json" > "${r8_metadata_path}"; then
-            echo "BUNDLE-METADATA/com.android.tools/r8.json is missing from ${bundle_path}. R8 optimization coverage cannot be verified." >&2
+          if ! unzip -p "${AAB_PATH}" "BUNDLE-METADATA/com.android.tools/r8.json" > "${r8_metadata_path}"; then
+            echo "BUNDLE-METADATA/com.android.tools/r8.json is missing from ${AAB_PATH}. R8 optimization coverage cannot be verified." >&2
             exit 1
           fi
 
           if [[ "$(jq -r 'try ((.stats.noShrinkingPercentage | numbers) != null) catch false' "${r8_metadata_path}")" != "true" ]]; then
-            echo "R8 metadata in ${bundle_path} has no usable stats object." >&2
+            echo "R8 metadata in ${AAB_PATH} has no usable stats object." >&2
             cat "${r8_metadata_path}" >&2
             exit 1
           fi
@@ -846,6 +816,64 @@ jobs:
             exit 1
           fi
 
+      - name: Summarize signed Android App Bundle
+        env:
+          AAB_SHA256: ${{ steps.bundle.outputs.sha256 }}
+          BUNDLE_ARTIFACT_URL: ${{ steps.upload-bundle.outputs.artifact-url }}
+          BUNDLE_ARTIFACT_ID: ${{ steps.upload-bundle.outputs.artifact-id }}
+        run: |
+          {
+            echo "## Signed Android App Bundle"
+            echo ""
+            echo "- Bundle artifact: [${BUNDLE_ARTIFACT_ID}](${BUNDLE_ARTIFACT_URL})"
+            echo "- Bundle SHA-256: \`${AAB_SHA256}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  publish_android:
+    name: Upload Android bundle to Google Play production draft release
+    needs:
+      - preflight
+      - android_ci
+      - device_run_submission
+      - build_signed_android
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' && needs.device_run_submission.result == 'success' && needs.build_signed_android.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    concurrency:
+      group: android-release-publish-main
+      cancel-in-progress: false
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      ANDROID_VERSION_NAME: ${{ needs.preflight.outputs.android_version_name }}
+      ANDROID_RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+      ANDROID_PLAY_RELEASE_NAME: ${{ needs.preflight.outputs.android_play_release_name }}
+
+    steps:
+      - name: Validate Google Play configuration
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_PLAY_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+        run: |
+          missing_values=()
+
+          for variable_name in \
+            GCP_PROJECT_ID \
+            GCP_WORKLOAD_IDENTITY_PROVIDER \
+            GCP_PLAY_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_PLAY_PACKAGE_NAME; do
+            if [[ -z "${!variable_name}" ]]; then
+              missing_values+=("${variable_name}")
+            fi
+          done
+
+          if [[ "${#missing_values[@]}" -gt 0 ]]; then
+            printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
+            echo "Configure them in the GitHub repository settings or with bash scripts/android/setup-github-android.sh." >&2
+            exit 1
+          fi
+
       - name: Check out publisher tooling from the workflow source
         uses: actions/checkout@v7
         with:
@@ -856,15 +884,34 @@ jobs:
             scripts/android/play_release_notes.py
           sparse-checkout-cone-mode: false
 
+      - name: Download signed Android App Bundle for this attempt
+        uses: actions/download-artifact@v8
+        with:
+          name: android-release-bundle-r${{ github.run_id }}a${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-release-bundle
+
       - name: Download original Play release notes
         uses: actions/download-artifact@v8
         with:
           name: android-release-notes-r${{ github.run_id }}a${{ github.run_attempt }}
           path: ${{ runner.temp }}/play-release-notes
 
+      - name: Authenticate to Google Play
+        uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          create_credentials_file: false
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
       - name: Upload bundle to Google Play production track as draft release
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          AAB_PATH: ${{ runner.temp }}/android-release-bundle/app-release.aab
+          AAB_SHA256: ${{ needs.build_signed_android.outputs.aab_sha256 }}
           ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
           ARTIFACT_SOURCE_SHA: ${{ needs.preflight.outputs.target_sha }}
           PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-publisher-provenance.json
@@ -872,11 +919,7 @@ jobs:
           PLAY_NOTES_SHA256: ${{ needs.preflight.outputs.play_notes_sha256 }}
           SOURCE_RUN_ID: ${{ github.run_id }}
           SOURCE_RUN_ATTEMPT: ${{ github.run_attempt }}
-        run: |
-          export AAB_PATH="apps/android/app/build/outputs/bundle/release/app-release.aab"
-          AAB_SHA256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
-          export AAB_SHA256
-          python3 .release-tools/scripts/android/publish-play-draft.py
+        run: python3 .release-tools/scripts/android/publish-play-draft.py
 
       - name: Retain Play publisher correlation
         if: always()
@@ -910,6 +953,7 @@ jobs:
       - preflight
       - android_ci
       - device_run_submission
+      - build_signed_android
       - publish_android
     runs-on: ubuntu-24.04
 
@@ -927,6 +971,7 @@ jobs:
             echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
             echo "- Device Run terminal gate result: \`${{ needs.device_run_submission.result }}\`"
+            echo "- Signed bundle and R8 gate result: \`${{ needs.build_signed_android.result }}\`"
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
             echo "- Latest Device Run outcome: \`${{ needs.device_run_submission.outputs.submission_state || 'n/a' }}\`"
