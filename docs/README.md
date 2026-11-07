@@ -17,6 +17,7 @@ For using Nibomo, see the [user guides](https://nibomo.com/docs/).
 - [MCP client setup](mcp-connector.md)
 - [Shared agent tool contracts](agent-tool-surfaces.md)
 - [Conversational reviews](conversational-reviews.md)
+- [Home Screen widgets](home-screen-widgets.md)
 - [Plugin and MCP registry publishing](plugin-publishing.md)
 - [Public site URLs](public-site-urls.md)
 
