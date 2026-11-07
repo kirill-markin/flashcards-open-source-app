@@ -7,6 +7,7 @@ import { appStoreProductPagesPath, getLevelOneMetricDetailsPath, type WhoSawUsDa
 import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDetailsHeader";
 import {
   LevelOneMetricsFrame,
+  levelOneMetricsDateRangeExplanation,
   levelOneMetricsDateRangeFilterBar,
   noAppStoreOptions,
   noAppVersionOptions,
@@ -27,6 +28,7 @@ import { whoSawUsSeriesLabels, WhoSawUsSection } from "./WhoSawUsSection";
 
 const webEngagedFilterBar: Omit<LevelOneMetricsFilterBar, "siteOptions"> = {
   fields: webEngagedAnalyticsFilterFields,
+  dateRangeExplanation: levelOneMetricsDateRangeExplanation,
   appStoreOptions: noAppStoreOptions,
   appVersionOptions: noAppVersionOptions,
   title: "Filters",

@@ -45,9 +45,9 @@ function buildWholePeriodRowSqlLines(
 
 /**
  * Our app's detailed product page rows of one granularity whose whole period lies inside the range,
- * as `AND` lines, in `apple_discovery_engagement` and `apple_downloads` alike. Every count of the
- * Product pages page and its filter options read this scope, so an option is always a value the page
- * can count.
+ * as `AND` lines, in `apple_discovery_engagement` and `apple_downloads` alike. Every detailed count
+ * of the Product pages page and its filter options read this scope with the page view or first-time
+ * download lines below, so an option is always a value the page can count.
  */
 export function buildAppleDetailedProductPageRowSqlLines(
   rowAlias: string,
@@ -64,14 +64,14 @@ export function buildAppleDetailedProductPageRowSqlLines(
 }
 
 // Apple's values are matched case-insensitively, as `buildAppleProductPageViewRowSqlLines` does.
-function buildPageViewRowSqlLines(rowAlias: string): ReadonlyArray<string> {
+export function buildPageViewRowSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [
     `pg_catalog.lower(${rowAlias}.event) = 'page view'`,
     `${rowAlias}.unique_counts IS NOT NULL`,
   ];
 }
 
-function buildFirstTimeDownloadRowSqlLines(rowAlias: string): ReadonlyArray<string> {
+export function buildFirstTimeDownloadRowSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [
     `pg_catalog.lower(${rowAlias}.download_type) = 'first-time download'`,
     `${rowAlias}.counts IS NOT NULL`,

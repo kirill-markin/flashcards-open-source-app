@@ -325,6 +325,8 @@ export function AppStoreProductPagesSections(props: Readonly<{
   const lastPeriod = report?.periods[report.periods.length - 1];
   const hasListingRows = report !== null
     && report.periods.some((row) => row.listingViews !== null || row.listingDownloads !== null);
+  const hasDeliveredPeriod = report !== null
+    && report.periods.some((row) => row.viewsDelivered || row.downloadsDelivered);
 
   return (
     <>
@@ -338,7 +340,9 @@ export function AppStoreProductPagesSections(props: Readonly<{
 
       {report !== null && report.periods.length > 0 && !hasListingRows ? (
         <p className="report-state" data-testid="app-store-product-pages-empty">
-          No detailed product page row for {props.listing} in these whole {periodPlural}. Apple may not have published enough data yet: it omits every detailed row below 5.
+          {hasDeliveredPeriod
+            ? `No detailed product page row for ${props.listing} in these whole ${periodPlural}. Apple may not have published enough data yet: it omits every detailed row below 5.`
+            : `Not arrived yet: Apple has not delivered its detailed rows for these whole ${periodPlural}, which are past its newest delivered detailed report.`}
         </p>
       ) : null}
 

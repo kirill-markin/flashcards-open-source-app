@@ -13,6 +13,8 @@ import {
 } from "../reports/whoSawUs/siteFactSql";
 import {
   buildAppleDetailedProductPageRowSqlLines,
+  buildFirstTimeDownloadRowSqlLines,
+  buildPageViewRowSqlLines,
   type AppStoreProductPagePeriod,
 } from "../reports/appStoreProductPages/query";
 import {
@@ -494,23 +496,23 @@ const appStoreProductPageOptionFields = Object.keys(
   appStoreProductPageFilterColumnSqlNames,
 ) as ReadonlyArray<AppStoreProductPageOptionField>;
 
-// Every value Apple reported on the rows the Product pages page counts, from both the page view and
-// the download report, so a value only one of them carries is still offered.
+// Every value Apple reported on the rows the Product pages page counts, its page view and first-time
+// download rows, so a value only one of them carries is still offered.
 function buildAppStoreProductPageFilterOptionsSql(dateRange: AnalyticsDateRange, period: AppStoreProductPagePeriod): string {
-  const buildRowValuesSql = (rowAlias: string, tableSqlName: string): string => [
+  const buildRowValuesSql = (rowAlias: string, tableSqlName: string, countedRowSqlLines: ReadonlyArray<string>): string => [
     "  SELECT",
     appStoreProductPageOptionFields
       .map((field) => `    ${rowAlias}.${appStoreProductPageFilterColumnSqlNames[field]} AS "${field}"`)
       .join(",\n"),
     `  FROM store_analytics.${tableSqlName} AS ${rowAlias}`,
-    `  WHERE ${buildAppleDetailedProductPageRowSqlLines(rowAlias, period, dateRange).join("\n    AND ")}`,
+    `  WHERE ${[...buildAppleDetailedProductPageRowSqlLines(rowAlias, period, dateRange), ...countedRowSqlLines].join("\n    AND ")}`,
   ].join("\n");
 
   return [
     "WITH app_store_row_values AS (",
-    buildRowValuesSql("engagement", "apple_discovery_engagement"),
+    buildRowValuesSql("engagement", "apple_discovery_engagement", buildPageViewRowSqlLines("engagement")),
     "  UNION ALL",
-    buildRowValuesSql("downloads", "apple_downloads"),
+    buildRowValuesSql("downloads", "apple_downloads", buildFirstTimeDownloadRowSqlLines("downloads")),
     ")",
     "SELECT DISTINCT option_values.field_name, option_values.option_value",
     "FROM app_store_row_values",

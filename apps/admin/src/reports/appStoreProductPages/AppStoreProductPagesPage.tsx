@@ -23,6 +23,9 @@ import {
 
 const listingFieldId = "app-store-product-pages-listing";
 
+// The page counts Apple's whole weekly or monthly rows rather than days, so the Level 1 days wording would be false here.
+const dateRangeExplanation = "Counts only the whole weeks or months inside this range, from Apple's detailed weekly and monthly reports.";
+
 function useAppStoreListings(
   config: AdminAppConfig,
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean,
@@ -85,6 +88,7 @@ export function AppStoreProductPagesPage(
   );
   const filterBar = useMemo((): LevelOneMetricsFilterBar => ({
     fields: appStoreProductPagesAnalyticsFilterFields,
+    dateRangeExplanation,
     siteOptions: noSiteOptions,
     appStoreOptions,
     appVersionOptions: noAppVersionOptions,

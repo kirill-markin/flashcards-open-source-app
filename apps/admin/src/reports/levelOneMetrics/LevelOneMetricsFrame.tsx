@@ -5,6 +5,7 @@ import { AnalyticsFilterBar } from "../../filters/AnalyticsFilterBar";
 import {
   analyticsFilterFieldsByArea,
   buildDefaultAnalyticsFilterState,
+  getAnalyticsFilterFieldExplanation,
   whoSawUsDatasetAnalyticsFilterFields,
   type AnalyticsDateRange,
   type AnalyticsFilterField,
@@ -27,17 +28,21 @@ const noOptions: ReadonlyArray<never> = [];
 const noUserColorScale = getUserColorScale([]);
 
 /**
- * The fields one Level 1 page's bar offers, what its site, App Store and app version fields offer,
- * and how the bar names itself and its `Reset all`.
+ * The fields one Level 1 page's bar offers, what its date range means, what its site, App Store and
+ * app version fields offer, and how the bar names itself and its `Reset all`.
  */
 export type LevelOneMetricsFilterBar = Readonly<{
   fields: ReadonlyArray<AnalyticsFilterField>;
+  dateRangeExplanation: string;
   siteOptions: FilterOptionsLookup<SiteVisitorFilterOptions>;
   appStoreOptions: FilterOptionsLookup<AppStoreProductPageFilterOptions>;
   appVersionOptions: FilterOptionsLookup<ReadonlyArray<string>>;
   title: string;
   resetAllLabel: string;
 }>;
+
+/** The date range wording of every Level 1 page that counts days. */
+export const levelOneMetricsDateRangeExplanation = getAnalyticsFilterFieldExplanation("level-1-metrics", "dateRange");
 
 export const noSiteOptions: FilterOptionsLookup<SiteVisitorFilterOptions> = { status: "ready", options: noSiteVisitorFilterOptions };
 
@@ -65,6 +70,7 @@ export function useLevelOneMetricsFilterBar(
   );
   return useMemo(() => ({
     fields: analyticsFilterFieldsByArea["level-1-metrics"],
+    dateRangeExplanation: levelOneMetricsDateRangeExplanation,
     siteOptions: noSiteOptions,
     appStoreOptions: noAppStoreOptions,
     appVersionOptions,
@@ -75,6 +81,7 @@ export function useLevelOneMetricsFilterBar(
 
 export const levelOneMetricsDateRangeFilterBar: LevelOneMetricsFilterBar = {
   fields: whoSawUsDatasetAnalyticsFilterFields,
+  dateRangeExplanation: levelOneMetricsDateRangeExplanation,
   siteOptions: noSiteOptions,
   appStoreOptions: noAppStoreOptions,
   appVersionOptions: noAppVersionOptions,
@@ -139,6 +146,7 @@ export function LevelOneMetricsFrame(
     <>
       <AnalyticsFilterBar
         area="level-1-metrics"
+        dateRangeExplanation={props.filterBar.dateRangeExplanation}
         fields={props.filterBar.fields}
         title={props.filterBar.title}
         headingLevel={2}
