@@ -39,7 +39,11 @@ internal fun toWorkspaceSchedulerSettings(
 }
 
 internal fun makeWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSummary {
-    val counts: Map<String, Int> = cards.fold(emptyMap()) { result, card ->
+    // Deleted cards keep their tags locally, so a tag whose cards are all deleted must disappear here.
+    val activeCards: List<CardSummary> = cards.filter { card ->
+        card.deletedAtMillis == null
+    }
+    val counts: Map<String, Int> = activeCards.fold(emptyMap()) { result, card ->
         card.tags.fold(result) { tagResult, tag ->
             tagResult + (tag to ((tagResult[tag] ?: 0) + 1))
         }
@@ -59,7 +63,7 @@ internal fun makeWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSu
 
     return WorkspaceTagsSummary(
         tags = tags,
-        totalCards = cards.size
+        totalCards = activeCards.size
     )
 }
 
