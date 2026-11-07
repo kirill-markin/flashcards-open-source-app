@@ -127,7 +127,7 @@ const daCatalog: TranslationCatalog = {
     disabled: "Deaktiveret",
     loading: "Indlæser...",
     never: "Aldrig",
-    newItem: "ny",
+    newItem: "nyt",
     noBackText: "Ingen tekst på bagsiden",
     noTags: "Ingen tags",
     notRevoked: "Ikke tilbagekaldt",

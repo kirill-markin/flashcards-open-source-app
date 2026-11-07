@@ -127,7 +127,7 @@ const zuCatalog: TranslationCatalog = {
     disabled: "Kuvaliwe",
     loading: "Kuyalayishwa...",
     never: "Akukaze",
-    newItem: "okusha",
+    newItem: "elisha",
     noBackText: "Awukho umbhalo ngemuva",
     noTags: "Awekho amathegi",
     notRevoked: "Akuhoxisiwe",
@@ -1123,7 +1123,7 @@ const zuCatalog: TranslationCatalog = {
     },
     aiOpenAriaLabel: "Vula ikhadi engxoxweni ye-AI ({{side}})",
     repetitionBadgeAriaLabel: "Ukuphindwa: {{value}}",
-    repetitionBadgeNew: "Okusha",
+    repetitionBadgeNew: "Elisha",
     empty: {
       noCardsBody: "Awukadali amakhadi. Engeza ikhadi lakho lokuqala ukuze uqale ukufunda.",
       noCardsTitle: "Awekho amakhadi okwamanje",

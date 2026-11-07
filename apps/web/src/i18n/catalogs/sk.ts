@@ -133,7 +133,7 @@ const skCatalog: TranslationCatalog = {
     disabled: "Vypnuté",
     loading: "Načítava sa...",
     never: "Nikdy",
-    newItem: "nové",
+    newItem: "nová",
     noBackText: "Bez textu na zadnej strane",
     noTags: "Žiadne značky",
     notRevoked: "Nezrušené",
@@ -1133,7 +1133,7 @@ const skCatalog: TranslationCatalog = {
     },
     aiOpenAriaLabel: "Otvoriť kartu ({{side}}) v AI chate",
     repetitionBadgeAriaLabel: "Opakovania: {{value}}",
-    repetitionBadgeNew: "Nové",
+    repetitionBadgeNew: "Nová",
     empty: {
       noCardsBody: "Zatiaľ ste nevytvorili žiadne karty. Pridajte prvú kartu a začnite sa učiť.",
       noCardsTitle: "Zatiaľ žiadne karty",
