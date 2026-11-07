@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">za manje od minute</string>
     <string name="ai_card_attachment_title">Kartica · %1$s</string>
     <string name="ai_message_label">Poruka</string>
+    <string name="ai_drop_overlay">Ispustite datoteke za prilaganje</string>
     <string name="ai_attach">Priloži</string>
     <string name="ai_dictate">Diktiraj</string>
     <string name="ai_send">Pošalji</string>

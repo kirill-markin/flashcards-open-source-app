@@ -1492,6 +1492,7 @@ const etCatalog: TranslationCatalog = {
       waitingForPermission: "Mikrofoni juurdepääsu ootamine...",
     },
     dropFiles: "Manustamiseks lohista failid siia",
+    dropFileInsteadOfPastedIcon: "Brauser kleepis ainult faili ikooni. Lohista fail hoopis siia.",
     empty: {
       copy: "Küsi kaartide või kordamiste ajaloo kohta või lisa märkmeid, millest kaarte koostada.",
       title: "Alusta uut tehisintellekti vestlust",

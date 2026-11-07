@@ -512,6 +512,7 @@ export function createImagePasteEvent(file: File): ClipboardEvent {
   Object.defineProperty(pasteEvent, "clipboardData", {
     value: {
       items: [textItem, htmlItem, imageItem],
+      getData: () => "",
     },
   });
   return pasteEvent;

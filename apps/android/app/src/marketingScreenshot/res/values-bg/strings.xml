@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">след по-малко от минута</string>
     <string name="ai_card_attachment_title">Карта · %1$s</string>
     <string name="ai_message_label">Съобщение</string>
+    <string name="ai_drop_overlay">Пуснете файлове, за да ги прикачите</string>
     <string name="ai_attach">Прикачване</string>
     <string name="ai_dictate">Диктуване</string>
     <string name="ai_send">Изпращане</string>

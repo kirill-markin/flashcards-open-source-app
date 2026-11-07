@@ -94,20 +94,24 @@ func aiChatImporterContentTypes() -> [UTType] {
     }
 }
 
+func aiChatUnsupportedFileTypeError(fileExtension: String) -> NSError {
+    NSError(
+        domain: aiChatAttachmentErrorDomain,
+        code: AIChatAttachmentErrorCode.unsupportedType.rawValue,
+        userInfo: [
+            NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
+                "ai.attachment.error.unsupportedType",
+                "Unsupported file type: .%@",
+                fileExtension
+            )
+        ]
+    )
+}
+
 func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
     let fileExtension = url.pathExtension.lowercased()
     guard aiChatSupportedFileExtensions.contains(fileExtension) else {
-        throw NSError(
-            domain: aiChatAttachmentErrorDomain,
-            code: AIChatAttachmentErrorCode.unsupportedType.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
-                    "ai.attachment.error.unsupportedType",
-                    "Unsupported file type: .%@",
-                    fileExtension
-                )
-            ]
-        )
+        throw aiChatUnsupportedFileTypeError(fileExtension: fileExtension)
     }
 
     let didAccess = url.startAccessingSecurityScopedResource()
@@ -142,17 +146,7 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
 private func aiChatCanonicalFileAttachmentMediaType(fileExtension: String) throws -> String {
     let normalizedExtension = fileExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     guard let mediaType = aiChatCanonicalFileMediaTypesByExtension[normalizedExtension] else {
-        throw NSError(
-            domain: aiChatAttachmentErrorDomain,
-            code: AIChatAttachmentErrorCode.unsupportedType.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
-                    "ai.attachment.error.unsupportedType",
-                    "Unsupported file type: .%@",
-                    normalizedExtension
-                )
-            ]
-        )
+        throw aiChatUnsupportedFileTypeError(fileExtension: normalizedExtension)
     }
 
     return mediaType

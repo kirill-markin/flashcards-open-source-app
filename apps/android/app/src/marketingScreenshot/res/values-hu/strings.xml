@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">kevesebb mint egy perc múlva</string>
     <string name="ai_card_attachment_title">Kártya · %1$s</string>
     <string name="ai_message_label">Üzenet</string>
+    <string name="ai_drop_overlay">Húzd ide a fájlokat a csatoláshoz</string>
     <string name="ai_attach">Csatolás</string>
     <string name="ai_dictate">Diktálás</string>
     <string name="ai_send">Küldés</string>

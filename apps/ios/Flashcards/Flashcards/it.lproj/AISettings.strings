@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Le immagini di un messaggio possono pesare al massimo 15 MB in totale. Inviane alcune in un altro messaggio.";
 "ai.attachment.error.unavailable" = "Un allegato non è più su questo dispositivo. Rimuovilo, allegalo di nuovo, poi riprova.";
 "ai.attachment.error.uploadFailed" = "Impossibile caricare un allegato. Controlla la connessione, poi riprova.";
+"ai.drop.overlay" = "Trascina qui i file da allegare";
 "ai.composer.dictation.start" = "Avvia dettatura";
 "ai.composer.dictation.stop" = "Interrompi dettatura";
 "ai.composer.dictation.waiting" = "In attesa dell’accesso al microfono...";

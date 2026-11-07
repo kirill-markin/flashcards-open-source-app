@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Les imatges d'un missatge poden ocupar com a màxim 15 MB en total. Envieu-ne algunes en un altre missatge.";
 "ai.attachment.error.unavailable" = "Un fitxer adjunt ja no és en aquest dispositiu. Traieu-lo, torneu-lo a adjuntar i torneu-ho a provar.";
 "ai.attachment.error.uploadFailed" = "No s'ha pogut pujar un fitxer adjunt. Comproveu la connexió i torneu-ho a provar.";
+"ai.drop.overlay" = "Deixa anar els fitxers per adjuntar-los";
 "ai.composer.dictation.start" = "Comença el dictat";
 "ai.composer.dictation.stop" = "Atura el dictat";
 "ai.composer.dictation.waiting" = "S'està esperant l'accés al micròfon...";

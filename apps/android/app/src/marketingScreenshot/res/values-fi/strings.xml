@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">alle minuutin kuluttua</string>
     <string name="ai_card_attachment_title">Kortti · %1$s</string>
     <string name="ai_message_label">Viesti</string>
+    <string name="ai_drop_overlay">Liitä tiedostot pudottamalla ne tähän</string>
     <string name="ai_attach">Liitä</string>
     <string name="ai_dictate">Sanele</string>
     <string name="ai_send">Lähetä</string>

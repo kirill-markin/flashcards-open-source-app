@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "התמונות בהודעה אחת יכולות להיות בגודל כולל של עד 15 MB. יש לשלוח חלק מהן בהודעה אחרת.";
 "ai.attachment.error.unavailable" = "קובץ מצורף כבר לא נמצא במכשיר הזה. יש להסיר אותו, לצרף אותו שוב ולנסות שוב.";
 "ai.attachment.error.uploadFailed" = "לא ניתן היה להעלות קובץ מצורף. יש לבדוק את החיבור ולנסות שוב.";
+"ai.drop.overlay" = "גרור קבצים לכאן כדי לצרף";
 "ai.composer.dictation.start" = "התחלת הכתבה";
 "ai.composer.dictation.stop" = "עצירת הכתבה";
 "ai.composer.dictation.waiting" = "ממתין לגישה למיקרופון...";

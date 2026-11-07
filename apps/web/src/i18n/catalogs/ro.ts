@@ -1506,6 +1506,7 @@ const roCatalog: TranslationCatalog = {
       waitingForPermission: "Se așteaptă accesul la microfon...",
     },
     dropFiles: "Trage fișierele aici ca să le atașezi",
+    dropFileInsteadOfPastedIcon: "Browserul a lipit doar pictograma fișierului. Trage fișierul aici în schimb.",
     empty: {
       copy: "Întreabă despre fișe, istoricul recapitulărilor sau atașează notițe pentru extragere.",
       title: "Începe un chat AI nou",

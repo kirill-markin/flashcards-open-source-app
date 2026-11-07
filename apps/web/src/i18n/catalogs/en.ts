@@ -1491,6 +1491,7 @@ const enCatalog = {
       waitingForPermission: "Waiting for microphone access...",
     },
     dropFiles: "Drop files to attach",
+    dropFileInsteadOfPastedIcon: "Your browser pasted only the file icon. Drag the file here instead.",
     empty: {
       copy: "Ask about cards, review history, or attach notes for extraction.",
       title: "Start a new AI chat",

@@ -1492,6 +1492,7 @@ const daCatalog: TranslationCatalog = {
       waitingForPermission: "Venter på adgang til mikrofonen...",
     },
     dropFiles: "Slip filerne for at vedhæfte dem",
+    dropFileInsteadOfPastedIcon: "Din browser indsatte kun filens ikon. Træk filen herind i stedet.",
     empty: {
       copy: "Spørg om kort, repetitioner, eller vedhæft noter, der skal trækkes kort ud af.",
       title: "Start en ny AI-chat",

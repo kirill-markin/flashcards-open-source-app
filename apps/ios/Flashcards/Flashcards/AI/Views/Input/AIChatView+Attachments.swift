@@ -1,6 +1,7 @@
 import PhotosUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 extension AIChatView {
     func handleSelectedPhotoItem(_ item: PhotosPickerItem) async {
@@ -91,6 +92,30 @@ extension AIChatView {
         }
     }
 
+    /// Reports no analytics for the same reason as `handleImportedFiles`: a drop or paste has no source in the catalog.
+    func handleAttachmentItemProviders(_ itemProviders: [NSItemProvider]) async {
+        do {
+            guard self.chatStore.canAttachToDraft else {
+                return
+            }
+            guard self.ensureExternalAIConsent() else {
+                return
+            }
+            let attachments = try await aiChatMakeAttachments(itemProviders: itemProviders)
+            for attachment in attachments {
+                self.chatStore.appendAttachment(attachment)
+            }
+        } catch {
+            self.handleFileImportFailure(error)
+        }
+    }
+
+    func attachItemProviders(_ itemProviders: [NSItemProvider]) {
+        Task {
+            await self.handleAttachmentItemProviders(itemProviders)
+        }
+    }
+
     func handleAttachmentMenuAction(_ action: AIChatAttachmentMenuAction) {
         guard self.chatStore.canAttachToDraft else {
             return
@@ -138,5 +163,35 @@ extension AIChatView {
 
     func handleFileImportFailure(_ error: Error) {
         self.chatStore.showAlert(aiChatFileImportAlert(error: error))
+    }
+}
+
+/// Refuses drags that carry no file or image, such as selected text or a link, so the overlay never shows for them.
+struct AIChatAttachmentDropDelegate: DropDelegate {
+    @Binding var isTargeted: Bool
+    let canAttachToDraft: Bool
+    let onDrop: @MainActor ([NSItemProvider]) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        info.itemProviders(for: [.item]).contains { itemProvider in
+            aiChatItemProviderCanMakeAttachment(itemProvider: itemProvider)
+        }
+    }
+
+    func dropEntered(info: DropInfo) {
+        self.isTargeted = true
+    }
+
+    func dropExited(info: DropInfo) {
+        self.isTargeted = false
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        self.isTargeted = false
+        guard self.canAttachToDraft else {
+            return false
+        }
+        self.onDrop(info.itemProviders(for: [.item]))
+        return true
     }
 }

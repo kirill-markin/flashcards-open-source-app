@@ -28,6 +28,7 @@
     <string name="ai_support">உதவி</string>
     <string name="ai_consent_workspace_disclosure">“%1$s” பணியிடத்திலிருந்து வரும் AI கோரிக்கைகள், வழிமுறைகள், பதிவேற்றிய கோப்புகள், படங்கள் மற்றும் பேசிய ஒலியை சேவையகத்தில் இயங்கும் AI சேவைக்கு அனுப்பலாம்.</string>
     <string name="ai_message_label">செய்தி</string>
+    <string name="ai_drop_overlay">இணைக்கக் கோப்புகளை இங்கே விடவும்</string>
     <string name="ai_attach">இணை</string>
     <string name="ai_dictate">பேசி எழுது</string>
     <string name="ai_send">அனுப்பு</string>

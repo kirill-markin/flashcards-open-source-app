@@ -1492,6 +1492,7 @@ const koCatalog: TranslationCatalog = {
       waitingForPermission: "마이크 권한을 기다리는 중...",
     },
     dropFiles: "파일을 여기에 놓아 첨부하세요",
+    dropFileInsteadOfPastedIcon: "브라우저가 파일 아이콘만 붙여 넣었습니다. 대신 파일을 여기로 끌어다 놓으세요.",
     empty: {
       copy: "카드나 복습 기록에 대해 묻거나, 내용을 뽑아낼 메모를 첨부하세요.",
       title: "새 AI 채팅 시작하기",

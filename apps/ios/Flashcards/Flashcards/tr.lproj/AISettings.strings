@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Bir mesajdaki görsellerin toplam boyutu en fazla 15 MB olabilir. Bazılarını başka bir mesajda gönderin.";
 "ai.attachment.error.unavailable" = "Eklerden biri artık bu cihazda değil. Eki kaldırın, yeniden ekleyin ve tekrar deneyin.";
 "ai.attachment.error.uploadFailed" = "Bir ek yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.";
+"ai.drop.overlay" = "Eklemek için dosyaları buraya bırakın";
 "ai.composer.dictation.start" = "Dikteyi başlat";
 "ai.composer.dictation.stop" = "Dikteyi durdur";
 "ai.composer.dictation.waiting" = "Mikrofon erişimi bekleniyor...";

@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">ಒಂದು ನಿಮಿಷಕ್ಕಿಂತ ಕಡಿಮೆ ಸಮಯದಲ್ಲಿ</string>
     <string name="ai_card_attachment_title">ಕಾರ್ಡ್ · %1$s</string>
     <string name="ai_message_label">ಸಂದೇಶ</string>
+    <string name="ai_drop_overlay">ಲಗತ್ತಿಸಲು ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಬಿಡಿ</string>
     <string name="ai_attach">ಲಗತ್ತಿಸಿ</string>
     <string name="ai_dictate">ಹೇಳಿ ಬರೆಯಿರಿ</string>
     <string name="ai_send">ಕಳುಹಿಸಿ</string>

@@ -1492,6 +1492,7 @@ const zuCatalog: TranslationCatalog = {
       waitingForPermission: "Kulindwe imvume yemakrofoni...",
     },
     dropFiles: "Yehlisa amafayela ukuze uwanamathisele",
+    dropFileInsteadOfPastedIcon: "Isiphequluli sakho sinamathisele isithonjana sefayela kuphela. Kunalokho, hudula ifayela lapha.",
     empty: {
       copy: "Buza ngamakhadi, umlando wokubukeza, noma unamathisele amanothi ukuze kukhishwe okuqukethwe.",
       title: "Qala ingxoxo entsha ye-AI",

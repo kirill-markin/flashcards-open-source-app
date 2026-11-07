@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">eftir minna en mínútu</string>
     <string name="ai_card_attachment_title">Spjald · %1$s</string>
     <string name="ai_message_label">Skilaboð</string>
+    <string name="ai_drop_overlay">Slepptu skrám til að hengja þær við</string>
     <string name="ai_attach">Hengja við</string>
     <string name="ai_dictate">Lesa inn</string>
     <string name="ai_send">Senda</string>

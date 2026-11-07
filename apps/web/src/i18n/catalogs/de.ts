@@ -1492,6 +1492,7 @@ const deCatalog: TranslationCatalog = {
       waitingForPermission: "Warte auf Mikrofonzugriff...",
     },
     dropFiles: "Dateien hier ablegen, um sie anzuhängen",
+    dropFileInsteadOfPastedIcon: "Dein Browser hat nur das Dateisymbol eingefügt. Zieh die Datei stattdessen hierher.",
     empty: {
       copy: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen zur Extraktion an.",
       title: "Neuen AI-Chat starten",

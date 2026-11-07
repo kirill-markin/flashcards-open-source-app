@@ -1492,6 +1492,7 @@ const thCatalog: TranslationCatalog = {
       waitingForPermission: "กำลังรอสิทธิ์ใช้ไมโครโฟน...",
     },
     dropFiles: "วางไฟล์เพื่อแนบ",
+    dropFileInsteadOfPastedIcon: "เบราว์เซอร์วางเฉพาะไอคอนของไฟล์ ลากไฟล์มาที่นี่แทน",
     empty: {
       copy: "ถามเกี่ยวกับการ์ด ประวัติการทบทวน หรือแนบโน้ตเพื่อดึงข้อมูล",
       title: "เริ่มแชท AI ใหม่",

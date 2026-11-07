@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Egy üzenet képei együtt legfeljebb 15 MB-osak lehetnek. Néhányat küldj el egy másik üzenetben.";
 "ai.attachment.error.unavailable" = "Egy melléklet már nincs ezen az eszközön. Távolítsd el, csatold újra, majd próbáld újra.";
 "ai.attachment.error.uploadFailed" = "Egy mellékletet nem sikerült feltölteni. Ellenőrizd a kapcsolatot, majd próbáld újra.";
+"ai.drop.overlay" = "Húzd ide a fájlokat a csatoláshoz";
 "ai.composer.dictation.start" = "Diktálás indítása";
 "ai.composer.dictation.stop" = "Diktálás leállítása";
 "ai.composer.dictation.waiting" = "Várakozás mikrofonhozzáférésre…";

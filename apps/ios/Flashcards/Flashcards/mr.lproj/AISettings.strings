@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "एका संदेशातील प्रतिमा एकूण जास्तीत जास्त 15 MB असू शकतात. त्यांपैकी काही दुसऱ्या संदेशात पाठवा.";
 "ai.attachment.error.unavailable" = "एक जोडलेली फाइल आता या डिव्हाइसवर नाही. ती काढा, पुन्हा जोडा, नंतर पुन्हा प्रयत्न करा.";
 "ai.attachment.error.uploadFailed" = "जोडलेली फाइल अपलोड करता आली नाही. जोडणी तपासा, नंतर पुन्हा प्रयत्न करा.";
+"ai.drop.overlay" = "जोडण्यासाठी फाइल येथे टाका";
 "ai.composer.dictation.start" = "बोलून लिहिणे सुरू करा";
 "ai.composer.dictation.stop" = "बोलून लिहिणे थांबवा";
 "ai.composer.dictation.waiting" = "मायक्रोफोनच्या प्रवेशाची वाट पाहत आहे...";

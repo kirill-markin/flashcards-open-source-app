@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">בעוד פחות מדקה</string>
     <string name="ai_card_attachment_title">כרטיסייה · %1$s</string>
     <string name="ai_message_label">הודעה</string>
+    <string name="ai_drop_overlay">גרור קבצים לכאן כדי לצרף</string>
     <string name="ai_attach">צירוף</string>
     <string name="ai_dictate">הכתבה</string>
     <string name="ai_send">שליחה</string>

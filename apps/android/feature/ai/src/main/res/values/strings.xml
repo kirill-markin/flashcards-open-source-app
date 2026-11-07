@@ -34,6 +34,7 @@
     <string name="ai_attachment_open_file_picker">Open file picker</string>
     <string name="ai_remove_attachment_content_description">Remove attachment</string>
     <string name="ai_message_label">Message</string>
+    <string name="ai_drop_overlay">Drop files to attach</string>
     <string name="ai_attach">Attach</string>
     <string name="ai_stop">Stop</string>
     <string name="ai_dictate">Dictate</string>

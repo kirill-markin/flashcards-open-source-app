@@ -1506,6 +1506,7 @@ const ltCatalog: TranslationCatalog = {
       waitingForPermission: "Laukiama prieigos prie mikrofono...",
     },
     dropFiles: "Nutempkite failus, kad juos pridėtumėte",
+    dropFileInsteadOfPastedIcon: "Naršyklė įklijavo tik failo piktogramą. Verčiau nutempkite failą čia.",
     empty: {
       copy: "Klauskite apie korteles, kartojimų istoriją arba pridėkite užrašų, iš kurių bus išgauta informacija.",
       title: "Pradėkite naują DI pokalbį",

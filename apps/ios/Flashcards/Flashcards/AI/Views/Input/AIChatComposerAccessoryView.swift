@@ -168,24 +168,7 @@ extension AIChatView {
                 }
 
                 ZStack(alignment: .bottomTrailing) {
-                    TextField(
-                        aiSettingsLocalized(
-                            "ai.composer.placeholder",
-                            "Ask about cards, review history, or propose a change..."
-                        ),
-                        text: self.composerTextBinding,
-                        selection: self.composerSelectionBinding,
-                        axis: .vertical
-                    )
-                    .disabled(self.composerTextFieldDisabled)
-                    .autocorrectionDisabled(true)
-                    .focused(self.$isComposerFocused)
-                    #if targetEnvironment(macCatalyst)
-                    .onKeyPress(keys: [.return, KeyEquivalent("\u{3}")], phases: [.down, .repeat, .up]) { press in
-                        return self.macComposerReturnKeyOwner.handleKeyPress(press)
-                    }
-                    #endif
-                    .lineLimit(1...aiChatComposerMaximumLineCount)
+                    self.composerTextView
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
                     .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
@@ -193,11 +176,14 @@ extension AIChatView {
                     #if targetEnvironment(macCatalyst)
                     .frame(minHeight: aiChatComposerSendButtonHitSize)
                     #endif
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        self.isComposerFocused = true
+                    // Behind the text view, so its padding focuses it and taps on the text stay with UIKit selection gestures.
+                    .background {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                self.isComposerFocused = true
+                            }
                     }
-                    .accessibilityIdentifier(UITestIdentifier.aiComposerTextField)
                     .modifier(ComposerKeyboardModifier(
                         isEnabled: self.isPresentationActive,
                         onDismiss: self.dismissComposerFocus
@@ -351,6 +337,35 @@ extension AIChatView {
             .padding(.top, aiChatComposerTopPadding)
             .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 16)
         }
+    }
+
+    private var composerTextView: AIChatComposerTextView {
+        let placeholder = aiSettingsLocalized(
+            "ai.composer.placeholder",
+            "Ask about cards, review history, or propose a change..."
+        )
+        #if targetEnvironment(macCatalyst)
+        return AIChatComposerTextView(
+            text: self.composerTextBinding,
+            selection: self.composerSelectionBinding,
+            isFocused: self.$isComposerFocused,
+            placeholder: placeholder,
+            isDisabled: self.composerTextFieldDisabled,
+            maximumLineCount: aiChatComposerMaximumLineCount,
+            onAttachmentItemProviders: self.attachItemProviders,
+            macReturnKeyOwner: self.macComposerReturnKeyOwner
+        )
+        #else
+        return AIChatComposerTextView(
+            text: self.composerTextBinding,
+            selection: self.composerSelectionBinding,
+            isFocused: self.$isComposerFocused,
+            placeholder: placeholder,
+            isDisabled: self.composerTextFieldDisabled,
+            maximumLineCount: aiChatComposerMaximumLineCount,
+            onAttachmentItemProviders: self.attachItemProviders
+        )
+        #endif
     }
 
     /// Hidden while the person's own key is active, because messages on that key have no monthly limit.

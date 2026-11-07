@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Myndir í einum skilaboðum mega samtals vera að hámarki 15 MB. Sendu sumar þeirra í öðrum skilaboðum.";
 "ai.attachment.error.unavailable" = "Viðhengi er ekki lengur í þessu tæki. Fjarlægðu það, hengdu það aftur við og reyndu aftur.";
 "ai.attachment.error.uploadFailed" = "Ekki tókst að hlaða upp viðhengi. Athugaðu tenginguna og reyndu aftur.";
+"ai.drop.overlay" = "Slepptu skrám til að hengja þær við";
 "ai.composer.dictation.start" = "Hefja innlestur";
 "ai.composer.dictation.stop" = "Stöðva innlestur";
 "ai.composer.dictation.waiting" = "Bíð eftir hljóðnemaaðgangi...";

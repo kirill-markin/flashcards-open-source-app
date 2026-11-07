@@ -28,6 +28,7 @@
     <string name="ai_support">Destek</string>
     <string name="ai_consent_workspace_disclosure">“%1$s” çalışma alanından gelen YZ istekleri, talimatları, yüklenen dosyaları, görüntüleri ve dikte edilen sesi sunucudaki YZ hizmetine gönderebilir.</string>
     <string name="ai_message_label">Mesaj</string>
+    <string name="ai_drop_overlay">Eklemek için dosyaları buraya bırakın</string>
     <string name="ai_attach">Ekle</string>
     <string name="ai_dictate">Dikte et</string>
     <string name="ai_send">Gönder</string>

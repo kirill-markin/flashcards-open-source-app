@@ -1506,6 +1506,7 @@ const ukCatalog: TranslationCatalog = {
       waitingForPermission: "Очікуємо доступу до мікрофона...",
     },
     dropFiles: "Перетягніть файли, щоб додати",
+    dropFileInsteadOfPastedIcon: "Браузер вставив лише значок файлу. Натомість перетягніть файл сюди.",
     empty: {
       copy: "Запитайте про картки, історію повторень або додайте нотатки для розбору.",
       title: "Почніть новий AI-чат",

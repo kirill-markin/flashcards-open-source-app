@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "مجموع حجم تصویرهای یک پیام حداکثر ۱۵ مگابایت است. برخی از آن‌ها را در پیام دیگری بفرستید.";
 "ai.attachment.error.unavailable" = "یکی از پیوست‌ها دیگر روی این دستگاه نیست. آن را بردارید، دوباره پیوست کنید، سپس دوباره امتحان کنید.";
 "ai.attachment.error.uploadFailed" = "بارگذاری یکی از پیوست‌ها ممکن نشد. اتصال خود را بررسی کنید، سپس دوباره امتحان کنید.";
+"ai.drop.overlay" = "فایل‌ها را برای پیوست اینجا رها کنید";
 "ai.composer.dictation.start" = "شروع دیکته";
 "ai.composer.dictation.stop" = "توقف دیکته";
 "ai.composer.dictation.waiting" = "در انتظار دسترسی به میکروفون...";

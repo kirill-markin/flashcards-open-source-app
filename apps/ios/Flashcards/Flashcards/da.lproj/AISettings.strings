@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Billederne i én besked må højst fylde 15 MB tilsammen. Send nogle af dem i en anden besked.";
 "ai.attachment.error.unavailable" = "En vedhæftet fil findes ikke længere på denne enhed. Fjern den, vedhæft den igen, og prøv igen.";
 "ai.attachment.error.uploadFailed" = "En vedhæftet fil kunne ikke uploades. Kontrollér forbindelsen, og prøv igen.";
+"ai.drop.overlay" = "Slip filerne for at vedhæfte dem";
 "ai.composer.dictation.start" = "Start diktering";
 "ai.composer.dictation.stop" = "Stop diktering";
 "ai.composer.dictation.waiting" = "Venter på mikrofonadgang…";

@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "메시지 하나에 포함된 이미지는 합계 최대 15 MB까지입니다. 일부는 다른 메시지로 보내세요.";
 "ai.attachment.error.unavailable" = "첨부 파일이 더 이상 이 기기에 없습니다. 제거하고 다시 첨부한 후 다시 시도하세요.";
 "ai.attachment.error.uploadFailed" = "첨부 파일을 업로드하지 못했습니다. 연결을 확인한 후 다시 시도하세요.";
+"ai.drop.overlay" = "파일을 여기에 놓아 첨부하세요";
 "ai.composer.dictation.start" = "받아쓰기 시작";
 "ai.composer.dictation.stop" = "받아쓰기 중지";
 "ai.composer.dictation.waiting" = "마이크 접근 대기 중...";
