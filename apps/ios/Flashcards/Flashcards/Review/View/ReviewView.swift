@@ -67,6 +67,9 @@ struct ReviewView: View {
     @State private var reviewFilterPresentationContext: ReviewFilterPresentationContext? = nil
     @State private var reviewFilterButtonFrame: CGRect = .zero
     @State private var reviewTagFilterRequest: ReviewTagFilterRequest? = nil
+    #if targetEnvironment(macCatalyst)
+    @State private var macReviewFilterOpenRequest: UUID? = nil
+    #endif
 
     private var availableTagSuggestions: [TagSuggestion] {
         self.reviewTagSummaries.map { tagSummary in
@@ -408,6 +411,18 @@ struct ReviewView: View {
         let filter = MacToolbarAction(
             identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.selectedReviewFilterTitle,
             title: self.selectedReviewFilterTitle,
+            toolTip: String(
+                format: String(localized: "Filter: %@ (F)", table: reviewCardsStringsTableName),
+                locale: Locale.current,
+                self.selectedReviewFilterTitle
+            ),
+            activationRequest: self.macReviewFilterOpenRequest.map { id in
+                MacToolbarActivationRequest(id: id, onHandled: {
+                    if self.macReviewFilterOpenRequest == id {
+                        self.macReviewFilterOpenRequest = nil
+                    }
+                })
+            },
             perform: { context in
                 self.beginReviewFiltering()
                 context.presentPopover(isPresented: self.$isReviewFilterPopoverPresented) {
@@ -1219,7 +1234,6 @@ struct ReviewView: View {
             && self.isReviewFilterPopoverPresented == false
             && self.reviewTagFilterRequest == nil
             && self.shouldShowReviewLoader == false
-            && self.currentCard != nil
             && self.store.reviewSubmissionFailure == nil
             && self.store.isReviewHardReminderPresented == false
             && self.store.isReviewNotificationPrePromptPresented == false
@@ -1234,8 +1248,19 @@ struct ReviewView: View {
     }
 
     private var reviewKeyboardActions: ReviewKeyboardActions? {
-        guard self.canUseReviewKeyboardShortcuts, self.isTextInputEditing == false, let card = self.currentCard else {
+        guard self.canUseReviewKeyboardShortcuts, self.isTextInputEditing == false else {
             return nil
+        }
+        guard let card = self.currentCard else {
+            return ReviewKeyboardActions(
+                revealAnswer: nil,
+                rate: nil,
+                activeSide: .front,
+                isActiveSideSpeaking: false,
+                toggleSpeech: nil,
+                copy: nil,
+                openFilter: self.keyboardOpenFilter
+            )
         }
         let revealState = self.displayedRevealState(card: card)
         if self.reviewScreen.isAnswerVisible == false {
@@ -1255,7 +1280,8 @@ struct ReviewView: View {
                 activeSide: .front,
                 isActiveSideSpeaking: self.reviewSpeechController.activeSide == .front,
                 toggleSpeech: toggleSpeech,
-                copy: copy
+                copy: copy,
+                openFilter: self.keyboardOpenFilter
             )
         }
         let rate: (@MainActor (ReviewRating) -> Void)? = self.keyboardRate(
@@ -1271,8 +1297,18 @@ struct ReviewView: View {
             activeSide: .back,
             isActiveSideSpeaking: self.reviewSpeechController.activeSide == .back,
             toggleSpeech: toggleSpeech,
-            copy: copy
+            copy: copy,
+            openFilter: self.keyboardOpenFilter
         )
+    }
+
+    /// Opens the filter as its button does; on Mac through the toolbar item, so the popover anchors there.
+    private var keyboardOpenFilter: @MainActor () -> Void {
+        #if targetEnvironment(macCatalyst)
+        return { self.macReviewFilterOpenRequest = UUID() }
+        #else
+        return self.beginReviewFiltering
+        #endif
     }
 
     /// Nil until the rating buttons are ready, matching the grid they mirror.
