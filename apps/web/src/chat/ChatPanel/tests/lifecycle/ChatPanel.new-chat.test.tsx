@@ -147,7 +147,7 @@ describe("ChatPanel new chat", () => {
         })],
       },
     });
-    storeChatSessionWarmStartSnapshot("workspace-1", staleToolSnapshot, true);
+    storeChatSessionWarmStartSnapshot("workspace-1", staleToolSnapshot, true, false);
     getChatSnapshotMock.mockImplementation(async (sessionId: string) => createChatSnapshot({
       sessionId,
       conversationScopeId: sessionId,
@@ -240,7 +240,7 @@ describe("ChatPanel new chat", () => {
           isStopped: false,
         }],
       },
-    }), false);
+    }), false, false);
     createNewChatSessionMock.mockRejectedValueOnce(new Error("Request failed with status 500"));
 
     await renderChatPanel();

@@ -31,7 +31,7 @@ describe("ChatPanel send warm-start races", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((resolve) => {
       resolveHydrationSnapshot = (snapshot) => resolve(snapshot);
       expect(sessionId).toBe("session-stale");
@@ -116,7 +116,7 @@ describe("ChatPanel send warm-start races", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((resolve) => {
       resolveHydrationSnapshot = (snapshot) => resolve(snapshot);
       expect(sessionId).toBe("session-stale");
@@ -192,7 +192,7 @@ describe("ChatPanel send warm-start races", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((_, reject) => {
       rejectHydrationSnapshot = (error) => reject(error);
       expect(sessionId).toBe("session-stale");
@@ -234,7 +234,7 @@ describe("ChatPanel send warm-start races", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((resolve) => {
       resolveHydrationSnapshot = (snapshot) => resolve(snapshot);
       expect(sessionId).toBe("session-stale");
@@ -301,7 +301,7 @@ describe("ChatPanel send warm-start races", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((resolve) => {
       resolveHydrationSnapshot = (snapshot) => resolve(snapshot);
       expect(sessionId).toBe("session-stale");

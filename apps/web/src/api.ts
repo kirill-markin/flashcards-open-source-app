@@ -51,6 +51,7 @@ export {
   createNewChatSession,
   getChatSnapshot,
   getCurrentChatSnapshot,
+  getCurrentChatSnapshotWithResumeDiagnostics,
   getChatSnapshotWithResumeDiagnostics,
   listChatSessions,
   renameChatSession,

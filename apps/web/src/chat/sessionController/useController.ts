@@ -90,6 +90,11 @@ export function useChatSessionController(
     initialLastSnapshotUpdatedAt: initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
       ? initialWarmStartSnapshot.updatedAt
       : null,
+    initialServerSessionId: initialWarmStartSnapshot !== null
+      && initialWarmStartSnapshotIsStale === false
+      && initialWarmStartSnapshot.isSessionOnServer
+      ? initialWarmStartSnapshot.sessionId
+      : null,
   });
   const actions = useChatSessionActions({
     indexedDbOpenRecoveryState,
@@ -163,7 +168,7 @@ export function useChatSessionController(
       composerSuggestions: [],
       chatConfig: state.chatConfig,
       activeRun: null,
-    }, state.pendingToolRunPostSync);
+    }, state.pendingToolRunPostSync, snapshotSync.runtimeRefs.serverSessionIdRef.current === state.currentSessionId);
   });
 
   useEffect(() => {
@@ -212,6 +217,16 @@ export function useChatSessionController(
     return sessionId;
   }, [actions, indexedDbOpenRecoveryState]);
 
+  const { composerSendCountRef } = snapshotSync.runtimeRefs;
+  const runComposerSend = useCallback(async (send: () => Promise<void>): Promise<void> => {
+    composerSendCountRef.current += 1;
+    try {
+      await send();
+    } finally {
+      composerSendCountRef.current -= 1;
+    }
+  }, [composerSendCountRef]);
+
   const stopMessage = useCallback(async (): Promise<void> => {
     indexedDbOpenRecoveryState.throwIfFailed();
     await actions.stopMessage();
@@ -245,6 +260,7 @@ export function useChatSessionController(
     dismissErrorDialog,
     acceptServerSessionId,
     ensureRemoteSession,
+    runComposerSend,
     sendMessage,
     stopMessage,
     clearConversation,
