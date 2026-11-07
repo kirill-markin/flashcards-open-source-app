@@ -290,7 +290,7 @@ private fun ReviewMarkdownStateText(
             ),
             dimens = markdownDimens(
                 dividerThickness = 1.dp,
-                codeBackgroundCornerSize = 12.dp,
+                codeBackgroundCornerSize = 6.dp,
                 blockQuoteThickness = 4.dp,
                 tableMaxWidth = Dp.Unspecified,
                 tableCellWidth = 140.dp,
