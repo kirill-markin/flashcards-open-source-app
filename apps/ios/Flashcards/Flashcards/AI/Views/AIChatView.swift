@@ -119,7 +119,7 @@ struct AIChatView: View {
     @State var hasActiveUserScrollGesture: Bool
     @State var composerAttachmentViewportWidth: CGFloat?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
-    @FocusState var isComposerFocused: Bool
+    @State var isComposerFocused: Bool
     #if targetEnvironment(macCatalyst)
     @State var macComposerReturnKeyOwner = MacComposerReturnKeyOwner()
     #endif
@@ -139,6 +139,7 @@ struct AIChatView: View {
         self.hasActiveUserScrollGesture = false
         self.composerAttachmentViewportWidth = nil
         self.deferredPresentationRequest = nil
+        self.isComposerFocused = false
         self.refocusesComposerAfterSend = false
     }
 

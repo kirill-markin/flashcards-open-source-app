@@ -47,7 +47,7 @@ struct AIChatComposerKeyboardObserver: UIViewRepresentable {
 final class MacComposerReturnKeyOwner {
     private weak var commandView: AIChatComposerKeyboardCommandView?
     private weak var responder: UIView?
-    private var key: KeyEquivalent?
+    private var key: String?
 
     fileprivate func attach(_ view: AIChatComposerKeyboardCommandView) {
         if self.commandView !== view { self.cancel() }
@@ -61,26 +61,27 @@ final class MacComposerReturnKeyOwner {
         self.commandView = nil
     }
 
-    func handleKeyPress(_ press: KeyPress) -> KeyPress.Result {
-        if press.phase == .down || press.phase == .repeat {
-            if press.phase == .down { self.cancel() }
-            guard let responder = self.commandView?.macReturnResponder,
-                  let textInput = responder as? UITextInput else { return .ignored }
-            if press.phase == .repeat {
-                guard self.key == press.key, self.responder === responder else { return .ignored }
-            }
-            let modifiers = press.modifiers.intersection([.shift, .option, .control, .command])
-            guard modifiers == .shift || modifiers == .option else { return .ignored }
-            self.key = press.key
-            self.responder = responder
-            textInput.insertText("\n")
-            return .handled
-        }
-        guard press.phase == .up, self.key == press.key else { return .ignored }
+    /// Returns whether Shift- or Option-Return was consumed as a plain newline.
+    func handlePressBegan(_ key: UIKey) -> Bool {
+        guard ["\r", "\u{3}"].contains(key.charactersIgnoringModifiers) else { return false }
+        self.cancel()
+        guard let responder = self.commandView?.macReturnResponder,
+              let textInput = responder as? UITextInput else { return false }
+        let modifiers = key.modifierFlags.intersection([.shift, .alternate, .control, .command])
+        guard modifiers == .shift || modifiers == .alternate else { return false }
+        self.key = key.charactersIgnoringModifiers
+        self.responder = responder
+        textInput.insertText("\n")
+        return true
+    }
+
+    /// Returns whether the release belongs to a consumed press, so the text system never sees half of it.
+    func handlePressEnded(_ key: UIKey) -> Bool {
+        guard self.key == key.charactersIgnoringModifiers else { return false }
         defer { self.cancel() }
         guard let responder = self.responder,
-              self.commandView?.macReturnResponder === responder else { return .ignored }
-        return .handled
+              self.commandView?.macReturnResponder === responder else { return false }
+        return true
     }
 
     fileprivate func cancel() {
