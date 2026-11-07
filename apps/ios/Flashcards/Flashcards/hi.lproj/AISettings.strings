@@ -820,7 +820,7 @@
 "settings.workspace.decks.emptyRuleValidation" = "कम से कम एक टैग चुनें, या समीक्षा में सभी कार्ड का उपयोग करें.";
 "settings.workspace.decks.loading" = "डेक लोड हो रहा है...";
 "settings.workspace.decks.noMatching" = "कोई मेल खाता डेक नहीं";
-"settings.workspace.decks.searchPrompt" = "खोज डेक";
+"settings.workspace.decks.searchPrompt" = "डेक खोजें";
 "settings.workspace.decks.newDeck" = "नया डेक";
 "settings.workspace.decks.dueCount" = "%d देय";
 "settings.workspace.decks.totalCards" = "%d कार्ड";
