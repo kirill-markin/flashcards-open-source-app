@@ -212,7 +212,14 @@ struct TagPickerView: View {
                                 nextCreatableTag
                             ),
                             isSelected: false,
-                            detail: .label(String(localized: "New", table: reviewCardsStringsTableName))
+                            detail: .label(
+                                String(
+                                    localized: "cards.tag_picker.new_tag_badge",
+                                    defaultValue: "New",
+                                    table: reviewCardsStringsTableName,
+                                    comment: "Badge on the tag picker row that creates a tag not yet in the workspace; agrees with the singular word for tag"
+                                )
+                            )
                         )
                     }
                     .buttonStyle(.plain)
