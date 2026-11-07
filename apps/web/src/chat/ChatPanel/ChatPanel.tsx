@@ -93,6 +93,7 @@ export function ChatPanel(props: Props): ReactElement {
     refreshAiUsage,
     dismissErrorDialog,
     ensureRemoteSession,
+    runComposerSend,
     sendMessage: sendChatMessage,
     stopMessage,
     clearConversation,
@@ -276,7 +277,7 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
     setGuestAiRefusal(null);
-    await sendPreparedMessage();
+    await runComposerSend(sendPreparedMessage);
   }
   useEffect(() => {
     if (isChatActionLocked && dictationState !== "idle") discardDictation();

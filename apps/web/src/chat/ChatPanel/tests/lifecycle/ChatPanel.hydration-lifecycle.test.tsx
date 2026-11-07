@@ -144,7 +144,7 @@ describe("ChatPanel hydration lifecycle", () => {
           isStopped: false,
         }],
       },
-    }), false);
+    }), false, false);
 
     useAppDataMock.mockReturnValue(createUnverifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),
@@ -169,7 +169,7 @@ describe("ChatPanel hydration lifecycle", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-local-fresh",
       conversationScopeId: "session-local-fresh",
@@ -191,7 +191,7 @@ describe("ChatPanel hydration lifecycle", () => {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementationOnce((sessionId: string) => new Promise((resolve) => {
       resolveHydrationSnapshot = (snapshot) => resolve(snapshot);
       expect(sessionId).toBe("session-pending");
@@ -252,7 +252,7 @@ describe("ChatPanel hydration lifecycle", () => {
           },
         ],
       },
-    }), false);
+    }), false, false);
 
     await renderChatPanel();
     await flushAsync();
@@ -281,7 +281,7 @@ describe("ChatPanel hydration lifecycle", () => {
           isStopped: false,
         }],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-assistant-only",
       conversationScopeId: "session-assistant-only",
@@ -333,7 +333,7 @@ describe("ChatPanel hydration lifecycle", () => {
           isStopped: false,
         }],
       },
-    }), false);
+    }), false, false);
     const freshSessionError = Object.assign(
       new ApiErrorMock(503, "Fresh session failed.", "INTERNAL_ERROR"),
       { responseBodyKind: "json" as const },
@@ -428,7 +428,7 @@ describe("ChatPanel hydration lifecycle", () => {
           },
         ],
       },
-    }), false);
+    }), false, false);
 
     setMessagesScrollerMetrics({
       scrollTop: 600,
@@ -535,7 +535,7 @@ describe("ChatPanel hydration lifecycle", () => {
           },
         ],
       },
-    }), false);
+    }), false, false);
 
     setMessagesScrollerMetrics({
       scrollTop: 600,
@@ -631,7 +631,7 @@ describe("ChatPanel hydration lifecycle", () => {
           },
         ],
       },
-    }), false);
+    }), false, false);
 
     setMessagesScrollerMetrics({
       scrollTop: 600,
@@ -935,7 +935,7 @@ describe("ChatPanel hydration lifecycle", () => {
           isStopped: false,
         }],
       },
-    }), false);
+    }), false, false);
     getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
     useAppDataMock.mockReturnValue(createUnverifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),

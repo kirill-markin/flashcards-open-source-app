@@ -46,7 +46,7 @@ describe("ChatPanel post-run sync", () => {
         })],
       },
     });
-    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true);
+    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true, false);
     getChatSnapshotMock.mockResolvedValue(completedToolSnapshot);
     useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),
@@ -81,7 +81,7 @@ describe("ChatPanel post-run sync", () => {
         })],
       },
     });
-    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true);
+    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true, false);
     getChatSnapshotMock.mockResolvedValue(completedToolSnapshot);
     useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),
@@ -119,7 +119,7 @@ describe("ChatPanel post-run sync", () => {
         })],
       },
     });
-    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true);
+    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true, false);
     getChatSnapshotMock.mockResolvedValue(completedToolSnapshot);
     useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),
@@ -167,7 +167,7 @@ describe("ChatPanel post-run sync", () => {
         })],
       },
     });
-    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true);
+    storeChatSessionWarmStartSnapshot("workspace-1", completedToolSnapshot, true, false);
     getChatSnapshotMock.mockResolvedValue(completedToolSnapshot);
     useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),
@@ -217,7 +217,7 @@ describe("ChatPanel post-run sync", () => {
         })],
       },
     });
-    storeChatSessionWarmStartSnapshot("workspace-1", historicalToolSnapshot, false);
+    storeChatSessionWarmStartSnapshot("workspace-1", historicalToolSnapshot, false, false);
     getChatSnapshotMock.mockResolvedValue(historicalToolSnapshot);
     useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
       refreshLocalData: vi.fn(async (): Promise<void> => undefined),

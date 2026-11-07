@@ -73,6 +73,8 @@ export type ChatSessionController = Readonly<{
   dismissErrorDialog: () => void;
   acceptServerSessionId: (sessionId: string) => void;
   ensureRemoteSession: () => Promise<string>;
+  /** Wraps one composer send, from its preparation to its result, so a background refresh never switches chats under it. */
+  runComposerSend: (send: () => Promise<void>) => Promise<void>;
   sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   stopMessage: () => Promise<void>;
   clearConversation: () => Promise<string | null>;

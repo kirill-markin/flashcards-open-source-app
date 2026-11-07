@@ -66,9 +66,11 @@ export function useChatSessionHydrationLifecycle(
   } = params;
   const { replaceMessages } = history;
   const {
+    canRequestLatestSession,
     detachLiveStream,
     invalidatePendingSnapshotRequests,
     isDocumentVisibleRef,
+    loadAndApplyLatestSnapshot,
     loadAndApplySnapshot,
     resetSnapshotTracking,
     runtimeRefs,
@@ -110,10 +112,11 @@ export function useChatSessionHydrationLifecycle(
       pendingToolRunPostSync: warmStartSnapshot.pendingToolRunPostSync,
     });
     resetSnapshotTracking(warmStartSnapshot.updatedAt);
+    runtimeRefs.serverSessionIdRef.current = warmStartSnapshot.isSessionOnServer ? warmStartSnapshot.sessionId : null;
     hydratedWorkspaceIdRef.current = nextWorkspaceId;
     hydratedUiLocaleRef.current = uiLocale;
     return true;
-  }, [detachLiveStream, dispatch, replaceMessages, resetSnapshotTracking, uiLocale]);
+  }, [detachLiveStream, dispatch, replaceMessages, resetSnapshotTracking, runtimeRefs, uiLocale]);
 
   const runHydrationLifecycle = useEffectEvent((isDisposedRef: { current: boolean }): void => {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -221,12 +224,9 @@ export function useChatSessionHydrationLifecycle(
       try {
         const ensuredSessionId = initialHydrationSessionId ?? await ensureRemoteSessionForHydration();
         if (isDisposedRef.current || indexedDbOpenRecoveryState.hasFailed()) return;
-        const snapshot = await loadAndApplySnapshot(
-          ensuredSessionId,
-          true,
-          "initial_hydration",
-          null,
-        );
+        const snapshot = canRequestLatestSession(ensuredSessionId)
+          ? await loadAndApplyLatestSnapshot(ensuredSessionId, "initial_hydration", null)
+          : await loadAndApplySnapshot(ensuredSessionId, true, "initial_hydration", null);
         if (indexedDbOpenRecoveryState.hasFailed() || isDisposedRef.current || snapshot === null) {
           return;
         }

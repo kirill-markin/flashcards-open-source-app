@@ -403,6 +403,7 @@ export function useChatSessionActions(
           return;
         }
 
+        runtimeRefs.serverSessionIdRef.current = sessionId;
         dispatch({
           type: "fresh_session_ready",
           sessionId,
@@ -440,7 +441,7 @@ export function useChatSessionActions(
         });
       }
     })();
-  }, [dispatch, indexedDbOpenRecoveryState, isFreshSessionEnsureCurrent, provisionRequestedSession, uiMessages, workspaceId]);
+  }, [dispatch, indexedDbOpenRecoveryState, isFreshSessionEnsureCurrent, provisionRequestedSession, runtimeRefs, uiMessages, workspaceId]);
 
   const ensureFreshSessionInBackground = useCallback((sessionId: string, requestSequence: number): void => {
     ensureFreshSession(sessionId, requestSequence, "silent");
@@ -458,6 +459,7 @@ export function useChatSessionActions(
       && runtimeRefs.currentWorkspaceIdRef.current === workspaceId
       && runtimeRefs.currentSessionIdRef.current === null
     ) {
+      runtimeRefs.serverSessionIdRef.current = resolution.provisionedResponse.sessionId;
       dispatch({
         type: "fresh_session_ready",
         sessionId: resolution.provisionedResponse.sessionId,
@@ -571,6 +573,7 @@ export function useChatSessionActions(
       runtimeRefs.messagesRef.current = [];
       clearHistory();
       runtimeRefs.currentSessionIdRef.current = session.sessionId;
+      runtimeRefs.serverSessionIdRef.current = session.sessionId;
       dispatch({
         type: "fresh_session_ready",
         sessionId: session.sessionId,
@@ -1004,6 +1007,7 @@ export function useChatSessionActions(
       appendUserMessage(contentParts);
       startAssistantMessage(null);
     }
+    runtimeRefs.serverSessionIdRef.current = response.sessionId;
     dispatch({
       type: "run_started",
       sessionId: response.sessionId,

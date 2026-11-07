@@ -78,6 +78,14 @@ export async function getChatSnapshot(
   }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
+function buildChatResumeDiagnosticsHeaders(diagnostics: ChatResumeRequestDiagnostics): Record<string, string> {
+  return {
+    "X-Chat-Resume-Attempt-Id": String(diagnostics.resumeAttemptId),
+    "X-Client-Platform": "web",
+    "X-Client-Version": webAppVersion,
+  };
+}
+
 export async function getChatSnapshotWithResumeDiagnostics(
   sessionId: string,
   workspaceId: string,
@@ -86,11 +94,20 @@ export async function getChatSnapshotWithResumeDiagnostics(
 ): Promise<ChatSessionSnapshot> {
   return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
-    headers: {
-      "X-Chat-Resume-Attempt-Id": String(diagnostics.resumeAttemptId),
-      "X-Client-Platform": "web",
-      "X-Client-Version": webAppVersion,
-    },
+    headers: buildChatResumeDiagnosticsHeaders(diagnostics),
+    signal,
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+}
+
+export async function getCurrentChatSnapshotWithResumeDiagnostics(
+  workspaceId: string,
+  diagnostics: ChatResumeRequestDiagnostics,
+  signal: AbortSignal,
+): Promise<ChatSessionSnapshot> {
+  const searchParams = new URLSearchParams({ workspaceId });
+  return parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+    method: "GET",
+    headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
 }

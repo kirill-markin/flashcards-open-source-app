@@ -10,6 +10,8 @@ type PersistedChatSessionWarmStartSnapshot = Readonly<{
   snapshot: ChatSessionSnapshot;
   savedAt: string;
   pendingToolRunPostSync?: boolean;
+  // Absent when the writer did not know that the server has this chat.
+  isSessionOnServer?: boolean;
 }>;
 
 export type WarmStartChatSessionSnapshot = Readonly<{
@@ -20,6 +22,7 @@ export type WarmStartChatSessionSnapshot = Readonly<{
   chatConfig: ChatConfig;
   messages: ChatSessionSnapshot["conversation"]["messages"];
   pendingToolRunPostSync: boolean;
+  isSessionOnServer: boolean;
 }>;
 
 type JsonRecord = Record<string, unknown>;
@@ -102,6 +105,7 @@ function parsePersistedChatSessionWarmStartSnapshot(
         parsedValue.pendingToolRunPostSync,
         parsedValue.version,
       ),
+      isSessionOnServer: parsedValue.isSessionOnServer === true,
     };
   } catch {
     return null;
@@ -119,6 +123,7 @@ function toWarmStartChatSessionSnapshot(
     chatConfig: persistedSnapshot.snapshot.chatConfig,
     messages: persistedSnapshot.snapshot.conversation.messages,
     pendingToolRunPostSync: persistedSnapshot.pendingToolRunPostSync === true,
+    isSessionOnServer: persistedSnapshot.isSessionOnServer === true,
   };
 }
 
@@ -148,6 +153,7 @@ export function storeChatSessionWarmStartSnapshot(
   workspaceId: string,
   snapshot: ChatSessionSnapshot,
   pendingToolRunPostSync: boolean,
+  isSessionOnServer: boolean,
 ): void {
   const browserStorage = getBrowserStorage();
   if (browserStorage === null) {
@@ -159,6 +165,7 @@ export function storeChatSessionWarmStartSnapshot(
     workspaceId,
     savedAt: new Date().toISOString(),
     pendingToolRunPostSync,
+    isSessionOnServer,
     snapshot: {
       ...snapshot,
       conversation: {

@@ -11,6 +11,7 @@ import type {
 } from "../../../../types";
 import type { AnalyticsSurface } from "../../../../analytics/events";
 import { defaultChatConfig } from "../../../sessionController/support/config";
+import { loadChatSessionWarmStartSnapshot } from "../../../sessionController/lifecycle/warmStart";
 import { ChatDraftProvider } from "../../../composer/drafts/ChatDraftContext";
 import { AIChatPreferencesProvider } from "../../../preferences/AIChatPreferencesContext";
 import { ChatSessionControllerProvider } from "../../../sessionController";
@@ -35,6 +36,7 @@ const {
   useChatLayoutMock,
   useAppDataMock,
   getChatSnapshotMock,
+  getCurrentChatSnapshotMock,
   startChatRunMock,
   createNewChatSessionMock,
   stopChatRunMock,
@@ -183,6 +185,7 @@ const {
   useChatLayoutMock: vi.fn(),
   useAppDataMock: vi.fn(),
   getChatSnapshotMock: vi.fn(),
+  getCurrentChatSnapshotMock: vi.fn(),
   startChatRunMock: vi.fn(),
   createNewChatSessionMock: vi.fn(),
   stopChatRunMock: vi.fn(),
@@ -230,6 +233,8 @@ vi.mock("../../../../api", () => ({
   ApiContractError: ApiContractErrorMock,
   getChatSnapshot: getChatSnapshotMock,
   getChatSnapshotWithResumeDiagnostics: getChatSnapshotMock,
+  getCurrentChatSnapshot: getCurrentChatSnapshotMock,
+  getCurrentChatSnapshotWithResumeDiagnostics: getCurrentChatSnapshotMock,
   startChatRun: startChatRunMock,
   createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,
@@ -361,6 +366,7 @@ export {
   setWebObservabilityUserMock,
   checkFileSizeMock,
   getChatSnapshotMock,
+  getCurrentChatSnapshotMock,
   listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
@@ -630,6 +636,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     captureWebWarningMock.mockReset();
     setWebObservabilityUserMock.mockReset();
     getChatSnapshotMock.mockReset();
+    getCurrentChatSnapshotMock.mockReset();
     startChatRunMock.mockReset();
     createNewChatSessionMock.mockReset();
     stopChatRunMock.mockReset();
@@ -670,6 +677,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       sessionId,
       conversationScopeId: sessionId,
     }));
+    // The server's latest chat is the one this client shows, which the controller keeps in its warm start.
+    getCurrentChatSnapshotMock.mockImplementation(async (workspaceId: string, ...requestArguments: ReadonlyArray<unknown>) => {
+      const shownSessionId = loadChatSessionWarmStartSnapshot(workspaceId)?.sessionId;
+      if (shownSessionId === undefined) {
+        throw new Error(`Latest chat requested for workspace ${workspaceId} without a shown chat`);
+      }
+      return getChatSnapshotMock(shownSessionId, workspaceId, ...requestArguments);
+    });
     startChatRunMock.mockImplementation(async (requestBody: StartChatRunRequestBody) => ({
       accepted: true,
       sessionId: requestBody.sessionId,

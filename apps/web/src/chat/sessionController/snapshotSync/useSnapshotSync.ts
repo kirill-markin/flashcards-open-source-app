@@ -10,6 +10,8 @@ import {
   AuthRedirectError,
   getChatSnapshot,
   getChatSnapshotWithResumeDiagnostics,
+  getCurrentChatSnapshot,
+  getCurrentChatSnapshotWithResumeDiagnostics,
 } from "../../../api";
 import {
   captureWebException,
@@ -71,6 +73,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
   history: ChatHistoryState;
   onToolRunPostSyncRequested: () => Promise<void>;
   initialLastSnapshotUpdatedAt: number | null;
+  initialServerSessionId: string | null;
 }>;
 
 type SnapshotRequestTrigger =
@@ -80,6 +83,11 @@ type SnapshotRequestTrigger =
   | "terminal_reconcile"
   | "unexpected_stream_end"
   | "visible_resume";
+
+type ChatSnapshotRequest = (workspaceId: string, signal: AbortSignal) => Promise<ChatSessionSnapshot>;
+
+/** Returns whether the snapshot was applied. */
+type ChatSnapshotApplication = (snapshot: ChatSessionSnapshot) => boolean;
 
 type CurrentSessionRecovery = Readonly<{
   workspaceId: string;
@@ -98,6 +106,8 @@ export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   snapshotRequestVersionRef: MutableRefObject<number>;
   currentSessionRecoveryRef: MutableRefObject<CurrentSessionRecovery | null>;
   liveCursorRef: MutableRefObject<string | null>;
+  serverSessionIdRef: MutableRefObject<string | null>;
+  composerSendCountRef: MutableRefObject<number>;
 }>;
 
 export type ChatSessionSnapshotSync = Readonly<{
@@ -112,6 +122,12 @@ export type ChatSessionSnapshotSync = Readonly<{
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
   ) => Promise<ChatSessionSnapshot | null>;
+  loadAndApplyLatestSnapshot: (
+    shownSessionId: string,
+    trigger: SnapshotRequestTrigger,
+    resumeAttemptId: number | null,
+  ) => Promise<ChatSessionSnapshot | null>;
+  canRequestLatestSession: (shownSessionId: string) => boolean;
   applyRecoveredSnapshot: (snapshot: ChatSessionSnapshot) => void;
   resetSnapshotTracking: (updatedAt: number | null) => void;
   runtimeRefs: ChatSessionSnapshotRuntimeRefs;
@@ -265,6 +281,7 @@ export function useChatSessionSnapshotSync(
     history,
     onToolRunPostSyncRequested,
     initialLastSnapshotUpdatedAt,
+    initialServerSessionId,
   } = params;
   const {
     messages,
@@ -288,6 +305,8 @@ export function useChatSessionSnapshotSync(
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
   const streamTransportRecoveryPromiseRef = useRef<Promise<void> | null>(null);
   const liveCursorRef = useRef<string | null>(null);
+  const serverSessionIdRef = useRef<string | null>(initialServerSessionId);
+  const composerSendCountRef = useRef<number>(0);
   const resumeAttemptCounterRef = useRef<number>(0);
   const assistantMessageDoneTerminalReconcileTimerRef = useRef<number | null>(null);
   const reconcileTerminalSnapshotRef = useRef<(sessionId: string | null) => void>(() => {});
@@ -314,6 +333,8 @@ export function useChatSessionSnapshotSync(
     snapshotRequestVersionRef,
     currentSessionRecoveryRef,
     liveCursorRef,
+    serverSessionIdRef,
+    composerSendCountRef,
   };
 
   currentWorkspaceIdRef.current = workspaceId;
@@ -382,6 +403,18 @@ export function useChatSessionSnapshotSync(
     activeRunIdRef.current = null;
     liveCursorRef.current = null;
   }, [clearAssistantMessageDoneTerminalReconcileTimer]);
+
+  /**
+   * The server's latest chat is its newest unarchived one, so it replaces the shown chat without moving the
+   * user backwards only once the shown chat is known to exist there: a chat created here whose `/chat/new`
+   * has not answered loses to an older chat. A running turn resumes in its own chat, and a send in flight
+   * finishes or recovers in the chat it started from.
+   */
+  const canRequestLatestSession = useCallback((shownSessionId: string): boolean => {
+    return serverSessionIdRef.current === shownSessionId
+      && runStateRef.current !== "running"
+      && composerSendCountRef.current === 0;
+  }, []);
 
   const nextResumeAttemptId = useCallback((): number => {
     const nextAttemptId = resumeAttemptCounterRef.current + 1;
@@ -548,12 +581,9 @@ export function useChatSessionSnapshotSync(
             return;
           }
 
-          const snapshot = await loadAndApplySnapshot(
-            currentSessionId,
-            true,
-            "visible_resume",
-            resumeAttemptId,
-          );
+          const snapshot = canRequestLatestSession(currentSessionId)
+            ? await loadAndApplyLatestSnapshot(currentSessionId, "visible_resume", resumeAttemptId)
+            : await loadAndApplySnapshot(currentSessionId, true, "visible_resume", resumeAttemptId);
           if (
             indexedDbOpenRecoveryState.hasFailed()
             || snapshot === null
@@ -760,6 +790,7 @@ export function useChatSessionSnapshotSync(
       );
     }
 
+    serverSessionIdRef.current = snapshot.sessionId;
     setKnownActiveRunId(snapshot.activeRun?.runId ?? null);
     dispatch({
       type: "snapshot_applied",
@@ -806,11 +837,13 @@ export function useChatSessionSnapshotSync(
     applySnapshot(snapshot, true, "current_session_recovery");
   }, [applySnapshot, detachLiveStream, invalidatePendingSnapshotRequests, resetSnapshotTracking, resetToolRunPostSync]);
 
-  const loadAndApplySnapshot = useCallback(async (
+  const requestAndApplySnapshot = useCallback(async (
     sessionId: string,
     replaceHistory: boolean,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
+    requestSnapshot: ChatSnapshotRequest,
+    applyRequestedSnapshot: ChatSnapshotApplication,
   ): Promise<ChatSessionSnapshot | null> => {
     if (indexedDbOpenRecoveryState.hasFailed() || isRemoteReady === false) {
       return null;
@@ -845,20 +878,15 @@ export function useChatSessionSnapshotSync(
         throw new Error(uiMessages.workspaceRequired);
       }
 
-      const snapshot = resumeAttemptId === null
-        ? await getChatSnapshot(sessionId, workspaceId, abortController.signal)
-        : await getChatSnapshotWithResumeDiagnostics(
-          sessionId,
-          workspaceId,
-          { resumeAttemptId },
-          abortController.signal,
-        );
+      const snapshot = await requestSnapshot(workspaceId, abortController.signal);
       indexedDbOpenRecoveryState.throwIfFailed();
       if (requestVersion !== snapshotRequestVersionRef.current) {
         return null;
       }
 
-      applySnapshot(snapshot, replaceHistory, trigger);
+      if (applyRequestedSnapshot(snapshot) === false) {
+        return null;
+      }
 
       debugLog("snapshot_request_succeeded", {
         workspaceId,
@@ -896,7 +924,6 @@ export function useChatSessionSnapshotSync(
       activeSnapshotAbortControllersRef.current.delete(abortController);
     }
   }, [
-    applySnapshot,
     debugLog,
     dispatch,
     clearAssistantMessageDoneTerminalReconcileTimer,
@@ -906,6 +933,56 @@ export function useChatSessionSnapshotSync(
     uiMessages,
     workspaceId,
   ]);
+
+  const loadAndApplySnapshot = useCallback((
+    sessionId: string,
+    replaceHistory: boolean,
+    trigger: SnapshotRequestTrigger,
+    resumeAttemptId: number | null,
+  ): Promise<ChatSessionSnapshot | null> => requestAndApplySnapshot(
+    sessionId,
+    replaceHistory,
+    trigger,
+    resumeAttemptId,
+    (requestWorkspaceId, signal) => resumeAttemptId === null
+      ? getChatSnapshot(sessionId, requestWorkspaceId, signal)
+      : getChatSnapshotWithResumeDiagnostics(sessionId, requestWorkspaceId, { resumeAttemptId }, signal),
+    (snapshot) => {
+      applySnapshot(snapshot, replaceHistory, trigger);
+      return true;
+    },
+  ), [applySnapshot, requestAndApplySnapshot]);
+
+  /**
+   * Refreshes the shown chat by asking for the latest one and switches to it when the server answers with
+   * another chat. Call only when `canRequestLatestSession` allows it for the shown chat.
+   */
+  const loadAndApplyLatestSnapshot = useCallback((
+    shownSessionId: string,
+    trigger: SnapshotRequestTrigger,
+    resumeAttemptId: number | null,
+  ): Promise<ChatSessionSnapshot | null> => requestAndApplySnapshot(
+    shownSessionId,
+    true,
+    trigger,
+    resumeAttemptId,
+    (requestWorkspaceId, signal) => resumeAttemptId === null
+      ? getCurrentChatSnapshot(requestWorkspaceId, signal)
+      : getCurrentChatSnapshotWithResumeDiagnostics(requestWorkspaceId, { resumeAttemptId }, signal),
+    (snapshot) => {
+      if (snapshot.sessionId === shownSessionId) {
+        applySnapshot(snapshot, true, trigger);
+        return true;
+      }
+
+      if (currentSessionIdRef.current !== shownSessionId || canRequestLatestSession(shownSessionId) === false) {
+        return false;
+      }
+
+      applyRecoveredSnapshot(snapshot);
+      return true;
+    },
+  ), [applyRecoveredSnapshot, applySnapshot, canRequestLatestSession, requestAndApplySnapshot]);
 
   const startActiveRunLiveStream = useCallback((
     sessionId: string,
@@ -1017,6 +1094,8 @@ export function useChatSessionSnapshotSync(
     detachLiveStream,
     invalidatePendingSnapshotRequests,
     loadAndApplySnapshot,
+    loadAndApplyLatestSnapshot,
+    canRequestLatestSession,
     applyRecoveredSnapshot,
     resetSnapshotTracking,
     runtimeRefs,

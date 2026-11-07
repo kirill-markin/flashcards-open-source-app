@@ -149,7 +149,7 @@ class AiChatRuntimeBootstrapWarmUpTest {
             ),
             repository.prepareSessionRequests
         )
-        assertEquals(listOf("session-1"), repository.loadBootstrapSessionIds)
+        assertEquals(listOf<String?>(null), repository.loadBootstrapSessionIds)
     }
 
     @Test
@@ -250,7 +250,7 @@ class AiChatRuntimeBootstrapWarmUpTest {
             listOf(freshSessionId, freshSessionId, freshSessionId, freshSessionId),
             repository.createNewSessionRequests
         )
-        assertEquals(listOf("session-1", freshSessionId), repository.loadBootstrapSessionIds)
+        assertEquals(listOf(null, freshSessionId), repository.loadBootstrapSessionIds)
     }
 
     @Test

@@ -354,7 +354,7 @@ class AiChatRuntimeBootstrapRetryTest {
 
         assertEquals(listOf(defaultTestWorkspaceId), repository.prepareSessionRequests)
         assertEquals(1, repository.loadBootstrapCalls)
-        assertEquals(listOf("session-1"), repository.loadBootstrapSessionIds)
+        assertEquals(listOf<String?>(null), repository.loadBootstrapSessionIds)
         assertEquals(AiConversationBootstrapState.FAILED, runtime.state.value.conversationBootstrapState)
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
     }
