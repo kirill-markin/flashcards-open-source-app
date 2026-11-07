@@ -1492,6 +1492,7 @@ export const zhHansCatalog = {
       waitingForPermission: "正在等待麦克风权限...",
     },
     dropFiles: "拖放文件以上传附件",
+    dropFileInsteadOfPastedIcon: "浏览器只粘贴了文件图标。请改为将文件拖到这里。",
     empty: {
       copy: "询问卡片、复习历史，或附加笔记以供提取。",
       title: "开始新的 AI 聊天",

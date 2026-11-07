@@ -1492,6 +1492,7 @@ const nbCatalog: TranslationCatalog = {
       waitingForPermission: "Venter på tilgang til mikrofonen...",
     },
     dropFiles: "Slipp filer for å legge dem ved",
+    dropFileInsteadOfPastedIcon: "Nettleseren limte bare inn filikonet. Dra filen hit i stedet.",
     empty: {
       copy: "Spør om kort og repetisjonshistorikk, eller legg ved notater å hente kort fra.",
       title: "Start en ny AI-chat",

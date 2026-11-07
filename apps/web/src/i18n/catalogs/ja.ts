@@ -1492,6 +1492,7 @@ export const jaCatalog = {
       waitingForPermission: "マイクアクセスを待機しています...",
     },
     dropFiles: "ファイルをドロップして添付",
+    dropFileInsteadOfPastedIcon: "ブラウザがファイルのアイコンだけを貼り付けました。代わりにファイルをここにドラッグしてください。",
     empty: {
       copy: "カードや復習履歴について質問するか、抽出用のメモを添付してください。",
       title: "新しい AI チャットを開始",

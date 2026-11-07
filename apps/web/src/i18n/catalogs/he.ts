@@ -1492,6 +1492,7 @@ const heCatalog: TranslationCatalog = {
       waitingForPermission: "ממתין לגישה למיקרופון...",
     },
     dropFiles: "גרור קבצים לכאן כדי לצרף",
+    dropFileInsteadOfPastedIcon: "הדפדפן הדביק רק את סמל הקובץ. במקום זאת, גרור את הקובץ לכאן.",
     empty: {
       copy: "שאל על כרטיסים, על היסטוריית החזרות, או צרף הערות לחילוץ.",
       title: "התחל צ'אט AI חדש",

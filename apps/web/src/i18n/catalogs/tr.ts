@@ -1492,6 +1492,7 @@ const trCatalog: TranslationCatalog = {
       waitingForPermission: "Mikrofon erişimi bekleniyor...",
     },
     dropFiles: "Eklemek için dosyaları buraya bırakın",
+    dropFileInsteadOfPastedIcon: "Tarayıcınız yalnızca dosyanın simgesini yapıştırdı. Bunun yerine dosyayı buraya sürükleyin.",
     empty: {
       copy: "Kartlar veya tekrar geçmişi hakkında soru sorun ya da içerik çıkarımı için not ekleyin.",
       title: "Yeni bir AI sohbeti başlatın",

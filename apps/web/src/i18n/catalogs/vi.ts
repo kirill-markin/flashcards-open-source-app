@@ -1492,6 +1492,7 @@ const viCatalog: TranslationCatalog = {
       waitingForPermission: "Đang chờ quyền micrô...",
     },
     dropFiles: "Thả tệp vào đây để đính kèm",
+    dropFileInsteadOfPastedIcon: "Trình duyệt chỉ dán biểu tượng của tệp. Hãy kéo tệp vào đây.",
     empty: {
       copy: "Hỏi về thẻ, lịch sử ôn tập, hoặc đính kèm ghi chú để trích xuất nội dung.",
       title: "Bắt đầu cuộc trò chuyện AI mới",

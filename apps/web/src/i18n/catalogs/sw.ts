@@ -1492,6 +1492,7 @@ const swCatalog: TranslationCatalog = {
       waitingForPermission: "Inasubiri ufikiaji wa maikrofoni...",
     },
     dropFiles: "Dondosha faili ili kuambatisha",
+    dropFileInsteadOfPastedIcon: "Kivinjari chako kimebandika aikoni ya faili pekee. Badala yake, buruta faili hapa.",
     empty: {
       copy: "Uliza kuhusu kadi, historia ya marudio, au ambatisha madokezo ili kutoa maudhui.",
       title: "Anza gumzo jipya la AI",

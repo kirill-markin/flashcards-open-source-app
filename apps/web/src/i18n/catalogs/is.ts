@@ -1492,6 +1492,7 @@ const isCatalog: TranslationCatalog = {
       waitingForPermission: "Bíð eftir aðgangi að hljóðnema...",
     },
     dropFiles: "Slepptu skrám til að hengja þær við",
+    dropFileInsteadOfPastedIcon: "Vafrinn límdi aðeins inn tákn skrárinnar. Dragðu skrána frekar hingað.",
     empty: {
       copy: "Spyrðu um spjöld, upprifjunarsögu eða hengdu við glósur til úrvinnslu.",
       title: "Hefja nýtt gervigreindarspjall",

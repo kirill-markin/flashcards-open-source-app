@@ -1506,6 +1506,7 @@ const csCatalog: TranslationCatalog = {
       waitingForPermission: "Čekání na přístup k mikrofonu...",
     },
     dropFiles: "Přetažením přiložíte soubory",
+    dropFileInsteadOfPastedIcon: "Prohlížeč vložil jen ikonu souboru. Místo toho soubor přetáhněte sem.",
     empty: {
       copy: "Zeptejte se na kartičky či historii opakování nebo přiložte poznámky ke zpracování.",
       title: "Zahájit nový chat s AI",

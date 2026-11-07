@@ -1492,6 +1492,7 @@ const caCatalog: TranslationCatalog = {
       waitingForPermission: "S'està esperant l'accés al micròfon...",
     },
     dropFiles: "Deixa anar els fitxers per adjuntar-los",
+    dropFileInsteadOfPastedIcon: "El navegador només ha enganxat la icona del fitxer. Arrossega el fitxer aquí.",
     empty: {
       copy: "Pregunta sobre les targetes o l'historial de repassos, o adjunta apunts per extreure'n contingut.",
       title: "Inicia un xat d'IA nou",

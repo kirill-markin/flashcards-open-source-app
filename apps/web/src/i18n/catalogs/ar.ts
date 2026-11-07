@@ -1492,6 +1492,7 @@ const arCatalog: TranslationCatalog = {
       waitingForPermission: "بانتظار الوصول إلى الميكروفون...",
     },
     dropFiles: "أفلت الملفات لإرفاقها",
+    dropFileInsteadOfPastedIcon: "ألصق متصفحك أيقونة الملف فقط. اسحب الملف إلى هنا بدلًا من ذلك.",
     empty: {
       copy: "اسأل عن البطاقات أو سجل المراجعة أو أرفق ملاحظات لاستخراجها.",
       title: "ابدأ دردشة ذكاء اصطناعي جديدة",

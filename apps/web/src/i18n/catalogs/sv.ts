@@ -1492,6 +1492,7 @@ const svCatalog: TranslationCatalog = {
       waitingForPermission: "Väntar på åtkomst till mikrofonen...",
     },
     dropFiles: "Släpp filer för att bifoga dem",
+    dropFileInsteadOfPastedIcon: "Webbläsaren klistrade bara in filens ikon. Dra filen hit i stället.",
     empty: {
       copy: "Fråga om kort, repetitionshistorik eller bifoga anteckningar att hämta kort ur.",
       title: "Starta en ny AI-chatt",

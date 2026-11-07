@@ -65,6 +65,7 @@ type UseChatAttachmentsParams = Readonly<{
   canAttachDraftFiles: boolean;
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   onTechnicalError: (error: unknown) => void;
+  pastedFileIconOnlyMessage: string;
   pendingAttachmentsRef: MutableRefObject<ReadonlyArray<PendingAttachment>>;
   setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => void;
 }>;
@@ -113,6 +114,23 @@ function ensureClipboardImageFileName(file: File, clipboardMediaType: string): F
   );
 }
 
+const FILE_NAME_TEXT_PATTERN = /^[^\r\n/]+\.[a-z0-9]+$/i;
+
+/**
+ * Chrome on macOS has pasted a file copied in Finder as a PNG of the file's icon, with the file's
+ * name as the clipboard text. A screenshot carries no such text, and a pasted image file is named
+ * exactly like it, so both still attach.
+ */
+function isPastedFileIconOnly(files: ReadonlyArray<File>, clipboardText: string): boolean {
+  const [file] = files;
+  if (files.length !== 1 || file === undefined || !isImageFileCandidate(file)) {
+    return false;
+  }
+
+  const fileNameText = clipboardText.trim();
+  return FILE_NAME_TEXT_PATTERN.test(fileNameText) && fileNameText !== file.name;
+}
+
 export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttachmentControls {
   const {
     attachmentLimitMessages,
@@ -120,6 +138,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     canAttachDraftFiles,
     indexedDbOpenRecoveryState,
     onTechnicalError,
+    pastedFileIconOnlyMessage,
     pendingAttachmentsRef,
     setPendingAttachmentsState,
   } = params;
@@ -337,32 +356,37 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return;
     }
 
-    const imageItems = Array.from(event.clipboardData.items).filter(
-      (item) => item.kind === "file" && item.type.startsWith(IMAGE_MEDIA_TYPE_PREFIX),
-    );
-    const imageFiles: ReadonlyArray<File> = imageItems.flatMap((item) => {
+    const fileItems = Array.from(event.clipboardData.items).filter((item) => item.kind === "file");
+    const files: ReadonlyArray<File> = fileItems.flatMap((item) => {
       try {
         const file = item.getAsFile();
         if (file === null) {
           throw new Error(
-            `Failed to read pasted image from clipboard item with MIME type "${item.type}".`,
+            `Failed to read pasted file from clipboard item with MIME type "${item.type}".`,
           );
         }
 
-        return [ensureClipboardImageFileName(file, item.type)];
+        return item.type.startsWith(IMAGE_MEDIA_TYPE_PREFIX)
+          ? [ensureClipboardImageFileName(file, item.type)]
+          : [file];
       } catch (error) {
         onTechnicalError(error);
         return [];
       }
     });
 
-    if (imageFiles.length === 0) {
+    if (files.length === 0) {
       return;
     }
 
     event.preventDefault();
-    // A pasted image has no origin the shared vocabulary can name either.
-    void ingestFiles(imageFiles, null);
+    if (isPastedFileIconOnly(files, event.clipboardData.getData("text/plain"))) {
+      window.alert(pastedFileIconOnlyMessage);
+      return;
+    }
+
+    // A pasted file has no origin the shared vocabulary can name either.
+    void ingestFiles(files, null);
   }
 
   return {
