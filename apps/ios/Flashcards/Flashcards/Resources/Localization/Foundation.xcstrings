@@ -22002,7 +22002,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Все карточки в этой рабочей области."
+            "value" : "Все карточки в этом рабочем пространстве."
           }
         },
         "sk" : {
@@ -34274,7 +34274,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld повторений"
+            "value" : "Повторений: %lld"
           }
         },
         "zh-Hans" : {
@@ -36104,7 +36104,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld карточек"
+            "value" : "Карточек: %lld"
           }
         },
         "zh-Hans" : {
@@ -51049,7 +51049,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld карточек, %@"
+            "value" : "карточек: %lld, %@"
           }
         },
         "zh-Hans" : {
@@ -54404,7 +54404,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld повторений"
+            "value" : "повторений: %lld"
           }
         },
         "zh-Hans" : {
@@ -71482,7 +71482,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Речь недоступна на этом устройстве."
+            "value" : "Озвучивание недоступно на этом устройстве."
           }
         },
         "zh-Hans" : {
