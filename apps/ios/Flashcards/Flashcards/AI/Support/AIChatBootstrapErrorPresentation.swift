@@ -14,6 +14,8 @@ struct AIChatBootstrapErrorPresentation: Hashable, Sendable {
 struct AIChatBootstrapLoadResult: Sendable {
     let session: CloudLinkedSession
     let response: AIChatBootstrapResponse
+    /// `nil` when the request asked for the server's current chat instead of a shown session.
+    let requestedSessionId: String?
 }
 
 func makeAIChatBootstrapErrorPresentation(error: Error) -> AIChatBootstrapErrorPresentation {

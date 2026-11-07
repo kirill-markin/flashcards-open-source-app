@@ -30,6 +30,7 @@ extension AIChatStore {
 
             do {
                 let bootstrapResult = try await self.loadBootstrapWithBoundedRetry(
+                    forceReloadState: forceReloadState,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
                 guard self.isCurrentLinkedBootstrapRequest(
@@ -38,7 +39,23 @@ extension AIChatStore {
                 ) else {
                     return
                 }
-                self.applyBootstrap(bootstrapResult.response)
+                if bootstrapResult.requestedSessionId == nil
+                    && bootstrapResult.response.sessionId != self.chatSessionId {
+                    logAIChatStoreEvent(
+                        action: "ai_bootstrap_switched_to_current_chat",
+                        metadata: [
+                            "previousSessionId": self.chatSessionId,
+                            "sessionId": bootstrapResult.response.sessionId,
+                        ]
+                    )
+                    self.showCurrentChatMovingDraft(
+                        staleSessionId: self.chatSessionId,
+                        draft: self.currentComposerDraft(),
+                        response: bootstrapResult.response
+                    )
+                } else {
+                    self.applyBootstrap(bootstrapResult.response)
+                }
                 self.bootstrapPhase = .ready
                 self.lastBootstrapFailureWasRetryable = false
                 self.attachBootstrapLiveIfNeeded(
@@ -165,31 +182,11 @@ extension AIChatStore {
                     requestedSessionId: response.sessionId
                 )
 
-                let workspaceId = self.historyWorkspaceId()
-                self.persistDraftStateImmediately(
-                    workspaceId: workspaceId,
-                    sessionId: staleSessionId.isEmpty ? nil : staleSessionId,
-                    draft: AIChatComposerDraft(inputText: "", pendingAttachments: [])
+                self.showCurrentChatMovingDraft(
+                    staleSessionId: staleSessionId,
+                    draft: draft,
+                    response: response
                 )
-                self.chatSessionId = response.sessionId
-                self.conversationScopeId = response.conversationScopeId
-                self.applyBootstrap(response)
-                self.applyComposerDraft(
-                    inputText: draft.inputText,
-                    pendingAttachments: draft.pendingAttachments,
-                    operation: .restore
-                )
-                self.persistDraftRestoreSuppressionSynchronously(
-                    workspaceId: workspaceId,
-                    sessionId: response.sessionId,
-                    isSuppressed: false
-                )
-                self.persistDraftStateImmediately(
-                    workspaceId: workspaceId,
-                    sessionId: response.sessionId,
-                    draft: draft
-                )
-                self.persistStateSynchronously(state: self.currentPersistedState())
                 self.bootstrapPhase = .ready
                 self.lastBootstrapFailureWasRetryable = false
                 self.attachBootstrapLiveIfNeeded(
@@ -215,6 +212,48 @@ extension AIChatStore {
         }
     }
 
+    private func showCurrentChatMovingDraft(
+        staleSessionId: String,
+        draft: AIChatComposerDraft,
+        response: AIChatBootstrapResponse
+    ) {
+        let workspaceId = self.historyWorkspaceId()
+        self.persistDraftStateImmediately(
+            workspaceId: workspaceId,
+            sessionId: staleSessionId.isEmpty ? nil : staleSessionId,
+            draft: AIChatComposerDraft(inputText: "", pendingAttachments: [])
+        )
+        self.chatSessionId = response.sessionId
+        self.conversationScopeId = response.conversationScopeId
+        self.applyBootstrap(response)
+        self.applyComposerDraft(
+            inputText: draft.inputText,
+            pendingAttachments: draft.pendingAttachments,
+            operation: .restore
+        )
+        self.persistDraftRestoreSuppressionSynchronously(
+            workspaceId: workspaceId,
+            sessionId: response.sessionId,
+            isSuppressed: false
+        )
+        self.persistDraftStateImmediately(
+            workspaceId: workspaceId,
+            sessionId: response.sessionId,
+            draft: draft
+        )
+        self.persistStateSynchronously(state: self.currentPersistedState())
+    }
+
+    /// The server's current chat is its newest unarchived one, so asking for it can return an older chat than the
+    /// shown one only while the shown one is not yet provisioned there. A local run resumes its own session's stream,
+    /// and a forced reload, such as after a rejected Stop, reloads the chat it was started for.
+    private func shouldBootstrapCurrentChat(forceReloadState: Bool) -> Bool {
+        forceReloadState == false
+            && self.chatSessionId.isEmpty == false
+            && self.requiresRemoteSessionProvisioning == false
+            && self.composerPhase == .idle
+    }
+
     private func shouldPreservePendingLocalSessionDraftOnBootstrapFailure() -> Bool {
         self.chatSessionId.isEmpty == false
             && self.conversationScopeId == self.chatSessionId
@@ -224,24 +263,34 @@ extension AIChatStore {
     }
 
     private func loadBootstrapWithBoundedRetry(
+        forceReloadState: Bool,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapLoadResult {
         var attemptNumber = 0
         while true {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                let requestedSessionId: String?
+                if self.shouldBootstrapCurrentChat(forceReloadState: forceReloadState) {
+                    requestedSessionId = nil
+                } else {
+                    requestedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                }
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: explicitSessionId,
+                    sessionId: requestedSessionId,
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
                 try validateAIChatBootstrapSessionContract(
                     response: bootstrap,
-                    requestedSessionId: explicitSessionId
+                    requestedSessionId: requestedSessionId ?? bootstrap.sessionId
                 )
-                return AIChatBootstrapLoadResult(session: session, response: bootstrap)
+                return AIChatBootstrapLoadResult(
+                    session: session,
+                    response: bootstrap,
+                    requestedSessionId: requestedSessionId
+                )
             } catch {
                 let nextAttemptNumber = attemptNumber + 1
                 guard aiChatBootstrapAllowsRetry(nextAttemptNumber: nextAttemptNumber, error: error) else {
