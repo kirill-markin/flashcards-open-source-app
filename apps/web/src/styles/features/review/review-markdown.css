@@ -154,7 +154,7 @@
 .review-markdown-pre {
   max-width: 100%;
   padding: 0.85rem 1rem;
-  border-radius: 14px;
+  border-radius: var(--review-managed-media-image-radius, 8px);
   background: rgba(var(--well-rgb), 0.5);
   overflow-x: auto;
 }
