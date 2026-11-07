@@ -35,8 +35,8 @@
 "ai.failed.accountStatusMessage" = "Der KI-Chat muss zuerst den Status deines Cloud-Kontos klären, bevor er geladen werden kann.";
 "ai.failed.openAccountStatus" = "Kontostatus öffnen";
 "ai.emptyState.title" = "Starte einen neuen KI-Chat";
-"ai.emptyState.description" = "Frag nach Karten oder dem Wiederholungsverlauf, oder hänge Notizen an, um Inhalte zu extrahieren.";
-"ai.composer.placeholder" = "Frag nach Karten oder dem Wiederholungsverlauf oder schlag eine Änderung vor...";
+"ai.emptyState.description" = "Frage nach Karten oder dem Wiederholungsverlauf, oder hänge Notizen an, um Inhalte zu extrahieren.";
+"ai.composer.placeholder" = "Frage nach Karten oder dem Wiederholungsverlauf oder schlage eine Änderung vor...";
 "ai.composer.sendMessage" = "Nachricht senden";
 "ai.composer.stopResponse" = "Antwort stoppen";
 "ai.composer.addAttachment" = "Anhang hinzufügen";
