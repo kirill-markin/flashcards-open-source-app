@@ -96,6 +96,8 @@ const dateRangeFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilt
 type AnalyticsFilterBarProps = Readonly<{
   /** Chooses the wording of each field; the fields themselves are `fields`. */
   area: AnalyticsArea;
+  /** What the date range means on this bar's page, which can differ between pages of one area. */
+  dateRangeExplanation: string;
   fields: ReadonlyArray<AnalyticsFilterField>;
   title: string;
   /** 2 as an area's own bar, 3 inside a section that already has its h2. */
@@ -1479,7 +1481,9 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                         it is open, so every opening starts with the explanation away.
                       */}
                       <ExplanationTip label={`What ${fieldLabel} means`} explanationId={explanationId}>
-                        {getAnalyticsFilterFieldExplanation(props.area, entry.field)}
+                        {entry.field === "dateRange"
+                          ? props.dateRangeExplanation
+                          : getAnalyticsFilterFieldExplanation(props.area, entry.field)}
                       </ExplanationTip>
                     </div>
                     <span>{entry.view.summary}</span>

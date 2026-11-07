@@ -10,6 +10,7 @@ import type { AdminAppConfig } from "../config";
 import { AnalyticsFilterBar } from "../filters/AnalyticsFilterBar";
 import {
   analyticsFilterFieldsByArea,
+  getAnalyticsFilterFieldExplanation,
   reviewPromptDetailsAnalyticsFilterFields,
   type AnalyticsFilterState,
 } from "../filters/analyticsFilters";
@@ -194,6 +195,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     <>
       <AnalyticsFilterBar
         area={props.activeArea}
+        dateRangeExplanation={getAnalyticsFilterFieldExplanation(props.activeArea, "dateRange")}
         fields={fields}
         title="Filters"
         headingLevel={2}
