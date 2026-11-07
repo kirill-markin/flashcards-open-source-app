@@ -42,8 +42,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -120,6 +123,14 @@ internal fun AiComposer(
         }
     )
     val attachActionLabel = stringResource(id = R.string.ai_attach)
+
+    val currentOnComposerDragHoverChange by rememberUpdatedState(onComposerDragHoverChange)
+    // A field that leaves mid-drag never hears the drag exit or end.
+    DisposableEffect(Unit) {
+        onDispose {
+            currentOnComposerDragHoverChange(false)
+        }
+    }
 
     LaunchedEffect(uiState.focusComposerRequestVersion) {
         if (uiState.focusComposerRequestVersion > 0L) {
