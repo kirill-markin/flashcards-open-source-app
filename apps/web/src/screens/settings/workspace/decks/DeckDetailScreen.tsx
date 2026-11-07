@@ -16,7 +16,7 @@ import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/d
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
 import type { Card, DeckFilterDefinition, ReviewFilter } from "../../../../types";
-import { formatDeckFilterSummary, formatNullableDateTime, formatTagSummary } from "../../../shared/featureFormatting";
+import { formatDeckFilterSummary, formatTagSummary } from "../../../shared/featureFormatting";
 
 type DeckDetailState = Readonly<{
   title: string;
@@ -315,7 +315,7 @@ export function DeckDetailScreen(): ReactElement {
                       <h3 className="panel-subtitle"><MathText text={card.frontText} /></h3>
                       <p className="subtitle"><MathText text={card.backText === "" ? t("common.noBackText") : card.backText} /></p>
                       <div className="review-meta">
-                        <span>{t("deckDetail.meta.due", { value: formatNullableDateTime(card.dueAt, formatDateTime, t) })}</span>
+                        <span>{card.dueAt === null ? t("reviewScreen.repetitionBadgeNew") : t("deckDetail.meta.due", { value: formatDateTime(card.dueAt) })}</span>
                         <span>{t("deckDetail.meta.reps", { count: formatNumber(card.reps) })}</span>
                         <span>{t("deckDetail.meta.lapses", { count: formatNumber(card.lapses) })}</span>
                       </div>
