@@ -127,7 +127,7 @@ const nbCatalog: TranslationCatalog = {
     disabled: "Deaktivert",
     loading: "Laster inn...",
     never: "Aldri",
-    newItem: "ny",
+    newItem: "nytt",
     noBackText: "Ingen baksidetekst",
     noTags: "Ingen tagger",
     notRevoked: "Ikke tilbakekalt",

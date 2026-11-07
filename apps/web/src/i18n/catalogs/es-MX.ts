@@ -127,7 +127,7 @@ const esMxCatalog: TranslationCatalog = {
     disabled: "Desactivado",
     loading: "Cargando...",
     never: "Nunca",
-    newItem: "nuevo",
+    newItem: "nueva",
     noBackText: "Sin texto en el reverso",
     noTags: "Sin etiquetas",
     notRevoked: "Sin revocar",
