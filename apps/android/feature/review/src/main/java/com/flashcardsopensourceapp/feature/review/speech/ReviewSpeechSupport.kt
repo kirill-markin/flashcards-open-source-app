@@ -200,18 +200,24 @@ class ReviewSpeechController(
 
     fun stop() {
         pendingRequest = null
-        activePlayback = null
         activeSide = null
-        textToSpeech?.stop()
+        // The engine is called only when something was spoken: until its connection setup finishes,
+        // TextToSpeech.stop() waits on the lock that setup holds across binder calls to the engine.
+        if (activePlayback != null) {
+            activePlayback = null
+            textToSpeech?.stop()
+        }
     }
 
     fun release() {
         isReleased = true
         unreportedInitFailureStatus = null
         stop()
-        textToSpeech?.shutdown()
-        textToSpeech = null
         initState = ReviewSpeechInitState.FAILED
+        val controller = textToSpeech ?: return
+        textToSpeech = null
+        // shutdown() waits on the same setup lock as stop(), so it runs off the main thread.
+        Thread({ controller.shutdown() }, "ReviewSpeechShutdown").start()
     }
 
     private fun initializeTextToSpeech(fallbackLanguageTag: String) {

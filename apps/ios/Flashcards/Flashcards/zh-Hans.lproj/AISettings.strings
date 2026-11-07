@@ -821,7 +821,7 @@
 "settings.workspace.decks.emptyRuleValidation" = "请选择至少一个标签，或在“复习”中使用“所有卡片”。";
 "settings.workspace.decks.loading" = "正在加载牌组...";
 "settings.workspace.decks.noMatching" = "没有匹配的牌组";
-"settings.workspace.decks.searchPrompt" = "搜索套牌";
+"settings.workspace.decks.searchPrompt" = "搜索牌组";
 "settings.workspace.decks.newDeck" = "新牌组";
 "settings.workspace.decks.dueCount" = "%d 到期";
 "settings.workspace.decks.totalCards" = "%d 卡";

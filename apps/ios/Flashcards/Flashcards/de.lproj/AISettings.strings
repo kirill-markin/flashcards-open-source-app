@@ -819,7 +819,7 @@
 "settings.workspace.decks.editorMatchingRulesDescription" = "Karten werden über die Tags gefunden, die Sie auswählen. Sie können das Deck im Menü oben links unter „Wiederholen“ auswählen.";
 "settings.workspace.decks.emptyNameValidation" = "Geben Sie einen Decknamen ein.";
 "settings.workspace.decks.emptyRuleValidation" = "Wählen Sie mindestens ein Tag aus, oder verwenden Sie „Alle Karten“ unter „Wiederholen“.";
-"settings.workspace.decks.loading" = "Ladedecks...";
+"settings.workspace.decks.loading" = "Decks werden geladen...";
 "settings.workspace.decks.noMatching" = "Keine passenden Decks";
 "settings.workspace.decks.searchPrompt" = "Decks durchsuchen";
 "settings.workspace.decks.newDeck" = "Neues Deck";
@@ -837,7 +837,7 @@
 "settings.workspace.decks.deleteDeck" = "Deck löschen";
 "settings.workspace.decks.deleteConfirmation.title" = "„%@“ löschen?";
 "settings.workspace.decks.deleteConfirmation.message" = "Deine Karten bleiben erhalten. Dadurch wird nur der gespeicherte Deckfilter entfernt.";
-"settings.workspace.decks.deck" = "Hammer";
+"settings.workspace.decks.deck" = "Deck";
 "settings.workspace.decks.editDeck" = "Deck bearbeiten";
 "settings.workspace.decks.notFound" = "Das Deck wurde nicht gefunden.";
 "settings.workspace.decks.systemDeckCannotBeEdited" = "Das Systemdeck kann nicht bearbeitet werden.";

@@ -837,7 +837,7 @@
 "settings.workspace.decks.deleteDeck" = "Удалить колоду";
 "settings.workspace.decks.deleteConfirmation.title" = "Удалить «%@»?";
 "settings.workspace.decks.deleteConfirmation.message" = "Ваши карточки останутся. Будет удалён только сохранённый фильтр колоды.";
-"settings.workspace.decks.deck" = "Молоток";
+"settings.workspace.decks.deck" = "Колода";
 "settings.workspace.decks.editDeck" = "Редактировать колоду";
 "settings.workspace.decks.notFound" = "Колода не найдена.";
 "settings.workspace.decks.systemDeckCannotBeEdited" = "Системную колоду нельзя редактировать.";

@@ -333,6 +333,7 @@ struct PremiumOfferView: View {
                                 .frame(maxWidth: .infinity)
                             if self.isPurchasing {
                                 ProgressView()
+                                    .tint(.white)
                             } else {
                                 Image(systemName: "arrow.forward").accessibilityHidden(true)
                             }
@@ -340,7 +341,8 @@ struct PremiumOfferView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .disabled(self.isPurchasing || self.isLoading || self.canPurchase == false || self.premiumAIAllowance == nil)
+                    // Not disabled while purchasing: the dimmed disabled fill hides the spinner, and purchase() ignores repeat taps.
+                    .disabled(self.isLoading || self.canPurchase == false || self.premiumAIAllowance == nil)
                     .accessibilityIdentifier(UITestIdentifier.premiumPurchaseButton)
                 }
                 VStack(spacing: 4) {
