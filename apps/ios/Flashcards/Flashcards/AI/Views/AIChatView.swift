@@ -115,6 +115,7 @@ struct AIChatView: View {
     @State var isPhotoPickerPresented: Bool
     @State var selectedPhotoItem: PhotosPickerItem?
     @State var isDropTargeted: Bool
+    @State var isComposerDropHovering: Bool
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
     @State var composerAttachmentViewportWidth: CGFloat?
@@ -135,6 +136,7 @@ struct AIChatView: View {
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
         self.isDropTargeted = false
+        self.isComposerDropHovering = false
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
         self.composerAttachmentViewportWidth = nil
@@ -314,7 +316,7 @@ struct AIChatView: View {
                 self.bottomBarContent
             }
             .overlay {
-                if self.isDropTargeted && self.chatStore.canAttachToDraft {
+                if (self.isDropTargeted || self.isComposerDropHovering) && self.chatStore.canAttachToDraft {
                     self.dropOverlay
                 }
             }
