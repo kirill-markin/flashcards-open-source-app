@@ -280,7 +280,7 @@ class LocalAiChatRepository(
 
     override suspend fun loadBootstrapFromPreparedSession(
         preparedSession: AiChatPreparedRemoteSession,
-        sessionId: String,
+        sessionId: String?,
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {

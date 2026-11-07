@@ -518,10 +518,14 @@ class AiChatRuntimeWorkspaceSessionTest {
     }
 
     @Test
-    fun bootstrapWithPersistedSessionIdReusesThatExactSessionId() = runTest {
+    fun idleReloadWithPersistedSessionIdSwitchesToNewerCurrentChatAndMovesDraft() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
+        )
+        repository.draftStates[defaultTestWorkspaceId to "session-1"] = AiChatDraftState(
+            draftMessage = "Keep this draft",
+            pendingAttachments = emptyList()
         )
         repository.bootstrapResponses += makeBootstrapResponse(
             sessionId = "session-1",
@@ -532,7 +536,24 @@ class AiChatRuntimeWorkspaceSessionTest {
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        assertEquals(listOf("session-1"), repository.loadBootstrapSessionIds)
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("Keep this draft", runtime.state.value.draftMessage)
+
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-2",
+            activeRun = null
+        )
+        runtime.onScreenVisible()
+        advanceUntilIdle()
+
+        assertEquals(listOf<String?>(null, null), repository.loadBootstrapSessionIds)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals("session-2", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("Keep this draft", runtime.state.value.draftMessage)
+        assertEquals(
+            "Keep this draft",
+            repository.draftStates[defaultTestWorkspaceId to "session-2"]?.draftMessage
+        )
+        assertNull(repository.draftStates[defaultTestWorkspaceId to "session-1"])
     }
 }

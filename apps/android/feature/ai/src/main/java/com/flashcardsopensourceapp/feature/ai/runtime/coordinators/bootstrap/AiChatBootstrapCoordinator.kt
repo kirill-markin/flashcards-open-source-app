@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLo
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
@@ -124,12 +125,19 @@ internal class AiChatBootstrapCoordinator(
             var didAttemptInitialRemoteSessionProvisioning: Boolean = false
             var didProvisionInitialRemoteSession: Boolean = false
             var provisionedRemoteSessionId: String? = null
+            var switchTargetSessionId: String? = null
             val preBootstrapState = context.runtimeStateMutable.value
             try {
                 val canPreserveLocalComposerState =
                     forceReloadState.not()
                         && context.runtimeStateMutable.value.composerPhase == AiComposerPhase.IDLE
                         && context.runtimeStateMutable.value.conversationBootstrapState == AiConversationBootstrapState.READY
+                // Forced reloads recover a run or a failure in the shown chat, so only an idle reload
+                // follows the current chat.
+                val canLoadCurrentChat =
+                    forceReloadState.not()
+                        && preBootstrapState.activeRun == null
+                        && preBootstrapState.composerPhase == AiComposerPhase.IDLE
                 context.activeLiveJob?.cancel(
                     cause = CancellationException("AI live attach cancelled because bootstrap restarted.")
                 )
@@ -180,6 +188,7 @@ internal class AiChatBootstrapCoordinator(
                     workspaceId = workspaceId,
                     persistedState = persistedState,
                     bootstrapProvisionalSessionId = bootstrapProvisionalSessionId,
+                    canLoadCurrentChat = canLoadCurrentChat,
                     resumeDiagnostics = resumeDiagnostics,
                     accessContext = accessContext,
                     bootstrapRequestToken = bootstrapRequestToken,
@@ -213,19 +222,49 @@ internal class AiChatBootstrapCoordinator(
                         )
                     }
                 }
+                val currentChatSessionId = remoteBootstrap.requestedSessionId
+                    ?: resolveAiChatSessionIdForWorkspace(
+                        workspaceId = workspaceId,
+                        sessionId = remoteBootstrap.bootstrap.sessionId
+                    )
+                    ?: throw AiChatBootstrapSessionMismatchException(
+                        "AI bootstrap returned a blank sessionId. workspaceId=$workspaceId expectedSessionId=${ensuredSession.sessionId}"
+                    )
+                val draftMove = if (currentChatSessionId == ensuredSession.sessionId) {
+                    null
+                } else {
+                    switchTargetSessionId = currentChatSessionId
+                    AiBootstrapDraftMove(
+                        shownSessionId = ensuredSession.sessionId,
+                        storedDraft = if (canPreserveLocalComposerState) {
+                            null
+                        } else {
+                            context.aiChatRepository.loadDraftState(
+                                workspaceId = workspaceId,
+                                sessionId = ensuredSession.sessionId
+                            )
+                        }
+                    )
+                }
                 val didApplyBootstrap = applyBootstrap(
                     response = remoteBootstrap.bootstrap,
-                    expectedSessionId = ensuredSession.sessionId,
-                    preserveLocalComposerState = canPreserveLocalComposerState,
+                    expectedSessionId = currentChatSessionId,
+                    preserveLocalComposerState = canPreserveLocalComposerState && draftMove == null,
+                    draftMove = draftMove,
                     canApplyBootstrap = {
                         isCurrentBootstrapRequest(
                             expectedContext = accessContext,
                             expectedRequestToken = bootstrapRequestToken,
                             expectedJob = bootstrapJob
                         )
-                            && canApplyBootstrapResult(
-                                workspaceId = workspaceId,
-                                sessionId = ensuredSession.sessionId
+                            && (
+                                canApplyBootstrapResult(
+                                    workspaceId = workspaceId,
+                                    sessionId = ensuredSession.sessionId
+                                ) || canApplyBootstrapResult(
+                                    workspaceId = workspaceId,
+                                    sessionId = currentChatSessionId
+                                )
                             )
                     }
                 )
@@ -241,10 +280,20 @@ internal class AiChatBootstrapCoordinator(
                     ).not()
                     || canApplyBootstrapResult(
                         workspaceId = workspaceId,
-                        sessionId = ensuredSession.sessionId
+                        sessionId = currentChatSessionId
                     ).not()
                 ) {
                     return@launch
+                }
+                if (draftMove != null) {
+                    AiChatDiagnosticsLogger.info(
+                        event = "conversation_bootstrap_switched_to_current_chat",
+                        fields = listOf(
+                            "workspaceId" to workspaceId,
+                            "shownSessionId" to ensuredSession.sessionId,
+                            "currentChatSessionId" to currentChatSessionId
+                        )
+                    )
                 }
                 attachBootstrapLiveStream(workspaceId, remoteBootstrap.bootstrap, resumeDiagnostics)
             } catch (error: CancellationException) {
@@ -335,13 +384,16 @@ internal class AiChatBootstrapCoordinator(
                     null
                 }
                 var didApplyFailureState: Boolean = false
-                val shouldPreserveConversationState = shouldPreserveConversationStateOnBootstrapFailure(
-                    error = error,
-                    forceReloadState = forceReloadState,
-                    preBootstrapState = preBootstrapState,
-                    workspaceId = workspaceId,
-                    persistedState = persistedState
-                )
+                // Once the switch landed, the pre-bootstrap state is an older chat; restoring it would move back.
+                val didSwitchChat = switchTargetSessionId != null && currentSessionId == switchTargetSessionId
+                val shouldPreserveConversationState = didSwitchChat.not()
+                    && shouldPreserveConversationStateOnBootstrapFailure(
+                        error = error,
+                        forceReloadState = forceReloadState,
+                        preBootstrapState = preBootstrapState,
+                        workspaceId = workspaceId,
+                        persistedState = persistedState
+                    )
                 val failureSessionId = failedProvisionalSessionId
                     ?: currentSessionId
                     ?: persistedState.chatSessionId
@@ -482,6 +534,7 @@ internal class AiChatBootstrapCoordinator(
         workspaceId: String,
         persistedState: AiChatPersistedState,
         bootstrapProvisionalSessionId: String?,
+        canLoadCurrentChat: Boolean,
         resumeDiagnostics: AiChatResumeDiagnostics?,
         accessContext: AiAccessContext,
         bootstrapRequestToken: Long,
@@ -533,9 +586,17 @@ internal class AiChatBootstrapCoordinator(
                     return null
                 }
 
+                // A chat the server already had loads as the current chat, so one started on another
+                // device replaces it. A chat provisioned just now loads by id, so a reload never moves
+                // back from a new local chat to an older one.
+                val requestedSessionId = if (canLoadCurrentChat && ensuredSession.snapshot == null) {
+                    null
+                } else {
+                    ensuredSession.sessionId
+                }
                 val bootstrap = context.aiChatRepository.loadBootstrapFromPreparedSession(
                     preparedSession = preparedSession,
-                    sessionId = ensuredSession.sessionId,
+                    sessionId = requestedSessionId,
                     limit = aiChatBootstrapPageLimit,
                     resumeDiagnostics = resumeDiagnostics
                 )
@@ -555,6 +616,7 @@ internal class AiChatBootstrapCoordinator(
                 }
                 return AiBootstrapRemoteResult(
                     ensuredSession = ensuredSession,
+                    requestedSessionId = requestedSessionId,
                     bootstrap = bootstrap
                 )
             } catch (error: CancellationException) {
@@ -594,6 +656,7 @@ internal class AiChatBootstrapCoordinator(
             response = response,
             expectedSessionId = expectedSessionId,
             preserveLocalComposerState = false,
+            draftMove = null,
             canApplyBootstrap = { true }
         )
     }
@@ -602,8 +665,12 @@ internal class AiChatBootstrapCoordinator(
         response: AiChatBootstrapResponse,
         expectedSessionId: String,
         preserveLocalComposerState: Boolean,
+        draftMove: AiBootstrapDraftMove?,
         canApplyBootstrap: () -> Boolean
     ): Boolean {
+        check(draftMove == null || preserveLocalComposerState.not()) {
+            "AI bootstrap cannot both keep the live composer and move a draft into another chat."
+        }
         val workspaceId = context.runtimeStateMutable.value.workspaceId
         validateBootstrapSession(
             workspaceId = workspaceId,
@@ -637,11 +704,24 @@ internal class AiChatBootstrapCoordinator(
             return false
         }
         var didApplyBootstrap: Boolean = false
+        var didMoveDraft: Boolean = false
         context.runtimeStateMutable.update { state ->
             if (canApplyBootstrap().not()) {
                 return@update state
             }
             didApplyBootstrap = true
+            // Installed with the switch itself, so the composer never shows the target's draft first.
+            // An empty source never overwrites the target's stored draft.
+            val movedDraft = draftMove?.let { move ->
+                move.storedDraft ?: AiChatDraftState(
+                    draftMessage = state.draftMessage,
+                    pendingAttachments = state.pendingAttachments
+                )
+            }?.takeIf { draft ->
+                draft.draftMessage.isNotBlank() || draft.pendingAttachments.isNotEmpty()
+            }
+            didMoveDraft = movedDraft != null
+            val composerDraft = movedDraft ?: draftState
             updateComposerSuggestions(
                 state = state.copy(
                     persistedState = state.persistedState.copy(
@@ -659,12 +739,12 @@ internal class AiChatBootstrapCoordinator(
                     draftMessage = if (preserveLocalComposerState) {
                         state.draftMessage
                     } else {
-                        draftState?.draftMessage ?: ""
+                        composerDraft?.draftMessage ?: ""
                     },
                     pendingAttachments = if (preserveLocalComposerState) {
                         state.pendingAttachments
                     } else {
-                        draftState?.pendingAttachments ?: emptyList()
+                        composerDraft?.pendingAttachments ?: emptyList()
                     },
                     composerPhase = if (response.activeRun != null) {
                         AiComposerPhase.RUNNING
@@ -687,6 +767,14 @@ internal class AiChatBootstrapCoordinator(
         }
         if (didApplyBootstrap.not() || canApplyBootstrap().not()) {
             return false
+        }
+        if (draftMove != null && didMoveDraft) {
+            // Before the post-run sync can suspend: the moved draft is written first, the shown chat's copy last.
+            context.persistCurrentState()
+            context.aiChatRepository.clearDraftState(
+                workspaceId = workspaceId,
+                sessionId = draftMove.shownSessionId
+            )
         }
         if (response.activeRun == null && shouldPersistPendingToolRunPostSync) {
             context.triggerToolRunPostSyncIfNeeded(reason = "bootstrap_terminal")
@@ -741,7 +829,16 @@ internal class AiChatBootstrapBlockedException : IllegalStateException(
     "AI chat bootstrap is blocked by cloud sync status."
 )
 
+/** Moves the shown chat's unsent draft into the chat a bootstrap switches to. */
+private data class AiBootstrapDraftMove(
+    val shownSessionId: String,
+    /** The shown chat's stored draft; null reads the live composer inside the switching update. */
+    val storedDraft: AiChatDraftState?
+)
+
 private data class AiBootstrapRemoteResult(
     val ensuredSession: AiChatSessionProvisioningResult,
+    /** Null when the request asked for the current chat instead of the shown one. */
+    val requestedSessionId: String?,
     val bootstrap: AiChatBootstrapResponse
 )

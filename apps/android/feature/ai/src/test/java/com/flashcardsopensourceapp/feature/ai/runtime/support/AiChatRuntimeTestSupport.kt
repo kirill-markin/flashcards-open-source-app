@@ -336,7 +336,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     val liveFlows: MutableMap<String, Flow<AiChatLiveEvent>> = mutableMapOf()
     val attachRunIds: MutableList<String> = mutableListOf()
     val remoteCallEvents: MutableList<String> = mutableListOf()
-    val loadBootstrapSessionIds: MutableList<String> = mutableListOf()
+    val loadBootstrapSessionIds: MutableList<String?> = mutableListOf()
     val createNewSessionRequests: MutableList<String> = mutableListOf()
     val createNewSessionUiLocales: MutableList<String?> = mutableListOf()
     val prepareSessionRequests: MutableList<String?> = mutableListOf()
@@ -544,6 +544,10 @@ internal class FakeAiChatRepository : AiChatRepository {
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
+        return recordLoadBootstrap(sessionId = sessionId)
+    }
+
+    private suspend fun recordLoadBootstrap(sessionId: String?): AiChatBootstrapResponse {
         loadBootstrapCalls += 1
         loadBootstrapSessionIds += sessionId
         remoteCallEvents += "loadBootstrap:$sessionId"
@@ -563,16 +567,11 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun loadBootstrapFromPreparedSession(
         preparedSession: AiChatPreparedRemoteSession,
-        sessionId: String,
+        sessionId: String?,
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
-        return loadBootstrap(
-            workspaceId = preparedSession.workspaceId,
-            sessionId = sessionId,
-            limit = limit,
-            resumeDiagnostics = resumeDiagnostics
-        )
+        return recordLoadBootstrap(sessionId = sessionId)
     }
 
     override suspend fun loadCurrentBootstrap(workspaceId: String?, limit: Int): AiChatBootstrapResponse {

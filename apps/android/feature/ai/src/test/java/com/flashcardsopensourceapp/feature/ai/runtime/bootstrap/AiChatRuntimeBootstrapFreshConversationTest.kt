@@ -186,7 +186,7 @@ class AiChatRuntimeBootstrapFreshConversationTest {
             listOf(freshSessionId, freshSessionId, freshSessionId, freshSessionId),
             repository.createNewSessionRequests
         )
-        assertEquals(listOf("session-1", freshSessionId), repository.loadBootstrapSessionIds)
+        assertEquals(listOf(null, freshSessionId), repository.loadBootstrapSessionIds)
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
         assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
         assertFalse(runtime.state.value.persistedState.requiresRemoteSessionProvisioning)
