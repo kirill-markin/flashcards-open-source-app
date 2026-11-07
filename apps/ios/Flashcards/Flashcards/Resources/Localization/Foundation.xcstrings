@@ -22002,7 +22002,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Все карточки в этой рабочей области."
+            "value" : "Все карточки в этом рабочем пространстве."
           }
         },
         "sk" : {
@@ -22074,7 +22074,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此工作空间中的所有卡片。"
+            "value" : "此工作区中的所有卡片。"
           }
         },
         "zu" : {
@@ -23652,7 +23652,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle Schlagworte, die auf mindestens einer Karte verwendet werden."
+            "value" : "Alle Tags, die auf mindestens einer Karte verwendet werden."
           }
         },
         "el" : {
@@ -25991,7 +25991,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Streak-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+            "value" : "Serien-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
           }
         },
         "en" : {
@@ -31481,7 +31481,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo Freundes-Einladung"
+            "value" : "Nibomo-Freundeseinladung"
           }
         },
         "en" : {
@@ -32701,7 +32701,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bewertungsaktivität"
+            "value" : "Wiederholungsaktivität"
           }
         },
         "en" : {
@@ -34274,7 +34274,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld повторений"
+            "value" : "Повторений: %lld"
           }
         },
         "zh-Hans" : {
@@ -34531,7 +34531,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bewertungsaktivität"
+            "value" : "Wiederholungsaktivität"
           }
         },
         "en" : {
@@ -36104,7 +36104,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld карточек"
+            "value" : "Карточек: %lld"
           }
         },
         "zh-Hans" : {
@@ -51049,7 +51049,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld карточек, %@"
+            "value" : "карточек: %lld, %@"
           }
         },
         "zh-Hans" : {
@@ -54404,7 +54404,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld повторений"
+            "value" : "повторений: %lld"
           }
         },
         "zh-Hans" : {
@@ -71434,7 +71434,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sprache ist auf diesem Gerät nicht verfügbar."
+            "value" : "Sprachausgabe ist auf diesem Gerät nicht verfügbar."
           }
         },
         "en" : {
@@ -71482,7 +71482,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Речь недоступна на этом устройстве."
+            "value" : "Озвучивание недоступно на этом устройстве."
           }
         },
         "zh-Hans" : {
