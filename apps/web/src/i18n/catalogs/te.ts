@@ -1104,6 +1104,7 @@ const teCatalog: TranslationCatalog = {
     scopeLabel: "పరిధి",
     searchLabel: "శోధన",
     searchPlaceholder: "డెక్‌లు లేదా ట్యాగ్‌లను వెతకండి",
+    triggerTooltip: "పునశ్చరణ ఫిల్టర్: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} కాపీ చేయండి",

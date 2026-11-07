@@ -1104,6 +1104,7 @@ const lvCatalog: TranslationCatalog = {
     scopeLabel: "Tvērums",
     searchLabel: "Meklēt",
     searchPlaceholder: "Meklēt kavas vai birkas",
+    triggerTooltip: "Atkārtošanas filtrs: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopēt: {{side}}",

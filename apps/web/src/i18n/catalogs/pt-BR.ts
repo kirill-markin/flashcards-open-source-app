@@ -1104,6 +1104,7 @@ const ptBrCatalog: TranslationCatalog = {
     scopeLabel: "Escopo",
     searchLabel: "Buscar",
     searchPlaceholder: "Buscar baralhos ou etiquetas",
+    triggerTooltip: "Filtro de revisão: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Copiar {{side}}",

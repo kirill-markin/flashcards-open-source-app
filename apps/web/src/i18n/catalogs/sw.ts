@@ -1104,6 +1104,7 @@ const swCatalog: TranslationCatalog = {
     scopeLabel: "Upeo",
     searchLabel: "Tafuta",
     searchPlaceholder: "Tafuta mafungu au lebo",
+    triggerTooltip: "Kichujio cha marudio: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Nakili {{side}}",

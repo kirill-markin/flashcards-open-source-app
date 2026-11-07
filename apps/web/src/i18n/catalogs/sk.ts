@@ -1114,6 +1114,7 @@ const skCatalog: TranslationCatalog = {
     scopeLabel: "Rozsah",
     searchLabel: "Hľadať",
     searchPlaceholder: "Hľadať balíčky alebo značky",
+    triggerTooltip: "Filter opakovania: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopírovať: {{side}}",

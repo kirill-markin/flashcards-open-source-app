@@ -1104,6 +1104,7 @@ const knCatalog: TranslationCatalog = {
     scopeLabel: "ವ್ಯಾಪ್ತಿ",
     searchLabel: "ಹುಡುಕಿ",
     searchPlaceholder: "ಡೆಕ್ ಅಥವಾ ಟ್ಯಾಗ್ ಹುಡುಕಿ",
+    triggerTooltip: "ಪುನರಾವರ್ತನೆ ಫಿಲ್ಟರ್: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} ನಕಲಿಸಿ",

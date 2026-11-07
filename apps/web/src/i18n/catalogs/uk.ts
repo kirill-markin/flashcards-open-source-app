@@ -1114,6 +1114,7 @@ const ukCatalog: TranslationCatalog = {
     scopeLabel: "Область",
     searchLabel: "Пошук",
     searchPlaceholder: "Пошук колод або тегів",
+    triggerTooltip: "Фільтр повторень: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Копіювати: {{side}}",

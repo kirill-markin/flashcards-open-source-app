@@ -1104,6 +1104,7 @@ const hiCatalog: TranslationCatalog = {
     scopeLabel: "दायरा",
     searchLabel: "खोजें",
     searchPlaceholder: "डेक या टैग खोजें",
+    triggerTooltip: "रिव्यू फ़िल्टर: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} कॉपी करें",

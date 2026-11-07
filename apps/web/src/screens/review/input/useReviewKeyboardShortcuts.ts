@@ -4,6 +4,7 @@ import type { ReviewCardCopyButtonHandle } from "../components/card/ReviewCardCo
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {
   reviewCopyShortcutKey,
+  reviewFilterShortcutKey,
   reviewRevealShortcutKeys,
   reviewShortcutLetter,
   reviewShortcutRatingsByKey,
@@ -27,6 +28,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
   onShortcutInputStart: () => void;
+  openReviewFilterMenu: () => void;
   selectedBackSpeakableText: string;
   selectedCard: Card | null;
   selectedFrontSpeakableText: string;
@@ -68,6 +70,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     onShortcutInputStart,
+    openReviewFilterMenu,
     selectedBackSpeakableText,
     selectedCard,
     selectedFrontSpeakableText,
@@ -95,10 +98,27 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
       || event.isComposing
       || event.keyCode === 229
       || isImeCompositionActiveRef.current
-      || selectedCard === null
       || areShortcutsSuppressed
       || isEditableKeyboardTarget(event.target)
     ) {
+      return;
+    }
+
+    const shortcutLetter = reviewShortcutLetter(event);
+    // Works without a selected card: an empty queue is when another filter is most wanted.
+    if (shortcutLetter === reviewFilterShortcutKey) {
+      if (event.shiftKey || event.repeat) {
+        return;
+      }
+
+      // Without this the letter would be typed into the search field that receives focus.
+      event.preventDefault();
+      onShortcutInputStart();
+      openReviewFilterMenu();
+      return;
+    }
+
+    if (selectedCard === null) {
       return;
     }
 
@@ -123,7 +143,6 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
       return;
     }
 
-    const shortcutLetter = reviewShortcutLetter(event);
     if (shortcutLetter === reviewSpeechShortcutKey || shortcutLetter === reviewCopyShortcutKey) {
       if (event.shiftKey || event.repeat) {
         return;

@@ -1103,6 +1103,7 @@ const enCatalog = {
     scopeLabel: "Scope",
     searchLabel: "Search",
     searchPlaceholder: "Search decks or tags",
+    triggerTooltip: "Review filter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Copy {{side}}",

@@ -1104,6 +1104,7 @@ const bgCatalog: TranslationCatalog = {
     scopeLabel: "Обхват",
     searchLabel: "Търсене",
     searchPlaceholder: "Търсене на тестета или етикети",
+    triggerTooltip: "Филтър за преговор: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Копиране: {{side}}",

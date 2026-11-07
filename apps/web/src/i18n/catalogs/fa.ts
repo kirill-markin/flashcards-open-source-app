@@ -1104,6 +1104,7 @@ const faCatalog: TranslationCatalog = {
     scopeLabel: "دامنه",
     searchLabel: "جست‌وجو",
     searchPlaceholder: "جست‌وجوی دسته‌ها یا برچسب‌ها",
+    triggerTooltip: "فیلتر مرور: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "کپی {{side}}",

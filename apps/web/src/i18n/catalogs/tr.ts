@@ -1104,6 +1104,7 @@ const trCatalog: TranslationCatalog = {
     scopeLabel: "Kapsam",
     searchLabel: "Ara",
     searchPlaceholder: "Deste veya etiket ara",
+    triggerTooltip: "Tekrar filtresi: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} kopyala",

@@ -1104,6 +1104,7 @@ const isCatalog: TranslationCatalog = {
     scopeLabel: "Umfang",
     searchLabel: "Leita",
     searchPlaceholder: "Leita að stokkum eða merkjum",
+    triggerTooltip: "Upprifjunarsía: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Afrita {{side}}",

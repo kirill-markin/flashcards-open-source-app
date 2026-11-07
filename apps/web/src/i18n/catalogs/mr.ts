@@ -1104,6 +1104,7 @@ const mrCatalog: TranslationCatalog = {
     scopeLabel: "व्याप्ती",
     searchLabel: "शोध",
     searchPlaceholder: "संच किंवा टॅग शोधा",
+    triggerTooltip: "उजळणी फिल्टर: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} कॉपी करा",

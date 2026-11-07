@@ -1104,6 +1104,7 @@ const huCatalog: TranslationCatalog = {
     scopeLabel: "Hatókör",
     searchLabel: "Keresés",
     searchPlaceholder: "Paklik vagy címkék keresése",
+    triggerTooltip: "Ismétlési szűrő: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Másolás: {{side}}",

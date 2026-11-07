@@ -1104,6 +1104,7 @@ const etCatalog: TranslationCatalog = {
     scopeLabel: "Ulatus",
     searchLabel: "Otsing",
     searchPlaceholder: "Otsi pakke või silte",
+    triggerTooltip: "Kordamisfilter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopeeri: {{side}}",

@@ -1114,6 +1114,7 @@ export const ruCatalog = {
     scopeLabel: "Область",
     searchLabel: "Поиск",
     searchPlaceholder: "Искать колоды или теги",
+    triggerTooltip: "Фильтр повторения: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Копировать: {{side}}",

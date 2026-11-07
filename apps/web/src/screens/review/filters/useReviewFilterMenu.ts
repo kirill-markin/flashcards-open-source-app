@@ -54,6 +54,7 @@ export type UseReviewFilterMenuResult = Readonly<{
   handleCloseMenu: () => void;
   handleReviewFilterComboboxKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   handleReviewFilterListboxKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
+  handleReviewFilterMenuOpenFromKeyboard: () => void;
   handleReviewFilterMenuOpenFromMoreActions: () => void;
   handleReviewFilterMenuToggle: () => void;
   handleReviewFilterSelect: (optionKey: string, reviewFilter: ReviewFilter) => void;
@@ -487,6 +488,14 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     openReviewFilterMenu("moreActionsTrigger");
   }
 
+  // Narrow layouts hide the filter trigger and reach the filter through the more-actions trigger.
+  function handleReviewFilterMenuOpenFromKeyboard(): void {
+    const filterTrigger = reviewFilterTriggerRef.current;
+    openReviewFilterMenu(filterTrigger !== null && filterTrigger.getClientRects().length > 0
+      ? "filterTrigger"
+      : "moreActionsTrigger");
+  }
+
   function handleReviewFilterSelect(optionKey: string, reviewFilter: ReviewFilter): void {
     setActiveReviewFilterOptionKey(optionKey);
     reviewFilterDraftRef.current = reviewFilter;
@@ -595,6 +604,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     handleCloseMenu,
     handleReviewFilterComboboxKeyDown,
     handleReviewFilterListboxKeyDown,
+    handleReviewFilterMenuOpenFromKeyboard,
     handleReviewFilterMenuOpenFromMoreActions,
     handleReviewFilterMenuToggle,
     handleReviewFilterSelect,

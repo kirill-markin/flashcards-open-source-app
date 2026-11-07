@@ -1104,6 +1104,7 @@ const zuCatalog: TranslationCatalog = {
     scopeLabel: "Ububanzi",
     searchLabel: "Sesha",
     searchPlaceholder: "Sesha izinqwaba noma amathegi",
+    triggerTooltip: "Isihlungi sokubukeza: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopisha {{side}}",

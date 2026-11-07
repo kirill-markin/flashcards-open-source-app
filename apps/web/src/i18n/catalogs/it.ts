@@ -1104,6 +1104,7 @@ const itCatalog: TranslationCatalog = {
     scopeLabel: "Ambito",
     searchLabel: "Cerca",
     searchPlaceholder: "Cerca mazzi o tag",
+    triggerTooltip: "Filtro dei ripassi: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Copia {{side}}",

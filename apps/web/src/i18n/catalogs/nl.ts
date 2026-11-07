@@ -1104,6 +1104,7 @@ const nlCatalog: TranslationCatalog = {
     scopeLabel: "Bereik",
     searchLabel: "Zoeken",
     searchPlaceholder: "Zoek in decks of tags",
+    triggerTooltip: "Herhalingsfilter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} kopiëren",

@@ -1114,6 +1114,7 @@ const roCatalog: TranslationCatalog = {
     scopeLabel: "Domeniu",
     searchLabel: "Caută",
     searchPlaceholder: "Caută pachete sau etichete",
+    triggerTooltip: "Filtru de recapitulare: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Copiază {{side}}",

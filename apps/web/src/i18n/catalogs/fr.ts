@@ -1104,6 +1104,7 @@ const frCatalog: TranslationCatalog = {
     scopeLabel: "Portée",
     searchLabel: "Rechercher",
     searchPlaceholder: "Rechercher des paquets ou des étiquettes",
+    triggerTooltip: "Filtre de révision : {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Copier {{side}}",

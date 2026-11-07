@@ -1104,6 +1104,7 @@ const taCatalog: TranslationCatalog = {
     scopeLabel: "வரம்பு",
     searchLabel: "தேடு",
     searchPlaceholder: "தொகுப்புகள் அல்லது குறிச்சொற்களைத் தேடு",
+    triggerTooltip: "மீள்பயிற்சி வடிகட்டி: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} நகலெடு",

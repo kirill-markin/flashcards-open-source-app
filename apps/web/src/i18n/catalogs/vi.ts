@@ -1104,6 +1104,7 @@ const viCatalog: TranslationCatalog = {
     scopeLabel: "Phạm vi",
     searchLabel: "Tìm kiếm",
     searchPlaceholder: "Tìm bộ thẻ hoặc nhãn",
+    triggerTooltip: "Bộ lọc ôn tập: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Sao chép {{side}}",

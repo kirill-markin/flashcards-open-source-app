@@ -1104,6 +1104,7 @@ const mlCatalog: TranslationCatalog = {
     scopeLabel: "പരിധി",
     searchLabel: "തിരയൽ",
     searchPlaceholder: "ഡെക്കുകളോ ടാഗുകളോ തിരയുക",
+    triggerTooltip: "അവലോകന ഫിൽട്ടർ: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} പകർത്തുക",

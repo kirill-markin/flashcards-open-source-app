@@ -1104,6 +1104,7 @@ const fiCatalog: TranslationCatalog = {
     scopeLabel: "Rajaus",
     searchLabel: "Haku",
     searchPlaceholder: "Hae pakkoja tai tunnisteita",
+    triggerTooltip: "Kertaussuodatin: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopioi {{side}}",

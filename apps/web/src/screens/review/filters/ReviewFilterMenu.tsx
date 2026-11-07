@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { AnchoredFloatingOverlay } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import type { ReviewFilter } from "../../../types";
+import { reviewFilterShortcutKey } from "../input/reviewShortcutKeys";
 import type { ReviewFilterChoiceMenuItem, ReviewFilterMenuItem } from "./useReviewFilterMenu";
 
 const REVIEW_FILTER_MENU_OFFSET_PX = 10;
@@ -148,6 +149,8 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
         aria-controls={isReviewFilterMenuOpen ? reviewFilterListboxId : undefined}
         aria-haspopup="listbox"
         aria-label={t("reviewFilterMenu.openAriaLabel")}
+        aria-keyshortcuts={reviewFilterShortcutKey}
+        title={t("reviewFilterMenu.triggerTooltip", { filter: selectedReviewFilterTitle, key: reviewFilterShortcutKey })}
         onClick={handleReviewFilterMenuToggle}
         data-testid="review-filter-trigger"
       >
