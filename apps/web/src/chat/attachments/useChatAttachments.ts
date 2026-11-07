@@ -128,7 +128,22 @@ function isPastedFileIconOnly(files: ReadonlyArray<File>, clipboardText: string)
   }
 
   const fileNameText = clipboardText.trim();
-  return FILE_NAME_TEXT_PATTERN.test(fileNameText) && fileNameText !== file.name;
+  return FILE_NAME_TEXT_PATTERN.test(fileNameText)
+    && fileNameText.normalize("NFC") !== file.name.normalize("NFC");
+}
+
+/**
+ * Excel, Word and similar apps put a picture of the copied selection beside its HTML; when that
+ * HTML has text, the paste is text. A browser "Copy Image" or a lone Office picture carries no
+ * text, so its image attaches. The plain-text check first skips parsing HTML that has no text.
+ */
+function hasPastedRichText(clipboardText: string, clipboardHtml: string): boolean {
+  if (clipboardText.trim().length === 0) {
+    return false;
+  }
+
+  const body = new DOMParser().parseFromString(clipboardHtml, "text/html").body;
+  return (body.textContent ?? "").trim().length > 0;
 }
 
 export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttachmentControls {
@@ -379,12 +394,25 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return;
     }
 
-    event.preventDefault();
-    if (isPastedFileIconOnly(files, event.clipboardData.getData("text/plain"))) {
+    const clipboardText = event.clipboardData.getData("text/plain");
+    if (isPastedFileIconOnly(files, clipboardText)) {
+      event.preventDefault();
       window.alert(pastedFileIconOnlyMessage);
       return;
     }
 
+    if (
+      files.some(isImageFileCandidate)
+      && hasPastedRichText(clipboardText, event.clipboardData.getData("text/html"))
+    ) {
+      const nonImageFiles = files.filter((file) => !isImageFileCandidate(file));
+      if (nonImageFiles.length > 0) {
+        void ingestFiles(nonImageFiles, null);
+      }
+      return;
+    }
+
+    event.preventDefault();
     // A pasted file has no origin the shared vocabulary can name either.
     void ingestFiles(files, null);
   }

@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
  * Turns dropped or pasted items into draft attachments through the same builders as the pickers: a
  * file of a supported type goes through `aiChatMakeAttachmentFromFile(url:)`, image data through
  * `aiChatMakeImageAttachment(data:fileName:mediaType:)`, and anything else fails as an unsupported type.
+ * Items `aiChatItemProviderCanMakeAttachment` refuses, such as text dragged or copied beside a file, are skipped.
  *
  * All or nothing: on the first failure the attachments already made are removed and the error is rethrown.
  */
@@ -12,7 +13,7 @@ import UniformTypeIdentifiers
 func aiChatMakeAttachments(itemProviders: [NSItemProvider]) async throws -> [AIChatAttachment] {
     var attachments: [AIChatAttachment] = []
     do {
-        for itemProvider in itemProviders {
+        for itemProvider in itemProviders where aiChatItemProviderCanMakeAttachment(itemProvider: itemProvider) {
             attachments.append(try await aiChatMakeAttachment(itemProvider: itemProvider))
         }
     } catch {

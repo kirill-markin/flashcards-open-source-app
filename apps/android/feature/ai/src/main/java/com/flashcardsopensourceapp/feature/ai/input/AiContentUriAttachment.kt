@@ -12,7 +12,7 @@ import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
  * takes the Choose Photo path and anything else the Choose File path, so both keep the pickers'
  * type, size, and error handling. Reports neither analytics half, because neither picker's source is true.
  */
-internal fun attachAiChatContentUri(
+private fun attachAiChatContentUri(
     context: Context,
     uri: Uri,
     textProvider: AiTextProvider,
@@ -40,10 +40,11 @@ internal fun attachAiChatContentUri(
 }
 
 /**
- * Attaches every content URI of one paste. Images go first: the runtime refuses new attachments while a
- * document is staging, and it stages one document at a time, refusing the rest with its busy alert.
+ * Attaches every content URI of one paste or drop. Images are copied before their routing returns, so
+ * they go first: the runtime refuses new attachments while a document is staging, and it stages one
+ * document at a time, refusing the rest with its busy alert. That staging is the last read of [uris].
  */
-internal fun attachPastedAiChatContentUris(
+internal fun attachAiChatContentUris(
     context: Context,
     uris: List<Uri>,
     textProvider: AiTextProvider,
@@ -67,7 +68,7 @@ internal fun attachPastedAiChatContentUris(
 }
 
 /** The same type the image path checks, so an image routed there is never refused there. */
-internal fun isAiChatImageContentUri(context: Context, uri: Uri): Boolean {
+private fun isAiChatImageContentUri(context: Context, uri: Uri): Boolean {
     return context.contentResolver.getType(uri)?.trim()?.startsWith(prefix = "image/") == true
 }
 

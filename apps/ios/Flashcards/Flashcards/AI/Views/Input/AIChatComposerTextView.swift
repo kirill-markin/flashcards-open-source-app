@@ -7,8 +7,11 @@ struct AIChatComposerTextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var selection: TextSelection?
     @Binding var isFocused: Bool
+    /// True while a drag the shared attachment rule accepts hovers over the field, which takes it from the chat-root drop.
+    @Binding var isAttachmentDropHovering: Bool
     let placeholder: String
     let isDisabled: Bool
+    let canAttachToDraft: Bool
     let maximumLineCount: Int
     /// Receives pasted or dropped items that carry a file or image; plain text stays with the text view.
     let onAttachmentItemProviders: @MainActor ([NSItemProvider]) -> Void
@@ -42,6 +45,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
         textView.placeholderLabel.text = self.placeholder
         textView.accessibilityLabel = self.placeholder
         textView.isComposerDisabled = self.isDisabled
+        textView.canAttachToDraft = self.canAttachToDraft
         textView.onAttachmentItemProviders = self.onAttachmentItemProviders
         #if targetEnvironment(macCatalyst)
         textView.macReturnKeyOwner = self.macReturnKeyOwner
@@ -76,6 +80,10 @@ struct AIChatComposerTextView: UIViewRepresentable {
         textView.delegate = nil
         textView.textDropDelegate = nil
         coordinator.isUpdatingView = false
+        // A field removed mid-drag gets no exit or end callback; the write must wait for the SwiftUI update to end.
+        DispatchQueue.main.async {
+            coordinator.setAttachmentDropHovering(false)
+        }
     }
 
     @MainActor
@@ -149,13 +157,19 @@ struct AIChatComposerTextView: UIViewRepresentable {
             self.parent.selection = TextSelection(range: range)
         }
 
-        /// The text view would insert a dragged file as its name or contents, so this delegate performs such drops.
+        /// The text view would insert a dragged file as its name or contents, so this delegate performs such drops
+        /// and forbids them while attaching is blocked.
         func textDroppableView(
             _ textDroppableView: UIView & UITextDroppable,
             proposalForDrop drop: any UITextDropRequest
         ) -> UITextDropProposal {
-            guard self.parent.isDisabled == false, aiChatDropCarriesAttachment(drop: drop) else {
+            let carriesAttachment = aiChatDropCarriesAttachment(drop: drop)
+            self.setAttachmentDropHovering(carriesAttachment)
+            guard carriesAttachment else {
                 return drop.suggestedProposal
+            }
+            guard self.canPerformAttachmentDrop() else {
+                return UITextDropProposal(operation: .forbidden)
             }
             let proposal = UITextDropProposal(operation: .copy)
             proposal.dropPerformer = .delegate
@@ -163,8 +177,26 @@ struct AIChatComposerTextView: UIViewRepresentable {
         }
 
         func textDroppableView(_ textDroppableView: UIView & UITextDroppable, willPerformDrop drop: any UITextDropRequest) {
-            guard self.parent.isDisabled == false, aiChatDropCarriesAttachment(drop: drop) else { return }
+            self.setAttachmentDropHovering(false)
+            guard self.canPerformAttachmentDrop(), aiChatDropCarriesAttachment(drop: drop) else { return }
             self.parent.onAttachmentItemProviders(drop.dropSession.items.map(\.itemProvider))
+        }
+
+        func textDroppableView(_ textDroppableView: UIView & UITextDroppable, dropSessionDidExit session: any UIDropSession) {
+            self.setAttachmentDropHovering(false)
+        }
+
+        func textDroppableView(_ textDroppableView: UIView & UITextDroppable, dropSessionDidEnd session: any UIDropSession) {
+            self.setAttachmentDropHovering(false)
+        }
+
+        private func canPerformAttachmentDrop() -> Bool {
+            self.parent.isDisabled == false && self.parent.canAttachToDraft
+        }
+
+        func setAttachmentDropHovering(_ isHovering: Bool) {
+            guard self.parent.isAttachmentDropHovering != isHovering else { return }
+            self.parent.isAttachmentDropHovering = isHovering
         }
 
         /// Disabling the field inside a SwiftUI update resigns it synchronously; that write must wait for the update to end.
@@ -209,6 +241,7 @@ private func aiChatComposerNSRange(text: String, selection: TextSelection?) -> N
 
 final class AIChatComposerUITextView: UITextView {
     let placeholderLabel = UILabel()
+    var canAttachToDraft = false
     var isComposerDisabled = false {
         didSet {
             guard oldValue != self.isComposerDisabled else { return }
@@ -254,10 +287,11 @@ final class AIChatComposerUITextView: UITextView {
         }
     }
 
-    // Paste shows for a copied image or file even without text on the pasteboard.
+    // Paste shows for a copied image or file even without text on the pasteboard, while attaching is allowed.
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if action == #selector(UIResponderStandardEditActions.paste(_:)),
            self.isEditable,
+           self.canAttachToDraft,
            self.onAttachmentItemProviders != nil,
            aiChatPasteboardHoldsAttachment(pasteboard: .general) {
             return true
@@ -265,10 +299,12 @@ final class AIChatComposerUITextView: UITextView {
         return super.canPerformAction(action, withSender: sender)
     }
 
-    /// A Finder copy also carries the file name as text, so a pasteboard with a file or image pastes none of its text.
+    /// A Finder copy also carries the file name as text, so a pasteboard with a file or image pastes none of its text;
+    /// while attaching is blocked, the pasteboard pastes as text.
     override func paste(_ sender: Any?) {
         let itemProviders = UIPasteboard.general.itemProviders
-        guard let onAttachmentItemProviders = self.onAttachmentItemProviders,
+        guard self.canAttachToDraft,
+              let onAttachmentItemProviders = self.onAttachmentItemProviders,
               itemProviders.contains(where: { aiChatContentTypesMakeAttachment(contentTypes: $0.registeredContentTypes) }) else {
             super.paste(sender)
             return
