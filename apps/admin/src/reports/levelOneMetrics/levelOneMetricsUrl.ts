@@ -1,12 +1,18 @@
 import type { ReviewEventPlatform } from "../../adminApi";
-import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
+import type {
+  AnalyticsDateRange,
+  AppStoreProductPageFilterState,
+  SiteVisitorFilterState,
+} from "../../filters/analyticsFilters";
 import {
+  parseAppStoreProductPageFilterState,
   parseAppVersions,
   parseDateRange,
   parseEventPlatforms,
   parseProvisionalDateRange,
   parseSiteVisitorFilterState,
   readSingleParam,
+  setAppStoreProductPageFilterParams,
   setAppVersionsParam,
   setDateRangeParams,
   setEventPlatformsParam,
@@ -27,6 +33,8 @@ export type LevelOneMetricsSelection = Readonly<{
   appVersions: ReadonlyArray<string>;
   /** Applied on the Web engaged page only, and carried by every Level 1 page so a move keeps them. */
   siteFilters: SiteVisitorFilterState;
+  /** Carried by every Level 1 page like `siteFilters`. */
+  appStoreFilters: AppStoreProductPageFilterState;
 }>;
 
 const periodParamName = "period";
@@ -50,6 +58,7 @@ export function parseLevelOneMetricsSelection(
     eventPlatforms: parseEventPlatforms(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
+    appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
   };
 }
 
@@ -65,6 +74,7 @@ export function parseProvisionalLevelOneMetricsSelection(
     eventPlatforms: parseEventPlatforms(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
+    appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
   };
 }
 
@@ -78,6 +88,7 @@ export function buildLevelOneMetricsSearch(
   setEventPlatformsParam(searchParams, selection.eventPlatforms);
   setAppVersionsParam(searchParams, selection.appVersions);
   setSiteVisitorFilterParams(searchParams, selection.siteFilters);
+  setAppStoreProductPageFilterParams(searchParams, selection.appStoreFilters);
   if (selection.period !== defaultLevelOneMetricsPeriod) {
     searchParams.set(periodParamName, selection.period);
   }

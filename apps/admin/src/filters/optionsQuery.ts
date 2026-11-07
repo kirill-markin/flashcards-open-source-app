@@ -11,7 +11,9 @@ import {
   buildIdentifiedSiteViewRowsSql,
   buildSiteVisitorFilterValueSql,
 } from "../reports/whoSawUs/siteFactSql";
+import { buildStoreReportDateRangeSqlLines, ourAppleAppIdentifier } from "../reports/whoSawUs/query";
 import {
+  appStoreProductPageFilterColumnSqlNames,
   buildCatalogInstallAttributionSql,
   buildCatalogInstalledDeckVersionsSql,
   buildConnectionCountrySamplesSql,
@@ -24,6 +26,7 @@ import {
   siteDeviceCategories,
   siteSources,
   type AnalyticsDateRange,
+  type AppStoreProductPageFilterState,
   type SiteDeviceCategory,
   type SiteSource,
   type SiteVisitorFilterState,
@@ -69,6 +72,18 @@ export const noSiteVisitorFilterOptions: SiteVisitorFilterOptions = {
   siteCountries: [],
   siteBrowserLanguages: [],
   sitePageKinds: [],
+};
+
+type AppStoreProductPageOptionField = keyof AppStoreProductPageFilterState;
+
+/** What the App Store fields offer over one date range. */
+export type AppStoreProductPageFilterOptions = Readonly<Record<AppStoreProductPageOptionField, ReadonlyArray<string>>>;
+
+/** For every bar that does not offer the App Store fields. */
+export const noAppStoreProductPageFilterOptions: AppStoreProductPageFilterOptions = {
+  appStoreTerritories: [],
+  appStoreDevices: [],
+  appStoreSourceTypes: [],
 };
 
 export type CatalogDeckOption = Readonly<{
@@ -465,6 +480,82 @@ export async function loadSiteVisitorFilterOptions(
       throw new Error(`${siteVisitorOptionsReportLabel} returned an unknown field_name ${fieldName}.`);
     }
     optionsByField[fieldName].push(assertIsString(row.option_value ?? null, siteVisitorOptionsReportLabel, "option_value"));
+  }
+
+  return optionsByField;
+}
+
+const appStoreProductPageOptionsReportLabel = "App Store product page filter options";
+
+const appStoreProductPageOptionFields = Object.keys(
+  appStoreProductPageFilterColumnSqlNames,
+) as ReadonlyArray<AppStoreProductPageOptionField>;
+
+// Every value Apple reported on our app's detailed weekly and monthly product page rows inside the
+// range, from both the page view and the download report, so a value only one of them carries is
+// still offered.
+function buildAppStoreProductPageFilterOptionsSql(dateRange: AnalyticsDateRange): string {
+  const buildRowValuesSql = (rowAlias: string, tableSqlName: string): string => [
+    "  SELECT",
+    appStoreProductPageOptionFields
+      .map((field) => `    ${rowAlias}.${appStoreProductPageFilterColumnSqlNames[field]} AS "${field}"`)
+      .join(",\n"),
+    `  FROM store_analytics.${tableSqlName} AS ${rowAlias}`,
+    `  WHERE ${[
+      `${rowAlias}.app_apple_identifier = ${escapeSqlStringLiteral(ourAppleAppIdentifier)}`,
+      `${rowAlias}.detail_level = 'detailed'`,
+      `${rowAlias}.granularity IN ('WEEKLY', 'MONTHLY')`,
+      `pg_catalog.lower(${rowAlias}.page_type) = 'product page'`,
+      ...buildStoreReportDateRangeSqlLines(rowAlias, dateRange),
+    ].join("\n    AND ")}`,
+  ].join("\n");
+
+  return [
+    "WITH app_store_row_values AS (",
+    buildRowValuesSql("engagement", "apple_discovery_engagement"),
+    "  UNION ALL",
+    buildRowValuesSql("downloads", "apple_downloads"),
+    ")",
+    "SELECT DISTINCT option_values.field_name, option_values.option_value",
+    "FROM app_store_row_values",
+    "CROSS JOIN LATERAL (VALUES",
+    appStoreProductPageOptionFields
+      .map((field) => `  (${escapeSqlStringLiteral(field)}, app_store_row_values."${field}")`)
+      .join(",\n"),
+    ") AS option_values(field_name, option_value)",
+    "WHERE option_values.option_value IS NOT NULL",
+    "ORDER BY option_values.field_name, option_values.option_value",
+  ].join("\n");
+}
+
+function isAppStoreProductPageOptionField(value: string): value is AppStoreProductPageOptionField {
+  return (appStoreProductPageOptionFields as ReadonlyArray<string>).includes(value);
+}
+
+/** Deliberately independent of the current selection, as `loadSiteVisitorFilterOptions`. */
+export async function loadAppStoreProductPageFilterOptions(
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  signal: AbortSignal,
+): Promise<AppStoreProductPageFilterOptions> {
+  const range = assertValidDateRange(dateRange, appStoreProductPageOptionsReportLabel);
+  const response = await runAdminQuery(config, buildAppStoreProductPageFilterOptionsSql(range), signal);
+  const result = response.resultSets[0];
+  if (response.resultSets.length !== 1 || result === undefined) {
+    throw new Error(`${appStoreProductPageOptionsReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
+  }
+
+  const optionsByField: Record<AppStoreProductPageOptionField, Array<string>> = {
+    appStoreTerritories: [],
+    appStoreDevices: [],
+    appStoreSourceTypes: [],
+  };
+  for (const row of result.rows) {
+    const fieldName = assertIsString(row.field_name ?? null, appStoreProductPageOptionsReportLabel, "field_name");
+    if (isAppStoreProductPageOptionField(fieldName) === false) {
+      throw new Error(`${appStoreProductPageOptionsReportLabel} returned an unknown field_name ${fieldName}.`);
+    }
+    optionsByField[fieldName].push(assertIsString(row.option_value ?? null, appStoreProductPageOptionsReportLabel, "option_value"));
   }
 
   return optionsByField;

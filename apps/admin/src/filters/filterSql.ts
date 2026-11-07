@@ -24,6 +24,7 @@ import {
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
+  type AppStoreProductPageFilterState,
 } from "./analyticsFilters";
 
 // The SQL half of `AnalyticsFilterState`: one predicate builder per filter field, so every report
@@ -883,4 +884,32 @@ export function isEveryUserCohortSelected(filters: AnalyticsFilterState): boolea
 export function isCohortOrPlatformNarrowed(filters: AnalyticsFilterState): boolean {
   return isEveryUserCohortSelected(filters) === false
     || isEventPlatformsNarrowed(filters.eventPlatforms);
+}
+
+/**
+ * The column each App Store field compares, the same in `apple_discovery_engagement` and
+ * `apple_downloads`.
+ */
+export const appStoreProductPageFilterColumnSqlNames: Readonly<
+  Record<keyof AppStoreProductPageFilterState, string>
+> = {
+  appStoreTerritories: "territory",
+  appStoreDevices: "device",
+  appStoreSourceTypes: "source_type",
+};
+
+/**
+ * One `AND` line per narrowed App Store field on an Apple row, `[]` when none is narrowed. Picking
+ * nothing keeps every value, and a picked value matches Apple's stored value exactly.
+ */
+export function buildAppStoreProductPageFilterSqlLines(
+  rowAlias: string,
+  filters: AppStoreProductPageFilterState,
+): ReadonlyArray<string> {
+  return (Object.keys(appStoreProductPageFilterColumnSqlNames) as ReadonlyArray<keyof AppStoreProductPageFilterState>)
+    .filter((field) => filters[field].length > 0)
+    .map((field) => buildInPredicateSql(
+      `${rowAlias}.${appStoreProductPageFilterColumnSqlNames[field]}`,
+      filters[field],
+    ));
 }

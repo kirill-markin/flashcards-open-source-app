@@ -16,6 +16,7 @@ import type { AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
+  defaultAppStoreProductPageFilterState,
   defaultSiteVisitorFilterState,
   isAcceptedMinimumCount,
   parseAcceptedMinimumCount,
@@ -24,6 +25,7 @@ import {
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
+  type AppStoreProductPageFilterState,
   type AnalyticsThresholdEventType,
   type SiteDeviceCategory,
   type SiteSource,
@@ -71,6 +73,9 @@ const siteSourcesParamName = "site-sources";
 const siteCountriesParamName = "site-countries";
 const siteBrowserLanguagesParamName = "site-languages";
 const sitePageKindsParamName = "site-page-types";
+const appStoreTerritoriesParamName = "app-store-territories";
+const appStoreDevicesParamName = "app-store-devices";
+const appStoreSourceTypesParamName = "app-store-source-types";
 
 const listSeparator = ",";
 const minimumEventCountSeparator = ":";
@@ -268,6 +273,7 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     catalogDeviceCategories: normalizeEnumList(state.catalogDeviceCategories, siteDeviceCategories),
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
     ...normalizeSiteVisitorFilterState(state),
+    ...normalizeAppStoreProductPageFilterState(state),
   };
 }
 
@@ -352,6 +358,42 @@ export function setSiteVisitorFilterParams(
     sitePageKindsParamName,
     state.sitePageKinds,
     defaultSiteVisitorFilterState.sitePageKinds,
+  );
+}
+
+/** The App Store fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
+export function normalizeAppStoreProductPageFilterState(
+  state: AppStoreProductPageFilterState,
+): AppStoreProductPageFilterState {
+  return {
+    appStoreTerritories: normalizeOpaqueList(state.appStoreTerritories),
+    appStoreDevices: normalizeOpaqueList(state.appStoreDevices),
+    appStoreSourceTypes: normalizeOpaqueList(state.appStoreSourceTypes),
+  };
+}
+
+/** Writes the App Store fields that differ from their default; `parseAppStoreProductPageFilterState` reads them back. */
+export function setAppStoreProductPageFilterParams(
+  searchParams: URLSearchParams,
+  state: AppStoreProductPageFilterState,
+): void {
+  setOpaqueListParam(
+    searchParams,
+    appStoreTerritoriesParamName,
+    state.appStoreTerritories,
+    defaultAppStoreProductPageFilterState.appStoreTerritories,
+  );
+  setOpaqueListParam(
+    searchParams,
+    appStoreDevicesParamName,
+    state.appStoreDevices,
+    defaultAppStoreProductPageFilterState.appStoreDevices,
+  );
+  setOpaqueListParam(
+    searchParams,
+    appStoreSourceTypesParamName,
+    state.appStoreSourceTypes,
+    defaultAppStoreProductPageFilterState.appStoreSourceTypes,
   );
 }
 
@@ -451,6 +493,7 @@ export function toAnalyticsFilterSearchParams(
     defaults.catalogClickBrowserLanguages,
   );
   setSiteVisitorFilterParams(searchParams, state);
+  setAppStoreProductPageFilterParams(searchParams, state);
 
   return searchParams;
 }
@@ -741,6 +784,27 @@ export function parseSiteVisitorFilterState(searchParams: URLSearchParams): Site
   };
 }
 
+/** The App Store fields a query string carries, each at its default when absent or malformed. */
+export function parseAppStoreProductPageFilterState(searchParams: URLSearchParams): AppStoreProductPageFilterState {
+  return {
+    appStoreTerritories: parseOpaqueList(
+      searchParams,
+      appStoreTerritoriesParamName,
+      defaultAppStoreProductPageFilterState.appStoreTerritories,
+    ),
+    appStoreDevices: parseOpaqueList(
+      searchParams,
+      appStoreDevicesParamName,
+      defaultAppStoreProductPageFilterState.appStoreDevices,
+    ),
+    appStoreSourceTypes: parseOpaqueList(
+      searchParams,
+      appStoreSourceTypesParamName,
+      defaultAppStoreProductPageFilterState.appStoreSourceTypes,
+    ),
+  };
+}
+
 // Every field but the two ranges reads the same whether or not the available range is known.
 function parseAnalyticsFilterStateOnDateRanges(
   searchParams: URLSearchParams,
@@ -793,5 +857,6 @@ function parseAnalyticsFilterStateOnDateRanges(
       defaults.catalogClickBrowserLanguages,
     ),
     ...parseSiteVisitorFilterState(searchParams),
+    ...parseAppStoreProductPageFilterState(searchParams),
   };
 }

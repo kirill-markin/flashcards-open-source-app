@@ -15,6 +15,7 @@ import {
 } from "../filters/analyticsFilters";
 import {
   loadAppVersionFilterOptions,
+  noAppStoreProductPageFilterOptions,
   noSiteVisitorFilterOptions,
   type AnalyticsFilterOptions,
 } from "../filters/optionsQuery";
@@ -210,6 +211,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
         catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
         siteVisitorOptions={noSiteVisitorFilterOptions}
+        appStoreProductPageOptions={noAppStoreProductPageFilterOptions}
         areOptionListsLoading={filterOptions === null || (offersAppVersions && appVersionOptions.status !== "ready")}
         isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}

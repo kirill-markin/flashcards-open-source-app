@@ -20,7 +20,7 @@ const storeDeliveryLabel = "Who saw us store delivery";
 
 // Our app in each store's reports. Store accounts can hold other apps, and the Play reports bucket
 // belongs to the whole developer account, so every store read pins one of these.
-const ourAppleAppIdentifier = "6760538964";
+export const ourAppleAppIdentifier = "6760538964";
 const ourPlayPackageName = "com.flashcardsopensourceapp.app";
 
 // In stack order, bottom first. Two more series are planned and not built yet: MCP OpenAI and MCP

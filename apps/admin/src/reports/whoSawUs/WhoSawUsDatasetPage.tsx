@@ -7,6 +7,7 @@ import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDe
 import {
   LevelOneMetricsFrame,
   levelOneMetricsDateRangeFilterBar,
+  noAppStoreOptions,
   noAppVersionOptions,
   type LevelOneMetricsFilterBar,
 } from "../levelOneMetrics/LevelOneMetricsFrame";
@@ -24,6 +25,7 @@ import { whoSawUsSeriesLabels, WhoSawUsSection } from "./WhoSawUsSection";
 
 const webEngagedFilterBar: Omit<LevelOneMetricsFilterBar, "siteOptions"> = {
   fields: webEngagedAnalyticsFilterFields,
+  appStoreOptions: noAppStoreOptions,
   appVersionOptions: noAppVersionOptions,
   title: "Filters",
   resetAllLabel: "Reset the Web engaged filters",
