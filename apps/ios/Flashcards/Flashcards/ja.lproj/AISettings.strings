@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "1 つのメッセージの画像は合計で最大 15 MB までです。一部を別のメッセージで送信してください。";
 "ai.attachment.error.unavailable" = "添付ファイルがこのデバイスにありません。削除してもう一度添付してから、もう一度お試しください。";
 "ai.attachment.error.uploadFailed" = "添付ファイルをアップロードできませんでした。接続を確認してから、もう一度お試しください。";
+"ai.drop.overlay" = "ファイルをドロップして添付";
 "ai.composer.dictation.start" = "ディクテーションを開始";
 "ai.composer.dictation.stop" = "ディクテーションを停止";
 "ai.composer.dictation.waiting" = "マイクへのアクセスを待機しています...";

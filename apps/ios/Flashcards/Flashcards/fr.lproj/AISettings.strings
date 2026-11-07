@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Les images d’un même message peuvent faire au maximum 15 Mo au total. Envoyez-en certaines dans un autre message.";
 "ai.attachment.error.unavailable" = "Une pièce jointe n’est plus sur cet appareil. Supprimez-la, joignez-la à nouveau, puis réessayez.";
 "ai.attachment.error.uploadFailed" = "Impossible d’envoyer une pièce jointe. Vérifiez votre connexion, puis réessayez.";
+"ai.drop.overlay" = "Déposez des fichiers pour les joindre";
 "ai.composer.dictation.start" = "Démarrer la dictée";
 "ai.composer.dictation.stop" = "Arrêter la dictée";
 "ai.composer.dictation.waiting" = "En attente de l’accès au microphone...";

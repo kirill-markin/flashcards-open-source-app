@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Imaginile dintr-un mesaj pot avea împreună cel mult 15 MB. Trimite câteva dintre ele într-un alt mesaj.";
 "ai.attachment.error.unavailable" = "Un atașament nu mai este pe acest dispozitiv. Elimină-l, atașează-l din nou, apoi încearcă din nou.";
 "ai.attachment.error.uploadFailed" = "Un atașament nu a putut fi încărcat. Verifică conexiunea, apoi încearcă din nou.";
+"ai.drop.overlay" = "Trage fișierele aici ca să le atașezi";
 "ai.composer.dictation.start" = "Începe dictarea";
 "ai.composer.dictation.stop" = "Oprește dictarea";
 "ai.composer.dictation.waiting" = "Se așteaptă accesul la microfon...";

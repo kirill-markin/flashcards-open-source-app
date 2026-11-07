@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Bildene i én melding kan til sammen være på maksimalt 15 MB. Send noen av dem i en annen melding.";
 "ai.attachment.error.unavailable" = "Et vedlegg finnes ikke lenger på denne enheten. Fjern det, legg det ved på nytt, og prøv igjen.";
 "ai.attachment.error.uploadFailed" = "Kunne ikke laste opp et vedlegg. Sjekk forbindelsen og prøv igjen.";
+"ai.drop.overlay" = "Slipp filer for å legge dem ved";
 "ai.composer.dictation.start" = "Start diktering";
 "ai.composer.dictation.stop" = "Stopp diktering";
 "ai.composer.dictation.waiting" = "Venter på mikrofontilgang...";

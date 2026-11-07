@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "De afbeeldingen in één bericht mogen samen maximaal 15 MB zijn. Stuur er een paar in een ander bericht.";
 "ai.attachment.error.unavailable" = "Een bijlage staat niet meer op dit apparaat. Verwijder de bijlage, voeg deze opnieuw toe en probeer het opnieuw.";
 "ai.attachment.error.uploadFailed" = "Kan een bijlage niet uploaden. Controleer je verbinding en probeer het opnieuw.";
+"ai.drop.overlay" = "Sleep bestanden hierheen om ze toe te voegen";
 "ai.composer.dictation.start" = "Dicteren starten";
 "ai.composer.dictation.stop" = "Dicteren stoppen";
 "ai.composer.dictation.waiting" = "Wachten op microfoontoegang...";

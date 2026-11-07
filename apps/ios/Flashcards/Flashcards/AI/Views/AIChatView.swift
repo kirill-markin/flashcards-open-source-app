@@ -114,6 +114,7 @@ struct AIChatView: View {
     @State var isFileImporterPresented: Bool
     @State var isPhotoPickerPresented: Bool
     @State var selectedPhotoItem: PhotosPickerItem?
+    @State var isDropTargeted: Bool
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
     @State var composerAttachmentViewportWidth: CGFloat?
@@ -133,6 +134,7 @@ struct AIChatView: View {
         self.isFileImporterPresented = false
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
+        self.isDropTargeted = false
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
         self.composerAttachmentViewportWidth = nil
@@ -310,7 +312,40 @@ struct AIChatView: View {
             .nativeBottomBar(alignment: .center, usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad) {
                 self.bottomBarContent
             }
+            .overlay {
+                if self.isDropTargeted && self.chatStore.canAttachToDraft {
+                    self.dropOverlay
+                }
+            }
+            .onDrop(
+                of: [.item],
+                delegate: AIChatAttachmentDropDelegate(
+                    isTargeted: self.$isDropTargeted,
+                    canAttachToDraft: self.chatStore.canAttachToDraft,
+                    onDrop: { itemProviders in
+                        Task {
+                            await self.handleAttachmentItemProviders(itemProviders)
+                        }
+                    }
+                )
+            )
             .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
+    }
+
+    var dropOverlay: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(.regularMaterial)
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(.tint, style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+            }
+            .overlay {
+                Label(aiSettingsLocalized("ai.drop.overlay", "Drop files to attach"), systemImage: "paperclip")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .allowsHitTesting(false)
     }
 
     var usesStudySpacing: Bool {

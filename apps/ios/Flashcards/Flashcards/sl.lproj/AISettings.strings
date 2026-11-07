@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Slike v enem sporočilu so lahko skupaj velike največ 15 MB. Nekatere pošljite v drugem sporočilu.";
 "ai.attachment.error.unavailable" = "Ena od prilog ni več v tej napravi. Odstranite jo, jo znova priložite in poskusite znova.";
 "ai.attachment.error.uploadFailed" = "Priloge ni bilo mogoče naložiti. Preverite povezavo in poskusite znova.";
+"ai.drop.overlay" = "Spustite datoteke, da jih priložite";
 "ai.composer.dictation.start" = "Začni narekovanje";
 "ai.composer.dictation.stop" = "Ustavi narekovanje";
 "ai.composer.dictation.waiting" = "Čakanje na dostop do mikrofona ...";

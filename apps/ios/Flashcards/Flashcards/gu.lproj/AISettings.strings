@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "એક સંદેશની છબીઓ કુલ મળીને વધુમાં વધુ 15 MB ની હોઈ શકે છે. તેમાંથી કેટલીક બીજા સંદેશમાં મોકલો.";
 "ai.attachment.error.unavailable" = "એક જોડાણ હવે આ ઉપકરણ પર નથી. તેને દૂર કરો, ફરીથી જોડો, પછી ફરી પ્રયાસ કરો.";
 "ai.attachment.error.uploadFailed" = "એક જોડાણ અપલોડ કરી શકાયું નથી. તમારું ઇન્ટરનેટ કનેક્શન તપાસો, પછી ફરી પ્રયાસ કરો.";
+"ai.drop.overlay" = "જોડવા માટે ફાઇલો અહીં મૂકો";
 "ai.composer.dictation.start" = "બોલીને લખવાનું શરૂ કરો";
 "ai.composer.dictation.stop" = "બોલીને લખવાનું રોકો";
 "ai.composer.dictation.waiting" = "માઇક્રોફોનની ઍક્સેસની રાહ જોઈ રહ્યું છે...";

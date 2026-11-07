@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "ایک پیغام کی تصاویر کا کل سائز زیادہ سے زیادہ 15 MB ہو سکتا ہے۔ ان میں سے کچھ کسی دوسرے پیغام میں بھیجیں۔";
 "ai.attachment.error.unavailable" = "ایک منسلکہ اب اس آلے پر موجود نہیں ہے۔ اسے ہٹائیں، دوبارہ منسلک کریں، پھر دوبارہ کوشش کریں۔";
 "ai.attachment.error.uploadFailed" = "ایک منسلکہ اپ لوڈ نہیں ہو سکا۔ اپنا کنکشن چیک کریں، پھر دوبارہ کوشش کریں۔";
+"ai.drop.overlay" = "منسلک کرنے کے لیے فائلیں یہاں چھوڑیں";
 "ai.composer.dictation.start" = "بول کر لکھنا شروع کریں";
 "ai.composer.dictation.stop" = "بول کر لکھنا روکیں";
 "ai.composer.dictation.waiting" = "مائیکروفون کی رسائی کا انتظار ہے...";

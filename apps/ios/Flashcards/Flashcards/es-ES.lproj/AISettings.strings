@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Las imágenes de un mensaje pueden ocupar como máximo 15 MB en total. Envía algunas en otro mensaje.";
 "ai.attachment.error.unavailable" = "Un archivo adjunto ya no está en este dispositivo. Elimínalo, vuelve a adjuntarlo e inténtalo de nuevo.";
 "ai.attachment.error.uploadFailed" = "No se pudo subir un archivo adjunto. Comprueba tu conexión y vuelve a intentarlo.";
+"ai.drop.overlay" = "Suelta archivos para adjuntarlos";
 "ai.composer.dictation.start" = "Iniciar dictado";
 "ai.composer.dictation.stop" = "Detener dictado";
 "ai.composer.dictation.waiting" = "Esperando acceso al microfono...";
