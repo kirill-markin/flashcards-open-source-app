@@ -209,8 +209,10 @@ function resolveTable(
 
 /**
  * Routes a CSV object to its table by directory and file-name breakdown. A file whose name does not
- * follow the documented pattern, or whose breakdown has no table, lands in the other table, so a
- * new Google breakdown never fails the breakdown CHECK.
+ * follow the documented pattern, does not start with its directory's family name, or whose
+ * breakdown has no table, lands in the other table, so a new Google breakdown never fails the
+ * breakdown CHECK and another family in the same directory, such as
+ * stats/store_performance/total_store_performance_*, never fills a named table with its headers.
  */
 export function routePlayObject(objectName: string): PlayObjectRoute {
   const separatorIndex = objectName.lastIndexOf("/");
@@ -223,18 +225,18 @@ export function routePlayObject(objectName: string): PlayObjectRoute {
   const isNamedFile = match !== null && month !== null && month >= 1 && month <= 12;
   const prefix = isNamedFile ? match[1] : null;
   const breakdownSuffix = isNamedFile ? match[4] : null;
+  const isFamilyFile = prefix !== null
+    && prefix.startsWith(`${familyName}_`)
+    && prefix.length > familyName.length + 1;
 
   // A subscriptions file name joins the package and product id with "_", which both may contain.
-  const packageNameFromObjectName = prefix !== null
-    && reportName !== "financial-stats/subscriptions"
-    && prefix.startsWith(`${familyName}_`)
-    && prefix.length > familyName.length + 1
+  const packageNameFromObjectName = isFamilyFile && reportName !== "financial-stats/subscriptions"
     ? prefix.slice(familyName.length + 1)
     : null;
 
   return {
     reportName,
-    ...resolveTable(reportName, breakdownSuffix),
+    ...resolveTable(reportName, isFamilyFile ? breakdownSuffix : null),
     fileMonth: isNamedFile ? `${match[2]}-${match[3]}-01` : null,
     packageNameFromObjectName,
   };
