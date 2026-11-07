@@ -39,6 +39,33 @@ internal fun attachAiChatContentUri(
     )
 }
 
+/**
+ * Attaches every content URI of one paste. Images go first: the runtime refuses new attachments while a
+ * document is staging, and it stages one document at a time, refusing the rest with its busy alert.
+ */
+internal fun attachPastedAiChatContentUris(
+    context: Context,
+    uris: List<Uri>,
+    textProvider: AiTextProvider,
+    onAddPendingAttachment: (AiChatAttachment) -> Unit,
+    onImportPendingAttachment: (suspend () -> AiChatAttachment) -> Unit,
+    onShowAlert: (AiAlertState) -> Unit
+) {
+    val (imageUris, documentUris) = uris.partition { uri ->
+        isAiChatImageContentUri(context = context, uri = uri)
+    }
+    (imageUris + documentUris).forEach { uri ->
+        attachAiChatContentUri(
+            context = context,
+            uri = uri,
+            textProvider = textProvider,
+            onAddPendingAttachment = onAddPendingAttachment,
+            onImportPendingAttachment = onImportPendingAttachment,
+            onShowAlert = onShowAlert
+        )
+    }
+}
+
 /** The same type the image path checks, so an image routed there is never refused there. */
 internal fun isAiChatImageContentUri(context: Context, uri: Uri): Boolean {
     return context.contentResolver.getType(uri)?.trim()?.startsWith(prefix = "image/") == true

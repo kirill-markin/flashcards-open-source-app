@@ -75,6 +75,7 @@ import com.flashcardsopensourceapp.feature.ai.input.addAiChatImageAttachmentFrom
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.aiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes
+import com.flashcardsopensourceapp.feature.ai.input.attachPastedAiChatContentUris
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatCameraCapture
 import com.flashcardsopensourceapp.feature.ai.input.dictationAccessAlertFailureReason
 import com.flashcardsopensourceapp.feature.ai.input.handleAttachmentAction
@@ -404,8 +405,11 @@ internal fun AiRouteContent(
         }
     }
 
+    var isComposerDragHovering by remember { mutableStateOf(value = false) }
+
     AiChatDropTarget(
         isDropAllowed = showComposer && uiState.canAddDraftAttachment && activity != null,
+        isComposerDragHovering = isComposerDragHovering,
         onDrop = { event ->
             attachDroppedAiChatContent(
                 activity = requireNotNull(activity) {
@@ -543,6 +547,19 @@ internal fun AiRouteContent(
                                     onShowAlert = onShowAlert,
                                     onShowErrorMessage = onShowErrorMessage,
                                     microphonePermissionLauncher = microphonePermissionLauncher
+                                )
+                            },
+                            onComposerDragHoverChange = { isHovering ->
+                                isComposerDragHovering = isHovering
+                            },
+                            onAttachContentUris = { uris ->
+                                attachPastedAiChatContentUris(
+                                    context = context,
+                                    uris = uris,
+                                    textProvider = textProvider,
+                                    onAddPendingAttachment = onAddPendingAttachment,
+                                    onImportPendingAttachment = onImportPendingAttachment,
+                                    onShowAlert = currentShowAlertAction
                                 )
                             },
                             modifier = Modifier.fillMaxWidth()

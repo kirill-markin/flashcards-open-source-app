@@ -35,10 +35,14 @@ import com.flashcardsopensourceapp.feature.ai.input.isAiChatImageContentUri
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
-/** Takes files dropped from another app anywhere over [content], with an overlay while one hovers. */
+/**
+ * Takes files dropped from another app anywhere over [content], with an overlay while one hovers.
+ * The composer field takes drops onto itself and reports that hover through [isComposerDragHovering].
+ */
 @Composable
 internal fun AiChatDropTarget(
     isDropAllowed: Boolean,
+    isComposerDragHovering: Boolean,
     onDrop: (DragAndDropEvent) -> Boolean,
     modifier: Modifier,
     content: @Composable () -> Unit
@@ -46,8 +50,14 @@ internal fun AiChatDropTarget(
     val currentIsDropAllowed by rememberUpdatedState(isDropAllowed)
     val currentOnDrop by rememberUpdatedState(onDrop)
     var isDragHovering by remember { mutableStateOf(value = false) }
+    // The field accepts every drag, so only an attachable one shows the overlay over it.
+    var isAttachableDragStarted by remember { mutableStateOf(value = false) }
     val dropTarget = remember {
         object : DragAndDropTarget {
+            override fun onStarted(event: DragAndDropEvent) {
+                isAttachableDragStarted = true
+            }
+
             override fun onEntered(event: DragAndDropEvent) {
                 isDragHovering = true
             }
@@ -58,6 +68,7 @@ internal fun AiChatDropTarget(
 
             override fun onEnded(event: DragAndDropEvent) {
                 isDragHovering = false
+                isAttachableDragStarted = false
             }
 
             override fun onDrop(event: DragAndDropEvent): Boolean {
@@ -76,7 +87,7 @@ internal fun AiChatDropTarget(
         )
     ) {
         content()
-        if (isDragHovering && isDropAllowed) {
+        if ((isDragHovering || (isComposerDragHovering && isAttachableDragStarted)) && isDropAllowed) {
             AiChatDropOverlay(modifier = Modifier.fillMaxSize())
         }
     }
@@ -96,6 +107,7 @@ private fun isAiChatAttachableDrag(event: DragAndDropEvent): Boolean {
 /**
  * Attaches every content URI a drop carries; false when it carried none. A cross-app URI is readable
  * only while the drop's permissions are held, so they are released once every copy is made.
+ * A drop onto the composer field takes the field's own path, which holds them until the activity ends.
  */
 internal fun attachDroppedAiChatContent(
     activity: Activity,
