@@ -1506,6 +1506,7 @@ const hrCatalog: TranslationCatalog = {
       waitingForPermission: "Čekanje na pristup mikrofonu...",
     },
     dropFiles: "Ispustite datoteke za prilaganje",
+    dropFileInsteadOfPastedIcon: "Preglednik je zalijepio samo ikonu datoteke. Umjesto toga povucite datoteku ovamo.",
     empty: {
       copy: "Pitajte o karticama, povijesti ponavljanja ili priložite bilješke za izdvajanje.",
       title: "Započnite novi AI razgovor",

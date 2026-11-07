@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Obrázky v jednej správe môžu mať spolu najviac 15 MB. Niektoré z nich pošlite v inej správe.";
 "ai.attachment.error.unavailable" = "Jedna príloha už v tomto zariadení nie je. Odstráňte ju, znova ju priložte a skúste to znova.";
 "ai.attachment.error.uploadFailed" = "Prílohu sa nepodarilo nahrať. Skontrolujte pripojenie a skúste to znova.";
+"ai.drop.overlay" = "Pustite súbory sem a priložte ich";
 "ai.composer.dictation.start" = "Začať diktovanie";
 "ai.composer.dictation.stop" = "Zastaviť diktovanie";
 "ai.composer.dictation.waiting" = "Čaká sa na prístup k mikrofónu...";

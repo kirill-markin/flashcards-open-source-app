@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Picha za ujumbe mmoja zinaweza kuwa hadi 15 MB kwa jumla. Tuma baadhi yake katika ujumbe mwingine.";
 "ai.attachment.error.unavailable" = "Kiambatisho kimoja hakipo tena kwenye kifaa hiki. Kiondoe, kiambatishe tena, kisha ujaribu tena.";
 "ai.attachment.error.uploadFailed" = "Imeshindwa kupakia kiambatisho. Angalia muunganisho wako, kisha ujaribu tena.";
+"ai.drop.overlay" = "Dondosha faili ili kuambatisha";
 "ai.composer.dictation.start" = "Anza kuandika kwa sauti";
 "ai.composer.dictation.stop" = "Acha kuandika kwa sauti";
 "ai.composer.dictation.waiting" = "Inasubiri ufikiaji wa maikrofoni...";

@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">om under et minut</string>
     <string name="ai_card_attachment_title">Kort · %1$s</string>
     <string name="ai_message_label">Besked</string>
+    <string name="ai_drop_overlay">Slip filerne for at vedhæfte dem</string>
     <string name="ai_attach">Vedhæft</string>
     <string name="ai_dictate">Dikter</string>
     <string name="ai_send">Send</string>

@@ -75,6 +75,7 @@
     <string name="ai_support">الدعم</string>
     <string name="ai_consent_workspace_disclosure">قد ترسل طلبات AI من مساحة العمل &quot;%1$s&quot; المطالبات والملفات المرفوعة والصور والصوت المملى إلى خدمة AI المستضافة.</string>
     <string name="ai_message_label">الرسالة</string>
+    <string name="ai_drop_overlay">أفلت الملفات لإرفاقها</string>
     <string name="ai_attach">إرفاق</string>
     <string name="ai_dictate">إملاء</string>
     <string name="ai_send">إرسال</string>

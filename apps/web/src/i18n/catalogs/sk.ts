@@ -1506,6 +1506,7 @@ const skCatalog: TranslationCatalog = {
       waitingForPermission: "Čaká sa na prístup k mikrofónu...",
     },
     dropFiles: "Pustite súbory sem a priložte ich",
+    dropFileInsteadOfPastedIcon: "Prehliadač vložil iba ikonu súboru. Namiesto toho súbor presuňte sem.",
     empty: {
       copy: "Pýtajte sa na karty, históriu opakovania alebo priložte poznámky na spracovanie.",
       title: "Začnite nový AI chat",

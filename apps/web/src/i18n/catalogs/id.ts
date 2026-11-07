@@ -1492,6 +1492,7 @@ const idCatalog: TranslationCatalog = {
       waitingForPermission: "Menunggu akses mikrofon...",
     },
     dropFiles: "Lepaskan berkas untuk melampirkan",
+    dropFileInsteadOfPastedIcon: "Browser Anda hanya menempelkan ikon berkas. Seret berkas ke sini saja.",
     empty: {
       copy: "Tanyakan tentang kartu, riwayat tinjauan, atau lampirkan catatan untuk diekstraksi.",
       title: "Mulai obrolan AI baru",

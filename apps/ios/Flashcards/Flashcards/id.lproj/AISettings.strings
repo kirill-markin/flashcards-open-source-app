@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Total ukuran gambar dalam satu pesan maksimum 15 MB. Kirim sebagian di pesan lain.";
 "ai.attachment.error.unavailable" = "Lampiran tidak ada lagi di perangkat ini. Hapus, lampirkan lagi, lalu coba lagi.";
 "ai.attachment.error.uploadFailed" = "Tidak dapat mengunggah lampiran. Periksa koneksi, lalu coba lagi.";
+"ai.drop.overlay" = "Lepaskan berkas untuk melampirkan";
 "ai.composer.dictation.start" = "Mulai dikte";
 "ai.composer.dictation.stop" = "Hentikan dikte";
 "ai.composer.dictation.waiting" = "Menunggu akses mikrofon...";

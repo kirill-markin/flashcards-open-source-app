@@ -28,6 +28,7 @@
     <string name="ai_support">Usizo</string>
     <string name="ai_consent_workspace_disclosure">Izicelo ze-AI ezivela endaweni yokusebenza ethi “%1$s” zingathumela imiyalelo, amafayela alayishiwe, izithombe nomsindo okhulunyiwe kusevisi ye-AI ekuseva.</string>
     <string name="ai_message_label">Umlayezo</string>
+    <string name="ai_drop_overlay">Yehlisa amafayela ukuze uwanamathisele</string>
     <string name="ai_attach">Namathisela</string>
     <string name="ai_dictate">Khuluma ubhale</string>
     <string name="ai_send">Thumela</string>

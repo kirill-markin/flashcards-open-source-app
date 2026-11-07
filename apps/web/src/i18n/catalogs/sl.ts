@@ -1520,6 +1520,7 @@ const slCatalog: TranslationCatalog = {
       waitingForPermission: "Čakanje na dostop do mikrofona ...",
     },
     dropFiles: "Spustite datoteke, da jih priložite",
+    dropFileInsteadOfPastedIcon: "Brskalnik je prilepil samo ikono datoteke. Datoteko raje povlecite sem.",
     empty: {
       copy: "Vprašajte o karticah, zgodovini ponavljanja ali priložite zapiske za izluščenje.",
       title: "Začnite nov klepet z UI",

@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "एक संदेश की इमेज कुल मिलाकर अधिकतम 15 एमबी की हो सकती हैं। उनमें से कुछ किसी दूसरे संदेश में भेजें।";
 "ai.attachment.error.unavailable" = "एक अनुलग्नक अब इस डिवाइस पर नहीं है। उसे हटाएँ, फिर से संलग्न करें, फिर दोबारा कोशिश करें।";
 "ai.attachment.error.uploadFailed" = "एक अनुलग्नक अपलोड नहीं हो सका। अपना कनेक्शन जाँचें, फिर दोबारा कोशिश करें।";
+"ai.drop.overlay" = "अटैच करने के लिए फ़ाइलें छोड़ें";
 "ai.composer.dictation.start" = "श्रुतलेखन प्रारंभ करें";
 "ai.composer.dictation.stop" = "श्रुतलेख बंद करो";
 "ai.composer.dictation.waiting" = "माइक्रोफ़ोन तक पहुंच की प्रतीक्षा की जा रही है...";

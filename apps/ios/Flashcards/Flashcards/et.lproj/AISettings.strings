@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Ühe sõnumi pildid võivad kokku olla kuni 15 MB. Saada mõned neist teises sõnumis.";
 "ai.attachment.error.unavailable" = "Üht manust pole enam selles seadmes. Eemalda see, lisa see uuesti ja proovi uuesti.";
 "ai.attachment.error.uploadFailed" = "Manust ei õnnestunud üles laadida. Kontrolli ühendust ja proovi uuesti.";
+"ai.drop.overlay" = "Manustamiseks lohista failid siia";
 "ai.composer.dictation.start" = "Alusta dikteerimist";
 "ai.composer.dictation.stop" = "Peata dikteerimine";
 "ai.composer.dictation.waiting" = "Mikrofoni juurdepääsu ootamine...";

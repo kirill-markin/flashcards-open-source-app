@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Die Bilder einer Nachricht dürfen zusammen höchstens 15 MB groß sein. Senden Sie einige davon in einer anderen Nachricht.";
 "ai.attachment.error.unavailable" = "Ein Anhang ist nicht mehr auf diesem Gerät. Entfernen Sie ihn, hängen Sie ihn erneut an und versuchen Sie es noch einmal.";
 "ai.attachment.error.uploadFailed" = "Ein Anhang konnte nicht hochgeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.";
+"ai.drop.overlay" = "Dateien hier ablegen, um sie anzuhängen";
 "ai.composer.dictation.start" = "Diktat starten";
 "ai.composer.dictation.stop" = "Diktat stoppen";
 "ai.composer.dictation.waiting" = "Warten auf Zugriff auf das Mikrofon...";

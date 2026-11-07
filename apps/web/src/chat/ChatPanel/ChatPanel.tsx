@@ -320,6 +320,7 @@ export function ChatPanel(props: Props): ReactElement {
       }
       showChatTechnicalError(error, "chat_attachment_prepare");
     },
+    pastedFileIconOnlyMessage: t("chatPanel.dropFileInsteadOfPastedIcon"),
     pendingAttachmentsRef,
     setPendingAttachmentsState,
   });

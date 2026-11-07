@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">1분 이내</string>
     <string name="ai_card_attachment_title">카드 · %1$s</string>
     <string name="ai_message_label">메시지</string>
+    <string name="ai_drop_overlay">파일을 여기에 놓아 첨부하세요</string>
     <string name="ai_attach">첨부</string>
     <string name="ai_dictate">받아쓰기</string>
     <string name="ai_send">보내기</string>

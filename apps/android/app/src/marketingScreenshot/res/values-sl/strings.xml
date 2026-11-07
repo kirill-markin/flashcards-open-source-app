@@ -28,6 +28,7 @@
     <string name="ai_support">Podpora</string>
     <string name="ai_consent_workspace_disclosure">Zahteve UI iz delovnega prostora »%1$s« lahko pošljejo navodila, naložene datoteke, slike in narekovani zvok gostovani storitvi UI.</string>
     <string name="ai_message_label">Sporočilo</string>
+    <string name="ai_drop_overlay">Spustite datoteke, da jih priložite</string>
     <string name="ai_attach">Priloži</string>
     <string name="ai_dictate">Narekuj</string>
     <string name="ai_send">Pošlji</string>

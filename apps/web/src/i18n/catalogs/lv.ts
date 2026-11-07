@@ -1492,6 +1492,7 @@ const lvCatalog: TranslationCatalog = {
       waitingForPermission: "Gaida piekļuvi mikrofonam...",
     },
     dropFiles: "Nometiet failus, lai tos pievienotu",
+    dropFileInsteadOfPastedIcon: "Pārlūks ielīmēja tikai faila ikonu. Tā vietā ievelciet failu šeit.",
     empty: {
       copy: "Jautājiet par kartītēm, atkārtošanas vēsturi vai pievienojiet piezīmes, no kurām iegūt saturu.",
       title: "Sāciet jaunu MI sarunu",

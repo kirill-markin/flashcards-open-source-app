@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Obrazy w jednej wiadomości mogą mieć łącznie maksymalnie 15 MB. Wyślij niektóre z nich w innej wiadomości.";
 "ai.attachment.error.unavailable" = "Jednego z załączników nie ma już na tym urządzeniu. Usuń go, dołącz ponownie i spróbuj jeszcze raz.";
 "ai.attachment.error.uploadFailed" = "Nie udało się przesłać załącznika. Sprawdź połączenie i spróbuj ponownie.";
+"ai.drop.overlay" = "Upuść pliki, aby je dołączyć";
 "ai.composer.dictation.start" = "Rozpocznij dyktowanie";
 "ai.composer.dictation.stop" = "Zatrzymaj dyktowanie";
 "ai.composer.dictation.waiting" = "Oczekiwanie na dostęp do mikrofonu...";

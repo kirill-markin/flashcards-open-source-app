@@ -1492,6 +1492,7 @@ const fiCatalog: TranslationCatalog = {
       waitingForPermission: "Odotetaan mikrofonin käyttöoikeutta...",
     },
     dropFiles: "Liitä tiedostot pudottamalla ne tähän",
+    dropFileInsteadOfPastedIcon: "Selain liitti vain tiedoston kuvakkeen. Vedä tiedosto tähän.",
     empty: {
       copy: "Kysy korteista tai kertaushistoriasta tai liitä muistiinpanoja tietojen poimimista varten.",
       title: "Aloita uusi tekoälykeskustelu",

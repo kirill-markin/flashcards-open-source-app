@@ -28,6 +28,7 @@
     <string name="ai_support">Podpora</string>
     <string name="ai_consent_workspace_disclosure">Požiadavky AI z pracovného priestoru „%1$s“ môžu odosielať zadania, nahrané súbory, obrázky a diktovaný zvuk do hostovanej služby AI.</string>
     <string name="ai_message_label">Správa</string>
+    <string name="ai_drop_overlay">Pustite súbory sem a priložte ich</string>
     <string name="ai_attach">Priložiť</string>
     <string name="ai_dictate">Diktovať</string>
     <string name="ai_send">Odoslať</string>

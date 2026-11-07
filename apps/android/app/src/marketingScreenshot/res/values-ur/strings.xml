@@ -28,6 +28,7 @@
     <string name="ai_support">مدد</string>
     <string name="ai_consent_workspace_disclosure">“%1$s” ورک اسپیس سے اے آئی کی درخواستیں ہدایات، اپ لوڈ کردہ فائلیں، تصاویر اور بول کر ریکارڈ کیا گیا آڈیو سرور پر موجود اے آئی سروس کو بھیج سکتی ہیں۔</string>
     <string name="ai_message_label">پیغام</string>
+    <string name="ai_drop_overlay">منسلک کرنے کے لیے فائلیں یہاں چھوڑیں</string>
     <string name="ai_attach">منسلک کریں</string>
     <string name="ai_dictate">بول کر لکھیں</string>
     <string name="ai_send">بھیجیں</string>

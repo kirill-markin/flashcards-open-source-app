@@ -68,6 +68,7 @@
     <string name="ai_support">Assistance</string>
     <string name="ai_consent_workspace_disclosure">Les requêtes AI de l\'espace de travail &quot;%1$s&quot; peuvent envoyer des instructions, des fichiers importés, des images et de l\'audio dicté au service AI hébergé.</string>
     <string name="ai_message_label">Message</string>
+    <string name="ai_drop_overlay">Déposez des fichiers pour les joindre</string>
     <string name="ai_attach">Joindre</string>
     <string name="ai_dictate">Dicter</string>
     <string name="ai_send">Envoyer</string>

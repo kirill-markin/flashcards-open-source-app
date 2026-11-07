@@ -1492,6 +1492,7 @@ const nlCatalog: TranslationCatalog = {
       waitingForPermission: "Wachten op toegang tot de microfoon...",
     },
     dropFiles: "Sleep bestanden hierheen om ze toe te voegen",
+    dropFileInsteadOfPastedIcon: "Je browser heeft alleen het bestandspictogram geplakt. Sleep het bestand in plaats daarvan hierheen.",
     empty: {
       copy: "Vraag naar kaarten of je herhalingsgeschiedenis, of voeg notities toe om er kaarten uit te halen.",
       title: "Begin een nieuwe AI-chat",

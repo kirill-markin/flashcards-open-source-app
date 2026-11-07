@@ -28,6 +28,7 @@
     <string name="ai_support">Support</string>
     <string name="ai_consent_workspace_disclosure">AI-förfrågningar från arbetsytan ”%1$s” kan skicka instruktioner, uppladdade filer, bilder och dikterat ljud till den externa AI-tjänsten.</string>
     <string name="ai_message_label">Meddelande</string>
+    <string name="ai_drop_overlay">Släpp filer för att bifoga dem</string>
     <string name="ai_attach">Bifoga</string>
     <string name="ai_dictate">Diktera</string>
     <string name="ai_send">Skicka</string>

@@ -1492,6 +1492,7 @@ const ptBrCatalog: TranslationCatalog = {
       waitingForPermission: "Aguardando acesso ao microfone...",
     },
     dropFiles: "Solte os arquivos para anexar",
+    dropFileInsteadOfPastedIcon: "Seu navegador colou só o ícone do arquivo. Arraste o arquivo para cá.",
     empty: {
       copy: "Pergunte sobre cartões, histórico de revisões ou anexe anotações para extração.",
       title: "Começar um novo chat com IA",

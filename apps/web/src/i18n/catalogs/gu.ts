@@ -1492,6 +1492,7 @@ const guCatalog: TranslationCatalog = {
       waitingForPermission: "માઇક્રોફોનની ઍક્સેસની રાહ જોઈ રહ્યું છે...",
     },
     dropFiles: "જોડવા માટે ફાઇલો અહીં મૂકો",
+    dropFileInsteadOfPastedIcon: "તમારા બ્રાઉઝરે ફક્ત ફાઇલનું આઇકન પેસ્ટ કર્યું. તેના બદલે ફાઇલને અહીં ખેંચો.",
     empty: {
       copy: "કાર્ડ, પુનરાવર્તનના ઇતિહાસ વિશે પૂછો, અથવા માહિતી કાઢવા નોંધો જોડો.",
       title: "નવી AI ચૅટ શરૂ કરો",

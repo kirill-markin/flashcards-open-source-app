@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Slike u jednoj poruci mogu ukupno imati najviše 15 MB. Pošaljite neke od njih u drugoj poruci.";
 "ai.attachment.error.unavailable" = "Jedan privitak više nije na ovom uređaju. Uklonite ga, ponovno ga priložite pa pokušajte ponovno.";
 "ai.attachment.error.uploadFailed" = "Privitak nije bilo moguće prenijeti. Provjerite vezu pa pokušajte ponovno.";
+"ai.drop.overlay" = "Ispustite datoteke za prilaganje";
 "ai.composer.dictation.start" = "Pokreni diktiranje";
 "ai.composer.dictation.stop" = "Zaustavi diktiranje";
 "ai.composer.dictation.waiting" = "Čekanje pristupa mikrofonu...";

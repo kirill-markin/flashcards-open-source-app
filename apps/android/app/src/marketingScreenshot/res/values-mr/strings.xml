@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">एका मिनिटाच्या आत</string>
     <string name="ai_card_attachment_title">कार्ड · %1$s</string>
     <string name="ai_message_label">संदेश</string>
+    <string name="ai_drop_overlay">जोडण्यासाठी फाइल येथे टाका</string>
     <string name="ai_attach">जोडा</string>
     <string name="ai_dictate">बोलून लिहा</string>
     <string name="ai_send">पाठवा</string>

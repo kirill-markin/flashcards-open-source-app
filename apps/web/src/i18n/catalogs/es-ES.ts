@@ -1492,6 +1492,7 @@ const esEsCatalog: TranslationCatalog = {
       waitingForPermission: "Esperando acceso al micrófono...",
     },
     dropFiles: "Suelta archivos para adjuntarlos",
+    dropFileInsteadOfPastedIcon: "Tu navegador solo ha pegado el icono del archivo. Arrastra el archivo aquí.",
     empty: {
       copy: "Pregunta sobre tarjetas, historial de repaso o adjunta notas para extraer información.",
       title: "Inicia un nuevo chat con IA",

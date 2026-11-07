@@ -1492,6 +1492,7 @@ const huCatalog: TranslationCatalog = {
       waitingForPermission: "Várakozás a mikrofon-hozzáférésre...",
     },
     dropFiles: "Húzd ide a fájlokat a csatoláshoz",
+    dropFileInsteadOfPastedIcon: "A böngésző csak a fájl ikonját illesztette be. Inkább húzd ide a fájlt.",
     empty: {
       copy: "Kérdezz kártyákról, ismétlési előzményekről, vagy csatolj jegyzeteket feldolgozásra.",
       title: "Új AI-csevegés indítása",

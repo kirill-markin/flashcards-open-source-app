@@ -1506,6 +1506,7 @@ const plCatalog: TranslationCatalog = {
       waitingForPermission: "Czekam na dostęp do mikrofonu...",
     },
     dropFiles: "Upuść pliki, aby je dołączyć",
+    dropFileInsteadOfPastedIcon: "Przeglądarka wkleiła tylko ikonę pliku. Zamiast tego przeciągnij plik tutaj.",
     empty: {
       copy: "Zapytaj o karty, historię powtórek lub dołącz notatki do przetworzenia.",
       title: "Rozpocznij nowy czat AI",

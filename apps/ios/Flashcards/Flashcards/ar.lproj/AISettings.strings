@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "يمكن أن يصل الحجم الإجمالي للصور في الرسالة الواحدة إلى 15 ميجابايت كحد أقصى. أرسل بعضها في رسالة أخرى.";
 "ai.attachment.error.unavailable" = "لم يعد أحد المرفقات موجودًا على هذا الجهاز. أزله وأرفقه مرة أخرى، ثم حاول مرة أخرى.";
 "ai.attachment.error.uploadFailed" = "تعذر رفع أحد المرفقات. تحقق من اتصالك، ثم حاول مرة أخرى.";
+"ai.drop.overlay" = "أفلت الملفات لإرفاقها";
 "ai.composer.dictation.start" = "بدء الإملاء";
 "ai.composer.dictation.stop" = "إيقاف الإملاء";
 "ai.composer.dictation.waiting" = "في انتظار الوصول إلى الميكروفون...";

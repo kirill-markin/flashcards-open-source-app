@@ -1,5 +1,12 @@
 package com.flashcardsopensourceapp.feature.ai.input
 
+import android.content.ContentResolver
+import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.content.ReceiveContentListener
+import androidx.compose.foundation.content.TransferableContent
+import androidx.compose.foundation.content.consume
+import androidx.compose.foundation.content.contentReceiver
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
@@ -71,6 +79,7 @@ private val aiComposerPrimaryActionSize = 36.dp
 private val aiComposerProgressSize = 16.dp
 private const val aiComposerMaximumLineCount = 5
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun AiComposer(
     uiState: AiUiState,
@@ -83,11 +92,17 @@ internal fun AiComposer(
     onCancelAttachmentImport: () -> Unit,
     onOpenAttachmentMenu: () -> Unit,
     onToggleDictation: () -> Unit,
+    onComposerDragHoverChange: (Boolean) -> Unit,
+    onAttachContentUris: (List<Uri>) -> Unit,
     modifier: Modifier
 ) {
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
     val focusRequester = remember { FocusRequester() }
+    val draftTextState = rememberAiComposerDraftTextState(
+        draftMessage = uiState.draftMessage,
+        onDraftMessageChange = onDraftMessageChange
+    )
     val primaryActionLabel = stringResource(
         id = if (uiState.canStopStreaming) {
             R.string.ai_stop
@@ -255,13 +270,14 @@ internal fun AiComposer(
             }
 
             OutlinedTextField(
-                value = uiState.draftMessage,
-                onValueChange = onDraftMessageChange,
+                state = draftTextState,
                 label = {
                     Text(stringResource(id = R.string.ai_message_label))
                 },
-                minLines = 1,
-                maxLines = aiComposerMaximumLineCount,
+                lineLimits = TextFieldLineLimits.MultiLine(
+                    minHeightInLines = 1,
+                    maxHeightInLines = aiComposerMaximumLineCount
+                ),
                 enabled = uiState.canEditDraftText,
                 trailingIcon = {
                     FilledIconButton(
@@ -310,6 +326,13 @@ internal fun AiComposer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
+                    .contentReceiver(
+                        receiveContentListener = aiComposerReceiveContentListener(
+                            canAddDraftAttachment = uiState.canAddDraftAttachment,
+                            onDragHoverChange = onComposerDragHoverChange,
+                            onAttachContentUris = onAttachContentUris
+                        )
+                    )
                     .testTag(tag = aiComposerMessageFieldTag)
             )
 
@@ -406,6 +429,65 @@ internal fun AiComposer(
     }
 }
 
+/**
+ * The field is a drop target of its own, so it reports the drag hovering it for the chat's drop overlay.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun aiComposerReceiveContentListener(
+    canAddDraftAttachment: Boolean,
+    onDragHoverChange: (Boolean) -> Unit,
+    onAttachContentUris: (List<Uri>) -> Unit
+): ReceiveContentListener {
+    return object : ReceiveContentListener {
+        override fun onDragEnter() {
+            onDragHoverChange(true)
+        }
+
+        override fun onDragExit() {
+            onDragHoverChange(false)
+        }
+
+        override fun onDragEnd() {
+            onDragHoverChange(false)
+        }
+
+        override fun onReceive(transferableContent: TransferableContent): TransferableContent? {
+            if (canAddDraftAttachment.not()) {
+                return transferableContent
+            }
+            return attachAiComposerContentUris(
+                transferableContent = transferableContent,
+                onAttachContentUris = onAttachContentUris
+            )
+        }
+    }
+}
+
+/**
+ * Takes the files out of a paste, a keyboard's image insertion, or a drop onto the field and hands
+ * them over, returning the rest, such as text, to be inserted as usual. Only a `content:` URI names a
+ * readable file, so a copied web link is left alone.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun attachAiComposerContentUris(
+    transferableContent: TransferableContent,
+    onAttachContentUris: (List<Uri>) -> Unit
+): TransferableContent? {
+    val contentUris = mutableListOf<Uri>()
+    val remainingContent = transferableContent.consume { item ->
+        val uri: Uri? = item.uri
+        if (uri != null && uri.scheme == ContentResolver.SCHEME_CONTENT) {
+            contentUris.add(uri)
+            true
+        } else {
+            false
+        }
+    }
+    if (contentUris.isNotEmpty()) {
+        onAttachContentUris(contentUris)
+    }
+    return remainingContent
+}
 
 @Composable
 private fun cardAttachmentTextFormatter(): (String) -> String {

@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">এক মিনিটের কম সময়ে</string>
     <string name="ai_card_attachment_title">কার্ড · %1$s</string>
     <string name="ai_message_label">বার্তা</string>
+    <string name="ai_drop_overlay">সংযুক্ত করতে ফাইল এখানে ছাড়ুন</string>
     <string name="ai_attach">সংযুক্ত করুন</string>
     <string name="ai_dictate">মুখে বলুন</string>
     <string name="ai_send">পাঠান</string>

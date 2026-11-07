@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Bilderna i ett meddelande får tillsammans vara högst 15 MB. Skicka några av dem i ett annat meddelande.";
 "ai.attachment.error.unavailable" = "En bilaga finns inte längre på den här enheten. Ta bort den, bifoga den igen och försök igen.";
 "ai.attachment.error.uploadFailed" = "Det gick inte att ladda upp en bilaga. Kontrollera anslutningen och försök igen.";
+"ai.drop.overlay" = "Släpp filer för att bifoga dem";
 "ai.composer.dictation.start" = "Starta diktering";
 "ai.composer.dictation.stop" = "Stoppa diktering";
 "ai.composer.dictation.waiting" = "Väntar på mikrofonåtkomst...";

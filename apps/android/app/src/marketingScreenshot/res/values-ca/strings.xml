@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">en menys d\'un minut</string>
     <string name="ai_card_attachment_title">Targeta · %1$s</string>
     <string name="ai_message_label">Missatge</string>
+    <string name="ai_drop_overlay">Deixa anar els fitxers per adjuntar-los</string>
     <string name="ai_attach">Adjunta</string>
     <string name="ai_dictate">Dicta</string>
     <string name="ai_send">Envia</string>

@@ -57,6 +57,7 @@
 "ai.attachment.error.imagesTooLarge" = "Vienos žinutės paveikslėliai kartu gali užimti ne daugiau kaip 15 MB. Kai kuriuos išsiųskite kitoje žinutėje.";
 "ai.attachment.error.unavailable" = "Vieno priedo šiame įrenginyje nebėra. Pašalinkite jį, pridėkite iš naujo ir bandykite dar kartą.";
 "ai.attachment.error.uploadFailed" = "Nepavyko įkelti priedo. Patikrinkite ryšį ir bandykite dar kartą.";
+"ai.drop.overlay" = "Nutempkite failus, kad juos pridėtumėte";
 "ai.composer.dictation.start" = "Pradėti diktavimą";
 "ai.composer.dictation.stop" = "Sustabdyti diktavimą";
 "ai.composer.dictation.waiting" = "Laukiama prieigos prie mikrofono...";
