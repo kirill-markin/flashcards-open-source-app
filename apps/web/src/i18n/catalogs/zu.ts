@@ -1355,7 +1355,7 @@ const zuCatalog: TranslationCatalog = {
     newDeck: "Inqwaba entsha",
     statLabels: {
       cards: {
-        one: "amakhadi",
+        one: "ikhadi",
         other: "amakhadi",
       },
       new: {
