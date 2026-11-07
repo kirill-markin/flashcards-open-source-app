@@ -1104,6 +1104,7 @@ const svCatalog: TranslationCatalog = {
     scopeLabel: "Omfattning",
     searchLabel: "Sök",
     searchPlaceholder: "Sök kortlekar eller taggar",
+    triggerTooltip: "Repetitionsfilter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopiera {{side}}",

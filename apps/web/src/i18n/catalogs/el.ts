@@ -1104,6 +1104,7 @@ const elCatalog: TranslationCatalog = {
     scopeLabel: "Εμβέλεια",
     searchLabel: "Αναζήτηση",
     searchPlaceholder: "Αναζήτηση δεσμών ή ετικετών",
+    triggerTooltip: "Φίλτρο επανάληψης: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Αντιγραφή: {{side}}",

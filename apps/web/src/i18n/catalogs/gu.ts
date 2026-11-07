@@ -1104,6 +1104,7 @@ const guCatalog: TranslationCatalog = {
     scopeLabel: "વ્યાપ",
     searchLabel: "શોધો",
     searchPlaceholder: "ડેક કે ટૅગ શોધો",
+    triggerTooltip: "પુનરાવર્તન ફિલ્ટર: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} કૉપિ કરો",

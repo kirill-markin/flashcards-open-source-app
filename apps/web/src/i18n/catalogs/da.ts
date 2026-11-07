@@ -1104,6 +1104,7 @@ const daCatalog: TranslationCatalog = {
     scopeLabel: "Omfang",
     searchLabel: "Søg",
     searchPlaceholder: "Søg i bunker eller tags",
+    triggerTooltip: "Repetitionsfilter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopiér {{side}}",

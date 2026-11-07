@@ -5,6 +5,7 @@ import UIKit
 /// Owns only this scene's native toolbar. UIKit navigation remains screen-owned.
 struct MacWindowAppearance: UIViewRepresentable {
     let configuration: MacWindowToolbarConfiguration
+    let sidebarCommandTarget: MacSidebarCommandTarget?
     let onSidebarVisibilityChange: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -24,6 +25,8 @@ struct MacWindowAppearance: UIViewRepresentable {
     func updateUIView(_ view: WindowView, context: Context) {
         context.coordinator.onSidebarVisibilityChange = self.onSidebarVisibilityChange
         context.coordinator.update(configuration: self.configuration, view: view)
+        // Reading the request here subscribes this update to it.
+        context.coordinator.consumeSidebarToggleRequest(target: self.sidebarCommandTarget)
     }
 
     static func dismantleUIView(_ view: WindowView, coordinator: Coordinator) {
@@ -65,6 +68,8 @@ struct MacWindowAppearance: UIViewRepresentable {
         private let searchField = ToolbarSearchField()
         private var lastModelSearchText: String?
         private var consumedSearchFocusRequest: UUID?
+        private var consumedActivationRequest: UUID?
+        private var consumedSidebarToggleRequest: UUID?
         private var appliedPresentation: MacToolbarPresentation?
         /// Each click waiting for our popover's animation queues its own completion; only the latest one runs.
         private var pendingClickID: UUID?
@@ -111,10 +116,24 @@ struct MacWindowAppearance: UIViewRepresentable {
             if presentation == self.appliedPresentation, self.toolbar != nil, self.splitViewController != nil, self.bridgeView === view,
                let scene = view.window?.windowScene, scene === self.scene, scene.titlebar?.toolbar === self.toolbar {
                 self.actions = Self.actionsByIdentifier(configuration)
+                self.scheduleActivationRequest()
                 return
             }
             self.attach(view: view)
             self.appliedPresentation = presentation
+            self.scheduleActivationRequest()
+        }
+
+        /// Runs after the SwiftUI update that requested it, through the same path as a click.
+        private func scheduleActivationRequest() {
+            let actions = (self.configuration.leading + self.configuration.trailing).flatMap(\.actions)
+            guard let action = actions.first(where: { $0.activationRequest != nil }), let request = action.activationRequest,
+                  request.id != self.consumedActivationRequest else { return }
+            self.consumedActivationRequest = request.id
+            DispatchQueue.main.async { [weak self] in
+                self?.performAction(identifier: action.identifier)
+                request.onHandled()
+            }
         }
 
         private static func actionsByIdentifier(_ configuration: MacWindowToolbarConfiguration) -> [String: MacToolbarAction] {
@@ -198,7 +217,7 @@ struct MacWindowAppearance: UIViewRepresentable {
                 item.isBordered = true
                 item.label = button.accessibilityLabel ?? ""
                 item.paletteLabel = item.label
-                item.toolTip = item.label
+                item.toolTip = String(localized: "mac.sidebar.tooltip", table: "Foundation")
                 item.visibilityPriority = .high
                 item.autovalidates = false
                 self.sidebarItem = item
@@ -210,6 +229,17 @@ struct MacWindowAppearance: UIViewRepresentable {
             (primary as? UINavigationController)?.topViewController?.viewIfLoaded?.backgroundColor = .clear
             (primary as? UINavigationController)?.topViewController?.viewIfLoaded?.isOpaque = false
             return didChangeSplit
+        }
+
+        /// The View menu's sidebar command runs the toolbar button's toggle.
+        func consumeSidebarToggleRequest(target: MacSidebarCommandTarget?) {
+            guard let target, let request = target.toggleRequestID, request != self.consumedSidebarToggleRequest else { return }
+            self.consumedSidebarToggleRequest = request
+            // Leave the SwiftUI update pass before changing view state.
+            DispatchQueue.main.async { [weak self] in
+                target.toggleRequestID = nil
+                self?.toggleSidebar()
+            }
         }
 
         @objc private func toggleSidebar() {
@@ -346,7 +376,7 @@ struct MacWindowAppearance: UIViewRepresentable {
             entry.item.image = image
             entry.item.label = action.label
             entry.item.paletteLabel = action.label
-            entry.item.toolTip = action.label
+            entry.item.toolTip = action.toolTip ?? action.label
             entry.item.isEnabled = action.isEnabled
             entry.item.itemMenuFormRepresentation = UIAction(title: action.label, image: image,
                 attributes: action.isEnabled ? [] : .disabled, state: action.isSelected ? .on : .off) { [weak self] _ in
@@ -515,6 +545,7 @@ struct MacWindowAppearance: UIViewRepresentable {
                 let previous = self.presentation[index], next = actions[index]
                 return previous.title != next.title || previous.symbol != next.symbol
                     || previous.symbolColor != next.symbolColor || previous.label != next.label
+                    || previous.toolTip != next.toolTip
                     || previous.isEnabled != next.isEnabled || previous.isSelected != next.isSelected
             }
             guard !changed.isEmpty else { return }
@@ -527,7 +558,7 @@ struct MacWindowAppearance: UIViewRepresentable {
                 child.image = image
                 child.label = action.label
                 child.paletteLabel = action.label
-                child.toolTip = action.label
+                child.toolTip = action.toolTip ?? action.label
                 child.isEnabled = action.isEnabled
                 child.autovalidates = false
                 child.itemMenuFormRepresentation = UIAction(title: action.label, image: image,

@@ -18,6 +18,7 @@ export const reviewShortcutRatingsByKey: Readonly<Record<string, ReviewRating>> 
 
 export const reviewSpeechShortcutKey = "R";
 export const reviewCopyShortcutKey = "C";
+export const reviewFilterShortcutKey = "F";
 
 // A typed ASCII letter wins (Dvorak, Colemak, Caps Lock); otherwise the physical key position names the letter (non-Latin layouts).
 export function reviewShortcutLetter(event: KeyboardEvent): string | null {

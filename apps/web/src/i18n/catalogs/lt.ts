@@ -1114,6 +1114,7 @@ const ltCatalog: TranslationCatalog = {
     scopeLabel: "Aprėptis",
     searchLabel: "Paieška",
     searchPlaceholder: "Ieškoti kaladžių arba žymų",
+    triggerTooltip: "Kartojimo filtras: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopijuoti: {{side}}",

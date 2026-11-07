@@ -1104,6 +1104,7 @@ const urCatalog: TranslationCatalog = {
     scopeLabel: "دائرہ",
     searchLabel: "تلاش",
     searchPlaceholder: "ڈیکس یا ٹیگز تلاش کریں",
+    triggerTooltip: "دہرائی کا فلٹر: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} کاپی کریں",

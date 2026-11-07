@@ -1104,6 +1104,7 @@ const koCatalog: TranslationCatalog = {
     scopeLabel: "범위",
     searchLabel: "검색",
     searchPlaceholder: "덱 또는 태그 검색",
+    triggerTooltip: "복습 필터: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} 복사",

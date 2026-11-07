@@ -1104,6 +1104,7 @@ const paCatalog: TranslationCatalog = {
     scopeLabel: "ਦਾਇਰਾ",
     searchLabel: "ਖੋਜ",
     searchPlaceholder: "ਡੈੱਕ ਜਾਂ ਟੈਗ ਲੱਭੋ",
+    triggerTooltip: "ਦੁਹਰਾਈ ਫਿਲਟਰ: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} ਕਾਪੀ ਕਰੋ",

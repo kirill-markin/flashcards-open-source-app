@@ -1104,6 +1104,7 @@ const deCatalog: TranslationCatalog = {
     scopeLabel: "Umfang",
     searchLabel: "Suchen",
     searchPlaceholder: "Decks oder Tags suchen",
+    triggerTooltip: "Wiederholungsfilter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} kopieren",

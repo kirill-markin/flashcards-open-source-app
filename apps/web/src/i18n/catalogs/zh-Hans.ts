@@ -1104,6 +1104,7 @@ export const zhHansCatalog = {
     scopeLabel: "范围",
     searchLabel: "搜索",
     searchPlaceholder: "搜索牌组或标签",
+    triggerTooltip: "复习筛选器：{{filter}}（{{key}}）",
   },
   reviewScreen: {
     copyAriaLabel: "复制{{side}}",

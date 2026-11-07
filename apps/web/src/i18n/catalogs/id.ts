@@ -1104,6 +1104,7 @@ const idCatalog: TranslationCatalog = {
     scopeLabel: "Cakupan",
     searchLabel: "Cari",
     searchPlaceholder: "Cari dek atau tag",
+    triggerTooltip: "Filter tinjauan: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Salin {{side}}",

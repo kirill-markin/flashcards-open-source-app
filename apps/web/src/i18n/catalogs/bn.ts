@@ -1104,6 +1104,7 @@ const bnCatalog: TranslationCatalog = {
     scopeLabel: "পরিধি",
     searchLabel: "খুঁজুন",
     searchPlaceholder: "ডেক বা ট্যাগ খুঁজুন",
+    triggerTooltip: "পুনরালোচনার ফিল্টার: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} কপি করুন",

@@ -60,6 +60,7 @@ struct RootTabView: View {
     @State private var isKeyboardDocked: Bool = false
     #if targetEnvironment(macCatalyst)
     @State private var macSidebarVisibility: NavigationSplitViewVisibility = .all
+    @Environment(\.macSidebarCommandTarget) private var macSidebarCommandTarget
     @Environment(\.sidebarRowSize) private var sidebarRowSize
     #endif
 
@@ -276,13 +277,20 @@ struct RootTabView: View {
         }
         #if targetEnvironment(macCatalyst)
         .backgroundPreferenceValue(MacToolbarPreferenceKey.self) { preferences in
-            MacWindowAppearance(configuration: self.macToolbarConfiguration(preferences), onSidebarVisibilityChange: { isVisible in
-                withAnimation(self.reduceMotion ? nil : .default) {
-                    self.macSidebarVisibility = isVisible ? .all : .detailOnly
+            MacWindowAppearance(
+                configuration: self.macToolbarConfiguration(preferences),
+                sidebarCommandTarget: self.macSidebarCommandTarget,
+                onSidebarVisibilityChange: { isVisible in
+                    withAnimation(self.reduceMotion ? nil : .default) {
+                        self.macSidebarVisibility = isVisible ? .all : .detailOnly
+                    }
                 }
-            })
+            )
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
+        }
+        .onChange(of: self.macSidebarVisibility, initial: true) { _, visibility in
+            self.macSidebarCommandTarget?.isSidebarVisible = visibility != .detailOnly
         }
         #endif
         .onChange(of: self.subscriptionIdentity) { _, _ in

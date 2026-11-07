@@ -123,6 +123,7 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
 
     private lazy var speechCommand: UIKeyCommand = reviewLetterKeyCommand(input: "r", action: #selector(self.toggleSpeech(_:)))
     private lazy var copyCommand: UIKeyCommand = reviewLetterKeyCommand(input: "c", action: #selector(self.copyActiveSide(_:)))
+    private lazy var filterCommand: UIKeyCommand = reviewLetterKeyCommand(input: "f", action: #selector(self.openFilter(_:)))
     /// The press `pressesBegan` handled itself, so its end is not forwarded either.
     private var keyPositionPress: UIPress?
 
@@ -136,6 +137,7 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
             + (actions.rate == nil ? [] : self.ratingCommands)
             + (actions.toggleSpeech == nil ? [] : [self.speechCommand])
             + (actions.copy == nil ? [] : [self.copyCommand])
+            + (actions.openFilter == nil ? [] : [self.filterCommand])
     }
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
@@ -150,6 +152,9 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
         }
         if action == #selector(self.copyActiveSide(_:)) {
             return self.target?.actions?.copy != nil
+        }
+        if action == #selector(self.openFilter(_:)) {
+            return self.target?.actions?.openFilter != nil
         }
         return super.canPerformAction(action, withSender: sender)
     }
@@ -187,7 +192,7 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
     }
 
     /// Letter key commands match the typed character, so on a layout without Latin letters,
-    /// such as Russian or Greek, R and C match by key position instead.
+    /// such as Russian or Greek, R, C, and F match by key position instead.
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         guard presses.count == 1, let press = presses.first, let action = self.keyPositionAction(press: press) else {
             super.pressesBegan(presses, with: event)
@@ -218,6 +223,7 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
         switch key.keyCode {
         case .keyboardR: return actions.toggleSpeech
         case .keyboardC: return actions.copy
+        case .keyboardF: return actions.openFilter
         default: return nil
         }
     }
@@ -252,6 +258,7 @@ private final class ReviewKeyCommandController: UIHostingController<AnyView> {
     @objc private func rateEasy(_ command: UIKeyCommand) { self.target?.actions?.rate?(.easy) }
     @objc private func toggleSpeech(_ command: UIKeyCommand) { self.target?.actions?.toggleSpeech?() }
     @objc private func copyActiveSide(_ command: UIKeyCommand) { self.target?.actions?.copy?() }
+    @objc private func openFilter(_ command: UIKeyCommand) { self.target?.actions?.openFilter?() }
 }
 
 /// Untitled, so the command stays out of the menu and the iPad shortcut overlay, which the Review menu fills.

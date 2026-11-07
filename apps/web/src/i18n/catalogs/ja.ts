@@ -1104,6 +1104,7 @@ export const jaCatalog = {
     scopeLabel: "範囲",
     searchLabel: "検索",
     searchPlaceholder: "デッキまたはタグを検索",
+    triggerTooltip: "復習フィルター：{{filter}}（{{key}}）",
   },
   reviewScreen: {
     copyAriaLabel: "{{side}}をコピー",

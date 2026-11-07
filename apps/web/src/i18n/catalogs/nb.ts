@@ -1104,6 +1104,7 @@ const nbCatalog: TranslationCatalog = {
     scopeLabel: "Omfang",
     searchLabel: "Søk",
     searchPlaceholder: "Søk i kortstokker eller tagger",
+    triggerTooltip: "Repetisjonsfilter: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopier {{side}}",

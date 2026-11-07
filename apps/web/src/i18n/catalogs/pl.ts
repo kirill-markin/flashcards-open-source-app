@@ -1114,6 +1114,7 @@ const plCatalog: TranslationCatalog = {
     scopeLabel: "Zakres",
     searchLabel: "Szukaj",
     searchPlaceholder: "Szukaj talii lub tagów",
+    triggerTooltip: "Filtr powtórek: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopiuj: {{side}}",

@@ -12,6 +12,7 @@ struct ReviewKeyboardActions {
     let isActiveSideSpeaking: Bool
     let toggleSpeech: (@MainActor () -> Void)?
     let copy: (@MainActor () -> Void)?
+    let openFilter: (@MainActor () -> Void)?
 }
 
 /// The Review menu shows the keys and serves pointer clicks. The window's `ReviewKeyCommandController`
@@ -54,6 +55,12 @@ private struct ReviewMenuItems: View {
         }
         .keyboardShortcut("c", modifiers: [])
         .disabled(self.target?.actions?.copy == nil)
+        Divider()
+        Button(String(localized: "Filter…", table: reviewCardsStringsTableName)) {
+            self.target?.actions?.openFilter?()
+        }
+        .keyboardShortcut("f", modifiers: [])
+        .disabled(self.target?.actions?.openFilter == nil)
     }
 }
 

@@ -234,6 +234,9 @@ struct FlashcardsApp: App {
     var body: some Scene {
         WindowGroup {
             ReviewKeyCommandOwner { RootTabView() }
+                #if targetEnvironment(macCatalyst)
+                .macSidebarCommandOwner()
+                #endif
                 .tint(store.displayedAccountAccentColor.color)
                 .accentColor(store.displayedAccountAccentColor.color)
                 .preferredColorScheme(store.effectiveAccountTheme.colorScheme)

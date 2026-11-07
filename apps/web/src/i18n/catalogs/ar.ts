@@ -1104,6 +1104,7 @@ const arCatalog: TranslationCatalog = {
     scopeLabel: "النطاق",
     searchLabel: "بحث",
     searchPlaceholder: "ابحث في المجموعات أو الوسوم",
+    triggerTooltip: "فلتر المراجعة: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "نسخ {{side}}",

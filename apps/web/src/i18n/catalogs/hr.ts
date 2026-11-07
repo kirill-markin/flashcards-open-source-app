@@ -1114,6 +1114,7 @@ const hrCatalog: TranslationCatalog = {
     scopeLabel: "Opseg",
     searchLabel: "Pretraživanje",
     searchPlaceholder: "Pretraži špilove ili oznake",
+    triggerTooltip: "Filtar ponavljanja: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopiraj: {{side}}",

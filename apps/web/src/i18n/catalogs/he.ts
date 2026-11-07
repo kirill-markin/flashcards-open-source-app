@@ -1104,6 +1104,7 @@ const heCatalog: TranslationCatalog = {
     scopeLabel: "היקף",
     searchLabel: "חיפוש",
     searchPlaceholder: "חפש חפיסות או תגיות",
+    triggerTooltip: "מסנן חזרה: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "העתקת {{side}}",

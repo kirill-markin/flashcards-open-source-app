@@ -1104,6 +1104,7 @@ const thCatalog: TranslationCatalog = {
     scopeLabel: "ขอบเขต",
     searchLabel: "ค้นหา",
     searchPlaceholder: "ค้นหาเด็คหรือแท็ก",
+    triggerTooltip: "ตัวกรองการทบทวน: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "คัดลอก{{side}}",

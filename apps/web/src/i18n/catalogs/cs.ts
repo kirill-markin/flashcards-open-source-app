@@ -1114,6 +1114,7 @@ const csCatalog: TranslationCatalog = {
     scopeLabel: "Rozsah",
     searchLabel: "Hledat",
     searchPlaceholder: "Hledat balíčky nebo štítky",
+    triggerTooltip: "Filtr opakování: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopírovat: {{side}}",

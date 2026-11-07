@@ -1124,6 +1124,7 @@ const slCatalog: TranslationCatalog = {
     scopeLabel: "Obseg",
     searchLabel: "Iskanje",
     searchPlaceholder: "Išči komplete ali oznake",
+    triggerTooltip: "Filter ponavljanja: {{filter}} ({{key}})",
   },
   reviewScreen: {
     copyAriaLabel: "Kopiraj: {{side}}",
