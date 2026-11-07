@@ -87,7 +87,7 @@ struct MacToolbarScrollSurfaceMarker: UIViewRepresentable {
             guard self.window != nil else { return }
             var ancestor = self.superview
             while let view = ancestor {
-                if let scroll = view as? UIScrollView, !(scroll is UITextView) {
+                if let scroll = view as? UIScrollView, !(scroll is UITextView), !(scroll is ReviewCodeBlockScrollView) {
                     MacToolbarScrollSurfaces.register(scroll, name: self.name)
                     return
                 }
@@ -295,7 +295,7 @@ struct MacSharedToolbarBackdrop: UIViewRepresentable {
             let safeTop = self.convert(self.safeAreaLayoutGuide.layoutFrame, to: window).minY
             func search(_ view: UIView) {
                 guard view !== self, !view.isHidden, view.alpha > 0 else { return }
-                if let scroll = view as? UIScrollView, !(scroll is UITextView), let parent = scroll.superview {
+                if let scroll = view as? UIScrollView, !(scroll is UITextView), !(scroll is ReviewCodeBlockScrollView), let parent = scroll.superview {
                     let frame = parent.convert(scroll.frame, to: window)
                     // Full-height content under this toolbar only: exclude horizontal
                     // suggestions, composer editors, sheets and popovers.
