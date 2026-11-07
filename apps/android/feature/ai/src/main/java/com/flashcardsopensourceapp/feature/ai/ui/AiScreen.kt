@@ -75,7 +75,7 @@ import com.flashcardsopensourceapp.feature.ai.input.addAiChatImageAttachmentFrom
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.aiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes
-import com.flashcardsopensourceapp.feature.ai.input.attachPastedAiChatContentUris
+import com.flashcardsopensourceapp.feature.ai.input.attachAiChatContentUris
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatCameraCapture
 import com.flashcardsopensourceapp.feature.ai.input.dictationAccessAlertFailureReason
 import com.flashcardsopensourceapp.feature.ai.input.handleAttachmentAction
@@ -553,7 +553,7 @@ internal fun AiRouteContent(
                                 isComposerDragHovering = isHovering
                             },
                             onAttachContentUris = { uris ->
-                                attachPastedAiChatContentUris(
+                                attachAiChatContentUris(
                                     context = context,
                                     uris = uris,
                                     textProvider = textProvider,

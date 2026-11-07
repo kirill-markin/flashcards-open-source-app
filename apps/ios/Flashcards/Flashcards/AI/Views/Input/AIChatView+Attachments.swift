@@ -166,14 +166,15 @@ extension AIChatView {
     }
 }
 
-/// Refuses drags that carry no file or image, such as selected text or a link, so the overlay never shows for them.
+/// Refuses drags that carry no file or image, such as selected text or a link, so the overlay never shows for them,
+/// and every drag while attaching is blocked, so the system shows its "not allowed" state.
 struct AIChatAttachmentDropDelegate: DropDelegate {
     @Binding var isTargeted: Bool
     let canAttachToDraft: Bool
     let onDrop: @MainActor ([NSItemProvider]) -> Void
 
     func validateDrop(info: DropInfo) -> Bool {
-        info.itemProviders(for: [.item]).contains { itemProvider in
+        self.canAttachToDraft && info.itemProviders(for: [.item]).contains { itemProvider in
             aiChatItemProviderCanMakeAttachment(itemProvider: itemProvider)
         }
     }

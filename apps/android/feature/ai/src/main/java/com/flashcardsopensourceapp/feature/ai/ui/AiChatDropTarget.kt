@@ -30,8 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.feature.ai.R
-import com.flashcardsopensourceapp.feature.ai.input.attachAiChatContentUri
-import com.flashcardsopensourceapp.feature.ai.input.isAiChatImageContentUri
+import com.flashcardsopensourceapp.feature.ai.input.attachAiChatContentUris
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 
@@ -125,32 +124,26 @@ internal fun attachDroppedAiChatContent(
     }
 
     val permissions = activity.requestDragAndDropPermissions(dragEvent)
-    // Images are copied before their routing returns, so they go first. The runtime then stages one
-    // document at a time and refuses the rest, so that staging is the last read and releases the
-    // permissions. A staging refused or cancelled before it starts keeps them until the activity ends.
-    val (imageUris, documentUris) = uris.partition { uri ->
-        isAiChatImageContentUri(context = activity, uri = uri)
-    }
+    // The document staging is the last read, so it releases the permissions. A staging refused or
+    // cancelled before it starts keeps them until the activity ends.
     var isHeldByDocumentStaging = false
-    (imageUris + documentUris).forEach { uri ->
-        attachAiChatContentUri(
-            context = activity,
-            uri = uri,
-            textProvider = textProvider,
-            onAddPendingAttachment = onAddPendingAttachment,
-            onImportPendingAttachment = { stageAttachment ->
-                isHeldByDocumentStaging = true
-                onImportPendingAttachment {
-                    try {
-                        stageAttachment()
-                    } finally {
-                        permissions?.release()
-                    }
+    attachAiChatContentUris(
+        context = activity,
+        uris = uris,
+        textProvider = textProvider,
+        onAddPendingAttachment = onAddPendingAttachment,
+        onImportPendingAttachment = { stageAttachment ->
+            isHeldByDocumentStaging = true
+            onImportPendingAttachment {
+                try {
+                    stageAttachment()
+                } finally {
+                    permissions?.release()
                 }
-            },
-            onShowAlert = onShowAlert
-        )
-    }
+            }
+        },
+        onShowAlert = onShowAlert
+    )
     if (isHeldByDocumentStaging.not()) {
         permissions?.release()
     }

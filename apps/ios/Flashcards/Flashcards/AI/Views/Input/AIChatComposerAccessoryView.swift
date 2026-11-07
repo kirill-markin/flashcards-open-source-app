@@ -349,8 +349,10 @@ extension AIChatView {
             text: self.composerTextBinding,
             selection: self.composerSelectionBinding,
             isFocused: self.$isComposerFocused,
+            isAttachmentDropHovering: self.$isComposerDropHovering,
             placeholder: placeholder,
             isDisabled: self.composerTextFieldDisabled,
+            canAttachToDraft: self.chatStore.canAttachToDraft,
             maximumLineCount: aiChatComposerMaximumLineCount,
             onAttachmentItemProviders: self.attachItemProviders,
             macReturnKeyOwner: self.macComposerReturnKeyOwner
@@ -360,8 +362,10 @@ extension AIChatView {
             text: self.composerTextBinding,
             selection: self.composerSelectionBinding,
             isFocused: self.$isComposerFocused,
+            isAttachmentDropHovering: self.$isComposerDropHovering,
             placeholder: placeholder,
             isDisabled: self.composerTextFieldDisabled,
+            canAttachToDraft: self.chatStore.canAttachToDraft,
             maximumLineCount: aiChatComposerMaximumLineCount,
             onAttachmentItemProviders: self.attachItemProviders
         )
