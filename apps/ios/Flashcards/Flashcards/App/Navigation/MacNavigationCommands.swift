@@ -2,12 +2,56 @@
 import SwiftUI
 import UIKit
 
+/// One window's sidebar state for the View menu. `RootTabView` keeps `isSidebarVisible` current,
+/// and its toolbar coordinator runs and clears `toggleRequestID`.
+@MainActor
+@Observable
+final class MacSidebarCommandTarget {
+    var isSidebarVisible: Bool = true
+    var toggleRequestID: UUID? = nil
+}
+
+extension EnvironmentValues {
+    @Entry var macSidebarCommandTarget: MacSidebarCommandTarget? = nil
+}
+
+extension FocusedValues {
+    @Entry var macSidebarCommandTarget: MacSidebarCommandTarget?
+}
+
+extension View {
+    /// Owns the window's sidebar target outside `ReviewKeyCommandHost`, whose inner scene values the menu bar cannot see.
+    func macSidebarCommandOwner() -> some View {
+        self.modifier(MacSidebarCommandOwner())
+    }
+}
+
+private struct MacSidebarCommandOwner: ViewModifier {
+    @State private var target: MacSidebarCommandTarget = MacSidebarCommandTarget()
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.macSidebarCommandTarget, self.target)
+            .focusedSceneValue(\.macSidebarCommandTarget, self.target)
+    }
+}
+
 struct MacNavigationCommands: Commands {
     let navigation: AppNavigationModel
     let isAvailable: Bool
+    @FocusedValue(\.macSidebarCommandTarget) private var sidebarTarget: MacSidebarCommandTarget?
 
     var body: some Commands {
+        // Card text is plain, so Format's Bold must not claim ⌘B.
+        CommandGroup(replacing: .textFormatting) {}
+        // Added after, not replacing, .sidebar: that system group also holds Enter Full Screen.
         CommandGroup(after: .sidebar) {
+            Button(String(localized: self.sidebarTarget?.isSidebarVisible == false ? "mac.sidebar.show" : "mac.sidebar.hide", table: "Foundation")) {
+                self.perform { self.sidebarTarget?.toggleRequestID = UUID() }
+            }
+            .keyboardShortcut("b", modifiers: .command)
+            .disabled(self.isAvailable == false || self.sidebarTarget == nil)
+            Divider()
             ForEach(Array(AppTab.allCases.enumerated()), id: \.element) { index, tab in
                 Button(tab.localizedTitle) {
                     self.perform { self.navigation.selectTab(tab) }

@@ -5,6 +5,7 @@ import UIKit
 /// Owns only this scene's native toolbar. UIKit navigation remains screen-owned.
 struct MacWindowAppearance: UIViewRepresentable {
     let configuration: MacWindowToolbarConfiguration
+    let sidebarCommandTarget: MacSidebarCommandTarget?
     let onSidebarVisibilityChange: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -24,6 +25,8 @@ struct MacWindowAppearance: UIViewRepresentable {
     func updateUIView(_ view: WindowView, context: Context) {
         context.coordinator.onSidebarVisibilityChange = self.onSidebarVisibilityChange
         context.coordinator.update(configuration: self.configuration, view: view)
+        // Reading the request here subscribes this update to it.
+        context.coordinator.consumeSidebarToggleRequest(target: self.sidebarCommandTarget)
     }
 
     static func dismantleUIView(_ view: WindowView, coordinator: Coordinator) {
@@ -66,6 +69,7 @@ struct MacWindowAppearance: UIViewRepresentable {
         private var lastModelSearchText: String?
         private var consumedSearchFocusRequest: UUID?
         private var consumedActivationRequest: UUID?
+        private var consumedSidebarToggleRequest: UUID?
         private var appliedPresentation: MacToolbarPresentation?
         /// Each click waiting for our popover's animation queues its own completion; only the latest one runs.
         private var pendingClickID: UUID?
@@ -213,7 +217,7 @@ struct MacWindowAppearance: UIViewRepresentable {
                 item.isBordered = true
                 item.label = button.accessibilityLabel ?? ""
                 item.paletteLabel = item.label
-                item.toolTip = item.label
+                item.toolTip = String(localized: "mac.sidebar.tooltip", table: "Foundation")
                 item.visibilityPriority = .high
                 item.autovalidates = false
                 self.sidebarItem = item
@@ -225,6 +229,17 @@ struct MacWindowAppearance: UIViewRepresentable {
             (primary as? UINavigationController)?.topViewController?.viewIfLoaded?.backgroundColor = .clear
             (primary as? UINavigationController)?.topViewController?.viewIfLoaded?.isOpaque = false
             return didChangeSplit
+        }
+
+        /// The View menu's sidebar command runs the toolbar button's toggle.
+        func consumeSidebarToggleRequest(target: MacSidebarCommandTarget?) {
+            guard let target, let request = target.toggleRequestID, request != self.consumedSidebarToggleRequest else { return }
+            self.consumedSidebarToggleRequest = request
+            // Leave the SwiftUI update pass before changing view state.
+            DispatchQueue.main.async { [weak self] in
+                target.toggleRequestID = nil
+                self?.toggleSidebar()
+            }
         }
 
         @objc private func toggleSidebar() {
