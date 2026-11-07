@@ -17,7 +17,7 @@ import {
   type SiteVisitorFilterOptions,
 } from "../../filters/optionsQuery";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
-import { parseReportPeriod, reportPeriodLabels, reportPeriods } from "./reportPeriod";
+import { parseReportPeriod, reportPeriodLabels, type ReportPeriod } from "./reportPeriod";
 import { useFilterOptionsLookup, type FilterOptionsLookup } from "./useFilterOptionsLookup";
 import type { LevelOneMetricsSelectionState } from "./useLevelOneMetricsSelection";
 
@@ -39,7 +39,7 @@ export type LevelOneMetricsFilterBar = Readonly<{
   resetAllLabel: string;
 }>;
 
-const noSiteOptions: FilterOptionsLookup<SiteVisitorFilterOptions> = { status: "ready", options: noSiteVisitorFilterOptions };
+export const noSiteOptions: FilterOptionsLookup<SiteVisitorFilterOptions> = { status: "ready", options: noSiteVisitorFilterOptions };
 
 /** For every bar that does not offer the App Store fields. */
 export const noAppStoreOptions: FilterOptionsLookup<AppStoreProductPageFilterOptions> = {
@@ -102,11 +102,23 @@ export function LevelOneMetricsFrame(
   props: Readonly<{
     selectionState: LevelOneMetricsSelectionState;
     filterBar: LevelOneMetricsFilterBar;
+    /**
+     * What the page's Group by offers. A selected period it does not offer shows, and reaches
+     * `renderCharts`, as the first one, and stays in the URL so the other Level 1 pages keep it.
+     */
+    groupByPeriods: readonly [ReportPeriod, ...ReadonlyArray<ReportPeriod>];
     onNavigate: (path: string) => void;
     renderCharts: (selection: LevelOneMetricsSelection, search: string) => ReactNode;
   }>,
 ): JSX.Element {
   const selectionState = props.selectionState;
+  const selection = selectionState.selection;
+  const groupByPeriods = props.groupByPeriods;
+  const shownPeriod = groupByPeriods.includes(selection.period) ? selection.period : groupByPeriods[0];
+  const shownSelection = useMemo(
+    () => (shownPeriod === selection.period ? selection : { ...selection, period: shownPeriod }),
+    [selection, shownPeriod],
+  );
   const rangeLookup = selectionState.rangeLookup;
   const dateRange = selectionState.selection.dateRange;
   const eventPlatforms = selectionState.selection.eventPlatforms;
@@ -177,17 +189,17 @@ export function LevelOneMetricsFrame(
             id={levelOneMetricsGroupByFieldId}
             className="funnel-group-by-select"
             data-testid={levelOneMetricsGroupByFieldId}
-            value={selectionState.selection.period}
+            value={shownPeriod}
             onChange={(event) => selectionState.setPeriod(parseReportPeriod(event.target.value))}
           >
-            {reportPeriods.map((option) => (
+            {groupByPeriods.map((option) => (
               <option key={option} value={option}>{reportPeriodLabels[option]}</option>
             ))}
           </select>
         </div>
       </div>
 
-      {props.renderCharts(selectionState.selection, selectionState.search)}
+      {props.renderCharts(shownSelection, selectionState.search)}
     </>
   );
 }

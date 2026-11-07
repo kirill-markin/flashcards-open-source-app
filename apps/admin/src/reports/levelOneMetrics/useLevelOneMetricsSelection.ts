@@ -46,6 +46,7 @@ export type LevelOneMetricsSelectionState = Readonly<{
   dateRangeError: string;
   applyFilters: (nextFilters: AnalyticsFilterState) => boolean;
   setPeriod: (period: ReportPeriod) => void;
+  setAppStoreListing: (listing: string) => void;
   retryRangeLoad: () => void;
 }>;
 
@@ -111,7 +112,7 @@ function validateRequestedRange(
 }
 
 /**
- * The date range, platforms, app versions, site and App Store filters and Group by every Level 1 page shares. It is read from the URL at once, reconciled
+ * The date range, platforms, app versions, site and App Store filters, App Store listing and Group by every Level 1 page shares. It is read from the URL at once, reconciled
  * with the available range when the lookup returns, and from then on written back with
  * `replaceState`, so Back leaves the page instead of stepping through every change.
  */
@@ -224,6 +225,10 @@ export function useLevelOneMetricsSelection(
     setSelection((currentSelection) => ({ ...currentSelection, period }));
   }, []);
 
+  const setAppStoreListing = useCallback((appStoreListing: string): void => {
+    setSelection((currentSelection) => ({ ...currentSelection, appStoreListing }));
+  }, []);
+
   const retryRangeLoad = useCallback((): void => {
     setRangeLoadRevision((revision) => revision + 1);
   }, []);
@@ -236,6 +241,7 @@ export function useLevelOneMetricsSelection(
     dateRangeError,
     applyFilters,
     setPeriod,
+    setAppStoreListing,
     retryRangeLoad,
   };
 }

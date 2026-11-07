@@ -11,7 +11,10 @@ import {
   buildIdentifiedSiteViewRowsSql,
   buildSiteVisitorFilterValueSql,
 } from "../reports/whoSawUs/siteFactSql";
-import { buildStoreReportDateRangeSqlLines, ourAppleAppIdentifier } from "../reports/whoSawUs/query";
+import {
+  buildAppleDetailedProductPageRowSqlLines,
+  type AppStoreProductPagePeriod,
+} from "../reports/appStoreProductPages/query";
 import {
   appStoreProductPageFilterColumnSqlNames,
   buildCatalogInstallAttributionSql,
@@ -491,23 +494,16 @@ const appStoreProductPageOptionFields = Object.keys(
   appStoreProductPageFilterColumnSqlNames,
 ) as ReadonlyArray<AppStoreProductPageOptionField>;
 
-// Every value Apple reported on our app's detailed weekly and monthly product page rows inside the
-// range, from both the page view and the download report, so a value only one of them carries is
-// still offered.
-function buildAppStoreProductPageFilterOptionsSql(dateRange: AnalyticsDateRange): string {
+// Every value Apple reported on the rows the Product pages page counts, from both the page view and
+// the download report, so a value only one of them carries is still offered.
+function buildAppStoreProductPageFilterOptionsSql(dateRange: AnalyticsDateRange, period: AppStoreProductPagePeriod): string {
   const buildRowValuesSql = (rowAlias: string, tableSqlName: string): string => [
     "  SELECT",
     appStoreProductPageOptionFields
       .map((field) => `    ${rowAlias}.${appStoreProductPageFilterColumnSqlNames[field]} AS "${field}"`)
       .join(",\n"),
     `  FROM store_analytics.${tableSqlName} AS ${rowAlias}`,
-    `  WHERE ${[
-      `${rowAlias}.app_apple_identifier = ${escapeSqlStringLiteral(ourAppleAppIdentifier)}`,
-      `${rowAlias}.detail_level = 'detailed'`,
-      `${rowAlias}.granularity IN ('WEEKLY', 'MONTHLY')`,
-      `pg_catalog.lower(${rowAlias}.page_type) = 'product page'`,
-      ...buildStoreReportDateRangeSqlLines(rowAlias, dateRange),
-    ].join("\n    AND ")}`,
+    `  WHERE ${buildAppleDetailedProductPageRowSqlLines(rowAlias, period, dateRange).join("\n    AND ")}`,
   ].join("\n");
 
   return [
@@ -532,14 +528,18 @@ function isAppStoreProductPageOptionField(value: string): value is AppStoreProdu
   return (appStoreProductPageOptionFields as ReadonlyArray<string>).includes(value);
 }
 
-/** Deliberately independent of the current selection, as `loadSiteVisitorFilterOptions`. */
+/**
+ * Deliberately independent of the current selection, as `loadSiteVisitorFilterOptions`, except for
+ * the Group by, which picks the granularity of the rows the page counts.
+ */
 export async function loadAppStoreProductPageFilterOptions(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
+  period: AppStoreProductPagePeriod,
   signal: AbortSignal,
 ): Promise<AppStoreProductPageFilterOptions> {
   const range = assertValidDateRange(dateRange, appStoreProductPageOptionsReportLabel);
-  const response = await runAdminQuery(config, buildAppStoreProductPageFilterOptionsSql(range), signal);
+  const response = await runAdminQuery(config, buildAppStoreProductPageFilterOptionsSql(range, period), signal);
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error(`${appStoreProductPageOptionsReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);

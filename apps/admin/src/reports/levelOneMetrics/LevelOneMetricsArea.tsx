@@ -7,6 +7,7 @@ import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSectio
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { buildLevelOneMetricDetailsLink } from "./LevelOneMetricDetailsLink";
 import { LevelOneMetricsFrame, useLevelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
+import { reportPeriods } from "./reportPeriod";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
 export function LevelOneMetricsArea(
@@ -23,6 +24,7 @@ export function LevelOneMetricsArea(
     <LevelOneMetricsFrame
       selectionState={selectionState}
       filterBar={filterBar}
+      groupByPeriods={reportPeriods}
       onNavigate={props.onNavigate}
       renderCharts={(selection, search) => (
         <div className="level-1-metrics-grid">

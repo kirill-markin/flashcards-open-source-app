@@ -2,7 +2,8 @@ import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { defaultSiteVisitorFilterState, webEngagedAnalyticsFilterFields } from "../../filters/analyticsFilters";
 import { loadSiteVisitorFilterOptions } from "../../filters/optionsQuery";
-import { getLevelOneMetricDetailsPath, type WhoSawUsDataset } from "../../routing";
+import { AdminLink } from "../../navigation/AdminLink";
+import { appStoreProductPagesPath, getLevelOneMetricDetailsPath, type WhoSawUsDataset } from "../../routing";
 import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDetailsHeader";
 import {
   LevelOneMetricsFrame,
@@ -12,6 +13,7 @@ import {
   type LevelOneMetricsFilterBar,
 } from "../levelOneMetrics/LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "../levelOneMetrics/levelOneMetricsUrl";
+import { reportPeriods } from "../levelOneMetrics/reportPeriod";
 import { useFilterOptionsLookup } from "../levelOneMetrics/useFilterOptionsLookup";
 import {
   useLevelOneMetricsSelection,
@@ -51,6 +53,7 @@ function WebEngagedFrame(
     <LevelOneMetricsFrame
       selectionState={props.selectionState}
       filterBar={{ ...webEngagedFilterBar, siteOptions }}
+      groupByPeriods={reportPeriods}
       onNavigate={props.onNavigate}
       renderCharts={props.renderCharts}
     />
@@ -76,6 +79,16 @@ export function WhoSawUsDatasetPage(
     const siteFilters = props.dataset === "web" ? selection.siteFilters : defaultSiteVisitorFilterState;
     return (
       <div className="level-1-metrics-grid" data-testid={`who-saw-us-dataset-${props.dataset}-page`}>
+        {props.dataset === "app-store" ? (
+          <nav className="state-links" aria-label="App Store reports">
+            <AdminLink
+              className="filter-button level-1-metric-details-link"
+              path={`${appStoreProductPagesPath}${selectionState.search}`}
+              testId="who-saw-us-app-store-product-pages-link"
+              onNavigate={props.onNavigate}
+            >Product pages: views and first-time downloads per listing</AdminLink>
+          </nav>
+        ) : null}
         <WhoSawUsSection
           config={props.config}
           dateRange={selection.dateRange}
@@ -154,6 +167,7 @@ export function WhoSawUsDatasetPage(
         <LevelOneMetricsFrame
           selectionState={selectionState}
           filterBar={levelOneMetricsDateRangeFilterBar}
+          groupByPeriods={reportPeriods}
           onNavigate={props.onNavigate}
           renderCharts={renderCharts}
         />

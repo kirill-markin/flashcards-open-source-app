@@ -377,7 +377,7 @@ const catalogClickAttributionExplanationTail =
 
 // What the three App Store fields all have to say, because they read the same rows.
 const appStoreDetailedRowsExplanationTail =
-  "Apple reports it only in its detailed weekly and monthly reports and omits every detailed row below 5, so a small segment is missing rather than zero.";
+  "This page reads Apple's detailed weekly and monthly reports, which omit every row below 5, so a small segment is missing rather than zero.";
 
 // Shown next to each filter, so it has to be readable by someone who never opens this code. These are
 // the wordings of the user-scoped areas, where a row is a person or an event of a person; `journeys`

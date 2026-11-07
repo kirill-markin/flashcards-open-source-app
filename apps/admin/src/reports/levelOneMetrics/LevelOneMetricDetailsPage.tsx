@@ -12,6 +12,7 @@ import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
 import { LevelOneMetricsFrame, useLevelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
+import { reportPeriods } from "./reportPeriod";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
 /** Who saw us has a dataset picker instead, because its series come from unrelated sources. */
@@ -136,6 +137,7 @@ function ChartedLevelOneMetricDetailsPage(
       <LevelOneMetricsFrame
         selectionState={selectionState}
         filterBar={filterBar}
+        groupByPeriods={reportPeriods}
         onNavigate={props.onNavigate}
         renderCharts={(selection) => (
           <div className="level-1-metrics-grid">{renderMetricSections(props, selection)}</div>

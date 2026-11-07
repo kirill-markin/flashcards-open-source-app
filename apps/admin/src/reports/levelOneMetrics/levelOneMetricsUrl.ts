@@ -35,9 +35,12 @@ export type LevelOneMetricsSelection = Readonly<{
   siteFilters: SiteVisitorFilterState;
   /** Carried by every Level 1 page like `siteFilters`. */
   appStoreFilters: AppStoreProductPageFilterState;
+  /** Apple's `page_title` picked on the Product pages page, `null` for its default; carried like `siteFilters`. */
+  appStoreListing: string | null;
 }>;
 
 const periodParamName = "period";
+const appStoreListingParamName = "app-store-listing";
 
 const defaultLevelOneMetricsPeriod: ReportPeriod = "day";
 
@@ -45,6 +48,11 @@ function parsePeriod(searchParams: URLSearchParams): ReportPeriod {
   const periodParam = readSingleParam(searchParams, periodParamName);
   const period = periodParam === undefined ? undefined : findReportPeriod(periodParam);
   return period ?? defaultLevelOneMetricsPeriod;
+}
+
+function parseAppStoreListing(searchParams: URLSearchParams): string | null {
+  const listing = readSingleParam(searchParams, appStoreListingParamName);
+  return listing === undefined || listing === "" ? null : listing;
 }
 
 export function parseLevelOneMetricsSelection(
@@ -59,6 +67,7 @@ export function parseLevelOneMetricsSelection(
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
     appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
+    appStoreListing: parseAppStoreListing(searchParams),
   };
 }
 
@@ -75,6 +84,7 @@ export function parseProvisionalLevelOneMetricsSelection(
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
     appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
+    appStoreListing: parseAppStoreListing(searchParams),
   };
 }
 
@@ -91,6 +101,9 @@ export function buildLevelOneMetricsSearch(
   setAppStoreProductPageFilterParams(searchParams, selection.appStoreFilters);
   if (selection.period !== defaultLevelOneMetricsPeriod) {
     searchParams.set(periodParamName, selection.period);
+  }
+  if (selection.appStoreListing !== null) {
+    searchParams.set(appStoreListingParamName, selection.appStoreListing);
   }
   const serializedParams = searchParams.toString();
   return serializedParams === "" ? "" : `?${serializedParams}`;
