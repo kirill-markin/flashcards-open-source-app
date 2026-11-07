@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">در کمتر از یک دقیقه</string>
     <string name="ai_card_attachment_title">کارت · %1$s</string>
     <string name="ai_message_label">پیام</string>
+    <string name="ai_drop_overlay">فایل‌ها را برای پیوست اینجا رها کنید</string>
     <string name="ai_attach">پیوست</string>
     <string name="ai_dictate">گفتار به متن</string>
     <string name="ai_send">ارسال</string>

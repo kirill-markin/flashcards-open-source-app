@@ -71,6 +71,7 @@ import com.flashcardsopensourceapp.feature.ai.input.AiComposer
 import com.flashcardsopensourceapp.feature.ai.input.AndroidAiChatDictationRecorder
 import com.flashcardsopensourceapp.feature.ai.input.AttachmentAction
 import com.flashcardsopensourceapp.feature.ai.input.AttachmentSheet
+import com.flashcardsopensourceapp.feature.ai.input.addAiChatImageAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.aiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes
@@ -79,10 +80,9 @@ import com.flashcardsopensourceapp.feature.ai.input.dictationAccessAlertFailureR
 import com.flashcardsopensourceapp.feature.ai.input.handleAttachmentAction
 import com.flashcardsopensourceapp.feature.ai.input.handleCameraAction
 import com.flashcardsopensourceapp.feature.ai.input.handleDictationToggle
+import com.flashcardsopensourceapp.feature.ai.input.importAiChatDocumentAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.makeAiChatAttachmentFromCameraUri
 import com.flashcardsopensourceapp.feature.ai.input.makeAiChatCameraCaptureUri
-import com.flashcardsopensourceapp.feature.ai.input.makeAiChatDocumentAttachmentFromUri
-import com.flashcardsopensourceapp.feature.ai.input.makeAiChatImageAttachmentFromUri
 import com.flashcardsopensourceapp.feature.ai.input.startDictationRecording
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
@@ -232,23 +232,15 @@ internal fun AiRouteContent(
             return@rememberLauncherForActivityResult
         }
 
-        try {
-            onAddPendingAttachment(
-                makeAiChatImageAttachmentFromUri(
-                    context = context,
-                    uri = uri,
-                    textProvider = textProvider
-                )
-            )
+        addAiChatImageAttachmentFromUri(
+            context = context,
+            uri = uri,
+            textProvider = textProvider,
+            onAddPendingAttachment = onAddPendingAttachment,
+            onShowAlert = currentShowAlertAction
+        ).onSuccess {
             onMediaAttached(AnalyticsMediaSource.PHOTO_LIBRARY)
-        } catch (error: Exception) {
-            currentShowAlertAction(
-                aiAttachmentImportAlert(
-                    capability = AccessCapability.PHOTOS,
-                    error = error,
-                    textProvider = textProvider
-                )
-            )
+        }.onFailure { error ->
             onMediaAttachmentFailed(error)
         }
     }
@@ -262,15 +254,12 @@ internal fun AiRouteContent(
             return@rememberLauncherForActivityResult
         }
 
-        // The staging outlives this screen, so it holds the application context, never the activity.
-        val applicationContext = context.applicationContext
-        onImportPendingAttachment {
-            makeAiChatDocumentAttachmentFromUri(
-                context = applicationContext,
-                uri = uri,
-                textProvider = textProvider
-            )
-        }
+        importAiChatDocumentAttachmentFromUri(
+            context = context,
+            uri = uri,
+            textProvider = textProvider,
+            onImportPendingAttachment = onImportPendingAttachment
+        )
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -415,133 +404,150 @@ internal fun AiRouteContent(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(id = R.string.ai_title))
+    AiChatDropTarget(
+        isDropAllowed = showComposer && uiState.canAddDraftAttachment && activity != null,
+        onDrop = { event ->
+            attachDroppedAiChatContent(
+                activity = requireNotNull(activity) {
+                    "AI chat accepted a drop without an activity to request its permissions from."
                 },
-                actions = {
-                    IconButton(
-                        onClick = onOpenHistory,
-                        enabled = uiState.canOpenChatHistory,
-                        modifier = Modifier.testTag(tag = aiHistoryButtonTag)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
-                            contentDescription = stringResource(id = R.string.ai_history_content_description)
-                        )
-                    }
-                    IconButton(
-                        onClick = onNewChat,
-                        enabled = uiState.canStartNewChat,
-                        modifier = Modifier.testTag(tag = aiNewChatButtonTag)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AddComment,
-                            contentDescription = stringResource(id = R.string.ai_new_chat_content_description)
-                        )
-                    }
-                }
+                event = event,
+                textProvider = textProvider,
+                onAddPendingAttachment = onAddPendingAttachment,
+                onImportPendingAttachment = onImportPendingAttachment,
+                onShowAlert = currentShowAlertAction
             )
-        }
-    ) { innerPadding ->
-        val contentModifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .consumeWindowInsets(innerPadding)
-
-        if (uiState.isConsentRequired) {
-            ConsentGate(
-                currentWorkspaceName = uiState.currentWorkspaceName,
-                onAcceptConsent = onAcceptConsent,
-                modifier = contentModifier
-            )
-        } else if (isColdConversationLoading) {
-            AiConversationLoading(
-                modifier = contentModifier
-            )
-        } else if (showConversation.not()) {
-            Box(
-                modifier = contentModifier
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
-                ) {
-                    Text(stringResource(id = R.string.ai_chat_unavailable_title))
-                    AiConversationLoadErrorCard(
-                        presentation = uiState.conversationErrorPresentation,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (uiState.canRetryConversationLoad) {
-                        Button(onClick = onRetryConversationLoad) {
-                            Text(stringResource(id = R.string.ai_retry))
-                        }
-                    }
-                    if (uiState.showOpenAccountStatusForConversationError) {
-                        Button(onClick = onOpenAccountStatus) {
-                            Text(stringResource(id = R.string.ai_open_account_status))
-                        }
-                    }
-                }
-            }
-        } else {
-            Column(
-                modifier = contentModifier
-            ) {
-                AiConversation(
-                    conversationScrollStateKey = uiState.conversationScrollStateKey,
-                    messages = uiState.messages,
-                    currentWorkspaceName = uiState.currentWorkspaceName,
-                    isStreaming = uiState.isStreaming,
-                    onOpenAccountStatus = onOpenAccountStatus,
-                    onDismissComposerFocus = dismissComposerFocus,
-                    contentPadding = PaddingValues(
-                        horizontal = 16.dp,
-                        vertical = 16.dp
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(weight = 1f)
-                )
-
-                if (showComposer) {
-                    AiComposer(
-                        uiState = uiState,
-                        onViewPremium = onViewPremium,
-                        onDraftMessageChange = onDraftMessageChange,
-                        onApplyComposerSuggestion = onApplyComposerSuggestion,
-                        onSendMessage = {
-                            dismissComposerFocus()
-                            onSendMessage()
-                        },
-                        onCancelStreaming = onCancelStreaming,
-                        onRemovePendingAttachment = onRemovePendingAttachment,
-                        onCancelAttachmentImport = onCancelAttachmentImport,
-                        onOpenAttachmentMenu = {
-                            isAttachmentSheetVisible = true
-                        },
-                        onToggleDictation = {
-                            handleDictationToggle(
-                                activity = activity,
-                                dictationState = uiState.dictationState,
-                                textProvider = textProvider,
-                                dictationRecorder = dictationRecorder,
-                                onStartDictationPermissionRequest = onStartDictationPermissionRequest,
-                                onStartDictationRecording = onStartDictationRecording,
-                                onTranscribeRecordedAudio = onTranscribeRecordedAudio,
-                                onCancelDictation = onCancelDictation,
-                                onDictationFailed = onDictationFailed,
-                                onShowAlert = onShowAlert,
-                                onShowErrorMessage = onShowErrorMessage,
-                                microphonePermissionLauncher = microphonePermissionLauncher
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(stringResource(id = R.string.ai_title))
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = onOpenHistory,
+                            enabled = uiState.canOpenChatHistory,
+                            modifier = Modifier.testTag(tag = aiHistoryButtonTag)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
+                                contentDescription = stringResource(id = R.string.ai_history_content_description)
                             )
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        }
+                        IconButton(
+                            onClick = onNewChat,
+                            enabled = uiState.canStartNewChat,
+                            modifier = Modifier.testTag(tag = aiNewChatButtonTag)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AddComment,
+                                contentDescription = stringResource(id = R.string.ai_new_chat_content_description)
+                            )
+                        }
+                    }
+                )
+            }
+        ) { innerPadding ->
+            val contentModifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+
+            if (uiState.isConsentRequired) {
+                ConsentGate(
+                    currentWorkspaceName = uiState.currentWorkspaceName,
+                    onAcceptConsent = onAcceptConsent,
+                    modifier = contentModifier
+                )
+            } else if (isColdConversationLoading) {
+                AiConversationLoading(
+                    modifier = contentModifier
+                )
+            } else if (showConversation.not()) {
+                Box(
+                    modifier = contentModifier
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp)
+                    ) {
+                        Text(stringResource(id = R.string.ai_chat_unavailable_title))
+                        AiConversationLoadErrorCard(
+                            presentation = uiState.conversationErrorPresentation,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (uiState.canRetryConversationLoad) {
+                            Button(onClick = onRetryConversationLoad) {
+                                Text(stringResource(id = R.string.ai_retry))
+                            }
+                        }
+                        if (uiState.showOpenAccountStatusForConversationError) {
+                            Button(onClick = onOpenAccountStatus) {
+                                Text(stringResource(id = R.string.ai_open_account_status))
+                            }
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = contentModifier
+                ) {
+                    AiConversation(
+                        conversationScrollStateKey = uiState.conversationScrollStateKey,
+                        messages = uiState.messages,
+                        currentWorkspaceName = uiState.currentWorkspaceName,
+                        isStreaming = uiState.isStreaming,
+                        onOpenAccountStatus = onOpenAccountStatus,
+                        onDismissComposerFocus = dismissComposerFocus,
+                        contentPadding = PaddingValues(
+                            horizontal = 16.dp,
+                            vertical = 16.dp
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(weight = 1f)
                     )
+
+                    if (showComposer) {
+                        AiComposer(
+                            uiState = uiState,
+                            onViewPremium = onViewPremium,
+                            onDraftMessageChange = onDraftMessageChange,
+                            onApplyComposerSuggestion = onApplyComposerSuggestion,
+                            onSendMessage = {
+                                dismissComposerFocus()
+                                onSendMessage()
+                            },
+                            onCancelStreaming = onCancelStreaming,
+                            onRemovePendingAttachment = onRemovePendingAttachment,
+                            onCancelAttachmentImport = onCancelAttachmentImport,
+                            onOpenAttachmentMenu = {
+                                isAttachmentSheetVisible = true
+                            },
+                            onToggleDictation = {
+                                handleDictationToggle(
+                                    activity = activity,
+                                    dictationState = uiState.dictationState,
+                                    textProvider = textProvider,
+                                    dictationRecorder = dictationRecorder,
+                                    onStartDictationPermissionRequest = onStartDictationPermissionRequest,
+                                    onStartDictationRecording = onStartDictationRecording,
+                                    onTranscribeRecordedAudio = onTranscribeRecordedAudio,
+                                    onCancelDictation = onCancelDictation,
+                                    onDictationFailed = onDictationFailed,
+                                    onShowAlert = onShowAlert,
+                                    onShowErrorMessage = onShowErrorMessage,
+                                    microphonePermissionLauncher = microphonePermissionLauncher
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

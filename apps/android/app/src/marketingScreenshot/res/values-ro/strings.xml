@@ -28,6 +28,7 @@
     <string name="ai_support">Asistență</string>
     <string name="ai_consent_workspace_disclosure">Cererile IA din spațiul de lucru „%1$s” pot trimite instrucțiuni, fișiere încărcate, imagini și înregistrări dictate către serviciul IA găzduit.</string>
     <string name="ai_message_label">Mesaj</string>
+    <string name="ai_drop_overlay">Trage fișierele aici ca să le atașezi</string>
     <string name="ai_attach">Atașează</string>
     <string name="ai_dictate">Dictează</string>
     <string name="ai_send">Trimite</string>

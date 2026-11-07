@@ -53,6 +53,7 @@
     <string name="ai_support">Support</string>
     <string name="ai_consent_workspace_disclosure">AI requests from the &quot;%1$s&quot; workspace can send prompts, uploaded files, images, and dictated audio to the hosted AI service.</string>
     <string name="ai_message_label">Message</string>
+    <string name="ai_drop_overlay">Drop files to attach</string>
     <string name="ai_attach">Attach</string>
     <string name="ai_dictate">Dictate</string>
     <string name="ai_send">Send</string>

@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">greičiau nei po minutės</string>
     <string name="ai_card_attachment_title">Kortelė · %1$s</string>
     <string name="ai_message_label">Žinutė</string>
+    <string name="ai_drop_overlay">Nutempkite failus, kad juos pridėtumėte</string>
     <string name="ai_attach">Pridėti</string>
     <string name="ai_dictate">Diktuoti</string>
     <string name="ai_send">Siųsti</string>

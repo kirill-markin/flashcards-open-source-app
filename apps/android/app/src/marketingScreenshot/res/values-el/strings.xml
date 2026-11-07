@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">σε λιγότερο από ένα λεπτό</string>
     <string name="ai_card_attachment_title">Κάρτα · %1$s</string>
     <string name="ai_message_label">Μήνυμα</string>
+    <string name="ai_drop_overlay">Αφήστε εδώ αρχεία για επισύναψη</string>
     <string name="ai_attach">Επισύναψη</string>
     <string name="ai_dictate">Υπαγόρευση</string>
     <string name="ai_send">Αποστολή</string>

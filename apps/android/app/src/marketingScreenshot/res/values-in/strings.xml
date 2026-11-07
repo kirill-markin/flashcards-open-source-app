@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">kurang dari semenit lagi</string>
     <string name="ai_card_attachment_title">Kartu · %1$s</string>
     <string name="ai_message_label">Pesan</string>
+    <string name="ai_drop_overlay">Lepaskan berkas untuk melampirkan</string>
     <string name="ai_attach">Lampirkan</string>
     <string name="ai_dictate">Dikte</string>
     <string name="ai_send">Kirim</string>

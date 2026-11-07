@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">vähem kui minuti pärast</string>
     <string name="ai_card_attachment_title">Kaart · %1$s</string>
     <string name="ai_message_label">Sõnum</string>
+    <string name="ai_drop_overlay">Manustamiseks lohista failid siia</string>
     <string name="ai_attach">Manusta</string>
     <string name="ai_dictate">Dikteeri</string>
     <string name="ai_send">Saada</string>

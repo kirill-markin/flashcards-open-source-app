@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">tra meno di un minuto</string>
     <string name="ai_card_attachment_title">Carta · %1$s</string>
     <string name="ai_message_label">Messaggio</string>
+    <string name="ai_drop_overlay">Trascina qui i file da allegare</string>
     <string name="ai_attach">Allega</string>
     <string name="ai_dictate">Detta</string>
     <string name="ai_send">Invia</string>

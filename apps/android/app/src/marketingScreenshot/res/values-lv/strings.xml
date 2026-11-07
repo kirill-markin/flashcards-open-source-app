@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">pēc nepilnas minūtes</string>
     <string name="ai_card_attachment_title">Kartīte · %1$s</string>
     <string name="ai_message_label">Ziņa</string>
+    <string name="ai_drop_overlay">Nometiet failus, lai tos pievienotu</string>
     <string name="ai_attach">Pievienot</string>
     <string name="ai_dictate">Diktēt</string>
     <string name="ai_send">Sūtīt</string>

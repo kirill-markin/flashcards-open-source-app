@@ -28,6 +28,7 @@
     <string name="ai_support">సహాయం</string>
     <string name="ai_consent_workspace_disclosure">“%1$s” వర్క్‌స్పేస్ నుంచి AI అభ్యర్థనలు సూచనలు, అప్‌లోడ్ చేసిన ఫైళ్లు, చిత్రాలు, పలికిన ఆడియోను సర్వర్‌లో నడిచే AI సేవకు పంపవచ్చు.</string>
     <string name="ai_message_label">సందేశం</string>
+    <string name="ai_drop_overlay">జోడించడానికి ఫైళ్లను ఇక్కడ వదలండి</string>
     <string name="ai_attach">జతచేయి</string>
     <string name="ai_dictate">చెప్పి రాయి</string>
     <string name="ai_send">పంపు</string>

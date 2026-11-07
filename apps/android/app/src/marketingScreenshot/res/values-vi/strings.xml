@@ -28,6 +28,7 @@
     <string name="ai_support">Hỗ trợ</string>
     <string name="ai_consent_workspace_disclosure">Các yêu cầu AI từ không gian làm việc “%1$s” có thể gửi lời nhắc, tệp đã tải lên, hình ảnh và âm thanh đọc chính tả đến dịch vụ AI trên máy chủ.</string>
     <string name="ai_message_label">Tin nhắn</string>
+    <string name="ai_drop_overlay">Thả tệp vào đây để đính kèm</string>
     <string name="ai_attach">Đính kèm</string>
     <string name="ai_dictate">Đọc chính tả</string>
     <string name="ai_send">Gửi</string>

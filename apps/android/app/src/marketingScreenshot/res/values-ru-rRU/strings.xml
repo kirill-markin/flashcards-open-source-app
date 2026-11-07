@@ -71,6 +71,7 @@
     <string name="ai_support">Поддержка</string>
     <string name="ai_consent_workspace_disclosure">AI-запросы из рабочего пространства &quot;%1$s&quot; могут отправлять подсказки, загруженные файлы, изображения и продиктованное аудио в размещенный AI-сервис.</string>
     <string name="ai_message_label">Сообщение</string>
+    <string name="ai_drop_overlay">Перетащите файлы для вложения</string>
     <string name="ai_attach">Прикрепить</string>
     <string name="ai_dictate">Диктовать</string>
     <string name="ai_send">Отправить</string>

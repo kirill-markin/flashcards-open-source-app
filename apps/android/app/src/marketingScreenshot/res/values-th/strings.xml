@@ -28,6 +28,7 @@
     <string name="ai_support">ความช่วยเหลือ</string>
     <string name="ai_consent_workspace_disclosure">คำขอ AI จากพื้นที่ทำงาน “%1$s” อาจส่งคำสั่ง ไฟล์ที่อัปโหลด รูปภาพ และเสียงที่พูดไปยังบริการ AI บนเซิร์ฟเวอร์</string>
     <string name="ai_message_label">ข้อความ</string>
+    <string name="ai_drop_overlay">วางไฟล์เพื่อแนบ</string>
     <string name="ai_attach">แนบ</string>
     <string name="ai_dictate">พูดเพื่อพิมพ์</string>
     <string name="ai_send">ส่ง</string>

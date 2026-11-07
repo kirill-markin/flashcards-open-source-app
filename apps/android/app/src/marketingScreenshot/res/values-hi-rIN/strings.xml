@@ -67,6 +67,7 @@
     <string name="ai_support">सहायता</string>
     <string name="ai_consent_workspace_disclosure">&quot;%1$s&quot; वर्कस्पेस से किए गए AI अनुरोध प्रॉम्प्ट, अपलोड की गई फाइलें, छवियां और बोलकर दर्ज किया गया ऑडियो होस्ट की गई AI सेवा को भेज सकते हैं।</string>
     <string name="ai_message_label">संदेश</string>
+    <string name="ai_drop_overlay">अटैच करने के लिए फ़ाइलें छोड़ें</string>
     <string name="ai_attach">संलग्न करें</string>
     <string name="ai_dictate">बोलकर लिखें</string>
     <string name="ai_send">भेजें</string>

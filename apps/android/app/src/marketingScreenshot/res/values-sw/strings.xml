@@ -28,6 +28,7 @@
     <string name="ai_support">Usaidizi</string>
     <string name="ai_consent_workspace_disclosure">Maombi ya AI kutoka eneo la kazi “%1$s” yanaweza kutuma maelekezo, faili zilizopakiwa, picha na sauti iliyorekodiwa kwa huduma ya AI inayohifadhiwa kwenye seva.</string>
     <string name="ai_message_label">Ujumbe</string>
+    <string name="ai_drop_overlay">Dondosha faili ili kuambatisha</string>
     <string name="ai_attach">Ambatisha</string>
     <string name="ai_dictate">Tamka</string>
     <string name="ai_send">Tuma</string>

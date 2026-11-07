@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">za mniej niż minutę</string>
     <string name="ai_card_attachment_title">Karta · %1$s</string>
     <string name="ai_message_label">Wiadomość</string>
+    <string name="ai_drop_overlay">Upuść pliki, aby je dołączyć</string>
     <string name="ai_attach">Dołącz</string>
     <string name="ai_dictate">Dyktuj</string>
     <string name="ai_send">Wyślij</string>

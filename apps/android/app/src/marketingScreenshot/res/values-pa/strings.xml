@@ -21,6 +21,7 @@
     <string name="review_interval_less_than_one_minute">ਇੱਕ ਮਿੰਟ ਤੋਂ ਘੱਟ ਵਿੱਚ</string>
     <string name="ai_card_attachment_title">ਕਾਰਡ · %1$s</string>
     <string name="ai_message_label">ਸੁਨੇਹਾ</string>
+    <string name="ai_drop_overlay">ਨੱਥੀ ਕਰਨ ਲਈ ਫ਼ਾਈਲਾਂ ਇੱਥੇ ਸੁੱਟੋ</string>
     <string name="ai_attach">ਨੱਥੀ ਕਰੋ</string>
     <string name="ai_dictate">ਬੋਲ ਕੇ ਲਿਖੋ</string>
     <string name="ai_send">ਭੇਜੋ</string>

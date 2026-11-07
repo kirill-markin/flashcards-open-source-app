@@ -28,6 +28,7 @@
     <string name="ai_support">Підтримка</string>
     <string name="ai_consent_workspace_disclosure">Запити ШІ з робочого простору «%1$s» можуть надсилати інструкції, завантажені файли, зображення та продиктоване аудіо до сервісу ШІ на сервері.</string>
     <string name="ai_message_label">Повідомлення</string>
+    <string name="ai_drop_overlay">Перетягніть файли, щоб додати</string>
     <string name="ai_attach">Прикріпити</string>
     <string name="ai_dictate">Диктувати</string>
     <string name="ai_send">Надіслати</string>

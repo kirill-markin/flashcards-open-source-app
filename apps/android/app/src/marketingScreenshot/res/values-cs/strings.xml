@@ -40,6 +40,7 @@
     <string name="review_interval_less_than_one_minute">za méně než minutu</string>
     <string name="ai_card_attachment_title">Karta · %1$s</string>
     <string name="ai_message_label">Zpráva</string>
+    <string name="ai_drop_overlay">Přetažením přiložíte soubory</string>
     <string name="ai_attach">Přiložit</string>
     <string name="ai_dictate">Diktovat</string>
     <string name="ai_send">Odeslat</string>
