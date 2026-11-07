@@ -127,7 +127,7 @@ const arCatalog: TranslationCatalog = {
     disabled: "معطّل",
     loading: "جارٍ التحميل...",
     never: "أبدًا",
-    newItem: "جديد",
+    newItem: "جديدة",
     noBackText: "لا يوجد نص خلفي",
     noTags: "لا توجد وسوم",
     notRevoked: "غير ملغى",

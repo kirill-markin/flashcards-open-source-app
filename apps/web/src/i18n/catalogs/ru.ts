@@ -133,7 +133,7 @@ export const ruCatalog = {
     disabled: "Выключено",
     loading: "Загрузка...",
     never: "Никогда",
-    newItem: "новое",
+    newItem: "новая",
     noBackText: "Нет текста на обратной стороне",
     noTags: "Нет тегов",
     notRevoked: "Не отозвано",

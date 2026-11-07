@@ -127,7 +127,7 @@ const svCatalog: TranslationCatalog = {
     disabled: "Inaktiverad",
     loading: "Läser in...",
     never: "Aldrig",
-    newItem: "ny",
+    newItem: "nytt",
     noBackText: "Ingen baksidestext",
     noTags: "Inga taggar",
     notRevoked: "Inte återkallad",

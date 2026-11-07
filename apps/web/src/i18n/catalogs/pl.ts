@@ -133,7 +133,7 @@ const plCatalog: TranslationCatalog = {
     disabled: "Wyłączone",
     loading: "Ładowanie...",
     never: "Nigdy",
-    newItem: "nowe",
+    newItem: "nowa",
     noBackText: "Brak tekstu na tyle",
     noTags: "Brak tagów",
     notRevoked: "Nieodwołane",
