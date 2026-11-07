@@ -1,12 +1,18 @@
 import type { ReviewEventPlatform } from "../../adminApi";
-import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
+import type {
+  AnalyticsDateRange,
+  AppStoreProductPageFilterState,
+  SiteVisitorFilterState,
+} from "../../filters/analyticsFilters";
 import {
+  parseAppStoreProductPageFilterState,
   parseAppVersions,
   parseDateRange,
   parseEventPlatforms,
   parseProvisionalDateRange,
   parseSiteVisitorFilterState,
   readSingleParam,
+  setAppStoreProductPageFilterParams,
   setAppVersionsParam,
   setDateRangeParams,
   setEventPlatformsParam,
@@ -27,9 +33,14 @@ export type LevelOneMetricsSelection = Readonly<{
   appVersions: ReadonlyArray<string>;
   /** Applied on the Web engaged page only, and carried by every Level 1 page so a move keeps them. */
   siteFilters: SiteVisitorFilterState;
+  /** Carried by every Level 1 page like `siteFilters`. */
+  appStoreFilters: AppStoreProductPageFilterState;
+  /** Apple's `page_title` picked on the Product pages page, `null` for its default; carried like `siteFilters`. */
+  appStoreListing: string | null;
 }>;
 
 const periodParamName = "period";
+const appStoreListingParamName = "app-store-listing";
 
 const defaultLevelOneMetricsPeriod: ReportPeriod = "day";
 
@@ -37,6 +48,11 @@ function parsePeriod(searchParams: URLSearchParams): ReportPeriod {
   const periodParam = readSingleParam(searchParams, periodParamName);
   const period = periodParam === undefined ? undefined : findReportPeriod(periodParam);
   return period ?? defaultLevelOneMetricsPeriod;
+}
+
+function parseAppStoreListing(searchParams: URLSearchParams): string | null {
+  const listing = readSingleParam(searchParams, appStoreListingParamName);
+  return listing === undefined || listing === "" ? null : listing;
 }
 
 export function parseLevelOneMetricsSelection(
@@ -50,6 +66,8 @@ export function parseLevelOneMetricsSelection(
     eventPlatforms: parseEventPlatforms(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
+    appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
+    appStoreListing: parseAppStoreListing(searchParams),
   };
 }
 
@@ -65,6 +83,8 @@ export function parseProvisionalLevelOneMetricsSelection(
     eventPlatforms: parseEventPlatforms(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
+    appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
+    appStoreListing: parseAppStoreListing(searchParams),
   };
 }
 
@@ -78,8 +98,12 @@ export function buildLevelOneMetricsSearch(
   setEventPlatformsParam(searchParams, selection.eventPlatforms);
   setAppVersionsParam(searchParams, selection.appVersions);
   setSiteVisitorFilterParams(searchParams, selection.siteFilters);
+  setAppStoreProductPageFilterParams(searchParams, selection.appStoreFilters);
   if (selection.period !== defaultLevelOneMetricsPeriod) {
     searchParams.set(periodParamName, selection.period);
+  }
+  if (selection.appStoreListing !== null) {
+    searchParams.set(appStoreListingParamName, selection.appStoreListing);
   }
   const serializedParams = searchParams.toString();
   return serializedParams === "" ? "" : `?${serializedParams}`;

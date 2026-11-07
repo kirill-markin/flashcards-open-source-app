@@ -36,7 +36,7 @@ import {
   type SiteSource,
 } from "./analyticsFilters";
 import { DateRangeCalendar, type DateRangeCalendarRange } from "./DateRangeCalendar";
-import type { CatalogDeckOption, SiteVisitorFilterOptions } from "./optionsQuery";
+import type { AppStoreProductPageFilterOptions, CatalogDeckOption, SiteVisitorFilterOptions } from "./optionsQuery";
 import {
   buildActiveUserFilters,
   buildSearchableUserFilterOptions,
@@ -83,6 +83,9 @@ const optionListFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFil
   "siteCountries",
   "siteBrowserLanguages",
   "sitePageKinds",
+  "appStoreTerritories",
+  "appStoreDevices",
+  "appStoreSourceTypes",
 ]);
 // The fields picked on the calendar, which is bounded by the available range.
 const dateRangeFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilterField>([
@@ -140,6 +143,8 @@ type AnalyticsFilterBarProps = Readonly<{
   catalogClickBrowserLanguageOptions: ReadonlyArray<string>;
   /** What the Web engaged page's data-driven site fields offer, scoped to the range like `userOptions`. */
   siteVisitorOptions: SiteVisitorFilterOptions;
+  /** What the App Store fields offer, read from Apple's detailed reports and scoped to the range like `userOptions`. */
+  appStoreProductPageOptions: AppStoreProductPageFilterOptions;
   /** The option lists have not arrived yet, so every field that picks from them is disabled. */
   areOptionListsLoading: boolean;
   userColorScale: UserColorScale;
@@ -1346,6 +1351,51 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         onSelectionChange: (sitePageKinds) => props.onFiltersChange({
           ...props.filters,
           sitePageKinds,
+        }),
+      });
+    }
+
+    if (field === "appStoreTerritories") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.appStoreTerritories,
+        options: props.appStoreProductPageOptions.appStoreTerritories.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.appStoreTerritories,
+        everyValueSummary: "Every territory",
+        emptyOptionsMessage: "No detailed App Store product page row in this range.",
+        resetLabel: "Select every territory",
+        onSelectionChange: (appStoreTerritories) => props.onFiltersChange({
+          ...props.filters,
+          appStoreTerritories,
+        }),
+      });
+    }
+
+    if (field === "appStoreDevices") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.appStoreDevices,
+        options: props.appStoreProductPageOptions.appStoreDevices.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.appStoreDevices,
+        everyValueSummary: "Every device",
+        emptyOptionsMessage: "No detailed App Store product page row in this range.",
+        resetLabel: "Select every device",
+        onSelectionChange: (appStoreDevices) => props.onFiltersChange({
+          ...props.filters,
+          appStoreDevices,
+        }),
+      });
+    }
+
+    if (field === "appStoreSourceTypes") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.appStoreSourceTypes,
+        options: props.appStoreProductPageOptions.appStoreSourceTypes.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.appStoreSourceTypes,
+        everyValueSummary: "Every source type",
+        emptyOptionsMessage: "No detailed App Store product page row in this range.",
+        resetLabel: "Select every source type",
+        onSelectionChange: (appStoreSourceTypes) => props.onFiltersChange({
+          ...props.filters,
+          appStoreSourceTypes,
         }),
       });
     }

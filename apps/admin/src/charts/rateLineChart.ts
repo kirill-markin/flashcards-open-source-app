@@ -10,11 +10,7 @@ type RateLine = Readonly<{
   color: string;
 }>;
 
-/**
- * Lines of rates across the keys on one y scale; a null rate draws no point and breaks its line there.
- * The still-filling in-progress key is drawn hollow and faded, reached by a dashed segment from the line's nearest earlier point.
- */
-export function renderRateLineChart(params: Readonly<{
+type LineChartParams = Readonly<{
   svgElement: SVGSVGElement;
   keys: ReadonlyArray<string>;
   lines: ReadonlyArray<RateLine>;
@@ -26,17 +22,45 @@ export function renderRateLineChart(params: Readonly<{
   getLabel: (key: string) => string;
   getTooltipHtml: (key: string) => string;
   tooltipHandlers: ChartTooltipHandlers;
-}>): void {
+}>;
+
+function getPeakValue(params: LineChartParams): number {
+  return d3.max(params.lines.flatMap((rateLine) => params.keys.map((key) => rateLine.getRate(key))), (value) => value) ?? 0;
+}
+
+/**
+ * Lines of rates across the keys on one y scale; a null rate draws no point and breaks its line there.
+ * The still-filling in-progress key is drawn hollow and faded, reached by a dashed segment from the line's nearest earlier point.
+ */
+export function renderRateLineChart(params: LineChartParams): void {
+  const peak = getPeakValue(params);
+  // Headroom above the peak, at least 10% so an all-zero range still has an axis, and past 100% only for a rate above it.
+  const y = d3.scaleLinear().domain([0, peak > 1 ? peak * 1.2 : Math.min(1, Math.max(0.1, peak * 1.2))]).nice()
+    .range([stackedChartHeight - chartMargin.top - chartMargin.bottom, 0]);
+  renderLines(params, y, y.ticks(6), d3.format(".0%"));
+}
+
+/** `renderRateLineChart` for counts, whose y axis starts at 0 and reaches at least 1. */
+export function renderCountLineChart(params: LineChartParams): void {
+  const peak = getPeakValue(params);
+  const y = d3.scaleLinear().domain([0, Math.max(1, peak * 1.1)]).nice()
+    .range([stackedChartHeight - chartMargin.top - chartMargin.bottom, 0]);
+  // Whole numbers only, so a small count's axis never labels a fraction.
+  renderLines(params, y, y.ticks(6).filter((tick) => Number.isInteger(tick)), d3.format(","));
+}
+
+function renderLines(
+  params: LineChartParams,
+  y: d3.ScaleLinear<number, number>,
+  yTickValues: ReadonlyArray<number>,
+  formatValue: (value: number) => string,
+): void {
   const plottedLines = params.lines.map((rateLine) => ({
     color: rateLine.color,
     points: params.keys.map((key): RatePoint => ({ key, rate: rateLine.getRate(key) })),
   }));
-  const peak = d3.max(plottedLines.flatMap((plottedLine) => plottedLine.points), (point) => point.rate) ?? 0;
-  // Headroom above the peak, at least 10% so an all-zero range still has an axis, and never past 100%.
-  const y = d3.scaleLinear().domain([0, Math.min(1, Math.max(0.1, peak * 1.2))]).nice()
-    .range([stackedChartHeight - chartMargin.top - chartMargin.bottom, 0]);
-  const frame = renderMeaningfulActivityFrame(params.svgElement, params.keys, y, y.ticks(6), params.yLabel, params.xLabel,
-    d3.format(".0%"), params.formatTick);
+  const frame = renderMeaningfulActivityFrame(params.svgElement, params.keys, y, yTickValues, params.yLabel, params.xLabel,
+    formatValue, params.formatTick);
   const getX = (point: RatePoint): number => (frame.x(point.key) ?? 0) + frame.x.bandwidth() / 2;
   const getY = (point: RatePoint): number => y(point.rate ?? 0);
   const line = d3.line<RatePoint>().defined((point) => point.rate !== null).x(getX).y(getY);

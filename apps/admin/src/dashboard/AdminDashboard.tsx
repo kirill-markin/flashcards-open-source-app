@@ -15,11 +15,13 @@ import {
 } from "../filters/analyticsFilters";
 import {
   loadAppVersionFilterOptions,
+  noAppStoreProductPageFilterOptions,
   noSiteVisitorFilterOptions,
   type AnalyticsFilterOptions,
 } from "../filters/optionsQuery";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
+import { AppStoreProductPagesPage } from "../reports/appStoreProductPages/AppStoreProductPagesPage";
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { FunnelDetailsHeader } from "../reports/funnels/FunnelDetailsHeader";
@@ -210,6 +212,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
         catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
         siteVisitorOptions={noSiteVisitorFilterOptions}
+        appStoreProductPageOptions={noAppStoreProductPageFilterOptions}
         areOptionListsLoading={filterOptions === null || (offersAppVersions && appVersionOptions.status !== "ready")}
         isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}
@@ -311,7 +314,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
 /**
  * The routes the dashboard shell renders: an analytics area, or a Level 1 Details, Who saw us
- * dataset, funnel Details, Retention Details or review prompt Details page under its tab.
+ * dataset, App Store Product pages, funnel Details, Retention Details or review prompt Details page
+ * under its tab.
  */
 export type AdminDashboardRoute = Extract<
   AdminRoute,
@@ -320,6 +324,7 @@ export type AdminDashboardRoute = Extract<
       | "analyticsArea"
       | "levelOneMetricDetails"
       | "whoSawUsDataset"
+      | "appStoreProductPages"
       | "funnelDetails"
       | "retentionDetails"
       | "reviewPromptDetails";
@@ -337,6 +342,7 @@ function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
       return "review-prompts";
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
+    case "appStoreProductPages":
       return "level-1-metrics";
   }
 }
@@ -351,6 +357,7 @@ function getJourneysPage(route: AdminDashboardRoute): JourneysPage | null {
       return { kind: "retentionDetails" };
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
+    case "appStoreProductPages":
     case "reviewPromptDetails":
       return null;
   }
@@ -407,7 +414,7 @@ export function AdminDashboard(
       </section>
 
       {/*
-        A Details or Who saw us dataset page renders the tab row itself, because only it knows the
+        A Details, Who saw us dataset or Product pages page renders the tab row itself, because only it knows the
         selection its Level 1 metrics tab has to carry back. Keyed by metric or dataset, because its
         selection is read from the URL once, so moving between two such pages in history has to
         remount it.
@@ -427,6 +434,15 @@ export function AdminDashboard(
         <WhoSawUsDatasetPage
           key={props.route.dataset}
           dataset={props.route.dataset}
+          config={props.config}
+          onNavigate={props.onNavigate}
+          onTerminalAdminError={props.onTerminalAdminError}
+          renderNavigation={renderNavigation}
+        />
+      ) : null}
+
+      {props.route.kind === "appStoreProductPages" ? (
+        <AppStoreProductPagesPage
           config={props.config}
           onNavigate={props.onNavigate}
           onTerminalAdminError={props.onTerminalAdminError}

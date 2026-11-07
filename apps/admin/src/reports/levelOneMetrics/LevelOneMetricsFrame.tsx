@@ -11,11 +11,13 @@ import {
 } from "../../filters/analyticsFilters";
 import {
   loadAppVersionFilterOptions,
+  noAppStoreProductPageFilterOptions,
   noSiteVisitorFilterOptions,
+  type AppStoreProductPageFilterOptions,
   type SiteVisitorFilterOptions,
 } from "../../filters/optionsQuery";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
-import { parseReportPeriod, reportPeriodLabels, reportPeriods } from "./reportPeriod";
+import { parseReportPeriod, reportPeriodLabels, type ReportPeriod } from "./reportPeriod";
 import { useFilterOptionsLookup, type FilterOptionsLookup } from "./useFilterOptionsLookup";
 import type { LevelOneMetricsSelectionState } from "./useLevelOneMetricsSelection";
 
@@ -25,18 +27,25 @@ const noOptions: ReadonlyArray<never> = [];
 const noUserColorScale = getUserColorScale([]);
 
 /**
- * The fields one Level 1 page's bar offers, what its site and app version fields offer, and how the
- * bar names itself and its `Reset all`.
+ * The fields one Level 1 page's bar offers, what its site, App Store and app version fields offer,
+ * and how the bar names itself and its `Reset all`.
  */
 export type LevelOneMetricsFilterBar = Readonly<{
   fields: ReadonlyArray<AnalyticsFilterField>;
   siteOptions: FilterOptionsLookup<SiteVisitorFilterOptions>;
+  appStoreOptions: FilterOptionsLookup<AppStoreProductPageFilterOptions>;
   appVersionOptions: FilterOptionsLookup<ReadonlyArray<string>>;
   title: string;
   resetAllLabel: string;
 }>;
 
-const noSiteOptions: FilterOptionsLookup<SiteVisitorFilterOptions> = { status: "ready", options: noSiteVisitorFilterOptions };
+export const noSiteOptions: FilterOptionsLookup<SiteVisitorFilterOptions> = { status: "ready", options: noSiteVisitorFilterOptions };
+
+/** For every bar that does not offer the App Store fields. */
+export const noAppStoreOptions: FilterOptionsLookup<AppStoreProductPageFilterOptions> = {
+  status: "ready",
+  options: noAppStoreProductPageFilterOptions,
+};
 
 /** For every bar that does not offer the app version field. */
 export const noAppVersionOptions: FilterOptionsLookup<ReadonlyArray<string>> = { status: "ready", options: noOptions };
@@ -57,6 +66,7 @@ export function useLevelOneMetricsFilterBar(
   return useMemo(() => ({
     fields: analyticsFilterFieldsByArea["level-1-metrics"],
     siteOptions: noSiteOptions,
+    appStoreOptions: noAppStoreOptions,
     appVersionOptions,
     title: "Filters",
     resetAllLabel: "Reset the Level 1 metrics filters",
@@ -66,6 +76,7 @@ export function useLevelOneMetricsFilterBar(
 export const levelOneMetricsDateRangeFilterBar: LevelOneMetricsFilterBar = {
   fields: whoSawUsDatasetAnalyticsFilterFields,
   siteOptions: noSiteOptions,
+  appStoreOptions: noAppStoreOptions,
   appVersionOptions: noAppVersionOptions,
   title: "Date range",
   resetAllLabel: "Reset the Level 1 metrics date range",
@@ -91,23 +102,37 @@ export function LevelOneMetricsFrame(
   props: Readonly<{
     selectionState: LevelOneMetricsSelectionState;
     filterBar: LevelOneMetricsFilterBar;
+    /**
+     * What the page's Group by offers. A selected period it does not offer shows, and reaches
+     * `renderCharts`, as the first one, and stays in the URL so the other Level 1 pages keep it.
+     */
+    groupByPeriods: readonly [ReportPeriod, ...ReadonlyArray<ReportPeriod>];
     onNavigate: (path: string) => void;
     renderCharts: (selection: LevelOneMetricsSelection, search: string) => ReactNode;
   }>,
 ): JSX.Element {
   const selectionState = props.selectionState;
+  const selection = selectionState.selection;
+  const groupByPeriods = props.groupByPeriods;
+  const shownPeriod = groupByPeriods.includes(selection.period) ? selection.period : groupByPeriods[0];
+  const shownSelection = useMemo(
+    () => (shownPeriod === selection.period ? selection : { ...selection, period: shownPeriod }),
+    [selection, shownPeriod],
+  );
   const rangeLookup = selectionState.rangeLookup;
   const dateRange = selectionState.selection.dateRange;
   const eventPlatforms = selectionState.selection.eventPlatforms;
   const appVersions = selectionState.selection.appVersions;
   const siteFilters = selectionState.selection.siteFilters;
+  const appStoreFilters = selectionState.selection.appStoreFilters;
   const siteOptions = props.filterBar.siteOptions;
+  const appStoreOptions = props.filterBar.appStoreOptions;
   const appVersionOptions = props.filterBar.appVersionOptions;
-  // The platform, version and site filters ride along on every page, so a page that does not offer
-  // them keeps them.
+  // The platform, version, site and App Store filters ride along on every page, so a page that does
+  // not offer them keeps them.
   const filters = useMemo(
-    () => ({ ...buildDefaultAnalyticsFilterState(dateRange), eventPlatforms, appVersions, ...siteFilters }),
-    [dateRange, eventPlatforms, appVersions, siteFilters],
+    () => ({ ...buildDefaultAnalyticsFilterState(dateRange), eventPlatforms, appVersions, ...siteFilters, ...appStoreFilters }),
+    [dateRange, eventPlatforms, appVersions, siteFilters, appStoreFilters],
   );
 
   return (
@@ -132,7 +157,8 @@ export function LevelOneMetricsFrame(
         catalogDeviceCategoryOptions={noOptions}
         catalogClickBrowserLanguageOptions={noOptions}
         siteVisitorOptions={siteOptions.status === "ready" ? siteOptions.options : noSiteVisitorFilterOptions}
-        areOptionListsLoading={siteOptions.status !== "ready" || appVersionOptions.status !== "ready"}
+        appStoreProductPageOptions={appStoreOptions.status === "ready" ? appStoreOptions.options : noAppStoreProductPageFilterOptions}
+        areOptionListsLoading={siteOptions.status !== "ready" || appStoreOptions.status !== "ready" || appVersionOptions.status !== "ready"}
         isReportLoading={false}
         dateRangeError={selectionState.dateRangeError}
         userColorScale={noUserColorScale}
@@ -153,6 +179,7 @@ export function LevelOneMetricsFrame(
       ) : null}
 
       <FilterOptionsError lookup={siteOptions} />
+      <FilterOptionsError lookup={appStoreOptions} />
       <FilterOptionsError lookup={appVersionOptions} />
 
       <div className="funnel-group-by-row">
@@ -162,17 +189,17 @@ export function LevelOneMetricsFrame(
             id={levelOneMetricsGroupByFieldId}
             className="funnel-group-by-select"
             data-testid={levelOneMetricsGroupByFieldId}
-            value={selectionState.selection.period}
+            value={shownPeriod}
             onChange={(event) => selectionState.setPeriod(parseReportPeriod(event.target.value))}
           >
-            {reportPeriods.map((option) => (
+            {groupByPeriods.map((option) => (
               <option key={option} value={option}>{reportPeriodLabels[option]}</option>
             ))}
           </select>
         </div>
       </div>
 
-      {props.renderCharts(selectionState.selection, selectionState.search)}
+      {props.renderCharts(shownSelection, selectionState.search)}
     </>
   );
 }

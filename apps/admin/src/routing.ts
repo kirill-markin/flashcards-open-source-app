@@ -55,6 +55,8 @@ export type AdminRoute =
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
   | Readonly<{ kind: "levelOneMetricDetails"; metric: LevelOneMetricDetail }>
   | Readonly<{ kind: "whoSawUsDataset"; dataset: WhoSawUsDataset }>
+  /** Per-listing App Store product page views and first-time downloads, under the App Store dataset page. */
+  | Readonly<{ kind: "appStoreProductPages" }>
   | Readonly<{ kind: "funnelDetails"; funnelId: FunnelDetail }>
   /** The Journeys Retention card's Details page. */
   | Readonly<{ kind: "retentionDetails" }>
@@ -86,6 +88,8 @@ export function getLevelOneMetricDetailsPath(metric: LevelOneMetricDetail): stri
 export function getWhoSawUsDatasetPath(dataset: WhoSawUsDataset): string {
   return `${getLevelOneMetricDetailsPath("who-saw-us")}/${dataset}`;
 }
+
+export const appStoreProductPagesPath = `${getWhoSawUsDatasetPath("app-store")}/product-pages`;
 
 export function getFunnelDetailsPath(funnelId: FunnelDetail): string {
   return `${getAnalyticsAreaPath("journeys")}/${funnelId}`;
@@ -128,6 +132,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getLevelOneMetricDetailsPath(route.metric);
     case "whoSawUsDataset":
       return getWhoSawUsDatasetPath(route.dataset);
+    case "appStoreProductPages":
+      return appStoreProductPagesPath;
     case "funnelDetails":
       return getFunnelDetailsPath(route.funnelId);
     case "retentionDetails":
@@ -256,6 +262,10 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   );
   if (dataset !== undefined) {
     return { kind: "whoSawUsDataset", dataset };
+  }
+
+  if (normalizedPathname === appStoreProductPagesPath) {
+    return { kind: "appStoreProductPages" };
   }
 
   if (normalizedPathname === retentionDetailsPath) {
