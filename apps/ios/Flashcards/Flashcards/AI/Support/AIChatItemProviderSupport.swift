@@ -23,26 +23,53 @@ func aiChatMakeAttachments(itemProviders: [NSItemProvider]) async throws -> [AIC
     return attachments
 }
 
-/// Finder drags on Mac carry a file URL and Files drags on iPad register their types for open in place;
-/// dragged text and links carry neither, so they never become file attachments.
-private func aiChatItemProviderIsFileBacked(itemProvider: NSItemProvider) -> Bool {
-    itemProvider.registeredContentTypes.contains { $0.conforms(to: .fileURL) }
-        || itemProvider.registeredContentTypesForOpenInPlace.isEmpty == false
+/// Copied or dragged text stays text unless it comes with a file; documents can arrive as data alone, from Mail or Quick Look.
+private func aiChatIsSupportedDocumentType(contentType: UTType) -> Bool {
+    contentType.conforms(to: .text) == false
+        && aiChatImporterContentTypes().contains { contentType.conforms(to: $0) }
 }
 
+/**
+ * The item's types in registration order, which runs from highest fidelity down: Office and browser copies of
+ * text register a picture of it after the text, so only a leading image or document makes an attachment.
+ * Types alone, so the edit menu can ask without reading the pasteboard.
+ */
+func aiChatContentTypesMakeAttachment(contentTypes: [UTType]) -> Bool {
+    if contentTypes.contains(where: { $0.conforms(to: .fileURL) }) {
+        return true
+    }
+    guard let leadingType = contentTypes.first else {
+        return false
+    }
+    return leadingType.conforms(to: .image) || aiChatIsSupportedDocumentType(contentType: leadingType)
+}
+
+/// Files drags on iPad register their types for open in place instead of a file URL.
 func aiChatItemProviderCanMakeAttachment(itemProvider: NSItemProvider) -> Bool {
-    aiChatItemProviderIsFileBacked(itemProvider: itemProvider)
-        || itemProvider.registeredContentTypes.contains { $0.conforms(to: .image) }
+    itemProvider.registeredContentTypesForOpenInPlace.isEmpty == false
+        || aiChatContentTypesMakeAttachment(contentTypes: itemProvider.registeredContentTypes)
 }
 
 @MainActor
 private func aiChatMakeAttachment(itemProvider: NSItemProvider) async throws -> AIChatAttachment {
     let registeredTypes = itemProvider.registeredContentTypes
-    let isFileBacked = aiChatItemProviderIsFileBacked(itemProvider: itemProvider)
+    if registeredTypes.contains(where: { $0.conforms(to: .fileURL) }) {
+        // Finder registers the file name as text and its icon as an image beside the URL, so of the item's
+        // own types only a document is surely the file; otherwise the URL is read.
+        if let documentType = registeredTypes.first(where: { aiChatIsSupportedDocumentType(contentType: $0) }) {
+            return try await aiChatMakeFileAttachment(itemProvider: itemProvider, contentType: documentType)
+        }
+        return try aiChatMakeAttachmentFromFileURL(url: try await aiChatLoadItemProviderFileURL(itemProvider: itemProvider))
+    }
+    let isOpenInPlace = itemProvider.registeredContentTypesForOpenInPlace.isEmpty == false
     let supportedFileTypes = aiChatImporterContentTypes()
-    // Registration order, so a browser image that also registers HTML or text attaches the image.
-    for registeredType in registeredTypes {
-        if isFileBacked && supportedFileTypes.contains(where: { registeredType.conforms(to: $0) }) {
+    // Without a file only the leading type counts, as in `aiChatContentTypesMakeAttachment`.
+    let candidateTypes = isOpenInPlace ? registeredTypes : Array(registeredTypes.prefix(1))
+    for registeredType in candidateTypes {
+        let isAttachableFileType = isOpenInPlace
+            ? supportedFileTypes.contains { registeredType.conforms(to: $0) }
+            : aiChatIsSupportedDocumentType(contentType: registeredType)
+        if isAttachableFileType {
             return try await aiChatMakeFileAttachment(itemProvider: itemProvider, contentType: registeredType)
         }
         if registeredType.conforms(to: .image) {
@@ -64,6 +91,43 @@ private func aiChatMakeAttachment(itemProvider: NSItemProvider) async throws -> 
             ? registeredTypes.first?.preferredFilenameExtension ?? ""
             : suggestedExtension.lowercased()
     )
+}
+
+/// An image file takes the photo path, as a picked photo would; any other file goes through the "Choose File" checks.
+private func aiChatMakeAttachmentFromFileURL(url: URL) throws -> AIChatAttachment {
+    guard let imageType = UTType(filenameExtension: url.pathExtension), imageType.conforms(to: .image) else {
+        return try aiChatMakeAttachmentFromFile(url: url)
+    }
+
+    let didAccess = url.startAccessingSecurityScopedResource()
+    defer {
+        if didAccess {
+            url.stopAccessingSecurityScopedResource()
+        }
+    }
+    return try aiChatMakeImageAttachment(
+        data: try Data(contentsOf: url),
+        fileName: url.lastPathComponent,
+        mediaType: imageType.preferredMIMEType ?? "image/jpeg"
+    )
+}
+
+@MainActor
+private func aiChatLoadItemProviderFileURL(itemProvider: NSItemProvider) async throws -> URL {
+    try await withCheckedThrowingContinuation { continuation in
+        _ = itemProvider.loadObject(ofClass: URL.self) { url, error in
+            if let error {
+                continuation.resume(throwing: error)
+                return
+            }
+            guard let url else {
+                continuation.resume(throwing: CocoaError(.fileReadUnknown))
+                return
+            }
+
+            continuation.resume(returning: url)
+        }
+    }
 }
 
 private func aiChatItemProviderImageFileName(suggestedName: String?, imageType: UTType) -> String {

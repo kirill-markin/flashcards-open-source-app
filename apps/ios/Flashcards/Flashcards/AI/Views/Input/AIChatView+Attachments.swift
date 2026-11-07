@@ -110,6 +110,12 @@ extension AIChatView {
         }
     }
 
+    func attachItemProviders(_ itemProviders: [NSItemProvider]) {
+        Task {
+            await self.handleAttachmentItemProviders(itemProviders)
+        }
+    }
+
     func handleAttachmentMenuAction(_ action: AIChatAttachmentMenuAction) {
         guard self.chatStore.canAttachToDraft else {
             return
@@ -164,7 +170,7 @@ extension AIChatView {
 struct AIChatAttachmentDropDelegate: DropDelegate {
     @Binding var isTargeted: Bool
     let canAttachToDraft: Bool
-    let onDrop: ([NSItemProvider]) -> Void
+    let onDrop: @MainActor ([NSItemProvider]) -> Void
 
     func validateDrop(info: DropInfo) -> Bool {
         info.itemProviders(for: [.item]).contains { itemProvider in

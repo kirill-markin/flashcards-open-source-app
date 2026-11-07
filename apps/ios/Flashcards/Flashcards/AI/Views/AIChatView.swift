@@ -323,11 +323,7 @@ struct AIChatView: View {
                 delegate: AIChatAttachmentDropDelegate(
                     isTargeted: self.$isDropTargeted,
                     canAttachToDraft: self.chatStore.canAttachToDraft,
-                    onDrop: { itemProviders in
-                        Task {
-                            await self.handleAttachmentItemProviders(itemProviders)
-                        }
-                    }
+                    onDrop: self.attachItemProviders
                 )
             )
             .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)

@@ -352,6 +352,7 @@ extension AIChatView {
             placeholder: placeholder,
             isDisabled: self.composerTextFieldDisabled,
             maximumLineCount: aiChatComposerMaximumLineCount,
+            onAttachmentItemProviders: self.attachItemProviders,
             macReturnKeyOwner: self.macComposerReturnKeyOwner
         )
         #else
@@ -361,7 +362,8 @@ extension AIChatView {
             isFocused: self.$isComposerFocused,
             placeholder: placeholder,
             isDisabled: self.composerTextFieldDisabled,
-            maximumLineCount: aiChatComposerMaximumLineCount
+            maximumLineCount: aiChatComposerMaximumLineCount,
+            onAttachmentItemProviders: self.attachItemProviders
         )
         #endif
     }

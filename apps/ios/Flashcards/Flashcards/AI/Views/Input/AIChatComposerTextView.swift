@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 /// The AI chat draft field. A UIKit text view, unlike a SwiftUI `TextField`, lets the composer own paste.
 struct AIChatComposerTextView: UIViewRepresentable {
@@ -9,6 +10,8 @@ struct AIChatComposerTextView: UIViewRepresentable {
     let placeholder: String
     let isDisabled: Bool
     let maximumLineCount: Int
+    /// Receives pasted or dropped items that carry a file or image; plain text stays with the text view.
+    let onAttachmentItemProviders: @MainActor ([NSItemProvider]) -> Void
     #if targetEnvironment(macCatalyst)
     let macReturnKeyOwner: MacComposerReturnKeyOwner
     #endif
@@ -21,6 +24,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
         let textView = AIChatComposerUITextView(usingTextLayoutManager: true)
         textView.configureComposer()
         textView.delegate = context.coordinator
+        textView.textDropDelegate = context.coordinator
         textView.accessibilityIdentifier = UITestIdentifier.aiComposerTextField
         textView.onDidMoveToWindow = { [weak coordinator = context.coordinator, weak textView] in
             guard let coordinator, let textView else { return }
@@ -38,6 +42,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
         textView.placeholderLabel.text = self.placeholder
         textView.accessibilityLabel = self.placeholder
         textView.isComposerDisabled = self.isDisabled
+        textView.onAttachmentItemProviders = self.onAttachmentItemProviders
         #if targetEnvironment(macCatalyst)
         textView.macReturnKeyOwner = self.macReturnKeyOwner
         #endif
@@ -69,11 +74,12 @@ struct AIChatComposerTextView: UIViewRepresentable {
             textView.resignFirstResponder()
         }
         textView.delegate = nil
+        textView.textDropDelegate = nil
         coordinator.isUpdatingView = false
     }
 
     @MainActor
-    final class Coordinator: NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate, UITextDropDelegate {
         var parent: AIChatComposerTextView
         var isUpdatingView: Bool
         var lastBindingSelectionRange: NSRange?
@@ -143,6 +149,24 @@ struct AIChatComposerTextView: UIViewRepresentable {
             self.parent.selection = TextSelection(range: range)
         }
 
+        /// The text view would insert a dragged file as its name or contents, so this delegate performs such drops.
+        func textDroppableView(
+            _ textDroppableView: UIView & UITextDroppable,
+            proposalForDrop drop: any UITextDropRequest
+        ) -> UITextDropProposal {
+            guard self.parent.isDisabled == false, aiChatDropCarriesAttachment(drop: drop) else {
+                return drop.suggestedProposal
+            }
+            let proposal = UITextDropProposal(operation: .copy)
+            proposal.dropPerformer = .delegate
+            return proposal
+        }
+
+        func textDroppableView(_ textDroppableView: UIView & UITextDroppable, willPerformDrop drop: any UITextDropRequest) {
+            guard self.parent.isDisabled == false, aiChatDropCarriesAttachment(drop: drop) else { return }
+            self.parent.onAttachmentItemProviders(drop.dropSession.items.map(\.itemProvider))
+        }
+
         /// Disabling the field inside a SwiftUI update resigns it synchronously; that write must wait for the update to end.
         private func setFocusBinding(_ isFocused: Bool) {
             guard self.isUpdatingView else {
@@ -156,6 +180,20 @@ struct AIChatComposerTextView: UIViewRepresentable {
                 self.parent.isFocused = isFocused
             }
         }
+    }
+}
+
+@MainActor
+private func aiChatDropCarriesAttachment(drop: any UITextDropRequest) -> Bool {
+    drop.dropSession.items.contains { item in
+        aiChatItemProviderCanMakeAttachment(itemProvider: item.itemProvider)
+    }
+}
+
+/// Reads pasteboard types only; reading its contents outside an explicit paste would show the paste prompt.
+private func aiChatPasteboardHoldsAttachment(pasteboard: UIPasteboard) -> Bool {
+    (pasteboard.types(forItemSet: nil) ?? []).contains { typeIdentifiers in
+        aiChatContentTypesMakeAttachment(contentTypes: typeIdentifiers.compactMap { UTType($0) })
     }
 }
 
@@ -183,6 +221,7 @@ final class AIChatComposerUITextView: UITextView {
     weak var macReturnKeyOwner: MacComposerReturnKeyOwner?
     #endif
     var onDidMoveToWindow: (() -> Void)?
+    var onAttachmentItemProviders: (@MainActor ([NSItemProvider]) -> Void)?
 
     func configureComposer() {
         let font = UIFont.preferredFont(forTextStyle: .body)
@@ -213,6 +252,28 @@ final class AIChatComposerUITextView: UITextView {
         if self.window != nil {
             self.onDidMoveToWindow?()
         }
+    }
+
+    // Paste shows for a copied image or file even without text on the pasteboard.
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(UIResponderStandardEditActions.paste(_:)),
+           self.isEditable,
+           self.onAttachmentItemProviders != nil,
+           aiChatPasteboardHoldsAttachment(pasteboard: .general) {
+            return true
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    /// A Finder copy also carries the file name as text, so a pasteboard with a file or image pastes none of its text.
+    override func paste(_ sender: Any?) {
+        let itemProviders = UIPasteboard.general.itemProviders
+        guard let onAttachmentItemProviders = self.onAttachmentItemProviders,
+              itemProviders.contains(where: { aiChatContentTypesMakeAttachment(contentTypes: $0.registeredContentTypes) }) else {
+            super.paste(sender)
+            return
+        }
+        onAttachmentItemProviders(itemProviders)
     }
 
     override var canBecomeFirstResponder: Bool {
