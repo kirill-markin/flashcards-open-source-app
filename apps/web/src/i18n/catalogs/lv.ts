@@ -127,7 +127,7 @@ const lvCatalog: TranslationCatalog = {
     disabled: "Izslēgts",
     loading: "Ielādē...",
     never: "Nekad",
-    newItem: "jauns",
+    newItem: "jauna",
     noBackText: "Aizmugurē nav teksta",
     noTags: "Nav birku",
     notRevoked: "Nav atsaukts",

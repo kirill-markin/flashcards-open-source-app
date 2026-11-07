@@ -139,7 +139,7 @@ const slCatalog: TranslationCatalog = {
     disabled: "Izklopljeno",
     loading: "Nalaganje ...",
     never: "Nikoli",
-    newItem: "novo",
+    newItem: "nova",
     noBackText: "Brez besedila na zadnji strani",
     noTags: "Brez oznak",
     notRevoked: "Ni preklicano",
@@ -1143,7 +1143,7 @@ const slCatalog: TranslationCatalog = {
     },
     aiOpenAriaLabel: "Odpri kartico v klepetu z UI: {{side}}",
     repetitionBadgeAriaLabel: "Ponovitve: {{value}}",
-    repetitionBadgeNew: "Novo",
+    repetitionBadgeNew: "Nova",
     empty: {
       noCardsBody: "Ustvarili niste še nobene kartice. Dodajte prvo kartico in začnite z učenjem.",
       noCardsTitle: "Še ni kartic",

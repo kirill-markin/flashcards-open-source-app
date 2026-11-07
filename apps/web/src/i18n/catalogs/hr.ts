@@ -133,7 +133,7 @@ const hrCatalog: TranslationCatalog = {
     disabled: "Isključeno",
     loading: "Učitavanje...",
     never: "Nikad",
-    newItem: "novo",
+    newItem: "nova",
     noBackText: "Nema teksta na poleđini",
     noTags: "Nema oznaka",
     notRevoked: "Nije opozvano",
@@ -1133,7 +1133,7 @@ const hrCatalog: TranslationCatalog = {
     },
     aiOpenAriaLabel: "Otvori karticu u AI razgovoru: {{side}}",
     repetitionBadgeAriaLabel: "Ponavljanja: {{value}}",
-    repetitionBadgeNew: "Novo",
+    repetitionBadgeNew: "Nova",
     empty: {
       noCardsBody: "Još niste stvorili nijednu karticu. Dodajte prvu karticu da biste počeli učiti.",
       noCardsTitle: "Još nema kartica",

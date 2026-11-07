@@ -127,7 +127,7 @@ const frCatalog: TranslationCatalog = {
     disabled: "Désactivé",
     loading: "Chargement...",
     never: "Jamais",
-    newItem: "nouveau",
+    newItem: "nouvelle",
     noBackText: "Aucun texte au verso",
     noTags: "Aucune étiquette",
     notRevoked: "Non révoquée",
