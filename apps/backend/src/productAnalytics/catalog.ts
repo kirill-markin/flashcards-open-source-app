@@ -1135,6 +1135,20 @@ export const productAnalyticsEventCatalog = {
       widget_size: { kind: "enum", values: ["small", "medium", "large"] },
     },
   },
+  // A stock reported on change: the Review widgets of each size placed on this installation,
+  // sent on a foreground only when the counts differ from the last report. An installation's
+  // first report, and the first after a cloud identity reset, is its current state, zeros
+  // included; all zeros means every widget was removed. Whether a person has a widget on a day
+  // is read from the latest row at or before that day's end for each of their anonymous_ids.
+  widget_placement_changed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      small_count: { kind: "nonNegativeInteger" },
+      medium_count: { kind: "nonNegativeInteger" },
+      large_count: { kind: "nonNegativeInteger" },
+    },
+  },
   card_create_started: {
     serverOnly: false,
     requiresScreen: false,

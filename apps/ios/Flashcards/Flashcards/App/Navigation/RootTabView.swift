@@ -797,6 +797,13 @@ struct RootTabView: View {
             }
             await self.store.refreshWidgetSnapshot()
         }
+        .task(id: self.scenePhase) {
+            // Runs on cold and warm foregrounds alike; widgets are added and removed outside the app.
+            guard self.scenePhase == .active else {
+                return
+            }
+            await self.store.reportWidgetPlacementIfChanged()
+        }
         #endif
         .overlay {
             ZStack {

@@ -197,6 +197,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
                             appGraph.analytics.track(
                                 event = AnalyticsEvent.AppOpened(launchType = launchType)
                             )
+                            appGraph.reportReviewWidgetPlacementInBackground()
                         }
                     }
 

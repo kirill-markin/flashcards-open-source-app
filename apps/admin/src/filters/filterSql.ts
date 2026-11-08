@@ -75,14 +75,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-three entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-two in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-four entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-three in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (14).
+ * APPLIED (15).
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
  *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
  *     the Who studied breakdowns and the Level 1 available range.
@@ -90,6 +90,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
  *     of an already-counted actor, over every event name.
  *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
+ *   - `reports/homeScreenWidgets/query.ts`, every read: the client-reportable `widget_placement_changed`,
+ *     `widget_opened` and `app_opened` rows that put a person in a chart, a return cohort or a side.
  *   - `reports/firstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
  *     decides whether a person's first-ever event is an app launch (`app_opened` or `screen_viewed`)
  *     on iOS, Android or web. It reads every event name with no lower bound and lets through only a

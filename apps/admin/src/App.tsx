@@ -28,6 +28,7 @@ import {
 } from "./reports/aiUsageCohorts/aiUsageCohortsUrl";
 import { loadCatalogInstallFunnelAvailableRange } from "./reports/catalogInstallFunnel/query";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
+import { loadHomeScreenWidgetsReport } from "./reports/homeScreenWidgets/query";
 import {
   parseFunnelAnchorStepId,
   withFunnelAnchorSearchParams,
@@ -644,10 +645,11 @@ export default function App(): JSX.Element {
         : currentState));
 
       try {
-        const [filterOptions, report, catalogInstallsReport] = await Promise.all([
+        const [filterOptions, report, catalogInstallsReport, homeScreenWidgetsReport] = await Promise.all([
           loadFilterOptions(config, filters.dateRange, abortController.signal),
           loadReviewEventsByDateReport(config, filters, abortController.signal),
           loadCatalogInstallsReport(config, filters, abortController.signal),
+          loadHomeScreenWidgetsReport(config, filters, abortController.signal),
         ]);
 
         if (isSuperseded) {
@@ -661,6 +663,7 @@ export default function App(): JSX.Element {
             filterOptions,
             report,
             catalogInstallsReport,
+            homeScreenWidgetsReport,
           },
           isReportLoading: false,
           reloadError: "",
