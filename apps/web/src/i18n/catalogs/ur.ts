@@ -1116,6 +1116,10 @@ const urCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI چیٹ میں کارڈ کھولیں: {{side}}",
     repetitionBadgeAriaLabel: "تکرار: {{value}}",
     repetitionBadgeNew: "نیا",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "مزید ٹیگز: {{count}}",
+    },
     empty: {
       noCardsBody: "آپ نے ابھی کوئی کارڈ نہیں بنایا۔ مطالعہ شروع کرنے کے لیے اپنا پہلا کارڈ شامل کریں۔",
       noCardsTitle: "ابھی کوئی کارڈ نہیں",

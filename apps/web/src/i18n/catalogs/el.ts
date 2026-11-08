@@ -1116,6 +1116,10 @@ const elCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Άνοιγμα της κάρτας στη συνομιλία ΤΝ ({{side}})",
     repetitionBadgeAriaLabel: "Επαναλήψεις: {{value}}",
     repetitionBadgeNew: "Νέα",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Περισσότερες ετικέτες: {{count}}",
+    },
     empty: {
       noCardsBody: "Δεν έχετε δημιουργήσει κάρτες ακόμα. Προσθέστε την πρώτη σας κάρτα για να ξεκινήσετε τη μελέτη.",
       noCardsTitle: "Δεν υπάρχουν κάρτες ακόμα",

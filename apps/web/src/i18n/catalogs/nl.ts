@@ -1116,6 +1116,10 @@ const nlCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}} van de kaart openen in de AI-chat",
     repetitionBadgeAriaLabel: "Herhalingen: {{value}}",
     repetitionBadgeNew: "Nieuw",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Meer tags: {{count}}",
+    },
     empty: {
       noCardsBody: "Je hebt nog geen kaarten gemaakt. Voeg je eerste kaart toe om te beginnen met leren.",
       noCardsTitle: "Nog geen kaarten",

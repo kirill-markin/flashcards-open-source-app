@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -77,6 +78,7 @@ fun WorkspaceExportRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
     var pendingPackageExport by remember {
         mutableStateOf<WorkspacePackageExportDownloadResponse?>(value = null)
@@ -104,11 +106,11 @@ fun WorkspaceExportRoute(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                val errorMessage = context.getString(R.string.settings_export_package_write_failed)
+                val errorMessage = resources.getString(R.string.settings_export_package_write_failed)
                 viewModel.showExportError(message = errorMessage)
                 technicalErrorController.showTechnicalError(
                     error = makeAppTechnicalError(
-                        title = context.getString(R.string.settings_technical_error_title),
+                        title = resources.getString(R.string.settings_technical_error_title),
                         message = errorMessage,
                         throwable = error
                     ),
@@ -221,17 +223,17 @@ fun WorkspaceExportRoute(
                                         context = context,
                                         shareUri = shareUri,
                                         contentType = packageExport.contentType,
-                                        title = context.getString(R.string.settings_export_package_share_title)
+                                        title = resources.getString(R.string.settings_export_package_share_title)
                                     )
                                     viewModel.finishPackageExport()
                                 } catch (error: CancellationException) {
                                     throw error
                                 } catch (error: Exception) {
-                                    val errorMessage = context.getString(R.string.settings_export_package_share_failed)
+                                    val errorMessage = resources.getString(R.string.settings_export_package_share_failed)
                                     viewModel.showExportError(message = errorMessage)
                                     technicalErrorController.showTechnicalError(
                                         error = makeAppTechnicalError(
-                                            title = context.getString(R.string.settings_technical_error_title),
+                                            title = resources.getString(R.string.settings_technical_error_title),
                                             message = errorMessage,
                                             throwable = error
                                         ),
