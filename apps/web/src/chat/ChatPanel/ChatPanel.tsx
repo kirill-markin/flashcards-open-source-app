@@ -17,6 +17,7 @@ import {
   isBinaryPendingAttachment,
 } from "../attachments/FileAttachment";
 import { formatCardAttachmentLabel } from "../attachments/chatCardParts";
+import { CardPreviewSegments } from "../../components/CardPreviewText";
 import { MathText } from "../../components/MathText";
 import { formatChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import {
@@ -625,7 +626,7 @@ export function ChatPanel(props: Props): ReactElement {
               >
                 {isBinaryPendingAttachment(attachment)
                   ? attachment.fileName
-                  : <span className="chat-attachment-card-label">{t("chatPanel.pendingAttachmentCardPrefix")}{" · "}<MathText text={formatCardAttachmentLabel(attachment)} /></span>}
+                  : <span className="chat-attachment-card-label">{t("chatPanel.pendingAttachmentCardPrefix")}{" · "}<CardPreviewSegments segments={formatCardAttachmentLabel(attachment, t("common.image"))} /></span>}
                 <button
                   type="button"
                   className="chat-attachment-remove"

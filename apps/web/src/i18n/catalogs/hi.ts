@@ -128,6 +128,7 @@ const hiCatalog: TranslationCatalog = {
     loading: "लोड हो रहा है...",
     never: "कभी नहीं",
     newItem: "नया",
+    image: "चित्र",
     noBackText: "कोई बैक टेक्स्ट नहीं",
     noTags: "कोई टैग नहीं",
     notRevoked: "निरस्त नहीं",

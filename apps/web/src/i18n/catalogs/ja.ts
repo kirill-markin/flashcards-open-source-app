@@ -128,6 +128,7 @@ export const jaCatalog = {
     loading: "読み込み中...",
     never: "なし",
     newItem: "新規",
+    image: "画像",
     noBackText: "裏面テキストなし",
     noTags: "タグなし",
     notRevoked: "取り消されていません",

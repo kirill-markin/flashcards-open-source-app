@@ -134,6 +134,7 @@ const csCatalog: TranslationCatalog = {
     loading: "Načítání...",
     never: "Nikdy",
     newItem: "nová",
+    image: "Obrázek",
     noBackText: "Chybí text zadní strany",
     noTags: "Žádné štítky",
     notRevoked: "Neodvoláno",

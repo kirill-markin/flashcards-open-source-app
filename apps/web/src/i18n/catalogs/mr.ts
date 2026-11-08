@@ -128,6 +128,7 @@ const mrCatalog: TranslationCatalog = {
     loading: "लोड करत आहे...",
     never: "कधीच नाही",
     newItem: "नवीन",
+    image: "प्रतिमा",
     noBackText: "मागील बाजूचा मजकूर नाही",
     noTags: "टॅग नाहीत",
     notRevoked: "रद्द केलेले नाही",

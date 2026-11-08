@@ -128,6 +128,7 @@ const taCatalog: TranslationCatalog = {
     loading: "ஏற்றுகிறது...",
     never: "ஒருபோதும் இல்லை",
     newItem: "புதியது",
+    image: "படம்",
     noBackText: "பின்புற உரை இல்லை",
     noTags: "குறிச்சொற்கள் இல்லை",
     notRevoked: "ரத்துசெய்யப்படவில்லை",

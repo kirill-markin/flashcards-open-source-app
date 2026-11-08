@@ -128,6 +128,7 @@ const heCatalog: TranslationCatalog = {
     loading: "טוען...",
     never: "אף פעם",
     newItem: "חדש",
+    image: "תמונה",
     noBackText: "אין טקסט בצד האחורי",
     noTags: "אין תגיות",
     notRevoked: "לא בוטל",

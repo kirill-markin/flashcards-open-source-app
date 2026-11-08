@@ -128,6 +128,7 @@ const caCatalog: TranslationCatalog = {
     loading: "S'està carregant...",
     never: "Mai",
     newItem: "nova",
+    image: "Imatge",
     noBackText: "Sense text al revers",
     noTags: "Sense etiquetes",
     notRevoked: "No revocada",

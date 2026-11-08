@@ -128,6 +128,7 @@ const isCatalog: TranslationCatalog = {
     loading: "Hleð...",
     never: "Aldrei",
     newItem: "nýtt",
+    image: "Mynd",
     noBackText: "Enginn texti á bakhlið",
     noTags: "Engin merki",
     notRevoked: "Ekki afturkallað",

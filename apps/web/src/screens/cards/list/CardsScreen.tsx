@@ -11,7 +11,7 @@ import {
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
-import { MathText } from "../../../components/MathText";
+import { CardPreviewText } from "../../../components/CardPreviewText";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
@@ -852,10 +852,10 @@ export function CardsScreen(): ReactElement {
                   cardsLoadingSnapshot.rows.map((card) => (
                     <tr key={card.cardId} className="txn-row cards-row cards-loading-row">
                       <td className="txn-cell cards-col-front cards-cell-multiline">
-                        <span className="cards-loading-cell-text"><MathText text={card.frontText} /></span>
+                        <span className="cards-loading-cell-text"><CardPreviewText text={card.frontText} /></span>
                       </td>
                       <td className="txn-cell cards-col-back cards-cell-multiline">
-                        <span className="cards-loading-cell-text"><MathText text={card.backText === "" ? t("common.noBackText") : card.backText} /></span>
+                        <span className="cards-loading-cell-text"><CardPreviewText text={card.backText === "" ? t("common.noBackText") : card.backText} /></span>
                       </td>
                       <td className="txn-cell cards-col-tags">
                         <span className="cards-loading-cell-text">{formatTagSummary(card.tags, t)}</span>
@@ -890,12 +890,12 @@ export function CardsScreen(): ReactElement {
                 >
                   <td className="txn-cell cards-col-front cards-cell-multiline">
                     <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} data-testid="cards-row-link">
-                      <span className="cards-cell-multiline-display"><MathText text={card.frontText} /></span>
+                      <span className="cards-cell-multiline-display"><CardPreviewText text={card.frontText} /></span>
                     </Link>
                   </td>
                   <td className="txn-cell cards-col-back cards-cell-multiline">
                     <Link className="cards-row-link" to={workspacePath(`${cardsRoute}/${card.cardId}`)} tabIndex={-1}>
-                      <span className="cards-cell-multiline-display"><MathText text={card.backText === "" ? t("common.noBackText") : card.backText} /></span>
+                      <span className="cards-cell-multiline-display"><CardPreviewText text={card.backText === "" ? t("common.noBackText") : card.backText} /></span>
                     </Link>
                   </td>
                   <td className="txn-cell cards-col-tags cards-tag-cell">

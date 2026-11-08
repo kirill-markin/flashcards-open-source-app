@@ -128,6 +128,7 @@ const svCatalog: TranslationCatalog = {
     loading: "Läser in...",
     never: "Aldrig",
     newItem: "nytt",
+    image: "Bild",
     noBackText: "Ingen baksidestext",
     noTags: "Inga taggar",
     notRevoked: "Inte återkallad",

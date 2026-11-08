@@ -134,6 +134,7 @@ const plCatalog: TranslationCatalog = {
     loading: "Ładowanie...",
     never: "Nigdy",
     newItem: "nowa",
+    image: "Obraz",
     noBackText: "Brak tekstu na tyle",
     noTags: "Brak tagów",
     notRevoked: "Nieodwołane",

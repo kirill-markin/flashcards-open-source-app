@@ -4,7 +4,7 @@ import type { TranslationKey } from "../../i18n";
 import type { TranslationValues } from "../../i18n/types";
 import type { StoredMessage } from "./useChatHistory";
 import { ContentText } from "../../components/ContentText";
-import { MathText } from "../../components/MathText";
+import { CardPreviewSegments } from "../../components/CardPreviewText";
 import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
 import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
@@ -219,7 +219,7 @@ function renderCardAttachment(
       <summary className="chat-card-part-summary">
         <span className="chat-card-part-label">{t("chatMessageContent.card")}</span>
         <span className="chat-card-part-title" title={card.frontText}>
-          <MathText text={formatCardAttachmentLabel(card)} />
+          <CardPreviewSegments segments={formatCardAttachmentLabel(card, t("common.image"))} />
         </span>
       </summary>
       <div className="chat-card-part-body">

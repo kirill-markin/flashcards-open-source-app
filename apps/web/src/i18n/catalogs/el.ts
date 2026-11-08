@@ -128,6 +128,7 @@ const elCatalog: TranslationCatalog = {
     loading: "Φόρτωση...",
     never: "Ποτέ",
     newItem: "νέα",
+    image: "Εικόνα",
     noBackText: "Χωρίς κείμενο πίσω πλευράς",
     noTags: "Χωρίς ετικέτες",
     notRevoked: "Δεν έχει ανακληθεί",

@@ -128,6 +128,7 @@ const lvCatalog: TranslationCatalog = {
     loading: "Ielādē...",
     never: "Nekad",
     newItem: "jauna",
+    image: "Attēls",
     noBackText: "Aizmugurē nav teksta",
     noTags: "Nav birku",
     notRevoked: "Nav atsaukts",

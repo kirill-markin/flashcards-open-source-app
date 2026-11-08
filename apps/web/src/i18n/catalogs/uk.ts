@@ -134,6 +134,7 @@ const ukCatalog: TranslationCatalog = {
     loading: "Завантаження...",
     never: "Ніколи",
     newItem: "нова",
+    image: "Зображення",
     noBackText: "Немає тексту зворотної сторони",
     noTags: "Немає тегів",
     notRevoked: "Не відкликано",

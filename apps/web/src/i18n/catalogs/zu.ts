@@ -128,6 +128,7 @@ const zuCatalog: TranslationCatalog = {
     loading: "Kuyalayishwa...",
     never: "Akukaze",
     newItem: "elisha",
+    image: "Isithombe",
     noBackText: "Awukho umbhalo ngemuva",
     noTags: "Awekho amathegi",
     notRevoked: "Akuhoxisiwe",

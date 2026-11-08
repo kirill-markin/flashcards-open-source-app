@@ -127,6 +127,7 @@ const enCatalog = {
     loading: "Loading...",
     never: "Never",
     newItem: "new",
+    image: "Image",
     noBackText: "No back text",
     noTags: "No tags",
     notRevoked: "Not revoked",

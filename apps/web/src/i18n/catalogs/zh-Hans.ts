@@ -128,6 +128,7 @@ export const zhHansCatalog = {
     loading: "正在加载...",
     never: "从不",
     newItem: "新建",
+    image: "图片",
     noBackText: "无背面文本",
     noTags: "无标签",
     notRevoked: "未撤销",

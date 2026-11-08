@@ -128,6 +128,7 @@ const nbCatalog: TranslationCatalog = {
     loading: "Laster inn...",
     never: "Aldri",
     newItem: "nytt",
+    image: "Bilde",
     noBackText: "Ingen baksidetekst",
     noTags: "Ingen tagger",
     notRevoked: "Ikke tilbakekalt",

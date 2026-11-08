@@ -128,6 +128,7 @@ const bnCatalog: TranslationCatalog = {
     loading: "লোড হচ্ছে...",
     never: "কখনই না",
     newItem: "নতুন",
+    image: "ছবি",
     noBackText: "পেছনের দিকে কোনো লেখা নেই",
     noTags: "কোনো ট্যাগ নেই",
     notRevoked: "প্রত্যাহার করা হয়নি",

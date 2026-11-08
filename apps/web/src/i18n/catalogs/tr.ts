@@ -128,6 +128,7 @@ const trCatalog: TranslationCatalog = {
     loading: "Yükleniyor...",
     never: "Hiçbir zaman",
     newItem: "yeni",
+    image: "Görsel",
     noBackText: "Arka yüz metni yok",
     noTags: "Etiket yok",
     notRevoked: "İptal edilmedi",

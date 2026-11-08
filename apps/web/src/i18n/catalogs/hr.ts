@@ -134,6 +134,7 @@ const hrCatalog: TranslationCatalog = {
     loading: "Učitavanje...",
     never: "Nikad",
     newItem: "nova",
+    image: "Slika",
     noBackText: "Nema teksta na poleđini",
     noTags: "Nema oznaka",
     notRevoked: "Nije opozvano",

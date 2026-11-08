@@ -128,6 +128,7 @@ const viCatalog: TranslationCatalog = {
     loading: "Đang tải...",
     never: "Không bao giờ",
     newItem: "mới",
+    image: "Hình ảnh",
     noBackText: "Không có nội dung mặt sau",
     noTags: "Không có nhãn",
     notRevoked: "Chưa thu hồi",
