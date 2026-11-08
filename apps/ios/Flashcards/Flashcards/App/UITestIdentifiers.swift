@@ -165,6 +165,7 @@ enum UITestIdentifier {
     static let productAnalyticsSettingsScreen: String = "productAnalyticsSettings.screen"
     static let premiumOfferSheet: String = "premium.offerSheet"
     static let premiumPurchaseButton: String = "premium.purchaseButton"
+    static let premiumPurchaseLoadingButton: String = "premium.purchaseLoadingButton"
     static let premiumPrice: String = "premium.price"
     static let premiumPurchaseMessage: String = "premium.purchaseMessage"
     static let premiumPurchaseError: String = "premium.purchaseError"
