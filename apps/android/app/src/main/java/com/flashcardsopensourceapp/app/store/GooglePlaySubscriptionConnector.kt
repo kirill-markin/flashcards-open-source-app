@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.store
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.android.billingclient.api.BillingClient
@@ -15,6 +16,7 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
+import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallPresentation
@@ -46,6 +48,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+private const val googlePlaySubscriptionLogTag: String = "GooglePlaySubscription"
 
 private class GooglePlayBillingException(val responseCode: Int) : IllegalStateException("Google Play billing request failed.")
 
@@ -153,30 +157,63 @@ class GooglePlaySubscriptionConnector(
         scope.coroutineContext.job.join()
     }
 
+    // A shown offer stays on screen while it refreshes.
     fun loadOffer(): Job = runOperation {
-        offerState.value = GooglePlaySubscriptionOfferState.Loading
+        if (offerState.value !is GooglePlaySubscriptionOfferState.Available) {
+            offerState.value = GooglePlaySubscriptionOfferState.Loading
+        }
         try {
-            connect()
-            val result = billingClient.queryProductDetails(
-                QueryProductDetailsParams.newBuilder().setProductList(
-                    listOf(QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(googlePlayPremiumProductId)
-                        .setProductType(BillingClient.ProductType.SUBS).build())
-                ).build()
-            )
-            requireBillingSuccess(result.billingResult)
-            val selected = result.productDetailsList.orEmpty()
-                .firstOrNull { details -> details.productId == googlePlayPremiumProductId }
-                ?.let(::selectGooglePlaySubscriptionOffer)
-            offerState.value = if (selected == null) GooglePlaySubscriptionOfferState.Unavailable
-                else GooglePlaySubscriptionOfferState.Available(selected)
+            offerState.value = queryOffer()
         } catch (error: CancellationException) {
-            offerState.value = GooglePlaySubscriptionOfferState.NotLoaded
+            if (offerState.value == GooglePlaySubscriptionOfferState.Loading) {
+                offerState.value = GooglePlaySubscriptionOfferState.NotLoaded
+            }
             throw error
         } catch (error: Exception) {
             offerState.value = GooglePlaySubscriptionOfferState.Failed(GooglePlaySubscriptionFailure.STORE_UNAVAILABLE)
             throw error
         }
+    }
+
+    // Outside runOperation: a failure the person never asked for must not reach operationState,
+    // and it leaves the offer unloaded so the paywall's own load starts from a placeholder.
+    fun prefetchOffer(): Job = scope.launch {
+        mutex.withLock {
+            if (offerState.value != GooglePlaySubscriptionOfferState.NotLoaded) return@withLock
+            try {
+                offerState.value = queryOffer()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.w(
+                    googlePlaySubscriptionLogTag,
+                    "event=google_play_offer_prefetch_failed " +
+                        "responseCode=${(error as? GooglePlayBillingException)?.responseCode} " +
+                        renderSanitizedThrowableLogFields(error = error)
+                )
+            }
+        }
+    }
+
+    private suspend fun queryOffer(): GooglePlaySubscriptionOfferState {
+        connect()
+        val result = billingClient.queryProductDetails(
+            QueryProductDetailsParams.newBuilder().setProductList(
+                listOf(QueryProductDetailsParams.Product.newBuilder()
+                    .setProductId(googlePlayPremiumProductId)
+                    .setProductType(BillingClient.ProductType.SUBS).build())
+            ).build()
+        )
+        requireBillingSuccess(result.billingResult)
+        val selected = result.productDetailsList.orEmpty()
+            .firstOrNull { details -> details.productId == googlePlayPremiumProductId }
+            ?.let(::selectGooglePlaySubscriptionOffer)
+            ?: return GooglePlaySubscriptionOfferState.Unavailable
+        val current = offerState.value as? GooglePlaySubscriptionOfferState.Available
+        // purchase() requires the displayed instance, so an unchanged offer keeps it and a tap
+        // during the refresh still buys instead of failing with OFFER_CHANGED.
+        return if (current != null && isSameGooglePlayOffer(current.offer, selected)) current
+            else GooglePlaySubscriptionOfferState.Available(selected)
     }
 
     fun refreshEntitlement(): Job = runOperation {
@@ -582,6 +619,11 @@ private fun billingResponseCodeName(responseCode: Int): String {
 private fun purchaseOfferType(offer: GooglePlaySubscriptionOffer): AnalyticsPurchaseOfferType {
     return if (googlePlaySubscriptionOfferHasFreeTrial(offer)) AnalyticsPurchaseOfferType.FREE_TRIAL
         else AnalyticsPurchaseOfferType.STANDARD
+}
+
+private fun isSameGooglePlayOffer(first: GooglePlaySubscriptionOffer, second: GooglePlaySubscriptionOffer): Boolean {
+    return first.offerToken == second.offerToken && first.offerId == second.offerId &&
+        first.pricingPhases == second.pricingPhases
 }
 
 private fun requireBillingSuccess(result: BillingResult) {

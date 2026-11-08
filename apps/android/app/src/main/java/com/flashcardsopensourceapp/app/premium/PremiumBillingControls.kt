@@ -7,12 +7,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -25,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
@@ -160,9 +164,22 @@ internal fun PremiumStoreOffer(
                     }
                 }
                 when (val state = offerState) {
-                    GooglePlaySubscriptionOfferState.Loading, GooglePlaySubscriptionOfferState.NotLoaded -> {
-                        CircularProgressIndicator(modifier = Modifier.testTag("premium_offer_loading"))
-                        Text(stringResource(R.string.premium_offer_loading))
+                    GooglePlaySubscriptionOfferState.Loading, GooglePlaySubscriptionOfferState.NotLoaded -> Button(
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_offer_loading")
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                color = LocalContentColor.current,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(stringResource(R.string.premium_offer_loading))
+                        }
                     }
                     GooglePlaySubscriptionOfferState.Unavailable -> {
                         Text(stringResource(R.string.premium_offer_unavailable), modifier = Modifier.testTag("premium_offer_unavailable"))
