@@ -2101,6 +2101,30 @@
         }
       }
     },
+    "widget.month_calendar.gallery.description" : {
+      "comment" : "Widget gallery description of the Calendar widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the days you reviewed this month."
+          }
+        }
+      }
+    },
+    "widget.month_calendar.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that shows this month's review days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar"
+          }
+        }
+      }
+    },
     "widget.no_snapshot" : {
       "comment" : "Shown before the app has shared any Review data with the widget. Nibomo is the app name",
       "extractionState" : "manual",
@@ -3441,6 +3465,90 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "widget.streaks.best %lld" : {
+      "comment" : "Longest streak ever, on the Streaks widget. Parameter is a number of days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best %lld"
+          }
+        }
+      }
+    },
+    "widget.streaks.current" : {
+      "comment" : "Label under the current streak length, in days, on the Streaks widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day streak"
+          }
+        }
+      }
+    },
+    "widget.streaks.empty" : {
+      "comment" : "Shown on the Streaks widget when the review history has no streak yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review on consecutive days to build a streak."
+          }
+        }
+      }
+    },
+    "widget.streaks.freezes %lld" : {
+      "comment" : "Accessibility label for the streak freeze count on the Streaks widget. Parameter is the number of available freezes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freeze available"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freezes available"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.streaks.gallery.description" : {
+      "comment" : "Widget gallery description of the Streaks widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your current streak, your best streak, and your recent streaks."
+          }
+        }
+      }
+    },
+    "widget.streaks.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that shows review streaks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks"
           }
         }
       }

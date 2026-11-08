@@ -12,6 +12,8 @@ struct FlashcardsWidgetBundle: WidgetBundle {
         LockScreenWidget()
         ActivityWidget()
         YearWidget()
+        StreaksWidget()
+        MonthCalendarWidget()
     }
 }
 
