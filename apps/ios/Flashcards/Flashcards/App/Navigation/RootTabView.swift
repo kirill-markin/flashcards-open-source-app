@@ -530,21 +530,28 @@ struct RootTabView: View {
                 }
             }
         )) {
-            self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
+            self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem, shortcutKey: MacNavigationShortcut.review.key)
                 .badge(self.reviewDueBadgeLabel)
                 .tag(MacSidebarSelection.tab(.review))
-            self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
-            self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
+            self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem, shortcutKey: MacNavigationShortcut.progress.key)
+            self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem, shortcutKey: MacNavigationShortcut.ai.key)
             Section(AppTab.library.localizedTitle) {
                 ForEach(LibrarySection.allCases, id: \.self) { section in
-                    Label(section.localizedTitle, systemImage: section.systemImage)
+                    let row = Label(section.localizedTitle, systemImage: section.systemImage)
                         .accessibilityIdentifier(librarySidebarItemIdentifier(section))
                         .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
-                        .tag(MacSidebarSelection.librarySection(section))
+                    Group {
+                        if section == .cards {
+                            row.macSidebarShortcutHelp(title: section.localizedTitle, key: MacNavigationShortcut.cards.key)
+                        } else {
+                            row
+                        }
+                    }
+                    .tag(MacSidebarSelection.librarySection(section))
                 }
             }
             Section(String(localized: "mac.sidebar.app_section.title", table: "Foundation")) {
-                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
+                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem, shortcutKey: macAppSettingsShortcutKey)
                     .badge(self.settingsAttentionSummary.settingsTabCount)
                     .tag(MacSidebarSelection.tab(.settings))
             }
@@ -556,9 +563,10 @@ struct RootTabView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private func macSidebarRow(_ tab: AppTab, identifier: String) -> some View {
+    private func macSidebarRow(_ tab: AppTab, identifier: String, shortcutKey: KeyEquivalent) -> some View {
         Label(tab.localizedTitle, systemImage: tab.systemImage)
             .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
+            .macSidebarShortcutHelp(title: tab.localizedTitle, key: shortcutKey)
             .tag(MacSidebarSelection.tab(tab))
             .accessibilityIdentifier(identifier)
     }
