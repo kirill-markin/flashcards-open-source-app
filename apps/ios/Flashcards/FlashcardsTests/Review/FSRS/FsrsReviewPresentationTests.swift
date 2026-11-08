@@ -131,7 +131,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(submissionContext.reviewQueryDefinition, .tag(exactTagNames: ["Éclair", "éclair"]))
     }
 
-    func testReviewFilterTagsMatchAnySelectedTagAndEmptySelectionMatchesNone() throws {
+    func testReviewFilterTagsMatchAnySelectedTagAndEmptySelectionMatchesAllCards() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
@@ -175,8 +175,8 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 decks: [],
                 cards: cards,
                 now: now
-            ),
-            []
+            ).map(\.cardId),
+            ["physics", "untagged", "chemistry", "biology"]
         )
         XCTAssertEqual(
             makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
@@ -201,7 +201,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tag: "biology",
                 storedTagNames: storedTagNames
             ),
-            makeReviewTagsFilter(tags: [])
+            .allCards
         )
         XCTAssertEqual(
             reviewTagsFilterByTogglingTag(
@@ -293,7 +293,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 tag: tagSummary.tag,
                 storedTagNames: storedTagNames
             ),
-            makeReviewTagsFilter(tags: [])
+            .allCards
         )
     }
 

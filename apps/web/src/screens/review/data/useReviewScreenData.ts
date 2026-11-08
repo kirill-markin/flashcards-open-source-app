@@ -255,25 +255,20 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
   const isCurrentReviewDataContextLoaded = loadedReviewDataContextKey === reviewDataContextKey;
   const isCurrentWorkspaceLoaded = loadedWorkspaceIdRef.current === activeWorkspaceId;
-  const isExplicitEmptyTagsFilter = selectedReviewFilter.kind === "tags" && selectedReviewFilter.tags.length === 0;
   const visibleLocalWorkspaceCardCount = isCurrentWorkspaceLoaded ? localWorkspaceCardCount : 0;
   const hasColdEmptyLocalHotState = localHotStateStatus !== "hydrated" && visibleLocalWorkspaceCardCount === 0;
   const hasColdEmptyRestoreFailure = hasColdEmptyLocalHotState && isSyncing === false && appErrorMessage !== "";
-  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure
-    ? false
-    : isCurrentReviewDataContextLoaded
-      ? hasLoadedReviewData
-      : isExplicitEmptyTagsFilter;
+  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure === false
+    && isCurrentReviewDataContextLoaded
+    && hasLoadedReviewData;
   const visibleReviewLoadErrorMessage = reviewLoadErrorMessage !== ""
     ? reviewLoadErrorMessage
     : hasColdEmptyRestoreFailure
       ? t("appError.technicalError.message")
       : "";
   const isLocalEmptyHotStateRestoring = hasColdEmptyLocalHotState && hasColdEmptyRestoreFailure === false;
-  const isInitialReviewLoad = isExplicitEmptyTagsFilter
-    ? false
-    : isCurrentReviewDataContextLoaded === false
-      || isLocalEmptyHotStateRestoring;
+  const isInitialReviewLoad = isCurrentReviewDataContextLoaded === false
+    || isLocalEmptyHotStateRestoring;
   const activeReviewQueue = isCurrentReviewDataContextLoaded
     ? buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard)
     : [];
@@ -1267,7 +1262,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     handleReview,
     hasLoadedReviewData: visibleHasLoadedReviewData,
     isInitialReviewLoad,
-    isReviewLoading: isExplicitEmptyTagsFilter === false && isCurrentReviewDataContextLoaded === false,
+    isReviewLoading: isCurrentReviewDataContextLoaded === false,
     localWorkspaceCardCount: visibleLocalWorkspaceCardCount,
     queueCards: isCurrentReviewDataContextLoaded ? queueCards : [],
     resolvedReviewFilter: isCurrentReviewDataContextLoaded ? resolvedReviewFilter : selectedReviewFilter,

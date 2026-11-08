@@ -653,21 +653,13 @@ struct AIChatMessageRow: View {
             switch part {
             case .text(let text):
                 partialResult.append(text)
-            case .reasoningSummary(let reasoningSummary):
-                if partialResult.isEmpty == false {
-                    partialResult.append("\n")
-                }
-                partialResult.append(
-                    reasoningSummary.summary.isEmpty
-                        ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
-                        : reasoningSummary.summary
-                )
             case .unknown(let unknownContent):
                 if partialResult.isEmpty == false {
                     partialResult.append("\n")
                 }
                 partialResult.append(unknownContent.summaryText)
-            case .toolCall, .image, .file, .card, .accountUpgradePrompt:
+            // The reasoning row is its own accessible disclosure, so the reply is read without it.
+            case .reasoningSummary, .toolCall, .image, .file, .card, .accountUpgradePrompt:
                 break
             }
         }

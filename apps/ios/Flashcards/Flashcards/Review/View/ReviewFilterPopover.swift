@@ -14,6 +14,8 @@ struct ReviewFilterPopover: View {
     let decks: [Deck]
     let tagSummaries: [WorkspaceTagSummary]
     let onEditDecks: () -> Void
+    /// All cards and deck rows are a single choice, so they apply and close at once; tag rows keep it open.
+    let onSingleChoice: () -> Void
 
     @State private var scrollPosition: ScrollPosition = ScrollPosition(idType: String.self)
 
@@ -83,9 +85,8 @@ struct ReviewFilterPopover: View {
             isSelected: isSelected,
             accessibilityIdentifier: UITestIdentifier.reviewFilterAllCardsAction,
             action: {
-                self.reviewFilter = isSelected
-                    ? makeReviewTagsFilter(tags: [])
-                    : .allCards
+                self.reviewFilter = .allCards
+                self.onSingleChoice()
             }
         )
     }
@@ -98,9 +99,8 @@ struct ReviewFilterPopover: View {
             isSelected: isSelected,
             accessibilityIdentifier: UITestIdentifier.reviewFilterDeckActionPrefix + deck.deckId,
             action: {
-                self.reviewFilter = isSelected
-                    ? makeReviewTagsFilter(tags: [])
-                    : deckFilter
+                self.reviewFilter = isSelected ? .allCards : deckFilter
+                self.onSingleChoice()
             }
         )
     }

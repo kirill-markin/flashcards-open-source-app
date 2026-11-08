@@ -78,8 +78,6 @@ internal fun DeckRow(
                     text = deckEntry.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     // FlowRow breaks lines at a weighted item's min intrinsic width; width() sets it, weight() still fills the line.
                     modifier = Modifier
                         .weight(1f)
