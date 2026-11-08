@@ -1127,12 +1127,33 @@ export const productAnalyticsEventCatalog = {
       notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
     },
   },
-  // A launch from the Home Screen widget, its own name for the reason given for `notification_opened`.
+  // A launch from a Home Screen or Lock Screen widget, its own name for the reason given for
+  // `notification_opened`. Clients released before `widget_kind` existed omit it, and every tap they
+  // send came from the Review widget.
   widget_opened: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      widget_size: { kind: "enum", values: ["small", "medium", "large"] },
+      widget_kind: {
+        kind: "enum",
+        values: [
+          "review",
+          "activity",
+          "year",
+          "today",
+          "lock_screen",
+          "reviews_chart",
+          "streaks",
+          "month_calendar",
+          "coming_up",
+          "dashboard",
+        ],
+        optional: true,
+      },
+      widget_size: {
+        kind: "enum",
+        values: ["small", "medium", "large", "accessory_circular", "accessory_rectangular", "accessory_inline"],
+      },
     },
   },
   card_create_started: {
