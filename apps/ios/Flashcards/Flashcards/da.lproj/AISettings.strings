@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Gem navn";
 "settings.workspace.overview.workspace" = "Arbejdsområde";
 "settings.workspace.overview.cards" = "Kort";
-"settings.workspace.overview.due" = "Klar til repetition";
 "settings.workspace.overview.new" = "Nye";
 "settings.workspace.overview.deleteDescription" = "Slet dette arbejdsområde og alle dets kort, kortsæt, repetitioner og synkroniseringshistorik permanent.";
 "settings.workspace.overview.deleteWorkspace" = "Slet arbejdsområde";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Ingen matchende kortsæt";
 "settings.workspace.decks.searchPrompt" = "Søg i kortsæt";
 "settings.workspace.decks.newDeck" = "Nyt kortsæt";
-"settings.workspace.decks.dueCount" = "%d klar til repetition";
-"settings.workspace.decks.totalCards" = "%d kort";
-"settings.workspace.decks.newCount" = "%d nye";
-"settings.workspace.decks.reviewedCount" = "%d repeteret";
+"settings.workspace.decks.toStudyCount" = "%d at lære";
+"settings.workspace.decks.toStudy" = "At lære";
 "settings.workspace.decks.emptyAllCards" = "Du har ikke oprettet nogen kort endnu.";
 "settings.workspace.decks.emptyDeck" = "Dette kortsæt har ingen matchende kort endnu.";
 "settings.workspace.decks.section.deckRules" = "Regler for kortsæt";

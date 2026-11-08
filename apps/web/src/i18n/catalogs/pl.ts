@@ -1359,26 +1359,15 @@ const plCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} do powtórki",
+      toStudy: "{{count}} do nauki",
       total: "łącznie: {{count}}",
     },
-    emptyStatsAriaLabel: "Statystyki: {{deckName}}",
     newDeck: "Nowa talia",
     statLabels: {
       cards: {
         one: "karta",
         few: "karty",
         other: "kart",
-      },
-      new: {
-        one: "nowa",
-        few: "nowe",
-        other: "nowych",
-      },
-      reviewed: {
-        one: "powtórzona",
-        few: "powtórzone",
-        other: "powtórzonych",
       },
     },
     subtitle: "Talie to inteligentne filtry, a nie pojemniki. Dopasowują karty po tagach.",
@@ -1414,10 +1403,10 @@ const plCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karty",
-      due: "Do powtórki",
       new: "Nowe",
       summary: "Podsumowanie",
       title: "Reguły talii",
+      toStudy: "Do nauki",
     },
     subtitle: "Sprawdź reguły talii, pasujące karty i wejście do powtórek.",
     subtitles: {

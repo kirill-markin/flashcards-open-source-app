@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Londoloza igama";
 "settings.workspace.overview.workspace" = "Indawo yokusebenza";
 "settings.workspace.overview.cards" = "Amakhadi";
-"settings.workspace.overview.due" = "Sekuyisikhathi";
 "settings.workspace.overview.new" = "Okusha";
 "settings.workspace.overview.deleteDescription" = "Susa unomphela le ndawo yokusebenza nawo wonke amakhadi, izinqwaba, ukubukeza nomlando wokuvumelanisa okungaphakathi.";
 "settings.workspace.overview.deleteWorkspace" = "Susa indawo yokusebenza";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Azikho izinqwaba ezifanayo";
 "settings.workspace.decks.searchPrompt" = "Sesha izinqwaba";
 "settings.workspace.decks.newDeck" = "Inqwaba entsha";
-"settings.workspace.decks.dueCount" = "Okumele kubukezwe: %d";
-"settings.workspace.decks.totalCards" = "Inani lamakhadi: %d";
-"settings.workspace.decks.newCount" = "Okusha: %d";
-"settings.workspace.decks.reviewedCount" = "Okubukeziwe: %d";
+"settings.workspace.decks.toStudyCount" = "okumele kufundwe: %d";
+"settings.workspace.decks.toStudy" = "Okumele kufundwe";
 "settings.workspace.decks.emptyAllCards" = "Awukadali amakhadi.";
 "settings.workspace.decks.emptyDeck" = "Le nqwaba ayinawo amakhadi afanayo okwamanje.";
 "settings.workspace.decks.section.deckRules" = "Imithetho yenqwaba";

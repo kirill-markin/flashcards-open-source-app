@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Išsaugoti pavadinimą";
 "settings.workspace.overview.workspace" = "Darbo sritis";
 "settings.workspace.overview.cards" = "Kortelės";
-"settings.workspace.overview.due" = "Laikas kartoti";
 "settings.workspace.overview.new" = "Nauja";
 "settings.workspace.overview.deleteDescription" = "Visam laikui ištrinti šią darbo sritį ir visas joje esančias korteles, kalades, kartojimus bei sinchronizavimo istoriją.";
 "settings.workspace.overview.deleteWorkspace" = "Ištrinti darbo sritį";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Atitinkančių kaladžių nėra";
 "settings.workspace.decks.searchPrompt" = "Ieškoti kaladžių";
 "settings.workspace.decks.newDeck" = "Nauja kaladė";
-"settings.workspace.decks.dueCount" = "Laikas kartoti: %d";
-"settings.workspace.decks.totalCards" = "Kortelių: %d";
-"settings.workspace.decks.newCount" = "Naujų: %d";
-"settings.workspace.decks.reviewedCount" = "Pakartota: %d";
+"settings.workspace.decks.toStudyCount" = "mokytis: %d";
+"settings.workspace.decks.toStudy" = "Mokytis";
 "settings.workspace.decks.emptyAllCards" = "Dar nesukūrėte nė vienos kortelės.";
 "settings.workspace.decks.emptyDeck" = "Šioje kaladėje dar nėra atitinkančių kortelių.";
 "settings.workspace.decks.section.deckRules" = "Kaladės taisyklės";

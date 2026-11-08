@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "Guardar nombre";
 "settings.workspace.overview.workspace" = "Espacio de trabajo";
 "settings.workspace.overview.cards" = "Tarjetas";
-"settings.workspace.overview.due" = "Pendientes";
 "settings.workspace.overview.new" = "Nuevas";
 "settings.workspace.overview.deleteDescription" = "Elimina de forma permanente este espacio de trabajo y todas las tarjetas, mazos, repasos e historial de sincronizacion que contiene.";
 "settings.workspace.overview.deleteWorkspace" = "Eliminar espacio de trabajo";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "No hay mazos coincidentes";
 "settings.workspace.decks.searchPrompt" = "Buscar mazos";
 "settings.workspace.decks.newDeck" = "Nuevo mazo";
-"settings.workspace.decks.dueCount" = "%d pendientes";
-"settings.workspace.decks.totalCards" = "%d tarjetas";
-"settings.workspace.decks.newCount" = "%d nuevas";
-"settings.workspace.decks.reviewedCount" = "%d repasadas";
+"settings.workspace.decks.toStudyCount" = "%d por estudiar";
+"settings.workspace.decks.toStudy" = "Por estudiar";
 "settings.workspace.decks.emptyAllCards" = "Todavia no has creado ninguna tarjeta.";
 "settings.workspace.decks.emptyDeck" = "Este mazo todavia no tiene tarjetas coincidentes.";
 "settings.workspace.decks.section.deckRules" = "Reglas del mazo";

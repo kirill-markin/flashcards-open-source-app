@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Név mentése";
 "settings.workspace.overview.workspace" = "Munkaterület";
 "settings.workspace.overview.cards" = "Kártyák";
-"settings.workspace.overview.due" = "Esedékes";
 "settings.workspace.overview.new" = "Új";
 "settings.workspace.overview.deleteDescription" = "A munkaterület és az összes benne lévő kártya, pakli, ismétlés és szinkronizálási előzmény végleges törlése.";
 "settings.workspace.overview.deleteWorkspace" = "Munkaterület törlése";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Nincs megfelelő pakli";
 "settings.workspace.decks.searchPrompt" = "Paklik keresése";
 "settings.workspace.decks.newDeck" = "Új pakli";
-"settings.workspace.decks.dueCount" = "%d esedékes";
-"settings.workspace.decks.totalCards" = "%d kártya";
-"settings.workspace.decks.newCount" = "%d új";
-"settings.workspace.decks.reviewedCount" = "%d ismételt";
+"settings.workspace.decks.toStudyCount" = "%d tanulandó";
+"settings.workspace.decks.toStudy" = "Tanulandó";
 "settings.workspace.decks.emptyAllCards" = "Még nem hoztál létre kártyát.";
 "settings.workspace.decks.emptyDeck" = "Ebben a pakliban még nincs megfelelő kártya.";
 "settings.workspace.decks.section.deckRules" = "Pakliszabályok";

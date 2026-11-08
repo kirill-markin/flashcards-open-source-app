@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Αποθήκευση ονόματος";
 "settings.workspace.overview.workspace" = "Χώρος εργασίας";
 "settings.workspace.overview.cards" = "Κάρτες";
-"settings.workspace.overview.due" = "Προς επανάληψη";
 "settings.workspace.overview.new" = "Νέες";
 "settings.workspace.overview.deleteDescription" = "Οριστική διαγραφή αυτού του χώρου εργασίας και όλων των καρτών, δεσμών, επαναλήψεων και του ιστορικού συγχρονισμού του.";
 "settings.workspace.overview.deleteWorkspace" = "Διαγραφή χώρου εργασίας";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Δεν βρέθηκαν αντίστοιχες δέσμες";
 "settings.workspace.decks.searchPrompt" = "Αναζήτηση δεσμών";
 "settings.workspace.decks.newDeck" = "Νέα δέσμη";
-"settings.workspace.decks.dueCount" = "%d προς επανάληψη";
-"settings.workspace.decks.totalCards" = "%d κάρτες";
-"settings.workspace.decks.newCount" = "%d νέες";
-"settings.workspace.decks.reviewedCount" = "%d επαναλήφθηκαν";
+"settings.workspace.decks.toStudyCount" = "%d για μελέτη";
+"settings.workspace.decks.toStudy" = "Για μελέτη";
 "settings.workspace.decks.emptyAllCards" = "Δεν έχετε δημιουργήσει κάρτες ακόμα.";
 "settings.workspace.decks.emptyDeck" = "Αυτή η δέσμη δεν έχει αντίστοιχες κάρτες ακόμα.";
 "settings.workspace.decks.section.deckRules" = "Κανόνες δέσμης";

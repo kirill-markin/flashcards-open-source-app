@@ -1349,23 +1349,14 @@ const mlCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "ആവർത്തിക്കേണ്ടത്: {{count}}",
+      toStudy: "പഠിക്കാൻ: {{count}}",
       total: "ആകെ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} സ്ഥിതിവിവരങ്ങൾ",
     newDeck: "പുതിയ ഡെക്ക്",
     statLabels: {
       cards: {
         one: "കാർഡ്",
         other: "കാർഡുകൾ",
-      },
-      new: {
-        one: "പുതിയത്",
-        other: "പുതിയത്",
-      },
-      reviewed: {
-        one: "അവലോകനം ചെയ്തത്",
-        other: "അവലോകനം ചെയ്തത്",
       },
     },
     subtitle: "ഡെക്കുകൾ സ്മാർട്ട് ഫിൽട്ടറുകളാണ്, പെട്ടികളല്ല. ടാഗുകൾ അനുസരിച്ചാണ് അവ കാർഡുകൾ കണ്ടെത്തുന്നത്.",
@@ -1401,10 +1392,10 @@ const mlCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "കാർഡുകൾ",
-      due: "ആവർത്തിക്കേണ്ടത്",
       new: "പുതിയത്",
       summary: "സംഗ്രഹം",
       title: "ഡെക്ക് നിയമങ്ങൾ",
+      toStudy: "പഠിക്കാൻ",
     },
     subtitle: "ഡെക്ക് നിയമങ്ങളും പൊരുത്തപ്പെടുന്ന കാർഡുകളും അവലോകനത്തിലേക്കുള്ള പ്രവേശനവും പരിശോധിക്കുക.",
     subtitles: {

@@ -1349,23 +1349,14 @@ const deCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} fällig",
+      toStudy: "{{count}} zum Lernen",
       total: "{{count}} insgesamt",
     },
-    emptyStatsAriaLabel: "{{deckName}}-Statistik",
     newDeck: "Neues Deck",
     statLabels: {
       cards: {
         one: "Karte",
         other: "Karten",
-      },
-      new: {
-        one: "neu",
-        other: "neu",
-      },
-      reviewed: {
-        one: "wiederholt",
-        other: "wiederholt",
       },
     },
     subtitle: "Decks sind intelligente Filter, keine Container, und finden Karten nach Tags.",
@@ -1401,10 +1392,10 @@ const deCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karten",
-      due: "Fällig",
       new: "Neu",
       summary: "Zusammenfassung",
       title: "Deck-Regeln",
+      toStudy: "Zum Lernen",
     },
     subtitle: "Prüfe Deck-Regeln, passende Karten und den Einstiegspunkt zur Wiederholung.",
     subtitles: {

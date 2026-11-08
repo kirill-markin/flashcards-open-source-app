@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "Salvar nome";
 "settings.workspace.overview.workspace" = "Espaço de trabalho";
 "settings.workspace.overview.cards" = "Cartões";
-"settings.workspace.overview.due" = "Pendentes";
 "settings.workspace.overview.new" = "Novos";
 "settings.workspace.overview.deleteDescription" = "Exclua permanentemente este espaço de trabalho e todos os cartões, baralhos, revisões e histórico de sincronização que ele contém.";
 "settings.workspace.overview.deleteWorkspace" = "Excluir espaço de trabalho";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "Nenhum baralho correspondente";
 "settings.workspace.decks.searchPrompt" = "Buscar baralhos";
 "settings.workspace.decks.newDeck" = "Novo baralho";
-"settings.workspace.decks.dueCount" = "%d pendentes";
-"settings.workspace.decks.totalCards" = "%d cartões";
-"settings.workspace.decks.newCount" = "%d novos";
-"settings.workspace.decks.reviewedCount" = "%d revisados";
+"settings.workspace.decks.toStudyCount" = "%d para estudar";
+"settings.workspace.decks.toStudy" = "Para estudar";
 "settings.workspace.decks.emptyAllCards" = "Você ainda não criou nenhum cartão.";
 "settings.workspace.decks.emptyDeck" = "Este baralho ainda não tem nenhum cartão correspondente.";
 "settings.workspace.decks.section.deckRules" = "Regras do baralho";

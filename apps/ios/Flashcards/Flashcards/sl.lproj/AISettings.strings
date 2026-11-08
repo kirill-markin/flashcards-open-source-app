@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Shrani ime";
 "settings.workspace.overview.workspace" = "Delovni prostor";
 "settings.workspace.overview.cards" = "Kartice";
-"settings.workspace.overview.due" = "Za ponovitev";
 "settings.workspace.overview.new" = "Novo";
 "settings.workspace.overview.deleteDescription" = "Trajno izbrišite ta delovni prostor in vse njegove kartice, komplete, ponovitve in zgodovino sinhronizacije.";
 "settings.workspace.overview.deleteWorkspace" = "Izbriši delovni prostor";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Ni ustreznih kompletov";
 "settings.workspace.decks.searchPrompt" = "Išči komplete";
 "settings.workspace.decks.newDeck" = "Nov komplet";
-"settings.workspace.decks.dueCount" = "Za ponovitev: %d";
-"settings.workspace.decks.totalCards" = "Število kartic: %d";
-"settings.workspace.decks.newCount" = "Novih: %d";
-"settings.workspace.decks.reviewedCount" = "Ponovljenih: %d";
+"settings.workspace.decks.toStudyCount" = "%d za učenje";
+"settings.workspace.decks.toStudy" = "Za učenje";
 "settings.workspace.decks.emptyAllCards" = "Ustvarili niste še nobene kartice.";
 "settings.workspace.decks.emptyDeck" = "Ta komplet še nima ustreznih kartic.";
 "settings.workspace.decks.section.deckRules" = "Pravila kompleta";

@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Salva nome";
 "settings.workspace.overview.workspace" = "Spazio di lavoro";
 "settings.workspace.overview.cards" = "Schede";
-"settings.workspace.overview.due" = "Da ripassare";
 "settings.workspace.overview.new" = "Nuove";
 "settings.workspace.overview.deleteDescription" = "Elimina definitivamente questo spazio di lavoro e tutte le schede, i mazzi, i ripassi e la cronologia di sincronizzazione al suo interno.";
 "settings.workspace.overview.deleteWorkspace" = "Elimina spazio di lavoro";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Nessun mazzo corrispondente";
 "settings.workspace.decks.searchPrompt" = "Cerca mazzi";
 "settings.workspace.decks.newDeck" = "Nuovo mazzo";
-"settings.workspace.decks.dueCount" = "%d da ripassare";
-"settings.workspace.decks.totalCards" = "%d schede";
-"settings.workspace.decks.newCount" = "%d nuove";
-"settings.workspace.decks.reviewedCount" = "%d ripassate";
+"settings.workspace.decks.toStudyCount" = "%d da studiare";
+"settings.workspace.decks.toStudy" = "Da studiare";
 "settings.workspace.decks.emptyAllCards" = "Non hai ancora creato schede.";
 "settings.workspace.decks.emptyDeck" = "Questo mazzo non ha ancora schede corrispondenti.";
 "settings.workspace.decks.section.deckRules" = "Regole del mazzo";

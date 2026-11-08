@@ -1349,23 +1349,14 @@ const huCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} esedékes",
+      toStudy: "{{count}} tanulandó",
       total: "összesen {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} statisztikái",
     newDeck: "Új pakli",
     statLabels: {
       cards: {
         one: "kártya",
         other: "kártya",
-      },
-      new: {
-        one: "új",
-        other: "új",
-      },
-      reviewed: {
-        one: "ismételve",
-        other: "ismételve",
       },
     },
     subtitle: "A paklik okos szűrők, nem tárolók. Címkék alapján találják meg a kártyákat.",
@@ -1401,10 +1392,10 @@ const huCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kártyák",
-      due: "Esedékes",
       new: "Új",
       summary: "Összegzés",
       title: "A pakli szabályai",
+      toStudy: "Tanulandó",
     },
     subtitle: "Nézd meg a pakli szabályait, a megfelelő kártyákat és az ismétlés belépési pontját.",
     subtitles: {

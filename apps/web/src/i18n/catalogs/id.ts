@@ -1349,23 +1349,14 @@ const idCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} jatuh tempo",
+      toStudy: "{{count}} untuk dipelajari",
       total: "{{count}} total",
     },
-    emptyStatsAriaLabel: "Statistik {{deckName}}",
     newDeck: "Dek baru",
     statLabels: {
       cards: {
         one: "kartu",
         other: "kartu",
-      },
-      new: {
-        one: "baru",
-        other: "baru",
-      },
-      reviewed: {
-        one: "ditinjau",
-        other: "ditinjau",
       },
     },
     subtitle: "Dek adalah filter pintar, bukan wadah. Dek mencocokkan kartu berdasarkan tag.",
@@ -1401,10 +1392,10 @@ const idCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartu",
-      due: "Jatuh tempo",
       new: "Baru",
       summary: "Ringkasan",
       title: "Aturan dek",
+      toStudy: "Untuk dipelajari",
     },
     subtitle: "Periksa aturan dek, kartu yang cocok, dan titik masuk tinjauan.",
     subtitles: {

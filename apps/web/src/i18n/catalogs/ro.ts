@@ -1359,26 +1359,15 @@ const roCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Scadente: {{count}}",
+      toStudy: "{{count}} de studiat",
       total: "Total: {{count}}",
     },
-    emptyStatsAriaLabel: "Statistici pentru {{deckName}}",
     newDeck: "Pachet nou",
     statLabels: {
       cards: {
         one: "fișă",
         few: "fișe",
         other: "de fișe",
-      },
-      new: {
-        one: "nouă",
-        few: "noi",
-        other: "noi",
-      },
-      reviewed: {
-        one: "recapitulată",
-        few: "recapitulate",
-        other: "recapitulate",
       },
     },
     subtitle: "Pachetele sunt filtre inteligente, nu containere. Ele includ fișele după etichete.",
@@ -1414,10 +1403,10 @@ const roCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Fișe",
-      due: "Scadente",
       new: "Noi",
       summary: "Rezumat",
       title: "Regulile pachetului",
+      toStudy: "De studiat",
     },
     subtitle: "Vezi regulile pachetului, fișele corespunzătoare și punctul de intrare în recapitulare.",
     subtitles: {

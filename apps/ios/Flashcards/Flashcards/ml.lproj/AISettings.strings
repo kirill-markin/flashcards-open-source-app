@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "പേര് സംരക്ഷിക്കുക";
 "settings.workspace.overview.workspace" = "വർക്ക്‌സ്‌പേസ്";
 "settings.workspace.overview.cards" = "കാർഡുകൾ";
-"settings.workspace.overview.due" = "ആവർത്തിക്കേണ്ടത്";
 "settings.workspace.overview.new" = "പുതിയത്";
 "settings.workspace.overview.deleteDescription" = "ഈ വർക്ക്‌സ്‌പേസും അതിലെ എല്ലാ കാർഡുകളും ഡെക്കുകളും ആവർത്തനങ്ങളും സമന്വയ ചരിത്രവും ശാശ്വതമായി ഇല്ലാതാക്കുക.";
 "settings.workspace.overview.deleteWorkspace" = "വർക്ക്‌സ്‌പേസ് ഇല്ലാതാക്കുക";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "പൊരുത്തപ്പെടുന്ന ഡെക്കുകളില്ല";
 "settings.workspace.decks.searchPrompt" = "ഡെക്കുകൾ തിരയുക";
 "settings.workspace.decks.newDeck" = "പുതിയ ഡെക്ക്";
-"settings.workspace.decks.dueCount" = "ആവർത്തിക്കേണ്ടത്: %d";
-"settings.workspace.decks.totalCards" = "കാർഡുകൾ: %d";
-"settings.workspace.decks.newCount" = "പുതിയത്: %d";
-"settings.workspace.decks.reviewedCount" = "ആവർത്തിച്ചത്: %d";
+"settings.workspace.decks.toStudyCount" = "പഠിക്കാൻ %d";
+"settings.workspace.decks.toStudy" = "പഠിക്കാൻ";
 "settings.workspace.decks.emptyAllCards" = "നിങ്ങൾ ഇതുവരെ കാർഡുകളൊന്നും സൃഷ്ടിച്ചിട്ടില്ല.";
 "settings.workspace.decks.emptyDeck" = "ഈ ഡെക്കിൽ ഇതുവരെ പൊരുത്തപ്പെടുന്ന കാർഡുകളില്ല.";
 "settings.workspace.decks.section.deckRules" = "ഡെക്ക് നിയമങ്ങൾ";

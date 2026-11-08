@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "नाम सहेजें";
 "settings.workspace.overview.workspace" = "कार्यक्षेत्र";
 "settings.workspace.overview.cards" = "कार्ड";
-"settings.workspace.overview.due" = "देय";
 "settings.workspace.overview.new" = "नया";
 "settings.workspace.overview.deleteDescription" = "इस कार्यक्षेत्र और इसमें मौजूद सभी कार्ड, डेक, समीक्षा और सिंक इतिहास को स्थायी रूप से हटा दें।";
 "settings.workspace.overview.deleteWorkspace" = "कार्यस्थान हटाएं";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "कोई मेल खाता डेक नहीं";
 "settings.workspace.decks.searchPrompt" = "डेक खोजें";
 "settings.workspace.decks.newDeck" = "नया डेक";
-"settings.workspace.decks.dueCount" = "%d देय";
-"settings.workspace.decks.totalCards" = "%d कार्ड";
-"settings.workspace.decks.newCount" = "%d नया";
-"settings.workspace.decks.reviewedCount" = "%d की समीक्षा की गई";
+"settings.workspace.decks.toStudyCount" = "%d अध्ययन के लिए";
+"settings.workspace.decks.toStudy" = "अध्ययन के लिए";
 "settings.workspace.decks.emptyAllCards" = "आपने अभी तक कोई कार्ड नहीं बनाया है.";
 "settings.workspace.decks.emptyDeck" = "इस डेक में अभी तक मेल खाने वाले कार्ड नहीं हैं.";
 "settings.workspace.decks.section.deckRules" = "डेक नियम";

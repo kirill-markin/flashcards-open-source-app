@@ -1349,23 +1349,14 @@ const teCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "గడువు: {{count}}",
+      toStudy: "చదవడానికి: {{count}}",
       total: "మొత్తం {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} గణాంకాలు",
     newDeck: "కొత్త డెక్",
     statLabels: {
       cards: {
         one: "కార్డు",
         other: "కార్డులు",
-      },
-      new: {
-        one: "కొత్తది",
-        other: "కొత్తవి",
-      },
-      reviewed: {
-        one: "పునశ్చరణ చేసినది",
-        other: "పునశ్చరణ చేసినవి",
       },
     },
     subtitle: "డెక్‌లు స్మార్ట్ ఫిల్టర్‌లు, కంటైనర్‌లు కావు. అవి ట్యాగ్‌ల ఆధారంగా కార్డులను సరిపోలుస్తాయి.",
@@ -1401,10 +1392,10 @@ const teCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "కార్డులు",
-      due: "గడువు",
       new: "కొత్తవి",
       summary: "సారాంశం",
       title: "డెక్ నియమాలు",
+      toStudy: "చదవడానికి",
     },
     subtitle: "డెక్ నియమాలు, సరిపోలే కార్డులు, పునశ్చరణ ప్రవేశ స్థానాన్ని పరిశీలించండి.",
     subtitles: {

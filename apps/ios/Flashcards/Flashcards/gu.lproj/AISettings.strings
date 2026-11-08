@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "નામ સાચવો";
 "settings.workspace.overview.workspace" = "કાર્યક્ષેત્ર";
 "settings.workspace.overview.cards" = "કાર્ડ";
-"settings.workspace.overview.due" = "બાકી";
 "settings.workspace.overview.new" = "નવું";
 "settings.workspace.overview.deleteDescription" = "આ કાર્યક્ષેત્ર અને તેમાંનાં બધાં કાર્ડ, ડેક, પુનરાવર્તનો અને સિંક ઇતિહાસ કાયમ માટે કાઢી નાખો.";
 "settings.workspace.overview.deleteWorkspace" = "કાર્યક્ષેત્ર કાઢી નાખો";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "મેળ ખાતા ડેક નથી";
 "settings.workspace.decks.searchPrompt" = "ડેક શોધો";
 "settings.workspace.decks.newDeck" = "નવું ડેક";
-"settings.workspace.decks.dueCount" = "%d બાકી";
-"settings.workspace.decks.totalCards" = "%d કાર્ડ";
-"settings.workspace.decks.newCount" = "%d નવાં";
-"settings.workspace.decks.reviewedCount" = "%d નું પુનરાવર્તન થયું";
+"settings.workspace.decks.toStudyCount" = "%d અભ્યાસ માટે";
+"settings.workspace.decks.toStudy" = "અભ્યાસ માટે";
 "settings.workspace.decks.emptyAllCards" = "તમે હજી કોઈ કાર્ડ બનાવ્યું નથી.";
 "settings.workspace.decks.emptyDeck" = "આ ડેકમાં હજી મેળ ખાતાં કાર્ડ નથી.";
 "settings.workspace.decks.section.deckRules" = "ડેકના નિયમો";

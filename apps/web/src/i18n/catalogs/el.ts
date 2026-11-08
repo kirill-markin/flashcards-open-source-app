@@ -1349,23 +1349,14 @@ const elCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} προς επανάληψη",
+      toStudy: "{{count}} για μελέτη",
       total: "{{count}} συνολικά",
     },
-    emptyStatsAriaLabel: "Στατιστικά της δέσμης {{deckName}}",
     newDeck: "Νέα δέσμη",
     statLabels: {
       cards: {
         one: "κάρτα",
         other: "κάρτες",
-      },
-      new: {
-        one: "νέα",
-        other: "νέες",
-      },
-      reviewed: {
-        one: "με επανάληψη",
-        other: "με επανάληψη",
       },
     },
     subtitle: "Οι δέσμες είναι έξυπνα φίλτρα, όχι φάκελοι. Αντιστοιχίζουν κάρτες μέσω ετικετών.",
@@ -1401,10 +1392,10 @@ const elCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Κάρτες",
-      due: "Προς επανάληψη",
       new: "Νέες",
       summary: "Σύνοψη",
       title: "Κανόνες δέσμης",
+      toStudy: "Για μελέτη",
     },
     subtitle: "Δείτε τους κανόνες της δέσμης, τις αντίστοιχες κάρτες και το σημείο εισόδου στην επανάληψη.",
     subtitles: {

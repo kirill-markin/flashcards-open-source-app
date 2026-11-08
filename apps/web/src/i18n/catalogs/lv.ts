@@ -1349,23 +1349,14 @@ const lvCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Jāatkārto: {{count}}",
+      toStudy: "Jāapgūst: {{count}}",
       total: "Kopā: {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}}: statistika",
     newDeck: "Jauna kava",
     statLabels: {
       cards: {
         one: "kartīte",
         other: "kartītes",
-      },
-      new: {
-        one: "jauna",
-        other: "jaunas",
-      },
-      reviewed: {
-        one: "atkārtota",
-        other: "atkārtotas",
       },
     },
     subtitle: "Kavas ir viedie filtri, nevis konteineri. Tās atlasa kartītes pēc birkām.",
@@ -1401,10 +1392,10 @@ const lvCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartītes",
-      due: "Jāatkārto",
       new: "Jaunas",
       summary: "Kopsavilkums",
       title: "Kavas noteikumi",
+      toStudy: "Jāapgūst",
     },
     subtitle: "Pārskatiet kavas noteikumus, atbilstošās kartītes un atkārtošanas sākumpunktu.",
     subtitles: {

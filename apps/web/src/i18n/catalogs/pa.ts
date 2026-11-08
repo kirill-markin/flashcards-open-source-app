@@ -1349,23 +1349,14 @@ const paCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} ਬਕਾਇਆ",
+      toStudy: "{{count}} ਪੜ੍ਹਨ ਲਈ",
       total: "ਕੁੱਲ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ਦੇ ਅੰਕੜੇ",
     newDeck: "ਨਵਾਂ ਡੈੱਕ",
     statLabels: {
       cards: {
         one: "ਕਾਰਡ",
         other: "ਕਾਰਡ",
-      },
-      new: {
-        one: "ਨਵੇਂ",
-        other: "ਨਵੇਂ",
-      },
-      reviewed: {
-        one: "ਦੁਹਰਾਏ",
-        other: "ਦੁਹਰਾਏ",
       },
     },
     subtitle: "ਡੈੱਕ ਸਮਾਰਟ ਫਿਲਟਰ ਹਨ, ਡੱਬੇ ਨਹੀਂ. ਇਹ ਟੈਗਾਂ ਨਾਲ ਕਾਰਡ ਮਿਲਾਉਂਦੇ ਹਨ.",
@@ -1401,10 +1392,10 @@ const paCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "ਕਾਰਡ",
-      due: "ਬਕਾਇਆ",
       new: "ਨਵੇਂ",
       summary: "ਸਾਰ",
       title: "ਡੈੱਕ ਦੇ ਨਿਯਮ",
+      toStudy: "ਪੜ੍ਹਨ ਲਈ",
     },
     subtitle: "ਡੈੱਕ ਦੇ ਨਿਯਮ, ਮੇਲ ਖਾਂਦੇ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦਾ ਰਾਹ ਵੇਖੋ.",
     subtitles: {
