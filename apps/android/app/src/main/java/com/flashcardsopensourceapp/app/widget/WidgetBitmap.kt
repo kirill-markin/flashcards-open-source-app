@@ -2,6 +2,8 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.util.DisplayMetrics
+import android.util.TypedValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
@@ -34,4 +36,12 @@ private const val widgetTextLineHeightFactor: Float = 1.33f
  */
 internal fun widgetTextHeight(fontSize: TextUnit, lineCount: Int, fontScale: Float): Dp {
     return (fontSize.value * widgetTextLineHeightFactor * fontScale * lineCount).dp
+}
+
+/**
+ * [fontSize] in pixels for text drawn into a widget bitmap. Converting through [displayMetrics] follows
+ * the font scale as the widget's own text does, nonlinear on API 34+.
+ */
+internal fun widgetTextSizePx(fontSize: TextUnit, displayMetrics: DisplayMetrics): Float {
+    return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSize.value, displayMetrics)
 }

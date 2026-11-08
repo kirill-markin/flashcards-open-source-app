@@ -198,7 +198,6 @@ private fun ColumnScope.StreaksWidgetMedium(content: WidgetProgressContent, widg
             bitmap = drawStreakBarsBitmap(
                 context = context,
                 runs = streakRuns,
-                maxRunCount = streaksWidgetPastStreakLimit + 1,
                 size = widgetImageSize(
                     context = context,
                     widgetSize = widgetSize,
