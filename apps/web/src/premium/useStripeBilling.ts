@@ -35,6 +35,8 @@ function toPurchaseErrorCode(caught: unknown): AnalyticsPurchaseErrorCode {
 type BillingStatus = "idle" | "loading" | "opening" | "confirming" | "confirmed" | "delayed" | "interrupted";
 export type StripeBilling = Readonly<{
   offer: StripeOffer | null; details: StripeDetails | null; error: unknown;
+  // True only while an offer load for the current country is running or about to start.
+  offerPending: boolean;
   status: BillingStatus; busy: boolean; regional: RegionalCountry;
   requote: (attemptId: string) => Promise<void>; resumeCheckout: (attempt: PendingCheckout) => Promise<void>;
   refresh: () => Promise<void>;
@@ -445,5 +447,6 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
   }, [canLoad, country, csrfToken, isCurrent, isRegistered, isSessionVerified, refreshOwned, runOperation, userId]);
 
   const matchingOffer = offer?.selectedOffer?.selectedCountry === country || offer?.selectedOffer === null ? offer : null;
-  return { offer: matchingOffer, details, error, status, busy, regional, requote, resumeCheckout, refresh, resumePremiumContinuation, purchase, manage };
+  const offerPending = canLoad && !isStripeBillingInvalidated() && matchingOffer === null && error === null;
+  return { offer: matchingOffer, details, error, offerPending, status, busy, regional, requote, resumeCheckout, refresh, resumePremiumContinuation, purchase, manage };
 }
