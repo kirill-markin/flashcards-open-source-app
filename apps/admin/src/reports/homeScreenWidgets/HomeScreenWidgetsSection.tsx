@@ -50,6 +50,9 @@ const widgetSizeLabels: Readonly<Record<WidgetSize, string>> = {
   small: "Small",
   medium: "Medium",
   large: "Large",
+  accessory_circular: "Lock Screen circular",
+  accessory_rectangular: "Lock Screen rectangular",
+  accessory_inline: "Lock Screen inline",
 };
 
 const widgetSizeColors = buildBreakdownValueColors(widgetSizes);
