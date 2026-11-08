@@ -120,7 +120,7 @@ internal data class CatalogPackageInstallRequest(
 )
 
 private fun encodeCatalogPathSegment(value: String): String {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
+    return URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20")
 }
 
 private fun parseCatalogPackageInstallContext(response: JSONObject): List<CatalogPackageInstallWorkspaceState> {
