@@ -1126,6 +1126,10 @@ const roCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Deschide fișa în chatul AI ({{side}})",
     repetitionBadgeAriaLabel: "Repetări: {{value}}",
     repetitionBadgeNew: "Nouă",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Mai multe etichete: {{count}}",
+    },
     empty: {
       noCardsBody: "Încă nu ai creat nicio fișă. Adaugă prima fișă pentru a începe să studiezi.",
       noCardsTitle: "Încă nu există fișe",

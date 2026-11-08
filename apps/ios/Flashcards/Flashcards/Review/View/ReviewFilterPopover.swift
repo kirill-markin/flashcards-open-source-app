@@ -33,28 +33,18 @@ struct ReviewFilterPopover: View {
         self.tagSummaries.map(\.tag)
     }
 
+    /// Only a tag selection ticks tag rows; All cards and decks tick their own row alone.
     private var selectedTagKeys: Set<String> {
-        let selectedTags: [String]
-        switch self.reviewFilter {
-        case .allCards:
-            selectedTags = self.storedTagNames
-        case .deck(let deckId):
-            selectedTags = self.decks.first(where: { deck in
-                deck.deckId == deckId
-            }).map { deck in
-                selectedReviewDeckTagNames(
-                    deckFilterTagNames: deck.filterDefinition.tags,
-                    storedTagNames: self.storedTagNames
-                )
-            } ?? []
-        case .tags(let tags):
-            selectedTags = resolveExactStoredTagNames(
-                requestedTagNames: tags,
-                storedTagNames: self.storedTagNames
-            )
+        guard case .tags(let tags) = self.reviewFilter else {
+            return []
         }
 
-        return Set(selectedTags.map(normalizeTagKey))
+        return Set(
+            resolveExactStoredTagNames(
+                requestedTagNames: tags,
+                storedTagNames: self.storedTagNames
+            ).map(normalizeTagKey)
+        )
     }
 
     var body: some View {
@@ -176,28 +166,17 @@ struct ReviewFilterPopover: View {
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 
+    /// Toggles within a tag selection; from All cards or a deck, starts a selection of only this tag.
     private func toggleTag(tag: String) {
-        let tagFilter: ReviewFilter
         switch self.reviewFilter {
-        case .deck(let deckId):
-            let deckTags = self.decks.first(where: { deck in
-                deck.deckId == deckId
-            })?.filterDefinition.tags ?? []
-            tagFilter = makeReviewTagsFilter(
-                tags: selectedReviewDeckTagNames(
-                    deckFilterTagNames: deckTags,
-                    storedTagNames: self.storedTagNames
-                )
+        case .allCards, .deck:
+            self.reviewFilter = makeReviewTagsFilter(tags: [tag])
+        case .tags(let tags):
+            self.reviewFilter = reviewTagsFilterByTogglingTag(
+                tags: tags,
+                tag: tag,
+                storedTagNames: self.storedTagNames
             )
-        case .allCards, .tags:
-            tagFilter = self.reviewFilter
         }
-
-        self.reviewFilter = reviewFilterByTogglingTag(
-            reviewFilter: tagFilter,
-            tag: tag,
-            decks: [],
-            storedTagNames: self.storedTagNames
-        )
     }
 }

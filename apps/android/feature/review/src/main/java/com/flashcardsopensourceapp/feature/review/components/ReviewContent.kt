@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,13 +22,11 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -55,13 +52,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,6 +75,7 @@ private val reviewAnswerGridContentBottomPadding = 184.dp
 private val reviewEmptyStateMaxWidth = 420.dp
 // Every card, tagged or not, gets the standard Material chip height so the card never shifts between them.
 private val reviewMetadataLineMinHeight = AssistChipDefaults.Height
+private val reviewTagChipSpacing = 6.dp
 private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
 private val reviewSpeechButtonSize = 32.dp
@@ -502,6 +500,7 @@ private fun ReviewCardSideSection(
     onOpenAi: (() -> Unit)?
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val locale = currentResourceLocale(resources = context.resources)
     val selectTextContentDescription = stringResource(
         id = R.string.review_select_text_content_description,
@@ -556,9 +555,9 @@ private fun ReviewCardSideSection(
                         sourceText = sourceText,
                         privateMediaPlaceholder = { mediaLabel ->
                             if (mediaLabel.isBlank()) {
-                                context.getString(R.string.review_copy_private_media)
+                                resources.getString(R.string.review_copy_private_media)
                             } else {
-                                context.getString(R.string.review_copy_private_media_label, mediaLabel)
+                                resources.getString(R.string.review_copy_private_media_label, mediaLabel)
                             }
                         }
                     )
@@ -659,11 +658,9 @@ private fun ReviewCardTags(
         return
     }
 
-    val changeFilterClickLabel = stringResource(id = R.string.review_tag_chip_click_label)
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(reviewTagChipSpacing),
         modifier = modifier
     ) {
         Icon(
@@ -674,33 +671,12 @@ private fun ReviewCardTags(
         )
         // Without this the 48dp minimum would grow the line past the 32dp chip; hit testing still expands taps to 48dp.
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.horizontalScroll(state = rememberScrollState())
-            ) {
-                tags.forEach { tag ->
-                    AssistChip(
-                        onClick = {
-                            onRequestTagFilter(tag)
-                        },
-                        label = {
-                            Text(
-                                text = tag,
-                                maxLines = 1
-                            )
-                        },
-                        modifier = Modifier
-                            .semantics {
-                                onClick(label = changeFilterClickLabel) {
-                                    onRequestTagFilter(tag)
-                                    true
-                                }
-                            }
-                            .testTag(reviewCardTagChipTag(tag = tag))
-                    )
-                }
-            }
+            ReviewCardTagChipRow(
+                tags = tags,
+                spacing = reviewTagChipSpacing,
+                onRequestTagFilter = onRequestTagFilter,
+                modifier = Modifier
+            )
         }
     }
 }

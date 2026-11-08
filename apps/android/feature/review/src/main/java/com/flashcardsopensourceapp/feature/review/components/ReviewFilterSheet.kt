@@ -34,7 +34,6 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOptio
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
-import com.flashcardsopensourceapp.data.local.model.review.resolveReviewTagFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,14 +59,7 @@ internal fun ReviewFilterSheet(
             )
         )
     }
-    val selectedTagNames = selectedReviewTagNames(
-        selectedFilter = selectedFilter,
-        availableDeckFilters = availableDeckFilters,
-        availableTagFilters = availableTagFilters
-    )
-    val selectedTagKeys: Set<String> = selectedTagNames.map { tagName ->
-        normalizeTagKey(tag = tagName)
-    }.toSet()
+    val selectedTagKeys: Set<String> = selectedReviewTagKeys(selectedFilter = selectedFilter)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
@@ -235,69 +227,36 @@ private fun ReviewFilterOptionRow(
     )
 }
 
-internal fun selectedReviewTagNames(
-    selectedFilter: ReviewFilter,
-    availableDeckFilters: List<ReviewDeckFilterOption>,
-    availableTagFilters: List<ReviewTagFilterOption>
-): List<String> {
-    val availableTagNames: List<String> = availableTagFilters.map(ReviewTagFilterOption::tag)
-    val requestedTagNames: List<String> = when (selectedFilter) {
-        ReviewFilter.AllCards -> availableTagNames
-        is ReviewFilter.Deck -> availableDeckFilters.firstOrNull { deck ->
-            deck.deckId == selectedFilter.deckId
-        }?.let { deck ->
-            if (deck.tags.isEmpty()) {
-                availableTagNames
-            } else {
-                deck.tags
-            }
-        } ?: emptyList()
-        is ReviewFilter.Tags -> selectedFilter.tags
-    }
-    val requestedTagKeys: Set<String> = requestedTagNames.map { tagName ->
-        normalizeTagKey(tag = tagName)
-    }.toSet()
-
-    return availableTagNames.filter { availableTagName ->
-        requestedTagKeys.contains(normalizeTagKey(tag = availableTagName))
+// Only an explicit tag selection ticks tag rows; All cards and decks tick none.
+internal fun selectedReviewTagKeys(selectedFilter: ReviewFilter): Set<String> {
+    return when (selectedFilter) {
+        ReviewFilter.AllCards, is ReviewFilter.Deck -> emptySet()
+        is ReviewFilter.Tags -> selectedFilter.tags.map { tagName ->
+            normalizeTagKey(tag = tagName)
+        }.toSet()
     }
 }
 
+// A tag tapped under All cards or a deck starts a new selection of only that tag.
 internal fun toggleReviewTagFilter(
     selectedFilter: ReviewFilter,
-    toggledTagName: String,
-    availableDeckFilters: List<ReviewDeckFilterOption>,
-    availableTagFilters: List<ReviewTagFilterOption>
-): ReviewFilter {
-    val availableTagNames: List<String> = availableTagFilters.map(ReviewTagFilterOption::tag)
-    val currentTagNames: List<String> = if (selectedFilter is ReviewFilter.Tags) {
-        selectedFilter.tags
-    } else {
-        selectedReviewTagNames(
-            selectedFilter = selectedFilter,
-            availableDeckFilters = availableDeckFilters,
-            availableTagFilters = availableTagFilters
-        )
+    toggledTagName: String
+): ReviewFilter.Tags {
+    if (selectedFilter !is ReviewFilter.Tags) {
+        return makeReviewTagFilter(tagNames = listOf(toggledTagName))
     }
+
     val toggledTagKey: String = normalizeTagKey(tag = toggledTagName)
-    val currentTagKeys: Set<String> = currentTagNames.map { tagName ->
-        normalizeTagKey(tag = tagName)
-    }.toSet()
-    val nextTagNames: List<String> = if (currentTagKeys.contains(toggledTagKey)) {
-        currentTagNames.filter { tagName ->
+    val isToggledTagSelected: Boolean = selectedFilter.tags.any { tagName ->
+        normalizeTagKey(tag = tagName) == toggledTagKey
+    }
+    val nextTagNames: List<String> = if (isToggledTagSelected) {
+        selectedFilter.tags.filter { tagName ->
             normalizeTagKey(tag = tagName) != toggledTagKey
         }
     } else {
-        currentTagNames + toggledTagName
+        selectedFilter.tags + toggledTagName
     }
 
-    val resolvedFilter = resolveReviewTagFilter(
-        selectedTagNames = nextTagNames,
-        availableTagNames = availableTagNames
-    )
-    return if (resolvedFilter == ReviewFilter.AllCards) {
-        ReviewFilter.AllCards
-    } else {
-        makeReviewTagFilter(tagNames = nextTagNames)
-    }
+    return makeReviewTagFilter(tagNames = nextTagNames)
 }

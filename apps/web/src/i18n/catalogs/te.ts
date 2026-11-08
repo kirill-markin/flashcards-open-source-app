@@ -1116,6 +1116,10 @@ const teCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI చాట్‌లో కార్డును తెరువు: {{side}}",
     repetitionBadgeAriaLabel: "పునశ్చరణ సార్లు: {{value}}",
     repetitionBadgeNew: "కొత్తది",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "మరిన్ని ట్యాగ్‌లు: {{count}}",
+    },
     empty: {
       noCardsBody: "మీరు ఇంకా కార్డులను సృష్టించలేదు. చదవడం ప్రారంభించడానికి మీ మొదటి కార్డును చేర్చండి.",
       noCardsTitle: "ఇంకా కార్డులు లేవు",

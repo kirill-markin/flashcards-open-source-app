@@ -103,11 +103,7 @@ internal fun ReviewsSectionCard(
     uiState: ProgressReviewsSectionUiState
 ) {
     val configuration = LocalConfiguration.current
-    val locale = if (configuration.locales.isEmpty) {
-        Locale.getDefault()
-    } else {
-        configuration.locales[0]
-    }
+    val locale = configuration.locales[0]
     var selectedPageStartDateKey by rememberSaveable {
         mutableStateOf<String?>(null)
     }

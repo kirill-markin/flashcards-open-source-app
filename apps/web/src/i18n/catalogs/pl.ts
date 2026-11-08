@@ -1126,6 +1126,10 @@ const plCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otwórz stronę karty ({{side}}) w czacie AI",
     repetitionBadgeAriaLabel: "Powtórzenia: {{value}}",
     repetitionBadgeNew: "Nowa",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Więcej tagów: {{count}}",
+    },
     empty: {
       noCardsBody: "Nie masz jeszcze żadnych kart. Dodaj pierwszą kartę, aby zacząć naukę.",
       noCardsTitle: "Brak kart",

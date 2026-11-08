@@ -797,7 +797,7 @@
 "settings.workspace.decks.noMatching" = "일치하는 덱 없음";
 "settings.workspace.decks.searchPrompt" = "덱 검색";
 "settings.workspace.decks.newDeck" = "새 덱";
-"settings.workspace.decks.toStudyCount" = "학습 대상 %d개";
+"settings.workspace.decks.toStudyCount" = "학습 대상 %d장";
 "settings.workspace.decks.toStudy" = "학습 대상";
 "settings.workspace.decks.emptyAllCards" = "아직 만든 카드가 없습니다.";
 "settings.workspace.decks.emptyDeck" = "이 덱에 일치하는 카드가 아직 없습니다.";

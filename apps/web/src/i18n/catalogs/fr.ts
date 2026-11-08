@@ -1116,6 +1116,10 @@ const frCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Ouvrir le {{side}} de la carte dans le chat IA",
     repetitionBadgeAriaLabel: "Répétitions : {{value}}",
     repetitionBadgeNew: "Nouvelle",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Autres étiquettes : {{count}}",
+    },
     empty: {
       noCardsBody: "Vous n'avez encore créé aucune carte. Ajoutez votre première carte pour commencer à apprendre.",
       noCardsTitle: "Aucune carte pour l'instant",
