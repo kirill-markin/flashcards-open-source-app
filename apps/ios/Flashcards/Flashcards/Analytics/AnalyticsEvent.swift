@@ -157,6 +157,9 @@ enum AnalyticsEvent: Sendable, Equatable {
     case notificationOpened(notificationKind: AnalyticsNotificationKind)
     /// A Home Screen widget tap, reported once when the app consumes it.
     case widgetOpened(widgetSize: AnalyticsWidgetSize)
+    /// How many Review widgets of each size are placed now, reported only when the counts differ from
+    /// the last report of this installation; all zeros means none is placed.
+    case widgetPlacementChanged(smallCount: Int, mediumCount: Int, largeCount: Int)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /**
      * Voice input reached the microphone: the recorder really started, not the button being pressed.
@@ -706,6 +709,8 @@ extension AnalyticsEvent {
             return "notification_opened"
         case .widgetOpened:
             return "widget_opened"
+        case .widgetPlacementChanged:
+            return "widget_placement_changed"
         case .cardCreateStarted:
             return "card_create_started"
         case .dictationStarted:
@@ -859,6 +864,12 @@ extension AnalyticsEvent {
             return ["notification_kind": .string(notificationKind.rawValue)]
         case .widgetOpened(let widgetSize):
             return ["widget_size": .string(widgetSize.rawValue)]
+        case .widgetPlacementChanged(let smallCount, let mediumCount, let largeCount):
+            return [
+                "small_count": .integer(max(0, smallCount)),
+                "medium_count": .integer(max(0, mediumCount)),
+                "large_count": .integer(max(0, largeCount))
+            ]
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
         case .dictationStarted:
