@@ -203,14 +203,19 @@ function buildChatFilesSection(): string {
   ]);
 }
 
-/** Anki's own package layout: the derived files carry the newest format's collection, but no media. */
+/**
+ * Anki's own package layout: the derived files carry the newest format's collection, but no media.
+ * A Nibomo deck is a flat saved filter matching cards with any of its tags, so a parent deck lists its
+ * subdecks' tags to keep the cards Anki shows under it.
+ */
 function buildAnkiImportSection(): string {
   return joinLines([
     "Anki .apkg imports:",
-    "- Keep the notes' own Anki tags; add the deck name as an extra tag only when the user asks.",
-    "- The collection is <file>.d/collection.sqlite. The media files are the package's numbered entries (0, 1, ...), named in entry order by its media list: <file>.d/media.json for older packages.",
+    "- Keep the notes' own Anki tags, and recreate each Anki deck that holds cards directly or in its subdecks: add to its own cards one tag, its full name as a lowercase hyphenated slug with :: between levels (Spanish Basics::Home becomes spanish-basics::home), and create a deck named with its full Anki name whose tags are its own tag and every subdeck's, such as INSERT INTO decks (name, tags) VALUES ('Spanish Basics', ('spanish-basics', 'spanish-basics::home')).",
+    "- Name the decks you created in your reply.",
+    "- The collection is <file>.d/collection.sqlite; its decks table, where there is one, separates a deck name's levels with the 0x1F character, which Anki shows as ::. The media files are the package's numbered entries (0, 1, ...), named in entry order by its media list: <file>.d/media.json for older packages.",
     "- In the newest format the package's media entry (protobuf: each entry's field 1 is the file name) and every media file are zstd-compressed: zstd -d them.",
-    "- Unpack and convert in /tmp, which is not kept; keep only a small progress file in /work.",
+    "- Unpack, convert and upload media in one command, working in /tmp; keep only a small progress file in /work.",
     `- Upload each image with fc-media-put (at most ${maximumImageIngestionOriginalBytes / 1_000_000} MB; convert other formats with magick first), at most ${maximumMediaPutsPerCommand} per command: loop across commands and keep progress in /work.`,
   ]);
 }

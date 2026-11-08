@@ -2,6 +2,7 @@ import { zstdDecompressSync } from "node:zlib";
 import { unzipSync, type UnzipFileInfo } from "fflate";
 import { z } from "zod";
 import { cutHeadAtCodePoint } from "../shared/codePointCuts";
+import { replaceUnicaseCollation } from "./ankiCollation";
 import { maximumDerivedFileCount } from "./contract";
 import { DerivativeRefusal } from "./derivativeRefusal";
 import type { SlotFile } from "./slotUploads";
@@ -154,9 +155,10 @@ function readLegacyAnkiMediaNames(media: Uint8Array): ReadonlyArray<string> {
 }
 
 /**
- * The collection as `<path>.d/collection.sqlite`, chosen by the package version because a current export
- * also carries a stub `collection.anki2`, plus `<path>.d/media.json`, the media file names, when the
- * package lists them as JSON. A version 3 package lists them as protobuf, which is not read.
+ * The collection as `<path>.d/collection.sqlite`, readable by the sandbox's sqlite3 and chosen by the
+ * package version because a current export also carries a stub `collection.anki2`, plus
+ * `<path>.d/media.json`, the media file names, when the package lists them as JSON. A version 3 package
+ * lists them as protobuf, which is not read.
  */
 export function deriveAnkiPackageFiles(path: string, bytes: Uint8Array): ReadonlyArray<SlotFile> {
   const entries = listArchiveEntries(bytes);
@@ -181,7 +183,7 @@ export function deriveAnkiPackageFiles(path: string, bytes: Uint8Array): Readonl
   const collection = version === latestAnkiPackageVersion
     ? zstdDecompressSync(unzipped[collectionName], { maxOutputLength: maximumArchiveTotalBytes })
     : unzipped[collectionName];
-  const collectionFile: SlotFile = { path: `${path}.d/collection.sqlite`, bytes: collection };
+  const collectionFile: SlotFile = { path: `${path}.d/collection.sqlite`, bytes: replaceUnicaseCollation(collection) };
   if (mediaEntry === undefined) {
     return [collectionFile];
   }
