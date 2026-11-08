@@ -33,11 +33,7 @@ import androidx.glance.text.TextStyle
 import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
 import java.util.Calendar
 
 private val reviewWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
@@ -50,8 +46,9 @@ class ReviewWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(sizes = reviewWidgetSizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeCurrentGraphReviewWidgetContent(
-            application = context.applicationContext as FlashcardsApplication
+        val contentFlow = observeWithCurrentAppGraph(
+            application = context.applicationContext as FlashcardsApplication,
+            observe = ::observeReviewWidgetContent
         )
         val initialContent = contentFlow.first()
         provideContent {
@@ -65,16 +62,6 @@ class ReviewWidget : GlanceAppWidget() {
 
 class ReviewWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ReviewWidget()
-}
-
-/** Follows graph replacement (sign-out, reset) and waits while no graph is published. */
-@OptIn(ExperimentalCoroutinesApi::class)
-private fun observeCurrentGraphReviewWidgetContent(
-    application: FlashcardsApplication
-): Flow<ReviewWidgetContent?> {
-    return application.appGraphState.flatMapLatest { appGraph ->
-        if (appGraph == null) emptyFlow() else observeReviewWidgetContent(appGraph = appGraph)
-    }
 }
 
 internal fun reviewWidgetSize(size: DpSize): ReviewWidgetSize {
@@ -96,10 +83,11 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
         backgroundColor = GlanceTheme.colors.surface,
         modifier = GlanceModifier.clickable(
             onClick = actionStartActivity(
-                intent = ReviewWidgetTapContract.makeIntent(
+                intent = ReviewWidgetTapContract.makeOpenReviewIntent(
                     context = context,
                     workspaceId = content?.workspaceId,
                     size = size,
+                    kind = WidgetKind.REVIEW,
                     cardId = shownCard?.cardId
                 )
             )

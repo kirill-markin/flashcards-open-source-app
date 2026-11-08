@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHeadCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
@@ -22,6 +23,10 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorksp
 import com.flashcardsopensourceapp.data.local.model.review.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.repository.decks.decodeDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -37,6 +42,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.withTimeoutOrNull
 
 internal const val reviewSessionCanonicalQueueSize: Int = 8
 internal const val reviewSessionQueueLookaheadSize: Int = 1
@@ -254,6 +260,76 @@ internal fun observeReviewQueueHeadForPredicate(
         },
         nextDueAtMillis = ReviewQueueHead::nextDueAtMillis
     )
+}
+
+/** Re-queries at each local midnight, so the days stay the ones after the current today. */
+internal fun observeUpcomingReviewDueDaysForPredicate(
+    database: AppDatabase,
+    workspaceId: String,
+    predicate: ReviewQueuePredicate,
+    dayCount: Int,
+    timeProvider: TimeProvider
+): Flow<List<ReviewDueDay>> {
+    require(dayCount > 0) {
+        "Upcoming review due day count must be positive."
+    }
+
+    return flow {
+        while (true) {
+            val zoneId: ZoneId = timeProvider.currentZoneId()
+            val nowMillis: Long = timeProvider.currentTimeMillis()
+            val today: LocalDate = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
+            val days: List<LocalDate> = (1..dayCount).map { offset -> today.plusDays(offset.toLong()) }
+            val fromMillis: Long = startOfLocalDayMillis(date = days.first(), zoneId = zoneId)
+            val toMillis: Long = startOfLocalDayMillis(date = days.last().plusDays(1L), zoneId = zoneId)
+            withTimeoutOrNull(timeMillis = fromMillis - nowMillis) {
+                emitAll(
+                    observeReviewDueAtMillisInRange(
+                        database = database,
+                        workspaceId = workspaceId,
+                        fromMillis = fromMillis,
+                        toMillis = toMillis,
+                        predicate = predicate
+                    ).map { dueAtMillisList ->
+                        val dueCountsByDate: Map<LocalDate, Int> = dueAtMillisList.groupingBy { dueAtMillis ->
+                            Instant.ofEpochMilli(dueAtMillis).atZone(zoneId).toLocalDate()
+                        }.eachCount()
+                        days.map { date ->
+                            ReviewDueDay(localDate = date, dueCount = dueCountsByDate[date] ?: 0)
+                        }
+                    }
+                )
+            }
+        }
+    }.distinctUntilChanged()
+}
+
+private fun startOfLocalDayMillis(date: LocalDate, zoneId: ZoneId): Long {
+    return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+}
+
+private fun observeReviewDueAtMillisInRange(
+    database: AppDatabase,
+    workspaceId: String,
+    fromMillis: Long,
+    toMillis: Long,
+    predicate: ReviewQueuePredicate
+): Flow<List<Long>> {
+    return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.MatchNone -> flowOf(emptyList())
+        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewDueAtMillisInRange(
+            workspaceId = workspaceId,
+            fromMillis = fromMillis,
+            toMillis = toMillis
+        )
+
+        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewDueAtMillisInRangeByAnyTags(
+            workspaceId = workspaceId,
+            fromMillis = fromMillis,
+            toMillis = toMillis,
+            tagNames = tagPredicate.tagNames
+        )
+    }
 }
 
 /**

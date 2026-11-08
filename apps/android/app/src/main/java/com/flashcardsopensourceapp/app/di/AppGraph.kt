@@ -78,9 +78,9 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.repository.billing.GooglePlayBillingRepository
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetPlacementStore
-import com.flashcardsopensourceapp.app.widget.observeReviewWidgetContent
+import com.flashcardsopensourceapp.app.widget.observeWidgetContent
 import com.flashcardsopensourceapp.app.widget.reportReviewWidgetPlacementIfChanged
-import com.flashcardsopensourceapp.app.widget.updateReviewWidgetsOnContentChange
+import com.flashcardsopensourceapp.app.widget.updateWidgetsOnContentChange
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
@@ -1065,9 +1065,9 @@ class AppGraph(
     private fun startReviewWidgetUpdates() {
         reviewWidgetUpdatesJob?.cancel()
         reviewWidgetUpdatesJob = appScope.launch {
-            updateReviewWidgetsOnContentChange(
+            updateWidgetsOnContentChange(
                 context = applicationContext,
-                content = observeReviewWidgetContent(appGraph = this@AppGraph)
+                content = observeWidgetContent(appGraph = this@AppGraph)
             )
         }
     }
