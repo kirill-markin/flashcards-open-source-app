@@ -607,9 +607,7 @@ fun ReviewRoute(
             onToggleTag = { tagName ->
                 val nextFilter = toggleReviewTagFilter(
                     selectedFilter = filterSheetTransaction.draftSelection,
-                    toggledTagName = tagName,
-                    availableDeckFilters = uiState.availableDeckFilters,
-                    availableTagFilters = uiState.availableTagFilters
+                    toggledTagName = tagName
                 )
                 filterSheetTransaction = filterSheetTransaction.copy(
                     draftSelection = nextFilter

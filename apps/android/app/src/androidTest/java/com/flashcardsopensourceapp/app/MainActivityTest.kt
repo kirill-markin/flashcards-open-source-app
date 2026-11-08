@@ -548,9 +548,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForTagToExist(tag = reviewFilterSheetTag)
         waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
 
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
@@ -645,9 +645,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("2 tags")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
             .assertContentDescriptionEquals(reviewQueueContentDescription(count = 2))
@@ -664,9 +664,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
     }
 
     @Test

@@ -321,7 +321,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ReviewFilterSelection(
                         workspaceId = reviewRouteWorkspaceId,
                         openingFilter = ReviewFilter.AllCards,
-                        selectedFilter = ReviewFilter.Tags(tags = listOf(reviewRouteSecondTag))
+                        selectedFilter = ReviewFilter.Tags(tags = listOf(reviewRouteFirstTag))
                     )
                 ),
                 filterSelections
@@ -425,8 +425,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         stateRestorationTester.emulateSavedInstanceStateRestore()
 
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteSecondTag)).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteSecondTag)).assertIsOff()
         composeRule.runOnIdle {
             assertTrue(filterSelections.isEmpty())
         }
