@@ -260,6 +260,23 @@ fun ReviewRoute(
             )
         }
     }
+
+    // Applies while the sheet is still hiding, so the filter title updates at once.
+    fun applyFilterSheetSelection(selection: ReviewFilter): Unit {
+        val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
+        val openingWorkspaceId: String = transaction.workspaceId ?: return
+        filterSheetTransaction = transaction.copy(
+            openingSelection = selection,
+            draftSelection = selection
+        )
+        if (selection != transaction.openingSelection) {
+            onSelectFilter(
+                openingWorkspaceId,
+                transaction.openingSelection,
+                selection
+            )
+        }
+    }
     val onRateAgainWithReaction: () -> Unit = {
         onRateAgain(playReviewReaction(rating = ReviewRating.AGAIN))
     }
@@ -598,11 +615,7 @@ fun ReviewRoute(
             availableTagFilters = uiState.availableTagFilters,
             areFilterOptionsLoaded = uiState.areFilterOptionsLoaded,
             onDismiss = ::finalizeFilterSheetSelection,
-            onSelectFilter = { nextFilter ->
-                filterSheetTransaction = filterSheetTransaction.copy(
-                    draftSelection = nextFilter
-                )
-            },
+            onApplyFilter = ::applyFilterSheetSelection,
             onToggleTag = { tagName ->
                 val nextFilter = toggleReviewTagFilter(
                     selectedFilter = filterSheetTransaction.draftSelection,
