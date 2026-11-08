@@ -822,7 +822,7 @@
 "settings.workspace.decks.noMatching" = "一致するデッキがありません";
 "settings.workspace.decks.searchPrompt" = "デッキを検索";
 "settings.workspace.decks.newDeck" = "新しいデッキ";
-"settings.workspace.decks.toStudyCount" = "学習対象 %d 枚";
+"settings.workspace.decks.toStudyCount" = "学習対象 %d枚";
 "settings.workspace.decks.toStudy" = "学習対象";
 "settings.workspace.decks.emptyAllCards" = "まだカードを作成していません。";
 "settings.workspace.decks.emptyDeck" = "このデッキには一致するカードがまだありません。";
