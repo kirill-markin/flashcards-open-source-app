@@ -10,6 +10,8 @@ struct FlashcardsWidgetBundle: WidgetBundle {
         ReviewWidget()
         TodayWidget()
         LockScreenWidget()
+        ActivityWidget()
+        YearWidget()
     }
 }
 

@@ -1,6 +1,138 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "widget.activity.gallery.description" : {
+      "comment" : "Widget gallery description of the Activity heatmap widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and streak on a heatmap."
+          }
+        }
+      }
+    },
+    "widget.activity.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that shows daily reviews as a heatmap",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        }
+      }
+    },
+    "widget.activity.stat.active_days_in_weeks %lld" : {
+      "comment" : "Label under the number of days with at least one review on the Activity heatmap. Parameter is the number of weeks the heatmap shows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld weeks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.activity.stat.best_streak" : {
+      "comment" : "Label under the longest review streak ever in the large Activity widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best streak"
+          }
+        }
+      }
+    },
+    "widget.activity.stat.current_streak" : {
+      "comment" : "Label under the current review streak in the large Activity widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current streak"
+          }
+        }
+      }
+    },
+    "widget.activity.stat.due_now" : {
+      "comment" : "Label under the number of cards waiting in Review in the large Activity widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due now"
+          }
+        }
+      }
+    },
+    "widget.activity.stat.reviews_in_weeks %lld" : {
+      "comment" : "Label under the number of reviews shown on the Activity heatmap. Parameter is the number of weeks the heatmap shows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld weeks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.activity.stat.reviews_today" : {
+      "comment" : "Label under the number of reviews done today in the large Activity widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews today"
+          }
+        }
+      }
+    },
+    "widget.activity.stat.streak_freezes" : {
+      "comment" : "Label under the number of streak freezes available to save a missed day, in the large Activity widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak freezes"
+          }
+        }
+      }
+    },
     "widget.all_done.next_due %@" : {
       "comment" : "When the next card becomes due, shown under All done. Parameter is a localized time of day, or a short date and time when it is not today",
       "extractionState" : "manual",
@@ -1837,6 +1969,78 @@
         }
       }
     },
+    "widget.heatmap.active_days_count %lld" : {
+      "comment" : "Days with at least one review over the last year, in the Year widget footer. Parameter is the number of days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.heatmap.days_count %lld" : {
+      "comment" : "A number of days, used for streak lengths next to a flame icon or above a streak label. Parameter is the number of days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.heatmap.reviews_count %lld" : {
+      "comment" : "Total reviews over the days a heatmap widget shows. Parameter is the number of reviews",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld review"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviews"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "widget.lock_screen.due %lld" : {
       "comment" : "Cards due on the Lock Screen widget before the streak is known. Parameter is the count",
       "extractionState" : "manual",
@@ -3345,6 +3549,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Today"
+          }
+        }
+      }
+    },
+    "widget.year.gallery.description" : {
+      "comment" : "Widget gallery description of the Year widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See a year of daily reviews, one row per month."
+          }
+        }
+      }
+    },
+    "widget.year.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that shows the last 12 months of daily reviews",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year"
           }
         }
       }
