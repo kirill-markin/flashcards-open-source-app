@@ -1116,6 +1116,10 @@ const faCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "باز کردن {{side}} در گفت‌وگوی هوش مصنوعی",
     repetitionBadgeAriaLabel: "تکرارها: {{value}}",
     repetitionBadgeNew: "جدید",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "برچسب‌های بیشتر: {{count}}",
+    },
     empty: {
       noCardsBody: "هنوز هیچ کارتی نساخته‌اید. برای شروع مطالعه، اولین کارت خود را اضافه کنید.",
       noCardsTitle: "هنوز کارتی وجود ندارد",

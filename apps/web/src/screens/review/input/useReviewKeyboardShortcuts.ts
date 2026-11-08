@@ -24,6 +24,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
   isReviewMoreActionsMenuOpen: boolean;
+  isReviewTagOverflowMenuOpen: boolean;
   isSubmitting: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
@@ -66,6 +67,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isSubmitting,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -86,6 +88,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     || isMobileAppPromotionDialogOpen
     || isReviewFilterMenuOpen
     || isReviewMoreActionsMenuOpen
+    || isReviewTagOverflowMenuOpen
     || isTagFilterDialogOpen
     || isTextSelectionDialogOpen;
 

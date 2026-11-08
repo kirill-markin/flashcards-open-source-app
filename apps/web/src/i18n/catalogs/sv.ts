@@ -1116,6 +1116,10 @@ const svCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Öppna kortets sida ({{side}}) i AI-chatten",
     repetitionBadgeAriaLabel: "Repetitioner: {{value}}",
     repetitionBadgeNew: "Nytt",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Fler taggar: {{count}}",
+    },
     empty: {
       noCardsBody: "Du har inte skapat några kort än. Lägg till ditt första kort för att börja plugga.",
       noCardsTitle: "Inga kort än",

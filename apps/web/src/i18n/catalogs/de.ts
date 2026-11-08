@@ -1116,6 +1116,10 @@ const deCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}}-Seite der Karte im AI-Chat öffnen",
     repetitionBadgeAriaLabel: "Wiederholungen: {{value}}",
     repetitionBadgeNew: "Neu",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Weitere Tags: {{count}}",
+    },
     empty: {
       noCardsBody: "Du hast noch keine Karten erstellt. Füge deine erste Karte hinzu, um mit dem Lernen zu beginnen.",
       noCardsTitle: "Noch keine Karten",

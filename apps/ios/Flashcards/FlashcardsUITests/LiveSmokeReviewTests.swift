@@ -33,6 +33,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
         let tagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-guest-ai-review"
         let lowerTagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-overflow-12"
+        let secondLowerTagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-overflow-11"
 
         try self.step("keep a lower review filter row visible after changing its draft selection") {
             try self.assertElementExists(
@@ -43,10 +44,20 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            try self.assertReviewFilterToggleValue(
+                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: tagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
             try self.tapReviewFilterButtonScrollingIntoView(identifier: lowerTagToggleIdentifier)
             try self.assertReviewFilterToggleValue(
                 identifier: lowerTagToggleIdentifier,
-                expectedValue: .off,
+                expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
@@ -63,9 +74,26 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
+            try self.tapReviewFilterButtonScrollingIntoView(identifier: secondLowerTagToggleIdentifier)
+            try self.assertReviewFilterToggleValue(
+                identifier: secondLowerTagToggleIdentifier,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: lowerTagToggleIdentifier,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+
             lowerTagToggle.clickOrTap()
             try self.assertReviewFilterToggleValue(
                 identifier: lowerTagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: secondLowerTagToggleIdentifier,
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
@@ -73,13 +101,12 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("clear all review filters without dismissing the menu") {
+            self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
+                .firstMatch
+                .clickOrTap()
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                expectedValue: .on,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertReviewFilterToggleValue(
-                identifier: tagToggleIdentifier,
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
@@ -180,7 +207,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
             try self.assertReviewFilterToggleValue(
                 identifier: tagToggleIdentifier,
-                expectedValue: .on,
+                expectedValue: .off,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
         }

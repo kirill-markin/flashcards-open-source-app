@@ -1126,6 +1126,10 @@ const csCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otevřít stranu kartičky ({{side}}) v chatu s AI",
     repetitionBadgeAriaLabel: "Opakování: {{value}}",
     repetitionBadgeNew: "Nová",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Další štítky: {{count}}",
+    },
     empty: {
       noCardsBody: "Zatím jste nevytvořili žádné kartičky. Přidejte první kartičku a začněte se učit.",
       noCardsTitle: "Zatím žádné kartičky",
