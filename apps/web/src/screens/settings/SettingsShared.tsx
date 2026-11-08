@@ -74,7 +74,7 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
   const { title, description, value, to, testId, guestAccountAttention } = props;
 
   return (
-    <Link className={`settings-nav-card content-card${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} data-testid={testId}>
+    <Link className={`settings-nav-card content-card${description === null ? " settings-nav-card-inline" : ""}${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
         {description === null ? null : <p className="subtitle">{description}</p>}
