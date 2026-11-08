@@ -57,6 +57,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchas
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSubscriptionManagementDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
@@ -93,8 +94,18 @@ internal fun PremiumPresentationHost(
     val presentation = presenter.presentation
     val originSurface = remember(presentation, reason) { analyticsSurface }
     var isEditingOwnKey by remember(presentation, reason) { mutableStateOf(false) }
-    var renewalAtMillis: Long? by remember(presentation, reason) { mutableStateOf(null) }
-    var allowance: PremiumAllowanceState by remember(presentation, reason) { mutableStateOf(PremiumAllowanceState.Loading) }
+    val cachedUsage = remember(presentation, reason) {
+        appGraph.cachedPremiumAiUsage(workspaceId = cloudSettings.activeWorkspaceId)
+    }
+    var renewalAtMillis: Long? by remember(presentation, reason) {
+        mutableStateOf(cachedUsage?.let { usage -> premiumRenewalAtMillis(usage = usage) })
+    }
+    var allowance: PremiumAllowanceState by remember(presentation, reason) {
+        mutableStateOf(
+            cachedUsage?.let { usage -> PremiumAllowanceState.Available(usage.premiumAiMonthlyMessages) }
+                ?: PremiumAllowanceState.Loading
+        )
+    }
     var usageRequestVersion by remember(presentation, reason) { mutableIntStateOf(0) }
     var hasRequestedEntitlement by remember(presentation, reason) { mutableStateOf(false) }
     var hasReportedShown by remember(presentation, reason) { mutableStateOf(presenter.hasReportedShown) }
@@ -176,14 +187,17 @@ internal fun PremiumPresentationHost(
 
     LaunchedEffect(presentation, reason, usageRequestVersion) {
         if (presentation == null && !isTestOfferPreview) return@LaunchedEffect
-        allowance = PremiumAllowanceState.Loading
+        // A cached allowance stays on screen while it refreshes.
+        if (allowance !is PremiumAllowanceState.Available) {
+            allowance = PremiumAllowanceState.Loading
+        }
         try {
             val usage = if (isTestOfferPreview) {
                 appGraph.loadPremiumPreviewAiUsage()
             } else {
-                appGraph.aiChatRepository.loadAiUsage(workspaceId = cloudSettings.activeWorkspaceId)
+                appGraph.loadPremiumAiUsage(workspaceId = cloudSettings.activeWorkspaceId)
             }
-            renewalAtMillis = usage.monthEndsAtMillis.takeIf { it > System.currentTimeMillis() }
+            renewalAtMillis = premiumRenewalAtMillis(usage = usage)
             allowance = PremiumAllowanceState.Available(usage.premiumAiMonthlyMessages)
         } catch (error: CancellationException) {
             throw error
@@ -355,6 +369,10 @@ internal fun PremiumPresentationHost(
             }
         }
     }
+}
+
+private fun premiumRenewalAtMillis(usage: AiUsageStatus): Long? {
+    return usage.monthEndsAtMillis.takeIf { it > System.currentTimeMillis() }
 }
 
 @Composable

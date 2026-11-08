@@ -41,7 +41,12 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
   const canPreviewPurchase = props.isPreview && price !== null
     && offer?.premiumAiMonthlyMessages !== null && offer?.premiumAiMonthlyMessages !== undefined
     && (guest || offer.trialEligible !== null);
-  const canPurchase = props.isPreview ? canPreviewPurchase : offer?.checkoutAvailable === true && price !== null && country !== null && !billing.busy;
+  const canPurchase = props.isPreview ? canPreviewPurchase : offer?.checkoutAvailable === true && price !== null && country !== null;
+  const isOfferLoading = billing.busy || billing.regional.loading || (country !== null && billing.offerPending);
+  // A loaded offer that refuses checkout keeps its reason on screen through later refreshes.
+  const isKnownUnavailable = !props.isPreview && offer !== null && offer.checkoutAvailable !== true;
+  const showsPurchaseButton = canPurchase || (isOfferLoading && !isKnownUnavailable);
+  const showsLoadingButton = showsPurchaseButton && price === null;
 
   function choosePremium(): void {
     if (props.isPreview) {
@@ -70,11 +75,17 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
           {t("stripe.offer.aiBenefit", { count: formatNumber(offer.premiumAiMonthlyMessages) })}
         </li>}
       </ul>
-      {canPurchase && price !== null ? <button type="button" className="premium-plan-button premium-paid-button"
-        disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase" onClick={choosePremium}>
-        <span>{showsTrial ? t("paywall.startTrial") : t("paywall.subscribe", { price })}</span>{actionArrow}
+      {showsPurchaseButton ? <button type="button" className="premium-plan-button premium-paid-button"
+        disabled={!canPurchase || billing.busy || !isSessionVerified} aria-busy={price === null}
+        data-testid={price === null ? "premium-purchase-loading" : "premium-purchase"} onClick={choosePremium}>
+        {price === null ? <>
+          <span className="premium-plan-button-spinner" aria-hidden="true" />
+          <span>{t("common.loading")}</span>
+        </> : <>
+          <span>{showsTrial ? t("paywall.startTrial") : t("paywall.subscribe", { price })}</span>{actionArrow}
+        </>}
       </button> : <p data-testid="premium-purchase-unavailable" role="status">
-        {t(billing.busy ? "common.loading" : !props.isPreview && offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
+        {t(!props.isPreview && offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
           : !props.isPreview && offer?.checkoutUnavailableReason === "existing_subscription" ? "stripe.portal.headline" : "common.unavailable")}
       </p>}
       {price === null ? null : <div className="premium-disclosures">
@@ -116,7 +127,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
             {t(country === null ? "stripe.offer.chooseCountry" : "stripe.offer.changeCountry")}
           </button>
         </div>
-        {billing.regional.loading && offer?.basePrice == null ? <p role="status">{t("common.loading")}</p> : null}
+        {billing.regional.loading && offer?.basePrice == null && !showsLoadingButton ? <p role="status">{t("common.loading")}</p> : null}
         {billing.regional.error === null ? null : <button type="button" className="ghost-btn" data-testid="premium-country-retry"
           onClick={billing.regional.retry}>{t("common.retry")}</button>}
       </div>

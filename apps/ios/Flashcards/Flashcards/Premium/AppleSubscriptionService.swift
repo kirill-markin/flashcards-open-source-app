@@ -170,6 +170,11 @@ private func nsErrorPurchaseErrorCode(error: any Error) -> AnalyticsPurchaseErro
     return AnalyticsPurchaseErrorCode(source: .nserror, code: "\(nsError.domain).\(nsError.code)")
 }
 
+private struct CachedPremiumAIAllowance {
+    let identity: AppleSubscriptionIdentity
+    let allowance: PremiumAIUsageStatusResponse
+}
+
 private struct ApplePremiumRestoredPurchase {
     let verification: VerificationResult<StoreKit.Transaction>
     let transaction: StoreKit.Transaction
@@ -186,11 +191,15 @@ final class AppleSubscriptionService {
     @ObservationIgnored private var isRuntimeActive: Bool = false
     @ObservationIgnored private var updatesTask: Task<Void, Never>?
     @ObservationIgnored private var reconciliationTask: Task<Void, Never>?
+    @ObservationIgnored private var paywallPrefetchIdentity: AppleSubscriptionIdentity?
 
     private(set) var confirmationRevision: Int = 0
     var runtimeErrorMessage: String?
     private var detailsIdentity: AppleSubscriptionIdentity?
     private var verifiedPurchases: [StoreKit.Transaction] = []
+    /// The last App Store offer loaded in this process, so the paywall opens with its price drawn.
+    private(set) var offer: AppleSubscriptionOffer?
+    private var cachedPremiumAIAllowance: CachedPremiumAIAllowance?
 
     var currentPurchases: [StoreKit.Transaction] {
         self.detailsIdentity == (try? self.store.appleSubscriptionIdentity()) ? self.verifiedPurchases : []
@@ -232,6 +241,31 @@ final class AppleSubscriptionService {
                 self.publishRuntimeError(error, identity: identity)
             }
         }
+        self.prefetchPaywall(identity: identity)
+    }
+
+    /// The paywall refreshes both itself, so a failed prefetch only stays in the log.
+    private func prefetchPaywall(identity: AppleSubscriptionIdentity) {
+        guard self.paywallPrefetchIdentity != identity else { return }
+        self.paywallPrefetchIdentity = identity
+        Task { @MainActor in
+            do {
+                _ = try await self.loadOffer()
+            } catch {
+                appleSubscriptionLogger.warning(
+                    "event=apple_paywall_prefetch_failed resource=offer error=\(String(describing: error), privacy: .public)"
+                )
+            }
+        }
+        Task { @MainActor in
+            do {
+                _ = try await self.loadPremiumAIAllowance(identity: identity)
+            } catch {
+                appleSubscriptionLogger.warning(
+                    "event=apple_paywall_prefetch_failed resource=premium_ai_allowance error=\(String(describing: error), privacy: .public)"
+                )
+            }
+        }
     }
 
     private func publishRuntimeError(_ error: Error, identity: AppleSubscriptionIdentity) {
@@ -245,10 +279,23 @@ final class AppleSubscriptionService {
               let subscription = product.subscription else {
             throw AppleSubscriptionError.productUnavailable
         }
-        return AppleSubscriptionOffer(
+        let offer = AppleSubscriptionOffer(
             product: product,
             isEligibleForIntroOffer: await subscription.isEligibleForIntroOffer
         )
+        self.offer = offer
+        return offer
+    }
+
+    func premiumAIAllowance(identity: AppleSubscriptionIdentity) -> PremiumAIUsageStatusResponse? {
+        guard let cached = self.cachedPremiumAIAllowance, cached.identity == identity else { return nil }
+        return cached.allowance
+    }
+
+    func loadPremiumAIAllowance(identity: AppleSubscriptionIdentity) async throws -> PremiumAIUsageStatusResponse {
+        let allowance = try await self.store.loadPremiumAIAllowance(identity: identity)
+        self.cachedPremiumAIAllowance = CachedPremiumAIAllowance(identity: identity, allowance: allowance)
+        return allowance
     }
 
     func purchasePremium(offer: AppleSubscriptionOffer, presentation: AnalyticsPaywallPresentation?) async throws -> AppleSubscriptionPurchaseResult {

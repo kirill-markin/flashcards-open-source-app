@@ -17,7 +17,6 @@ struct PremiumOfferView: View {
     @State private var priceText: String = ""
     @State private var trialText: String?
     @State private var purchaseTitle: String = ""
-    @State private var premiumAIAllowance: PremiumAIUsageStatusResponse?
     @State private var isLoading: Bool = true
     @State private var isPurchasing: Bool = false
     @State private var message: String?
@@ -42,6 +41,15 @@ struct PremiumOfferView: View {
     }
     private var showsOffer: Bool {
         self.isAILimit == false || (self.store.cloudEntitlement != nil && self.hasAccess == false)
+    }
+    private var showsPurchaseButton: Bool {
+        self.showsOffer && (self.isTestOfferPreview || self.hasAccess == false)
+    }
+    private var premiumAIAllowance: PremiumAIUsageStatusResponse? {
+        self.request.identity.flatMap { identity in self.subscriptions.premiumAIAllowance(identity: identity) }
+    }
+    private var isPurchaseButtonDisabled: Bool {
+        self.canPurchase == false || self.premiumAIAllowance == nil
     }
 
     var body: some View {
@@ -69,6 +77,9 @@ struct PremiumOfferView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
                             .onAppear {
+                                // Child and parent onAppear order is unspecified, so paywall_shown reads the cached offer itself.
+                                self.showCachedOffer()
+                                self.presenter.updateDisplayedOffer(requestId: self.request.id, offerType: self.displayedOfferType)
                                 self.presenter.recordShown(
                                     requestId: self.request.id,
                                     screen: self.store.currentVisibleAnalyticsSurface,
@@ -91,7 +102,7 @@ struct PremiumOfferView: View {
                     .listRowSeparator(.hidden)
                 }
 
-                if self.isLoading {
+                if self.isLoading, self.showsPurchaseButton == false {
                     Section {
                         ProgressView(aiSettingsLocalized("common.loading", "Loading..."))
                     }
@@ -162,6 +173,10 @@ struct PremiumOfferView: View {
             }
         }
         .macModalSheetNavigation()
+        .onAppear {
+            // onAppear completes before the first frame, so a prefetched offer draws the button immediately.
+            self.showCachedOffer()
+        }
         .onChange(of: self.displayedOfferType, initial: true) { _, offerType in
             self.presenter.updateDisplayedOffer(requestId: self.request.id, offerType: offerType)
         }
@@ -173,18 +188,18 @@ struct PremiumOfferView: View {
         .task(id: self.loadAttempt) {
             self.isLoading = true
             self.errorMessage = nil
-            self.offer = nil
-            self.premiumAIAllowance = nil
             defer { self.isLoading = false }
+            let subscriptions = self.subscriptions
             do {
                 guard self.presenter.request?.id == self.request.id else { return }
                 if self.isPreview {
-                    try await self.loadStoreOffer()
                     if self.isTestOfferPreview {
                         guard let identity = self.request.identity else { throw AppleSubscriptionError.accountUnavailable }
-                        let allowance = try await self.store.loadPremiumAIAllowance(identity: identity)
-                        guard self.presenter.request?.id == self.request.id else { return }
-                        self.premiumAIAllowance = allowance
+                        async let allowance = subscriptions.loadPremiumAIAllowance(identity: identity)
+                        try await self.loadStoreOffer()
+                        _ = try await allowance
+                    } else {
+                        try await self.loadStoreOffer()
                     }
                     return
                 }
@@ -198,16 +213,15 @@ struct PremiumOfferView: View {
                 try self.store.requireAppleSubscriptionIdentity(identity)
                 guard self.presenter.request?.id == self.request.id else { return }
                 guard self.showsOffer else { return }
-                let allowance = try await self.store.loadPremiumAIAllowance(identity: identity)
+                async let allowance = subscriptions.loadPremiumAIAllowance(identity: identity)
                 try await self.loadStoreOffer()
+                _ = try await allowance
                 try self.store.requireAppleSubscriptionIdentity(identity)
-                guard self.presenter.request?.id == self.request.id else { return }
-                self.premiumAIAllowance = allowance
             } catch is CancellationError {
                 return
             } catch {
                 guard Task.isCancelled == false, self.presenter.request?.id == self.request.id else { return }
-                self.errorMessage = aiSettingsLocalized("premium.apple.loadFailed", "Could not load the App Store offer. Check your connection and retry.") + "\n" + error.localizedDescription
+                self.errorMessage = offerLoadFailedMessage(error: error)
             }
         }
         .onChange(of: self.showsOffer) { _, showsOffer in
@@ -323,8 +337,8 @@ struct PremiumOfferView: View {
                     Text(entitlement.tierDisplayName)
                 }
             }
-            if self.offer != nil {
-                if self.isTestOfferPreview || self.hasAccess == false {
+            if self.isTestOfferPreview || self.hasAccess == false {
+                if self.offer != nil {
                     Button {
                         self.purchase()
                     } label: {
@@ -334,6 +348,9 @@ struct PremiumOfferView: View {
                             if self.isPurchasing {
                                 ProgressView()
                                     .tint(.white)
+                            } else if self.isLoading, self.isPurchaseButtonDisabled {
+                                ProgressView()
+                                    .tint(.secondary)
                             } else {
                                 Image(systemName: "arrow.forward").accessibilityHidden(true)
                             }
@@ -342,9 +359,25 @@ struct PremiumOfferView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     // Not disabled while purchasing: the dimmed disabled fill hides the spinner, and purchase() ignores repeat taps.
-                    .disabled(self.isLoading || self.canPurchase == false || self.premiumAIAllowance == nil)
+                    .disabled(self.isPurchaseButtonDisabled)
                     .accessibilityIdentifier(UITestIdentifier.premiumPurchaseButton)
+                } else if self.isLoading {
+                    Button {} label: {
+                        HStack {
+                            Text(aiSettingsLocalized("common.loading", "Loading..."))
+                                .frame(maxWidth: .infinity)
+                            // Secondary, not white: a white spinner vanishes on the dimmed disabled fill.
+                            ProgressView()
+                                .tint(.secondary)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(true)
+                    .accessibilityIdentifier(UITestIdentifier.premiumPurchaseLoadingButton)
                 }
+            }
+            if self.offer != nil {
                 VStack(spacing: 4) {
                     if self.canPurchase, let trialText {
                         Text("\(trialText) \(self.priceText)")
@@ -412,6 +445,20 @@ struct PremiumOfferView: View {
     @MainActor
     private func loadStoreOffer() async throws {
         let offer = try await self.subscriptions.loadOffer()
+        guard self.presenter.request?.id == self.request.id else { return }
+        try self.showStoreOffer(offer)
+    }
+
+    private func showCachedOffer() {
+        guard self.offer == nil, let offer = self.subscriptions.offer else { return }
+        do {
+            try self.showStoreOffer(offer)
+        } catch {
+            self.errorMessage = offerLoadFailedMessage(error: error)
+        }
+    }
+
+    private func showStoreOffer(_ offer: AppleSubscriptionOffer) throws {
         guard let subscription = offer.product.subscription else { throw AppleSubscriptionError.productUnavailable }
         let period = try appleSubscriptionPeriodText(period: subscription.subscriptionPeriod, count: 1)
         var trial: String? = nil
@@ -423,7 +470,6 @@ struct PremiumOfferView: View {
                 ? aiSettingsLocalized("premium.offer.startSevenDayTrial", "Start 7-day free trial")
                 : aiSettingsLocalizedFormat("premium.offer.startTrial", "Start free trial: %@", duration)
         }
-        guard self.presenter.request?.id == self.request.id else { return }
         self.offer = offer
         self.priceText = "\(offer.displayPrice) / \(period)"
         self.trialText = trial
@@ -431,7 +477,7 @@ struct PremiumOfferView: View {
     }
 
     private func purchase() {
-        guard self.isPurchasing == false, self.isLoading == false, self.canPurchase,
+        guard self.isPurchasing == false, self.canPurchase,
               self.premiumAIAllowance != nil, let offer = self.offer,
               self.presenter.request?.id == self.request.id else { return }
         if self.isTestOfferPreview {
@@ -467,6 +513,10 @@ struct PremiumOfferView: View {
             }
         }
     }
+}
+
+private func offerLoadFailedMessage(error: Error) -> String {
+    aiSettingsLocalized("premium.apple.loadFailed", "Could not load the App Store offer. Check your connection and retry.") + "\n" + error.localizedDescription
 }
 
 private func isSevenDayPeriod(period: Product.SubscriptionPeriod, count: Int) -> Bool {
