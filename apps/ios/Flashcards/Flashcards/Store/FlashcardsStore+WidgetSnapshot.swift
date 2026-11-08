@@ -4,7 +4,7 @@ import WidgetKit
 
 // Mac Catalyst has no App Group, so the widget snapshot exists only on iOS and iPadOS.
 
-private let reviewWidgetKind: String = "ReviewWidget"
+let reviewWidgetKind: String = "ReviewWidget"
 private let widgetSnapshotUpcomingDueLimit: Int = 100
 private let widgetSnapshotFrontTextCharacterLimit: Int = 300
 
@@ -59,7 +59,7 @@ extension FlashcardsStore {
         } catch is CancellationError {
             return
         } catch {
-            self.captureWidgetSnapshotFailure(error: error, workspaceId: workspaceId, action: "widget_snapshot_write")
+            self.captureWidgetFailure(error: error, workspaceId: workspaceId, action: "widget_snapshot_write")
         }
     }
 
@@ -71,11 +71,11 @@ extension FlashcardsStore {
             try deleteWidgetSnapshot(fileURL: try widgetSnapshotFileURL())
             WidgetCenter.shared.reloadTimelines(ofKind: reviewWidgetKind)
         } catch {
-            self.captureWidgetSnapshotFailure(error: error, workspaceId: workspaceId, action: "widget_snapshot_delete")
+            self.captureWidgetFailure(error: error, workspaceId: workspaceId, action: "widget_snapshot_delete")
         }
     }
 
-    private func captureWidgetSnapshotFailure(error: Error, workspaceId: String?, action: String) {
+    func captureWidgetFailure(error: Error, workspaceId: String?, action: String) {
         FlashcardsObservability.captureSilentFailure(
             error: error,
             scope: IOSObservationScope(

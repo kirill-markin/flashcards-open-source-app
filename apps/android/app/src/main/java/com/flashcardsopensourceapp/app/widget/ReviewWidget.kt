@@ -44,11 +44,10 @@ private val reviewWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
 private val reviewWidgetMediumSize = DpSize(width = 220.dp, height = 100.dp)
 private val reviewWidgetLargeSize = DpSize(width = 220.dp, height = 220.dp)
 private val reviewWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
+internal val reviewWidgetSizes: Set<DpSize> = setOf(reviewWidgetSmallSize, reviewWidgetMediumSize, reviewWidgetLargeSize)
 
 class ReviewWidget : GlanceAppWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(
-        sizes = setOf(reviewWidgetSmallSize, reviewWidgetMediumSize, reviewWidgetLargeSize)
-    )
+    override val sizeMode: SizeMode = SizeMode.Responsive(sizes = reviewWidgetSizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val contentFlow = observeCurrentGraphReviewWidgetContent(
@@ -78,7 +77,7 @@ private fun observeCurrentGraphReviewWidgetContent(
     }
 }
 
-private fun reviewWidgetSize(size: DpSize): ReviewWidgetSize {
+internal fun reviewWidgetSize(size: DpSize): ReviewWidgetSize {
     return when (size) {
         reviewWidgetLargeSize -> ReviewWidgetSize.LARGE
         reviewWidgetMediumSize -> ReviewWidgetSize.MEDIUM

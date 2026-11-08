@@ -77,7 +77,9 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.repository.billing.GooglePlayBillingRepository
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
+import com.flashcardsopensourceapp.app.widget.ReviewWidgetPlacementStore
 import com.flashcardsopensourceapp.app.widget.observeReviewWidgetContent
+import com.flashcardsopensourceapp.app.widget.reportReviewWidgetPlacementIfChanged
 import com.flashcardsopensourceapp.app.widget.updateReviewWidgetsOnContentChange
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
@@ -161,6 +163,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.time.ZoneId
@@ -345,6 +349,9 @@ class AppGraph(
     )
     internal val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
+    private val reviewWidgetPlacementStore = ReviewWidgetPlacementStore(context = context)
+    // Serializes reports so two quick foregrounds cannot both see the same last report.
+    private val reviewWidgetPlacementReportMutex = Mutex()
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
     val notificationDeliveryGate = NotificationDeliveryGate()
@@ -448,6 +455,7 @@ class AppGraph(
             //   off this hook, where the `anonymous_id` has to carry through for
             //   `analytics.identity_links` to join the guest and the account at all.
             paywallStateStore.clearForIdentityReset()
+            reviewWidgetPlacementStore.clearForIdentityReset()
             analytics.reset()
             // Released here rather than at the control that set it. By the time this hook runs,
             // `CloudIdentityResetCoordinator` has already cleared the stored credentials — before
@@ -1367,6 +1375,18 @@ class AppGraph(
         )
         appScope.launch {
             syncLauncherAppIcon(context = applicationContext, appIcon = appIcon)
+        }
+    }
+
+    fun reportReviewWidgetPlacementInBackground() {
+        appScope.launch {
+            reviewWidgetPlacementReportMutex.withLock {
+                reportReviewWidgetPlacementIfChanged(
+                    context = applicationContext,
+                    store = reviewWidgetPlacementStore,
+                    analytics = analytics
+                )
+            }
         }
     }
 
