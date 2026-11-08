@@ -775,15 +775,6 @@ const skCatalog: TranslationCatalog = {
       yourCards: "Vaše karty",
       addCards: "Pridať karty",
     },
-    cards: {
-      description: "Všetky karty v tomto pracovnom priestore.",
-    },
-    tags: {
-      description: "Všetky značky použité aspoň na jednej karte.",
-    },
-    decks: {
-      description: "Uložené filtre kariet na sústredené opakovanie.",
-    },
     deckCatalog: {
       title: "Katalóg balíčkov",
       description: "Bezplatné hotové balíčky na štúdium.",

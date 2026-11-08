@@ -767,15 +767,6 @@ const hiCatalog: TranslationCatalog = {
       yourCards: "आपके कार्ड",
       addCards: "कार्ड जोड़ें",
     },
-    cards: {
-      description: "इस वर्कस्पेस के सभी कार्ड।",
-    },
-    tags: {
-      description: "कम से कम एक कार्ड पर इस्तेमाल हुए सभी टैग।",
-    },
-    decks: {
-      description: "केंद्रित रिव्यू के लिए सहेजे गए कार्ड फ़िल्टर।",
-    },
     deckCatalog: {
       title: "डेक कैटलॉग",
       description: "पढ़ाई के लिए मुफ़्त तैयार डेक।",

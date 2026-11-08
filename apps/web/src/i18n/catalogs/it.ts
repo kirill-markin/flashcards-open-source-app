@@ -767,15 +767,6 @@ const itCatalog: TranslationCatalog = {
       yourCards: "Le tue carte",
       addCards: "Aggiungi carte",
     },
-    cards: {
-      description: "Tutte le carte di quest’area di lavoro.",
-    },
-    tags: {
-      description: "Tutti i tag usati su almeno una carta.",
-    },
-    decks: {
-      description: "Filtri di carte salvati per un ripasso mirato.",
-    },
     deckCatalog: {
       title: "Catalogo di mazzi",
       description: "Mazzi pronti e gratuiti da studiare.",

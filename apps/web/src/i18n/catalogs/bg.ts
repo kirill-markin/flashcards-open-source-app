@@ -767,15 +767,6 @@ const bgCatalog: TranslationCatalog = {
       yourCards: "Вашите карти",
       addCards: "Добавяне на карти",
     },
-    cards: {
-      description: "Всички карти в това работно пространство.",
-    },
-    tags: {
-      description: "Всички етикети, използвани в поне една карта.",
-    },
-    decks: {
-      description: "Запазени филтри на карти за фокусиран преговор.",
-    },
     deckCatalog: {
       title: "Каталог с тестета",
       description: "Безплатни готови тестета за учене.",

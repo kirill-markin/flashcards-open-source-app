@@ -767,15 +767,6 @@ const nlCatalog: TranslationCatalog = {
       yourCards: "Jouw kaarten",
       addCards: "Kaarten toevoegen",
     },
-    cards: {
-      description: "Alle kaarten in deze werkruimte.",
-    },
-    tags: {
-      description: "Alle tags die op minstens één kaart worden gebruikt.",
-    },
-    decks: {
-      description: "Opgeslagen kaartfilters om gericht te herhalen.",
-    },
     deckCatalog: {
       title: "Deckcatalogus",
       description: "Gratis kant-en-klare decks om te leren.",

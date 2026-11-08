@@ -767,15 +767,6 @@ const mrCatalog: TranslationCatalog = {
       yourCards: "तुमची कार्डे",
       addCards: "कार्डे जोडा",
     },
-    cards: {
-      description: "या कार्यक्षेत्रातील सर्व कार्डे.",
-    },
-    tags: {
-      description: "किमान एका कार्डवर वापरलेले सर्व टॅग.",
-    },
-    decks: {
-      description: "एकाग्र उजळणीसाठी जतन केलेले कार्ड फिल्टर.",
-    },
     deckCatalog: {
       title: "संच कॅटलॉग",
       description: "अभ्यासासाठी मोफत तयार संच.",

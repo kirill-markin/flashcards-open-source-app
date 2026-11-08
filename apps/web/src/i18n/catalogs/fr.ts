@@ -767,15 +767,6 @@ const frCatalog: TranslationCatalog = {
       yourCards: "Vos cartes",
       addCards: "Ajouter des cartes",
     },
-    cards: {
-      description: "Toutes les cartes de cet espace de travail.",
-    },
-    tags: {
-      description: "Toutes les étiquettes utilisées sur au moins une carte.",
-    },
-    decks: {
-      description: "Filtres de cartes enregistrés pour une révision ciblée.",
-    },
     deckCatalog: {
       title: "Catalogue de paquets",
       description: "Paquets gratuits prêts à réviser.",

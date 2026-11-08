@@ -767,15 +767,6 @@ const huCatalog: TranslationCatalog = {
       yourCards: "Kártyáid",
       addCards: "Kártyák hozzáadása",
     },
-    cards: {
-      description: "A munkaterület összes kártyája.",
-    },
-    tags: {
-      description: "Minden címke, amely legalább egy kártyán szerepel.",
-    },
-    decks: {
-      description: "Mentett kártyaszűrők a célzott ismétléshez.",
-    },
     deckCatalog: {
       title: "Paklikatalógus",
       description: "Ingyenes, kész paklik tanuláshoz.",

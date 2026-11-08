@@ -767,15 +767,6 @@ const deCatalog: TranslationCatalog = {
       yourCards: "Deine Karten",
       addCards: "Karten hinzufügen",
     },
-    cards: {
-      description: "Alle Karten in diesem Arbeitsbereich.",
-    },
-    tags: {
-      description: "Alle Tags, die auf mindestens einer Karte verwendet werden.",
-    },
-    decks: {
-      description: "Gespeicherte Kartenfilter für gezieltes Wiederholen.",
-    },
     deckCatalog: {
       title: "Deck-Katalog",
       description: "Kostenlose fertige Decks zum Lernen.",

@@ -767,15 +767,6 @@ const swCatalog: TranslationCatalog = {
       yourCards: "Kadi zako",
       addCards: "Ongeza kadi",
     },
-    cards: {
-      description: "Kadi zote katika nafasi hii ya kazi.",
-    },
-    tags: {
-      description: "Lebo zote zinazotumika kwenye angalau kadi moja.",
-    },
-    decks: {
-      description: "Vichujio vya kadi vilivyohifadhiwa kwa marudio yenye umakini.",
-    },
     deckCatalog: {
       title: "Katalogi ya mafungu",
       description: "Mafungu ya bure yaliyo tayari kwa kujifunza.",

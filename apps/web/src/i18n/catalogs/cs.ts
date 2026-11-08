@@ -775,15 +775,6 @@ const csCatalog: TranslationCatalog = {
       yourCards: "Vaše kartičky",
       addCards: "Přidat kartičky",
     },
-    cards: {
-      description: "Všechny kartičky v tomto pracovním prostoru.",
-    },
-    tags: {
-      description: "Všechny štítky použité alespoň na jedné kartičce.",
-    },
-    decks: {
-      description: "Uložené filtry kartiček pro soustředěné opakování.",
-    },
     deckCatalog: {
       title: "Katalog balíčků",
       description: "Bezplatné hotové balíčky ke studiu.",

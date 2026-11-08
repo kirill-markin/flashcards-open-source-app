@@ -775,15 +775,6 @@ const ukCatalog: TranslationCatalog = {
       yourCards: "Ваші картки",
       addCards: "Додати картки",
     },
-    cards: {
-      description: "Усі картки в цьому робочому просторі.",
-    },
-    tags: {
-      description: "Усі теги, використані хоча б на одній картці.",
-    },
-    decks: {
-      description: "Збережені фільтри карток для цілеспрямованого повторення.",
-    },
     deckCatalog: {
       title: "Каталог колод",
       description: "Безкоштовні готові колоди для вивчення.",

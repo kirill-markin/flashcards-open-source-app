@@ -775,15 +775,6 @@ const roCatalog: TranslationCatalog = {
       yourCards: "Fișele tale",
       addCards: "Adaugă fișe",
     },
-    cards: {
-      description: "Toate fișele din acest spațiu de lucru.",
-    },
-    tags: {
-      description: "Toate etichetele folosite pe cel puțin o fișă.",
-    },
-    decks: {
-      description: "Filtre de fișe salvate pentru o recapitulare concentrată.",
-    },
     deckCatalog: {
       title: "Catalog de pachete",
       description: "Pachete gratuite, gata de studiat.",
