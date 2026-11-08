@@ -1116,6 +1116,10 @@ const trCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}} kartını AI sohbetinde aç",
     repetitionBadgeAriaLabel: "Tekrar sayısı: {{value}}",
     repetitionBadgeNew: "Yeni",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Diğer etiketler: {{count}}",
+    },
     empty: {
       noCardsBody: "Henüz hiç kart oluşturmadınız. Çalışmaya başlamak için ilk kartınızı ekleyin.",
       noCardsTitle: "Henüz Kart Yok",

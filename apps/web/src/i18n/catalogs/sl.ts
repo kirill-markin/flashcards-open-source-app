@@ -1136,6 +1136,10 @@ const slCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Odpri kartico v klepetu z UI: {{side}}",
     repetitionBadgeAriaLabel: "Ponovitve: {{value}}",
     repetitionBadgeNew: "Nova",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Več oznak: {{count}}",
+    },
     empty: {
       noCardsBody: "Ustvarili niste še nobene kartice. Dodajte prvo kartico in začnite z učenjem.",
       noCardsTitle: "Še ni kartic",

@@ -207,6 +207,7 @@ export function useReviewScreenController(
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
   const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
+  const [isReviewTagOverflowMenuOpen, setIsReviewTagOverflowMenuOpen] = useState<boolean>(false);
   const {
     captureEditorPresentationToken,
     editorErrorMessage,
@@ -258,6 +259,7 @@ export function useReviewScreenController(
     isGuest: session?.browserGuestCapabilities?.isGuest === true,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isSessionVerified,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -557,6 +559,7 @@ export function useReviewScreenController(
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isSubmitting: isSubmitting || reviewPaywall?.isPresented === true,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -698,7 +701,7 @@ export function useReviewScreenController(
         && (session?.browserGuestCapabilities?.isGuest !== true || isSessionVerified)
         && !isEditorPresented && !isFeedbackDialogOpen && !isHardReminderVisible
         && !isGuestSignInPromptVisible && !isMobileAppPromotionDialogOpen
-        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
+        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isReviewTagOverflowMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
         && !isReviewQueuePanelOpen && reviewPaywall?.isPresented !== true
         && !indexedDbOpenRecoveryState.isFailed,
       activeSideCopyButtonRef,
@@ -707,6 +710,7 @@ export function useReviewScreenController(
       isAnswerVisible,
       isInitialReviewLoad,
       isSubmitting,
+      isTagOverflowMenuOpen: isReviewTagOverflowMenuOpen,
       lastSubmittedReview,
       localReadVersion,
       loadingReviewCurrentCard,
@@ -718,6 +722,7 @@ export function useReviewScreenController(
       onReview: handleReview,
       onShortcutButtonPointerEnter: handleShortcutButtonPointerEnter,
       onSwitchToAllCards: handleSwitchToAllCards,
+      onTagOverflowMenuOpenChange: setIsReviewTagOverflowMenuOpen,
       onToggleSpeech: toggleSpeech,
       reviewButtonErrorMessage,
       reviewButtonOptions,

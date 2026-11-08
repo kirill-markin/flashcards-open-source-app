@@ -1116,6 +1116,10 @@ const koCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}} 카드를 AI 채팅에서 열기",
     repetitionBadgeAriaLabel: "반복 횟수: {{value}}",
     repetitionBadgeNew: "신규",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "태그 더 보기: {{count}}",
+    },
     empty: {
       noCardsBody: "아직 만든 카드가 없습니다. 첫 카드를 추가하고 학습을 시작해 보세요.",
       noCardsTitle: "카드가 없습니다",

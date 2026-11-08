@@ -91,6 +91,7 @@ type PostReviewPromptUiState = Readonly<{
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
   isReviewMoreActionsMenuOpen: boolean;
+  isReviewTagOverflowMenuOpen: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
 }>;
@@ -119,6 +120,7 @@ export type UsePostReviewPromptsParams = Readonly<{
   isGuest: boolean;
   isReviewFilterMenuOpen: boolean;
   isReviewMoreActionsMenuOpen: boolean;
+  isReviewTagOverflowMenuOpen: boolean;
   isSessionVerified: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
@@ -151,6 +153,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isGuest,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isSessionVerified,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -185,6 +188,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isMobileAppPromotionDialogOpen: false,
     isReviewFilterMenuOpen: false,
     isReviewMoreActionsMenuOpen: false,
+    isReviewTagOverflowMenuOpen: false,
     isTagFilterDialogOpen: false,
     isTextSelectionDialogOpen: false,
   });
@@ -210,6 +214,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
   };
@@ -292,6 +297,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       || uiState.isMobileAppPromotionDialogOpen
       || uiState.isReviewFilterMenuOpen
       || uiState.isReviewMoreActionsMenuOpen
+      || uiState.isReviewTagOverflowMenuOpen
       || uiState.isTagFilterDialogOpen
       || uiState.isTextSelectionDialogOpen
       || reviewPaywall?.isBusy() === true;
