@@ -260,8 +260,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
     }
 
     /// Review's Edit decks selects the Decks sidebar section whether Library was never shown or
-    /// showed another section, and Command-4 returns to the section Library last showed. Switching
-    /// sections and returning from a pushed deck keeps Decks selected.
+    /// showed another section, and Command-4 opens Cards. Switching sections and returning from a
+    /// pushed deck keeps Decks selected.
     @MainActor
     func testMacEditDecksLandsOnDecksFromReview() throws {
         self.addMacWindowRestorationTeardown()
@@ -271,7 +271,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             self.app.typeKey("4", modifierFlags: .command)
-            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryCardsItem)
         }
         try self.step("open Decks after Library showed another section") {
             try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)

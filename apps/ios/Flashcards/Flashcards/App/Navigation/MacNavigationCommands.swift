@@ -36,6 +36,52 @@ private struct MacSidebarCommandOwner: ViewModifier {
     }
 }
 
+/// The View menu's ⌘ destinations; the sidebar rows show the same keys in their tooltips.
+enum MacNavigationShortcut: CaseIterable {
+    case review
+    case progress
+    case ai
+    case cards
+    case settings
+
+    var key: KeyEquivalent {
+        switch self {
+        case .review: "1"
+        case .progress: "2"
+        case .ai: "3"
+        case .cards: "4"
+        case .settings: "5"
+        }
+    }
+
+    var localizedTitle: String {
+        switch self {
+        case .review: AppTab.review.localizedTitle
+        case .progress: AppTab.progress.localizedTitle
+        case .ai: AppTab.ai.localizedTitle
+        case .cards: LibrarySection.cards.localizedTitle
+        case .settings: AppTab.settings.localizedTitle
+        }
+    }
+}
+
+/// The app menu's Settings key; the sidebar's Settings tooltip shows it instead of ⌘5.
+let macAppSettingsShortcutKey: KeyEquivalent = ","
+
+extension View {
+    /// The native tooltip of a sidebar row, over the whole row rather than only its label.
+    func macSidebarShortcutHelp(title: String, key: KeyEquivalent) -> some View {
+        self.frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+            .help(String(
+                format: String(localized: "mac.sidebar.row.tooltip", table: "Foundation"),
+                locale: Locale.current,
+                title,
+                "⌘\(key.character)"
+            ))
+    }
+}
+
 struct MacNavigationCommands: Commands {
     let navigation: AppNavigationModel
     let isAvailable: Bool
@@ -52,11 +98,11 @@ struct MacNavigationCommands: Commands {
             .keyboardShortcut("b", modifiers: .command)
             .disabled(self.isAvailable == false || self.sidebarTarget == nil)
             Divider()
-            ForEach(Array(AppTab.allCases.enumerated()), id: \.element) { index, tab in
-                Button(tab.localizedTitle) {
-                    self.perform { self.navigation.selectTab(tab) }
+            ForEach(MacNavigationShortcut.allCases, id: \.self) { shortcut in
+                Button(shortcut.localizedTitle) {
+                    self.perform { self.open(shortcut) }
                 }
-                .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .command)
+                .keyboardShortcut(shortcut.key, modifiers: .command)
                 .disabled(self.isAvailable == false)
             }
             Divider()
@@ -74,7 +120,7 @@ struct MacNavigationCommands: Commands {
                     self.navigation.selectTab(.settings)
                 }
             }
-            .keyboardShortcut(",", modifiers: .command)
+            .keyboardShortcut(macAppSettingsShortcutKey, modifiers: .command)
             .disabled(self.isAvailable == false)
         }
         CommandGroup(after: .newItem) {
@@ -96,6 +142,19 @@ struct MacNavigationCommands: Commands {
             }
             .keyboardShortcut("f", modifiers: [.command, .shift])
             .disabled(self.isAvailable == false)
+        }
+    }
+
+    private func open(_ shortcut: MacNavigationShortcut) {
+        switch shortcut {
+        case .review: self.navigation.selectTab(.review)
+        case .progress: self.navigation.selectTab(.progress)
+        case .ai: self.navigation.selectTab(.ai)
+        case .cards:
+            // Before the tab switch, so it reports the section's page.
+            self.navigation.showLibrarySection(.cards)
+            self.navigation.selectTab(.library)
+        case .settings: self.navigation.selectTab(.settings)
         }
     }
 
