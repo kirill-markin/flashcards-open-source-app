@@ -22,6 +22,8 @@ private struct PendingReviewNextCardVisible {
 private var pendingReviewNextCardVisible: PendingReviewNextCardVisible? = nil
 
 extension SentryObservabilityAdapter {
+    // The next card is visible at a display refresh, and watchOS has no display link.
+    #if !os(watchOS)
     @MainActor
     static func startReviewNextCardVisibleSpan(ratedCardId: String, reactionPlayed: Bool) {
         let span = self.startReviewTimingSpan(name: reviewNextCardVisibleSpanName)
@@ -50,6 +52,7 @@ extension SentryObservabilityAdapter {
     static func discardReviewNextCardVisibleSpan() {
         pendingReviewNextCardVisible = nil
     }
+    #endif
 
     static func startReviewAfterRatingWorkSpan(ratedAt: Date) -> ReviewTimingSpan {
         let span = self.startReviewTimingSpan(name: reviewAfterRatingWorkSpanName)

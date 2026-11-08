@@ -14,6 +14,8 @@
 		A10000000000000000000044 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000046 /* GoogleSignIn */; };
 		A10000000000000000000048 /* NetworkImage in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000050 /* NetworkImage */; };
 		A1000000000000000000006C /* Flashcards Widget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* Flashcards Widget.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1000000000000000000007B /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000007C /* Sentry */; };
+		A1000000000000000000007E /* Flashcards Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A10000000000000000000070 /* Flashcards Watch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +40,13 @@
 			remoteGlobalIDString = A10000000000000000000064;
 			remoteInfo = "Flashcards Widget";
 		};
+		A1000000000000000000007F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000074;
+			remoteInfo = "Flashcards Watch";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,6 +61,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1000000000000000000007D /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				A1000000000000000000007E /* Flashcards Watch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -63,9 +83,158 @@
 		A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App UI Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000060 /* Flashcards Widget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Flashcards Widget.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000070 /* Flashcards Watch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Flashcards Watch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A10000000000000000000081 /* Exceptions for "FlashcardsWatch" folder in "Flashcards Watch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A10000000000000000000074 /* Flashcards Watch */;
+		};
+		A10000000000000000000073 /* Exceptions for "Flashcards" folder in "Flashcards Watch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AI/Runtime/AIChatFailureDiagnostics.swift,
+				AISettingsLocalizationTable.swift,
+				Analytics/AnalyticsClient.swift,
+				Analytics/AnalyticsEvent.swift,
+				Analytics/AnalyticsIdentity.swift,
+				Analytics/AnalyticsNetworkMonitor.swift,
+				Analytics/AnalyticsQueue.swift,
+				Analytics/AnalyticsSurfaceTracking.swift,
+				Analytics/AnalyticsSyncFailureReporting.swift,
+				Analytics/AnalyticsTransport.swift,
+				Analytics/AnalyticsWireContract.swift,
+				Analytics/ProductAnalyticsPreference.swift,
+				App/AutomationRun.swift,
+				App/Navigation/AppTab.swift,
+				App/TechnicalErrorPresentation.swift,
+				App/TestDistribution.swift,
+				App/UITestLaunchDetection.swift,
+				AppIcon.icon,
+				AppUILocale.swift,
+				Cards/List/CardFilterSupport.swift,
+				Cards/Model/CardDeckMutationTypes.swift,
+				Cards/Model/CardDeckSnapshotTypes.swift,
+				Cards/Model/CardDeckTypes.swift,
+				Cards/Model/DeckNameOrdering.swift,
+				Cards/Model/MediaAssetTypes.swift,
+				Cards/Model/OnboardingDemoMetadata.swift,
+				Cards/Tags/TagSupport.swift,
+				Cards/Tags/TagTypes.swift,
+				ClientDeviceInfo.swift,
+				Cloud/Auth/CloudAccountConnectionContracts.swift,
+				Cloud/Auth/CloudAccountMethodContracts.swift,
+				Cloud/Auth/CloudAuthAttemptBinding.swift,
+				Cloud/Auth/CloudAuthService.swift,
+				Cloud/Auth/CloudCredentialStore.swift,
+				Cloud/Auth/CloudSocialAuthContracts.swift,
+				Cloud/Auth/CloudSuccessfulSignInHint.swift,
+				Cloud/Guest/CloudGuestUpgradeState.swift,
+				Cloud/Guest/GuestCloudAuthService.swift,
+				Cloud/Support/CloudApiErrorSupport.swift,
+				Cloud/Support/CloudDiagnosticsSupport.swift,
+				Cloud/Support/CloudOfficialApiHosts.swift,
+				Cloud/Support/CloudServiceConfigurationValidator.swift,
+				Cloud/Support/CloudSupport.swift,
+				Cloud/Sync/CloudSyncMapper.swift,
+				Cloud/Sync/CloudSyncService.swift,
+				"Cloud/Sync/CloudSyncTransport+Paywall.swift",
+				Cloud/Sync/CloudSyncTransport.swift,
+				Cloud/Sync/Contracts/CloudAccountContracts.swift,
+				Cloud/Sync/Contracts/CloudCatalogInstallContracts.swift,
+				Cloud/Sync/Contracts/CloudSyncTypes.swift,
+				Cloud/Sync/Contracts/CloudSyncWireContracts.swift,
+				Cloud/Sync/Contracts/CloudWorkspacePackageContracts.swift,
+				Cloud/Sync/Runner/CloudSyncBootstrap.swift,
+				Cloud/Sync/Runner/CloudSyncForkRecovery.swift,
+				Cloud/Sync/Runner/CloudSyncPull.swift,
+				Cloud/Sync/Runner/CloudSyncPush.swift,
+				Cloud/Sync/Runner/CloudSyncReviewHistory.swift,
+				Cloud/Sync/Runner/CloudSyncRunner.swift,
+				Cloud/Types/AccountAccentColor.swift,
+				Cloud/Types/AccountTheme.swift,
+				Cloud/Types/CloudTypes.swift,
+				"Database/CardStore/CardStore+FSRSRepair.swift",
+				"Database/CardStore/CardStore+Mapping.swift",
+				"Database/CardStore/CardStore+Read.swift",
+				"Database/CardStore/CardStore+ReadSQL.swift",
+				"Database/CardStore/CardStore+Write.swift",
+				Database/CardStore/CardStore.swift,
+				Database/Core/DatabaseCore.swift,
+				Database/Core/LocalStoreError.swift,
+				Database/DeckStore/DeckStore.swift,
+				Database/LocalDatabase/Initialization/LocalDatabaseBootstrapper.swift,
+				Database/LocalDatabase/Initialization/LocalDatabaseMigrator.swift,
+				Database/LocalDatabase/Initialization/LocalDatabaseSchema.swift,
+				"Database/LocalDatabase/LocalDatabase+CardMutations.swift",
+				"Database/LocalDatabase/LocalDatabase+DeckMutations.swift",
+				"Database/LocalDatabase/LocalDatabase+FirstReviewOnboarding.swift",
+				"Database/LocalDatabase/LocalDatabase+OnboardingDemoCard.swift",
+				"Database/LocalDatabase/LocalDatabase+Read.swift",
+				"Database/LocalDatabase/LocalDatabase+Review.swift",
+				Database/LocalDatabase/LocalDatabase.swift,
+				"Database/LocalDatabase/Sync/LocalDatabase+Sync.swift",
+				"Database/LocalDatabase/Sync/LocalDatabase+WorkspaceLinking.swift",
+				Database/MediaAssetStore/MediaAssetStore.swift,
+				Database/MediaTransferStore/MediaTransferStore.swift,
+				Database/Sync/OutboxStore.swift,
+				Database/Sync/PublicSyncConflictRepairer.swift,
+				Database/Sync/SyncApplier.swift,
+				Database/Sync/WorkspaceOutboxRewriter.swift,
+				Database/Workspace/WorkspaceForker.swift,
+				Database/Workspace/WorkspaceIdentityForking.swift,
+				Database/Workspace/WorkspaceLocalTypes.swift,
+				Database/Workspace/WorkspaceSettingsStore.swift,
+				Database/Workspace/WorkspaceShellStore.swift,
+				ErrorMessageSupport.swift,
+				Feedback/FeedbackTypes.swift,
+				Observability/FlashcardsObservability.swift,
+				Observability/LoggingSupport.swift,
+				Observability/MemoryDiagnostics.swift,
+				Observability/NSErrorNormalization.swift,
+				Observability/ObservationEvents.swift,
+				Observability/SanitizationHelpers.swift,
+				Observability/Sentry/SentryCaptureMapping.swift,
+				Observability/Sentry/SentryConfiguration.swift,
+				Observability/Sentry/SentryObservabilityAdapter.swift,
+				Observability/Sentry/SentryReviewTimingSpans.swift,
+				Premium/PremiumPresentationReason.swift,
+				Premium/ReviewPaywallPolicy.swift,
+				PrivacyInfo.xcprivacy,
+				Progress/Aggregation/ProgressDateSupport.swift,
+				Progress/Model/ProgressCoreTypes.swift,
+				Progress/Model/ProgressLeaderboardTypes.swift,
+				Progress/Model/ProgressScopeTypes.swift,
+				RemoteJSONSupport.swift,
+				Resources/Localization/Foundation.xcstrings,
+				Review/Notifications/AppNotificationTapSource.swift,
+				Review/Prompts/ReviewPromptConfigDefaults.swift,
+				Review/Prompts/ReviewPromptEvaluation.swift,
+				Review/Prompts/ReviewPromptRemoteConfig.swift,
+				Review/Queue/Query/ReviewQuerySupport.swift,
+				"Review/Queue/Runtime/ReviewQueueRuntime+Cancellation.swift",
+				"Review/Queue/Runtime/ReviewQueueRuntime+ChunkLoading.swift",
+				"Review/Queue/Runtime/ReviewQueueRuntime+CountLoading.swift",
+				"Review/Queue/Runtime/ReviewQueueRuntime+Loading.swift",
+				Review/Queue/Runtime/ReviewQueueRuntime.swift,
+				Review/Queue/StoreBridge/FlashcardsStoreReviewFilterPersistence.swift,
+				"Review/Queue/Submission/ReviewQueueRuntime+Submission.swift",
+				Review/Queue/Submission/ReviewSubmissionExecutor.swift,
+				Review/Queue/Submission/ReviewSubmissionTypes.swift,
+				Review/Reaction/ReviewReactionVariant.swift,
+				Review/ReviewTypes.swift,
+				Review/Scheduling/FsrsScheduler.swift,
+				Review/Scheduling/FsrsTypes.swift,
+				Review/Scheduling/SchedulerSettingsSupport.swift,
+				ReviewCards.xcstrings,
+				TimestampSupport.swift,
+			);
+			target = A10000000000000000000074 /* Flashcards Watch */;
+		};
 		A10000000000000000000063 /* Exceptions for "FlashcardsWidget" folder in "Flashcards Widget" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -78,6 +247,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A1000000000000000000000F /* Flashcards */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000073 /* Exceptions for "Flashcards" folder in "Flashcards Watch" target */,
+			);
 			path = Flashcards;
 			sourceTree = "<group>";
 		};
@@ -102,6 +274,19 @@
 		A10000000000000000000062 /* WidgetShared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = WidgetShared;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000071 /* FlashcardsWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000081 /* Exceptions for "FlashcardsWatch" folder in "Flashcards Watch" target */,
+			);
+			path = FlashcardsWatch;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000072 /* WatchShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WatchShared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -141,6 +326,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000076 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000007B /* Sentry in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -153,6 +346,8 @@
 				A10000000000000000000031 /* FlashcardsUITests */,
 				A10000000000000000000061 /* FlashcardsWidget */,
 				A10000000000000000000062 /* WidgetShared */,
+				A10000000000000000000071 /* FlashcardsWatch */,
+				A10000000000000000000072 /* WatchShared */,
 				A10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -164,6 +359,7 @@
 				A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */,
 				A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */,
 				A10000000000000000000060 /* Flashcards Widget.appex */,
+				A10000000000000000000070 /* Flashcards Watch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -190,15 +386,18 @@
 				A10000000000000000000007 /* Frameworks */,
 				A10000000000000000000008 /* Resources */,
 				A1000000000000000000006B /* Embed Foundation Extensions */,
+				A1000000000000000000007D /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				A1000000000000000000006E /* PBXTargetDependency */,
+				A10000000000000000000080 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A1000000000000000000000F /* Flashcards */,
 				A10000000000000000000062 /* WidgetShared */,
+				A10000000000000000000072 /* WatchShared */,
 			);
 			name = "Flashcards Open Source App";
 			packageProductDependencies = (
@@ -276,6 +475,30 @@
 			productReference = A10000000000000000000060 /* Flashcards Widget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		A10000000000000000000074 /* Flashcards Watch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000078 /* Build configuration list for PBXNativeTarget "Flashcards Watch" */;
+			buildPhases = (
+				A10000000000000000000075 /* Sources */,
+				A10000000000000000000076 /* Frameworks */,
+				A10000000000000000000077 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000071 /* FlashcardsWatch */,
+				A10000000000000000000072 /* WatchShared */,
+			);
+			name = "Flashcards Watch";
+			packageProductDependencies = (
+				A1000000000000000000007C /* Sentry */,
+			);
+			productName = "Flashcards Watch";
+			productReference = A10000000000000000000070 /* Flashcards Watch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -298,6 +521,9 @@
 						TestTargetID = A10000000000000000000004;
 					};
 					A10000000000000000000064 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+					A10000000000000000000074 = {
 						CreatedOnToolsVersion = 27.2;
 					};
 				};
@@ -377,6 +603,7 @@
 				A10000000000000000000022 /* Flashcards Open Source App Tests */,
 				A10000000000000000000035 /* Flashcards Open Source App UI Tests */,
 				A10000000000000000000064 /* Flashcards Widget */,
+				A10000000000000000000074 /* Flashcards Watch */,
 			);
 		};
 /* End PBXProject section */
@@ -404,6 +631,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A10000000000000000000067 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000077 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -441,6 +675,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000075 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -459,6 +700,12 @@
 			platformFilter = ios;
 			target = A10000000000000000000064 /* Flashcards Widget */;
 			targetProxy = A1000000000000000000006D /* PBXContainerItemProxy */;
+		};
+		A10000000000000000000080 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = A10000000000000000000074 /* Flashcards Watch */;
+			targetProxy = A1000000000000000000007F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -739,6 +986,60 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000079 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000018 /* Config/Debug.xcconfig */;
+			buildSettings = {
+				/* watchOS has no alternate app icons; the accent color lives in the iOS catalog. */
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				/* Generated keys merge with this file, which carries the app's custom FLASHCARDS_* keys. */
+				INFOPLIST_FILE = FlashcardsWatch/Info.plist;
+				/* Base.xcconfig generates the iOS scene manifest and launch screen; watchOS has neither. */
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = "";
+				INFOPLIST_KEY_UILaunchScreen_Generation = "";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(APP_BUNDLE_IDENTIFIER)";
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER).watchkitapp";
+				PRODUCT_MODULE_NAME = Flashcards;
+				PRODUCT_NAME = "Flashcards Watch";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		A1000000000000000000007A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000019 /* Config/Release.xcconfig */;
+			buildSettings = {
+				/* watchOS has no alternate app icons; the accent color lives in the iOS catalog. */
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				/* Generated keys merge with this file, which carries the app's custom FLASHCARDS_* keys. */
+				INFOPLIST_FILE = FlashcardsWatch/Info.plist;
+				/* Base.xcconfig generates the iOS scene manifest and launch screen; watchOS has neither. */
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = "";
+				INFOPLIST_KEY_UILaunchScreen_Generation = "";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(APP_BUNDLE_IDENTIFIER)";
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_IDENTIFIER).watchkitapp";
+				PRODUCT_MODULE_NAME = Flashcards;
+				PRODUCT_NAME = "Flashcards Watch";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -783,6 +1084,15 @@
 			buildConfigurations = (
 				A10000000000000000000069 /* Debug */,
 				A1000000000000000000006A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000078 /* Build configuration list for PBXNativeTarget "Flashcards Watch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000079 /* Debug */,
+				A1000000000000000000007A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -872,6 +1182,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A10000000000000000000045 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		A1000000000000000000007C /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000000000000000000003C /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

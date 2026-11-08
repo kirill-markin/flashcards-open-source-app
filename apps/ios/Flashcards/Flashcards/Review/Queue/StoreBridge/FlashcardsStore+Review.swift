@@ -1104,3 +1104,34 @@ extension FlashcardsStore {
         return true
     }
 }
+
+extension FlashcardsStore {
+    static func loadSelectedReviewFilter(
+        userDefaults: UserDefaults,
+        decoder: JSONDecoder,
+        workspaceId: String?
+    ) -> ReviewFilter {
+        guard
+            let workspaceId,
+            let data = userDefaults.data(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
+        else {
+            return .allCards
+        }
+
+        do {
+            let persistedReviewFilter = try decoder.decode(PersistedReviewFilter.self, from: data)
+            return try makeReviewFilter(persistedReviewFilter: persistedReviewFilter)
+        } catch {
+            captureReviewFilterPersistenceSilentFailure(
+                error: error,
+                action: "review_filter_load",
+                stage: "decode",
+                cloudSettings: nil,
+                workspaceId: workspaceId,
+                configurationMode: nil
+            )
+            userDefaults.removeObject(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
+            return .allCards
+        }
+    }
+}

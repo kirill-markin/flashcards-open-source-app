@@ -16,13 +16,6 @@ struct AIChatQuotaRefusal: Equatable {
     let cloudState: CloudAccountState?
 }
 
-enum PremiumPresentationReason: Equatable, Sendable {
-    case aiLimit
-    case premiumFeature(requiredTierRank: Int)
-    case offerPreview
-    case review(ReviewPaywallTrigger, reviewPromptConfigVersion: String)
-}
-
 struct PremiumPresentationRequest: Identifiable, Equatable {
     let id: UUID
     let reason: PremiumPresentationReason

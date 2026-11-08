@@ -19,15 +19,6 @@ extension LocalDatabase {
         try self.workspaceSettingsStore.loadCachedWorkspaces()
     }
 
-    func loadAIChatContext() throws -> AIChatContext {
-        let bootstrapSnapshot = try self.loadBootstrapSnapshot()
-        return AIChatContext(
-            workspace: bootstrapSnapshot.workspace,
-            schedulerSettings: bootstrapSnapshot.schedulerSettings,
-            totalActiveCards: try self.cardStore.loadActiveCardCount(workspaceId: bootstrapSnapshot.workspace.workspaceId)
-        )
-    }
-
     func loadActiveCards(workspaceId: String) throws -> [Card] {
         try self.cardStore.loadCards(workspaceId: workspaceId)
     }
@@ -186,33 +177,6 @@ extension LocalDatabase {
             reviewQueryDefinition: reviewQueryDefinition,
             now: now,
             limit: limit
-        )
-    }
-
-    func loadCurrentReviewNotificationCard(
-        workspaceId: String,
-        reviewFilter: ReviewFilter,
-        now: Date
-    ) throws -> CurrentReviewNotificationCard? {
-        let resolvedReviewQuery = try self.loadResolvedReviewQuery(
-            workspaceId: workspaceId,
-            reviewFilter: reviewFilter
-        )
-        let reviewHeadState = try self.loadReviewHead(
-            workspaceId: workspaceId,
-            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
-            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
-            now: now,
-            limit: 1
-        )
-        guard let currentCard = reviewHeadState.seedReviewQueue.first else {
-            return nil
-        }
-
-        return CurrentReviewNotificationCard(
-            reviewFilter: makePersistedReviewFilter(reviewFilter: resolvedReviewQuery.reviewFilter),
-            cardId: currentCard.cardId,
-            frontText: currentCard.frontText
         )
     }
 

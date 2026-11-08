@@ -1,5 +1,7 @@
 import Foundation
+#if !os(watchOS)
 import UIKit
+#endif
 
 enum FlashcardsObservability {
     static func configure(bundle: Bundle, processInfo: ProcessInfo) {
@@ -23,6 +25,7 @@ enum FlashcardsObservability {
         SentryObservabilityAdapter.captureException(event)
     }
 
+    #if !os(watchOS)
     @MainActor
     static func startReviewNextCardVisibleSpan(ratedCardId: String, reactionPlayed: Bool) {
         SentryObservabilityAdapter.startReviewNextCardVisibleSpan(ratedCardId: ratedCardId, reactionPlayed: reactionPlayed)
@@ -38,6 +41,7 @@ enum FlashcardsObservability {
     static func discardReviewNextCardVisibleSpan() {
         SentryObservabilityAdapter.discardReviewNextCardVisibleSpan()
     }
+    #endif
 
     static func startReviewAfterRatingWorkSpan(ratedAt: Date) -> ReviewTimingSpan {
         SentryObservabilityAdapter.startReviewAfterRatingWorkSpan(ratedAt: ratedAt)
@@ -47,6 +51,7 @@ enum FlashcardsObservability {
         SentryObservabilityAdapter.finishReviewAfterRatingWorkSpan(span)
     }
 
+    #if !os(watchOS)
     @MainActor
     static func recordReviewReaction(
         action: ReviewReactionLifecycleAction,
@@ -89,6 +94,7 @@ enum FlashcardsObservability {
             isReduceMotionEnabled: UIAccessibility.isReduceMotionEnabled
         )
     }
+    #endif
 
     static func captureSilentFailure(
         error: Error,
