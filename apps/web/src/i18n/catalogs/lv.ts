@@ -1116,6 +1116,10 @@ const lvCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Atvērt kartīti MI sarunā ({{side}})",
     repetitionBadgeAriaLabel: "Atkārtojumi: {{value}}",
     repetitionBadgeNew: "Jauna",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Vairāk birku: {{count}}",
+    },
     empty: {
       noCardsBody: "Jūs vēl neesat izveidojis nevienu kartīti. Pievienojiet pirmo kartīti, lai sāktu mācīties.",
       noCardsTitle: "Kartīšu vēl nav",

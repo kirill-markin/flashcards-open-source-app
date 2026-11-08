@@ -1116,6 +1116,10 @@ const heCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "פתח את {{side}} של הכרטיס בצ'אט AI",
     repetitionBadgeAriaLabel: "חזרות: {{value}}",
     repetitionBadgeNew: "חדש",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "תגיות נוספות: {{count}}",
+    },
     empty: {
       noCardsBody: "עדיין לא יצרת כרטיסים. הוסף את הכרטיס הראשון שלך כדי להתחיל ללמוד.",
       noCardsTitle: "אין עדיין כרטיסים",

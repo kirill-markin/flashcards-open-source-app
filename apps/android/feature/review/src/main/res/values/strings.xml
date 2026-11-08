@@ -82,6 +82,8 @@
     <string name="review_loading">Loading...</string>
     <string name="review_no_tags_label">No tags</string>
     <string name="review_tag_chip_click_label">Change review filter</string>
+    <!-- Label of the chip that collects the card tags that do not fit on the line. -->
+    <string name="review_tag_overflow_label">+%1$d</string>
     <string name="review_tag_filter_dialog_title">Review filter</string>
     <string name="review_tag_filter_dialog_change_body">You’re reviewing “%1$s”. Review only cards tagged “%2$s” instead?</string>
     <string name="review_tag_filter_dialog_already_selected_body">You’re already reviewing cards tagged “%1$s”.</string>
@@ -107,6 +109,10 @@
     <plurals name="review_queue_button_content_description">
         <item quantity="one">Review queue %d card.</item>
         <item quantity="other">Review queue %d cards.</item>
+    </plurals>
+    <plurals name="review_tag_overflow_content_description">
+        <item quantity="one">%d more tag</item>
+        <item quantity="other">%d more tags</item>
     </plurals>
     <plurals name="review_filter_tag_count">
         <item quantity="one">%d tag</item>

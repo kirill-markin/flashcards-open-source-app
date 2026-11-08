@@ -1116,6 +1116,10 @@ const etCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Ava kaart tehisintellekti vestluses ({{side}})",
     repetitionBadgeAriaLabel: "Kordamiskorrad: {{value}}",
     repetitionBadgeNew: "Uus",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Veel silte: {{count}}",
+    },
     empty: {
       noCardsBody: "Sa pole veel ühtegi kaarti loonud. Õppimise alustamiseks lisa oma esimene kaart.",
       noCardsTitle: "Kaarte veel pole",

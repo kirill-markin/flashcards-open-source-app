@@ -1116,6 +1116,10 @@ const esMxCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Abrir la tarjeta del {{side}} en el chat con IA",
     repetitionBadgeAriaLabel: "Repasos: {{value}}",
     repetitionBadgeNew: "Nueva",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Más etiquetas: {{count}}",
+    },
     empty: {
       noCardsBody: "Todavía no has creado ninguna tarjeta. Añade tu primera tarjeta para empezar a estudiar.",
       noCardsTitle: "Todavía no hay tarjetas",
