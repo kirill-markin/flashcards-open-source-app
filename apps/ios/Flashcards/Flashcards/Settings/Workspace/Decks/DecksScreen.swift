@@ -282,17 +282,15 @@ private struct SummaryRow: View {
 
 private struct DeckListRow: View {
     let deckListEntry: DeckScreenListItem
-    /// Title width the one-line layout must leave beside the counts; a longer name truncates there instead of forcing a stacked row.
+    /// Title width the one-line layout must leave beside the counts; a longer name wraps there instead of forcing a stacked row.
     @ScaledMetric(relativeTo: .headline) private var minimumTitleWidth: CGFloat = 80
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // The counts never truncate: when they cannot share the title's line (long translations, accessibility sizes), they move below it, then onto separate lines that wrap.
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
                     self.titleText
-                        .lineLimit(1)
                     Spacer(minLength: 0)
                     self.inlineCounts
                         .fixedSize()
@@ -300,14 +298,12 @@ private struct DeckListRow: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     self.titleText
-                        .lineLimit(self.stackedTitleLineLimit)
                     self.inlineCounts
                         .fixedSize()
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     self.titleText
-                        .lineLimit(self.stackedTitleLineLimit)
                     self.cardCountText
                     self.toStudyCountText
                 }
@@ -324,16 +320,11 @@ private struct DeckListRow: View {
         .padding(.vertical, 4)
     }
 
-    /// A stacked name has the full row width, so it stays one line with "…" except at accessibility sizes, where it wraps.
-    private var stackedTitleLineLimit: Int? {
-        self.dynamicTypeSize.isAccessibilitySize ? nil : 1
-    }
-
     private var titleText: some View {
         Text(deckListEntry.title)
             .foregroundStyle(Color.primary)
             .font(.headline)
-            // Only the counts decide which layout fits; the name itself truncates or wraps in whichever layout is chosen.
+            // Only the counts decide which layout fits; the name wraps in full in whichever layout is chosen, so a nested deck keeps its last part.
             .frame(idealWidth: minimumTitleWidth, alignment: .leading)
     }
 

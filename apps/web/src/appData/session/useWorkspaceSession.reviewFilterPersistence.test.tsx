@@ -92,14 +92,14 @@ describe("workspace review filter persistence", () => {
     expect(loadSelectedReviewFilterForWorkspace("workspace-2")).toEqual({ kind: "allCards" });
   });
 
-  it("stores and restores independent selections for each workspace, including an empty tag set", () => {
-    storeSelectedReviewFilterForWorkspace("workspace-1", { kind: "tags", tags: [] });
+  it("stores and restores independent selections for each workspace, loading an empty tag set as All cards", () => {
+    window.localStorage.setItem(
+      buildSelectedReviewFilterStorageKey("workspace-1"),
+      JSON.stringify({ kind: "tags", tags: [] }),
+    );
     storeSelectedReviewFilterForWorkspace("workspace-2", { kind: "deck", deckId: "deck-2" });
 
-    expect(loadSelectedReviewFilterForWorkspace("workspace-1")).toEqual({
-      kind: "tags",
-      tags: [],
-    });
+    expect(loadSelectedReviewFilterForWorkspace("workspace-1")).toEqual({ kind: "allCards" });
     expect(loadSelectedReviewFilterForWorkspace("workspace-2")).toEqual({
       kind: "deck",
       deckId: "deck-2",
@@ -122,7 +122,7 @@ describe("workspace review filter persistence", () => {
   });
 
   it("activates a workspace and its persisted filter as one state transition", () => {
-    storeSelectedReviewFilterForWorkspace("workspace-2", { kind: "tags", tags: [] });
+    storeSelectedReviewFilterForWorkspace("workspace-2", { kind: "tags", tags: ["grammar"] });
     const currentState = {
       activeWorkspace: {
         workspaceId: "workspace-1",
@@ -150,7 +150,7 @@ describe("workspace review filter persistence", () => {
       activeWorkspace: nextWorkspace,
       selection: {
         workspaceId: "workspace-2",
-        reviewFilter: { kind: "tags", tags: [] },
+        reviewFilter: { kind: "tags", tags: ["grammar"] },
       },
     });
   });

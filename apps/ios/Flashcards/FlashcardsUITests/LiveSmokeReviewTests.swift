@@ -29,7 +29,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    func testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates() throws {
+    func testLiveSmokeReviewFilterMenuNeverEmptiesAndClosesOnAllCards() throws {
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
         let tagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-guest-ai-review"
         let lowerTagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-overflow-12"
@@ -97,65 +97,46 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-            try self.scrollReviewFilterToTop()
         }
 
-        try self.step("clear all review filters without dismissing the menu") {
-            self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
-                .firstMatch
-                .clickOrTap()
+        try self.step("select all cards when the last selected tag is removed, without dismissing the menu") {
+            try self.tapReviewFilterButtonScrollingIntoView(identifier: secondLowerTagToggleIdentifier)
+            try self.assertReviewFilterToggleValue(
+                identifier: secondLowerTagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.scrollReviewFilterToTop()
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+        }
 
+        try self.step("keep all cards and close the menu when the selected all cards row is tapped") {
             self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
                 .firstMatch
                 .clickOrTap()
-
-            try self.assertReviewFilterToggleValue(
+            try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                expectedValue: .off,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertReviewFilterToggleValue(
-                identifier: tagToggleIdentifier,
-                expectedValue: .off,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertElementExists(
-                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-        }
-
-        try self.step("dismiss the empty review filter menu with an outside tap") {
-            try self.dismissReviewFilterPopoverWithOutsideTap()
-            try self.assertElementDoesNotExist(
-                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertElementDoesNotExist(
-                identifier: tagToggleIdentifier,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
             )
         }
 
-        try self.step("select one review tag from empty without dismissing the menu") {
+        try self.step("select one review tag without dismissing the menu") {
             try self.tapButton(
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                expectedValue: .off,
+                expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertReviewFilterToggleValue(
@@ -190,9 +171,14 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
         }
 
-        try self.step("restore all cards without dismissing the menu") {
+        try self.step("apply all cards and close the menu at once") {
             try self.tapButton(
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: tagToggleIdentifier,
+                expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             self.app.descendants(matching: .any)
@@ -200,6 +186,21 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 .firstMatch
                 .clickOrTap()
 
+            try self.assertElementDoesNotExist(
+                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+            )
+        }
+
+        try self.step("verify all cards is selected after reopening the menu") {
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewFilterMenu,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 expectedValue: .on,
@@ -210,17 +211,10 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 expectedValue: .off,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-        }
-
-        try self.step("verify the all cards review returns after dismissing the menu") {
             try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertElementExists(
-                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
-                timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
             )
         }
     }

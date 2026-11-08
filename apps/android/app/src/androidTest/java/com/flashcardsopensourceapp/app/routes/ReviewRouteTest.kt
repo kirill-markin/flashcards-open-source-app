@@ -257,8 +257,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).performClick()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).assertIsOn()
         composeRule.runOnIdle {
             assertTrue(filterSelections.isEmpty())
         }
@@ -275,7 +276,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ReviewFilterSelection(
                         workspaceId = reviewRouteWorkspaceId,
                         openingFilter = ReviewFilter.AllCards,
-                        selectedFilter = ReviewFilter.Tags(tags = emptyList())
+                        selectedFilter = ReviewFilter.Tags(tags = listOf(reviewRouteFirstTag))
                     )
                 ),
                 filterSelections
@@ -357,14 +358,14 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).performClick()
         composeRule.runOnIdle {
             workspaceId = "replacement-workspace"
         }
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertDoesNotExist()
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteSecondTag)).performClick()
         composeRule.runOnIdle {
             uiState = reviewRouteUiState(
                 isLoading = false,

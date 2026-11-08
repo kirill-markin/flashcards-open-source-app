@@ -41,7 +41,7 @@ export function parsePersistedReviewFilter(value: string | null): ReviewFilter {
       && Array.isArray(parsedValue.tags)
       && parsedValue.tags.every((tag) => typeof tag === "string")
     ) {
-      return makeTagsReviewFilter(parsedValue.tags);
+      return normalizeReviewFilter({ kind: "tags", tags: parsedValue.tags });
     }
 
     if (
