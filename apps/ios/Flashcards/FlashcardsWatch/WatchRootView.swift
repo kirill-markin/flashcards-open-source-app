@@ -34,7 +34,7 @@ struct WatchRootView: View {
                 comment: "Apple Watch progress label while cards download for the first time"
             ))
         case .ready:
-            WatchReviewPlaceholderView()
+            WatchReviewView(session: self.session)
         case .failed(let message):
             WatchSessionMessageView(title: message, message: nil, onRetry: self.retry)
         }
@@ -67,14 +67,5 @@ private struct WatchSessionMessageView: View {
                 Button(String(localized: "Retry", table: reviewCardsStringsTableName), action: self.onRetry)
             }
         }
-    }
-}
-
-/// The review screen's slot.
-struct WatchReviewPlaceholderView: View {
-    var body: some View {
-        // The product name is never localized.
-        Text(verbatim: "Nibomo")
-            .font(.title2)
     }
 }

@@ -1,6 +1,54 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "watch.review.all_done" : {
+      "comment" : "Apple Watch Review title when no card is due",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        }
+      }
+    },
+    "watch.review.due_count %lld" : {
+      "comment" : "Apple Watch Review title with the number of cards due now",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld due"
+          }
+        }
+      }
+    },
+    "watch.review.next_card_due %@" : {
+      "comment" : "Apple Watch note with when the next card is due, for example: Next card in 5 minutes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card %@"
+          }
+        }
+      }
+    },
+    "watch.review.open_on_iphone" : {
+      "comment" : "Apple Watch note under a card side whose image or formula the watch cannot show",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on iPhone to see the image or formula"
+          }
+        }
+      }
+    },
     "watch.session.connecting" : {
       "comment" : "Apple Watch progress label while the watch asks the iPhone for the account",
       "extractionState" : "manual",

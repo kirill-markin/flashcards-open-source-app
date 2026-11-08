@@ -18,6 +18,18 @@ enum ReviewMathBlock {
     }
 }
 
+struct ReviewFormulaContent {
+    let originalSource: String
+    let latex: String
+    let continuesParagraph: Bool
+
+    init(originalSource: String, latex: String, continuesParagraph: Bool) {
+        self.originalSource = originalSource
+        self.latex = latex
+        self.continuesParagraph = continuesParagraph
+    }
+}
+
 func containsReviewMathDelimiter(text: String) -> Bool {
     text.contains("$") || text.contains("\\(") || text.contains("\\[")
 }

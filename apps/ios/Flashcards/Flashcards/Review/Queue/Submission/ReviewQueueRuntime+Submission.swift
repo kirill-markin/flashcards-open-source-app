@@ -280,7 +280,10 @@ extension ReviewQueueRuntime {
             decks: validationContext.decks,
             cards: validationContext.cards
         )
-        return currentReviewContext != request.reviewContext
+        // Callers resolve tag names in different orders (card order here, SQL order on the watch), and
+        // the SQL filter ignores order, so only the set of exact tag names counts.
+        return makeTagOrderIndependentReviewSubmissionContext(context: currentReviewContext)
+            != makeTagOrderIndependentReviewSubmissionContext(context: request.reviewContext)
     }
 
     private func isStaleReviewSubmissionSession(
@@ -392,5 +395,34 @@ extension ReviewQueueRuntime {
         }
 
         return currentCard
+    }
+}
+
+private func makeTagOrderIndependentReviewSubmissionContext(context: ReviewSubmissionContext) -> ReviewSubmissionContext {
+    // Scalar order keeps NFC and NFD spellings distinct, as the byte-exact card_tags lookup does.
+    func sortedTagNames(tagNames: [String]) -> [String] {
+        tagNames.sorted { leftTagName, rightTagName in
+            leftTagName.unicodeScalars.lexicographicallyPrecedes(rightTagName.unicodeScalars)
+        }
+    }
+
+    switch context.reviewQueryDefinition {
+    case .allCards:
+        return context
+    case .deck(let filterDefinition):
+        return ReviewSubmissionContext(
+            selectedReviewFilter: context.selectedReviewFilter,
+            reviewQueryDefinition: .deck(
+                filterDefinition: DeckFilterDefinition(
+                    version: filterDefinition.version,
+                    tags: sortedTagNames(tagNames: filterDefinition.tags)
+                )
+            )
+        )
+    case .tag(let exactTagNames):
+        return ReviewSubmissionContext(
+            selectedReviewFilter: context.selectedReviewFilter,
+            reviewQueryDefinition: .tag(exactTagNames: sortedTagNames(tagNames: exactTagNames))
+        )
     }
 }
