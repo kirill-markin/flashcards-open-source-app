@@ -205,7 +205,8 @@ function buildChatFilesSection(): string {
 /**
  * Anki's own package layout: the derived files carry the newest format's collection, but no media.
  * A Nibomo deck is a flat saved filter matching cards with any of its tags, so a parent deck lists its
- * subdecks' tags to keep the cards Anki shows under it.
+ * subdecks' tags to keep the cards Anki shows under it. File names and deck ids copied by hand from
+ * printed output go wrong on a large deck, so the mapping is done in code.
  */
 function buildAnkiImportSection(): string {
   return joinLines([
@@ -214,7 +215,9 @@ function buildAnkiImportSection(): string {
     "- Name the decks you created in your reply.",
     "- The collection is <file>.d/collection.sqlite; its decks table, where there is one, separates a deck name's levels with the 0x1F character, which Anki shows as ::. The media files are the package's numbered entries (0, 1, ...), named in entry order by its media list: <file>.d/media.json for older packages.",
     "- In the newest format the package's media entry (protobuf: each entry's field 1 is the file name) and every media file are zstd-compressed: zstd -d them.",
-    "- Unpack, convert and upload media in one command, working in /tmp; keep only a small progress file in /work.",
+    "- Map in code, never by retyping printed names or ids: export notes, cards and decks with sqlite3 -json into /work, parse the media list in python3 (json, or the protobuf's varint-keyed fields), and build each card's images and deck tag from those lookups, reading an export over 8 MB on stdin.",
+    "- Give each image alt text from its note: the <img>'s own alt, else a few words for what the note says it shows, never just Image; on a front a recall cue that never reveals the answer, such as ![a fruit](fcasset:<id>) for a lemon picture asking which fruit it is.",
+    "- Unpack, convert and upload media in one command, keeping the media bytes in /tmp; keep only those lookups and a small progress file in /work.",
     `- Upload each image with fc-media-put (at most ${maximumImageIngestionOriginalBytes / 1_000_000} MB; convert other formats with magick first), at most ${maximumMediaPutsPerCommand} per command: loop across commands and keep progress in /work.`,
   ]);
 }
