@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Uložiť názov";
 "settings.workspace.overview.workspace" = "Pracovný priestor";
 "settings.workspace.overview.cards" = "Karty";
-"settings.workspace.overview.due" = "Na opakovanie";
 "settings.workspace.overview.new" = "Nové";
 "settings.workspace.overview.deleteDescription" = "Natrvalo vymazať tento pracovný priestor a všetky jeho karty, balíčky, opakovania a históriu synchronizácie.";
 "settings.workspace.overview.deleteWorkspace" = "Vymazať pracovný priestor";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Žiadne zodpovedajúce balíčky";
 "settings.workspace.decks.searchPrompt" = "Hľadať balíčky";
 "settings.workspace.decks.newDeck" = "Nový balíček";
-"settings.workspace.decks.dueCount" = "Na opakovanie: %d";
-"settings.workspace.decks.totalCards" = "Počet kariet: %d";
-"settings.workspace.decks.newCount" = "Nové: %d";
-"settings.workspace.decks.reviewedCount" = "Zopakované: %d";
+"settings.workspace.decks.toStudyCount" = "%d na učenie";
+"settings.workspace.decks.toStudy" = "Na učenie";
 "settings.workspace.decks.emptyAllCards" = "Zatiaľ ste nevytvorili žiadne karty.";
 "settings.workspace.decks.emptyDeck" = "Tento balíček zatiaľ nemá žiadne zodpovedajúce karty.";
 "settings.workspace.decks.section.deckRules" = "Pravidlá balíčka";

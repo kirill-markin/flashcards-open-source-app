@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "שמירת השם";
 "settings.workspace.overview.workspace" = "סביבת עבודה";
 "settings.workspace.overview.cards" = "כרטיסיות";
-"settings.workspace.overview.due" = "ממתין לחזרה";
 "settings.workspace.overview.new" = "חדש";
 "settings.workspace.overview.deleteDescription" = "מחיקה לצמיתות של סביבת העבודה הזו ושל כל הכרטיסיות, החפיסות, החזרות והיסטוריית הסנכרון שבה.";
 "settings.workspace.overview.deleteWorkspace" = "מחיקת סביבת עבודה";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "אין חפיסות תואמות";
 "settings.workspace.decks.searchPrompt" = "חיפוש חפיסות";
 "settings.workspace.decks.newDeck" = "חפיסה חדשה";
-"settings.workspace.decks.dueCount" = "%d ממתינות לחזרה";
-"settings.workspace.decks.totalCards" = "%d כרטיסיות";
-"settings.workspace.decks.newCount" = "%d חדשות";
-"settings.workspace.decks.reviewedCount" = "%d בוצעו";
+"settings.workspace.decks.toStudyCount" = "%d ללמידה";
+"settings.workspace.decks.toStudy" = "ללמידה";
 "settings.workspace.decks.emptyAllCards" = "עדיין לא יצרת כרטיסיות.";
 "settings.workspace.decks.emptyDeck" = "בחפיסה הזו עדיין אין כרטיסיות תואמות.";
 "settings.workspace.decks.section.deckRules" = "כללי החפיסה";

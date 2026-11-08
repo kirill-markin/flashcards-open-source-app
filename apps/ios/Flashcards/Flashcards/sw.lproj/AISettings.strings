@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Hifadhi Jina";
 "settings.workspace.overview.workspace" = "Nafasi ya Kazi";
 "settings.workspace.overview.cards" = "Kadi";
-"settings.workspace.overview.due" = "Zinazosubiri marudio";
 "settings.workspace.overview.new" = "Mpya";
 "settings.workspace.overview.deleteDescription" = "Futa kabisa nafasi hii ya kazi na kadi zote, mafungu, marudio na historia ya usawazishaji iliyomo.";
 "settings.workspace.overview.deleteWorkspace" = "Futa nafasi ya kazi";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Hakuna Mafungu Yanayolingana";
 "settings.workspace.decks.searchPrompt" = "Tafuta mafungu";
 "settings.workspace.decks.newDeck" = "Fungu jipya";
-"settings.workspace.decks.dueCount" = "Zinazosubiri: %d";
-"settings.workspace.decks.totalCards" = "Kadi %d";
-"settings.workspace.decks.newCount" = "Mpya: %d";
-"settings.workspace.decks.reviewedCount" = "Zilizorudiwa: %d";
+"settings.workspace.decks.toStudyCount" = "%d za kusoma";
+"settings.workspace.decks.toStudy" = "Za kusoma";
 "settings.workspace.decks.emptyAllCards" = "Bado hujaunda kadi zozote.";
 "settings.workspace.decks.emptyDeck" = "Fungu hili halina kadi zinazolingana bado.";
 "settings.workspace.decks.section.deckRules" = "Kanuni za fungu";

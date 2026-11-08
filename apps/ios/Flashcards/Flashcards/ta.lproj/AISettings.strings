@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "பெயரைச் சேமி";
 "settings.workspace.overview.workspace" = "பணியிடம்";
 "settings.workspace.overview.cards" = "அட்டைகள்";
-"settings.workspace.overview.due" = "மீள்பயிற்சிக்கு உரியவை";
 "settings.workspace.overview.new" = "புதியது";
 "settings.workspace.overview.deleteDescription" = "இந்தப் பணியிடத்தையும் அதிலுள்ள அனைத்து அட்டைகள், தொகுப்புகள், மீள்பயிற்சிகள் மற்றும் ஒத்திசைவு வரலாற்றையும் நிரந்தரமாக நீக்கு.";
 "settings.workspace.overview.deleteWorkspace" = "பணியிடத்தை நீக்கு";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "பொருந்தும் தொகுப்புகள் இல்லை";
 "settings.workspace.decks.searchPrompt" = "தொகுப்புகளைத் தேடு";
 "settings.workspace.decks.newDeck" = "புதிய தொகுப்பு";
-"settings.workspace.decks.dueCount" = "மீள்பயிற்சிக்கு உரியவை: %d";
-"settings.workspace.decks.totalCards" = "அட்டைகளின் எண்ணிக்கை: %d";
-"settings.workspace.decks.newCount" = "புதியவை: %d";
-"settings.workspace.decks.reviewedCount" = "மீள்பயிற்சி செய்தவை: %d";
+"settings.workspace.decks.toStudyCount" = "படிக்க %d";
+"settings.workspace.decks.toStudy" = "படிக்க";
 "settings.workspace.decks.emptyAllCards" = "நீங்கள் இன்னும் அட்டைகளை உருவாக்கவில்லை.";
 "settings.workspace.decks.emptyDeck" = "இந்தத் தொகுப்பில் இன்னும் பொருந்தும் அட்டைகள் இல்லை.";
 "settings.workspace.decks.section.deckRules" = "தொகுப்பு விதிகள்";

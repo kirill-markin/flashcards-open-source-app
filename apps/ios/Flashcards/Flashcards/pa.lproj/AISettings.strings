@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "ਨਾਮ ਸੰਭਾਲੋ";
 "settings.workspace.overview.workspace" = "ਵਰਕਸਪੇਸ";
 "settings.workspace.overview.cards" = "ਕਾਰਡ";
-"settings.workspace.overview.due" = "ਦੁਹਰਾਈ ਦਾ ਸਮਾਂ";
 "settings.workspace.overview.new" = "ਨਵਾਂ";
 "settings.workspace.overview.deleteDescription" = "ਇਸ ਵਰਕਸਪੇਸ ਅਤੇ ਇਸ ਵਿੱਚ ਮੌਜੂਦ ਸਾਰੇ ਕਾਰਡ, ਡੈੱਕ, ਦੁਹਰਾਈਆਂ ਅਤੇ ਸਿੰਕ ਇਤਿਹਾਸ ਨੂੰ ਪੱਕੇ ਤੌਰ ਉੱਤੇ ਮਿਟਾਓ।";
 "settings.workspace.overview.deleteWorkspace" = "ਵਰਕਸਪੇਸ ਮਿਟਾਓ";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "ਕੋਈ ਮੇਲ ਖਾਂਦਾ ਡੈੱਕ ਨਹੀਂ";
 "settings.workspace.decks.searchPrompt" = "ਡੈੱਕ ਲੱਭੋ";
 "settings.workspace.decks.newDeck" = "ਨਵਾਂ ਡੈੱਕ";
-"settings.workspace.decks.dueCount" = "%d ਦੁਹਰਾਈ ਲਈ";
-"settings.workspace.decks.totalCards" = "%d ਕਾਰਡ";
-"settings.workspace.decks.newCount" = "%d ਨਵੇਂ";
-"settings.workspace.decks.reviewedCount" = "%d ਦੀ ਦੁਹਰਾਈ ਹੋਈ";
+"settings.workspace.decks.toStudyCount" = "%d ਪੜ੍ਹਨ ਲਈ";
+"settings.workspace.decks.toStudy" = "ਪੜ੍ਹਨ ਲਈ";
 "settings.workspace.decks.emptyAllCards" = "ਤੁਸੀਂ ਹਾਲੇ ਕੋਈ ਕਾਰਡ ਨਹੀਂ ਬਣਾਇਆ।";
 "settings.workspace.decks.emptyDeck" = "ਇਸ ਡੈੱਕ ਵਿੱਚ ਹਾਲੇ ਕੋਈ ਮੇਲ ਖਾਂਦਾ ਕਾਰਡ ਨਹੀਂ ਹੈ।";
 "settings.workspace.decks.section.deckRules" = "ਡੈੱਕ ਦੇ ਨਿਯਮ";

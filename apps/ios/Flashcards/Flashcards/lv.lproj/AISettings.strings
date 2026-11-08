@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Saglabāt nosaukumu";
 "settings.workspace.overview.workspace" = "Darbvieta";
 "settings.workspace.overview.cards" = "Kartītes";
-"settings.workspace.overview.due" = "Jāatkārto";
 "settings.workspace.overview.new" = "Jauns";
 "settings.workspace.overview.deleteDescription" = "Neatgriezeniski dzēst šo darbvietu un visas tās kartītes, kavas, atkārtojumus un sinhronizācijas vēsturi.";
 "settings.workspace.overview.deleteWorkspace" = "Dzēst darbvietu";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Nav atbilstošu kavu";
 "settings.workspace.decks.searchPrompt" = "Meklēt kavas";
 "settings.workspace.decks.newDeck" = "Jauna kava";
-"settings.workspace.decks.dueCount" = "Jāatkārto: %d";
-"settings.workspace.decks.totalCards" = "Kartīšu skaits: %d";
-"settings.workspace.decks.newCount" = "Jaunas: %d";
-"settings.workspace.decks.reviewedCount" = "Atkārtotas: %d";
+"settings.workspace.decks.toStudyCount" = "%d mācībām";
+"settings.workspace.decks.toStudy" = "Mācībām";
 "settings.workspace.decks.emptyAllCards" = "Jūs vēl neesat izveidojis nevienu kartīti.";
 "settings.workspace.decks.emptyDeck" = "Šajā kavā vēl nav atbilstošu kartīšu.";
 "settings.workspace.decks.section.deckRules" = "Kavas noteikumi";

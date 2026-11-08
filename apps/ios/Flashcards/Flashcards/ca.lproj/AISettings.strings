@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Desa el nom";
 "settings.workspace.overview.workspace" = "Espai de treball";
 "settings.workspace.overview.cards" = "Targetes";
-"settings.workspace.overview.due" = "Pendents";
 "settings.workspace.overview.new" = "Nou";
 "settings.workspace.overview.deleteDescription" = "Suprimeix permanentment aquest espai de treball i totes les targetes, baralles, repassos i l'historial de sincronització que hi hagi.";
 "settings.workspace.overview.deleteWorkspace" = "Suprimeix l'espai de treball";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "No hi ha baralles coincidents";
 "settings.workspace.decks.searchPrompt" = "Cerca baralles";
 "settings.workspace.decks.newDeck" = "Baralla nova";
-"settings.workspace.decks.dueCount" = "%d pendents";
-"settings.workspace.decks.totalCards" = "%d targetes";
-"settings.workspace.decks.newCount" = "%d noves";
-"settings.workspace.decks.reviewedCount" = "%d repassades";
+"settings.workspace.decks.toStudyCount" = "%d per estudiar";
+"settings.workspace.decks.toStudy" = "Per estudiar";
 "settings.workspace.decks.emptyAllCards" = "Encara no has creat cap targeta.";
 "settings.workspace.decks.emptyDeck" = "Aquesta baralla encara no té cap targeta coincident.";
 "settings.workspace.decks.section.deckRules" = "Regles de la baralla";
