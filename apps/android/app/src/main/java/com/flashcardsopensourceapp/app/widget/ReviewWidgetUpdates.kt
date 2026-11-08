@@ -18,7 +18,9 @@ private fun makeAllWidgets(): List<GlanceAppWidget> {
         ComingUpWidget(),
         TodayWidget(),
         ActivityWidget(),
-        YearWidget()
+        YearWidget(),
+        StreaksWidget(),
+        MonthCalendarWidget()
     )
 }
 

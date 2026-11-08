@@ -160,6 +160,34 @@
     <!-- Sample content of the Year widget preview in the launcher's widget picker. -->
     <string name="year_widget_preview_reviews">4,120 reviews</string>
     <string name="year_widget_preview_active_days">186 active days</string>
+    <!-- Streaks Home Screen widget name in the launcher's widget picker; also its medium-size header. -->
+    <string name="streaks_widget_label">Streaks</string>
+    <string name="streaks_widget_description">Your current streak, your best and your recent streaks.</string>
+    <string name="streaks_widget_flame" translatable="false">🔥</string>
+    <!-- A streak length in days, in the locale's digits. -->
+    <string name="streaks_widget_day_count" translatable="false">%1$d</string>
+    <!-- The longest streak ever, in days. -->
+    <string name="streaks_widget_best">Best <xliff:g id="days" example="30">%1$d</xliff:g></string>
+    <!-- Streak freezes available. -->
+    <string name="streaks_widget_freeze_credits" translatable="false">❄️ %1$d</string>
+    <string name="streaks_widget_empty">Review today to start a streak.</string>
+    <string name="streaks_widget_chart_description">Your current and recent streaks</string>
+    <!-- Sample content of the Streaks widget preview in the launcher's widget picker. -->
+    <string name="streaks_widget_preview_current" translatable="false">🔥 12</string>
+    <string name="streaks_widget_preview_best">Best 30</string>
+    <string name="streaks_widget_preview_freeze_credits" translatable="false">❄️ 2</string>
+    <!-- Month calendar Home Screen widget name in the launcher's widget picker. -->
+    <string name="month_calendar_widget_label">Calendar</string>
+    <string name="month_calendar_widget_description">The days you kept your streak this month.</string>
+    <!-- A day of the month in the calendar, in the locale's digits. -->
+    <string name="month_calendar_widget_day_number" translatable="false">%1$d</string>
+    <plurals name="month_calendar_widget_chart_description">
+        <item quantity="one">Streak kept on %1$d day this month</item>
+        <item quantity="other">Streak kept on %1$d days this month</item>
+    </plurals>
+    <!-- Sample month of the Calendar widget preview in the launcher's widget picker. -->
+    <string name="month_calendar_widget_preview_month">November</string>
+    <string name="month_calendar_widget_preview_week" translatable="false">● ● ● ● ● ● ●</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>
