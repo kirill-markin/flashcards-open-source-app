@@ -116,7 +116,7 @@ private struct ReviewWidgetContentView: View {
     }
 }
 
-private struct ReviewWidgetDueCountView: View {
+struct ReviewWidgetDueCountView: View {
     let count: Int
 
     var body: some View {
@@ -136,7 +136,7 @@ private struct ReviewWidgetDueCountView: View {
     }
 }
 
-private struct ReviewWidgetNextCardView: View {
+struct ReviewWidgetNextCardView: View {
     let nextCard: WidgetSnapshotCard?
     let font: Font
     let lineLimit: Int
@@ -175,7 +175,7 @@ private struct ReviewWidgetStreakView: View {
     }
 }
 
-private struct ReviewWidgetAllDoneView: View {
+struct ReviewWidgetAllDoneView: View {
     let entryDate: Date
     let nextDueAt: Date?
     let streakDays: Int?

@@ -1111,6 +1111,30 @@
         }
       }
     },
+    "widget.dashboard.gallery.description" : {
+      "comment" : "Widget gallery description of the Dashboard widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s progress, cards due, your streak, the next question and recent activity."
+          }
+        }
+      }
+    },
+    "widget.dashboard.gallery.name" : {
+      "comment" : "Widget gallery name of the Large Home Screen widget that combines today's progress, cards due, the streak, the next question and recent activity",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        }
+      }
+    },
     "widget.due_label" : {
       "comment" : "Caption under the large number of cards waiting in Review",
       "extractionState" : "manual",
