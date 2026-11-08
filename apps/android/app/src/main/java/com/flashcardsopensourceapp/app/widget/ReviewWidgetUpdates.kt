@@ -15,7 +15,8 @@ private fun makeAllWidgets(): List<GlanceAppWidget> {
     return listOf(
         ReviewWidget(),
         ReviewsChartWidget(),
-        ComingUpWidget()
+        ComingUpWidget(),
+        TodayWidget()
     )
 }
 

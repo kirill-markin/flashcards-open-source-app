@@ -94,6 +94,31 @@
         <item quantity="other">Next 7 days · <xliff:g id="card_count" example="58">%1$d</xliff:g> cards</item>
     </plurals>
     <string name="coming_up_widget_preview_header">Next 7 days · 58 cards</string>
+    <!-- Today Home Screen widget name in the launcher's widget picker, also its title on the medium widget. -->
+    <string name="today_widget_label">Today</string>
+    <string name="today_widget_description">Today’s reviews, cards left and your streak.</string>
+    <!-- A count inside the small widget's ring (cards reviewed today) or next to the streak flame, in the locale's digits. -->
+    <string name="today_widget_count" translatable="false">%1$d</string>
+    <!-- Share of today's cards already reviewed, next to the progress bar. -->
+    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
+    <!-- Shown when no card was reviewed today and none is due. -->
+    <string name="today_widget_no_cards_due">No cards due</string>
+    <plurals name="today_widget_reviewed">
+        <item quantity="one">%1$d reviewed</item>
+        <item quantity="other">%1$d reviewed</item>
+    </plurals>
+    <!-- Cards still due today, under the ring on the small widget. -->
+    <plurals name="today_widget_left">
+        <item quantity="one">%1$d left</item>
+        <item quantity="other">%1$d left</item>
+    </plurals>
+    <plurals name="today_widget_cards_left">
+        <item quantity="one">%1$d card left</item>
+        <item quantity="other">%1$d cards left</item>
+    </plurals>
+    <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
+    <string name="today_widget_preview_reviewed">8 reviewed</string>
+    <string name="today_widget_preview_cards_left">4 cards left</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>
