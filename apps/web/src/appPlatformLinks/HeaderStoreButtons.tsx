@@ -2,9 +2,10 @@ import { useEffect, useRef, type FocusEvent, type PointerEvent, type ReactElemen
 import { track } from "../analytics/client";
 import type { AnalyticsStoreDevice } from "../analytics/events";
 import { useI18n } from "../i18n";
+import { getPublicSiteMcpUrl } from "../publicSiteUrl";
 import { toAnalyticsStore, type AppPlatformStoreKind } from "./appPlatformOptions";
 import { AppPlatformQrCode } from "./AppPlatformQrCode";
-import { DeviceIcon } from "./badges";
+import { DeviceIcon, McpIcon } from "./badges";
 import { resolveClientDevice, type ClientDevice } from "./clientPlatform";
 import { buildWebAppHeaderAppleDeviceLink, webAppHeaderStoreLinks } from "./storeLinks";
 
@@ -30,8 +31,8 @@ type HeaderQrDeviceLinkProps = Readonly<{
 
 /**
  * The same devices as the marketing site's home device row (`src/lib/humanPlatforms.ts` and
- * `src/components/HomeDeviceLinks.tsx` in the website repo), without Web. Not shared code:
- * the two lists are kept aligned by hand.
+ * `src/components/HomeDeviceLinks.tsx` in the website repo), without Web; the MCP pill that
+ * ends both rows is rendered separately. Not shared code: the two lists are kept aligned by hand.
  */
 const headerDevices: Readonly<Record<AnalyticsStoreDevice, HeaderDevice>> = {
   iphone: { device: "iphone", label: "iPhone", store: "ios", href: buildWebAppHeaderAppleDeviceLink("iphone") },
@@ -197,7 +198,7 @@ function HeaderQrDeviceLink(props: HeaderQrDeviceLinkProps): ReactElement {
 }
 
 export function HeaderStoreButtons(): ReactElement {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const qrCaption: string = t("appPlatformLinks.qrCaption");
   const clientDevice: ClientDevice = resolveClientDevice(navigator.userAgent, navigator.maxTouchPoints);
 
@@ -222,6 +223,17 @@ export function HeaderStoreButtons(): ReactElement {
           />
         );
       })}
+      <a
+        className="header-store-button"
+        href={getPublicSiteMcpUrl(locale)}
+        rel="noreferrer"
+        target="_blank"
+        aria-label={`MCP: ${t("appPlatformLinks.mcp.title")}`}
+        data-testid="topbar-mcp-link"
+      >
+        <McpIcon />
+        <span>MCP</span>
+      </a>
     </div>
   );
 }
