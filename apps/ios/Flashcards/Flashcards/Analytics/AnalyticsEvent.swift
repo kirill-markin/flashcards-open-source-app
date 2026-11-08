@@ -156,7 +156,7 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// app. It is the numerator `notificationScheduled` is the denominator of.
     case notificationOpened(notificationKind: AnalyticsNotificationKind)
     /// A Home Screen widget tap, reported once when the app consumes it.
-    case widgetOpened(widgetSize: AnalyticsWidgetSize)
+    case widgetOpened(widgetSize: AnalyticsWidgetSize, widgetKind: AnalyticsWidgetKind)
     /// How many Review widgets of each size are placed now, reported only when the counts differ from
     /// the last report of this installation; all zeros means none is placed.
     case widgetPlacementChanged(smallCount: Int, mediumCount: Int, largeCount: Int)
@@ -446,6 +446,22 @@ enum AnalyticsWidgetSize: String, Sendable, Equatable {
     case small
     case medium
     case large
+    case accessoryCircular = "accessory_circular"
+    case accessoryRectangular = "accessory_rectangular"
+    case accessoryInline = "accessory_inline"
+}
+
+enum AnalyticsWidgetKind: String, Sendable, Equatable {
+    case review
+    case activity
+    case year
+    case today
+    case lockScreen = "lock_screen"
+    case reviewsChart = "reviews_chart"
+    case streaks
+    case monthCalendar = "month_calendar"
+    case comingUp = "coming_up"
+    case dashboard
 }
 
 enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
@@ -862,8 +878,11 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .notificationScheduled(let notificationKind), .notificationOpened(let notificationKind):
             return ["notification_kind": .string(notificationKind.rawValue)]
-        case .widgetOpened(let widgetSize):
-            return ["widget_size": .string(widgetSize.rawValue)]
+        case .widgetOpened(let widgetSize, let widgetKind):
+            return [
+                "widget_size": .string(widgetSize.rawValue),
+                "widget_kind": .string(widgetKind.rawValue)
+            ]
         case .widgetPlacementChanged(let smallCount, let mediumCount, let largeCount):
             return [
                 "small_count": .integer(max(0, smallCount)),

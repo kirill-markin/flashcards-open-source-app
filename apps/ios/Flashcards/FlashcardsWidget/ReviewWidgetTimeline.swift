@@ -20,6 +20,8 @@ struct ReviewWidgetEntry: TimelineEntry, Sendable {
     let date: Date
     let workspaceId: String?
     let content: ReviewWidgetContent
+    /// The decoded snapshot behind `content`, for widget kinds that show more than Review; nil without one.
+    let snapshot: WidgetSnapshot?
 }
 
 struct ReviewWidgetTimelineProvider: TimelineProvider {
@@ -69,11 +71,11 @@ func makeReviewWidgetEntry(snapshot: WidgetSnapshot, date: Date) -> ReviewWidget
             streakDays: snapshot.streakDays
         )
     }
-    return ReviewWidgetEntry(date: date, workspaceId: snapshot.workspaceId, content: content)
+    return ReviewWidgetEntry(date: date, workspaceId: snapshot.workspaceId, content: content, snapshot: snapshot)
 }
 
 func makeNoSnapshotReviewWidgetEntry(date: Date) -> ReviewWidgetEntry {
-    ReviewWidgetEntry(date: date, workspaceId: nil, content: .noSnapshot)
+    ReviewWidgetEntry(date: date, workspaceId: nil, content: .noSnapshot, snapshot: nil)
 }
 
 /// A read failure renders the no-snapshot state; the next app write replaces the file.

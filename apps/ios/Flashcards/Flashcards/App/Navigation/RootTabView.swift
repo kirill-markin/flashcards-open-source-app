@@ -42,6 +42,8 @@ private struct WidgetSnapshotTaskID: Hashable {
     let dueCount: Int
     let presentedReviewCardId: String?
     let progressBadgeState: ReviewProgressBadgeState
+    let progressSnapshot: ProgressSnapshot?
+    let reviewScheduleSnapshot: ReviewScheduleSnapshot?
     let scenePhase: ScenePhase
 }
 #endif
@@ -112,6 +114,8 @@ struct RootTabView: View {
             dueCount: store.reviewDueBadgeCount,
             presentedReviewCardId: store.presentedReviewCard?.cardId,
             progressBadgeState: store.reviewProgressBadgeState,
+            progressSnapshot: store.widgetProgressSnapshot,
+            reviewScheduleSnapshot: store.reviewScheduleSnapshot,
             scenePhase: self.scenePhase
         )
     }

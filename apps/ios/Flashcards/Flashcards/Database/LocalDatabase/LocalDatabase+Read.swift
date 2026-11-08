@@ -145,6 +145,18 @@ extension LocalDatabase {
         )
     }
 
+    func loadReviewDueCounts(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        intervalBoundaries: [Date]
+    ) throws -> [Int] {
+        try self.cardStore.loadReviewDueCounts(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            intervalBoundaries: intervalBoundaries
+        )
+    }
+
     func loadReviewTimelinePage(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,

@@ -7,14 +7,16 @@ struct ReviewWidgetView: View {
 
     var body: some View {
         Group {
-            if let size = reviewWidgetDeepLinkSize(family: self.family) {
+            if let size = reviewWidgetSize(family: self.family) {
                 ReviewWidgetContentView(size: size, entryDate: self.entry.date, content: self.entry.content)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .widgetURL(
                         makeWidgetDeepLinkURL(
                             deepLink: WidgetDeepLink(
+                                destination: .review,
+                                kind: .review,
                                 workspaceId: self.entry.workspaceId,
-                                size: size,
+                                size: size.deepLinkSize,
                                 cardId: reviewWidgetShownCardId(size: size, content: self.entry.content)
                             )
                         )
@@ -25,8 +27,26 @@ struct ReviewWidgetView: View {
     }
 }
 
+/// The Home Screen families the Review widget supports.
+private enum ReviewWidgetSize {
+    case small
+    case medium
+    case large
+
+    var deepLinkSize: WidgetDeepLinkSize {
+        switch self {
+        case .small:
+            return .small
+        case .medium:
+            return .medium
+        case .large:
+            return .large
+        }
+    }
+}
+
 /// Nil only for families the widget does not declare as supported.
-private func reviewWidgetDeepLinkSize(family: WidgetFamily) -> WidgetDeepLinkSize? {
+private func reviewWidgetSize(family: WidgetFamily) -> ReviewWidgetSize? {
     switch family {
     case .systemSmall:
         return .small
@@ -40,7 +60,7 @@ private func reviewWidgetDeepLinkSize(family: WidgetFamily) -> WidgetDeepLinkSiz
 }
 
 /// The small family never shows a card, so its tap opens Review normally.
-private func reviewWidgetShownCardId(size: WidgetDeepLinkSize, content: ReviewWidgetContent) -> String? {
+private func reviewWidgetShownCardId(size: ReviewWidgetSize, content: ReviewWidgetContent) -> String? {
     guard size != .small, case .due(_, let nextCard?, _) = content else {
         return nil
     }
@@ -48,14 +68,14 @@ private func reviewWidgetShownCardId(size: WidgetDeepLinkSize, content: ReviewWi
 }
 
 private struct ReviewWidgetContentView: View {
-    let size: WidgetDeepLinkSize
+    let size: ReviewWidgetSize
     let entryDate: Date
     let content: ReviewWidgetContent
 
     var body: some View {
         switch self.content {
         case .noSnapshot:
-            ReviewWidgetNoSnapshotView()
+            WidgetNoSnapshotView()
         case .due(let count, let nextCard, let streakDays):
             switch self.size {
             case .small:
@@ -198,20 +218,4 @@ private func reviewWidgetNextDueText(nextDueAt: Date, entryDate: Date) -> Text {
         return Text(nextDueAt, format: laterDayFormat)
     }
     return Text(nextDueAt, format: laterDayFormat.year())
-}
-
-private struct ReviewWidgetNoSnapshotView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: "rectangle.stack.fill")
-                .font(.title2)
-                .foregroundStyle(Color.accentColor)
-                .widgetAccentable()
-            Text("widget.no_snapshot", tableName: widgetStringsTableName)
-                .font(.headline)
-                .lineLimit(4)
-                .minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
-        }
-    }
 }
