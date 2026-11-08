@@ -191,5 +191,16 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/month_calendar_widget_info" />
         </receiver>
+        <receiver
+            android:name=".widget.DashboardWidgetReceiver"
+            android:exported="true"
+            android:label="@string/dashboard_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/dashboard_widget_info" />
+        </receiver>
     </application>
 </manifest>

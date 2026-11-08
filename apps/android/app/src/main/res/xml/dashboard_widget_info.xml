@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- updatePeriodMillis lets due cards appear while the app is closed; it is the platform minimum. -->
+<!-- Today is the day of the last Progress the app published, so it may lag the clock past midnight. -->
+<!-- API 30 ignores previewLayout and the target cells and falls back to minWidth/minHeight. -->
+<!-- Large only: the minimum resize keeps it at the Dashboard layout's 250 dp. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/dashboard_widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="250dp"
+    android:minHeight="250dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="250dp"
+    android:previewLayout="@layout/dashboard_widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="4"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen"
+    tools:targetApi="31" />

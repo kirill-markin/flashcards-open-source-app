@@ -188,6 +188,9 @@
     <!-- Sample month of the Calendar widget preview in the launcher's widget picker. -->
     <string name="month_calendar_widget_preview_month">November</string>
     <string name="month_calendar_widget_preview_week" translatable="false">● ● ● ● ● ● ●</string>
+    <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
+    <string name="dashboard_widget_label">Dashboard</string>
+    <string name="dashboard_widget_description">Today’s progress, cards due, your streak, the next question and your activity.</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>

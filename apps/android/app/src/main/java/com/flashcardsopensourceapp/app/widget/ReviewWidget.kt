@@ -203,7 +203,7 @@ private fun secondaryStyle(): TextStyle {
 }
 
 /** Time in the user's 12/24-hour setting, with the date when not today and the year when not this year. */
-private fun formatReviewWidgetDueTime(context: Context, dueAtMillis: Long): String {
+internal fun formatReviewWidgetDueTime(context: Context, dueAtMillis: Long): String {
     if (DateUtils.isToday(dueAtMillis)) {
         return DateUtils.formatDateTime(context, dueAtMillis, DateUtils.FORMAT_SHOW_TIME)
     }
