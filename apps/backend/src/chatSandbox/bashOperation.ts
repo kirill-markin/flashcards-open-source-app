@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import type { Bash, BashOptions, InMemoryFs } from "just-bash";
+import type { Bash, BashOptions, Command, InMemoryFs } from "just-bash";
 import { cutHeadAtCodePoint } from "../shared/codePointCuts";
 import {
   cutToHeadAndTail,
@@ -205,6 +205,30 @@ function appendLine(text: string, line: string): string {
 }
 
 /**
+ * Counts each bridge command's failures by name into `failures`. A failed upload's exit code lasts only
+ * until the next command of a list, loop or pipeline, so `fc-media-put a.jpg; cat ids` would otherwise
+ * end with exit code 0.
+ */
+function countFailures(commands: ReadonlyArray<Command>, failures: Map<string, number>): ReadonlyArray<Command> {
+  return commands.map((command) => ({
+    ...command,
+    execute: async (args, context) => {
+      const result = await command.execute(args, context);
+      if (result.exitCode !== 0) {
+        failures.set(command.name, (failures.get(command.name) ?? 0) + 1);
+      }
+
+      return result;
+    },
+  }));
+}
+
+function describeBridgeFailures(failures: ReadonlyMap<string, number>): string {
+  const counts = [...failures].map(([name, count]) => `${name} failed ${count === 1 ? "once" : `${count} times`}`);
+  return `bash: exit code 1, because ${counts.join(" and ")}; the messages are above.`;
+}
+
+/**
  * Runs one command over a fresh in-memory file system: `/files` read-only, `/work` writable and seeded
  * with the session's work files, which load only when read. Afterwards the changed `/work` files are
  * uploaded to the write slots, all of them or, when a limit refuses the save, none.
@@ -249,6 +273,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
   });
   const sqlBridge = new ChatSandboxSqlBridgeClient(request.sqlBridge, request.sessionId);
   const mediaBridge = new ChatSandboxMediaBridgeClient(request.mediaBridge, request.sessionId);
+  const bridgeFailures = new Map<string, number>();
   const bash = new Bash({
     fs,
     cwd: workMountPoint,
@@ -256,8 +281,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
     python: true,
     javascript: { invokeTool: async (path, argsJson, signal) => sqlBridge.invokeTool(path, argsJson, signal) },
     customCommands: [
-      ...sqlBridge.createCommands(decodeBytesToUtf8),
-      ...mediaBridge.createCommands(),
+      ...countFailures([...sqlBridge.createCommands(decodeBytesToUtf8), ...mediaBridge.createCommands()], bridgeFailures),
       createMagickCommand(),
       createZstdCommand(),
     ],
@@ -270,16 +294,22 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
   const changes = await collectWorkChanges(work, seededWorkFiles, reader, scan);
   const refusal = findWorkSaveRefusal(changes, request.writeSlots.length);
   const writtenFiles = refusal === null ? await uploadToWriteSlots(changes.changedFiles, request.writeSlots) : [];
+  // A command that already failed keeps its own exit code; one that ended with 0 still fails for a
+  // failed bridge call or a refused save.
+  const hidesBridgeFailure = result.exitCode === 0 && bridgeFailures.size > 0;
+  const commandStderr = hidesBridgeFailure
+    ? appendLine(result.stderr, describeBridgeFailures(bridgeFailures))
+    : result.stderr;
   const stderr = refusal === null
-    ? result.stderr
-    : appendLine(result.stderr, `bash: nothing under /work was saved: ${refusal}.`);
+    ? commandStderr
+    : appendLine(commandStderr, `bash: nothing under /work was saved: ${refusal}.`);
 
   return {
     stdout: cutStream(result.stdout),
     stdoutBytes: Buffer.byteLength(result.stdout),
     stderr: cutStream(stderr),
     stderrBytes: Buffer.byteLength(stderr),
-    exitCode: refusal !== null && result.exitCode === 0 ? 1 : result.exitCode,
+    exitCode: result.exitCode === 0 && (hidesBridgeFailure || refusal !== null) ? 1 : result.exitCode,
     durationMs: Date.now() - startedAt,
     writtenFiles: [...writtenFiles],
     deletedPaths: refusal === null ? [...changes.deletedPaths] : [],
