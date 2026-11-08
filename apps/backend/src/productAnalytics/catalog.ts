@@ -2017,14 +2017,13 @@ export const productAnalyticsEventCatalog = {
   // `device_category` with the app-entry click value for value, so the two clicks compare directly on
   // those, while `target` names a different destination space and the two are disjoint on it by
   // design. It does not hold the app-entry map either: that map is shared only by the app-entry
-  // click and its impression half, and this event has no impression half. `target` is an enum of one
-  // because the site has exactly one such destination today, and naming it keeps the property set
-  // from changing shape the day a second internal destination appears.
+  // click and its impression half, and this event has no impression half. `target` names the
+  // internal destination: the localized home page (`home`) or the MCP page (`mcp`).
   site_internal_cta_clicked: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      target: { kind: "enum", values: ["home"] },
+      target: { kind: "enum", values: ["home", "mcp"] },
       page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
       placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
       source: { kind: "enum", values: productAnalyticsSiteSources },
