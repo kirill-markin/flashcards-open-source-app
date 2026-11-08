@@ -1340,23 +1340,14 @@ const nbCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} forfalt",
+      toStudy: "{{count}} å lære",
       total: "{{count}} totalt",
     },
-    emptyStatsAriaLabel: "Statistikk for {{deckName}}",
     newDeck: "Ny kortstokk",
     statLabels: {
       cards: {
         one: "kort",
         other: "kort",
-      },
-      new: {
-        one: "nytt",
-        other: "nye",
-      },
-      reviewed: {
-        one: "repetert",
-        other: "repetert",
       },
     },
     subtitle: "Kortstokker er smartfiltre, ikke mapper. De henter kort etter tagger.",
@@ -1392,10 +1383,10 @@ const nbCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kort",
-      due: "Forfaller",
       new: "Nye",
       summary: "Sammendrag",
       title: "Regler for kortstokken",
+      toStudy: "Å lære",
     },
     subtitle: "Se reglene for kortstokken, kortene som passer, og inngangen til repetisjon.",
     subtitles: {

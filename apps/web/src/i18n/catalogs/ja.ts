@@ -1340,23 +1340,14 @@ export const jaCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} 件期限あり",
+      toStudy: "学習対象 {{count}} 件",
       total: "合計 {{count}} 件",
     },
-    emptyStatsAriaLabel: "{{deckName}} の統計",
     newDeck: "新しいデッキ",
     statLabels: {
       cards: {
         one: "カード",
         other: "カード",
-      },
-      new: {
-        one: "新規",
-        other: "新規",
-      },
-      reviewed: {
-        one: "復習済み",
-        other: "復習済み",
       },
     },
     subtitle: "デッキはコンテナではなくスマートフィルターです。タグでカードに一致します。",
@@ -1392,10 +1383,10 @@ export const jaCatalog = {
     },
     rules: {
       cards: "カード",
-      due: "期限あり",
       new: "新規",
       summary: "概要",
       title: "デッキルール",
+      toStudy: "学習対象",
     },
     subtitle: "デッキルール、一致するカード、復習開始ポイントを確認します。",
     subtitles: {

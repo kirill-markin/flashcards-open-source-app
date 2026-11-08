@@ -1350,26 +1350,15 @@ const ukCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} до повторення",
+      toStudy: "{{count}} до вивчення",
       total: "{{count}} усього",
     },
-    emptyStatsAriaLabel: "Статистика колоди {{deckName}}",
     newDeck: "Нова колода",
     statLabels: {
       cards: {
         one: "картка",
         few: "картки",
         other: "карток",
-      },
-      new: {
-        one: "нова",
-        few: "нові",
-        other: "нових",
-      },
-      reviewed: {
-        one: "повторена",
-        few: "повторені",
-        other: "повторених",
       },
     },
     subtitle: "Колоди — це розумні фільтри, а не контейнери. Вони добирають картки за тегами.",
@@ -1405,10 +1394,10 @@ const ukCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Картки",
-      due: "Термін",
       new: "Нові",
       summary: "Підсумок",
       title: "Правила колоди",
+      toStudy: "До вивчення",
     },
     subtitle: "Перегляньте правила колоди, відповідні картки та вхід у повторення.",
     subtitles: {

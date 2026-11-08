@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Naam opslaan";
 "settings.workspace.overview.workspace" = "Werkruimte";
 "settings.workspace.overview.cards" = "Kaarten";
-"settings.workspace.overview.due" = "Te herhalen";
 "settings.workspace.overview.new" = "Nieuw";
 "settings.workspace.overview.deleteDescription" = "Verwijder deze werkruimte en alle kaarten, kaartensets, herhalingen en synchronisatiegeschiedenis erin permanent.";
 "settings.workspace.overview.deleteWorkspace" = "Werkruimte verwijderen";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Geen overeenkomende kaartensets";
 "settings.workspace.decks.searchPrompt" = "Kaartensets zoeken";
 "settings.workspace.decks.newDeck" = "Nieuwe kaartenset";
-"settings.workspace.decks.dueCount" = "Te herhalen: %d";
-"settings.workspace.decks.totalCards" = "Kaarten: %d";
-"settings.workspace.decks.newCount" = "Nieuw: %d";
-"settings.workspace.decks.reviewedCount" = "Herhaald: %d";
+"settings.workspace.decks.toStudyCount" = "%d te leren";
+"settings.workspace.decks.toStudy" = "Te leren";
 "settings.workspace.decks.emptyAllCards" = "Je hebt nog geen kaarten gemaakt.";
 "settings.workspace.decks.emptyDeck" = "Deze kaartenset heeft nog geen overeenkomende kaarten.";
 "settings.workspace.decks.section.deckRules" = "Regels voor kaartenset";

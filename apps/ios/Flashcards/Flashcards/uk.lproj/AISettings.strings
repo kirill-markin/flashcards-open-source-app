@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Зберегти назву";
 "settings.workspace.overview.workspace" = "Робочий простір";
 "settings.workspace.overview.cards" = "Картки";
-"settings.workspace.overview.due" = "До повторення";
 "settings.workspace.overview.new" = "Нові";
 "settings.workspace.overview.deleteDescription" = "Назавжди видалити цей простір і всі картки, колоди, повторення та історію синхронізації в ньому.";
 "settings.workspace.overview.deleteWorkspace" = "Видалити робочий простір";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Немає відповідних колод";
 "settings.workspace.decks.searchPrompt" = "Пошук колод";
 "settings.workspace.decks.newDeck" = "Нова колода";
-"settings.workspace.decks.dueCount" = "До повторення: %d";
-"settings.workspace.decks.totalCards" = "Карток: %d";
-"settings.workspace.decks.newCount" = "Нових: %d";
-"settings.workspace.decks.reviewedCount" = "Повторено: %d";
+"settings.workspace.decks.toStudyCount" = "%d до вивчення";
+"settings.workspace.decks.toStudy" = "До вивчення";
 "settings.workspace.decks.emptyAllCards" = "Ви ще не створили жодної картки.";
 "settings.workspace.decks.emptyDeck" = "У цій колоді ще немає відповідних карток.";
 "settings.workspace.decks.section.deckRules" = "Правила колоди";

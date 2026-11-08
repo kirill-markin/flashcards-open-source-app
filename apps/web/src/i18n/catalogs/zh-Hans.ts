@@ -1340,23 +1340,14 @@ export const zhHansCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} 到期",
+      toStudy: "{{count}} 待学习",
       total: "共 {{count}} 条",
     },
-    emptyStatsAriaLabel: "{{deckName}} 统计",
     newDeck: "新建牌组",
     statLabels: {
       cards: {
         one: "卡片",
         other: "卡片",
-      },
-      new: {
-        one: "新建",
-        other: "新建",
-      },
-      reviewed: {
-        one: "已复习",
-        other: "已复习",
       },
     },
     subtitle: "牌组是智能筛选器，不是容器。它们会按标签匹配卡片。",
@@ -1392,10 +1383,10 @@ export const zhHansCatalog = {
     },
     rules: {
       cards: "卡片",
-      due: "到期",
       new: "新建",
       summary: "摘要",
       title: "牌组规则",
+      toStudy: "待学习",
     },
     subtitle: "查看牌组规则、匹配的卡片以及复习入口。",
     subtitles: {

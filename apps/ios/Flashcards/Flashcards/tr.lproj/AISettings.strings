@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Adı Kaydet";
 "settings.workspace.overview.workspace" = "Çalışma Alanı";
 "settings.workspace.overview.cards" = "Kartlar";
-"settings.workspace.overview.due" = "Zamanı geldi";
 "settings.workspace.overview.new" = "Yeni";
 "settings.workspace.overview.deleteDescription" = "Bu çalışma alanını ve içindeki tüm kartları, desteleri, tekrarları ve eşzamanlama geçmişini kalıcı olarak silin.";
 "settings.workspace.overview.deleteWorkspace" = "Çalışma alanını sil";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Eşleşen Deste Yok";
 "settings.workspace.decks.searchPrompt" = "Deste ara";
 "settings.workspace.decks.newDeck" = "Yeni deste";
-"settings.workspace.decks.dueCount" = "%d zamanı gelen";
-"settings.workspace.decks.totalCards" = "%d kart";
-"settings.workspace.decks.newCount" = "%d yeni";
-"settings.workspace.decks.reviewedCount" = "%d tekrarı yapılan";
+"settings.workspace.decks.toStudyCount" = "%d çalışılacak";
+"settings.workspace.decks.toStudy" = "Çalışılacak";
 "settings.workspace.decks.emptyAllCards" = "Henüz kart oluşturmadınız.";
 "settings.workspace.decks.emptyDeck" = "Bu destede henüz eşleşen kart yok.";
 "settings.workspace.decks.section.deckRules" = "Deste kuralları";

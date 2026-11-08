@@ -1340,23 +1340,14 @@ const caCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} pendents",
+      toStudy: "{{count}} per estudiar",
       total: "{{count}} en total",
     },
-    emptyStatsAriaLabel: "Estadístiques de {{deckName}}",
     newDeck: "Baralla nova",
     statLabels: {
       cards: {
         one: "targeta",
         other: "targetes",
-      },
-      new: {
-        one: "nova",
-        other: "noves",
-      },
-      reviewed: {
-        one: "repassada",
-        other: "repassades",
       },
     },
     subtitle: "Les baralles són filtres intel·ligents, no contenidors. Trien les targetes per etiquetes.",
@@ -1392,10 +1383,10 @@ const caCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Targetes",
-      due: "Pendents",
       new: "Noves",
       summary: "Resum",
       title: "Regles de la baralla",
+      toStudy: "Per estudiar",
     },
     subtitle: "Consulta les regles de la baralla, les targetes coincidents i el punt d'entrada al repàs.",
     subtitles: {

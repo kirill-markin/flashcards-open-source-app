@@ -1340,23 +1340,14 @@ const isCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Á dagskrá: {{count}}",
+      toStudy: "{{count}} til að læra",
       total: "Alls: {{count}}",
     },
-    emptyStatsAriaLabel: "Tölfræði: {{deckName}}",
     newDeck: "Nýr stokkur",
     statLabels: {
       cards: {
         one: "spjald",
         other: "spjöld",
-      },
-      new: {
-        one: "nýtt",
-        other: "ný",
-      },
-      reviewed: {
-        one: "upprifjað",
-        other: "upprifjuð",
       },
     },
     subtitle: "Stokkar eru snjallsíur, ekki ílát. Þeir velja spjöld eftir merkjum.",
@@ -1392,10 +1383,10 @@ const isCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Spjöld",
-      due: "Á dagskrá",
       new: "Nýtt",
       summary: "Samantekt",
       title: "Reglur stokks",
+      toStudy: "Til að læra",
     },
     subtitle: "Skoðaðu reglur stokksins, samsvarandi spjöld og upphaf upprifjunar.",
     subtitles: {

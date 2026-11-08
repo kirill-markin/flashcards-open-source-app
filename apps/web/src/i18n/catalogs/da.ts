@@ -1340,23 +1340,14 @@ const daCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} forfaldne",
+      toStudy: "{{count}} at lære",
       total: "{{count}} i alt",
     },
-    emptyStatsAriaLabel: "Statistik for {{deckName}}",
     newDeck: "Ny bunke",
     statLabels: {
       cards: {
         one: "kort",
         other: "kort",
-      },
-      new: {
-        one: "nyt",
-        other: "nye",
-      },
-      reviewed: {
-        one: "repeteret",
-        other: "repeteret",
       },
     },
     subtitle: "Bunker er smarte filtre, ikke beholdere. De matcher kort ud fra tags.",
@@ -1392,10 +1383,10 @@ const daCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kort",
-      due: "Forfalder",
       new: "Nye",
       summary: "Oversigt",
       title: "Regler for bunken",
+      toStudy: "At lære",
     },
     subtitle: "Se bunkens regler, de kort der matcher, og indgangen til repetition.",
     subtitles: {

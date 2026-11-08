@@ -67,7 +67,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 export function DecksScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, reviewScheduleVersion, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { locale, messages, t, formatNumber, selectCountLabel } = useI18n();
+  const { locale, messages, t, formatNumber, formatCount } = useI18n();
   const workspacePath = useWorkspacePath();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -221,9 +221,10 @@ export function DecksScreen(): ReactElement {
 
         <div className="deck-list">
           {deckListEntries.map((deck) => {
-            const title = deck.id === ALL_CARDS_DECK_SLUG ? t("filters.allCards") : deck.title;
-            const filterSummary = deck.id === ALL_CARDS_DECK_SLUG
-              ? t("filters.allCards")
+            const isAllCardsDeck = deck.id === ALL_CARDS_DECK_SLUG;
+            const title = isAllCardsDeck ? t("filters.allCards") : deck.title;
+            const filterSummary = isAllCardsDeck
+              ? null
               : formatDeckFilterSummary(
                 decksSnapshot.deckSummaries.find((deckSummary) => deckSummary.deckId === deck.id)?.filterDefinition ?? {
                   version: 2,
@@ -237,23 +238,13 @@ export function DecksScreen(): ReactElement {
               <article className="deck-card">
                 <div className="deck-card-head">
                   <h2 className="deck-card-title">{title}</h2>
-                  <span className="badge">{t("decksScreen.counts.due", { count: formatNumber(deck.stats.dueCards) })}</span>
-                </div>
-                <p className="deck-card-summary">{filterSummary}</p>
-                <div className="deck-card-stats" aria-label={t("decksScreen.emptyStatsAriaLabel", { deckName: title })}>
-                  <span className="deck-card-stat">
-                    <span className="deck-card-stat-value">{formatNumber(deck.stats.totalCards)}</span>
-                    <span className="deck-card-stat-label">{selectCountLabel(deck.stats.totalCards, messages.decksScreen.statLabels.cards)}</span>
-                  </span>
-                  <span className="deck-card-stat">
-                    <span className="deck-card-stat-value">{formatNumber(deck.stats.newCards)}</span>
-                    <span className="deck-card-stat-label">{selectCountLabel(deck.stats.newCards, messages.decksScreen.statLabels.new)}</span>
-                  </span>
-                  <span className="deck-card-stat">
-                    <span className="deck-card-stat-value">{formatNumber(deck.stats.reviewedCards)}</span>
-                    <span className="deck-card-stat-label">{selectCountLabel(deck.stats.reviewedCards, messages.decksScreen.statLabels.reviewed)}</span>
+                  <span className="deck-card-counts">
+                    {formatCount(deck.stats.totalCards, messages.decksScreen.statLabels.cards)}
+                    {" · "}
+                    {t("decksScreen.counts.toStudy", { count: formatNumber(deck.stats.dueCards) })}
                   </span>
                 </div>
+                {filterSummary === null ? null : <p className="deck-card-summary">{filterSummary}</p>}
               </article>
             </Link>
             );

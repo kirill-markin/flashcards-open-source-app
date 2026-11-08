@@ -1340,23 +1340,14 @@ const mrCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} बाकी",
+      toStudy: "{{count}} अभ्यासासाठी",
       total: "एकूण {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ची आकडेवारी",
     newDeck: "नवीन संच",
     statLabels: {
       cards: {
         one: "कार्ड",
         other: "कार्डे",
-      },
-      new: {
-        one: "नवीन",
-        other: "नवीन",
-      },
-      reviewed: {
-        one: "उजळणी केलेली",
-        other: "उजळणी केलेली",
       },
     },
     subtitle: "संच हे स्मार्ट फिल्टर आहेत, कप्पे नाहीत. ते टॅगनुसार कार्डे जुळवतात.",
@@ -1392,10 +1383,10 @@ const mrCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "कार्डे",
-      due: "बाकी",
       new: "नवीन",
       summary: "सारांश",
       title: "संचाचे नियम",
+      toStudy: "अभ्यासासाठी",
     },
     subtitle: "संचाचे नियम, जुळणारी कार्डे आणि उजळणीचा प्रवेशबिंदू तपासा.",
     subtitles: {

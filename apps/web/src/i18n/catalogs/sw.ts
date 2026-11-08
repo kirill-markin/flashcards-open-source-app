@@ -1340,23 +1340,14 @@ const swCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} zinazosubiri",
+      toStudy: "{{count}} za kusoma",
       total: "{{count}} jumla",
     },
-    emptyStatsAriaLabel: "Takwimu za {{deckName}}",
     newDeck: "Fungu jipya",
     statLabels: {
       cards: {
         one: "kadi",
         other: "kadi",
-      },
-      new: {
-        one: "mpya",
-        other: "mpya",
-      },
-      reviewed: {
-        one: "iliyorudiwa",
-        other: "zilizorudiwa",
       },
     },
     subtitle: "Mafungu ni vichujio mahiri, si vyombo vya kuhifadhi. Hulinganisha kadi kwa lebo.",
@@ -1392,10 +1383,10 @@ const swCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kadi",
-      due: "Zinazosubiri",
       new: "Mpya",
       summary: "Muhtasari",
       title: "Kanuni za fungu",
+      toStudy: "Za kusoma",
     },
     subtitle: "Kagua kanuni za fungu, kadi zinazolingana na mahali pa kuanzia marudio.",
     subtitles: {

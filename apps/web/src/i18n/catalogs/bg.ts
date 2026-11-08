@@ -1340,23 +1340,14 @@ const bgCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "За преговор: {{count}}",
+      toStudy: "{{count}} за учене",
       total: "Общо: {{count}}",
     },
-    emptyStatsAriaLabel: "Статистика за {{deckName}}",
     newDeck: "Ново тесте",
     statLabels: {
       cards: {
         one: "карта",
         other: "карти",
-      },
-      new: {
-        one: "нова",
-        other: "нови",
-      },
-      reviewed: {
-        one: "преговорена",
-        other: "преговорени",
       },
     },
     subtitle: "Тестетата са умни филтри, а не контейнери. Те съпоставят картите по етикети.",
@@ -1392,10 +1383,10 @@ const bgCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Карти",
-      due: "За преговор",
       new: "Нови",
       summary: "Обобщение",
       title: "Правила на тестето",
+      toStudy: "За учене",
     },
     subtitle: "Прегледайте правилата на тестето, съответстващите карти и входната точка за преговор.",
     subtitles: {

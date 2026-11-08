@@ -1350,26 +1350,15 @@ const csCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} k opakování",
+      toStudy: "{{count}} ke studiu",
       total: "{{count}} celkem",
     },
-    emptyStatsAriaLabel: "Statistiky balíčku {{deckName}}",
     newDeck: "Nový balíček",
     statLabels: {
       cards: {
         one: "kartička",
         few: "kartičky",
         other: "kartiček",
-      },
-      new: {
-        one: "nová",
-        few: "nové",
-        other: "nových",
-      },
-      reviewed: {
-        one: "opakovaná",
-        few: "opakované",
-        other: "opakovaných",
       },
     },
     subtitle: "Balíčky jsou chytré filtry, ne kontejnery. Vybírají kartičky podle štítků.",
@@ -1405,10 +1394,10 @@ const csCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartičky",
-      due: "K opakování",
       new: "Nové",
       summary: "Souhrn",
       title: "Pravidla balíčku",
+      toStudy: "Ke studiu",
     },
     subtitle: "Prohlédněte si pravidla balíčku, odpovídající kartičky a vstup do opakování.",
     subtitles: {

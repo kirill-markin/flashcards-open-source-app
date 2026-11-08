@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Salvesta nimi";
 "settings.workspace.overview.workspace" = "Tööruum";
 "settings.workspace.overview.cards" = "Kaardid";
-"settings.workspace.overview.due" = "Kordamiseks valmis";
 "settings.workspace.overview.new" = "Uus";
 "settings.workspace.overview.deleteDescription" = "Kustuta see tööruum ning kõik selles olevad kaardid, pakid, kordamised ja sünkroonimisajalugu jäädavalt.";
 "settings.workspace.overview.deleteWorkspace" = "Kustuta tööruum";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Sobivaid pakke pole";
 "settings.workspace.decks.searchPrompt" = "Otsi pakke";
 "settings.workspace.decks.newDeck" = "Uus pakk";
-"settings.workspace.decks.dueCount" = "%d kordamiseks valmis";
-"settings.workspace.decks.totalCards" = "%d kaarti";
-"settings.workspace.decks.newCount" = "%d uut";
-"settings.workspace.decks.reviewedCount" = "%d korratud";
+"settings.workspace.decks.toStudyCount" = "%d õppimiseks";
+"settings.workspace.decks.toStudy" = "Õppimiseks";
 "settings.workspace.decks.emptyAllCards" = "Sa pole veel ühtegi kaarti loonud.";
 "settings.workspace.decks.emptyDeck" = "Selles pakis pole veel sobivaid kaarte.";
 "settings.workspace.decks.section.deckRules" = "Paki reeglid";

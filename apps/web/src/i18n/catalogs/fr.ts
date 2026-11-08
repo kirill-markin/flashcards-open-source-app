@@ -1340,23 +1340,14 @@ const frCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} à réviser",
+      toStudy: "{{count}} à étudier",
       total: "{{count}} au total",
     },
-    emptyStatsAriaLabel: "Statistiques de {{deckName}}",
     newDeck: "Nouveau paquet",
     statLabels: {
       cards: {
         one: "carte",
         other: "cartes",
-      },
-      new: {
-        one: "nouvelle",
-        other: "nouvelles",
-      },
-      reviewed: {
-        one: "révisée",
-        other: "révisées",
       },
     },
     subtitle: "Les paquets sont des filtres intelligents, pas des conteneurs. Ils sélectionnent les cartes par étiquette.",
@@ -1392,10 +1383,10 @@ const frCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Cartes",
-      due: "À réviser",
       new: "Nouvelles",
       summary: "Résumé",
       title: "Règles du paquet",
+      toStudy: "À étudier",
     },
     subtitle: "Consultez les règles du paquet, les cartes correspondantes et le point d'entrée de la révision.",
     subtitles: {

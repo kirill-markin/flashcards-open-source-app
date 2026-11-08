@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "Сохранить имя";
 "settings.workspace.overview.workspace" = "Рабочая область";
 "settings.workspace.overview.cards" = "Карточки";
-"settings.workspace.overview.due" = "К повторению";
 "settings.workspace.overview.new" = "Новые";
 "settings.workspace.overview.deleteDescription" = "Безвозвратно удалите это рабочее пространство и все его карточки, колоды, повторения и историю синхронизации.";
 "settings.workspace.overview.deleteWorkspace" = "Удалить рабочее пространство";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "Нет подходящих колод";
 "settings.workspace.decks.searchPrompt" = "Поиск колод";
 "settings.workspace.decks.newDeck" = "Новая колода";
-"settings.workspace.decks.dueCount" = "К повторению: %d";
-"settings.workspace.decks.totalCards" = "Карточек: %d";
-"settings.workspace.decks.newCount" = "Новых: %d";
-"settings.workspace.decks.reviewedCount" = "Повторено: %d";
+"settings.workspace.decks.toStudyCount" = "%d к изучению";
+"settings.workspace.decks.toStudy" = "К изучению";
 "settings.workspace.decks.emptyAllCards" = "Вы еще не создали ни одной карточки.";
 "settings.workspace.decks.emptyDeck" = "В этой колоде еще нет подходящих карточек.";
 "settings.workspace.decks.section.deckRules" = "Правила колоды";

@@ -1340,23 +1340,14 @@ const thCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "ถึงกำหนด {{count}}",
+      toStudy: "ต้องเรียน {{count}}",
       total: "ทั้งหมด {{count}}",
     },
-    emptyStatsAriaLabel: "สถิติของ {{deckName}}",
     newDeck: "เด็คใหม่",
     statLabels: {
       cards: {
         one: "การ์ด",
         other: "การ์ด",
-      },
-      new: {
-        one: "ใหม่",
-        other: "ใหม่",
-      },
-      reviewed: {
-        one: "ทบทวนแล้ว",
-        other: "ทบทวนแล้ว",
       },
     },
     subtitle: "เด็คคือตัวกรองอัจฉริยะ ไม่ใช่กล่องเก็บการ์ด โดยจับคู่การ์ดจากแท็ก",
@@ -1392,10 +1383,10 @@ const thCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "การ์ด",
-      due: "ถึงกำหนด",
       new: "ใหม่",
       summary: "สรุป",
       title: "กฎของเด็ค",
+      toStudy: "ต้องเรียน",
     },
     subtitle: "ดูกฎของเด็ค การ์ดที่ตรงกัน และทางเข้าสู่การทบทวน",
     subtitles: {

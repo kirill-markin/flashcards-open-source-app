@@ -17,11 +17,9 @@ sealed interface DeckListTargetUiState {
 data class DeckListEntryUiState(
     val target: DeckListTargetUiState,
     val title: String,
-    val filterSummary: String,
+    val filterSummary: String?,
     val totalCards: Int,
-    val dueCards: Int,
-    val newCards: Int,
-    val reviewedCards: Int
+    val dueCards: Int
 )
 
 data class DecksUiState(

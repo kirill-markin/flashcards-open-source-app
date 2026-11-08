@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Spremi naziv";
 "settings.workspace.overview.workspace" = "Radni prostor";
 "settings.workspace.overview.cards" = "Kartice";
-"settings.workspace.overview.due" = "Dospjelo";
 "settings.workspace.overview.new" = "Novo";
 "settings.workspace.overview.deleteDescription" = "Trajno izbrišite ovaj radni prostor i sve kartice, špilove, ponavljanja i povijest sinkronizacije u njemu.";
 "settings.workspace.overview.deleteWorkspace" = "Izbriši radni prostor";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Nema odgovarajućih špilova";
 "settings.workspace.decks.searchPrompt" = "Pretraži špilove";
 "settings.workspace.decks.newDeck" = "Novi špil";
-"settings.workspace.decks.dueCount" = "%d dospjelih";
-"settings.workspace.decks.totalCards" = "%d kartica";
-"settings.workspace.decks.newCount" = "%d novih";
-"settings.workspace.decks.reviewedCount" = "%d ponovljenih";
+"settings.workspace.decks.toStudyCount" = "%d za učenje";
+"settings.workspace.decks.toStudy" = "Za učenje";
 "settings.workspace.decks.emptyAllCards" = "Još niste stvorili nijednu karticu.";
 "settings.workspace.decks.emptyDeck" = "Ovaj špil još nema odgovarajućih kartica.";
 "settings.workspace.decks.section.deckRules" = "Pravila špila";

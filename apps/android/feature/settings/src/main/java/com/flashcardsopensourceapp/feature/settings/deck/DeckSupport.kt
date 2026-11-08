@@ -20,7 +20,7 @@ internal fun filterDeckEntries(
 
     return deckEntries.filter { deckEntry ->
         deckEntry.title.lowercase().contains(normalizedQuery)
-            || deckEntry.filterSummary.lowercase().contains(normalizedQuery)
+            || deckEntry.filterSummary?.lowercase()?.contains(normalizedQuery) == true
     }
 }
 
@@ -43,9 +43,7 @@ internal fun buildDeckListEntries(
             title = deck.name,
             filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition, strings = strings),
             totalCards = deck.totalCards,
-            dueCards = deck.dueCards,
-            newCards = deck.newCards,
-            reviewedCards = deck.reviewedCards
+            dueCards = deck.dueCards
         )
     }
 
@@ -115,10 +113,8 @@ private fun buildAllCardsDeckListEntry(
     return DeckListEntryUiState(
         target = DeckListTargetUiState.AllCards,
         title = strings.get(R.string.settings_decks_all_cards),
-        filterSummary = strings.get(R.string.settings_decks_all_cards),
+        filterSummary = null,
         totalCards = overview?.totalCards ?: 0,
-        dueCards = overview?.dueCount ?: 0,
-        newCards = overview?.newCount ?: 0,
-        reviewedCards = overview?.reviewedCount ?: 0
+        dueCards = overview?.dueCount ?: 0
     )
 }

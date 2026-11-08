@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "บันทึกชื่อ";
 "settings.workspace.overview.workspace" = "พื้นที่ทำงาน";
 "settings.workspace.overview.cards" = "การ์ด";
-"settings.workspace.overview.due" = "ถึงกำหนด";
 "settings.workspace.overview.new" = "ใหม่";
 "settings.workspace.overview.deleteDescription" = "ลบพื้นที่ทำงานนี้พร้อมการ์ด สำรับ ผลการทบทวน และประวัติการซิงค์ทั้งหมดในนั้นอย่างถาวร";
 "settings.workspace.overview.deleteWorkspace" = "ลบพื้นที่ทำงาน";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "ไม่มีสำรับที่ตรงกัน";
 "settings.workspace.decks.searchPrompt" = "ค้นหาสำรับ";
 "settings.workspace.decks.newDeck" = "สำรับใหม่";
-"settings.workspace.decks.dueCount" = "ถึงกำหนด %d ใบ";
-"settings.workspace.decks.totalCards" = "การ์ด %d ใบ";
-"settings.workspace.decks.newCount" = "ใหม่ %d ใบ";
-"settings.workspace.decks.reviewedCount" = "ทบทวนแล้ว %d ใบ";
+"settings.workspace.decks.toStudyCount" = "รอเรียน %d ใบ";
+"settings.workspace.decks.toStudy" = "รอเรียน";
 "settings.workspace.decks.emptyAllCards" = "คุณยังไม่ได้สร้างการ์ด";
 "settings.workspace.decks.emptyDeck" = "สำรับนี้ยังไม่มีการ์ดที่ตรงกัน";
 "settings.workspace.decks.section.deckRules" = "กฎของสำรับ";

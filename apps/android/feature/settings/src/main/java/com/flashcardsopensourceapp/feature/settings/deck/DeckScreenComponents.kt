@@ -3,8 +3,10 @@ package com.flashcardsopensourceapp.feature.settings.deck
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,6 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
@@ -26,6 +29,9 @@ fun deckRowTag(deckTargetId: String): String {
 fun deckCardRowTag(cardId: String): String {
     return "settings_deck_card_row:$cardId"
 }
+
+// Narrower than this, the counts move below the title instead of squeezing it.
+private val deckRowTitleMinWidth = 96.dp
 
 @Composable
 internal fun DeckExplainerCard(body: String) {
@@ -60,43 +66,53 @@ internal fun DeckRow(
             }
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = deckEntry.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = deckEntry.filterSummary,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = listOf(
-                    pluralStringResource(
-                        R.plurals.settings_workspace_deck_card_summary,
-                        deckEntry.totalCards,
-                        deckEntry.totalCards
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = deckEntry.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    // FlowRow breaks lines at a weighted item's min intrinsic width; width() sets it, weight() still fills the line.
+                    modifier = Modifier
+                        .weight(1f)
+                        .width(deckRowTitleMinWidth)
+                        .alignByBaseline()
+                )
+                Text(
+                    text = stringResource(
+                        R.string.settings_workspace_deck_counts_summary,
+                        pluralStringResource(
+                            R.plurals.settings_workspace_deck_card_summary,
+                            deckEntry.totalCards,
+                            deckEntry.totalCards
+                        ),
+                        pluralStringResource(
+                            R.plurals.settings_workspace_deck_to_study_summary,
+                            deckEntry.dueCards,
+                            deckEntry.dueCards
+                        )
                     ),
-                    pluralStringResource(
-                        R.plurals.settings_workspace_deck_new_summary,
-                        deckEntry.newCards,
-                        deckEntry.newCards
-                    ),
-                    pluralStringResource(
-                        R.plurals.settings_workspace_deck_reviewed_summary,
-                        deckEntry.reviewedCards,
-                        deckEntry.reviewedCards
-                    ),
-                    pluralStringResource(
-                        R.plurals.settings_workspace_deck_due_summary,
-                        deckEntry.dueCards,
-                        deckEntry.dueCards
-                    )
-                ).joinToString(separator = " | "),
-                style = MaterialTheme.typography.labelMedium
-            )
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+            if (deckEntry.filterSummary != null) {
+                Text(
+                    text = deckEntry.filterSummary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

@@ -1340,23 +1340,14 @@ const trCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} zamanı geldi",
+      toStudy: "{{count}} çalışılacak",
       total: "{{count}} toplam",
     },
-    emptyStatsAriaLabel: "{{deckName}} istatistikleri",
     newDeck: "Yeni deste",
     statLabels: {
       cards: {
         one: "kart",
         other: "kart",
-      },
-      new: {
-        one: "yeni",
-        other: "yeni",
-      },
-      reviewed: {
-        one: "tekrar edildi",
-        other: "tekrar edildi",
       },
     },
     subtitle: "Desteler birer kapsayıcı değil, akıllı filtredir. Kartları etiketlere göre eşleştirir.",
@@ -1392,10 +1383,10 @@ const trCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartlar",
-      due: "Zamanı gelen",
       new: "Yeni",
       summary: "Özet",
       title: "Deste kuralları",
+      toStudy: "Çalışılacak",
     },
     subtitle: "Deste kurallarını, eşleşen kartları ve tekrar başlangıç noktasını inceleyin.",
     subtitles: {

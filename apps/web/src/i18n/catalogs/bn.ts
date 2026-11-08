@@ -1340,23 +1340,14 @@ const bnCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} বাকি",
+      toStudy: "{{count}} শেখার জন্য",
       total: "মোট {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} পরিসংখ্যান",
     newDeck: "নতুন ডেক",
     statLabels: {
       cards: {
         one: "কার্ড",
         other: "কার্ড",
-      },
-      new: {
-        one: "নতুন",
-        other: "নতুন",
-      },
-      reviewed: {
-        one: "পুনরালোচনা হয়েছে",
-        other: "পুনরালোচনা হয়েছে",
       },
     },
     subtitle: "ডেক হলো স্মার্ট ফিল্টার, কনটেইনার নয়। এগুলো ট্যাগ দিয়ে কার্ড মেলায়।",
@@ -1392,10 +1383,10 @@ const bnCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "কার্ড",
-      due: "বাকি",
       new: "নতুন",
       summary: "সারাংশ",
       title: "ডেকের নিয়ম",
+      toStudy: "শেখার জন্য",
     },
     subtitle: "ডেকের নিয়ম, মিলে যাওয়া কার্ড ও পুনরালোচনার প্রবেশপথ দেখুন।",
     subtitles: {

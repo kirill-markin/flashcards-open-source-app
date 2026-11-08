@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "保存名称";
 "settings.workspace.overview.workspace" = "工作区";
 "settings.workspace.overview.cards" = "卡片";
-"settings.workspace.overview.due" = "到期";
 "settings.workspace.overview.new" = "新卡";
 "settings.workspace.overview.deleteDescription" = "永久删除此工作区及其包含的所有卡片、牌组、复习记录和同步历史记录。";
 "settings.workspace.overview.deleteWorkspace" = "删除工作区";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "没有匹配的牌组";
 "settings.workspace.decks.searchPrompt" = "搜索牌组";
 "settings.workspace.decks.newDeck" = "新牌组";
-"settings.workspace.decks.dueCount" = "%d 到期";
-"settings.workspace.decks.totalCards" = "%d 张卡片";
-"settings.workspace.decks.newCount" = "%d 张新卡";
-"settings.workspace.decks.reviewedCount" = "已复习 %d 张";
+"settings.workspace.decks.toStudyCount" = "待学习 %d 张";
+"settings.workspace.decks.toStudy" = "待学习";
 "settings.workspace.decks.emptyAllCards" = "您尚未创建任何卡片。";
 "settings.workspace.decks.emptyDeck" = "此牌组还没有匹配的卡片。";
 "settings.workspace.decks.section.deckRules" = "牌组规则";
