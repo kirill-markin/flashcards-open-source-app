@@ -1349,23 +1349,14 @@ const heCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} לחזרה",
+      toStudy: "{{count}} ללמידה",
       total: "{{count}} בסך הכול",
     },
-    emptyStatsAriaLabel: "נתוני {{deckName}}",
     newDeck: "חפיסה חדשה",
     statLabels: {
       cards: {
         one: "כרטיס",
         other: "כרטיסים",
-      },
-      new: {
-        one: "חדש",
-        other: "חדשים",
-      },
-      reviewed: {
-        one: "נלמד",
-        other: "נלמדו",
       },
     },
     subtitle: "חפיסות הן מסננים חכמים, לא מכלים. הן מתאימות כרטיסים לפי תגיות.",
@@ -1401,10 +1392,10 @@ const heCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "כרטיסים",
-      due: "לחזרה",
       new: "חדשים",
       summary: "סיכום",
       title: "כללי החפיסה",
+      toStudy: "ללמידה",
     },
     subtitle: "עיין בכללי החפיסה, בכרטיסים התואמים ובנקודת הכניסה לחזרה.",
     subtitles: {

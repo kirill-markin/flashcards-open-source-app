@@ -1349,23 +1349,14 @@ const koCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "복습 예정 {{count}}",
+      toStudy: "학습 예정 {{count}}",
       total: "전체 {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} 통계",
     newDeck: "새 덱",
     statLabels: {
       cards: {
         one: "카드",
         other: "카드",
-      },
-      new: {
-        one: "신규",
-        other: "신규",
-      },
-      reviewed: {
-        one: "복습함",
-        other: "복습함",
       },
     },
     subtitle: "덱은 저장 공간이 아니라 스마트 필터입니다. 태그로 카드를 찾아냅니다.",
@@ -1401,10 +1392,10 @@ const koCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "카드",
-      due: "복습 예정",
       new: "신규",
       summary: "요약",
       title: "덱 규칙",
+      toStudy: "학습 예정",
     },
     subtitle: "덱 규칙과 해당하는 카드, 복습 시작점을 확인하세요.",
     subtitles: {

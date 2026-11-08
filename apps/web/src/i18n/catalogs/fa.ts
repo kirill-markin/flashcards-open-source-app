@@ -1349,23 +1349,14 @@ const faCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} سررسیدشده",
+      toStudy: "{{count}} برای مطالعه",
       total: "{{count}} در کل",
     },
-    emptyStatsAriaLabel: "آمار {{deckName}}",
     newDeck: "دستهٔ جدید",
     statLabels: {
       cards: {
         one: "کارت",
         other: "کارت",
-      },
-      new: {
-        one: "جدید",
-        other: "جدید",
-      },
-      reviewed: {
-        one: "مرورشده",
-        other: "مرورشده",
       },
     },
     subtitle: "دسته‌ها فیلترهای هوشمندند، نه ظرف. کارت‌ها را بر اساس برچسب مطابقت می‌دهند.",
@@ -1401,10 +1392,10 @@ const faCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "کارت‌ها",
-      due: "موعد مرور",
       new: "جدید",
       summary: "خلاصه",
       title: "قواعد دسته",
+      toStudy: "برای مطالعه",
     },
     subtitle: "قواعد دسته، کارت‌های مطابق و نقطهٔ ورود به مرور را ببینید.",
     subtitles: {

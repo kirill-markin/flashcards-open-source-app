@@ -1359,26 +1359,15 @@ const skCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Na opakovanie: {{count}}",
+      toStudy: "{{count}} na učenie",
       total: "Celkom: {{count}}",
     },
-    emptyStatsAriaLabel: "Štatistiky balíčka {{deckName}}",
     newDeck: "Nový balíček",
     statLabels: {
       cards: {
         one: "karta",
         few: "karty",
         other: "kariet",
-      },
-      new: {
-        one: "nová",
-        few: "nové",
-        other: "nových",
-      },
-      reviewed: {
-        one: "zopakovaná",
-        few: "zopakované",
-        other: "zopakovaných",
       },
     },
     subtitle: "Balíčky sú inteligentné filtre, nie kontajnery. Vyberajú karty podľa značiek.",
@@ -1414,10 +1403,10 @@ const skCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karty",
-      due: "Na opakovanie",
       new: "Nové",
       summary: "Súhrn",
       title: "Pravidlá balíčka",
+      toStudy: "Na učenie",
     },
     subtitle: "Pozrite si pravidlá balíčka, zodpovedajúce karty a vstup do opakovania.",
     subtitles: {

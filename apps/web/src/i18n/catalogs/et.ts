@@ -1349,23 +1349,14 @@ const etCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Korrata: {{count}}",
+      toStudy: "{{count}} õppimiseks",
       total: "Kokku: {{count}}",
     },
-    emptyStatsAriaLabel: "Paki statistika: {{deckName}}",
     newDeck: "Uus pakk",
     statLabels: {
       cards: {
         one: "kaart",
         other: "kaarti",
-      },
-      new: {
-        one: "uus",
-        other: "uut",
-      },
-      reviewed: {
-        one: "korratud",
-        other: "korratut",
       },
     },
     subtitle: "Pakid on nutikad filtrid, mitte konteinerid. Need valivad kaarte siltide järgi.",
@@ -1401,10 +1392,10 @@ const etCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kaardid",
-      due: "Korrata",
       new: "Uued",
       summary: "Kokkuvõte",
       title: "Paki reeglid",
+      toStudy: "Õppimiseks",
     },
     subtitle: "Vaata paki reegleid, sobivaid kaarte ja kordamise alguspunkti.",
     subtitles: {

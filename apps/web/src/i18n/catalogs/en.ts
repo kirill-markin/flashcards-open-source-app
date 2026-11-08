@@ -1348,23 +1348,14 @@ const enCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} due",
+      toStudy: "{{count}} to study",
       total: "{{count}} total",
     },
-    emptyStatsAriaLabel: "{{deckName}} stats",
     newDeck: "New deck",
     statLabels: {
       cards: {
         one: "card",
         other: "cards",
-      },
-      new: {
-        one: "new",
-        other: "new",
-      },
-      reviewed: {
-        one: "reviewed",
-        other: "reviewed",
       },
     },
     subtitle: "Decks are smart filters, not containers. They match cards by tags.",
@@ -1400,10 +1391,10 @@ const enCatalog = {
     },
     rules: {
       cards: "Cards",
-      due: "Due",
       new: "New",
       summary: "Summary",
       title: "Deck rules",
+      toStudy: "To study",
     },
     subtitle: "Inspect the deck rules, matching cards, and review entry point.",
     subtitles: {

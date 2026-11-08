@@ -1349,23 +1349,14 @@ const guCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} બાકી",
+      toStudy: "{{count}} અભ્યાસ માટે",
       total: "કુલ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ના આંકડા",
     newDeck: "નવું ડેક",
     statLabels: {
       cards: {
         one: "કાર્ડ",
         other: "કાર્ડ",
-      },
-      new: {
-        one: "નવાં",
-        other: "નવાં",
-      },
-      reviewed: {
-        one: "પુનરાવર્તન થયું",
-        other: "પુનરાવર્તન થયું",
       },
     },
     subtitle: "ડેક સ્માર્ટ ફિલ્ટર છે, કન્ટેનર નહીં. તે ટૅગ પ્રમાણે કાર્ડ મેળવે છે.",
@@ -1401,10 +1392,10 @@ const guCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "કાર્ડ",
-      due: "બાકી",
       new: "નવાં",
       summary: "સારાંશ",
       title: "ડેકના નિયમો",
+      toStudy: "અભ્યાસ માટે",
     },
     subtitle: "ડેકના નિયમો, મેળ ખાતાં કાર્ડ અને પુનરાવર્તનનું પ્રવેશસ્થાન જુઓ.",
     subtitles: {

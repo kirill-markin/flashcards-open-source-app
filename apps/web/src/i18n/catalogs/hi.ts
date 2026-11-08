@@ -1349,25 +1349,14 @@ const hiCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} बाकी",
+      toStudy: "{{count}} अध्ययन के लिए",
       total: "{{count}} कुल",
     },
-    emptyStatsAriaLabel: "{{deckName}} आँकड़े",
     newDeck: "नया डेक",
     statLabels: {
       cards: {
         one: "कार्ड",
         other: "कार्ड",
-      },
-      new: {
-        zero: "नए",
-        one: "नया",
-        other: "नए",
-      },
-      reviewed: {
-        zero: "रिव्यू किए गए",
-        one: "रिव्यू किया गया",
-        other: "रिव्यू किए गए",
       },
     },
     subtitle: "डेक स्मार्ट फ़िल्टर हैं, कंटेनर नहीं। वे टैग से कार्ड मिलाते हैं।",
@@ -1403,10 +1392,10 @@ const hiCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "कार्ड",
-      due: "बाकी",
       new: "नए",
       summary: "सारांश",
       title: "डेक नियम",
+      toStudy: "अध्ययन के लिए",
     },
     subtitle: "डेक नियम, मिलते-जुलते कार्ड और रिव्यू एंट्री पॉइंट देखें।",
     subtitles: {

@@ -1349,23 +1349,14 @@ const esMxCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} pendientes",
+      toStudy: "{{count}} por estudiar",
       total: "{{count}} total",
     },
-    emptyStatsAriaLabel: "estadísticas de {{deckName}}",
     newDeck: "Nuevo mazo",
     statLabels: {
       cards: {
         one: "tarjeta",
         other: "tarjetas",
-      },
-      new: {
-        one: "nueva",
-        other: "nuevas",
-      },
-      reviewed: {
-        one: "repasada",
-        other: "repasadas",
       },
     },
     subtitle: "Los mazos son filtros inteligentes, no contenedores. Coinciden con tarjetas por etiquetas.",
@@ -1401,10 +1392,10 @@ const esMxCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Tarjetas",
-      due: "Pendientes",
       new: "Nuevas",
       summary: "Resumen",
       title: "Reglas del mazo",
+      toStudy: "Por estudiar",
     },
     subtitle: "Consulta las reglas del mazo, las tarjetas coincidentes y el punto de entrada al repaso.",
     subtitles: {

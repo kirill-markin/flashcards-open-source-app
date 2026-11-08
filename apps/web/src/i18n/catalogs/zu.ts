@@ -1349,23 +1349,14 @@ const zuCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Sekuyisikhathi: {{count}}",
+      toStudy: "Okokufunda: {{count}}",
       total: "Sekukonke: {{count}}",
     },
-    emptyStatsAriaLabel: "Izibalo zenqwaba ethi {{deckName}}",
     newDeck: "Inqwaba entsha",
     statLabels: {
       cards: {
         one: "ikhadi",
         other: "amakhadi",
-      },
-      new: {
-        one: "okusha",
-        other: "okusha",
-      },
-      reviewed: {
-        one: "kubukeziwe",
-        other: "kubukeziwe",
       },
     },
     subtitle: "Izinqwaba ziyizihlungi ezihlakaniphile, hhayi iziqukathi. Zithola amakhadi ngamathegi.",
@@ -1401,10 +1392,10 @@ const zuCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Amakhadi",
-      due: "Sekuyisikhathi",
       new: "Okusha",
       summary: "Isifinyezo",
       title: "Imithetho yenqwaba",
+      toStudy: "Okokufunda",
     },
     subtitle: "Hlola imithetho yenqwaba, amakhadi afanayo, nendawo yokuqala ukubukeza.",
     subtitles: {
