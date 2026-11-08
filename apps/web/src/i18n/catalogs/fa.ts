@@ -128,6 +128,7 @@ const faCatalog: TranslationCatalog = {
     loading: "در حال بارگیری...",
     never: "هرگز",
     newItem: "جدید",
+    image: "تصویر",
     noBackText: "متن پشت کارت وجود ندارد",
     noTags: "برچسبی وجود ندارد",
     notRevoked: "لغو نشده",

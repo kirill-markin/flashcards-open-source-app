@@ -128,6 +128,7 @@ const guCatalog: TranslationCatalog = {
     loading: "લોડ થઈ રહ્યું છે...",
     never: "ક્યારેય નહીં",
     newItem: "નવું",
+    image: "છબી",
     noBackText: "પાછળ લખાણ નથી",
     noTags: "ટૅગ નથી",
     notRevoked: "રદ કરેલું નથી",

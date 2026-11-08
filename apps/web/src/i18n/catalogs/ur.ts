@@ -128,6 +128,7 @@ const urCatalog: TranslationCatalog = {
     loading: "لوڈ ہو رہا ہے...",
     never: "کبھی نہیں",
     newItem: "نیا",
+    image: "تصویر",
     noBackText: "پچھلے رخ پر کوئی متن نہیں",
     noTags: "کوئی ٹیگ نہیں",
     notRevoked: "منسوخ نہیں",

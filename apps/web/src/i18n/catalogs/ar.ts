@@ -128,6 +128,7 @@ const arCatalog: TranslationCatalog = {
     loading: "جارٍ التحميل...",
     never: "أبدًا",
     newItem: "جديدة",
+    image: "صورة",
     noBackText: "لا يوجد نص خلفي",
     noTags: "لا توجد وسوم",
     notRevoked: "غير ملغى",

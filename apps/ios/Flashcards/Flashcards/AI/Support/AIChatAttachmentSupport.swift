@@ -84,10 +84,15 @@ func aiChatAttachmentMenuActions() -> [AIChatAttachmentMenuAction] {
     ]
 }
 
+/// Declared in `UTImportedTypeDeclarations` of `Config/Info.plist`. The extension lookup stays beside it because
+/// a declaration exported by another installed app, such as AnkiMobile, takes the `.apkg` extension first.
+private let aiChatAnkiPackageContentType: UTType = UTType(importedAs: "com.nibomo.anki-package")
+
 func aiChatImporterContentTypes() -> [UTType] {
-    let baseTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
+    let extensionTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
         UTType(filenameExtension: fileExtension)
     }
+    let baseTypes = Set(extensionTypes + [aiChatAnkiPackageContentType])
 
     return baseTypes.sorted { left, right in
         left.identifier < right.identifier

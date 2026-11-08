@@ -128,6 +128,7 @@ const itCatalog: TranslationCatalog = {
     loading: "Caricamento...",
     never: "Mai",
     newItem: "nuova",
+    image: "Immagine",
     noBackText: "Nessun testo sul retro",
     noTags: "Nessun tag",
     notRevoked: "Non revocato",

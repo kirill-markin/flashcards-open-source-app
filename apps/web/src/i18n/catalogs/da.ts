@@ -128,6 +128,7 @@ const daCatalog: TranslationCatalog = {
     loading: "Indlæser...",
     never: "Aldrig",
     newItem: "nyt",
+    image: "Billede",
     noBackText: "Ingen tekst på bagsiden",
     noTags: "Ingen tags",
     notRevoked: "Ikke tilbagekaldt",

@@ -134,6 +134,7 @@ const skCatalog: TranslationCatalog = {
     loading: "Načítava sa...",
     never: "Nikdy",
     newItem: "nová",
+    image: "Obrázok",
     noBackText: "Bez textu na zadnej strane",
     noTags: "Žiadne značky",
     notRevoked: "Nezrušené",

@@ -267,20 +267,18 @@ private struct CardTextPreviewRow: View {
     let field: CardTextField
     let text: String
 
-    private var previewText: String {
-        formatCardTextPreview(text: text)
-    }
-
     var body: some View {
+        let previewText = formatCardTextPreview(text: self.text)
         VStack(alignment: .leading, spacing: 6) {
             Text(field.title)
                 .font(.body)
                 .foregroundStyle(.secondary)
 
             MathContentText(
-                text: self.previewText,
+                text: previewText.text,
                 color: self.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .tertiaryLabel : .label,
-                lineLimit: 3
+                lineLimit: 3,
+                parsedBlocks: previewText.mathBlocks
             )
         }
         .padding(.vertical, 4)
@@ -656,21 +654,13 @@ private struct CardEditorManagedImagePreview: View {
     }
 }
 
-private func formatCardTextPreview(text: String) -> String {
-    let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    if trimmedText.isEmpty {
-        return String(localized: "Tap to edit", table: reviewCardsStringsTableName)
+private func formatCardTextPreview(text: String) -> ReviewPreviewText {
+    if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let placeholder = String(localized: "Tap to edit", table: reviewCardsStringsTableName)
+        return ReviewPreviewText(text: placeholder, mathBlocks: [.markdown(placeholder)])
     }
 
-    if case .segmented = extractReviewMathBlocks(text: trimmedText) {
-        return trimmedText
-    }
-
-    return trimmedText
-        .split(whereSeparator: \.isNewline)
-        .map(String.init)
-        .joined(separator: " ")
+    return makeReviewPreviewText(text: text)
 }
 
 private func cardEditorImageImportFailureMessage(error: Error) -> String {

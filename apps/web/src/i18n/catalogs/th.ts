@@ -128,6 +128,7 @@ const thCatalog: TranslationCatalog = {
     loading: "กำลังโหลด...",
     never: "ไม่เคย",
     newItem: "ใหม่",
+    image: "รูปภาพ",
     noBackText: "ไม่มีข้อความด้านหลัง",
     noTags: "ไม่มีแท็ก",
     notRevoked: "ยังไม่เพิกถอน",

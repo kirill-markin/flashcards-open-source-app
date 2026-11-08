@@ -140,6 +140,7 @@ const slCatalog: TranslationCatalog = {
     loading: "Nalaganje ...",
     never: "Nikoli",
     newItem: "nova",
+    image: "Slika",
     noBackText: "Brez besedila na zadnji strani",
     noTags: "Brez oznak",
     notRevoked: "Ni preklicano",

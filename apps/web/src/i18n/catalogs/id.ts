@@ -128,6 +128,7 @@ const idCatalog: TranslationCatalog = {
     loading: "Memuat...",
     never: "Tidak pernah",
     newItem: "baru",
+    image: "Gambar",
     noBackText: "Tidak ada teks belakang",
     noTags: "Tidak ada tag",
     notRevoked: "Tidak dicabut",

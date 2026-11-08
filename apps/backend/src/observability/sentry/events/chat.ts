@@ -224,11 +224,13 @@ export type ChatFileLegacyAttachmentKeptAsFileDetails = Readonly<{
  * Stored chat file objects that no `ai.chat_files` row names, because what had to follow their upload did not happen.
  * `sandbox_unconfirmed` names every write slot of a chat sandbox attempt whose uploads no accepted answer
  * confirmed, so some of its keys may hold no object. `path_taken` names files derived from an attachment
- * whose paths another file of the session already had.
+ * whose paths another file of the session already had, and `session_file_limit` ones that would have taken
+ * the session past its /files limit.
  */
 export type ChatFileUploadOrphanedDetails = Readonly<{
   s3Keys: ReadonlyArray<string>;
-  reason: "upload_failed" | "write_failed" | "already_converted" | "sandbox_unconfirmed" | "path_taken";
+  reason: "upload_failed" | "write_failed" | "already_converted" | "sandbox_unconfirmed" | "path_taken"
+    | "session_file_limit";
   errorClass: string | null;
   errorMessage: string | null;
 }>;

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="review_math_render_failed">Formula couldn\'t be rendered.</string>
+    <string name="markdown_preview_image">Image</string>
 </resources>

@@ -162,7 +162,7 @@ struct CardsScreen: View {
             }
             Button(String(localized: "Cancel", table: reviewCardsStringsTableName), role: .cancel) {}
         } message: { card in
-            Text(card.frontText)
+            Text(makeReviewPreviewText(text: card.frontText).text)
         }
         .sheet(
             item: self.$editorPresentation,
@@ -884,8 +884,9 @@ struct CardRow: View {
     let card: Card
 
     var body: some View {
+        let frontPreview = makeReviewPreviewText(text: card.frontText)
         VStack(alignment: .leading, spacing: 8) {
-            MathContentText(text: card.frontText, textStyle: .headline, weight: .semibold)
+            MathContentText(text: frontPreview.text, textStyle: .headline, weight: .semibold, parsedBlocks: frontPreview.mathBlocks)
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {

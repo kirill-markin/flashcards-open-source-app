@@ -128,6 +128,7 @@ const koCatalog: TranslationCatalog = {
     loading: "불러오는 중...",
     never: "없음",
     newItem: "신규",
+    image: "이미지",
     noBackText: "뒷면 내용 없음",
     noTags: "태그 없음",
     notRevoked: "해지되지 않음",

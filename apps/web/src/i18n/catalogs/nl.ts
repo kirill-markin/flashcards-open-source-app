@@ -128,6 +128,7 @@ const nlCatalog: TranslationCatalog = {
     loading: "Laden...",
     never: "Nooit",
     newItem: "nieuw",
+    image: "Afbeelding",
     noBackText: "Geen tekst op de achterkant",
     noTags: "Geen tags",
     notRevoked: "Niet ingetrokken",

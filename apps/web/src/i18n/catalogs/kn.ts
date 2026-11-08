@@ -128,6 +128,7 @@ const knCatalog: TranslationCatalog = {
     loading: "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     never: "ಎಂದಿಗೂ ಇಲ್ಲ",
     newItem: "ಹೊಸದು",
+    image: "ಚಿತ್ರ",
     noBackText: "ಹಿಂಭಾಗದ ಪಠ್ಯವಿಲ್ಲ",
     noTags: "ಟ್ಯಾಗ್‌ಗಳಿಲ್ಲ",
     notRevoked: "ರದ್ದುಪಡಿಸಿಲ್ಲ",

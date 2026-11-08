@@ -128,6 +128,7 @@ const deCatalog: TranslationCatalog = {
     loading: "Lädt...",
     never: "Nie",
     newItem: "neu",
+    image: "Bild",
     noBackText: "Kein Rückseitentext",
     noTags: "Keine Tags",
     notRevoked: "Nicht widerrufen",

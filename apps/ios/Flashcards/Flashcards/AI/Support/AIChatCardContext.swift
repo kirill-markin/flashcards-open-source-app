@@ -1,31 +1,47 @@
 import Foundation
 
+private let aiChatCardAttachmentSnippetCharacterLimit: Int = 240
+
 func aiChatCardAttachmentLabel(card: AIChatCardReference) -> String {
     let snippet = aiChatCardAttachmentSnippet(card.frontText)
-    if snippet.isEmpty {
+    if snippet.text.isEmpty {
         return aiSettingsLocalized("ai.attachment.card.title", "Card")
     }
 
-    return aiSettingsLocalizedFormat("ai.attachment.card.withSnippet", "Card · %@", snippet)
+    return aiSettingsLocalizedFormat("ai.attachment.card.withSnippet", "Card · %@", snippet.text)
 }
 
-func aiChatCardAttachmentMathBlocks(card: AIChatCardReference) -> [ReviewMathBlock]? {
+func aiChatCardAttachmentMathBlocks(card: AIChatCardReference) -> [ReviewMathBlock] {
     let snippet = aiChatCardAttachmentSnippet(card.frontText)
-    guard containsReviewMathDelimiter(text: snippet),
-          case .segmented(let blocks) = extractReviewMathBlocks(text: snippet) else { return nil }
     let label = aiChatCardAttachmentLabel(card: card)
-    guard let range = label.range(of: snippet) else { return nil }
-    // Parse before adding the localized label, and keep display formulas inline in compact chips.
-    return [.markdown(String(label[..<range.lowerBound]))] + blocks.map { block in
-        guard case .formula(let formula) = block else { return block }
-        return .formula(ReviewFormulaContent(originalSource: formula.originalSource, latex: formula.latex, continuesParagraph: true))
-    } + [.markdown(String(label[range.upperBound...]))]
+    guard snippet.text.isEmpty == false, let range = label.range(of: snippet.text) else {
+        return [.markdown(label)]
+    }
+    // The snippet is parsed before the localized label wraps it.
+    return [.markdown(String(label[..<range.lowerBound]))] + snippet.mathBlocks + [.markdown(String(label[range.upperBound...]))]
 }
 
-private func aiChatCardAttachmentSnippet(_ text: String) -> String {
-    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard trimmed.count > 240 else { return trimmed }
-    return reviewMathTextPrefix(text: trimmed, characterLimit: 240) + "..."
+private func aiChatCardAttachmentSnippet(_ text: String) -> ReviewPreviewText {
+    let preview = makeReviewPreviewText(text: text)
+    guard preview.text.count > aiChatCardAttachmentSnippetCharacterLimit else { return preview }
+
+    // Truncation may omit a formula, but must never turn accepted TeX into a partial source.
+    var remainingCharacterCount = aiChatCardAttachmentSnippetCharacterLimit
+    var mathBlocks: [ReviewMathBlock] = []
+    for block in preview.mathBlocks {
+        let sourceCount = block.source.count
+        if sourceCount <= remainingCharacterCount {
+            mathBlocks.append(block)
+            remainingCharacterCount -= sourceCount
+            continue
+        }
+        if case .markdown(let value) = block {
+            mathBlocks.append(.markdown(String(value.prefix(remainingCharacterCount))))
+        }
+        break
+    }
+    mathBlocks.append(.markdown("..."))
+    return ReviewPreviewText(text: mathBlocks.map(\.source).joined(), mathBlocks: mathBlocks)
 }
 
 func buildAIChatCardContextXML(card: AIChatCardReference) -> String {

@@ -27,7 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.core.ui.content.MathText
+import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 
 @Composable
 internal fun StaticEmptyReviewState(title: String, body: String) {
@@ -96,8 +96,8 @@ internal fun PreviewCardRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                MathText(
-                    text = previewCard.card.frontText,
+                MarkdownPreviewText(
+                    markdown = previewCard.card.frontText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -118,8 +118,8 @@ internal fun PreviewCardRow(
                 }
             }
 
-            MathText(
-                text = previewCard.backText,
+            MarkdownPreviewText(
+                markdown = previewCard.backText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
