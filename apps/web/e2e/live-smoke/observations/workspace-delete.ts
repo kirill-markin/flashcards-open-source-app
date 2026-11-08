@@ -1,4 +1,4 @@
-import { type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 import {
   observeDeleteWorkspaceDialogState,
@@ -28,7 +28,7 @@ export async function waitForDeleteWorkspaceConfirmation(
     return;
   }
 
-  const retryActionResult = await retryDeleteWorkspaceDetailsFetch(diagnostics, dialog);
+  const retryActionResult = await retryDeleteWorkspaceDetailsFetch(page, diagnostics, dialog);
   if (retryActionResult === "confirmation") {
     return;
   }
@@ -63,6 +63,7 @@ export async function waitForDeleteWorkspaceConfirmation(
 }
 
 async function retryDeleteWorkspaceDetailsFetch(
+  page: Page,
   diagnostics: LiveSmokeDiagnostics,
   dialog: Locator,
 ): Promise<DeleteWorkspaceRetryActionResult> {
@@ -79,6 +80,13 @@ async function retryDeleteWorkspaceDetailsFetch(
         "Delete workspace retry was requested while the dialog was not in retry state "
         + formatDeleteWorkspaceDialogObservation(observationBeforeClick),
       );
+    }
+
+    // A captured preview failure also opens the global error dialog, whose backdrop intercepts the Retry click.
+    const appErrorDialog = page.getByTestId("app-error-dialog");
+    if (await appErrorDialog.isVisible()) {
+      await page.getByTestId("app-error-dialog-close").click({ timeout: localUiTimeoutMs });
+      await expect(appErrorDialog).toBeHidden({ timeout: localUiTimeoutMs });
     }
 
     try {
