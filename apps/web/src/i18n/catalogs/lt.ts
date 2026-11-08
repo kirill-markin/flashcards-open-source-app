@@ -134,6 +134,7 @@ const ltCatalog: TranslationCatalog = {
     loading: "Įkeliama...",
     never: "Niekada",
     newItem: "nauja",
+    image: "Vaizdas",
     noBackText: "Kitoje pusėje teksto nėra",
     noTags: "Žymų nėra",
     notRevoked: "Neatšaukta",

@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.core.ui.content.MathText
+import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 
 @Composable
 internal fun NavigationSummaryCard(
@@ -39,7 +39,10 @@ internal fun NavigationSummaryCard(
                     if (contentSource == null) {
                         Text(summary)
                     } else {
-                        MathText(text = contentSource, plainText = summary)
+                        MarkdownPreviewText(
+                            markdown = contentSource,
+                            formatText = { preview -> preview.ifEmpty { summary } }
+                        )
                     }
                     Text(
                         text = supportingText,

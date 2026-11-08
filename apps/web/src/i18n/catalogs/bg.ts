@@ -128,6 +128,7 @@ const bgCatalog: TranslationCatalog = {
     loading: "Зареждане...",
     never: "Никога",
     newItem: "нова",
+    image: "Изображение",
     noBackText: "Няма текст на гърба",
     noTags: "Няма етикети",
     notRevoked: "Не е отменено",

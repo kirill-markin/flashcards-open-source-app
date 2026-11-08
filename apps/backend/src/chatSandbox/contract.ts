@@ -17,7 +17,23 @@ export const maximumBashCommandSeconds = 90;
 /** Keeps a path far below the btree row limit of the unique (session_id, path) index. */
 export const maximumChatFilePathBytes = 1_024;
 /** The files one ZIP extracts or the sheets one XLSX exports. */
-export const maximumDerivedFileCount = 200;
+export const maximumDerivedFileCount = 2_000;
+/**
+ * What one session file adds to every bash request besides its path: a pre-signed GET URL, measured at
+ * 1,753 characters with a worker-role session token, about 50 bytes of JSON keys and size, and about
+ * 250 bytes for a longer token.
+ */
+export const sessionFileRequestBytes = 2_048;
+/**
+ * What a chat's /files may add to every bash request, whose payload Lambda caps at 6 MiB. The rest is kept
+ * for /work at its fullest (`maximumWorkFiles` = 500 files with `maximumChatFilePathBytes` paths), the
+ * command's `writeSlotCount` = 100 PUT URLs, and 256 KiB for the command and the bridges. A ZIP of
+ * `maximumDerivedFileCount` files with 60-byte paths takes 4.2 MB of the 4.29 MB.
+ */
+export const maximumSessionFilesRequestBytes = 6 * 1024 * 1024
+  - 500 * (sessionFileRequestBytes + maximumChatFilePathBytes)
+  - 100 * sessionFileRequestBytes
+  - 256 * 1024;
 /** A one-page PDF, or an encrypted PDF shown whole, travels base64-encoded, which keeps it below Lambda's 6 MB response limit. */
 export const maximumPdfPageBytes = 4 * 1024 * 1024;
 /** Every page OpenAI reads costs 1–2k input tokens on each later model call of the run, so only a short encrypted PDF travels whole. */

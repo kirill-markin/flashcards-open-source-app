@@ -128,6 +128,7 @@ const teCatalog: TranslationCatalog = {
     loading: "లోడ్ అవుతోంది...",
     never: "ఎప్పుడూ లేదు",
     newItem: "కొత్తది",
+    image: "చిత్రం",
     noBackText: "వెనుక వైపు వచనం లేదు",
     noTags: "ట్యాగ్‌లు లేవు",
     notRevoked: "రద్దు చేయబడలేదు",

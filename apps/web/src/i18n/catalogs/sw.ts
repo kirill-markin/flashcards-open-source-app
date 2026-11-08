@@ -128,6 +128,7 @@ const swCatalog: TranslationCatalog = {
     loading: "Inapakia...",
     never: "Kamwe",
     newItem: "mpya",
+    image: "Picha",
     noBackText: "Hakuna maandishi ya nyuma",
     noTags: "Hakuna lebo",
     notRevoked: "Haijabatilishwa",

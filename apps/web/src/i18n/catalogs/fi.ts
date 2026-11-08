@@ -128,6 +128,7 @@ const fiCatalog: TranslationCatalog = {
     loading: "Ladataan...",
     never: "Ei koskaan",
     newItem: "uusi",
+    image: "Kuva",
     noBackText: "Ei kääntöpuolen tekstiä",
     noTags: "Ei tunnisteita",
     notRevoked: "Ei mitätöity",

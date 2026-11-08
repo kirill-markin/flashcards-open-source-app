@@ -128,6 +128,7 @@ const etCatalog: TranslationCatalog = {
     loading: "Laadimine...",
     never: "Mitte kunagi",
     newItem: "uus",
+    image: "Pilt",
     noBackText: "Tagakülje tekst puudub",
     noTags: "Silte pole",
     notRevoked: "Tühistamata",

@@ -1,5 +1,5 @@
+import { makeCardPreviewSegments, type CardPreviewSegment } from "../../components/cardPreviewMarkdown";
 import type { Card, ContentPart } from "../../types";
-import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 
 export type ChatCardSnapshot = Readonly<{
   cardId: string;
@@ -63,17 +63,18 @@ export function buildCardContextXml(card: ChatCardSnapshot): string {
   ].join("\n");
 }
 
-export function formatCardAttachmentLabel(card: ChatCardSnapshot): string {
-  const trimmedFrontText = card.frontText.trim();
+export function formatCardAttachmentLabel(card: ChatCardSnapshot, emptyImageAltText: string): ReadonlyArray<CardPreviewSegment> {
+  const segments = makeCardPreviewSegments(card.frontText, emptyImageAltText);
   // CSS clips the rendered label; slicing source could cut a formula in half.
-  if (trimmedFrontText.includes("$") && hasEligibleReviewMath(trimmedFrontText)) {
-    return trimmedFrontText;
+  if (segments.some((segment) => segment.kind === "formula")) {
+    return segments;
   }
-  if (trimmedFrontText.length <= 48) {
-    return trimmedFrontText === "" ? "Untitled card" : trimmedFrontText;
+  const previewText = segments.map((segment) => segment.value).join("");
+  if (previewText.length <= 48) {
+    return [{ kind: "prose", value: previewText === "" ? "Untitled card" : previewText }];
   }
 
-  return `${trimmedFrontText.slice(0, 48)}…`;
+  return [{ kind: "prose", value: `${previewText.slice(0, 48)}…` }];
 }
 
 export function isCardContentPart(part: ContentPart): part is Extract<ContentPart, { type: "card" }> {

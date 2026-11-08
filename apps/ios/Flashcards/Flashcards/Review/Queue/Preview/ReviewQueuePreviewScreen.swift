@@ -252,9 +252,11 @@ private struct ReviewQueuePreviewCardRow: View {
     let isCurrent: Bool
 
     var body: some View {
+        let frontPreview = makeReviewPreviewText(text: card.frontText)
+        let backPreview = makeReviewPreviewText(text: card.backText)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
-                MathContentText(text: card.frontText, textStyle: .headline, weight: .semibold)
+                MathContentText(text: frontPreview.text, textStyle: .headline, weight: .semibold, parsedBlocks: frontPreview.mathBlocks)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isCurrent {
@@ -270,7 +272,7 @@ private struct ReviewQueuePreviewCardRow: View {
                 }
             }
 
-            MathContentText(text: card.backText, textStyle: .subheadline, color: .secondaryLabel, lineLimit: 2)
+            MathContentText(text: backPreview.text, textStyle: .subheadline, color: .secondaryLabel, lineLimit: 2, parsedBlocks: backPreview.mathBlocks)
 
             HStack(spacing: 12) {
                 Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")

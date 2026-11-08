@@ -128,6 +128,7 @@ const frCatalog: TranslationCatalog = {
     loading: "Chargement...",
     never: "Jamais",
     newItem: "nouvelle",
+    image: "Image",
     noBackText: "Aucun texte au verso",
     noTags: "Aucune étiquette",
     notRevoked: "Non révoquée",

@@ -128,6 +128,7 @@ const ptBrCatalog: TranslationCatalog = {
     loading: "Carregando...",
     never: "Nunca",
     newItem: "novo",
+    image: "Imagem",
     noBackText: "Sem texto no verso",
     noTags: "Sem etiquetas",
     notRevoked: "Não revogada",

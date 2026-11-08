@@ -21,7 +21,12 @@ import {
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
 } from "../aiTools/toolContract/sqlToolContract";
 import { MAX_SQL_RECORD_LIMIT } from "../aiTools/toolContract/sqlToolLimits";
-import { maximumBashCommandSeconds, maximumSqlCallsPerCommand } from "../chatSandbox/contract";
+import {
+  maximumBashCommandSeconds,
+  maximumMediaPutsPerCommand,
+  maximumSqlCallsPerCommand,
+} from "../chatSandbox/contract";
+import { maximumImageIngestionOriginalBytes } from "../mediaAssets/validators";
 import type {
   ProductAnalyticsClientReportablePlatform,
   ProductAnalyticsDeviceType,
@@ -192,7 +197,20 @@ function buildChatFilesSection(): string {
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
     "- magick edits images with an ImageMagick subset, such as magick a.jpg b.jpg -resize x400 +append out.jpg: -resize WxH|W|xH|N%, -crop WxH+X+Y, -rotate DEG, -flip, -flop, +append, -append, -background COLOR, -gravity center, -extent WxH, -quality N; the output's .jpg, .png or .webp picks its format; magick identify FILE prints format and size.",
+    "- zstd -d -o OUT FILE or zstd -dc FILE decompresses one zstd file. There is no unzip: open a ZIP with python3's zipfile, and one over 8 MB on stdin as zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())).",
     `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
+  ]);
+}
+
+/** Anki's own package layout: the derived files carry the newest format's collection, but no media. */
+function buildAnkiImportSection(): string {
+  return joinLines([
+    "Anki .apkg imports:",
+    "- Keep the notes' own Anki tags; add the deck name as an extra tag only when the user asks.",
+    "- The collection is <file>.d/collection.sqlite. The media files are the package's numbered entries (0, 1, ...), named in entry order by its media list: <file>.d/media.json for older packages.",
+    "- In the newest format the package's media entry (protobuf: each entry's field 1 is the file name) and every media file are zstd-compressed: zstd -d them.",
+    "- Unpack and convert in /tmp, which is not kept; keep only a small progress file in /work.",
+    `- Upload each image with fc-media-put (at most ${maximumImageIngestionOriginalBytes / 1_000_000} MB; convert other formats with magick first), at most ${maximumMediaPutsPerCommand} per command: loop across commands and keep progress in /work.`,
   ]);
 }
 
@@ -280,6 +298,7 @@ export function buildSystemInstructions(
     buildSqlRoutingSection(),
     buildReviewSection(),
     buildChatFilesSection(),
+    buildAnkiImportSection(),
     buildSandboxSqlSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),

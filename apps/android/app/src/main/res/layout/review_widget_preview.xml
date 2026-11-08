@@ -28,10 +28,12 @@
         android:textColor="@color/review_widget_on_surface"
         android:textSize="16sp" />
 
-    <Space
+    <!-- RemoteViews inflate only allowlisted views, so the spacer is a FrameLayout, not a Space. -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        tools:ignore="UselessLeaf" />
 
     <TextView
         android:layout_width="wrap_content"

@@ -128,6 +128,7 @@ const huCatalog: TranslationCatalog = {
     loading: "Betöltés...",
     never: "Soha",
     newItem: "új",
+    image: "Kép",
     noBackText: "Nincs hátlapszöveg",
     noTags: "Nincs címke",
     notRevoked: "Nincs visszavonva",

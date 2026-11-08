@@ -134,6 +134,7 @@ const roCatalog: TranslationCatalog = {
     loading: "Se încarcă...",
     never: "Niciodată",
     newItem: "nouă",
+    image: "Imagine",
     noBackText: "Niciun text pe verso",
     noTags: "Nicio etichetă",
     notRevoked: "Nerevocat",

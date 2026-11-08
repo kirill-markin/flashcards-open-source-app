@@ -128,6 +128,7 @@ const paCatalog: TranslationCatalog = {
     loading: "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
     never: "ਕਦੇ ਨਹੀਂ",
     newItem: "ਨਵਾਂ",
+    image: "ਤਸਵੀਰ",
     noBackText: "ਪਿਛਲੇ ਪਾਸੇ ਕੋਈ ਲਿਖਤ ਨਹੀਂ",
     noTags: "ਕੋਈ ਟੈਗ ਨਹੀਂ",
     notRevoked: "ਰੱਦ ਨਹੀਂ ਕੀਤਾ",

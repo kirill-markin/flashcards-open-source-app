@@ -128,6 +128,7 @@ const mlCatalog: TranslationCatalog = {
     loading: "ലോഡ് ചെയ്യുന്നു...",
     never: "ഒരിക്കലുമില്ല",
     newItem: "പുതിയത്",
+    image: "ചിത്രം",
     noBackText: "പിൻവശത്ത് ടെക്സ്റ്റില്ല",
     noTags: "ടാഗുകളില്ല",
     notRevoked: "പിൻവലിച്ചിട്ടില്ല",
