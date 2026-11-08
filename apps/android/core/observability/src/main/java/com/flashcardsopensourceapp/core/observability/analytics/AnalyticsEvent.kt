@@ -927,18 +927,20 @@ sealed interface AnalyticsEvent {
         )
     }
 
-    /** The Review widgets placed on this device, per size, reported on a foreground when they changed. */
+    /** The widgets of one kind placed on this device, per size, reported on a foreground when they changed. */
     data class WidgetPlacementChanged(
         val smallCount: Int,
         val mediumCount: Int,
-        val largeCount: Int
+        val largeCount: Int,
+        val widgetKind: AnalyticsWidgetKind
     ) : AnalyticsEvent {
         override val eventName: String = "widget_placement_changed"
         override val screen: AnalyticsSurface? = null
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "small_count" to AnalyticsPropertyValue.Count(value = smallCount),
             "medium_count" to AnalyticsPropertyValue.Count(value = mediumCount),
-            "large_count" to AnalyticsPropertyValue.Count(value = largeCount)
+            "large_count" to AnalyticsPropertyValue.Count(value = largeCount),
+            "widget_kind" to AnalyticsPropertyValue.Text(value = widgetKind.wireValue)
         )
     }
 

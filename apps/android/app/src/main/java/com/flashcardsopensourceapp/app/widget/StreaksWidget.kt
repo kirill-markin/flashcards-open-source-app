@@ -73,7 +73,7 @@ class StreaksWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = StreaksWidget()
 }
 
-private fun streaksWidgetSize(widgetSize: DpSize): ReviewWidgetSize {
+internal fun streaksWidgetSize(widgetSize: DpSize): ReviewWidgetSize {
     val fitsMedium: Boolean = widgetSize.width >= streaksWidgetMediumMinSize.width &&
         widgetSize.height >= streaksWidgetMediumMinSize.height
     return if (fitsMedium) ReviewWidgetSize.MEDIUM else ReviewWidgetSize.SMALL

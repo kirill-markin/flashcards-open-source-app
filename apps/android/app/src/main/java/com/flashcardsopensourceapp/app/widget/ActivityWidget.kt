@@ -80,7 +80,7 @@ class ActivityWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ActivityWidget()
 }
 
-private fun activityWidgetSize(layoutSize: DpSize): ReviewWidgetSize {
+internal fun activityWidgetSize(layoutSize: DpSize): ReviewWidgetSize {
     return when {
         layoutSize.width < activityWidgetMediumMinWidth -> ReviewWidgetSize.SMALL
         layoutSize.height < activityWidgetLargeMinHeight -> ReviewWidgetSize.MEDIUM
