@@ -767,15 +767,6 @@ export const zhHansCatalog = {
       yourCards: "你的卡片",
       addCards: "添加卡片",
     },
-    cards: {
-      description: "此工作区中的所有卡片。",
-    },
-    tags: {
-      description: "至少用于一张卡片的所有标签。",
-    },
-    decks: {
-      description: "为专注复习保存的卡片筛选条件。",
-    },
     deckCatalog: {
       title: "牌组目录",
       description: "可直接学习的免费现成牌组。",

@@ -767,15 +767,6 @@ const nbCatalog: TranslationCatalog = {
       yourCards: "Kortene dine",
       addCards: "Legg til kort",
     },
-    cards: {
-      description: "Alle kort i dette arbeidsområdet.",
-    },
-    tags: {
-      description: "Alle tagger som brukes på minst ett kort.",
-    },
-    decks: {
-      description: "Lagrede kortfiltre for fokusert repetisjon.",
-    },
     deckCatalog: {
       title: "Katalog med kortstokker",
       description: "Gratis ferdige kortstokker å studere.",

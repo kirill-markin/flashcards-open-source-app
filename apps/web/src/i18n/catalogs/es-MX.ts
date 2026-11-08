@@ -767,15 +767,6 @@ const esMxCatalog: TranslationCatalog = {
       yourCards: "Tus tarjetas",
       addCards: "Agregar tarjetas",
     },
-    cards: {
-      description: "Todas las tarjetas de este espacio de trabajo.",
-    },
-    tags: {
-      description: "Todas las etiquetas usadas en al menos una tarjeta.",
-    },
-    decks: {
-      description: "Filtros de tarjetas guardados para un repaso enfocado.",
-    },
     deckCatalog: {
       title: "Catálogo de mazos",
       description: "Mazos gratuitos y listos para estudiar.",

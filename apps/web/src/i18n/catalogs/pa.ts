@@ -767,15 +767,6 @@ const paCatalog: TranslationCatalog = {
       yourCards: "ਤੁਹਾਡੇ ਕਾਰਡ",
       addCards: "ਕਾਰਡ ਜੋੜੋ",
     },
-    cards: {
-      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ.",
-    },
-    tags: {
-      description: "ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ 'ਤੇ ਵਰਤੇ ਗਏ ਸਾਰੇ ਟੈਗ.",
-    },
-    decks: {
-      description: "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ.",
-    },
     deckCatalog: {
       title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",
       description: "ਪੜ੍ਹਨ ਲਈ ਮੁਫ਼ਤ ਤਿਆਰ ਡੈੱਕ.",

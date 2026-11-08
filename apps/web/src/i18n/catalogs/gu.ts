@@ -767,15 +767,6 @@ const guCatalog: TranslationCatalog = {
       yourCards: "તમારાં કાર્ડ",
       addCards: "કાર્ડ ઉમેરો",
     },
-    cards: {
-      description: "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ.",
-    },
-    tags: {
-      description: "ઓછામાં ઓછા એક કાર્ડ પર વપરાયેલા બધા ટૅગ.",
-    },
-    decks: {
-      description: "કેન્દ્રિત પુનરાવર્તન માટે સાચવેલાં કાર્ડ ફિલ્ટર.",
-    },
     deckCatalog: {
       title: "ડેક કૅટલૉગ",
       description: "અભ્યાસ માટે મફત તૈયાર ડેક.",

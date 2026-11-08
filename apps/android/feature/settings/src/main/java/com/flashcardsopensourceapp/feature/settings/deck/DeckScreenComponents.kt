@@ -34,6 +34,25 @@ fun deckCardRowTag(cardId: String): String {
 private val deckRowTitleMinWidth = 96.dp
 
 @Composable
+internal fun DeckExplainerCard(body: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_deck_editor_explainer_title),
+                style = MaterialTheme.typography.titleSmall
+            )
+            Text(
+                text = body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 internal fun DeckRow(
     deckEntry: DeckListEntryUiState,
     onOpenDeck: (DeckListTargetUiState) -> Unit

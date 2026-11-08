@@ -767,15 +767,6 @@ const elCatalog: TranslationCatalog = {
       yourCards: "Οι κάρτες σας",
       addCards: "Προσθήκη καρτών",
     },
-    cards: {
-      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
-    },
-    tags: {
-      description: "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα.",
-    },
-    decks: {
-      description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
-    },
     deckCatalog: {
       title: "Κατάλογος δεσμών",
       description: "Δωρεάν έτοιμες δέσμες για μελέτη.",

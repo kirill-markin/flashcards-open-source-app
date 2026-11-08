@@ -767,15 +767,6 @@ const bnCatalog: TranslationCatalog = {
       yourCards: "আপনার কার্ড",
       addCards: "কার্ড যোগ করুন",
     },
-    cards: {
-      description: "এই কর্মক্ষেত্রের সব কার্ড।",
-    },
-    tags: {
-      description: "অন্তত একটি কার্ডে ব্যবহৃত সব ট্যাগ।",
-    },
-    decks: {
-      description: "মনোযোগী পুনরালোচনার জন্য সংরক্ষিত কার্ড ফিল্টার।",
-    },
     deckCatalog: {
       title: "ডেক ক্যাটালগ",
       description: "পড়ার জন্য বিনামূল্যের তৈরি ডেক।",

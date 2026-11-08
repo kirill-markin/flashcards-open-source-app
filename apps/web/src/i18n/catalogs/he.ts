@@ -767,15 +767,6 @@ const heCatalog: TranslationCatalog = {
       yourCards: "הכרטיסים שלך",
       addCards: "הוספת כרטיסים",
     },
-    cards: {
-      description: "כל הכרטיסים בסביבת העבודה הזו.",
-    },
-    tags: {
-      description: "כל התגיות שמשמשות לפחות בכרטיס אחד.",
-    },
-    decks: {
-      description: "מסנני כרטיסים שמורים לחזרה ממוקדת.",
-    },
     deckCatalog: {
       title: "קטלוג חפיסות",
       description: "חפיסות מוכנות בחינם ללמידה.",

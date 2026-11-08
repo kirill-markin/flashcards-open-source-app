@@ -767,15 +767,6 @@ const svCatalog: TranslationCatalog = {
       yourCards: "Dina kort",
       addCards: "Lägg till kort",
     },
-    cards: {
-      description: "Alla kort i den här arbetsytan.",
-    },
-    tags: {
-      description: "Alla taggar som används på minst ett kort.",
-    },
-    decks: {
-      description: "Sparade kortfilter för fokuserad repetition.",
-    },
     deckCatalog: {
       title: "Kortlekskatalog",
       description: "Gratis färdiga kortlekar att studera.",

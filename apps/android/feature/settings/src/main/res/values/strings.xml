@@ -493,6 +493,7 @@
     <string name="settings_decks_search_label">Search decks</string>
     <string name="settings_decks_empty">No decks yet. Create the first filtered deck for this workspace.</string>
     <string name="settings_decks_empty_search">No decks match this search.</string>
+    <string name="settings_decks_explainer_body">Each deck shows the cards that match its tags. Pick a deck from the Review filter to study it.</string>
     <string name="settings_deck_title">Deck</string>
     <string name="settings_deck_not_found">Deck not found.</string>
     <string name="settings_deck_matching_cards_title">Matching cards</string>

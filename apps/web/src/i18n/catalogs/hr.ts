@@ -775,15 +775,6 @@ const hrCatalog: TranslationCatalog = {
       yourCards: "Vaše kartice",
       addCards: "Dodavanje kartica",
     },
-    cards: {
-      description: "Sve kartice u ovom radnom prostoru.",
-    },
-    tags: {
-      description: "Sve oznake korištene na barem jednoj kartici.",
-    },
-    decks: {
-      description: "Spremljeni filtri kartica za usredotočeno ponavljanje.",
-    },
     deckCatalog: {
       title: "Katalog špilova",
       description: "Besplatni gotovi špilovi za učenje.",

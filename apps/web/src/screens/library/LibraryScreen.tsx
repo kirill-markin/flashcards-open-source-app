@@ -132,21 +132,21 @@ export function LibraryScreen(): ReactElement {
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("navigation.cards")}
-            description={t("libraryScreen.cards.description")}
+            description={null}
             value={formatCountValue(counts?.cards)}
             to={workspacePath(cardsRoute)}
             testId="library-row-cards"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.tags.title")}
-            description={t("libraryScreen.tags.description")}
+            description={null}
             value={formatCountValue(counts?.tags)}
             to={workspacePath(libraryTagsRoute)}
             testId="library-row-tags"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.decks.title")}
-            description={t("libraryScreen.decks.description")}
+            description={null}
             value={formatCountValue(counts?.decks)}
             to={workspacePath(libraryDecksRoute)}
             testId="library-row-decks"

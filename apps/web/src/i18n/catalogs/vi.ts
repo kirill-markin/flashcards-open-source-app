@@ -767,15 +767,6 @@ const viCatalog: TranslationCatalog = {
       yourCards: "Thẻ của bạn",
       addCards: "Thêm thẻ",
     },
-    cards: {
-      description: "Mọi thẻ trong không gian làm việc này.",
-    },
-    tags: {
-      description: "Mọi nhãn được dùng trên ít nhất một thẻ.",
-    },
-    decks: {
-      description: "Bộ lọc thẻ đã lưu để ôn tập tập trung.",
-    },
     deckCatalog: {
       title: "Danh mục bộ thẻ",
       description: "Bộ thẻ miễn phí, có sẵn để học.",

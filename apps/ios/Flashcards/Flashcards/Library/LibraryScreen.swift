@@ -19,7 +19,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.cards) {
                     LibraryRow(
                         title: LibrarySection.cards.localizedTitle,
-                        subtitle: String(localized: "library.row.cards.subtitle", table: libraryStringsTableName),
+                        subtitle: nil,
                         systemImage: LibrarySection.cards.systemImage,
                         count: self.store.cards.count
                     )
@@ -29,7 +29,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.tags) {
                     LibraryRow(
                         title: LibrarySection.tags.localizedTitle,
-                        subtitle: String(localized: "library.row.tags.subtitle", table: libraryStringsTableName),
+                        subtitle: nil,
                         systemImage: LibrarySection.tags.systemImage,
                         count: self.tagsCount
                     )
@@ -39,7 +39,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.decks) {
                     LibraryRow(
                         title: LibrarySection.decks.localizedTitle,
-                        subtitle: String(localized: "library.row.decks.subtitle", table: libraryStringsTableName),
+                        subtitle: nil,
                         systemImage: LibrarySection.decks.systemImage,
                         count: self.store.decks.count
                     )
@@ -112,7 +112,7 @@ struct LibraryScreen: View {
 
 private struct LibraryRow: View {
     let title: String
-    let subtitle: String
+    let subtitle: String?
     let systemImage: String
     let count: Int?
 
@@ -128,9 +128,11 @@ private struct LibraryRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(self.title)
                         .foregroundStyle(Color.primary)
-                    Text(self.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    if let subtitle = self.subtitle {
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             } icon: {
                 Image(systemName: self.systemImage)

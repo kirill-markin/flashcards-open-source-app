@@ -766,15 +766,6 @@ const enCatalog = {
       yourCards: "Your cards",
       addCards: "Add cards",
     },
-    cards: {
-      description: "Every card in this workspace.",
-    },
-    tags: {
-      description: "Every tag used on at least one card.",
-    },
-    decks: {
-      description: "Saved card filters for focused review.",
-    },
     deckCatalog: {
       title: "Deck catalog",
       description: "Free ready-made decks to study.",

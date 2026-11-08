@@ -767,15 +767,6 @@ const daCatalog: TranslationCatalog = {
       yourCards: "Dine kort",
       addCards: "Tilføj kort",
     },
-    cards: {
-      description: "Alle kort i dette arbejdsområde.",
-    },
-    tags: {
-      description: "Alle tags, der bruges på mindst ét kort.",
-    },
-    decks: {
-      description: "Gemte kortfiltre til fokuseret repetition.",
-    },
     deckCatalog: {
       title: "Bunkekatalog",
       description: "Gratis færdige bunker at studere.",

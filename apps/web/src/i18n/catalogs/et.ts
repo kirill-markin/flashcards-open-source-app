@@ -767,15 +767,6 @@ const etCatalog: TranslationCatalog = {
       yourCards: "Sinu kaardid",
       addCards: "Lisa kaarte",
     },
-    cards: {
-      description: "Kõik selle tööruumi kaardid.",
-    },
-    tags: {
-      description: "Kõik sildid, mida on kasutatud vähemalt ühel kaardil.",
-    },
-    decks: {
-      description: "Salvestatud kaardifiltrid keskendunud kordamiseks.",
-    },
     deckCatalog: {
       title: "Pakkide kataloog",
       description: "Tasuta valmis pakid õppimiseks.",

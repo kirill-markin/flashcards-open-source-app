@@ -775,15 +775,6 @@ const plCatalog: TranslationCatalog = {
       yourCards: "Twoje karty",
       addCards: "Dodaj karty",
     },
-    cards: {
-      description: "Wszystkie karty w tej przestrzeni roboczej.",
-    },
-    tags: {
-      description: "Wszystkie tagi użyte na co najmniej jednej karcie.",
-    },
-    decks: {
-      description: "Zapisane filtry kart do ukierunkowanych powtórek.",
-    },
     deckCatalog: {
       title: "Katalog talii",
       description: "Darmowe gotowe talie do nauki.",

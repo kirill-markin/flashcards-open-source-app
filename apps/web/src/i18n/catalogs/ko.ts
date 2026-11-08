@@ -767,15 +767,6 @@ const koCatalog: TranslationCatalog = {
       yourCards: "내 카드",
       addCards: "카드 추가",
     },
-    cards: {
-      description: "이 워크스페이스의 모든 카드입니다.",
-    },
-    tags: {
-      description: "카드 한 장 이상에 사용된 모든 태그입니다.",
-    },
-    decks: {
-      description: "집중 복습을 위해 저장한 카드 필터입니다.",
-    },
     deckCatalog: {
       title: "덱 카탈로그",
       description: "바로 학습할 수 있는 무료 덱입니다.",

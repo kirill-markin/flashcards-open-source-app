@@ -767,15 +767,6 @@ const urCatalog: TranslationCatalog = {
       yourCards: "آپ کے کارڈز",
       addCards: "کارڈز شامل کریں",
     },
-    cards: {
-      description: "اس ورک اسپیس کے تمام کارڈز۔",
-    },
-    tags: {
-      description: "کم از کم ایک کارڈ پر استعمال ہونے والے تمام ٹیگز۔",
-    },
-    decks: {
-      description: "مرکوز دہرائی کے لیے محفوظ کیے گئے کارڈ فلٹرز۔",
-    },
     deckCatalog: {
       title: "ڈیک کیٹلاگ",
       description: "مطالعے کے لیے مفت تیار ڈیکس۔",

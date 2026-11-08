@@ -14,7 +14,7 @@ type SettingsShellProps = Readonly<{
 
 type SettingsNavigationCardProps = Readonly<{
   title: string;
-  description: string;
+  description: string | null;
   value: string | null;
   to: string;
   testId?: string;
@@ -74,10 +74,10 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
   const { title, description, value, to, testId, guestAccountAttention } = props;
 
   return (
-    <Link className={`settings-nav-card content-card${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} data-testid={testId}>
+    <Link className={`settings-nav-card content-card${description === null ? " settings-nav-card-inline" : ""}${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
-        <p className="subtitle">{description}</p>
+        {description === null ? null : <p className="subtitle">{description}</p>}
       </div>
       {value === null ? null : <span className="badge">{value}</span>}
       {guestAccountAttention ? <GuestAccountAttentionBadge /> : null}

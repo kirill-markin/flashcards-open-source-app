@@ -767,15 +767,6 @@ export const jaCatalog = {
       yourCards: "自分のカード",
       addCards: "カードを追加",
     },
-    cards: {
-      description: "このワークスペースのすべてのカード。",
-    },
-    tags: {
-      description: "1枚以上のカードで使われているすべてのタグ。",
-    },
-    decks: {
-      description: "集中して復習するための保存済みカードフィルター。",
-    },
     deckCatalog: {
       title: "デッキカタログ",
       description: "すぐに学習できる無料のデッキ。",

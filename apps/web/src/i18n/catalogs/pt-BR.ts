@@ -767,15 +767,6 @@ const ptBrCatalog: TranslationCatalog = {
       yourCards: "Seus cartões",
       addCards: "Adicionar cartões",
     },
-    cards: {
-      description: "Todos os cartões deste espaço de trabalho.",
-    },
-    tags: {
-      description: "Todas as etiquetas usadas em pelo menos um cartão.",
-    },
-    decks: {
-      description: "Filtros de cartões salvos para uma revisão focada.",
-    },
     deckCatalog: {
       title: "Catálogo de baralhos",
       description: "Baralhos prontos e gratuitos para estudar.",

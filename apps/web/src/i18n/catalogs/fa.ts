@@ -767,15 +767,6 @@ const faCatalog: TranslationCatalog = {
       yourCards: "کارت‌های شما",
       addCards: "افزودن کارت",
     },
-    cards: {
-      description: "همهٔ کارت‌های این فضای کاری.",
-    },
-    tags: {
-      description: "همهٔ برچسب‌هایی که دست‌کم روی یک کارت استفاده شده‌اند.",
-    },
-    decks: {
-      description: "فیلترهای ذخیره‌شدهٔ کارت برای مرور متمرکز.",
-    },
     deckCatalog: {
       title: "فهرست دسته‌ها",
       description: "دسته‌های آمادهٔ رایگان برای مطالعه.",
