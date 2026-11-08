@@ -346,12 +346,15 @@
 
 .deck-card-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
-  align-items: baseline;
+  gap: 4px 12px;
+  align-items: center;
 }
 
+/* The 40% basis is the narrowest name kept beside the counts; below it the counts wrap under the name. */
 .deck-card-title {
+  flex: 1 1 40%;
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -364,10 +367,8 @@
 }
 
 .deck-card-counts {
-  flex-shrink: 0;
   color: var(--text-secondary);
   font-size: 14px;
-  white-space: nowrap;
 }
 
 .deck-card-summary {
