@@ -43,7 +43,7 @@ A tap opens Review or Progress, as the table says. A widget that shows a card pa
 - iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
 - Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)), and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
 
-Each tap records one `widget_opened` with `widget_size` and `widget_kind` where the app consumes it, as its own event rather than an `app_opened` property. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes; it counts only Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
+Each tap records one `widget_opened` with `widget_size` and `widget_kind` where the app consumes it, as its own event rather than an `app_opened` property. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes, one event per widget kind; one without `widget_kind` comes from an older client and counts Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
 
 ## Platform scope
 

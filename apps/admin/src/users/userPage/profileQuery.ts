@@ -350,20 +350,27 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
       kind: "list",
       id: "home-screen-widgets",
       title: "Home Screen widgets",
-      // Counts are NULL for an installation that never reported placement: an app version before the event.
+      // One row per installation and widget kind, a missing `widget_kind` being Review as catalog.ts
+      // says. Counts are NULL for a kind the installation never reported placement for, and the Lock
+      // Screen ones for every kind but `lock_screen`.
       fields: [
         text("installation-id", "Installation ID", "widget_installations.anonymous_id::text"),
         enumField("platform", "Platform", "widget_installations.platform"),
         enumField("app-version", "App version", "widget_installations.app_version"),
+        enumField("widget-kind", "Widget kind", "widget_installations.widget_kind"),
         numberField("small", "Small", "(widget_installations.placement->>'small_count')::int"),
         numberField("medium", "Medium", "(widget_installations.placement->>'medium_count')::int"),
         numberField("large", "Large", "(widget_installations.placement->>'large_count')::int"),
+        numberField("accessory-circular", "Lock Screen circular", "(widget_installations.placement->>'accessory_circular_count')::int"),
+        numberField("accessory-rectangular", "Lock Screen rectangular", "(widget_installations.placement->>'accessory_rectangular_count')::int"),
+        numberField("accessory-inline", "Lock Screen inline", "(widget_installations.placement->>'accessory_inline_count')::int"),
         date("reported", "Reported", "widget_installations.reported_at"),
         numberField("taps", "Widget taps", "widget_installations.tap_count"),
         date("last-tap", "Last tap", "widget_installations.last_tap_at"),
       ],
       fromSql: `FROM (
         SELECT events.anonymous_id,
+          COALESCE(events.event_properties->>'widget_kind', 'review') AS widget_kind,
           (array_agg(events.platform ORDER BY events.occurred_at DESC, events.event_id DESC))[1] AS platform,
           (array_agg(events.app_version ORDER BY events.occurred_at DESC, events.event_id DESC) FILTER (WHERE events.app_version IS NOT NULL))[1] AS app_version,
           (array_agg(events.event_properties ORDER BY events.occurred_at DESC, events.event_id DESC) FILTER (WHERE events.event_name = 'widget_placement_changed'))[1] AS placement,
@@ -375,9 +382,9 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         WHERE events.actor_id = ${subject.uuidSql}
           AND events.event_name IN ('widget_placement_changed', 'widget_opened')
           AND events.anonymous_id IS NOT NULL
-        GROUP BY events.anonymous_id
+        GROUP BY events.anonymous_id, COALESCE(events.event_properties->>'widget_kind', 'review')
       ) AS widget_installations`,
-      orderSql: "widget_installations.last_activity_at DESC, widget_installations.anonymous_id",
+      orderSql: "widget_installations.last_activity_at DESC, widget_installations.anonymous_id, widget_installations.widget_kind",
     },
   ];
 }
