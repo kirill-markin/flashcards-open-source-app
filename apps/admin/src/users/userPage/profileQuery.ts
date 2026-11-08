@@ -346,6 +346,39 @@ function buildProfileSections(subject: UserSubjectSql): ReadonlyArray<ProfileSec
         WHERE ${matches("usage.user_id")}
       ) AS usage_totals`,
     },
+    {
+      kind: "list",
+      id: "home-screen-widgets",
+      title: "Home Screen widgets",
+      // Counts are NULL for an installation that never reported placement: an app version before the event.
+      fields: [
+        text("installation-id", "Installation ID", "widget_installations.anonymous_id::text"),
+        enumField("platform", "Platform", "widget_installations.platform"),
+        enumField("app-version", "App version", "widget_installations.app_version"),
+        numberField("small", "Small", "(widget_installations.placement->>'small_count')::int"),
+        numberField("medium", "Medium", "(widget_installations.placement->>'medium_count')::int"),
+        numberField("large", "Large", "(widget_installations.placement->>'large_count')::int"),
+        date("reported", "Reported", "widget_installations.reported_at"),
+        numberField("taps", "Widget taps", "widget_installations.tap_count"),
+        date("last-tap", "Last tap", "widget_installations.last_tap_at"),
+      ],
+      fromSql: `FROM (
+        SELECT events.anonymous_id,
+          (array_agg(events.platform ORDER BY events.occurred_at DESC, events.event_id DESC))[1] AS platform,
+          (array_agg(events.app_version ORDER BY events.occurred_at DESC, events.event_id DESC) FILTER (WHERE events.app_version IS NOT NULL))[1] AS app_version,
+          (array_agg(events.event_properties ORDER BY events.occurred_at DESC, events.event_id DESC) FILTER (WHERE events.event_name = 'widget_placement_changed'))[1] AS placement,
+          max(events.occurred_at) FILTER (WHERE events.event_name = 'widget_placement_changed') AS reported_at,
+          count(*) FILTER (WHERE events.event_name = 'widget_opened')::int AS tap_count,
+          max(events.occurred_at) FILTER (WHERE events.event_name = 'widget_opened') AS last_tap_at,
+          max(events.occurred_at) AS last_activity_at
+        FROM analytics.product_events_resolved AS events
+        WHERE events.actor_id = ${subject.uuidSql}
+          AND events.event_name IN ('widget_placement_changed', 'widget_opened')
+          AND events.anonymous_id IS NOT NULL
+        GROUP BY events.anonymous_id
+      ) AS widget_installations`,
+      orderSql: "widget_installations.last_activity_at DESC, widget_installations.anonymous_id",
+    },
   ];
 }
 

@@ -28,6 +28,8 @@ import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstal
 import { FunnelDetailsHeader } from "../reports/funnels/FunnelDetailsHeader";
 import { FunnelsArea, type JourneysPage } from "../reports/funnels/FunnelsArea";
 import type { GeneralReportView } from "../reports/generalReportView";
+import { HomeScreenWidgetsSection } from "../reports/homeScreenWidgets/HomeScreenWidgetsSection";
+import type { HomeScreenWidgetsReport } from "../reports/homeScreenWidgets/query";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import { FilterOptionsError } from "../reports/levelOneMetrics/LevelOneMetricsFrame";
@@ -46,10 +48,11 @@ export type AdminReportsData = Readonly<{
   filterOptions: AnalyticsFilterOptions;
   report: ReviewEventsByDateReport;
   catalogInstallsReport: CatalogInstallsReport;
+  homeScreenWidgetsReport: HomeScreenWidgetsReport;
 }>;
 
 /**
- * The General batch - the filter bar's option lists and the two General reports - an analytics
+ * The General batch - the filter bar's option lists and the General reports - an analytics
  * area either already has, is still fetching, or failed to fetch. Every area but Level 1 metrics
  * loads it; only General waits for it. A failure is area-local and retryable; only a terminal
  * 401/403 replaces the whole page.
@@ -152,6 +155,10 @@ function GeneralReportSections(
 
       <SocialConnectionsSection
         filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.report)}
+      />
+
+      <HomeScreenWidgetsSection
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.homeScreenWidgetsReport)}
       />
     </div>
   );
