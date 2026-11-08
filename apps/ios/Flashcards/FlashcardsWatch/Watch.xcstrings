@@ -1,0 +1,66 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "watch.session.connecting" : {
+      "comment" : "Apple Watch progress label while the watch asks the iPhone for the account",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting to iPhone…"
+          }
+        }
+      }
+    },
+    "watch.session.not_connected.message" : {
+      "comment" : "Apple Watch explanation that sign-in happens in the iPhone app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in there to review your cards on Apple Watch."
+          }
+        }
+      }
+    },
+    "watch.session.open_iphone_app" : {
+      "comment" : "Apple Watch message asking the user to open the iPhone app so the watch can sign in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo on iPhone"
+          }
+        }
+      }
+    },
+    "watch.session.syncing" : {
+      "comment" : "Apple Watch progress label while cards download for the first time",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing cards…"
+          }
+        }
+      }
+    },
+    "watch.session.update_required" : {
+      "comment" : "Apple Watch message when the iPhone and watch apps are on incompatible versions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Nibomo on your iPhone and Apple Watch"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

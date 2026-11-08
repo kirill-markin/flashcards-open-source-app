@@ -113,6 +113,7 @@
 				App/Navigation/AppTab.swift,
 				App/TechnicalErrorPresentation.swift,
 				App/TestDistribution.swift,
+				"App/TestDistribution+Resolution.swift",
 				App/UITestLaunchDetection.swift,
 				AppIcon.icon,
 				AppUILocale.swift,
