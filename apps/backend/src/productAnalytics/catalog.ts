@@ -452,12 +452,13 @@ export const productAnalyticsPlatforms = [
 ] as const;
 
 // The device a client runs on, reported beside `platform` rather than folded into it: `platform`
-// names the client build, so the Apple client reports `ios` on an iPhone, an iPad and a Mac alike, and
-// these two facts are what tell them apart. The web client reports neither.
+// names the client build, so the Apple client reports `ios` on an iPhone, an iPad, a Mac and an Apple
+// Watch alike, and these two facts are what tell them apart. The web client reports neither.
 export const productAnalyticsOsNames = [
   "ios",
   "ipados",
   "macos",
+  "watchos",
   "android",
 ] as const;
 
@@ -466,6 +467,7 @@ export const productAnalyticsDeviceTypes = [
   "tablet",
   "desktop",
   "tv",
+  "watch",
 ] as const;
 
 export type ProductAnalyticsSurface = (typeof productAnalyticsSurfaces)[number];
