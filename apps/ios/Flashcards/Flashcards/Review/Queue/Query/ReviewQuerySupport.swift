@@ -489,22 +489,44 @@ func reviewFilterByTogglingTag(
         decks: decks,
         storedTagNames: canonicalStoredTags
     )
+
+    return resolveTagsReviewQuery(
+        requestedTags: reviewTagNamesByTogglingStoredTag(selectedTags: selectedTags, canonicalTag: canonicalTag),
+        storedTagNames: canonicalStoredTags
+    ).reviewFilter
+}
+
+/// Toggles a tag inside a tag selection and keeps a selection of every tag as tags; the store resolves that
+/// to All cards when the filter is committed.
+func reviewTagsFilterByTogglingTag(tags: [String], tag: String, storedTagNames: [String]) -> ReviewFilter {
+    let canonicalStoredTags = normalizedReviewTagNames(tags: storedTagNames)
+    guard let canonicalTag = resolveExactStoredTagNames(
+        requestedTagNames: [tag],
+        storedTagNames: canonicalStoredTags
+    ).first else {
+        return .tags(tags: tags)
+    }
+
+    let selectedTags = resolveReviewTagNamesPreservingUnmatched(
+        requestedTagNames: tags,
+        storedTagNames: canonicalStoredTags
+    )
+    return makeReviewTagsFilter(
+        tags: reviewTagNamesByTogglingStoredTag(selectedTags: selectedTags, canonicalTag: canonicalTag)
+    )
+}
+
+private func reviewTagNamesByTogglingStoredTag(selectedTags: [String], canonicalTag: String) -> [String] {
     let toggledTagKey = normalizeTagKey(tag: canonicalTag)
-    let nextTags: [String]
     if selectedTags.contains(where: { selectedTag in
         normalizeTagKey(tag: selectedTag) == toggledTagKey
     }) {
-        nextTags = selectedTags.filter { selectedTag in
+        return selectedTags.filter { selectedTag in
             normalizeTagKey(tag: selectedTag) != toggledTagKey
         }
-    } else {
-        nextTags = normalizedReviewTagNames(tags: selectedTags + [canonicalTag])
     }
 
-    return resolveTagsReviewQuery(
-        requestedTags: nextTags,
-        storedTagNames: canonicalStoredTags
-    ).reviewFilter
+    return normalizedReviewTagNames(tags: selectedTags + [canonicalTag])
 }
 
 func makeReviewSubmissionContext(

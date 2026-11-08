@@ -869,7 +869,7 @@ struct ReviewView: View {
                     )
                     reviewRepetitionBadge(reps: card.reps)
                 }
-                // Without priority the trailing Spacer takes an equal share and the chips scroll early.
+                // Without priority the trailing Spacer takes an equal share and the chips overflow early.
                 .layoutPriority(1)
 
                 Spacer(minLength: 12)
