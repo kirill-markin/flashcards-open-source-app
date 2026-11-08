@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Salvează numele";
 "settings.workspace.overview.workspace" = "Spațiu de lucru";
 "settings.workspace.overview.cards" = "Fișe";
-"settings.workspace.overview.due" = "Scadente";
 "settings.workspace.overview.new" = "Noi";
 "settings.workspace.overview.deleteDescription" = "Șterge definitiv acest spațiu de lucru și toate fișele, pachetele, recapitulările și istoricul sincronizării din el.";
 "settings.workspace.overview.deleteWorkspace" = "Șterge spațiul de lucru";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Niciun pachet corespunzător";
 "settings.workspace.decks.searchPrompt" = "Caută pachete";
 "settings.workspace.decks.newDeck" = "Pachet nou";
-"settings.workspace.decks.dueCount" = "De recapitulat: %d";
-"settings.workspace.decks.totalCards" = "Fișe: %d";
-"settings.workspace.decks.newCount" = "Noi: %d";
-"settings.workspace.decks.reviewedCount" = "Recapitulate: %d";
+"settings.workspace.decks.toStudyCount" = "%d de studiat";
+"settings.workspace.decks.toStudy" = "De studiat";
 "settings.workspace.decks.emptyAllCards" = "Încă nu ai creat nicio fișă.";
 "settings.workspace.decks.emptyDeck" = "Acest pachet nu are încă fișe corespunzătoare.";
 "settings.workspace.decks.section.deckRules" = "Regulile pachetului";

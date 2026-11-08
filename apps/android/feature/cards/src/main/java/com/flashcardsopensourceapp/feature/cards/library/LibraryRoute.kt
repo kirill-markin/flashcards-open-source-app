@@ -63,7 +63,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_cards_title),
-                    summary = stringResource(id = R.string.library_cards_summary),
+                    summary = null,
                     count = uiState.cardsCount,
                     testTag = libraryCardsRowTag,
                     onClick = onOpenCards
@@ -72,7 +72,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_tags_title),
-                    summary = stringResource(id = R.string.library_tags_summary),
+                    summary = null,
                     count = uiState.tagsCount,
                     testTag = libraryTagsRowTag,
                     onClick = onOpenTags
@@ -81,7 +81,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_decks_title),
-                    summary = stringResource(id = R.string.library_decks_summary),
+                    summary = null,
                     count = uiState.decksCount,
                     testTag = libraryDecksRowTag,
                     onClick = onOpenDecks
@@ -139,7 +139,7 @@ private fun LibrarySectionTitle(title: String) {
 @Composable
 private fun LibraryRow(
     title: String,
-    summary: String,
+    summary: String?,
     count: Int?,
     testTag: String,
     onClick: () -> Unit
@@ -154,13 +154,17 @@ private fun LibraryRow(
         }
     }
 
+    val supportingContent: (@Composable () -> Unit)? = summary?.let { rowSummary ->
+        {
+            Text(rowSummary)
+        }
+    }
+
     ListItem(
         headlineContent = {
             Text(title)
         },
-        supportingContent = {
-            Text(summary)
-        },
+        supportingContent = supportingContent,
         trailingContent = trailingContent,
         modifier = Modifier
             .testTag(testTag)

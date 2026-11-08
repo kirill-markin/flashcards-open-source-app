@@ -767,15 +767,6 @@ const elCatalog: TranslationCatalog = {
       yourCards: "Οι κάρτες σας",
       addCards: "Προσθήκη καρτών",
     },
-    cards: {
-      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
-    },
-    tags: {
-      description: "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα.",
-    },
-    decks: {
-      description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
-    },
     deckCatalog: {
       title: "Κατάλογος δεσμών",
       description: "Δωρεάν έτοιμες δέσμες για μελέτη.",
@@ -1349,23 +1340,14 @@ const elCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} προς επανάληψη",
+      toStudy: "{{count}} για μελέτη",
       total: "{{count}} συνολικά",
     },
-    emptyStatsAriaLabel: "Στατιστικά της δέσμης {{deckName}}",
     newDeck: "Νέα δέσμη",
     statLabels: {
       cards: {
         one: "κάρτα",
         other: "κάρτες",
-      },
-      new: {
-        one: "νέα",
-        other: "νέες",
-      },
-      reviewed: {
-        one: "με επανάληψη",
-        other: "με επανάληψη",
       },
     },
     subtitle: "Οι δέσμες είναι έξυπνα φίλτρα, όχι φάκελοι. Αντιστοιχίζουν κάρτες μέσω ετικετών.",
@@ -1401,10 +1383,10 @@ const elCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Κάρτες",
-      due: "Προς επανάληψη",
       new: "Νέες",
       summary: "Σύνοψη",
       title: "Κανόνες δέσμης",
+      toStudy: "Για μελέτη",
     },
     subtitle: "Δείτε τους κανόνες της δέσμης, τις αντίστοιχες κάρτες και το σημείο εισόδου στην επανάληψη.",
     subtitles: {

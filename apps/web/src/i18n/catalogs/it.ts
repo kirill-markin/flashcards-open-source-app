@@ -767,15 +767,6 @@ const itCatalog: TranslationCatalog = {
       yourCards: "Le tue carte",
       addCards: "Aggiungi carte",
     },
-    cards: {
-      description: "Tutte le carte di quest’area di lavoro.",
-    },
-    tags: {
-      description: "Tutti i tag usati su almeno una carta.",
-    },
-    decks: {
-      description: "Filtri di carte salvati per un ripasso mirato.",
-    },
     deckCatalog: {
       title: "Catalogo di mazzi",
       description: "Mazzi pronti e gratuiti da studiare.",
@@ -1349,23 +1340,14 @@ const itCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} da ripassare",
+      toStudy: "{{count}} da studiare",
       total: "{{count}} in totale",
     },
-    emptyStatsAriaLabel: "Statistiche di {{deckName}}",
     newDeck: "Nuovo mazzo",
     statLabels: {
       cards: {
         one: "carta",
         other: "carte",
-      },
-      new: {
-        one: "nuova",
-        other: "nuove",
-      },
-      reviewed: {
-        one: "ripassata",
-        other: "ripassate",
       },
     },
     subtitle: "I mazzi sono filtri intelligenti, non contenitori. Selezionano le carte in base ai tag.",
@@ -1401,10 +1383,10 @@ const itCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Carte",
-      due: "Da ripassare",
       new: "Nuove",
       summary: "Riepilogo",
       title: "Regole del mazzo",
+      toStudy: "Da studiare",
     },
     subtitle: "Controlla le regole del mazzo, le carte corrispondenti e l’avvio del ripasso.",
     subtitles: {

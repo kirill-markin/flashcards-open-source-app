@@ -767,15 +767,6 @@ const koCatalog: TranslationCatalog = {
       yourCards: "내 카드",
       addCards: "카드 추가",
     },
-    cards: {
-      description: "이 워크스페이스의 모든 카드입니다.",
-    },
-    tags: {
-      description: "카드 한 장 이상에 사용된 모든 태그입니다.",
-    },
-    decks: {
-      description: "집중 복습을 위해 저장한 카드 필터입니다.",
-    },
     deckCatalog: {
       title: "덱 카탈로그",
       description: "바로 학습할 수 있는 무료 덱입니다.",
@@ -1349,23 +1340,14 @@ const koCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "복습 예정 {{count}}",
+      toStudy: "학습 예정 {{count}}",
       total: "전체 {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} 통계",
     newDeck: "새 덱",
     statLabels: {
       cards: {
         one: "카드",
         other: "카드",
-      },
-      new: {
-        one: "신규",
-        other: "신규",
-      },
-      reviewed: {
-        one: "복습함",
-        other: "복습함",
       },
     },
     subtitle: "덱은 저장 공간이 아니라 스마트 필터입니다. 태그로 카드를 찾아냅니다.",
@@ -1401,10 +1383,10 @@ const koCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "카드",
-      due: "복습 예정",
       new: "신규",
       summary: "요약",
       title: "덱 규칙",
+      toStudy: "학습 예정",
     },
     subtitle: "덱 규칙과 해당하는 카드, 복습 시작점을 확인하세요.",
     subtitles: {

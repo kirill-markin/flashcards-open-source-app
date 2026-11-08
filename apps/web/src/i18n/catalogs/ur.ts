@@ -767,15 +767,6 @@ const urCatalog: TranslationCatalog = {
       yourCards: "آپ کے کارڈز",
       addCards: "کارڈز شامل کریں",
     },
-    cards: {
-      description: "اس ورک اسپیس کے تمام کارڈز۔",
-    },
-    tags: {
-      description: "کم از کم ایک کارڈ پر استعمال ہونے والے تمام ٹیگز۔",
-    },
-    decks: {
-      description: "مرکوز دہرائی کے لیے محفوظ کیے گئے کارڈ فلٹرز۔",
-    },
     deckCatalog: {
       title: "ڈیک کیٹلاگ",
       description: "مطالعے کے لیے مفت تیار ڈیکس۔",
@@ -1349,23 +1340,14 @@ const urCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} واجب",
+      toStudy: "{{count}} مطالعے کے لیے",
       total: "{{count}} کل",
     },
-    emptyStatsAriaLabel: "{{deckName}} کے اعداد و شمار",
     newDeck: "نیا ڈیک",
     statLabels: {
       cards: {
         one: "کارڈ",
         other: "کارڈز",
-      },
-      new: {
-        one: "نیا",
-        other: "نئے",
-      },
-      reviewed: {
-        one: "دہرایا گیا",
-        other: "دہرائے گئے",
       },
     },
     subtitle: "ڈیکس اسمارٹ فلٹر ہیں، ڈبے نہیں۔ وہ ٹیگز کے ذریعے کارڈز سے مماثل ہوتے ہیں۔",
@@ -1401,10 +1383,10 @@ const urCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "کارڈز",
-      due: "واجب",
       new: "نئے",
       summary: "خلاصہ",
       title: "ڈیک کے قواعد",
+      toStudy: "مطالعے کے لیے",
     },
     subtitle: "ڈیک کے قواعد، مماثل کارڈز اور دہرائی کا داخلی راستہ دیکھیں۔",
     subtitles: {

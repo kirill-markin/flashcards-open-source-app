@@ -775,15 +775,6 @@ const csCatalog: TranslationCatalog = {
       yourCards: "Vaše kartičky",
       addCards: "Přidat kartičky",
     },
-    cards: {
-      description: "Všechny kartičky v tomto pracovním prostoru.",
-    },
-    tags: {
-      description: "Všechny štítky použité alespoň na jedné kartičce.",
-    },
-    decks: {
-      description: "Uložené filtry kartiček pro soustředěné opakování.",
-    },
     deckCatalog: {
       title: "Katalog balíčků",
       description: "Bezplatné hotové balíčky ke studiu.",
@@ -1359,26 +1350,15 @@ const csCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} k opakování",
+      toStudy: "{{count}} ke studiu",
       total: "{{count}} celkem",
     },
-    emptyStatsAriaLabel: "Statistiky balíčku {{deckName}}",
     newDeck: "Nový balíček",
     statLabels: {
       cards: {
         one: "kartička",
         few: "kartičky",
         other: "kartiček",
-      },
-      new: {
-        one: "nová",
-        few: "nové",
-        other: "nových",
-      },
-      reviewed: {
-        one: "opakovaná",
-        few: "opakované",
-        other: "opakovaných",
       },
     },
     subtitle: "Balíčky jsou chytré filtry, ne kontejnery. Vybírají kartičky podle štítků.",
@@ -1414,10 +1394,10 @@ const csCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartičky",
-      due: "K opakování",
       new: "Nové",
       summary: "Souhrn",
       title: "Pravidla balíčku",
+      toStudy: "Ke studiu",
     },
     subtitle: "Prohlédněte si pravidla balíčku, odpovídající kartičky a vstup do opakování.",
     subtitles: {

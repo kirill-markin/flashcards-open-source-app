@@ -783,15 +783,6 @@ const slCatalog: TranslationCatalog = {
       yourCards: "Vaše kartice",
       addCards: "Dodajanje kartic",
     },
-    cards: {
-      description: "Vse kartice v tem delovnem prostoru.",
-    },
-    tags: {
-      description: "Vse oznake, uporabljene na vsaj eni kartici.",
-    },
-    decks: {
-      description: "Shranjeni filtri kartic za osredotočeno ponavljanje.",
-    },
     deckCatalog: {
       title: "Katalog kompletov",
       description: "Brezplačni pripravljeni kompleti za učenje.",
@@ -1369,10 +1360,9 @@ const slCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Za ponovitev: {{count}}",
+      toStudy: "{{count}} za učenje",
       total: "Skupaj: {{count}}",
     },
-    emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Nov komplet",
     statLabels: {
       cards: {
@@ -1380,18 +1370,6 @@ const slCatalog: TranslationCatalog = {
         two: "kartici",
         few: "kartice",
         other: "kartic",
-      },
-      new: {
-        one: "nova",
-        two: "novi",
-        few: "nove",
-        other: "novih",
-      },
-      reviewed: {
-        one: "ponovljena",
-        two: "ponovljeni",
-        few: "ponovljene",
-        other: "ponovljenih",
       },
     },
     subtitle: "Kompleti so pametni filtri, ne vsebniki. Kartice izbirajo po oznakah.",
@@ -1427,10 +1405,10 @@ const slCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartice",
-      due: "Za ponovitev",
       new: "Novo",
       summary: "Povzetek",
       title: "Pravila kompleta",
+      toStudy: "Za učenje",
     },
     subtitle: "Preglejte pravila kompleta, ustrezne kartice in vstopno točko za ponavljanje.",
     subtitles: {

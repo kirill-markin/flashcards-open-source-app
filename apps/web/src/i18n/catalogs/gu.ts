@@ -767,15 +767,6 @@ const guCatalog: TranslationCatalog = {
       yourCards: "તમારાં કાર્ડ",
       addCards: "કાર્ડ ઉમેરો",
     },
-    cards: {
-      description: "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ.",
-    },
-    tags: {
-      description: "ઓછામાં ઓછા એક કાર્ડ પર વપરાયેલા બધા ટૅગ.",
-    },
-    decks: {
-      description: "કેન્દ્રિત પુનરાવર્તન માટે સાચવેલાં કાર્ડ ફિલ્ટર.",
-    },
     deckCatalog: {
       title: "ડેક કૅટલૉગ",
       description: "અભ્યાસ માટે મફત તૈયાર ડેક.",
@@ -1349,23 +1340,14 @@ const guCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} બાકી",
+      toStudy: "{{count}} અભ્યાસ માટે",
       total: "કુલ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ના આંકડા",
     newDeck: "નવું ડેક",
     statLabels: {
       cards: {
         one: "કાર્ડ",
         other: "કાર્ડ",
-      },
-      new: {
-        one: "નવાં",
-        other: "નવાં",
-      },
-      reviewed: {
-        one: "પુનરાવર્તન થયું",
-        other: "પુનરાવર્તન થયું",
       },
     },
     subtitle: "ડેક સ્માર્ટ ફિલ્ટર છે, કન્ટેનર નહીં. તે ટૅગ પ્રમાણે કાર્ડ મેળવે છે.",
@@ -1401,10 +1383,10 @@ const guCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "કાર્ડ",
-      due: "બાકી",
       new: "નવાં",
       summary: "સારાંશ",
       title: "ડેકના નિયમો",
+      toStudy: "અભ્યાસ માટે",
     },
     subtitle: "ડેકના નિયમો, મેળ ખાતાં કાર્ડ અને પુનરાવર્તનનું પ્રવેશસ્થાન જુઓ.",
     subtitles: {

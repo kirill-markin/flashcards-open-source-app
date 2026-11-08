@@ -767,15 +767,6 @@ const nlCatalog: TranslationCatalog = {
       yourCards: "Jouw kaarten",
       addCards: "Kaarten toevoegen",
     },
-    cards: {
-      description: "Alle kaarten in deze werkruimte.",
-    },
-    tags: {
-      description: "Alle tags die op minstens één kaart worden gebruikt.",
-    },
-    decks: {
-      description: "Opgeslagen kaartfilters om gericht te herhalen.",
-    },
     deckCatalog: {
       title: "Deckcatalogus",
       description: "Gratis kant-en-klare decks om te leren.",
@@ -1349,23 +1340,14 @@ const nlCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} te doen",
+      toStudy: "{{count}} te leren",
       total: "{{count}} totaal",
     },
-    emptyStatsAriaLabel: "Statistieken van {{deckName}}",
     newDeck: "Nieuw deck",
     statLabels: {
       cards: {
         one: "kaart",
         other: "kaarten",
-      },
-      new: {
-        one: "nieuw",
-        other: "nieuw",
-      },
-      reviewed: {
-        one: "herhaald",
-        other: "herhaald",
       },
     },
     subtitle: "Decks zijn slimme filters, geen mappen. Ze koppelen kaarten op basis van tags.",
@@ -1401,10 +1383,10 @@ const nlCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kaarten",
-      due: "Te doen",
       new: "Nieuw",
       summary: "Samenvatting",
       title: "Deckregels",
+      toStudy: "Te leren",
     },
     subtitle: "Bekijk de deckregels, de passende kaarten en het startpunt om te herhalen.",
     subtitles: {

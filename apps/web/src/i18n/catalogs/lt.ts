@@ -775,15 +775,6 @@ const ltCatalog: TranslationCatalog = {
       yourCards: "Jūsų kortelės",
       addCards: "Pridėti korteles",
     },
-    cards: {
-      description: "Visos šios darbo srities kortelės.",
-    },
-    tags: {
-      description: "Visos žymos, naudojamos bent vienoje kortelėje.",
-    },
-    decks: {
-      description: "Išsaugoti kortelių filtrai susitelkusiam kartojimui.",
-    },
     deckCatalog: {
       title: "Kaladžių katalogas",
       description: "Nemokamos paruoštos kaladės mokytis.",
@@ -1359,26 +1350,15 @@ const ltCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Kartoti: {{count}}",
+      toStudy: "Mokytis: {{count}}",
       total: "Iš viso: {{count}}",
     },
-    emptyStatsAriaLabel: "Kaladės {{deckName}} statistika",
     newDeck: "Nauja kaladė",
     statLabels: {
       cards: {
         one: "kortelė",
         few: "kortelės",
         other: "kortelių",
-      },
-      new: {
-        one: "nauja",
-        few: "naujos",
-        other: "naujų",
-      },
-      reviewed: {
-        one: "pakartota",
-        few: "pakartotos",
-        other: "pakartotų",
       },
     },
     subtitle: "Kaladės yra išmanieji filtrai, o ne talpyklos. Jos atrenka korteles pagal žymas.",
@@ -1414,10 +1394,10 @@ const ltCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kortelės",
-      due: "Laikas kartoti",
       new: "Naujos",
       summary: "Santrauka",
       title: "Kaladės taisyklės",
+      toStudy: "Mokytis",
     },
     subtitle: "Peržiūrėkite kaladės taisykles, atitinkančias korteles ir kartojimo pradžios tašką.",
     subtitles: {

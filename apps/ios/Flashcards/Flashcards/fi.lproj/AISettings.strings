@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Tallenna nimi";
 "settings.workspace.overview.workspace" = "Työtila";
 "settings.workspace.overview.cards" = "Kortit";
-"settings.workspace.overview.due" = "Erääntyneet";
 "settings.workspace.overview.new" = "Uusi";
 "settings.workspace.overview.deleteDescription" = "Poista tämä työtila sekä sen kaikki kortit, pakat, kertaukset ja synkronointihistoria pysyvästi.";
 "settings.workspace.overview.deleteWorkspace" = "Poista työtila";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Ei vastaavia pakkoja";
 "settings.workspace.decks.searchPrompt" = "Etsi pakkoja";
 "settings.workspace.decks.newDeck" = "Uusi pakka";
-"settings.workspace.decks.dueCount" = "%d erääntynyttä";
-"settings.workspace.decks.totalCards" = "%d korttia";
-"settings.workspace.decks.newCount" = "%d uutta";
-"settings.workspace.decks.reviewedCount" = "%d kerrattua";
+"settings.workspace.decks.toStudyCount" = "opiskeltavana %d";
+"settings.workspace.decks.toStudy" = "Opiskeltavana";
 "settings.workspace.decks.emptyAllCards" = "Et ole vielä luonut kortteja.";
 "settings.workspace.decks.emptyDeck" = "Tässä pakassa ei ole vielä vastaavia kortteja.";
 "settings.workspace.decks.section.deckRules" = "Pakan säännöt";

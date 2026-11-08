@@ -767,15 +767,6 @@ const arCatalog: TranslationCatalog = {
       yourCards: "بطاقاتك",
       addCards: "إضافة بطاقات",
     },
-    cards: {
-      description: "كل البطاقات في مساحة العمل هذه.",
-    },
-    tags: {
-      description: "كل الوسوم المستخدمة في بطاقة واحدة على الأقل.",
-    },
-    decks: {
-      description: "فلاتر بطاقات محفوظة لمراجعة مركّزة.",
-    },
     deckCatalog: {
       title: "كتالوج المجموعات",
       description: "مجموعات جاهزة مجانية للدراسة.",
@@ -1349,23 +1340,14 @@ const arCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} مستحقة",
+      toStudy: "{{count}} للدراسة",
       total: "{{count}} إجمالًا",
     },
-    emptyStatsAriaLabel: "إحصاءات {{deckName}}",
     newDeck: "مجموعة جديدة",
     statLabels: {
       cards: {
         one: "بطاقة",
         other: "بطاقات",
-      },
-      new: {
-        one: "جديدة",
-        other: "جديدة",
-      },
-      reviewed: {
-        one: "تمت مراجعتها",
-        other: "تمت مراجعتها",
       },
     },
     subtitle: "المجموعات فلاتر ذكية وليست حاويات. تطابق البطاقات حسب الوسوم.",
@@ -1401,10 +1383,10 @@ const arCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "البطاقات",
-      due: "مستحق",
       new: "جديد",
       summary: "ملخص",
       title: "قواعد المجموعة",
+      toStudy: "للدراسة",
     },
     subtitle: "افحص قواعد المجموعة والبطاقات المطابقة ونقطة الدخول إلى المراجعة.",
     subtitles: {

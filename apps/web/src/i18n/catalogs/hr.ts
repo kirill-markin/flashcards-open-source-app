@@ -775,15 +775,6 @@ const hrCatalog: TranslationCatalog = {
       yourCards: "Vaše kartice",
       addCards: "Dodavanje kartica",
     },
-    cards: {
-      description: "Sve kartice u ovom radnom prostoru.",
-    },
-    tags: {
-      description: "Sve oznake korištene na barem jednoj kartici.",
-    },
-    decks: {
-      description: "Spremljeni filtri kartica za usredotočeno ponavljanje.",
-    },
     deckCatalog: {
       title: "Katalog špilova",
       description: "Besplatni gotovi špilovi za učenje.",
@@ -1359,26 +1350,15 @@ const hrCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Dospjelo: {{count}}",
+      toStudy: "{{count}} za učenje",
       total: "Ukupno: {{count}}",
     },
-    emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Novi špil",
     statLabels: {
       cards: {
         one: "kartica",
         few: "kartice",
         other: "kartica",
-      },
-      new: {
-        one: "nova",
-        few: "nove",
-        other: "novih",
-      },
-      reviewed: {
-        one: "ponovljena",
-        few: "ponovljene",
-        other: "ponovljenih",
       },
     },
     subtitle: "Špilovi su pametni filtri, a ne spremnici. Kartice odabiru prema oznakama.",
@@ -1414,10 +1394,10 @@ const hrCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartice",
-      due: "Dospjelo",
       new: "Novo",
       summary: "Sažetak",
       title: "Pravila špila",
+      toStudy: "Za učenje",
     },
     subtitle: "Pregledajte pravila špila, odgovarajuće kartice i ulaz u ponavljanje.",
     subtitles: {

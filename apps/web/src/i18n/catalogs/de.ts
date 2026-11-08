@@ -767,15 +767,6 @@ const deCatalog: TranslationCatalog = {
       yourCards: "Deine Karten",
       addCards: "Karten hinzufügen",
     },
-    cards: {
-      description: "Alle Karten in diesem Arbeitsbereich.",
-    },
-    tags: {
-      description: "Alle Tags, die auf mindestens einer Karte verwendet werden.",
-    },
-    decks: {
-      description: "Gespeicherte Kartenfilter für gezieltes Wiederholen.",
-    },
     deckCatalog: {
       title: "Deck-Katalog",
       description: "Kostenlose fertige Decks zum Lernen.",
@@ -1349,23 +1340,14 @@ const deCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} fällig",
+      toStudy: "{{count}} zum Lernen",
       total: "{{count}} insgesamt",
     },
-    emptyStatsAriaLabel: "{{deckName}}-Statistik",
     newDeck: "Neues Deck",
     statLabels: {
       cards: {
         one: "Karte",
         other: "Karten",
-      },
-      new: {
-        one: "neu",
-        other: "neu",
-      },
-      reviewed: {
-        one: "wiederholt",
-        other: "wiederholt",
       },
     },
     subtitle: "Decks sind intelligente Filter, keine Container, und finden Karten nach Tags.",
@@ -1401,10 +1383,10 @@ const deCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karten",
-      due: "Fällig",
       new: "Neu",
       summary: "Zusammenfassung",
       title: "Deck-Regeln",
+      toStudy: "Zum Lernen",
     },
     subtitle: "Prüfe Deck-Regeln, passende Karten und den Einstiegspunkt zur Wiederholung.",
     subtitles: {

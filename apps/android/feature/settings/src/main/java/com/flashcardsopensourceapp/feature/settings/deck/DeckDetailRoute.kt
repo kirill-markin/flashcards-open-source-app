@@ -109,7 +109,7 @@ fun DeckDetailRoute(
                             )
                         }
                         OverviewRow(title = stringResource(R.string.settings_cards_title), value = detail.totalCards)
-                        OverviewRow(title = stringResource(R.string.settings_workspace_due_title), value = detail.dueCards)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_to_study_title), value = detail.dueCards)
                         OverviewRow(title = stringResource(R.string.settings_workspace_new_title), value = detail.newCards)
                         OverviewRow(title = stringResource(R.string.settings_workspace_reviewed_title), value = detail.reviewedCards)
                     }

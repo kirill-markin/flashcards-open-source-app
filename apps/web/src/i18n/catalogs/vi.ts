@@ -767,15 +767,6 @@ const viCatalog: TranslationCatalog = {
       yourCards: "Thẻ của bạn",
       addCards: "Thêm thẻ",
     },
-    cards: {
-      description: "Mọi thẻ trong không gian làm việc này.",
-    },
-    tags: {
-      description: "Mọi nhãn được dùng trên ít nhất một thẻ.",
-    },
-    decks: {
-      description: "Bộ lọc thẻ đã lưu để ôn tập tập trung.",
-    },
     deckCatalog: {
       title: "Danh mục bộ thẻ",
       description: "Bộ thẻ miễn phí, có sẵn để học.",
@@ -1349,23 +1340,14 @@ const viCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} đến hạn",
+      toStudy: "{{count}} cần học",
       total: "Tổng {{count}}",
     },
-    emptyStatsAriaLabel: "Thống kê {{deckName}}",
     newDeck: "Bộ thẻ mới",
     statLabels: {
       cards: {
         one: "thẻ",
         other: "thẻ",
-      },
-      new: {
-        one: "mới",
-        other: "mới",
-      },
-      reviewed: {
-        one: "đã ôn",
-        other: "đã ôn",
       },
     },
     subtitle: "Bộ thẻ là bộ lọc thông minh, không phải thư mục chứa. Chúng khớp thẻ theo nhãn.",
@@ -1401,10 +1383,10 @@ const viCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Thẻ",
-      due: "Đến hạn",
       new: "Mới",
       summary: "Tóm tắt",
       title: "Quy tắc bộ thẻ",
+      toStudy: "Cần học",
     },
     subtitle: "Xem quy tắc bộ thẻ, các thẻ phù hợp và điểm bắt đầu ôn tập.",
     subtitles: {

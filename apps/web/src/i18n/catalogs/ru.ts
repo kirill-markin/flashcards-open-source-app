@@ -775,15 +775,6 @@ export const ruCatalog = {
       yourCards: "Ваши карточки",
       addCards: "Добавить карточки",
     },
-    cards: {
-      description: "Все карточки в этом рабочем пространстве.",
-    },
-    tags: {
-      description: "Все теги, которые есть хотя бы на одной карточке.",
-    },
-    decks: {
-      description: "Сохранённые фильтры карточек для целенаправленного повторения.",
-    },
     deckCatalog: {
       title: "Каталог колод",
       description: "Бесплатные готовые колоды для изучения.",
@@ -1359,26 +1350,15 @@ export const ruCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} к повторению",
+      toStudy: "{{count}} к изучению",
       total: "{{count}} всего",
     },
-    emptyStatsAriaLabel: "Статистика {{deckName}}",
     newDeck: "Новая колода",
     statLabels: {
       cards: {
         one: "карточка",
         few: "карточки",
         other: "карточек",
-      },
-      new: {
-        one: "новая",
-        few: "новые",
-        other: "новых",
-      },
-      reviewed: {
-        one: "повторенная",
-        few: "повторенные",
-        other: "повторенных",
       },
     },
     subtitle: "Колоды — это умные фильтры, а не контейнеры. Они подбирают карточки по тегам.",
@@ -1414,10 +1394,10 @@ export const ruCatalog = {
     },
     rules: {
       cards: "Карточки",
-      due: "К повторению",
       new: "Новые",
       summary: "Сводка",
       title: "Правила колоды",
+      toStudy: "К изучению",
     },
     subtitle: "Просмотрите правила колоды, подходящие карточки и точку входа в повторение.",
     subtitles: {

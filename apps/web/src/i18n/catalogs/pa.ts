@@ -767,15 +767,6 @@ const paCatalog: TranslationCatalog = {
       yourCards: "ਤੁਹਾਡੇ ਕਾਰਡ",
       addCards: "ਕਾਰਡ ਜੋੜੋ",
     },
-    cards: {
-      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ.",
-    },
-    tags: {
-      description: "ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ 'ਤੇ ਵਰਤੇ ਗਏ ਸਾਰੇ ਟੈਗ.",
-    },
-    decks: {
-      description: "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ.",
-    },
     deckCatalog: {
       title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",
       description: "ਪੜ੍ਹਨ ਲਈ ਮੁਫ਼ਤ ਤਿਆਰ ਡੈੱਕ.",
@@ -1349,23 +1340,14 @@ const paCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} ਬਕਾਇਆ",
+      toStudy: "{{count}} ਪੜ੍ਹਨ ਲਈ",
       total: "ਕੁੱਲ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ਦੇ ਅੰਕੜੇ",
     newDeck: "ਨਵਾਂ ਡੈੱਕ",
     statLabels: {
       cards: {
         one: "ਕਾਰਡ",
         other: "ਕਾਰਡ",
-      },
-      new: {
-        one: "ਨਵੇਂ",
-        other: "ਨਵੇਂ",
-      },
-      reviewed: {
-        one: "ਦੁਹਰਾਏ",
-        other: "ਦੁਹਰਾਏ",
       },
     },
     subtitle: "ਡੈੱਕ ਸਮਾਰਟ ਫਿਲਟਰ ਹਨ, ਡੱਬੇ ਨਹੀਂ. ਇਹ ਟੈਗਾਂ ਨਾਲ ਕਾਰਡ ਮਿਲਾਉਂਦੇ ਹਨ.",
@@ -1401,10 +1383,10 @@ const paCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "ਕਾਰਡ",
-      due: "ਬਕਾਇਆ",
       new: "ਨਵੇਂ",
       summary: "ਸਾਰ",
       title: "ਡੈੱਕ ਦੇ ਨਿਯਮ",
+      toStudy: "ਪੜ੍ਹਨ ਲਈ",
     },
     subtitle: "ਡੈੱਕ ਦੇ ਨਿਯਮ, ਮੇਲ ਖਾਂਦੇ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦਾ ਰਾਹ ਵੇਖੋ.",
     subtitles: {

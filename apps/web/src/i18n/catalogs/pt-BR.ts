@@ -767,15 +767,6 @@ const ptBrCatalog: TranslationCatalog = {
       yourCards: "Seus cartões",
       addCards: "Adicionar cartões",
     },
-    cards: {
-      description: "Todos os cartões deste espaço de trabalho.",
-    },
-    tags: {
-      description: "Todas as etiquetas usadas em pelo menos um cartão.",
-    },
-    decks: {
-      description: "Filtros de cartões salvos para uma revisão focada.",
-    },
     deckCatalog: {
       title: "Catálogo de baralhos",
       description: "Baralhos prontos e gratuitos para estudar.",
@@ -1349,23 +1340,14 @@ const ptBrCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} pendentes",
+      toStudy: "{{count}} para estudar",
       total: "{{count}} no total",
     },
-    emptyStatsAriaLabel: "Estatísticas de {{deckName}}",
     newDeck: "Novo baralho",
     statLabels: {
       cards: {
         one: "cartão",
         other: "cartões",
-      },
-      new: {
-        one: "novo",
-        other: "novos",
-      },
-      reviewed: {
-        one: "revisado",
-        other: "revisados",
       },
     },
     subtitle: "Baralhos são filtros inteligentes, não pastas. Eles selecionam cartões por etiquetas.",
@@ -1401,10 +1383,10 @@ const ptBrCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Cartões",
-      due: "Pendentes",
       new: "Novos",
       summary: "Resumo",
       title: "Regras do baralho",
+      toStudy: "Para estudar",
     },
     subtitle: "Consulte as regras do baralho, os cartões correspondentes e o ponto de entrada da revisão.",
     subtitles: {

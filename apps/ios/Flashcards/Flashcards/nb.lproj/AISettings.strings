@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Lagre navn";
 "settings.workspace.overview.workspace" = "Arbeidsområde";
 "settings.workspace.overview.cards" = "Kort";
-"settings.workspace.overview.due" = "Til repetisjon";
 "settings.workspace.overview.new" = "Nye";
 "settings.workspace.overview.deleteDescription" = "Slett dette arbeidsområdet og alle kort, kortstokker, repetisjoner og synkroniseringshistorikk i det permanent.";
 "settings.workspace.overview.deleteWorkspace" = "Slett arbeidsområde";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Ingen samsvarende kortstokker";
 "settings.workspace.decks.searchPrompt" = "Søk i kortstokker";
 "settings.workspace.decks.newDeck" = "Ny kortstokk";
-"settings.workspace.decks.dueCount" = "Til repetisjon: %d";
-"settings.workspace.decks.totalCards" = "%d kort";
-"settings.workspace.decks.newCount" = "Nye: %d";
-"settings.workspace.decks.reviewedCount" = "Repetert: %d";
+"settings.workspace.decks.toStudyCount" = "%d å lære";
+"settings.workspace.decks.toStudy" = "Å lære";
 "settings.workspace.decks.emptyAllCards" = "Du har ikke opprettet noen kort ennå.";
 "settings.workspace.decks.emptyDeck" = "Denne kortstokken har ingen samsvarende kort ennå.";
 "settings.workspace.decks.section.deckRules" = "Kortstokkregler";

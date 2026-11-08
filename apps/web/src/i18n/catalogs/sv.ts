@@ -767,15 +767,6 @@ const svCatalog: TranslationCatalog = {
       yourCards: "Dina kort",
       addCards: "Lägg till kort",
     },
-    cards: {
-      description: "Alla kort i den här arbetsytan.",
-    },
-    tags: {
-      description: "Alla taggar som används på minst ett kort.",
-    },
-    decks: {
-      description: "Sparade kortfilter för fokuserad repetition.",
-    },
     deckCatalog: {
       title: "Kortlekskatalog",
       description: "Gratis färdiga kortlekar att studera.",
@@ -1349,23 +1340,14 @@ const svCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} att repetera",
+      toStudy: "{{count}} att studera",
       total: "{{count}} totalt",
     },
-    emptyStatsAriaLabel: "Statistik för {{deckName}}",
     newDeck: "Ny kortlek",
     statLabels: {
       cards: {
         one: "kort",
         other: "kort",
-      },
-      new: {
-        one: "nytt",
-        other: "nya",
-      },
-      reviewed: {
-        one: "repeterat",
-        other: "repeterade",
       },
     },
     subtitle: "Kortlekar är smarta filter, inte behållare. De matchar kort utifrån taggar.",
@@ -1401,10 +1383,10 @@ const svCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kort",
-      due: "Att repetera",
       new: "Nya",
       summary: "Sammanfattning",
       title: "Kortleksregler",
+      toStudy: "Att studera",
     },
     subtitle: "Se kortlekens regler, matchande kort och ingången till repetitionen.",
     subtitles: {

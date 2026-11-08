@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Simpan Nama";
 "settings.workspace.overview.workspace" = "Ruang Kerja";
 "settings.workspace.overview.cards" = "Kartu";
-"settings.workspace.overview.due" = "Jatuh tempo";
 "settings.workspace.overview.new" = "Baru";
 "settings.workspace.overview.deleteDescription" = "Hapus ruang kerja ini beserta semua kartu, dek, pengulangan, dan riwayat sinkronisasinya secara permanen.";
 "settings.workspace.overview.deleteWorkspace" = "Hapus ruang kerja";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Tidak Ada Dek yang Cocok";
 "settings.workspace.decks.searchPrompt" = "Cari dek";
 "settings.workspace.decks.newDeck" = "Dek baru";
-"settings.workspace.decks.dueCount" = "%d jatuh tempo";
-"settings.workspace.decks.totalCards" = "%d kartu";
-"settings.workspace.decks.newCount" = "%d baru";
-"settings.workspace.decks.reviewedCount" = "%d diulang";
+"settings.workspace.decks.toStudyCount" = "%d untuk dipelajari";
+"settings.workspace.decks.toStudy" = "Untuk dipelajari";
 "settings.workspace.decks.emptyAllCards" = "Anda belum membuat kartu.";
 "settings.workspace.decks.emptyDeck" = "Dek ini belum memiliki kartu yang cocok.";
 "settings.workspace.decks.section.deckRules" = "Aturan dek";

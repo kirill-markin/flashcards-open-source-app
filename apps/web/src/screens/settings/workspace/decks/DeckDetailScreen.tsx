@@ -274,7 +274,7 @@ export function DeckDetailScreen(): ReactElement {
                   <span className="deck-detail-stat-value">{formatNumber(detailState.cards.length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">{t("deckDetail.rules.due")}</span>
+                  <span className="deck-detail-stat-label">{t("deckDetail.rules.toStudy")}</span>
                   <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => isCardDue(card, nowTimestamp)).length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">

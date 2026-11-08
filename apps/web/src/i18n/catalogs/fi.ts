@@ -767,15 +767,6 @@ const fiCatalog: TranslationCatalog = {
       yourCards: "Korttisi",
       addCards: "Lisää kortteja",
     },
-    cards: {
-      description: "Kaikki tämän työtilan kortit.",
-    },
-    tags: {
-      description: "Kaikki tunnisteet, joita on käytetty vähintään yhdessä kortissa.",
-    },
-    decks: {
-      description: "Tallennetut korttisuodattimet keskittyneeseen kertaukseen.",
-    },
     deckCatalog: {
       title: "Pakkakatalogi",
       description: "Ilmaisia valmiita pakkoja opiskeluun.",
@@ -1349,23 +1340,14 @@ const fiCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} erääntynyttä",
+      toStudy: "{{count}} opiskeltavaa",
       total: "{{count}} yhteensä",
     },
-    emptyStatsAriaLabel: "Pakan {{deckName}} tilastot",
     newDeck: "Uusi pakka",
     statLabels: {
       cards: {
         one: "kortti",
         other: "korttia",
-      },
-      new: {
-        one: "uusi",
-        other: "uutta",
-      },
-      reviewed: {
-        one: "kerrattu",
-        other: "kerrattua",
       },
     },
     subtitle: "Pakat ovat älysuodattimia, eivät säiliöitä. Ne poimivat kortit tunnisteiden perusteella.",
@@ -1401,10 +1383,10 @@ const fiCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kortit",
-      due: "Erääntyneet",
       new: "Uudet",
       summary: "Yhteenveto",
       title: "Pakan säännöt",
+      toStudy: "Opiskeltavaa",
     },
     subtitle: "Tarkastele pakan säännöt, vastaavat kortit ja kertauksen aloituskohta.",
     subtitles: {

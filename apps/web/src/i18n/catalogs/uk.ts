@@ -775,15 +775,6 @@ const ukCatalog: TranslationCatalog = {
       yourCards: "Ваші картки",
       addCards: "Додати картки",
     },
-    cards: {
-      description: "Усі картки в цьому робочому просторі.",
-    },
-    tags: {
-      description: "Усі теги, використані хоча б на одній картці.",
-    },
-    decks: {
-      description: "Збережені фільтри карток для цілеспрямованого повторення.",
-    },
     deckCatalog: {
       title: "Каталог колод",
       description: "Безкоштовні готові колоди для вивчення.",
@@ -1359,26 +1350,15 @@ const ukCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} до повторення",
+      toStudy: "{{count}} до вивчення",
       total: "{{count}} усього",
     },
-    emptyStatsAriaLabel: "Статистика колоди {{deckName}}",
     newDeck: "Нова колода",
     statLabels: {
       cards: {
         one: "картка",
         few: "картки",
         other: "карток",
-      },
-      new: {
-        one: "нова",
-        few: "нові",
-        other: "нових",
-      },
-      reviewed: {
-        one: "повторена",
-        few: "повторені",
-        other: "повторених",
       },
     },
     subtitle: "Колоди — це розумні фільтри, а не контейнери. Вони добирають картки за тегами.",
@@ -1414,10 +1394,10 @@ const ukCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Картки",
-      due: "Термін",
       new: "Нові",
       summary: "Підсумок",
       title: "Правила колоди",
+      toStudy: "До вивчення",
     },
     subtitle: "Перегляньте правила колоди, відповідні картки та вхід у повторення.",
     subtitles: {

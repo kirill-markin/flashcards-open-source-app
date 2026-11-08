@@ -767,15 +767,6 @@ const knCatalog: TranslationCatalog = {
       yourCards: "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
       addCards: "ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
     },
-    cards: {
-      description: "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿನ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು.",
-    },
-    tags: {
-      description: "ಕನಿಷ್ಠ ಒಂದು ಕಾರ್ಡ್‌ನಲ್ಲಿ ಬಳಸಲಾದ ಎಲ್ಲಾ ಟ್ಯಾಗ್‌ಗಳು.",
-    },
-    decks: {
-      description: "ಕೇಂದ್ರೀಕೃತ ಪುನರಾವರ್ತನೆಗಾಗಿ ಉಳಿಸಿದ ಕಾರ್ಡ್ ಫಿಲ್ಟರ್‌ಗಳು.",
-    },
     deckCatalog: {
       title: "ಡೆಕ್ ಕ್ಯಾಟಲಾಗ್",
       description: "ಅಧ್ಯಯನಕ್ಕಾಗಿ ಉಚಿತ ಸಿದ್ಧ ಡೆಕ್‌ಗಳು.",
@@ -1349,23 +1340,14 @@ const knCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} ಬಾಕಿ",
+      toStudy: "{{count}} ಅಧ್ಯಯನಕ್ಕೆ",
       total: "ಒಟ್ಟು {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ಅಂಕಿಅಂಶಗಳು",
     newDeck: "ಹೊಸ ಡೆಕ್",
     statLabels: {
       cards: {
         one: "ಕಾರ್ಡ್",
         other: "ಕಾರ್ಡ್‌ಗಳು",
-      },
-      new: {
-        one: "ಹೊಸದು",
-        other: "ಹೊಸದು",
-      },
-      reviewed: {
-        one: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
-        other: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
       },
     },
     subtitle: "ಡೆಕ್‌ಗಳು ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರ್‌ಗಳು, ಕಂಟೇನರ್‌ಗಳಲ್ಲ. ಅವು ಟ್ಯಾಗ್‌ಗಳ ಪ್ರಕಾರ ಕಾರ್ಡ್‌ಗಳನ್ನು ಹೊಂದಿಸುತ್ತವೆ.",
@@ -1401,10 +1383,10 @@ const knCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "ಕಾರ್ಡ್‌ಗಳು",
-      due: "ಬಾಕಿ",
       new: "ಹೊಸದು",
       summary: "ಸಾರಾಂಶ",
       title: "ಡೆಕ್ ನಿಯಮಗಳು",
+      toStudy: "ಅಧ್ಯಯನಕ್ಕೆ",
     },
     subtitle: "ಡೆಕ್ ನಿಯಮಗಳು, ಹೊಂದುವ ಕಾರ್ಡ್‌ಗಳು ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ಪ್ರವೇಶ ಸ್ಥಾನವನ್ನು ಪರಿಶೀಲಿಸಿ.",
     subtitles: {

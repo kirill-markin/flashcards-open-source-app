@@ -767,15 +767,6 @@ const zuCatalog: TranslationCatalog = {
       yourCards: "Amakhadi akho",
       addCards: "Engeza amakhadi",
     },
-    cards: {
-      description: "Wonke amakhadi akule ndawo yokusebenza.",
-    },
-    tags: {
-      description: "Wonke amathegi asetshenziswe okungenani ekhadini elilodwa.",
-    },
-    decks: {
-      description: "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile.",
-    },
     deckCatalog: {
       title: "Ikhathalogi yezinqwaba",
       description: "Izinqwaba zamahhala ezilungele ukufundwa.",
@@ -1349,23 +1340,14 @@ const zuCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Sekuyisikhathi: {{count}}",
+      toStudy: "Okokufunda: {{count}}",
       total: "Sekukonke: {{count}}",
     },
-    emptyStatsAriaLabel: "Izibalo zenqwaba ethi {{deckName}}",
     newDeck: "Inqwaba entsha",
     statLabels: {
       cards: {
         one: "ikhadi",
         other: "amakhadi",
-      },
-      new: {
-        one: "okusha",
-        other: "okusha",
-      },
-      reviewed: {
-        one: "kubukeziwe",
-        other: "kubukeziwe",
       },
     },
     subtitle: "Izinqwaba ziyizihlungi ezihlakaniphile, hhayi iziqukathi. Zithola amakhadi ngamathegi.",
@@ -1401,10 +1383,10 @@ const zuCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Amakhadi",
-      due: "Sekuyisikhathi",
       new: "Okusha",
       summary: "Isifinyezo",
       title: "Imithetho yenqwaba",
+      toStudy: "Okokufunda",
     },
     subtitle: "Hlola imithetho yenqwaba, amakhadi afanayo, nendawo yokuqala ukubukeza.",
     subtitles: {

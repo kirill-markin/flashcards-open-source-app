@@ -767,15 +767,6 @@ const taCatalog: TranslationCatalog = {
       yourCards: "உங்கள் அட்டைகள்",
       addCards: "அட்டைகளைச் சேர்க்கவும்",
     },
-    cards: {
-      description: "இந்தப் பணியிடத்தில் உள்ள எல்லா அட்டைகளும்.",
-    },
-    tags: {
-      description: "குறைந்தது ஒரு அட்டையில் பயன்படுத்தப்பட்ட எல்லா குறிச்சொற்களும்.",
-    },
-    decks: {
-      description: "கவனம் செலுத்திய மீள்பயிற்சிக்காகச் சேமித்த அட்டை வடிகட்டிகள்.",
-    },
     deckCatalog: {
       title: "தொகுப்புப் பட்டியல்",
       description: "படிப்பதற்கான இலவச, தயாரான தொகுப்புகள்.",
@@ -1349,23 +1340,14 @@ const taCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} உரியவை",
+      toStudy: "{{count}} படிக்க",
       total: "மொத்தம் {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} புள்ளிவிவரங்கள்",
     newDeck: "புதிய தொகுப்பு",
     statLabels: {
       cards: {
         one: "அட்டை",
         other: "அட்டைகள்",
-      },
-      new: {
-        one: "புதியது",
-        other: "புதியவை",
-      },
-      reviewed: {
-        one: "மீள்பயிற்சி செய்தது",
-        other: "மீள்பயிற்சி செய்தவை",
       },
     },
     subtitle: "தொகுப்புகள் திறமையான வடிகட்டிகள்; கொள்கலன்கள் அல்ல. அவை குறிச்சொற்களின்படி அட்டைகளைப் பொருத்துகின்றன.",
@@ -1401,10 +1383,10 @@ const taCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "அட்டைகள்",
-      due: "உரியவை",
       new: "புதியவை",
       summary: "சுருக்கம்",
       title: "தொகுப்பு விதிகள்",
+      toStudy: "படிக்க",
     },
     subtitle: "தொகுப்பு விதிகள், பொருந்தும் அட்டைகள் மற்றும் மீள்பயிற்சி நுழைவிடத்தைப் பரிசோதிக்கவும்.",
     subtitles: {
