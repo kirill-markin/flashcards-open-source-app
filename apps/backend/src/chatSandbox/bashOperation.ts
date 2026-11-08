@@ -14,6 +14,7 @@ import { PresignedObjectReader, PresignedReadOnlyFs, type PresignedFile } from "
 import { sha256Hex, uploadToWriteSlots, type SlotFile } from "./slotUploads";
 import { ChatSandboxMediaBridgeClient } from "./mediaBridge/sandboxClient";
 import { ChatSandboxSqlBridgeClient } from "./sqlBridge/sandboxClient";
+import { createZstdCommand } from "./zstdCommand";
 
 const filesMountPoint = "/files";
 const workMountPoint = "/work";
@@ -258,6 +259,7 @@ export async function runChatSandboxBash(request: ChatSandboxBashRequest): Promi
       ...sqlBridge.createCommands(decodeBytesToUtf8),
       ...mediaBridge.createCommands(),
       createMagickCommand(),
+      createZstdCommand(),
     ],
     executionLimitProfile: "hardened",
     executionLimits,
