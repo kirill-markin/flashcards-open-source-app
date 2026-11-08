@@ -12,7 +12,11 @@ private const val widgetUpdateDebounceMillis: Long = 1_000L
 
 /** One instance of every widget class the manifest declares. */
 private fun makeAllWidgets(): List<GlanceAppWidget> {
-    return listOf(ReviewWidget())
+    return listOf(
+        ReviewWidget(),
+        ReviewsChartWidget(),
+        ComingUpWidget()
+    )
 }
 
 /**

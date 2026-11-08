@@ -71,6 +71,29 @@
     <string name="review_widget_preview_cards_due">12 cards due</string>
     <string name="review_widget_preview_question">What does the mitochondria produce for the cell?</string>
     <string name="review_widget_preview_streak">7-day streak</string>
+    <!-- Reviews chart Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="reviews_chart_widget_label">Reviews</string>
+    <string name="reviews_chart_widget_description">Your daily reviews over the last weeks.</string>
+    <string name="reviews_chart_widget_daily_average">Daily avg <xliff:g id="review_count" example="24">%1$d</xliff:g></string>
+    <!-- The quantity is the day count. -->
+    <plurals name="reviews_chart_widget_trend_up">
+        <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> day</item>
+        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> days</item>
+    </plurals>
+    <!-- The quantity is the day count. -->
+    <plurals name="reviews_chart_widget_trend_down">
+        <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> day</item>
+        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> days</item>
+    </plurals>
+    <string name="reviews_chart_widget_preview_daily_average">Daily avg 24</string>
+    <!-- Coming up Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="coming_up_widget_label">Coming up</string>
+    <string name="coming_up_widget_description">Cards due over the next 7 days and your review schedule.</string>
+    <plurals name="coming_up_widget_header">
+        <item quantity="one">Next 7 days · <xliff:g id="card_count" example="1">%1$d</xliff:g> card</item>
+        <item quantity="other">Next 7 days · <xliff:g id="card_count" example="58">%1$d</xliff:g> cards</item>
+    </plurals>
+    <string name="coming_up_widget_preview_header">Next 7 days · 58 cards</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>
