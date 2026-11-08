@@ -465,6 +465,54 @@ extension CardStore {
         }
     }
 
+    /// Counts cards due in each interval `[intervalBoundaries[i], intervalBoundaries[i + 1])`; new cards have no due
+    /// time and are never counted.
+    func loadReviewDueCounts(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        intervalBoundaries: [Date]
+    ) throws -> [Int] {
+        precondition(intervalBoundaries.count >= 2, "Review due count intervals need at least two boundaries")
+
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+        let boundaryMillis = intervalBoundaries.map { boundary in epochMillis(date: boundary) }
+        let intervalCount = boundaryMillis.count - 1
+        let countColumnsSQL = Array(
+            repeating: "COALESCE(SUM(CASE WHEN due_at_millis >= ? AND due_at_millis < ? THEN 1 ELSE 0 END), 0)",
+            count: intervalCount
+        ).joined(separator: ",\n    ")
+        let countColumnValues: [SQLiteValue] = (0 ..< intervalCount).flatMap { index in
+            [SQLiteValue.integer(boundaryMillis[index]), SQLiteValue.integer(boundaryMillis[index + 1])]
+        }
+
+        let rows = try self.core.query(
+            sql: """
+            SELECT
+                \(countColumnsSQL)
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL AND due_at IS NOT NULL
+                AND due_at_millis >= ? AND due_at_millis < ?\(querySQL.clause)
+            """,
+            values: countColumnValues
+                + [
+                    .text(workspaceId),
+                    .integer(boundaryMillis[0]),
+                    .integer(boundaryMillis[intervalCount]),
+                ]
+                + querySQL.values
+        ) { statement in
+            (0 ..< intervalCount).map { index in
+                Int(DatabaseCore.columnInt64(statement: statement, index: Int32(index)))
+            }
+        }
+
+        guard let counts = rows.first else {
+            throw LocalStoreError.database("Expected review due counts query to return one row")
+        }
+
+        return counts
+    }
+
     /**
      Loads the first review queue page directly from SQLite so the review tab
      can show the first card without hydrating all cards in memory.

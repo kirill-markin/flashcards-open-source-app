@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget picker preview; `@android:id/background` gets the launcher's system corner radius.
+     Overdraw: the launcher inflates this without the app theme, so the root background is the only one. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/review_widget_background"
+    android:orientation="vertical"
+    android:padding="12dp"
+    tools:ignore="Overdraw">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/streaks_widget_preview_current"
+        android:textColor="@color/review_widget_primary"
+        android:textSize="34sp"
+        android:textStyle="bold" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/streaks_widget_preview_best"
+        android:textColor="@color/review_widget_on_surface_variant"
+        android:textSize="13sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/streaks_widget_preview_freeze_credits"
+        android:textColor="@color/review_widget_on_surface_variant"
+        android:textSize="13sp" />
+</LinearLayout>

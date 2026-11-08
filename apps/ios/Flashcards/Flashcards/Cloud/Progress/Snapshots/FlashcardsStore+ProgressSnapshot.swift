@@ -366,6 +366,9 @@ extension FlashcardsStore {
             sourceState: sourceState
         )
         self.applyReviewScheduleSnapshot(snapshot: snapshot)
+        #if !targetEnvironment(macCatalyst)
+        self.reviewScheduleSnapshotPublishedLocalRevision = self.progressReviewScheduleLocalRevision
+        #endif
     }
 
     /// Renders the leaderboard section state from the local account state and the
@@ -531,6 +534,8 @@ extension FlashcardsStore {
         }
     }
 
+    /// Publishes only the Review streak badge, so a rating never builds the widgets' year history on main; see
+    /// docs/fsrs-scheduling-logic.md#non-blocking-review.
     func publishReviewProgressBadgeState(scopeKey: ProgressScopeKey) throws {
         let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
         let renderedProgress = try self.makeProgressRenderedSummaryAndSeries(
@@ -544,6 +549,58 @@ extension FlashcardsStore {
         )
     }
 
+    /// Publishes the Review streak badge and, on iOS and iPadOS, the widgets' Progress history from the same render.
+    func publishReviewProgressBadgeAndWidgetProgressState(scopeKey: ProgressScopeKey) throws {
+        let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
+        let renderedProgress = try self.makeProgressRenderedSummaryAndSeries(
+            scopeKey: scopeKey,
+            reviewedAtClientSources: reviewedAtClientSources
+        )
+
+        self.applyReviewProgressBadgeSummary(
+            summary: renderedProgress.renderedSummary.summary,
+            scopeKey: scopeKey
+        )
+        #if !targetEnvironment(macCatalyst)
+        self.publishWidgetProgressSnapshotIsolatingErrors(
+            summary: renderedProgress.renderedSummary,
+            series: renderedProgress.renderedSeries,
+            scopeKey: scopeKey
+        )
+        #endif
+    }
+
+    #if !targetEnvironment(macCatalyst)
+    /// Only the widgets read this snapshot, so its failure clears the widgets' history instead of failing the badge.
+    private func publishWidgetProgressSnapshotIsolatingErrors(
+        summary: ProgressRenderedSummary,
+        series: ProgressRenderedSeries,
+        scopeKey: ProgressScopeKey
+    ) {
+        let snapshot: ProgressSnapshot?
+        do {
+            snapshot = try makeProgressSnapshot(
+                summary: summary.summary,
+                series: series.series,
+                scopeKey: scopeKey,
+                summarySourceState: summary.sourceState,
+                seriesSourceState: series.sourceState,
+                calendar: makeProgressStoreCalendar(timeZone: try progressTimeZone(identifier: scopeKey.timeZone))
+            )
+        } catch {
+            snapshot = nil
+            self.captureWidgetFailure(
+                error: error,
+                workspaceId: self.workspace?.workspaceId,
+                action: "widget_progress_snapshot_build"
+            )
+        }
+        if self.widgetProgressSnapshot != snapshot {
+            self.widgetProgressSnapshot = snapshot
+        }
+    }
+    #endif
+
     func applyReviewProgressBadgeSummary(summary: ProgressSummary, scopeKey: ProgressScopeKey) {
         self.reviewProgressBadgeSource = ReviewProgressBadgeSource(scopeKey: scopeKey, summary: summary)
         self.applyReviewProgressBadgeState(badgeState: makeReviewProgressBadgeState(summary: summary))
@@ -553,6 +610,11 @@ extension FlashcardsStore {
         if self.progressSnapshot != snapshot {
             self.progressSnapshot = snapshot
         }
+        #if !targetEnvironment(macCatalyst)
+        if self.widgetProgressSnapshot != snapshot {
+            self.widgetProgressSnapshot = snapshot
+        }
+        #endif
         self.reviewProgressBadgeSource = snapshot.map { snapshot in
             ReviewProgressBadgeSource(scopeKey: snapshot.scopeKey, summary: snapshot.summary)
         }

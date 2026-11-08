@@ -68,6 +68,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
@@ -137,6 +138,9 @@ interface ReviewRepository {
 
     /** [observeReviewDueBadgeCount] with the card Review shows first; null without a current workspace. */
     fun observeReviewQueueHead(): Flow<ReviewQueueHead?>
+
+    /** The [dayCount] local days after today, oldest first, under the same filter; null without a current workspace. */
+    fun observeUpcomingReviewDueDays(dayCount: Int): Flow<List<ReviewDueDay>?>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 

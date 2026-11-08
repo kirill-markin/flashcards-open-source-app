@@ -316,6 +316,19 @@ enum class AnalyticsWidgetSize(val wireValue: String) {
     LARGE(wireValue = "large")
 }
 
+/** Every Home Screen widget kind this app places. */
+enum class AnalyticsWidgetKind(val wireValue: String) {
+    REVIEW(wireValue = "review"),
+    ACTIVITY(wireValue = "activity"),
+    YEAR(wireValue = "year"),
+    TODAY(wireValue = "today"),
+    REVIEWS_CHART(wireValue = "reviews_chart"),
+    STREAKS(wireValue = "streaks"),
+    MONTH_CALENDAR(wireValue = "month_calendar"),
+    COMING_UP(wireValue = "coming_up"),
+    DASHBOARD(wireValue = "dashboard")
+}
+
 enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
     CARDS(wireValue = "cards"),
     DECK_DETAIL(wireValue = "deck_detail"),
@@ -903,12 +916,14 @@ sealed interface AnalyticsEvent {
 
     /** A Home Screen widget tap, reported where the tap intent reaches the process, like [NotificationOpened]. */
     data class WidgetOpened(
-        val widgetSize: AnalyticsWidgetSize
+        val widgetSize: AnalyticsWidgetSize,
+        val widgetKind: AnalyticsWidgetKind
     ) : AnalyticsEvent {
         override val eventName: String = "widget_opened"
         override val screen: AnalyticsSurface? = null
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "widget_size" to AnalyticsPropertyValue.Text(value = widgetSize.wireValue)
+            "widget_size" to AnalyticsPropertyValue.Text(value = widgetSize.wireValue),
+            "widget_kind" to AnalyticsPropertyValue.Text(value = widgetKind.wireValue)
         )
     }
 

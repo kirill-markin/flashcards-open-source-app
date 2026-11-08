@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sample 5-week heatmap for the Dashboard widget preview in the launcher's widget picker. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="50dp"
+    android:height="70dp"
+    android:viewportWidth="50"
+    android:viewportHeight="70">
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M1,1h8v8h-8zM1,41h8v8h-8zM11,21h8v8h-8zM11,61h8v8h-8zM21,11h8v8h-8zM21,51h8v8h-8zM31,31h8v8h-8z" />
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M1,21h8v8h-8zM1,61h8v8h-8zM11,1h8v8h-8zM11,51h8v8h-8zM21,41h8v8h-8zM31,61h8v8h-8z" />
+    <path
+        android:fillAlpha="0.5"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M1,11h8v8h-8zM1,51h8v8h-8zM11,31h8v8h-8zM21,1h8v8h-8zM21,61h8v8h-8zM31,21h8v8h-8zM31,51h8v8h-8zM41,11h8v8h-8z" />
+    <path
+        android:fillAlpha="0.75"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M1,31h8v8h-8zM11,11h8v8h-8zM21,21h8v8h-8zM31,1h8v8h-8zM31,41h8v8h-8zM41,21h8v8h-8z" />
+    <path
+        android:fillAlpha="1"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M11,41h8v8h-8zM21,31h8v8h-8zM31,11h8v8h-8zM41,1h8v8h-8z" />
+</vector>

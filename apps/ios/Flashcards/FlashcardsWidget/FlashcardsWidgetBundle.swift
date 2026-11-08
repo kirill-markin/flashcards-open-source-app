@@ -8,6 +8,15 @@ let widgetStringsTableName: String = "Widget"
 struct FlashcardsWidgetBundle: WidgetBundle {
     var body: some Widget {
         ReviewWidget()
+        TodayWidget()
+        LockScreenWidget()
+        ActivityWidget()
+        YearWidget()
+        StreaksWidget()
+        MonthCalendarWidget()
+        ReviewsChartWidget()
+        ComingUpWidget()
+        DashboardWidget()
     }
 }
 

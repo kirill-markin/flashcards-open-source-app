@@ -47,6 +47,37 @@ private func analyticsWidgetSize(size: WidgetDeepLinkSize) -> AnalyticsWidgetSiz
         return .medium
     case .large:
         return .large
+    case .accessoryCircular:
+        return .accessoryCircular
+    case .accessoryRectangular:
+        return .accessoryRectangular
+    case .accessoryInline:
+        return .accessoryInline
+    }
+}
+
+private func analyticsWidgetKind(kind: WidgetDeepLinkKind) -> AnalyticsWidgetKind {
+    switch kind {
+    case .review:
+        return .review
+    case .activity:
+        return .activity
+    case .year:
+        return .year
+    case .today:
+        return .today
+    case .lockScreen:
+        return .lockScreen
+    case .reviewsChart:
+        return .reviewsChart
+    case .streaks:
+        return .streaks
+    case .monthCalendar:
+        return .monthCalendar
+    case .comingUp:
+        return .comingUp
+    case .dashboard:
+        return .dashboard
     }
 }
 
@@ -317,6 +348,17 @@ struct FlashcardsApp: App {
                         store.recordReviewDataLeftForeground(now: now)
                         runAppBackgroundTask(name: "AppBackgroundNotificationReconcile") {
                             await store.reconcileAppBackgroundNotifications(now: now)
+                        }
+                        // A rating patches only the streak badge, so until its debounced refresh lands the widgets
+                        // drop the history that no longer matches; a suspended app must not keep them that way.
+                        // Only a pending refresh runs, and once, though every window's handler sees this change.
+                        if store.takePendingDeferredProgressRefresh() {
+                            runAppBackgroundTask(name: "AppBackgroundDeferredProgressRefresh") {
+                                await store.runDeferredProgressRefresh(now: Date())
+                                #if !targetEnvironment(macCatalyst)
+                                await store.refreshWidgetSnapshot()
+                                #endif
+                            }
                         }
                     }
                 }
@@ -805,8 +847,18 @@ struct FlashcardsApp: App {
         }
 
         self.pendingWidgetDeepLink = nil
-        self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
-        Analytics.track(.widgetOpened(widgetSize: analyticsWidgetSize(size: deepLink.size)))
+        switch deepLink.destination {
+        case .review:
+            self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
+        case .progress:
+            self.navigation.selectTab(.progress)
+        }
+        Analytics.track(
+            .widgetOpened(
+                widgetSize: analyticsWidgetSize(size: deepLink.size),
+                widgetKind: analyticsWidgetKind(kind: deepLink.kind)
+            )
+        )
     }
 
     @MainActor

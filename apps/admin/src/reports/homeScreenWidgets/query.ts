@@ -30,7 +30,7 @@ export const widgetPlatforms = ["ios", "android"] as const;
 export type WidgetPlatform = (typeof widgetPlatforms)[number];
 
 /** `widget_opened.widget_size` in `apps/backend/src/productAnalytics/catalog.ts`. */
-export const widgetSizes = ["small", "medium", "large"] as const;
+export const widgetSizes = ["small", "medium", "large", "accessory_circular", "accessory_rectangular", "accessory_inline"] as const;
 export type WidgetSize = (typeof widgetSizes)[number];
 
 export type WidgetPeopleDay = Readonly<{
@@ -364,7 +364,7 @@ function parseWidgetPlatform(row: AdminQueryRow): WidgetPlatform {
 function parseWidgetSize(row: AdminQueryRow): WidgetSize {
   const widgetSize = assertIsString(row.widget_size ?? null, homeScreenWidgetsReportLabel, "widget_size");
   if (widgetSizes.includes(widgetSize as WidgetSize) === false) {
-    throw new Error(`${homeScreenWidgetsReportLabel} field "widget_size" must be small, medium or large, got: ${widgetSize}`);
+    throw new Error(`${homeScreenWidgetsReportLabel} field "widget_size" must be one of ${widgetSizes.join(", ")}, got: ${widgetSize}`);
   }
   return widgetSize as WidgetSize;
 }

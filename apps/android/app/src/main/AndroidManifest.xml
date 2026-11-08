@@ -114,5 +114,93 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/review_widget_info" />
         </receiver>
+        <receiver
+            android:name=".widget.ReviewsChartWidgetReceiver"
+            android:exported="true"
+            android:label="@string/reviews_chart_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reviews_chart_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.ComingUpWidgetReceiver"
+            android:exported="true"
+            android:label="@string/coming_up_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/coming_up_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/today_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.ActivityWidgetReceiver"
+            android:exported="true"
+            android:label="@string/activity_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/activity_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.YearWidgetReceiver"
+            android:exported="true"
+            android:label="@string/year_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/year_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.StreaksWidgetReceiver"
+            android:exported="true"
+            android:label="@string/streaks_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/streaks_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.MonthCalendarWidgetReceiver"
+            android:exported="true"
+            android:label="@string/month_calendar_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/month_calendar_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.DashboardWidgetReceiver"
+            android:exported="true"
+            android:label="@string/dashboard_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/dashboard_widget_info" />
+        </receiver>
     </application>
 </manifest>

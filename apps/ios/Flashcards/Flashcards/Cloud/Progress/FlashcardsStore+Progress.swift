@@ -138,7 +138,7 @@ extension FlashcardsStore {
         )
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
-            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            try self.publishReviewProgressBadgeAndWidgetProgressState(scopeKey: scopeKey)
 
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
@@ -278,7 +278,7 @@ extension FlashcardsStore {
     func refreshReviewProgressBadgeIfNeeded(now: Date) async {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
-            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            try self.publishReviewProgressBadgeAndWidgetProgressState(scopeKey: scopeKey)
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             guard self.shouldRefreshProgressSummary(scopeKey: summaryScopeKey) else {
                 return
@@ -863,6 +863,7 @@ extension FlashcardsStore {
     /// Debounced, so a burst of ratings or syncs costs one refresh after the last of them.
     func scheduleDeferredProgressRefresh() {
         self.deferredProgressRefreshTask?.cancel()
+        self.isDeferredProgressRefreshPending = true
         self.deferredProgressRefreshTask = Task { @MainActor [weak self] in
             do {
                 try await Task.sleep(for: progressDeferredRefreshDelay)
@@ -870,9 +871,22 @@ extension FlashcardsStore {
                 // Cancelled: a newer rating or sync scheduled its own refresh.
                 return
             }
-            guard let self else { return }
+            guard let self, Task.isCancelled == false else { return }
+            self.isDeferredProgressRefreshPending = false
             await self.runDeferredProgressRefresh(now: Date())
         }
+    }
+
+    /// Cancels a refresh still waiting out the debounce and reports whether there was one, for a caller that
+    /// cannot wait and runs `runDeferredProgressRefresh` itself.
+    func takePendingDeferredProgressRefresh() -> Bool {
+        guard self.isDeferredProgressRefreshPending else {
+            return false
+        }
+        self.isDeferredProgressRefreshPending = false
+        self.deferredProgressRefreshTask?.cancel()
+        self.deferredProgressRefreshTask = nil
+        return true
     }
 
     /// Recomputes the Review badges, or a Progress screen that stayed open while queued ratings landed;
@@ -1060,7 +1074,7 @@ extension FlashcardsStore {
     private func prepareProgressForCurrentVisibleTabState(now: Date) throws {
         if self.currentVisibleTab == .review {
             let scopeKey = try self.prepareProgressScope(now: now)
-            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            try self.publishReviewProgressBadgeAndWidgetProgressState(scopeKey: scopeKey)
         } else {
             _ = try self.prepareProgressSnapshot(now: now)
         }

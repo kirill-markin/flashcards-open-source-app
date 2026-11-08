@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.model.review
 
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import java.time.LocalDate
 
 enum class ReviewRating {
     AGAIN,
@@ -151,6 +152,12 @@ data class ReviewQueueHead(
 data class ReviewQueueHeadCard(
     val cardId: String,
     val frontText: String
+)
+
+/** Cards in the Review filter that fall due on [localDate]; new cards have no due time and never count. */
+data class ReviewDueDay(
+    val localDate: LocalDate,
+    val dueCount: Int
 )
 
 /** Filter sheet choices with their due counts, loaded only while the filter sheet is open. */

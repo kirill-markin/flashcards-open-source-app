@@ -30,6 +30,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
@@ -346,6 +347,22 @@ class LocalReviewRepository(
                     database = database,
                     workspaceId = current.workspaceId,
                     predicate = current.predicate
+                )
+            }
+        }.distinctUntilChanged()
+    }
+
+    override fun observeUpcomingReviewDueDays(dayCount: Int): Flow<List<ReviewDueDay>?> {
+        return observeCurrentReviewQueuePredicate().flatMapLatest { current ->
+            if (current == null) {
+                flowOf(null)
+            } else {
+                observeUpcomingReviewDueDaysForPredicate(
+                    database = database,
+                    workspaceId = current.workspaceId,
+                    predicate = current.predicate,
+                    dayCount = dayCount,
+                    timeProvider = timeProvider
                 )
             }
         }.distinctUntilChanged()

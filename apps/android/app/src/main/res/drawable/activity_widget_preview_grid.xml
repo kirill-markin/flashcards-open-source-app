@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sample heatmap for the Activity widget preview in the launcher's widget picker. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="70dp"
+    android:viewportWidth="200"
+    android:viewportHeight="70">
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M1,1h8v8h-8zM1,11h8v8h-8zM1,31h8v8h-8zM1,61h8v8h-8zM11,11h8v8h-8zM11,31h8v8h-8zM11,41h8v8h-8zM21,1h8v8h-8zM21,11h8v8h-8zM31,1h8v8h-8zM31,21h8v8h-8zM31,31h8v8h-8zM31,41h8v8h-8zM31,51h8v8h-8zM41,1h8v8h-8zM41,51h8v8h-8zM41,61h8v8h-8zM51,1h8v8h-8zM51,31h8v8h-8zM51,61h8v8h-8zM61,21h8v8h-8zM71,1h8v8h-8zM71,21h8v8h-8zM71,51h8v8h-8zM81,1h8v8h-8zM81,51h8v8h-8zM101,1h8v8h-8zM101,51h8v8h-8zM111,11h8v8h-8zM111,31h8v8h-8zM111,41h8v8h-8zM111,51h8v8h-8zM121,1h8v8h-8zM121,11h8v8h-8zM121,41h8v8h-8zM131,31h8v8h-8zM141,11h8v8h-8zM141,21h8v8h-8zM141,31h8v8h-8zM141,41h8v8h-8zM151,1h8v8h-8zM151,11h8v8h-8z" />
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M161,31h8v8h-8zM171,31h8v8h-8zM171,51h8v8h-8zM171,61h8v8h-8zM181,1h8v8h-8zM181,11h8v8h-8zM181,21h8v8h-8zM181,31h8v8h-8zM181,41h8v8h-8zM181,51h8v8h-8zM181,61h8v8h-8zM191,11h8v8h-8z" />
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M1,41h8v8h-8zM1,51h8v8h-8zM11,1h8v8h-8zM11,21h8v8h-8zM11,51h8v8h-8zM21,51h8v8h-8zM41,31h8v8h-8zM41,41h8v8h-8zM51,21h8v8h-8zM51,51h8v8h-8zM61,41h8v8h-8zM71,31h8v8h-8zM71,61h8v8h-8zM91,21h8v8h-8zM91,51h8v8h-8zM101,61h8v8h-8zM111,21h8v8h-8zM121,21h8v8h-8zM121,51h8v8h-8zM121,61h8v8h-8zM131,41h8v8h-8zM131,51h8v8h-8zM141,51h8v8h-8zM151,21h8v8h-8zM151,31h8v8h-8zM161,1h8v8h-8zM171,11h8v8h-8zM171,21h8v8h-8zM191,1h8v8h-8z" />
+    <path
+        android:fillAlpha="0.5"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M1,21h8v8h-8zM21,21h8v8h-8zM21,41h8v8h-8zM41,11h8v8h-8zM41,21h8v8h-8zM51,11h8v8h-8zM51,41h8v8h-8zM61,11h8v8h-8zM61,31h8v8h-8zM81,11h8v8h-8zM81,31h8v8h-8zM81,61h8v8h-8zM91,1h8v8h-8zM91,11h8v8h-8zM91,61h8v8h-8zM101,11h8v8h-8zM101,21h8v8h-8zM111,1h8v8h-8zM141,61h8v8h-8zM151,41h8v8h-8zM151,61h8v8h-8zM161,11h8v8h-8zM161,21h8v8h-8zM171,41h8v8h-8zM191,31h8v8h-8z" />
+    <path
+        android:fillAlpha="0.75"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M11,61h8v8h-8zM31,11h8v8h-8zM31,61h8v8h-8zM61,1h8v8h-8zM61,61h8v8h-8zM71,41h8v8h-8zM81,21h8v8h-8zM91,31h8v8h-8zM101,41h8v8h-8zM111,61h8v8h-8zM131,11h8v8h-8zM131,21h8v8h-8zM161,51h8v8h-8zM171,1h8v8h-8z" />
+    <path
+        android:fillAlpha="1"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M21,31h8v8h-8zM21,61h8v8h-8zM61,51h8v8h-8zM71,11h8v8h-8zM81,41h8v8h-8zM91,41h8v8h-8zM101,31h8v8h-8zM121,31h8v8h-8zM131,1h8v8h-8zM131,61h8v8h-8zM141,1h8v8h-8zM151,51h8v8h-8zM161,41h8v8h-8zM161,61h8v8h-8zM191,21h8v8h-8z" />
+</vector>
