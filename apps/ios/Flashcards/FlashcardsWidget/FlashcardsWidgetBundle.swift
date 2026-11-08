@@ -14,6 +14,8 @@ struct FlashcardsWidgetBundle: WidgetBundle {
         YearWidget()
         StreaksWidget()
         MonthCalendarWidget()
+        ReviewsChartWidget()
+        ComingUpWidget()
     }
 }
 

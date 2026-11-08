@@ -1051,6 +1051,66 @@
         }
       }
     },
+    "widget.coming_up.gallery.description" : {
+      "comment" : "Widget gallery description of the Coming up widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due today and over the next days."
+          }
+        }
+      }
+    },
+    "widget.coming_up.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that shows how many cards fall due in the coming days and opens Progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming up"
+          }
+        }
+      }
+    },
+    "widget.coming_up.header %lld" : {
+      "comment" : "Coming up widget header over bars for today and the next 6 days. Parameter is the number of cards due over those days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld card"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld cards"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.coming_up.schedule_title" : {
+      "comment" : "Title above the review schedule strip in the Coming up widget, which splits all cards by when they are due next",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule"
+          }
+        }
+      }
+    },
     "widget.due_label" : {
       "comment" : "Caption under the large number of cards waiting in Review",
       "extractionState" : "manual",
@@ -2427,6 +2487,278 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vula i-Nibomo ukuze uqale ukubukeza"
+          }
+        }
+      }
+    },
+    "widget.rating.again" : {
+      "comment" : "Review rating name in a widget chart legend, for the Again answer button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Again"
+          }
+        }
+      }
+    },
+    "widget.rating.easy" : {
+      "comment" : "Review rating name in a widget chart legend, for the Easy answer button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy"
+          }
+        }
+      }
+    },
+    "widget.rating.good" : {
+      "comment" : "Review rating name in a widget chart legend, for the Good answer button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        }
+      }
+    },
+    "widget.rating.hard" : {
+      "comment" : "Review rating name in a widget chart legend, for the Hard answer button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard"
+          }
+        }
+      }
+    },
+    "widget.reviews_chart.daily_average %@" : {
+      "comment" : "Reviews chart widget header. Parameter is the average number of reviews per day over the shown days, with at most one decimal",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily avg %@"
+          }
+        }
+      }
+    },
+    "widget.reviews_chart.gallery.description" : {
+      "comment" : "Widget gallery description of the Reviews chart widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and how they compare with the period before."
+          }
+        }
+      }
+    },
+    "widget.reviews_chart.gallery.name" : {
+      "comment" : "Widget gallery name of the Home Screen widget that charts daily reviews and opens Progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews"
+          }
+        }
+      }
+    },
+    "widget.reviews_chart.trend.higher %lld %lld" : {
+      "comment" : "Reviews chart widget trend when the shown days had more reviews than the same number of days before. First parameter is the rounded percent increase, second is the number of days in each period",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.reviews_chart.trend.lower %lld %lld" : {
+      "comment" : "Reviews chart widget trend when the shown days had fewer reviews than the same number of days before. First parameter is the rounded percent decrease, second is the number of days in each period",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.reviews_chart.trend.same %lld" : {
+      "comment" : "Reviews chart widget trend when the shown days had as many reviews as the same number of days before. Parameter is the number of days in each period",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.days_1_to_7" : {
+      "comment" : "Review schedule bucket label in a widget, for cards due in one to seven days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 days"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.days_31_to_90" : {
+      "comment" : "Review schedule bucket label in a widget, for cards due in thirty-one to ninety days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 days"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.days_8_to_30" : {
+      "comment" : "Review schedule bucket label in a widget, for cards due in eight to thirty days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 days"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.days_91_to_360" : {
+      "comment" : "Review schedule bucket label in a widget, for cards due in ninety-one to three hundred sixty days",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 days"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.later" : {
+      "comment" : "Review schedule bucket label in a widget, for cards due later than two years",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.new" : {
+      "comment" : "Review schedule bucket label in a widget, for cards without a due date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.today" : {
+      "comment" : "Review schedule bucket label in a widget, for overdue and due-today cards",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "widget.schedule.bucket.years_1_to_2" : {
+      "comment" : "Review schedule bucket label in a widget, for cards due in one to two years",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 years"
           }
         }
       }
