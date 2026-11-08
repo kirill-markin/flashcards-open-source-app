@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -29,7 +30,6 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun NotificationDiagnosticsRoute(
@@ -372,7 +372,7 @@ private fun NotificationDiagnosticsReviewPayloadCard(
                 NotificationDiagnosticsInfoRow(
                     label = stringResource(R.string.settings_notification_diagnostics_filter_tags_label),
                     value = tags.joinToString(separator = ", ").ifEmpty {
-                        context.getString(R.string.settings_none)
+                        stringResource(R.string.settings_none)
                     }
                 )
             }
@@ -498,7 +498,7 @@ private fun workInfoStateCountsLabel(counts: NotificationDiagnosticsWorkInfoStat
 
 @Composable
 private fun timeLabel(hour: Int, minute: Int): String {
-    val locale = LocalContext.current.resources.configuration.locales[0] ?: Locale.getDefault()
+    val locale = LocalConfiguration.current.locales[0]
     val formatter = remember(locale) {
         DateTimeFormatter.ofPattern("HH:mm", locale)
     }

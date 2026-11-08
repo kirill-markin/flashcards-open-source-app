@@ -48,7 +48,6 @@ import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboard
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.util.Locale
 
 private val leaderboardProfileMetricShape = RoundedCornerShape(8.dp)
 private val leaderboardProfileBarShape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)
@@ -155,11 +154,7 @@ private fun ProgressLeaderboardProfileReadyContent(
     profile: ProgressLeaderboardProfileReadyUiState
 ) {
     val configuration = LocalConfiguration.current
-    val locale = if (configuration.locales.isEmpty) {
-        Locale.getDefault()
-    } else {
-        configuration.locales[0]
-    }
+    val locale = configuration.locales[0]
     val countFormatter = remember(locale) {
         NumberFormat.getIntegerInstance(locale)
     }

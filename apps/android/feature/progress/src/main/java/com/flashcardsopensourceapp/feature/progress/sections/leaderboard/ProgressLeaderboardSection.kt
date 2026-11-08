@@ -61,7 +61,6 @@ import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboard
 import com.flashcardsopensourceapp.feature.progress.sections.progressSectionShape
 import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 import java.text.NumberFormat
-import java.util.Locale
 
 private const val leaderboardReservedGapRowCount: Int = 2
 private const val millisecondsPerMinute: Long = 60_000L
@@ -271,11 +270,7 @@ private fun LeaderboardReadyContent(
     onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit
 ) {
     val configuration = LocalConfiguration.current
-    val locale = if (configuration.locales.isEmpty) {
-        Locale.getDefault()
-    } else {
-        configuration.locales[0]
-    }
+    val locale = configuration.locales[0]
     val countFormatter = remember(locale) {
         NumberFormat.getIntegerInstance(locale)
     }

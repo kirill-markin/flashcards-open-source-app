@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -499,6 +500,7 @@ private fun ReviewCardSideSection(
     onOpenAi: (() -> Unit)?
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val locale = currentResourceLocale(resources = context.resources)
     val selectTextContentDescription = stringResource(
         id = R.string.review_select_text_content_description,
@@ -553,9 +555,9 @@ private fun ReviewCardSideSection(
                         sourceText = sourceText,
                         privateMediaPlaceholder = { mediaLabel ->
                             if (mediaLabel.isBlank()) {
-                                context.getString(R.string.review_copy_private_media)
+                                resources.getString(R.string.review_copy_private_media)
                             } else {
-                                context.getString(R.string.review_copy_private_media_label, mediaLabel)
+                                resources.getString(R.string.review_copy_private_media_label, mediaLabel)
                             }
                         }
                     )
