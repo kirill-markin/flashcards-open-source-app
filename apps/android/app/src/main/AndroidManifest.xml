@@ -147,5 +147,27 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/today_widget_info" />
         </receiver>
+        <receiver
+            android:name=".widget.ActivityWidgetReceiver"
+            android:exported="true"
+            android:label="@string/activity_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/activity_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.YearWidgetReceiver"
+            android:exported="true"
+            android:label="@string/year_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/year_widget_info" />
+        </receiver>
     </application>
 </manifest>

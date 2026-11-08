@@ -109,7 +109,7 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
 }
 
 @Composable
-private fun ColumnScope.ReviewWidgetOpenApp() {
+internal fun ColumnScope.ReviewWidgetOpenApp() {
     val context = LocalContext.current
     Text(
         text = context.getString(R.string.app_name),

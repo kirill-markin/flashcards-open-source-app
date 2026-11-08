@@ -119,6 +119,47 @@
     <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
     <string name="today_widget_preview_reviewed">8 reviewed</string>
     <string name="today_widget_preview_cards_left">4 cards left</string>
+    <!-- Activity heatmap widget name in the launcher's widget picker. -->
+    <string name="activity_widget_label">Activity</string>
+    <string name="activity_widget_description">Your daily reviews as a heatmap, with your streak.</string>
+    <!-- The flame and the current streak in days on the small Activity widget. -->
+    <string name="activity_widget_small_streak" translatable="false">🔥 %1$d</string>
+    <plurals name="activity_widget_streak_days">
+        <item quantity="one">🔥 %1$d day</item>
+        <item quantity="other">🔥 %1$d days</item>
+    </plurals>
+    <plurals name="activity_widget_reviews">
+        <item quantity="one">%1$d review</item>
+        <item quantity="other">%1$d reviews</item>
+    </plurals>
+    <plurals name="activity_widget_grid_description">
+        <item quantity="one">Daily reviews in the last %1$d week</item>
+        <item quantity="other">Daily reviews in the last %1$d weeks</item>
+    </plurals>
+    <!-- Stat labels on the large Activity widget; reviews and active days count the weeks the grid shows. -->
+    <string name="activity_widget_stat_current_streak">Streak</string>
+    <string name="activity_widget_stat_best_streak">Best streak</string>
+    <string name="activity_widget_stat_freezes">Freezes</string>
+    <string name="activity_widget_stat_reviews">Reviews</string>
+    <string name="activity_widget_stat_active_days">Active days</string>
+    <string name="activity_widget_stat_today">Today</string>
+    <string name="activity_widget_stat_due_now">Due now</string>
+    <!-- A stat value on the large Activity widget, in the locale's digits. -->
+    <string name="activity_widget_stat_value" translatable="false">%1$d</string>
+    <!-- Sample content of the Activity widget preview in the launcher's widget picker. -->
+    <string name="activity_widget_preview_streak">🔥 7 days</string>
+    <string name="activity_widget_preview_reviews">342 reviews</string>
+    <!-- Year view widget name in the launcher's widget picker. -->
+    <string name="year_widget_label">Year</string>
+    <string name="year_widget_description">A year of daily reviews, one row per month.</string>
+    <string name="year_widget_grid_description">Daily reviews in the last 12 months</string>
+    <plurals name="year_widget_active_days">
+        <item quantity="one">%1$d active day</item>
+        <item quantity="other">%1$d active days</item>
+    </plurals>
+    <!-- Sample content of the Year widget preview in the launcher's widget picker. -->
+    <string name="year_widget_preview_reviews">4,120 reviews</string>
+    <string name="year_widget_preview_active_days">186 active days</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>
