@@ -74,7 +74,7 @@ class MonthCalendarWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MonthCalendarWidget()
 }
 
-private fun monthCalendarWidgetSize(widgetSize: DpSize): ReviewWidgetSize {
+internal fun monthCalendarWidgetSize(widgetSize: DpSize): ReviewWidgetSize {
     val fitsLarge: Boolean = widgetSize.width >= monthCalendarWidgetLargeMinSize.width &&
         widgetSize.height >= monthCalendarWidgetLargeMinSize.height
     return if (fitsLarge) ReviewWidgetSize.LARGE else ReviewWidgetSize.SMALL

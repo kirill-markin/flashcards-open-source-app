@@ -1,0 +1,27 @@
+.widget-kinds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.widget-kinds-table caption {
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+.widget-kinds-table th,
+.widget-kinds-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: right;
+}
+
+.widget-kinds-table th:first-child {
+  text-align: left;
+}
+
+.widget-kinds-table thead {
+  color: var(--muted);
+}

@@ -22,16 +22,20 @@ import { getLatestGeneralReport, type GeneralReportView } from "../generalReport
 import { buildRequestedDateRange, todayUtcCalendarDate } from "../reportValues";
 import {
   homeScreenWidgetsReportLabel,
+  widgetKinds,
   widgetPlatforms,
   widgetReturnWindowDays,
   widgetSizes,
   type HomeScreenWidgetsReport,
+  type WidgetKind,
+  type WidgetKindSummary,
   type WidgetPeopleDay,
   type WidgetReturnDay,
   type WidgetReturnGroup,
   type WidgetSize,
   type WidgetTapsDay,
 } from "./query";
+import "./homeScreenWidgets.css";
 
 const returnGroupKeys = ["with-widget", "without-widget"] as const;
 type ReturnGroupKey = (typeof returnGroupKeys)[number];
@@ -55,6 +59,19 @@ const widgetSizeLabels: Readonly<Record<WidgetSize, string>> = {
   accessory_inline: "Lock Screen inline",
 };
 
+const widgetKindLabels: Readonly<Record<WidgetKind, string>> = {
+  review: "Review",
+  activity: "Activity",
+  year: "Year",
+  today: "Today",
+  lock_screen: "Lock Screen",
+  reviews_chart: "Reviews chart",
+  streaks: "Streaks",
+  month_calendar: "Calendar",
+  coming_up: "Coming up",
+  dashboard: "Dashboard",
+};
+
 const widgetSizeColors = buildBreakdownValueColors(widgetSizes);
 
 function getWidgetSizeColor(size: string): string {
@@ -71,6 +88,7 @@ type ChartMetric = readonly [label: string, value: string];
 const numberFormatter = d3.format(",");
 const rateFormatter = d3.format(".1%");
 
+const emptyKindSummary = (widgetKind: WidgetKind): WidgetKindSummary => ({ widgetKind, placedPeople: 0, tapCount: 0, tapPeople: 0 });
 const emptyPeopleDay = (date: string): WidgetPeopleDay => ({ date, peopleByPlatform: new Map(), totalPeople: 0 });
 const emptyTapsDay = (date: string): WidgetTapsDay => ({ date, tapsBySize: new Map(), totalTaps: 0, totalPeople: 0 });
 const emptyReturnDay = (date: string): WidgetReturnDay => ({
@@ -112,6 +130,37 @@ function formatReturnGroup(group: WidgetReturnGroup): string {
     return `${numberFormatter(group.people)} people · window not over`;
   }
   return `${rateFormatter(group.returnedPeople / group.people)} · ${numberFormatter(group.returnedPeople)} of ${numberFormatter(group.people)}`;
+}
+
+/** Every kind in catalog order, a kind with no placement and no tap as zeros. */
+function WidgetKindsTable(props: Readonly<{ report: HomeScreenWidgetsReport }>): JSX.Element {
+  const summariesByKind = new Map(props.report.kindSummaries.map((summary) => [summary.widgetKind, summary]));
+  return (
+    <table className="widget-kinds-table">
+      <caption>Placed at the end of {formatDateRangeLabel(props.report.to)}; taps over {formatDateRangeLabel(props.report.from)} – {formatDateRangeLabel(props.report.to)}, UTC.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Widget</th>
+          <th scope="col">People with it placed</th>
+          <th scope="col">Taps</th>
+          <th scope="col">People who tapped</th>
+        </tr>
+      </thead>
+      <tbody>
+        {widgetKinds.map((widgetKind) => {
+          const summary = summariesByKind.get(widgetKind) ?? emptyKindSummary(widgetKind);
+          return (
+            <tr key={widgetKind}>
+              <th scope="row">{widgetKindLabels[widgetKind]}</th>
+              <td>{numberFormatter(summary.placedPeople)}</td>
+              <td>{numberFormatter(summary.tapCount)}</td>
+              <td>{numberFormatter(summary.tapPeople)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
 }
 
 function buildMetricsLabel(title: string, metrics: ReadonlyArray<ChartMetric>): string {
@@ -238,16 +287,18 @@ export function HomeScreenWidgetsSection(
           <ExplanationTip label="What Home Screen widgets shows" explanationId="home-screen-widgets-explanation">
             <ul>
               <li>
-                <strong>What it shows:</strong> three daily charts, grouped by <strong>UTC</strong> day, all following every active filter
+                <strong>What it shows:</strong> three daily charts, grouped by <strong>UTC</strong> day, and a table by widget kind, all following every active filter
                 <ul>
                   <li>
-                    <strong>People with a Home Screen widget:</strong> people for whom, on any installation, the latest <code>widget_placement_changed</code> by the end of the day counts at least one Review widget
+                    <strong>People with a Home Screen widget:</strong> people for whom, on any installation, the latest <code>widget_placement_changed</code> of any widget kind by the end of the day counts at least one widget, Lock Screen ones included
                     <ul>
-                      <li>The latest report may be from before the range; it holds until the next one</li>
+                      <li>The latest report of each kind may be from before the range; it holds until the next one</li>
+                      <li>App versions before every kind was reported send no <code>widget_kind</code> and count only Review widgets</li>
                       <li>Stacked by the installation's platform, so someone with a widget on both iOS and Android sits in both segments; the tooltip's total counts them once</li>
                     </ul>
                   </li>
                   <li><strong>Widget taps:</strong> <code>widget_opened</code> per day, stacked by widget size; the tooltip adds the distinct people who tapped</li>
+                  <li><strong>By widget kind:</strong> the people with that kind placed at the end of the range's last day, and its taps over the range; someone with several kinds counts in each, and a tap with no <code>widget_kind</code> counts as Review</li>
                   <li>
                     <strong>{widgetReturnWindowDays}-day return:</strong> of the people who opened the app on iOS or Android that day and whose widget state is known by its end, the share who opened the app again, on any platform, within the next {widgetReturnWindowDays} days
                     <ul>
@@ -331,6 +382,15 @@ export function HomeScreenWidgetsSection(
             ) : <svg ref={returnChartRef} />}
           </div>
           <ChartNotesKey notes={noNotes} />
+        </div>
+
+        <div className="chart-shell">
+          <div className="chart-meta">
+            <span>By widget kind</span>
+          </div>
+          <div className="chart-scroll">
+            {readyReport === null ? <p className="report-state" aria-live="polite">Loading…</p> : <WidgetKindsTable report={readyReport} />}
+          </div>
         </div>
       </section>
 

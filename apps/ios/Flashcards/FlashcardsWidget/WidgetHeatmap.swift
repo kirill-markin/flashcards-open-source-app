@@ -2,12 +2,24 @@ import OSLog
 import SwiftUI
 import WidgetKit
 
-/// The Progress streak calendar's ice blue for a day saved by a streak freeze.
-private let widgetHeatmapFrozenColor: Color = Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
+// A day saved by a streak freeze is an outlined ice cell, mirroring the Progress streak calendar, so it never reads
+// as a solid light-review fill.
+private let widgetHeatmapFrozenLightFillColor: Color = Color(red: 0xE6 / 255, green: 0xF4 / 255, blue: 0xFF / 255)
+private let widgetHeatmapFrozenLightBorderColor: Color = Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255)
+private let widgetHeatmapFrozenDarkBorderColor: Color = Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
+/// A white Dark cell, as in Progress, would outshine every reviewed day, so Dark keeps a faint ice fill.
+private let widgetHeatmapFrozenDarkFillOpacity: Double = 0.2
+/// Tinted and clear Home Screens flatten colours, so the frozen outline falls back to this primary opacity.
+private let widgetHeatmapFrozenMonochromeBorderOpacity: Double = 0.6
 private let widgetHeatmapEmptyOpacity: Double = 0.1
-/// Accent opacity of reviewed levels 1 through 4.
+/// A tinted light Home Screen washes out the full-colour empty opacity.
+private let widgetHeatmapMonochromeEmptyOpacity: Double = 0.18
+/// Accent, or on tinted and clear Home Screens primary, opacity of reviewed levels 1 through 4.
 private let widgetHeatmapReviewedOpacities: [Double] = [0.3, 0.5, 0.75, 1]
-private let widgetHeatmapTodayOutlineWidth: CGFloat = 1.5
+/// Frozen border and today outline width; the fraction thins it on small Year cells, where 1.5 pt would fill most of
+/// the cell and read as a solid reviewed day.
+private let widgetHeatmapStrokeMaxWidth: CGFloat = 1.5
+private let widgetHeatmapStrokeSideFraction: CGFloat = 0.15
 
 enum WidgetHeatmapCellFill: Hashable, Sendable {
     case empty
@@ -133,30 +145,67 @@ func widgetHeatmapActiveDayCount(days: [WidgetSnapshotProgressDay]) -> Int {
     days.filter { day in day.reviewCount > 0 }.count
 }
 
-/// One heatmap square; reviewed squares follow the accent so tinted Home Screens keep the levels apart.
+/// One heatmap square; a frozen day is outlined so it stays apart from reviewed days. Tinted and clear Home Screens draw
+/// accentable content opaque, so there the levels are a non-accentable primary ramp and today's fill sits inside its
+/// outline, which would otherwise vanish against a top-level fill.
 struct WidgetHeatmapCellView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let cell: WidgetHeatmapCell
     let side: CGFloat
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: self.side * 0.22, style: .continuous)
+        let strokeWidth = min(widgetHeatmapStrokeMaxWidth, self.side * widgetHeatmapStrokeSideFraction)
+        let fillInset = self.cell.isToday && self.renderingMode == .accented ? strokeWidth * 2 : 0
         Group {
             switch self.cell.fill {
             case .empty:
-                shape.fill(Color.primary.opacity(widgetHeatmapEmptyOpacity))
+                shape.fill(self.emptyFillColor)
             case .reviewed(let level):
-                shape.fill(Color.accentColor.opacity(widgetHeatmapReviewedOpacities[level - 1]))
-                    .widgetAccentable()
+                shape.fill(self.reviewedFillColor(level: level))
+                    .widgetAccentable(self.renderingMode != .accented)
             case .frozen:
-                shape.fill(widgetHeatmapFrozenColor)
+                shape.fill(self.frozenFillColor)
+                    .overlay {
+                        shape.strokeBorder(self.frozenBorderColor, lineWidth: strokeWidth)
+                    }
             }
         }
+        .padding(fillInset)
         .overlay {
             if self.cell.isToday {
-                shape.strokeBorder(Color.primary, lineWidth: widgetHeatmapTodayOutlineWidth)
+                shape.strokeBorder(Color.primary, lineWidth: strokeWidth)
             }
         }
         .frame(width: self.side, height: self.side)
+    }
+
+    private var emptyFillColor: Color {
+        Color.primary.opacity(
+            self.renderingMode == .accented ? widgetHeatmapMonochromeEmptyOpacity : widgetHeatmapEmptyOpacity
+        )
+    }
+
+    private func reviewedFillColor(level: Int) -> Color {
+        let opacity = widgetHeatmapReviewedOpacities[level - 1]
+        return self.renderingMode == .accented ? Color.primary.opacity(opacity) : Color.accentColor.opacity(opacity)
+    }
+
+    private var frozenFillColor: Color {
+        guard self.renderingMode == .fullColor else {
+            return self.emptyFillColor
+        }
+        return self.colorScheme == .dark
+            ? widgetHeatmapFrozenDarkBorderColor.opacity(widgetHeatmapFrozenDarkFillOpacity)
+            : widgetHeatmapFrozenLightFillColor
+    }
+
+    private var frozenBorderColor: Color {
+        guard self.renderingMode == .fullColor else {
+            return Color.primary.opacity(widgetHeatmapFrozenMonochromeBorderOpacity)
+        }
+        return self.colorScheme == .dark ? widgetHeatmapFrozenDarkBorderColor : widgetHeatmapFrozenLightBorderColor
     }
 }
 

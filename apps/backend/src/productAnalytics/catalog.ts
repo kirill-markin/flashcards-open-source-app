@@ -174,6 +174,20 @@ const productAnalyticsSiteAppEntryProperties = {
 // notification fact at all.
 const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"] as const;
 
+// The Home Screen and Lock Screen widget kinds, shared by `widget_opened` and `widget_placement_changed`.
+const productAnalyticsWidgetKinds = [
+  "review",
+  "activity",
+  "year",
+  "today",
+  "lock_screen",
+  "reviews_chart",
+  "streaks",
+  "month_calendar",
+  "coming_up",
+  "dashboard",
+] as const;
+
 // The vocabularies the server-derived billing facts report. Each mirrors whatever owns it: the tier
 // catalogue in apps/backend/src/billing/tiers.ts, the resolved status and source in
 // apps/backend/src/billing/resolver.ts, the provider and the purchase kind as
@@ -1134,40 +1148,32 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      widget_kind: {
-        kind: "enum",
-        values: [
-          "review",
-          "activity",
-          "year",
-          "today",
-          "lock_screen",
-          "reviews_chart",
-          "streaks",
-          "month_calendar",
-          "coming_up",
-          "dashboard",
-        ],
-        optional: true,
-      },
+      widget_kind: { kind: "enum", values: productAnalyticsWidgetKinds, optional: true },
       widget_size: {
         kind: "enum",
         values: ["small", "medium", "large", "accessory_circular", "accessory_rectangular", "accessory_inline"],
       },
     },
   },
-  // A stock reported on change: the Review widgets of each size placed on this installation,
-  // sent on a foreground only when the counts differ from the last report. An installation's
-  // first report, and the first after a cloud identity reset, is its current state, zeros
-  // included; all zeros means every widget was removed. Whether a person has a widget on a day
-  // is read from the latest row at or before that day's end for each of their anonymous_ids.
+  // A stock reported on change: the widgets of one kind placed on this installation, by size, sent
+  // on a foreground only when that kind's counts differ from its last report. The Review kind's
+  // first report, and the first after a cloud identity reset, is its current state, zeros included;
+  // a kind never reported counts as all zeros, and all zeros means every widget of it was removed.
+  // Clients released before `widget_kind` existed omit it and counted Review widgets only. The
+  // accessory counts come with `lock_screen` alone, whose small, medium and large are 0. Whether a
+  // person has a widget on a day is read from the latest row at or before that day's end for each
+  // kind on each of their anonymous_ids.
   widget_placement_changed: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
+      widget_kind: { kind: "enum", values: productAnalyticsWidgetKinds, optional: true },
       small_count: { kind: "nonNegativeInteger" },
       medium_count: { kind: "nonNegativeInteger" },
       large_count: { kind: "nonNegativeInteger" },
+      accessory_circular_count: { kind: "nonNegativeInteger", optional: true },
+      accessory_rectangular_count: { kind: "nonNegativeInteger", optional: true },
+      accessory_inline_count: { kind: "nonNegativeInteger", optional: true },
     },
   },
   card_create_started: {

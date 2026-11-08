@@ -91,7 +91,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 - `/analytics/general` shows its three sections in order, each chart rendering.
 - `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting a device platform drops its older, platform-less installs, and hovering a segment names the deck slug.
-- `Home Screen widgets`: no day of the people chart exceeds the people with any placement report; each taps bar's sizes sum to its `All taps`; return points stay within 0–100%, and today and the 7 days before it have none.
+- `Home Screen widgets`: no day of the people chart exceeds the people with any placement report; each taps bar's sizes sum to its `All taps`; return points stay within 0–100%, and today and the 7 days before it have none; in `By widget kind`, no kind's placed people exceed the people chart's last day, and the kinds' taps sum to the taps chart's.
 - The default range is the one [`buildAnalyticsAreaDefaultDateRange`](../apps/admin/src/filters/analyticsFiltersUrl.ts) returns, and the picker widens back to the earliest selectable day; over days only the deck funnel carries, General shows an empty tail.
 - Every filter popup names what it filters and how; the date popup's second click applies the range; a threshold such as `1.5` stays named as not applied.
 - A burst of filter clicks shows `Updating` at once, keeps the controls live and ends in one reload; `Reset all` restores the default range and clears every other filter.
@@ -138,5 +138,5 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - `Users` opens newest first without waiting for its filter options; a column filter, a sort and Next each reload from the server and survive a reload; a row's ID or email opens that person's page.
 - The four tabs switch without reloading one already opened; a chat opens on its own URL that Back leaves, and `← Users` returns to the list as it was left.
 - On a user page, a filter, sort or Next on Activity, Cards, the Chats list or a device list reloads only that table; a Cards text filter matches past the cut preview; a device list reopens as left after a reload; the Users access columns match the profile's `Current access`.
-- A user page's `Home Screen widgets` lists one row per installation with any widget placement report or tap: the latest small, medium and large counts with their `Reported` time (empty for an app version that never reported), and the tap count with `Last tap`.
+- A user page's `Home Screen widgets` lists one row per installation and widget kind with any widget placement report or tap: the latest counts by size with their `Reported` time (empty for a kind never reported), and the tap count with `Last tap`.
 - `Events` opens newest first by `occurred_at`; filters, sort and Next reload from the server and survive a reload; an event ID opens its page, whose user IDs open user pages, and `← Events` returns as left; an event name in a user's Activity tab opens the same event page.
