@@ -1837,6 +1837,66 @@
         }
       }
     },
+    "widget.lock_screen.due %lld" : {
+      "comment" : "Cards due on the Lock Screen widget before the streak is known. Parameter is the count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.lock_screen.due_streak %lld %lld" : {
+      "comment" : "Cards due and the current streak on the Lock Screen widget. First parameter is the count of cards due, second is the streak in days after a flame emoji",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld due · 🔥 %2$lld"
+          }
+        }
+      }
+    },
+    "widget.lock_screen.gallery.description" : {
+      "comment" : "Widget gallery description of the Lock Screen widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due, today’s progress and the next question."
+          }
+        }
+      }
+    },
+    "widget.lock_screen.gallery.name" : {
+      "comment" : "Widget gallery name of the Lock Screen widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due"
+          }
+        }
+      }
+    },
     "widget.no_snapshot" : {
       "comment" : "Shown before the app has shared any Review data with the widget. Nibomo is the app name",
       "extractionState" : "manual",
@@ -3177,6 +3237,114 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "widget.today.cards_left %lld" : {
+      "comment" : "Count of cards still due in the medium Today widget. Parameter is the count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld card left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cards left"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.today.gallery.description" : {
+      "comment" : "Widget gallery description of the Home Screen Today progress widget",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s reviews, cards left and your streak."
+          }
+        }
+      }
+    },
+    "widget.today.left %lld" : {
+      "comment" : "Short count of cards still due under the progress ring of the small Today widget. Parameter is the count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.today.no_cards_due" : {
+      "comment" : "Shown in the Today widget when nothing was reviewed today and no cards are due",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cards due"
+          }
+        }
+      }
+    },
+    "widget.today.reviewed %lld" : {
+      "comment" : "Number of cards reviewed today in the Today widget. Parameter is the count",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget.today.title" : {
+      "comment" : "Widget gallery name of the Today progress widget, also its title in the Medium size",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
           }
         }
       }

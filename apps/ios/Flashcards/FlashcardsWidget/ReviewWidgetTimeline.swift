@@ -4,7 +4,7 @@ import WidgetKit
 
 private let reviewWidgetMaximumEntryCount: Int = 50
 
-private let reviewWidgetLogger: Logger = Logger(
+let reviewWidgetLogger: Logger = Logger(
     subsystem: widgetBundleIdentifier(),
     category: "review_widget"
 )
@@ -49,11 +49,16 @@ struct ReviewWidgetTimelineProvider: TimelineProvider {
     }
 }
 
-/// One entry now and one per later due time, up to 50 entries, so the count grows as cards become due.
-/// Past the last entry the count stays as it is until the app writes a new snapshot.
+/// One entry now, one per later due time up to the cap, and always one at the next local midnight,
+/// so the count grows as cards become due and day-based widgets roll over to the new day.
+/// Past the last entry the content stays as it is until the app writes a new snapshot.
 func makeReviewWidgetEntries(snapshot: WidgetSnapshot, now: Date) -> [ReviewWidgetEntry] {
-    let laterDueDates = Array(Set(snapshot.upcomingDueAt.filter { dueAt in dueAt > now })).sorted()
-    let entryDates = [now] + laterDueDates.prefix(reviewWidgetMaximumEntryCount - 1)
+    // Two slots stay reserved: `now` and the next local midnight.
+    let laterDueDates = Set(snapshot.upcomingDueAt.filter { dueAt in dueAt > now })
+        .sorted()
+        .prefix(reviewWidgetMaximumEntryCount - 2)
+    let laterDates = Set(laterDueDates + [widgetNextLocalDayStart(after: now)]).sorted()
+    let entryDates = [now] + laterDates
     return entryDates.map { entryDate in
         makeReviewWidgetEntry(snapshot: snapshot, date: entryDate)
     }
