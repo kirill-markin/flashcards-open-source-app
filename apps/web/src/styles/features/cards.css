@@ -359,13 +359,11 @@
   flex: 1 1 40%;
   min-width: 0;
   margin: 0;
-  overflow: hidden;
   font-size: 30px;
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.05em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .deck-card-counts {

@@ -368,23 +368,21 @@ describe("ReviewScreen filter controls", () => {
 
     await clickElementAsync(selectedAllCardsOption);
 
-    expect(selectedAllCardsOption.getAttribute("aria-selected")).toBe("false");
-    expect(listbox.querySelector("[data-review-filter-key='tag:grammar']")?.getAttribute("aria-selected")).toBe("false");
-    expect(listbox.querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("false");
-    expect(listbox.querySelector("[data-review-filter-key='tag:medium']")?.getAttribute("aria-selected")).toBe("false");
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(document.activeElement).toBe(getContainer().querySelector(".review-filter-trigger"));
     expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
     expect(getContainer().querySelector("[data-testid='review-pane']")?.getAttribute("data-review-pane-state")).toBe("card");
     expect(getContainer().querySelector("[data-testid='review-pane']")?.getAttribute("data-review-current-card-id")).toBe("tag-1");
-    expect(queryReviewFilterMenu()).not.toBeNull();
 
-    const grammarOptionFromEmpty = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
-    if (!(grammarOptionFromEmpty instanceof HTMLElement)) {
-      throw new Error("Grammar review filter option was not found after clearing All Cards");
+    await openReviewFilterMenu();
+    const grammarOptionFromAllCards = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    if (!(grammarOptionFromAllCards instanceof HTMLElement)) {
+      throw new Error("Grammar review filter option was not found after reopening from All Cards");
     }
 
-    await clickElementAsync(grammarOptionFromEmpty);
+    await clickElementAsync(grammarOptionFromAllCards);
 
-    expect(grammarOptionFromEmpty.getAttribute("aria-selected")).toBe("true");
+    expect(grammarOptionFromAllCards.getAttribute("aria-selected")).toBe("true");
     expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
     expect(queryReviewFilterMenu()).not.toBeNull();
 
@@ -419,9 +417,24 @@ describe("ReviewScreen filter controls", () => {
       throw new Error("All Cards option or review filter trigger was not found");
     }
     await clickElementAsync(allCardsOption);
-    expect(allCardsOption.getAttribute("aria-selected")).toBe("true");
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "allCards" });
+
+    state.appData.selectedReviewFilter = { kind: "tags", tags: ["grammar"] };
+    await rerenderReviewScreen();
+    state.appData.selectReviewFilter.mockClear();
+    await openReviewFilterMenu();
+    const lastSelectedTagOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    if (!(lastSelectedTagOption instanceof HTMLElement)) {
+      throw new Error("Last selected tag review filter option was not found");
+    }
+    await clickElementAsync(lastSelectedTagOption);
+    expect(lastSelectedTagOption.getAttribute("aria-selected")).toBe("false");
+    expect(getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']")?.getAttribute("aria-selected")).toBe("true");
     expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    await clickElementAsync(trigger);
+    await pointerDownElementAsync(document.body);
     expect(queryReviewFilterMenu()).toBeNull();
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "allCards" });
@@ -430,18 +443,13 @@ describe("ReviewScreen filter controls", () => {
     await rerenderReviewScreen();
     state.appData.selectReviewFilter.mockClear();
     await openReviewFilterMenu();
-    const selectedAllCardsForEditDecks = getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']");
     const editDecksLink = getReviewFilterMenu().querySelector(".review-filter-menu-entry-action");
-    if (!(selectedAllCardsForEditDecks instanceof HTMLElement) || !(editDecksLink instanceof HTMLAnchorElement)) {
-      throw new Error("All Cards option or Edit decks link was not found");
+    if (!(editDecksLink instanceof HTMLAnchorElement)) {
+      throw new Error("Edit decks link was not found");
     }
-    await clickElementAsync(selectedAllCardsForEditDecks);
-    expect(selectedAllCardsForEditDecks.getAttribute("aria-selected")).toBe("false");
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
     await clickElementAsync(editDecksLink);
     expect(queryReviewFilterMenu()).toBeNull();
-    expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
-    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: [] });
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
 
     state.appData.selectedReviewFilter = { kind: "allCards" };
     await rerenderReviewScreen();
@@ -516,23 +524,22 @@ describe("ReviewScreen filter controls", () => {
     expect(getActiveReviewFilterOption(searchableInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
 
     await keydownElementAsync(searchableInput, "ArrowDown");
-    await keydownElementAsync(searchableInput, "Enter");
-
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    expect(queryReviewFilterMenu()).not.toBeNull();
-    expect(document.activeElement).toBe(searchableInput);
-    expect(searchableListbox.scrollTop).toBe(24);
 
     const triggerAfterSearchKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
     if (!(triggerAfterSearchKeyboardSelect instanceof HTMLButtonElement)) {
-      throw new Error("Review filter trigger was not found after search keyboard selection");
+      throw new Error("Review filter trigger was not found before search keyboard selection");
     }
     await pointerDownElementAsync(triggerAfterSearchKeyboardSelect);
     expect(queryReviewFilterMenu()).not.toBeNull();
     await pointerDownElementAsync(getReviewFilterMenu());
     expect(queryReviewFilterMenu()).not.toBeNull();
-    await pointerDownElementAsync(document.body);
+    expect(document.activeElement).toBe(searchableInput);
+    expect(searchableListbox.scrollTop).toBe(24);
+
+    await keydownElementAsync(searchableInput, "Enter");
+
     expect(queryReviewFilterMenu()).toBeNull();
+    expect(document.activeElement).toBe(triggerAfterSearchKeyboardSelect);
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-4" });
   });
@@ -673,20 +680,13 @@ describe("ReviewScreen filter controls", () => {
 
     await keydownElementAsync(listbox, " ");
 
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    expect(getReviewFilterMenu().querySelector("[data-review-filter-key='deck:deck-2']")?.getAttribute("aria-selected")).toBe("true");
-    expect(queryReviewFilterMenu()).not.toBeNull();
-    const triggerAfterListboxKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
-    if (!(triggerAfterListboxKeyboardSelect instanceof HTMLButtonElement)) {
-      throw new Error("Review filter trigger was not found after listbox keyboard selection");
-    }
-    expect(document.activeElement).toBe(listbox);
-    await clickElementAsync(triggerAfterListboxKeyboardSelect);
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(document.activeElement).toBe(getContainer().querySelector(".review-filter-trigger"));
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-2" });
   });
 
-  it("uses the pointer-selected option for the next keyboard selection", async () => {
+  it("applies a pointer deck choice and returns to All cards when the selected deck is chosen by keyboard", async () => {
     const state = getState();
     state.decks = createDecks(["Pointer deck"]);
     const card = createCard({
@@ -709,20 +709,30 @@ describe("ReviewScreen filter controls", () => {
 
     await clickElementAsync(deckOption);
 
-    expect(getActiveReviewFilterOption(listbox)).toBe(deckOption);
-    expect(listbox.getAttribute("aria-activedescendant")).toBe(deckOption.id);
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-
-    await keydownElementAsync(listbox, " ");
-
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    expect(queryReviewFilterMenu()).not.toBeNull();
-    await pointerDownElementAsync(document.body);
+    expect(queryReviewFilterMenu()).toBeNull();
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
-    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: [] });
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
+
+    state.appData.selectedReviewFilter = { kind: "deck", deckId: "deck-1" };
+    await rerenderReviewScreen();
+    state.appData.selectReviewFilter.mockClear();
+    await openReviewFilterMenu();
+    const reopenedListbox = getReviewFilterMenu().querySelector("[role='listbox']");
+    if (!(reopenedListbox instanceof HTMLElement)) {
+      throw new Error("Review filter listbox was not found after reopening on the selected deck");
+    }
+    await vi.waitFor(() => {
+      expect(getActiveReviewFilterOption(reopenedListbox).getAttribute("data-review-filter-key")).toBe("deck:deck-1");
+    });
+
+    await keydownElementAsync(reopenedListbox, " ");
+
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "allCards" });
   });
 
-  it("keeps searchable pointer selection owned by the combobox for keyboard activation", async () => {
+  it("applies a searchable pointer deck choice without focusing the option and returns focus to the trigger", async () => {
     const state = getState();
     state.decks = createDecks(["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"]);
     const card = createCard({
@@ -747,19 +757,10 @@ describe("ReviewScreen filter controls", () => {
     const wasPointerDownPrevented = await pointerDownAndClickElementAsync(deckOption);
 
     expect(wasPointerDownPrevented).toBe(true);
-    expect(document.activeElement).toBe(searchInput);
-    expect(getActiveReviewFilterOption(searchInput)).toBe(deckOption);
-    expect(searchInput.getAttribute("aria-activedescendant")).toBe(deckOption.id);
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-
-    await keydownElementAsync(searchInput, "Enter");
-
-    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(searchInput);
-    expect(queryReviewFilterMenu()).not.toBeNull();
-    await dispatchDocumentKeydown("Escape");
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(document.activeElement).toBe(getContainer().querySelector(".review-filter-trigger"));
     expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
-    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tags", tags: [] });
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-4" });
   });
 
   it("shows the resolved tag name after StrictMode replays the initial load effect", async () => {

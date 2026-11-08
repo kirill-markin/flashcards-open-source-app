@@ -169,9 +169,11 @@ export function makeTagsReviewFilter(tags: ReadonlyArray<string>): ReviewFilter 
   };
 }
 
+/** An empty tag selection is All cards, so Review never filters down to nothing. */
 export function normalizeReviewFilter(reviewFilter: ReviewFilter): ReviewFilter {
   if (reviewFilter.kind === "tags") {
-    return makeTagsReviewFilter(reviewFilter.tags);
+    const tags = normalizeReviewFilterTags(reviewFilter.tags);
+    return tags.length === 0 ? ALL_CARDS_REVIEW_FILTER : { kind: "tags", tags };
   }
 
   return reviewFilter;
