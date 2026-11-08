@@ -53,7 +53,6 @@ import com.flashcardsopensourceapp.feature.progress.ProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.feature.progress.ProgressReviewScheduleSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
 import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -63,11 +62,7 @@ internal fun ReviewScheduleSectionCard(
     uiState: ProgressReviewScheduleSectionUiState
 ) {
     val configuration = LocalConfiguration.current
-    val locale = if (configuration.locales.isEmpty) {
-        Locale.getDefault()
-    } else {
-        configuration.locales[0]
-    }
+    val locale = configuration.locales[0]
     val countFormatter = remember(locale) {
         NumberFormat.getIntegerInstance(locale)
     }

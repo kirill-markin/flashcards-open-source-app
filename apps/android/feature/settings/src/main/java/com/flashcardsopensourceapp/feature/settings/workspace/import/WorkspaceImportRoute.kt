@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -62,6 +63,7 @@ fun WorkspaceImportRoute(
 ) {
     val uiState: WorkspaceImportUiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val context = LocalContext.current
+    val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
     val strings = remember(context) {
         createSettingsStringResolver(context = context.applicationContext)
@@ -89,7 +91,7 @@ fun WorkspaceImportRoute(
             } catch (error: WorkspaceImportUserException) {
                 viewModel.showSelectedFileError(
                     previewRequestId = previewRequestId,
-                    message = error.message ?: context.getString(R.string.settings_import_file_read_failed)
+                    message = error.message ?: resources.getString(R.string.settings_import_file_read_failed)
                 )
             }
         }

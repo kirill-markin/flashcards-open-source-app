@@ -68,7 +68,6 @@ import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionRatingT
 import com.flashcardsopensourceapp.feature.review.reaction.stopReviewReactionSlots
 import com.flashcardsopensourceapp.feature.review.onboarding.FirstReviewOnboardingOverlay
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionMotionMode
-import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 
@@ -168,13 +167,13 @@ fun ReviewRoute(
             null
         }
     }
-    val reviewSpeechFallbackLanguageTag =
-        (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
+    val reviewSpeechFallbackLanguageTag = configuration.locales[0].toLanguageTag()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
+    val reviewSpeechUnavailableMessage = stringResource(R.string.review_speech_unavailable)
     val reviewSpeechController = remember(context, observability) {
         ReviewSpeechController(
             context = context,
-            unavailableMessage = context.getString(R.string.review_speech_unavailable),
+            unavailableMessage = reviewSpeechUnavailableMessage,
             observability = observability
         )
     }
