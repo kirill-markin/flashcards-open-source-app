@@ -42,6 +42,41 @@ fun MathText(
     val blocks = remember(text) {
         if ('$' in text) extractMathBlocks(removeInlineMathMarkers(text)).blocks else emptyList()
     }
+    MathBlocksText(blocks, plainText, modifier, style, color, fontWeight, maxLines, overflow, formatText)
+}
+
+/** One-line card preview from [makeMarkdownPreviewBlocks], with formulas rendered as in [MathText]. */
+@Composable
+fun MarkdownPreviewText(
+    markdown: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    formatText: (String) -> String = { it }
+) {
+    val emptyImageAltText = stringResource(R.string.markdown_preview_image)
+    val blocks = remember(markdown, emptyImageAltText) {
+        makeMarkdownPreviewBlocks(markdown = markdown, emptyImageAltText = emptyImageAltText)
+    }
+    val plainText = (blocks.singleOrNull() as? MathBlock.Markdown)?.normalizedMarkdown.orEmpty()
+    MathBlocksText(blocks, plainText, modifier, style, color, fontWeight, maxLines, overflow, formatText)
+}
+
+@Composable
+private fun MathBlocksText(
+    blocks: List<MathBlock>,
+    plainText: String,
+    modifier: Modifier,
+    style: TextStyle,
+    color: Color,
+    fontWeight: FontWeight?,
+    maxLines: Int,
+    overflow: TextOverflow,
+    formatText: (String) -> String
+) {
     if (blocks.none { it is MathBlock.Formula }) {
         Text(
             text = formatText(plainText),

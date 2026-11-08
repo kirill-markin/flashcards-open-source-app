@@ -61,7 +61,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
-import com.flashcardsopensourceapp.core.ui.content.MathText
+import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -164,8 +164,8 @@ internal fun AiComposer(
                             modifier = Modifier.testTag(tag = aiComposerPendingAttachmentTag),
                             label = {
                                 if (attachment is AiChatAttachment.Card) {
-                                    MathText(
-                                        text = attachment.frontText,
+                                    MarkdownPreviewText(
+                                        markdown = attachment.frontText,
                                         formatText = cardAttachmentTextFormatter(),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis

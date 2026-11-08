@@ -15,7 +15,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.core.ui.content.MathText
+import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.feature.settings.R
 
@@ -99,8 +99,8 @@ internal fun DeckCardRow(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            MathText(
-                text = card.frontText,
+            MarkdownPreviewText(
+                markdown = card.frontText,
                 style = MaterialTheme.typography.titleSmall
             )
             if (card.tags.isNotEmpty()) {

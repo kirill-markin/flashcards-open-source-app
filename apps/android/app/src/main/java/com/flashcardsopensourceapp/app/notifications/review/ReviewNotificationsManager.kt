@@ -32,6 +32,8 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNotificationKind
+import com.flashcardsopensourceapp.core.ui.R as CoreUiR
+import com.flashcardsopensourceapp.core.ui.content.makeMarkdownPlainText
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
@@ -843,6 +845,13 @@ class ReviewNotificationsManager(
         return decodeDeckFilterDefinitionJson(filterDefinitionJson = deck.filterDefinitionJson)
     }
 
+    private fun makeReviewNotificationFrontText(card: CardEntity): String {
+        return makeMarkdownPlainText(
+            markdown = card.frontText,
+            emptyImageAltText = context.getString(CoreUiR.string.markdown_preview_image)
+        )
+    }
+
     private suspend fun loadCurrentAllCardsReviewNotificationCard(
         workspaceId: String,
         nowMillis: Long
@@ -857,7 +866,7 @@ class ReviewNotificationsManager(
         return CurrentReviewNotificationCard(
             reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.AllCards),
             cardId = card.cardId,
-            frontText = card.frontText
+            frontText = makeReviewNotificationFrontText(card = card)
         )
     }
 
@@ -884,7 +893,7 @@ class ReviewNotificationsManager(
         return CurrentReviewNotificationCard(
             reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.Deck(deckId = deck.deckId)),
             cardId = card.cardId,
-            frontText = card.frontText
+            frontText = makeReviewNotificationFrontText(card = card)
         )
     }
 
@@ -913,7 +922,7 @@ class ReviewNotificationsManager(
                 reviewFilter = makeReviewTagFilter(tagNames = exactTagNames)
             ),
             cardId = card.cardId,
-            frontText = card.frontText
+            frontText = makeReviewNotificationFrontText(card = card)
         )
     }
 
