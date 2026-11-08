@@ -464,7 +464,7 @@
     <string name="settings_workspace_save_name_button">Save name</string>
     <string name="settings_workspace_rename_guidance">Workspace rename is available only for linked cloud workspaces.</string>
     <string name="settings_cards_title">Cards</string>
-    <string name="settings_workspace_due_title">Due</string>
+    <string name="settings_workspace_to_study_title">To study</string>
     <string name="settings_workspace_new_title">New</string>
     <string name="settings_workspace_reviewed_title">Reviewed</string>
     <string name="settings_workspace_delete_body">Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.</string>
@@ -843,14 +843,11 @@
         <item quantity="one">%1$d card</item>
         <item quantity="other">%1$d cards</item>
     </plurals>
-    <plurals name="settings_workspace_deck_new_summary">
-        <item quantity="one">%1$d new</item>
-        <item quantity="other">%1$d new</item>
+    <plurals name="settings_workspace_deck_to_study_summary">
+        <item quantity="one">%1$d to study</item>
+        <item quantity="other">%1$d to study</item>
     </plurals>
-    <plurals name="settings_workspace_deck_reviewed_summary">
-        <item quantity="one">%1$d reviewed</item>
-        <item quantity="other">%1$d reviewed</item>
-    </plurals>
+    <string name="settings_workspace_deck_counts_summary">%1$s · %2$s</string>
     <plurals name="settings_workspace_deck_due_summary">
         <item quantity="one">%1$d due</item>
         <item quantity="other">%1$d due</item>
