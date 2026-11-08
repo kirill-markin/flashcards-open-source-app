@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.widget
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.compose.ui.unit.DpSize
+import androidx.core.graphics.createBitmap
 import kotlin.math.roundToInt
 
 /**
@@ -16,7 +17,7 @@ fun drawWidgetBitmap(size: DpSize, density: Float, draw: (Canvas) -> Unit): Bitm
     require(widthPx > 0 && heightPx > 0) {
         "Widget bitmap needs a positive size, got ${widthPx}x$heightPx px for $size at density $density."
     }
-    val bitmap: Bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+    val bitmap: Bitmap = createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
     draw(Canvas(bitmap))
     return bitmap
 }
