@@ -1131,6 +1131,7 @@ const nlCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "De formule kon niet worden weergegeven.",
       schedulerUnavailable: "Plannerinstellingen van de werkruimte zijn niet geladen",
+      storageFull: "Maak opslagruimte vrij op dit apparaat en beoordeel de kaart opnieuw.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ranglijst openen",

@@ -1131,6 +1131,7 @@ const koCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "수식을 표시하지 못했습니다.",
       schedulerUnavailable: "워크스페이스 스케줄러 설정을 불러오지 못했습니다",
+      storageFull: "이 기기의 저장 공간을 확보한 뒤 카드를 다시 평가하세요.",
     },
     leaderboardShortcut: {
       ariaLabel: "리더보드 열기",

@@ -1131,6 +1131,7 @@ export const jaCatalog = {
     errors: {
       mathRenderFailed: "数式を表示できませんでした。",
       schedulerUnavailable: "ワークスペースのスケジューラー設定が読み込まれていません",
+      storageFull: "この端末のストレージの空き容量を増やしてから、もう一度カードを評価してください。",
     },
     leaderboardShortcut: {
       ariaLabel: "リーダーボードを開く",

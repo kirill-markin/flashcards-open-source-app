@@ -1141,6 +1141,7 @@ const hrCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nije moguće prikazati formulu.",
       schedulerUnavailable: "Postavke planera radnog prostora nisu učitane",
+      storageFull: "Oslobodite prostor za pohranu na ovom uređaju, a zatim ponovno ocijenite karticu.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otvori ljestvicu",

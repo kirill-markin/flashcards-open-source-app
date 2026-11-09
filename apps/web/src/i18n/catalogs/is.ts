@@ -1131,6 +1131,7 @@ const isCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Ekki tókst að birta formúluna.",
       schedulerUnavailable: "Stillingar tímaáætlunar vinnusvæðisins hafa ekki verið hlaðnar",
+      storageFull: "Losaðu geymslupláss í þessu tæki og gefðu kortinu síðan einkunn aftur.",
     },
     leaderboardShortcut: {
       ariaLabel: "Opna stigatöflu",

@@ -1131,6 +1131,7 @@ const teCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "సూత్రాన్ని చూపించలేకపోయాము.",
       schedulerUnavailable: "వర్క్‌స్పేస్ షెడ్యూలర్ సెట్టింగ్‌లు లోడ్ కాలేదు",
+      storageFull: "ఈ పరికరంలో కొంత నిల్వ స్థలాన్ని ఖాళీ చేసి, కార్డుకు మళ్లీ రేటింగ్ ఇవ్వండి.",
     },
     leaderboardShortcut: {
       ariaLabel: "లీడర్‌బోర్డ్ తెరువు",

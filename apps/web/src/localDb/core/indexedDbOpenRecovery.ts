@@ -1,3 +1,5 @@
+import { IndexedDbStorageFullError } from "./indexedDbStorageFull";
+
 export type IndexedDbOpenRecoveryError = Error & Readonly<{
   indexedDbOperation: "open";
   indexedDbErrorName: "UnknownError";
@@ -8,5 +10,6 @@ export function isIndexedDbOpenRecoveryError(error: unknown): error is IndexedDb
     && "indexedDbOperation" in error
     && error.indexedDbOperation === "open"
     && "indexedDbErrorName" in error
-    && error.indexedDbErrorName === "UnknownError";
+    && error.indexedDbErrorName === "UnknownError"
+    && (error instanceof IndexedDbStorageFullError) === false;
 }

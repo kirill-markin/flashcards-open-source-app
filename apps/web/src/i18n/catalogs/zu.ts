@@ -1131,6 +1131,7 @@ const zuCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Ifomula ayiboniswanga.",
       schedulerUnavailable: "Izilungiselelo zesihleli sendawo yokusebenza azilayishiwe",
+      storageFull: "Khulula isikhala sokulondoloza kule divayisi, bese ulinganisa ikhadi futhi.",
     },
     leaderboardShortcut: {
       ariaLabel: "Vula ibhodi labahamba phambili",

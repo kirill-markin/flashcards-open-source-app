@@ -1151,6 +1151,7 @@ const slCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formule ni bilo mogoče prikazati.",
       schedulerUnavailable: "Nastavitve razporejanja delovnega prostora niso naložene",
+      storageFull: "Sprostite prostor za shranjevanje v tej napravi in nato znova ocenite kartico.",
     },
     leaderboardShortcut: {
       ariaLabel: "Odpri lestvico",

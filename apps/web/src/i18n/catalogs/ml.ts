@@ -1131,6 +1131,7 @@ const mlCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "സൂത്രവാക്യം പ്രദർശിപ്പിക്കാനായില്ല.",
       schedulerUnavailable: "വർക്ക്‌സ്‌പേസ് സമയക്രമ ക്രമീകരണങ്ങൾ ലോഡ് ചെയ്തിട്ടില്ല",
+      storageFull: "ഈ ഉപകരണത്തിൽ കുറച്ച് സംഭരണ ഇടം ഒഴിവാക്കിയ ശേഷം കാർഡ് വീണ്ടും വിലയിരുത്തുക.",
     },
     leaderboardShortcut: {
       ariaLabel: "ലീഡർബോർഡ് തുറക്കുക",

@@ -1131,6 +1131,7 @@ const knCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "ಸೂತ್ರ ತೋರಿಸಲಾಗಲಿಲ್ಲ.",
       schedulerUnavailable: "ಕಾರ್ಯಸ್ಥಳದ ವೇಳಾಪಟ್ಟಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಲೋಡ್ ಆಗಿಲ್ಲ",
+      storageFull: "ಈ ಸಾಧನದಲ್ಲಿ ಸ್ವಲ್ಪ ಸಂಗ್ರಹಣಾ ಸ್ಥಳವನ್ನು ಖಾಲಿ ಮಾಡಿ, ನಂತರ ಕಾರ್ಡ್‌ಗೆ ಮತ್ತೆ ರೇಟಿಂಗ್ ನೀಡಿ.",
     },
     leaderboardShortcut: {
       ariaLabel: "ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ತೆರೆಯಿರಿ",

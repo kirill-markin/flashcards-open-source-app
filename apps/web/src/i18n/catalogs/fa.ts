@@ -1131,6 +1131,7 @@ const faCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "نمایش فرمول ممکن نشد.",
       schedulerUnavailable: "تنظیمات زمان‌بند فضای کاری بارگذاری نشده است",
+      storageFull: "در این دستگاه فضای ذخیره‌سازی آزاد کنید و سپس دوباره به کارت امتیاز دهید.",
     },
     leaderboardShortcut: {
       ariaLabel: "باز کردن جدول رتبه‌بندی",

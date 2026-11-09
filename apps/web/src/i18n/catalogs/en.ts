@@ -1130,6 +1130,7 @@ const enCatalog = {
     errors: {
       mathRenderFailed: "The formula could not be rendered.",
       schedulerUnavailable: "Workspace scheduler settings are not loaded",
+      storageFull: "Free up storage space on this device, then rate the card again.",
     },
     leaderboardShortcut: {
       ariaLabel: "Open leaderboard",

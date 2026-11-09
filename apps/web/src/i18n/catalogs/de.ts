@@ -1131,6 +1131,7 @@ const deCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Die Formel konnte nicht dargestellt werden.",
       schedulerUnavailable: "Die Planer-Einstellungen des Arbeitsbereichs sind nicht geladen",
+      storageFull: "Gib Speicherplatz auf diesem Gerät frei und bewerte die Karte erneut.",
     },
     leaderboardShortcut: {
       ariaLabel: "Bestenliste öffnen",

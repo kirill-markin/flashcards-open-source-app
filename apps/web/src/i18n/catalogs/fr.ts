@@ -1131,6 +1131,7 @@ const frCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "La formule n'a pas pu être affichée.",
       schedulerUnavailable: "Les paramètres du planificateur de l'espace de travail ne sont pas chargés",
+      storageFull: "Libérez de l’espace de stockage sur cet appareil, puis évaluez de nouveau la carte.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ouvrir le classement",

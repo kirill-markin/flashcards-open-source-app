@@ -1131,6 +1131,7 @@ const svCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formeln kunde inte renderas.",
       schedulerUnavailable: "Arbetsytans schemainställningar är inte inlästa",
+      storageFull: "Frigör lagringsutrymme på den här enheten och betygsätt kortet igen.",
     },
     leaderboardShortcut: {
       ariaLabel: "Öppna topplistan",
