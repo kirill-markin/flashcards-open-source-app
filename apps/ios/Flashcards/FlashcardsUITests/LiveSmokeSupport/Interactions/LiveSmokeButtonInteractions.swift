@@ -55,7 +55,7 @@ extension LiveSmokeTestCase {
         switch identifier {
         // The Review filter's label is its applied filter; these are the ones the tests apply.
         case LiveSmokeIdentifier.reviewFilterMenu:
-            return NSPredicate(format: "label IN %@", ["All cards", "No tags", "smoke-guest-ai-review"])
+            return NSPredicate(format: "label IN %@", ["All cards", "smoke-guest-ai-review"])
         case "mac.sidebar.toggle": return NSPredicate(format: "label == %@", "Sidebar")
         case "mac.navigation.back": return NSPredicate(format: "label == %@", "Back")
         case LiveSmokeIdentifier.aiCompanionToggle:
