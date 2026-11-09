@@ -850,31 +850,35 @@ export function CardFormScreen(): ReactElement {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || loadErrorMessage !== "") {
     return (
       <main className="container">
-        <section className="panel">
-          <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
-          <p className="subtitle">{t("cardForm.loading")}</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (loadErrorMessage !== "") {
-    return (
-      <main className="container">
-        <section className="panel">
-          <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
-          <p className="error-banner" data-testid="card-form-load-error">{loadErrorMessage}</p>
-          <button
-            className="primary-btn"
-            type="button"
-            onClick={() => void loadScreenData()}
-            data-testid="card-form-load-retry"
-          >
-            {t("common.retry")}
-          </button>
+        <section className="panel screen-panel">
+          <div className="screen-head">
+            <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
+          </div>
+          <div className="screen-body card-form-load-state">
+            {isLoading ? (
+              <>
+                <span className="page-state-spinner" aria-hidden="true" />
+                <p className="subtitle" role="status">{t("cardForm.loading")}</p>
+              </>
+            ) : (
+              <>
+                <p className="subtitle card-form-load-error" role="alert" data-testid="card-form-load-error">
+                  {loadErrorMessage}
+                </p>
+                <button
+                  className="ghost-btn"
+                  type="button"
+                  onClick={() => void loadScreenData()}
+                  data-testid="card-form-load-retry"
+                >
+                  {t("common.retry")}
+                </button>
+              </>
+            )}
+          </div>
         </section>
       </main>
     );
