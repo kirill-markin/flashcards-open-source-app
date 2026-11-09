@@ -4,7 +4,7 @@ import { loadCardById, putCard } from "../../../localDb/cards/cards";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { loadDeckById, putDeck } from "../../../localDb/cards/decks";
 import { putOutboxRecord, type PersistedOutboxRecord } from "../../../localDb/sync/outbox";
-import { putReviewEvent } from "../../../localDb/reviews/reviews";
+import { putLocalReview, type LocalReviewWrite } from "../../../localDb/reviews/reviews";
 import { loadWorkspaceSettings } from "../../../localDb/cards/workspace";
 import type {
   Card,
@@ -14,6 +14,7 @@ import type {
   Deck,
   UpdateCardInput,
   UpdateDeckInput,
+  WorkspaceSchedulerSettings,
 } from "../../../types";
 import {
   buildCardUpsertOperation,
@@ -395,30 +396,15 @@ async function runRecoveryGuardedSyncLocalOperation<ResultType>(
   }
 }
 
-export async function submitReviewLocally(
+function buildLocalReview(
   input: SubmitReviewLocallyInput,
-  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
-): Promise<LocalCardMutationResult> {
-  const [existingCard, schedulerSettings, cloudSettings] = await Promise.all([
-    runRecoveryGuardedSyncLocalOperation(
-      () => requireCard(input.workspaceId, input.cardId),
-      indexedDbOpenRecoveryState,
-    ),
-    runRecoveryGuardedSyncLocalOperation(
-      () => loadWorkspaceSettings(input.workspaceId),
-      indexedDbOpenRecoveryState,
-    ),
-    runRecoveryGuardedSyncLocalOperation(loadCloudSettings, indexedDbOpenRecoveryState),
-  ]);
-  indexedDbOpenRecoveryState.throwIfFailed();
-  if (schedulerSettings === null) {
-    throw new Error("Workspace scheduler settings are not loaded");
-  }
-
+  existingCard: Card,
+  schedulerSettings: WorkspaceSchedulerSettings,
+  installationId: string,
+): LocalReviewWrite {
   const reviewEventId = crypto.randomUUID().toLowerCase();
   const clientEventId = crypto.randomUUID().toLowerCase();
   const cardOperationId = crypto.randomUUID().toLowerCase();
-  const installationId = requireCloudInstallationId(cloudSettings);
   const schedule = computeReviewSchedule(
     toReviewableCardState(existingCard),
     {
@@ -454,7 +440,7 @@ export async function submitReviewLocally(
     operation: buildReviewEventAppendOperation(nextReviewEvent),
   };
   const didChangeReviewSchedule = doesCardMutationAffectReviewSchedule(existingCard, nextCard);
-  const cardOutboxRecord: PersistedOutboxRecord = {
+  const cardOutboxRecord: LocalReviewWrite["cardOutboxRecord"] = {
     operationId: cardOperationId,
     workspaceId: input.workspaceId,
     createdAt: input.reviewedAtClient,
@@ -464,17 +450,40 @@ export async function submitReviewLocally(
     operation: buildCardUpsertOperation(nextCard),
   };
 
-  await putReviewEvent(nextReviewEvent);
-  indexedDbOpenRecoveryState.throwIfFailed();
-  await putCard(input.workspaceId, nextCard);
-  indexedDbOpenRecoveryState.throwIfFailed();
-  await putOutboxRecord(reviewEventOutboxRecord);
-  indexedDbOpenRecoveryState.throwIfFailed();
-  await putOutboxRecord(cardOutboxRecord);
-  indexedDbOpenRecoveryState.throwIfFailed();
   return {
     card: nextCard,
+    reviewEvent: nextReviewEvent,
+    reviewEventOutboxRecord,
+    cardOutboxRecord,
+  };
+}
+
+export async function submitReviewLocally(
+  input: SubmitReviewLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
+  const [schedulerSettings, cloudSettings] = await Promise.all([
+    runRecoveryGuardedSyncLocalOperation(
+      () => loadWorkspaceSettings(input.workspaceId),
+      indexedDbOpenRecoveryState,
+    ),
+    runRecoveryGuardedSyncLocalOperation(loadCloudSettings, indexedDbOpenRecoveryState),
+  ]);
+  if (schedulerSettings === null) {
+    throw new Error("Workspace scheduler settings are not loaded");
+  }
+
+  const installationId = requireCloudInstallationId(cloudSettings);
+  const review = await runRecoveryGuardedSyncLocalOperation(
+    () => putLocalReview(input.workspaceId, input.cardId, (existingCard) => {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      return buildLocalReview(input, existingCard, schedulerSettings, installationId);
+    }),
+    indexedDbOpenRecoveryState,
+  );
+  return {
+    card: review.card,
     didChangeProgressHistory: true,
-    didChangeReviewSchedule,
+    didChangeReviewSchedule: review.cardOutboxRecord.affectsReviewSchedule,
   };
 }

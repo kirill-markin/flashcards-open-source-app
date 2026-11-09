@@ -1131,6 +1131,7 @@ const arCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "تعذر عرض الصيغة.",
       schedulerUnavailable: "لم يتم تحميل إعدادات جدولة مساحة العمل",
+      storageFull: "حرّر بعض مساحة التخزين على هذا الجهاز، ثم قيّم البطاقة مرة أخرى.",
     },
     leaderboardShortcut: {
       ariaLabel: "فتح لوحة المتصدرين",

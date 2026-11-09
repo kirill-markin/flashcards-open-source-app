@@ -1141,6 +1141,7 @@ export const ruCatalog = {
     errors: {
       mathRenderFailed: "Не удалось отобразить формулу.",
       schedulerUnavailable: "Настройки планировщика рабочего пространства не загружены",
+      storageFull: "Освободите место на этом устройстве, затем снова оцените карточку.",
     },
     leaderboardShortcut: {
       ariaLabel: "Открыть таблицу лидеров",

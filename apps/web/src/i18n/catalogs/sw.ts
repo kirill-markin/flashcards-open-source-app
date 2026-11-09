@@ -1131,6 +1131,7 @@ const swCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Fomula haikuweza kuonyeshwa.",
       schedulerUnavailable: "Mipangilio ya kipanga ratiba ya nafasi ya kazi haijapakiwa",
+      storageFull: "Ongeza nafasi iliyo wazi kwenye hifadhi ya kifaa hiki, kisha kadi ukadirie tena.",
     },
     leaderboardShortcut: {
       ariaLabel: "Fungua ubao wa viwango",

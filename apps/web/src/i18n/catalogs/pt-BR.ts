@@ -1131,6 +1131,7 @@ const ptBrCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Não foi possível renderizar a fórmula.",
       schedulerUnavailable: "As configurações do agendador do espaço de trabalho não foram carregadas",
+      storageFull: "Libere espaço de armazenamento neste dispositivo e avalie o cartão novamente.",
     },
     leaderboardShortcut: {
       ariaLabel: "Abrir ranking",

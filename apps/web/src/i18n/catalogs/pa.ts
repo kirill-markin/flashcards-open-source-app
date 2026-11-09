@@ -1131,6 +1131,7 @@ const paCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "ਫਾਰਮੂਲਾ ਦਿਖਾਇਆ ਨਹੀਂ ਜਾ ਸਕਿਆ.",
       schedulerUnavailable: "ਵਰਕਸਪੇਸ ਦੀਆਂ ਸਮਾਂ-ਸਾਰਣੀ ਸੈਟਿੰਗਾਂ ਲੋਡ ਨਹੀਂ ਹੋਈਆਂ",
+      storageFull: "ਇਸ ਡਿਵਾਈਸ ’ਤੇ ਕੁਝ ਸਟੋਰੇਜ ਖਾਲੀ ਕਰੋ, ਫਿਰ ਕਾਰਡ ਨੂੰ ਦੁਬਾਰਾ ਰੇਟ ਕਰੋ।",
     },
     leaderboardShortcut: {
       ariaLabel: "ਦਰਜਾਬੰਦੀ ਖੋਲ੍ਹੋ",

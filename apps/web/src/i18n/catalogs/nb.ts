@@ -1131,6 +1131,7 @@ const nbCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formelen kunne ikke vises.",
       schedulerUnavailable: "Planleggerinnstillingene for arbeidsområdet er ikke lastet inn",
+      storageFull: "Frigjør lagringsplass på denne enheten, og vurder kortet på nytt.",
     },
     leaderboardShortcut: {
       ariaLabel: "Åpne ledertavlen",

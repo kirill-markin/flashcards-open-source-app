@@ -1141,6 +1141,7 @@ const ukCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Не вдалося відобразити формулу.",
       schedulerUnavailable: "Налаштування планувальника робочого простору не завантажено",
+      storageFull: "Звільніть місце на цьому пристрої, а потім знову оцініть картку.",
     },
     leaderboardShortcut: {
       ariaLabel: "Відкрити таблицю лідерів",

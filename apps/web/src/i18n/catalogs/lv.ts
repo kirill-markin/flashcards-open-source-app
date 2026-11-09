@@ -1131,6 +1131,7 @@ const lvCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Neizdevās attēlot formulu.",
       schedulerUnavailable: "Darbvietas plānotāja iestatījumi nav ielādēti",
+      storageFull: "Atbrīvo vietu šīs ierīces krātuvē un novērtē kartīti vēlreiz.",
     },
     leaderboardShortcut: {
       ariaLabel: "Atvērt līderu sarakstu",
