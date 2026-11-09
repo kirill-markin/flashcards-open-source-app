@@ -1168,8 +1168,6 @@ const elCatalog: TranslationCatalog = {
       snapshot: "Εμφανίζεται ένα πρόσφατο τοπικό στιγμιότυπο...",
     },
     media: {
-      privateImage: "Ιδιωτική εικόνα",
-      privateAttachment: "Ιδιωτικό συνημμένο",
       attachmentLabel: "Συνημμένο",
       audioLabel: "Συνημμένο ήχου",
       imageAlt: "Διαχειριζόμενη εικόνα",

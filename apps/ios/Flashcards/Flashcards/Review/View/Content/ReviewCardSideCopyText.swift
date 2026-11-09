@@ -1,18 +1,43 @@
 import Foundation
 
+// Inline, full, collapsed and shortcut forms; a label never spans `[`, so a linked image matches its inner image.
 private let reviewCopyMediaExpression = makeReviewContentRegularExpression(
-    pattern: #"(!)?\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)"#
+    pattern: #"(!)?\[([^\[\]]*)\](?:\(([^)\s]+)(?:\s+"[^"]*")?\)|\[([^\[\]]*)\])?"#
+)
+private let reviewCopyReferenceDefinitionExpression = makeReviewContentRegularExpression(
+    pattern: #"^ {0,3}\[((?:\\.|[^\\\]])+)\]:[ \t]*<?([^\s>]+)>?.*$"#
 )
 
+private struct ReviewCopyReferenceDefinition {
+    let label: String
+    let destination: String
+    let range: Range<String.Index>
+}
+
+/// The readable text of a card side, shared by the Copy button and the Select text sheet: the source Markdown with
+/// each managed media reference replaced by its label, or removed when it has none, as the in-card selection copies.
 func reviewCardSideCopyText(sourceText: String) throws -> String {
-    let codeRanges = try reviewCopyCodeRanges(sourceText: sourceText)
+    let markdownSource = reviewCopyMarkdownSource(sourceText: sourceText)
+    let codeRanges = try reviewCopyCodeRanges(sourceText: sourceText, markdownSource: markdownSource)
+    let definitions = reviewCopyReferenceDefinitions(
+        sourceText: sourceText,
+        markdownSource: markdownSource,
+        codeRanges: codeRanges
+    )
+    var destinationsByLabel: [String: String] = [:]
+    for definition in definitions where destinationsByLabel[definition.label] == nil {
+        destinationsByLabel[definition.label] = definition.destination
+    }
+    // Definition lines stay as written, so their `[label]` is never read as a shortcut reference.
+    let verbatimRanges = codeRanges + definitions.map(\.range)
     var result = ""
+    var removedMediaOffsets: [Int] = []
     var index = sourceText.startIndex
 
     while index < sourceText.endIndex {
-        if let codeRange = codeRanges.first(where: { $0.contains(index) }) {
-            result.append(contentsOf: sourceText[index..<codeRange.upperBound])
-            index = codeRange.upperBound
+        if let verbatimRange = verbatimRanges.first(where: { $0.contains(index) }) {
+            result.append(contentsOf: sourceText[index..<verbatimRange.upperBound])
+            index = verbatimRange.upperBound
             continue
         }
 
@@ -56,15 +81,21 @@ func reviewCardSideCopyText(sourceText: String) throws -> String {
                options: [.anchored],
                range: NSRange(index..<sourceText.endIndex, in: sourceText)
            ),
-           let destinationRange = Range(match.range(at: 3), in: sourceText),
-           managedMediaAssetId(reference: String(sourceText[destinationRange])) != nil,
            let matchRange = Range(match.range, in: sourceText),
-           let labelRange = Range(match.range(at: 2), in: sourceText) {
-            let kind = match.range(at: 1).location == NSNotFound
-                ? String(localized: "Attachment", table: "ReviewCards")
-                : String(localized: "Managed image", table: "ReviewCards")
+           let labelRange = Range(match.range(at: 2), in: sourceText),
+           let destination = reviewCopyMediaDestination(
+               match: match,
+               sourceText: sourceText,
+               labelRange: labelRange,
+               destinationsByLabel: destinationsByLabel
+           ),
+           managedMediaAssetId(reference: destination) != nil {
             let label = sourceText[labelRange].trimmingCharacters(in: .whitespacesAndNewlines)
-            result.append(label.isEmpty ? "[\(kind)]" : "[\(kind): \(label)]")
+            if label.isEmpty || label == destination {
+                removedMediaOffsets.append(result.utf8.count)
+            } else {
+                result.append(label)
+            }
             index = matchRange.upperBound
             continue
         }
@@ -73,7 +104,126 @@ func reviewCardSideCopyText(sourceText: String) throws -> String {
         index = sourceText.index(after: index)
     }
 
-    return result
+    return reviewCopyTextRemovingEmptiedLines(text: result, removedMediaOffsets: removedMediaOffsets)
+}
+
+private func reviewCopyMediaDestination(
+    match: NSTextCheckingResult,
+    sourceText: String,
+    labelRange: Range<String.Index>,
+    destinationsByLabel: [String: String]
+) -> String? {
+    if let destinationRange = Range(match.range(at: 3), in: sourceText) {
+        return String(sourceText[destinationRange])
+    }
+    let reference = Range(match.range(at: 4), in: sourceText).map { sourceText[$0] } ?? ""
+    // A collapsed `[label][]` and a shortcut `[label]` both use their own label as the reference.
+    let label = reference.isEmpty ? sourceText[labelRange] : reference
+    return destinationsByLabel[reviewCopyNormalizedReferenceLabel(label: label)]
+}
+
+/// CommonMark matches reference labels case-insensitively with inner whitespace collapsed.
+private func reviewCopyNormalizedReferenceLabel(label: Substring) -> String {
+    label.split(whereSeparator: \.isWhitespace)
+        .joined(separator: " ")
+        .folding(options: .caseInsensitive, locale: nil)
+}
+
+private func reviewCopyReferenceDefinitions(
+    sourceText: String,
+    markdownSource: String,
+    codeRanges: [Range<String.Index>]
+) -> [ReviewCopyReferenceDefinition] {
+    // Math is masked in markdownSource, which keeps the source offsets, so a definition inside math never matches.
+    let matches = reviewCopyReferenceDefinitionExpression.matches(
+        in: markdownSource,
+        options: [],
+        range: NSRange(markdownSource.startIndex..<markdownSource.endIndex, in: markdownSource)
+    )
+    return matches.compactMap { match in
+        guard let range = Range(match.range, in: sourceText),
+              let labelRange = Range(match.range(at: 1), in: sourceText),
+              let destinationRange = Range(match.range(at: 2), in: sourceText),
+              codeRanges.contains(where: { $0.contains(range.lowerBound) }) == false else {
+            return nil
+        }
+        let label = reviewCopyNormalizedReferenceLabel(label: sourceText[labelRange])
+        guard label.isEmpty == false else { return nil }
+        return ReviewCopyReferenceDefinition(
+            label: label,
+            destination: String(sourceText[destinationRange]),
+            range: range
+        )
+    }
+}
+
+private struct ReviewCopyLine {
+    let content: Substring
+    let lineBreak: Substring
+    let hasRemovedMedia: Bool
+
+    var isBlank: Bool {
+        self.content.allSatisfy(\.isWhitespace)
+    }
+}
+
+/// A run of blank lines that includes a line emptied by removed media becomes one paragraph break,
+/// or none inside a paragraph and at the text edges, so `Question\n\n![](fcasset:x)` copies `Question`.
+private func reviewCopyTextRemovingEmptiedLines(text: String, removedMediaOffsets: [Int]) -> String {
+    let lines = reviewCopyLines(text: text, removedMediaOffsets: removedMediaOffsets)
+    var keptLines: [ReviewCopyLine] = []
+    var dropsFinalLineBreak = false
+    var index = 0
+
+    while index < lines.count {
+        guard lines[index].isBlank else {
+            keptLines.append(lines[index])
+            index += 1
+            continue
+        }
+
+        let runEnd = lines[index...].firstIndex(where: { $0.isBlank == false }) ?? lines.count
+        let run = lines[index..<runEnd]
+        if run.contains(where: \.hasRemovedMedia) == false {
+            keptLines.append(contentsOf: run)
+        } else if runEnd == lines.count {
+            dropsFinalLineBreak = true
+        } else if index > 0, let paragraphBreak = run.first(where: { $0.hasRemovedMedia == false }) {
+            keptLines.append(paragraphBreak)
+        }
+        index = runEnd
+    }
+
+    return keptLines.enumerated().map { offset, line in
+        let isFinalLine = offset == keptLines.count - 1
+        return String(line.content) + (dropsFinalLineBreak && isFinalLine ? "" : String(line.lineBreak))
+    }.joined()
+}
+
+private func reviewCopyLines(text: String, removedMediaOffsets: [Int]) -> [ReviewCopyLine] {
+    var lines: [ReviewCopyLine] = []
+    var remainingOffsets = removedMediaOffsets[...]
+    var lineStart = text.startIndex
+
+    while true {
+        let contentEnd = text[lineStart...].firstIndex(where: \.isNewline) ?? text.endIndex
+        let lineEnd = contentEnd < text.endIndex ? text.index(after: contentEnd) : contentEnd
+        let contentEndOffset = text.utf8.distance(from: text.startIndex, to: contentEnd)
+        var hasRemovedMedia = false
+        while let offset = remainingOffsets.first, offset <= contentEndOffset {
+            hasRemovedMedia = true
+            remainingOffsets.removeFirst()
+        }
+        lines.append(ReviewCopyLine(
+            content: text[lineStart..<contentEnd],
+            lineBreak: text[contentEnd..<lineEnd],
+            hasRemovedMedia: hasRemovedMedia
+        ))
+        if contentEnd == text.endIndex {
+            return lines
+        }
+        lineStart = lineEnd
+    }
 }
 
 private enum ReviewCopySourceError: LocalizedError {
@@ -84,8 +234,7 @@ private enum ReviewCopySourceError: LocalizedError {
     }
 }
 
-private func reviewCopyCodeRanges(sourceText: String) throws -> [Range<String.Index>] {
-    let markdownSource = reviewCopyMarkdownSource(sourceText: sourceText)
+private func reviewCopyCodeRanges(sourceText: String, markdownSource: String) throws -> [Range<String.Index>] {
     let markdown = try AttributedString(
         markdown: markdownSource,
         options: .init(interpretedSyntax: .full, appliesSourcePositionAttributes: true)

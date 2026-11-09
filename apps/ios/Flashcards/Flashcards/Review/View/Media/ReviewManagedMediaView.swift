@@ -299,7 +299,7 @@ struct ReviewManagedMediaView: View {
                 }
             }
             .task(id: mediaURL) {
-                self.retainedState.loadFileImage(mediaURL: mediaURL)
+                await self.retainedState.loadFileImage(mediaURL: mediaURL)
             }
         } else if let image = self.retainedState.remoteImage {
             reviewManagedImageView(image: image, accessibilityLabel: accessibilityLabel, aspectRatio: nil)

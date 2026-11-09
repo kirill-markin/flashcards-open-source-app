@@ -1168,8 +1168,6 @@ const svCatalog: TranslationCatalog = {
       snapshot: "Visar en färsk lokal ögonblicksbild...",
     },
     media: {
-      privateImage: "Privat bild",
-      privateAttachment: "Privat bilaga",
       attachmentLabel: "Bilaga",
       audioLabel: "Ljudbilaga",
       imageAlt: "Hanterad bild",

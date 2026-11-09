@@ -1168,8 +1168,6 @@ const zuCatalog: TranslationCatalog = {
       snapshot: "Kuboniswa isithombe sasendaweni sakamuva...",
     },
     media: {
-      privateImage: "Isithombe sangasese",
-      privateAttachment: "Okunamathiselwe kwangasese",
       attachmentLabel: "Okunamathiselwe",
       audioLabel: "Umsindo onamathiselwe",
       imageAlt: "Isithombe esiphethwe uhlelo",

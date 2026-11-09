@@ -1168,8 +1168,6 @@ const taCatalog: TranslationCatalog = {
       snapshot: "சமீபத்திய உள்ளூர் ஸ்னாப்ஷாட்டைக் காட்டுகிறது...",
     },
     media: {
-      privateImage: "தனிப்பட்ட படம்",
-      privateAttachment: "தனிப்பட்ட இணைப்பு",
       attachmentLabel: "இணைப்பு",
       audioLabel: "ஒலி இணைப்பு",
       imageAlt: "நிர்வகிக்கப்படும் படம்",

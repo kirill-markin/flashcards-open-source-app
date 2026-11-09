@@ -1177,8 +1177,6 @@ const plCatalog: TranslationCatalog = {
       snapshot: "Pokazujemy ostatnią lokalną migawkę...",
     },
     media: {
-      privateImage: "Prywatny obraz",
-      privateAttachment: "Prywatny załącznik",
       attachmentLabel: "Załącznik",
       audioLabel: "Załącznik audio",
       imageAlt: "Obraz zarządzany",

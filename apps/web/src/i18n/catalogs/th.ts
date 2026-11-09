@@ -1168,8 +1168,6 @@ const thCatalog: TranslationCatalog = {
       snapshot: "กำลังแสดงข้อมูลในเครื่องล่าสุด...",
     },
     media: {
-      privateImage: "รูปภาพส่วนตัว",
-      privateAttachment: "ไฟล์แนบส่วนตัว",
       attachmentLabel: "ไฟล์แนบ",
       audioLabel: "ไฟล์เสียงแนบ",
       imageAlt: "รูปภาพที่ระบบจัดการ",

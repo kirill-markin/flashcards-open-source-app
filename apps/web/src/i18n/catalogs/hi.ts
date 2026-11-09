@@ -1168,8 +1168,6 @@ const hiCatalog: TranslationCatalog = {
       snapshot: "हाल का स्थानीय स्नैपशॉट दिखाया जा रहा है...",
     },
     media: {
-      privateImage: "निजी चित्र",
-      privateAttachment: "निजी अटैचमेंट",
       attachmentLabel: "अटैचमेंट",
       audioLabel: "ऑडियो अटैचमेंट",
       imageAlt: "प्रबंधित छवि",

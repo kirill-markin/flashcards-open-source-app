@@ -1168,8 +1168,6 @@ const ptBrCatalog: TranslationCatalog = {
       snapshot: "Mostrando um retrato local recente...",
     },
     media: {
-      privateImage: "Imagem privada",
-      privateAttachment: "Anexo privado",
       attachmentLabel: "Anexo",
       audioLabel: "Anexo de áudio",
       imageAlt: "Imagem gerenciada",

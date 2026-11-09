@@ -1168,8 +1168,6 @@ const knCatalog: TranslationCatalog = {
       snapshot: "ಇತ್ತೀಚಿನ ಸ್ಥಳೀಯ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ತೋರಿಸಲಾಗುತ್ತಿದೆ...",
     },
     media: {
-      privateImage: "ಖಾಸಗಿ ಚಿತ್ರ",
-      privateAttachment: "ಖಾಸಗಿ ಲಗತ್ತು",
       attachmentLabel: "ಲಗತ್ತು",
       audioLabel: "ಆಡಿಯೊ ಲಗತ್ತು",
       imageAlt: "ನಿರ್ವಹಿತ ಚಿತ್ರ",

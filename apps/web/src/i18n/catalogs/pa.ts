@@ -1168,8 +1168,6 @@ const paCatalog: TranslationCatalog = {
       snapshot: "ਹਾਲੀਆ ਸਥਾਨਕ ਸਨੈਪਸ਼ਾਟ ਵਿਖਾਇਆ ਜਾ ਰਿਹਾ ਹੈ...",
     },
     media: {
-      privateImage: "ਨਿੱਜੀ ਤਸਵੀਰ",
-      privateAttachment: "ਨਿੱਜੀ ਅਟੈਚਮੈਂਟ",
       attachmentLabel: "ਅਟੈਚਮੈਂਟ",
       audioLabel: "ਆਡੀਓ ਅਟੈਚਮੈਂਟ",
       imageAlt: "ਪ੍ਰਬੰਧਿਤ ਚਿੱਤਰ",

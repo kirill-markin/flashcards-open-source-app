@@ -67,6 +67,7 @@ class ReviewClipboardSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
             Keep **Markdown** and ${'$'}\alpha + \beta${'$'} verbatim.
             ![Public diagram](https://example.com/public-diagram.png)
             ![Private diagram](fcasset:clipboard-front?state=pending)
+            ![](fcasset:clipboard-front-unlabeled?state=pending)
 
             ```markdown
             ![Literal fenced image](fcasset:literal-front?state=pending)
@@ -78,7 +79,7 @@ class ReviewClipboardSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
 
             Keep **Markdown** and ${'$'}\alpha + \beta${'$'} verbatim.
             ![Public diagram](https://example.com/public-diagram.png)
-            [Private media: Private diagram]
+            Private diagram
 
             ```markdown
             ![Literal fenced image](fcasset:literal-front?state=pending)
@@ -109,7 +110,7 @@ class ReviewClipboardSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
 
             - Keep [the public link](https://example.com/reference).
             ![Public answer](https://example.com/public-answer.png)
-            [Private media: Private answer]
+            Private answer
             `![Inline answer example](fcasset:inline-back?state=pending)`
             ```markdown
             ![Fenced answer example](fcasset:fenced-back)

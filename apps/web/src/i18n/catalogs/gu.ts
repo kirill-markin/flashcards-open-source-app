@@ -1168,8 +1168,6 @@ const guCatalog: TranslationCatalog = {
       snapshot: "તાજેતરનો સ્થાનિક સ્નૅપશૉટ બતાવાઈ રહ્યો છે...",
     },
     media: {
-      privateImage: "ખાનગી છબી",
-      privateAttachment: "ખાનગી જોડાણ",
       attachmentLabel: "જોડાણ",
       audioLabel: "ઑડિયો જોડાણ",
       imageAlt: "સંચાલિત છબી",

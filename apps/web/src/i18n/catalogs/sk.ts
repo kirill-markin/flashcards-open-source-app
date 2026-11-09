@@ -1177,8 +1177,6 @@ const skCatalog: TranslationCatalog = {
       snapshot: "Zobrazuje sa nedávny miestny stav...",
     },
     media: {
-      privateImage: "Súkromný obrázok",
-      privateAttachment: "Súkromná príloha",
       attachmentLabel: "Príloha",
       audioLabel: "Zvuková príloha",
       imageAlt: "Spravovaný obrázok",

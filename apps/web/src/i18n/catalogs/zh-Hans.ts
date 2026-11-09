@@ -1168,8 +1168,6 @@ export const zhHansCatalog = {
       snapshot: "正在显示最近的本地快照...",
     },
     media: {
-      privateImage: "私密图片",
-      privateAttachment: "私密附件",
       attachmentLabel: "附件",
       audioLabel: "音频附件",
       imageAlt: "托管图片",

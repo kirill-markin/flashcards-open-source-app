@@ -1177,8 +1177,6 @@ const hrCatalog: TranslationCatalog = {
       snapshot: "Prikaz nedavne lokalne snimke...",
     },
     media: {
-      privateImage: "Privatna slika",
-      privateAttachment: "Privatni privitak",
       attachmentLabel: "Privitak",
       audioLabel: "Audioprivitak",
       imageAlt: "Upravljana slika",

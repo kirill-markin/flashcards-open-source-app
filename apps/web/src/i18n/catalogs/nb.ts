@@ -1168,8 +1168,6 @@ const nbCatalog: TranslationCatalog = {
       snapshot: "Viser et nylig lokalt øyeblikksbilde...",
     },
     media: {
-      privateImage: "Privat bilde",
-      privateAttachment: "Privat vedlegg",
       attachmentLabel: "Vedlegg",
       audioLabel: "Lydvedlegg",
       imageAlt: "Administrert bilde",

@@ -1168,8 +1168,6 @@ const bnCatalog: TranslationCatalog = {
       snapshot: "সাম্প্রতিক স্থানীয় স্ন্যাপশট দেখানো হচ্ছে...",
     },
     media: {
-      privateImage: "ব্যক্তিগত ছবি",
-      privateAttachment: "ব্যক্তিগত সংযুক্তি",
       attachmentLabel: "সংযুক্তি",
       audioLabel: "অডিও সংযুক্তি",
       imageAlt: "পরিচালিত ছবি",
