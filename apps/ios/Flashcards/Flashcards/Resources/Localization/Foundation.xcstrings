@@ -55741,6 +55741,18 @@
         "cs" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dny"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dne"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -55750,7 +55762,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld d."
+                  "value" : "%lld dní"
                 }
               }
             }
@@ -56056,7 +56068,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Fjöldi daga: %lld"
+                  "value" : "%lld dagar"
                 }
               }
             }
@@ -56125,16 +56137,28 @@
         "lt" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienos"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienos"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld d."
+                  "value" : "%lld diena"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld d."
+                  "value" : "%lld dienų"
                 }
               }
             }
@@ -56146,13 +56170,19 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld d."
+                  "value" : "%lld diena"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld d."
+                  "value" : "%lld dienas"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienu"
                 }
               }
             }
@@ -56251,6 +56281,18 @@
         "pl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -56260,7 +56302,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Liczba dni: %lld"
+                  "value" : "%lld dnia"
                 }
               }
             }
@@ -56287,6 +56329,12 @@
         "ro" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zile"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -56296,7 +56344,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Zile: %lld"
+                  "value" : "%lld de zile"
                 }
               }
             }
@@ -56305,6 +56353,18 @@
         "ru" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дня"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дней"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -56314,7 +56374,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld дн."
+                  "value" : "%lld дня"
                 }
               }
             }
@@ -56323,6 +56383,18 @@
         "sk" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dňa"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -56332,7 +56404,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Počet dní: %lld"
+                  "value" : "%lld dní"
                 }
               }
             }
@@ -56341,6 +56413,12 @@
         "sl" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dnevi"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -56350,7 +56428,13 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Število dni: %lld"
+                  "value" : "%lld dni"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dneva"
                 }
               }
             }
@@ -56461,6 +56545,18 @@
         "uk" : {
           "variations" : {
             "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дні"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld днів"
+                }
+              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -56470,7 +56566,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Днів: %lld"
+                  "value" : "%lld дня"
                 }
               }
             }
@@ -56530,7 +56626,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Izinsuku: %lld"
+                  "value" : "%lld izinsuku"
                 }
               }
             }

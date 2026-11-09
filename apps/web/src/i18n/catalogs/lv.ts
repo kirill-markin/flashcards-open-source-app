@@ -428,7 +428,7 @@ const lvCatalog: TranslationCatalog = {
       offlineEmpty: "Sēriju līderu saraksts bezsaistē nav pieejams. Atjaunojiet savienojumu, lai redzētu vietas.",
       unavailable: "Sēriju līderu saraksts pašlaik nav pieejams. Pārbaudiet vēlāk.",
       dayLabels: {
-        zero: "{{count}} dienas",
+        zero: "{{count}} dienu",
         one: "{{count}} diena",
         two: "{{count}} dienas",
         few: "{{count}} dienas",
