@@ -111,9 +111,11 @@ private enum class ReviewManagedMediaAttachmentActionState {
     UNAVAILABLE
 }
 
+/** [sideHasText]: the card side holds text, formulas, or image alt text besides this reference. */
 @Composable
 internal fun ReviewManagedMediaContent(
     reference: ReviewManagedMediaReference,
+    sideHasText: Boolean,
     reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     presentation: ReviewManagedMediaPresentation
@@ -130,6 +132,9 @@ internal fun ReviewManagedMediaContent(
         mediaAsset = mediaAsset,
         categoryLabel = categoryLabel
     )
+    // Like any Android image without a description, an image without alt text stays silent next to
+    // other text; only a side that is nothing but such images keeps the spoken label.
+    val imageContentDescription: String? = if (reference.label == null && sideHasText) null else label
     when (reference.state) {
         ManagedMediaReferenceState.PENDING -> {
             val supportingText = stringResource(id = R.string.review_media_processing)
@@ -205,6 +210,7 @@ internal fun ReviewManagedMediaContent(
         ReviewManagedMediaCategory.IMAGE -> ReviewManagedMediaImageFile(
             mediaAsset = checkNotNull(mediaAsset),
             label = label,
+            imageContentDescription = imageContentDescription,
             reviewImagePreparer = reviewImagePreparer,
             presentation = presentation
         )
@@ -229,6 +235,7 @@ internal fun ReviewManagedMediaContent(
 private fun ReviewManagedMediaImageFile(
     mediaAsset: MediaAsset,
     label: String,
+    imageContentDescription: String?,
     reviewImagePreparer: ReviewImagePreparer,
     presentation: ReviewManagedMediaPresentation
 ) {
@@ -309,6 +316,7 @@ private fun ReviewManagedMediaImageFile(
 
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
             label = label,
+            imageContentDescription = imageContentDescription,
             imageFile = state.imageFile,
             presentation = presentation,
             onImageLoadFailed = {
@@ -321,6 +329,7 @@ private fun ReviewManagedMediaImageFile(
 @Composable
 private fun ReviewManagedMediaImage(
     label: String,
+    imageContentDescription: String?,
     imageFile: ReviewResolvedImageFile,
     presentation: ReviewManagedMediaPresentation,
     onImageLoadFailed: () -> Unit
@@ -340,7 +349,7 @@ private fun ReviewManagedMediaImage(
         }
         SubcomposeAsyncImage(
             model = imageRequest,
-            contentDescription = label,
+            contentDescription = imageContentDescription,
             contentScale = ContentScale.Fit,
             loading = {
                 val supportingText = stringResource(id = R.string.review_media_loading)

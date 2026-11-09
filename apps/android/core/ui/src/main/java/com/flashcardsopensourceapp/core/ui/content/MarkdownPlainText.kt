@@ -13,16 +13,18 @@ private val imageAltOrFormulaPlaceholderRegex = Regex(pattern = """\uE004([^\uE0
 
 /**
  * A card's Markdown flattened to one line for compact previews: markers dropped, backslash escapes
- * resolved, link text kept, images replaced by their alt text or [emptyImageAltText], whitespace
- * collapsed. An alt that repeats the text right before or after it is dropped, so a prompt followed by
- * its own image reads once. Formulas stay the blocks Review detects, so [MarkdownPreviewText] still
- * renders them.
+ * resolved, link text kept, images replaced by their alt text, whitespace collapsed. An image without
+ * alt text adds nothing; [emptyImageAltText] stands in only when such images are all the side holds,
+ * so a row is never blank. An alt that repeats the text right before or after it is dropped, so a
+ * prompt followed by its own image reads once. Formulas stay the blocks Review detects, so
+ * [MarkdownPreviewText] still renders them.
  */
 fun makeMarkdownPreviewBlocks(markdown: String, emptyImageAltText: String): List<MathBlock> {
     // Formulas and escaped characters stand in as private-use placeholders, so the Markdown
     // rewrites below never touch them.
     val formulas: MutableList<MathBlock.Formula> = mutableListOf()
     val escapedLiterals: MutableList<String> = mutableListOf()
+    var hasImageWithoutAlt = false
     val markdownWithFormulaPlaceholders: String = extractMathBlocks(
         markdown = removeInlineMathMarkers(text = markdown)
     ).blocks.joinToString(separator = "") { block ->
@@ -41,7 +43,15 @@ fun makeMarkdownPreviewBlocks(markdown: String, emptyImageAltText: String): List
             "\uE000${escapedLiterals.lastIndex}\uE001"
         }
         .replace(fencedCodeMarkerRegex, " ")
-        .replace(imageRegex) { match -> " \uE004${match.groupValues[1].trim().ifEmpty { emptyImageAltText }}\uE005 " }
+        .replace(imageRegex) { match ->
+            val altText: String = match.groupValues[1].trim()
+            if (altText.isEmpty()) {
+                hasImageWithoutAlt = true
+                " "
+            } else {
+                " \uE004$altText\uE005 "
+            }
+        }
         .replace(linkRegex, "$1")
         .replace(lineMarkerRegex, "")
         .replace(emphasisRegex, "")
@@ -50,6 +60,7 @@ fun makeMarkdownPreviewBlocks(markdown: String, emptyImageAltText: String): List
         .let(::dropImageAltsRepeatingAdjacentText)
         .replace(whitespaceRegex, " ")
         .trim()
+        .ifEmpty { if (hasImageWithoutAlt) emptyImageAltText else "" }
     return buildList {
         var textStartIndex = 0
         formulaPlaceholderRegex.findAll(input = plainText).forEach { match ->

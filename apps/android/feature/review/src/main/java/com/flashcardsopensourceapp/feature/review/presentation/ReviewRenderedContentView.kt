@@ -47,6 +47,7 @@ internal fun ReviewRenderedContentView(
         }
 
         is ReviewRenderedContent.ManagedMarkdown -> {
+            val sideHasText: Boolean = reviewManagedMarkdownHasText(blocks = content.blocks)
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = modifier.fillMaxWidth()
@@ -64,6 +65,7 @@ internal fun ReviewRenderedContentView(
                             is ReviewManagedMarkdownBlock.ManagedMedia -> DisableSelection {
                                 ReviewManagedMediaContent(
                                     reference = block.reference,
+                                    sideHasText = sideHasText,
                                     reviewImagePreparer = reviewImagePreparer,
                                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                                     presentation = ReviewManagedMediaPresentation.BLOCK
@@ -77,6 +79,7 @@ internal fun ReviewRenderedContentView(
                                         when (item) {
                                             is ReviewImageGalleryItem.Managed -> ReviewManagedMediaContent(
                                                 reference = item.reference,
+                                                sideHasText = sideHasText,
                                                 reviewImagePreparer = reviewImagePreparer,
                                                 onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                                                 presentation = ReviewManagedMediaPresentation.GALLERY_CELL
@@ -101,6 +104,24 @@ internal fun ReviewRenderedContentView(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Markdown blocks are never blank; a linked gallery image counts like any Markdown. */
+private fun reviewManagedMarkdownHasText(blocks: List<ReviewManagedMarkdownBlock>): Boolean {
+    return blocks.any { block ->
+        when (block) {
+            is ReviewManagedMarkdownBlock.Markdown,
+            is ReviewManagedMarkdownBlock.Formula -> true
+
+            is ReviewManagedMarkdownBlock.ManagedMedia -> block.reference.label != null
+            is ReviewManagedMarkdownBlock.ImageGallery -> block.items.any { item ->
+                when (item) {
+                    is ReviewImageGalleryItem.Managed -> item.reference.label != null
+                    is ReviewImageGalleryItem.Linked -> true
                 }
             }
         }
