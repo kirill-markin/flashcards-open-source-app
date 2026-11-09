@@ -1007,13 +1007,13 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    /** Filter options load after the sheet opens, so wait for each tag row before asserting on it. */
     private fun waitForReviewFilterSheetToClose() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewFilterSheetTag).fetchSemanticsNodes().isEmpty()
         }
     }
 
+    /** Filter options load after the sheet opens, so wait for each tag row before asserting on it. */
     private fun waitForReviewFilterTagOptions(tags: List<String>) {
         tags.forEach { tag ->
             waitForTagToExist(tag = reviewFilterTagOptionTag(tag = tag))
