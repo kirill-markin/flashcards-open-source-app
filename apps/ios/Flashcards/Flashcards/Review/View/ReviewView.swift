@@ -81,7 +81,19 @@ struct ReviewView: View {
     }
 
     private var selectedReviewFilterTitle: String {
-        switch store.selectedReviewFilter {
+        self.reviewFilterTitle(reviewFilter: store.selectedReviewFilter)
+    }
+
+    /// The open filter's tag rows apply on close, so the button names that draft at once, as a deck choice does.
+    private var reviewFilterButtonTitle: String {
+        guard self.isReviewFilterPopoverPresented, self.reviewFilterPresentationContext != nil else {
+            return self.selectedReviewFilterTitle
+        }
+        return self.reviewFilterTitle(reviewFilter: self.reviewFilterDraft)
+    }
+
+    private func reviewFilterTitle(reviewFilter: ReviewFilter) -> String {
+        switch reviewFilter {
         case .allCards:
             return localizedAllCardsLabel()
         case .deck(let deckId):
@@ -410,12 +422,12 @@ struct ReviewView: View {
             perform: { _ in self.openProgressWithPresentationBreadcrumb(target: .streak) }
         ))
         let filter = MacToolbarAction(
-            identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.selectedReviewFilterTitle,
-            title: self.selectedReviewFilterTitle,
+            identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.reviewFilterButtonTitle,
+            title: self.reviewFilterButtonTitle,
             toolTip: String(
                 format: String(localized: "Filter: %@ (F)", table: reviewCardsStringsTableName),
                 locale: Locale.current,
-                self.selectedReviewFilterTitle
+                self.reviewFilterButtonTitle
             ),
             activationRequest: self.macReviewFilterOpenRequest.map { id in
                 MacToolbarActivationRequest(id: id, onHandled: {
@@ -726,7 +738,7 @@ struct ReviewView: View {
                         .foregroundStyle(Color.primary)
                 } else {
                     HStack(spacing: 4) {
-                        Text(self.selectedReviewFilterTitle)
+                        Text(self.reviewFilterButtonTitle)
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
@@ -745,8 +757,8 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
         .accessibilityLabel(self.usesCompactCompanionToolbar
             ? String(localized: "Filters", table: reviewCardsStringsTableName)
-            : self.selectedReviewFilterTitle)
-        .accessibilityValue(self.usesCompactCompanionToolbar ? self.selectedReviewFilterTitle : "")
+            : self.reviewFilterButtonTitle)
+        .accessibilityValue(self.usesCompactCompanionToolbar ? self.reviewFilterButtonTitle : "")
         }
         #if !targetEnvironment(macCatalyst)
         .onGeometryChange(for: CGRect.self) { geometry in

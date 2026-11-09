@@ -318,7 +318,7 @@
   font-size: 16px;
 }
 
-/* minmax(0, …) lets the column shrink below the cards' one-line text, so long names and filters ellipsize instead of widening the list. */
+/* minmax(0, …) lets the column shrink below the cards' text width, so long names and filters wrap instead of widening the list. */
 .deck-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -380,9 +380,7 @@
 
 .deck-card .deck-card-summary {
   margin-top: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .deck-card-empty {
