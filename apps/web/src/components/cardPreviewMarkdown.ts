@@ -3,8 +3,8 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
-import { normalizeReviewMarkdownForWeb } from "../screens/review/components/card/ReviewCardSide";
 import { classifyReviewContentPresentation } from "../screens/review/components/card/reviewContentPresentation";
+import { normalizeReviewMarkdownForWeb } from "../screens/review/components/card/reviewMarkdownNormalization";
 import {
   escapeRejectedReviewMathDollars,
   normalizeReviewPlainTextEscapedDollars,
@@ -45,12 +45,11 @@ function readNodeSourceText(source: string, node: Nodes): string {
 function collectChildSegments(
   children: ReadonlyArray<Nodes>,
   source: string,
-  emptyImageAltText: string,
   separator: ReadonlyArray<CollectedPreviewSegment>,
 ): ReadonlyArray<CollectedPreviewSegment> {
   return children.flatMap((child, index) => [
     ...(index === 0 ? [] : separator),
-    ...collectPreviewSegments(child, source, emptyImageAltText),
+    ...collectPreviewSegments(child, source),
   ]);
 }
 
@@ -58,7 +57,7 @@ function collectChildSegments(
  * Walks the tree Review renders: math nodes left after the review math transform are the
  * accepted formulas, and raw HTML stays literal text exactly as Review shows it.
  */
-function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: string): ReadonlyArray<CollectedPreviewSegment> {
+function collectPreviewSegments(node: Nodes, source: string): ReadonlyArray<CollectedPreviewSegment> {
   switch (node.type) {
     case "inlineMath":
     case "math":
@@ -74,7 +73,7 @@ function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: 
       return [{ kind: "prose", value: node.value }];
     case "image":
     case "imageReference":
-      return [{ kind: "image", label: previewImageLabel(node.alt ?? "", emptyImageAltText) }];
+      return [{ kind: "image", label: node.alt ?? "" }];
     case "break":
       return [BLOCK_SEPARATOR_SEGMENT];
     case "definition":
@@ -89,9 +88,9 @@ function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: 
     case "listItem":
     case "table":
     case "tableRow":
-      return collectChildSegments(node.children, source, emptyImageAltText, [BLOCK_SEPARATOR_SEGMENT]);
+      return collectChildSegments(node.children, source, [BLOCK_SEPARATOR_SEGMENT]);
     default:
-      return collectChildSegments(node.children, source, emptyImageAltText, []);
+      return collectChildSegments(node.children, source, []);
   }
 }
 
@@ -108,18 +107,18 @@ function readAdjacentProse(segments: ReadonlyArray<CollectedPreviewSegment>, sta
 }
 
 /**
- * An image becomes its label, except when the label repeats the text right before or after it,
- * up to the next image, formula or side end, so a prompt followed by its own image reads once.
+ * An image becomes its label, except when the label is empty or repeats the text right before or
+ * after it, up to the next image, formula or side end, so a prompt followed by its own image reads once.
  */
 function resolvePreviewImages(segments: ReadonlyArray<CollectedPreviewSegment>): ReadonlyArray<CardPreviewSegment> {
   return segments.flatMap((segment, index): ReadonlyArray<CardPreviewSegment> => {
     if (segment.kind !== "image") {
       return [segment];
     }
-    const label = collapsePreviewWhitespace(segment.label);
+    const label = collapsePreviewWhitespace(segment.label).trim();
     const repeatsAdjacentText = label === readAdjacentProse(segments, index - 1, -1)
       || label === readAdjacentProse(segments, index + 1, 1);
-    return repeatsAdjacentText ? [] : [{ kind: "prose", value: segment.label }];
+    return label === "" || repeatsAdjacentText ? [] : [{ kind: "prose", value: segment.label }];
   });
 }
 
@@ -145,25 +144,38 @@ function normalizePreviewSegments(segments: ReadonlyArray<CollectedPreviewSegmen
   });
 }
 
-/**
- * One-line card text for compact rows: Markdown syntax is dropped, images become their alt text,
- * and the formulas Review accepts stay formulas. An empty side yields no segments.
- */
-export function makeCardPreviewSegments(text: string, emptyImageAltText: string): ReadonlyArray<CardPreviewSegment> {
+function collectCardPreviewSegments(text: string): ReadonlyArray<CollectedPreviewSegment> {
   if (classifyReviewContentPresentation(text) !== "markdown") {
-    return normalizePreviewSegments([{ kind: "prose", value: normalizeReviewPlainTextEscapedDollars(text) }]);
+    return [{ kind: "prose", value: normalizeReviewPlainTextEscapedDollars(text) }];
   }
 
   const normalizedText = normalizeReviewMarkdownForWeb(text);
   if (normalizedText.includes("$") === false) {
-    return normalizePreviewSegments(
-      collectPreviewSegments(previewMarkdownProcessor.parse(normalizedText), normalizedText, emptyImageAltText),
-    );
+    return collectPreviewSegments(previewMarkdownProcessor.parse(normalizedText), normalizedText);
   }
 
   const markdownText = escapeRejectedReviewMathDollars(normalizedText);
   const tree = transformReviewMathBlocks(previewMarkdownProcessor.parse(markdownText), markdownText);
-  return normalizePreviewSegments(collectPreviewSegments(tree, markdownText, emptyImageAltText));
+  return collectPreviewSegments(tree, markdownText);
+}
+
+/**
+ * One-line card text for compact rows: Markdown syntax is dropped, images become their alt text,
+ * and the formulas Review accepts stay formulas. A side whose only content is empty-alt images
+ * becomes `emptyImageAltText`, so its row is never blank; an empty side yields no segments.
+ */
+export function makeCardPreviewSegments(text: string, emptyImageAltText: string): ReadonlyArray<CardPreviewSegment> {
+  const collectedSegments = collectCardPreviewSegments(text);
+  const segments = normalizePreviewSegments(collectedSegments);
+  if (segments.length === 0 && collectedSegments.some((segment) => segment.kind === "image")) {
+    return [{ kind: "prose", value: emptyImageAltText }];
+  }
+  return segments;
+}
+
+/** Whether the side's one-line preview holds anything besides the empty-image label. */
+export function cardTextHasPreviewText(text: string): boolean {
+  return normalizePreviewSegments(collectCardPreviewSegments(text)).length > 0;
 }
 
 /** Replaces inline Markdown images with their alt text, or `emptyImageAltText` when the alt is blank. */
