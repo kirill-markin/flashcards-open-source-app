@@ -854,6 +854,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return;
           }
 
+          if (isSyncFailurePresentedByCaller(error)) {
+            throw error;
+          }
+
           lastError = error;
           if (attemptNumber === resumeRetryCount) {
             break;
@@ -871,9 +875,6 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
       const normalizedError = normalizeCaughtError(lastError);
-      if (isSyncFailurePresentedByCaller(normalizedError)) {
-        throw normalizedError;
-      }
       const nextErrorMessage = getErrorMessage(normalizedError);
       const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
       const didCaptureResumeError = syncFailureCaptureState === null

@@ -968,7 +968,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       return;
     }
 
-    await waitForRecoveryGuardedSyncPhase(runSyncForWorkspaceInternal(activeWorkspace, ignoreSyncError));
+    const sync = syncPromisesRef.current.get(activeWorkspace.workspaceId)
+      ?? runSyncForWorkspaceInternal(activeWorkspace, ignoreSyncError);
+    await waitForRecoveryGuardedSyncPhase(sync);
   }, [activeWorkspace, ignoreSyncError, indexedDbOpenRecoveryState, runSyncForWorkspaceInternal, waitForRecoveryGuardedSyncPhase]);
 
   const runMediaUploadTransfers = useCallback(function runMediaUploadTransfers(): void {
