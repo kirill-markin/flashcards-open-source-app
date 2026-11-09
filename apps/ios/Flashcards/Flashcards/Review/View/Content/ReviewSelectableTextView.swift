@@ -75,10 +75,24 @@ struct ReviewSelectableTextView: UIViewRepresentable {
 extension NSAttributedString {
     var reviewSelectionCopyText: String {
         let selected = NSMutableAttributedString(attributedString: self)
+        var attachments: [(attachment: ReviewContentAttachment, range: NSRange)] = []
         selected.enumerateAttribute(.attachment, in: NSRange(location: 0, length: selected.length), options: .reverse) { value, range, _ in
             if let attachment = value as? ReviewContentAttachment {
-                selected.replaceCharacters(in: range, with: attachment.copyText)
+                attachments.append((attachment, range))
             }
+        }
+        for (attachment, range) in attachments {
+            var replacedRange = range
+            if attachment.copyText.isEmpty && attachment.layout == .block {
+                // A block attachment owns its line, so with no text its line separator goes too.
+                let text = selected.string as NSString
+                if NSMaxRange(range) < text.length && text.character(at: NSMaxRange(range)) == 0x0A {
+                    replacedRange.length += 1
+                } else if range.location > 0 && text.character(at: range.location - 1) == 0x0A {
+                    replacedRange = NSRange(location: range.location - 1, length: range.length + 1)
+                }
+            }
+            selected.replaceCharacters(in: replacedRange, with: attachment.copyText)
         }
         return selected.string
     }
@@ -303,7 +317,7 @@ final class ReviewContentAttachment: NSTextAttachment {
     let content: AnyView
     let copyText: String
     let accessibility: ReviewContentAttachmentAccessibility
-    private let layout: ReviewContentAttachmentLayout
+    let layout: ReviewContentAttachmentLayout
     @MainActor weak var selectionTextView: ReviewSelectionTextView?
     // TextKit creates a provider, and so a hosted view, per layout of this attachment; state that
     // must outlive one provider lives in the content's state objects, not in a hosted view.
