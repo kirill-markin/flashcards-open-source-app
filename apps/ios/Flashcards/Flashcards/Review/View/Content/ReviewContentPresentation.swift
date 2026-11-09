@@ -261,7 +261,8 @@ struct ReviewPreviewText {
     let mathBlocks: [ReviewMathBlock]
 }
 
-/// Readable one-line card text: Markdown gives way to the text it shows, and an image to its alt text.
+/// Readable one-line card text: Markdown gives way to the text it shows, and an image to its alt text;
+/// an image without alt text shows the localized image label only on a side with no other text.
 func makeReviewPreviewText(text: String) -> ReviewPreviewText {
     var parts: [ReviewMathBlock] = []
 
@@ -324,12 +325,30 @@ private func makeReviewPreviewText(parts: [ReviewMathBlock]) -> ReviewPreviewTex
         }
     }
 
-    let mathBlocks: [ReviewMathBlock] = mergedParts.enumerated().compactMap { index, part in
+    let resolvedParts: [ReviewMathBlock] = mergedParts.map { part in
+        guard case .markdown(let value) = part else {
+            return part
+        }
+        return .markdown(resolvingReviewPreviewImageAltTexts(text: value))
+    }
+    let hasText = resolvedParts.contains { part in
+        guard case .markdown(let value) = part else {
+            return true
+        }
+        return value.contains { character in
+            character != reviewPreviewEmptyImageAltText && character.isWhitespace == false
+        }
+    }
+    let emptyImageAltText = hasText ? " " : String(localized: "cards.preview.image", table: reviewCardsStringsTableName)
+
+    let mathBlocks: [ReviewMathBlock] = resolvedParts.enumerated().compactMap { index, part in
         guard case .markdown(let value) = part else {
             return part
         }
 
-        var previewValue = resolvingReviewPreviewImageAltTexts(text: value)
+        var previewValue = value
+            .replacingOccurrences(of: reviewPreviewEmptyImageAltTextAtPunctuationPattern, with: "", options: .regularExpression)
+            .replacingOccurrences(of: String(reviewPreviewEmptyImageAltText), with: emptyImageAltText)
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         if index == 0 {
             previewValue = String(previewValue.drop(while: \.isWhitespace))
@@ -346,6 +365,11 @@ private func makeReviewPreviewText(parts: [ReviewMathBlock]) -> ReviewPreviewTex
 /// Marks an image's alt text in a preview line until `resolvingReviewPreviewImageAltTexts` compares it with its neighbours.
 private let reviewPreviewImageAltTextStart: Character = "\u{E004}"
 private let reviewPreviewImageAltTextEnd: Character = "\u{E005}"
+/// Stands in for an image's empty alt text in a preview line until the whole side is known.
+private let reviewPreviewEmptyImageAltText: Character = "\u{E006}"
+/// An empty alt text keeps the words around it apart but adds no space against punctuation.
+private let reviewPreviewEmptyImageAltTextAtPunctuationPattern =
+    #"\#(reviewPreviewEmptyImageAltText)+(?=[\p{Pe}\p{Pf}\p{Po}])|(?<=[\p{Ps}\p{Pi}])\#(reviewPreviewEmptyImageAltText)+"#
 
 /// An alt text gives way when it repeats the text right before or after it, up to the neighbouring
 /// image, formula, or side end, so a prompt followed by its own image reads once.
@@ -432,10 +456,9 @@ private func replacingReviewTableRowPipes(text: String) -> String {
 private let reviewPreviewEmptyImageAltTextExpression = makeReviewContentRegularExpression(pattern: #"!\[[ \t]*\]\("#)
 
 private func normalizeReviewPreviewInlineMarkdown(text: String) -> String {
-    let imageLabel = String(localized: "cards.preview.image", table: reviewCardsStringsTableName)
     let labeledText = reviewPreviewEmptyImageAltTextExpression.replacingMatches(
         in: text,
-        with: NSRegularExpression.escapedTemplate(for: "![\(imageLabel)](")
+        with: NSRegularExpression.escapedTemplate(for: "![\(reviewPreviewEmptyImageAltText)](")
     )
 
     let markdown: AttributedString
@@ -805,10 +828,9 @@ func reviewMarkdownGalleryParagraphs(markdown: AttributedString) -> [ReviewMarkd
         let text = String(markdown[run.range].characters)
         let inlineIntent = run.inlinePresentationIntent ?? []
         if let url = run.imageURL, run.link == nil, inlineIntent.isEmpty, url.scheme != reviewInlineMathImageScheme {
-            let label = text.trimmingCharacters(in: .whitespacesAndNewlines)
             currentImages.append(ReviewMarkdownGalleryImage(
                 url: url,
-                label: label.isEmpty || label == reviewMarkdownEmptyImageAltText ? nil : label,
+                label: reviewMarkdownImageLabel(altText: text),
                 sourceLines: run.markdownSourcePosition.map { position in position.startLine...position.endLine }
             ))
         } else if run.imageURL != nil || run.link != nil || (inlineIntent.isEmpty == false && inlineIntent != .softBreak)
@@ -828,6 +850,12 @@ private let reviewContentPresentationLogger: Logger = Logger(
 
 /// Foundation renders an image without alt text as this character and reports no source position for it.
 private let reviewMarkdownEmptyImageAltText = "\u{FFFC}"
+
+/// The description of a rendered Markdown image, nil for an image without alt text.
+func reviewMarkdownImageLabel(altText: String) -> String? {
+    let label = altText.trimmingCharacters(in: .whitespacesAndNewlines)
+    return label.isEmpty || label == reviewMarkdownEmptyImageAltText ? nil : label
+}
 
 private struct ReviewManagedMarkdownGallery {
     let endLine: Int

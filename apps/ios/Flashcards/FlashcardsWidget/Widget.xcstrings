@@ -23685,7 +23685,7 @@
               "two" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "רצף: %lld ימים"
+                  "value" : "רצף: יומיים"
                 }
               }
             }
