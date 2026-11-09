@@ -1131,6 +1131,7 @@ const hiCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "फ़ॉर्मूला रेंडर नहीं किया जा सका।",
       schedulerUnavailable: "वर्कस्पेस शेड्यूलर सेटिंग्स लोड नहीं हुई हैं",
+      storageFull: "इस डिवाइस पर कुछ स्टोरेज खाली करें, फिर कार्ड को दोबारा रेट करें।",
     },
     leaderboardShortcut: {
       ariaLabel: "लीडरबोर्ड खोलें",

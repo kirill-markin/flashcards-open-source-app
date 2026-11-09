@@ -1131,6 +1131,7 @@ const viCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Không hiển thị được công thức.",
       schedulerUnavailable: "Chưa tải được cài đặt lập lịch của không gian làm việc",
+      storageFull: "Giải phóng dung lượng lưu trữ trên thiết bị này, rồi đánh giá lại thẻ.",
     },
     leaderboardShortcut: {
       ariaLabel: "Mở bảng xếp hạng",

@@ -1141,6 +1141,7 @@ const ltCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nepavyko atvaizduoti formulės.",
       schedulerUnavailable: "Darbo srities planuoklio nustatymai neįkelti",
+      storageFull: "Atlaisvinkite vietos šio įrenginio saugykloje ir įvertinkite kortelę dar kartą.",
     },
     leaderboardShortcut: {
       ariaLabel: "Atidaryti lyderių lentelę",

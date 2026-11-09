@@ -14,6 +14,7 @@ import {
 import { upgradeDatabase } from "./databaseMigrations";
 import { createIndexedDbUnavailableError, getIndexedDbFactory } from "./indexedDbAvailability";
 import { isIndexedDbOpenRecoveryError } from "./indexedDbOpenRecovery";
+import { IndexedDbStorageFullError, isNativeIndexedDbStorageFull } from "./indexedDbStorageFull";
 import { databaseName, databaseVersion } from "./databaseSchema";
 import type { DatabaseStores } from "./databaseSchema";
 
@@ -104,10 +105,6 @@ let activeDatabaseDeletePromise: Promise<void> | null = null;
 let lastIndexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null = null;
 let lastIndexedDbVersionChangeLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null = null;
 
-function isQuotaExceededError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "QuotaExceededError";
-}
-
 function readNamedErrorName(error: unknown): string | null {
   if (typeof error !== "object" || error === null || "name" in error === false) {
     return null;
@@ -122,15 +119,15 @@ function getIndexedDbErrorName(error: unknown): string | null {
 }
 
 export function describeIndexedDbError(prefix: string, error: unknown): Error {
-  if (isQuotaExceededError(error)) {
-    return new Error(`${prefix}: browser storage quota was exceeded`);
+  if (isNativeIndexedDbStorageFull(error)) {
+    return new IndexedDbStorageFullError(`${prefix}: ${error.message || error.name}`, { cause: error });
   }
 
   if (error instanceof Error && error.message !== "") {
-    return new Error(`${prefix}: ${error.message}`);
+    return new Error(`${prefix}: ${error.message}`, { cause: error });
   }
 
-  return new Error(`${prefix}: unknown error`);
+  return new Error(`${prefix}: unknown error`, { cause: error });
 }
 
 function attachIndexedDbOperationMetadata(
@@ -305,28 +302,80 @@ export function runReadonly<RequestResult>(
   });
 }
 
+export type ContinueReadwriteRequest = <Result>(
+  request: IDBRequest<Result>,
+  onSuccess: (result: Result) => void,
+) => void;
+
 export function runReadwrite<RequestResult>(
   database: IDBDatabase,
   storeNames: ReadonlyArray<DatabaseStores>,
-  callback: (transaction: IDBTransaction) => IDBRequest<RequestResult> | null,
+  callback: (
+    transaction: IDBTransaction,
+    continueRequest: ContinueReadwriteRequest,
+  ) => IDBRequest<RequestResult> | null,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction([...storeNames], "readwrite");
-    const request = callback(transaction);
+    let setupFailure: Readonly<{ error: unknown }> | null = null;
+    let requestError: DOMException | null = null;
 
-    if (request !== null) {
-      request.onerror = () => {
-        reject(describeIndexedDbError("IndexedDB write request failed", request.error));
+    function abortWithSetupFailure(error: unknown): void {
+      setupFailure = {
+        error: isNativeIndexedDbStorageFull(error)
+          ? describeIndexedDbError("IndexedDB write setup failed", error)
+          : error,
       };
+      try {
+        transaction.abort();
+      } catch (abortError) {
+        if (!(abortError instanceof DOMException && abortError.name === "InvalidStateError")) {
+          throw abortError;
+        }
+      }
     }
 
-    transaction.onerror = () => {
-      reject(describeIndexedDbError("IndexedDB transaction failed", transaction.error));
+    const continueRequest: ContinueReadwriteRequest = (request, onSuccess) => {
+      request.onsuccess = () => {
+        try {
+          onSuccess(request.result);
+        } catch (error) {
+          abortWithSetupFailure(error);
+        }
+      };
+    };
+
+    // A commit-time failure can fire abort without a request error.
+    transaction.onabort = () => {
+      if (setupFailure !== null) {
+        reject(setupFailure.error);
+      } else {
+        const error = transaction.error;
+        reject(describeIndexedDbError(
+          "IndexedDB transaction aborted",
+          error === null || error.name === "AbortError" ? requestError ?? error : error,
+        ));
+      }
     };
 
     transaction.oncomplete = () => {
-      resolve();
+      if (setupFailure !== null) {
+        reject(setupFailure.error);
+      } else {
+        resolve();
+      }
     };
+
+    try {
+      const request = callback(transaction, continueRequest);
+      if (request !== null) {
+        request.onerror = () => {
+          if (request.error?.name !== "AbortError") requestError = request.error;
+        };
+      }
+    } catch (error) {
+      abortWithSetupFailure(error);
+    }
   });
 }
 

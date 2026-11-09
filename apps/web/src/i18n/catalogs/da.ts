@@ -1131,6 +1131,7 @@ const daCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formlen kunne ikke vises.",
       schedulerUnavailable: "Arbejdsområdets planlæggerindstillinger er ikke indlæst",
+      storageFull: "Frigør lagerplads på denne enhed, og bedøm kortet igen.",
     },
     leaderboardShortcut: {
       ariaLabel: "Åbn ranglisten",

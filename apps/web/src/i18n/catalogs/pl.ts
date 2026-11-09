@@ -1141,6 +1141,7 @@ const plCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nie udało się wyświetlić wzoru.",
       schedulerUnavailable: "Ustawienia harmonogramu przestrzeni roboczej nie są wczytane",
+      storageFull: "Zwolnij miejsce na tym urządzeniu, a następnie oceń fiszkę ponownie.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otwórz ranking",

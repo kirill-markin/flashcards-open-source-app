@@ -1131,6 +1131,7 @@ const guCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "સૂત્ર દર્શાવી શકાયું નહીં.",
       schedulerUnavailable: "કાર્યક્ષેત્રની સમયનિયોજન સેટિંગ્સ લોડ થઈ નથી",
+      storageFull: "આ ડિવાઇસમાં થોડી સ્ટોરેજ જગ્યા ખાલી કરો, પછી કાર્ડને ફરી રેટિંગ આપો.",
     },
     leaderboardShortcut: {
       ariaLabel: "ક્રમાંક યાદી ખોલો",

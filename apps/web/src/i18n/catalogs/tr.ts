@@ -1131,6 +1131,7 @@ const trCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formül görüntülenemedi.",
       schedulerUnavailable: "Çalışma alanı planlayıcı ayarları yüklenmedi",
+      storageFull: "Bu cihazda depolama alanı açın, ardından kartı tekrar değerlendirin.",
     },
     leaderboardShortcut: {
       ariaLabel: "Sıralama tablosunu aç",

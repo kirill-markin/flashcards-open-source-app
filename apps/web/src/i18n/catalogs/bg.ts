@@ -1131,6 +1131,7 @@ const bgCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Формулата не можа да бъде изобразена.",
       schedulerUnavailable: "Настройките на планировчика за работното пространство не са заредени",
+      storageFull: "Освободете място за съхранение на това устройство и оценете картата отново.",
     },
     leaderboardShortcut: {
       ariaLabel: "Отваряне на класацията",

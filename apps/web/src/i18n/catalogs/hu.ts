@@ -1131,6 +1131,7 @@ const huCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nem sikerült megjeleníteni a képletet.",
       schedulerUnavailable: "A munkaterület ütemezési beállításai nincsenek betöltve",
+      storageFull: "Szabadíts fel tárhelyet ezen az eszközön, majd értékeld újra a kártyát.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ranglista megnyitása",

@@ -1141,6 +1141,7 @@ const csCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Vzorec se nepodařilo vykreslit.",
       schedulerUnavailable: "Nastavení plánovače pracovního prostoru není načteno",
+      storageFull: "Uvolněte místo v úložišti tohoto zařízení a ohodnoťte kartu znovu.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otevřít žebříček",

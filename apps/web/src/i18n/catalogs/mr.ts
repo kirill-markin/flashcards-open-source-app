@@ -1131,6 +1131,7 @@ const mrCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "सूत्र दाखवता आले नाही.",
       schedulerUnavailable: "कार्यक्षेत्राची वेळापत्रक सेटिंग्ज लोड झालेली नाहीत",
+      storageFull: "या डिव्हाइसवरील काही स्टोरेज मोकळे करा आणि नंतर कार्डला पुन्हा रेटिंग द्या.",
     },
     leaderboardShortcut: {
       ariaLabel: "क्रमवारी उघडा",

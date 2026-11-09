@@ -1131,6 +1131,7 @@ const taCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "சூத்திரத்தைக் காட்ட முடியவில்லை.",
       schedulerUnavailable: "பணியிட அட்டவணையாளர் அமைப்புகள் ஏற்றப்படவில்லை",
+      storageFull: "இந்தச் சாதனத்தில் சிறிது சேமிப்பிடத்தைக் காலி செய்த பின், அட்டையை மீண்டும் மதிப்பிடுங்கள்.",
     },
     leaderboardShortcut: {
       ariaLabel: "தரவரிசையைத் திற",

@@ -1131,6 +1131,7 @@ const urCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "فارمولا دکھایا نہیں جا سکا۔",
       schedulerUnavailable: "ورک اسپیس کے شیڈولر کی ترتیبات لوڈ نہیں ہوئیں",
+      storageFull: "اس ڈیوائس پر کچھ ذخیرہ کرنے کی جگہ خالی کریں، پھر کارڈ کو دوبارہ ریٹ کریں۔",
     },
     leaderboardShortcut: {
       ariaLabel: "درجہ بندی کھولیں",

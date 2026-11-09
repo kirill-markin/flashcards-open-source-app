@@ -1141,6 +1141,7 @@ const roCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formula nu a putut fi afișată.",
       schedulerUnavailable: "Setările programării pentru spațiul de lucru nu sunt încărcate",
+      storageFull: "Eliberează spațiu de stocare pe acest dispozitiv, apoi evaluează din nou cardul.",
     },
     leaderboardShortcut: {
       ariaLabel: "Deschide clasamentul",

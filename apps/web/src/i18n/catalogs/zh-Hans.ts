@@ -1131,6 +1131,7 @@ export const zhHansCatalog = {
     errors: {
       mathRenderFailed: "无法呈现公式。",
       schedulerUnavailable: "工作区调度器设置尚未加载",
+      storageFull: "请释放此设备上的存储空间，然后重新给卡片评分。",
     },
     leaderboardShortcut: {
       ariaLabel: "打开排行榜",

@@ -1,6 +1,6 @@
 import type { Card } from "../../../types";
 import { normalizeTag, normalizeTagKey } from "../../../appData/domain";
-import { describeIndexedDbError } from "../../core/database";
+import { describeIndexedDbError, type ContinueReadwriteRequest } from "../../core/database";
 
 export type CardTagRecord = Readonly<{
   workspaceId: string;
@@ -37,15 +37,19 @@ function putCardTags(cardTagsStore: IDBObjectStore, workspaceId: string, card: C
   }
 }
 
-export function writeCardTagRecords(transaction: IDBTransaction, workspaceId: string, card: Card): void {
+export function writeCardTagRecords(
+  transaction: IDBTransaction,
+  workspaceId: string,
+  card: Card,
+  continueRequest: ContinueReadwriteRequest,
+): void {
   const cardTagsStore = transaction.objectStore("cardTags");
   const existingIndex = cardTagsStore.index("workspaceId_cardId_tag");
   const range = IDBKeyRange.bound(
     [workspaceId, card.cardId, ""],
     [workspaceId, card.cardId, "\uffff"],
   );
-  existingIndex.openKeyCursor(range).onsuccess = (event) => {
-    const cursor = (event.target as IDBRequest<IDBCursor | null>).result;
+  continueRequest(existingIndex.openKeyCursor(range), (cursor) => {
     if (cursor === null) {
       putCardTags(cardTagsStore, workspaceId, card);
       return;
@@ -53,7 +57,7 @@ export function writeCardTagRecords(transaction: IDBTransaction, workspaceId: st
 
     cardTagsStore.delete(cursor.primaryKey);
     cursor.continue();
-  };
+  });
 }
 
 export function putCardTagRecords(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {

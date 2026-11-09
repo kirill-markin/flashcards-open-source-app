@@ -1131,6 +1131,7 @@ const idCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Rumus tidak dapat ditampilkan.",
       schedulerUnavailable: "Pengaturan penjadwal ruang kerja belum termuat",
+      storageFull: "Kosongkan ruang penyimpanan di perangkat ini, lalu beri nilai pada kartu lagi.",
     },
     leaderboardShortcut: {
       ariaLabel: "Buka papan peringkat",

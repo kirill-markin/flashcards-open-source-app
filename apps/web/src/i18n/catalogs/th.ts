@@ -1131,6 +1131,7 @@ const thCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "แสดงผลสูตรไม่สำเร็จ",
       schedulerUnavailable: "ยังไม่ได้โหลดการตั้งค่าตัวจัดตารางทบทวนของพื้นที่ทำงาน",
+      storageFull: "เพิ่มพื้นที่ว่างในอุปกรณ์นี้ แล้วให้คะแนนการ์ดอีกครั้ง",
     },
     leaderboardShortcut: {
       ariaLabel: "เปิดกระดานอันดับ",
