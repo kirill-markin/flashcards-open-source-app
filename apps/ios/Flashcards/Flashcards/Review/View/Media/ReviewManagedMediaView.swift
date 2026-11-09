@@ -7,7 +7,8 @@ private let reviewManagedMediaStringsTableName: String = "ReviewCards"
 private let reviewManagedMediaCornerRadius: CGFloat = reviewContentSurfaceCornerRadius / 2
 private let reviewManagedImagePresentationMaxWidth: CGFloat = 520
 private let reviewManagedImagePlaceholderAspectRatio: CGFloat = 4.0 / 3.0
-private let reviewManagedAudioHeight: CGFloat = 76
+/// The smallest height at which AVKit shows its full inline controls for audio: measured, not documented.
+private let reviewManagedAudioHeight: CGFloat = 177
 private let reviewManagedVideoMinHeight: CGFloat = 190
 
 enum ReviewManagedMediaCategory {
@@ -262,12 +263,12 @@ struct ReviewManagedMediaView: View {
             case .image:
                 imageView(mediaAsset: mediaAsset, mediaURL: mediaURL)
             case .audio:
-                ReviewManagedMediaPlayer(player: self.presentedPlayer, onFullScreenChange: self.setFullScreen)
+                ReviewManagedMediaPlayer(player: self.presentedPlayer, delegate: self.retainedState.fullScreenDelegate)
                     .frame(maxWidth: .infinity, minHeight: reviewManagedAudioHeight)
                     .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .audio))
             case .video:
-                ReviewManagedMediaPlayer(player: self.presentedPlayer, onFullScreenChange: self.setFullScreen)
+                ReviewManagedMediaPlayer(player: self.presentedPlayer, delegate: self.retainedState.fullScreenDelegate)
                     .frame(maxWidth: .infinity, minHeight: reviewManagedVideoMinHeight)
                     .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .video))
@@ -281,11 +282,6 @@ struct ReviewManagedMediaView: View {
                 .background(mediaBackgroundStyle, in: RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
             }
         }
-    }
-
-    private func setFullScreen(_ isFullScreen: Bool) {
-        guard let presentationID = self.presentationID else { return }
-        self.retainedState.setFullScreen(isFullScreen, id: presentationID)
     }
 
     @ViewBuilder
@@ -474,68 +470,20 @@ func decodeReviewManagedFileImage(mediaURL: URL) async -> UIImage? {
     }
 }
 
-/// AVKit presents full screen in its own controller, which can take the inline copy out of the window;
-/// the delegate keeps the shared player claimed by that copy until full screen ends.
 private struct ReviewManagedMediaPlayer: UIViewControllerRepresentable {
     let player: AVPlayer?
-    let onFullScreenChange: (Bool) -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onFullScreenChange: self.onFullScreenChange)
-    }
+    let delegate: ReviewManagedMediaFullScreenDelegate
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
-        controller.delegate = context.coordinator
+        controller.delegate = self.delegate
         controller.player = self.player
         return controller
     }
 
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
-        context.coordinator.onFullScreenChange = self.onFullScreenChange
         if controller.player !== self.player {
             controller.player = self.player
-        }
-    }
-
-    /// The controller holds its delegate weakly, so a copy removed during full screen never hears the end.
-    static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: Coordinator) {
-        guard coordinator.isFullScreen else { return }
-        coordinator.isFullScreen = false
-        coordinator.onFullScreenChange(false)
-    }
-
-    @MainActor
-    final class Coordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
-        var onFullScreenChange: (Bool) -> Void
-        var isFullScreen = false
-
-        init(onFullScreenChange: @escaping (Bool) -> Void) {
-            self.onFullScreenChange = onFullScreenChange
-        }
-
-        func playerViewController(
-            _ playerViewController: AVPlayerViewController,
-            willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
-        ) {
-            self.setFullScreen(true)
-            coordinator.animate(alongsideTransition: nil) { context in
-                if context.isCancelled { self.setFullScreen(false) }
-            }
-        }
-
-        func playerViewController(
-            _ playerViewController: AVPlayerViewController,
-            willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
-        ) {
-            coordinator.animate(alongsideTransition: nil) { context in
-                if context.isCancelled == false { self.setFullScreen(false) }
-            }
-        }
-
-        private func setFullScreen(_ isFullScreen: Bool) {
-            self.isFullScreen = isFullScreen
-            self.onFullScreenChange(isFullScreen)
         }
     }
 }
