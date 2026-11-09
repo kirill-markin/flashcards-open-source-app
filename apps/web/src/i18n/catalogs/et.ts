@@ -1168,8 +1168,6 @@ const etCatalog: TranslationCatalog = {
       snapshot: "Kuvatakse hiljutist kohalikku hetktõmmist...",
     },
     media: {
-      privateImage: "Privaatne pilt",
-      privateAttachment: "Privaatne manus",
       attachmentLabel: "Manus",
       audioLabel: "Helimanus",
       imageAlt: "Hallatav pilt",

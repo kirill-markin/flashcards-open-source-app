@@ -1177,8 +1177,6 @@ const roCatalog: TranslationCatalog = {
       snapshot: "Se afișează o copie locală recentă...",
     },
     media: {
-      privateImage: "Imagine privată",
-      privateAttachment: "Atașament privat",
       attachmentLabel: "Atașament",
       audioLabel: "Atașament audio",
       imageAlt: "Imagine gestionată",

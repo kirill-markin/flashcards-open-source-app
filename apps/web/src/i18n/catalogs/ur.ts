@@ -1168,8 +1168,6 @@ const urCatalog: TranslationCatalog = {
       snapshot: "حالیہ مقامی اسنیپ شاٹ دکھایا جا رہا ہے...",
     },
     media: {
-      privateImage: "نجی تصویر",
-      privateAttachment: "نجی منسلکہ",
       attachmentLabel: "منسلکہ",
       audioLabel: "آڈیو منسلکہ",
       imageAlt: "منظم تصویر",

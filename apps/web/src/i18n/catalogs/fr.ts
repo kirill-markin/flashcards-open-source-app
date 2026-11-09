@@ -1168,8 +1168,6 @@ const frCatalog: TranslationCatalog = {
       snapshot: "Affichage d'un instantané local récent...",
     },
     media: {
-      privateImage: "Image privée",
-      privateAttachment: "Pièce jointe privée",
       attachmentLabel: "Pièce jointe",
       audioLabel: "Pièce jointe audio",
       imageAlt: "Image gérée",

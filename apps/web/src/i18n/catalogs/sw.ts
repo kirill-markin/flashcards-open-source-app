@@ -1168,8 +1168,6 @@ const swCatalog: TranslationCatalog = {
       snapshot: "Inaonyesha muhtasari wa hivi karibuni wa kifaa...",
     },
     media: {
-      privateImage: "Picha ya faragha",
-      privateAttachment: "Kiambatisho cha faragha",
       attachmentLabel: "Kiambatisho",
       audioLabel: "Kiambatisho cha sauti",
       imageAlt: "Picha inayodhibitiwa",

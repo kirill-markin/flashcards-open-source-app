@@ -1168,8 +1168,6 @@ const bgCatalog: TranslationCatalog = {
       snapshot: "Показва се скорошна локална моментна снимка...",
     },
     media: {
-      privateImage: "Лично изображение",
-      privateAttachment: "Личен прикачен файл",
       attachmentLabel: "Прикачен файл",
       audioLabel: "Аудио прикачен файл",
       imageAlt: "Управлявано изображение",

@@ -1168,8 +1168,6 @@ const isCatalog: TranslationCatalog = {
       snapshot: "Sýni nýlega staðbundna mynd...",
     },
     media: {
-      privateImage: "Einkamynd",
-      privateAttachment: "Einkaviðhengi",
       attachmentLabel: "Viðhengi",
       audioLabel: "Hljóðviðhengi",
       imageAlt: "Stýrð mynd",

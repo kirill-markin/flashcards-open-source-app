@@ -1168,8 +1168,6 @@ const deCatalog: TranslationCatalog = {
       snapshot: "Ein aktueller lokaler Schnappschuss wird angezeigt...",
     },
     media: {
-      privateImage: "Privates Bild",
-      privateAttachment: "Privater Anhang",
       attachmentLabel: "Anhang",
       audioLabel: "Audioanhang",
       imageAlt: "Verwaltetes Bild",

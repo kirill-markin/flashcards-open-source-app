@@ -1168,8 +1168,6 @@ const mlCatalog: TranslationCatalog = {
       snapshot: "സമീപകാല പ്രാദേശിക സ്നാപ്പ്ഷോട്ട് കാണിക്കുന്നു...",
     },
     media: {
-      privateImage: "സ്വകാര്യ ചിത്രം",
-      privateAttachment: "സ്വകാര്യ അറ്റാച്ച്മെന്റ്",
       attachmentLabel: "അറ്റാച്ച്മെന്റ്",
       audioLabel: "ഓഡിയോ അറ്റാച്ച്മെന്റ്",
       imageAlt: "നിയന്ത്രിത ചിത്രം",

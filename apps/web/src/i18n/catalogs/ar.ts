@@ -1168,8 +1168,6 @@ const arCatalog: TranslationCatalog = {
       snapshot: "جارٍ عرض لقطة محلية حديثة...",
     },
     media: {
-      privateImage: "صورة خاصة",
-      privateAttachment: "مرفق خاص",
       attachmentLabel: "مرفق",
       audioLabel: "مرفق صوتي",
       imageAlt: "صورة مُدارة",

@@ -1168,8 +1168,6 @@ const heCatalog: TranslationCatalog = {
       snapshot: "מציג תמונת מצב מקומית אחרונה...",
     },
     media: {
-      privateImage: "תמונה פרטית",
-      privateAttachment: "קובץ מצורף פרטי",
       attachmentLabel: "קובץ מצורף",
       audioLabel: "קובץ אודיו מצורף",
       imageAlt: "תמונה מנוהלת",

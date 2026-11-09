@@ -24,6 +24,7 @@ import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewCardCopyButtonHandle } from "./components/card/ReviewCardCopyButton";
 import type { ReviewEditorModalProps } from "./components/card/ReviewEditorModal";
+import { reviewSideMarkdownForClipboard } from "./components/card/reviewClipboardMarkdown";
 import type { ReviewTextSelectionDialogProps, ReviewTextSelectionRequest } from "./components/card/ReviewTextSelectionDialog";
 import type { ReviewPaneProps } from "./components/ReviewPane";
 import type { ReviewQueuePanelProps } from "./components/ReviewQueuePanel";
@@ -516,7 +517,7 @@ export function useReviewScreenController(
     setTextSelectionRequest({
       cardId: visibleCard.cardId,
       side,
-      text: sourceText,
+      text: reviewSideMarkdownForClipboard(sourceText),
       workspaceId: activeWorkspace?.workspaceId ?? null,
     });
   }

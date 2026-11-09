@@ -1168,8 +1168,6 @@ const trCatalog: TranslationCatalog = {
       snapshot: "Yakın tarihli yerel anlık görüntü gösteriliyor...",
     },
     media: {
-      privateImage: "Özel görsel",
-      privateAttachment: "Özel ek",
       attachmentLabel: "Ek",
       audioLabel: "Ses eki",
       imageAlt: "Yönetilen görsel",

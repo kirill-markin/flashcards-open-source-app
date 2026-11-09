@@ -1168,8 +1168,6 @@ const viCatalog: TranslationCatalog = {
       snapshot: "Đang hiển thị bản chụp cục bộ gần đây...",
     },
     media: {
-      privateImage: "Hình ảnh riêng tư",
-      privateAttachment: "Tệp đính kèm riêng tư",
       attachmentLabel: "Tệp đính kèm",
       audioLabel: "Âm thanh đính kèm",
       imageAlt: "Hình ảnh được quản lý",
