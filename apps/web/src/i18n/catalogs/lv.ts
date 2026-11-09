@@ -20,6 +20,15 @@ const lvCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Šī pārlūkprogramma nevarēja dekodēt mikrofona audio ({{format}}).",
     recovery: "Viesa piekļuve nav pārbaudīta. Kešatmiņā saglabātās kartītes var tikai lasīt. Atjaunojiet sākotnējo sesiju vai savienojumu un mēģiniet vēlreiz.",
     cleanupFailed: "Pierakstīšanās izdevās, bet demonstrācijas kartīti neizdevās noņemt.",
+    browserCheck: {
+      title: "Pārbaudām jūsu pārlūku",
+      description: "Pirms viesa darbvietas atvēršanas Cloudflare apstiprina, ka šis ir parasts pārlūks. Parasti tas aizņem dažas sekundes.",
+      loading: "Ielādē pārbaudi...",
+      verifying: "Atver jūsu darbvietu...",
+      loadFailed: "Pārbaudi neizdevās ielādēt. Pārbaudiet savienojumu, satura bloķētājā atļaujiet challenges.cloudflare.com un mēģiniet vēlreiz.",
+      failed: "Pārbaude netika izturēta. Mēģiniet vēlreiz vai pierakstieties.",
+      rejected: "Pārbaude netika pieņemta. Izpildiet to vēlreiz.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

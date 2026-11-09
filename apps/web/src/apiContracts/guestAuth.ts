@@ -24,6 +24,14 @@ export type BrowserGuestUpgradeResult = Readonly<{
   droppedEntities?: Readonly<{ cardIds: ReadonlyArray<string>; deckIds: ReadonlyArray<string>; reviewEventIds: ReadonlyArray<string>; mediaAssetIds?: ReadonlyArray<string> }>;
 }>;
 
+/** The site key travels with `GUEST_BROWSER_CHALLENGE_REQUIRED`, so the widget renders only for a browser the server flagged. */
+export function parseGuestBrowserChallengeSiteKey(value: unknown, endpoint: string): string {
+  const details = parseObject(value, endpoint, "details");
+  const siteKey = parseRequiredField(details, "turnstileSiteKey", endpoint, "details", parseString);
+  if (siteKey.trim() === "") throw new ApiContractError(endpoint, "details.turnstileSiteKey", "non-empty string");
+  return siteKey;
+}
+
 export function parseBrowserGuestProbe(value: unknown, endpoint: string): BrowserGuestProbe {
   const root = parseObject(value, endpoint, "");
   const registered = parseObject(root.registeredSession, endpoint, "registeredSession");

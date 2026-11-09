@@ -20,6 +20,15 @@ const trCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Bu tarayıcı mikrofon sesini çözemedi ({{format}}).",
     recovery: "Misafir erişimi doğrulanmadı. Önbellekteki kartlar salt okunurdur. İlk oturumu veya bağlantıyı geri yükleyip yeniden deneyin.",
     cleanupFailed: "Giriş yapıldı, ancak demo kart silinemedi.",
+    browserCheck: {
+      title: "Tarayıcınız kontrol ediliyor",
+      description: "Misafir çalışma alanınız açılmadan önce Cloudflare bunun normal bir tarayıcı olduğunu doğrular. Bu genellikle birkaç saniye sürer.",
+      loading: "Kontrol yükleniyor...",
+      verifying: "Çalışma alanınız açılıyor...",
+      loadFailed: "Kontrol yüklenemedi. Bağlantınızı kontrol edin, içerik engelleyicide challenges.cloudflare.com adresine izin verin ve tekrar deneyin.",
+      failed: "Kontrol geçilemedi. Tekrar deneyin veya bunun yerine giriş yapın.",
+      rejected: "Kontrol kabul edilmedi. Bir kez daha tamamlayın.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

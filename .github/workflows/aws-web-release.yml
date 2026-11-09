@@ -800,6 +800,7 @@ jobs:
           FLASHCARDS_E2E_APP_BASE_URL: https://app.nibomo.com
           FLASHCARDS_E2E_AUTH_BASE_URL: https://auth.nibomo.com
           FLASHCARDS_LIVE_REVIEW_EMAIL: google-review@example.com
+          E2E_GUEST_CHALLENGE_BYPASS_TOKEN: ${{ secrets.E2E_GUEST_CHALLENGE_BYPASS_TOKEN }}
         run: |
           set -euo pipefail
 

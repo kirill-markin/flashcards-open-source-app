@@ -2,14 +2,18 @@ import { useSyncExternalStore, type ReactElement, type ReactNode } from "react";
 import { AppDataProvider, useAppData } from "../../../../appData";
 import { GuestCachedCardsRecovery } from "../../../../appData/session/guest/GuestCachedCardsRecovery";
 import { readPendingGuestConversion, subscribeToBrowserGuestChanges } from "../../../../appData/session/guest/browserGuestStorage";
+import { readGuestBrowserChallenge, subscribeToGuestBrowserChallenge } from "../../../../appData/session/guest/guestBrowserChallenge";
 import { guestStripeCheckoutReturnUrl } from "../../../../premium/stripeIntent";
 import { useI18n } from "../../../../i18n";
+import { GuestBrowserChallengeScreen } from "./GuestBrowserChallengeScreen";
 import { GuestConversionScreen } from "./GuestConversionScreen";
 
 export function GuestConversionGate(props: Readonly<{ children: ReactNode; returnUrl: string }>): ReactElement {
   const { sessionLoadState, cloudSettings, sessionErrorMessage, sessionTechnicalError, initialize } = useAppData();
   const { t } = useI18n();
   const phase = useSyncExternalStore(subscribeToBrowserGuestChanges, () => readPendingGuestConversion()?.phase ?? null);
+  const challenge = useSyncExternalStore(subscribeToGuestBrowserChallenge, readGuestBrowserChallenge);
+  if (challenge !== null) return <GuestBrowserChallengeScreen challenge={challenge} />;
   if ((phase !== null && phase !== "draining") || sessionLoadState === "guest_conversion") {
     const sourceUserId = readPendingGuestConversion()?.sourceUserId;
     const returnUrl = sourceUserId === undefined ? null : guestStripeCheckoutReturnUrl(sourceUserId);

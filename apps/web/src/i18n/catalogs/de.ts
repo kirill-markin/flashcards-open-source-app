@@ -20,6 +20,15 @@ const deCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Dieser Browser konnte die Mikrofonaufnahme nicht dekodieren ({{format}}).",
     recovery: "Der Gastzugriff ist nicht bestätigt. Zwischengespeicherte Karten sind schreibgeschützt. Stelle die ursprüngliche Sitzung oder Verbindung wieder her und versuche es erneut.",
     cleanupFailed: "Die Anmeldung war erfolgreich, aber die Demokarte konnte nicht gelöscht werden.",
+    browserCheck: {
+      title: "Dein Browser wird geprüft",
+      description: "Bevor dein Gast-Arbeitsbereich öffnet, bestätigt Cloudflare, dass dies ein normaler Browser ist. Das dauert meist nur wenige Sekunden.",
+      loading: "Prüfung wird geladen...",
+      verifying: "Dein Arbeitsbereich wird geöffnet...",
+      loadFailed: "Die Prüfung konnte nicht geladen werden. Prüfe deine Verbindung, erlaube challenges.cloudflare.com in Inhaltsblockern und versuche es erneut.",
+      failed: "Die Prüfung wurde nicht bestanden. Versuche es erneut oder melde dich stattdessen an.",
+      rejected: "Die Prüfung wurde nicht akzeptiert. Schließe sie noch einmal ab.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

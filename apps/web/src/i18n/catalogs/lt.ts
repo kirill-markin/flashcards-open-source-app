@@ -20,6 +20,15 @@ const ltCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ši naršyklė negalėjo iškoduoti mikrofono garso ({{format}}).",
     recovery: "Svečio prieiga nepatvirtinta. Podėlyje esančias korteles galima tik skaityti. Atkurkite pradinį seansą arba ryšį ir bandykite dar kartą.",
     cleanupFailed: "Prisijungta, bet nepavyko pašalinti demonstracinės kortelės.",
+    browserCheck: {
+      title: "Tikrinama jūsų naršyklė",
+      description: "Prieš atidarant svečio darbo sritį, Cloudflare patvirtina, kad tai įprasta naršyklė. Paprastai tai trunka kelias sekundes.",
+      loading: "Įkeliamas patikrinimas...",
+      verifying: "Atidaroma jūsų darbo sritis...",
+      loadFailed: "Nepavyko įkelti patikrinimo. Patikrinkite ryšį, turinio blokavimo priemonėje leiskite challenges.cloudflare.com ir bandykite dar kartą.",
+      failed: "Patikrinimas nepavyko. Bandykite dar kartą arba prisijunkite.",
+      rejected: "Patikrinimas nepriimtas. Atlikite jį dar kartą.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

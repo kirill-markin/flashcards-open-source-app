@@ -20,6 +20,15 @@ const idCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Browser ini tidak dapat mendekode audio mikrofon ({{format}}).",
     recovery: "Akses tamu belum terverifikasi. Kartu dalam cache hanya dapat dibaca. Pulihkan sesi asli atau koneksi, lalu coba lagi.",
     cleanupFailed: "Berhasil masuk, tetapi kartu demo tidak dapat dihapus.",
+    browserCheck: {
+      title: "Memeriksa browser Anda",
+      description: "Sebelum ruang kerja tamu dibuka, Cloudflare memastikan bahwa ini browser biasa. Biasanya hanya butuh beberapa detik.",
+      loading: "Memuat pemeriksaan...",
+      verifying: "Membuka ruang kerja Anda...",
+      loadFailed: "Pemeriksaan tidak dapat dimuat. Periksa koneksi Anda, izinkan challenges.cloudflare.com di pemblokir konten, lalu coba lagi.",
+      failed: "Pemeriksaan tidak lolos. Coba lagi, atau masuk saja.",
+      rejected: "Pemeriksaan tidak diterima. Selesaikan sekali lagi.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

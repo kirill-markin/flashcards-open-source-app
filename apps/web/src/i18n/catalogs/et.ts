@@ -20,6 +20,15 @@ const etCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "See brauser ei suutnud mikrofoni heli dekodeerida ({{format}}).",
     recovery: "Külalise juurdepääs on kinnitamata. Vahemällu salvestatud kaardid on kirjutuskaitstud. Taasta algne seanss või ühendus ja proovi uuesti.",
     cleanupFailed: "Sisselogimine õnnestus, kuid näidiskaarti ei saanud eemaldada.",
+    browserCheck: {
+      title: "Kontrollime sinu brauserit",
+      description: "Enne külalise tööruumi avamist kinnitab Cloudflare, et tegu on tavalise brauseriga. Tavaliselt võtab see mõne sekundi.",
+      loading: "Kontrolli laadimine...",
+      verifying: "Sinu tööruumi avamine...",
+      loadFailed: "Kontrolli ei õnnestunud laadida. Kontrolli ühendust, luba sisublokeerijas challenges.cloudflare.com ja proovi uuesti.",
+      failed: "Kontroll ei läinud läbi. Proovi uuesti või logi hoopis sisse.",
+      rejected: "Kontrolli ei aktsepteeritud. Läbi see veel kord.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

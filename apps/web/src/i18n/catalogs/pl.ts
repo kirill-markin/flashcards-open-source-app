@@ -20,6 +20,15 @@ const plCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ta przeglądarka nie mogła zdekodować dźwięku z mikrofonu ({{format}}).",
     recovery: "Dostęp gościa nie jest zweryfikowany. Fiszki w pamięci podręcznej są tylko do odczytu. Przywróć pierwotną sesję lub połączenie i spróbuj ponownie.",
     cleanupFailed: "Logowanie powiodło się, ale nie udało się usunąć fiszki demonstracyjnej.",
+    browserCheck: {
+      title: "Sprawdzamy Twoją przeglądarkę",
+      description: "Zanim otworzy się obszar roboczy gościa, Cloudflare potwierdza, że to zwykła przeglądarka. Zwykle trwa to kilka sekund.",
+      loading: "Ładowanie weryfikacji...",
+      verifying: "Otwieranie Twojego obszaru roboczego...",
+      loadFailed: "Nie udało się załadować weryfikacji. Sprawdź połączenie, zezwól na challenges.cloudflare.com w blokerze treści i spróbuj ponownie.",
+      failed: "Weryfikacja nie powiodła się. Spróbuj ponownie lub zaloguj się.",
+      rejected: "Weryfikacja nie została zaakceptowana. Wykonaj ją jeszcze raz.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

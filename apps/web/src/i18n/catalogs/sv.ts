@@ -20,6 +20,15 @@ const svCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Den här webbläsaren kunde inte avkoda mikrofonljudet ({{format}}).",
     recovery: "Gäståtkomsten är inte verifierad. Cachade kort är skrivskyddade. Återställ den ursprungliga sessionen eller anslutningen och försök igen.",
     cleanupFailed: "Inloggningen lyckades, men demokortet kunde inte tas bort.",
+    browserCheck: {
+      title: "Kontrollerar din webbläsare",
+      description: "Innan din gästarbetsyta öppnas bekräftar Cloudflare att detta är en vanlig webbläsare. Det tar oftast några sekunder.",
+      loading: "Läser in kontrollen...",
+      verifying: "Öppnar din arbetsyta...",
+      loadFailed: "Kontrollen kunde inte läsas in. Kontrollera anslutningen, tillåt challenges.cloudflare.com i eventuell innehållsblockerare och försök igen.",
+      failed: "Kontrollen godkändes inte. Försök igen eller logga in i stället.",
+      rejected: "Kontrollen accepterades inte. Slutför den en gång till.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

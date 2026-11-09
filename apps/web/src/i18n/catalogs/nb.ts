@@ -20,6 +20,15 @@ const nbCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Denne nettleseren kunne ikke dekode mikrofonlyden ({{format}}).",
     recovery: "Gjestetilgangen er ikke bekreftet. Bufrede kort er skrivebeskyttet. Gjenopprett den opprinnelige økten eller tilkoblingen og prøv igjen.",
     cleanupFailed: "Innloggingen lyktes, men demokortet kunne ikke fjernes.",
+    browserCheck: {
+      title: "Sjekker nettleseren din",
+      description: "Før gjestearbeidsområdet åpnes, bekrefter Cloudflare at dette er en vanlig nettleser. Det tar vanligvis noen sekunder.",
+      loading: "Laster inn sjekken...",
+      verifying: "Åpner arbeidsområdet ditt...",
+      loadFailed: "Sjekken kunne ikke lastes inn. Sjekk tilkoblingen, tillat challenges.cloudflare.com i eventuell innholdsblokkering, og prøv igjen.",
+      failed: "Sjekken ble ikke bestått. Prøv igjen, eller logg på i stedet.",
+      rejected: "Sjekken ble ikke godtatt. Fullfør den én gang til.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

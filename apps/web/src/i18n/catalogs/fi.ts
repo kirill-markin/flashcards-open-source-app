@@ -20,6 +20,15 @@ const fiCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Tämä selain ei voinut purkaa mikrofonin ääntä ({{format}}).",
     recovery: "Vieraskäyttöä ei ole vahvistettu. Välimuistin kortit ovat vain luettavissa. Palauta alkuperäinen istunto tai yhteys ja yritä uudelleen.",
     cleanupFailed: "Kirjautuminen onnistui, mutta esittelykorttia ei voitu poistaa.",
+    browserCheck: {
+      title: "Selaintasi tarkistetaan",
+      description: "Ennen vierastyötilan avaamista Cloudflare varmistaa, että kyseessä on tavallinen selain. Tämä kestää yleensä muutaman sekunnin.",
+      loading: "Ladataan tarkistusta...",
+      verifying: "Avataan työtilaasi...",
+      loadFailed: "Tarkistusta ei voitu ladata. Tarkista yhteys, salli challenges.cloudflare.com sisällönestossa ja yritä uudelleen.",
+      failed: "Tarkistus ei mennyt läpi. Yritä uudelleen tai kirjaudu sisään.",
+      rejected: "Tarkistusta ei hyväksytty. Suorita se vielä kerran.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

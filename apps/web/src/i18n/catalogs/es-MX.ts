@@ -20,6 +20,15 @@ const esMxCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Este navegador no pudo decodificar el audio del micrófono ({{format}}).",
     recovery: "El acceso de invitado no está verificado. Las tarjetas en caché son de solo lectura. Restaura la sesión original o la conexión e inténtalo de nuevo.",
     cleanupFailed: "Iniciaste sesión, pero no se pudo eliminar la tarjeta de demostración.",
+    browserCheck: {
+      title: "Verificando tu navegador",
+      description: "Antes de abrir tu espacio de trabajo de invitado, Cloudflare confirma que se trata de un navegador normal. Suele tardar unos segundos.",
+      loading: "Cargando la verificación...",
+      verifying: "Abriendo tu espacio de trabajo...",
+      loadFailed: "No se pudo cargar la verificación. Revisa tu conexión, permite challenges.cloudflare.com en tu bloqueador de contenido e inténtalo de nuevo.",
+      failed: "La verificación no se completó. Inténtalo de nuevo o inicia sesión.",
+      rejected: "La verificación no se aceptó. Complétala una vez más.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

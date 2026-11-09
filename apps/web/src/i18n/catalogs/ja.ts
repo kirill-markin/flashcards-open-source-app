@@ -20,6 +20,15 @@ export const jaCatalog = {
     aiRecordingDecodeFailed: "このブラウザーではマイクの音声（{{format}}）をデコードできませんでした。",
     recovery: "ゲストアクセスは未確認です。キャッシュされたカードは読み取り専用です。元のセッションまたは接続を復元して再試行してください。",
     cleanupFailed: "サインインしましたが、デモカードを削除できませんでした。",
+    browserCheck: {
+      title: "ブラウザを確認しています",
+      description: "ゲスト用ワークスペースを開く前に、Cloudflare が通常のブラウザであることを確認します。通常は数秒で終わります。",
+      loading: "確認を読み込み中...",
+      verifying: "ワークスペースを開いています...",
+      loadFailed: "確認を読み込めませんでした。接続を確認し、コンテンツブロッカーで challenges.cloudflare.com を許可してから、もう一度お試しください。",
+      failed: "確認に合格しませんでした。もう一度お試しいただくか、サインインしてください。",
+      rejected: "確認が受け付けられませんでした。もう一度完了してください。",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

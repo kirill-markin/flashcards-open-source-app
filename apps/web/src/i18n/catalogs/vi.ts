@@ -20,6 +20,15 @@ const viCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Trình duyệt này không thể giải mã âm thanh micrô ({{format}}).",
     recovery: "Quyền truy cập khách chưa được xác minh. Thẻ lưu đệm chỉ có thể đọc. Khôi phục phiên gốc hoặc kết nối rồi thử lại.",
     cleanupFailed: "Đăng nhập thành công nhưng không thể xóa thẻ mẫu.",
+    browserCheck: {
+      title: "Đang kiểm tra trình duyệt của bạn",
+      description: "Trước khi mở không gian làm việc khách, Cloudflare xác nhận đây là trình duyệt thông thường. Thường chỉ mất vài giây.",
+      loading: "Đang tải bước kiểm tra...",
+      verifying: "Đang mở không gian làm việc của bạn...",
+      loadFailed: "Không thể tải bước kiểm tra. Hãy kiểm tra kết nối, cho phép challenges.cloudflare.com trong trình chặn nội dung, rồi thử lại.",
+      failed: "Bạn chưa vượt qua bước kiểm tra. Hãy thử lại hoặc đăng nhập.",
+      rejected: "Bước kiểm tra không được chấp nhận. Hãy hoàn thành thêm một lần nữa.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

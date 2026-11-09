@@ -20,6 +20,15 @@ const isCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Þessi vafri gat ekki afkóðað hljóð úr hljóðnemanum ({{format}}).",
     recovery: "Gestaaðgangur hefur ekki verið staðfestur. Spjöld í skyndiminni eru skrifvarin. Endurheimtu upprunalegu lotuna eða tenginguna og reyndu aftur.",
     cleanupFailed: "Innskráning tókst en ekki tókst að fjarlægja sýnispjaldið.",
+    browserCheck: {
+      title: "Athugum vafrann þinn",
+      description: "Áður en gestavinnusvæðið opnast staðfestir Cloudflare að þetta sé venjulegur vafri. Það tekur yfirleitt nokkrar sekúndur.",
+      loading: "Hleð athugun...",
+      verifying: "Opna vinnusvæðið þitt...",
+      loadFailed: "Ekki tókst að hlaða athuguninni. Athugaðu tenginguna, leyfðu challenges.cloudflare.com í efnislokara og reyndu aftur.",
+      failed: "Athugunin stóðst ekki. Reyndu aftur eða skráðu þig inn í staðinn.",
+      rejected: "Athuguninni var hafnað. Ljúktu henni einu sinni enn.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

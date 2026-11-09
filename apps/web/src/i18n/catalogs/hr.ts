@@ -20,6 +20,15 @@ const hrCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ovaj preglednik nije mogao dekodirati zvuk mikrofona ({{format}}).",
     recovery: "Gostujući pristup nije potvrđen. Kartice iz predmemorije dostupne su samo za čitanje. Vratite izvornu sesiju ili vezu pa pokušajte ponovno.",
     cleanupFailed: "Prijava je uspjela, ali pokazna kartica nije se mogla ukloniti.",
+    browserCheck: {
+      title: "Provjeravamo vaš preglednik",
+      description: "Prije otvaranja radnog prostora za goste Cloudflare potvrđuje da je ovo običan preglednik. Obično traje nekoliko sekundi.",
+      loading: "Učitavanje provjere...",
+      verifying: "Otvaranje vašeg radnog prostora...",
+      loadFailed: "Provjera se nije mogla učitati. Provjerite vezu, dopustite challenges.cloudflare.com u blokatoru sadržaja i pokušajte ponovno.",
+      failed: "Provjera nije prošla. Pokušajte ponovno ili se prijavite.",
+      rejected: "Provjera nije prihvaćena. Dovršite je još jednom.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

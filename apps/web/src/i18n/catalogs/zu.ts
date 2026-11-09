@@ -20,6 +20,15 @@ const zuCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Lesi siphequluli asikwazanga ukuhumusha umsindo wemakrofoni ({{format}}).",
     recovery: "Ukufinyelela kwesivakashi akuqinisekisiwe. Amakhadi agcinwe kunqolobane angafundwa kuphela. Buyisela iseshini yokuqala noma uxhumano bese uzama futhi.",
     cleanupFailed: "Ukungena ngemvume kuphumelele, kodwa ikhadi lesibonelo alikwazanga ukususwa.",
+    browserCheck: {
+      title: "Sihlola isiphequluli sakho",
+      description: "Ngaphambi kokuthi kuvuleke indawo yokusebenza yesivakashi, i-Cloudflare iqinisekisa ukuthi lesi yisiphequluli esijwayelekile. Ngokuvamile kuthatha imizuzwana embalwa.",
+      loading: "Kulayishwa ukuhlola...",
+      verifying: "Kuvulwa indawo yakho yokusebenza...",
+      loadFailed: "Ukuhlola akukwazanga ukulayishwa. Hlola uxhumano lwakho, vumela i-challenges.cloudflare.com kusivimbi sokuqukethwe, bese uzama futhi.",
+      failed: "Ukuhlola akuphumelelanga. Zama futhi, noma ungene esikhundleni salokho.",
+      rejected: "Ukuhlola akwamukelwanga. Kuqedele futhi kanye.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
