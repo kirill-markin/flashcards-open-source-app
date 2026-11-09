@@ -12605,7 +12605,7 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld za kurudia"
+                  "value" : "%lld ya kurudia"
                 }
               },
               "other" : {
@@ -12623,7 +12623,7 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld உரியவை"
+                  "value" : "%lld உரியது"
                 }
               },
               "other" : {
