@@ -22,6 +22,11 @@ final class ReviewManagedMediaState {
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var fileTask: Task<Void, Never>?
+    let fullScreenDelegate = ReviewManagedMediaFullScreenDelegate()
+
+    init() {
+        self.fullScreenDelegate.state = self
+    }
 
     deinit {
         self.loadTask?.cancel()
@@ -39,13 +44,10 @@ final class ReviewManagedMediaState {
         self.scheduleTeardownIfUnclaimed()
     }
 
-    /// The copy in full screen keeps the player even while AVKit has it out of the window.
-    func setFullScreen(_ isFullScreen: Bool, id: UUID) {
-        if isFullScreen {
-            self.fullScreenPresentationID = id
-        } else if self.fullScreenPresentationID == id {
-            self.fullScreenPresentationID = nil
-        }
+    /// Only the active copy holds the player, so it is the one AVKit shows full screen; it keeps the
+    /// player until full screen ends, even if TextKit replaces it meanwhile.
+    fileprivate func setFullScreen(_ isFullScreen: Bool) {
+        self.fullScreenPresentationID = isFullScreen ? self.activePresentationID : nil
         self.activePresentationID = self.fullScreenPresentationID ?? self.presentations.last
         self.scheduleTeardownIfUnclaimed()
     }
@@ -146,14 +148,47 @@ final class ReviewManagedMediaState {
     private func preparePlayer(result: ReviewManagedMediaLoadResult) {
         let mimeType = result.mediaAsset?.mimeType.lowercased() ?? ""
         if let url = result.mediaURL, mimeType.hasPrefix("audio/") || mimeType.hasPrefix("video/") {
-            // Cache files have no extension, so AVFoundation needs the MIME type to open them.
             if self.player == nil {
-                self.player = AVPlayer(playerItem: AVPlayerItem(asset: AVURLAsset(url: url, options: [AVURLAssetOverrideMIMETypeKey: mimeType])))
+                // Cache files have no extension, so AVFoundation needs the MIME type to open them.
+                let options: [String: Any] = url.isFileURL ? [AVURLAssetOverrideMIMETypeKey: mimeType] : [:]
+                self.player = AVPlayer(playerItem: AVPlayerItem(asset: AVURLAsset(url: url, options: options)))
             }
         } else {
             self.player?.pause()
             self.player = nil
         }
+    }
+}
+
+/// Owned by the media state rather than a copy's coordinator: AVKit holds its delegate weakly, and a copy
+/// TextKit tears down during full screen must not end the claim before the transition does.
+@MainActor
+final class ReviewManagedMediaFullScreenDelegate: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
+    fileprivate weak var state: ReviewManagedMediaState?
+
+    func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
+    ) {
+        self.state?.setFullScreen(true)
+        coordinator.animate(alongsideTransition: nil) { context in
+            if context.isCancelled { self.reportFullScreenEnd() }
+        }
+    }
+
+    func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
+    ) {
+        coordinator.animate(alongsideTransition: nil) { context in
+            if context.isCancelled == false { self.reportFullScreenEnd() }
+        }
+    }
+
+    /// Reported on the next turn, like `ReviewMediaPresentation` reports removals, so the copy shown
+    /// after full screen is registered before the claim moves off the one that was full screen.
+    private func reportFullScreenEnd() {
+        DispatchQueue.main.async { [weak state = self.state] in state?.setFullScreen(false) }
     }
 }
 
