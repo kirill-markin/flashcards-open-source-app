@@ -1,5 +1,7 @@
 import Foundation
+#if !os(watchOS)
 import UIKit
+#endif
 
 /*
  The backend validates `osName` and `deviceType` against strict enums, so these return only its
@@ -12,6 +14,8 @@ import UIKit
 func currentClientOsName() -> String {
     #if targetEnvironment(macCatalyst)
     return "macos"
+    #elseif os(watchOS)
+    return "watchos"
     #else
     return UIDevice.current.userInterfaceIdiom == .pad ? "ipados" : "ios"
     #endif
@@ -21,6 +25,8 @@ func currentClientOsName() -> String {
 func currentClientDeviceType() -> String {
     #if targetEnvironment(macCatalyst)
     return "desktop"
+    #elseif os(watchOS)
+    return "watch"
     #else
     return UIDevice.current.userInterfaceIdiom == .pad ? "tablet" : "phone"
     #endif

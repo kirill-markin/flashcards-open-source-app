@@ -38,7 +38,8 @@ export type ChatClientApp = "iPhone" | "iPad" | "Mac" | "Android" | "web";
 
 /**
  * The Apple build reports platform `ios` on iPhone, iPad and Mac alike, so its osName, or without
- * one its deviceType, tells them apart. Null when the run's headers do not say.
+ * one its deviceType, tells them apart. Null when the run's headers do not say, and for the Apple
+ * Watch, which has no chat.
  */
 export function resolveChatClientApp(
   platform: ProductAnalyticsClientReportablePlatform | null,

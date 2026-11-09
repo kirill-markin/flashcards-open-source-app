@@ -1,5 +1,6 @@
 /**
  * Keep web primary, Library and settings navigation aligned with:
+ * - apps/ios/Flashcards/Flashcards/App/Navigation/AppTab.swift
  * - apps/ios/Flashcards/Flashcards/App/Navigation/AppNavigationTypes.swift
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/settings/SettingsDestinations.kt

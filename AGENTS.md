@@ -24,6 +24,7 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - Web app: supported. Before making any web change, read [apps/web/README.md](apps/web/README.md).
 - iPhone and iPad app (including iPhone Duo): Swift (priority), iOS/iPadOS 18+. Before making any iOS/iPadOS change, read [apps/ios/README.md](apps/ios/README.md).
 - macOS app: macOS 15+ on Apple silicon via Mac Catalyst. Before making any Catalyst change, read [apps/ios/README.md](apps/ios/README.md) and [docs/macos-ci-cd.md](docs/macos-ci-cd.md).
+- Apple Watch app: watchOS 26+ companion embedded in the iOS app. Before making any watch change, read [docs/apple-watch.md](docs/apple-watch.md).
 - Android app: Kotlin + Jetpack Compose; Android 11, 12, 12L, 13, 14, 15, 16, and 17. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
 - Before Google Cloud or Google Play operations, read [Google Cloud access](docs/android-ci-cd.md#google-cloud-access-and-device-preflight).
 - AI assistants via MCP: supported at `https://mcp.nibomo.com/mcp`.

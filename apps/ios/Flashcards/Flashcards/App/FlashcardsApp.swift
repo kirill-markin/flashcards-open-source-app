@@ -97,10 +97,14 @@ struct FlashcardsApp: App {
     @State private var uiTestLaunchScenario: FlashcardsUITestLaunchScenario?
     @State private var uiTestAIHandoffCard: FlashcardsUITestAIHandoffCard?
     @State private var hasRunInitialStartup: Bool
+    @State private var hasPresentedFirstScene: Bool
     @State private var isStartupReadyForBackgroundWork: Bool
     @State private var isLowPowerModeEnabled: Bool
     /// The latest widget tap, held until the app can open Review; a newer tap replaces it.
     @State private var pendingWidgetDeepLink: WidgetDeepLink?
+    #if os(iOS) && !targetEnvironment(macCatalyst)
+    @State private var watchHandoffResponder: WatchHandoffResponder
+    #endif
 
     @MainActor
     init() {
@@ -133,9 +137,6 @@ struct FlashcardsApp: App {
                     return await store.mintAnalyticsGuestCredential()
                 }
             )
-            // Process start is the cold launch. Emitting it here rather than at startup-ready keeps
-            // it ahead of the first screen_viewed instead of landing after it.
-            Analytics.track(.appOpened(launchType: .cold))
         }
         let uiTestSelectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
@@ -212,39 +213,6 @@ struct FlashcardsApp: App {
             }
         }
 
-        if store.cloudCredentialRecoveryState == nil {
-            logAppLifecycleBreadcrumb(
-                action: .visibleTabPrepareStart,
-                store: store,
-                stage: "visible_tab_prepare",
-                scenePhase: nil,
-                selectedTab: selectedTab,
-                isStartupReady: false,
-                isRecoveryGateActive: false,
-                messageSummary: nil
-            )
-            prepareVisibleTabForPresentationWithBreadcrumb(
-                store: store,
-                selectedTab: selectedTab,
-                librarySurface: initialNavigation.visibleLibraryAnalyticsSurface,
-                previousTab: nil,
-                scenePhase: nil,
-                isStartupReady: false,
-                isRecoveryGateActive: false,
-                now: Date()
-            )
-            logAppLifecycleBreadcrumb(
-                action: .visibleTabPrepareSuccess,
-                store: store,
-                stage: "visible_tab_prepare",
-                scenePhase: nil,
-                selectedTab: selectedTab,
-                isStartupReady: false,
-                isRecoveryGateActive: false,
-                messageSummary: nil
-            )
-        }
-
         _store = State(initialValue: store)
         _appleSubscriptions = State(initialValue: AppleSubscriptionService(store: store, session: .shared))
         _navigation = State(initialValue: initialNavigation)
@@ -257,9 +225,16 @@ struct FlashcardsApp: App {
         _uiTestLaunchScenario = State(initialValue: launchScenario)
         _uiTestAIHandoffCard = State(initialValue: aiHandoffCard)
         _hasRunInitialStartup = State(initialValue: false)
+        _hasPresentedFirstScene = State(initialValue: false)
         _isStartupReadyForBackgroundWork = State(initialValue: false)
         _isLowPowerModeEnabled = State(initialValue: processInfo.isLowPowerModeEnabled)
         _pendingWidgetDeepLink = State(initialValue: nil)
+        #if os(iOS) && !targetEnvironment(macCatalyst)
+        // A watch message can launch the app in the background, before any scene exists.
+        let watchHandoffResponder = WatchHandoffResponder(store: store)
+        watchHandoffResponder.activate()
+        _watchHandoffResponder = State(initialValue: watchHandoffResponder)
+        #endif
     }
 
     var body: some Scene {
@@ -295,11 +270,19 @@ struct FlashcardsApp: App {
                 .environment(self.progressScreenState)
                 .environment(self.catalogIndexStore)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
+                .onAppear {
+                    // A scene can also be connected while the app stays in the background.
+                    guard UIApplication.shared.applicationState != .background else {
+                        return
+                    }
+                    self.presentFirstSceneIfNeeded()
+                }
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
                     await self.runInitialAppStartupIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
+                        self.presentFirstSceneIfNeeded()
                         self.refreshLowPowerModeState()
                         self.store.applyEffectiveAppIcon()
                     }
@@ -493,6 +476,56 @@ struct FlashcardsApp: App {
     @MainActor
     private func refreshLowPowerModeState() {
         self.isLowPowerModeEnabled = ProcessInfo.processInfo.isLowPowerModeEnabled
+    }
+
+    /// Once per process, when a person first sees the app. A watch message or prewarming can start the
+    /// process in the background, so the cold open and the launch tab's preparation wait for this instead
+    /// of process start; `.onAppear` still runs it before the first frame of a user launch.
+    @MainActor
+    private func presentFirstSceneIfNeeded() {
+        guard self.hasPresentedFirstScene == false else {
+            return
+        }
+        self.hasPresentedFirstScene = true
+
+        // Ahead of the launch screen's screen_viewed.
+        Analytics.trackAppColdOpened()
+        guard self.isCloudCredentialRecoveryGateActive == false else {
+            Analytics.trackScreenViewed(.credentialRecovery)
+            return
+        }
+
+        let selectedTab = self.navigation.selectedTab
+        logAppLifecycleBreadcrumb(
+            action: .visibleTabPrepareStart,
+            store: self.store,
+            stage: "visible_tab_prepare",
+            scenePhase: self.scenePhase,
+            selectedTab: selectedTab,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: false,
+            messageSummary: nil
+        )
+        prepareVisibleTabForPresentationWithBreadcrumb(
+            store: self.store,
+            selectedTab: selectedTab,
+            librarySurface: self.navigation.visibleLibraryAnalyticsSurface,
+            previousTab: nil,
+            scenePhase: self.scenePhase,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: false,
+            now: Date()
+        )
+        logAppLifecycleBreadcrumb(
+            action: .visibleTabPrepareSuccess,
+            store: self.store,
+            stage: "visible_tab_prepare",
+            scenePhase: self.scenePhase,
+            selectedTab: selectedTab,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: false,
+            messageSummary: nil
+        )
     }
 
     @MainActor

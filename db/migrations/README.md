@@ -353,6 +353,12 @@ same with the older table in the past tense: a weights-applied total per user-mo
 re-priced, split by surface or attributed to a model. Its rows were not carried over when it was dropped,
 so guest AI consumption from before the cutover is gone rather than restated here.
 
+### `0175_analytics_os_name_device_type.sql` — the value lists are longer
+
+Its header lists four `os_name` values and four `device_type` values. Since
+`0238_watchos_os_name_watch_device_type.sql` they are also `watchos` and `watch`, on every column
+`0175` and `0176` constrained.
+
 ### `0176_client_os_name_device_type.sql` — the four-argument overload is gone
 
 Its header says that the four-argument `sync.claim_installation` from `0168` "stays unchanged" and that
