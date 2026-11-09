@@ -163,7 +163,7 @@ struct ReviewManagedMediaView: View {
     private func preparedImageView(preparedImage: ReviewPreparedImage) -> some View {
         reviewManagedImageView(
             image: Image(uiImage: preparedImage.image),
-            accessibilityLabel: displayLabel(mediaAsset: preparedImage.mediaAsset, category: .image),
+            accessibilityLabel: mediaDescription(mediaAsset: preparedImage.mediaAsset),
             aspectRatio: reviewManagedImageAspectRatio(size: preparedImage.image.size)
         )
     }
@@ -322,7 +322,7 @@ struct ReviewManagedMediaView: View {
 
     @ViewBuilder
     private func imageView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
-        let accessibilityLabel = displayLabel(mediaAsset: mediaAsset, category: .image)
+        let accessibilityLabel = mediaDescription(mediaAsset: mediaAsset)
 
         #if targetEnvironment(macCatalyst)
         if mediaURL.isFileURL {
@@ -395,13 +395,14 @@ struct ReviewManagedMediaView: View {
         #endif
     }
 
+    /// An image without a description gets no label, so VoiceOver announces it as an image.
     @ViewBuilder
     private func reviewManagedImageView(
         image: Image,
-        accessibilityLabel: String,
+        accessibilityLabel: String?,
         aspectRatio: CGFloat?
     ) -> some View {
-        Group {
+        let presentedImage = Group {
             if let aspectRatio {
                 image
                     .resizable()
@@ -416,7 +417,12 @@ struct ReviewManagedMediaView: View {
         .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
         .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
         .frame(maxWidth: .infinity, alignment: .center)
-        .accessibilityLabel(accessibilityLabel)
+
+        if let accessibilityLabel {
+            presentedImage.accessibilityLabel(accessibilityLabel)
+        } else {
+            presentedImage
+        }
     }
 
     private func unavailableView(unavailableReason: ReviewManagedMediaUnavailableReason?) -> some View {
@@ -471,14 +477,17 @@ struct ReviewManagedMediaView: View {
     }
     #endif
 
-    private func displayLabel(mediaAsset: MediaAsset, category: ReviewManagedMediaCategory) -> String {
+    private func mediaDescription(mediaAsset: MediaAsset) -> String? {
         if let label = reference.label, label.isEmpty == false {
             return label
         }
 
-        if let sourceUrl = mediaAsset.sourceUrl,
-           let fileName = reviewManagedMediaFileName(sourceUrl: sourceUrl) {
-            return fileName
+        return mediaAsset.sourceUrl.flatMap(reviewManagedMediaFileName(sourceUrl:))
+    }
+
+    private func displayLabel(mediaAsset: MediaAsset, category: ReviewManagedMediaCategory) -> String {
+        if let description = mediaDescription(mediaAsset: mediaAsset) {
+            return description
         }
 
         switch category {
