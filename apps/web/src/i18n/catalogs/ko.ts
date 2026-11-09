@@ -20,6 +20,15 @@ const koCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "이 브라우저에서 마이크 오디오({{format}})를 디코딩할 수 없어요.",
     recovery: "게스트 접근이 확인되지 않았습니다. 캐시된 카드는 읽기 전용입니다. 원래 세션이나 연결을 복원한 후 다시 시도하세요.",
     cleanupFailed: "로그인했지만 데모 카드를 삭제하지 못했습니다.",
+    browserCheck: {
+      title: "브라우저를 확인하는 중",
+      description: "게스트 작업 공간을 열기 전에 Cloudflare가 일반 브라우저인지 확인합니다. 보통 몇 초면 끝납니다.",
+      loading: "확인을 불러오는 중...",
+      verifying: "작업 공간을 여는 중...",
+      loadFailed: "확인을 불러오지 못했습니다. 연결을 확인하고 콘텐츠 차단기에서 challenges.cloudflare.com을 허용한 뒤 다시 시도하세요.",
+      failed: "확인을 통과하지 못했습니다. 다시 시도하거나 로그인하세요.",
+      rejected: "확인이 승인되지 않았습니다. 한 번 더 완료하세요.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

@@ -20,6 +20,15 @@ const ptBrCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Este navegador não conseguiu decodificar o áudio do microfone ({{format}}).",
     recovery: "O acesso de visitante não foi verificado. Os cartões em cache são somente leitura. Restaure a sessão original ou a conexão e tente novamente.",
     cleanupFailed: "Você entrou, mas não foi possível remover o cartão de demonstração.",
+    browserCheck: {
+      title: "Verificando seu navegador",
+      description: "Antes de abrir seu espaço de trabalho de convidado, a Cloudflare confirma que este é um navegador comum. Isso costuma levar alguns segundos.",
+      loading: "Carregando a verificação...",
+      verifying: "Abrindo seu espaço de trabalho...",
+      loadFailed: "Não foi possível carregar a verificação. Confira sua conexão, permita challenges.cloudflare.com no bloqueador de conteúdo e tente novamente.",
+      failed: "A verificação não foi aprovada. Tente novamente ou entre na sua conta.",
+      rejected: "A verificação não foi aceita. Conclua-a mais uma vez.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

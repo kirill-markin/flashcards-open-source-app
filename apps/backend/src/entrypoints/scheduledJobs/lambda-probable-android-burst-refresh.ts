@@ -14,11 +14,16 @@ initializeBackendSentry("probable-android-burst-refresh");
 // CONCURRENTLY keeps every report reading the previous classification while the refresh runs.
 const refreshProbableAndroidBurstActorsSql =
   "REFRESH MATERIALIZED VIEW CONCURRENTLY analytics.probable_android_burst_actors";
+const refreshCurrentChromiumByDaySql =
+  "REFRESH MATERIALIZED VIEW CONCURRENTLY analytics.current_chromium_by_day";
 const refreshProbableScraperFleetVisitorsSql =
   "REFRESH MATERIALIZED VIEW CONCURRENTLY analytics.probable_scraper_fleet_visitors";
 
 type ProbableAndroidBurstRefreshResponse = Readonly<{ ok: true }>;
-type RefreshFailedAction = "probable_android_burst_refresh_failed" | "probable_scraper_fleet_refresh_failed";
+type RefreshFailedAction =
+  | "probable_android_burst_refresh_failed"
+  | "current_chromium_refresh_failed"
+  | "probable_scraper_fleet_refresh_failed";
 
 async function refreshMaterializedView(
   sql: string,
@@ -51,6 +56,8 @@ const probableAndroidBurstRefreshHandler: Handler<
     "probable-android-burst-refresh", context.awsRequestId, null, null, null, null, null, null, null, null, null,
   );
   await refreshMaterializedView(refreshProbableAndroidBurstActorsSql, "probable_android_burst_refresh_failed", scope);
+  // The fleet view reads the current Chrome of each day from this view.
+  await refreshMaterializedView(refreshCurrentChromiumByDaySql, "current_chromium_refresh_failed", scope);
   await refreshMaterializedView(refreshProbableScraperFleetVisitorsSql, "probable_scraper_fleet_refresh_failed", scope);
   return { ok: true };
 };

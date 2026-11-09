@@ -6,6 +6,7 @@ import { databaseName } from "../../../src/localDb/core/databaseSchema";
 import type { BrowserGuestOwner, BrowserGuestStoredState } from "../../../src/appData/session/guest/browserGuestStorage";
 import type { BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../src/apiContracts/guestAuth";
 import { externalUiTimeoutMs, liveSmokeBrowserLocale, reviewPostSubmitTimeoutMs } from "../config";
+import { addGuestChallengeBypass } from "../guestChallengeBypass";
 import type { LiveSmokeSession } from "../types";
 
 const upgradeCompleteRoute = "**/guest-auth/browser/upgrade/complete";
@@ -192,6 +193,7 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   if (browser === null) throw new Error("Guest smoke requires a browser context");
   for (const resume of [false, true]) {
     const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: liveSmokeBrowserLocale });
+    await addGuestChallengeBypass(context);
     await context.addInitScript(() => { localStorage.setItem("flashcards-analytics-enabled", "granted"); });
     const guestPage = await context.newPage();
     const guestSession: LiveSmokeSession = { ...session, context, page: guestPage, diagnostics: createLiveSmokeDiagnostics(guestPage) };
@@ -226,6 +228,7 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   }
   for (const recovery of ["none", "retry", "reload"] as const) {
     const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: liveSmokeBrowserLocale });
+    await addGuestChallengeBypass(context);
     await context.addInitScript(() => {
       localStorage.setItem("flashcards-analytics-enabled", "granted");
       new MutationObserver((mutations) => {

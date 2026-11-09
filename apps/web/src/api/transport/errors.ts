@@ -13,6 +13,7 @@ type ApiErrorParams = Readonly<{
   endpoint: string;
   responseBodyKind: ApiResponseBodyKind;
   browserGuestAiTrialQuota?: BrowserGuestAiTrialQuota | null;
+  guestBrowserChallengeSiteKey?: string | null;
 }>;
 
 export class ApiError extends Error {
@@ -23,6 +24,7 @@ export class ApiError extends Error {
   readonly endpoint: string;
   readonly responseBodyKind: ApiResponseBodyKind;
   readonly browserGuestAiTrialQuota: BrowserGuestAiTrialQuota | null;
+  readonly guestBrowserChallengeSiteKey: string | null;
 
   constructor(params: ApiErrorParams) {
     super(params.message);
@@ -33,6 +35,7 @@ export class ApiError extends Error {
     this.endpoint = params.endpoint;
     this.responseBodyKind = params.responseBodyKind;
     this.browserGuestAiTrialQuota = params.browserGuestAiTrialQuota ?? null;
+    this.guestBrowserChallengeSiteKey = params.guestBrowserChallengeSiteKey ?? null;
   }
 }
 

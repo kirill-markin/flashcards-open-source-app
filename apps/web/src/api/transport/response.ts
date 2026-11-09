@@ -1,4 +1,5 @@
 import { parseBrowserGuestAiTrialQuota } from "../../apiContracts/aiUsage";
+import { parseGuestBrowserChallengeSiteKey } from "../../apiContracts/guestAuth";
 import {
   ApiContractError,
   enrichApiContractError,
@@ -205,6 +206,9 @@ export async function parseJsonPayload(
       responseBodyKind: payload.bodyKind,
       browserGuestAiTrialQuota: response.status === 429 && payload.code === "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED"
         ? parseBrowserGuestAiTrialQuota(isJsonObject(payload.value) ? payload.value.details : null, endpoint)
+        : null,
+      guestBrowserChallengeSiteKey: response.status === 403 && payload.code === "GUEST_BROWSER_CHALLENGE_REQUIRED"
+        ? parseGuestBrowserChallengeSiteKey(isJsonObject(payload.value) ? payload.value.details : null, endpoint)
         : null,
     });
   }

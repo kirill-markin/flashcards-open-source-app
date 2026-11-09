@@ -20,6 +20,15 @@ const itCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Questo browser non è riuscito a decodificare l'audio del microfono ({{format}}).",
     recovery: "L’accesso ospite non è verificato. Le carte nella cache sono di sola lettura. Ripristina la sessione originale o la connessione e riprova.",
     cleanupFailed: "Accesso riuscito, ma non è stato possibile rimuovere la carta dimostrativa.",
+    browserCheck: {
+      title: "Verifica del browser in corso",
+      description: "Prima di aprire lo spazio di lavoro ospite, Cloudflare conferma che si tratta di un normale browser. Di solito richiede pochi secondi.",
+      loading: "Caricamento della verifica...",
+      verifying: "Apertura del tuo spazio di lavoro...",
+      loadFailed: "Impossibile caricare la verifica. Controlla la connessione, consenti challenges.cloudflare.com nel blocco contenuti e riprova.",
+      failed: "La verifica non è stata superata. Riprova oppure accedi.",
+      rejected: "La verifica non è stata accettata. Completala ancora una volta.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

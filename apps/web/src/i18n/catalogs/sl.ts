@@ -20,6 +20,15 @@ const slCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ta brskalnik ni mogel dekodirati zvoka mikrofona ({{format}}).",
     recovery: "Gostujoči dostop ni preverjen. Predpomnjene kartice so samo za branje. Obnovite prvotno sejo ali povezavo in poskusite znova.",
     cleanupFailed: "Prijava je uspela, vendar predstavitvene kartice ni bilo mogoče odstraniti.",
+    browserCheck: {
+      title: "Preverjamo vaš brskalnik",
+      description: "Preden se odpre delovni prostor za goste, Cloudflare potrdi, da gre za običajen brskalnik. Običajno traja nekaj sekund.",
+      loading: "Nalaganje preverjanja ...",
+      verifying: "Odpiranje vašega delovnega prostora ...",
+      loadFailed: "Preverjanja ni bilo mogoče naložiti. Preverite povezavo, v zaviralcu vsebine dovolite challenges.cloudflare.com in poskusite znova.",
+      failed: "Preverjanje ni uspelo. Poskusite znova ali se prijavite.",
+      rejected: "Preverjanje ni bilo sprejeto. Opravite ga še enkrat.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

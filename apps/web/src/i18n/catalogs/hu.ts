@@ -20,6 +20,15 @@ const huCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ez a böngésző nem tudta dekódolni a mikrofon hangját ({{format}}).",
     recovery: "A vendéghozzáférés nincs ellenőrizve. A gyorsítótárazott kártyák csak olvashatók. Állítsd vissza az eredeti munkamenetet vagy kapcsolatot, majd próbáld újra.",
     cleanupFailed: "A bejelentkezés sikerült, de a bemutatókártyát nem lehetett törölni.",
+    browserCheck: {
+      title: "A böngésződ ellenőrzése",
+      description: "A vendég munkaterület megnyitása előtt a Cloudflare megerősíti, hogy ez egy szokásos böngésző. Ez általában néhány másodpercig tart.",
+      loading: "Az ellenőrzés betöltése...",
+      verifying: "A munkaterületed megnyitása...",
+      loadFailed: "Az ellenőrzés nem töltődött be. Nézd meg a kapcsolatot, engedélyezd a challenges.cloudflare.com címet a tartalomblokkolóban, majd próbáld újra.",
+      failed: "Az ellenőrzés nem sikerült. Próbáld újra, vagy jelentkezz be helyette.",
+      rejected: "Az ellenőrzést nem fogadtuk el. Végezd el még egyszer.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

@@ -318,6 +318,32 @@ export type WebGuestReaperFailureDetails = Readonly<{
   message: string;
 }>;
 
+/**
+ * One record per guest browser challenge decision on a new web guest (`guestAuth/browser/challenge.ts`):
+ * `required`, `passed`, `failed` and `bypassed` are emitted only when a challenge applied, so an
+ * unflagged visitor creates no record. `flags` are the risk flags that fired; the `turnstile*` and
+ * `failureReason` fields are null except on `failed`.
+ */
+export type GuestBrowserChallengeDetails = Readonly<{
+  outcome: "required" | "passed" | "failed" | "bypassed";
+  flags: ReadonlyArray<string>;
+  networkAsn: number | null;
+  userAgentChromeMajor: number | null;
+  clientHintChromiumMajor: number | null;
+  currentChromiumMajor: number | null;
+  failureReason: string | null;
+  turnstileErrorCodes: ReadonlyArray<string> | null;
+  turnstileAction: string | null;
+  turnstileHostname: string | null;
+}>;
+
+export type TurnstileSiteverifyRetryDetails = Readonly<{
+  attempt: number;
+  maxAttempts: number;
+  httpStatus: number | null;
+  errorMessage: string;
+}>;
+
 export type GeneratedMediaPromotionBatchDetails = Readonly<{
   maximumJobs: number; claimed: number; applied: number; ambiguous: number;
   failed: number; interrupted: number; leaseLost: number; rescheduled: number;
@@ -895,6 +921,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
+  | EventByAction<"guest_browser_challenge", GuestBrowserChallengeDetails>
   | EventByAction<"country_retention_completed", Readonly<{ deleted: number; cutoff: string; finished: boolean }>>
   | EventByAction<"daily_visitor_hash_salt_expiry_completed", Readonly<{ deleted: number }>>
   | EventByAction<"synthetic_actor_excluded", SyntheticActorExcludedDetails>
@@ -969,6 +996,10 @@ export type OperationsWarningEvent =
   >
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
+  | EventByAction<"turnstile_siteverify_retry", TurnstileSiteverifyRetryDetails>
+  | (EventByAction<"guest_browser_challenge_network_asn_lookup_failed", Readonly<{
+    errorMessage: string;
+  }>> & Readonly<{ message: string }>)
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
   | EventByAction<"catalog_deck_installed_device_unresolved", CatalogDeckInstalledDeviceUnresolvedDetails>
   | EventByAction<"friendship_created_analytics_skipped", FriendshipCreatedAnalyticsSkippedDetails>
@@ -999,6 +1030,7 @@ export type OperationsExceptionEvent =
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
+  | (EventByAction<"current_chromium_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"probable_scraper_fleet_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<
     "store_analytics_import_failed",

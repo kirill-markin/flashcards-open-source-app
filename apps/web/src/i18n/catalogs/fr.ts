@@ -20,6 +20,15 @@ const frCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ce navigateur n'a pas pu décoder l'audio du microphone ({{format}}).",
     recovery: "L’accès invité n’est pas vérifié. Les cartes en cache sont en lecture seule. Rétablissez la session d’origine ou la connexion, puis réessayez.",
     cleanupFailed: "La connexion a réussi, mais la carte de démonstration n’a pas pu être supprimée.",
+    browserCheck: {
+      title: "Vérification de votre navigateur",
+      description: "Avant d’ouvrir votre espace de travail invité, Cloudflare confirme qu’il s’agit d’un navigateur classique. Cela prend généralement quelques secondes.",
+      loading: "Chargement de la vérification...",
+      verifying: "Ouverture de votre espace de travail...",
+      loadFailed: "La vérification n’a pas pu se charger. Vérifiez votre connexion, autorisez challenges.cloudflare.com dans votre bloqueur de contenu, puis réessayez.",
+      failed: "La vérification a échoué. Réessayez ou connectez-vous.",
+      rejected: "La vérification n’a pas été acceptée. Effectuez-la une nouvelle fois.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

@@ -20,6 +20,15 @@ const swCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Kivinjari hiki hakikuweza kusimbua sauti ya maikrofoni ({{format}}).",
     recovery: "Ufikiaji wa mgeni haujathibitishwa. Kadi zilizohifadhiwa kwenye akiba ni za kusoma tu. Rejesha kipindi cha awali au muunganisho kisha ujaribu tena.",
     cleanupFailed: "Umeingia, lakini kadi ya mfano haikuweza kuondolewa.",
+    browserCheck: {
+      title: "Tunakagua kivinjari chako",
+      description: "Kabla nafasi ya kazi ya mgeni haijafunguka, Cloudflare inathibitisha kuwa hiki ni kivinjari cha kawaida. Kwa kawaida huchukua sekunde chache.",
+      loading: "Inapakia ukaguzi...",
+      verifying: "Inafungua nafasi yako ya kazi...",
+      loadFailed: "Ukaguzi haukuweza kupakia. Kagua muunganisho wako, ruhusu challenges.cloudflare.com kwenye kizuia maudhui, kisha ujaribu tena.",
+      failed: "Ukaguzi haukufaulu. Jaribu tena, au uingie badala yake.",
+      rejected: "Ukaguzi haukukubaliwa. Ukamilishe mara moja zaidi.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

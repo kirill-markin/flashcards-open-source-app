@@ -20,6 +20,15 @@ const daCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Denne browser kunne ikke afkode mikrofonlyden ({{format}}).",
     recovery: "Gæsteadgangen er ikke bekræftet. Cachede kort er skrivebeskyttede. Gendan den oprindelige session eller forbindelsen, og prøv igen.",
     cleanupFailed: "Du er logget ind, men demokortet kunne ikke fjernes.",
+    browserCheck: {
+      title: "Kontrollerer din browser",
+      description: "Før dit gæstearbejdsområde åbner, bekræfter Cloudflare, at dette er en almindelig browser. Det tager normalt et par sekunder.",
+      loading: "Indlæser kontrollen...",
+      verifying: "Åbner dit arbejdsområde...",
+      loadFailed: "Kontrollen kunne ikke indlæses. Tjek din forbindelse, tillad challenges.cloudflare.com i en eventuel indholdsblokering, og prøv igen.",
+      failed: "Kontrollen blev ikke bestået. Prøv igen, eller log ind i stedet.",
+      rejected: "Kontrollen blev ikke godkendt. Gennemfør den en gang til.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

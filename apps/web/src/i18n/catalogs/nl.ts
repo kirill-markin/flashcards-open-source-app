@@ -20,6 +20,15 @@ const nlCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Deze browser kon de microfoonaudio niet decoderen ({{format}}).",
     recovery: "Gasttoegang is niet geverifieerd. Kaarten in de cache zijn alleen-lezen. Herstel de oorspronkelijke sessie of verbinding en probeer opnieuw.",
     cleanupFailed: "Aanmelden is gelukt, maar de demokaart kon niet worden verwijderd.",
+    browserCheck: {
+      title: "Je browser wordt gecontroleerd",
+      description: "Voordat je gastwerkruimte opent, bevestigt Cloudflare dat dit een gewone browser is. Dit duurt meestal een paar seconden.",
+      loading: "Controle laden...",
+      verifying: "Je werkruimte wordt geopend...",
+      loadFailed: "De controle kon niet worden geladen. Controleer je verbinding, sta challenges.cloudflare.com toe in je contentblokker en probeer het opnieuw.",
+      failed: "De controle is niet geslaagd. Probeer het opnieuw of log in.",
+      rejected: "De controle is niet geaccepteerd. Voltooi hem nog een keer.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

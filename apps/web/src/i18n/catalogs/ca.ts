@@ -20,6 +20,15 @@ const caCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Aquest navegador no ha pogut descodificar l'àudio del micròfon ({{format}}).",
     recovery: "L’accés de convidat no està verificat. Les targetes de la memòria cau són de només lectura. Restaura la sessió original o la connexió i torna-ho a provar.",
     cleanupFailed: "La sessió s’ha iniciat, però no s’ha pogut eliminar la targeta de demostració.",
+    browserCheck: {
+      title: "S'està comprovant el navegador",
+      description: "Abans d'obrir l'espai de treball de convidat, Cloudflare confirma que és un navegador normal. Normalment triga uns segons.",
+      loading: "S'està carregant la comprovació...",
+      verifying: "S'està obrint el teu espai de treball...",
+      loadFailed: "No s'ha pogut carregar la comprovació. Revisa la connexió, permet challenges.cloudflare.com al bloquejador de contingut i torna-ho a provar.",
+      failed: "La comprovació no s'ha superat. Torna-ho a provar o inicia la sessió.",
+      rejected: "La comprovació no s'ha acceptat. Completa-la una altra vegada.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

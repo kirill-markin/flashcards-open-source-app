@@ -20,6 +20,15 @@ export const zhHansCatalog = {
     aiRecordingDecodeFailed: "此浏览器无法解码麦克风音频（{{format}}）。",
     recovery: "访客访问尚未验证。缓存的卡片仅供阅读。请恢复原会话或重新连接后重试。",
     cleanupFailed: "登录成功，但无法删除演示卡片。",
+    browserCheck: {
+      title: "正在检查你的浏览器",
+      description: "在打开访客工作区之前，Cloudflare 会确认这是一个普通浏览器。通常只需几秒钟。",
+      loading: "正在加载检查...",
+      verifying: "正在打开你的工作区...",
+      loadFailed: "无法加载检查。请检查网络连接，在内容拦截器中允许 challenges.cloudflare.com，然后重试。",
+      failed: "检查未通过。请重试，或改为登录。",
+      rejected: "检查未被接受。请再完成一次。",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

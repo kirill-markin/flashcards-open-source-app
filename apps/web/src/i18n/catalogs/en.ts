@@ -19,6 +19,15 @@ const enCatalog = {
     aiRecordingDecodeFailed: "This browser could not decode the microphone audio ({{format}}).",
     recovery: "Guest access is unverified. Cached cards are read-only. Restore the original session or reconnect, then retry.",
     cleanupFailed: "Sign-in succeeded, but the demo card could not be removed.",
+    browserCheck: {
+      title: "Checking your browser",
+      description: "Before your guest workspace opens, Cloudflare confirms that this is a regular browser. This usually takes a few seconds.",
+      loading: "Loading the check...",
+      verifying: "Opening your workspace...",
+      loadFailed: "The check could not load. Check your connection, allow challenges.cloudflare.com in any content blocker, then retry.",
+      failed: "The check did not pass. Retry, or sign in instead.",
+      rejected: "The check was not accepted. Complete it once more.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

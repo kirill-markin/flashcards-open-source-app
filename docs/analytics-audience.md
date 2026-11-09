@@ -34,9 +34,9 @@ where it is certain.
   [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops, are a materialized view an
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes, so a
   change reaches reports at the next refresh.
-- [Probable scraper-fleet visitors](../db/migrations/0239_probable_scraper_fleet_app_chrome_lag.sql),
-  marketing-site visitors by actor and by daily visitor hash and app guests with stored bot
-  evidence and no activity, are a materialized view the same
+- [Probable scraper-fleet visitors](../db/migrations/0241_probable_scraper_fleet_install_and_burst.sql),
+  marketing-site visitors by actor and by daily visitor hash and app guests with bot evidence, or
+  in a same-day burst on one outdated Chrome major, and no activity, are a materialized view the same
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes.
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql)
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts): raw IP is excluded.

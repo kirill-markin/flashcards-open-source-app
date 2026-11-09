@@ -147,6 +147,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "demoEmailDostip": get_trimmed_env("CDK_CONTEXT_DEMO_EMAIL_DOSTIP"),
         "demoPasswordSecretArn": get_trimmed_env("CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN"),
         "domainName": get_trimmed_env("CDK_CONTEXT_DOMAIN_NAME"),
+        "guestChallengeBypassSecretArn": get_trimmed_env("CDK_CONTEXT_GUEST_CHALLENGE_BYPASS_SECRET_ARN"),
         "githubOidcProviderArn": build_github_oidc_provider_arn(aws_deploy_role_arn),
         "githubRepo": get_trimmed_env("CDK_CONTEXT_GITHUB_REPO"),
         "globalMetricsVisible": get_raw_env("CDK_CONTEXT_GLOBAL_METRICS_VISIBLE"),
@@ -159,6 +160,8 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "sentryRelease": get_trimmed_env("CDK_CONTEXT_SENTRY_RELEASE"),
         "sentryTracesSampleRate": get_trimmed_env("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE"),
         "siteBaseUrl": get_trimmed_env("CDK_CONTEXT_SITE_BASE_URL"),
+        "turnstileSecretArn": get_trimmed_env("CDK_CONTEXT_TURNSTILE_SECRET_ARN"),
+        "turnstileSiteKey": get_trimmed_env("CDK_CONTEXT_TURNSTILE_SITE_KEY"),
         "webCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1"),
         "webAdditionalDomainName": get_trimmed_env("CDK_CONTEXT_WEB_ADDITIONAL_DOMAIN_NAME"),
         "webAdditionalCertificateArnUsEast1": get_trimmed_env(

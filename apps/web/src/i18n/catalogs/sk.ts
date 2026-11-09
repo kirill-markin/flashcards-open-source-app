@@ -20,6 +20,15 @@ const skCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Tento prehliadač nedokázal dekódovať zvuk mikrofónu ({{format}}).",
     recovery: "Prístup hosťa nie je overený. Kartičky vo vyrovnávacej pamäti sú len na čítanie. Obnovte pôvodnú reláciu alebo pripojenie a skúste to znova.",
     cleanupFailed: "Prihlásenie bolo úspešné, ale ukážkovú kartičku sa nepodarilo odstrániť.",
+    browserCheck: {
+      title: "Kontrolujeme váš prehliadač",
+      description: "Pred otvorením pracovného priestoru hosťa Cloudflare overí, že ide o bežný prehliadač. Zvyčajne to trvá niekoľko sekúnd.",
+      loading: "Načítava sa kontrola...",
+      verifying: "Otvára sa váš pracovný priestor...",
+      loadFailed: "Kontrolu sa nepodarilo načítať. Skontrolujte pripojenie, povoľte challenges.cloudflare.com v blokovači obsahu a skúste to znova.",
+      failed: "Kontrola neprešla. Skúste to znova alebo sa prihláste.",
+      rejected: "Kontrola nebola prijatá. Dokončite ju ešte raz.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {

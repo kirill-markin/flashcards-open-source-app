@@ -20,6 +20,15 @@ const roCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Acest browser nu a putut decoda sunetul microfonului ({{format}}).",
     recovery: "Accesul de oaspete nu este verificat. Cardurile din cache pot fi doar citite. Restabilește sesiunea inițială sau conexiunea și încearcă din nou.",
     cleanupFailed: "Autentificarea a reușit, dar cardul demonstrativ nu a putut fi șters.",
+    browserCheck: {
+      title: "Îți verificăm browserul",
+      description: "Înainte să se deschidă spațiul de lucru pentru invitați, Cloudflare confirmă că acesta este un browser obișnuit. De obicei durează câteva secunde.",
+      loading: "Se încarcă verificarea...",
+      verifying: "Se deschide spațiul tău de lucru...",
+      loadFailed: "Verificarea nu s-a putut încărca. Verifică conexiunea, permite challenges.cloudflare.com în blocantul de conținut și încearcă din nou.",
+      failed: "Verificarea nu a reușit. Încearcă din nou sau conectează-te.",
+      rejected: "Verificarea nu a fost acceptată. Finalizeaz-o încă o dată.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
