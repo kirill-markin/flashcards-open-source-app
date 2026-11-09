@@ -64,6 +64,7 @@ export type ReviewPaneProps = Readonly<{
   reviewButtonErrorMessage: string;
   reviewButtonOptions: ReadonlyArray<ReviewButtonOption>;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
+  reviewRatingErrorMessage: string;
   reviewSubmitState: ReviewSubmitState;
   selectedBackSpeakableText: string;
   selectedCard: Card | null;
@@ -109,6 +110,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
   reviewButtonOptions: ReadonlyArray<ReviewButtonOption>;
+  reviewRatingErrorMessage: string;
   selectedBackSpeakableText: string;
   selectedCard: Card;
   selectedFrontSpeakableText: string;
@@ -332,6 +334,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     onToggleSpeech,
     reviewButtonErrorMessage,
     reviewButtonOptions,
+    reviewRatingErrorMessage,
     selectedBackSpeakableText,
     selectedCard,
     selectedFrontSpeakableText,
@@ -460,6 +463,9 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
       </div>
 
       <div className="review-actions-dock" ref={controlsRef}>
+        {reviewRatingErrorMessage === "" ? null : (
+          <p className="error-banner" role="alert">{reviewRatingErrorMessage}</p>
+        )}
         {isAnswerVisible ? (
           reviewButtonErrorMessage !== "" ? (
             <p className="error-banner">{reviewButtonErrorMessage}</p>
@@ -503,7 +509,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           </button>
         )}
       </div>
-      {showFirstReviewOnboarding && !isSubmitting && reviewButtonErrorMessage === "" ? (
+      {showFirstReviewOnboarding && !isSubmitting && reviewButtonErrorMessage === "" && reviewRatingErrorMessage === "" ? (
         <FirstReviewOnboardingOverlay
           target={isAnswerVisible ? againButton : revealButton}
           surfaceRef={surfaceRef}
@@ -544,6 +550,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     reviewButtonErrorMessage,
     reviewButtonOptions,
     reviewLoadingSnapshot,
+    reviewRatingErrorMessage,
     reviewSubmitState,
     selectedBackSpeakableText,
     selectedCard,
@@ -616,6 +623,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           onToggleSpeech={onToggleSpeech}
           reviewButtonErrorMessage={reviewButtonErrorMessage}
           reviewButtonOptions={reviewButtonOptions}
+          reviewRatingErrorMessage={reviewRatingErrorMessage}
           selectedBackSpeakableText={selectedBackSpeakableText}
           selectedCard={selectedCard}
           selectedFrontSpeakableText={selectedFrontSpeakableText}

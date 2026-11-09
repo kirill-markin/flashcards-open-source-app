@@ -1131,6 +1131,7 @@ const fiCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Kaavaa ei voitu näyttää.",
       schedulerUnavailable: "Työtilan ajastimen asetuksia ei ole ladattu",
+      storageFull: "Vapauta tallennustilaa tällä laitteella ja arvioi kortti uudelleen.",
     },
     leaderboardShortcut: {
       ariaLabel: "Avaa tulostaulukko",

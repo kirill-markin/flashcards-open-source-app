@@ -1131,6 +1131,7 @@ const caCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "No s'ha pogut representar la fórmula.",
       schedulerUnavailable: "La configuració del programador de l'espai de treball no s'ha carregat",
+      storageFull: "Allibera espai d’emmagatzematge en aquest dispositiu i torna a valorar la targeta.",
     },
     leaderboardShortcut: {
       ariaLabel: "Obre la classificació",

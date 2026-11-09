@@ -1131,6 +1131,7 @@ const heCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "לא ניתן היה להציג את הנוסחה.",
       schedulerUnavailable: "הגדרות המתזמן של סביבת העבודה לא נטענו",
+      storageFull: "פנו שטח אחסון במכשיר הזה, ואז דרגו שוב את הכרטיס.",
     },
     leaderboardShortcut: {
       ariaLabel: "פתיחת טבלת המובילים",

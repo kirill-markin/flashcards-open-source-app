@@ -1131,6 +1131,7 @@ const bnCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "সূত্রটি রেন্ডার করা যায়নি।",
       schedulerUnavailable: "কর্মক্ষেত্রের সময়সূচির সেটিংস লোড হয়নি",
+      storageFull: "এই ডিভাইসে কিছু স্টোরেজ খালি করুন, তারপর কার্ডটি আবার রেট করুন।",
     },
     leaderboardShortcut: {
       ariaLabel: "লিডারবোর্ড খুলুন",

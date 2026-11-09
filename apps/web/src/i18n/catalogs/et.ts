@@ -1131,6 +1131,7 @@ const etCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Valemit ei saanud kuvada.",
       schedulerUnavailable: "Tööruumi ajastaja seaded pole laaditud",
+      storageFull: "Vabasta selles seadmes salvestusruumi ja hinda kaarti uuesti.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ava edetabel",

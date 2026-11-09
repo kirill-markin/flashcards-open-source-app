@@ -1131,6 +1131,7 @@ const esMxCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "No se pudo mostrar la fórmula.",
       schedulerUnavailable: "La configuración del programador del espacio de trabajo no está cargada",
+      storageFull: "Libera espacio de almacenamiento en este dispositivo y vuelve a calificar la tarjeta.",
     },
     leaderboardShortcut: {
       ariaLabel: "Abrir clasificación",

@@ -1141,6 +1141,7 @@ const skCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Vzorec sa nepodarilo zobraziť.",
       schedulerUnavailable: "Nastavenia plánovača pracovného priestoru nie sú načítané",
+      storageFull: "Uvoľnite miesto v úložisku tohto zariadenia a znova ohodnoťte kartičku.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otvoriť rebríček",

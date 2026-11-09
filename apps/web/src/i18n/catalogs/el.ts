@@ -1131,6 +1131,7 @@ const elCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Δεν ήταν δυνατή η απόδοση του τύπου.",
       schedulerUnavailable: "Οι ρυθμίσεις προγραμματιστή του χώρου εργασίας δεν έχουν φορτωθεί",
+      storageFull: "Ελευθερώστε χώρο αποθήκευσης σε αυτή τη συσκευή και βαθμολογήστε ξανά την κάρτα.",
     },
     leaderboardShortcut: {
       ariaLabel: "Άνοιγμα κατάταξης",

@@ -1131,6 +1131,7 @@ const itCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Impossibile visualizzare la formula.",
       schedulerUnavailable: "Le impostazioni del pianificatore dell’area di lavoro non sono state caricate",
+      storageFull: "Libera spazio di archiviazione su questo dispositivo, poi valuta di nuovo la scheda.",
     },
     leaderboardShortcut: {
       ariaLabel: "Apri la classifica",

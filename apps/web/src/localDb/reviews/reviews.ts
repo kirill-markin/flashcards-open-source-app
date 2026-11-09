@@ -21,15 +21,19 @@ import {
   iterateLocalStoredCardsByDueAtMillisAscAfter,
   iterateLocalStoredCardsByDueAtMillisAscBefore,
   iterateLocalStoredCardsByFsrsLastReviewedAtMillisBetweenInclusive,
+  putCardInTransaction,
+  readActiveStoredCard,
+  requestStoredCard,
   type LocalStoredCard,
 } from "../cards/cards";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
   getAllFromStore,
-  getFromStore,
   runReadonly,
   runReadwrite,
+  type ContinueReadwriteRequest,
+  type ProgressCacheStateRecord,
   type ProgressDailyCountRecord,
 } from "../core/database";
 import { loadDeckRecord } from "../cards/decks";
@@ -43,7 +47,9 @@ import {
   addReviewRatingToProgressDailyCountRecord,
   createEmptyProgressDailyCountRecord,
 } from "../progress/progress";
+import { progressCacheStateKey } from "../core/databaseSchema";
 import { decodeCursor, encodeCursor } from "../core/queryShared";
+import type { PersistedOutboxRecord } from "../sync/outbox";
 
 type ReviewFilterResolution = Readonly<{
   resolvedReviewFilter: ReviewFilter;
@@ -827,52 +833,92 @@ export function putReviewEventInTransaction(transaction: IDBTransaction, reviewE
   transaction.objectStore("reviewEvents").put(reviewEvent);
 }
 
-export async function putReviewEvent(reviewEvent: ReviewEvent): Promise<void> {
-  await closeDatabaseAfterWrite(async (database) => {
-    const progressCacheState = await loadProgressCacheState(database);
-    const existingReviewEvent = await getFromStore<ReviewEvent>(
-      database,
-      "reviewEvents",
-      [reviewEvent.workspaceId, reviewEvent.reviewEventId],
-    );
+const reviewEventWriteStores = ["reviewEvents", "meta", "progressDailyCounts"] as const;
 
-    if (progressCacheState === null) {
-      await runReadwrite(database, ["reviewEvents"], (transaction) => {
-        putReviewEventInTransaction(transaction, reviewEvent);
-        return null;
-      });
-      return;
-    }
-
-    if (progressCacheState.needsRebuild || existingReviewEvent !== undefined) {
-      await runReadwrite(database, ["reviewEvents", "meta"], (transaction) => {
-        putReviewEventInTransaction(transaction, reviewEvent);
-        markProgressCacheDirtyInTransaction(transaction, progressCacheState.timeZone);
-        return null;
-      });
-      return;
-    }
-
-    const localDate = mapReviewedAtClientToLocalDate(
-      reviewEvent.reviewedAtClient,
-      reviewEvent.reviewedTimeZone ?? progressCacheState.timeZone,
-    );
-    const existingProgressDailyCount = await getFromStore<ProgressDailyCountRecord>(
-      database,
-      "progressDailyCounts",
-      [reviewEvent.workspaceId, localDate],
-    );
-    const currentProgressDailyCount = existingProgressDailyCount ?? createEmptyProgressDailyCountRecord(
-      reviewEvent.workspaceId,
-      localDate,
-    );
-
-    await runReadwrite(database, ["reviewEvents", "progressDailyCounts"], (transaction) => {
+function putReviewEventWithProgressInTransaction(
+  transaction: IDBTransaction,
+  reviewEvent: ReviewEvent,
+  continueRequest: ContinueReadwriteRequest,
+): void {
+  const cacheStateRequest = transaction.objectStore("meta").get(progressCacheStateKey) as
+    IDBRequest<ProgressCacheStateRecord | undefined>;
+  continueRequest(cacheStateRequest, (cacheState) => {
+    if (cacheState === undefined) {
       putReviewEventInTransaction(transaction, reviewEvent);
-      transaction.objectStore("progressDailyCounts").put(
-        addReviewRatingToProgressDailyCountRecord(currentProgressDailyCount, reviewEvent.rating),
+      return;
+    }
+
+    const existingReviewRequest = transaction.objectStore("reviewEvents")
+      .getKey([reviewEvent.workspaceId, reviewEvent.reviewEventId]);
+    continueRequest(existingReviewRequest, (existingReviewKey) => {
+      putReviewEventInTransaction(transaction, reviewEvent);
+      if (cacheState.needsRebuild || existingReviewKey !== undefined) {
+        markProgressCacheDirtyInTransaction(transaction, cacheState.timeZone);
+        return;
+      }
+
+      const localDate = mapReviewedAtClientToLocalDate(
+        reviewEvent.reviewedAtClient,
+        reviewEvent.reviewedTimeZone ?? cacheState.timeZone,
       );
-      return null;
+      const dailyCountsStore = transaction.objectStore("progressDailyCounts");
+      const dailyCountRequest = dailyCountsStore.get([reviewEvent.workspaceId, localDate]) as
+        IDBRequest<ProgressDailyCountRecord | undefined>;
+      continueRequest(dailyCountRequest, (existingDailyCount) => {
+        const dailyCount = existingDailyCount ?? createEmptyProgressDailyCountRecord(reviewEvent.workspaceId, localDate);
+        dailyCountsStore.put(addReviewRatingToProgressDailyCountRecord(dailyCount, reviewEvent.rating));
+      });
     });
+  });
+}
+
+export async function putReviewEvent(reviewEvent: ReviewEvent): Promise<void> {
+  await closeDatabaseAfterWrite((database) => (
+    runReadwrite(database, reviewEventWriteStores, (transaction, continueRequest) => {
+      putReviewEventWithProgressInTransaction(transaction, reviewEvent, continueRequest);
+      return null;
+    })
+  ));
+}
+
+export type LocalReviewWrite = Readonly<{
+  card: Card;
+  reviewEvent: ReviewEvent;
+  reviewEventOutboxRecord: PersistedOutboxRecord;
+  cardOutboxRecord: PersistedOutboxRecord & Readonly<{ affectsReviewSchedule: boolean }>;
+}>;
+
+export async function putLocalReview(
+  workspaceId: string,
+  cardId: string,
+  buildReview: (existingCard: Card) => LocalReviewWrite,
+): Promise<LocalReviewWrite> {
+  return closeDatabaseAfter(async (database) => {
+    let savedReview: LocalReviewWrite | undefined;
+    await runReadwrite(
+      database,
+      [...reviewEventWriteStores, "cards", "cardTags", "outbox"],
+      (transaction, continueRequest) => {
+        continueRequest(requestStoredCard(transaction.objectStore("cards"), workspaceId, cardId), (storedCard) => {
+          const existingCard = readActiveStoredCard(storedCard);
+          if (existingCard === null) {
+            throw new Error(`Card not found: ${cardId}`);
+          }
+
+          const review = buildReview(existingCard);
+          putReviewEventWithProgressInTransaction(transaction, review.reviewEvent, continueRequest);
+          putCardInTransaction(transaction, workspaceId, review.card, continueRequest);
+          const outbox = transaction.objectStore("outbox");
+          outbox.put(review.reviewEventOutboxRecord);
+          outbox.put(review.cardOutboxRecord);
+          savedReview = review;
+        });
+        return null;
+      },
+    );
+    if (savedReview === undefined) {
+      throw new Error("IndexedDB committed without saving the local review");
+    }
+    return savedReview;
   });
 }
