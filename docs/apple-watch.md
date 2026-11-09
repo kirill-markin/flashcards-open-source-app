@@ -14,7 +14,7 @@ The watchOS 26+ companion app embedded in the iOS app: Review on the wrist for a
 
 - The watch is its own installation with its own local database and workspace replica ([sync identity model](sync-identity-model.md)), and it syncs directly with the API through the shared sync engine. It reports platform `ios` with `os_name` `watchos` and `device_type` `watch` ([`0238`](../db/migrations/0238_watchos_os_name_watch_device_type.sql)).
 - WatchConnectivity carries only the sign-in handoff: the watch asks, and the iPhone answers with its tokens, user, workspace, and Review filter. The contract is [`WatchHandoffMessage.swift`](../apps/ios/Flashcards/WatchShared/WatchHandoffMessage.swift), the iPhone side [`WatchHandoff/`](../apps/ios/Flashcards/Flashcards/WatchHandoff/), and the watch side [`WatchConnectivityClient.swift`](../apps/ios/Flashcards/FlashcardsWatch/Session/WatchConnectivityClient.swift).
-- [`WatchSessionModel.swift`](../apps/ios/Flashcards/FlashcardsWatch/Session/WatchSessionModel.swift) asks on launch and on every foreground, waiting up to 20 s for the reply, and applies it: an unreachable iPhone keeps the stored session, so review continues offline; a switch of account or workspace waits while pending ratings can still sync after a retryable failure; a workspace switch by the same user keeps the installation; an iPhone sign-out wipes the watch.
+- [`WatchSessionModel.swift`](../apps/ios/Flashcards/FlashcardsWatch/Session/WatchSessionModel.swift) asks on launch and on every foreground, waiting up to 20 s for the reply, and applies it: an unreachable iPhone keeps the stored session, so review continues offline; a switch of account or workspace waits while pending ratings can still sync after a retryable failure, showing their count with Retry and a confirmed, logged "Discard and switch" ([`WatchRootView.swift`](../apps/ios/Flashcards/FlashcardsWatch/WatchRootView.swift)); a workspace switch by the same user keeps the installation; an iPhone sign-out wipes the watch.
 - [`WatchReviewModel.swift`](../apps/ios/Flashcards/FlashcardsWatch/Review/WatchReviewModel.swift) runs Review on the shared queue runtime, scheduler, and submission path, under [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review).
 - The watch target compiles shared iOS sources through target membership, not a package: the list is the `Exceptions for "Flashcards" folder in "Flashcards Watch" target` set in [`project.pbxproj`](../apps/ios/Flashcards/Flashcards%20Open%20Source%20App.xcodeproj/project.pbxproj). A new file the watch needs from `Flashcards/` must be added there.
 - The watch refreshes its ID token with the iPhone's refresh token; see the rotation comment in [`auth.ts`](../infra/aws/lib/auth.ts) before enabling refresh-token rotation.
@@ -24,7 +24,7 @@ Known limits: indented code blocks and fences nested in lists or blockquotes may
 
 ## Try it in the simulator
 
-The build needs `Config/Local.xcconfig` ([after cloning](ios-local-setup.md#after-cloning)); `DEVELOPMENT_TEAM` only for a physical watch. Simulator runs are marked as automation ([automation marker](ios-ci-cd.md#automation-marker)). From the repository root, with runtime IDs and device type names from `xcrun simctl list runtimes` and `xcrun simctl list devicetypes`:
+The build needs `Config/Local.xcconfig` ([after cloning](ios-local-setup.md#after-cloning)); `DEVELOPMENT_TEAM` only for a physical watch. Both launches set the [automation marker](ios-ci-cd.md#automation-marker). From the repository root, with runtime IDs and device type names from `xcrun simctl list runtimes` and `xcrun simctl list devicetypes`:
 
 ```bash
 export PHONE=$(xcrun simctl create "Nibomo iPhone" "iPhone 18 Pro" <ios-runtime-id>)
@@ -41,15 +41,15 @@ xcodebuild \
 APP="tmp/ios-derived-data/Build/Products/Debug-iphonesimulator/Flashcards Open Source App.app"
 xcrun simctl install "$PHONE" "$APP"
 xcrun simctl install "$WATCH" "$APP/Watch/Flashcards Watch.app"
-xcrun simctl launch "$PHONE" com.flashcards-open-source-app.app.development
-xcrun simctl launch "$WATCH" com.flashcards-open-source-app.app.development.watchkitapp
+SIMCTL_CHILD_FLASHCARDS_AUTOMATION_RUN=1 xcrun simctl launch "$PHONE" com.flashcards-open-source-app.app.development
+SIMCTL_CHILD_FLASHCARDS_AUTOMATION_RUN=1 xcrun simctl launch "$WATCH" com.flashcards-open-source-app.app.development.watchkitapp
 xcrun simctl spawn "$PHONE" log show --last 5m --predicate 'category == "automation_run"'
 xcrun simctl spawn "$WATCH" log show --last 5m --predicate 'category == "automation_run"'
 ```
 
 Before interacting, each of the two `log show` commands must print an `event=automation_run_decided isAutomation=true` line; without it, the run is not test evidence.
 
-In Xcode instead: run the "Flashcards Open Source App" scheme on the paired iPhone, then the "Flashcards Watch" scheme on "<watch> via <iPhone>".
+In Xcode instead: add `FLASHCARDS_AUTOMATION_RUN=1` to the Run environment variables of both schemes, then run the "Flashcards Open Source App" scheme on the paired iPhone and the "Flashcards Watch" scheme on "<watch> via <iPhone>".
 
 Manual test:
 
