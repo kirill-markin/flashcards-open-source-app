@@ -22,8 +22,9 @@ export type PeopleBreakdownSource = Readonly<{
 
 /**
  * The dimension's value over `placement`, a row of the source's `placementsCte`. Country is the
- * exception: product events carry no country, so it is the one country
- * `buildActorConnectionCountrySql` places the person in over the whole range.
+ * exception: it is the one country `buildActorConnectionCountrySql` places the person in over the
+ * whole range, from the retained connection samples every people report shares, because rows
+ * stored before migration 0240 have no country.
  */
 function buildDimensionSql(
   dimension: PeopleBreakdownDimension,

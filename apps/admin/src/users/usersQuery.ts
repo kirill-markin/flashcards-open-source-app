@@ -342,10 +342,9 @@ const userRowColumnsSql: ReadonlyArray<string> = [
  * The analytics columns read `analytics.product_events_resolved` on the row's own id as `actor_id`,
  * without the credential-free collector's rows, for the reason `buildTrustedActorRowsFilterSql`
  * gives, except the `everyTrust` activity, which counts every trust level as the profile's Totals do;
- * the countries come from the retained connection samples the country filter reads, because the
- * trusted events themselves carry no country. A guest later merged into an account resolves onto
- * that account, so its own analytics columns stay empty and `mergedIntoUserId` names the account
- * that carries them. The analytics installation profiles match the folded id on their UUID owner, and
+ * the countries list every retained connection-sample country, from the samples the country filter
+ * reads. A guest later merged into an account resolves onto that account, so its own analytics
+ * columns stay empty and `mergedIntoUserId` names the account that carries them. The analytics installation profiles match the folded id on their UUID owner, and
  * every other column reads the stored rows keyed on the raw id. Cards and decks
  * are the live rows of every workspace the person is a member of, so a shared workspace counts for
  * each member.

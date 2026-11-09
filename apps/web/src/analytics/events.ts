@@ -86,6 +86,22 @@ export type AnalyticsNetworkState = "wifi" | "cellular" | "offline" | "unknown";
  */
 export type AnalyticsLaunchType = "cold" | "warm";
 
+export type AnalyticsScreenWidthBucket = "xs" | "sm" | "md" | "lg" | "xl" | "xxl";
+
+/** Browser signals on web `app_opened`; a null value is left off the wire rather than sent. */
+export type AnalyticsBrowserSignals = Readonly<{
+  automation: "webdriver" | "none";
+  screenWidthBucket: AnalyticsScreenWidthBucket;
+  webglRenderer: string | null;
+  hardwareConcurrency: number | null;
+  browserLanguages: string | null;
+  windowInnerWidth: number | null;
+  windowInnerHeight: number | null;
+  windowOuterWidth: number | null;
+  windowOuterHeight: number | null;
+  pluginCount: number | null;
+}>;
+
 export type AnalyticsAuthMethod = "email" | "apple" | "google";
 export type AnalyticsAuthProvider = "apple" | "google";
 export type AnalyticsAuthCodeRequestAction = "initial" | "resend";
@@ -262,6 +278,7 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "app_opened";
     launchType: AnalyticsLaunchType;
+    browserSignals: AnalyticsBrowserSignals;
   }>
   /**
    * One entry into a screen, and the same fact on every client.
@@ -606,6 +623,21 @@ export type AnalyticsWireBatch = Readonly<{
 export const analyticsCatalogSlugPattern = /^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$/u;
 export const analyticsUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 
+function buildAnalyticsBrowserSignalProperties(signals: AnalyticsBrowserSignals): AnalyticsEventProperties {
+  return {
+    automation: signals.automation,
+    screen_width_bucket: signals.screenWidthBucket,
+    ...(signals.webglRenderer === null ? {} : { webgl_renderer: signals.webglRenderer }),
+    ...(signals.hardwareConcurrency === null ? {} : { hardware_concurrency: signals.hardwareConcurrency }),
+    ...(signals.browserLanguages === null ? {} : { browser_languages: signals.browserLanguages }),
+    ...(signals.windowInnerWidth === null ? {} : { window_inner_width: signals.windowInnerWidth }),
+    ...(signals.windowInnerHeight === null ? {} : { window_inner_height: signals.windowInnerHeight }),
+    ...(signals.windowOuterWidth === null ? {} : { window_outer_width: signals.windowOuterWidth }),
+    ...(signals.windowOuterHeight === null ? {} : { window_outer_height: signals.windowOuterHeight }),
+    ...(signals.pluginCount === null ? {} : { plugin_count: signals.pluginCount }),
+  };
+}
+
 /** Catalog property names are snake_case on the wire; the union carries them as camelCase. */
 export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsEventProperties | null {
   switch (event.name) {
@@ -614,7 +646,7 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "first_review_onboarding_reset":
       return null;
     case "app_opened":
-      return { launch_type: event.launchType };
+      return { launch_type: event.launchType, ...buildAnalyticsBrowserSignalProperties(event.browserSignals) };
     case "screen_viewed":
       return event.reviewPromptConfigVersion === undefined
         ? null
