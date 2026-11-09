@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.first
 
 private val todayWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
 private val todayWidgetMediumSize = DpSize(width = 220.dp, height = 100.dp)
+internal val todayWidgetSizes: Set<DpSize> = setOf(todayWidgetSmallSize, todayWidgetMediumSize)
 /** The ring bitmap is drawn at the small widget's minimum size and scaled down to fit the space left. */
 private val todayWidgetRingBitmapSize = DpSize(width = 100.dp, height = 100.dp)
 private const val TODAY_WIDGET_RING_STROKE_FRACTION: Float = 0.1f
@@ -68,7 +69,7 @@ private data class TodayWidgetProgress(
 }
 
 class TodayWidget : GlanceAppWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(sizes = setOf(todayWidgetSmallSize, todayWidgetMediumSize))
+    override val sizeMode: SizeMode = SizeMode.Responsive(sizes = todayWidgetSizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val contentFlow = observeWithCurrentAppGraph(
@@ -89,7 +90,7 @@ class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodayWidget()
 }
 
-private fun todayWidgetSize(size: DpSize): ReviewWidgetSize {
+internal fun todayWidgetSize(size: DpSize): ReviewWidgetSize {
     return if (size == todayWidgetMediumSize) ReviewWidgetSize.MEDIUM else ReviewWidgetSize.SMALL
 }
 

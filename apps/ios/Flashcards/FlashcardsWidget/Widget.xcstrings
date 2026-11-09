@@ -1952,7 +1952,7 @@
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uchungechunge oluhle kakhulu"
+            "value" : "Uchungechunge olude kakhulu"
           }
         }
       }
@@ -7616,7 +7616,7 @@
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Panou"
+            "value" : "Tablou de bord"
           }
         },
         "ru" : {
@@ -17847,19 +17847,19 @@
                   "few" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg zile anterioare"
+                      "value" : "cele %arg zile anterioare"
                     }
                   },
                   "one" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg zi anterioară"
+                      "value" : "cea %arg zi anterioară"
                     }
                   },
                   "other" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg de zile anterioare"
+                      "value" : "cele %arg de zile anterioare"
                     }
                   }
                 }
@@ -19385,19 +19385,19 @@
                   "few" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg zile anterioare"
+                      "value" : "cele %arg zile anterioare"
                     }
                   },
                   "one" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg zi anterioară"
+                      "value" : "cea %arg zi anterioară"
                     }
                   },
                   "other" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg de zile anterioare"
+                      "value" : "cele %arg de zile anterioare"
                     }
                   }
                 }
@@ -20421,13 +20421,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "മുൻ %lld ദിവസത്തെ പോലെ"
+                  "value" : "മുൻ %lld ദിവസത്തിന് തുല്യം"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "മുൻ %lld ദിവസങ്ങളിലെ പോലെ"
+                  "value" : "മുൻ %lld ദിവസങ്ങൾക്ക് തുല്യം"
                 }
               }
             }
@@ -20565,19 +20565,19 @@
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "La fel ca în %lld zile anterioare"
+                  "value" : "La fel ca în cele %lld zile anterioare"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "La fel ca în %lld zi anterioară"
+                  "value" : "La fel ca în cea %lld zi anterioară"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "La fel ca în %lld de zile anterioare"
+                  "value" : "La fel ca în cele %lld de zile anterioare"
                 }
               }
             }
@@ -24219,13 +24219,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "వరుస రోజులు: %lld రోజు"
+                  "value" : "వరుసగా %lld రోజు"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "వరుస రోజులు: %lld రోజులు"
+                  "value" : "వరుసగా %lld రోజులు"
                 }
               }
             }
@@ -24654,7 +24654,7 @@
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Okuhle kakhulu: %lld"
+            "value" : "Olude kakhulu: %lld"
           }
         }
       }
@@ -24960,7 +24960,7 @@
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izinsuku zilandelana"
+            "value" : "Izinsuku ezilandelanayo"
           }
         }
       }
@@ -25182,7 +25182,7 @@
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recapitulează în zile consecutive ca să construiești o serie."
+            "value" : "Recapitulează în zile consecutive ca să începi o serie."
           }
         },
         "ru" : {
@@ -25224,7 +25224,7 @@
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "వరుస రోజులు నిర్మించడానికి వరుసగా కొన్ని రోజులు పునశ్చరణ చేయండి."
+            "value" : "వరుసగా ప్రతిరోజూ పునశ్చరణ చేసి మీ వరుస రోజులను ప్రారంభించండి."
           }
         },
         "th" : {
@@ -25248,7 +25248,7 @@
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مسلسل دن بنانے کے لیے لگاتار دنوں میں دہرائی کریں۔"
+            "value" : "روزانہ دہرائی کر کے مسلسل دنوں کا سلسلہ شروع کریں۔"
           }
         },
         "vi" : {
@@ -26175,13 +26175,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld వరుస రోజుల రక్షణ అందుబాటులో ఉంది"
+                  "value" : "వరుస రోజుల రక్షణలు: %lld అందుబాటులో ఉంది"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld వరుస రోజుల రక్షణలు అందుబాటులో ఉన్నాయి"
+                  "value" : "వరుస రోజుల రక్షణలు: %lld అందుబాటులో ఉన్నాయి"
                 }
               }
             }
@@ -26253,13 +26253,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld مسلسل دنوں کی حفاظت دستیاب"
+                  "value" : "مسلسل دنوں کی حفاظت: %lld دستیاب"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld مسلسل دنوں کی حفاظت دستیاب"
+                  "value" : "مسلسل دنوں کی حفاظت: %lld دستیاب"
                 }
               }
             }
@@ -26610,7 +26610,7 @@
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bona uchungechunge lwakho lwamanje, oluhle kakhulu nolwakamuva."
+            "value" : "Bona uchungechunge lwakho lwamanje, olude kakhulu nolwakamuva."
           }
         }
       }
@@ -29520,7 +29520,7 @@
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nicio recapitulare"
+            "value" : "Nimic de recapitulat"
           }
         },
         "ru" : {
@@ -29586,7 +29586,7 @@
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "کچھ باقی نہیں"
+            "value" : "ابھی کوئی دہرائی نہیں"
           }
         },
         "vi" : {
@@ -29604,7 +29604,7 @@
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Akukho kubukeza"
+            "value" : "Akukho okumele kubukezwe"
           }
         }
       }

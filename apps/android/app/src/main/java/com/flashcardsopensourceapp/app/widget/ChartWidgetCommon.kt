@@ -2,11 +2,14 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.graphics.Bitmap
 import android.graphics.Paint
+import android.graphics.Typeface
+import android.util.DisplayMetrics
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
@@ -45,6 +48,13 @@ private val chartWidgetMinimumSize = DpSize(width = 220.dp, height = 100.dp)
 private val chartWidgetLargeMinimumHeight = 220.dp
 private val chartWidgetHorizontalPadding = 12.dp
 private val chartWidgetVerticalPadding = 12.dp
+private val chartWidgetLabelFontSize: TextUnit = 10.sp
+internal val chartWidgetHeaderFontSize: TextUnit = 13.sp
+internal val chartWidgetLegendFontSize: TextUnit = 11.sp
+/** A line of chart labels never takes more than this share of the chart bitmap's height, so the bars keep the rest. */
+internal const val chartWidgetMaxLabelHeightFraction: Float = 0.25f
+/** A chart drops an optional header or legend part when that part would leave it shorter than this. */
+internal val chartWidgetMinimumChartHeight: Dp = 48.dp
 
 /**
  * Exact, not Responsive: [androidx.glance.LocalSize] is then the real widget size, so charts are drawn
@@ -62,21 +72,47 @@ internal fun chartWidgetSize(size: DpSize): ReviewWidgetSize {
 }
 
 /**
- * The bitmap size for a chart that fills the widget width and its height minus [reservedHeight] of text.
- * A launcher reporting less than the minimum resize gets the minimum layout, scaled down to fit.
+ * The bitmap size for a chart that fills the widget width and its height minus [reservedHeight] of text
+ * and spacing, so it is shown 1:1. A launcher reporting less than the minimum resize gets the minimum
+ * layout, scaled down to fit.
  */
 internal fun chartWidgetBitmapSize(widgetSize: DpSize, reservedHeight: Dp): DpSize {
     return DpSize(
         width = maxOf(widgetSize.width, chartWidgetMinimumSize.width) - chartWidgetHorizontalPadding * 2,
-        height = maxOf(widgetSize.height, chartWidgetMinimumSize.height) - chartWidgetVerticalPadding * 2 - reservedHeight
+        height = (maxOf(widgetSize.height, chartWidgetMinimumSize.height) - chartWidgetVerticalPadding * 2 - reservedHeight)
+            .coerceAtLeast(1.dp)
     )
 }
 
-internal fun makeChartWidgetLabelPaint(density: Float, argb: Int): Paint {
-    return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+/**
+ * Chart label text that follows the font scale, shrunk so the widest of [labels] fits [maxLabelWidth] px,
+ * but not below its size at font scale 1.0, and so a line fits [maxLabelHeight] px, below that size if needed.
+ */
+internal fun makeChartWidgetLabelPaint(
+    displayMetrics: DisplayMetrics,
+    argb: Int,
+    typeface: Typeface,
+    labels: List<String>,
+    maxLabelWidth: Float,
+    maxLabelHeight: Float
+): Paint {
+    val scaledTextSize: Float = widgetTextSizePx(fontSize = chartWidgetLabelFontSize, displayMetrics = displayMetrics)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = argb
-        textSize = 10f * density
+        this.typeface = typeface
+        textSize = scaledTextSize
     }
+    val widestLabelWidth: Float = labels.maxOf { label -> paint.measureText(label) }
+    if (widestLabelWidth > maxLabelWidth) {
+        paint.textSize = minOf(
+            scaledTextSize,
+            maxOf(scaledTextSize * maxLabelWidth / widestLabelWidth, chartWidgetLabelFontSize.value * displayMetrics.density)
+        )
+    }
+    if (paint.fontSpacing > maxLabelHeight) {
+        paint.textSize = paint.textSize * maxLabelHeight / paint.fontSpacing
+    }
+    return paint
 }
 
 /** The widget surface; a tap anywhere opens Progress. */
@@ -126,9 +162,14 @@ internal fun ChartWidgetLegendItem(color: Color, label: String, count: String?, 
         Spacer(modifier = GlanceModifier.width(4.dp))
         Text(text = label, style = chartWidgetLegendStyle(), maxLines = 1, modifier = GlanceModifier.defaultWeight())
         if (count != null) {
+            Spacer(modifier = GlanceModifier.width(4.dp))
             Text(
                 text = count,
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontSize = chartWidgetLegendFontSize,
+                    fontWeight = FontWeight.Medium
+                ),
                 maxLines = 1
             )
         }
@@ -142,7 +183,7 @@ internal fun chartWidgetTitleStyle(): TextStyle {
 
 @Composable
 internal fun chartWidgetHeaderStyle(): TextStyle {
-    return TextStyle(color = GlanceTheme.colors.primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    return TextStyle(color = GlanceTheme.colors.primary, fontSize = chartWidgetHeaderFontSize, fontWeight = FontWeight.Bold)
 }
 
 @Composable
@@ -152,5 +193,5 @@ internal fun chartWidgetSecondaryStyle(): TextStyle {
 
 @Composable
 internal fun chartWidgetLegendStyle(): TextStyle {
-    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp)
+    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = chartWidgetLegendFontSize)
 }

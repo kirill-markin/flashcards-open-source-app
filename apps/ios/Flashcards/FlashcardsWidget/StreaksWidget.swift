@@ -297,6 +297,7 @@ private struct StreaksWidgetBarsView: View {
 }
 
 private struct StreaksWidgetBarRow: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let run: StreaksWidgetRun
     let barWidth: CGFloat
     let dateFormatStyle: Date.FormatStyle
@@ -306,7 +307,7 @@ private struct StreaksWidgetBarRow: View {
             StreaksWidgetBarDateView(date: self.run.startDate, dateFormatStyle: self.dateFormatStyle)
                 .frame(width: streaksWidgetBarDateWidth, alignment: .trailing)
             ZStack {
-                if self.run.isCurrent {
+                if self.isAccentFilled {
                     Capsule()
                         .fill(Color.accentColor)
                         .widgetAccentable()
@@ -314,9 +315,16 @@ private struct StreaksWidgetBarRow: View {
                     Capsule()
                         .fill(Color.secondary.opacity(0.3))
                 }
+                // Tinted and clear Home Screens draw accentable fills opaque, which would hide the day count, so there
+                // the current run is outlined instead.
+                if self.run.isCurrent && self.renderingMode == .accented {
+                    Capsule()
+                        .strokeBorder(Color.primary, lineWidth: 1.5)
+                        .widgetAccentable()
+                }
                 Text(self.run.dayCount, format: .number)
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(self.run.isCurrent ? Color.white : Color.primary)
+                    .foregroundStyle(self.isAccentFilled ? Color.white : Color.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .padding(.horizontal, 4)
@@ -326,6 +334,10 @@ private struct StreaksWidgetBarRow: View {
                 .frame(width: streaksWidgetBarDateWidth, alignment: .leading)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var isAccentFilled: Bool {
+        self.run.isCurrent && self.renderingMode != .accented
     }
 }
 

@@ -157,9 +157,15 @@ enum AnalyticsEvent: Sendable, Equatable {
     case notificationOpened(notificationKind: AnalyticsNotificationKind)
     /// A Home Screen widget tap, reported once when the app consumes it.
     case widgetOpened(widgetSize: AnalyticsWidgetSize, widgetKind: AnalyticsWidgetKind)
-    /// How many Review widgets of each size are placed now, reported only when the counts differ from
-    /// the last report of this installation; all zeros means none is placed.
-    case widgetPlacementChanged(smallCount: Int, mediumCount: Int, largeCount: Int)
+    /// How many widgets of one kind are placed now, by size, reported only when the counts differ from
+    /// the last report of that kind on this installation; all zeros means none of that kind is placed.
+    case widgetPlacementChanged(
+        widgetKind: AnalyticsWidgetKind,
+        smallCount: Int,
+        mediumCount: Int,
+        largeCount: Int,
+        accessoryCounts: AnalyticsWidgetAccessoryCounts?
+    )
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /**
      * Voice input reached the microphone: the recorder really started, not the button being pressed.
@@ -451,7 +457,7 @@ enum AnalyticsWidgetSize: String, Sendable, Equatable {
     case accessoryInline = "accessory_inline"
 }
 
-enum AnalyticsWidgetKind: String, Sendable, Equatable {
+enum AnalyticsWidgetKind: String, Sendable, Equatable, CaseIterable {
     case review
     case activity
     case year
@@ -462,6 +468,13 @@ enum AnalyticsWidgetKind: String, Sendable, Equatable {
     case monthCalendar = "month_calendar"
     case comingUp = "coming_up"
     case dashboard
+}
+
+/// Sent only with the Lock Screen kind.
+struct AnalyticsWidgetAccessoryCounts: Sendable, Equatable {
+    let circularCount: Int
+    let rectangularCount: Int
+    let inlineCount: Int
 }
 
 enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
@@ -883,12 +896,19 @@ extension AnalyticsEvent {
                 "widget_size": .string(widgetSize.rawValue),
                 "widget_kind": .string(widgetKind.rawValue)
             ]
-        case .widgetPlacementChanged(let smallCount, let mediumCount, let largeCount):
-            return [
+        case .widgetPlacementChanged(let widgetKind, let smallCount, let mediumCount, let largeCount, let accessoryCounts):
+            var properties: [String: AnalyticsPropertyValue] = [
+                "widget_kind": .string(widgetKind.rawValue),
                 "small_count": .integer(max(0, smallCount)),
                 "medium_count": .integer(max(0, mediumCount)),
                 "large_count": .integer(max(0, largeCount))
             ]
+            if let accessoryCounts {
+                properties["accessory_circular_count"] = .integer(max(0, accessoryCounts.circularCount))
+                properties["accessory_rectangular_count"] = .integer(max(0, accessoryCounts.rectangularCount))
+                properties["accessory_inline_count"] = .integer(max(0, accessoryCounts.inlineCount))
+            }
+            return properties
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
         case .dictationStarted:

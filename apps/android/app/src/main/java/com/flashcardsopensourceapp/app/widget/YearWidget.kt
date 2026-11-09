@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,8 +43,8 @@ import kotlinx.coroutines.flow.first
 private val yearWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 /** The Scaffold's horizontal padding and the body's vertical padding. */
 private val yearWidgetPadding = 12.dp
-/** Height kept for the footer line and its spacer. */
-private val yearWidgetFooterHeight = 24.dp
+private val yearWidgetFooterSpacing = 6.dp
+private val yearWidgetFooterTextSize = 13.sp
 
 class YearWidget : GlanceAppWidget() {
     /**
@@ -103,6 +104,11 @@ private fun ColumnScope.YearWidgetMonths(progress: WidgetProgressContent, layout
     val historyDates: Set<LocalDate> = progress.days.map { day -> day.localDate }.toSet()
     val reviewCount: Int = sumReviewCounts(progress = progress, dates = historyDates)
     val activeDayCount: Int = countActiveDays(progress = progress, dates = historyDates)
+    val footerHeight: Dp = yearWidgetFooterSpacing + widgetTextHeight(
+        fontSize = yearWidgetFooterTextSize,
+        lineCount = 1,
+        fontScale = context.resources.configuration.fontScale
+    )
     Image(
         provider = ImageProvider(
             bitmap = drawYearBitmap(
@@ -110,7 +116,7 @@ private fun ColumnScope.YearWidgetMonths(progress: WidgetProgressContent, layout
                 months = yearMonthDates(progress = progress),
                 areaSize = DpSize(
                     width = layoutSize.width - yearWidgetPadding * 2,
-                    height = layoutSize.height - yearWidgetPadding * 2 - yearWidgetFooterHeight
+                    height = layoutSize.height - yearWidgetPadding * 2 - footerHeight
                 ),
                 density = context.resources.displayMetrics.density
             )
@@ -119,7 +125,7 @@ private fun ColumnScope.YearWidgetMonths(progress: WidgetProgressContent, layout
         contentScale = ContentScale.Fit,
         modifier = GlanceModifier.fillMaxWidth().defaultWeight()
     )
-    Spacer(modifier = GlanceModifier.height(6.dp))
+    Spacer(modifier = GlanceModifier.height(yearWidgetFooterSpacing))
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         Text(
             text = context.resources.getQuantityString(R.plurals.activity_widget_reviews, reviewCount, reviewCount),
@@ -137,5 +143,5 @@ private fun ColumnScope.YearWidgetMonths(progress: WidgetProgressContent, layout
 
 @Composable
 private fun yearSecondaryStyle(): TextStyle {
-    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp)
+    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = yearWidgetFooterTextSize)
 }

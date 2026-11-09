@@ -6,6 +6,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.util.DisplayMetrics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +46,10 @@ import java.util.Locale
 import kotlinx.coroutines.flow.first
 
 private val comingUpScheduleStripHeight = 8.dp
+private val comingUpHeaderSpacing = 4.dp
+private val comingUpScheduleSpacing = 6.dp
+/** Between the legend's two columns, at font scale 1.0; it grows with the font so a count never meets the next marker. */
+private val comingUpLegendColumnGap = 8.dp
 
 // Copy of reviewScheduleBucketColors in feature/progress ProgressReviewScheduleSection.kt (docs/progress-pie-palette.md).
 private val comingUpScheduleBucketColors: Map<ProgressReviewScheduleBucketKey, Color> = mapOf(
@@ -106,9 +111,21 @@ private fun ComingUpWidgetBody(content: WidgetContent, widgetSize: DpSize) {
             ChartWidgetOpenApp()
         } else {
             val bars: List<ComingUpBar> = makeComingUpBars(dueNowCount = queue.dueCount, progress = progress)
-            val reviewSchedule: List<CloudProgressReviewScheduleBucket>? = progress.reviewSchedule
-            if (size == ReviewWidgetSize.LARGE && reviewSchedule != null) {
-                ComingUpBarsSection(bars = bars, widgetSize = widgetSize, reservedScheduleHeight = 76.dp)
+            val fontScale: Float = LocalContext.current.resources.configuration.fontScale
+            // A large font can leave the bars no room under the schedule; they then take its place.
+            val reviewSchedule: List<CloudProgressReviewScheduleBucket>? = progress.reviewSchedule?.takeIf { buckets ->
+                size == ReviewWidgetSize.LARGE && chartWidgetBitmapSize(
+                    widgetSize = widgetSize,
+                    reservedHeight = comingUpHeaderHeight(fontScale = fontScale) +
+                        comingUpScheduleHeight(bucketCount = buckets.size, fontScale = fontScale)
+                ).height >= chartWidgetMinimumChartHeight
+            }
+            if (reviewSchedule != null) {
+                ComingUpBarsSection(
+                    bars = bars,
+                    widgetSize = widgetSize,
+                    reservedScheduleHeight = comingUpScheduleHeight(bucketCount = reviewSchedule.size, fontScale = fontScale)
+                )
                 ComingUpScheduleSection(buckets = reviewSchedule, widgetSize = widgetSize)
             } else {
                 ComingUpBarsSection(bars = bars, widgetSize = widgetSize, reservedScheduleHeight = 0.dp)
@@ -117,10 +134,23 @@ private fun ComingUpWidgetBody(content: WidgetContent, widgetSize: DpSize) {
     }
 }
 
+/** [ComingUpBarsSection]'s header line and the spacing under it. */
+private fun comingUpHeaderHeight(fontScale: Float): Dp {
+    return widgetTextHeight(fontSize = chartWidgetHeaderFontSize, lineCount = 1, fontScale = fontScale) + comingUpHeaderSpacing
+}
+
+/** [ComingUpScheduleSection]'s height: the strip and a legend row for every two buckets. */
+private fun comingUpScheduleHeight(bucketCount: Int, fontScale: Float): Dp {
+    val legendRowCount: Int = (bucketCount + 1) / 2
+    return comingUpScheduleSpacing * 2 + comingUpScheduleStripHeight +
+        widgetTextHeight(fontSize = chartWidgetLegendFontSize, lineCount = legendRowCount, fontScale = fontScale)
+}
+
 @Composable
 private fun ColumnScope.ComingUpBarsSection(bars: List<ComingUpBar>, widgetSize: DpSize, reservedScheduleHeight: Dp) {
     val context = LocalContext.current
-    val density: Float = context.resources.displayMetrics.density
+    val displayMetrics: DisplayMetrics = context.resources.displayMetrics
+    val fontScale: Float = context.resources.configuration.fontScale
     val locale: Locale = context.resources.configuration.locales.get(0)
     val totalCount: Int = bars.sumOf { bar -> bar.count }
     Text(
@@ -128,13 +158,16 @@ private fun ColumnScope.ComingUpBarsSection(bars: List<ComingUpBar>, widgetSize:
         style = chartWidgetHeaderStyle(),
         maxLines = 1
     )
-    Spacer(modifier = GlanceModifier.height(4.dp))
+    Spacer(modifier = GlanceModifier.height(comingUpHeaderSpacing))
     ChartWidgetImage(
         bitmap = drawWidgetBitmap(
-            size = chartWidgetBitmapSize(widgetSize = widgetSize, reservedHeight = 21.dp + reservedScheduleHeight),
-            density = density
+            size = chartWidgetBitmapSize(
+                widgetSize = widgetSize,
+                reservedHeight = comingUpHeaderHeight(fontScale = fontScale) + reservedScheduleHeight
+            ),
+            density = displayMetrics.density
         ) { canvas ->
-            drawComingUpBars(canvas = canvas, bars = bars, density = density, locale = locale)
+            drawComingUpBars(canvas = canvas, bars = bars, displayMetrics = displayMetrics, locale = locale)
         }
     )
 }
@@ -143,11 +176,12 @@ private fun ColumnScope.ComingUpBarsSection(bars: List<ComingUpBar>, widgetSize:
 private fun ColumnScope.ComingUpScheduleSection(buckets: List<CloudProgressReviewScheduleBucket>, widgetSize: DpSize) {
     val context = LocalContext.current
     val density: Float = context.resources.displayMetrics.density
+    val fontScale: Float = context.resources.configuration.fontScale
     val numberFormat: NumberFormat = NumberFormat.getIntegerInstance(context.resources.configuration.locales.get(0))
     val orderedBuckets: List<CloudProgressReviewScheduleBucket> = buckets.sortedBy { bucket ->
         ProgressReviewScheduleBucketKey.orderedEntries.indexOf(bucket.key)
     }
-    Spacer(modifier = GlanceModifier.height(6.dp))
+    Spacer(modifier = GlanceModifier.height(comingUpScheduleSpacing))
     Image(
         provider = ImageProvider(
             bitmap = drawWidgetBitmap(
@@ -164,7 +198,7 @@ private fun ColumnScope.ComingUpScheduleSection(buckets: List<CloudProgressRevie
         contentScale = ContentScale.FillBounds,
         modifier = GlanceModifier.fillMaxWidth().height(comingUpScheduleStripHeight)
     )
-    Spacer(modifier = GlanceModifier.height(6.dp))
+    Spacer(modifier = GlanceModifier.height(comingUpScheduleSpacing))
     orderedBuckets.chunked(size = 2).forEach { rowBuckets ->
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             rowBuckets.forEach { bucket ->
@@ -172,7 +206,7 @@ private fun ColumnScope.ComingUpScheduleSection(buckets: List<CloudProgressRevie
                     color = comingUpScheduleBucketColors.getValue(bucket.key),
                     label = context.getString(reviewScheduleBucketLabelResId(bucketKey = bucket.key)),
                     count = numberFormat.format(bucket.count.toLong()),
-                    modifier = GlanceModifier.defaultWeight().padding(end = 8.dp)
+                    modifier = GlanceModifier.defaultWeight().padding(end = comingUpLegendColumnGap * fontScale)
                 )
             }
         }
@@ -180,19 +214,36 @@ private fun ColumnScope.ComingUpScheduleSection(buckets: List<CloudProgressRevie
 }
 
 /** A count above each bar and the short weekday below it; today's bar is full colour. */
-private fun drawComingUpBars(canvas: Canvas, bars: List<ComingUpBar>, density: Float, locale: Locale) {
+private fun drawComingUpBars(canvas: Canvas, bars: List<ComingUpBar>, displayMetrics: DisplayMetrics, locale: Locale) {
+    val density: Float = displayMetrics.density
     val width: Float = canvas.width.toFloat()
     val height: Float = canvas.height.toFloat()
-    val labelPaint: Paint = makeChartWidgetLabelPaint(density = density, argb = chartWidgetLabelArgb)
-    val countPaint: Paint = makeChartWidgetLabelPaint(density = density, argb = chartWidgetLabelArgb).apply {
-        typeface = Typeface.DEFAULT_BOLD
-    }
+    val slotWidth: Float = width / bars.size
     val numberFormat: NumberFormat = NumberFormat.getIntegerInstance(locale)
+    val countLabels: List<String> = bars.map { bar -> numberFormat.format(bar.count.toLong()) }
+    val weekdayLabels: List<String> = bars.map { bar -> bar.localDate.dayOfWeek.getDisplayName(DateTextStyle.SHORT, locale) }
+    val maxLabelWidth: Float = slotWidth - 2f * density
+    val maxLabelHeight: Float = height * chartWidgetMaxLabelHeightFraction
+    val labelPaint: Paint = makeChartWidgetLabelPaint(
+        displayMetrics = displayMetrics,
+        argb = chartWidgetLabelArgb,
+        typeface = Typeface.DEFAULT,
+        labels = weekdayLabels,
+        maxLabelWidth = maxLabelWidth,
+        maxLabelHeight = maxLabelHeight
+    )
+    val countPaint: Paint = makeChartWidgetLabelPaint(
+        displayMetrics = displayMetrics,
+        argb = chartWidgetLabelArgb,
+        typeface = Typeface.DEFAULT_BOLD,
+        labels = countLabels,
+        maxLabelWidth = maxLabelWidth,
+        maxLabelHeight = maxLabelHeight
+    )
     val chartTop: Float = countPaint.fontSpacing + 2f * density
     val chartBottom: Float = height - labelPaint.fontSpacing - 2f * density
     val chartHeight: Float = chartBottom - chartTop
     val maxCount: Float = bars.maxOf { bar -> bar.count }.toFloat().coerceAtLeast(minimumValue = 1f)
-    val slotWidth: Float = width / bars.size
     val barWidth: Float = slotWidth * 0.56f
     val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     val baselinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -214,14 +265,14 @@ private fun drawComingUpBars(canvas: Canvas, bars: List<ComingUpBar>, density: F
                 barPaint
             )
         }
-        val countLabel: String = numberFormat.format(bar.count.toLong())
+        val countLabel: String = countLabels[index]
         canvas.drawText(
             countLabel,
             slotCenter - countPaint.measureText(countLabel) / 2f,
             barTop - 2f * density - countPaint.descent(),
             countPaint
         )
-        val weekdayLabel: String = bar.localDate.dayOfWeek.getDisplayName(DateTextStyle.SHORT, locale)
+        val weekdayLabel: String = weekdayLabels[index]
         canvas.drawText(
             weekdayLabel,
             slotCenter - labelPaint.measureText(weekdayLabel) / 2f,
