@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
 import { loadPlainTextSecret } from "../../aws/secrets";
 import { writeCloudWatchRecord } from "../../observability/cloudWatch";
 import type { BackendObservationScope } from "../../observability/sentry";
@@ -15,12 +16,6 @@ import { TurnstileSiteverifyClient } from "./turnstile";
 const turnstileAction = "guest_session";
 const turnstileTokenMaximumLength = 2048;
 
-export type GuestBrowserChallengeConfig = Readonly<{
-  turnstileSiteKey: string;
-  turnstileSecretArn: string;
-  bypassSecretArn: string;
-}>;
-
 export type GuestBrowserChallengeRequest = Readonly<{
   turnstileToken: string | null;
   automationBypassToken: string | null;
@@ -34,45 +29,62 @@ export type GuestBrowserChallengeRequest = Readonly<{
 type ChallengeOutcome = "required" | "passed" | "failed" | "bypassed";
 type ChallengeFailureReason = "turnstile_rejected" | "action_mismatch" | "hostname_mismatch" | "bypass_token_invalid";
 
-let cachedTurnstileClient: Readonly<{ secretArn: string; client: TurnstileSiteverifyClient }> | null = null;
-let cachedBypassTokenDigest: Readonly<{ secretArn: string; digest: Buffer }> | null = null;
+const guestChallengeSecretSchema = z.object({
+  siteKey: z.string().trim().min(1),
+  secretKey: z.string().trim().min(1),
+  bypassToken: z.string().trim().min(1),
+});
 
-/** Null keeps the challenge off; a partial configuration is a deployment error. */
-export function readGuestBrowserChallengeConfig(): GuestBrowserChallengeConfig | null {
-  const turnstileSecretArn = process.env.TURNSTILE_SECRET_ARN?.trim() ?? "";
-  const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY?.trim() ?? "";
-  const bypassSecretArn = process.env.GUEST_CHALLENGE_BYPASS_SECRET_ARN?.trim() ?? "";
-  const presentCount = [turnstileSecretArn, turnstileSiteKey, bypassSecretArn].filter((value) => value !== "").length;
-  if (presentCount === 0) {
-    return null;
-  }
-  if (presentCount !== 3) {
-    throw new Error(
-      "The guest browser challenge is partially configured: set TURNSTILE_SECRET_ARN, TURNSTILE_SITE_KEY and "
-      + `GUEST_CHALLENGE_BYPASS_SECRET_ARN together or none of them (TURNSTILE_SECRET_ARN set: ${turnstileSecretArn !== ""}, `
-      + `TURNSTILE_SITE_KEY set: ${turnstileSiteKey !== ""}, GUEST_CHALLENGE_BYPASS_SECRET_ARN set: ${bypassSecretArn !== ""}).`,
-    );
-  }
-  return { turnstileSiteKey, turnstileSecretArn, bypassSecretArn };
-}
+type LoadedGuestChallengeSecret = Readonly<{
+  secretName: string;
+  siteKey: string;
+  turnstileClient: TurnstileSiteverifyClient;
+  bypassTokenDigest: Buffer;
+}>;
 
-async function getTurnstileClient(secretArn: string): Promise<TurnstileSiteverifyClient> {
-  if (cachedTurnstileClient === null || cachedTurnstileClient.secretArn !== secretArn) {
-    cachedTurnstileClient = { secretArn, client: new TurnstileSiteverifyClient(await loadPlainTextSecret(secretArn)) };
-  }
-  return cachedTurnstileClient.client;
+let cachedGuestChallengeSecret: LoadedGuestChallengeSecret | null = null;
+
+/** The Secrets Manager name of the challenge configuration; null keeps the challenge off. */
+export function readGuestBrowserChallengeSecretName(): string | null {
+  const secretName = process.env.GUEST_CHALLENGE_SECRET?.trim() ?? "";
+  return secretName === "" ? null : secretName;
 }
 
 function digestToken(token: string): Buffer {
   return createHash("sha256").update(token, "utf8").digest();
 }
 
-async function isValidBypassToken(secretArn: string, token: string): Promise<boolean> {
-  if (cachedBypassTokenDigest === null || cachedBypassTokenDigest.secretArn !== secretArn) {
-    cachedBypassTokenDigest = { secretArn, digest: digestToken(await loadPlainTextSecret(secretArn)) };
+async function loadGuestChallengeSecret(secretName: string): Promise<LoadedGuestChallengeSecret> {
+  if (cachedGuestChallengeSecret !== null && cachedGuestChallengeSecret.secretName === secretName) {
+    return cachedGuestChallengeSecret;
   }
+  const secretString = await loadPlainTextSecret(secretName);
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(secretString);
+  } catch {
+    // The SyntaxError message quotes the parsed input, i.e. the secret, so neither it nor `cause` is attached.
+    throw new Error(`Secret ${secretName} (GUEST_CHALLENGE_SECRET) is not valid JSON; store {"siteKey","secretKey","bypassToken"}.`);
+  }
+  const parsed = guestChallengeSecretSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new Error(
+      `Secret ${secretName} (GUEST_CHALLENGE_SECRET) must hold non-empty string fields siteKey, secretKey and bypassToken: `
+      + parsed.error.message,
+    );
+  }
+  cachedGuestChallengeSecret = {
+    secretName,
+    siteKey: parsed.data.siteKey,
+    turnstileClient: new TurnstileSiteverifyClient(parsed.data.secretKey),
+    bypassTokenDigest: digestToken(parsed.data.bypassToken),
+  };
+  return cachedGuestChallengeSecret;
+}
+
+function isValidBypassToken(secret: LoadedGuestChallengeSecret, token: string): boolean {
   // Equal-length digests keep the comparison constant-time whatever the caller sent.
-  return timingSafeEqual(digestToken(token), cachedBypassTokenDigest.digest);
+  return timingSafeEqual(digestToken(token), secret.bypassTokenDigest);
 }
 
 function logChallengeOutcome(
@@ -111,14 +123,14 @@ function createChallengeFailedError(message: string): HttpError {
 
 /** Resolves when a new guest may be created; throws the 403 the web client answers with Turnstile. */
 export async function enforceGuestBrowserChallenge(
-  config: GuestBrowserChallengeConfig,
+  secretName: string,
   request: GuestBrowserChallengeRequest,
 ): Promise<void> {
   const facts = await loadGuestChallengeRequestFacts(request.userAgent, request.secChUa, request.scope);
   const flags = evaluateGuestChallengeFlags(facts);
 
   if (request.automationBypassToken !== null) {
-    if (!await isValidBypassToken(config.bypassSecretArn, request.automationBypassToken)) {
+    if (!isValidBypassToken(await loadGuestChallengeSecret(secretName), request.automationBypassToken)) {
       logChallengeOutcome("failed", flags, facts, request.scope, {
         reason: "bypass_token_invalid", turnstileErrorCodes: [], turnstileAction: null, turnstileHostname: null,
       });
@@ -139,15 +151,15 @@ export async function enforceGuestBrowserChallenge(
       403,
       "Complete the browser check before a guest account is created.",
       "GUEST_BROWSER_CHALLENGE_REQUIRED",
-      { turnstileSiteKey: config.turnstileSiteKey },
+      { turnstileSiteKey: (await loadGuestChallengeSecret(secretName)).siteKey },
     );
   }
   if (request.turnstileToken.length > turnstileTokenMaximumLength) {
     throw new HttpError(400, `turnstileToken must be at most ${turnstileTokenMaximumLength} characters.`);
   }
 
-  const client = await getTurnstileClient(config.turnstileSecretArn);
-  const result = await client.verify(request.turnstileToken, request.remoteIp, request.scope);
+  const { turnstileClient } = await loadGuestChallengeSecret(secretName);
+  const result = await turnstileClient.verify(request.turnstileToken, request.remoteIp, request.scope);
   const failureReason: ChallengeFailureReason | null = !result.success
     ? "turnstile_rejected"
     : result.action !== turnstileAction

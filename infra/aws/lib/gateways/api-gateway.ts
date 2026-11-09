@@ -70,7 +70,7 @@ export interface ApiGatewayProps {
   stripeBillingSecretArn: string | undefined;
   stripeCheckoutLiveEnabled: boolean;
   // Undefined keeps the new-browser-guest Turnstile challenge off.
-  guestBrowserChallenge: GuestBrowserChallengeConfig | undefined;
+  guestChallengeSecretName: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
@@ -88,12 +88,6 @@ export interface ApiGatewayProps {
   userPoolId: string;
   userPoolArn: string;
   userPoolClientId: string;
-}
-
-export interface GuestBrowserChallengeConfig {
-  turnstileSecretArn: string;
-  turnstileSiteKey: string;
-  bypassSecretArn: string;
 }
 
 export interface ApiGatewayResult {
@@ -1078,18 +1072,13 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     stripeBillingSecret.grantRead(backendFn);
     backendFn.addEnvironment("STRIPE_BILLING_SECRET_ARN", stripeBillingSecret.secretArn);
   }
-  if (props.guestBrowserChallenge !== undefined) {
-    const turnstileSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
-      scope, "TurnstileSecret", props.guestBrowserChallenge.turnstileSecretArn,
-    );
-    const bypassSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
-      scope, "GuestChallengeBypassSecret", props.guestBrowserChallenge.bypassSecretArn,
-    );
-    turnstileSecret.grantRead(backendFn);
-    bypassSecret.grantRead(backendFn);
-    backendFn.addEnvironment("TURNSTILE_SECRET_ARN", turnstileSecret.secretArn);
-    backendFn.addEnvironment("TURNSTILE_SITE_KEY", props.guestBrowserChallenge.turnstileSiteKey);
-    backendFn.addEnvironment("GUEST_CHALLENGE_BYPASS_SECRET_ARN", bypassSecret.secretArn);
+  if (hasConfiguredValue(props.guestChallengeSecretName)) {
+    cdk.aws_secretsmanager.Secret.fromSecretNameV2(
+      scope, "GuestChallengeSecret", props.guestChallengeSecretName,
+    ).grantRead(backendFn);
+    // The Lambda environment is capped at 4 KB and this function measured ~3.9 KB without this
+    // value: put new configuration into a secret, not another env var.
+    backendFn.addEnvironment("GUEST_CHALLENGE_SECRET", props.guestChallengeSecretName);
   }
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,

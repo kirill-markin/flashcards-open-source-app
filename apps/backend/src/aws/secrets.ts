@@ -174,15 +174,15 @@ export async function getBackendChatLiveAuthSecret(secretArn: string): Promise<s
 }
 
 /** A plain-text SecretString, trimmed; callers own any caching. */
-export async function loadPlainTextSecret(secretArn: string): Promise<string> {
-  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+export async function loadPlainTextSecret(secretId: string): Promise<string> {
+  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretId }));
   if (!response.SecretString) {
-    throw new Error(`Secret ${secretArn} does not contain SecretString`);
+    throw new Error(`Secret ${secretId} does not contain SecretString`);
   }
 
   const value = response.SecretString.trim();
   if (value === "") {
-    throw new Error(`Secret ${secretArn} must not be empty`);
+    throw new Error(`Secret ${secretId} must not be empty`);
   }
   return value;
 }
