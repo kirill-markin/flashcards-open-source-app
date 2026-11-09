@@ -49,6 +49,11 @@ export function getDirectRequestNetworkAsnLookup(): RequestNetworkAsnLookup | nu
   return directRequestSourceStorage.getStore()?.networkAsnLookup ?? null;
 }
 
+/** True on Lambda when the caller's network cannot be derived: a relay-marked request or no source IP. */
+export function isDirectRequestSourceUnknown(): boolean {
+  return directRequestSourceStorage.getStore() === null;
+}
+
 /** The API Gateway source IP of the direct caller, or null off Lambda and on a relayed request. */
 export function getDirectRequestSourceIp(): string | null {
   return directRequestSourceStorage.getStore()?.sourceIp ?? null;

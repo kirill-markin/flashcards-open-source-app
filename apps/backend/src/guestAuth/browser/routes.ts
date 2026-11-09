@@ -5,14 +5,18 @@ import {
   enforceGuestCookieCsrfProtection,
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
+  getRequestOrigin,
   getSessionCsrfToken,
   type RequestAuthInputs,
 } from "../../auth/requestSecurity";
+import { getDirectRequestSourceIp } from "../../geolocation/requestCountry";
+import { createBackendObservationScope } from "../../observability/sentry";
 import { isSelfDeclaredCrawlerUserAgent } from "../../productAnalytics/automatedClient";
 import type { AppEnv } from "../../server/app";
-import { expectBoolean, expectRecord, parseJsonBody } from "../../server/requestParsing";
+import { expectBoolean, expectNonEmptyString, expectRecord, parseJsonBody } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 import { parseGuestSessionIdempotencyKeyValue } from "../session/idempotencyKey";
+import { enforceGuestBrowserChallenge, readGuestBrowserChallengeConfig } from "./challenge";
 import { clearBrowserGuestCookie, writeBrowserGuestCookie } from "./cookie";
 import { createBrowserGuestUpgradeRoutes } from "./upgrade";
 import {
@@ -124,7 +128,8 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
       });
     }
 
-    if (isSelfDeclaredCrawlerUserAgent(context.req.header("user-agent") ?? null)) {
+    const userAgent = context.req.header("user-agent") ?? null;
+    if (isSelfDeclaredCrawlerUserAgent(userAgent)) {
       throw new HttpError(403, "Crawlers cannot create browser guest accounts. Open the app in a regular browser, or use the agent API for automated access.", "GUEST_BROWSER_CRAWLER_REFUSED");
     }
     const body = expectRecord(await parseJsonBody(context.req.raw));
@@ -135,6 +140,37 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
     const idempotencyKey = parseGuestSessionIdempotencyKeyValue(body.idempotencyKey);
     if (idempotencyKey === null) {
       throw new HttpError(400, "A random per-attempt idempotencyKey is required.", "GUEST_SESSION_IDEMPOTENCY_KEY_INVALID");
+    }
+    const turnstileToken = body.turnstileToken === undefined
+      ? null
+      : expectNonEmptyString(body.turnstileToken, "turnstileToken");
+    const automationBypassToken = body.automationBypassToken === undefined
+      ? null
+      : expectNonEmptyString(body.automationBypassToken, "automationBypassToken");
+    const challengeConfig = readGuestBrowserChallengeConfig();
+    if (challengeConfig !== null) {
+      await enforceGuestBrowserChallenge(challengeConfig, {
+        turnstileToken,
+        automationBypassToken,
+        userAgent,
+        secChUa: context.req.header("sec-ch-ua") ?? null,
+        // The origin already passed the allowlist above; Turnstile reports the page's hostname.
+        expectedHostname: new URL(getRequestOrigin(inputs.originHeader, inputs.refererHeader)).hostname,
+        remoteIp: getDirectRequestSourceIp(),
+        scope: createBackendObservationScope(
+          "backend-api",
+          context.get("requestId") ?? null,
+          context.req.path,
+          context.req.method,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "web",
+        ),
+      });
     }
     const created = await createBrowserGuestSession(idempotencyKey);
     const createdSession = await loadBrowserGuestSession(created.guestToken);
