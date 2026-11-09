@@ -1,4 +1,3 @@
-#if targetEnvironment(macCatalyst)
 import AVKit
 import Observation
 import SwiftUI
@@ -6,7 +5,7 @@ import UIKit
 
 @MainActor
 @Observable
-final class MacReviewManagedMediaState {
+final class ReviewManagedMediaState {
     private(set) var loadResult: ReviewManagedMediaLoadResult?
     private(set) var isLoading = true
     private(set) var decodedImage: UIImage?
@@ -18,6 +17,7 @@ final class MacReviewManagedMediaState {
     private(set) var player: AVPlayer?
     private(set) var activePresentationID: UUID?
     @ObservationIgnored private var presentations: [UUID] = []
+    @ObservationIgnored private var fullScreenPresentationID: UUID?
     @ObservationIgnored private var request: ReviewManagedMediaTaskID?
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var loadTask: Task<Void, Never>?
@@ -31,15 +31,34 @@ final class MacReviewManagedMediaState {
     func setPresented(_ isPresented: Bool, id: UUID, store: FlashcardsStore) {
         self.presentations.removeAll { $0 == id }
         if isPresented { self.presentations.append(id) }
-        self.activePresentationID = self.presentations.last
+        self.activePresentationID = self.fullScreenPresentationID ?? self.presentations.last
         // A successor graph can start its load before the deferred teardown below cancels it; resume that load.
         if isPresented, self.isLoading, self.loadTask == nil, let request = self.request {
             self.load(request: request, store: store)
         }
-        guard self.presentations.isEmpty else { return }
+        self.scheduleTeardownIfUnclaimed()
+    }
+
+    /// The copy in full screen keeps the player even while AVKit has it out of the window.
+    func setFullScreen(_ isFullScreen: Bool, id: UUID) {
+        if isFullScreen {
+            self.fullScreenPresentationID = id
+        } else if self.fullScreenPresentationID == id {
+            self.fullScreenPresentationID = nil
+        }
+        self.activePresentationID = self.fullScreenPresentationID ?? self.presentations.last
+        self.scheduleTeardownIfUnclaimed()
+    }
+
+    private var isClaimed: Bool {
+        self.presentations.isEmpty == false || self.fullScreenPresentationID != nil
+    }
+
+    private func scheduleTeardownIfUnclaimed() {
+        guard self.isClaimed == false else { return }
         // TextKit replacement can remove a graph before inserting its successor in the same layout turn.
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.presentations.isEmpty else { return }
+            guard let self, self.isClaimed == false else { return }
             self.generation = UUID()
             self.loadTask?.cancel()
             self.loadTask = nil
@@ -127,7 +146,10 @@ final class MacReviewManagedMediaState {
     private func preparePlayer(result: ReviewManagedMediaLoadResult) {
         let mimeType = result.mediaAsset?.mimeType.lowercased() ?? ""
         if let url = result.mediaURL, mimeType.hasPrefix("audio/") || mimeType.hasPrefix("video/") {
-            if self.player == nil { self.player = AVPlayer(url: url) }
+            // Cache files have no extension, so AVFoundation needs the MIME type to open them.
+            if self.player == nil {
+                self.player = AVPlayer(playerItem: AVPlayerItem(asset: AVURLAsset(url: url, options: [AVURLAssetOverrideMIMETypeKey: mimeType])))
+            }
         } else {
             self.player?.pause()
             self.player = nil
@@ -135,25 +157,25 @@ final class MacReviewManagedMediaState {
     }
 }
 
-struct MacReviewMediaPresentation: UIViewRepresentable {
+struct ReviewMediaPresentation: UIViewRepresentable {
     let onChange: (UUID, Bool) -> Void
 
-    func makeUIView(context: Context) -> MacReviewMediaPresentationView {
-        MacReviewMediaPresentationView(onChange: self.onChange)
+    func makeUIView(context: Context) -> ReviewMediaPresentationView {
+        ReviewMediaPresentationView(onChange: self.onChange)
     }
 
-    func updateUIView(_ view: MacReviewMediaPresentationView, context: Context) {
+    func updateUIView(_ view: ReviewMediaPresentationView, context: Context) {
         view.onChange = self.onChange
     }
 
-    static func dismantleUIView(_ view: MacReviewMediaPresentationView, coordinator: Void) {
+    static func dismantleUIView(_ view: ReviewMediaPresentationView, coordinator: Void) {
         let id = view.presentationID
         let onChange = view.onChange
         DispatchQueue.main.async { onChange(id, false) }
     }
 }
 
-final class MacReviewMediaPresentationView: UIView {
+final class ReviewMediaPresentationView: UIView {
     let presentationID = UUID()
     var onChange: (UUID, Bool) -> Void
 
@@ -173,4 +195,3 @@ final class MacReviewMediaPresentationView: UIView {
         DispatchQueue.main.async { onChange(id, isPresented) }
     }
 }
-#endif

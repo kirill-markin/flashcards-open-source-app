@@ -16,7 +16,14 @@ func makeReviewSelectableContent(
 
     func appendAttachment(view: AnyView, text: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout, attributes: [NSAttributedString.Key: Any], to destination: NSMutableAttributedString) {
         let value = NSMutableAttributedString(attachment: ReviewContentAttachment(
-            content: AnyView(view.environment(\.self, environment)),
+            content: AnyView(view.transformEnvironment(\.self) { hostedEnvironment in
+                // The hosting controller derives these from its own window and accessibility state.
+                let accessibilityEnabled = hostedEnvironment.accessibilityEnabled
+                let legibilityWeight = hostedEnvironment.legibilityWeight
+                hostedEnvironment = environment
+                hostedEnvironment.accessibilityEnabled = accessibilityEnabled
+                hostedEnvironment.legibilityWeight = legibilityWeight
+            }),
             copyText: text,
             accessibility: accessibility,
             layout: layout
@@ -301,11 +308,7 @@ func makeReviewSelectableContent(
             case .markdown(let markdown, let formulas):
                 try appendMarkdown(markdown, formulas: formulas)
             case .formula(let formula):
-                #if targetEnvironment(macCatalyst)
-                appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, rendering: MacReviewFormulaState())), text: formula.originalSource, accessibility: .text(formula.originalSource), layout: .block, attributes: [:], to: result)
-                #else
-                appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle)), text: formula.originalSource, accessibility: .text(formula.originalSource), layout: .block, attributes: [:], to: result)
-                #endif
+                appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, rendering: ReviewFormulaState())), text: formula.originalSource, accessibility: .text(formula.originalSource), layout: .block, attributes: [:], to: result)
             case .managedMedia(let reference):
                 appendAttachment(view: makeReviewManagedMediaCell(reference: reference, surfaceStyle: surfaceStyle), text: reviewMediaCopyText(item: .managed(reference)), accessibility: reviewManagedMediaAccessibility(reference: reference), layout: .block, attributes: [:], to: result)
             case .mediaGallery(let items):
@@ -335,20 +338,12 @@ func makeReviewSelectableContent(
 
 @MainActor
 private func makeReviewManagedMediaCell(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle) -> AnyView {
-    #if targetEnvironment(macCatalyst)
-    AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState()))
-    #else
-    AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle))
-    #endif
+    AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle, retainedState: ReviewManagedMediaState()))
 }
 
 @MainActor
 private func makeReviewLinkedImageCell(url: URL) -> AnyView {
-    #if targetEnvironment(macCatalyst)
-    AnyView(MacReviewImageView(state: MacReviewImageState(url: url)))
-    #else
-    AnyView(DefaultImageProvider.default.makeImage(url: url))
-    #endif
+    AnyView(ReviewLinkedImageView(state: ReviewLinkedImageState(url: url)))
 }
 
 private func reviewMediaCopyText(item: ReviewMediaGalleryItem) -> String {

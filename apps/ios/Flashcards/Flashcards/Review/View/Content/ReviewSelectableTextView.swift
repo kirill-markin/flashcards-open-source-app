@@ -296,11 +296,7 @@ enum ReviewContentAttachmentAccessibility {
 final class ReviewContentAttachment: NSTextAttachment {
     @MainActor private static let contentType: String = {
         let contentType = "com.nibomo.review-content"
-        #if targetEnvironment(macCatalyst)
-        NSTextAttachment.registerViewProviderClass(MacReviewContentAttachmentProvider.self, forFileType: contentType)
-        #else
         NSTextAttachment.registerViewProviderClass(ReviewContentAttachmentProvider.self, forFileType: contentType)
-        #endif
         return contentType
     }()
 
@@ -308,15 +304,10 @@ final class ReviewContentAttachment: NSTextAttachment {
     let copyText: String
     let accessibility: ReviewContentAttachmentAccessibility
     private let layout: ReviewContentAttachmentLayout
-    weak var accessibilityView: UIView?
     @MainActor weak var selectionTextView: ReviewSelectionTextView?
-    #if targetEnvironment(macCatalyst)
+    // TextKit creates a provider, and so a hosted view, per layout of this attachment; state that
+    // must outlive one provider lives in the content's state objects, not in a hosted view.
     @MainActor private let hostedViews = NSHashTable<UIView>.weakObjects()
-    #else
-    @MainActor private var hostingController: UIHostingController<AnyView>?
-    @MainActor private var isSizeNotificationScheduled = false
-    @MainActor private var notifiedBoundsByWidth: [CGFloat: CGRect] = [:]
-    #endif
 
     @MainActor
     init(content: AnyView, copyText: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout) {
@@ -331,14 +322,9 @@ final class ReviewContentAttachment: NSTextAttachment {
 
     @MainActor
     fileprivate func accessibilityView(in textView: ReviewSelectionTextView) -> UIView? {
-        #if targetEnvironment(macCatalyst)
-        return self.hostedViews.allObjects.first { $0.isDescendant(of: textView) }
-        #else
-        return self.accessibilityView
-        #endif
+        self.hostedViews.allObjects.first { $0.isDescendant(of: textView) }
     }
 
-    #if targetEnvironment(macCatalyst)
     @MainActor
     func copyForTableCell() -> ReviewContentAttachment {
         ReviewContentAttachment(content: self.content, copyText: self.copyText, accessibility: self.accessibility, layout: self.layout)
@@ -346,7 +332,6 @@ final class ReviewContentAttachment: NSTextAttachment {
 
     @MainActor
     fileprivate func registerHostedView(_ view: UIView) { self.hostedViews.add(view) }
-    #endif
 
     // The view provider renders the content; form labels must not also draw a fallback file icon.
     nonisolated override func image(for bounds: CGRect, attributes: [NSAttributedString.Key: Any], location: any NSTextLocation, textContainer: NSTextContainer?) -> UIImage? {
@@ -358,21 +343,6 @@ final class ReviewContentAttachment: NSTextAttachment {
         provider?.tracksTextAttachmentViewBounds = true
         return provider
     }
-
-    #if !targetEnvironment(macCatalyst)
-    @MainActor
-    private func hostedController() -> UIHostingController<AnyView> {
-        if let controller = self.hostingController { return controller }
-        let controller = self.makeHostedController { [weak self] in self?.scheduleSizeNotification() }
-        self.hostingController = controller
-        controller.view.backgroundColor = .clear
-        controller.view.isAccessibilityElement = false
-        return controller
-    }
-
-    @MainActor
-    fileprivate func hostedView() -> UIView { self.hostedController().view }
-    #endif
 
     @MainActor
     fileprivate func makeHostedController(onSizeChange: @escaping () -> Void) -> UIHostingController<AnyView> {
@@ -393,13 +363,6 @@ final class ReviewContentAttachment: NSTextAttachment {
         return controller
     }
 
-    #if !targetEnvironment(macCatalyst)
-    @MainActor
-    private func measuredBounds(width: CGFloat) -> CGRect {
-        self.measuredBounds(width: width, controller: self.hostedController())
-    }
-    #endif
-
     @MainActor
     fileprivate func measuredBounds(width: CGFloat, controller: UIHostingController<AnyView>) -> CGRect {
         let size = controller.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
@@ -416,46 +379,9 @@ final class ReviewContentAttachment: NSTextAttachment {
             height: (max(size.height, 1) * scale).rounded(.up) / scale
         ))
     }
-
-    #if !targetEnvironment(macCatalyst)
-    @MainActor
-    fileprivate func layoutBounds(proposedWidth: CGFloat) -> CGRect {
-        let width = max(proposedWidth, 1)
-        let bounds = self.measuredBounds(width: width)
-        // TextKit re-lays attachments on its own when the hosted view resizes (a loaded image
-        // replacing its placeholder); only the first size per width is what SwiftUI measured.
-        if self.notifiedBoundsByWidth[width] == nil { self.notifiedBoundsByWidth[width] = bounds }
-        return bounds
-    }
-
-    @MainActor
-    private func scheduleSizeNotification() {
-        guard self.isSizeNotificationScheduled == false else { return }
-        self.isSizeNotificationScheduled = true
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            defer { self.isSizeNotificationScheduled = false }
-            guard let textView = self.selectionTextView else { return }
-            // Measurement proposals can precede display; asynchronous changes use the actual owner width.
-            let width = textView.bounds.width - textView.textContainerInset.left - textView.textContainerInset.right
-                - 2 * textView.textContainer.lineFragmentPadding
-            guard width > 0 else { return }
-            let bounds = self.measuredBounds(width: width)
-            guard self.notifiedBoundsByWidth[width] != bounds else { return }
-            self.notifiedBoundsByWidth[width] = bounds
-            if let manager = textView.textLayoutManager, let range = manager.textContentManager?.documentRange {
-                manager.invalidateLayout(for: range)
-            }
-            textView.invalidateIntrinsicContentSize()
-            textView.setNeedsLayout()
-            textView.onAttachmentSizeChange?()
-        }
-    }
-    #endif
 }
 
-#if targetEnvironment(macCatalyst)
-private final class MacReviewContentAttachmentProvider: NSTextAttachmentViewProvider {
+private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvider {
     @MainActor private var hostingController: UIHostingController<AnyView>?
     @MainActor private var lastMeasurementWidth: CGFloat?
     @MainActor private var notifiedBoundsByWidth: [CGFloat: CGRect] = [:]
@@ -472,7 +398,8 @@ private final class MacReviewContentAttachmentProvider: NSTextAttachmentViewProv
     }
 
     nonisolated override func loadView() {
-        nonisolated(unsafe) let provider: MacReviewContentAttachmentProvider = self
+        // TextKit's Objective-C callbacks lack the UI host's main-actor annotations.
+        nonisolated(unsafe) let provider: ReviewContentAttachmentProvider = self
         MainActor.assumeIsolated {
             guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return }
             provider.view = provider.hostedController(for: attachment).view
@@ -482,7 +409,7 @@ private final class MacReviewContentAttachmentProvider: NSTextAttachmentViewProv
     }
 
     nonisolated override func attachmentBounds(for attributes: [NSAttributedString.Key: Any], location: any NSTextLocation, textContainer: NSTextContainer?, proposedLineFragment: CGRect, position: CGPoint) -> CGRect {
-        nonisolated(unsafe) let provider: MacReviewContentAttachmentProvider = self
+        nonisolated(unsafe) let provider: ReviewContentAttachmentProvider = self
         return MainActor.assumeIsolated {
             guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return .zero }
             let width = max(proposedLineFragment.width, 1)
@@ -517,25 +444,3 @@ private final class MacReviewContentAttachmentProvider: NSTextAttachmentViewProv
         }
     }
 }
-#else
-private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvider {
-    nonisolated override func loadView() {
-        // TextKit's Objective-C callbacks lack the UI host's main-actor annotations.
-        nonisolated(unsafe) let provider: ReviewContentAttachmentProvider = self
-        MainActor.assumeIsolated {
-            guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return }
-            provider.view = attachment.hostedView()
-            attachment.accessibilityView = provider.view
-            attachment.selectionTextView?.rebuildAccessibilityContent()
-        }
-    }
-
-    nonisolated override func attachmentBounds(for attributes: [NSAttributedString.Key: Any], location: any NSTextLocation, textContainer: NSTextContainer?, proposedLineFragment: CGRect, position: CGPoint) -> CGRect {
-        nonisolated(unsafe) let provider: ReviewContentAttachmentProvider = self
-        return MainActor.assumeIsolated {
-            guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return .zero }
-            return attachment.layoutBounds(proposedWidth: proposedLineFragment.width)
-        }
-    }
-}
-#endif
