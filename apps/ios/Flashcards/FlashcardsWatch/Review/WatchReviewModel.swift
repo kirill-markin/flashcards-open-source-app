@@ -100,6 +100,12 @@ final class WatchReviewModel {
             return
         }
         self.requestedReviewFilter = reviewFilter
+        // Picking the scope already shown, such as the all-cards fallback the iPhone saves after the selected
+        // deck was deleted, keeps the card, as on iPhone.
+        guard reviewFilter != self.reviewState.selectedReviewFilter else {
+            self.requestReload(intent: .keepShownCard)
+            return
+        }
         self.revealedCardId = nil
         self.requestReload(intent: .startNewSession)
     }

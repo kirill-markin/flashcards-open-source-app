@@ -280,8 +280,8 @@ extension ReviewQueueRuntime {
             decks: validationContext.decks,
             cards: validationContext.cards
         )
-        // Callers resolve tag names in different orders (card order here, SQL order on the watch), and
-        // the SQL filter ignores order, so only the set of exact tag names counts.
+        // Callers resolve tag names in different orders and letter cases (card order here, SQL order on the
+        // watch), and the review filter ignores both, so only the set of tag keys counts.
         return makeTagOrderIndependentReviewSubmissionContext(context: currentReviewContext)
             != makeTagOrderIndependentReviewSubmissionContext(context: request.reviewContext)
     }
@@ -399,30 +399,45 @@ extension ReviewQueueRuntime {
 }
 
 private func makeTagOrderIndependentReviewSubmissionContext(context: ReviewSubmissionContext) -> ReviewSubmissionContext {
-    // Scalar order keeps NFC and NFD spellings distinct, as the byte-exact card_tags lookup does.
-    func sortedTagNames(tagNames: [String]) -> [String] {
-        tagNames.sorted { leftTagName, rightTagName in
-            leftTagName.unicodeScalars.lexicographicallyPrecedes(rightTagName.unicodeScalars)
+    // The review filter matches tags by `normalizeTagKey`. Scalar-exact deduplication and scalar order keep
+    // NFC and NFD spellings distinct, as the byte-exact card_tags lookup does.
+    func sortedTagKeys(tagNames: [String]) -> [String] {
+        var seenTagKeyScalars = Set<[Unicode.Scalar]>()
+        return tagNames.map(normalizeTagKey).filter { tagKey in
+            seenTagKeyScalars.insert(Array(tagKey.unicodeScalars)).inserted
+        }.sorted { leftTagKey, rightTagKey in
+            leftTagKey.unicodeScalars.lexicographicallyPrecedes(rightTagKey.unicodeScalars)
         }
+    }
+
+    let selectedReviewFilter: ReviewFilter
+    switch context.selectedReviewFilter {
+    case .allCards, .deck:
+        selectedReviewFilter = context.selectedReviewFilter
+    case .tags(let tags):
+        selectedReviewFilter = .tags(tags: sortedTagKeys(tagNames: tags))
     }
 
     switch context.reviewQueryDefinition {
     case .allCards:
-        return context
+        return ReviewSubmissionContext(
+            selectedReviewFilter: selectedReviewFilter,
+            reviewQueryDefinition: .allCards
+        )
     case .deck(let filterDefinition):
         return ReviewSubmissionContext(
-            selectedReviewFilter: context.selectedReviewFilter,
+            selectedReviewFilter: selectedReviewFilter,
             reviewQueryDefinition: .deck(
                 filterDefinition: DeckFilterDefinition(
                     version: filterDefinition.version,
-                    tags: sortedTagNames(tagNames: filterDefinition.tags)
+                    tags: sortedTagKeys(tagNames: filterDefinition.tags)
                 )
             )
         )
     case .tag(let exactTagNames):
         return ReviewSubmissionContext(
-            selectedReviewFilter: context.selectedReviewFilter,
-            reviewQueryDefinition: .tag(exactTagNames: sortedTagNames(tagNames: exactTagNames))
+            selectedReviewFilter: selectedReviewFilter,
+            reviewQueryDefinition: .tag(exactTagNames: sortedTagKeys(tagNames: exactTagNames))
         )
     }
 }
