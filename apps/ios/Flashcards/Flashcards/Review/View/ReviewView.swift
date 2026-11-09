@@ -1183,13 +1183,14 @@ struct ReviewView: View {
     private func openReviewTextSelection(card: Card, side: ReviewCardSurfaceStyle) {
         guard self.currentCard?.cardId == card.cardId else { return }
         guard side == .front || self.reviewScreen.isAnswerVisible else { return }
+        let sourceText = side == .front ? card.frontText : card.backText
         self.textSelection = ReviewCardTextSelection(
             id: UUID(),
             cardId: card.cardId,
             title: side == .front
                 ? String(localized: "Front", table: reviewCardsStringsTableName)
                 : String(localized: "Back", table: reviewCardsStringsTableName),
-            sourceText: side == .front ? card.frontText : card.backText
+            text: Result { try reviewCardSideCopyText(sourceText: sourceText) }
         )
     }
 

@@ -5,7 +5,7 @@ struct ReviewCardTextSelection: Identifiable {
     let id: UUID
     let cardId: String
     let title: String
-    let sourceText: String
+    let text: Result<String, any Error>
 }
 
 struct ReviewCardTextSelectionSheet: View {
@@ -15,10 +15,14 @@ struct ReviewCardTextSelectionSheet: View {
 
     var body: some View {
         NavigationStack {
-            ReviewCardSelectableTextView(
-                sourceText: self.selection.sourceText,
-                accessibilityLabel: self.selection.title
-            )
+            Group {
+                switch self.selection.text {
+                case .success(let text):
+                    ReviewCardSelectableTextView(text: text, accessibilityLabel: self.selection.title)
+                case .failure(let error):
+                    ContentUnavailableView(error.localizedDescription, systemImage: "exclamationmark.triangle")
+                }
+            }
             .navigationTitle(self.selection.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -34,7 +38,7 @@ struct ReviewCardTextSelectionSheet: View {
 }
 
 private struct ReviewCardSelectableTextView: UIViewRepresentable {
-    let sourceText: String
+    let text: String
     let accessibilityLabel: String
 
     func makeUIView(context: Context) -> UITextView {
@@ -50,15 +54,15 @@ private struct ReviewCardSelectableTextView: UIViewRepresentable {
         textView.textAlignment = .natural
         textView.textContainerInset = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         textView.textContainer.lineFragmentPadding = 0
-        textView.text = self.sourceText
+        textView.text = self.text
         textView.accessibilityLabel = self.accessibilityLabel
         textView.accessibilityIdentifier = UITestIdentifier.reviewTextSelectionTextView
         return textView
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
-        if textView.text != self.sourceText {
-            textView.text = self.sourceText
+        if textView.text != self.text {
+            textView.text = self.text
         }
         textView.accessibilityLabel = self.accessibilityLabel
     }
