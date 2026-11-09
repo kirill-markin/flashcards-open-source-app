@@ -518,6 +518,7 @@ const skCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Obnovuje sa relácia. Skúste to znova o chvíľu.",
     sessionUnavailable: "Relácia nie je dostupná",
     syncing: "Synchronizuje sa...",
+    syncFailed: "Synchronizácia zlyhala",
     workspaceUnavailable: "Pracovný priestor nie je dostupný",
   },
   accountMenu: {

@@ -510,6 +510,7 @@ const isCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Endurheimti lotu. Reyndu aftur eftir andartak.",
     sessionUnavailable: "Lota er ekki tiltæk",
     syncing: "Samstilli...",
+    syncFailed: "Samstilling mistókst",
     workspaceUnavailable: "Vinnusvæði ekki tiltækt",
   },
   accountMenu: {

@@ -510,6 +510,7 @@ const knCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "ಸೆಷನ್ ಮರುಸ್ಥಾಪಿಸಲಾಗುತ್ತಿದೆ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     sessionUnavailable: "ಸೆಷನ್ ಲಭ್ಯವಿಲ್ಲ",
     syncing: "ಸಿಂಕ್ ಆಗುತ್ತಿದೆ...",
+    syncFailed: "ಸಿಂಕ್ ವಿಫಲವಾಗಿದೆ",
     workspaceUnavailable: "ಕಾರ್ಯಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ",
   },
   accountMenu: {

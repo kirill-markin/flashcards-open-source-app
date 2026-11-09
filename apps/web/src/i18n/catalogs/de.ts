@@ -510,6 +510,7 @@ const deCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Sitzung wird wiederhergestellt. Versuche es gleich noch einmal.",
     sessionUnavailable: "Sitzung ist nicht verfügbar",
     syncing: "Synchronisierung läuft...",
+    syncFailed: "Synchronisierung fehlgeschlagen",
     workspaceUnavailable: "Arbeitsbereich nicht verfügbar",
   },
   accountMenu: {

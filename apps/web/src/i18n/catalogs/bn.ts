@@ -510,6 +510,7 @@ const bnCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "সেশন পুনরুদ্ধার করা হচ্ছে। একটু পরে আবার চেষ্টা করুন।",
     sessionUnavailable: "সেশন উপলভ্য নয়",
     syncing: "সিঙ্ক হচ্ছে...",
+    syncFailed: "সিঙ্ক ব্যর্থ হয়েছে।",
     workspaceUnavailable: "কর্মক্ষেত্র উপলভ্য নয়",
   },
   accountMenu: {

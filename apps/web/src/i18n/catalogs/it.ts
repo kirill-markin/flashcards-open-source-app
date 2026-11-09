@@ -510,6 +510,7 @@ const itCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Ripristino della sessione. Riprova tra un istante.",
     sessionUnavailable: "Sessione non disponibile",
     syncing: "Sincronizzazione...",
+    syncFailed: "Sincronizzazione non riuscita",
     workspaceUnavailable: "Area di lavoro non disponibile",
   },
   accountMenu: {

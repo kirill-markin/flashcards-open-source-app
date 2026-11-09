@@ -510,6 +510,7 @@ const urCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "سیشن بحال ہو رہا ہے۔ تھوڑی دیر بعد دوبارہ کوشش کریں۔",
     sessionUnavailable: "سیشن دستیاب نہیں ہے",
     syncing: "ہم وقت سازی ہو رہی ہے...",
+    syncFailed: "ہم وقت سازی ناکام",
     workspaceUnavailable: "ورک اسپیس دستیاب نہیں",
   },
   accountMenu: {
