@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useMemo,
   type ReactElement,
   type RefObject,
 } from "react";
@@ -16,7 +17,9 @@ import {
   parseManagedImageMarkdownReferences,
   type ManagedMediaReferenceState,
 } from "../../../../media/managedMediaMarkdown";
+import { cardTextHasPreviewText } from "../../../../components/cardPreviewMarkdown";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
+import { normalizeReviewMarkdownForWeb } from "./reviewMarkdownNormalization";
 import reviewMathBlocks, {
   escapeRejectedReviewMathDollars,
   normalizeReviewPlainTextEscapedDollars,
@@ -27,13 +30,11 @@ import { useI18n } from "../../../../i18n";
 import { reviewSpeechShortcutKey } from "../../input/reviewShortcutKeys";
 import { ReviewShortcutHint } from "../ReviewShortcutHint";
 
-const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
-const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
-const REVIEW_MARKDOWN_DISPLAY_MATH_DELIMITER_PATTERN = /^[ \t]*\$\$[ \t]*$/;
 const REVIEW_MARKDOWN_GALLERY_SEPARATOR_PATTERN = /^[ \t\r\n]*$/;
 
-type MarkdownFenceMarker = "`" | "~";
 type ReviewMarkdownRenderContextValue = Readonly<{
+  /** Empty when the side has other text, so its empty-alt images stay decorative for screen readers. */
+  emptyImageAltText: string;
   localReadVersion: number;
   workspaceId: string | null;
 }>;
@@ -129,77 +130,6 @@ function useReviewMarkdownRenderContext(): ReviewMarkdownRenderContextValue {
   return contextValue;
 }
 
-function toMarkdownFenceMarker(line: string): MarkdownFenceMarker | null {
-  const match = REVIEW_MARKDOWN_FENCE_PATTERN.exec(line);
-
-  if (match === null) {
-    return null;
-  }
-
-  const marker = match[1]?.[0];
-  if (marker === "`" || marker === "~") {
-    return marker;
-  }
-
-  return null;
-}
-
-function escapeSymbolOnlyListItem(line: string): string {
-  const match = REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN.exec(line);
-
-  if (match === null) {
-    return line;
-  }
-
-  const listMarker = match[1];
-  const symbolToken = match[2];
-  const trailingWhitespace = match[3];
-
-  return `${listMarker}\\${symbolToken}${trailingWhitespace}`;
-}
-
-export function normalizeReviewMarkdownForWeb(text: string): string {
-  const lines = text.split("\n");
-  const normalizedLines: Array<string> = [];
-  let activeFenceMarker: MarkdownFenceMarker | null = null;
-  let isInsideDisplayMath = false;
-
-  for (const line of lines) {
-    const lineFenceMarker = toMarkdownFenceMarker(line);
-
-    if (activeFenceMarker !== null) {
-      normalizedLines.push(line);
-
-      if (lineFenceMarker === activeFenceMarker) {
-        activeFenceMarker = null;
-      }
-
-      continue;
-    }
-
-    if (REVIEW_MARKDOWN_DISPLAY_MATH_DELIMITER_PATTERN.test(line)) {
-      isInsideDisplayMath = !isInsideDisplayMath;
-      normalizedLines.push(line);
-      continue;
-    }
-
-    if (isInsideDisplayMath) {
-      normalizedLines.push(line);
-      continue;
-    }
-
-    if (lineFenceMarker !== null) {
-      activeFenceMarker = lineFenceMarker;
-      normalizedLines.push(line);
-      continue;
-    }
-
-    normalizedLines.push(escapeSymbolOnlyListItem(line));
-  }
-
-  return normalizedLines.join("\n");
-}
-
 const reviewMarkdownComponents: Components = {
   div: function ReviewMarkdownDiv({ children, node }) {
     const formulaSource = node?.properties["data-formula-source"];
@@ -226,6 +156,7 @@ const reviewMarkdownComponents: Components = {
     return <span>{children}</span>;
   },
   a: function ReviewMarkdownAnchor({ children, href, title }) {
+    const { t } = useI18n();
     const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
     const mediaReference = parseManagedMediaUrlReference(href);
     if (mediaReference !== null) {
@@ -233,6 +164,7 @@ const reviewMarkdownComponents: Components = {
         <ManagedMediaReference
           key={createManagedMediaReferenceKey(workspaceId, mediaReference.mediaAssetId, mediaReference.state)}
           altText=""
+          emptyImageAltText={t("reviewScreen.media.imageAlt")}
           localReadVersion={localReadVersion}
           mediaAssetId={mediaReference.mediaAssetId}
           referencePresentation="link"
@@ -316,13 +248,14 @@ const reviewMarkdownComponents: Components = {
     return <pre className={reviewMarkdownClassName("pre")}>{children}</pre>;
   },
   img: function ReviewMarkdownImage({ alt, src, title }) {
-    const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
+    const { emptyImageAltText, localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
     const mediaReference = parseManagedMediaUrlReference(src);
     if (mediaReference !== null) {
       return (
         <ManagedMediaReference
           key={createManagedMediaReferenceKey(workspaceId, mediaReference.mediaAssetId, mediaReference.state)}
           altText={alt ?? ""}
+          emptyImageAltText={emptyImageAltText}
           localReadVersion={localReadVersion}
           mediaAssetId={mediaReference.mediaAssetId}
           referencePresentation="image"
@@ -370,9 +303,13 @@ export function ReviewCardMarkdown(props: Readonly<{
   // review math contract does, so the rejected dollars are escaped before the
   // parse and the transform only has to confirm the nodes it is handed.
   const markdownText = containsDollarSign ? escapeRejectedReviewMathDollars(normalizedText) : normalizedText;
+  const { t } = useI18n();
+  // Only image renders read this, so text without image syntax skips the second parse (chat streams through here).
+  const hasPreviewText = useMemo(() => !text.includes("![") || cardTextHasPreviewText(text), [text]);
+  const emptyImageAltText = hasPreviewText ? "" : t("reviewScreen.media.imageAlt");
 
   return (
-    <ReviewMarkdownRenderContext.Provider value={{ localReadVersion, workspaceId }}>
+    <ReviewMarkdownRenderContext.Provider value={{ emptyImageAltText, localReadVersion, workspaceId }}>
       <ReactMarkdown
         urlTransform={reviewMarkdownUrlTransform}
         components={reviewMarkdownComponents}

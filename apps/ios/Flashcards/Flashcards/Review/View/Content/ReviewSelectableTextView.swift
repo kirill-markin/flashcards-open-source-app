@@ -164,8 +164,14 @@ final class ReviewSelectionTextView: UITextView, UITextViewDelegate, UIGestureRe
                 elements.append(view)
             } else {
                 let element = ReviewSelectionAccessibilityElement(textView: self, range: range)
-                element.accessibilityLabel = attachment.copyText
-                element.accessibilityTraits = .staticText
+                switch attachment.accessibility {
+                case .text(let label):
+                    element.accessibilityLabel = label
+                    element.accessibilityTraits = .staticText
+                case .image(let label):
+                    element.accessibilityLabel = label
+                    element.accessibilityTraits = .image
+                }
                 elements.append(element)
             }
             start = NSMaxRange(range)
@@ -280,6 +286,13 @@ enum ReviewContentAttachmentLayout {
     case block
 }
 
+/// What VoiceOver reads for an attachment whose hosted view is not in the text view.
+enum ReviewContentAttachmentAccessibility {
+    case text(String)
+    /// An image without a description has no label, so VoiceOver announces it as an image.
+    case image(label: String?)
+}
+
 final class ReviewContentAttachment: NSTextAttachment {
     @MainActor private static let contentType: String = {
         let contentType = "com.nibomo.review-content"
@@ -293,6 +306,7 @@ final class ReviewContentAttachment: NSTextAttachment {
 
     let content: AnyView
     let copyText: String
+    let accessibility: ReviewContentAttachmentAccessibility
     private let layout: ReviewContentAttachmentLayout
     weak var accessibilityView: UIView?
     @MainActor weak var selectionTextView: ReviewSelectionTextView?
@@ -305,9 +319,10 @@ final class ReviewContentAttachment: NSTextAttachment {
     #endif
 
     @MainActor
-    init(content: AnyView, copyText: String, layout: ReviewContentAttachmentLayout) {
+    init(content: AnyView, copyText: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout) {
         self.content = content
         self.copyText = copyText
+        self.accessibility = accessibility
         self.layout = layout
         super.init(data: nil, ofType: Self.contentType)
     }
@@ -326,7 +341,7 @@ final class ReviewContentAttachment: NSTextAttachment {
     #if targetEnvironment(macCatalyst)
     @MainActor
     func copyForTableCell() -> ReviewContentAttachment {
-        ReviewContentAttachment(content: self.content, copyText: self.copyText, layout: self.layout)
+        ReviewContentAttachment(content: self.content, copyText: self.copyText, accessibility: self.accessibility, layout: self.layout)
     }
 
     @MainActor
