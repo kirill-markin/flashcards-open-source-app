@@ -1138,11 +1138,15 @@ const ptBrCatalog: TranslationCatalog = {
       ariaLabel: "Abrir ranking",
     },
     progressBadge: {
-      ariaLabel: "Sequência de revisões de {{streak}} dias. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Sequência de revisões de {{streak}} dias. {{todayStatus}}.",
+      ariaLabel: "Sequência de revisões de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Sequência de revisões de {{streak}}. {{todayStatus}}.",
       freezeBank: "Reserva de congelamentos {{available}} de {{capacity}}",
       notReviewedToday: "Não revisado hoje",
       reviewedToday: "Revisado hoje",
+      streakDayCount: {
+        one: "dia",
+        other: "dias",
+      },
       title: "Sequência",
     },
     interval: {

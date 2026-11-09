@@ -19,7 +19,7 @@ import {
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import { completeCatalogImmediateStudy } from "../catalog/catalogImmediateAttempt";
-import type { Card } from "../../types";
+import type { Card, ReviewFilter } from "../../types";
 import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewCardCopyButtonHandle } from "./components/card/ReviewCardCopyButton";
@@ -187,6 +187,7 @@ export function useReviewScreenController(
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
+    menuReviewFilter,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
     reviewFilterListboxId,
@@ -276,21 +277,28 @@ export function useReviewScreenController(
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
   const hasCards = localWorkspaceCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
-  const requestedReviewFilterTitle = resolveReviewFilterTitle(
-    selectedReviewFilter,
-    deckSummaries,
-    t("filters.allCards"),
-    t("reviewFilterMenu.noTags"),
-    formatCount(
-      selectedReviewFilter.kind === "tags" ? selectedReviewFilter.tags.length : 0,
-      messages.common.countLabels.tag,
-    ),
-  );
+  function resolveLocalizedReviewFilterTitle(reviewFilter: ReviewFilter): string {
+    return resolveReviewFilterTitle(
+      reviewFilter,
+      deckSummaries,
+      t("filters.allCards"),
+      t("reviewFilterMenu.noTags"),
+      formatCount(
+        reviewFilter.kind === "tags" ? reviewFilter.tags.length : 0,
+        messages.common.countLabels.tag,
+      ),
+    );
+  }
+  const requestedReviewFilterTitle = resolveLocalizedReviewFilterTitle(selectedReviewFilter);
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.resolvedReviewFilterTitle
     : isReviewLoading
       ? requestedReviewFilterTitle
       : selectedReviewFilterTitle;
+  // An open menu's tag rows apply on close, so the trigger names that selection at once, as a deck choice does.
+  const reviewFilterTriggerTitle = isReviewFilterEqual(menuReviewFilter, selectedReviewFilter)
+    ? visibleSelectedReviewFilterTitle
+    : resolveLocalizedReviewFilterTitle(menuReviewFilter);
   const visibleQueueCardsCount = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.queuePreview.length
     : queueCards.length;
@@ -675,7 +683,7 @@ export function useReviewScreenController(
         reviewFilterMenuRef,
         reviewFilterMenuItems,
         reviewFilterTriggerRef,
-        selectedReviewFilterTitle: visibleSelectedReviewFilterTitle,
+        selectedReviewFilterTitle: reviewFilterTriggerTitle,
         setReviewDeckSearchText,
         shouldShowReviewDeckSearch,
         visibleReviewDeckFilterMenuItems,

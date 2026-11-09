@@ -1138,11 +1138,15 @@ const knCatalog: TranslationCatalog = {
       ariaLabel: "ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ತೆರೆಯಿರಿ",
     },
     progressBadge: {
-      ariaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}} ದಿನಗಳು. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}} ದಿನಗಳು. {{todayStatus}}.",
+      ariaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}}. {{todayStatus}}.",
       freezeBank: "ಫ್ರೀಜ್ ಬ್ಯಾಂಕ್ {{capacity}} ರಲ್ಲಿ {{available}}",
       notReviewedToday: "ಇಂದು ಪುನರಾವರ್ತನೆ ಆಗಿಲ್ಲ",
       reviewedToday: "ಇಂದು ಪುನರಾವರ್ತನೆ ಆಗಿದೆ",
+      streakDayCount: {
+        one: "ದಿನ",
+        other: "ದಿನಗಳು",
+      },
       title: "ನಿರಂತರತೆ",
     },
     interval: {

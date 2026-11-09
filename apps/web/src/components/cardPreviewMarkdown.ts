@@ -16,10 +16,13 @@ export type CardPreviewSegment =
   | Readonly<{ kind: "prose"; value: string }>
   | Readonly<{ kind: "formula"; delimitedSource: string; value: string }>;
 
+/** An image stays apart from the prose until its neighbours are known, see `resolvePreviewImages`. */
+type CollectedPreviewSegment = CardPreviewSegment | Readonly<{ kind: "image"; label: string }>;
+
 const previewMarkdownProcessor = unified().use(remarkParse).use(remarkGfm).use(remarkMath);
 const MARKDOWN_ESCAPED_PUNCTUATION_PATTERN = /\\([!-/:-@[-`{-~])/g;
 const MARKDOWN_IMAGE_PATTERN = /!\[((?:\\.|[^\\\]])*)\]\((?:<[^>\n]*>|[^)\s]+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'))?\)/g;
-const BLOCK_SEPARATOR_SEGMENT: CardPreviewSegment = { kind: "prose", value: " " };
+const BLOCK_SEPARATOR_SEGMENT: CollectedPreviewSegment = { kind: "prose", value: " " };
 
 function collapsePreviewWhitespace(text: string): string {
   return text.replace(/\s+/g, " ");
@@ -43,8 +46,8 @@ function collectChildSegments(
   children: ReadonlyArray<Nodes>,
   source: string,
   emptyImageAltText: string,
-  separator: ReadonlyArray<CardPreviewSegment>,
-): ReadonlyArray<CardPreviewSegment> {
+  separator: ReadonlyArray<CollectedPreviewSegment>,
+): ReadonlyArray<CollectedPreviewSegment> {
   return children.flatMap((child, index) => [
     ...(index === 0 ? [] : separator),
     ...collectPreviewSegments(child, source, emptyImageAltText),
@@ -55,7 +58,7 @@ function collectChildSegments(
  * Walks the tree Review renders: math nodes left after the review math transform are the
  * accepted formulas, and raw HTML stays literal text exactly as Review shows it.
  */
-function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: string): ReadonlyArray<CardPreviewSegment> {
+function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: string): ReadonlyArray<CollectedPreviewSegment> {
   switch (node.type) {
     case "inlineMath":
     case "math":
@@ -71,7 +74,7 @@ function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: 
       return [{ kind: "prose", value: node.value }];
     case "image":
     case "imageReference":
-      return [{ kind: "prose", value: previewImageLabel(node.alt ?? "", emptyImageAltText) }];
+      return [{ kind: "image", label: previewImageLabel(node.alt ?? "", emptyImageAltText) }];
     case "break":
       return [BLOCK_SEPARATOR_SEGMENT];
     case "definition":
@@ -92,9 +95,37 @@ function collectPreviewSegments(node: Nodes, source: string, emptyImageAltText: 
   }
 }
 
+function readAdjacentProse(segments: ReadonlyArray<CollectedPreviewSegment>, start: number, step: 1 | -1): string {
+  const values: Array<string> = [];
+  for (let index = start; index >= 0 && index < segments.length; index += step) {
+    const segment = segments[index];
+    if (segment.kind !== "prose") {
+      break;
+    }
+    values.push(segment.value);
+  }
+  return collapsePreviewWhitespace((step === 1 ? values : values.reverse()).join("")).trim();
+}
+
+/**
+ * An image becomes its label, except when the label repeats the text right before or after it,
+ * up to the next image, formula or side end, so a prompt followed by its own image reads once.
+ */
+function resolvePreviewImages(segments: ReadonlyArray<CollectedPreviewSegment>): ReadonlyArray<CardPreviewSegment> {
+  return segments.flatMap((segment, index): ReadonlyArray<CardPreviewSegment> => {
+    if (segment.kind !== "image") {
+      return [segment];
+    }
+    const label = collapsePreviewWhitespace(segment.label);
+    const repeatsAdjacentText = label === readAdjacentProse(segments, index - 1, -1)
+      || label === readAdjacentProse(segments, index + 1, 1);
+    return repeatsAdjacentText ? [] : [{ kind: "prose", value: segment.label }];
+  });
+}
+
 /** Merges adjacent prose, collapses whitespace to single spaces and trims the line ends. */
-function normalizePreviewSegments(segments: ReadonlyArray<CardPreviewSegment>): ReadonlyArray<CardPreviewSegment> {
-  const mergedSegments = segments.reduce<ReadonlyArray<CardPreviewSegment>>((merged, segment) => {
+function normalizePreviewSegments(segments: ReadonlyArray<CollectedPreviewSegment>): ReadonlyArray<CardPreviewSegment> {
+  const mergedSegments = resolvePreviewImages(segments).reduce<ReadonlyArray<CardPreviewSegment>>((merged, segment) => {
     const previousSegment = merged.at(-1);
     if (segment.kind === "prose" && previousSegment?.kind === "prose") {
       return [...merged.slice(0, -1), { kind: "prose", value: previousSegment.value + segment.value }];

@@ -1148,11 +1148,16 @@ const skCatalog: TranslationCatalog = {
       ariaLabel: "Otvoriť rebríček",
     },
     progressBadge: {
-      ariaLabel: "Dni v sérii opakovania: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Dni v sérii opakovania: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Séria opakovania: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Séria opakovania: {{streak}}. {{todayStatus}}.",
       freezeBank: "Dostupné ochrany série: {{available}} z {{capacity}}",
       notReviewedToday: "Dnes ešte bez opakovania",
       reviewedToday: "Dnes zopakované",
+      streakDayCount: {
+        one: "deň",
+        few: "dni",
+        other: "dní",
+      },
       title: "Séria",
     },
     interval: {

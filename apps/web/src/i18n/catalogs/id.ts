@@ -1138,11 +1138,15 @@ const idCatalog: TranslationCatalog = {
       ariaLabel: "Buka papan peringkat",
     },
     progressBadge: {
-      ariaLabel: "Rentetan tinjauan {{streak}} hari. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Rentetan tinjauan {{streak}} hari. {{todayStatus}}.",
+      ariaLabel: "Rentetan tinjauan {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Rentetan tinjauan {{streak}}. {{todayStatus}}.",
       freezeBank: "Bank pembekuan {{available}} dari {{capacity}}",
       notReviewedToday: "Belum ditinjau hari ini",
       reviewedToday: "Sudah ditinjau hari ini",
+      streakDayCount: {
+        one: "hari",
+        other: "hari",
+      },
       title: "Rentetan",
     },
     interval: {

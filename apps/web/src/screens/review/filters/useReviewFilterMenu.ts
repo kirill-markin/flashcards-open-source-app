@@ -60,6 +60,8 @@ export type UseReviewFilterMenuResult = Readonly<{
   handleReviewFilterSelect: (optionKey: string, reviewFilter: ReviewFilter) => void;
   hasVisibleReviewFilterChoices: boolean;
   isReviewFilterMenuOpen: boolean;
+  /** The open menu's selection, applied on close; the committed filter while the menu is closed. */
+  menuReviewFilter: ReviewFilter;
   reviewDeckSearchInputRef: React.RefObject<HTMLInputElement | null>;
   reviewDeckSearchText: string;
   reviewFilterListboxId: string;
@@ -576,6 +578,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
+    menuReviewFilter: displayedReviewFilter,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
     reviewFilterListboxId: REVIEW_FILTER_LISTBOX_ID,

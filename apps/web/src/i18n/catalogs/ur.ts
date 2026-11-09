@@ -1138,11 +1138,15 @@ const urCatalog: TranslationCatalog = {
       ariaLabel: "درجہ بندی کھولیں",
     },
     progressBadge: {
-      ariaLabel: "دہرائی کا تسلسل {{streak}} دن۔ {{todayStatus}}۔ {{freezeBank}}۔",
-      reviewAriaLabel: "دہرائی کا تسلسل {{streak}} دن۔ {{todayStatus}}۔",
+      ariaLabel: "دہرائی کا تسلسل {{streak}}۔ {{todayStatus}}۔ {{freezeBank}}۔",
+      reviewAriaLabel: "دہرائی کا تسلسل {{streak}}۔ {{todayStatus}}۔",
       freezeBank: "فریز بینک {{capacity}} میں سے {{available}}",
       notReviewedToday: "آج دہرائی نہیں کی",
       reviewedToday: "آج دہرائی کی",
+      streakDayCount: {
+        one: "دن",
+        other: "دن",
+      },
       title: "تسلسل",
     },
     interval: {

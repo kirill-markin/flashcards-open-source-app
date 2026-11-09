@@ -1148,11 +1148,16 @@ const ukCatalog: TranslationCatalog = {
       ariaLabel: "Відкрити таблицю лідерів",
     },
     progressBadge: {
-      ariaLabel: "Серія повторень: {{streak}} днів. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Серія повторень: {{streak}} днів. {{todayStatus}}.",
+      ariaLabel: "Серія повторень: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Серія повторень: {{streak}}. {{todayStatus}}.",
       freezeBank: "Запас заморозок {{available}} з {{capacity}}",
       notReviewedToday: "Сьогодні не повторювали",
       reviewedToday: "Сьогодні повторено",
+      streakDayCount: {
+        one: "день",
+        few: "дні",
+        other: "днів",
+      },
       title: "Серія",
     },
     interval: {

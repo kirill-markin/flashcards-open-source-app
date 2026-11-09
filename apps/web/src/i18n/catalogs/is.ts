@@ -1138,11 +1138,15 @@ const isCatalog: TranslationCatalog = {
       ariaLabel: "Opna stigatöflu",
     },
     progressBadge: {
-      ariaLabel: "Dagar í upprifjunarrunu: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Dagar í upprifjunarrunu: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Upprifjunarruna: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Upprifjunarruna: {{streak}}. {{todayStatus}}.",
       freezeBank: "Runuvörn: {{available}} af {{capacity}}",
       notReviewedToday: "Ekki rifjað upp í dag",
       reviewedToday: "Rifjað upp í dag",
+      streakDayCount: {
+        one: "dagur",
+        other: "dagar",
+      },
       title: "Runa",
     },
     interval: {

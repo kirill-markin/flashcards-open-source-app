@@ -1138,11 +1138,15 @@ const caCatalog: TranslationCatalog = {
       ariaLabel: "Obre la classificació",
     },
     progressBadge: {
-      ariaLabel: "Ratxa de repàs de {{streak}} dies. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Ratxa de repàs de {{streak}} dies. {{todayStatus}}.",
+      ariaLabel: "Ratxa de repàs de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Ratxa de repàs de {{streak}}. {{todayStatus}}.",
       freezeBank: "Congelacions disponibles {{available}} de {{capacity}}",
       notReviewedToday: "Avui no has repassat",
       reviewedToday: "Avui has repassat",
+      streakDayCount: {
+        one: "dia",
+        other: "dies",
+      },
       title: "Ratxa",
     },
     interval: {

@@ -1138,11 +1138,15 @@ const mlCatalog: TranslationCatalog = {
       ariaLabel: "ലീഡർബോർഡ് തുറക്കുക",
     },
     progressBadge: {
-      ariaLabel: "അവലോകന തുടർച്ച {{streak}} ദിവസം. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "അവലോകന തുടർച്ച {{streak}} ദിവസം. {{todayStatus}}.",
+      ariaLabel: "അവലോകന തുടർച്ച {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "അവലോകന തുടർച്ച {{streak}}. {{todayStatus}}.",
       freezeBank: "ഫ്രീസ് ബാങ്ക് {{capacity}}-ൽ {{available}}",
       notReviewedToday: "ഇന്ന് അവലോകനം ചെയ്തിട്ടില്ല",
       reviewedToday: "ഇന്ന് അവലോകനം ചെയ്തു",
+      streakDayCount: {
+        one: "ദിവസം",
+        other: "ദിവസം",
+      },
       title: "തുടർച്ച",
     },
     interval: {

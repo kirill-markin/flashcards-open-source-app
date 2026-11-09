@@ -1138,11 +1138,15 @@ const itCatalog: TranslationCatalog = {
       ariaLabel: "Apri la classifica",
     },
     progressBadge: {
-      ariaLabel: "Serie di ripassi di {{streak}} giorni. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Serie di ripassi di {{streak}} giorni. {{todayStatus}}.",
+      ariaLabel: "Serie di ripassi di {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Serie di ripassi di {{streak}}. {{todayStatus}}.",
       freezeBank: "Riserva congelamenti {{available}} di {{capacity}}",
       notReviewedToday: "Oggi non hai ripassato",
       reviewedToday: "Oggi hai ripassato",
+      streakDayCount: {
+        one: "giorno",
+        other: "giorni",
+      },
       title: "Serie",
     },
     interval: {

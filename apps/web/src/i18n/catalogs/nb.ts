@@ -1138,11 +1138,15 @@ const nbCatalog: TranslationCatalog = {
       ariaLabel: "Åpne ledertavlen",
     },
     progressBadge: {
-      ariaLabel: "Repetisjonsrekke {{streak}} dager. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Repetisjonsrekke {{streak}} dager. {{todayStatus}}.",
+      ariaLabel: "Repetisjonsrekke {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Repetisjonsrekke {{streak}}. {{todayStatus}}.",
       freezeBank: "Frysebank {{available}} av {{capacity}}",
       notReviewedToday: "Ikke repetert i dag",
       reviewedToday: "Repetert i dag",
+      streakDayCount: {
+        one: "dag",
+        other: "dager",
+      },
       title: "Rekke",
     },
     interval: {

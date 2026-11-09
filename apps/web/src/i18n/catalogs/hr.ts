@@ -1148,11 +1148,16 @@ const hrCatalog: TranslationCatalog = {
       ariaLabel: "Otvori ljestvicu",
     },
     progressBadge: {
-      ariaLabel: "Niz ponavljanja, broj dana: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Niz ponavljanja, broj dana: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}.",
       freezeBank: "Zamrzavanja niza: {{available}} od {{capacity}}",
       notReviewedToday: "Danas nije ponavljano",
       reviewedToday: "Danas ponovljeno",
+      streakDayCount: {
+        one: "dan",
+        few: "dana",
+        other: "dana",
+      },
       title: "Niz",
     },
     interval: {

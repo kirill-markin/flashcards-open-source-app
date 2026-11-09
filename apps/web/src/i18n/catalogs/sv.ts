@@ -1138,11 +1138,15 @@ const svCatalog: TranslationCatalog = {
       ariaLabel: "Öppna topplistan",
     },
     progressBadge: {
-      ariaLabel: "Repetitionssvit {{streak}} dagar. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Repetitionssvit {{streak}} dagar. {{todayStatus}}.",
+      ariaLabel: "Repetitionssvit {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Repetitionssvit {{streak}}. {{todayStatus}}.",
       freezeBank: "Fryssaldo {{available}} av {{capacity}}",
       notReviewedToday: "Inte repeterat idag",
       reviewedToday: "Repeterat idag",
+      streakDayCount: {
+        one: "dag",
+        other: "dagar",
+      },
       title: "Svit",
     },
     interval: {

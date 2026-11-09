@@ -9,11 +9,14 @@ private val whitespaceRegex = Regex(pattern = """\s+""")
 private val backslashEscapeRegex = Regex(pattern = """\\([!-/:-@\[-`{-~])""")
 private val escapedLiteralPlaceholderRegex = Regex(pattern = """\uE000(\d+)\uE001""")
 private val formulaPlaceholderRegex = Regex(pattern = """\uE002(\d+)\uE003""")
+private val imageAltOrFormulaPlaceholderRegex = Regex(pattern = """\uE004([^\uE005]*)\uE005|\uE002\d+\uE003""")
 
 /**
  * A card's Markdown flattened to one line for compact previews: markers dropped, backslash escapes
  * resolved, link text kept, images replaced by their alt text or [emptyImageAltText], whitespace
- * collapsed. Formulas stay the blocks Review detects, so [MarkdownPreviewText] still renders them.
+ * collapsed. An alt that repeats the text right before or after it is dropped, so a prompt followed by
+ * its own image reads once. Formulas stay the blocks Review detects, so [MarkdownPreviewText] still
+ * renders them.
  */
 fun makeMarkdownPreviewBlocks(markdown: String, emptyImageAltText: String): List<MathBlock> {
     // Formulas and escaped characters stand in as private-use placeholders, so the Markdown
@@ -38,11 +41,13 @@ fun makeMarkdownPreviewBlocks(markdown: String, emptyImageAltText: String): List
             "\uE000${escapedLiterals.lastIndex}\uE001"
         }
         .replace(fencedCodeMarkerRegex, " ")
-        .replace(imageRegex) { match -> " ${match.groupValues[1].trim().ifEmpty { emptyImageAltText }} " }
+        .replace(imageRegex) { match -> " \uE004${match.groupValues[1].trim().ifEmpty { emptyImageAltText }}\uE005 " }
         .replace(linkRegex, "$1")
         .replace(lineMarkerRegex, "")
         .replace(emphasisRegex, "")
         .replace(escapedLiteralPlaceholderRegex) { match -> escapedLiterals[match.groupValues[1].toInt()] }
+        .replace(whitespaceRegex, " ")
+        .let(::dropImageAltsRepeatingAdjacentText)
         .replace(whitespaceRegex, " ")
         .trim()
     return buildList {
@@ -71,6 +76,39 @@ fun makeMarkdownPlainText(markdown: String, emptyImageAltText: String): String {
             is MathBlock.Formula -> block.source
         }
     }.replace(whitespaceRegex, " ").trim()
+}
+
+/**
+ * Resolves the alt placeholders: the text an alt is compared with runs to the neighbouring alt,
+ * formula, or text end.
+ */
+private fun dropImageAltsRepeatingAdjacentText(text: String): String {
+    val placeholders: List<MatchResult> = imageAltOrFormulaPlaceholderRegex.findAll(input = text).toList()
+    return buildString {
+        var textStartIndex = 0
+        placeholders.forEachIndexed { index, match ->
+            append(text, textStartIndex, match.range.first)
+            textStartIndex = match.range.last + 1
+            val altGroup: MatchGroup? = match.groups[1]
+            if (altGroup == null) {
+                append(match.value)
+                return@forEachIndexed
+            }
+            val altText: String = altGroup.value.trim()
+            val textBefore: String = text.substring(
+                placeholders.getOrNull(index - 1)?.range?.last?.plus(1) ?: 0,
+                match.range.first
+            ).trim()
+            val textAfter: String = text.substring(
+                textStartIndex,
+                placeholders.getOrNull(index + 1)?.range?.first ?: text.length
+            ).trim()
+            if (altText != textBefore && altText != textAfter) {
+                append(altText)
+            }
+        }
+        append(text, textStartIndex, text.length)
+    }
 }
 
 private fun makePlainTextBlock(text: String): MathBlock.Markdown {

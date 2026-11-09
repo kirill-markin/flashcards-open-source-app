@@ -187,7 +187,8 @@ function buildReviewSection(): string {
 
 /**
  * How to work in the bash tool's sandbox without flooding the turn: every tool result is re-sent on
- * each later model call. The 8 MB limit is just-bash's fixed Python file bridge.
+ * each later model call. The 8 MB limit is just-bash's fixed Python file bridge, which mounts the shell's
+ * files at /host and leaves them off sys.path.
  */
 function buildChatFilesSection(): string {
   return joinLines([
@@ -196,6 +197,7 @@ function buildChatFilesSection(): string {
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
+    "- Always write /work paths; python3 errors show /work/x as /host/work/x. python3 cannot import a module saved in /work: keep a program in one file or load shared code with exec(open('/work/lib.py').read()).",
     "- magick edits images with an ImageMagick subset, such as magick a.jpg b.jpg -resize x400 +append out.jpg: -resize WxH|W|xH|N%, -crop WxH+X+Y, -rotate DEG, -flip, -flop, +append, -append, -background COLOR, -gravity center, -extent WxH, -quality N; the output's .jpg, .png or .webp picks its format; magick identify FILE prints format and size.",
     "- zstd -d -o OUT FILE or zstd -dc FILE decompresses one zstd file. There is no unzip: open a ZIP with python3's zipfile, and one over 8 MB on stdin as zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())).",
     `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
@@ -218,7 +220,7 @@ function buildAnkiImportSection(): string {
     "- Map in code, never by retyping printed names or ids: export notes, cards, decks and note types with sqlite3 -json into /work, parse the media list in python3 (json, or the protobuf's varint-keyed fields), and build each card's images and deck tag from those lookups, reading an export over 8 MB on stdin.",
     "- Build each card's front and back by rendering its note type's template for the card's ord with the note's fields by name, never by field position: the fields, templates (config protobuf: field 1 the front format, field 2 the back) and notetypes tables, or the models JSON in col in older collections; the back drops {{FrontSide}} and everything up to and including <hr id=answer>, keeping only what the answer adds; a reversed card is its reverse template.",
     "- A cloze note type has one template and makes one card per cloze number, the card's ord + 1; as in Anki, {{cloze:Field}} on its front shows each deletion of that number as [...], or as its hint ([city] for {{c1::Lima::city}}), and the other deletions as their text, and on its back the full text.",
-    "- Compute each image's alt in code from its own note: the <img>'s alt, else a few words of the other text on that rendered side, else the card's deck name, never just Image and never a keyword list or default written for one deck; on a front it is a recall cue that never reveals the answer, so never take it from a field that appears only on the back or from a file name.",
+    "- Compute each image's alt in code from its own note: the <img>'s alt, else the last level of the card's deck name (Home for Spanish Basics::Home). Never use text already on that side, which the app shows and reads beside the image, a file name or just Image, and never a keyword list or default written for one deck; on a front it never reveals the answer, so skip an <img> alt holding text of a field that appears only on the back.",
     "- Unpack, convert and upload media in one command, keeping the media bytes in /tmp; keep only those lookups and a small progress file in /work.",
     `- Upload each image with fc-media-put, at most ${maximumMediaPutsPerCommand} per command: loop across commands and keep progress in /work. Upload a JPEG, PNG or WebP of at most ${maximumImageIngestionOriginalBytes / 1_000_000} MB with its original bytes; convert with magick only other formats or larger files.`,
   ]);
@@ -241,7 +243,7 @@ function buildSandboxSqlSection(): string {
     `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
     "- Writes from code follow the rules above, like sql_execute calls.",
     "- Imported cards start as new cards: review history and scheduling cannot be imported.",
-    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image of the open workspace and prints its id, which an SQL write that omits workspaceId then puts on a card as ![alt](fcasset:<id>).",
+    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image of the open workspace and prints only its id and a newline, not JSON, which an SQL write that omits workspaceId then puts on a card as ![alt](fcasset:<id>).",
     "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);
 }
