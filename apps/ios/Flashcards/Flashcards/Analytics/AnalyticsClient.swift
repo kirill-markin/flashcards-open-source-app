@@ -117,6 +117,10 @@ enum Analytics {
         self.track(.appOpened(launchType: .cold))
     }
 
+    static func isColdOpenRecorded() -> Bool {
+        self.foregroundState.isColdOpenRecorded()
+    }
+
     /**
      * The warm `app_opened`, emitted on a real background → foreground transition and nothing else.
      *
@@ -427,6 +431,14 @@ final class AnalyticsForegroundState: @unchecked Sendable {
         self.hasRecordedColdOpen = true
         self.hasEnteredBackground = false
         return true
+    }
+
+    func isColdOpenRecorded() -> Bool {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        return self.hasRecordedColdOpen
     }
 
     func recordBackgrounded() {

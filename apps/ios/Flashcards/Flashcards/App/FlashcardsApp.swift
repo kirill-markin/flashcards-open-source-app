@@ -488,9 +488,10 @@ struct FlashcardsApp: App {
         }
         self.hasPresentedFirstScene = true
 
-        // Ahead of the launch tab's screen_viewed.
+        // Ahead of the launch screen's screen_viewed.
         Analytics.trackAppColdOpened()
         guard self.isCloudCredentialRecoveryGateActive == false else {
+            Analytics.trackScreenViewed(.credentialRecovery)
             return
         }
 

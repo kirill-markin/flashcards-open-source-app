@@ -98,6 +98,10 @@ private func recordWatchHandoffFailure(stage: String, error: Error) {
         errorSummary: Flashcards.errorMessage(error: error)
     )
     FlashcardsObservability.addBreadcrumb(.cloudFlow(observation))
+    // An offline iPhone fails every watch request the same way; that is not worth a warning.
+    guard isRetryableNetworkTransportFailure(error: error) == false else {
+        return
+    }
     FlashcardsObservability.captureWarning(.cloudFlow(observation))
 }
 
