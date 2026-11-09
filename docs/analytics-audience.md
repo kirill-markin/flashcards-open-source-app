@@ -1,9 +1,11 @@
 # Audience analytics
 
 UI language belongs to the event and is captured before offline queuing. Device language,
-timezone, and current app/OS versions describe the installation at upload time. Country is
-a daily server observation of an installation, with sparse change periods; it must never
-be assigned retroactively to offline events. Missing values remain unknown, and no account-global
+timezone, and current app/OS versions describe the installation at upload time. Installation
+country is a daily server observation of an installation, with sparse change periods; it must never
+be assigned retroactively to offline events. An app event's own country is that of the request that
+uploaded it ([meaning](../db/migrations/0240_app_event_request_country.sql)), so a queued event's
+can differ from where it happened. Missing values remain unknown, and no account-global
 language is inferred. The only historical backfills are event `os_name` and `device_type`
 ([rules](../db/migrations/0177_backfill_analytics_os_name_device_type.sql)) and installation
 profile `os_name`, `device_type` and `device_model`
@@ -19,7 +21,7 @@ where it is certain.
 - [Trusted connection context](../apps/backend/src/geolocation/requestCountry.ts) and
   [daily country sampling](../apps/backend/src/productAnalytics/installationCountry.ts):
   the API Gateway source address only. Auth relays, agent/MCP requests and batches without device
-  context supply no human geography.
+  context supply no installation country.
 - [SQL schema, reporting grants, and country-writer transaction contract](../db/migrations/0137_audience_context.sql)
 - [Account and linked-guest deletion](../apps/backend/src/auth/accountDeletion.ts)
 - [Country retention](../apps/backend/src/productAnalytics/countryRetention.ts),
@@ -46,8 +48,9 @@ installation profile until its deletion, and feedback country follows the feedba
 account-deletion lifecycle. IP addresses are used only in request memory for lookup.
 
 Sparse periods are samples, not proof of continuous presence or a daily activity ledger.
-Do not infer location across unsampled gaps, assign upload country to offline events, or
-claim exact arbitrary-range country uniques from these periods or summed daily aggregates.
+Do not infer location across unsampled gaps, read an event's upload country as where an offline
+event happened, or claim exact arbitrary-range country uniques from these periods or summed daily
+aggregates.
 Privacy notice and store declarations are a separate publication deliverable; this implementation
 makes no compliance or consent-exemption claim.
 

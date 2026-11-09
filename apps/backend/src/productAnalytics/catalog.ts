@@ -3,7 +3,7 @@ import { validateIanaTimeZone } from "../progress/timeZone";
 
 // The product analytics contract. Every client mirrors this file by hand and the server
 // rejects anything that is not declared here, which is what keeps event_properties free of
-// personal data, outside the two exceptions below, and therefore safe to keep after an account is
+// personal data, outside the exceptions below, and therefore safe to keep after an account is
 // anonymized. A string property must
 // declare a bounded format and not merely a length cap: a length-capped free-text property would be
 // a client-controlled channel into a column that is retained indefinitely and that account
@@ -22,6 +22,12 @@ import { validateIanaTimeZone } from "../progress/timeZone";
 // the owner: they are free text bounded only by length, so whatever a link carries is stored, a
 // personal detail an email tool wrote into a tag included. See
 // `productAnalyticsSiteCampaignTextPattern` below.
+//
+// The raw browser values on web `app_opened` and `site_page_viewed` are the third, taken knowingly
+// by the owner: `webgl_renderer` is bounded only to printable ASCII and a length, and together they
+// describe one device closely. Account deletion removes them from event_properties on the rows of
+// the account and the guests linked to it (../auth/accountDeletion.ts). A credential-free site row
+// carries no account, so it keeps its raw values, the way it keeps its country.
 //
 // schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
 // across the revision that retired the session and onboarding events and added the fact-shaped
@@ -114,6 +120,16 @@ const productAnalyticsSiteCampaignTextPattern = /^(?!\s)[^\p{Cc}\p{Cs}]*(?<!\s)$
 // tag with a script or a region subtag is conventionally spelled `zh-Hant` or `pt-BR`, and sending
 // one that way refuses the whole event rather than just the property.
 const productAnalyticsSiteLanguageTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2}$/u;
+
+// The browser signals both the web app and the marketing site report, described beside
+// `site_page_viewed` below. The renderer is the string the browser reports for its GPU, which runs
+// past `productAnalyticsPropertyStringMaxLength` on some GPUs, so it carries its own length bound.
+// The language list is `navigator.languages` joined by commas, in the browser's own spelling.
+export const productAnalyticsBrowserWebglRendererMaxLength = 256;
+export const productAnalyticsBrowserWebglRendererPattern = /^[\x20-\x7E]+$/u;
+export const productAnalyticsBrowserLanguagesPattern = /^[A-Za-z0-9-]+(?:,[A-Za-z0-9-]+)*$/u;
+const productAnalyticsBrowserAutomationValues = ["webdriver", "none"] as const;
+const productAnalyticsScreenWidthBuckets = ["xs", "sm", "md", "lg", "xl", "xxl"] as const;
 
 // The normalized public-catalog search text, the exception named at the top of this file. Bounded to
 // lowercase letters, caseless letters, modifier letters, non-spacing and spacing marks, digits,
@@ -570,7 +586,8 @@ type ProductAnalyticsPropertySpec =
   (
     | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
     // pattern is required, so a string property that would accept unbounded free text cannot compile.
-    | Readonly<{ kind: "string"; pattern: RegExp }>
+    // maxLength replaces `productAnalyticsPropertyStringMaxLength` for a value that is longer.
+    | Readonly<{ kind: "string"; pattern: RegExp; maxLength?: number }>
     // The exact link a button or QR code carried at the moment of the event, query string included,
     // so the fact stays true after the link changes in code.
     | Readonly<{ kind: "url"; hosts: ReadonlyArray<string> }>
@@ -641,6 +658,33 @@ type ProductAnalyticsEventSpec = ProductAnalyticsEventSpecIdentity &
     | Readonly<{ serverOnly: false; requiresScreen: boolean }>
   );
 
+const productAnalyticsBrowserRawSignalProperties = {
+  webgl_renderer: {
+    kind: "string",
+    pattern: productAnalyticsBrowserWebglRendererPattern,
+    maxLength: productAnalyticsBrowserWebglRendererMaxLength,
+    optional: true,
+  },
+  hardware_concurrency: { kind: "nonNegativeInteger", optional: true },
+  browser_languages: { kind: "string", pattern: productAnalyticsBrowserLanguagesPattern, optional: true },
+  window_inner_width: { kind: "nonNegativeInteger", optional: true },
+  window_inner_height: { kind: "nonNegativeInteger", optional: true },
+  window_outer_width: { kind: "nonNegativeInteger", optional: true },
+  window_outer_height: { kind: "nonNegativeInteger", optional: true },
+  plugin_count: { kind: "nonNegativeInteger", optional: true },
+} as const satisfies Readonly<Record<string, ProductAnalyticsPropertySpec>>;
+
+const productAnalyticsBrowserSignalProperties = {
+  automation: { kind: "enum", values: productAnalyticsBrowserAutomationValues, optional: true },
+  screen_width_bucket: { kind: "enum", values: productAnalyticsScreenWidthBuckets, optional: true },
+  ...productAnalyticsBrowserRawSignalProperties,
+} as const satisfies Readonly<Record<string, ProductAnalyticsPropertySpec>>;
+
+// The raw browser values account deletion removes from event_properties.
+export const productAnalyticsBrowserRawSignalPropertyNames = Object.keys(
+  productAnalyticsBrowserRawSignalProperties,
+) as ReadonlyArray<keyof typeof productAnalyticsBrowserRawSignalProperties>;
+
 export const productAnalyticsEventCatalog = {
   app_opened: {
     serverOnly: false,
@@ -652,6 +696,10 @@ export const productAnalyticsEventCatalog = {
       // required so "we do not know" is a stored fact rather than an absent key that a reader
       // cannot tell apart from a client that failed to send one.
       launch_type: { kind: "enum", values: ["cold", "warm", "unknown"] },
+      // The browser signals described beside `site_page_viewed`. Only the web app sends them, and
+      // they are optional because the iOS and Android apps send none and a browser omits any value
+      // it cannot read; the zone is the row's `timezone` column here.
+      ...productAnalyticsBrowserSignalProperties,
     },
   },
   screen_viewed: {
@@ -1955,6 +2003,14 @@ export const productAnalyticsEventCatalog = {
   // xs <480, sm 480-767, md 768-1023, lg 1024-1439, xl 1440-1919, xxl >=1920. They are optional
   // because the site bundles already released send none of them, and the zone stays here rather than
   // in the row's `timezone` column, which the collector leaves NULL.
+  //
+  // The raw values in `productAnalyticsBrowserRawSignalProperties` help the same way and are
+  // optional for the same reason: the unmasked WebGL renderer (`UNMASKED_RENDERER_WEBGL` from
+  // `WEBGL_debug_renderer_info`), `navigator.hardwareConcurrency`, `navigator.languages`,
+  // `window.innerWidth`/`innerHeight`/`outerWidth`/`outerHeight` rounded to integers, and
+  // `navigator.plugins.length`. A browser leaves out any value it cannot read or that does not fit.
+  // Headless signs such as a software renderer, no plugins, or a zero or equal inner and outer window
+  // are read from these values at query time and are not stored apart from them.
   site_page_viewed: {
     serverOnly: false,
     requiresScreen: false,
@@ -1971,8 +2027,7 @@ export const productAnalyticsEventCatalog = {
       utm_content: { kind: "campaignText", optional: true },
       utm_term: { kind: "campaignText", optional: true },
       time_zone: { kind: "timeZone", optional: true },
-      automation: { kind: "enum", values: ["webdriver", "none"], optional: true },
-      screen_width_bucket: { kind: "enum", values: ["xs", "sm", "md", "lg", "xl", "xxl"], optional: true },
+      ...productAnalyticsBrowserSignalProperties,
     },
   },
   // A marketing site page was read rather than only loaded: it was visible for at least 10 seconds in
@@ -2479,7 +2534,7 @@ function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
       .regex(productAnalyticsSiteCampaignTextPattern);
   }
 
-  return z.string().min(1).max(productAnalyticsPropertyStringMaxLength).regex(spec.pattern);
+  return z.string().min(1).max(spec.maxLength ?? productAnalyticsPropertyStringMaxLength).regex(spec.pattern);
 }
 
 function createPropertySchema(spec: ProductAnalyticsPropertySpec) {
