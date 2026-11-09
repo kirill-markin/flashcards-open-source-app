@@ -130,7 +130,8 @@ internal fun firstReviewOnboardingDrawing(
     val wobble = if (frame == 0) 0f else 1.5f
     val tipX = target.left + target.width * if (wide) .63f else .5f
     val ringTop = outline.filter { kotlin.math.abs(it.x - tipX - wobble) < 10f }.minOf { it.y }
-    val apex = Offset(tipX + wobble, ringTop - 17.5f)
+    // The apex sits on the ring's outer ink edge, so the tip's dabs land on the ring and never on the card above it.
+    val apex = Offset(tipX + wobble, ringTop - pencilEnvelopeRadius)
     val room = (apex.y - availableTop - 8f).coerceAtLeast(0f)
     val outlineMarks = pencilStroke(outline, random) { 1f }
     if (room < 18f) return outlineMarks

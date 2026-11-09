@@ -250,7 +250,7 @@ struct ReviewPreviewText {
 }
 
 /// Readable one-line card text: Markdown gives way to the text it shows, and an image to its alt text;
-/// an image without alt text shows the localized image label only on a side with no other text.
+/// images without alt text show the localized image label once, only on a side with no other text.
 func makeReviewPreviewText(text: String) -> ReviewPreviewText {
     var parts: [ReviewMathBlock] = []
 
@@ -336,7 +336,11 @@ private func makeReviewPreviewText(parts: [ReviewMathBlock]) -> ReviewPreviewTex
 
         var previewValue = value
             .replacingOccurrences(of: reviewPreviewEmptyImageAltTextAtPunctuationPattern, with: "", options: .regularExpression)
-            .replacingOccurrences(of: String(reviewPreviewEmptyImageAltText), with: emptyImageAltText)
+            .replacingOccurrences(
+                of: reviewPreviewEmptyImageAltTextRunPattern,
+                with: NSRegularExpression.escapedTemplate(for: emptyImageAltText),
+                options: .regularExpression
+            )
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         if index == 0 {
             previewValue = String(previewValue.drop(while: \.isWhitespace))
@@ -358,6 +362,9 @@ private let reviewPreviewEmptyImageAltText: Character = "\u{E006}"
 /// An empty alt text keeps the words around it apart but adds no space against punctuation.
 private let reviewPreviewEmptyImageAltTextAtPunctuationPattern =
     #"\#(reviewPreviewEmptyImageAltText)+(?=[\p{Pe}\p{Pf}\p{Po}])|(?<=[\p{Ps}\p{Pi}])\#(reviewPreviewEmptyImageAltText)+"#
+/// Adjacent empty alt texts stand in once, so a side of images alone reads the image label once.
+private let reviewPreviewEmptyImageAltTextRunPattern =
+    #"\#(reviewPreviewEmptyImageAltText)(?:\s*\#(reviewPreviewEmptyImageAltText))*"#
 
 /// An alt text gives way when it repeats the text right before or after it, up to the neighbouring
 /// image, formula, or side end, so a prompt followed by its own image reads once.

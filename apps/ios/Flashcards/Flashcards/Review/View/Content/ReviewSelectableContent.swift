@@ -320,7 +320,7 @@ func makeReviewSelectableContent(
                         return makeReviewLinkedImageCell(url: url)
                     }
                 }
-                let copyText = items.map(reviewMediaCopyText(item:)).joined(separator: " ")
+                let copyText = items.map(reviewMediaCopyText(item:)).filter { $0.isEmpty == false }.joined(separator: " ")
                 let labels = items.map { item -> String? in
                     switch item {
                     case .managed(let reference):
@@ -346,10 +346,12 @@ private func makeReviewLinkedImageCell(url: URL) -> AnyView {
     AnyView(ReviewLinkedImageView(state: ReviewLinkedImageState(url: url)))
 }
 
+/// Copies what a reader saw, as a browser copies an `<img>`: a managed asset copies its description or nothing,
+/// never its internal id; a linked image without a description copies its URL.
 private func reviewMediaCopyText(item: ReviewMediaGalleryItem) -> String {
     switch item {
     case .managed(let reference):
-        return reference.label ?? "fcasset:\(reference.mediaAssetId)"
+        return reference.label ?? ""
     case .linked(let url, let label):
         return label ?? url.absoluteString
     }
