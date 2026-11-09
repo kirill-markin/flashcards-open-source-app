@@ -16,7 +16,7 @@ import type { AppEnv } from "../../server/app";
 import { expectBoolean, expectNonEmptyString, expectRecord, parseJsonBody } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 import { parseGuestSessionIdempotencyKeyValue } from "../session/idempotencyKey";
-import { enforceGuestBrowserChallenge, readGuestBrowserChallengeConfig } from "./challenge";
+import { enforceGuestBrowserChallenge, readGuestBrowserChallengeSecretName } from "./challenge";
 import { clearBrowserGuestCookie, writeBrowserGuestCookie } from "./cookie";
 import { createBrowserGuestUpgradeRoutes } from "./upgrade";
 import {
@@ -147,9 +147,9 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
     const automationBypassToken = body.automationBypassToken === undefined
       ? null
       : expectNonEmptyString(body.automationBypassToken, "automationBypassToken");
-    const challengeConfig = readGuestBrowserChallengeConfig();
-    if (challengeConfig !== null) {
-      await enforceGuestBrowserChallenge(challengeConfig, {
+    const challengeSecretName = readGuestBrowserChallengeSecretName();
+    if (challengeSecretName !== null) {
+      await enforceGuestBrowserChallenge(challengeSecretName, {
         turnstileToken,
         automationBypassToken,
         userAgent,

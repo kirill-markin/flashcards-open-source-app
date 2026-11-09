@@ -9,7 +9,7 @@ import { preSignUp } from "./pre-signup";
 import { nativeProofChallenge } from "./native-proof-challenge";
 import { nativeProofGate } from "./native-proof-gate";
 import { auth } from "./auth";
-import { apiGateway, type GuestBrowserChallengeConfig } from "./gateways/api-gateway";
+import { apiGateway } from "./gateways/api-gateway";
 import type { MonitoringProps } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
@@ -264,15 +264,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const stripeBillingSecretArn = getOptionalContextValue(this, "stripeBillingSecretArn");
     const stripeCheckoutLiveEnabled = getOptionalRawContextValue(this, "stripeCheckoutLiveEnabled") === "true";
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
-    const turnstileSecretArn = getOptionalContextValue(this, "turnstileSecretArn");
-    const turnstileSiteKey = getOptionalContextValue(this, "turnstileSiteKey");
-    const guestChallengeBypassSecretArn = getOptionalContextValue(this, "guestChallengeBypassSecretArn");
-    let guestBrowserChallenge: GuestBrowserChallengeConfig | undefined;
-    if (turnstileSecretArn !== undefined && turnstileSiteKey !== undefined && guestChallengeBypassSecretArn !== undefined) {
-      guestBrowserChallenge = { turnstileSecretArn, turnstileSiteKey, bypassSecretArn: guestChallengeBypassSecretArn };
-    } else if (turnstileSecretArn !== undefined || turnstileSiteKey !== undefined || guestChallengeBypassSecretArn !== undefined) {
-      throw new Error("turnstileSecretArn, turnstileSiteKey and guestChallengeBypassSecretArn must be configured together or not at all");
-    }
+    const guestChallengeSecretName = getOptionalContextValue(this, "guestChallengeSecretName");
     // Optional per-deploy override for the public marketing-site origin used by
     // the discovery legal links and MCP implementation metadata. Defaults inside
     // each gateway to `https://<baseDomain>` when unset, so prod works without
@@ -628,7 +620,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       googlePlayBillingConfig,
       stripeBillingSecretArn,
       stripeCheckoutLiveEnabled,
-      guestBrowserChallenge,
+      guestChallengeSecretName,
       openAiApiKeySecretArn,
       ...sentryContext,
       resendApiKeySecretArn,

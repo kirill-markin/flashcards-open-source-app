@@ -138,10 +138,10 @@ The API stores only the random token's hash and sends the token only as
   one it answers `403 GUEST_BROWSER_CHALLENGE_REQUIRED` with `details.turnstileSiteKey`;
   a rejected token answers `403 GUEST_BROWSER_CHALLENGE_FAILED`, retryable with a fresh
   token. A valid `automationBypassToken` (release smoke) skips the check. The challenge
-  is on only when the GitHub variables `CDK_TURNSTILE_SECRET_ARN`,
-  `CDK_TURNSTILE_SITE_KEY` and `CDK_GUEST_CHALLENGE_BYPASS_SECRET_ARN` are all set;
-  both secrets hold plain-text values. Each outcome logs one `guest_browser_challenge`
-  record in the backend Lambda log.
+  is on only when the GitHub variable `CDK_GUEST_CHALLENGE_SECRET_NAME` names a Secrets
+  Manager secret holding JSON `{"siteKey", "secretKey", "bypassToken"}`, all non-empty
+  strings; `bypassToken` must equal the GitHub secret `E2E_GUEST_CHALLENGE_BYPASS_TOKEN`.
+  Each outcome logs one `guest_browser_challenge` record in the backend Lambda log.
 - `POST /v1/guest-auth/browser/session/forget` returns `{ok: true}` and revokes only
   the guest credential, then expires its cookie. Missing/unknown/already-revoked
   credentials are safe to forget. It never deletes a workspace or a linked account.
