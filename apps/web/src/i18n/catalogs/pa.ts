@@ -510,6 +510,7 @@ const paCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "ਸੈਸ਼ਨ ਬਹਾਲ ਹੋ ਰਿਹਾ ਹੈ. ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
     sessionUnavailable: "ਸੈਸ਼ਨ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
     syncing: "ਸਿੰਕ ਹੋ ਰਿਹਾ ਹੈ...",
+    syncFailed: "ਸਿੰਕ ਅਸਫਲ ਰਿਹਾ",
     workspaceUnavailable: "ਵਰਕਸਪੇਸ ਉਪਲਬਧ ਨਹੀਂ",
   },
   accountMenu: {

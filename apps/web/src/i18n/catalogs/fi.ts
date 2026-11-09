@@ -510,6 +510,7 @@ const fiCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Palautetaan istuntoa. Yritä hetken kuluttua uudelleen.",
     sessionUnavailable: "Istunto ei ole käytettävissä",
     syncing: "Synkronoidaan...",
+    syncFailed: "Synkronointi epäonnistui",
     workspaceUnavailable: "Työtila ei käytettävissä",
   },
   accountMenu: {

@@ -510,6 +510,7 @@ const elCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Γίνεται επαναφορά συνεδρίας. Δοκιμάστε ξανά σε λίγο.",
     sessionUnavailable: "Η συνεδρία δεν είναι διαθέσιμη",
     syncing: "Συγχρονισμός...",
+    syncFailed: "Ο συγχρονισμός απέτυχε",
     workspaceUnavailable: "Ο χώρος εργασίας δεν είναι διαθέσιμος",
   },
   accountMenu: {

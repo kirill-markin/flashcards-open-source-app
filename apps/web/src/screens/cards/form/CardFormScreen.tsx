@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { isAuthRedirectError } from "../../../api";
 import { useAppData } from "../../../appData";
+import { isWorkspaceSyncDiscardedError } from "../../../appData/sync/observation/syncErrorObservation";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
@@ -75,8 +77,16 @@ async function runRecoveryGuardedLocalRead<ResultType>(
 
 type CardFormIdentity = Readonly<{
   cardId: string | null;
-  workspaceId: string;
+  workspaceId: string | null;
+  userId: string | null;
 }>;
+
+type InitialSyncOutcome = "completed" | "incomplete";
+
+type InitialSyncAttempt = {
+  completion: Promise<InitialSyncOutcome>;
+  hasFailed: boolean;
+};
 
 type PendingCardFormTextareaSelectionRestore = Readonly<{
   formIdentity: CardFormIdentity;
@@ -95,7 +105,8 @@ function areCardFormIdentitiesEqual(
 ): boolean {
   return left !== null
     && left.cardId === right.cardId
-    && left.workspaceId === right.workspaceId;
+    && left.workspaceId === right.workspaceId
+    && left.userId === right.userId;
 }
 
 export function CardFormScreen(): ReactElement {
@@ -111,6 +122,7 @@ export function CardFormScreen(): ReactElement {
     deleteCardItem,
     setErrorMessage,
     localReadVersion,
+    requireActiveWorkspaceSync,
     runMediaUploadTransfers,
     session,
     isSessionVerified,
@@ -127,10 +139,12 @@ export function CardFormScreen(): ReactElement {
   const formStateRef = useRef<CardFormState>(toCardFormState(null));
   const [formState, setFormState] = useState<CardFormState>(formStateRef.current);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [blockingLoadResult, setBlockingLoadResult] = useState<Readonly<{
+    identity: CardFormIdentity;
+    errorMessage: string;
+  }> | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [loadErrorMessage, setLoadErrorMessage] = useState<string>("");
   const [refreshErrorMessage, setRefreshErrorMessage] = useState<string>("");
   const [actionErrorMessage, setActionErrorMessage] = useState<string>("");
   const mediaLifecycleConflictRef = useRef<GeneratedMediaLifecycleConflict | null>(null);
@@ -143,6 +157,7 @@ export function CardFormScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
+  const initialSyncAttemptRef = useRef<InitialSyncAttempt | "required" | null>(null);
   const loadRequestSequenceRef = useRef<number>(0);
   const successfulMutationGenerationRef = useRef<number>(0);
   const isCreateMode = cardId === undefined;
@@ -156,12 +171,15 @@ export function CardFormScreen(): ReactElement {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
   };
-  renderedFormIdentityRef.current = activeWorkspace === null
-    ? null
-    : {
-      cardId: cardId ?? null,
-      workspaceId: activeWorkspace.workspaceId,
-    };
+  const workspaceId = activeWorkspace?.workspaceId ?? null;
+  const userId = session?.userId ?? null;
+  const renderedFormIdentity = useMemo<CardFormIdentity>(() => ({
+    cardId: cardId ?? null,
+    workspaceId,
+    userId,
+  }), [cardId, workspaceId, userId]);
+  const isLoading = blockingLoadResult?.identity !== renderedFormIdentity;
+  const loadErrorMessage = isLoading ? "" : blockingLoadResult.errorMessage;
 
   const cancelPendingTextareaSelectionRestore = useCallback(
     function cancelPendingTextareaSelectionRestore(): void {
@@ -242,7 +260,44 @@ export function CardFormScreen(): ReactElement {
     [cancelPendingTextareaSelectionRestore],
   );
 
-  const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+  const startInitialSync = useCallback(function startInitialSync(workspaceId: string): InitialSyncAttempt {
+    const presentSyncFailure = (): boolean => {
+      if (
+        initialSyncAttemptRef.current !== attempt
+        || renderedFormIdentityRef.current !== renderedFormIdentity
+      ) {
+        return false;
+      }
+
+      attempt.hasFailed = true;
+      setBlockingLoadResult({ identity: renderedFormIdentity, errorMessage: t("app.syncFailed") });
+      return true;
+    };
+    const attempt: InitialSyncAttempt = {
+      completion: requireActiveWorkspaceSync(workspaceId, presentSyncFailure).then(
+        () => "completed",
+        (error: unknown) => {
+          if (
+            markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)
+            || isWorkspaceSyncDiscardedError(error)
+            || isAuthRedirectError(error)
+          ) {
+            return "incomplete";
+          }
+
+          if (attempt.hasFailed === false) {
+            presentSyncFailure();
+          }
+          return "incomplete";
+        },
+      ),
+      hasFailed: false,
+    };
+    initialSyncAttemptRef.current = attempt;
+    return attempt;
+  }, [indexedDbOpenRecoveryState, renderedFormIdentity, requireActiveWorkspaceSync, t]);
+
+  const readScreenData = useCallback(async function readScreenData(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -260,40 +315,32 @@ export function CardFormScreen(): ReactElement {
     const mutationGeneration = successfulMutationGenerationRef.current;
     const isCurrentLoadRequest = function isCurrentLoadRequest(): boolean {
       return loadRequestSequenceRef.current === requestSequence
-        && successfulMutationGenerationRef.current === mutationGeneration;
+        && successfulMutationGenerationRef.current === mutationGeneration
+        && renderedFormIdentityRef.current === renderedFormIdentity;
     };
-
-    const renderedFormIdentity = renderedFormIdentityRef.current;
-    const isBackgroundRefresh = (
-      renderedFormIdentity !== null
-      && areCardFormIdentitiesEqual(
-        formIdentityRef.current,
-        renderedFormIdentity,
-      )
-      && (
-        isCreateMode
-        || reconciliationBaselineCardRef.current !== null
-      )
-    );
+    const isSameFormIdentity = areCardFormIdentitiesEqual(formIdentityRef.current, renderedFormIdentity);
+    const isBackgroundRefresh = isSameFormIdentity
+      && (isCreateMode || reconciliationBaselineCardRef.current !== null);
     if (isBackgroundRefresh === false) {
-      setLoadErrorMessage("");
       setRefreshErrorMessage("");
       setActionErrorMessage("");
-      setIsLoading(true);
     }
+    const finishBlockingLoad = function finishBlockingLoad(errorMessage: string): void {
+      setBlockingLoadResult({ identity: renderedFormIdentity, errorMessage });
+    };
     const setCurrentLoadErrorMessage = function setCurrentLoadErrorMessage(
       errorMessage: string,
     ): void {
       if (isBackgroundRefresh) {
+        finishBlockingLoad("");
         setRefreshErrorMessage(errorMessage);
       } else {
-        setLoadErrorMessage(errorMessage);
+        finishBlockingLoad(errorMessage);
       }
     };
     const restoreCarriedTextareaSelection = function restoreCarriedTextareaSelection(): void {
       if (
         isBackgroundRefresh === false
-        || renderedFormIdentity === null
         || carriedTextareaSelection === null
       ) {
         return;
@@ -312,21 +359,14 @@ export function CardFormScreen(): ReactElement {
     };
 
     try {
-      if (activeWorkspace === null) {
+      const formIdentity = renderedFormIdentity;
+      const workspaceId = formIdentity.workspaceId;
+      if (workspaceId === null) {
         resetTextareaSelectionRestore();
         throw new Error(workspaceUnavailableErrorMessage);
       }
 
-      const workspaceId = activeWorkspace.workspaceId;
-      const formIdentity: CardFormIdentity = {
-        cardId: cardId ?? null,
-        workspaceId,
-      };
-      const isSameFormIdentity = areCardFormIdentitiesEqual(
-        formIdentityRef.current,
-        formIdentity,
-      );
-      const [tagsSummary, loadedCard] = await Promise.all([
+      const readLocalData = () => Promise.all([
         runRecoveryGuardedLocalRead(
           () => loadWorkspaceTagsSummary(workspaceId),
           indexedDbOpenRecoveryState,
@@ -338,10 +378,57 @@ export function CardFormScreen(): ReactElement {
           indexedDbOpenRecoveryState,
         ),
       ]);
-      indexedDbOpenRecoveryState.throwIfFailed();
+
+      const initialSyncAttempt = isBackgroundRefresh ? null : initialSyncAttemptRef.current;
+      if (initialSyncAttempt !== null) {
+        if (initialSyncAttempt === "required" && isSessionVerified === false) {
+          return;
+        }
+
+        const attempt = initialSyncAttempt === "required"
+          ? startInitialSync(workspaceId)
+          : initialSyncAttempt;
+        if (
+          await attempt.completion !== "completed"
+          || isCurrentLoadRequest() === false
+          || indexedDbOpenRecoveryState.hasFailed()
+        ) {
+          return;
+        }
+      }
+
+      let [tagsSummary, loadedCard] = await readLocalData();
       if (isCurrentLoadRequest() === false) {
         return;
       }
+
+      if (
+        loadedCard === null
+        && cardId !== undefined
+        && isBackgroundRefresh === false
+        && initialSyncAttempt === null
+      ) {
+        if (isSessionVerified === false) {
+          initialSyncAttemptRef.current = "required";
+          setBlockingLoadResult(null);
+          return;
+        }
+
+        if (
+          await startInitialSync(workspaceId).completion !== "completed"
+          || isCurrentLoadRequest() === false
+          || indexedDbOpenRecoveryState.hasFailed()
+        ) {
+          return;
+        }
+
+        [tagsSummary, loadedCard] = await readLocalData();
+        if (isCurrentLoadRequest() === false) {
+          return;
+        }
+      }
+
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (shouldCarryPendingSelection === false) {
         captureCurrentTextareaSelection();
       }
@@ -352,7 +439,7 @@ export function CardFormScreen(): ReactElement {
         && isBackgroundRefresh
       ) {
         restoreCarriedTextareaSelection();
-        setRefreshErrorMessage(t("cardForm.errors.cardNotFound"));
+        setCurrentLoadErrorMessage(t("cardForm.errors.cardNotFound"));
         return;
       }
 
@@ -360,7 +447,9 @@ export function CardFormScreen(): ReactElement {
       setTagSuggestions(toTagSuggestions(tagsSummary.tags));
       const previousCard = reconciliationBaselineCardRef.current;
       setCurrentCard(loadedCard);
+      finishBlockingLoad(loadedCard === null && isCreateMode === false ? t("cardForm.errors.cardNotFound") : "");
       if (loadedCard !== null) {
+        initialSyncAttemptRef.current = null;
         if (
           isSameFormIdentity
           && previousCard !== null
@@ -438,7 +527,6 @@ export function CardFormScreen(): ReactElement {
         formIdentityRef.current = formIdentity;
         setMediaLifecycleConflict(null);
         setFormState(initialFormState);
-        setLoadErrorMessage(t("cardForm.errors.cardNotFound"));
       }
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
@@ -459,7 +547,7 @@ export function CardFormScreen(): ReactElement {
         feature: "cards",
         operation: "card_form_load",
         userId: observationIdentity.userId,
-        workspaceId: activeWorkspace?.workspaceId ?? null,
+        workspaceId: renderedFormIdentity.workspaceId,
         installationId: observationIdentity.installationId,
         entityId: cardId ?? null,
       });
@@ -467,29 +555,55 @@ export function CardFormScreen(): ReactElement {
         showCapturedTechnicalError(error);
       }
       setCurrentLoadErrorMessage(t("appError.technicalError.message"));
-    } finally {
-      if (isCurrentLoadRequest() && indexedDbOpenRecoveryState.hasFailed() === false) {
-        setIsLoading(false);
-      }
     }
   }, [
-    activeWorkspace,
     cancelPendingTextareaSelectionRestore,
     captureCurrentTextareaSelection,
     cardId,
     indexedDbOpenRecoveryState,
     isCreateMode,
+    isSessionVerified,
+    renderedFormIdentity,
     resetTextareaSelectionRestore,
     scheduleTextareaSelectionRestore,
+    startInitialSync,
     t,
   ]);
 
+  useLayoutEffect(() => {
+    renderedFormIdentityRef.current = renderedFormIdentity;
+    return () => {
+      renderedFormIdentityRef.current = null;
+      initialSyncAttemptRef.current = null;
+      loadRequestSequenceRef.current += 1;
+    };
+  }, [renderedFormIdentity]);
+
+  useLayoutEffect(() => {
+    const attempt = initialSyncAttemptRef.current;
+    if (attempt !== null && attempt !== "required" && attempt.hasFailed === false) {
+      initialSyncAttemptRef.current = "required";
+    }
+    loadRequestSequenceRef.current += 1;
+  }, [isSessionVerified]);
+
   useEffect(() => {
-    void loadScreenData();
+    void readScreenData();
     return () => {
       loadRequestSequenceRef.current += 1;
     };
-  }, [loadScreenData, localReadVersion]);
+  }, [readScreenData, localReadVersion]);
+
+  function loadScreenData(): Promise<void> {
+    const attempt = initialSyncAttemptRef.current;
+    initialSyncAttemptRef.current = attempt !== null && attempt !== "required" && attempt.hasFailed
+      ? "required"
+      : null;
+    if (loadErrorMessage !== "") {
+      setBlockingLoadResult(null);
+    }
+    return readScreenData();
+  }
 
   useEffect(() => () => {
     resetTextareaSelectionRestore();
@@ -850,31 +964,35 @@ export function CardFormScreen(): ReactElement {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || loadErrorMessage !== "") {
     return (
       <main className="container">
-        <section className="panel">
-          <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
-          <p className="subtitle">{t("cardForm.loading")}</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (loadErrorMessage !== "") {
-    return (
-      <main className="container">
-        <section className="panel">
-          <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
-          <p className="error-banner" data-testid="card-form-load-error">{loadErrorMessage}</p>
-          <button
-            className="primary-btn"
-            type="button"
-            onClick={() => void loadScreenData()}
-            data-testid="card-form-load-retry"
-          >
-            {t("common.retry")}
-          </button>
+        <section className="panel screen-panel">
+          <div className="screen-head">
+            <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
+          </div>
+          <div className="screen-body card-form-load-state">
+            {isLoading ? (
+              <>
+                <span className="page-state-spinner" aria-hidden="true" />
+                <p className="subtitle" role="status">{t("cardForm.loading")}</p>
+              </>
+            ) : (
+              <>
+                <p className="subtitle card-form-load-error" role="alert" data-testid="card-form-load-error">
+                  {loadErrorMessage}
+                </p>
+                <button
+                  className="ghost-btn"
+                  type="button"
+                  onClick={() => void loadScreenData()}
+                  data-testid="card-form-load-retry"
+                >
+                  {t("common.retry")}
+                </button>
+              </>
+            )}
+          </div>
         </section>
       </main>
     );

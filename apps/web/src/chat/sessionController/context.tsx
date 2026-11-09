@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useSyncExternalStore, type ReactElement, type ReactNode } from "react";
 import { isBrowserGuestSessionVerified, subscribeToBrowserGuestVerification } from "../../api/transport/transport";
 import { useAppData } from "../../appData";
+import { isSyncFailurePresentedByCaller } from "../../appData/sync/observation/syncErrorObservation";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
@@ -42,8 +43,10 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         indexedDbOpenRecoveryState.throwIfFailed();
       }
-      const message = error instanceof Error ? error.message : String(error);
-      setAppErrorMessage(`Chat sync failed. ${message}`);
+      if (isSyncFailurePresentedByCaller(error) === false) {
+        const message = error instanceof Error ? error.message : String(error);
+        setAppErrorMessage(`Chat sync failed. ${message}`);
+      }
       throw error;
     }
   }, [indexedDbOpenRecoveryState, runSync, setAppErrorMessage]);

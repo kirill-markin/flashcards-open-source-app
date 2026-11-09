@@ -510,6 +510,7 @@ export const jaCatalog = {
     sessionRestoringActionLocked: "セッションを復元しています。少し待ってからもう一度お試しください。",
     sessionUnavailable: "セッションを利用できません",
     syncing: "同期中...",
+    syncFailed: "同期に失敗しました",
     workspaceUnavailable: "ワークスペースを利用できません",
   },
   accountMenu: {

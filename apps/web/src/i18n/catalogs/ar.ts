@@ -510,6 +510,7 @@ const arCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "جارٍ استعادة الجلسة. حاول مرة أخرى بعد قليل.",
     sessionUnavailable: "الجلسة غير متاحة",
     syncing: "جارٍ المزامنة...",
+    syncFailed: "فشل المزامنة",
     workspaceUnavailable: "مساحة العمل غير متاحة",
   },
   accountMenu: {

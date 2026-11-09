@@ -510,6 +510,7 @@ const viCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Đang khôi phục phiên. Hãy thử lại sau giây lát.",
     sessionUnavailable: "Phiên không khả dụng",
     syncing: "Đang đồng bộ...",
+    syncFailed: "Đồng bộ thất bại",
     workspaceUnavailable: "Không gian làm việc không khả dụng",
   },
   accountMenu: {

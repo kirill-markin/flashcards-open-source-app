@@ -510,6 +510,7 @@ const taCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "அமர்வை மீட்டெடுக்கிறது. சிறிது நேரத்தில் மீண்டும் முயலவும்.",
     sessionUnavailable: "அமர்வு கிடைக்கவில்லை",
     syncing: "ஒத்திசைக்கிறது...",
+    syncFailed: "ஒத்திசைவு தோல்வியடைந்தது",
     workspaceUnavailable: "பணியிடம் கிடைக்கவில்லை",
   },
   accountMenu: {

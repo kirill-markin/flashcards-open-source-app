@@ -38,6 +38,7 @@ import { loadWarmStartSnapshot, WARM_START_SNAPSHOT_STORAGE_KEY } from "./activa
 import { captureWorkspaceTransitionError } from "./observation/workspaceSessionObservation";
 import {
   attachSyncFailureObservation,
+  getSyncFailureObservationCaptureState,
   observeSyncFailure,
 } from "../sync/observation/syncErrorObservation";
 
@@ -119,18 +120,22 @@ describe("useWorkspaceSession bootstrap", () => {
     }));
   });
 
-  it("does not recapture already observed workspace activation sync failures", async () => {
+  it.each([
+    { presentsSyncFailure: false, message: "surfaces an observed sync failure without recapturing it" },
+    { presentsSyncFailure: true, message: "leaves a sync failure to the active screen presenting it" },
+  ])("$message", async ({ presentsSyncFailure }) => {
     seedBrowserStorage();
     await seedIndexedDbState();
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const observedSyncError = Object.assign(new Error("Captured sync failed"), {
-      syncFailureWasCaptured: true,
-    });
+    const sharedSyncError = new Error("Captured sync failed");
+    const observedSyncError = attachSyncFailureObservation(sharedSyncError, true, presentsSyncFailure);
+    attachSyncFailureObservation(sharedSyncError, false, !presentsSyncFailure);
     const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
       throw observedSyncError;
     });
@@ -159,12 +164,18 @@ describe("useWorkspaceSession bootstrap", () => {
     });
 
     await vi.waitFor(() => {
-      expect(latestState?.sessionErrorMessage).toBe("Captured sync failed");
+      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
+    await waitForBrowserSignInMethodConsumption(1);
+    await expect(runSyncForWorkspaceMock.mock.results[0]?.value).rejects.toBe(observedSyncError);
 
     expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
-    expect(latestState?.sessionTechnicalError).toBe(observedSyncError);
-    expect(latestState?.technicalError).toBe(observedSyncError);
+    const expectedMessage = presentsSyncFailure ? "" : observedSyncError.message;
+    const expectedTechnicalError = presentsSyncFailure ? null : observedSyncError;
+    expect(latestState?.sessionErrorMessage).toBe(expectedMessage);
+    expect(latestState?.errorMessage).toBe(expectedMessage);
+    expect(latestState?.sessionTechnicalError).toBe(expectedTechnicalError);
+    expect(latestState?.technicalError).toBe(expectedTechnicalError);
   });
 
   it("keeps expected workspace activation sync failures inline without technical details", async () => {
@@ -176,9 +187,7 @@ describe("useWorkspaceSession bootstrap", () => {
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
     vi.stubGlobal("fetch", fetchMock);
 
-    const expectedSyncError = Object.assign(new Error("Expected sync state"), {
-      syncFailureWasCaptured: false,
-    });
+    const expectedSyncError = attachSyncFailureObservation(new Error("Expected sync state"), false, false);
     const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
       throw expectedSyncError;
     });
@@ -241,7 +250,7 @@ describe("useWorkspaceSession bootstrap", () => {
         workspaceId: seededWorkspace.workspaceId,
         installationId: seededCloudSettings.installationId,
       });
-      throw attachSyncFailureObservation(networkSyncError, wasCaptured);
+      throw attachSyncFailureObservation(networkSyncError, wasCaptured, false);
     });
 
     await act(async () => {
@@ -272,9 +281,10 @@ describe("useWorkspaceSession bootstrap", () => {
     });
 
     expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
-    expect(networkSyncError).toEqual(expect.objectContaining({
-      syncFailureWasCaptured: false,
-    }));
+    const observedError: unknown = await runSyncForWorkspaceMock.mock.results[0]?.value.catch((error: unknown) => error);
+    expect(observedError).toBeInstanceOf(ApiNetworkError);
+    expect(observedError).toHaveProperty("cause", networkSyncError);
+    expect(getSyncFailureObservationCaptureState(observedError)).toBe(false);
     expect(latestState?.sessionTechnicalError).toBeNull();
     expect(latestState?.technicalError).toBeNull();
   });

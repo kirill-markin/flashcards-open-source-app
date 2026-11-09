@@ -526,6 +526,7 @@ const slCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Obnavljanje seje. Poskusite znova čez trenutek.",
     sessionUnavailable: "Seja ni na voljo",
     syncing: "Sinhronizacija ...",
+    syncFailed: "Sinhronizacija ni uspela",
     workspaceUnavailable: "Delovni prostor ni na voljo",
   },
   accountMenu: {

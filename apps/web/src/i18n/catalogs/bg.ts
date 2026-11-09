@@ -510,6 +510,7 @@ const bgCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Сесията се възстановява. Опитайте отново след малко.",
     sessionUnavailable: "Сесията е недостъпна",
     syncing: "Синхронизиране...",
+    syncFailed: "Синхронизирането е неуспешно",
     workspaceUnavailable: "Работното пространство е недостъпно",
   },
   accountMenu: {

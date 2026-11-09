@@ -518,6 +518,7 @@ const ltCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Atkuriama sesija. Netrukus bandykite dar kartą.",
     sessionUnavailable: "Sesija nepasiekiama",
     syncing: "Sinchronizuojama...",
+    syncFailed: "Sinchronizavimas nepavyko",
     workspaceUnavailable: "Darbo sritis nepasiekiama",
   },
   accountMenu: {

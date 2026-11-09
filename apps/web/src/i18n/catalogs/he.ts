@@ -510,6 +510,7 @@ const heCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "משחזר הפעלה. נסה שוב בעוד רגע.",
     sessionUnavailable: "ההפעלה אינה זמינה",
     syncing: "מסנכרן...",
+    syncFailed: "הסנכרון נכשל",
     workspaceUnavailable: "סביבת העבודה אינה זמינה",
   },
   accountMenu: {

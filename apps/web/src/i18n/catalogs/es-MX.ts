@@ -510,6 +510,7 @@ const esMxCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Restaurando la sesión. Vuelve a intentarlo en un momento.",
     sessionUnavailable: "La sesión no está disponible",
     syncing: "Sincronizando...",
+    syncFailed: "Fallo de sincronizacion",
     workspaceUnavailable: "Espacio de trabajo no disponible",
   },
   accountMenu: {

@@ -510,6 +510,7 @@ const thCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "กำลังกู้คืนเซสชัน ลองอีกครั้งในอีกสักครู่",
     sessionUnavailable: "เซสชันไม่พร้อมใช้งาน",
     syncing: "กำลังซิงค์...",
+    syncFailed: "ซิงค์ไม่สำเร็จ",
     workspaceUnavailable: "พื้นที่ทำงานไม่พร้อมใช้งาน",
   },
   accountMenu: {

@@ -518,6 +518,7 @@ const ukCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Відновлення сесії. Спробуйте за мить.",
     sessionUnavailable: "Сесія недоступна",
     syncing: "Синхронізація...",
+    syncFailed: "Помилка синхронізації",
     workspaceUnavailable: "Робочий простір недоступний",
   },
   accountMenu: {

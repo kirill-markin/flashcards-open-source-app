@@ -510,6 +510,7 @@ const svCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Återställer sessionen. Försök igen om en stund.",
     sessionUnavailable: "Sessionen är inte tillgänglig",
     syncing: "Synkroniserar...",
+    syncFailed: "Synkronisering misslyckades",
     workspaceUnavailable: "Arbetsytan är inte tillgänglig",
   },
   accountMenu: {

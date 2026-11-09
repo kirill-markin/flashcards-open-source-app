@@ -510,6 +510,7 @@ const guCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "સત્ર પુનઃસ્થાપિત થઈ રહ્યું છે. થોડી વારમાં ફરી પ્રયાસ કરો.",
     sessionUnavailable: "સત્ર ઉપલબ્ધ નથી",
     syncing: "સિંક થઈ રહ્યું છે...",
+    syncFailed: "સિંક નિષ્ફળ થયું",
     workspaceUnavailable: "કાર્યક્ષેત્ર ઉપલબ્ધ નથી",
   },
   accountMenu: {

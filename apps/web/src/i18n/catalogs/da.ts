@@ -510,6 +510,7 @@ const daCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Gendanner session. Prøv igen om et øjeblik.",
     sessionUnavailable: "Sessionen er ikke tilgængelig",
     syncing: "Synkroniserer...",
+    syncFailed: "Synkronisering mislykkedes",
     workspaceUnavailable: "Arbejdsområdet er ikke tilgængeligt",
   },
   accountMenu: {

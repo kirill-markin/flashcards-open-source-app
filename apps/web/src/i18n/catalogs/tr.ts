@@ -510,6 +510,7 @@ const trCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Oturum geri yükleniyor. Birazdan tekrar deneyin.",
     sessionUnavailable: "Oturum kullanılamıyor",
     syncing: "Senkronize ediliyor...",
+    syncFailed: "Eşzamanlama başarısız",
     workspaceUnavailable: "Çalışma alanı kullanılamıyor",
   },
   accountMenu: {

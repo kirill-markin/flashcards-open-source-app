@@ -510,6 +510,7 @@ const lvCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Atjauno sesiju. Pēc brīža mēģiniet vēlreiz.",
     sessionUnavailable: "Sesija nav pieejama",
     syncing: "Sinhronizē...",
+    syncFailed: "Sinhronizācija neizdevās",
     workspaceUnavailable: "Darbvieta nav pieejama",
   },
   accountMenu: {

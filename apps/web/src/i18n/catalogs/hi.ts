@@ -510,6 +510,7 @@ const hiCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "सेशन बहाल किया जा रहा है। थोड़ी देर में फिर से कोशिश करें।",
     sessionUnavailable: "सेशन उपलब्ध नहीं है",
     syncing: "सिंक हो रहा है...",
+    syncFailed: "सिंक विफल रहा",
     workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
   },
   accountMenu: {

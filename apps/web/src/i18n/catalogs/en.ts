@@ -509,6 +509,7 @@ const enCatalog = {
     sessionRestoringActionLocked: "Restoring session. Try again in a moment.",
     sessionUnavailable: "Session is unavailable",
     syncing: "Syncing...",
+    syncFailed: "Sync failed",
     workspaceUnavailable: "Workspace unavailable",
   },
   accountMenu: {

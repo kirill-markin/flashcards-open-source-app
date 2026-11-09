@@ -510,6 +510,7 @@ export const zhHansCatalog = {
     sessionRestoringActionLocked: "正在恢复会话。请稍后再试。",
     sessionUnavailable: "会话不可用",
     syncing: "正在同步...",
+    syncFailed: "同步失败",
     workspaceUnavailable: "工作区不可用",
   },
   accountMenu: {

@@ -510,6 +510,7 @@ const caCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "S'està restaurant la sessió. Torna-ho a provar d'aquí a un moment.",
     sessionUnavailable: "La sessió no està disponible",
     syncing: "S'està sincronitzant...",
+    syncFailed: "La sincronització ha fallat",
     workspaceUnavailable: "Espai de treball no disponible",
   },
   accountMenu: {

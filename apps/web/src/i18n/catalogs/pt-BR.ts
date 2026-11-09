@@ -510,6 +510,7 @@ const ptBrCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Restaurando sessão. Tente novamente em instantes.",
     sessionUnavailable: "A sessão está indisponível",
     syncing: "Sincronizando...",
+    syncFailed: "Falha na sincronização",
     workspaceUnavailable: "Espaço de trabalho indisponível",
   },
   accountMenu: {

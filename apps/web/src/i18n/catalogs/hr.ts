@@ -518,6 +518,7 @@ const hrCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Vraćanje sesije. Pokušajte ponovno za trenutak.",
     sessionUnavailable: "Sesija nije dostupna",
     syncing: "Sinkronizacija...",
+    syncFailed: "Sinkronizacija nije uspjela",
     workspaceUnavailable: "Radni prostor nije dostupan",
   },
   accountMenu: {

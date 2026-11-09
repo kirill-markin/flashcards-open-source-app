@@ -510,6 +510,7 @@ const nbCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Gjenoppretter økten. Prøv igjen om et øyeblikk.",
     sessionUnavailable: "Økten er utilgjengelig",
     syncing: "Synkroniserer...",
+    syncFailed: "Synkronisering mislyktes",
     workspaceUnavailable: "Arbeidsområdet er utilgjengelig",
   },
   accountMenu: {
