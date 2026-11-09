@@ -317,7 +317,8 @@ private func makeReviewPreviewText(parts: [ReviewMathBlock]) -> ReviewPreviewTex
             return part
         }
 
-        var previewValue = value.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        var previewValue = resolvingReviewPreviewImageAltTexts(text: value)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         if index == 0 {
             previewValue = String(previewValue.drop(while: \.isWhitespace))
         }
@@ -328,6 +329,38 @@ private func makeReviewPreviewText(parts: [ReviewMathBlock]) -> ReviewPreviewTex
     }
 
     return ReviewPreviewText(text: mathBlocks.map(\.source).joined(), mathBlocks: mathBlocks)
+}
+
+/// Marks an image's alt text in a preview line until `resolvingReviewPreviewImageAltTexts` compares it with its neighbours.
+private let reviewPreviewImageAltTextStart: Character = "\u{E004}"
+private let reviewPreviewImageAltTextEnd: Character = "\u{E005}"
+
+/// An alt text gives way when it repeats the text right before or after it, up to the neighbouring
+/// image, formula, or side end, so a prompt followed by its own image reads once.
+private func resolvingReviewPreviewImageAltTexts(text: String) -> String {
+    var pieces: [String] = []
+    var remainingText = Substring(text)
+    while let altTextStart = remainingText.firstIndex(of: reviewPreviewImageAltTextStart),
+          let altTextEnd = remainingText[altTextStart...].firstIndex(of: reviewPreviewImageAltTextEnd) {
+        pieces.append(String(remainingText[..<altTextStart]))
+        pieces.append(String(remainingText[remainingText.index(after: altTextStart)..<altTextEnd]))
+        remainingText = remainingText[remainingText.index(after: altTextEnd)...]
+    }
+    pieces.append(String(remainingText))
+
+    let normalizedPiece: (Int) -> String = { index in
+        pieces[index]
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+    }
+    // Pieces alternate text and alt text, so every alt text sits at an odd index between two texts.
+    return pieces.indices.map { index in
+        guard index.isMultiple(of: 2) == false else {
+            return pieces[index]
+        }
+        let altText = normalizedPiece(index)
+        return altText == normalizedPiece(index - 1) || altText == normalizedPiece(index + 1) ? "" : pieces[index]
+    }.joined()
 }
 
 /// Swaps the cell pipes of Markdown table rows for spaces; a pipe anywhere else is card text.
@@ -407,7 +440,13 @@ private func normalizeReviewPreviewInlineMarkdown(text: String) -> String {
         return normalizeReviewPreviewInlineText(text: labeledText)
     }
 
-    return normalizeReviewPreviewInlineText(text: String(markdown.characters))
+    let markedText = markdown.runs[\.imageURL].map { imageURL, range in
+        let runText = String(markdown[range].characters)
+        return imageURL == nil
+            ? runText
+            : String(reviewPreviewImageAltTextStart) + runText + String(reviewPreviewImageAltTextEnd)
+    }.joined()
+    return normalizeReviewPreviewInlineText(text: markedText)
 }
 
 private func normalizeReviewPreviewInlineText(text: String) -> String {

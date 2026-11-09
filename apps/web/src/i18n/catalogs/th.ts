@@ -1138,11 +1138,15 @@ const thCatalog: TranslationCatalog = {
       ariaLabel: "เปิดกระดานอันดับ",
     },
     progressBadge: {
-      ariaLabel: "สตรีคการทบทวน {{streak}} วัน {{todayStatus}} {{freezeBank}}",
-      reviewAriaLabel: "สตรีคการทบทวน {{streak}} วัน {{todayStatus}}",
+      ariaLabel: "สตรีคการทบทวน {{streak}} {{todayStatus}} {{freezeBank}}",
+      reviewAriaLabel: "สตรีคการทบทวน {{streak}} {{todayStatus}}",
       freezeBank: "คลังฟรีซ {{available}} จาก {{capacity}}",
       notReviewedToday: "วันนี้ยังไม่ได้ทบทวน",
       reviewedToday: "ทบทวนแล้ววันนี้",
+      streakDayCount: {
+        one: "วัน",
+        other: "วัน",
+      },
       title: "สตรีค",
     },
     interval: {

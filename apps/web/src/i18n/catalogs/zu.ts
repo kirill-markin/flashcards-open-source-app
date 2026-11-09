@@ -1138,11 +1138,15 @@ const zuCatalog: TranslationCatalog = {
       ariaLabel: "Vula ibhodi labahamba phambili",
     },
     progressBadge: {
-      ariaLabel: "Uchungechunge lokubukeza, izinsuku: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Uchungechunge lokubukeza, izinsuku: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Uchungechunge lokubukeza: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Uchungechunge lokubukeza: {{streak}}. {{todayStatus}}.",
       freezeBank: "Isilondolozi sochungechunge: {{available}}/{{capacity}}",
       notReviewedToday: "Akubukezwanga namuhla",
       reviewedToday: "Kubukeziwe namuhla",
+      streakDayCount: {
+        one: "usuku",
+        other: "izinsuku",
+      },
       title: "Uchungechunge",
     },
     interval: {

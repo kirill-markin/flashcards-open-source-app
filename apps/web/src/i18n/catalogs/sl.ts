@@ -1158,11 +1158,17 @@ const slCatalog: TranslationCatalog = {
       ariaLabel: "Odpri lestvico",
     },
     progressBadge: {
-      ariaLabel: "Niz ponavljanja, število dni: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Niz ponavljanja, število dni: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}.",
       freezeBank: "Zaščite niza: {{available}} od {{capacity}}",
       notReviewedToday: "Danes še ni ponovljeno",
       reviewedToday: "Danes ponovljeno",
+      streakDayCount: {
+        one: "dan",
+        two: "dneva",
+        few: "dnevi",
+        other: "dni",
+      },
       title: "Niz",
     },
     interval: {

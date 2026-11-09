@@ -1138,11 +1138,15 @@ const paCatalog: TranslationCatalog = {
       ariaLabel: "ਦਰਜਾਬੰਦੀ ਖੋਲ੍ਹੋ",
     },
     progressBadge: {
-      ariaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}} ਦਿਨ. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}} ਦਿਨ. {{todayStatus}}.",
+      ariaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}}. {{todayStatus}}.",
       freezeBank: "ਫ੍ਰੀਜ਼ ਬੈਂਕ {{capacity}} ਵਿੱਚੋਂ {{available}}",
       notReviewedToday: "ਅੱਜ ਦੁਹਰਾਈ ਨਹੀਂ ਕੀਤੀ",
       reviewedToday: "ਅੱਜ ਦੁਹਰਾਈ ਕੀਤੀ",
+      streakDayCount: {
+        one: "ਦਿਨ",
+        other: "ਦਿਨ",
+      },
       title: "ਲੜੀ",
     },
     interval: {

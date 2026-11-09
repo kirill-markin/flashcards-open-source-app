@@ -1138,11 +1138,15 @@ const swCatalog: TranslationCatalog = {
       ariaLabel: "Fungua ubao wa viwango",
     },
     progressBadge: {
-      ariaLabel: "Mfululizo wa marudio siku {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Mfululizo wa marudio siku {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Mfululizo wa marudio: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Mfululizo wa marudio: {{streak}}. {{todayStatus}}.",
       freezeBank: "Akiba ya kugandisha {{available}} kati ya {{capacity}}",
       notReviewedToday: "Hujarudia leo",
       reviewedToday: "Umerudia leo",
+      streakDayCount: {
+        one: "siku",
+        other: "siku",
+      },
       title: "Mfululizo",
     },
     interval: {

@@ -1138,11 +1138,15 @@ const huCatalog: TranslationCatalog = {
       ariaLabel: "Ranglista megnyitása",
     },
     progressBadge: {
-      ariaLabel: "Ismétlési sorozat: {{streak}} nap. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Ismétlési sorozat: {{streak}} nap. {{todayStatus}}.",
+      ariaLabel: "Ismétlési sorozat: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Ismétlési sorozat: {{streak}}. {{todayStatus}}.",
       freezeBank: "Sorozatvédők: {{available}} / {{capacity}}",
       notReviewedToday: "Ma még nem ismételtél",
       reviewedToday: "Ma már ismételtél",
+      streakDayCount: {
+        one: "nap",
+        other: "nap",
+      },
       title: "Sorozat",
     },
     interval: {

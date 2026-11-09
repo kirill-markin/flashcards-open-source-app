@@ -1138,11 +1138,15 @@ const etCatalog: TranslationCatalog = {
       ariaLabel: "Ava edetabel",
     },
     progressBadge: {
-      ariaLabel: "Kordamiste päevade jada: {{streak}} päeva. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Kordamiste päevade jada: {{streak}} päeva. {{todayStatus}}.",
+      ariaLabel: "Kordamiste päevade jada: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Kordamiste päevade jada: {{streak}}. {{todayStatus}}.",
       freezeBank: "Külmutusi saadaval: {{available}}/{{capacity}}",
       notReviewedToday: "Täna pole korratud",
       reviewedToday: "Täna korratud",
+      streakDayCount: {
+        one: "päev",
+        other: "päeva",
+      },
       title: "Päevade jada",
     },
     interval: {

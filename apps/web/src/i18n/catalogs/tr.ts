@@ -1138,11 +1138,15 @@ const trCatalog: TranslationCatalog = {
       ariaLabel: "Sıralama tablosunu aç",
     },
     progressBadge: {
-      ariaLabel: "Tekrar serisi {{streak}} gün. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Tekrar serisi {{streak}} gün. {{todayStatus}}.",
+      ariaLabel: "Tekrar serisi {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Tekrar serisi {{streak}}. {{todayStatus}}.",
       freezeBank: "Dondurma bankası {{capacity}} üzerinden {{available}}",
       notReviewedToday: "Bugün tekrar edilmedi",
       reviewedToday: "Bugün tekrar edildi",
+      streakDayCount: {
+        one: "gün",
+        other: "gün",
+      },
       title: "Seri",
     },
     interval: {

@@ -1138,11 +1138,15 @@ const faCatalog: TranslationCatalog = {
       ariaLabel: "باز کردن جدول رتبه‌بندی",
     },
     progressBadge: {
-      ariaLabel: "{{streak}} روز پیاپی مرور. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "{{streak}} روز پیاپی مرور. {{todayStatus}}.",
+      ariaLabel: "{{streak}} پیاپی مرور. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "{{streak}} پیاپی مرور. {{todayStatus}}.",
       freezeBank: "ذخیرهٔ محافظت {{available}} از {{capacity}}",
       notReviewedToday: "امروز مرور نشده",
       reviewedToday: "امروز مرور شده",
+      streakDayCount: {
+        one: "روز",
+        other: "روز",
+      },
       title: "روزهای پیاپی",
     },
     interval: {

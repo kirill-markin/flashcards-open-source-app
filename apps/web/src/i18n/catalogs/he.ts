@@ -1138,11 +1138,15 @@ const heCatalog: TranslationCatalog = {
       ariaLabel: "פתיחת טבלת המובילים",
     },
     progressBadge: {
-      ariaLabel: "רצף חזרות {{streak}} ימים. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "רצף חזרות {{streak}} ימים. {{todayStatus}}.",
+      ariaLabel: "רצף חזרות {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "רצף חזרות {{streak}}. {{todayStatus}}.",
       freezeBank: "בנק ההקפאות {{available}} מתוך {{capacity}}",
       notReviewedToday: "לא בוצעה חזרה היום",
       reviewedToday: "בוצעה חזרה היום",
+      streakDayCount: {
+        one: "יום",
+        other: "ימים",
+      },
       title: "רצף",
     },
     interval: {

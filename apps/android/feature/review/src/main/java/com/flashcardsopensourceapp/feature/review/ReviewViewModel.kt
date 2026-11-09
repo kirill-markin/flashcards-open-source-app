@@ -231,6 +231,7 @@ class ReviewViewModel(
     ) { reviewSessionState, state, appMetadata, progressBadgeInputs, presentationInputs ->
         mapToReviewUiState(
             sessionSnapshot = reviewSessionState.sessionSnapshot,
+            sessionRequestedFilter = reviewSessionState.requestedFilter,
             state = state,
             appMetadata = appMetadata,
             progressSummarySnapshot = progressBadgeInputs.first,

@@ -1148,11 +1148,16 @@ const roCatalog: TranslationCatalog = {
       ariaLabel: "Deschide clasamentul",
     },
     progressBadge: {
-      ariaLabel: "Serie de recapitulări, zile: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Serie de recapitulări, zile: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Serie de recapitulări: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Serie de recapitulări: {{streak}}. {{todayStatus}}.",
       freezeBank: "Rezerva de înghețări: {{available}} din {{capacity}}",
       notReviewedToday: "Nerecapitulat astăzi",
       reviewedToday: "Recapitulat astăzi",
+      streakDayCount: {
+        one: "zi",
+        few: "zile",
+        other: "de zile",
+      },
       title: "Serie",
     },
     interval: {
