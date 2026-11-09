@@ -518,6 +518,7 @@ const plCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Przywracanie sesji. Spróbuj ponownie za chwilę.",
     sessionUnavailable: "Sesja jest niedostępna",
     syncing: "Synchronizacja...",
+    syncFailed: "Synchronizacja nie powiodła się",
     workspaceUnavailable: "Przestrzeń robocza niedostępna",
   },
   accountMenu: {

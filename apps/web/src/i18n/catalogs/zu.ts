@@ -510,6 +510,7 @@ const zuCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Kubuyiselwa iseshini. Zama futhi kungekudala.",
     sessionUnavailable: "Iseshini ayitholakali",
     syncing: "Kuyavumelaniswa...",
+    syncFailed: "Ukuvumelanisa kuhlulekile",
     workspaceUnavailable: "Indawo yokusebenza ayitholakali",
   },
   accountMenu: {

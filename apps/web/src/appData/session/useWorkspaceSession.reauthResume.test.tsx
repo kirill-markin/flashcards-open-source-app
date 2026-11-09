@@ -28,6 +28,7 @@ import {
 } from "../../accountDeletion";
 import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { WorkspaceSummary } from "../../types";
+import { attachSyncFailureObservation } from "../sync/observation/syncErrorObservation";
 import { WARM_START_SNAPSHOT_STORAGE_KEY } from "./activation/warmStart";
 
 const observabilityMocks = getObservabilityMocks();
@@ -122,7 +123,10 @@ describe("useWorkspaceSession reauth resume", () => {
     expect(isBrowserReauthRequired()).toBe(false);
   });
 
-  it("catches rejecting focus resume tasks after surfacing the sync error", async () => {
+  it.each([
+    { presentedByCaller: false, message: "catches rejecting focus resume tasks after surfacing the sync error" },
+    { presentedByCaller: true, message: "retries focus resume and leaves the final sync failure to its presenter" },
+  ])("$message", async ({ presentedByCaller }) => {
     seedBrowserStorage();
     await seedIndexedDbState();
 
@@ -134,9 +138,7 @@ describe("useWorkspaceSession reauth resume", () => {
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume-2"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const resumeSyncError = Object.assign(new Error("Resume sync failed"), {
-      syncFailureWasCaptured: false,
-    });
+    const resumeSyncError = attachSyncFailureObservation(new Error("Resume sync failed"), false, presentedByCaller);
     const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {
       throw resumeSyncError;
     });
@@ -178,11 +180,13 @@ describe("useWorkspaceSession reauth resume", () => {
 
     await vi.waitFor(() => {
       expect(runSyncSilentlyMock).toHaveBeenCalledTimes(2);
-      expect(latestState?.errorMessage).toBe("Resume sync failed");
+      expect(latestState?.errorMessage).toBe(presentedByCaller ? "" : "Resume sync failed");
     }, {
       timeout: 2_000,
     });
+    await flushEffects();
 
+    expect(latestState?.errorMessage).toBe(presentedByCaller ? "" : "Resume sync failed");
     expect(latestState?.technicalError).toBeNull();
   });
 

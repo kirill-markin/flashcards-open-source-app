@@ -510,6 +510,7 @@ const mlCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "സെഷൻ പുനഃസ്ഥാപിക്കുന്നു. അല്പം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.",
     sessionUnavailable: "സെഷൻ ലഭ്യമല്ല",
     syncing: "സമന്വയിപ്പിക്കുന്നു...",
+    syncFailed: "സമന്വയം പരാജയപ്പെട്ടു",
     workspaceUnavailable: "വർക്ക്‌സ്‌പേസ് ലഭ്യമല്ല",
   },
   accountMenu: {

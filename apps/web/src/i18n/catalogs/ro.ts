@@ -518,6 +518,7 @@ const roCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Se restabilește sesiunea. Încearcă din nou într-un moment.",
     sessionUnavailable: "Sesiunea nu este disponibilă",
     syncing: "Se sincronizează...",
+    syncFailed: "Sincronizarea a eșuat",
     workspaceUnavailable: "Spațiul de lucru nu este disponibil",
   },
   accountMenu: {

@@ -510,6 +510,7 @@ const idCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Sedang memulihkan sesi. Coba lagi sebentar.",
     sessionUnavailable: "Sesi tidak tersedia",
     syncing: "Menyinkronkan...",
+    syncFailed: "Sinkronisasi gagal",
     workspaceUnavailable: "Ruang kerja tidak tersedia",
   },
   accountMenu: {

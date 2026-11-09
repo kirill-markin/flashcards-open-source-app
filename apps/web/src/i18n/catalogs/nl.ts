@@ -510,6 +510,7 @@ const nlCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Sessie wordt hersteld. Probeer het zo meteen opnieuw.",
     sessionUnavailable: "Sessie is niet beschikbaar",
     syncing: "Synchroniseren...",
+    syncFailed: "Synchronisatie mislukt",
     workspaceUnavailable: "Werkruimte niet beschikbaar",
   },
   accountMenu: {

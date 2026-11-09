@@ -44,7 +44,10 @@ import { isIndexedDbUnavailableError } from "../../../localDb/core/indexedDbAvai
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { normalizeCaughtError, setWebObservabilityUser } from "../../../observability/webObservability";
-import { getSyncFailureObservationCaptureState } from "../../sync/observation/syncErrorObservation";
+import {
+  getSyncFailureObservationCaptureState,
+  isSyncFailurePresentedByCaller,
+} from "../../sync/observation/syncErrorObservation";
 import { getErrorMessage } from "../../domain";
 import {
   buildLinkedCloudSettings,
@@ -868,6 +871,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
       const normalizedError = normalizeCaughtError(lastError);
+      if (isSyncFailurePresentedByCaller(normalizedError)) {
+        throw normalizedError;
+      }
       const nextErrorMessage = getErrorMessage(normalizedError);
       const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
       const didCaptureResumeError = syncFailureCaptureState === null

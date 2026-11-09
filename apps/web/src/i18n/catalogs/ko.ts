@@ -510,6 +510,7 @@ const koCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "세션을 복원하는 중입니다. 잠시 후 다시 시도해 주세요.",
     sessionUnavailable: "세션을 사용할 수 없음",
     syncing: "동기화하는 중...",
+    syncFailed: "동기화 실패",
     workspaceUnavailable: "워크스페이스를 사용할 수 없음",
   },
   accountMenu: {

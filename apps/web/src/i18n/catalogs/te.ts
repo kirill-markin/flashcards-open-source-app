@@ -510,6 +510,7 @@ const teCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "సెషన్ పునరుద్ధరిస్తోంది. కొద్దిసేపటిలో మళ్లీ ప్రయత్నించండి.",
     sessionUnavailable: "సెషన్ అందుబాటులో లేదు",
     syncing: "సింక్ అవుతోంది...",
+    syncFailed: "సింక్ విఫలమైంది",
     workspaceUnavailable: "వర్క్‌స్పేస్ అందుబాటులో లేదు",
   },
   accountMenu: {

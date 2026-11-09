@@ -121,9 +121,10 @@ type UseSyncEngineParams = Readonly<{
 
 type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
+  requireActiveWorkspaceSync: (workspaceId: string, presentSyncFailure: () => boolean) => Promise<void>;
   drainGuestWorkspace: () => Promise<void>;
   runSyncSilently: () => Promise<void>;
-  runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
+  runSyncForWorkspaceOnStartup: (workspace: WorkspaceSummary) => Promise<void>;
   runMediaUploadTransfers: () => void;
   discardWorkspaceSync: (workspaceId: string) => void;
   discardAllSyncWork: (runWhileDiscarding: () => Promise<void>) => Promise<void>;
@@ -140,6 +141,8 @@ type SyncEngine = Readonly<{
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
   seedLinkedWorkspace: (request: TestSeedRequest) => Promise<TestSeedResult>;
 }>;
+
+type WorkspaceSyncOutcome = "completed" | "skipped";
 
 type SyncFailureReport = Readonly<{
   error: Error;
@@ -208,7 +211,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   } = params;
   const activeWorkspaceRef = useRef<WorkspaceSummary | null>(activeWorkspace);
   const availableWorkspacesRef = useRef<ReadonlyArray<WorkspaceSummary>>(availableWorkspaces);
-  const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
+  const syncPromisesRef = useRef<Map<string, Promise<WorkspaceSyncOutcome>>>(new Map());
+  const syncFailurePresentersRef = useRef<WeakMap<Promise<WorkspaceSyncOutcome>, () => boolean>>(new WeakMap());
   const syncAbortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const workspaceSyncGenerationsRef = useRef<Map<string, number>>(new Map());
   const localReadPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
@@ -647,25 +651,25 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const runSyncForWorkspaceInternal = useCallback(async function runSyncForWorkspaceInternal(
     workspace: WorkspaceSummary,
     reportSyncError: (report: SyncFailureReport) => void,
-  ): Promise<void> {
+  ): Promise<WorkspaceSyncOutcome> {
     if (
       isDiscardingAllSyncWorkRef.current
       || indexedDbOpenRecoveryState.hasFailed()
       || session === null
       || (sessionVerificationState !== "verified" && !isDrainingBrowserGuestInThisTab())
     ) {
-      return;
+      return "skipped";
     }
 
     const guestVerificationGeneration = session.browserGuestCapabilities?.isGuest === true
       ? readBrowserGuestVerificationGeneration(session.userId) : null;
-    if (session.browserGuestCapabilities?.isGuest === true && guestVerificationGeneration === null) return;
+    if (session.browserGuestCapabilities?.isGuest === true && guestVerificationGeneration === null) return "skipped";
 
     const workspaceId = workspace.workspaceId;
     const syncGeneration = syncGenerationRef.current;
     const workspaceSyncGeneration = workspaceSyncGenerationsRef.current.get(workspaceId) ?? 0;
     if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
-      return;
+      return "skipped";
     }
 
     const activeSync = syncPromisesRef.current.get(workspaceId);
@@ -686,7 +690,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ]);
     syncAbortControllersRef.current.set(workspaceId, syncAbortController);
 
-    const createSyncTask = async (): Promise<void> => {
+    const createSyncTask = async (): Promise<WorkspaceSyncOutcome> => {
       let syncInstallationId: string | null = null;
       const syncRunId = createSyncRunId();
       const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
@@ -724,11 +728,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           workspaceId,
           installationId: syncInstallationId,
         });
-        const observedError = attachSyncFailureObservation(error, wasCaptured);
-        reportSyncError({
-          error: observedError,
-          wasCaptured,
-        });
+        const isPresentedByCaller = syncFailurePresentersRef.current.get(syncTask)?.() === true;
+        const observedError = attachSyncFailureObservation(error, wasCaptured, isPresentedByCaller);
+        if (isPresentedByCaller === false) {
+          reportSyncError({ error: observedError, wasCaptured });
+        }
         return observedError;
       };
 
@@ -738,7 +742,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         const cloudSettings = await waitForRecoveryGuardedSyncPhase(loadCloudSettings());
         requireCurrentWorkspaceSync(workspaceId);
         if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
+          return "skipped";
         }
 
         if (cloudSettings?.linkedUserId !== session.userId) throw new Error("Local sync owner differs from the verified session; preserve local data and reload.");
@@ -766,7 +770,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }));
 
         if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
+          return "skipped";
         }
 
         // Cleared before the refresh: a failure from here on sets it again in the catch below.
@@ -788,7 +792,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           ? refreshCurrentWorkspaceViewAfterRemoteChanges(workspaceId)
           : refreshCurrentWorkspaceMetadata(workspaceId));
         if (indexedDbOpenRecoveryState.hasFailed()) {
-          return;
+          return "skipped";
         }
 
         scheduleDeferredProgressRefresh(progressRefresh);
@@ -799,6 +803,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         observeSyncSuccess(workspaceId);
         if (session.browserGuestCapabilities?.isGuest === true) markBrowserGuestHydrated(session.userId);
         runMediaUploadTransfersForWorkspace(workspace);
+        return "completed";
       } catch (error) {
         // Set on every failure and discard, never re-read here, so offline ticks never rebuild.
         workspaceIdsWithFailedSyncSinceLastViewRefreshRef.current.add(workspaceId);
@@ -807,7 +812,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         indexedDbOpenRecoveryState.throwIfFailed();
 
         if (isCurrentWorkspaceSync(workspaceId, syncGeneration, workspaceSyncGeneration) === false) {
-          return;
+          return "skipped";
         }
 
         if (isAuthRedirectError(error)) {
@@ -815,68 +820,68 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         if (isWorkspaceSyncDiscardedError(error)) {
-          return;
+          return "skipped";
         }
 
         // Every guest re-verification schedules a fresh sync, which replaces this stopped attempt.
         if (error instanceof BrowserGuestSessionInvalidatedError) {
-          return;
+          return "skipped";
         }
 
         if (discardedSyncWorkspaceIdsRef.current.has(workspaceId)) {
-          return;
+          return "skipped";
         }
 
         if (isStaleWorkspaceNotFoundError(workspaceId, error)) {
           discardedSyncWorkspaceIdsRef.current.add(workspaceId);
           needsResyncWorkspaceIdsRef.current.delete(workspaceId);
-          return;
+          return "skipped";
         }
 
         throw observeAndReportSyncFailure(normalizedError);
-      } finally {
-        disposeSyncSignal();
-        if (syncAbortControllersRef.current.get(workspaceId) === syncAbortController) {
-          syncAbortControllersRef.current.delete(workspaceId);
-          syncPromisesRef.current.delete(workspaceId);
-        }
-        if (
-          isCurrentWorkspaceSync(workspaceId, syncGeneration, workspaceSyncGeneration)
-          && indexedDbOpenRecoveryState.hasFailed() === false
-        ) {
-          syncingWorkspaceIdsRef.current.delete(workspaceId);
-          refreshSyncIndicator();
-
-          const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
-          needsResyncWorkspaceIdsRef.current.delete(workspaceId);
-          if (
-            needsResync
-            && indexedDbOpenRecoveryState.hasFailed() === false
-            && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false
-          ) {
-            runSyncInBackground(runSyncForWorkspace(workspace));
-          }
-        }
       }
     };
-    const runGuestSyncTask = async (): Promise<void> => {
+    const runGuestSyncTask = async (): Promise<WorkspaceSyncOutcome> => {
       try {
-        await runWithBrowserGuestWorkLock(syncSignal, createSyncTask);
+        return await runWithBrowserGuestWorkLock(syncSignal, createSyncTask);
       } catch (error) {
         // Aborted while queued for the guest lock, before createSyncTask could check its generation.
         markIndexedDbOpenRecoveryFailure(normalizeCaughtError(error));
         indexedDbOpenRecoveryState.throwIfFailed();
 
         if (isCurrentWorkspaceSync(workspaceId, syncGeneration, workspaceSyncGeneration) === false) {
-          return;
+          return "skipped";
         }
 
         throw error;
       }
     };
-    const syncTask = session.browserGuestCapabilities?.isGuest === true
-      ? runGuestSyncTask()
-      : createSyncTask();
+    const syncTask = Promise.resolve().then(session.browserGuestCapabilities?.isGuest === true
+      ? runGuestSyncTask
+      : createSyncTask).finally(() => {
+      disposeSyncSignal();
+      if (syncAbortControllersRef.current.get(workspaceId) === syncAbortController) {
+        syncAbortControllersRef.current.delete(workspaceId);
+        syncPromisesRef.current.delete(workspaceId);
+      }
+      if (
+        isCurrentWorkspaceSync(workspaceId, syncGeneration, workspaceSyncGeneration)
+        && indexedDbOpenRecoveryState.hasFailed() === false
+      ) {
+        syncingWorkspaceIdsRef.current.delete(workspaceId);
+        refreshSyncIndicator();
+
+        const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
+        needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+        if (
+          needsResync
+          && indexedDbOpenRecoveryState.hasFailed() === false
+          && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false
+        ) {
+          runSyncInBackground(runSyncForWorkspace(workspace));
+        }
+      }
+    });
 
     syncPromisesRef.current.set(workspaceId, syncTask);
     return syncTask;
@@ -911,6 +916,51 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await waitForRecoveryGuardedSyncPhase(runSyncForWorkspace(activeWorkspace));
   }, [activeWorkspace, indexedDbOpenRecoveryState, runSyncForWorkspace, waitForRecoveryGuardedSyncPhase]);
+
+  const joinOrStartWorkspaceSync = useCallback(function joinOrStartWorkspaceSync(
+    workspace: WorkspaceSummary,
+  ): Promise<WorkspaceSyncOutcome> {
+    return syncPromisesRef.current.get(workspace.workspaceId)
+      ?? runSyncForWorkspaceInternal(workspace, reportGlobalSyncError);
+  }, [reportGlobalSyncError, runSyncForWorkspaceInternal]);
+
+  const runSyncForWorkspaceOnStartup = useCallback(async function runSyncForWorkspaceOnStartup(
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    await waitForRecoveryGuardedSyncPhase(joinOrStartWorkspaceSync(workspace));
+  }, [indexedDbOpenRecoveryState, joinOrStartWorkspaceSync, waitForRecoveryGuardedSyncPhase]);
+
+  const requireActiveWorkspaceSync = useCallback(async function requireActiveWorkspaceSync(
+    workspaceId: string,
+    presentSyncFailure: () => boolean,
+  ): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    if (activeWorkspace?.workspaceId !== workspaceId || sessionVerificationState !== "verified") {
+      throw createWorkspaceSyncDiscardedError(workspaceId);
+    }
+
+    const syncGeneration = syncGenerationRef.current;
+    const workspaceSyncGeneration = workspaceSyncGenerationsRef.current.get(workspaceId) ?? 0;
+    const sync = joinOrStartWorkspaceSync(activeWorkspace);
+    const activeSync = syncPromisesRef.current.get(workspaceId);
+    if (activeSync !== undefined) {
+      syncFailurePresentersRef.current.set(activeSync, presentSyncFailure);
+    }
+    const outcome = await waitForRecoveryGuardedSyncPhase(sync);
+    if (outcome === "skipped" || isVisibleWorkspace(workspaceId) === false) {
+      throw createWorkspaceSyncDiscardedError(workspaceId);
+    }
+    requireWorkspaceSyncNotDiscarded(workspaceId, syncGeneration, workspaceSyncGeneration);
+  }, [
+    activeWorkspace,
+    indexedDbOpenRecoveryState,
+    isVisibleWorkspace,
+    requireWorkspaceSyncNotDiscarded,
+    joinOrStartWorkspaceSync,
+    sessionVerificationState,
+    waitForRecoveryGuardedSyncPhase,
+  ]);
 
   const runSyncSilently = useCallback(async function runSyncSilently(): Promise<void> {
     indexedDbOpenRecoveryState.throwIfFailed();
@@ -956,7 +1006,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         entityId: null,
       });
     });
-    runSyncInBackground(runSyncForWorkspace(activeWorkspace));
+    runSyncInBackground(runSyncForWorkspaceOnStartup(activeWorkspace));
     runMediaUploadTransfersForWorkspace(activeWorkspace);
   }, [
     activeWorkspace,
@@ -964,7 +1014,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     markIndexedDbOpenRecoveryFailure,
     refreshLocalMetadata,
     runMediaUploadTransfersForWorkspace,
-    runSyncForWorkspace,
+    runSyncForWorkspaceOnStartup,
     session,
     sessionLoadState,
     sessionVerificationState,
@@ -1353,9 +1403,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
   return {
     runSync,
+    requireActiveWorkspaceSync,
     drainGuestWorkspace,
     runSyncSilently,
-    runSyncForWorkspace,
+    runSyncForWorkspaceOnStartup,
     runMediaUploadTransfers,
     discardWorkspaceSync,
     discardAllSyncWork,

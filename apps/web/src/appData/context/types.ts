@@ -67,6 +67,7 @@ export type AppDataContextValue = Readonly<{
   loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;
   resetWorkspaceProgress: (workspaceId: string, confirmationText: string) => Promise<ResetWorkspaceProgressResponse>;
   runSync: () => Promise<void>;
+  requireActiveWorkspaceSync: (workspaceId: string, presentSyncFailure: () => boolean) => Promise<void>;
   drainGuestWorkspace: () => Promise<void>;
   runMediaUploadTransfers: () => void;
   refreshLocalData: () => Promise<void>;

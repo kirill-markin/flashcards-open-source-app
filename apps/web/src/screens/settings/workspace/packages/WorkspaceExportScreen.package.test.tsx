@@ -177,6 +177,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     loadWorkspaceResetProgressPreview: vi.fn(async (_workspaceId: string): Promise<WorkspaceResetProgressPreview> => throwNotUsed("loadWorkspaceResetProgressPreview")),
     resetWorkspaceProgress: vi.fn(async (_workspaceId: string, _confirmationText: string): Promise<ResetWorkspaceProgressResponse> => throwNotUsed("resetWorkspaceProgress")),
     runSync: vi.fn(async (): Promise<void> => undefined),
+    requireActiveWorkspaceSync: vi.fn(async (): Promise<void> => undefined),
     runMediaUploadTransfers: vi.fn(),
     refreshLocalData: vi.fn(async (): Promise<void> => undefined),
     getCardById: vi.fn(async (_cardId: string): Promise<Card> => throwNotUsed("getCardById")),

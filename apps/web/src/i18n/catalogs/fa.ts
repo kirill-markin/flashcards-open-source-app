@@ -510,6 +510,7 @@ const faCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "در حال بازیابی نشست. کمی بعد دوباره امتحان کنید.",
     sessionUnavailable: "نشست در دسترس نیست",
     syncing: "در حال همگام‌سازی...",
+    syncFailed: "همگام‌سازی ناموفق بود",
     workspaceUnavailable: "فضای کاری در دسترس نیست",
   },
   accountMenu: {
