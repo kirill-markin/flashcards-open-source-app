@@ -2863,6 +2863,90 @@
         }
       }
     },
+    "watch.session.switch_blocked.discard" : {
+      "comment" : "Apple Watch destructive button that drops the ratings that cannot sync and follows the iPhone's account or workspace switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard and switch"
+          }
+        }
+      }
+    },
+    "watch.session.switch_blocked.discard_confirmation.message" : {
+      "comment" : "Apple Watch confirmation message before dropping the ratings that cannot sync",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They will be lost. This can't be undone."
+          }
+        }
+      }
+    },
+    "watch.session.switch_blocked.discard_confirmation.title %lld" : {
+      "comment" : "Apple Watch confirmation title before dropping the ratings that cannot sync",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld rating?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld ratings?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "watch.session.switch_blocked.message" : {
+      "comment" : "Apple Watch explanation under the unsynced ratings title: retry once online, or discard them to follow the iPhone's switch",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your iPhone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now."
+          }
+        }
+      }
+    },
+    "watch.session.switch_blocked.title %lld" : {
+      "comment" : "Apple Watch title with the number of ratings made on the watch that have not reached the server, while the iPhone has switched account or workspace",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rating can't sync yet"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ratings can't sync yet"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "watch.session.syncing" : {
       "comment" : "Apple Watch progress label while cards download for the first time",
       "extractionState" : "manual",

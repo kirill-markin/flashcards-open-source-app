@@ -76,10 +76,6 @@ final class WatchConnectivityClient: NSObject, WCSessionDelegate {
         super.init()
     }
 
-    var isIPhoneReachable: Bool {
-        WCSession.default.activationState == .activated && WCSession.default.isReachable
-    }
-
     func activate(onIPhoneBecameReachable: @escaping @MainActor () -> Void) {
         self.onIPhoneBecameReachable = onIPhoneBecameReachable
         WCSession.default.delegate = self

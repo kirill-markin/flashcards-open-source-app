@@ -10,6 +10,9 @@ enum WatchSessionState: Equatable {
     case connecting
     case syncing
     case ready
+    /// The iPhone switched account or workspace while ratings made here failed to sync with a retryable
+    /// error; the switch completes on a retry that delivers them or when the user discards them.
+    case switchBlocked(unsyncedRatingCount: Int)
     case failed(message: String)
 }
 
@@ -55,6 +58,7 @@ final class WatchSessionModel {
     private(set) var state: WatchSessionState
     private(set) var reviewFilter: ReviewFilter
     private(set) var lastSuccessfulSyncAt: Date?
+    private(set) var isRequestingHandoff: Bool
 
     /// Nil only when the local database could not be opened; `state` then carries that error.
     @ObservationIgnored let database: LocalDatabase?
@@ -66,7 +70,8 @@ final class WatchSessionModel {
     @ObservationIgnored private var activeLinkedSession: CloudLinkedSession?
     @ObservationIgnored private var activeSync: WatchSyncOperation?
     @ObservationIgnored private var isResyncRequested: Bool
-    @ObservationIgnored private var isRequestingHandoff: Bool
+    /// The iPhone's account a blocked switch moves to.
+    @ObservationIgnored private var blockedSwitchAccount: WatchHandoffSignedInAccount?
 
     init() {
         self.credentialStore = CloudCredentialStore()
@@ -77,6 +82,7 @@ final class WatchSessionModel {
         self.activeSync = nil
         self.isResyncRequested = false
         self.isRequestingHandoff = false
+        self.blockedSwitchAccount = nil
         self.reviewFilter = .allCards
         self.lastSuccessfulSyncAt = nil
 
@@ -118,7 +124,7 @@ final class WatchSessionModel {
                 Task {
                     await self.refreshFromIPhone()
                 }
-            case .connecting, .syncing, .ready:
+            case .connecting, .syncing, .ready, .switchBlocked:
                 return
             }
         }
@@ -164,6 +170,11 @@ final class WatchSessionModel {
             reply = try await self.connectivityClient.requestHandoff()
         } catch {
             logWatchSessionFailure(event: "watch_handoff_failed", error: error)
+            // The iPhone's last answer stays the target of a blocked switch.
+            if let blockedSwitchAccount = self.blockedSwitchAccount {
+                await self.applySignedInAccountAndSync(account: blockedSwitchAccount)
+                return
+            }
             guard storedAccount != nil else {
                 self.state = watchSessionStateForHandoffFailure(error: error)
                 return
@@ -186,20 +197,52 @@ final class WatchSessionModel {
             await self.stopActiveSync()
             self.signOutIfLinked(reason: "iphone_signed_out")
         case .signedIn(let account):
-            let isApplied: Bool
-            do {
-                isApplied = try await self.applySignedInAccount(account: account)
-            } catch {
-                logWatchSessionFailure(event: "watch_handoff_apply_failed", error: error)
-                self.state = .failed(message: Flashcards.errorMessage(error: error))
-                return
-            }
-            // A deferred switch keeps the state its flush left; the next foreground retries it.
-            guard isApplied else {
-                return
-            }
-            await self.syncNow()
+            await self.applySignedInAccountAndSync(account: account)
         }
+    }
+
+    /// Drops the ratings a blocked switch waits for and completes the switch.
+    func discardUnsyncedRatingsAndSwitch() async {
+        guard let account = self.blockedSwitchAccount else {
+            await self.refreshFromIPhone()
+            return
+        }
+        guard self.isRequestingHandoff == false else {
+            return
+        }
+        self.isRequestingHandoff = true
+        defer {
+            self.isRequestingHandoff = false
+        }
+
+        do {
+            let cloudSettings = try self.requireDatabase().workspaceSettingsStore.loadCloudSettings()
+            try await self.linkSignedInAccount(
+                account: account,
+                cloudSettings: cloudSettings,
+                outboxDropReason: "user_discarded_for_switch"
+            )
+        } catch {
+            logWatchSessionFailure(event: "watch_handoff_apply_failed", error: error)
+            self.state = .failed(message: Flashcards.errorMessage(error: error))
+            return
+        }
+        await self.syncNow()
+    }
+
+    private func applySignedInAccountAndSync(account: WatchHandoffSignedInAccount) async {
+        let isApplied: Bool
+        do {
+            isApplied = try await self.applySignedInAccount(account: account)
+        } catch {
+            logWatchSessionFailure(event: "watch_handoff_apply_failed", error: error)
+            self.state = .failed(message: Flashcards.errorMessage(error: error))
+            return
+        }
+        guard isApplied else {
+            return
+        }
+        await self.syncNow()
     }
 
     /// Runs one linked sync; a call during a running sync waits for it and one more run after it,
@@ -251,13 +294,13 @@ final class WatchSessionModel {
             return .failed(error)
         }
         if hasHydratedWorkspace == false {
-            self.state = .syncing
+            self.setStateUnlessSwitchBlocked(state: .syncing)
         }
 
         do {
             try await self.runLinkedSyncWithStoredCredentials(account: account, cloudSyncService: cloudSyncService)
             self.lastSuccessfulSyncAt = Date()
-            self.state = .ready
+            self.setStateUnlessSwitchBlocked(state: .ready)
             return .succeeded
         } catch {
             if isRequestCancellationError(error: error) {
@@ -268,9 +311,19 @@ final class WatchSessionModel {
                 self.signOut(reason: "refresh_token_rejected")
                 return .failed(error)
             }
-            self.state = self.stateAfterSyncFailure(error: error, workspaceId: account.workspaceId)
+            self.setStateUnlessSwitchBlocked(
+                state: self.stateAfterSyncFailure(error: error, workspaceId: account.workspaceId)
+            )
             return .failed(error)
         }
+    }
+
+    /// A blocked switch keeps its screen while syncs of the old workspace try to deliver its ratings.
+    private func setStateUnlessSwitchBlocked(state: WatchSessionState) {
+        if case .switchBlocked = self.state {
+            return
+        }
+        self.state = state
     }
 
     /// A workspace that was hydrated before stays reviewable offline whatever the sync failure.
@@ -361,7 +414,7 @@ final class WatchSessionModel {
         return updatedCredentials
     }
 
-    /// Returns false when the switch away from the linked workspace waits for its unsynced changes.
+    /// Returns false when the switch away from the linked workspace blocks on its unsynced changes.
     private func applySignedInAccount(account: WatchHandoffSignedInAccount) async throws -> Bool {
         let database = try self.requireDatabase()
         var cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -386,24 +439,44 @@ final class WatchSessionModel {
                 watchSessionLogger.error(
                     "event=watch_account_switch_deferred pendingOutboxEntries=\(pendingOutboxEntryCount, privacy: .public) userChanged=\(String(cloudSettings.linkedUserId != account.linkedUserId), privacy: .public) error=\(Flashcards.errorMessage(error: error), privacy: .public)"
                 )
+                self.blockedSwitchAccount = account
+                self.state = .switchBlocked(unsyncedRatingCount: try self.countUnsyncedRatings())
                 return false
             }
             // A rejected refresh during the flush has already signed the watch out.
             cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
         }
 
+        try await self.linkSignedInAccount(
+            account: account,
+            cloudSettings: cloudSettings,
+            outboxDropReason: cloudSettings.linkedUserId != account.linkedUserId
+                ? "linked_user_changed"
+                : "workspace_changed"
+        )
+        return true
+    }
+
+    /// Links the watch to the handoff account; leaving a linked workspace drops its outbox, logged
+    /// with `outboxDropReason`.
+    private func linkSignedInAccount(
+        account: WatchHandoffSignedInAccount,
+        cloudSettings: CloudSettings,
+        outboxDropReason: String
+    ) async throws {
+        let database = try self.requireDatabase()
         let isLinkedToAccount = isWatchLinked(cloudSettings: cloudSettings, account: account)
         if isLinkedToAccount == false && cloudSettings.cloudState == .linked {
             await self.stopActiveSync()
             if cloudSettings.linkedUserId != account.linkedUserId {
                 Analytics.reset()
-                try self.wipeLocalState(reason: "linked_user_changed")
+                try self.wipeLocalState(reason: outboxDropReason)
                 watchSessionLogger.log("event=watch_local_state_wiped reason=linked_user_changed")
             } else {
                 // Same user: the installation id is global across workspaces, so only the workspace
                 // replica is replaced below, as the iPhone keeps its installation on a workspace switch.
                 // The replacement deletes the old workspace's outbox with it.
-                logDroppedOutboxEntries(count: try self.countOutboxEntries(), reason: "workspace_changed")
+                logDroppedOutboxEntries(count: self.countOutboxEntriesForDropLog(), reason: outboxDropReason)
                 self.resetWorkspaceScopedState()
                 watchSessionLogger.log("event=watch_workspace_changed")
             }
@@ -451,7 +524,11 @@ final class WatchSessionModel {
         )
         self.reviewFilter = try makeReviewFilter(persistedReviewFilter: account.reviewFilter)
         setWatchObservabilityIdentity(account: linkedAccount)
-        return true
+        self.blockedSwitchAccount = nil
+        // Returning to the still-linked workspace keeps it reviewable while its sync runs.
+        if case .switchBlocked = self.state {
+            self.state = try database.hasHydratedHotState(workspaceId: account.workspaceId) ? .ready : .syncing
+        }
     }
 
     /// Skips the wipe when nothing is stored, so a watch whose iPhone stays signed out keeps its
@@ -485,13 +562,7 @@ final class WatchSessionModel {
     /// Callers stop the active sync first unless they run inside it.
     private func wipeLocalState(reason: String) throws {
         let database = try self.requireDatabase()
-        let droppedOutboxEntryCount: Int?
-        do {
-            droppedOutboxEntryCount = try self.countOutboxEntries()
-        } catch {
-            logWatchSessionFailure(event: "watch_outbox_count_failed", error: error)
-            droppedOutboxEntryCount = nil
-        }
+        let droppedOutboxEntryCount = self.countOutboxEntriesForDropLog()
         FlashcardsObservability.setIdentity(nil)
         try self.credentialStore.clearCredentials()
         try database.resetForAccountDeletion()
@@ -501,6 +572,7 @@ final class WatchSessionModel {
 
     private func resetWorkspaceScopedState() {
         self.activeLinkedSession = nil
+        self.blockedSwitchAccount = nil
         clearStoredReviewFilters(userDefaults: self.userDefaults)
         self.reviewFilter = .allCards
         self.lastSuccessfulSyncAt = nil
@@ -508,6 +580,24 @@ final class WatchSessionModel {
 
     private func countOutboxEntries() throws -> Int {
         try self.requireDatabase().core.scalarInt(sql: "SELECT COUNT(*) FROM outbox", values: [])
+    }
+
+    /// Nil when the outbox cannot be read, so the caller still logs the drop and carries on.
+    private func countOutboxEntriesForDropLog() -> Int? {
+        do {
+            return try self.countOutboxEntries()
+        } catch {
+            logWatchSessionFailure(event: "watch_outbox_count_failed", error: error)
+            return nil
+        }
+    }
+
+    /// A rating queues a review event and a card update, so ratings are counted by their review events.
+    private func countUnsyncedRatings() throws -> Int {
+        try self.requireDatabase().core.scalarInt(
+            sql: "SELECT COUNT(*) FROM outbox WHERE entity_type = ?",
+            values: [.text("review_event")]
+        )
     }
 
     private func stopActiveSync() async {
