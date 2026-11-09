@@ -21,7 +21,6 @@ final class ReviewManagedMediaState {
     @ObservationIgnored private var request: ReviewManagedMediaTaskID?
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var loadTask: Task<Void, Never>?
-    @ObservationIgnored private var fileTask: Task<Void, Never>?
     let fullScreenDelegate = ReviewManagedMediaFullScreenDelegate()
 
     init() {
@@ -30,7 +29,6 @@ final class ReviewManagedMediaState {
 
     deinit {
         self.loadTask?.cancel()
-        self.fileTask?.cancel()
     }
 
     func setPresented(_ isPresented: Bool, id: UUID, store: FlashcardsStore) {
@@ -64,8 +62,6 @@ final class ReviewManagedMediaState {
             self.generation = UUID()
             self.loadTask?.cancel()
             self.loadTask = nil
-            self.fileTask?.cancel()
-            self.fileTask = nil
             self.player?.pause()
         }
     }
@@ -111,30 +107,26 @@ final class ReviewManagedMediaState {
         self.remoteImageFailed = true
     }
 
-    func loadFileImage(mediaURL: URL) {
-        guard self.decodedImageURL != mediaURL, self.failedImageURL != mediaURL, self.fileTask == nil else { return }
-        self.fileTask = Task { [weak self] in
-            let pixelSize = await readReviewManagedImagePixelSize(mediaURL: mediaURL)
-            guard Task.isCancelled == false, self?.loadResult?.mediaURL == mediaURL else { return }
-            self?.placeholderAspectRatio = pixelSize.flatMap(reviewManagedImageAspectRatio(size:))
-            let image = await decodeReviewManagedFileImage(mediaURL: mediaURL)
-            guard let self, Task.isCancelled == false, self.loadResult?.mediaURL == mediaURL else { return }
-            if let image {
-                self.decodedImage = image
-                self.decodedImageURL = mediaURL
-                self.failedImageURL = nil
-            } else {
-                self.decodedImage = nil
-                self.decodedImageURL = nil
-                self.failedImageURL = mediaURL
-            }
-            self.fileTask = nil
+    /// Runs in the showing view's `task(id:)`, so the decode lives exactly as long as a view displays this URL.
+    func loadFileImage(mediaURL: URL) async {
+        guard self.decodedImageURL != mediaURL, self.failedImageURL != mediaURL else { return }
+        let pixelSize = await readReviewManagedImagePixelSize(mediaURL: mediaURL)
+        guard Task.isCancelled == false, self.loadResult?.mediaURL == mediaURL else { return }
+        self.placeholderAspectRatio = pixelSize.flatMap(reviewManagedImageAspectRatio(size:))
+        let image = await decodeReviewManagedFileImage(mediaURL: mediaURL)
+        guard Task.isCancelled == false, self.loadResult?.mediaURL == mediaURL else { return }
+        if let image {
+            self.decodedImage = image
+            self.decodedImageURL = mediaURL
+            self.failedImageURL = nil
+        } else {
+            self.decodedImage = nil
+            self.decodedImageURL = nil
+            self.failedImageURL = mediaURL
         }
     }
 
     private func resetResolvedMedia() {
-        self.fileTask?.cancel()
-        self.fileTask = nil
         self.decodedImage = nil
         self.decodedImageURL = nil
         self.failedImageURL = nil
