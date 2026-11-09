@@ -1137,11 +1137,15 @@ export const jaCatalog = {
       ariaLabel: "リーダーボードを開く",
     },
     progressBadge: {
-      ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。{{freezeBank}}。",
-      reviewAriaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。",
+      ariaLabel: "復習連続 {{streak}}。{{todayStatus}}。{{freezeBank}}。",
+      reviewAriaLabel: "復習連続 {{streak}}。{{todayStatus}}。",
       freezeBank: "フリーズ残数 {{available}} / {{capacity}}",
       notReviewedToday: "今日はまだ復習していません",
       reviewedToday: "今日は復習済み",
+      streakDayCount: {
+        one: "日",
+        other: "日",
+      },
       title: "連続",
     },
     interval: {

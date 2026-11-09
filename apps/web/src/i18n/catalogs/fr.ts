@@ -1137,11 +1137,15 @@ const frCatalog: TranslationCatalog = {
       ariaLabel: "Ouvrir le classement",
     },
     progressBadge: {
-      ariaLabel: "Série de révisions de {{streak}} jours. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Série de révisions de {{streak}} jours. {{todayStatus}}.",
+      ariaLabel: "Série de révisions de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Série de révisions de {{streak}}. {{todayStatus}}.",
       freezeBank: "Réserve de gels {{available}} sur {{capacity}}",
       notReviewedToday: "Pas de révision aujourd'hui",
       reviewedToday: "Révisé aujourd'hui",
+      streakDayCount: {
+        one: "jour",
+        other: "jours",
+      },
       title: "Série",
     },
     interval: {

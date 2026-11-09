@@ -1136,11 +1136,15 @@ const enCatalog = {
       ariaLabel: "Open leaderboard",
     },
     progressBadge: {
-      ariaLabel: "Review streak {{streak}} days. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Review streak {{streak}} days. {{todayStatus}}.",
+      ariaLabel: "Review streak {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Review streak {{streak}}. {{todayStatus}}.",
       freezeBank: "Freeze bank {{available}} of {{capacity}}",
       notReviewedToday: "Not reviewed today",
       reviewedToday: "Reviewed today",
+      streakDayCount: {
+        one: "day",
+        other: "days",
+      },
       title: "Streak",
     },
     interval: {

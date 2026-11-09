@@ -1137,11 +1137,15 @@ const bnCatalog: TranslationCatalog = {
       ariaLabel: "লিডারবোর্ড খুলুন",
     },
     progressBadge: {
-      ariaLabel: "পুনরালোচনার ধারাবাহিকতা {{streak}} দিন। {{todayStatus}}। {{freezeBank}}।",
-      reviewAriaLabel: "পুনরালোচনার ধারাবাহিকতা {{streak}} দিন। {{todayStatus}}।",
+      ariaLabel: "পুনরালোচনার ধারাবাহিকতা {{streak}}। {{todayStatus}}। {{freezeBank}}।",
+      reviewAriaLabel: "পুনরালোচনার ধারাবাহিকতা {{streak}}। {{todayStatus}}।",
       freezeBank: "ফ্রিজ ব্যাংক {{capacity}}-এর মধ্যে {{available}}",
       notReviewedToday: "আজ পুনরালোচনা করা হয়নি",
       reviewedToday: "আজ পুনরালোচনা করা হয়েছে",
+      streakDayCount: {
+        one: "দিন",
+        other: "দিন",
+      },
       title: "ধারাবাহিকতা",
     },
     interval: {

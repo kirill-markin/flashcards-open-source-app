@@ -1137,11 +1137,15 @@ const esMxCatalog: TranslationCatalog = {
       ariaLabel: "Abrir clasificación",
     },
     progressBadge: {
-      ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
+      ariaLabel: "Racha de repaso de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Racha de repaso de {{streak}}. {{todayStatus}}.",
       freezeBank: "Banco de congelaciones {{available}} de {{capacity}}",
       notReviewedToday: "Sin repaso hoy",
       reviewedToday: "Repasado hoy",
+      streakDayCount: {
+        one: "día",
+        other: "días",
+      },
       title: "Racha",
     },
     interval: {

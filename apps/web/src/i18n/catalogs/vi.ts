@@ -1137,11 +1137,15 @@ const viCatalog: TranslationCatalog = {
       ariaLabel: "Mở bảng xếp hạng",
     },
     progressBadge: {
-      ariaLabel: "Chuỗi ngày ôn tập {{streak}} ngày. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Chuỗi ngày ôn tập {{streak}} ngày. {{todayStatus}}.",
+      ariaLabel: "Chuỗi ngày ôn tập {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Chuỗi ngày ôn tập {{streak}}. {{todayStatus}}.",
       freezeBank: "Kho đóng băng {{available}} trên {{capacity}}",
       notReviewedToday: "Hôm nay chưa ôn tập",
       reviewedToday: "Hôm nay đã ôn tập",
+      streakDayCount: {
+        one: "ngày",
+        other: "ngày",
+      },
       title: "Chuỗi ngày",
     },
     interval: {

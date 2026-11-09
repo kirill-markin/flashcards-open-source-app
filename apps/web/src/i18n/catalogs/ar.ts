@@ -1137,11 +1137,18 @@ const arCatalog: TranslationCatalog = {
       ariaLabel: "فتح لوحة المتصدرين",
     },
     progressBadge: {
-      ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}.",
+      ariaLabel: "سلسلة المراجعة {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "سلسلة المراجعة {{streak}}. {{todayStatus}}.",
       freezeBank: "رصيد التجميد {{available}} من {{capacity}}",
       notReviewedToday: "لم تُراجع اليوم",
       reviewedToday: "راجعت اليوم",
+      streakDayCount: {
+        zero: "يوم",
+        one: "يوم",
+        two: "يومان",
+        few: "أيام",
+        other: "يومًا",
+      },
       title: "السلسلة",
     },
     interval: {

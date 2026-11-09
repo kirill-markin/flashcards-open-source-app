@@ -1137,11 +1137,15 @@ const teCatalog: TranslationCatalog = {
       ariaLabel: "లీడర్‌బోర్డ్ తెరువు",
     },
     progressBadge: {
-      ariaLabel: "పునశ్చరణ వరుస {{streak}} రోజులు. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "పునశ్చరణ వరుస {{streak}} రోజులు. {{todayStatus}}.",
+      ariaLabel: "పునశ్చరణ వరుస {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "పునశ్చరణ వరుస {{streak}}. {{todayStatus}}.",
       freezeBank: "ఫ్రీజ్ బ్యాంక్ {{capacity}}లో {{available}}",
       notReviewedToday: "ఈరోజు పునశ్చరణ చేయలేదు",
       reviewedToday: "ఈరోజు పునశ్చరణ చేశారు",
+      streakDayCount: {
+        one: "రోజు",
+        other: "రోజులు",
+      },
       title: "వరుస రోజులు",
     },
     interval: {

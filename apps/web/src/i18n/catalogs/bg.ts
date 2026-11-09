@@ -1137,11 +1137,15 @@ const bgCatalog: TranslationCatalog = {
       ariaLabel: "Отваряне на класацията",
     },
     progressBadge: {
-      ariaLabel: "Поредица от преговори (дни): {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Поредица от преговори (дни): {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Поредица от преговори: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Поредица от преговори: {{streak}}. {{todayStatus}}.",
       freezeBank: "Налични замразявания: {{available}} от {{capacity}}",
       notReviewedToday: "Днес няма преговор",
       reviewedToday: "Днес има преговор",
+      streakDayCount: {
+        one: "ден",
+        other: "дни",
+      },
       title: "Поредица",
     },
     interval: {

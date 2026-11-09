@@ -1147,11 +1147,16 @@ export const ruCatalog = {
       ariaLabel: "Открыть таблицу лидеров",
     },
     progressBadge: {
-      ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}.",
+      ariaLabel: "Серия повторений: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Серия повторений: {{streak}}. {{todayStatus}}.",
       freezeBank: "Запас заморозок {{available}} из {{capacity}}",
       notReviewedToday: "Сегодня ещё не повторяли",
       reviewedToday: "Сегодня уже повторяли",
+      streakDayCount: {
+        one: "день",
+        few: "дня",
+        other: "дней",
+      },
       title: "Серия",
     },
     interval: {

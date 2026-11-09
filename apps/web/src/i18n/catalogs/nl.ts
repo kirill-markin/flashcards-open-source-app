@@ -1137,11 +1137,15 @@ const nlCatalog: TranslationCatalog = {
       ariaLabel: "Ranglijst openen",
     },
     progressBadge: {
-      ariaLabel: "Herhalingsreeks {{streak}} dagen. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Herhalingsreeks {{streak}} dagen. {{todayStatus}}.",
+      ariaLabel: "Herhalingsreeks {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Herhalingsreeks {{streak}}. {{todayStatus}}.",
       freezeBank: "Vriesvoorraad {{available}} van {{capacity}}",
       notReviewedToday: "Vandaag niet herhaald",
       reviewedToday: "Vandaag herhaald",
+      streakDayCount: {
+        one: "dag",
+        other: "dagen",
+      },
       title: "Reeks",
     },
     interval: {

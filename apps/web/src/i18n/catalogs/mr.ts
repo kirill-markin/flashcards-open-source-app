@@ -1137,11 +1137,15 @@ const mrCatalog: TranslationCatalog = {
       ariaLabel: "क्रमवारी उघडा",
     },
     progressBadge: {
-      ariaLabel: "सलग {{streak}} दिवस उजळणी. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "सलग {{streak}} दिवस उजळणी. {{todayStatus}}.",
+      ariaLabel: "सलग {{streak}} उजळणी. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "सलग {{streak}} उजळणी. {{todayStatus}}.",
       freezeBank: "फ्रीझ शिल्लक {{capacity}} पैकी {{available}}",
       notReviewedToday: "आज उजळणी केलेली नाही",
       reviewedToday: "आज उजळणी केली",
+      streakDayCount: {
+        one: "दिवस",
+        other: "दिवस",
+      },
       title: "सलग दिवस",
     },
     interval: {

@@ -1137,11 +1137,16 @@ const lvCatalog: TranslationCatalog = {
       ariaLabel: "Atvērt līderu sarakstu",
     },
     progressBadge: {
-      ariaLabel: "Atkārtošanas sērija: {{streak}} d. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Atkārtošanas sērija: {{streak}} d. {{todayStatus}}.",
+      ariaLabel: "Atkārtošanas sērija: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Atkārtošanas sērija: {{streak}}. {{todayStatus}}.",
       freezeBank: "Pieejamās sērijas aizsardzības: {{available}} no {{capacity}}",
       notReviewedToday: "Šodien atkārtošana nav veikta",
       reviewedToday: "Šodien atkārtošana veikta",
+      streakDayCount: {
+        zero: "dienu",
+        one: "diena",
+        other: "dienas",
+      },
       title: "Sērija",
     },
     interval: {

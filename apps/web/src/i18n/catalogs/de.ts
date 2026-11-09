@@ -1137,11 +1137,15 @@ const deCatalog: TranslationCatalog = {
       ariaLabel: "Bestenliste öffnen",
     },
     progressBadge: {
-      ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}.",
+      ariaLabel: "Lernserie {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Lernserie {{streak}}. {{todayStatus}}.",
       freezeBank: "Frostbank {{available}} von {{capacity}}",
       notReviewedToday: "Heute noch nicht wiederholt",
       reviewedToday: "Heute wiederholt",
+      streakDayCount: {
+        one: "Tag",
+        other: "Tage",
+      },
       title: "Serie",
     },
     interval: {

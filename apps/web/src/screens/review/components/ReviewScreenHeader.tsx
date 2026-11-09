@@ -56,7 +56,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.reviewAriaLabel", {
-    streak: formatNumber(reviewProgressBadge.streakDays),
+    streak: formatCount(reviewProgressBadge.streakDays, messages.reviewScreen.progressBadge.streakDayCount),
     todayStatus: reviewProgressBadgeTodayStatus,
   });
   const leaderboardShortcutRankLabel = reviewLeaderboardBadge.rank === null

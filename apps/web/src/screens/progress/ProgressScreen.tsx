@@ -255,7 +255,7 @@ export function ProgressScreen(): ReactElement {
     capacity: formatNumber(reviewProgressBadge.streakFreeze.capacity),
   });
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
-    streak: formatNumber(reviewProgressBadge.streakDays),
+    streak: formatCount(reviewProgressBadge.streakDays, messages.reviewScreen.progressBadge.streakDayCount),
     todayStatus: reviewProgressBadgeTodayStatus,
     freezeBank: reviewProgressFreezeStatus,
   });

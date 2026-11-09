@@ -1137,11 +1137,15 @@ const daCatalog: TranslationCatalog = {
       ariaLabel: "Åbn ranglisten",
     },
     progressBadge: {
-      ariaLabel: "Stime på {{streak}} dage. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Stime på {{streak}} dage. {{todayStatus}}.",
+      ariaLabel: "Stime på {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Stime på {{streak}}. {{todayStatus}}.",
       freezeBank: "Frysebank {{available}} af {{capacity}}",
       notReviewedToday: "Ikke repeteret i dag",
       reviewedToday: "Repeteret i dag",
+      streakDayCount: {
+        one: "dag",
+        other: "dage",
+      },
       title: "Stime",
     },
     interval: {

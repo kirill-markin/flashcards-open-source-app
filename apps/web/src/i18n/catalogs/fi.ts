@@ -1137,11 +1137,15 @@ const fiCatalog: TranslationCatalog = {
       ariaLabel: "Avaa tulostaulukko",
     },
     progressBadge: {
-      ariaLabel: "Päiväputki {{streak}} päivää. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Päiväputki {{streak}} päivää. {{todayStatus}}.",
+      ariaLabel: "Päiväputki {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Päiväputki {{streak}}. {{todayStatus}}.",
       freezeBank: "Suojia käytettävissä {{available}}/{{capacity}}",
       notReviewedToday: "Ei kerrattu tänään",
       reviewedToday: "Kerrattu tänään",
+      streakDayCount: {
+        one: "päivä",
+        other: "päivää",
+      },
       title: "Päiväputki",
     },
     interval: {

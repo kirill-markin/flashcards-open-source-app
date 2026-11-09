@@ -1,6 +1,8 @@
 import SwiftUI
 import UIKit
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
+
 let reviewProgressBadgeOverflowThreshold: Int = 99
 
 struct ReviewProgressBadgeState: Hashable, Sendable {
@@ -59,6 +61,22 @@ func formatReviewProgressBadgeValue(badgeState: ReviewProgressBadgeState) -> Str
     }
 
     return badgeState.streakDays.formatted()
+}
+
+func formatReviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
+    if badgeState.hasReviewedToday {
+        return String(
+            localized: "review.progress_badge.accessibility.reviewed_today \(badgeState.streakDays)",
+            table: reviewCardsStringsTableName,
+            comment: "Accessibility label for the review progress badge when the user has reviewed today"
+        )
+    }
+
+    return String(
+        localized: "review.progress_badge.accessibility.not_reviewed_today \(badgeState.streakDays)",
+        table: reviewCardsStringsTableName,
+        comment: "Accessibility label for the review progress badge when the user has not reviewed today"
+    )
 }
 
 func reviewProgressFreezeBankSystemImageName() -> String {

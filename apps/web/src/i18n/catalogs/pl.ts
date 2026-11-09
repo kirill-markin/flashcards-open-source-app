@@ -1147,11 +1147,16 @@ const plCatalog: TranslationCatalog = {
       ariaLabel: "Otwórz ranking",
     },
     progressBadge: {
-      ariaLabel: "Seria powtórek: {{streak}} dni. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Seria powtórek: {{streak}} dni. {{todayStatus}}.",
+      ariaLabel: "Seria powtórek: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Seria powtórek: {{streak}}. {{todayStatus}}.",
       freezeBank: "Zapas zamrożeń {{available}} z {{capacity}}",
       notReviewedToday: "Dziś bez powtórki",
       reviewedToday: "Dziś powtórzone",
+      streakDayCount: {
+        one: "dzień",
+        few: "dni",
+        other: "dni",
+      },
       title: "Seria",
     },
     interval: {

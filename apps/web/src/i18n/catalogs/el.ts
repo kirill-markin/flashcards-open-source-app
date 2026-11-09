@@ -1137,11 +1137,15 @@ const elCatalog: TranslationCatalog = {
       ariaLabel: "Άνοιγμα κατάταξης",
     },
     progressBadge: {
-      ariaLabel: "Σερί επαναλήψεων {{streak}} ημέρες. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Σερί επαναλήψεων {{streak}} ημέρες. {{todayStatus}}.",
+      ariaLabel: "Σερί επαναλήψεων {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Σερί επαναλήψεων {{streak}}. {{todayStatus}}.",
       freezeBank: "Απόθεμα παγωμάτων {{available}} από {{capacity}}",
       notReviewedToday: "Δεν έγινε επανάληψη σήμερα",
       reviewedToday: "Έγινε επανάληψη σήμερα",
+      streakDayCount: {
+        one: "ημέρα",
+        other: "ημέρες",
+      },
       title: "Σερί",
     },
     interval: {

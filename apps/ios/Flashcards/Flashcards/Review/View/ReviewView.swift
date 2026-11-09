@@ -402,7 +402,7 @@ struct ReviewView: View {
         ))
         actions.append(MacToolbarAction(
             identifier: UITestIdentifier.reviewProgressBadge, symbol: badge.iconSystemName,
-            label: self.reviewProgressBadgeAccessibilityLabel(badgeState: streak),
+            label: formatReviewProgressBadgeAccessibilityLabel(badgeState: streak),
             symbolColor: streak.hasReviewedToday ? UIColor(self.store.displayedAccountAccentColor.color) : nil,
             title: formatReviewProgressBadgeValue(badgeState: streak),
             value: self.reviewProgressBadgeAccessibilityValue(badgeState: streak),
@@ -1063,7 +1063,7 @@ struct ReviewView: View {
         .disabled(badgeState.isInteractive == false)
         .labelStyle(.titleAndIcon)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
-        .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
+        .accessibilityLabel(formatReviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
         .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
     }
 
@@ -1140,32 +1140,6 @@ struct ReviewView: View {
             "rank=\(rankValue)",
             "windowKey=\(windowKeyValue)"
         ].joined(separator: ";")
-    }
-
-    private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
-        let localizedFormat: String
-        if badgeState.hasReviewedToday {
-            localizedFormat = String(
-                localized: "review.progress_badge.accessibility.reviewed_today",
-                defaultValue: "Review streak %@ days. Reviewed today.",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility label for the review progress badge when the user has reviewed today"
-            )
-        } else {
-            localizedFormat = String(
-                localized: "review.progress_badge.accessibility.not_reviewed_today",
-                defaultValue: "Review streak %@ days. Not reviewed today.",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility label for the review progress badge when the user has not reviewed today"
-            )
-        }
-
-        let streakLabel = String(
-            format: localizedFormat,
-            locale: Locale.current,
-            badgeState.streakDays.formatted()
-        )
-        return streakLabel
     }
 
     private func reviewProgressBadgeAccessibilityValue(badgeState: ReviewProgressBadgeState) -> String {

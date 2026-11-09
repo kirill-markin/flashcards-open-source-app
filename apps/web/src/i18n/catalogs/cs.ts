@@ -1147,11 +1147,16 @@ const csCatalog: TranslationCatalog = {
       ariaLabel: "Otevřít žebříček",
     },
     progressBadge: {
-      ariaLabel: "Série opakování {{streak}} dní. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Série opakování {{streak}} dní. {{todayStatus}}.",
+      ariaLabel: "Série opakování {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Série opakování {{streak}}. {{todayStatus}}.",
       freezeBank: "Zásoba zmrazení {{available}} z {{capacity}}",
       notReviewedToday: "Dnes bez opakování",
       reviewedToday: "Dnes opakováno",
+      streakDayCount: {
+        one: "den",
+        few: "dny",
+        other: "dní",
+      },
       title: "Série",
     },
     interval: {

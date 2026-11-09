@@ -1137,11 +1137,15 @@ const taCatalog: TranslationCatalog = {
       ariaLabel: "தரவரிசையைத் திற",
     },
     progressBadge: {
-      ariaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}} நாட்கள். {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}} நாட்கள். {{todayStatus}}.",
+      ariaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}}. {{todayStatus}}.",
       freezeBank: "உறைவுச் சேமிப்பு {{capacity}} இல் {{available}}",
       notReviewedToday: "இன்று மீள்பயிற்சி செய்யவில்லை",
       reviewedToday: "இன்று மீள்பயிற்சி செய்யப்பட்டது",
+      streakDayCount: {
+        one: "நாள்",
+        other: "நாட்கள்",
+      },
       title: "தொடர்ச்சி",
     },
     interval: {

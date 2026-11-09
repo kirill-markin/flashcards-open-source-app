@@ -1137,11 +1137,15 @@ const hiCatalog: TranslationCatalog = {
       ariaLabel: "लीडरबोर्ड खोलें",
     },
     progressBadge: {
-      ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}। {{freezeBank}}।",
-      reviewAriaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}।",
+      ariaLabel: "रिव्यू स्ट्रीक {{streak}}। {{todayStatus}}। {{freezeBank}}।",
+      reviewAriaLabel: "रिव्यू स्ट्रीक {{streak}}। {{todayStatus}}।",
       freezeBank: "फ़्रीज़ बैंक {{available}} में से {{capacity}}",
       notReviewedToday: "आज रिव्यू नहीं किया",
       reviewedToday: "आज रिव्यू किया",
+      streakDayCount: {
+        one: "दिन",
+        other: "दिन",
+      },
       title: "स्ट्रीक",
     },
     interval: {

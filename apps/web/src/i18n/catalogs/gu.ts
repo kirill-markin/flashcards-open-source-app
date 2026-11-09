@@ -1137,11 +1137,15 @@ const guCatalog: TranslationCatalog = {
       ariaLabel: "ક્રમાંક યાદી ખોલો",
     },
     progressBadge: {
-      ariaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}} દિવસ. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}} દિવસ. {{todayStatus}}.",
+      ariaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}}. {{todayStatus}}.",
       freezeBank: "ફ્રીઝ બૅન્ક {{capacity}} માંથી {{available}}",
       notReviewedToday: "આજે પુનરાવર્તન થયું નથી",
       reviewedToday: "આજે પુનરાવર્તન થયું",
+      streakDayCount: {
+        one: "દિવસ",
+        other: "દિવસ",
+      },
       title: "સ્ટ્રીક",
     },
     interval: {

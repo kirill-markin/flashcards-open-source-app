@@ -1137,11 +1137,15 @@ export const zhHansCatalog = {
       ariaLabel: "打开排行榜",
     },
     progressBadge: {
-      ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。{{freezeBank}}。",
-      reviewAriaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。",
+      ariaLabel: "复习连续 {{streak}}。{{todayStatus}}。{{freezeBank}}。",
+      reviewAriaLabel: "复习连续 {{streak}}。{{todayStatus}}。",
       freezeBank: "冻结额度 {{available}} / {{capacity}}",
       notReviewedToday: "今天还没复习",
       reviewedToday: "今天已复习",
+      streakDayCount: {
+        one: "天",
+        other: "天",
+      },
       title: "连续",
     },
     interval: {

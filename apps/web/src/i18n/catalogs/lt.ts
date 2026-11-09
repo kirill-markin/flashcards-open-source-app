@@ -1147,11 +1147,16 @@ const ltCatalog: TranslationCatalog = {
       ariaLabel: "Atidaryti lyderių lentelę",
     },
     progressBadge: {
-      ariaLabel: "Kartojimo serija, dienų: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Kartojimo serija, dienų: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Kartojimo serija: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Kartojimo serija: {{streak}}. {{todayStatus}}.",
       freezeBank: "Serijos apsaugų atsargoje: {{available}} iš {{capacity}}",
       notReviewedToday: "Šiandien nekartota",
       reviewedToday: "Šiandien pakartota",
+      streakDayCount: {
+        one: "diena",
+        few: "dienos",
+        other: "dienų",
+      },
       title: "Serija",
     },
     interval: {

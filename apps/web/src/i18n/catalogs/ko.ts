@@ -1137,11 +1137,15 @@ const koCatalog: TranslationCatalog = {
       ariaLabel: "리더보드 열기",
     },
     progressBadge: {
-      ariaLabel: "연속 학습 {{streak}}일. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "연속 학습 {{streak}}일. {{todayStatus}}.",
+      ariaLabel: "연속 학습 {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "연속 학습 {{streak}}. {{todayStatus}}.",
       freezeBank: "보호 횟수 {{capacity}} 중 {{available}}",
       notReviewedToday: "오늘 복습하지 않음",
       reviewedToday: "오늘 복습함",
+      streakDayCount: {
+        one: "일",
+        other: "일",
+      },
       title: "연속 학습",
     },
     interval: {
