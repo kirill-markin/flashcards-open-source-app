@@ -1168,8 +1168,6 @@ const fiCatalog: TranslationCatalog = {
       snapshot: "Näytetään tuore paikallinen tilannekuva...",
     },
     media: {
-      privateImage: "Yksityinen kuva",
-      privateAttachment: "Yksityinen liite",
       attachmentLabel: "Liite",
       audioLabel: "Ääniliite",
       imageAlt: "Hallittu kuva",

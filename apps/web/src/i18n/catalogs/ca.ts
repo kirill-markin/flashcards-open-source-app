@@ -1168,8 +1168,6 @@ const caCatalog: TranslationCatalog = {
       snapshot: "S'està mostrant una instantània local recent...",
     },
     media: {
-      privateImage: "Imatge privada",
-      privateAttachment: "Fitxer adjunt privat",
       attachmentLabel: "Adjunt",
       audioLabel: "Adjunt d'àudio",
       imageAlt: "Imatge gestionada",

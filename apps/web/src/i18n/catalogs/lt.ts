@@ -1177,8 +1177,6 @@ const ltCatalog: TranslationCatalog = {
       snapshot: "Rodoma naujausia vietinė momentinė kopija...",
     },
     media: {
-      privateImage: "Privatus vaizdas",
-      privateAttachment: "Privatus priedas",
       attachmentLabel: "Priedas",
       audioLabel: "Garso priedas",
       imageAlt: "Tvarkomas paveikslėlis",

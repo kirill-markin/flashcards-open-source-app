@@ -13,6 +13,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -26,6 +27,8 @@ internal fun ReviewTextSelectionSheet(
     sourceText: String,
     onDismiss: () -> Unit
 ) {
+    // Shows exactly what the side's Copy button copies.
+    val copyText: String = remember(sourceText) { reviewSideMarkdownForClipboard(sourceText = sourceText) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -45,7 +48,7 @@ internal fun ReviewTextSelectionSheet(
             )
             SelectionContainer {
                 Text(
-                    text = sourceText,
+                    text = copyText,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .fillMaxWidth()

@@ -1168,8 +1168,6 @@ const idCatalog: TranslationCatalog = {
       snapshot: "Menampilkan snapshot lokal terbaru...",
     },
     media: {
-      privateImage: "Gambar pribadi",
-      privateAttachment: "Lampiran pribadi",
       attachmentLabel: "Lampiran",
       audioLabel: "Lampiran audio",
       imageAlt: "Gambar terkelola",

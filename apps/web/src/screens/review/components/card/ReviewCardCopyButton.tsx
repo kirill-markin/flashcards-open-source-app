@@ -63,11 +63,7 @@ export function ReviewCardCopyButton(props: ReviewCardCopyButtonProps): ReactEle
         setStatus("unavailable");
         return;
       }
-      const text = reviewSideMarkdownForClipboard(sourceText, {
-        image: t("reviewScreen.media.privateImage"),
-        attachment: t("reviewScreen.media.privateAttachment"),
-      });
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(reviewSideMarkdownForClipboard(sourceText));
       if (isMountedRef.current) {
         setStatus("copied");
       }

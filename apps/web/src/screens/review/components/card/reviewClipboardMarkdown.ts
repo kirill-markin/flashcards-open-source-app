@@ -15,11 +15,6 @@ type ClipboardReplacement = Readonly<{
   text: string;
 }>;
 
-type ClipboardMediaLabels = Readonly<{
-  image: string;
-  attachment: string;
-}>;
-
 type ClipboardSourceRange = Readonly<{
   startIndex: number;
   endIndex: number;
@@ -106,7 +101,62 @@ function readClipboardLinkLabel(node: Nodes): string {
   return "children" in node ? node.children.map(readClipboardLinkLabel).join("") : "";
 }
 
-export function reviewSideMarkdownForClipboard(source: string, labels: ClipboardMediaLabels): string {
+function isBlankSourceText(text: string): boolean {
+  return text.trim() === "";
+}
+
+/**
+ * Widens removed media that stand alone on their lines so no blank line is left behind:
+ * the line and the whitespace before it go, plus the whitespace after it at either end of the side.
+ */
+function readClipboardRemovalRange(source: string, range: ClipboardSourceRange): ClipboardSourceRange {
+  const lineStartIndex = source.lastIndexOf("\n", range.startIndex - 1) + 1;
+  const nextLineBreakIndex = source.indexOf("\n", range.endIndex);
+  const lineEndIndex = nextLineBreakIndex === -1 ? source.length : nextLineBreakIndex;
+  if (
+    isBlankSourceText(source.slice(lineStartIndex, range.startIndex)) === false
+    || isBlankSourceText(source.slice(range.endIndex, lineEndIndex)) === false
+  ) {
+    return range;
+  }
+
+  const textBefore = source.slice(0, range.startIndex);
+  if (isBlankSourceText(textBefore) === false) {
+    const endIndex = isBlankSourceText(source.slice(range.endIndex)) ? source.length : range.endIndex;
+    return { startIndex: textBefore.trimEnd().length, endIndex };
+  }
+  return { startIndex: 0, endIndex: source.length - source.slice(range.endIndex).trimStart().length };
+}
+
+/** Merges removals separated only by whitespace, so media sharing a line are removed together. */
+function readClipboardReplacements(
+  source: string,
+  replacements: ReadonlyArray<ClipboardReplacement>,
+): ReadonlyArray<ClipboardReplacement> {
+  const merged: Array<ClipboardReplacement> = [];
+  for (const replacement of replacements) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous !== undefined
+      && previous.text === ""
+      && replacement.text === ""
+      && isBlankSourceText(source.slice(previous.endIndex, replacement.startIndex))
+    ) {
+      merged[merged.length - 1] = { startIndex: previous.startIndex, endIndex: replacement.endIndex, text: "" };
+    } else {
+      merged.push(replacement);
+    }
+  }
+  return merged.map((replacement) => replacement.text === ""
+    ? { ...readClipboardRemovalRange(source, replacement), text: "" }
+    : replacement);
+}
+
+/**
+ * Returns the side's readable text, shared by the Copy button and the Select text dialog:
+ * each managed-media reference becomes its own visible label, or is removed when it has none.
+ */
+export function reviewSideMarkdownForClipboard(source: string): string {
   const parsedSource = escapeRejectedReviewMathDollars(source);
   const sourceOffsets = readClipboardSourceOffsets(source, parsedSource);
   const tree = clipboardMarkdownProcessor.parse(parsedSource);
@@ -141,13 +191,11 @@ export function reviewSideMarkdownForClipboard(source: string, labels: Clipboard
       return SKIP;
     }
 
-    const kind = node.type === "image" || node.type === "imageReference" ? labels.image : labels.attachment;
     const sourceLabel = readClipboardLinkLabel(node).trim();
-    const label = sourceLabel === destination ? "" : sourceLabel;
     replacements.push({
       startIndex,
       endIndex,
-      text: label === "" ? `[${kind}]` : `[${kind}: ${label}]`,
+      text: sourceLabel === destination ? "" : sourceLabel,
     });
     return SKIP;
   });
@@ -155,7 +203,7 @@ export function reviewSideMarkdownForClipboard(source: string, labels: Clipboard
   // Slice the original source: serialization would normalize Markdown, math and whitespace.
   let result = "";
   let cursor = 0;
-  for (const replacement of replacements) {
+  for (const replacement of readClipboardReplacements(source, replacements)) {
     result += source.slice(cursor, replacement.startIndex) + replacement.text;
     cursor = replacement.endIndex;
   }

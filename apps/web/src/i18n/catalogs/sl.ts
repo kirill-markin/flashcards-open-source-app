@@ -1186,8 +1186,6 @@ const slCatalog: TranslationCatalog = {
       snapshot: "Prikaz nedavnega lokalnega posnetka ...",
     },
     media: {
-      privateImage: "Zasebna slika",
-      privateAttachment: "Zasebna priloga",
       attachmentLabel: "Priloga",
       audioLabel: "Zvočna priloga",
       imageAlt: "Upravljana slika",

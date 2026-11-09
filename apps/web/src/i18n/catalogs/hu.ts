@@ -1168,8 +1168,6 @@ const huCatalog: TranslationCatalog = {
       snapshot: "Friss helyi pillanatképet mutatunk...",
     },
     media: {
-      privateImage: "Privát kép",
-      privateAttachment: "Privát melléklet",
       attachmentLabel: "Melléklet",
       audioLabel: "Hangmelléklet",
       imageAlt: "Kezelt kép",

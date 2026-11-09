@@ -1177,8 +1177,6 @@ const csCatalog: TranslationCatalog = {
       snapshot: "Zobrazujeme nedávný místní snímek...",
     },
     media: {
-      privateImage: "Soukromý obrázek",
-      privateAttachment: "Soukromá příloha",
       attachmentLabel: "Příloha",
       audioLabel: "Zvuková příloha",
       imageAlt: "Spravovaný obrázek",

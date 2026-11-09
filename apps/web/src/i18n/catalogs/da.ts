@@ -1168,8 +1168,6 @@ const daCatalog: TranslationCatalog = {
       snapshot: "Viser et nyligt lokalt øjebliksbillede...",
     },
     media: {
-      privateImage: "Privat billede",
-      privateAttachment: "Privat vedhæftning",
       attachmentLabel: "Vedhæftning",
       audioLabel: "Lydvedhæftning",
       imageAlt: "Administreret billede",

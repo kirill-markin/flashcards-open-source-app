@@ -11,10 +11,11 @@ import org.intellij.markdown.parser.CancellationToken
 import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 
-internal fun reviewSideMarkdownForClipboard(
-    sourceText: String,
-    privateMediaPlaceholder: (String) -> String
-): String {
+/**
+ * Readable copy of a side: each managed-media reference becomes its visible label, or disappears
+ * with its line and the blank lines it leaves when the label is empty or repeats the destination.
+ */
+internal fun reviewSideMarkdownForClipboard(sourceText: String): String {
     // Mask accepted math without changing source offsets or normalizing escaped dollars.
     val mediaMarkdown: CharSequence = buildString(capacity = sourceText.length) {
         extractMathBlocks(markdown = sourceText).blocks.forEach { block ->
@@ -35,24 +36,127 @@ internal fun reviewSideMarkdownForClipboard(
     val replacements: List<Pair<IntRange, String>> = reviewClipboardReplacements(
         node = tree,
         sourceText = sourceText,
-        linkMap = linkMap,
-        privateMediaPlaceholder = privateMediaPlaceholder
+        linkMap = linkMap
     )
-    // Edit source ranges only; Markdown serialization would change code, math and whitespace.
-    return replacements.asReversed().fold(sourceText) { markdown, (range, placeholder) ->
-        markdown.replaceRange(range = range, replacement = placeholder)
+    val lineStarts: List<Int> = listOf(0) + sourceText.indices
+        .filter { offset -> sourceText[offset] == '\n' }
+        .map { offset -> offset + 1 }
+    val deletedLines: Set<Int> = reviewClipboardDeletedLines(
+        sourceText = sourceText,
+        lineStarts = lineStarts,
+        replacements = replacements
+    )
+    val edits: List<Pair<IntRange, String>> = reviewClipboardLineDeletions(
+        sourceText = sourceText,
+        lineStarts = lineStarts,
+        deletedLines = deletedLines
+    ) + replacements.filter { (range, _) ->
+        reviewClipboardLineIndex(lineStarts = lineStarts, offset = range.first) !in deletedLines
     }
+    // Edit source ranges only; Markdown serialization would change code, math and whitespace.
+    return edits.sortedBy { (range, _) -> range.first }.asReversed().fold(sourceText) { markdown, (range, text) ->
+        markdown.replaceRange(range = range, replacement = text)
+    }
+}
+
+/**
+ * Lines holding only removed media, plus one blank line when they formed a whole inner paragraph,
+ * plus all blank lines between kept text and removed media at the start or end of the text.
+ */
+private fun reviewClipboardDeletedLines(
+    sourceText: String,
+    lineStarts: List<Int>,
+    replacements: List<Pair<IntRange, String>>
+): Set<Int> {
+    val removedRanges: List<IntRange> = replacements
+        .filter { (_, text) -> text.isEmpty() }
+        .map { (range, _) -> range }
+    val lineCount: Int = lineStarts.size
+    val isBlankLine: (Int) -> Boolean = { line ->
+        sourceText.substring(
+            lineStarts[line],
+            reviewClipboardLineEnd(sourceText = sourceText, lineStarts = lineStarts, line = line)
+        ).isBlank()
+    }
+    val mediaOnlyLines: List<Int> = removedRanges
+        .map { range -> reviewClipboardLineIndex(lineStarts = lineStarts, offset = range.first) }
+        .distinct()
+        .filter { line ->
+            val lineStart: Int = lineStarts[line]
+            val lineEnd: Int = reviewClipboardLineEnd(sourceText = sourceText, lineStarts = lineStarts, line = line)
+            val rangesInLine: List<IntRange> = removedRanges.filter { range ->
+                range.first >= lineStart && range.last < lineEnd
+            }
+            (lineStart until lineEnd).all { offset ->
+                sourceText[offset].isWhitespace() || rangesInLine.any { range -> offset in range }
+            }
+        }
+        .sorted()
+    val paragraphBreaks: List<Int> = mediaOnlyLines
+        .filter { line -> line - 1 !in mediaOnlyLines }
+        .mapNotNull { firstLine ->
+            var lastLine: Int = firstLine
+            while (lastLine + 1 in mediaOnlyLines) {
+                lastLine += 1
+            }
+            val nextLine: Int = lastLine + 1
+            val isWholeParagraph: Boolean = firstLine > 0 && isBlankLine(firstLine - 1) &&
+                nextLine < lineCount && isBlankLine(nextLine)
+            if (isWholeParagraph) nextLine else null
+        }
+    val isKeptLine: (Int) -> Boolean = { line -> line !in mediaOnlyLines && isBlankLine(line).not() }
+    val firstKeptLine: Int = (0 until lineCount).firstOrNull(isKeptLine) ?: lineCount
+    val lastKeptLine: Int = (0 until lineCount).lastOrNull(isKeptLine) ?: -1
+    // Removed media at either end of the text also takes every blank line up to the kept text.
+    val edgeLines: List<Int> = listOf(0 until firstKeptLine, lastKeptLine + 1 until lineCount)
+        .filter { lines -> lines.any { line -> line in mediaOnlyLines } }
+        .flatten()
+    return (mediaOnlyLines + paragraphBreaks + edgeLines).toSet()
+}
+
+private fun reviewClipboardLineDeletions(
+    sourceText: String,
+    lineStarts: List<Int>,
+    deletedLines: Set<Int>
+): List<Pair<IntRange, String>> {
+    return deletedLines
+        .filter { line -> line - 1 !in deletedLines }
+        .map { firstLine ->
+            var lastLine: Int = firstLine
+            while (lastLine + 1 in deletedLines) {
+                lastLine += 1
+            }
+            val range: IntRange = when {
+                lastLine + 1 < lineStarts.size -> lineStarts[firstLine] until lineStarts[lastLine + 1]
+                // The last line has no terminator, so the preceding line's terminator goes instead.
+                firstLine > 0 -> {
+                    val lineFeed: Int = lineStarts[firstLine] - 1
+                    val isCrLf: Boolean = lineFeed > 0 && sourceText[lineFeed - 1] == '\r'
+                    (if (isCrLf) lineFeed - 1 else lineFeed) until sourceText.length
+                }
+                else -> 0 until sourceText.length
+            }
+            range to ""
+        }
+}
+
+private fun reviewClipboardLineIndex(lineStarts: List<Int>, offset: Int): Int {
+    return lineStarts.indexOfLast { lineStart -> lineStart <= offset }
+}
+
+private fun reviewClipboardLineEnd(sourceText: String, lineStarts: List<Int>, line: Int): Int {
+    return if (line + 1 < lineStarts.size) lineStarts[line + 1] - 1 else sourceText.length
 }
 
 private fun reviewClipboardReplacements(
     node: ASTNode,
     sourceText: String,
-    linkMap: LinkMap,
-    privateMediaPlaceholder: (String) -> String
+    linkMap: LinkMap
 ): List<Pair<IntRange, String>> {
     if (node.type == MarkdownElementTypes.CODE_FENCE ||
         node.type == MarkdownElementTypes.CODE_BLOCK ||
         node.type == MarkdownElementTypes.CODE_SPAN ||
+        node.type == MarkdownElementTypes.LINK_DEFINITION ||
         node.type == GFMElementTypes.INLINE_MATH ||
         node.type == GFMElementTypes.BLOCK_MATH
     ) {
@@ -94,17 +198,15 @@ private fun reviewClipboardReplacements(
         val mediaLabel: String = label?.let { labelNode ->
             sourceText.substring(labelNode.startOffset + 1, labelNode.endOffset - 1).trim()
         }.orEmpty()
-        return listOf(
-            (node.startOffset until node.endOffset) to privateMediaPlaceholder(mediaLabel)
-        )
+        val copiedLabel: String = if (mediaLabel == rawDestination.trim()) "" else mediaLabel
+        return listOf((node.startOffset until node.endOffset) to copiedLabel)
     }
 
     return node.children.flatMap { child ->
         reviewClipboardReplacements(
             node = child,
             sourceText = sourceText,
-            linkMap = linkMap,
-            privateMediaPlaceholder = privateMediaPlaceholder
+            linkMap = linkMap
         )
     }
 }

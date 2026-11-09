@@ -1168,8 +1168,6 @@ const itCatalog: TranslationCatalog = {
       snapshot: "Visualizzazione di uno snapshot locale recente...",
     },
     media: {
-      privateImage: "Immagine privata",
-      privateAttachment: "Allegato privato",
       attachmentLabel: "Allegato",
       audioLabel: "Allegato audio",
       imageAlt: "Immagine gestita",

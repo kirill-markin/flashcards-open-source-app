@@ -1168,8 +1168,6 @@ const lvCatalog: TranslationCatalog = {
       snapshot: "Rāda neseno vietējo momentuzņēmumu...",
     },
     media: {
-      privateImage: "Privāts attēls",
-      privateAttachment: "Privāts pielikums",
       attachmentLabel: "Pielikums",
       audioLabel: "Audio pielikums",
       imageAlt: "Pārvaldīts attēls",
