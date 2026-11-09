@@ -402,8 +402,9 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
         nonisolated(unsafe) let provider: ReviewContentAttachmentProvider = self
         MainActor.assumeIsolated {
             guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return }
-            provider.view = provider.hostedController(for: attachment).view
-            if let view = provider.view { attachment.registerHostedView(view) }
+            let view = ReviewContentAttachmentHostView(hostingController: provider.hostedController(for: attachment))
+            provider.view = view
+            attachment.registerHostedView(view)
             attachment.selectionTextView?.rebuildAccessibilityContent()
         }
     }
@@ -442,5 +443,70 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
             textView.setNeedsLayout()
             textView.onAttachmentSizeChange?()
         }
+    }
+}
+
+/// Contains the hosting controller in the view controller that owns the text view, so view controllers
+/// in the attachment, such as AVKit's player, present and dismiss full screen from a contained hierarchy.
+/// The hosted view is in this view only while the controller is contained, in UIKit's containment order.
+private final class ReviewContentAttachmentHostView: UIView {
+    private let hostingController: UIHostingController<AnyView>
+
+    init(hostingController: UIHostingController<AnyView>) {
+        self.hostingController = hostingController
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    // TextKit can discard a fragment's views without moving them, for example while the text view is off screen.
+    deinit {
+        let controller = self.hostingController
+        MainActor.assumeIsolated {
+            guard controller.view.superview === self else { return }
+            controller.willMove(toParent: nil)
+            controller.view.removeFromSuperview()
+            controller.removeFromParent()
+        }
+    }
+
+    /// Points the hosted SwiftUI content does not claim belong to the text view, as they do outside attachments.
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hit = super.hitTest(point, with: event)
+        return hit === self ? nil : hit
+    }
+
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        self.updateContainment()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        self.updateContainment()
+    }
+
+    /// Follows the view's ancestors rather than the window, so a presentation that takes the screen
+    /// out of the window keeps the hierarchy that presented it. TextKit can load a second view for the
+    /// same provider; the one that last joins a hierarchy owns the controller.
+    private func updateContainment() {
+        let controller = self.hostingController
+        let parent = self.superview.flatMap { superview in
+            sequence(first: superview as UIResponder, next: \.next).lazy.compactMap { $0 as? UIViewController }.first
+        }
+        let ownsController = controller.view.superview === self
+        if ownsController, controller.parent === parent { return }
+        if ownsController == false, parent == nil { return }
+        if controller.parent != nil {
+            controller.willMove(toParent: nil)
+            controller.view.removeFromSuperview()
+            controller.removeFromParent()
+        }
+        guard let parent else { return }
+        parent.addChild(controller)
+        controller.view.frame = self.bounds
+        controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        self.addSubview(controller.view)
+        controller.didMove(toParent: parent)
     }
 }
