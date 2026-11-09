@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
 import android.graphics.Paint
-import android.util.TypedValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
@@ -36,12 +35,8 @@ internal fun widgetImageSize(
     headerSpacing: Dp
 ): DpSize {
     val displayMetrics = context.resources.displayMetrics
-    // Converting sp through the display metrics follows the user's font scale, nonlinear on API 34+.
-    val headerFontSizeDp: Float = TypedValue.applyDimension(
-        TypedValue.COMPLEX_UNIT_SP,
-        headerFontSize.value,
-        displayMetrics
-    ) / displayMetrics.density
+    val headerFontSizeDp: Float =
+        widgetTextSizePx(fontSize = headerFontSize, displayMetrics = displayMetrics) / displayMetrics.density
     val headerHeight: Dp = (headerFontSizeDp * widgetTextLineHeightRatio).dp + headerSpacing
     return DpSize(
         width = (widgetSize.width - widgetContentPadding * 2).coerceAtLeast(1.dp),

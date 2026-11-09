@@ -147,6 +147,8 @@ private struct LockScreenWidgetRectangularView: View {
                 .font(.headline)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                // Laid out first, so a tall question script truncates instead of pushing this line out.
+                .layoutPriority(1)
                 .widgetAccentable()
             Group {
                 if self.dueCount == 0 {
@@ -157,7 +159,9 @@ private struct LockScreenWidgetRectangularView: View {
                     Text("widget.cards_ready", tableName: widgetStringsTableName)
                 }
             }
-            .lineLimit(1)
+            .lineLimit(2)
+            // Two full-size lines under the due line are a point or two taller than the rectangular family.
+            .minimumScaleFactor(0.85)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

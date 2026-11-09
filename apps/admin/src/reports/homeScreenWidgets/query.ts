@@ -33,6 +33,24 @@ export type WidgetPlatform = (typeof widgetPlatforms)[number];
 export const widgetSizes = ["small", "medium", "large", "accessory_circular", "accessory_rectangular", "accessory_inline"] as const;
 export type WidgetSize = (typeof widgetSizes)[number];
 
+/** `widget_opened.widget_kind` and `widget_placement_changed.widget_kind` in `apps/backend/src/productAnalytics/catalog.ts`. */
+export const widgetKinds = [
+  "review",
+  "activity",
+  "year",
+  "today",
+  "lock_screen",
+  "reviews_chart",
+  "streaks",
+  "month_calendar",
+  "coming_up",
+  "dashboard",
+] as const;
+export type WidgetKind = (typeof widgetKinds)[number];
+
+// Clients released before `widget_kind` existed omit it, and only had the Review widget.
+const widgetKindSql = "COALESCE(resolved.event_properties ->> 'widget_kind', 'review')";
+
 export type WidgetPeopleDay = Readonly<{
   date: string;
   peopleByPlatform: ReadonlyMap<WidgetPlatform, number>;
@@ -45,6 +63,14 @@ export type WidgetTapsDay = Readonly<{
   tapsBySize: ReadonlyMap<WidgetSize, number>;
   totalTaps: number;
   totalPeople: number;
+}>;
+
+/** One widget kind over the whole range: who has it placed at the range end, and its taps. */
+export type WidgetKindSummary = Readonly<{
+  widgetKind: WidgetKind;
+  placedPeople: number;
+  tapCount: number;
+  tapPeople: number;
 }>;
 
 /** One cohort group's size and, once its 7-day window has ended, how many of it came back. */
@@ -68,6 +94,8 @@ export type HomeScreenWidgetsReport = Readonly<{
   peopleDays: ReadonlyArray<WidgetPeopleDay>;
   tapsDays: ReadonlyArray<WidgetTapsDay>;
   returnDays: ReadonlyArray<WidgetReturnDay>;
+  /** Only the kinds that have a placement or a tap. */
+  kindSummaries: ReadonlyArray<WidgetKindSummary>;
 }>;
 
 /** Days after D an `app_opened` counts as a return. */
@@ -134,13 +162,14 @@ function buildCohortPredicateSql(
   return `((${cohortSql}) IS NULL AND ${unknownCohortSelectionSql} OR ${buildUserCohortsFilterSql(`(${cohortSql})`, filters.userCohorts)})`;
 }
 
-// THE WIDGET STATE IS A STOCK. Each installation (`anonymous_id`) reports its three placed-widget
-// counts whenever they change, so on day D it holds the state of its latest report at or before the
-// end of D, however long before the range that report was. `installation_day_reports` keeps each
-// installation's last report of every UTC day over all history up to the range end, and
-// `installation_day_states` says until which day it held. The installation belongs to the person its
-// latest report resolves to and to that report's platform. The platform filter narrows installations,
-// the trust and exclusion rules drop rows before the latest one is chosen.
+// THE WIDGET STATE IS A STOCK. Each installation (`anonymous_id`) reports the placed-widget counts of
+// one widget kind whenever they change, so on day D each kind holds the state of its latest report at
+// or before the end of D, however long before the range that report was, and the installation has a
+// widget when any kind has one. `installation_day_reports` keeps each installation's last report of
+// every kind and UTC day over all history up to the range end, and `installation_day_states` says
+// until which day it held. The installation belongs to the person its latest report resolves to and
+// to that report's platform. The platform filter narrows installations, the trust and exclusion rules
+// drop rows before the latest one is chosen.
 function buildPlacementStateCtesSql(
   filters: AnalyticsFilterState,
   dateRange: AnalyticsDateRange,
@@ -154,14 +183,18 @@ function buildPlacementStateCtesSql(
     "  )::date AS report_date",
     "),",
     "installation_day_reports AS (",
-    "  SELECT DISTINCT ON (resolved.anonymous_id, (resolved.occurred_at AT TIME ZONE 'UTC')::date)",
+    `  SELECT DISTINCT ON (resolved.anonymous_id, ${widgetKindSql}, (resolved.occurred_at AT TIME ZONE 'UTC')::date)`,
     "    resolved.anonymous_id,",
+    `    ${widgetKindSql} AS widget_kind,`,
     "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS reported_date,",
     "    resolved.actor_id::text AS actor_id,",
     "    resolved.platform,",
     "    (resolved.event_properties ->> 'small_count')::int",
     "      + (resolved.event_properties ->> 'medium_count')::int",
-    "      + (resolved.event_properties ->> 'large_count')::int > 0 AS has_widget",
+    "      + (resolved.event_properties ->> 'large_count')::int",
+    "      + COALESCE((resolved.event_properties ->> 'accessory_circular_count')::int, 0)",
+    "      + COALESCE((resolved.event_properties ->> 'accessory_rectangular_count')::int, 0)",
+    "      + COALESCE((resolved.event_properties ->> 'accessory_inline_count')::int, 0) > 0 AS has_widget",
     "  FROM analytics.product_events_resolved AS resolved",
     "  WHERE resolved.event_name = 'widget_placement_changed'",
     `    AND resolved.occurred_at < ${buildRangeEndSql(dateRange, 0)}`,
@@ -172,6 +205,7 @@ function buildPlacementStateCtesSql(
     ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "  ORDER BY",
     "    resolved.anonymous_id,",
+    `    ${widgetKindSql},`,
     "    (resolved.occurred_at AT TIME ZONE 'UTC')::date,",
     "    resolved.occurred_at DESC,",
     "    resolved.event_id DESC",
@@ -180,7 +214,7 @@ function buildPlacementStateCtesSql(
     "  SELECT",
     "    installation_day_reports.*,",
     "    LEAD(installation_day_reports.reported_date) OVER (",
-    "      PARTITION BY installation_day_reports.anonymous_id",
+    "      PARTITION BY installation_day_reports.anonymous_id, installation_day_reports.widget_kind",
     "      ORDER BY installation_day_reports.reported_date",
     "    ) AS superseded_date",
     "  FROM installation_day_reports",
@@ -232,16 +266,15 @@ function buildWidgetPeopleSql(filters: AnalyticsFilterState, dateRange: Analytic
   ].join("\n");
 }
 
-// Widget taps per day and size, from `widget_opened`. The `widget_size` NULL row is the day's total,
-// which carries the day's distinct people over every size. The platform is bucketed with the same CASE
-// as every other report.
-function buildWidgetTapsSql(filters: AnalyticsFilterState, dateRange: AnalyticsDateRange): string {
+// The range's `widget_opened` rows. The platform is bucketed with the same CASE as every other report.
+function buildWidgetTapsCteSql(filters: AnalyticsFilterState, dateRange: AnalyticsDateRange): ReadonlyArray<string> {
   return [
-    "WITH widget_taps AS (",
+    "widget_taps AS (",
     "  SELECT",
     "    resolved.actor_id::text AS actor_id,",
     "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS tap_date,",
-    "    resolved.event_properties ->> 'widget_size' AS widget_size",
+    "    resolved.event_properties ->> 'widget_size' AS widget_size,",
+    `    ${widgetKindSql} AS widget_kind`,
     "  FROM analytics.product_events_resolved AS resolved",
     "  WHERE resolved.event_name = 'widget_opened'",
     `    AND resolved.occurred_at >= ${buildRangeStartSql(dateRange)}`,
@@ -253,6 +286,15 @@ function buildWidgetTapsSql(filters: AnalyticsFilterState, dateRange: AnalyticsD
     `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "),",
+  ];
+}
+
+// Widget taps per day and size. The `widget_size` NULL row is the day's total, which carries the day's
+// distinct people over every size.
+function buildWidgetTapsSql(filters: AnalyticsFilterState, dateRange: AnalyticsDateRange): string {
+  return [
+    "WITH",
+    ...buildWidgetTapsCteSql(filters, dateRange),
     ...buildActorFirstOpensCteSql("SELECT DISTINCT widget_taps.actor_id FROM widget_taps", dateRange),
     "SELECT",
     "  to_char(widget_taps.tap_date, 'YYYY-MM-DD') AS report_date,",
@@ -343,13 +385,67 @@ function buildWidgetReturnSql(filters: AnalyticsFilterState, dateRange: Analytic
   ].join("\n");
 }
 
-/** Three statements, one result set each: people with a widget, taps, and the 7-day return. */
+// PER WIDGET KIND, the people who have that kind placed at the end of the range, from each
+// installation-kind's latest report, and the range's taps with their distinct people. New versus
+// returning is compared with the range's last day for placements and with each tap's day for taps, as
+// the charts do, so a kind's taps sum over the taps chart's days. Someone with several kinds counts in
+// each.
+function buildWidgetKindsSql(filters: AnalyticsFilterState, dateRange: AnalyticsDateRange): string {
+  const rangeLastDaySql = `${escapeSqlStringLiteral(dateRange.to)}::date`;
+  return [
+    "WITH",
+    ...buildPlacementStateCtesSql(filters, dateRange),
+    ...buildWidgetTapsCteSql(filters, dateRange),
+    ...buildActorFirstOpensCteSql(
+      "SELECT installation_day_reports.actor_id FROM installation_day_reports UNION SELECT widget_taps.actor_id FROM widget_taps",
+      dateRange,
+    ),
+    ",",
+    "kind_placements AS (",
+    "  SELECT",
+    "    installation_day_states.widget_kind,",
+    "    COUNT(DISTINCT installation_day_states.actor_id)::int AS placed_people",
+    "  FROM installation_day_states",
+    "  LEFT JOIN actor_first_opens",
+    "    ON actor_first_opens.actor_id = installation_day_states.actor_id",
+    "  WHERE installation_day_states.superseded_date IS NULL",
+    "    AND installation_day_states.has_widget",
+    `    AND ${buildPersonFiltersSql("installation_day_states.actor_id", filters, dateRange)}`,
+    `    AND ${buildCohortPredicateSql(filters, rangeLastDaySql)}`,
+    "  GROUP BY installation_day_states.widget_kind",
+    "),",
+    "kind_taps AS (",
+    "  SELECT",
+    "    widget_taps.widget_kind,",
+    "    COUNT(*)::int AS tap_count,",
+    "    COUNT(DISTINCT widget_taps.actor_id)::int AS tap_people",
+    "  FROM widget_taps",
+    "  LEFT JOIN actor_first_opens",
+    "    ON actor_first_opens.actor_id = widget_taps.actor_id",
+    `  WHERE ${buildPersonFiltersSql("widget_taps.actor_id", filters, dateRange)}`,
+    `    AND ${buildCohortPredicateSql(filters, "widget_taps.tap_date")}`,
+    "  GROUP BY widget_taps.widget_kind",
+    ")",
+    "SELECT",
+    "  COALESCE(kind_placements.widget_kind, kind_taps.widget_kind) AS widget_kind,",
+    "  COALESCE(kind_placements.placed_people, 0)::int AS placed_people,",
+    "  COALESCE(kind_taps.tap_count, 0)::int AS tap_count,",
+    "  COALESCE(kind_taps.tap_people, 0)::int AS tap_people",
+    "FROM kind_placements",
+    "FULL JOIN kind_taps",
+    "  ON kind_taps.widget_kind = kind_placements.widget_kind",
+    "ORDER BY 1",
+  ].join("\n");
+}
+
+/** Four statements, one result set each: people with a widget, taps, the 7-day return, and widget kinds. */
 export function buildHomeScreenWidgetsSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, homeScreenWidgetsReportLabel);
   return [
     buildWidgetPeopleSql(filters, dateRange),
     buildWidgetTapsSql(filters, dateRange),
     buildWidgetReturnSql(filters, dateRange),
+    buildWidgetKindsSql(filters, dateRange),
   ].join(";\n");
 }
 
@@ -367,6 +463,14 @@ function parseWidgetSize(row: AdminQueryRow): WidgetSize {
     throw new Error(`${homeScreenWidgetsReportLabel} field "widget_size" must be one of ${widgetSizes.join(", ")}, got: ${widgetSize}`);
   }
   return widgetSize as WidgetSize;
+}
+
+function parseWidgetKind(row: AdminQueryRow): WidgetKind {
+  const widgetKind = assertIsString(row.widget_kind ?? null, homeScreenWidgetsReportLabel, "widget_kind");
+  if (widgetKinds.includes(widgetKind as WidgetKind) === false) {
+    throw new Error(`${homeScreenWidgetsReportLabel} field "widget_kind" must be one of ${widgetKinds.join(", ")}, got: ${widgetKind}`);
+  }
+  return widgetKind as WidgetKind;
 }
 
 function parseRequiredCount(row: AdminQueryRow, field: string): number {
@@ -434,15 +538,30 @@ function buildWidgetReturnDays(resultSet: AdminQueryResultSet): ReadonlyArray<Wi
   }));
 }
 
+function buildWidgetKindSummaries(resultSet: AdminQueryResultSet): ReadonlyArray<WidgetKindSummary> {
+  return resultSet.rows.map((row) => ({
+    widgetKind: parseWidgetKind(row),
+    placedPeople: parseRequiredCount(row, "placed_people"),
+    tapCount: parseRequiredCount(row, "tap_count"),
+    tapPeople: parseRequiredCount(row, "tap_people"),
+  }));
+}
+
 export async function loadHomeScreenWidgetsReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
   signal: AbortSignal,
 ): Promise<HomeScreenWidgetsReport> {
   const response = await runAdminQuery(config, buildHomeScreenWidgetsSql(filters), signal);
-  const [peopleResultSet, tapsResultSet, returnResultSet] = response.resultSets;
-  if (response.resultSets.length !== 3 || peopleResultSet === undefined || tapsResultSet === undefined || returnResultSet === undefined) {
-    throw new Error(`${homeScreenWidgetsReportLabel} must return exactly three result sets. Got ${response.resultSets.length}.`);
+  const [peopleResultSet, tapsResultSet, returnResultSet, kindsResultSet] = response.resultSets;
+  if (
+    response.resultSets.length !== 4
+    || peopleResultSet === undefined
+    || tapsResultSet === undefined
+    || returnResultSet === undefined
+    || kindsResultSet === undefined
+  ) {
+    throw new Error(`${homeScreenWidgetsReportLabel} must return exactly four result sets. Got ${response.resultSets.length}.`);
   }
 
   return {
@@ -452,5 +571,6 @@ export async function loadHomeScreenWidgetsReport(
     peopleDays: buildWidgetPeopleDays(peopleResultSet),
     tapsDays: buildWidgetTapsDays(tapsResultSet),
     returnDays: buildWidgetReturnDays(returnResultSet),
+    kindSummaries: buildWidgetKindSummaries(kindsResultSet),
   };
 }

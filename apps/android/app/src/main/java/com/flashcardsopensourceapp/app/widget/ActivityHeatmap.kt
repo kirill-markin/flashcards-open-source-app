@@ -15,10 +15,9 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlin.math.ceil
-import kotlin.math.max
 import kotlin.math.min
 
-private const val daysPerWeek: Int = 7
+internal const val daysPerWeek: Int = 7
 private const val maxDaysPerMonth: Int = 31
 private const val yearMonthCount: Int = 12
 private const val activityLevelCount: Int = 4
@@ -122,7 +121,8 @@ internal fun drawActivityHeatmapBitmap(
 
 /**
  * One row per entry of [months] from [yearMonthDates]: a short month label, then one cell per day in
- * its day-of-month column. Cells are as large as fit in [areaSize]; the bitmap is the grid itself.
+ * its day-of-month column. The rows share [areaSize]'s height evenly and the cells are as large as fit
+ * in a row; the bitmap is [areaSize] wide only when the cells fill its width.
  */
 internal fun drawYearBitmap(
     progress: WidgetProgressContent,
@@ -135,21 +135,20 @@ internal fun drawYearBitmap(
         dates = months.flatMap { month -> month.dates }
     )
     val locale: Locale = Locale.getDefault()
-    val maxRowPitchPx: Float = areaSize.height.value * density / months.size
+    val rowPitchPx: Float = areaSize.height.value * density / months.size
     val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = monthLabelColor
-        textSize = min(maxRowPitchPx / monthLabelLineHeightFactor, maxMonthLabelTextSize.value * density)
+        textSize = min(rowPitchPx / monthLabelLineHeightFactor, maxMonthLabelTextSize.value * density)
     }
     val labels: List<String> = months.map { month ->
         month.yearMonth.month.getDisplayName(TextStyle.SHORT_STANDALONE, locale)
     }
     val labelWidthPx: Float = labels.maxOf { label -> labelPaint.measureText(label) } + monthLabelGap.value * density
-    val columnPitchPx: Float = min((areaSize.width.value * density - labelWidthPx) / maxDaysPerMonth, maxRowPitchPx)
-    val rowPitchPx: Float = max(columnPitchPx, labelPaint.textSize * monthLabelLineHeightFactor)
+    val columnPitchPx: Float = min((areaSize.width.value * density - labelWidthPx) / maxDaysPerMonth, rowPitchPx)
     val cellSizePx: Float = columnPitchPx * (1f - activityCellGapFraction)
     val gridSize = DpSize(
         width = ((labelWidthPx + columnPitchPx * maxDaysPerMonth) / density).dp,
-        height = (rowPitchPx * months.size / density).dp
+        height = areaSize.height
     )
     return drawWidgetBitmap(size = gridSize, density = density) { canvas ->
         val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG)

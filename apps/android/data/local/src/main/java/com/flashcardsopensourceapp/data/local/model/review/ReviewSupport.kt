@@ -120,6 +120,10 @@ fun resolveReviewTagFilter(
     availableTagNames: List<String>
 ): ReviewFilter {
     val normalizedSelectedTagNames: List<String> = normalizeReviewTagNames(tagNames = selectedTagNames)
+    // An empty selection, including one stored by an older build, means All cards.
+    if (normalizedSelectedTagNames.isEmpty()) {
+        return ReviewFilter.AllCards
+    }
     val selectedTagKeys: Set<String> = normalizedSelectedTagNames.map { tagName ->
         normalizeTagKey(tag = tagName)
     }.toSet()

@@ -52,16 +52,20 @@ import kotlinx.coroutines.flow.first
 private val dashboardWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 /** The Scaffold's horizontal padding and the body's vertical padding. */
 private val dashboardWidgetPadding = 12.dp
-/** `dashboard_widget_info.xml`'s minimum resize height; smaller launcher-reported heights use it. */
-private val dashboardWidgetMinimumHeight = 250.dp
+/** `dashboard_widget_info.xml`'s minimum resize size; smaller launcher-reported sizes use it. */
+private val dashboardWidgetMinimumSize = DpSize(width = 250.dp, height = 250.dp)
 private val dashboardWidgetRingSize = 56.dp
 private const val DASHBOARD_WIDGET_RING_STROKE_FRACTION: Float = 0.1f
-private const val dashboardWidgetHeatmapWeekCount: Int = 5
-private const val dashboardWidgetHeatmapDayCount: Int = 7
-/** The heatmap's share of the content height, kept between the two heights below. */
-private const val DASHBOARD_WIDGET_HEATMAP_HEIGHT_FRACTION: Float = 0.32f
-private val dashboardWidgetHeatmapMinHeight = 70.dp
-private val dashboardWidgetHeatmapMaxHeight = 126.dp
+private val dashboardWidgetSectionSpacing = 8.dp
+private val dashboardWidgetFooterSpacing = 4.dp
+private val dashboardWidgetDueCountTextSize = 24.sp
+private val dashboardWidgetQuestionTextSize = 16.sp
+private const val dashboardWidgetQuestionMaxLines: Int = 3
+private val dashboardWidgetSecondaryTextSize = 13.sp
+private const val dashboardWidgetHeatmapMinWeekCount: Int = 5
+private const val dashboardWidgetHeatmapMaxWeekCount: Int = 20
+/** Keeps the bitmap positive when the text around the heatmap takes the whole height at a large font scale. */
+private val dashboardWidgetHeatmapMinHeight = 35.dp
 
 class DashboardWidget : GlanceAppWidget() {
     /**
@@ -121,11 +125,15 @@ private fun DashboardWidgetBody(content: WidgetContent, layoutSize: DpSize) {
             } else {
                 val todayReviewCount: Int = sumReviewCounts(progress = progress, dates = setOf(progress.todayLocalDate))
                 DashboardWidgetTopRow(queue = queue, progress = progress, todayReviewCount = todayReviewCount)
-                Spacer(modifier = GlanceModifier.height(8.dp))
-                Column(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                Spacer(modifier = GlanceModifier.height(dashboardWidgetSectionSpacing))
+                // Centered, so the room kept for a 3-line question splits above and below a shorter one.
+                Column(
+                    modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     DashboardWidgetNext(queue = queue, card = shownCard)
                 }
-                Spacer(modifier = GlanceModifier.height(8.dp))
+                Spacer(modifier = GlanceModifier.height(dashboardWidgetSectionSpacing))
                 DashboardWidgetActivity(progress = progress, layoutSize = layoutSize)
             }
         }
@@ -158,7 +166,7 @@ private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetPr
         Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
                 text = context.getString(R.string.review_widget_due_count, queue.dueCount),
-                style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                style = TextStyle(color = GlanceTheme.colors.primary, fontSize = dashboardWidgetDueCountTextSize, fontWeight = FontWeight.Bold),
                 maxLines = 1
             )
             Text(text = context.getString(R.string.review_widget_due_label), style = dashboardSecondaryStyle(), maxLines = 1)
@@ -206,65 +214,88 @@ private fun ColumnScope.DashboardWidgetNext(queue: ReviewWidgetContent, card: Re
     if (card != null) {
         Text(
             text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
-            style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            maxLines = 3
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = dashboardWidgetQuestionTextSize,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = dashboardWidgetQuestionMaxLines
         )
     }
 }
 
-/** The 5-week mini heatmap at the bottom left, with its reviews and active days beside it. */
+/** The heatmap fills the height the text above and below leaves it, with as many weeks as fit the width. */
 @Composable
 private fun DashboardWidgetActivity(progress: WidgetProgressContent, layoutSize: DpSize) {
     val context = LocalContext.current
-    val dates: List<LocalDate> = activityHeatmapDates(progress = progress, weekCount = dashboardWidgetHeatmapWeekCount)
+    val heatmapHeight: Dp = dashboardWidgetHeatmapHeight(
+        layoutSize = layoutSize,
+        fontScale = context.resources.configuration.fontScale
+    )
+    val contentWidth: Dp = maxOf(layoutSize.width, dashboardWidgetMinimumSize.width) - dashboardWidgetPadding * 2
+    val weekCount: Int = (contentWidth / (heatmapHeight / daysPerWeek)).toInt()
+        .coerceIn(minimumValue = dashboardWidgetHeatmapMinWeekCount, maximumValue = dashboardWidgetHeatmapMaxWeekCount)
+    val cellPitch: Dp = minOf(contentWidth / weekCount, heatmapHeight / daysPerWeek)
+    val gridSize = DpSize(width = cellPitch * weekCount, height = cellPitch * daysPerWeek)
+    val dates: List<LocalDate> = activityHeatmapDates(progress = progress, weekCount = weekCount)
     val shownDates: Set<LocalDate> = dates.toSet()
     val reviewCount: Int = sumReviewCounts(progress = progress, dates = shownDates)
     val activeDayCount: Int = countActiveDays(progress = progress, dates = shownDates)
-    val gridSize: DpSize = dashboardWidgetHeatmapSize(layoutSize = layoutSize)
-    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        Image(
-            provider = ImageProvider(
-                bitmap = drawActivityHeatmapBitmap(
-                    progress = progress,
-                    dates = dates,
-                    weekCount = dashboardWidgetHeatmapWeekCount,
-                    areaSize = gridSize,
-                    density = context.resources.displayMetrics.density
-                )
-            ),
-            contentDescription = context.resources.getQuantityString(
-                R.plurals.activity_widget_grid_description,
-                dashboardWidgetHeatmapWeekCount,
-                dashboardWidgetHeatmapWeekCount
-            ),
-            contentScale = ContentScale.Fit,
-            modifier = GlanceModifier.size(width = gridSize.width, height = gridSize.height)
+    Image(
+        provider = ImageProvider(
+            bitmap = drawActivityHeatmapBitmap(
+                progress = progress,
+                dates = dates,
+                weekCount = weekCount,
+                areaSize = gridSize,
+                density = context.resources.displayMetrics.density
+            )
+        ),
+        contentDescription = context.resources.getQuantityString(
+            R.plurals.activity_widget_grid_description,
+            weekCount,
+            weekCount
+        ),
+        contentScale = ContentScale.Fit,
+        modifier = GlanceModifier.size(width = gridSize.width, height = gridSize.height)
+    )
+    Spacer(modifier = GlanceModifier.height(dashboardWidgetFooterSpacing))
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        Text(
+            text = context.resources.getQuantityString(R.plurals.activity_widget_reviews, reviewCount, reviewCount),
+            style = dashboardSecondaryStyle(),
+            maxLines = 1
         )
-        Spacer(modifier = GlanceModifier.width(12.dp))
-        Column(modifier = GlanceModifier.defaultWeight()) {
-            Text(
-                text = context.resources.getQuantityString(R.plurals.activity_widget_reviews, reviewCount, reviewCount),
-                style = dashboardSecondaryStyle(),
-                maxLines = 1
-            )
-            Text(
-                text = context.resources.getQuantityString(R.plurals.year_widget_active_days, activeDayCount, activeDayCount),
-                style = dashboardSecondaryStyle(),
-                maxLines = 1
-            )
-        }
+        Spacer(modifier = GlanceModifier.defaultWeight())
+        Text(
+            text = context.resources.getQuantityString(R.plurals.year_widget_active_days, activeDayCount, activeDayCount),
+            style = dashboardSecondaryStyle(),
+            maxLines = 1
+        )
     }
 }
 
 /**
- * A grid of square cells whose height grows with the widget; it never depends on the width, so the
- * bitmap stays positive whatever size a launcher reports.
+ * The height the top row, a question of [dashboardWidgetQuestionMaxLines] lines, the footer, and their
+ * spacing leave at [fontScale]; it never depends on the width, so the bitmap stays positive whatever
+ * width a launcher reports.
  */
-private fun dashboardWidgetHeatmapSize(layoutSize: DpSize): DpSize {
-    val contentHeight: Dp = maxOf(layoutSize.height, dashboardWidgetMinimumHeight) - dashboardWidgetPadding * 2
-    val height: Dp = (contentHeight * DASHBOARD_WIDGET_HEATMAP_HEIGHT_FRACTION)
-        .coerceIn(minimumValue = dashboardWidgetHeatmapMinHeight, maximumValue = dashboardWidgetHeatmapMaxHeight)
-    return DpSize(width = height * dashboardWidgetHeatmapWeekCount / dashboardWidgetHeatmapDayCount, height = height)
+private fun dashboardWidgetHeatmapHeight(layoutSize: DpSize, fontScale: Float): Dp {
+    val contentHeight: Dp = maxOf(layoutSize.height, dashboardWidgetMinimumSize.height) - dashboardWidgetPadding * 2
+    val topRowHeight: Dp = maxOf(
+        dashboardWidgetRingSize,
+        widgetTextHeight(fontSize = dashboardWidgetDueCountTextSize, lineCount = 1, fontScale = fontScale) +
+            widgetTextHeight(fontSize = dashboardWidgetSecondaryTextSize, lineCount = 1, fontScale = fontScale)
+    )
+    val questionHeight: Dp = widgetTextHeight(
+        fontSize = dashboardWidgetQuestionTextSize,
+        lineCount = dashboardWidgetQuestionMaxLines,
+        fontScale = fontScale
+    )
+    val footerHeight: Dp = dashboardWidgetFooterSpacing +
+        widgetTextHeight(fontSize = dashboardWidgetSecondaryTextSize, lineCount = 1, fontScale = fontScale)
+    return (contentHeight - topRowHeight - questionHeight - footerHeight - dashboardWidgetSectionSpacing * 2)
+        .coerceAtLeast(dashboardWidgetHeatmapMinHeight)
 }
 
 /** The flame is in the accent color once the user has reviewed today, as on the Today widget. */
@@ -298,5 +329,5 @@ private fun makeDashboardWidgetRingBitmap(context: Context, fraction: Float): Bi
 
 @Composable
 private fun dashboardSecondaryStyle(): TextStyle {
-    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp)
+    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = dashboardWidgetSecondaryTextSize)
 }

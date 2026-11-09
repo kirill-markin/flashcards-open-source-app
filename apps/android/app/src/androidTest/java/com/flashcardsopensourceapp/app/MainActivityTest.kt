@@ -536,7 +536,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun reviewFilterChecklistStagesUntilDismissPersistsAndRestoresAllCards() {
+    fun reviewFilterStagesTagsUntilDismissAndAppliesAllCardsAtOnce() {
         waitForCardsEmptyState()
         createCard(frontText = "Alpha review", backText = "Alpha answer", tags = listOf("Alpha"))
         createCard(frontText = "Beta review", backText = "Beta answer", tags = listOf("Beta"))
@@ -551,34 +551,26 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
+
+        // Tapping the selected All cards row keeps All cards and closes the sheet.
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
-
-        composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("All cards")
-        composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 3))
-
-        pressBack()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewFilterSheetTag).fetchSemanticsNodes().isEmpty()
-                && composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty()
-        }
+        waitForReviewFilterSheetToClose()
         waitForReviewFilterState(
-            filterTitle = "No tags",
-            queueContentDescription = reviewQueueContentDescription(count = 0)
+            filterTitle = "All cards",
+            queueContentDescription = reviewQueueContentDescription(count = 3)
         )
 
+        // Removing the last selected tag selects All cards instead of an empty selection.
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForTagToExist(tag = reviewFilterSheetTag)
         waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).performClick()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).performClick()
+        composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
 
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).performClick()
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
@@ -586,9 +578,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("No tags")
+        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("All cards")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 0))
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 3))
 
         recreateActivity()
         waitForTagToExist(tag = reviewFilterSheetTag)
@@ -597,14 +589,12 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("No tags")
+        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("All cards")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 0))
+            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 3))
 
         pressBack()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewFilterSheetTag).fetchSemanticsNodes().isEmpty()
-        }
+        waitForReviewFilterSheetToClose()
         waitForReviewFilterState(
             filterTitle = "Alpha",
             queueContentDescription = reviewQueueContentDescription(count = 1)
@@ -622,9 +612,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             .assertContentDescriptionEquals(reviewQueueContentDescription(count = 1))
 
         pressBack()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewFilterSheetTag).fetchSemanticsNodes().isEmpty()
-        }
+        waitForReviewFilterSheetToClose()
         waitForReviewFilterState(
             filterTitle = "2 tags",
             queueContentDescription = reviewQueueContentDescription(count = 2)
@@ -637,6 +625,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             queueContentDescription = reviewQueueContentDescription(count = 2)
         )
 
+        // Choosing All cards applies it and closes the sheet without a dismiss gesture.
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForTagToExist(tag = reviewFilterSheetTag)
         waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
@@ -644,18 +633,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("2 tags")
-        composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals(reviewQueueContentDescription(count = 2))
-
-        pressBack()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewFilterSheetTag).fetchSemanticsNodes().isEmpty()
-        }
+        waitForReviewFilterSheetToClose()
         waitForReviewFilterState(
             filterTitle = "All cards",
             queueContentDescription = reviewQueueContentDescription(count = 3)
@@ -1026,6 +1004,12 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun waitForTagToExist(tag: String) {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             countNodesWithTagInAnySemanticsTree(tag = tag) > 0
+        }
+    }
+
+    private fun waitForReviewFilterSheetToClose() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewFilterSheetTag).fetchSemanticsNodes().isEmpty()
         }
     }
 

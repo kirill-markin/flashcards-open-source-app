@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent }
 import {
   ALL_CARDS_REVIEW_FILTER,
   isReviewFilterEqual,
-  makeTagsReviewFilter,
+  normalizeReviewFilter,
   normalizeReviewFilterTags,
   normalizeTagKey,
 } from "../../../appData/domain";
@@ -101,16 +101,14 @@ function buildReviewDeckFilterMenuItems(
     {
       key: toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
       label: allCardsLabel,
-      reviewFilter: selectedReviewFilter.kind === "allCards"
-        ? makeTagsReviewFilter([])
-        : ALL_CARDS_REVIEW_FILTER,
+      reviewFilter: ALL_CARDS_REVIEW_FILTER,
       subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
     },
     ...(selectedReviewFilter.kind === "catalogImport" ? [{
       key: toReviewFilterMenuItemKey(selectedReviewFilter),
       label: selectedReviewFilter.title,
-      reviewFilter: makeTagsReviewFilter([]),
+      reviewFilter: ALL_CARDS_REVIEW_FILTER,
       subtitle: null,
       isSelected: true,
     }] : []),
@@ -124,7 +122,7 @@ function buildReviewDeckFilterMenuItems(
       return {
         key: toReviewFilterMenuItemKey(deckReviewFilter),
         label: deck.name,
-        reviewFilter: isSelected ? makeTagsReviewFilter([]) : deckReviewFilter,
+        reviewFilter: isSelected ? ALL_CARDS_REVIEW_FILTER : deckReviewFilter,
         subtitle: deckSubtitle,
         isSelected,
       };
@@ -152,7 +150,7 @@ function buildReviewTagFilterMenuItems(
       key: `${REVIEW_FILTER_TAG_PREFIX}${tagKey}`,
       label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
       // Selecting every tag stays a tag selection here; loading the queue canonicalizes it to All cards.
-      reviewFilter: makeTagsReviewFilter(normalizeReviewFilterTags(nextSelectedTags)),
+      reviewFilter: normalizeReviewFilter({ kind: "tags", tags: nextSelectedTags }),
       subtitle: null,
       isSelected: selectedTagKeys.has(tagKey),
     };
@@ -458,9 +456,15 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
       : "moreActionsTrigger");
   }
 
+  // All cards, an import and decks are a single choice that applies at once; tag rows stay a multi-select draft applied on close.
   function handleReviewFilterSelect(optionKey: string, reviewFilter: ReviewFilter): void {
-    setActiveReviewFilterOptionKey(optionKey);
     reviewFilterDraftRef.current = reviewFilter;
+    if (reviewDeckFilterMenuItems.some((item) => item.key === optionKey)) {
+      closeReviewFilterMenuAndFocusTrigger();
+      return;
+    }
+
+    setActiveReviewFilterOptionKey(optionKey);
     setReviewFilterDraft(reviewFilter);
   }
 

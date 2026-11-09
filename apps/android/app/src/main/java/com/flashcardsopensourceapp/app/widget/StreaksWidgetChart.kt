@@ -7,6 +7,8 @@ import android.graphics.Typeface
 import android.text.format.DateFormat
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
@@ -16,9 +18,16 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
-private const val streakBarMaxRowHeightDp: Float = 14f
+/** The dates and day counts at most; it follows the font scale while the rows have room. */
+private val streakBarTextSize: TextUnit = 11.sp
+/** A row's height when there is room: a bar that holds the count, and the gap to the next bar. */
+private const val streakBarRowHeightPerTextSize: Float = 1.8f
+private const val streakBarHeightPerRowHeight: Float = 0.82f
+private const val streakBarMaxDateHeightPerRowHeight: Float = 0.8f
+private const val streakBarMaxCountHeightPerBarHeight: Float = 0.78f
+/** The dates beside each end never take more than this share of the width, so the bars keep the rest. */
+private const val streakBarMaxDateWidthFraction: Float = 0.25f
 private const val streakBarDateGapDp: Float = 4f
-private const val streakBarDateTextSizeDp: Float = 8f
 
 /** A run of consecutive reviewed or frozen days. */
 internal data class WidgetStreakRun(
@@ -85,16 +94,16 @@ private fun makeHistoryStreakRuns(days: List<WidgetProgressDay>): List<WidgetStr
 
 /**
  * One centered bar per run, top to bottom, each as long as its days relative to the longest shown,
- * with the day count inside and the start and end dates beside its ends. [maxRunCount] rows fit [size];
- * rows keep their capped height and center vertically when [size] is taller.
+ * with the day count inside and the start and end dates beside its ends. The rows fit [size], with text
+ * shrunk below [streakBarTextSize] only when they would not; rows center vertically when [size] is taller.
  */
 internal fun drawStreakBarsBitmap(
     context: Context,
     runs: List<WidgetStreakRun>,
-    maxRunCount: Int,
     size: DpSize
 ): Bitmap {
-    val density: Float = context.resources.displayMetrics.density
+    val displayMetrics = context.resources.displayMetrics
+    val density: Float = displayMetrics.density
     val locale: Locale = context.resources.configuration.locales[0]
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
         DateFormat.getBestDateTimePattern(locale, "MMMd"),
@@ -102,32 +111,45 @@ internal fun drawStreakBarsBitmap(
     )
     val longestDayCount: Int = runs.maxOf { run -> run.dayCount }
     return drawWidgetBitmap(size = size, density = density) { canvas ->
-        val rowHeight: Float = min(canvas.height.toFloat() / maxRunCount, streakBarMaxRowHeightDp * density)
-        val barHeight: Float = rowHeight * 0.82f
+        val textSize: Float = widgetTextSizePx(fontSize = streakBarTextSize, displayMetrics = displayMetrics)
+        val rowHeight: Float = min(canvas.height.toFloat() / runs.size, textSize * streakBarRowHeightPerTextSize)
+        val barHeight: Float = rowHeight * streakBarHeightPerRowHeight
         val rowsTop: Float = (canvas.height - rowHeight * runs.size) / 2
         val dateGap: Float = streakBarDateGapDp * density
         val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = min(streakBarDateTextSizeDp * density, rowHeight * 0.8f)
+            this.textSize = min(textSize, rowHeight * streakBarMaxDateHeightPerRowHeight)
             color = FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
         }
-        // The widest bar spans the bar area, so each side keeps room for the widest date shown.
-        val dateColumnWidth: Float = runs.maxOf { run ->
+        val widestDateWidth: Float = runs.maxOf { run ->
             max(
                 datePaint.measureText(dateFormatter.format(run.startDate)),
                 datePaint.measureText(dateFormatter.format(run.endDate))
             )
         }
+        val maxDateWidth: Float = canvas.width * streakBarMaxDateWidthFraction
+        if (widestDateWidth > maxDateWidth) {
+            datePaint.textSize = datePaint.textSize * maxDateWidth / widestDateWidth
+        }
+        // The widest bar spans the bar area, so each side keeps room for the widest date shown.
+        val dateColumnWidth: Float = min(widestDateWidth, maxDateWidth)
         val barAreaLeft: Float = dateColumnWidth + dateGap
         val barAreaWidth: Float = canvas.width - 2 * barAreaLeft
         val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         val countPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textAlign = Paint.Align.CENTER
-            textSize = barHeight * 0.78f
+            this.textSize = min(textSize, barHeight * streakBarMaxCountHeightPerBarHeight)
             typeface = Typeface.DEFAULT_BOLD
+        }
+        val countTexts: List<String> = runs.map { run -> context.getString(R.string.streaks_widget_day_count, run.dayCount) }
+        // A bar keeps half its height beside each end of its count, so the widest count fits the bar area.
+        val widestCountWidth: Float = countTexts.maxOf { countText -> countPaint.measureText(countText) }
+        val maxCountWidth: Float = barAreaWidth - barHeight
+        if (widestCountWidth > maxCountWidth && maxCountWidth > 0f) {
+            countPaint.textSize = countPaint.textSize * maxCountWidth / widestCountWidth
         }
         runs.forEachIndexed { index, run ->
             val centerY: Float = rowsTop + rowHeight * index + rowHeight / 2
-            val countText: String = context.getString(R.string.streaks_widget_day_count, run.dayCount)
+            val countText: String = countTexts[index]
             val minBarWidth: Float = max(barHeight, countPaint.measureText(countText) + barHeight)
             val barWidth: Float = max(minBarWidth, barAreaWidth * run.dayCount / longestDayCount).coerceAtMost(barAreaWidth)
             val barLeft: Float = barAreaLeft + (barAreaWidth - barWidth) / 2

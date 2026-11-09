@@ -99,7 +99,7 @@ final class ReviewSQLiteFilterTests: ReviewSQLiteTestCase {
         XCTAssertEqual(matchingTagSummaries.first?.cardsCount, 4)
     }
 
-    func testSQLiteTagReviewFilterMatchesAnySelectedTagAndEmptySelectionMatchesNone() throws {
+    func testSQLiteTagReviewFilterMatchesAnySelectedTagAndEmptySelectionMatchesAllCards() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
@@ -195,8 +195,8 @@ final class ReviewSQLiteFilterTests: ReviewSQLiteTestCase {
 
         XCTAssertEqual(unionQuery.reviewFilter, makeReviewTagsFilter(tags: ["Biology", "Chemistry"]))
         XCTAssertEqual(unionHead.seedReviewQueue.map(\.cardId), ["chemistry-card", "biology-card"])
-        XCTAssertEqual(emptyQuery.reviewFilter, makeReviewTagsFilter(tags: []))
-        XCTAssertEqual(emptyCounts, ReviewCounts(dueCount: 0, totalCount: 0))
+        XCTAssertEqual(emptyQuery.reviewFilter, .allCards)
+        XCTAssertEqual(emptyCounts, ReviewCounts(dueCount: 4, totalCount: 4))
         XCTAssertEqual(missingTagQuery.reviewFilter, makeReviewTagsFilter(tags: ["Missing"]))
         XCTAssertEqual(missingTagQuery.queryDefinition, .tag(exactTagNames: []))
         XCTAssertEqual(

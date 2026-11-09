@@ -379,7 +379,7 @@ class ReviewFilterAndSessionGenerationTest {
     }
 
     @Test
-    fun tagChecklistTicksOnlyTagSelectionsAndStartsNewSelectionFromAllCardsOrDeck() {
+    fun tagChecklistTicksOnlyTagSelectionsStartsNewSelectionFromAllCardsOrDeckAndNeverEmpties() {
         assertEquals(emptySet<String>(), selectedReviewTagKeys(selectedFilter = ReviewFilter.AllCards))
         assertEquals(
             emptySet<String>(),
@@ -418,7 +418,7 @@ class ReviewFilterAndSessionGenerationTest {
             )
         )
         assertEquals(
-            ReviewFilter.Tags(tags = emptyList()),
+            ReviewFilter.AllCards,
             toggleReviewTagFilter(
                 selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha")),
                 toggledTagName = "Alpha"

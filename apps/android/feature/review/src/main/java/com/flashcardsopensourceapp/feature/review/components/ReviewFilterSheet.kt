@@ -17,8 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +36,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOptio
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +46,7 @@ internal fun ReviewFilterSheet(
     availableTagFilters: List<ReviewTagFilterOption>,
     areFilterOptionsLoaded: Boolean,
     onDismiss: () -> Unit,
-    onSelectFilter: (ReviewFilter) -> Unit,
+    onApplyFilter: (ReviewFilter) -> Unit,
     onToggleTag: (String) -> Unit,
     onManageDecks: () -> Unit
 ) {
@@ -60,8 +63,20 @@ internal fun ReviewFilterSheet(
         )
     }
     val selectedTagKeys: Set<String> = selectedReviewTagKeys(selectedFilter = selectedFilter)
+    val sheetState = rememberModalBottomSheetState()
+    val coroutineScope = rememberCoroutineScope()
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // All cards and decks are a single choice: it applies at once and the sheet hides with its own animation.
+    fun applyFilterAndHide(filter: ReviewFilter): Unit {
+        onApplyFilter(filter)
+        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (sheetState.isVisible.not()) {
+                onDismiss()
+            }
+        }
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         LazyColumn(
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -84,12 +99,7 @@ internal fun ReviewFilterSheet(
                     selected = selectedFilter == ReviewFilter.AllCards,
                     testTag = reviewFilterAllCardsOptionTag,
                     onClick = {
-                        val nextFilter: ReviewFilter = if (selectedFilter == ReviewFilter.AllCards) {
-                            makeReviewTagFilter(tagNames = emptyList())
-                        } else {
-                            ReviewFilter.AllCards
-                        }
-                        onSelectFilter(nextFilter)
+                        applyFilterAndHide(filter = ReviewFilter.AllCards)
                     }
                 )
             }
@@ -136,11 +146,11 @@ internal fun ReviewFilterSheet(
                         testTag = reviewFilterDeckOptionTag(deckId = deck.deckId),
                         onClick = {
                             val nextFilter: ReviewFilter = if (isSelected) {
-                                makeReviewTagFilter(tagNames = emptyList())
+                                ReviewFilter.AllCards
                             } else {
                                 deckFilter
                             }
-                            onSelectFilter(nextFilter)
+                            applyFilterAndHide(filter = nextFilter)
                         }
                     )
                 }
@@ -237,11 +247,11 @@ internal fun selectedReviewTagKeys(selectedFilter: ReviewFilter): Set<String> {
     }
 }
 
-// A tag tapped under All cards or a deck starts a new selection of only that tag.
+// A tag tapped under All cards or a deck starts a new selection of only that tag; removing the last tag selects All cards.
 internal fun toggleReviewTagFilter(
     selectedFilter: ReviewFilter,
     toggledTagName: String
-): ReviewFilter.Tags {
+): ReviewFilter {
     if (selectedFilter !is ReviewFilter.Tags) {
         return makeReviewTagFilter(tagNames = listOf(toggledTagName))
     }
@@ -256,6 +266,9 @@ internal fun toggleReviewTagFilter(
         }
     } else {
         selectedFilter.tags + toggledTagName
+    }
+    if (nextTagNames.isEmpty()) {
+        return ReviewFilter.AllCards
     }
 
     return makeReviewTagFilter(tagNames = nextTagNames)

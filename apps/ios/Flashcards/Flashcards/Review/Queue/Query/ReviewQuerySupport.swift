@@ -351,11 +351,12 @@ func resolveTagsReviewQuery(requestedTags: [String], storedTagNames: [String]) -
     let currentTagKeys = Set(normalizedReviewTagNames(tags: storedTagNames).map(normalizeTagKey))
     let selectedTagKeys = Set(selectedTagNames.map(normalizeTagKey))
     let exactTagKeys = Set(exactTagNames.map(normalizeTagKey))
-    if
-        currentTagKeys.isEmpty == false,
-        selectedTagKeys == exactTagKeys,
-        exactTagKeys == currentTagKeys
-    {
+    // An empty selection, including one persisted by an older build, is never a scope of its own.
+    if selectedTagKeys.isEmpty || (
+        currentTagKeys.isEmpty == false
+            && selectedTagKeys == exactTagKeys
+            && exactTagKeys == currentTagKeys
+    ) {
         return ResolvedReviewQuery(
             reviewFilter: .allCards,
             queryDefinition: .allCards
@@ -429,8 +430,8 @@ func resolveReviewQuery(
     }
 }
 
-/// Toggles a tag inside a tag selection and keeps a selection of every tag as tags; the store resolves that
-/// to All cards when the filter is committed.
+/// Toggles a tag inside a tag selection; removing the last tag selects All cards. A selection of every tag stays
+/// tags, and the store resolves it to All cards when the filter is committed.
 func reviewTagsFilterByTogglingTag(tags: [String], tag: String, storedTagNames: [String]) -> ReviewFilter {
     let canonicalStoredTags = normalizedReviewTagNames(tags: storedTagNames)
     guard let canonicalTag = resolveExactStoredTagNames(
@@ -444,9 +445,11 @@ func reviewTagsFilterByTogglingTag(tags: [String], tag: String, storedTagNames: 
         requestedTagNames: tags,
         storedTagNames: canonicalStoredTags
     )
-    return makeReviewTagsFilter(
-        tags: reviewTagNamesByTogglingStoredTag(selectedTags: selectedTags, canonicalTag: canonicalTag)
-    )
+    let toggledTags = reviewTagNamesByTogglingStoredTag(selectedTags: selectedTags, canonicalTag: canonicalTag)
+    if toggledTags.isEmpty {
+        return .allCards
+    }
+    return makeReviewTagsFilter(tags: toggledTags)
 }
 
 private func reviewTagNamesByTogglingStoredTag(selectedTags: [String], canonicalTag: String) -> [String] {

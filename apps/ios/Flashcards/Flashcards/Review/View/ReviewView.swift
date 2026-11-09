@@ -302,7 +302,8 @@ struct ReviewView: View {
                             reviewFilter: self.$reviewFilterDraft,
                             decks: store.decks,
                             tagSummaries: self.reviewTagSummaries,
-                            onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+                            onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
+                            onSingleChoice: self.dismissReviewFilterPopover
                         )
                         .presentationCompactAdaptation(.popover)
                     }
@@ -429,7 +430,8 @@ struct ReviewView: View {
                     ReviewFilterPopover(
                         reviewFilter: self.$reviewFilterDraft, decks: self.store.decks,
                         tagSummaries: self.reviewTagSummaries,
-                        onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+                        onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
+                        onSingleChoice: self.dismissReviewFilterPopover
                     )
                     .environment(\.locale, self.locale)
                     .tint(self.store.displayedAccountAccentColor.color)
@@ -782,6 +784,11 @@ struct ReviewView: View {
         // snapshot and is discarded instead of applied; reopening the menu re-seeds it. Clearing the
         // context first also keeps the finalize on popover dismissal a no-op.
         self.reviewFilterPresentationContext = nil
+        self.isReviewFilterPopoverPresented = false
+    }
+
+    /// Closing commits the draft through the presentation change, on both the popover and the Mac toolbar path.
+    private func dismissReviewFilterPopover() {
         self.isReviewFilterPopoverPresented = false
     }
 
