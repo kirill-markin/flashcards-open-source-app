@@ -297,22 +297,11 @@ func progressStreakLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Dat
 }
 
 func progressStreakLeaderboardDayCountText(streakDays: Int) -> String {
-    if streakDays == 1 {
-        return String(
-            localized: "progress.screen.streak_leaderboard.day_count.one",
-            defaultValue: "1 day",
-            table: "Foundation",
-            comment: "Progress streak leaderboard singular day count"
-        )
-    }
-
-    let localizedFormat = String(
-        localized: "progress.screen.streak_leaderboard.day_count.other",
-        defaultValue: "%lld days",
+    return String(
+        localized: "progress.screen.streak_leaderboard.day_count \(streakDays)",
         table: "Foundation",
-        comment: "Progress streak leaderboard plural day count"
+        comment: "Progress streak leaderboard day count"
     )
-    return String(format: localizedFormat, locale: Locale.current, Int64(streakDays))
 }
 
 func progressLeaderboardWindowTitle(key: LeaderboardWindowKey) -> String {

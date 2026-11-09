@@ -11,6 +11,7 @@ import {
   formatDate,
   formatDateTime,
   formatNumber,
+  formatPluralMessage,
   formatTime,
   persistLocalePreference,
   readStoredLocalePreference,
@@ -19,7 +20,7 @@ import {
   selectCountLabel,
   translateMessage,
 } from "./runtime";
-import type { DateTimeValue, Locale, LocaleDirection, LocalePreference, PluralCountLabels, TranslationValues } from "./types";
+import type { DateTimeValue, Locale, LocaleDirection, LocalePreference, PluralCountLabels, PluralMessages, TranslationValues } from "./types";
 
 type I18nContextValue = Readonly<ResolvedLocaleState & {
   messages: TranslationMessages;
@@ -32,6 +33,7 @@ type I18nContextValue = Readonly<ResolvedLocaleState & {
   formatCount: (value: number, labels: PluralCountLabels) => string;
   // The plural label alone, for layouts that style the number separately.
   selectCountLabel: (value: number, labels: PluralCountLabels) => string;
+  formatPluralMessage: (value: number, messages: PluralMessages) => string;
 }>;
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -185,6 +187,10 @@ export function I18nProvider(props: Props): ReactElement {
     return selectCountLabel(renderedLocale, value, labels);
   }
 
+  function formatPluralMessageValue(value: number, messages: PluralMessages): string {
+    return formatPluralMessage(renderedLocale, value, messages);
+  }
+
   return (
     <I18nContext.Provider
       value={{
@@ -201,6 +207,7 @@ export function I18nProvider(props: Props): ReactElement {
         formatNumber: formatNumberValue,
         formatCount: formatCountValue,
         selectCountLabel: selectCountLabelValue,
+        formatPluralMessage: formatPluralMessageValue,
       }}
     >
       {children}

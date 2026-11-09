@@ -71,3 +71,7 @@ export type PluralCountLabels = Readonly<{
   few?: string;
   other: string;
 }>;
+
+// A whole phrase per CLDR category, each placing `{{count}}` itself, so a form such as Hebrew `two`
+// can name the count without the number.
+export type PluralMessages = Readonly<Record<Intl.LDMLPluralRule, string>>;

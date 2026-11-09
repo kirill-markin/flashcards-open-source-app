@@ -1,18 +1,17 @@
-#if targetEnvironment(macCatalyst)
 import NetworkImage
 import Observation
 import SwiftUI
 
 @MainActor
 @Observable
-final class MacReviewFormulaState {
+final class ReviewFormulaState {
     var renderFailed = false
     var scrollPosition = ScrollPosition(edge: .leading)
 }
 
 @MainActor
 @Observable
-final class MacReviewImageState {
+final class ReviewLinkedImageState {
     var image: NetworkImageState = .empty
     private let url: URL
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -42,8 +41,8 @@ final class MacReviewImageState {
     }
 }
 
-struct MacReviewImageView: View {
-    let state: MacReviewImageState
+struct ReviewLinkedImageView: View {
+    let state: ReviewLinkedImageState
 
     var body: some View {
         Group {
@@ -51,14 +50,14 @@ struct MacReviewImageView: View {
             case .empty, .failure:
                 Color.clear.frame(width: 0, height: 0)
             case .success(let image, let idealSize):
-                MacReviewImageLayout(idealSize: idealSize) { image.resizable() }
+                ReviewLinkedImageLayout(idealSize: idealSize) { image.resizable() }
             }
         }
         .task { self.state.load() }
     }
 }
 
-private struct MacReviewImageLayout: Layout {
+private struct ReviewLinkedImageLayout: Layout {
     let idealSize: CGSize
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -70,4 +69,3 @@ private struct MacReviewImageLayout: Layout {
         subviews.first?.place(at: bounds.origin, proposal: .init(bounds.size))
     }
 }
-#endif
