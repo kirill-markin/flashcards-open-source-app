@@ -37,7 +37,10 @@ import {
   captureWorkspaceTransitionError,
   logWorkspaceTransition,
 } from "../observation/workspaceSessionObservation";
-import { getSyncFailureObservationCaptureState } from "../../sync/observation/syncErrorObservation";
+import {
+  getSyncFailureObservationCaptureState,
+  isSyncFailurePresentedByCaller,
+} from "../../sync/observation/syncErrorObservation";
 import type {
   WorkspaceSessionActivation,
   WorkspaceSessionSetters,
@@ -296,6 +299,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
             bootstrapPhase,
           });
           setSessionLoadState("redirecting");
+          return;
+        }
+
+        if (bootstrapPhase === "run_sync" && isSyncFailurePresentedByCaller(normalizedError)) {
           return;
         }
 

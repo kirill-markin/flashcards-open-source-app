@@ -83,6 +83,8 @@ export type MutableCardFormScreenAppData = {
   createCardItem: ReturnType<typeof vi.fn>;
   deleteCardItem: ReturnType<typeof vi.fn>;
   localReadVersion: number;
+  isSessionVerified: boolean;
+  requireActiveWorkspaceSync: ReturnType<typeof vi.fn>;
   runMediaUploadTransfers: ReturnType<typeof vi.fn>;
   session: null;
   setErrorMessage: ReturnType<typeof vi.fn>;
@@ -214,6 +216,8 @@ export function setupCardFormScreenTest(): CardFormScreenTestHarness {
       createCardItem: vi.fn(),
       deleteCardItem: mocks.deleteCardItemMock,
       localReadVersion: 0,
+      isSessionVerified: true,
+      requireActiveWorkspaceSync: vi.fn(async (): Promise<void> => undefined),
       runMediaUploadTransfers: vi.fn(),
       session: null,
       setErrorMessage: vi.fn(),

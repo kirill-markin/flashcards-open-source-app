@@ -518,6 +518,7 @@ const csCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Obnovuje se relace. Zkuste to za chvíli.",
     sessionUnavailable: "Relace není dostupná",
     syncing: "Synchronizace...",
+    syncFailed: "Synchronizace selhala",
     workspaceUnavailable: "Pracovní prostor není dostupný",
   },
   accountMenu: {

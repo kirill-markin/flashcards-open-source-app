@@ -510,6 +510,7 @@ const etCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Seansi taastamine. Proovi hetke pärast uuesti.",
     sessionUnavailable: "Seanss pole saadaval",
     syncing: "Sünkroonimine...",
+    syncFailed: "Sünkroonimine ebaõnnestus",
     workspaceUnavailable: "Tööruum pole saadaval",
   },
   accountMenu: {

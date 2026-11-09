@@ -510,6 +510,7 @@ const mrCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "सत्र पूर्ववत करत आहे. थोड्या वेळाने पुन्हा प्रयत्न करा.",
     sessionUnavailable: "सत्र उपलब्ध नाही",
     syncing: "समक्रमण सुरू आहे...",
+    syncFailed: "समक्रमण अयशस्वी",
     workspaceUnavailable: "कार्यक्षेत्र उपलब्ध नाही",
   },
   accountMenu: {

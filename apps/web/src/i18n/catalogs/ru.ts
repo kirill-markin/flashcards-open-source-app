@@ -518,6 +518,7 @@ export const ruCatalog = {
     sessionRestoringActionLocked: "Сессия восстанавливается. Попробуйте еще раз через минуту.",
     sessionUnavailable: "Сессия недоступна",
     syncing: "Синхронизация...",
+    syncFailed: "Синхронизация не удалась",
     workspaceUnavailable: "Рабочее пространство недоступно",
   },
   accountMenu: {

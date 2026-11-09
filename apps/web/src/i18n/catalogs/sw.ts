@@ -510,6 +510,7 @@ const swCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Inarejesha kipindi. Jaribu tena baada ya muda mfupi.",
     sessionUnavailable: "Kipindi hakipatikani",
     syncing: "Inasawazisha...",
+    syncFailed: "Usawazishaji umeshindwa",
     workspaceUnavailable: "Nafasi ya kazi haipatikani",
   },
   accountMenu: {

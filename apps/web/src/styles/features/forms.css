@@ -1,3 +1,29 @@
+.card-form-load-state {
+  align-content: safe center;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-form-load-state > .page-state-spinner {
+    animation: none;
+  }
+}
+
+.card-form-load-error {
+  color: var(--danger-text);
+}
+
+.card-form-load-state > .ghost-btn {
+  width: auto;
+  max-width: 100%;
+  min-height: 36px;
+  padding-inline: 12px;
+  font-size: 14px;
+}
+
 .card-form-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);

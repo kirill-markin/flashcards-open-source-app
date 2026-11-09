@@ -17,7 +17,6 @@ import { isBrowserApiNetworkError } from "../../../observability/apiNetworkError
 
 const workspaceNotFoundErrorCode = "WORKSPACE_NOT_FOUND";
 const workspaceSyncDiscardedErrorName = "WorkspaceSyncDiscardedError";
-const syncFailureCapturedProperty = "__flashcardsSyncFailureCaptured";
 
 type SyncFailureEpisode = Readonly<{
   userId: string;
@@ -73,10 +72,6 @@ function startSyncFailureEpisode(workspaceId: string, userId: string): SyncFailu
   return episode;
 }
 
-type SyncFailureCapturedCarrier = Readonly<{
-  __flashcardsSyncFailureCaptured?: true;
-}>;
-
 export type WorkspaceSyncDiscardedError = Error & Readonly<{
   name: typeof workspaceSyncDiscardedErrorName;
   workspaceId: string;
@@ -90,8 +85,11 @@ export type SyncFailureObservationInput = Readonly<{
 }>;
 
 type SyncFailureObservationMetadata = Readonly<{
-  syncFailureWasCaptured?: unknown;
+  wasCaptured: boolean;
+  isPresentedByCaller: boolean;
 }>;
+
+const syncFailureObservations = new WeakMap<Error, SyncFailureObservationMetadata>();
 
 export function createWorkspaceSyncDiscardedError(workspaceId: string): WorkspaceSyncDiscardedError {
   const error = new Error(`Workspace sync was discarded: ${workspaceId}`);
@@ -111,15 +109,8 @@ export function isWorkspaceNotFoundError(error: unknown): error is ApiError {
     && error.code === workspaceNotFoundErrorCode;
 }
 
-export function markSyncFailureCaptured(error: Error): void {
-  Object.assign(error, {
-    [syncFailureCapturedProperty]: true,
-  });
-}
-
 export function isCapturedSyncFailure(error: unknown): boolean {
-  return error instanceof Error
-    && (error as SyncFailureCapturedCarrier)[syncFailureCapturedProperty] === true;
+  return getSyncFailureObservationCaptureState(error) === true;
 }
 
 export function isExpectedUnobservedSyncFailure(error: unknown): boolean {
@@ -250,27 +241,31 @@ function captureUnexpectedSyncError(input: SyncFailureObservationInput): boolean
   return true;
 }
 
-export function attachSyncFailureObservation(error: Error, wasCaptured: boolean): Error {
-  Object.assign(error, {
-    syncFailureWasCaptured: wasCaptured,
-  });
-  if (wasCaptured) {
-    markSyncFailureCaptured(error);
-  }
-  return error;
+export function attachSyncFailureObservation(
+  error: Error,
+  wasCaptured: boolean,
+  isPresentedByCaller: boolean,
+): Error {
+  // Credential recovery can reject multiple workspace runs with the same error.
+  // Preserve its type and diagnostics for callers while recording each run separately.
+  const runError = error instanceof DOMException
+    ? new DOMException(error.message, error.name)
+    : new Error(error.message);
+  const properties = Object.getOwnPropertyDescriptors(error);
+  properties.cause = { value: error, configurable: true, writable: true };
+  properties.stack = { value: error.stack, configurable: true, writable: true };
+  Object.setPrototypeOf(runError, Object.getPrototypeOf(error));
+  Object.defineProperties(runError, properties);
+  syncFailureObservations.set(runError, { wasCaptured, isPresentedByCaller });
+  return runError;
+}
+
+export function isSyncFailurePresentedByCaller(error: unknown): boolean {
+  return error instanceof Error && syncFailureObservations.get(error)?.isPresentedByCaller === true;
 }
 
 export function getSyncFailureObservationCaptureState(error: unknown): boolean | null {
-  if (error instanceof Error === false) {
-    return null;
-  }
-
-  const wasCaptured = (error as SyncFailureObservationMetadata).syncFailureWasCaptured;
-  if (typeof wasCaptured === "boolean") {
-    return wasCaptured;
-  }
-
-  return isCapturedSyncFailure(error) ? true : null;
+  return error instanceof Error ? syncFailureObservations.get(error)?.wasCaptured ?? null : null;
 }
 
 export function observeSyncFailure(input: SyncFailureObservationInput): boolean {

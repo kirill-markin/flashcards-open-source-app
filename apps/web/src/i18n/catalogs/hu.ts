@@ -510,6 +510,7 @@ const huCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Munkamenet visszaállítása. Próbáld újra egy pillanat múlva.",
     sessionUnavailable: "A munkamenet nem érhető el",
     syncing: "Szinkronizálás...",
+    syncFailed: "Sikertelen szinkronizálás",
     workspaceUnavailable: "A munkaterület nem érhető el",
   },
   accountMenu: {
