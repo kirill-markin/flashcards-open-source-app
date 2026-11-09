@@ -14,6 +14,7 @@ import {
   type LocaleDirection,
   type LocalePreference,
   type PluralCountLabels,
+  type PluralMessages,
   type TranslationValues,
 } from "./types";
 
@@ -346,4 +347,8 @@ export function selectCountLabel(locale: Locale, value: number, labels: PluralCo
 
 export function formatCount(locale: Locale, value: number, labels: PluralCountLabels): string {
   return `${formatNumber(locale, value)} ${selectCountLabel(locale, value, labels)}`;
+}
+
+export function formatPluralMessage(locale: Locale, value: number, messages: PluralMessages): string {
+  return interpolateMessage(messages[new Intl.PluralRules(locale).select(value)], { count: formatNumber(locale, value) });
 }

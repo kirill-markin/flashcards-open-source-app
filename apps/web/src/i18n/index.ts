@@ -34,5 +34,6 @@ export {
   type LocaleDirection,
   type LocalePreference,
   type PluralCountLabels,
+  type PluralMessages,
   type TranslationValues,
 } from "./types";
