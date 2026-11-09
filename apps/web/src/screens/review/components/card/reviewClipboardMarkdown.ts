@@ -107,7 +107,7 @@ function isBlankSourceText(text: string): boolean {
 
 /**
  * Widens removed media that stand alone on their lines so no blank line is left behind:
- * the line and the whitespace before it go, or the whitespace after it at the start of the side.
+ * the line and the whitespace before it go, plus the whitespace after it at either end of the side.
  */
 function readClipboardRemovalRange(source: string, range: ClipboardSourceRange): ClipboardSourceRange {
   const lineStartIndex = source.lastIndexOf("\n", range.startIndex - 1) + 1;
@@ -122,7 +122,8 @@ function readClipboardRemovalRange(source: string, range: ClipboardSourceRange):
 
   const textBefore = source.slice(0, range.startIndex);
   if (isBlankSourceText(textBefore) === false) {
-    return { startIndex: textBefore.trimEnd().length, endIndex: range.endIndex };
+    const endIndex = isBlankSourceText(source.slice(range.endIndex)) ? source.length : range.endIndex;
+    return { startIndex: textBefore.trimEnd().length, endIndex };
   }
   return { startIndex: 0, endIndex: source.length - source.slice(range.endIndex).trimStart().length };
 }
