@@ -433,7 +433,7 @@ const arCatalog: TranslationCatalog = {
         two: "يومان",
         few: "{{count}} أيام",
         many: "{{count}} يومًا",
-        other: "{{count}} يومًا",
+        other: "{{count}} يوم",
       },
     },
     labels: {
@@ -1153,7 +1153,7 @@ const arCatalog: TranslationCatalog = {
         two: "يومان",
         few: "{{count}} أيام",
         many: "{{count}} يومًا",
-        other: "{{count}} يومًا",
+        other: "{{count}} يوم",
       },
       title: "السلسلة",
     },

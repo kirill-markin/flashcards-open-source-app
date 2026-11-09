@@ -435,12 +435,12 @@ const ltCatalog: TranslationCatalog = {
       offlineEmpty: "Serijų lyderių lentelė nepasiekiama neprisijungus. Vėl prisijunkite, kad matytumėte vietas.",
       unavailable: "Serijų lyderių lentelė šiuo metu nepasiekiama. Patikrinkite vėliau.",
       dayLabels: {
-        zero: "{{count}} d.",
-        one: "{{count}} d.",
-        two: "{{count}} d.",
-        few: "{{count}} d.",
-        many: "{{count}} d.",
-        other: "{{count}} d.",
+        zero: "{{count}} dienų",
+        one: "{{count}} diena",
+        two: "{{count}} dienų",
+        few: "{{count}} dienos",
+        many: "{{count}} dienų",
+        other: "{{count}} dienų",
       },
     },
     labels: {
