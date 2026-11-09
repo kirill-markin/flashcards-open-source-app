@@ -301,8 +301,7 @@ final class ReviewContentAttachment: NSTextAttachment {
     #else
     @MainActor private var hostingController: UIHostingController<AnyView>?
     @MainActor private var isSizeNotificationScheduled = false
-    @MainActor private var lastMeasuredBounds: CGRect?
-    @MainActor private var lastMeasurementWidth: CGFloat?
+    @MainActor private var notifiedBoundsByWidth: [CGFloat: CGRect] = [:]
     #endif
 
     @MainActor
@@ -408,8 +407,9 @@ final class ReviewContentAttachment: NSTextAttachment {
     fileprivate func layoutBounds(proposedWidth: CGFloat) -> CGRect {
         let width = max(proposedWidth, 1)
         let bounds = self.measuredBounds(width: width)
-        self.lastMeasurementWidth = width
-        self.lastMeasuredBounds = bounds
+        // TextKit re-lays attachments on its own when the hosted view resizes (a loaded image
+        // replacing its placeholder); only the first size per width is what SwiftUI measured.
+        if self.notifiedBoundsByWidth[width] == nil { self.notifiedBoundsByWidth[width] = bounds }
         return bounds
     }
 
@@ -426,9 +426,8 @@ final class ReviewContentAttachment: NSTextAttachment {
                 - 2 * textView.textContainer.lineFragmentPadding
             guard width > 0 else { return }
             let bounds = self.measuredBounds(width: width)
-            guard self.lastMeasurementWidth != width || self.lastMeasuredBounds != bounds else { return }
-            self.lastMeasurementWidth = width
-            self.lastMeasuredBounds = bounds
+            guard self.notifiedBoundsByWidth[width] != bounds else { return }
+            self.notifiedBoundsByWidth[width] = bounds
             if let manager = textView.textLayoutManager, let range = manager.textContentManager?.documentRange {
                 manager.invalidateLayout(for: range)
             }
