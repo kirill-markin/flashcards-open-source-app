@@ -5,7 +5,7 @@ import { normalizeCaughtError, type BackendObservationScope } from "../../observ
 import { isAutomatedUserAgent } from "../../productAnalytics/automatedClient";
 import { parseClientHintChromiumMajor, parseUserAgentChromeMajor } from "../../productAnalytics/browserVersion";
 
-// Mirrors the cloud_networks lists of db/migrations/0241_probable_scraper_fleet_install_and_burst.sql;
+// Mirrors the cloud_networks lists of db/migrations/0243_current_chromium_cap_and_checked_guests.sql;
 // change them together.
 export const guestChallengeCloudNetworkAsns: ReadonlySet<number> = new Set([
   16509, 14618, // Amazon AWS
