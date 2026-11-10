@@ -132,7 +132,8 @@ The API stores only the random token's hash and sends the token only as
   `403 GUEST_BROWSER_CRAWLER_REFUSED`; headless browsers and scripts are not refused.
   When the Turnstile challenge is configured, creation, never resumption, from a
   browser flagged by server signals (cloud or undeterminable network, a Chrome User-Agent whose
-  `Sec-CH-UA` disagrees, Chrome 4+ majors behind current, an automated User-Agent;
+  `Sec-CH-UA` disagrees, Chrome 4+ majors behind current, an older Chrome major that already
+  created 10 unchecked guests that UTC day, an automated User-Agent;
   `apps/backend/src/guestAuth/browser/challengeRisk.ts`) needs a `turnstileToken`
   that Cloudflare verifies for action `guest_session` and the page hostname. Without
   one it answers `403 GUEST_BROWSER_CHALLENGE_REQUIRED` with `details.turnstileSiteKey`;
@@ -142,6 +143,8 @@ The API stores only the random token's hash and sends the token only as
   Manager secret holding JSON `{"siteKey", "secretKey", "bypassToken"}`, all non-empty
   strings; `bypassToken` must equal the GitHub secret `E2E_GUEST_CHALLENGE_BYPASS_TOKEN`.
   Each outcome logs one `guest_browser_challenge` record in the backend Lambda log.
+  Every decision, including a creation no signal flagged, is also stored as one
+  `analytics.guest_browser_checks` row, linked to the guest it created.
 - `POST /v1/guest-auth/browser/session/forget` returns `{ok: true}` and revokes only
   the guest credential, then expires its cookie. Missing/unknown/already-revoked
   credentials are safe to forget. It never deletes a workspace or a linked account.

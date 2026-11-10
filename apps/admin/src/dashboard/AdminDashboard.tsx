@@ -24,6 +24,8 @@ import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
 import { AppStoreProductPagesPage } from "../reports/appStoreProductPages/AppStoreProductPagesPage";
 import { AudienceSection } from "../reports/audience/AudienceSection";
+import { BrowserChecksSection } from "../reports/browserChecks/BrowserChecksSection";
+import type { BrowserChecksReport } from "../reports/browserChecks/query";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { FunnelDetailsHeader } from "../reports/funnels/FunnelDetailsHeader";
 import { FunnelsArea, type JourneysPage } from "../reports/funnels/FunnelsArea";
@@ -49,6 +51,7 @@ export type AdminReportsData = Readonly<{
   report: ReviewEventsByDateReport;
   catalogInstallsReport: CatalogInstallsReport;
   homeScreenWidgetsReport: HomeScreenWidgetsReport;
+  browserChecksReport: BrowserChecksReport;
 }>;
 
 /**
@@ -159,6 +162,10 @@ function GeneralReportSections(
 
       <HomeScreenWidgetsSection
         filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.homeScreenWidgetsReport)}
+      />
+
+      <BrowserChecksSection
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.browserChecksReport)}
       />
     </div>
   );

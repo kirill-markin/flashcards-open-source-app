@@ -751,7 +751,7 @@ test("demo-only preparation recovers the ordinary existing workspace without cre
 });
 
 test("browser demo-only disposal and lost-response preparation replay the same stored destination", async () => {
-  await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID()), async (fixture) => {
+  await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID(), null), async (fixture) => {
     const { guest, subject, snapshot, targetWorkspaceId, ownerPool } = fixture;
     const reviewEventId = await reviewDemoInFixture(fixture);
     const sessionId = await createEmptyChatInFixture(fixture);

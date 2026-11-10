@@ -148,8 +148,9 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
       ? null
       : expectNonEmptyString(body.automationBypassToken, "automationBypassToken");
     const challengeSecretName = readGuestBrowserChallengeSecretName();
-    if (challengeSecretName !== null) {
-      await enforceGuestBrowserChallenge(challengeSecretName, {
+    const challengeDecision = challengeSecretName === null
+      ? null
+      : await enforceGuestBrowserChallenge(challengeSecretName, {
         turnstileToken,
         automationBypassToken,
         userAgent,
@@ -171,8 +172,7 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
           "web",
         ),
       });
-    }
-    const created = await createBrowserGuestSession(idempotencyKey);
+    const created = await createBrowserGuestSession(idempotencyKey, challengeDecision);
     const createdSession = await loadBrowserGuestSession(created.guestToken);
     if (createdSession.status !== "active") {
       throw new HttpError(409, "The created guest session cannot be resumed.", "GUEST_BROWSER_RECOVERY_REQUIRED");

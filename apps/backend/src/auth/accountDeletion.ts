@@ -183,6 +183,17 @@ async function anonymizeProductAnalyticsInExecutor(
     ].join(" "),
     [anonymizedUserId, personUserIds, productAnalyticsBrowserRawSignalPropertyNames],
   );
+  await executor.query(
+    [
+      "UPDATE analytics.guest_browser_checks SET",
+      "guest_user_id = $1::uuid,",
+      "network_asn = NULL,",
+      "user_agent_chrome_major = NULL,",
+      "client_hint_chromium_major = NULL",
+      "WHERE guest_user_id = ANY($2::uuid[])",
+    ].join(" "),
+    [anonymizedUserId, personUserIds],
+  );
   // Keyed by the real ids, which are still the parameter here: a surviving link resolves an
   // anonymous_id back to this person and would make the rewrite above reversible.
   await executor.query(
