@@ -261,7 +261,7 @@ export function BrowserChecksSection(
                 <strong>Outcomes</strong>
                 <ul>
                   <li><strong>{outcomeLabels.required}:</strong> a server signal flagged the request and it carried no Turnstile token, so no guest was created and the browser was shown the check</li>
-                  <li><strong>{outcomeLabels.passed}:</strong> flagged, and Cloudflare verified the token, so the guest was created; such a guest is not marked by the old-Chrome and burst scraper-fleet rules</li>
+                  <li><strong>{outcomeLabels.passed}:</strong> flagged, and Cloudflare verified the token, so the guest was created; passing does not keep a guest who only opens and browses out of the scraper-fleet rules</li>
                   <li><strong>{outcomeLabels.failed}:</strong> Cloudflare rejected the token, or a bypass token was invalid</li>
                   <li><strong>Bypassed:</strong> a valid bypass token, which only our release smoke tests hold, flagged or not</li>
                   <li><strong>{outcomeLabels.allowed}:</strong> nothing flagged the request</li>

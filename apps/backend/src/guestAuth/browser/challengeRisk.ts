@@ -3,10 +3,15 @@ import { createCountryLookupFailureReporter } from "../../geolocation/countryLoo
 import { getDirectRequestNetworkAsnLookup, isDirectRequestSourceUnknown } from "../../geolocation/requestCountry";
 import { normalizeCaughtError, type BackendObservationScope } from "../../observability/sentry";
 import { isAutomatedUserAgent } from "../../productAnalytics/automatedClient";
-import { parseClientHintChromiumMajor, parseUserAgentChromeMajor } from "../../productAnalytics/browserVersion";
+import {
+  parseClientHintChromiumMajor,
+  parseUserAgentBrowser,
+  parseUserAgentChromeMajor,
+  type UserAgentBrowser,
+} from "../../productAnalytics/browserVersion";
 
-// Mirrors the cloud_networks lists of db/migrations/0243_current_chromium_cap_and_checked_guests.sql;
-// change them together.
+// Mirrors the cloud_networks lists of db/migrations/0243_current_chromium_cap_and_checked_guests.sql
+// and db/migrations/0245_probable_scraper_fleet_check_bursts.sql; change them together.
 export const guestChallengeCloudNetworkAsns: ReadonlySet<number> = new Set([
   16509, 14618, // Amazon AWS
   15169, 396982, // Google, Google Cloud
@@ -24,8 +29,10 @@ export const guestChallengeCloudNetworkAsns: ReadonlySet<number> = new Set([
 
 // The same lag the fleet rule marks for app events.
 const staleChromeMajorLag = 4;
-// The same burst the fleet rule of db/migrations/0241_probable_scraper_fleet_install_and_burst.sql marks.
+// The same threshold as the daily burst of db/migrations/0245_probable_scraper_fleet_check_bursts.sql.
 const chromeVersionBurstAllowedGuests = 10;
+// Counted in creation attempts; real new web guests peaked at 4 per hour on one browser version (Oct 21 - Nov 8 2026).
+const browserVersionBurstDecisionsPerHour = 6;
 
 export type GuestChallengeFlag =
   | "cloud_network"
@@ -33,6 +40,7 @@ export type GuestChallengeFlag =
   | "client_hint_mismatch"
   | "stale_chrome"
   | "chrome_version_burst"
+  | "browser_version_burst"
   | "automated_user_agent";
 
 export type ChallengeFailureReason = "turnstile_rejected" | "action_mismatch" | "hostname_mismatch" | "bypass_token_invalid";
@@ -42,6 +50,8 @@ export type GuestChallengeRequestFacts = Readonly<{
   networkAsn: number | null;
   /** The network could not be derived, so a cloud network cannot be ruled out. */
   networkUnknown: boolean;
+  userAgentBrowser: UserAgentBrowser["browser"];
+  userAgentBrowserMajor: number | null;
   userAgentChromeMajor: number | null;
   clientHintChromiumMajor: number | null;
   currentChromiumMajor: number | null;
@@ -50,6 +60,11 @@ export type GuestChallengeRequestFacts = Readonly<{
    * that major is below the current one.
    */
   sameMajorAllowedGuestsToday: number | null;
+  /**
+   * Creation attempts (first decision allowed or required) recorded in the last 60 minutes for the claimed
+   * browser family and major; null unless the User-Agent claims chrome, firefox or safari with a major.
+   */
+  sameBrowserDecisionsLastHour: number | null;
 }>;
 
 export function evaluateGuestChallengeFlags(facts: GuestChallengeRequestFacts): ReadonlyArray<GuestChallengeFlag> {
@@ -75,6 +90,12 @@ export function evaluateGuestChallengeFlags(facts: GuestChallengeRequestFacts): 
     && facts.sameMajorAllowedGuestsToday >= chromeVersionBurstAllowedGuests
   ) {
     flags.push("chrome_version_burst");
+  }
+  if (
+    facts.sameBrowserDecisionsLastHour !== null
+    && facts.sameBrowserDecisionsLastHour >= browserVersionBurstDecisionsPerHour
+  ) {
+    flags.push("browser_version_burst");
   }
   if (isAutomatedUserAgent(facts.userAgent)) {
     flags.push("automated_user_agent");
@@ -108,6 +129,28 @@ async function loadSameMajorAllowedGuestsToday(userAgentChromeMajor: number): Pr
     throw new Error("Counting today's guests created without a check for one Chrome major returned no row.");
   }
   return row.allowed_guests;
+}
+
+// An unknown User-Agent (family other, or no major) is shared by in-app browsers, home-screen web apps
+// and scripts alike, so it claims no browser version and is never counted.
+async function loadSameBrowserDecisionsLastHour(userAgentBrowser: UserAgentBrowser): Promise<number | null> {
+  if (userAgentBrowser.browser === "other" || userAgentBrowser.major === null) {
+    return null;
+  }
+  const result = await unsafeQuery<Readonly<{ decisions: number }>>(
+    `SELECT count(*)::int AS decisions
+     FROM analytics.guest_browser_checks
+     WHERE outcome IN ('allowed', 'required')
+       AND user_agent_browser = $1
+       AND user_agent_browser_major = $2
+       AND checked_at > now() - interval '60 minutes'`,
+    [userAgentBrowser.browser, userAgentBrowser.major],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("Counting the last hour's guest browser check decisions for one browser version returned no row.");
+  }
+  return row.decisions;
 }
 
 type ChromeFacts = Readonly<{ currentChromiumMajor: number | null; sameMajorAllowedGuestsToday: number | null }>;
@@ -159,18 +202,23 @@ export async function loadGuestChallengeRequestFacts(
   secChUa: string | null,
   scope: BackendObservationScope,
 ): Promise<GuestChallengeRequestFacts> {
+  const userAgentBrowser = parseUserAgentBrowser(userAgent);
   const userAgentChromeMajor = parseUserAgentChromeMajor(userAgent);
-  const [networkFacts, chromeFacts] = await Promise.all([
+  const [networkFacts, chromeFacts, sameBrowserDecisionsLastHour] = await Promise.all([
     loadNetworkFacts(scope),
     loadChromeFacts(userAgentChromeMajor),
+    loadSameBrowserDecisionsLastHour(userAgentBrowser),
   ]);
   return {
     userAgent,
     networkAsn: networkFacts.networkAsn,
     networkUnknown: networkFacts.networkUnknown,
+    userAgentBrowser: userAgentBrowser.browser,
+    userAgentBrowserMajor: userAgentBrowser.major,
     userAgentChromeMajor,
     clientHintChromiumMajor: parseClientHintChromiumMajor(secChUa),
     currentChromiumMajor: chromeFacts.currentChromiumMajor,
     sameMajorAllowedGuestsToday: chromeFacts.sameMajorAllowedGuestsToday,
+    sameBrowserDecisionsLastHour,
   };
 }

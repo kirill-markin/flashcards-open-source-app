@@ -34,13 +34,16 @@ where it is certain.
   [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops, are a materialized view an
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes, so a
   change reaches reports at the next refresh.
-- [Probable scraper-fleet visitors](../db/migrations/0243_current_chromium_cap_and_checked_guests.sql),
+- [Probable scraper-fleet visitors](../db/migrations/0245_probable_scraper_fleet_check_bursts.sql),
   marketing-site visitors by actor and by daily visitor hash and app guests with bot evidence, or
-  in a same-day burst on one outdated Chrome major, and no activity, are a materialized view the same
+  in a burst of new guests (same-day on one outdated Chrome major, or within an hour on one claimed
+  browser family and major version, where guest browser check records count each creation attempt
+  once), and no activity, are a materialized view the same
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes.
-  "Outdated" is measured against the current Chrome of each day, which a fleet claiming a future
-  Chrome cannot raise by more than one major a day. A guest who passed the guest browser check is
-  never marked for an outdated Chrome alone, but other bot evidence still marks them.
+  A guest whose only activity is a catalog install counts as having none. "Outdated" is measured
+  against the [current Chrome of each day](../db/migrations/0243_current_chromium_cap_and_checked_guests.sql),
+  which a fleet claiming a future Chrome cannot raise by more than one major a day. Passing the
+  guest browser check exempts no one, because bots can buy solved checks.
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql)
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts): raw IP is excluded.
 
