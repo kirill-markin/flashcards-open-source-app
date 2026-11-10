@@ -102,19 +102,24 @@ private struct WatchReviewCardView: View {
                 if self.model.isAnswerRevealed {
                     Divider()
                     WatchReviewCardSideView(sideText: backText, font: .body)
-                    WatchReviewRatingButtons(
-                        options: self.model.answerOptions(card: self.card),
-                        onRate: self.model.rate
-                    )
-                } else {
-                    Button(String(localized: "Show answer", table: reviewCardsStringsTableName)) {
-                        self.model.revealAnswer()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .handGestureShortcut(.primaryAction)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .safeAreaBar(edge: .bottom, spacing: 4) {
+            if self.model.isAnswerRevealed {
+                WatchReviewRatingButtons(onRate: self.model.rate)
+            } else {
+                Button {
+                    self.model.revealAnswer()
+                } label: {
+                    Text(String(localized: "Show answer", table: reviewCardsStringsTableName))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .handGestureShortcut(.primaryAction)
+            }
         }
     }
 }
@@ -144,8 +149,6 @@ private struct WatchReviewCardSideView: View {
 }
 
 private struct WatchReviewRatingButtons: View {
-    /// Nil when the intervals cannot be computed; the ratings still work.
-    let options: [ReviewAnswerOption]?
     let onRate: (ReviewRating) -> Void
 
     var body: some View {
@@ -159,6 +162,7 @@ private struct WatchReviewRatingButtons: View {
                 self.ratingButton(rating: .easy)
             }
         }
+        .buttonStyle(.bordered)
         .controlSize(.small)
     }
 
@@ -166,18 +170,11 @@ private struct WatchReviewRatingButtons: View {
         Button {
             self.onRate(rating)
         } label: {
-            VStack(spacing: 0) {
-                Text(localizedReviewRatingTitle(rating: rating))
-                    .font(.footnote.weight(.semibold))
-                if let intervalDescription = self.options?.first(where: { option in option.rating == rating })?.intervalDescription {
-                    Text(intervalDescription)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .frame(maxWidth: .infinity)
+            Text(localizedReviewRatingTitle(rating: rating))
+                .font(.footnote.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity)
         }
     }
 }
