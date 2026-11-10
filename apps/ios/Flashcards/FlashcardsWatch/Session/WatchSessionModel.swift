@@ -603,7 +603,7 @@ final class WatchSessionModel {
     private func stopActiveSync() async {
         while let activeSync = self.activeSync {
             activeSync.task.cancel()
-            await activeSync.task.value
+            _ = await activeSync.task.value
         }
     }
 
