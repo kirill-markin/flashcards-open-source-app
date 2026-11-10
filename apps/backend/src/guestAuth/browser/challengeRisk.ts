@@ -3,7 +3,12 @@ import { createCountryLookupFailureReporter } from "../../geolocation/countryLoo
 import { getDirectRequestNetworkAsnLookup, isDirectRequestSourceUnknown } from "../../geolocation/requestCountry";
 import { normalizeCaughtError, type BackendObservationScope } from "../../observability/sentry";
 import { isAutomatedUserAgent } from "../../productAnalytics/automatedClient";
-import { parseClientHintChromiumMajor, parseUserAgentChromeMajor } from "../../productAnalytics/browserVersion";
+import {
+  parseClientHintChromiumMajor,
+  parseUserAgentBrowser,
+  parseUserAgentChromeMajor,
+  type UserAgentBrowser,
+} from "../../productAnalytics/browserVersion";
 
 // Mirrors the cloud_networks lists of db/migrations/0243_current_chromium_cap_and_checked_guests.sql;
 // change them together.
@@ -42,6 +47,8 @@ export type GuestChallengeRequestFacts = Readonly<{
   networkAsn: number | null;
   /** The network could not be derived, so a cloud network cannot be ruled out. */
   networkUnknown: boolean;
+  userAgentBrowser: UserAgentBrowser["browser"];
+  userAgentBrowserMajor: number | null;
   userAgentChromeMajor: number | null;
   clientHintChromiumMajor: number | null;
   currentChromiumMajor: number | null;
@@ -159,6 +166,7 @@ export async function loadGuestChallengeRequestFacts(
   secChUa: string | null,
   scope: BackendObservationScope,
 ): Promise<GuestChallengeRequestFacts> {
+  const userAgentBrowser = parseUserAgentBrowser(userAgent);
   const userAgentChromeMajor = parseUserAgentChromeMajor(userAgent);
   const [networkFacts, chromeFacts] = await Promise.all([
     loadNetworkFacts(scope),
@@ -168,6 +176,8 @@ export async function loadGuestChallengeRequestFacts(
     userAgent,
     networkAsn: networkFacts.networkAsn,
     networkUnknown: networkFacts.networkUnknown,
+    userAgentBrowser: userAgentBrowser.browser,
+    userAgentBrowserMajor: userAgentBrowser.major,
     userAgentChromeMajor,
     clientHintChromiumMajor: parseClientHintChromiumMajor(secChUa),
     currentChromiumMajor: chromeFacts.currentChromiumMajor,
