@@ -462,7 +462,7 @@ private fun ReviewRouteTestContent(
     FlashcardsTheme {
         val reviewReactionLottieConfigurationStore =
             rememberReviewReactionLottieConfigurationStore(
-                loadLottieCompositions = true,
+                loadLottieCompositions = false,
                 isPowerSaveMode = false,
                 source = AndroidReviewReactionSource.REVIEW,
                 observability = remember { NoopAppObservability() }
