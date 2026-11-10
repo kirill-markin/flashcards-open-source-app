@@ -8,10 +8,10 @@
 --   - a guest with a passing history is also marked when its own analytics.guest_browser_checks row
 --     (outcome allowed or passed) is in a burst of guest creation attempts: 10 or more on one UTC day
 --     for one Chrome major below each attempt's current_chromium_major, or 6 or more within 60 minutes
---     for one browser family and major. Only allowed and required rows are attempts; passed and failed
---     rows follow a required row and bypassed rows are release smokes, so none of them count. A guest
---     whose only rows are server-derived, such as catalog_deck_installed, passes the history test, so
---     an install-only bot is marked.
+--     for one claimed browser family and major version. Only allowed and required rows are attempts;
+--     passed and failed rows follow a required row and bypassed rows are release smokes, so none of
+--     them count. A guest whose only rows are server-derived, such as catalog_deck_installed, passes
+--     the history test, so an install-only bot is marked.
 -- Schemas touched/read explicitly: analytics.
 -- See also: db/migrations/0244_guest_browser_check_browser.sql,
 -- apps/backend/src/guestAuth/browser/challengeRisk.ts,
@@ -21,8 +21,7 @@
 -- A fleet can buy solved Turnstile checks, so passing one is no evidence of a person; a guest who does
 -- anything beyond the passive allow-list below is still never marked. While configured, the check
 -- records every new web guest at creation, so a burst is seen there before any app event, and it includes the guests let in
--- before the burst was large enough to flag. Rows written before 0244's columns were filled have no
--- browser family and count only toward the daily burst.
+-- before the burst was large enough to flag.
 --
 -- Refreshed as 0223 says, so the next refresh re-marks history under these rules. Nothing is deleted.
 DROP MATERIALIZED VIEW analytics.probable_scraper_fleet_visitors;
@@ -125,15 +124,18 @@ fleet_page_views AS MATERIALIZED (
 -- guest_user_id is the actor_id of that guest's events; only allowed and passed rows carry one. An
 -- attempt is an allowed or required row. A guest row is in an hourly burst when some 60-minute window
 -- containing it holds 6 or more attempts for its browser version, that is when the row itself or a row
--- of that version up to 60 minutes later has 6 or more attempts in its past 60 minutes. NULL
--- user_agent_browser is no browser version.
+-- of that version up to 60 minutes later has 6 or more attempts in its past 60 minutes. Only a row of
+-- family chrome, firefox or safari with a major claims a browser version; any other row, including one
+-- written before 0244's columns were filled, counts only toward the daily burst, because an unknown
+-- User-Agent is shared by in-app browsers, home-screen web apps and scripts alike.
 check_burst_guests AS MATERIALIZED (
   SELECT DISTINCT decision.guest_user_id AS actor_id
   FROM (
     SELECT
       counted.guest_user_id,
       counted.outdated_chrome_attempts_that_day,
-      counted.user_agent_browser IS NOT NULL
+      counted.user_agent_browser_major IS NOT NULL
+        AND counted.user_agent_browser <> 'other'
         AND bool_or(counted.browser_attempts_past_hour >= 6) OVER (
           PARTITION BY counted.user_agent_browser, counted.user_agent_browser_major
           ORDER BY counted.checked_at

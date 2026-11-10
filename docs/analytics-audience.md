@@ -36,9 +36,9 @@ where it is certain.
   change reaches reports at the next refresh.
 - [Probable scraper-fleet visitors](../db/migrations/0245_probable_scraper_fleet_check_bursts.sql),
   marketing-site visitors by actor and by daily visitor hash and app guests with bot evidence, or
-  in a burst of new guests (same-day on one outdated Chrome major, or within an hour on one browser
-  version, where guest browser check records count each creation attempt once), and no activity, are
-  a materialized view the same
+  in a burst of new guests (same-day on one outdated Chrome major, or within an hour on one claimed
+  browser family and major version, where guest browser check records count each creation attempt
+  once), and no activity, are a materialized view the same
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes.
   A guest whose only activity is a catalog install counts as having none. "Outdated" is measured
   against the [current Chrome of each day](../db/migrations/0243_current_chromium_cap_and_checked_guests.sql),

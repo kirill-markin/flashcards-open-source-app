@@ -29,7 +29,7 @@ export const guestChallengeCloudNetworkAsns: ReadonlySet<number> = new Set([
 
 // The same lag the fleet rule marks for app events.
 const staleChromeMajorLag = 4;
-// The same burst the fleet rule of db/migrations/0241_probable_scraper_fleet_install_and_burst.sql marks.
+// The same threshold as the daily burst of db/migrations/0245_probable_scraper_fleet_check_bursts.sql.
 const chromeVersionBurstAllowedGuests = 10;
 // Counted in creation attempts; real new web guests peaked at 4 per hour on one browser version (Oct 21 - Nov 8 2026).
 const browserVersionBurstDecisionsPerHour = 6;
@@ -60,8 +60,11 @@ export type GuestChallengeRequestFacts = Readonly<{
    * that major is below the current one.
    */
   sameMajorAllowedGuestsToday: number | null;
-  /** Creation attempts (first decision allowed or required) recorded in the last 60 minutes for the claimed browser family and major. */
-  sameBrowserDecisionsLastHour: number;
+  /**
+   * Creation attempts (first decision allowed or required) recorded in the last 60 minutes for the claimed
+   * browser family and major; null unless the User-Agent claims chrome, firefox or safari with a major.
+   */
+  sameBrowserDecisionsLastHour: number | null;
 }>;
 
 export function evaluateGuestChallengeFlags(facts: GuestChallengeRequestFacts): ReadonlyArray<GuestChallengeFlag> {
@@ -88,7 +91,10 @@ export function evaluateGuestChallengeFlags(facts: GuestChallengeRequestFacts): 
   ) {
     flags.push("chrome_version_burst");
   }
-  if (facts.sameBrowserDecisionsLastHour >= browserVersionBurstDecisionsPerHour) {
+  if (
+    facts.sameBrowserDecisionsLastHour !== null
+    && facts.sameBrowserDecisionsLastHour >= browserVersionBurstDecisionsPerHour
+  ) {
     flags.push("browser_version_burst");
   }
   if (isAutomatedUserAgent(facts.userAgent)) {
@@ -125,18 +131,20 @@ async function loadSameMajorAllowedGuestsToday(userAgentChromeMajor: number): Pr
   return row.allowed_guests;
 }
 
-async function loadSameBrowserDecisionsLastHour(
-  userAgentBrowser: UserAgentBrowser["browser"],
-  userAgentBrowserMajor: number | null,
-): Promise<number> {
+// An unknown User-Agent (family other, or no major) is shared by in-app browsers, home-screen web apps
+// and scripts alike, so it claims no browser version and is never counted.
+async function loadSameBrowserDecisionsLastHour(userAgentBrowser: UserAgentBrowser): Promise<number | null> {
+  if (userAgentBrowser.browser === "other" || userAgentBrowser.major === null) {
+    return null;
+  }
   const result = await unsafeQuery<Readonly<{ decisions: number }>>(
     `SELECT count(*)::int AS decisions
      FROM analytics.guest_browser_checks
      WHERE outcome IN ('allowed', 'required')
        AND user_agent_browser = $1
-       AND user_agent_browser_major IS NOT DISTINCT FROM $2::smallint
+       AND user_agent_browser_major = $2
        AND checked_at > now() - interval '60 minutes'`,
-    [userAgentBrowser, userAgentBrowserMajor],
+    [userAgentBrowser.browser, userAgentBrowser.major],
   );
   const row = result.rows[0];
   if (row === undefined) {
@@ -199,7 +207,7 @@ export async function loadGuestChallengeRequestFacts(
   const [networkFacts, chromeFacts, sameBrowserDecisionsLastHour] = await Promise.all([
     loadNetworkFacts(scope),
     loadChromeFacts(userAgentChromeMajor),
-    loadSameBrowserDecisionsLastHour(userAgentBrowser.browser, userAgentBrowser.major),
+    loadSameBrowserDecisionsLastHour(userAgentBrowser),
   ]);
   return {
     userAgent,

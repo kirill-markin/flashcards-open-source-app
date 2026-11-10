@@ -133,8 +133,8 @@ The API stores only the random token's hash and sends the token only as
   When the Turnstile challenge is configured, creation, never resumption, from a
   browser flagged by server signals (cloud or undeterminable network, a Chrome User-Agent whose
   `Sec-CH-UA` disagrees, Chrome 4+ majors behind current, an older Chrome major that already
-  created 10 unchecked guests that UTC day, a browser family and major that already had 6
-  guest creation attempts in the past hour, an automated User-Agent;
+  created 10 unchecked guests that UTC day, a claimed browser family and major version that
+  already had 6 guest creation attempts in the past hour, an automated User-Agent;
   `apps/backend/src/guestAuth/browser/challengeRisk.ts`) needs a `turnstileToken`
   that Cloudflare verifies for action `guest_session` and the page hostname. Without
   one it answers `403 GUEST_BROWSER_CHALLENGE_REQUIRED` with `details.turnstileSiteKey`;
