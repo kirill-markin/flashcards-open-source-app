@@ -12,7 +12,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
@@ -107,7 +106,8 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         timeoutMillis = internalUiTimeoutMillis,
         context = "while opening the new workspace name step"
     )
-    composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextInput("$workspaceName new")
+    clickTag(tag = currentWorkspaceNewNameFieldTag, label = "Workspace name")
+    composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextReplacement("$workspaceName new")
     waitUntilWithMitigation(
         timeoutMillis = internalUiTimeoutMillis,
         context = "while verifying the new workspace name before creating it"

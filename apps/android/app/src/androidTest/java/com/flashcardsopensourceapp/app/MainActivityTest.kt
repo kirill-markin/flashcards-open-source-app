@@ -578,7 +578,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("All cards")
+        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("Alpha")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
             .assertContentDescriptionEquals(reviewQueueContentDescription(count = 3))
 
@@ -589,7 +589,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("All cards")
+        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("Alpha")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
             .assertContentDescriptionEquals(reviewQueueContentDescription(count = 3))
 
@@ -607,7 +607,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("Alpha")
+        composeRule.onNodeWithTag(reviewFilterButtonTag).assertTextEquals("2 tags")
         composeRule.onNodeWithTag(reviewQueueButtonTag)
             .assertContentDescriptionEquals(reviewQueueContentDescription(count = 1))
 
