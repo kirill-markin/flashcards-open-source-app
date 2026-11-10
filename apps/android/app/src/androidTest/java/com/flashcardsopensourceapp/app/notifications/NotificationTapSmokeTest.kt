@@ -89,11 +89,6 @@ class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
                 liveSmokeContext.pressHomeAndWaitForLauncher()
                 liveSmokeContext.postReviewReminderNotification(
                     context = appContext,
-                    frontText = markerText,
-                    requestId = requestId
-                )
-                liveSmokeContext.postReviewReminderNotification(
-                    context = appContext,
                     frontText = secondaryMarkerText,
                     requestId = secondaryRequestId
                 )
@@ -101,6 +96,12 @@ class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
                     context = appContext,
                     frontText = tertiaryMarkerText,
                     requestId = tertiaryRequestId
+                )
+                // The collapsed notification group can show only its newest reminder.
+                liveSmokeContext.postReviewReminderNotification(
+                    context = appContext,
+                    frontText = markerText,
+                    requestId = requestId
                 )
             }
 
