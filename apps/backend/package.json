@@ -29,7 +29,7 @@
     "@sentry/server-runtime-injection": "11.10.0",
     "aws-jwt-verify": "^5.2.1",
     "fflate": "^0.8.3",
-    "google-auth-library": "11.3.3",
+    "google-auth-library": "11.3.4",
     "hono": "^4.13.16",
     "just-bash": "3.6.0",
     "mammoth": "^1.13.0",
