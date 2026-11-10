@@ -304,7 +304,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
         XCTAssertFalse(store.requiresRemoteSessionProvisioning)
 
         context.chatService.loadBootstrapHandler = { sessionId in
-            XCTAssertEqual(sessionId, explicitSessionId)
+            XCTAssertNil(sessionId)
             throw URLError(.timedOut)
         }
 
@@ -314,11 +314,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
         await store.waitForPendingStatePersistence()
 
         XCTAssertEqual(context.chatService.createNewSessionSessionIds, [explicitSessionId])
-        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
-            explicitSessionId,
-            explicitSessionId,
-            explicitSessionId
-        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [nil, nil, nil])
         XCTAssertEqual(store.chatSessionId, explicitSessionId)
         XCTAssertEqual(store.conversationScopeId, explicitSessionId)
         XCTAssertFalse(store.requiresRemoteSessionProvisioning)

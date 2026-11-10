@@ -13,7 +13,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -114,7 +114,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -195,7 +195,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -268,7 +268,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -325,7 +325,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -381,7 +381,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             database: database,
             workspaceId: workspace.workspaceId,
             reviewedAtClient: try makeReviewedAtClientForTests(
-                localDate: "2025-11-15",
+                localDate: "2025-04-15",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
             )
@@ -393,7 +393,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -405,7 +405,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             summary: makeTestProgressSummaryValue(
                 currentStreakDays: 0,
                 hasReviewedToday: false,
-                lastReviewedOn: "2025-11-14",
+                lastReviewedOn: "2025-04-14",
                 activeReviewDays: 200
             ),
             generatedAt: "2026-04-18T11:59:00.000Z",
@@ -430,7 +430,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
         XCTAssertEqual(0, progressSnapshot.summary.currentStreakDays)
         XCTAssertFalse(progressSnapshot.summary.hasReviewedToday)
-        XCTAssertEqual("2025-11-14", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual("2025-04-14", progressSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(200, progressSnapshot.summary.activeReviewDays)
     }
 
@@ -456,7 +456,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -527,7 +527,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -592,7 +592,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let staleServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -682,7 +682,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -753,7 +753,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -817,7 +817,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -869,7 +869,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -910,7 +910,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -951,7 +951,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,

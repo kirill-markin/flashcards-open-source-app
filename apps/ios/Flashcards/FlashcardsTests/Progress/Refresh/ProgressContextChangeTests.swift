@@ -18,7 +18,7 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -97,7 +97,7 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -166,7 +166,7 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -239,12 +239,12 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let initialRequestRange = try makeTestProgressRequestRange(
             now: initialNow,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let rolloverRequestRange = try makeTestProgressRequestRange(
             now: rolloverNow,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: initialRequestRange,
@@ -302,12 +302,12 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let initialRequestRange = try makeTestProgressRequestRange(
             now: initialNow,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let rolloverRequestRange = try makeTestProgressRequestRange(
             now: rolloverNow,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let context = try self.makeProgressStoreContext(
             database: database,
@@ -370,7 +370,7 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,

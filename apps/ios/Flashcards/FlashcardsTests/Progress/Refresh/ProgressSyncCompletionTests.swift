@@ -66,7 +66,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -139,7 +139,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -214,7 +214,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -293,7 +293,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -426,7 +426,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -544,7 +544,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -635,7 +635,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let staleServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -726,7 +726,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -818,7 +818,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,

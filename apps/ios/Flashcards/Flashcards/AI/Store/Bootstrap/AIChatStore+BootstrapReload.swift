@@ -266,12 +266,13 @@ extension AIChatStore {
         forceReloadState: Bool,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapLoadResult {
+        let loadsCurrentChat = self.shouldBootstrapCurrentChat(forceReloadState: forceReloadState)
         var attemptNumber = 0
         while true {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 let requestedSessionId: String?
-                if self.shouldBootstrapCurrentChat(forceReloadState: forceReloadState) {
+                if loadsCurrentChat {
                     requestedSessionId = nil
                 } else {
                     requestedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)

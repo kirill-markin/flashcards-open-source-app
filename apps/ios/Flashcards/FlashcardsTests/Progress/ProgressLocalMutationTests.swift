@@ -12,7 +12,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -80,7 +80,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         try self.addReviewedCard(
             database: database,
@@ -161,7 +161,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -250,7 +250,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -326,7 +326,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -390,7 +390,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -458,7 +458,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let baseServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -536,7 +536,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -654,12 +654,12 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let initialRequestRange = try makeTestProgressRequestRange(
             now: initialNow,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let rolloverRequestRange = try makeTestProgressRequestRange(
             now: rolloverNow,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: initialRequestRange,

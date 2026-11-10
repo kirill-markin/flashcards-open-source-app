@@ -25,7 +25,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -149,7 +149,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -250,7 +250,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let initialServerSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -368,7 +368,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -449,7 +449,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -514,7 +514,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -643,7 +643,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
