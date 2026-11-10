@@ -103,6 +103,7 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
         || text === "SELECT auth.bind_cognito_account($1, $2)"
         || text.includes("FROM auth.guest_upgrade_history")
         || text.includes("UPDATE analytics.product_events")
+        || text.includes("UPDATE analytics.guest_browser_checks")
         || text.includes("DELETE FROM analytics.identity_links")
         || text.includes("DELETE FROM analytics.installation_profiles")
         || text.startsWith("SELECT user_id FROM org.user_settings WHERE user_id = ANY($1::text[])")
@@ -229,6 +230,7 @@ test("deleteAccountForAuthenticatedUser restores nothing for a review subject th
         || text.startsWith("SELECT user_id FROM org.user_settings WHERE user_id = ANY($1::text[])")
         || text.includes("FROM billing.stripe_customer_identities")
         || text.includes("UPDATE analytics.product_events")
+        || text.includes("UPDATE analytics.guest_browser_checks")
         || text.includes("DELETE FROM analytics.identity_links")
       ) {
         return createQueryResult<Row>([]);
@@ -316,6 +318,7 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
         || text.includes("INSERT INTO auth.deleted_subjects")
         || text.includes("UPDATE analytics.product_events")
+        || text.includes("UPDATE analytics.guest_browser_checks")
         || text.includes("DELETE FROM analytics.identity_links")
         || text.includes("DELETE FROM analytics.installation_profiles")
         || text.startsWith("SELECT user_id FROM org.user_settings WHERE user_id = ANY($1::text[])")

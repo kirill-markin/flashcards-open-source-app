@@ -1,6 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { loadPlainTextSecret } from "../../aws/secrets";
+import type { DatabaseExecutor } from "../../database";
+import { unsafeQuery } from "../../database/unsafe";
 import { writeCloudWatchRecord } from "../../observability/cloudWatch";
 import type { BackendObservationScope } from "../../observability/sentry";
 import { HttpError } from "../../shared/errors";
@@ -10,6 +12,7 @@ import {
   type GuestChallengeFlag,
   type GuestChallengeRequestFacts,
 } from "./challengeRisk";
+import { insertGuestBrowserCheckInExecutor } from "./checkRecords";
 import { TurnstileSiteverifyClient } from "./turnstile";
 
 // Must match the action the web client renders the widget with.
@@ -28,6 +31,19 @@ export type GuestBrowserChallengeRequest = Readonly<{
 
 type ChallengeOutcome = "required" | "passed" | "failed" | "bypassed";
 type ChallengeFailureReason = "turnstile_rejected" | "action_mismatch" | "hostname_mismatch" | "bypass_token_invalid";
+type ChallengeFailure = Readonly<{
+  reason: ChallengeFailureReason;
+  turnstileErrorCodes: ReadonlyArray<string>;
+  turnstileAction: string | null;
+  turnstileHostname: string | null;
+}>;
+
+/** A request the check lets through; the caller records it with the guest it creates. */
+export type GuestBrowserChallengeDecision = Readonly<{
+  outcome: "allowed" | "passed" | "bypassed";
+  flags: ReadonlyArray<GuestChallengeFlag>;
+  facts: GuestChallengeRequestFacts;
+}>;
 
 const guestChallengeSecretSchema = z.object({
   siteKey: z.string().trim().min(1),
@@ -92,12 +108,7 @@ function logChallengeOutcome(
   flags: ReadonlyArray<GuestChallengeFlag>,
   facts: GuestChallengeRequestFacts,
   scope: BackendObservationScope,
-  failure: Readonly<{
-    reason: ChallengeFailureReason;
-    turnstileErrorCodes: ReadonlyArray<string>;
-    turnstileAction: string | null;
-    turnstileHostname: string | null;
-  }> | null,
+  failure: ChallengeFailure | null,
 ): void {
   writeCloudWatchRecord({
     action: "guest_browser_challenge",
@@ -117,6 +128,25 @@ function logChallengeOutcome(
   }, "breadcrumb");
 }
 
+const unsafeCheckRecordExecutor: DatabaseExecutor = { query: unsafeQuery };
+
+// A refused request creates no guest, so its row is written on its own before the refusal is thrown.
+async function recordRefusedChallenge(
+  outcome: "required" | "failed",
+  flags: ReadonlyArray<GuestChallengeFlag>,
+  facts: GuestChallengeRequestFacts,
+  failure: ChallengeFailure | null,
+): Promise<void> {
+  await insertGuestBrowserCheckInExecutor(unsafeCheckRecordExecutor, {
+    outcome,
+    flags,
+    facts,
+    failureReason: failure?.reason ?? null,
+    turnstileErrorCodes: failure?.turnstileErrorCodes ?? null,
+    guestUserId: null,
+  });
+}
+
 function createChallengeFailedError(message: string): HttpError {
   return new HttpError(403, message, "GUEST_BROWSER_CHALLENGE_FAILED");
 }
@@ -125,28 +155,31 @@ function createChallengeFailedError(message: string): HttpError {
 export async function enforceGuestBrowserChallenge(
   secretName: string,
   request: GuestBrowserChallengeRequest,
-): Promise<void> {
+): Promise<GuestBrowserChallengeDecision> {
   const facts = await loadGuestChallengeRequestFacts(request.userAgent, request.secChUa, request.scope);
   const flags = evaluateGuestChallengeFlags(facts);
 
   if (request.automationBypassToken !== null) {
     if (!isValidBypassToken(await loadGuestChallengeSecret(secretName), request.automationBypassToken)) {
-      logChallengeOutcome("failed", flags, facts, request.scope, {
+      const failure: ChallengeFailure = {
         reason: "bypass_token_invalid", turnstileErrorCodes: [], turnstileAction: null, turnstileHostname: null,
-      });
+      };
+      logChallengeOutcome("failed", flags, facts, request.scope, failure);
+      await recordRefusedChallenge("failed", flags, facts, failure);
       throw createChallengeFailedError("automationBypassToken is not valid. Send the configured bypass token or omit it.");
     }
     if (flags.length > 0) {
       logChallengeOutcome("bypassed", flags, facts, request.scope, null);
     }
-    return;
+    return { outcome: "bypassed", flags, facts };
   }
   if (flags.length === 0) {
-    return;
+    return { outcome: "allowed", flags, facts };
   }
 
   if (request.turnstileToken === null) {
     logChallengeOutcome("required", flags, facts, request.scope, null);
+    await recordRefusedChallenge("required", flags, facts, null);
     throw new HttpError(
       403,
       "Complete the browser check before a guest account is created.",
@@ -168,13 +201,16 @@ export async function enforceGuestBrowserChallenge(
         ? "hostname_mismatch"
         : null;
   if (failureReason !== null) {
-    logChallengeOutcome("failed", flags, facts, request.scope, {
+    const failure: ChallengeFailure = {
       reason: failureReason,
       turnstileErrorCodes: result.errorCodes,
       turnstileAction: result.action,
       turnstileHostname: result.hostname,
-    });
+    };
+    logChallengeOutcome("failed", flags, facts, request.scope, failure);
+    await recordRefusedChallenge("failed", flags, facts, failure);
     throw createChallengeFailedError("The browser check did not pass. Complete a new check and try again.");
   }
   logChallengeOutcome("passed", flags, facts, request.scope, null);
+  return { outcome: "passed", flags, facts };
 }

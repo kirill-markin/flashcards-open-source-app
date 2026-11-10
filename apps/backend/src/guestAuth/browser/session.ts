@@ -5,6 +5,8 @@ import { loadGuestSessionRecordInExecutor } from "../store/session";
 import { loadGuestUpgradeReplayByGuestTokenInExecutor } from "../store/upgradeHistory";
 import { loadGuestWorkspaceIdOrNullInExecutor } from "../store/workspace";
 import type { GuestSessionSnapshot } from "../types";
+import type { GuestBrowserChallengeDecision } from "./challenge";
+import { insertGuestBrowserCheckInExecutor } from "./checkRecords";
 
 export type BrowserGuestSession =
   | Readonly<{ status: "absent" | "invalid" | "revoked" }>
@@ -66,8 +68,26 @@ export function loadBrowserGuestSession(guestToken: string | undefined): Promise
   });
 }
 
-export function createBrowserGuestSession(idempotencyKey: string): Promise<GuestSessionSnapshot> {
-  return unsafeTransaction((executor) => createBrowserGuestSessionInExecutor(executor, idempotencyKey));
+/** challengeDecision is null while the browser check is not configured, which records nothing. */
+export function createBrowserGuestSession(
+  idempotencyKey: string,
+  challengeDecision: GuestBrowserChallengeDecision | null,
+): Promise<GuestSessionSnapshot> {
+  return unsafeTransaction(async (executor) => {
+    const creation = await createBrowserGuestSessionInExecutor(executor, idempotencyKey);
+    // A resumed guest was recorded by the attempt that created it.
+    if (challengeDecision !== null && creation.minted) {
+      await insertGuestBrowserCheckInExecutor(executor, {
+        outcome: challengeDecision.outcome,
+        flags: challengeDecision.flags,
+        facts: challengeDecision.facts,
+        failureReason: null,
+        turnstileErrorCodes: null,
+        guestUserId: creation.session.userId,
+      });
+    }
+    return creation.session;
+  });
 }
 
 export function forgetBrowserGuestSession(guestToken: string | undefined): Promise<void> {

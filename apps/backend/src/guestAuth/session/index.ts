@@ -18,7 +18,7 @@ import { guestSessionAnalyticsConsentColumnExistsInExecutor } from "../analytics
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
 import { guestSessionBindingExpiredSql, hashGuestToken } from "../shared";
 import { loadGuestWorkspaceIdInExecutor } from "../store/index";
-import type { GuestSessionPlatform, GuestSessionPurpose, GuestSessionSnapshot } from "../types";
+import type { GuestSessionCreation, GuestSessionPlatform, GuestSessionPurpose, GuestSessionSnapshot } from "../types";
 
 type GuestSessionRow = Readonly<{
   session_id: string;
@@ -406,7 +406,7 @@ async function createGuestSessionForPurposeInExecutor(
   platform: GuestSessionPlatform | null,
   creationIdempotencyKey: string | null,
   purpose: GuestSessionPurpose,
-): Promise<GuestSessionSnapshot> {
+): Promise<GuestSessionCreation> {
   const guestToken = randomBytes(32).toString("hex");
   if (creationIdempotencyKey !== null) {
     await lockGuestSessionCreationIdempotencyInExecutor(executor, creationIdempotencyKey);
@@ -417,7 +417,7 @@ async function createGuestSessionForPurposeInExecutor(
       purpose,
     );
     if (rotatedSession !== null) {
-      return rotatedSession;
+      return { session: rotatedSession, minted: false };
     }
   }
 
@@ -444,25 +444,29 @@ async function createGuestSessionForPurposeInExecutor(
   );
 
   return {
-    guestToken,
-    purpose,
-    userId,
-    workspaceId,
-    platform: storedPlatform,
+    session: {
+      guestToken,
+      purpose,
+      userId,
+      workspaceId,
+      platform: storedPlatform,
+    },
+    minted: true,
   };
 }
 
-export function createGuestSessionInExecutor(
+export async function createGuestSessionInExecutor(
   executor: DatabaseExecutor,
   platform: GuestSessionPlatform | null,
   creationIdempotencyKey: string | null,
 ): Promise<GuestSessionSnapshot> {
-  return createGuestSessionForPurposeInExecutor(executor, platform, creationIdempotencyKey, "legacy");
+  const creation = await createGuestSessionForPurposeInExecutor(executor, platform, creationIdempotencyKey, "legacy");
+  return creation.session;
 }
 
 export function createBrowserGuestSessionInExecutor(
   executor: DatabaseExecutor,
   creationIdempotencyKey: string,
-): Promise<GuestSessionSnapshot> {
+): Promise<GuestSessionCreation> {
   return createGuestSessionForPurposeInExecutor(executor, "web", creationIdempotencyKey, "browser_product");
 }

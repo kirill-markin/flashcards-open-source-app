@@ -12,6 +12,12 @@ export type GuestSessionSnapshot = Readonly<{
   platform: GuestSessionPlatform | null;
 }>;
 
+export type GuestSessionCreation = Readonly<{
+  session: GuestSessionSnapshot;
+  /** False when a retry with the same idempotency key resumed the guest an earlier attempt created. */
+  minted: boolean;
+}>;
+
 export type GuestUpgradePreparation = Readonly<{
   mode: GuestUpgradeMode;
   demoOnlyDestinationWorkspaceId?: string;

@@ -142,6 +142,8 @@ The API stores only the random token's hash and sends the token only as
   Manager secret holding JSON `{"siteKey", "secretKey", "bypassToken"}`, all non-empty
   strings; `bypassToken` must equal the GitHub secret `E2E_GUEST_CHALLENGE_BYPASS_TOKEN`.
   Each outcome logs one `guest_browser_challenge` record in the backend Lambda log.
+  Every decision, including a creation no signal flagged, is also stored as one
+  `analytics.guest_browser_checks` row, linked to the guest it created.
 - `POST /v1/guest-auth/browser/session/forget` returns `{ok: true}` and revokes only
   the guest credential, then expires its cookie. Missing/unknown/already-revoked
   credentials are safe to forget. It never deletes a workspace or a linked account.
