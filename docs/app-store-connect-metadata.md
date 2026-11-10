@@ -158,6 +158,7 @@ Turn notes and photos into AI flashcards for exam prep and vocabulary practice. 
 - Group cards into decks and add tags to find the material you need.
 - Review saved cards offline, wherever you have a few minutes.
 - See your review activity and study streaks to keep track of your routine.
+- Review flashcards on Apple Watch using your signed-in iPhone account.
 
 AI features need an internet connection.
 
@@ -193,6 +194,7 @@ Nibomo: بطاقات ذكاء اصطناعي
 - نظّم البطاقات في مجموعات وأضف وسومًا للعثور على ما تريد دراسته.
 - راجع البطاقات المحفوظة دون إنترنت عندما تتاح لك بضع دقائق.
 - تابع نشاط المراجعة وأيام الدراسة المتتالية للحفاظ على عادتك.
+- راجع بطاقاتك على Apple Watch باستخدام حسابك المسجّل على iPhone.
 
 تحتاج ميزات الذكاء الاصطناعي إلى اتصال بالإنترنت.
 
@@ -228,6 +230,7 @@ Nibomo: AI 闪卡
 - 用卡组和标签整理内容，方便找到要学的材料。
 - 离线复习已保存的卡片，利用零散时间学习。
 - 查看复习记录和连续学习天数，了解自己的学习节奏。
+- 使用 iPhone 上已登录的账号，在 Apple Watch 上复习卡片。
 
 AI 功能需要联网。
 
@@ -263,6 +266,7 @@ Transformez vos notes et photos en fiches de révision avec l'IA pour préparer 
 - Organisez vos fiches en paquets et ajoutez des étiquettes pour les retrouver.
 - Révisez vos fiches enregistrées hors ligne dès que vous avez quelques minutes.
 - Consultez votre activité de révision et vos séries de jours d'étude.
+- Révisez vos cartes sur Apple Watch avec le compte connecté sur votre iPhone.
 
 Les fonctions d'IA nécessitent une connexion Internet.
 
@@ -298,6 +302,7 @@ Erstelle mit KI Lernkarten aus Notizen und Fotos für Prüfungen und zum Vokabel
 - Ordne Karten in Stapeln und nutze Tags, um deinen Lernstoff wiederzufinden.
 - Wiederhole gespeicherte Karten offline, wenn du ein paar Minuten Zeit hast.
 - Behalte deine Wiederholungen und Lerntage in Folge im Blick.
+- Wiederhole Karten auf der Apple Watch mit dem Konto, das auf deinem iPhone angemeldet ist.
 
 Für KI-Funktionen brauchst du eine Internetverbindung.
 
@@ -333,6 +338,7 @@ AI से नोट्स और फ़ोटो को फ़्लैशका
 - कार्ड को समूहों में रखें और टैग लगाकर ज़रूरी सामग्री ढूँढें।
 - कुछ मिनट मिलें तो सहेजे गए कार्ड की ऑफ़लाइन दोहराई करें।
 - अपनी दोहराई और लगातार पढ़ाई वाले दिन देखें।
+- iPhone पर जिस खाते से साइन इन हैं, उसी से Apple Watch पर फ़्लैशकार्ड दोहराएँ।
 
 AI सुविधाओं के लिए इंटरनेट कनेक्शन चाहिए।
 
@@ -368,6 +374,7 @@ Nibomo: AI暗記カード
 - カードをデッキとタグで整理し、学びたい内容を見つけられます。
 - 保存済みのカードはオフラインでも復習でき、すきま時間を使えます。
 - 復習の記録や連続学習日数で、日々の取り組みを確認できます。
+- iPhoneでサインインしているアカウントで、Apple Watchからカードを復習できます。
 
 AI機能にはインターネット接続が必要です。
 
@@ -403,6 +410,7 @@ Transforme anotações e fotos em flashcards com IA para se preparar para provas
 - Organize cartões em baralhos e use etiquetas para encontrar o que quer estudar.
 - Revise cartões salvos offline quando tiver alguns minutos livres.
 - Acompanhe suas revisões e sua sequência de dias de estudo.
+- Revise cartões no Apple Watch com a conta que você usa no iPhone.
 
 Os recursos de IA precisam de conexão com a internet.
 
@@ -438,6 +446,7 @@ Nibomo: ИИ-флешкарты
 - Собирайте карточки в колоды и добавляйте теги, чтобы находить нужный материал.
 - Повторяйте сохранённые карточки без интернета, когда есть свободная минута.
 - Следите за повторениями и сериями дней учёбы.
+- Повторяйте карточки на Apple Watch через аккаунт, в который вы вошли на iPhone.
 
 Для функций ИИ нужен интернет.
 
@@ -473,6 +482,7 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 - Organiza tus tarjetas en mazos y agrega etiquetas para encontrar lo que quieres estudiar.
 - Repasa tarjetas guardadas sin conexión cuando tengas unos minutos libres.
 - Consulta tus repasos y tus rachas de días de estudio.
+- Repasa tarjetas en tu Apple Watch con la cuenta que usas en tu iPhone.
 
 Las funciones de IA necesitan conexión a internet.
 
@@ -508,6 +518,7 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 - Organiza tus tarjetas en mazos y añade etiquetas para encontrar lo que quieres estudiar.
 - Repasa tarjetas guardadas sin conexión cuando tengas unos minutos libres.
 - Consulta tus repasos y tus rachas de días de estudio.
+- Repasa tarjetas en el Apple Watch con la cuenta que usas en el iPhone.
 
 Las funciones de IA necesitan conexión a internet.
 
@@ -545,6 +556,7 @@ AI দিয়ে নোট ও ছবি থেকে ফ্ল্যাশক
 - কার্ডগুলো সেটে সাজান ও ট্যাগ দিয়ে দরকারি পড়ার বিষয় খুঁজুন।
 - কয়েক মিনিট সময় পেলেই সেভ করা কার্ড অফলাইনে রিভিশন দিন।
 - আপনার রিভিশন ও টানা কত দিন পড়েছেন তা দেখুন।
+- iPhone-এ যে অ্যাকাউন্টে সাইন ইন করেছেন, সেটি দিয়ে Apple Watch-এ ফ্ল্যাশকার্ড রিভিউ করুন।
 
 AI সুবিধার জন্য ইন্টারনেট সংযোগ দরকার।
 
@@ -582,6 +594,7 @@ Converteix els apunts i les fotos en targetes d'estudi amb IA per preparar exàm
 - Organitza les targetes en grups i afegeix etiquetes per trobar el que vols estudiar.
 - Repassa les targetes desades sense connexió quan tinguis uns minuts lliures.
 - Consulta els repassos i les ratxes de dies d'estudi.
+- Repassa targetes a l’Apple Watch amb el compte amb què has iniciat sessió a l’iPhone.
 
 Les funcions d'IA necessiten connexió a internet.
 
@@ -619,6 +632,7 @@ Proměňte poznámky a fotky v kartičky s pomocí AI pro přípravu na zkoušky
 - Uspořádejte kartičky do balíčků a přidejte štítky pro snadné hledání.
 - Opakujte si uložené kartičky offline, kdykoli máte pár minut.
 - Sledujte svá opakování a počet dnů, kdy se učíte bez přestávky.
+- Opakujte kartičky na Apple Watch s účtem, ke kterému jste přihlášeni na iPhonu.
 
 Funkce AI vyžadují připojení k internetu.
 
@@ -656,6 +670,7 @@ Lav noter og fotos om til flashcards med AI, når du læser til eksamen eller l�
 - Saml kort i bunker, og brug tags til at finde det stof, du vil øve.
 - Repetér gemte kort offline, når du har et par minutter.
 - Følg dine repetitioner og se, hvor mange dage i træk du har læst.
+- Repeter kort på Apple Watch med den konto, du er logget ind med på din iPhone.
 
 AI-funktioner kræver internetforbindelse.
 
@@ -693,6 +708,7 @@ Nibomo: Κάρτες με AI
 - Οργανώστε τις κάρτες σε συλλογές και προσθέστε ετικέτες για να βρίσκετε την ύλη σας.
 - Κάντε επανάληψη με αποθηκευμένες κάρτες χωρίς σύνδεση, όταν έχετε λίγα λεπτά.
 - Δείτε τις επαναλήψεις σας και τις συνεχόμενες ημέρες μελέτης.
+- Κάντε επανάληψη καρτών στο Apple Watch με τον λογαριασμό που χρησιμοποιείτε στο iPhone.
 
 Οι λειτουργίες AI απαιτούν σύνδεση στο διαδίκτυο.
 
@@ -730,6 +746,7 @@ Tee muistiinpanoista ja kuvista muistikortteja tekoälyn avulla kokeisiin ja san
 - Järjestä kortit pakkoihin ja lisää tunnisteita, jotta löydät etsimäsi.
 - Kertaa tallennettuja kortteja ilman verkkoyhteyttä, kun sinulla on hetki aikaa.
 - Seuraa kertauksiasi ja peräkkäisiä opiskelupäiviäsi.
+- Kertaa kortteja Apple Watchilla samalla tilillä, jolla olet kirjautunut iPhoneen.
 
 Tekoälytoiminnot vaativat internetyhteyden.
 
@@ -767,6 +784,7 @@ AIથી નોંધો અને ફોટામાંથી ફ્લેશ�
 - કાર્ડને જૂથોમાં ગોઠવો અને જરૂરી સામગ્રી શોધવા ટૅગ ઉમેરો.
 - થોડી મિનિટ મળે ત્યારે સાચવેલા કાર્ડનો ઑફલાઇન અભ્યાસ કરો.
 - તમારું પુનરાવર્તન અને સતત અભ્યાસ કરેલા દિવસો જુઓ.
+- iPhone પર સાઇન ઇન કરેલા ખાતાથી Apple Watch પર ફ્લૅશકાર્ડનું પુનરાવર્તન કરો.
 
 AI સુવિધાઓ માટે ઇન્ટરનેટ કનેક્શન જરૂરી છે.
 
@@ -804,6 +822,7 @@ Nibomo: כרטיסיות עם AI
 - סדרו כרטיסיות בחפיסות והוסיפו תגיות כדי למצוא את חומר הלימוד הרצוי.
 - חזרו על כרטיסיות שמורות גם ללא אינטרנט, כשיש לכם כמה דקות.
 - עקבו אחר החזרות שלכם ואחר רצף ימי הלימוד.
+- חזרו על כרטיסיות ב-Apple Watch עם החשבון שאליו נכנסתם ב-iPhone.
 
 תכונות ה-AI דורשות חיבור לאינטרנט.
 
@@ -841,6 +860,7 @@ Pretvorite bilješke i fotografije u kartice za učenje uz AI, za pripremu ispit
 - Organizirajte kartice u špilove i dodajte oznake za lakše pronalaženje gradiva.
 - Ponavljajte spremljene kartice bez interneta kad imate nekoliko minuta.
 - Pratite svoja ponavljanja i nizove uzastopnih dana učenja.
+- Ponavljajte kartice na Apple Watchu s računom kojim ste prijavljeni na iPhoneu.
 
 Za AI značajke potrebna je internetska veza.
 
@@ -878,6 +898,7 @@ Készíts tanulókártyákat jegyzetekből és fotókból az AI segítségével 
 - Rendezd a kártyákat paklikba, és adj hozzá címkéket az anyagok kereséséhez.
 - Ismételd át a mentett kártyákat offline, amikor van pár szabad perced.
 - Kövesd az ismétléseidet és az egymást követő tanulási napjaidat.
+- Ismételj tanulókártyákat az Apple Watchon az iPhone-on használt fiókoddal.
 
 Az AI-funkciókhoz internetkapcsolat szükséges.
 
@@ -915,6 +936,7 @@ Ubah catatan dan foto menjadi flashcard dengan AI untuk persiapan ujian dan lati
 - Susun kartu dalam dek dan tambahkan tag agar materi mudah ditemukan.
 - Ulangi kartu tersimpan secara offline saat ada beberapa menit luang.
 - Pantau aktivitas pengulangan dan jumlah hari belajarmu berturut-turut.
+- Ulangi kartu di Apple Watch dengan akun yang Anda gunakan di iPhone.
 
 Fitur AI memerlukan koneksi internet.
 
@@ -952,6 +974,7 @@ Trasforma appunti e foto in flashcard con l'IA per preparare gli esami e imparar
 - Organizza le carte in mazzi e aggiungi etichette per trovare il materiale che cerchi.
 - Ripassa le carte salvate anche offline, quando hai qualche minuto libero.
 - Segui i tuoi ripassi e le serie di giorni di studio.
+- Ripassa le schede su Apple Watch con l’account che usi su iPhone.
 
 Le funzioni di IA richiedono una connessione a Internet.
 
@@ -989,6 +1012,7 @@ AI ಬಳಸಿ ಟಿಪ್ಪಣಿಗಳು ಮತ್ತು ಫೋಟೋಗ�
 - ಕಾರ್ಡ್‌ಗಳನ್ನು ಗುಂಪುಗಳಲ್ಲಿ ಜೋಡಿಸಿ, ಬೇಕಾದ ವಿಷಯವನ್ನು ಹುಡುಕಲು ಟ್ಯಾಗ್‌ಗಳನ್ನು ಸೇರಿಸಿ.
 - ಕೆಲವು ನಿಮಿಷ ಸಿಕ್ಕಾಗ ಉಳಿಸಿದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಅಭ್ಯಾಸ ಮಾಡಿ.
 - ನಿಮ್ಮ ಪುನರಾವರ್ತನೆ ಮತ್ತು ಸತತವಾಗಿ ಓದಿದ ದಿನಗಳನ್ನು ನೋಡಿ.
+- iPhone‌ನಲ್ಲಿ ಸೈನ್ ಇನ್ ಮಾಡಿದ ಖಾತೆಯನ್ನು ಬಳಸಿ Apple Watch‌ನಲ್ಲಿ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ಪುನರವಲೋಕಿಸಿ.
 
 AI ಸೌಲಭ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕ ಬೇಕು.
 
@@ -1026,6 +1050,7 @@ Nibomo: AI 암기 카드
 - 카드를 덱으로 묶고 태그를 붙여 필요한 학습 자료를 찾으세요.
 - 잠깐 시간이 나면 저장한 카드를 오프라인으로 복습하세요.
 - 복습 기록과 연속 학습 일수를 확인하며 학습 습관을 살펴보세요.
+- iPhone에서 로그인한 계정으로 Apple Watch에서 플래시카드를 복습하세요.
 
 AI 기능을 사용하려면 인터넷 연결이 필요해요.
 
@@ -1063,6 +1088,7 @@ Nibomo: AI പഠന കാർഡുകൾ
 - കാർഡുകൾ കൂട്ടങ്ങളായി ക്രമീകരിച്ച്, വേണ്ടവ കണ്ടെത്താൻ ടാഗുകൾ ചേർക്കൂ.
 - ഏതാനും മിനിറ്റ് കിട്ടുമ്പോൾ സേവ് ചെയ്ത കാർഡുകൾ ഓഫ്‌ലൈനിൽ പഠിക്കൂ.
 - ആവർത്തനങ്ങളും തുടർച്ചയായി പഠിച്ച ദിവസങ്ങളും നോക്കി പഠനശീലം വിലയിരുത്തൂ.
+- iPhone-ൽ സൈൻ ഇൻ ചെയ്ത അക്കൗണ്ട് ഉപയോഗിച്ച് Apple Watch-ൽ ഫ്ലാഷ്‌കാർഡുകൾ ആവർത്തിക്കൂ.
 
 AI സൗകര്യങ്ങൾക്ക് ഇന്റർനെറ്റ് കണക്ഷൻ ആവശ്യമാണ്.
 
@@ -1100,6 +1126,7 @@ AI वापरून नोंदी आणि फोटोंपासून �
 - कार्डांचे संच बनवा आणि हवे ते साहित्य शोधण्यासाठी टॅग लावा.
 - काही मिनिटे मिळाली की सेव्ह केलेल्या कार्डांची ऑफलाइन उजळणी करा.
 - तुमची उजळणी आणि सलग अभ्यास केलेले दिवस पाहा.
+- iPhone वर साइन इन केलेल्या खात्याने Apple Watch वर फ्लॅशकार्डची उजळणी करा.
 
 AI सुविधांसाठी इंटरनेट कनेक्शन आवश्यक आहे.
 
@@ -1137,6 +1164,7 @@ Gjør notater og bilder om til læringskort med KI for eksamensøving og ordforr
 - Samle kort i kortstokker og legg til etiketter for å finne lærestoffet.
 - Repeter lagrede kort uten nett når du har noen minutter til overs.
 - Følg repetisjonene dine og se hvor mange dager på rad du har øvd.
+- Repeter kort på Apple Watch med kontoen du er logget på med på iPhone.
 
 KI-funksjoner krever internettilkobling.
 
@@ -1174,6 +1202,7 @@ Maak met AI flashcards van notities en foto's om voor toetsen te leren en je woo
 - Orden kaarten in stapels en voeg tags toe om je leerstof terug te vinden.
 - Herhaal opgeslagen kaarten offline als je een paar minuten over hebt.
 - Bekijk je herhalingen en het aantal dagen dat je achter elkaar hebt geleerd.
+- Herhaal kaarten op je Apple Watch met het account waarmee je op je iPhone bent ingelogd.
 
 Voor AI-functies heb je een internetverbinding nodig.
 
@@ -1211,6 +1240,7 @@ AI ਨਾਲ ਨੋਟਸ ਅਤੇ ਫੋਟੋਆਂ ਤੋਂ ਫਲੈਸ਼
 - ਕਾਰਡਾਂ ਨੂੰ ਸਮੂਹਾਂ ਵਿੱਚ ਰੱਖੋ ਅਤੇ ਲੋੜੀਂਦੀ ਸਮੱਗਰੀ ਲੱਭਣ ਲਈ ਟੈਗ ਲਾਓ।
 - ਕੁਝ ਮਿੰਟ ਮਿਲਣ 'ਤੇ ਸੇਵ ਕੀਤੇ ਕਾਰਡਾਂ ਦੀ ਆਫ਼ਲਾਈਨ ਦੁਹਰਾਈ ਕਰੋ।
 - ਆਪਣੀ ਦੁਹਰਾਈ ਅਤੇ ਲਗਾਤਾਰ ਪੜ੍ਹਾਈ ਕੀਤੇ ਦਿਨ ਦੇਖੋ।
+- iPhone ’ਤੇ ਸਾਈਨ ਇਨ ਕੀਤੇ ਖਾਤੇ ਨਾਲ Apple Watch ’ਤੇ ਫਲੈਸ਼ਕਾਰਡ ਦੁਹਰਾਓ।
 
 AI ਸਹੂਲਤਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਚਾਹੀਦਾ ਹੈ।
 
@@ -1248,6 +1278,7 @@ Zamień notatki i zdjęcia w fiszki z pomocą AI, by przygotować się do egzami
 - Grupuj fiszki w talie i dodawaj tagi, żeby znaleźć potrzebny materiał.
 - Powtarzaj zapisane fiszki offline, gdy masz kilka wolnych minut.
 - Śledź swoje powtórki i serie kolejnych dni nauki.
+- Powtarzaj fiszki na Apple Watch, używając konta zalogowanego na iPhonie.
 
 Funkcje AI wymagają połączenia z internetem.
 
@@ -1285,6 +1316,7 @@ Transformă notițele și fotografiile în fișe de studiu cu AI pentru pregăti
 - Organizează fișele în seturi și adaugă etichete ca să găsești materialul dorit.
 - Recapitulează fișele salvate fără internet când ai câteva minute libere.
 - Urmărește recapitulările și seriile de zile consecutive de studiu.
+- Recapitulează fișe pe Apple Watch cu contul conectat pe iPhone.
 
 Funcțiile AI necesită conexiune la internet.
 
@@ -1322,6 +1354,7 @@ Premeňte poznámky a fotky na kartičky pomocou AI na prípravu na skúšky aj 
 - Usporiadajte kartičky do balíčkov a pridajte štítky na jednoduchšie hľadanie učiva.
 - Opakujte si uložené kartičky offline, keď máte pár voľných minút.
 - Sledujte svoje opakovania a počet dní, keď sa učíte bez prestávky.
+- Opakujte si kartičky na Apple Watch s účtom, do ktorého ste prihlásení na iPhone.
 
 Funkcie AI vyžadujú pripojenie na internet.
 
@@ -1359,6 +1392,7 @@ Z AI spremenite zapiske in fotografije v učne kartice za pripravo na izpite in 
 - Uredite kartice v zbirke in dodajte oznake za lažje iskanje učnega gradiva.
 - Ponavljajte shranjene kartice brez povezave, ko imate nekaj prostih minut.
 - Spremljajte ponovitve in zaporedne dni učenja.
+- Ponavljajte kartice na Apple Watch z računom, v katerega ste prijavljeni na iPhonu.
 
 Funkcije AI potrebujejo internetno povezavo.
 
@@ -1396,6 +1430,7 @@ Gör anteckningar och foton till flashcards med AI inför prov och för att öva
 - Samla kort i kortlekar och lägg till taggar för att hitta det du vill öva.
 - Repetera sparade kort offline när du har några minuter över.
 - Följ dina repetitioner och se hur många dagar i rad du har pluggat.
+- Repetera kort på Apple Watch med kontot som du är inloggad på i din iPhone.
 
 AI-funktioner kräver internetanslutning.
 
@@ -1433,6 +1468,7 @@ Nibomo: AI கற்றல் அட்டைகள்
 - அட்டைகளைத் தொகுப்புகளாக ஒழுங்குபடுத்தி, தேவையானவற்றைக் கண்டறியக் குறிச்சொற்களைச் சேருங்கள்.
 - சில நிமிடங்கள் கிடைக்கும்போது சேமித்த அட்டைகளை இணையமின்றி மீள்பார்வையிடுங்கள்.
 - உங்கள் மீள்பார்வைகளையும் தொடர்ந்து படித்த நாட்களையும் பாருங்கள்.
+- iPhone-ல் உள்நுழைந்த கணக்கைப் பயன்படுத்தி Apple Watch-ல் ஃபிளாஷ் கார்டுகளைத் திரும்பப் படியுங்கள்.
 
 AI வசதிகளுக்கு இணைய இணைப்பு தேவை.
 
@@ -1470,6 +1506,7 @@ AIతో నోట్స్, ఫోటోల నుంచి అభ్యాస 
 - కార్డులను సమూహాలుగా అమర్చి, కావలసిన విషయాలు కనుగొనడానికి ట్యాగ్‌లు జోడించండి.
 - కొన్ని నిమిషాలు దొరికినప్పుడు సేవ్ చేసిన కార్డులను ఆఫ్‌లైన్‌లో పునశ్చరణ చేయండి.
 - మీ పునశ్చరణలను, వరుసగా చదివిన రోజులను చూడండి.
+- iPhoneలో సైన్ ఇన్ చేసిన ఖాతాతో Apple Watchలో ఫ్లాష్‌కార్డ్‌లను పునశ్చరణ చేయండి.
 
 AI సౌకర్యాలకు ఇంటర్నెట్ కనెక్షన్ అవసరం.
 
@@ -1507,6 +1544,7 @@ Nibomo: แฟลชการ์ด AI
 - จัดการ์ดเป็นสำรับและเพิ่มแท็กเพื่อค้นหาเนื้อหาที่ต้องการเรียน
 - ทบทวนการ์ดที่บันทึกไว้ออฟไลน์เมื่อมีเวลาว่างไม่กี่นาที
 - ดูประวัติการทบทวนและจำนวนวันที่เรียนต่อเนื่องเพื่อติดตามนิสัยการเรียน
+- ทบทวนแฟลชการ์ดบน Apple Watch ด้วยบัญชีที่ลงชื่อเข้าใช้บน iPhone
 
 ฟีเจอร์ AI ต้องเชื่อมต่ออินเทอร์เน็ต
 
@@ -1544,6 +1582,7 @@ Notları ve fotoğrafları yapay zekâyla bilgi kartlarına dönüştürerek sı
 - Kartları destelere ayır ve çalışmak istediğin içeriği bulmak için etiket ekle.
 - Birkaç boş dakikanda kayıtlı kartları çevrimdışı tekrar et.
 - Tekrarlarını ve arka arkaya çalıştığın günleri takip et.
+- iPhone’da oturum açtığınız hesapla Apple Watch’ta kartları tekrar edin.
 
 Yapay zekâ özellikleri internet bağlantısı gerektirir.
 
@@ -1581,6 +1620,7 @@ Nibomo: Картки з ШІ
 - Збирайте картки в колоди й додавайте теги, щоб знаходити потрібний матеріал.
 - Повторюйте збережені картки без інтернету, коли маєте кілька вільних хвилин.
 - Стежте за повтореннями й серіями днів навчання.
+- Повторюйте картки на Apple Watch з обліковим записом, у який увійшли на iPhone.
 
 Для функцій ШІ потрібен інтернет.
 
@@ -1618,6 +1658,7 @@ AI سے نوٹس اور تصاویر کو فلیش کارڈز میں بدلیں�
 - کارڈز کو مجموعوں میں ترتیب دیں اور مطلوبہ مواد تلاش کرنے کے لیے ٹیگز لگائیں۔
 - چند منٹ ملیں تو محفوظ کارڈز کی آف لائن دہرائی کریں۔
 - اپنی دہرائی اور مسلسل پڑھائی والے دن دیکھیں۔
+- iPhone پر سائن اِن اکاؤنٹ سے Apple Watch پر فلیش کارڈ دہرائیں۔
 
 AI کی سہولتوں کے لیے انٹرنیٹ کنکشن ضروری ہے۔
 
@@ -1655,6 +1696,7 @@ Biến ghi chú và ảnh thành thẻ học bằng AI để ôn thi và luyện
 - Sắp xếp thẻ thành bộ và thêm nhãn để tìm nội dung cần học.
 - Ôn thẻ đã lưu khi không có mạng, bất cứ lúc nào bạn có vài phút rảnh.
 - Theo dõi các lần ôn và chuỗi ngày học liên tiếp của bạn.
+- Ôn thẻ trên Apple Watch bằng tài khoản đã đăng nhập trên iPhone.
 
 Các tính năng AI cần kết nối internet.
 
