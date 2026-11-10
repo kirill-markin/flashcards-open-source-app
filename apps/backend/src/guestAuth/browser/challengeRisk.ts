@@ -24,12 +24,15 @@ export const guestChallengeCloudNetworkAsns: ReadonlySet<number> = new Set([
 
 // The same lag the fleet rule marks for app events.
 const staleChromeMajorLag = 4;
+// The same burst the fleet rule of db/migrations/0241_probable_scraper_fleet_install_and_burst.sql marks.
+const chromeVersionBurstAllowedGuests = 10;
 
 export type GuestChallengeFlag =
   | "cloud_network"
   | "network_unknown"
   | "client_hint_mismatch"
   | "stale_chrome"
+  | "chrome_version_burst"
   | "automated_user_agent";
 
 export type GuestChallengeRequestFacts = Readonly<{
@@ -40,6 +43,11 @@ export type GuestChallengeRequestFacts = Readonly<{
   userAgentChromeMajor: number | null;
   clientHintChromiumMajor: number | null;
   currentChromiumMajor: number | null;
+  /**
+   * Guests created without a check since 00:00 UTC today for the claimed Chrome major; null unless
+   * that major is below the current one.
+   */
+  sameMajorAllowedGuestsToday: number | null;
 }>;
 
 export function evaluateGuestChallengeFlags(facts: GuestChallengeRequestFacts): ReadonlyArray<GuestChallengeFlag> {
@@ -60,6 +68,12 @@ export function evaluateGuestChallengeFlags(facts: GuestChallengeRequestFacts): 
   ) {
     flags.push("stale_chrome");
   }
+  if (
+    facts.sameMajorAllowedGuestsToday !== null
+    && facts.sameMajorAllowedGuestsToday >= chromeVersionBurstAllowedGuests
+  ) {
+    flags.push("chrome_version_burst");
+  }
   if (isAutomatedUserAgent(facts.userAgent)) {
     flags.push("automated_user_agent");
   }
@@ -76,6 +90,38 @@ async function loadCurrentChromiumMajor(): Promise<number | null> {
     [],
   );
   return result.rows[0]?.chromium_major ?? null;
+}
+
+async function loadSameMajorAllowedGuestsToday(userAgentChromeMajor: number): Promise<number> {
+  const result = await unsafeQuery<Readonly<{ allowed_guests: number }>>(
+    `SELECT count(*)::int AS allowed_guests
+     FROM analytics.guest_browser_checks
+     WHERE outcome = 'allowed'
+       AND user_agent_chrome_major = $1
+       AND checked_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,
+    [userAgentChromeMajor],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("Counting today's guests created without a check for one Chrome major returned no row.");
+  }
+  return row.allowed_guests;
+}
+
+type ChromeFacts = Readonly<{ currentChromiumMajor: number | null; sameMajorAllowedGuestsToday: number | null }>;
+
+async function loadChromeFacts(userAgentChromeMajor: number | null): Promise<ChromeFacts> {
+  if (userAgentChromeMajor === null) {
+    return { currentChromiumMajor: null, sameMajorAllowedGuestsToday: null };
+  }
+  const currentChromiumMajor = await loadCurrentChromiumMajor();
+  if (currentChromiumMajor === null || userAgentChromeMajor >= currentChromiumMajor) {
+    return { currentChromiumMajor, sameMajorAllowedGuestsToday: null };
+  }
+  return {
+    currentChromiumMajor,
+    sameMajorAllowedGuestsToday: await loadSameMajorAllowedGuestsToday(userAgentChromeMajor),
+  };
 }
 
 const reportNetworkAsnLookupFailure = createCountryLookupFailureReporter();
@@ -112,9 +158,9 @@ export async function loadGuestChallengeRequestFacts(
   scope: BackendObservationScope,
 ): Promise<GuestChallengeRequestFacts> {
   const userAgentChromeMajor = parseUserAgentChromeMajor(userAgent);
-  const [networkFacts, currentChromiumMajor] = await Promise.all([
+  const [networkFacts, chromeFacts] = await Promise.all([
     loadNetworkFacts(scope),
-    userAgentChromeMajor === null ? Promise.resolve(null) : loadCurrentChromiumMajor(),
+    loadChromeFacts(userAgentChromeMajor),
   ]);
   return {
     userAgent,
@@ -122,6 +168,7 @@ export async function loadGuestChallengeRequestFacts(
     networkUnknown: networkFacts.networkUnknown,
     userAgentChromeMajor,
     clientHintChromiumMajor: parseClientHintChromiumMajor(secChUa),
-    currentChromiumMajor,
+    currentChromiumMajor: chromeFacts.currentChromiumMajor,
+    sameMajorAllowedGuestsToday: chromeFacts.sameMajorAllowedGuestsToday,
   };
 }
