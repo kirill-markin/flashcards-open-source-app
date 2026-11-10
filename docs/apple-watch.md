@@ -4,7 +4,7 @@ The watchOS 26+ companion app embedded in the iOS app: Review on the wrist for a
 
 ## Product decisions
 
-- Review only: the due count, the next card's question, Show answer, and the four ratings. No card editing, Progress, AI, or settings.
+- Review only: the next card's question, Show answer, and the four ratings. No card editing, Progress, AI, or settings.
 - Signed in only. The watch never signs in on its own and has no guest mode: it takes the account the iPhone app is signed in to. An iPhone app that is signed out, a guest, or on a custom server leaves the watch asking the user to open Nibomo on iPhone.
 - The workspace and the saved Review filter are the iPhone's; the watch has no switcher.
 - Cards are plain text. An image or formula is left out with an "Open on iPhone" note under that card side ([`WatchReviewCardText.swift`](../apps/ios/Flashcards/FlashcardsWatch/Review/WatchReviewCardText.swift)).
@@ -54,8 +54,8 @@ In Xcode instead: add `FLASHCARDS_AUTOMATION_RUN=1` to the Run environment varia
 Manual test:
 
 1. With the iPhone app signed out, open the watch app: it shows "Open Nibomo on iPhone".
-2. Sign in on the iPhone and keep its app open, then tap Retry on the watch: "Connecting to iPhone…", "Syncing cards…", then the due count and a card.
-3. Show the answer and rate a few cards; rate one Again and see it return when due.
+2. Sign in on the iPhone and keep its app open, then tap Retry on the watch: "Connecting to iPhone…", "Syncing cards…", then a card.
+3. Scroll a long question, then show the answer and scroll to its end. Check that the system time is visible without a due count on both sides and that Show answer and the four ratings stay docked while scrolling. Rate a few cards; rate one Again and see it return when due.
 4. A card with an image or formula shows the "Open on iPhone" note.
 5. On the iPhone, the rated cards leave the due count after its next sync.
 6. Change the Review filter or workspace on the iPhone, then bring the watch app back to the foreground: it follows.

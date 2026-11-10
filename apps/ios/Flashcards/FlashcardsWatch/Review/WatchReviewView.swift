@@ -79,11 +79,6 @@ private struct WatchReviewSessionView: View {
                 }
             }
         }
-        .navigationTitle(self.model.loadState == .loaded ? String(
-            localized: "watch.review.due_count \(self.model.reviewState.reviewCounts.dueCount)",
-            table: watchStringsTableName,
-            comment: "Apple Watch Review title with the number of cards due now"
-        ) : "")
     }
 }
 
