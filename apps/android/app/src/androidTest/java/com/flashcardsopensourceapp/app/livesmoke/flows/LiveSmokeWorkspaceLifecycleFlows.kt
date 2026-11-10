@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.platform.app.InstrumentationRegistry
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissExternalSystemDialogIfPresent
@@ -107,7 +108,8 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         context = "while opening the new workspace name step"
     )
     clickTag(tag = currentWorkspaceNewNameFieldTag, label = "Workspace name")
-    composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextReplacement("$workspaceName new")
+    // Use physical key events after the modal sheet has focused the name field.
+    InstrumentationRegistry.getInstrumentation().sendStringSync("$workspaceName new")
     waitUntilWithMitigation(
         timeoutMillis = internalUiTimeoutMillis,
         context = "while verifying the new workspace name before creating it"
