@@ -10,8 +10,8 @@ import {
   type UserAgentBrowser,
 } from "../../productAnalytics/browserVersion";
 
-// Mirrors the cloud_networks lists of db/migrations/0243_current_chromium_cap_and_checked_guests.sql;
-// change them together.
+// Mirrors the cloud_networks lists of db/migrations/0243_current_chromium_cap_and_checked_guests.sql
+// and db/migrations/0245_probable_scraper_fleet_check_bursts.sql; change them together.
 export const guestChallengeCloudNetworkAsns: ReadonlySet<number> = new Set([
   16509, 14618, // Amazon AWS
   15169, 396982, // Google, Google Cloud
