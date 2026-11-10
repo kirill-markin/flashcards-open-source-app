@@ -4,7 +4,7 @@ private val fencedCodeMarkerRegex = Regex(pattern = """(?m)^\s*(```|~~~)[^\n]*$"
 private val imageRegex = Regex(pattern = """!\[([^\]]*)]\([^)]*\)""")
 private val linkRegex = Regex(pattern = """\[([^\]]*)]\([^)]*\)""")
 private val lineMarkerRegex = Regex(pattern = """(?m)^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)""")
-private val emphasisRegex = Regex(pattern = """\*\*|__|~~|`|(?<!\w)[*_]|[*_](?!\w)""")
+private val emphasisRegex = Regex(pattern = """\*\*|__|~~|`|(?<!\w)[*_](?=\S)|(?<=\S)[*_](?!\w)""")
 private val whitespaceRegex = Regex(pattern = """\s+""")
 private val backslashEscapeRegex = Regex(pattern = """\\([!-/:-@\[-`{-~])""")
 private val escapedLiteralPlaceholderRegex = Regex(pattern = """\uE000(\d+)\uE001""")
