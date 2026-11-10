@@ -11,12 +11,18 @@ export function networking(scope: Construct): NetworkingResult {
   const natProvider = ec2.NatProvider.instanceV2({
     instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
     defaultAllowedTraffic: ec2.NatTrafficDirection.OUTBOUND_ONLY,
+    // Pinned: an unpinned AMI makes the first deploy after any AWS AMI release replace the
+    // NAT instance, cutting private-subnet egress for ~30 s. Bump deliberately; a bump replaces it.
+    machineImage: ec2.MachineImage.genericLinux({ "eu-central-1": "ami-0d4fad1b9b006e7db" }),
   });
 
   const vpc = new ec2.Vpc(scope, "Vpc", {
     maxAzs: 2,
     natGatewayProvider: natProvider,
     natGateways: 1,
+    gatewayEndpoints: {
+      S3: { service: ec2.GatewayVpcEndpointAwsService.S3 },
+    },
     subnetConfiguration: [
       { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
       { name: "private", subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS, cidrMask: 24 },
