@@ -28,7 +28,7 @@ final class WatchReviewModel {
     private(set) var reviewState: ReviewQueuePublishedState
     private(set) var loadState: WatchReviewLoadState
     private(set) var nextDueAt: Date?
-    private(set) var schedulerSettings: WorkspaceSchedulerSettings?
+    private var schedulerSettings: WorkspaceSchedulerSettings?
     /// The card whose answer is shown; a rating or a new card ends the presentation.
     private var revealedCardId: String?
 
@@ -135,18 +135,6 @@ final class WatchReviewModel {
         }
         self.revealedCardId = presentedCard.cardId
         Analytics.track(.reviewCardRevealed)
-    }
-
-    func answerOptions(card: Card) -> [ReviewAnswerOption]? {
-        guard let schedulerSettings = self.schedulerSettings else {
-            return nil
-        }
-        do {
-            return try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: Date())
-        } catch {
-            logWatchReviewFailure(event: "watch_review_answer_options_failed", error: error)
-            return nil
-        }
     }
 
     func rate(rating: ReviewRating) {
