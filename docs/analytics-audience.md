@@ -39,8 +39,8 @@ where it is certain.
   in a same-day burst on one outdated Chrome major, and no activity, are a materialized view the same
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes.
   "Outdated" is measured against the current Chrome of each day, which a fleet claiming a future
-  Chrome cannot raise. A guest who passed the guest browser check is never marked for an outdated
-  Chrome alone, but other bot evidence still marks them.
+  Chrome cannot raise by more than one major a day. A guest who passed the guest browser check is
+  never marked for an outdated Chrome alone, but other bot evidence still marks them.
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql)
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts): raw IP is excluded.
 
