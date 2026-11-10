@@ -159,7 +159,7 @@ jobs:
       - android_ci
     if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 210
+    timeout-minutes: 240
     concurrency:
       group: android-release-device-run-shared-account
       cancel-in-progress: false
@@ -367,13 +367,18 @@ jobs:
           submit_session() {
             local device="$1" suite="$2" session_output="$3"
             shift 3
+            local max_session_duration="35m"
+            # Device allocation counts against the wait budget before instrumentation starts.
+            if [[ "${suite}" == "latest" ]]; then
+              max_session_duration="55m"
+            fi
             bash .release-tools/scripts/android/run-android-device-run.sh \
               --project-id "${GCP_PROJECT_ID}" \
               --device "${device}" \
               --app-path "${APP_APK_PATH}" \
               --test-path "${TEST_APK_PATH}" \
               --timeout "30m" \
-              --max-session-duration "35m" \
+              --max-session-duration "${max_session_duration}" \
               "$@" \
               --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
               --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=${suite}" \
