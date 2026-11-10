@@ -9,6 +9,7 @@ import { HttpError } from "../../shared/errors";
 import {
   evaluateGuestChallengeFlags,
   loadGuestChallengeRequestFacts,
+  type ChallengeFailureReason,
   type GuestChallengeFlag,
   type GuestChallengeRequestFacts,
 } from "./challengeRisk";
@@ -30,7 +31,6 @@ export type GuestBrowserChallengeRequest = Readonly<{
 }>;
 
 type ChallengeOutcome = "required" | "passed" | "failed" | "bypassed";
-type ChallengeFailureReason = "turnstile_rejected" | "action_mismatch" | "hostname_mismatch" | "bypass_token_invalid";
 type ChallengeFailure = Readonly<{
   reason: ChallengeFailureReason;
   turnstileErrorCodes: ReadonlyArray<string>;

@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseExecutor } from "../../database";
-import type { GuestChallengeFlag, GuestChallengeRequestFacts } from "./challengeRisk";
+import type { ChallengeFailureReason, GuestChallengeFlag, GuestChallengeRequestFacts } from "./challengeRisk";
 
 export type GuestBrowserCheckRecord = Readonly<{
   outcome: "allowed" | "required" | "passed" | "failed" | "bypassed";
   flags: ReadonlyArray<GuestChallengeFlag>;
   facts: GuestChallengeRequestFacts;
-  failureReason: string | null;
+  failureReason: ChallengeFailureReason | null;
   turnstileErrorCodes: ReadonlyArray<string> | null;
   guestUserId: string | null;
 }>;

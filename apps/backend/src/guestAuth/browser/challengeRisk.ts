@@ -35,6 +35,8 @@ export type GuestChallengeFlag =
   | "chrome_version_burst"
   | "automated_user_agent";
 
+export type ChallengeFailureReason = "turnstile_rejected" | "action_mismatch" | "hostname_mismatch" | "bypass_token_invalid";
+
 export type GuestChallengeRequestFacts = Readonly<{
   userAgent: string | null;
   networkAsn: number | null;
