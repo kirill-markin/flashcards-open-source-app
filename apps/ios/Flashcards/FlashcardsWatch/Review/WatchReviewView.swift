@@ -88,6 +88,10 @@ private struct WatchReviewSessionView: View {
 }
 
 private struct WatchReviewCardView: View {
+    private enum ScrollTarget: Hashable {
+        case answer
+    }
+
     let model: WatchReviewModel
     let card: Card
 
@@ -95,30 +99,40 @@ private struct WatchReviewCardView: View {
         let frontText = makeWatchReviewCardSideText(markdown: self.card.frontText)
         let backText = makeWatchReviewCardSideText(markdown: self.card.backText)
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                WatchReviewSubmissionFailureText(failure: self.model.reviewState.reviewSubmissionFailure)
-                WatchReviewCardSideView(sideText: frontText, font: .headline)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    WatchReviewSubmissionFailureText(failure: self.model.reviewState.reviewSubmissionFailure)
+                    WatchReviewCardSideView(sideText: frontText, font: .headline)
+                    if self.model.isAnswerRevealed {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 8) {
+                            WatchReviewCardSideView(sideText: backText, font: .body)
+                        }
+                        .id(ScrollTarget.answer)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .safeAreaBar(edge: .bottom, spacing: 4) {
                 if self.model.isAnswerRevealed {
-                    Divider()
-                    WatchReviewCardSideView(sideText: backText, font: .body)
+                    WatchReviewRatingButtons(onRate: self.model.rate)
+                } else {
+                    Button {
+                        self.model.revealAnswer()
+                    } label: {
+                        Text(String(localized: "Show answer", table: reviewCardsStringsTableName))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .handGestureShortcut(.primaryAction)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .safeAreaBar(edge: .bottom, spacing: 4) {
-            if self.model.isAnswerRevealed {
-                WatchReviewRatingButtons(onRate: self.model.rate)
-            } else {
-                Button {
-                    self.model.revealAnswer()
-                } label: {
-                    Text(String(localized: "Show answer", table: reviewCardsStringsTableName))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
+            .onChange(of: self.model.isAnswerRevealed) { _, isAnswerRevealed in
+                if isAnswerRevealed {
+                    proxy.scrollTo(ScrollTarget.answer, anchor: .top)
                 }
-                .buttonStyle(.borderedProminent)
-                .handGestureShortcut(.primaryAction)
             }
         }
     }
@@ -162,8 +176,7 @@ private struct WatchReviewRatingButtons: View {
                 self.ratingButton(rating: .easy)
             }
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
+        .buttonStyle(.plain)
     }
 
     private func ratingButton(rating: ReviewRating) -> some View {
@@ -174,7 +187,10 @@ private struct WatchReviewRatingButtons: View {
                 .font(.footnote.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(.quaternary, in: Capsule())
+                .contentShape(Rectangle())
         }
     }
 }
