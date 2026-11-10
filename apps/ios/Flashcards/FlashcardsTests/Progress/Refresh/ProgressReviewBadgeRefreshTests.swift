@@ -14,7 +14,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         try self.addReviewedCard(
             database: database,
@@ -84,7 +84,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         try self.addReviewedCard(
             database: database,
@@ -173,7 +173,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -245,7 +245,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -307,7 +307,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,

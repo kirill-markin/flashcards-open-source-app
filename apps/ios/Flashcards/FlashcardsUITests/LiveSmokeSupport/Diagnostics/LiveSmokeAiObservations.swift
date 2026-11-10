@@ -6,7 +6,7 @@ extension LiveSmokeTestCase {
         // Markdown replies render as a text view rather than static text.
         self.app.collectionViews[LiveSmokeIdentifier.aiScreen].firstMatch.cells
             .containing(.any, identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
-            .allElementsBoundByAccessibilityElement
+            .allElementsBoundByIndex
         .filter { row in
             row.identifier != LiveSmokeIdentifier.aiAssistantErrorMessage
                 && row.descendants(matching: .any)
@@ -14,7 +14,7 @@ extension LiveSmokeTestCase {
         }
         .compactMap { row in
             row.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
-                .allElementsBoundByAccessibilityElement
+                .allElementsBoundByIndex
                 .lazy
             .compactMap { element in
                 let value = self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
