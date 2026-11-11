@@ -1,12 +1,20 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceRefreshException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceSignInRequiredException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceWorkspaceChangedException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -18,12 +26,19 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageEx
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isRemoteAccountDeletedError
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 internal class CloudWorkspaceOperationsCoordinator(
     private val database: AppDatabase,
@@ -32,6 +47,7 @@ internal class CloudWorkspaceOperationsCoordinator(
     private val syncLocalStore: SyncLocalStore,
     private val operationCoordinator: CloudOperationCoordinator,
     private val sessionProvider: CloudSessionProvider,
+    private val resetCoordinator: CloudIdentityResetCoordinator,
     private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator,
     private val appVersion: String
 ) {
@@ -161,6 +177,147 @@ internal class CloudWorkspaceOperationsCoordinator(
                 cloudSettings = cloudSettings
             )
             result
+        }
+    }
+
+    suspend fun previewCardMaintenance(target: CloudCardMaintenanceTarget): CloudCardMaintenancePreview {
+        return withCardMaintenanceWorkspace(workspaceId = target.workspaceId) { session, cloudSettings ->
+            runLinkedWorkspaceSync(
+                authenticatedSession = session,
+                workspaceId = target.workspaceId,
+                cloudSettings = cloudSettings
+            )
+            remoteService.previewCardMaintenance(
+                apiBaseUrl = session.configuration.apiBaseUrl,
+                bearerToken = session.credentials.idToken,
+                target = target
+            )
+        }
+    }
+
+    suspend fun executeCardMaintenance(confirmation: CloudCardMaintenanceConfirmation): Int {
+        val workspaceId = confirmation.target.workspaceId
+        return withCardMaintenanceWorkspace(workspaceId = workspaceId) { session, cloudSettings ->
+            preferencesStore.runWithLocalOutboxWritesBlocked(
+                reason = "Wait for card maintenance to finish before changing this workspace."
+            ) {
+                drainCardMaintenanceOutbox(
+                    session = session,
+                    workspaceId = workspaceId,
+                    cloudSettings = cloudSettings
+                )
+                withContext(NonCancellable) {
+                    val attempt = CloudCardMaintenanceAttempt(
+                        attemptId = confirmation.attemptId,
+                        previewFingerprint = confirmation.previewFingerprint,
+                        affectedCardsCount = null,
+                        isRefreshComplete = false
+                    )
+                    preferencesStore.saveCardMaintenanceAttempt(workspaceId = workspaceId, attempt = attempt)
+                    val affectedCardsCount = try {
+                        remoteService.executeCardMaintenance(
+                            apiBaseUrl = session.configuration.apiBaseUrl,
+                            bearerToken = session.credentials.idToken,
+                            confirmation = confirmation
+                        )
+                    } catch (error: CloudRemoteException) {
+                        if (error.statusCode in setOf(400, 401, 403, 404, 409)) {
+                            preferencesStore.clearCardMaintenanceAttempt(workspaceId = workspaceId)
+                        }
+                        throw error
+                    }
+                    try {
+                        preferencesStore.saveCardMaintenanceAttempt(
+                            workspaceId = workspaceId,
+                            attempt = attempt.copy(affectedCardsCount = affectedCardsCount)
+                        )
+                        runLinkedWorkspaceSync(
+                            authenticatedSession = session,
+                            workspaceId = workspaceId,
+                            cloudSettings = cloudSettings
+                        )
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        if (isRemoteAccountDeletedError(error = error)) throw error
+                        throw CloudCardMaintenanceRefreshException(affectedCardsCount = affectedCardsCount, cause = error)
+                    }
+                    affectedCardsCount
+                }
+            }
+        }
+    }
+
+    fun loadCardMaintenanceAttempt(workspaceId: String, attemptId: String): CloudCardMaintenanceAttempt? {
+        return preferencesStore.loadCardMaintenanceAttempt(workspaceId = workspaceId)
+            ?.takeIf { attempt -> attempt.attemptId == attemptId }
+    }
+
+    fun observeCardMaintenanceAttempt(workspaceId: String, attemptId: String): Flow<CloudCardMaintenanceAttempt?> {
+        return preferencesStore.observeCardMaintenanceAttempt(workspaceId = workspaceId).map { attempt ->
+            attempt?.takeIf { it.attemptId == attemptId }
+        }
+    }
+
+    suspend fun refreshCardMaintenanceWorkspace(workspaceId: String, attemptId: String) {
+        operationCoordinator.runExclusive {
+            val attempt = loadCardMaintenanceAttempt(workspaceId = workspaceId, attemptId = attemptId)
+            if (attempt?.isRefreshComplete == true) return@runExclusive
+
+            withCardMaintenanceWorkspace(workspaceId = workspaceId) { session, cloudSettings ->
+                runLinkedWorkspaceSync(
+                    authenticatedSession = session,
+                    workspaceId = workspaceId,
+                    cloudSettings = cloudSettings
+                )
+            }
+        }
+    }
+
+    private suspend fun drainCardMaintenanceOutbox(
+        session: AuthenticatedCloudSession,
+        workspaceId: String,
+        cloudSettings: CloudSettings
+    ) {
+        var pendingCount = syncLocalStore.countOutboxEntries(workspaceId = workspaceId)
+        do {
+            runLinkedWorkspaceSync(
+                authenticatedSession = session,
+                workspaceId = workspaceId,
+                cloudSettings = cloudSettings
+            )
+            val remainingCount = syncLocalStore.countOutboxEntries(workspaceId = workspaceId)
+            if (remainingCount == 0) return
+            check(remainingCount < pendingCount) {
+                "Sync did not drain pending changes for workspace '$workspaceId' before card maintenance."
+            }
+            pendingCount = remainingCount
+        } while (true)
+    }
+
+    private suspend fun <Result> withCardMaintenanceWorkspace(
+        workspaceId: String,
+        action: suspend (AuthenticatedCloudSession, CloudSettings) -> Result
+    ): Result {
+        return operationCoordinator.runExclusive {
+            val cloudSettings = preferencesStore.currentCloudSettings()
+            if (cloudSettings.cloudState != CloudAccountState.LINKED) {
+                throw CloudCardMaintenanceSignInRequiredException(cause = null)
+            }
+            val workspace = loadCurrentWorkspaceOrNull(database = database, preferencesStore = preferencesStore)
+            if (workspace?.workspaceId != workspaceId) {
+                throw CloudCardMaintenanceWorkspaceChangedException()
+            }
+
+            try {
+                action(sessionProvider.authenticatedSessionForCardMaintenance(), cloudSettings)
+            } catch (error: CloudRemoteException) {
+                if (!isRemoteAccountDeletedError(error = error)) throw error
+                withContext(NonCancellable) {
+                    resetCoordinator.disconnectDeletedCloudIdentityPreservingLocalState()
+                }
+                throw CloudCardMaintenanceSignInRequiredException(cause = error)
+            }
         }
     }
 

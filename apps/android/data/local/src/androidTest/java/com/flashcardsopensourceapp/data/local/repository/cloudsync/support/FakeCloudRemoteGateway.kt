@@ -42,6 +42,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -589,6 +592,25 @@ internal class FakeCloudRemoteGateway private constructor(
     ): CloudWorkspaceDeleteResult {
         throw UnsupportedOperationException()
     }
+
+    override suspend fun previewCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        target: CloudCardMaintenanceTarget
+    ): CloudCardMaintenancePreview = error("Card maintenance preview is unavailable in this fake.")
+
+    override suspend fun executeCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        confirmation: CloudCardMaintenanceConfirmation
+    ): Int = error("Card maintenance execution is unavailable in this fake.")
+
+    override suspend fun reconcileCardMaintenance(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        previewFingerprint: String
+    ): Boolean = error("Card maintenance reconciliation is unavailable in this fake.")
 
     override suspend fun loadWorkspaceResetProgressPreview(
         apiBaseUrl: String,

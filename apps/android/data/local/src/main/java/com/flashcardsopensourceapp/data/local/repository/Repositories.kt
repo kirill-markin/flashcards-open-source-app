@@ -35,6 +35,10 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
@@ -87,11 +91,13 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSumma
 import kotlinx.coroutines.flow.Flow
 import java.time.ZoneId
 
+class CardUnavailableException(cardId: String) : IllegalStateException("Card '$cardId' is unavailable.")
+
 interface CardsRepository {
     fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>>
     fun observeCard(cardId: String): Flow<CardSummary?>
     suspend fun createCard(cardDraft: CardDraft)
-    suspend fun updateCard(cardId: String, cardDraft: CardDraft)
+    suspend fun updateCard(cardId: String, cardDraft: CardDraft, savedTags: List<String>): CardDraft
 
     /** Soft-deletes a card. Missing and already deleted cards are successful no-ops. */
     suspend fun deleteCard(cardId: String)
@@ -102,7 +108,7 @@ interface DecksRepository {
     fun observeDeck(deckId: String): Flow<DeckSummary?>
     fun observeDeckCards(deckId: String): Flow<List<CardSummary>>
     suspend fun createDeck(deckDraft: DeckDraft): String
-    suspend fun updateDeck(deckId: String, deckDraft: DeckDraft)
+    suspend fun updateDeck(deckId: String, deckDraft: DeckDraft, savedDraft: DeckDraft)
     suspend fun deleteDeck(deckId: String)
 }
 
@@ -308,6 +314,11 @@ interface CloudAccountRepository {
     suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
+    suspend fun previewCardMaintenance(target: CloudCardMaintenanceTarget): CloudCardMaintenancePreview
+    suspend fun executeCardMaintenance(confirmation: CloudCardMaintenanceConfirmation): Int
+    fun loadCardMaintenanceAttempt(workspaceId: String, attemptId: String): CloudCardMaintenanceAttempt?
+    fun observeCardMaintenanceAttempt(workspaceId: String, attemptId: String): Flow<CloudCardMaintenanceAttempt?>
+    suspend fun refreshCardMaintenanceWorkspace(workspaceId: String, attemptId: String)
     suspend fun previewCurrentWorkspacePackageExport(
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview

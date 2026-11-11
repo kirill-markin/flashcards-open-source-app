@@ -18,6 +18,9 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdat
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAuthenticatedAccountIdentity
 import com.flashcardsopensourceapp.data.local.model.sync.parseAccountTheme
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -255,6 +258,58 @@ internal class CloudAccountWorkspaceRemoteApi(
         )
     }
 
+    suspend fun previewCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        target: CloudCardMaintenanceTarget
+    ): CloudCardMaintenancePreview {
+        val response = httpClient.postJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/${target.workspaceId}/card-maintenance/preview",
+            authorizationHeader = "Bearer $bearerToken",
+            body = cardMaintenanceTargetBody(target = target)
+        )
+        return CloudCardMaintenancePreview(
+            targetName = response.requireCloudString("targetName", "cardMaintenancePreview.targetName"),
+            affectedCardsCount = response.requireCloudInt("affectedCardsCount", "cardMaintenancePreview.affectedCardsCount"),
+            confirmationText = response.requireCloudString("confirmationText", "cardMaintenancePreview.confirmationText"),
+            previewFingerprint = response.requireCloudString("previewFingerprint", "cardMaintenancePreview.previewFingerprint"),
+            includesAllCards = response.requireCloudBoolean("includesAllCards", "cardMaintenancePreview.includesAllCards"),
+            affectedDecksCount = response.requireCloudInt("affectedDecksCount", "cardMaintenancePreview.affectedDecksCount")
+        )
+    }
+
+    suspend fun executeCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        confirmation: CloudCardMaintenanceConfirmation
+    ): Int {
+        val response = httpClient.postJsonOnce(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/${confirmation.target.workspaceId}/card-maintenance/execute",
+            authorizationHeader = "Bearer $bearerToken",
+            body = cardMaintenanceTargetBody(target = confirmation.target)
+                .put("confirmationText", confirmation.confirmationText)
+                .put("previewFingerprint", confirmation.previewFingerprint)
+        )
+        return response.requireCloudInt("affectedCardsCount", "cardMaintenanceResult.affectedCardsCount")
+    }
+
+    suspend fun reconcileCardMaintenance(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        previewFingerprint: String
+    ): Boolean {
+        val response = httpClient.postJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/$workspaceId/card-maintenance/reconcile",
+            authorizationHeader = authorizationHeader,
+            body = JSONObject().put("previewFingerprint", previewFingerprint)
+        )
+        return response.requireCloudBoolean("isSettled", "cardMaintenanceReconciliation.isSettled")
+    }
+
     suspend fun deleteAccount(
         apiBaseUrl: String,
         bearerToken: String,
@@ -372,4 +427,8 @@ private fun parseCloudWorkspacePage(
         },
         nextCursor = response.requireCloudNullableString("nextCursor", "workspaces.nextCursor")
     )
+}
+
+private fun cardMaintenanceTargetBody(target: CloudCardMaintenanceTarget): JSONObject {
+    return JSONObject().put("kind", target.kind.wireValue).put("target", target.target)
 }

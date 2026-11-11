@@ -12,6 +12,9 @@ data class DeckDraft(
     val filterDefinition: DeckFilterDefinition
 )
 
+class DeckFilterConflictException :
+    IllegalStateException("The deck filter changed during sync. Choose at least one current tag and save again.")
+
 data class DeckSummary(
     val deckId: String,
     val workspaceId: String,
