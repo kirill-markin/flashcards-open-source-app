@@ -18,7 +18,11 @@ import {
   removeCardTagsInExecutor,
   resetCardProgressInExecutor,
 } from "./cardMaintenanceWrites";
-import { cardNeedsProgressResetSql, loadWorkspaceManagementRowInExecutor } from "./queries";
+import {
+  assertUserHasWorkspaceMembershipInExecutor,
+  cardNeedsProgressResetSql,
+  loadWorkspaceManagementRowInExecutor,
+} from "./queries";
 import { assertWorkspaceOwner, assertWorkspaceSoleMembership } from "./shared";
 
 export type CardMaintenanceKind = "resetCard" | "resetDeck" | "resetTag" | "removeTag";
@@ -28,9 +32,14 @@ export type CardMaintenanceInput = Readonly<{
   target: string;
 }>;
 
-export type CardMaintenanceExecution = CardMaintenanceInput & Readonly<{
+type CardMaintenancePreviewFingerprint = Readonly<{
+  value: string;
+  expiresAtMs: number;
+}>;
+
+type CardMaintenanceExecution = CardMaintenanceInput & Readonly<{
   confirmationText: string;
-  previewFingerprint: string;
+  previewFingerprint: CardMaintenancePreviewFingerprint;
 }>;
 
 type CardMaintenanceResult = Readonly<{ affectedCardsCount: number }>;
@@ -61,12 +70,45 @@ type MaintenanceScope = Readonly<{
   | Readonly<{ kind: "removeTag"; cards: ReadonlyArray<TagRemovalRow> }>
 );
 
+const previewLifetimeMs = 120_000;
+
 const confirmationTexts: Readonly<Record<CardMaintenanceKind, string>> = {
   resetCard: "reset progress for this card",
   resetDeck: "reset progress for this deck",
   resetTag: "reset progress for cards with this tag",
   removeTag: "remove this tag from all matching cards",
 };
+
+export function parseCardMaintenancePreviewFingerprint(value: unknown): CardMaintenancePreviewFingerprint {
+  if (typeof value === "string") {
+    const match = /^([1-9][0-9]{0,15})\.[0-9a-f]{64}$/.exec(value);
+    const expiresAtMs = Number(match?.[1]);
+    if (match?.[0] === value && Number.isSafeInteger(expiresAtMs)) {
+      return { value, expiresAtMs };
+    }
+  }
+  throw new HttpError(400, "previewFingerprint must be the value returned by preview", "CARD_MAINTENANCE_INPUT_INVALID");
+}
+
+async function loadDatabaseTimeMsInExecutor(executor: DatabaseExecutor): Promise<number> {
+  const result = await executor.query<Readonly<{ time_ms: number }>>(
+    "SELECT floor(extract(epoch FROM clock_timestamp()) * 1000)::double precision AS time_ms",
+    [],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("Could not read the database clock for card maintenance");
+  }
+  return row.time_ms;
+}
+
+function previewChangedError(): HttpError {
+  return new HttpError(
+    409,
+    "Card maintenance preview changed. Load the preview again and confirm the current scope.",
+    "CARD_MAINTENANCE_PREVIEW_CHANGED",
+  );
+}
 
 async function applyCardMaintenanceScopeInExecutor(
   executor: DatabaseExecutor,
@@ -187,22 +229,24 @@ async function resolveMaintenanceScopeInExecutor(
   };
 }
 
-function fingerprint(
+export function buildCardMaintenancePreviewFingerprint(
   userId: string,
   workspaceId: string,
   input: CardMaintenanceInput,
   scope: MaintenanceScope,
+  expiresAtMs: number,
 ): string {
   const deckRules = scope.decks.map(
     (deck) => [deck.deckId, [...deck.filterDefinition.tags].sort()] as const,
   ).sort(([left], [right]) => left.localeCompare(right));
 
-  return createHash("sha256").update(JSON.stringify([
-    userId, workspaceId, input.kind, input.target, scope.targetName, scope.includesAllCards,
+  const hash = createHash("sha256").update(JSON.stringify([
+    expiresAtMs, userId, workspaceId, input.kind, input.target, scope.targetName, scope.includesAllCards,
     scope.cards.map((card) => card.card_id),
     deckRules,
     scope.kind === "removeTag" ? scope.cards.map((card) => card.removed_tags) : null,
   ])).digest("hex");
+  return `${expiresAtMs}.${hash}`;
 }
 
 export async function previewCardMaintenanceForUser(
@@ -218,11 +262,12 @@ export async function previewCardMaintenanceForUser(
       throw new HttpError(404, message, "CARD_MAINTENANCE_TARGET_NOT_FOUND");
     }
 
+    const expiresAtMs = await loadDatabaseTimeMsInExecutor(executor) + previewLifetimeMs;
     return {
       targetName: scope.targetName,
       affectedCardsCount: scope.cards.length,
       confirmationText: confirmationTexts[input.kind],
-      previewFingerprint: fingerprint(userId, workspaceId, input, scope),
+      previewFingerprint: buildCardMaintenancePreviewFingerprint(userId, workspaceId, input, scope, expiresAtMs),
       includesAllCards: scope.includesAllCards,
       affectedDecksCount: scope.kind === "removeTag" ? scope.decks.length : 0,
     };
@@ -246,13 +291,14 @@ export async function executeCardMaintenanceForUser(
 
     // Card and deck writers take this lock before touching rows, including inserts into the scope.
     const lock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
+    const { value, expiresAtMs } = input.previewFingerprint;
+    if (await loadDatabaseTimeMsInExecutor(executor) >= expiresAtMs) {
+      throw previewChangedError();
+    }
+
     const scope = await resolveMaintenanceScopeInExecutor(executor, workspaceId, input);
-    if (scope === null || fingerprint(userId, workspaceId, input, scope) !== input.previewFingerprint) {
-      throw new HttpError(
-        409,
-        "Card maintenance preview changed. Load the preview again and confirm the current scope.",
-        "CARD_MAINTENANCE_PREVIEW_CHANGED",
-      );
+    if (scope === null || buildCardMaintenancePreviewFingerprint(userId, workspaceId, input, scope, expiresAtMs) !== value) {
+      throw previewChangedError();
     }
     if (scope.cards.length === 0) {
       return { affectedCardsCount: 0 };
@@ -271,5 +317,18 @@ export async function executeCardMaintenanceForUser(
       }
     }
     return { affectedCardsCount: scope.cards.length };
+  });
+}
+
+export async function reconcileCardMaintenanceForUser(
+  userId: string,
+  workspaceId: string,
+  previewFingerprint: CardMaintenancePreviewFingerprint,
+): Promise<Readonly<{ isSettled: boolean }>> {
+  return transactionWithUserScope({ userId }, async (executor) => {
+    // An execute admitted before expiry holds this lock through commit or rollback.
+    await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
+    await assertUserHasWorkspaceMembershipInExecutor(executor, userId, workspaceId);
+    return { isSettled: await loadDatabaseTimeMsInExecutor(executor) >= previewFingerprint.expiresAtMs };
   });
 }

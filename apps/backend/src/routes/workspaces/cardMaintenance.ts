@@ -5,7 +5,9 @@ import { expectRecord, expectUuidString, parseJsonBody } from "../../server/requ
 import { HttpError } from "../../shared/errors";
 import {
   executeCardMaintenanceForUser,
+  parseCardMaintenancePreviewFingerprint,
   previewCardMaintenanceForUser,
+  reconcileCardMaintenanceForUser,
   type CardMaintenanceInput,
 } from "../../workspaces/cardMaintenance";
 import { requireHumanManagedConnectionAccess } from "./connectionAccess";
@@ -50,14 +52,24 @@ export function createCardMaintenanceRoutes(
     if (typeof body.confirmationText !== "string") {
       throw new HttpError(400, "confirmationText must be a string", "CARD_MAINTENANCE_CONFIRMATION_INVALID");
     }
-    if (typeof body.previewFingerprint !== "string" || !/^[0-9a-f]{64}$/.test(body.previewFingerprint)) {
-      throw new HttpError(400, "previewFingerprint must be the value returned by preview", "CARD_MAINTENANCE_INPUT_INVALID");
-    }
     const result = await executeCardMaintenanceForUser(requestContext.userId, workspaceId, {
       ...input,
       confirmationText: body.confirmationText,
-      previewFingerprint: body.previewFingerprint,
+      previewFingerprint: parseCardMaintenancePreviewFingerprint(body.previewFingerprint),
     });
+    return context.json(result);
+  });
+
+  app.post("/workspaces/:workspaceId/card-maintenance/reconcile", async (context) => {
+    const { requestContext } = await loadRequestContext(context.req.raw, allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    const result = await reconcileCardMaintenanceForUser(
+      requestContext.userId,
+      workspaceId,
+      parseCardMaintenancePreviewFingerprint(body.previewFingerprint),
+    );
     return context.json(result);
   });
 

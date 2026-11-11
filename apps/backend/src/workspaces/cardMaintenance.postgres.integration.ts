@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
 import { resetAuthConfigForTests } from "../auth/config";
 import { createCard, getCard, submitReview, updateCard } from "../cards";
@@ -8,7 +9,36 @@ import { createDeck, getDeck, updateDeck } from "../decks";
 import { createApp } from "../server/app";
 import { buildSystemWorkspaceReplicaId } from "../sync/identity/replica";
 import { createWorkspaceForUser } from "./create";
-import type { CardMaintenanceInput, CardMaintenancePreview } from "./cardMaintenance";
+import {
+  buildCardMaintenancePreviewFingerprint,
+  parseCardMaintenancePreviewFingerprint,
+  type CardMaintenanceInput,
+  type CardMaintenancePreview,
+} from "./cardMaintenance";
+
+async function databaseTimeMs(owner: pg.Pool): Promise<number> {
+  const result = await owner.query<Readonly<{ time_ms: number }>>(
+    "SELECT floor(extract(epoch FROM clock_timestamp()) * 1000)::double precision AS time_ms",
+  );
+  const row = result.rows[0];
+  assert.ok(row);
+  return row.time_ms;
+}
+
+async function waitForBlockedRequest(owner: pg.Pool, blockerPid: number): Promise<number> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const result = await owner.query<Readonly<{ pid: number }>>(
+      "SELECT pid FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))",
+      [blockerPid],
+    );
+    const waiter = result.rows[0];
+    if (waiter !== undefined) {
+      return waiter.pid;
+    }
+    await delay(10);
+  }
+  assert.fail(`No request was blocked by PostgreSQL session ${blockerPid}`);
+}
 
 test("card maintenance confirms the exact persisted scope and syncs only the selected mutations", async (t) => {
   assert.ok(process.env.TEST_DATABASE_ADMIN_URL, "Run with npm run test:postgres-integration");
@@ -27,7 +57,7 @@ test("card maintenance confirms the exact persisted scope and syncs only the sel
     const app = createApp("/v1");
     const origin = "http://localhost:3000";
     const basePath = "/v1/workspaces/" + workspaceId + "/card-maintenance";
-    const post = (action: "preview" | "execute", input: object): Promise<Response> => Promise.resolve(
+    const post = (action: "preview" | "execute" | "reconcile", input: object): Promise<Response> => Promise.resolve(
       app.request(basePath + "/" + action, {
         method: "POST",
         headers: { "Content-Type": "application/json", Origin: origin },
@@ -46,6 +76,12 @@ test("card maintenance confirms the exact persisted scope and syncs only the sel
         confirmationText: confirmation.confirmationText,
         previewFingerprint: confirmation.previewFingerprint,
       });
+    const reconcile = (previewFingerprint: string): Promise<Response> => post("reconcile", { previewFingerprint });
+    const readSettlement = async (response: Response): Promise<boolean> => {
+      assert.equal(response.status, 200, await response.clone().text());
+      assert.equal(response.headers.get("access-control-allow-credentials"), "true");
+      return (await response.json() as Readonly<{ isSettled: boolean }>).isSettled;
+    };
     const readError = async (response: Response, status: number): Promise<string> => {
       assert.equal(response.status, status, await response.clone().text());
       return (await response.json() as Readonly<{ code: string }>).code;
@@ -189,6 +225,90 @@ test("card maintenance confirms the exact persisted scope and syncs only the sel
       const removeDotted = await preview({ kind: "removeTag", target: "İstanbul" });
       assert.equal(removeDotted.affectedCardsCount, 2);
       assert.equal(removeDotted.affectedDecksCount, 1);
+    });
+
+    await t.test("a queued execute expires before admission and reconcile waits for its access lock", async () => {
+      const card = await makeCard("Expiring confirmation?", []);
+      await reviewCard(card.cardId);
+      const input: CardMaintenanceInput = { kind: "resetCard", target: card.cardId };
+      const previewStartedAt = await databaseTimeMs(owner);
+      const confirmation = await preview(input);
+      const { expiresAtMs } = parseCardMaintenancePreviewFingerprint(confirmation.previewFingerprint);
+      assert.equal(confirmation.affectedCardsCount, 1);
+      assert.ok(expiresAtMs >= previewStartedAt + 120_000);
+      assert.ok(expiresAtMs <= await databaseTimeMs(owner) + 120_000);
+      assert.equal(await readSettlement(await reconcile(confirmation.previewFingerprint)), false);
+
+      const digest = confirmation.previewFingerprint.slice(confirmation.previewFingerprint.indexOf(".") + 1);
+      const tampered = { ...confirmation, previewFingerprint: `${expiresAtMs + 1}.${digest}` };
+      assert.equal(await readError(await execute(input, tampered), 409), "CARD_MAINTENANCE_PREVIEW_CHANGED");
+      const malformed = { ...confirmation, previewFingerprint: digest };
+      assert.equal(await readError(await execute(input, malformed), 400), "CARD_MAINTENANCE_INPUT_INVALID");
+      assert.equal(await readError(await reconcile(malformed.previewFingerprint), 400), "CARD_MAINTENANCE_INPUT_INVALID");
+
+      const blocker = await owner.connect();
+      let execution: Promise<Response> | null = null;
+      let reconciliation: Promise<Response> | null = null;
+      let shortConfirmation: CardMaintenancePreview;
+      try {
+        await blocker.query("BEGIN");
+        const session = await blocker.query<Readonly<{ pid: number }>>("SELECT pg_backend_pid() AS pid");
+        const blockerPid = session.rows[0]?.pid;
+        assert.ok(blockerPid);
+        const locked = await blocker.query(
+          "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE",
+          [workspace.workspaceId],
+        );
+        assert.equal(locked.rowCount, 1);
+        // Use a valid short-lived fingerprint to exercise the deadline against the real clock.
+        const shortExpiryMs = await databaseTimeMs(owner) + 3_000;
+        shortConfirmation = {
+          ...confirmation,
+          previewFingerprint: buildCardMaintenancePreviewFingerprint(userId, workspace.workspaceId, input, {
+            kind: "reset",
+            targetName: card.frontText,
+            includesAllCards: false,
+            cards: [{ card_id: card.cardId }],
+            decks: [],
+          }, shortExpiryMs),
+        };
+
+        execution = execute(input, shortConfirmation);
+        const executePid = await waitForBlockedRequest(owner, blockerPid);
+        reconciliation = reconcile(shortConfirmation.previewFingerprint);
+        await waitForBlockedRequest(owner, executePid);
+        assert.ok(await databaseTimeMs(owner) < shortExpiryMs);
+        await owner.query(
+          "SELECT pg_sleep(greatest($1::double precision / 1000 - extract(epoch FROM clock_timestamp()), 0))",
+          [shortExpiryMs],
+        );
+      } finally {
+        try {
+          await blocker.query("ROLLBACK");
+        } finally {
+          blocker.release();
+          await Promise.allSettled([execution, reconciliation]);
+        }
+      }
+
+      assert.equal(await readError(await execution, 409), "CARD_MAINTENANCE_PREVIEW_CHANGED");
+      assert.equal(await readSettlement(await reconciliation), true);
+      assert.equal(await readError(await execute(input, shortConfirmation), 409), "CARD_MAINTENANCE_PREVIEW_CHANGED");
+      assert.equal((await getCard(userId, workspace.workspaceId, card.cardId)).reps, 1);
+
+      const memberId = randomUUID();
+      await owner.query("INSERT INTO org.user_settings (user_id) VALUES ($1)", [memberId]);
+      try {
+        await owner.query(
+          "INSERT INTO org.workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'member')",
+          [workspace.workspaceId, memberId],
+        );
+        assert.equal(await readError(await post("preview", input), 409), "CARD_MAINTENANCE_SHARED");
+        assert.equal(await readError(await execute(input, confirmation), 409), "CARD_MAINTENANCE_SHARED");
+        assert.equal(await readSettlement(await reconcile(shortConfirmation.previewFingerprint)), true);
+      } finally {
+        await owner.query("DELETE FROM org.user_settings WHERE user_id = $1", [memberId]);
+      }
     });
 
     await t.test("an existing clean tag can reset zero cards but a vanished tag invalidates confirmation", async () => {
