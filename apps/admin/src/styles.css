@@ -1536,6 +1536,11 @@ h2 {
   align-items: start;
 }
 
+.who-studied-threshold-charts {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .level-1-metrics-grid .axis text,
 .level-1-metrics-grid .axis-label {
   font-size: 16px;

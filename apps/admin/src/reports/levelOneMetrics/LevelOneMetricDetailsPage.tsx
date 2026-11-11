@@ -8,7 +8,7 @@ import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 import { WhoSawUsDatasetPicker } from "../whoSawUs/WhoSawUsDatasetPicker";
 import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSections";
 import { WhoStudiedReviewEventSections } from "../whoStudied/WhoStudiedReviewEventSections";
-import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
+import { WhoStudiedThresholdSections } from "../whoStudied/WhoStudiedThresholdSections";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
 import { LevelOneMetricsFrame, useLevelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
@@ -33,7 +33,6 @@ type LevelOneMetricDetailsPageProps<Metric extends LevelOneMetricDetail> = Reado
   renderNavigation: (levelOneMetricsSearch: string) => ReactNode;
 }>;
 
-/** The metric's own chart, without a Details button since this is its Details page, then its breakdowns. */
 function renderMetricSections(
   props: LevelOneMetricDetailsPageProps<ChartedLevelOneMetricDetail>,
   selection: LevelOneMetricsSelection,
@@ -64,13 +63,12 @@ function renderMetricSections(
     case "who-studied":
       return (
         <>
-          <WhoStudiedSection
+          <WhoStudiedThresholdSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
             appVersions={selection.appVersions}
-            detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoStudiedBreakdownSections
@@ -116,7 +114,6 @@ function renderMetricSections(
   }
 }
 
-/** One Level 1 chart in the top-left cell of the main page's grid, on the main page's selection, followed by its breakdowns. */
 function ChartedLevelOneMetricDetailsPage(
   props: LevelOneMetricDetailsPageProps<ChartedLevelOneMetricDetail>,
 ): JSX.Element {
