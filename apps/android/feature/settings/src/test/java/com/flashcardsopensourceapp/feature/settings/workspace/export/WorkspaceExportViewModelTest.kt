@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDefaultPackageMetadata
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportSelection
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
@@ -25,10 +26,15 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkspaceExportViewModelTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     private val dispatcher = StandardTestDispatcher()
 
     @After
@@ -72,11 +78,7 @@ class WorkspaceExportViewModelTest {
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
-        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
-            packageBytes = byteArrayOf(80, 75, 3, 4),
-            fileName = "flashcards.zip",
-            contentType = "application/zip"
-        )
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = workspacePackageExportDownloadResponse()
         val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
         val stateJob = backgroundScope.launch {
             viewModel.uiState.collect()
@@ -92,10 +94,10 @@ class WorkspaceExportViewModelTest {
         viewModel.updatePackageComment(comment = "Edited comment")
         viewModel.togglePackageIncludedTag(tag = "geography")
         advanceUntilIdle()
-        val response = viewModel.preparePackageExportDownload()
+        val response = viewModel.preparePackageExportDownload(destinationDirectory = temporaryFolder.root)
 
         val request = cloudRepository.exportedWorkspacePackageRequests.single()
-        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.archiveFile?.readBytes())
         assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
         assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
         assertEquals("Edited export", request.packageMetadata.label)
@@ -113,11 +115,7 @@ class WorkspaceExportViewModelTest {
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
-        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
-            packageBytes = byteArrayOf(80, 75, 3, 4),
-            fileName = "flashcards.zip",
-            contentType = "application/zip"
-        )
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = workspacePackageExportDownloadResponse()
         val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
         val stateJob = backgroundScope.launch {
             viewModel.uiState.collect()
@@ -135,10 +133,10 @@ class WorkspaceExportViewModelTest {
         advanceUntilIdle()
         viewModel.togglePackageCardSelectionTag(tag = "geography")
         advanceUntilIdle()
-        val response = viewModel.preparePackageExportDownload()
+        val response = viewModel.preparePackageExportDownload(destinationDirectory = temporaryFolder.root)
 
         val request = cloudRepository.exportedWorkspacePackageRequests.single()
-        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.archiveFile?.readBytes())
         assertEquals(
             WorkspacePackageExportSelection.TagFilters(
                 includeTags = listOf("geography"),
@@ -169,11 +167,7 @@ class WorkspaceExportViewModelTest {
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
-        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
-            packageBytes = byteArrayOf(80, 75, 3, 4),
-            fileName = "flashcards.zip",
-            contentType = "application/zip"
-        )
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = workspacePackageExportDownloadResponse()
         val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
         val stateJob = backgroundScope.launch {
             viewModel.uiState.collect()
@@ -190,10 +184,10 @@ class WorkspaceExportViewModelTest {
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
         viewModel.togglePackageCardSelectionTag(tag = "geography")
         advanceUntilIdle()
-        val response = viewModel.preparePackageExportDownload()
+        val response = viewModel.preparePackageExportDownload(destinationDirectory = temporaryFolder.root)
 
         val request = cloudRepository.exportedWorkspacePackageRequests.single()
-        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.archiveFile?.readBytes())
         assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
         assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
         assertEquals(setOf("temporary"), viewModel.uiState.value.packageIncludedTags)
@@ -207,11 +201,7 @@ class WorkspaceExportViewModelTest {
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
-        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
-            packageBytes = byteArrayOf(80, 75, 3, 4),
-            fileName = "flashcards.zip",
-            contentType = "application/zip"
-        )
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = workspacePackageExportDownloadResponse()
         val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
         val stateJob = backgroundScope.launch {
             viewModel.uiState.collect()
@@ -225,10 +215,10 @@ class WorkspaceExportViewModelTest {
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreviewWithSharedTag()
         viewModel.togglePackageCardSelectionTag(tag = "geography")
         advanceUntilIdle()
-        val response = viewModel.preparePackageExportDownload()
+        val response = viewModel.preparePackageExportDownload(destinationDirectory = temporaryFolder.root)
 
         val request = cloudRepository.exportedWorkspacePackageRequests.single()
-        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.archiveFile?.readBytes())
         assertEquals(
             WorkspacePackageExportSelection.TagFilters(
                 includeTags = listOf("geography"),
@@ -248,11 +238,7 @@ class WorkspaceExportViewModelTest {
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
         cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
-        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
-            packageBytes = byteArrayOf(80, 75, 3, 4),
-            fileName = "flashcards.zip",
-            contentType = "application/zip"
-        )
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = workspacePackageExportDownloadResponse()
         val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
         val stateJob = backgroundScope.launch {
             viewModel.uiState.collect()
@@ -282,10 +268,10 @@ class WorkspaceExportViewModelTest {
         )
         assertEquals(emptySet<String>(), viewModel.uiState.value.packageCardSelectionTags)
         assertEquals(setOf("temporary"), viewModel.uiState.value.packageIncludedTags)
-        val response = viewModel.preparePackageExportDownload()
+        val response = viewModel.preparePackageExportDownload(destinationDirectory = temporaryFolder.root)
 
         val request = cloudRepository.exportedWorkspacePackageRequests.single()
-        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.archiveFile?.readBytes())
         assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
         assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
         assertEquals("Recoverable export", request.packageMetadata.label)
@@ -297,11 +283,22 @@ class WorkspaceExportViewModelTest {
         stateJob.cancel()
     }
 
+    private fun workspacePackageExportDownloadResponse(): WorkspacePackageExportDownloadResponse {
+        val archiveFile = temporaryFolder.newFile()
+        archiveFile.writeBytes(byteArrayOf(80, 75, 3, 4))
+        return WorkspacePackageExportDownloadResponse(
+            archiveFile = archiveFile,
+            fileName = "flashcards.zip",
+            contentType = "application/zip"
+        )
+    }
+
     private fun workspaceExportViewModel(cloudRepository: FakeCloudAccountRepository): WorkspaceExportViewModel {
         return WorkspaceExportViewModel(
             cloudAccountRepository = cloudRepository,
             technicalErrorController = RecordingTechnicalErrorController(),
-            strings = TestSettingsStringResolver()
+            strings = TestSettingsStringResolver(),
+            format = WorkspacePackageExportFormat.NIBOMO
         )
     }
 }

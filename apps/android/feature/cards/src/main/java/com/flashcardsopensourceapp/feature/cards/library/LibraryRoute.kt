@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.formatCardsCount
+import com.flashcardsopensourceapp.feature.cards.libraryAnkiExportRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryDeckCatalogRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryDecksRowTag
@@ -39,7 +40,8 @@ fun LibraryRoute(
     onOpenDecks: () -> Unit,
     onOpenDeckCatalog: () -> Unit,
     onOpenImport: () -> Unit,
-    onOpenExport: () -> Unit
+    onOpenExport: () -> Unit,
+    onOpenAnkiExport: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -118,6 +120,15 @@ fun LibraryRoute(
                     count = null,
                     testTag = libraryExportRowTag,
                     onClick = onOpenExport
+                )
+            }
+            item {
+                LibraryRow(
+                    title = stringResource(id = R.string.library_anki_export_title),
+                    summary = stringResource(id = R.string.library_anki_export_summary),
+                    count = null,
+                    testTag = libraryAnkiExportRowTag,
+                    onClick = onOpenAnkiExport
                 )
             }
         }
