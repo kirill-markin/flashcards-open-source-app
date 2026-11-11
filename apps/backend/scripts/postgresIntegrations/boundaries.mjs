@@ -86,6 +86,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/auth/surrogateUserId.postgres.integration.ts",
       "src/auth/provedAccountUnion.postgres.integration.ts",
       "src/workspaces/starterVisibility.postgres.integration.ts",
+      "src/workspaces/cardMaintenance.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
     ]),
   }),

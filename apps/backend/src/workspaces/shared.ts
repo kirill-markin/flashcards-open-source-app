@@ -79,24 +79,30 @@ export function assertWorkspaceOwner(role: string): void {
   }
 }
 
-export function assertWorkspaceIsSoleMember(memberCount: number): void {
+export function assertWorkspaceSoleMembership(
+  memberCount: number,
+  message: string,
+  code: string,
+): void {
   if (memberCount !== 1) {
-    throw new HttpError(
-      409,
-      "This workspace cannot be deleted while it still has multiple members.",
-      "WORKSPACE_DELETE_SHARED",
-    );
+    throw new HttpError(409, message, code);
   }
 }
 
+export function assertWorkspaceIsSoleMember(memberCount: number): void {
+  assertWorkspaceSoleMembership(
+    memberCount,
+    "This workspace cannot be deleted while it still has multiple members.",
+    "WORKSPACE_DELETE_SHARED",
+  );
+}
+
 export function assertWorkspaceIsSoleMemberForReset(memberCount: number): void {
-  if (memberCount !== 1) {
-    throw new HttpError(
-      409,
-      "This workspace cannot reset progress while it still has multiple members.",
-      "WORKSPACE_RESET_SHARED",
-    );
-  }
+  assertWorkspaceSoleMembership(
+    memberCount,
+    "This workspace cannot reset progress while it still has multiple members.",
+    "WORKSPACE_RESET_SHARED",
+  );
 }
 
 export function assertDeleteWorkspaceConfirmationText(confirmationText: string): void {

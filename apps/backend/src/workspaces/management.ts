@@ -1,12 +1,9 @@
-import { randomUUID } from "node:crypto";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   transactionWithUserScope,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
-import { CARD_COLUMNS, mapCard, recordCardSyncChange } from "../cards/shared";
-import type { CardRow } from "../cards/types";
 import {
   addBackendBreadcrumb,
   captureBackendException,
@@ -15,9 +12,12 @@ import {
   type WorkspaceTransactionDetails,
 } from "../observability/sentry";
 import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
-import { ensureSystemWorkspaceReplicaInExecutor } from "../sync/identity/replica";
 import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
-import { lockWorkspaceAccessLifecycleInExecutor } from "./accessLocks";
+import {
+  lockWorkspaceAccessLifecycleInExecutor,
+  lockWorkspaceMembershipLifecyclesInExecutor,
+} from "./accessLocks";
+import { ensureCardMaintenanceReplicaInExecutor, resetCardProgressInExecutor } from "./cardMaintenanceWrites";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
   listUserWorkspaceIdsInExecutor,
@@ -176,39 +176,6 @@ function captureWorkspaceTransactionError(
 type DeletedWorkspaceRow = Readonly<{
   workspace_id: string;
 }>;
-
-async function resetCardProgressInExecutor(
-  executor: DatabaseExecutor,
-  workspaceId: string,
-  replicaId: string,
-  cardId: string,
-): Promise<CardRow> {
-  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
-  const clientUpdatedAt = new Date().toISOString();
-  const operationId = randomUUID();
-
-  const result = await executor.query<CardRow>(
-    [
-      "UPDATE content.cards",
-      "SET due_at = NULL, reps = 0, lapses = 0, fsrs_card_state = 'new', fsrs_step_index = NULL,",
-      "fsrs_stability = NULL, fsrs_difficulty = NULL, fsrs_last_reviewed_at = NULL, fsrs_scheduled_days = NULL,",
-      "client_updated_at = $1, last_modified_by_replica_id = $2, last_operation_id = $3, updated_at = now()",
-      "WHERE workspace_id = $4 AND card_id = $5 AND deleted_at IS NULL",
-      "RETURNING",
-      CARD_COLUMNS,
-    ].join(" "),
-    [clientUpdatedAt, replicaId, operationId, workspaceId, cardId],
-  );
-
-  const updatedCardRow = result.rows[0];
-  if (updatedCardRow === undefined) {
-    throw new HttpError(404, "Card not found");
-  }
-
-  const updatedCard = mapCard(updatedCardRow);
-  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, updatedCard);
-  return updatedCardRow;
-}
 
 async function prepareSelectedWorkspaceForDeletionInExecutor(
   executor: DatabaseExecutor,
@@ -432,6 +399,8 @@ async function resetWorkspaceProgressInExecutor(
   observationScope: BackendObservationScope | null,
 ): Promise<ResetWorkspaceProgressResult> {
   assertResetWorkspaceProgressConfirmationText(confirmationText);
+  await lockWorkspaceMembershipLifecyclesInExecutor(executor, [workspaceId]);
+  await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
   let stage: WorkspaceResetProgressFailureStage = "load_management_row";
   const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
   assertWorkspaceOwner(managedWorkspace.role);
@@ -441,6 +410,7 @@ async function resetWorkspaceProgressInExecutor(
 
   try {
     stage = "count_resettable_cards";
+    const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
     const resettableCards = await loadResettableCardRowsInExecutor(executor, workspaceId);
     cardsResetCount = resettableCards.length;
 
@@ -453,20 +423,13 @@ async function resetWorkspaceProgressInExecutor(
     }
 
     stage = "reset_workspace_cards";
-    const resetReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
-      workspaceId,
-      userId,
-      actorKind: "workspace_reset",
-      actorKey: "reset-progress",
-      platform: "system",
-      appVersion: null,
-      signal: null,
-    });
+    const resetReplicaId = await ensureCardMaintenanceReplicaInExecutor(executor, userId, workspaceId, "reset-progress");
 
     for (const resettableCard of resettableCards) {
       await resetCardProgressInExecutor(
         executor,
         workspaceId,
+        hotChangeWriteLock,
         resetReplicaId,
         resettableCard.card_id,
       );
