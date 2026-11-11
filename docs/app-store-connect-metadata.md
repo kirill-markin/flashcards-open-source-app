@@ -1,5 +1,8 @@
 # App Store Connect Metadata
 
+Custom Product Page copy and settings live in
+[App Store Custom Product Pages](app-store-custom-product-pages/README.md).
+
 Duo screenshot upload has a separate
 [Asset Library procedure](app-store-connect-duo-screenshots.md).
 
