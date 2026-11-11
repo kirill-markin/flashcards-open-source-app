@@ -37,7 +37,6 @@ export type WorkspaceImportOptions = Readonly<{
 }>;
 
 export type WorkspaceImportPresentationCopy = Readonly<{
-  title: string;
   description: string;
   importTagLabel: string;
   importTagDescription: string;
@@ -46,5 +45,4 @@ export type WorkspaceImportPresentationCopy = Readonly<{
   tagsTitle: string;
   selectionActionLabel: string;
   confirmActionLabel: string;
-  confirmingActionLabel: string;
 }>;

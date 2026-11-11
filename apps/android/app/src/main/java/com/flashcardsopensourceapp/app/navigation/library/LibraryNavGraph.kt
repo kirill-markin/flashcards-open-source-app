@@ -64,10 +64,19 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onOpenSpreadsheetImport = {
+                    navController.navigate(route = LibrarySpreadsheetImportGraph.route) {
+                        launchSingleTop = true
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }
         registerLibraryAnkiImportDestination(
+            appGraph = appGraph,
+            navController = navController
+        )
+        registerLibrarySpreadsheetImportDestinations(
             appGraph = appGraph,
             navController = navController
         )

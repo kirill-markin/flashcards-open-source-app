@@ -562,6 +562,9 @@ extension FlashcardsStore {
     private func blockGuestUpgradeLocalOutboxMutationsBeforeDrain() async {
         self.isGuestUpgradeLocalOutboxMutationBlocked = true
         await self.reviewSubmissionOutboxMutationGate.blockNewReviewSubmissionsAndWaitForActiveSubmissions()
+        if let activeSpreadsheetImportTask = self.activeSpreadsheetImportTask {
+            _ = await activeSpreadsheetImportTask.result
+        }
     }
 
     private func unblockGuestUpgradeLocalOutboxMutationsIfPossible() throws {

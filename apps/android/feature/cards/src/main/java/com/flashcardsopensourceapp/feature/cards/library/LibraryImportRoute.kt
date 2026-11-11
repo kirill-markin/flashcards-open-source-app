@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.cards.library
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,12 +20,14 @@ import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.libraryImportAnkiRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportNibomoRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportScreenTag
+import com.flashcardsopensourceapp.feature.cards.libraryImportSpreadsheetRowTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryImportRoute(
     onOpenNibomoImport: () -> Unit,
     onOpenAnkiImport: () -> Unit,
+    onOpenSpreadsheetImport: () -> Unit,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -43,27 +45,40 @@ fun LibraryImportRoute(
             )
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
                 .testTag(libraryImportScreenTag)
         ) {
-            LibraryRow(
-                title = stringResource(id = R.string.library_import_nibomo_format),
-                summary = stringResource(id = R.string.library_import_nibomo_summary),
-                count = null,
-                testTag = libraryImportNibomoRowTag,
-                onClick = onOpenNibomoImport
-            )
-            LibraryRow(
-                title = stringResource(id = R.string.library_import_anki_format),
-                summary = stringResource(id = R.string.library_import_anki_summary),
-                count = null,
-                testTag = libraryImportAnkiRowTag,
-                onClick = onOpenAnkiImport
-            )
+            item {
+                LibraryRow(
+                    title = stringResource(id = R.string.library_import_nibomo_title),
+                    summary = stringResource(id = R.string.library_import_nibomo_summary),
+                    count = null,
+                    testTag = libraryImportNibomoRowTag,
+                    onClick = onOpenNibomoImport
+                )
+            }
+            item {
+                LibraryRow(
+                    title = stringResource(id = R.string.library_import_anki_title),
+                    summary = stringResource(id = R.string.library_import_anki_summary),
+                    count = null,
+                    testTag = libraryImportAnkiRowTag,
+                    onClick = onOpenAnkiImport
+                )
+            }
+            item {
+                LibraryRow(
+                    title = stringResource(id = R.string.library_import_spreadsheet_title),
+                    summary = stringResource(id = R.string.library_import_spreadsheet_summary),
+                    count = null,
+                    testTag = libraryImportSpreadsheetRowTag,
+                    onClick = onOpenSpreadsheetImport
+                )
+            }
         }
     }
 }

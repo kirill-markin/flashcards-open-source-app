@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":data:local"))
     implementation(project(":feature:review"))
 
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

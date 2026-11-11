@@ -169,9 +169,11 @@ export function LibraryScreen(): ReactElement {
             description={new Intl.ListFormat(locale, { type: "unit" }).format([
               t("workspaceImport.nibomoFormat"),
               t("workspaceImport.anki.format"),
+              t("workspaceImport.spreadsheetFormat"),
             ])}
             value={null}
             to={workspacePath(libraryImportRoute)}
+            parentPath={workspacePath(libraryRoute)}
             testId="library-row-import"
           />
         </div>

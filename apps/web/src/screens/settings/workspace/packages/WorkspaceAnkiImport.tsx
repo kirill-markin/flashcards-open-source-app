@@ -1,4 +1,6 @@
-import { useRef, useState, type ChangeEvent, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
+import { useAppData } from "../../../../appData";
+import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { normalizeChatAttachmentFileMediaType } from "../../../../chat/attachments/attachmentMediaTypes";
 import type { BinaryPendingAttachment } from "../../../../chat/attachments/FileAttachment";
 import { useOpenAnkiImportChat } from "../../../../chat/handoff/useOpenAnkiImportChat";
@@ -8,25 +10,26 @@ import {
   formatChatAttachmentLimitMessages,
 } from "../../../../chat/shared/chatSizePolicy";
 import { useI18n } from "../../../../i18n";
+import { WorkspaceImportFileField } from "./WorkspaceImportFileField";
+import { WorkspaceImportShell } from "./WorkspaceImportShell";
 
 async function hasAnkiArchiveSignature(file: File): Promise<boolean> {
   const header = await file.slice(0, 4).arrayBuffer();
   return header.byteLength === 4 && new DataView(header).getUint32(0, true) === 0x04034b50;
 }
 
-export function WorkspaceAnkiImport(props: Readonly<{ isDisabled: boolean }>): ReactElement {
+export function WorkspaceAnkiImport(): ReactElement {
+  const { isSessionVerified } = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const { isOpening, errorMessage, start } = useOpenAnkiImportChat();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<ReadonlyArray<BinaryPendingAttachment>>([]);
   const [selectionError, setSelectionError] = useState("");
   const [isValidating, setIsValidating] = useState(false);
-  const isDisabled = props.isDisabled || isOpening || isValidating;
+  const isDisabled = !isSessionVerified || isOpening || isValidating || indexedDbOpenRecoveryState.hasFailed();
 
-  async function handleSelection(event: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const files = Array.from(event.currentTarget.files ?? []);
-    event.currentTarget.value = "";
-    if (files.length === 0 || isDisabled) {
+  async function handleSelection(files: ReadonlyArray<File>): Promise<void> {
+    if (isDisabled) {
       return;
     }
 
@@ -73,69 +76,60 @@ export function WorkspaceAnkiImport(props: Readonly<{ isDisabled: boolean }>): R
   }
 
   return (
-    <article className="content-card workspace-export-format-card" data-testid="workspace-anki-import-card">
-      <div className="settings-nav-card-copy">
-        <strong className="panel-subtitle">{t("workspaceImport.anki.format")}</strong>
+    <WorkspaceImportShell title={t("workspaceImport.anki.title")}>
+      <article className="content-card workspace-export-format-card" data-testid="workspace-anki-import-card">
         <p className="subtitle">{t("workspaceImport.anki.description")}</p>
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".apkg"
-        multiple
-        hidden
-        disabled={isDisabled}
-        data-testid="workspace-anki-import-file-input"
-        onChange={handleSelection}
-      />
-      {attachments.length === 0 ? null : (
-        <div className="chat-attachment-preview">
-          {attachments.map((attachment, index) => (
-            <span className="chat-attachment-chip chat-attachment-chip-card" key={`${attachment.fileName}-${index}`}>
-              <bdi className="chat-attachment-card-label" title={attachment.fileName}>{attachment.fileName}</bdi>
-              <button
-                className="chat-attachment-remove"
-                type="button"
-                disabled={isDisabled}
-                aria-label={`${t("chatPanel.actions.removeAttachment")}: ${attachment.fileName}`}
-                data-testid="workspace-anki-import-remove-file"
-                onClick={() => {
-                  setAttachments(attachments.filter((_, fileIndex) => fileIndex !== index));
-                  setSelectionError("");
-                }}
-              >
-                &times;
-              </button>
-            </span>
-          ))}
+        {!isSessionVerified ? <p className="subtitle" role="status">{t("loading.restoringSession")}</p> : null}
+        <WorkspaceImportFileField
+          accept=".apkg"
+          multiple
+          label={t("workspaceImport.anki.chooseFiles")}
+          isDisabled={isDisabled}
+          isBusy={isValidating}
+          inputTestId="workspace-anki-import-file-input"
+          pickerTestId="workspace-anki-import-select"
+          onSelect={(files) => void handleSelection(files)}
+        >
+          {attachments.length === 0 ? null : (
+            <div className="chat-attachment-preview">
+              {attachments.map((attachment, index) => (
+                <span className="chat-attachment-chip chat-attachment-chip-card" key={`${attachment.fileName}-${index}`}>
+                  <bdi className="chat-attachment-card-label" title={attachment.fileName}>{attachment.fileName}</bdi>
+                  <button
+                    className="chat-attachment-remove"
+                    type="button"
+                    disabled={isDisabled}
+                    aria-label={`${t("chatPanel.actions.removeAttachment")}: ${attachment.fileName}`}
+                    data-testid="workspace-anki-import-remove-file"
+                    onClick={() => {
+                      setAttachments(attachments.filter((_, fileIndex) => fileIndex !== index));
+                      setSelectionError("");
+                    }}
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </WorkspaceImportFileField>
+        <div className="workspace-export-actions">
+          <button
+            className="primary-btn"
+            type="button"
+            disabled={isDisabled || attachments.length === 0}
+            aria-busy={isOpening}
+            data-testid="workspace-anki-import-start"
+            onClick={() => {
+              setSelectionError("");
+              start({ inputText: t("workspaceImport.anki.request"), pendingAttachments: attachments });
+            }}
+          >
+            {isOpening ? t("loading.aiChat") : t("workspaceImport.anki.start")}
+          </button>
         </div>
-      )}
-      <div className="workspace-export-actions">
-        <button
-          className="primary-btn"
-          type="button"
-          disabled={isDisabled}
-          aria-busy={isValidating}
-          data-testid="workspace-anki-import-select"
-          onClick={() => inputRef.current?.click()}
-        >
-          {t("workspaceImport.anki.chooseFiles")}
-        </button>
-        <button
-          className="primary-btn"
-          type="button"
-          disabled={isDisabled || attachments.length === 0}
-          aria-busy={isOpening}
-          data-testid="workspace-anki-import-start"
-          onClick={() => {
-            setSelectionError("");
-            start({ inputText: t("workspaceImport.anki.request"), pendingAttachments: attachments });
-          }}
-        >
-          {isOpening ? t("loading.aiChat") : t("workspaceImport.anki.start")}
-        </button>
-      </div>
-      {selectionError || errorMessage ? <p className="error-banner" role="alert">{selectionError || errorMessage}</p> : null}
-    </article>
+        {selectionError || errorMessage ? <p className="error-banner" role="alert">{selectionError || errorMessage}</p> : null}
+      </article>
+    </WorkspaceImportShell>
   );
 }

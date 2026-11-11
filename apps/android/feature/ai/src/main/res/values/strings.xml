@@ -1,6 +1,7 @@
 <resources>
     <string name="ai_anki_import_title">Import from Anki</string>
     <string name="ai_anki_import_description">Choose up to %1$d Anki deck packages (.apkg), each up to %2$d MB. AI chat will import them into your current workspace.</string>
+    <string name="ai_anki_import_files_label">Anki deck packages</string>
     <string name="ai_anki_import_choose_files">Choose Anki files</string>
     <string name="ai_anki_import_preparing">Preparing Anki import…</string>
     <string name="ai_anki_import_choose_files_again">Choose your Anki files again to continue.</string>

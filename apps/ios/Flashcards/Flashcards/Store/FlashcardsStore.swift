@@ -219,6 +219,7 @@ final class FlashcardsStore {
     @ObservationIgnored var accountPreferencesUpdateTask: Task<Void, Never>?
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
+    @ObservationIgnored var activeSpreadsheetImportTask: Task<Int, Error>?
     /// Whether the `signed_out` row for the sign-out currently being attempted has already been
     /// written, so a retry after a teardown that threw cannot write a second permanent row. Released
     /// by the identity boundary, where the credential that row went out under is cleared, so it
