@@ -790,6 +790,15 @@ export const zhHantCatalog = {
       addCards: "新增卡片",
       transfer: "資料移轉",
     },
+    cards: {
+      description: "這個工作區的所有卡片。",
+    },
+    tags: {
+      description: "你的卡片上使用的標籤。",
+    },
+    decks: {
+      description: "依你選擇的標籤建立的卡片群組。",
+    },
     deckCatalog: {
       title: "牌組目錄",
       description: "直接使用現成的免費牌組開始學習。",

@@ -790,6 +790,15 @@ const orCatalog: TranslationCatalog = {
       addCards: "କାର୍ଡ ଯୋଡ଼ନ୍ତୁ",
       transfer: "ତଥ୍ୟ ଟ୍ରାନ୍ସଫର୍",
     },
+    cards: {
+      description: "ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ରର ସବୁ କାର୍ଡ।",
+    },
+    tags: {
+      description: "ଆପଣଙ୍କ କାର୍ଡରେ ବ୍ୟବହୃତ ଟ୍ୟାଗ୍।",
+    },
+    decks: {
+      description: "ଆପଣ ବାଛିଥିବା ଟ୍ୟାଗ୍ ଅନୁସାରେ ଗଠିତ କାର୍ଡ ଗୋଷ୍ଠୀ।",
+    },
     deckCatalog: {
       title: "ଡେକ୍ କ୍ୟାଟାଲଗ୍",
       description: "ପଢ଼ିବାକୁ ମାଗଣା ପ୍ରସ୍ତୁତ ଡେକ୍।",

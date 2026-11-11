@@ -2,8 +2,11 @@
     <string name="library_title">資料庫</string>
     <string name="library_your_cards_section_title">你的卡片</string>
     <string name="library_cards_title">卡片</string>
+    <string name="library_cards_summary">這個工作區的所有卡片。</string>
     <string name="library_tags_title">標籤</string>
+    <string name="library_tags_summary">你的卡片上使用的標籤。</string>
     <string name="library_decks_title">牌組</string>
+    <string name="library_decks_summary">依你選擇的標籤建立的卡片群組。</string>
     <string name="library_add_cards_section_title">加入卡片</string>
     <string name="library_deck_catalog_title">牌組目錄</string>
     <string name="library_deck_catalog_summary">免費牌組，選好就能開始學習。</string>

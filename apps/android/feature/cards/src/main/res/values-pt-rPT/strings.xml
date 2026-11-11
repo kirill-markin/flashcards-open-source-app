@@ -2,8 +2,11 @@
     <string name="library_title">Biblioteca</string>
     <string name="library_your_cards_section_title">Os seus cartões</string>
     <string name="library_cards_title">Cartões</string>
+    <string name="library_cards_summary">Todos os cartões deste espaço de trabalho.</string>
     <string name="library_tags_title">Etiquetas</string>
+    <string name="library_tags_summary">Etiquetas usadas nos seus cartões.</string>
     <string name="library_decks_title">Baralhos</string>
+    <string name="library_decks_summary">Grupos de cartões com base nas etiquetas que escolher.</string>
     <string name="library_add_cards_section_title">Adicionar cartões</string>
     <string name="library_deck_catalog_title">Catálogo de baralhos</string>
     <string name="library_deck_catalog_summary">Baralhos gratuitos prontos a estudar.</string>

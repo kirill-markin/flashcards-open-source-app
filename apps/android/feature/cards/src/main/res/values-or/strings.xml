@@ -2,8 +2,11 @@
     <string name="library_title">ଲାଇବ୍ରେରି</string>
     <string name="library_your_cards_section_title">ଆପଣଙ୍କ କାର୍ଡ</string>
     <string name="library_cards_title">କାର୍ଡ</string>
+    <string name="library_cards_summary">ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ରର ସବୁ କାର୍ଡ।</string>
     <string name="library_tags_title">ଟ୍ୟାଗ୍</string>
+    <string name="library_tags_summary">ଆପଣଙ୍କ କାର୍ଡରେ ବ୍ୟବହୃତ ଟ୍ୟାଗ୍।</string>
     <string name="library_decks_title">ଡେକ୍</string>
+    <string name="library_decks_summary">ଆପଣ ବାଛିଥିବା ଟ୍ୟାଗ୍ ଅନୁସାରେ ଗଠିତ କାର୍ଡ ଗୋଷ୍ଠୀ।</string>
     <string name="library_add_cards_section_title">କାର୍ଡ ଯୋଡ଼ନ୍ତୁ</string>
     <string name="library_deck_catalog_title">ଡେକ୍ କ୍ୟାଟାଲଗ୍</string>
     <string name="library_deck_catalog_summary">ପଢ଼ିବା ପାଇଁ ପୂର୍ବରୁ ତିଆରି ମାଗଣା ଡେକ୍।</string>

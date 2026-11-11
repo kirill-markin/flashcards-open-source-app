@@ -790,6 +790,15 @@ const ptPtCatalog: TranslationCatalog = {
       addCards: "Adicionar cartões",
       transfer: "Transferência de dados",
     },
+    cards: {
+      description: "Todos os cartões deste espaço de trabalho.",
+    },
+    tags: {
+      description: "Etiquetas usadas nos seus cartões.",
+    },
+    decks: {
+      description: "Grupos de cartões com base nas etiquetas que escolher.",
+    },
     deckCatalog: {
       title: "Catálogo de baralhos",
       description: "Baralhos gratuitos prontos a estudar.",

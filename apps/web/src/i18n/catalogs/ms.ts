@@ -790,6 +790,15 @@ const msCatalog: TranslationCatalog = {
       addCards: "Tambah kad",
       transfer: "Pemindahan data",
     },
+    cards: {
+      description: "Semua kad dalam ruang kerja ini.",
+    },
+    tags: {
+      description: "Tag yang digunakan pada kad anda.",
+    },
+    decks: {
+      description: "Kumpulan kad berdasarkan tag yang anda pilih.",
+    },
     deckCatalog: {
       title: "Katalog dek",
       description: "Dek sedia guna percuma untuk belajar.",

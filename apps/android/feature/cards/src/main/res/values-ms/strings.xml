@@ -2,8 +2,11 @@
     <string name="library_title">Pustaka</string>
     <string name="library_your_cards_section_title">Kad anda</string>
     <string name="library_cards_title">Kad</string>
+    <string name="library_cards_summary">Semua kad dalam ruang kerja ini.</string>
     <string name="library_tags_title">Tag</string>
+    <string name="library_tags_summary">Tag yang digunakan pada kad anda.</string>
     <string name="library_decks_title">Dek</string>
+    <string name="library_decks_summary">Kumpulan kad berdasarkan tag yang anda pilih.</string>
     <string name="library_add_cards_section_title">Tambah kad</string>
     <string name="library_deck_catalog_title">Katalog dek</string>
     <string name="library_deck_catalog_summary">Dek percuma yang sedia untuk dipelajari.</string>
