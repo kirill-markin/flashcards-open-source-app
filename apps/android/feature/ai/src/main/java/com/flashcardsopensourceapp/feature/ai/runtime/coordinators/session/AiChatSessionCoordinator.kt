@@ -43,6 +43,31 @@ internal class AiChatSessionCoordinator(
         pendingAttachments: List<AiChatAttachment>,
         shouldFocusComposer: Boolean
     ) {
+        val workspaceId = context.runtimeStateMutable.value.workspaceId
+        val targetSessionId = prepareFreshConversation(
+            draftMessage = draftMessage,
+            pendingAttachments = pendingAttachments,
+            shouldFocusComposer = shouldFocusComposer
+        )
+        initializeFreshConversation(workspaceId = workspaceId, targetSessionId = targetSessionId)
+    }
+
+    fun prepareFreshConversationForSend(
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>
+    ) {
+        prepareFreshConversation(
+            draftMessage = draftMessage,
+            pendingAttachments = pendingAttachments,
+            shouldFocusComposer = false
+        )
+    }
+
+    private fun prepareFreshConversation(
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>,
+        shouldFocusComposer: Boolean
+    ): String {
         cancelActiveDictation("AI dictation cancelled because a new chat was requested.")
         val currentState = context.runtimeStateMutable.value
         context.persistDraft(snapshot = currentState)
@@ -80,10 +105,8 @@ internal class AiChatSessionCoordinator(
             )
         }
         context.persistCurrentState()
-        initializeFreshConversation(
-            workspaceId = currentState.workspaceId,
-            targetSessionId = targetSessionId
-        )
+        cancelPreviousConversationJobs()
+        return targetSessionId
     }
 
     fun canApplySessionScopedResult(targetSessionId: String): Boolean {
@@ -305,14 +328,12 @@ internal class AiChatSessionCoordinator(
         context.activeFreshSessionTargetSessionId = null
     }
 
-    private fun initializeFreshConversation(
-        workspaceId: String?,
-        targetSessionId: String
-    ) {
+    private fun cancelPreviousConversationJobs() {
         context.activeFreshSessionJob?.cancel(
             cause = CancellationException("AI fresh session creation cancelled because a newer reset was requested.")
         )
-        context.activeFreshSessionTargetSessionId = targetSessionId
+        context.activeFreshSessionJob = null
+        context.activeFreshSessionTargetSessionId = null
         context.activeSendJob?.cancel(
             cause = CancellationException("AI send cancelled because a new chat was requested.")
         )
@@ -326,6 +347,10 @@ internal class AiChatSessionCoordinator(
         )
         context.activeWarmUpJob = null
         detachLiveStream("AI live stream detached because a new chat was requested.")
+    }
+
+    private fun initializeFreshConversation(workspaceId: String?, targetSessionId: String) {
+        context.activeFreshSessionTargetSessionId = targetSessionId
         var freshSessionJob: Job? = null
         freshSessionJob = context.scope.launch {
             try {

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
@@ -348,6 +349,11 @@ data class AiChatPreparedRemoteSession(
     val authorizationHeader: String
 )
 
+data class AiChatPreparedAnkiImport(
+    val target: AiAnkiImportTarget,
+    val remoteSession: AiChatPreparedRemoteSession
+)
+
 interface AiChatRepository {
     fun observeConsent(): Flow<Boolean>
     fun hasConsent(): Boolean
@@ -364,6 +370,7 @@ interface AiChatRepository {
     suspend fun loadAiUsage(workspaceId: String?): AiUsageStatus
     fun makeExplicitSessionId(): String
     suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession
+    suspend fun prepareAnkiImportSession(target: AiAnkiImportTarget): AiChatPreparedAnkiImport
     suspend fun ensureReadyForSend(workspaceId: String?)
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
@@ -416,7 +423,8 @@ interface AiChatRepository {
         state: AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
-        uiLocale: String?
+        uiLocale: String?,
+        preparedAnkiImport: AiChatPreparedAnkiImport?
     ): AiChatStartRunResponse
     fun attachLiveRun(
         workspaceId: String?,

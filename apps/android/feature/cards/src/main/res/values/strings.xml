@@ -8,7 +8,12 @@
     <string name="library_deck_catalog_title">Deck catalog</string>
     <string name="library_deck_catalog_summary">Free ready-made decks to study.</string>
     <string name="library_import_title">Import</string>
-    <string name="library_import_summary">Add cards from a file.</string>
+    <string name="library_import_formats_summary">%1$s, %2$s</string>
+    <string name="library_import_nibomo_format">Nibomo format</string>
+    <string name="library_import_anki_format">Anki format</string>
+    <string name="library_import_nibomo_summary" translatable="false">.zip</string>
+    <string name="library_import_anki_summary" translatable="false">.apkg</string>
+    <string name="library_import_back_content_description">Back</string>
     <string name="library_export_title">Export</string>
     <string name="library_export_summary">Download all your cards as a file.</string>
     <string name="catalog_back_content_description">Back</string>

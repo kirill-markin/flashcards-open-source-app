@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -16,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt
+import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImport
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import com.flashcardsopensourceapp.feature.ai.input.isAiChatAttachmentStaged
@@ -29,6 +31,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraf
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.dictation.AiChatDictationCoordinator
@@ -176,7 +179,7 @@ internal class AiChatRuntime(
     fun updateAccessContext(accessContext: AiAccessContext) {
         val previousAccessContext = context.activeAccessContext
         lifecycleCoordinator.updateAccessContext(accessContext = accessContext)
-        if (previousAccessContext?.runtimeKey() != accessContext.runtimeKey()) {
+        if (previousAccessContext?.runtimeKey()?.matchesCurrentAccess(current = accessContext.runtimeKey()) != true) {
             context.aiUsageStateMutable.value = null
             context.refreshAiUsage()
         }
@@ -407,6 +410,44 @@ internal class AiChatRuntime(
         return true
     }
 
+    fun handoffAnkiImportToChat(ankiImport: AiAnkiImport, workspace: AiAnkiImportTarget?): Boolean {
+        if (workspace == null) {
+            deleteAiChatAttachmentStagedFiles(attachments = ankiImport.attachments)
+            showErrorMessage(message = context.textProvider.ankiImportWorkspaceChanged)
+            return true
+        }
+        val accessContext = context.activeAccessContext ?: return false
+        val state = runtimeStateMutable.value
+        if (
+            state.loadedAccessKey != accessContext.runtimeKey() || accessContext.workspaceId != workspace.workspaceId ||
+            accessContext.cloudState != workspace.cloudState || accessContext.linkedUserId != workspace.linkedUserId ||
+            shouldBootstrapConversation(accessContext = accessContext, hasConsent = hasConsent()).not() ||
+            state.conversationBootstrapState != AiConversationBootstrapState.READY ||
+            canClearConversation(state = state).not() || state.isImportingAttachment
+        ) {
+            return false
+        }
+
+        val errorMessage = when {
+            canAddPendingAttachment(state = state).not() -> context.textProvider.ankiImportAttachmentsUnavailable
+            ankiImport.attachments.any { attachment -> isAiChatAttachmentStaged(attachment = attachment).not() } ->
+                context.textProvider.attachmentFileMissing
+            else -> null
+        }
+        if (errorMessage != null) {
+            deleteAiChatAttachmentStagedFiles(attachments = ankiImport.attachments)
+            showErrorMessage(message = errorMessage)
+            return true
+        }
+
+        sessionCoordinator.prepareFreshConversationForSend(
+            draftMessage = ankiImport.message,
+            pendingAttachments = ankiImport.attachments
+        )
+        sendCoordinator.sendMessage(ankiImportTarget = workspace)
+        return true
+    }
+
     fun handoffCardToChat(
         cardId: String,
         frontText: String,
@@ -575,6 +616,12 @@ internal class AiChatRuntime(
             return
         }
 
+        if (runtimeStateMutable.value.guestAccessPreparationError != null &&
+            shouldPrepareGuestAccess(accessContext = context.activeAccessContext, hasConsent = true)
+        ) {
+            lifecycleCoordinator.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+            return
+        }
         bootstrapCoordinator.startConversationBootstrap(
             forceReloadState = true,
             resumeDiagnostics = null
@@ -596,7 +643,7 @@ internal class AiChatRuntime(
     }
 
     fun sendMessage() {
-        sendCoordinator.sendMessage()
+        sendCoordinator.sendMessage(ankiImportTarget = null)
     }
 
     private fun hasConsent(): Boolean {

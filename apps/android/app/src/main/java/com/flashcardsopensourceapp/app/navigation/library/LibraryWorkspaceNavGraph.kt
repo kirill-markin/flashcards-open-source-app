@@ -258,7 +258,7 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
         )
     }
 
-    composable(route = LibraryImportDestination.route) {
+    composable(route = LibraryNibomoImportDestination.route) {
         val context = LocalContext.current
         val workspaceImportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportViewModel>(
             factory = createWorkspaceImportViewModelFactory(

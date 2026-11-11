@@ -53,6 +53,7 @@ import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
+import com.flashcardsopensourceapp.app.navigation.AiAnkiImportRequest
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
@@ -72,6 +73,7 @@ import com.flashcardsopensourceapp.data.local.appicon.effectiveAppIcon
 import com.flashcardsopensourceapp.data.local.ai.remote.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStorageException
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
@@ -91,8 +93,10 @@ import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesRev
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
@@ -142,6 +146,7 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImportOrigin
 import com.flashcardsopensourceapp.feature.settings.accent.createAccentColorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.theme.createThemeViewModelFactory
 import kotlinx.coroutines.CancellationException
@@ -1194,6 +1199,95 @@ class AppGraph(
         return AppGuestCloudSession(
             workspaceId = guestSession.workspaceId
         )
+    }
+
+    internal suspend fun captureAiAnkiImportOrigin(): AiAnkiImportOrigin? = cloudOperationCoordinator.runExclusive {
+        val workspaceId = workspaceRepository.observeWorkspace().first()?.workspaceId ?: return@runExclusive null
+        val configuration = cloudPreferencesStore.currentServerConfiguration()
+        val cloudSettings = resolveAiAnkiImportCloudSettings(
+            workspaceId = workspaceId,
+            settings = cloudPreferencesStore.currentCloudSettings(),
+            configuration = configuration
+        ) ?: return@runExclusive null
+        AiAnkiImportOrigin(
+            workspaceId = workspaceId,
+            cloudSettings = cloudSettings,
+            configuration = configuration,
+            previousGuestMigration = cloudGuestSessionCoordinator.lastLocalGuestWorkspaceMigration
+        )
+    }
+
+    internal suspend fun withAiAnkiImportWorkspace(
+        request: AiAnkiImportRequest,
+        handoff: (AiAnkiImportTarget?) -> Unit
+    ) = cloudOperationCoordinator.runExclusive {
+        val workspaceId = workspaceRepository.observeWorkspace().first()?.workspaceId
+            ?: return@runExclusive handoff(null)
+        val settings = cloudPreferencesStore.currentCloudSettings()
+        val configuration = cloudPreferencesStore.currentServerConfiguration()
+        val current = resolveAiAnkiImportCloudSettings(
+            workspaceId = workspaceId,
+            settings = settings,
+            configuration = configuration
+        ) ?: return@runExclusive handoff(null)
+        val origin = request.origin
+        val migration = cloudGuestSessionCoordinator.lastLocalGuestWorkspaceMigration
+        val isSameWorkspace = workspaceId == origin.workspaceId &&
+            origin.cloudSettings.cloudState == current.cloudState && origin.cloudSettings.linkedUserId == current.linkedUserId
+        val isGuestMigration = origin.cloudSettings.cloudState == CloudAccountState.DISCONNECTED &&
+            origin.cloudSettings.linkedUserId == null &&
+            migration != null && migration !== origin.previousGuestMigration &&
+            migration.sourceWorkspaceId == origin.workspaceId && migration.guestWorkspaceId == workspaceId &&
+            (current.cloudState == CloudAccountState.DISCONNECTED && current.linkedUserId == null ||
+                current.cloudState == CloudAccountState.GUEST && migration.guestUserId == current.linkedUserId)
+        val verifiedWorkspace = if (
+            origin.cloudSettings.installationId == current.installationId &&
+            origin.configuration == configuration && (isSameWorkspace || isGuestMigration)
+        ) {
+            // The AI destination retries when reconciliation restores the guest user ID.
+            if (current.linkedUserId != settings.linkedUserId) {
+                return@runExclusive
+            }
+            AiAnkiImportTarget(
+                workspaceId = workspaceId,
+                cloudState = current.cloudState,
+                linkedUserId = current.linkedUserId,
+                installationId = current.installationId,
+                configuration = configuration
+            )
+        } else {
+            null
+        }
+        handoff(verifiedWorkspace)
+    }
+
+    private suspend fun resolveAiAnkiImportCloudSettings(
+        workspaceId: String,
+        settings: CloudSettings,
+        configuration: CloudServiceConfiguration
+    ): CloudSettings? {
+        if (settings.cloudState != CloudAccountState.GUEST || settings.linkedUserId != null) {
+            return settings
+        }
+        if (cloudPreferencesStore.loadCloudCredentialRecoveryState() != null) {
+            return null
+        }
+
+        val userId = try {
+            withContext(Dispatchers.IO) {
+                guestAiSessionStore.loadSession(localWorkspaceId = workspaceId, configuration = configuration)
+                    ?.takeIf { session -> session.isAnalyticsOnly.not() && session.userId.isNotBlank() }
+                    ?.userId
+            }
+        } catch (error: GuestAiSessionStorageException) {
+            AiChatDiagnosticsLogger.error(
+                event = "anki_import_guest_session_read_failed",
+                fields = listOf("workspaceId" to workspaceId),
+                throwable = error
+            )
+            null
+        } ?: return null
+        return settings.copy(linkedUserId = userId)
     }
 
     /** The AI usage last loaded for [workspaceId] in this process, so a paywall opens with its allowance. */

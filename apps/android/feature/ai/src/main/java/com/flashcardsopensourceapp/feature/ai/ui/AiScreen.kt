@@ -26,6 +26,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -46,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -61,6 +63,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.AiPendingAnkiImport
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
@@ -97,6 +100,7 @@ import com.flashcardsopensourceapp.feature.settings.access.resolveAccessStatus
 @Composable
 internal fun AiRouteContent(
     uiState: AiUiState,
+    pendingAnkiImport: AiPendingAnkiImport?,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
     onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
@@ -171,8 +175,10 @@ internal fun AiRouteContent(
         uiState.composerSuggestions.isNotEmpty()
     val isColdConversationLoading = uiState.isConversationLoading &&
         hasLocalConversationContent.not()
-    val showConversation = uiState.isConversationReady ||
-        (uiState.isConversationLoading && hasLocalConversationContent)
+    val isWaitingForAnkiGuestAccess = pendingAnkiImport != null && uiState.needsGuestAccessPreparation
+    val ankiGuestAccessError = uiState.guestAccessPreparationError.takeIf { isWaitingForAnkiGuestAccess }
+    val showConversation = isWaitingForAnkiGuestAccess.not() &&
+        (uiState.isConversationReady || (uiState.isConversationLoading && hasLocalConversationContent))
     val showComposer = uiState.isConsentRequired.not() && showConversation
 
     // The camera pair is complete on its success half and incomplete on its failure half, by an OS
@@ -426,33 +432,55 @@ internal fun AiRouteContent(
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(stringResource(id = R.string.ai_title))
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = onOpenHistory,
-                            enabled = uiState.canOpenChatHistory,
-                            modifier = Modifier.testTag(tag = aiHistoryButtonTag)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
-                                contentDescription = stringResource(id = R.string.ai_history_content_description)
-                            )
+                Column {
+                    TopAppBar(
+                        title = {
+                            Text(stringResource(id = R.string.ai_title))
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = onOpenHistory,
+                                enabled = uiState.canOpenChatHistory && isWaitingForAnkiGuestAccess.not(),
+                                modifier = Modifier.testTag(tag = aiHistoryButtonTag)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
+                                    contentDescription = stringResource(id = R.string.ai_history_content_description)
+                                )
+                            }
+                            IconButton(
+                                onClick = onNewChat,
+                                enabled = uiState.canStartNewChat && isWaitingForAnkiGuestAccess.not(),
+                                modifier = Modifier.testTag(tag = aiNewChatButtonTag)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AddComment,
+                                    contentDescription = stringResource(id = R.string.ai_new_chat_content_description)
+                                )
+                            }
                         }
-                        IconButton(
-                            onClick = onNewChat,
-                            enabled = uiState.canStartNewChat,
-                            modifier = Modifier.testTag(tag = aiNewChatButtonTag)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.AddComment,
-                                contentDescription = stringResource(id = R.string.ai_new_chat_content_description)
-                            )
-                        }
+                    )
+                    if (uiState.isConsentRequired.not() && pendingAnkiImport != null) {
+                        ListItem(
+                            headlineContent = { Text(stringResource(id = R.string.ai_anki_import_pending)) },
+                            supportingContent = {
+                                Text(
+                                    text = pendingAnkiImport.fileNames.joinToString(separator = ", "),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            trailingContent = {
+                                TextButton(
+                                    onClick = pendingAnkiImport.onCancel,
+                                    modifier = Modifier.testTag(tag = "ai_pending_anki_import_cancel")
+                                ) {
+                                    Text(stringResource(id = R.string.ai_anki_import_cancel))
+                                }
+                            }
+                        )
                     }
-                )
+                }
             }
         ) { innerPadding ->
             val contentModifier = Modifier
@@ -463,10 +491,11 @@ internal fun AiRouteContent(
             if (uiState.isConsentRequired) {
                 ConsentGate(
                     currentWorkspaceName = uiState.currentWorkspaceName,
+                    pendingAnkiImport = pendingAnkiImport,
                     onAcceptConsent = onAcceptConsent,
                     modifier = contentModifier
                 )
-            } else if (isColdConversationLoading) {
+            } else if (isColdConversationLoading || (isWaitingForAnkiGuestAccess && ankiGuestAccessError == null)) {
                 AiConversationLoading(
                     modifier = contentModifier
                 )
@@ -482,7 +511,7 @@ internal fun AiRouteContent(
                     ) {
                         Text(stringResource(id = R.string.ai_chat_unavailable_title))
                         AiConversationLoadErrorCard(
-                            presentation = uiState.conversationErrorPresentation,
+                            presentation = ankiGuestAccessError ?: uiState.conversationErrorPresentation,
                             modifier = Modifier.fillMaxWidth()
                         )
                         if (uiState.canRetryConversationLoad) {
