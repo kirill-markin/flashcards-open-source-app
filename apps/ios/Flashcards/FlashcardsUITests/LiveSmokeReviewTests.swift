@@ -252,6 +252,10 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
 
+        #if targetEnvironment(macCatalyst)
+        try self.scrollMacReviewFilter(scrollSurface, to: identifier, deltaY: -240)
+        self.app.buttons[identifier].firstMatch.click()
+        #else
         let button = self.app.buttons[identifier].firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
@@ -260,11 +264,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
-            #if targetEnvironment(macCatalyst)
-            scrollSurface.scrollTowardLaterContent()
-            #else
             try self.dragReviewFilterScrollSurface(scrollSurface, from: 0.75, to: 0.25)
-            #endif
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -274,11 +274,15 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+        #endif
     }
 
     @MainActor
     private func scrollReviewFilterToTop() throws {
         let scrollSurface = self.app.scrollViews[LiveSmokeIdentifier.reviewFilterScrollSurface].firstMatch
+        #if targetEnvironment(macCatalyst)
+        try self.scrollMacReviewFilter(scrollSurface, to: LiveSmokeIdentifier.reviewFilterAllCardsToggle, deltaY: 240)
+        #else
         let allCardsButton = self.app.buttons[LiveSmokeIdentifier.reviewFilterAllCardsToggle].firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
@@ -286,11 +290,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
-            #if targetEnvironment(macCatalyst)
-            scrollSurface.scrollTowardEarlierContent()
-            #else
             try self.dragReviewFilterScrollSurface(scrollSurface, from: 0.25, to: 0.75)
-            #endif
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -300,9 +300,38 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+        #endif
     }
 
-    #if !targetEnvironment(macCatalyst)
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    private func scrollMacReviewFilter(_ scrollSurface: XCUIElement, to identifier: String, deltaY: CGFloat) throws {
+        let row = self.app.buttons[identifier].firstMatch
+        let timeout = LiveSmokeConfiguration.longUiTimeoutSeconds
+        let deadline = Date().addingTimeInterval(timeout)
+        let pointer = scrollSurface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        while scrollSurface.exists {
+            if row.exists {
+                let frame = row.frame
+                if scrollSurface.frame.contains(CGPoint(x: frame.midX, y: frame.midY)), row.isHittable {
+                    return
+                }
+            }
+            guard Date() < deadline else { break }
+
+            // The toolbar popover owns a separate window. Move the pointer into it before scrolling.
+            pointer.hover()
+            pointer.scroll(byDeltaX: 0, deltaY: deltaY)
+        }
+
+        throw LiveSmokeFailure.missingElement(
+            identifier: identifier,
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+    #else
     @MainActor
     private func dragReviewFilterScrollSurface(
         _ scrollSurface: XCUIElement,
