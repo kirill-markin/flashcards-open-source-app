@@ -55,8 +55,8 @@ jobs:
         id: source
         working-directory: ${{ github.workspace }}
         run: |
-          python - <<'PY'
-          from scripts.plugins.publish_executor import prepare_registry_source
+          PYTHONPATH="$PWD/scripts/plugins" python -BP - <<'PY'
+          from publish_executor import prepare_registry_source
           prepare_registry_source()
           PY
 
