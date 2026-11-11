@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnScope
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.AlertDialog
@@ -29,9 +30,15 @@ import androidx.wear.compose.material3.AlertDialogDefaults
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.CircularProgressIndicator
+import androidx.wear.compose.material3.ListHeader
+import androidx.wear.compose.material3.ListHeaderDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.TransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 import com.flashcardsopensourceapp.wear.R
 import com.flashcardsopensourceapp.wear.review.WearReviewScreen
 import com.flashcardsopensourceapp.wear.review.WearReviewViewModel
@@ -111,17 +118,21 @@ private fun WearSessionMessageScreen(
     isRequestingHandoff: Boolean,
     onRetry: () -> Unit
 ) {
-    WearScrollingScreen {
+    WearScrollingScreen { transformationSpec ->
         item {
-            WearSessionTitle(text = title)
+            WearSessionTitle(text = title, transformationSpec = transformationSpec)
         }
         if (message != null) {
             item {
-                WearSessionMessage(text = message)
+                WearSessionMessage(text = message, transformationSpec = transformationSpec)
             }
         }
         item {
-            WearRetryButton(isRequestingHandoff = isRequestingHandoff, onRetry = onRetry)
+            WearRetryButton(
+                isRequestingHandoff = isRequestingHandoff,
+                transformationSpec = transformationSpec,
+                onRetry = onRetry
+            )
         }
     }
 }
@@ -142,27 +153,39 @@ private fun WearSwitchBlockedScreen(
     }
     val discardTitle = stringResource(R.string.wear_session_switch_blocked_discard)
 
-    WearScrollingScreen {
+    WearScrollingScreen { transformationSpec ->
         item {
             WearSessionTitle(
                 text = pluralStringResource(
                     R.plurals.wear_session_switch_blocked_title,
                     unsyncedRatingCount,
                     unsyncedRatingCount
-                )
+                ),
+                transformationSpec = transformationSpec
             )
         }
         item {
-            WearSessionMessage(text = stringResource(R.string.wear_session_switch_blocked_message))
+            WearSessionMessage(
+                text = stringResource(R.string.wear_session_switch_blocked_message),
+                transformationSpec = transformationSpec
+            )
         }
         item {
-            WearRetryButton(isRequestingHandoff = isRequestingHandoff, onRetry = onRetry)
+            WearRetryButton(
+                isRequestingHandoff = isRequestingHandoff,
+                transformationSpec = transformationSpec,
+                onRetry = onRetry
+            )
         }
         if (isRequestingHandoff.not()) {
             item {
                 Button(
                     onClick = { isDiscardConfirmationVisible = true },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformationSpec)
+                        .minimumVerticalContentPadding(ButtonDefaults.minimumVerticalListContentPadding),
+                    transformation = SurfaceTransformation(transformationSpec),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError
@@ -201,28 +224,38 @@ private fun WearSwitchBlockedScreen(
 }
 
 @Composable
-private fun WearScrollingScreen(content: TransformingLazyColumnScope.() -> Unit) {
+private fun WearScrollingScreen(content: TransformingLazyColumnScope.(TransformationSpec) -> Unit) {
     val listState = rememberTransformingLazyColumnState()
+    val transformationSpec = rememberTransformationSpec()
     ScreenScaffold(scrollState = listState) { contentPadding ->
-        TransformingLazyColumn(state = listState, contentPadding = contentPadding, content = content)
+        TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
+            content(transformationSpec)
+        }
     }
 }
 
 @Composable
-private fun WearSessionTitle(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center
-    )
+private fun TransformingLazyColumnItemScope.WearSessionTitle(text: String, transformationSpec: TransformationSpec) {
+    ListHeader(
+        modifier = Modifier
+            .fillMaxWidth()
+            .transformedHeight(this, transformationSpec)
+            .minimumVerticalContentPadding(ListHeaderDefaults.minimumTopListContentPadding),
+        transformation = SurfaceTransformation(transformationSpec)
+    ) {
+        // A header stops at three lines; a failure message is shown whole.
+        Text(text = text, textAlign = TextAlign.Center, maxLines = Int.MAX_VALUE)
+    }
 }
 
 @Composable
-private fun WearSessionMessage(text: String) {
+private fun TransformingLazyColumnItemScope.WearSessionMessage(text: String, transformationSpec: TransformationSpec) {
     Text(
         text = text,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .transformedListItem(itemScope = this, transformationSpec = transformationSpec)
+            .padding(bottom = 4.dp),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodySmall,
         textAlign = TextAlign.Center
@@ -231,11 +264,22 @@ private fun WearSessionMessage(text: String) {
 
 /** The refresh runs in place of the button, so a tap always shows that it was taken. */
 @Composable
-private fun WearRetryButton(isRequestingHandoff: Boolean, onRetry: () -> Unit) {
+private fun TransformingLazyColumnItemScope.WearRetryButton(
+    isRequestingHandoff: Boolean,
+    transformationSpec: TransformationSpec,
+    onRetry: () -> Unit
+) {
     if (isRequestingHandoff) {
         CircularProgressIndicator()
     } else {
-        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onRetry,
+            modifier = Modifier
+                .fillMaxWidth()
+                .transformedHeight(this, transformationSpec)
+                .minimumVerticalContentPadding(ButtonDefaults.minimumVerticalListContentPadding),
+            transformation = SurfaceTransformation(transformationSpec)
+        ) {
             Text(text = stringResource(R.string.wear_retry))
         }
     }
