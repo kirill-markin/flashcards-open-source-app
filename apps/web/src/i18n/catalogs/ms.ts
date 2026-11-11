@@ -788,6 +788,7 @@ const msCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kad anda",
       addCards: "Tambah kad",
+      transfer: "Pemindahan data",
     },
     deckCatalog: {
       title: "Katalog dek",
@@ -1460,6 +1461,19 @@ const msCatalog: TranslationCatalog = {
       edit: "Edit dek",
       new: "Dek baharu",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Buang tag daripada kad",
+    linkedWorkspaceRequired: "Tindakan ini memerlukan ruang kerja awan yang dipautkan.",
+    noChanges: "Tiada kad yang memerlukan perubahan ini.",
+    overlap: "Kemajuan pembelajaran bagi kad ini juga akan ditetapkan semula dalam dek atau tag lain yang merangkuminya.",
+    outcomeUnknown: "Kami tidak dapat mengesahkan sama ada perubahan pada ruang kerja telah dilaksanakan.",
+    previewChanged: "Kad yang terlibat telah berubah. Semak pratonton yang dikemas kini dan sahkan sekali lagi.",
+    removePreview: "Tag ini akan dibuang daripada {{cards}}. Kad tersebut akan kekal. Bilangan dek yang menggunakan tag ini dalam peraturannya: {{decks}}.",
+    resetComplete: "Kemajuan pembelajaran telah ditetapkan semula.",
+    saveDeckRules: "Simpan peraturan dek sebelum menetapkan semula kemajuan pembelajaran.",
+    syncFailed: "Semak sambungan anda dan cuba segerakkan semula.",
+    targetMissing: "Kad, dek atau tag yang dipilih tidak lagi wujud.",
   },
   tagsScreen: {
     counts: {

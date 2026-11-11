@@ -788,6 +788,7 @@ export const zhHantCatalog = {
     groups: {
       yourCards: "你的卡片",
       addCards: "新增卡片",
+      transfer: "資料移轉",
     },
     deckCatalog: {
       title: "牌組目錄",
@@ -1460,6 +1461,19 @@ export const zhHantCatalog = {
       edit: "編輯牌組",
       new: "建立牌組",
     },
+  },
+  cardMaintenance: {
+    removeTag: "從卡片移除標籤",
+    linkedWorkspaceRequired: "這項操作需要已連結的雲端工作區。",
+    noChanges: "沒有卡片需要這項變更。",
+    overlap: "這些卡片的學習進度也會在包含它們的其他牌組或標籤中重設。",
+    outcomeUnknown: "無法確認工作區的變更是否已套用。",
+    previewChanged: "受影響的卡片已變更。請查看更新後的預覽，再次確認。",
+    removePreview: "將從 {{cards}} 移除此標籤。卡片會保留。規則中包含此標籤的牌組數：{{decks}}。",
+    resetComplete: "學習進度已重設。",
+    saveDeckRules: "請先儲存牌組規則，再重設學習進度。",
+    syncFailed: "請檢查網路連線後重試同步。",
+    targetMissing: "選取的卡片、牌組或標籤已不存在。",
   },
   tagsScreen: {
     counts: {

@@ -788,6 +788,7 @@ const ptPtCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Os seus cartões",
       addCards: "Adicionar cartões",
+      transfer: "Transferência de dados",
     },
     deckCatalog: {
       title: "Catálogo de baralhos",
@@ -1460,6 +1461,19 @@ const ptPtCatalog: TranslationCatalog = {
       edit: "Editar baralho",
       new: "Novo baralho",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Remover etiqueta dos cartões",
+    linkedWorkspaceRequired: "Esta ação requer um espaço de trabalho associado à nuvem.",
+    noChanges: "Nenhum cartão precisa desta alteração.",
+    overlap: "O progresso de estudo destes cartões também será reposto nos outros baralhos e etiquetas em que aparecem.",
+    outcomeUnknown: "Não foi possível confirmar se a alteração foi aplicada ao espaço de trabalho.",
+    previewChanged: "Os cartões afetados mudaram. Reveja a pré-visualização atualizada e confirme novamente.",
+    removePreview: "A etiqueta será removida de {{cards}}. Os cartões serão mantidos. Número de baralhos com esta etiqueta nas regras: {{decks}}.",
+    resetComplete: "Progresso de estudo reposto.",
+    saveDeckRules: "Guarde as regras do baralho antes de repor o progresso de estudo.",
+    syncFailed: "Verifique a ligação e volte a tentar sincronizar.",
+    targetMissing: "O cartão, baralho ou etiqueta que selecionou já não existe.",
   },
   tagsScreen: {
     counts: {
