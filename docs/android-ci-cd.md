@@ -6,7 +6,7 @@ GitHub Actions is the primary Android CI/CD entrypoint.
 
 - [android-ci-reusable.yml](../.github/workflows/android-ci-reusable.yml) is the Android validation itself: unit tests, debug builds and lint, plus `data:local` instrumentation on a GitHub-hosted emulator. It intentionally does not make the emulator job depend on the build job, because the emulator job does its own checkout and Gradle build, so a failing build does not prevent or cancel the emulator run
 - pull requests have no Android CI. The path-selected [Android Tooling Lint](../.github/workflows/android-tooling-lint.yml) runs shared debug lint on `main` for tooling inputs. Full build, unit and device checks run during the manual release.
-- [android-release.yml](../.github/workflows/android-release.yml) runs hosted validation, four sequential Device Run sessions and a parallel signed AAB/R8 gate. Successful required gates unlock the production-track draft upload. See [Android release](release/android.md).
+- [android-release.yml](../.github/workflows/android-release.yml) runs hosted validation, two sequential Device Run sessions and a parallel signed AAB/R8 gate. Successful required gates unlock the production-track draft upload. See [Android release](release/android.md).
 - [android-release-upload-recovery.yml](../.github/workflows/android-release-upload-recovery.yml) recovers only a failed publisher for a pinned, already-tested signed bundle ([exact-bundle recovery](release/android.md#exact-bundle-upload-recovery))
 - the manual Android release is fully independent from the AWS/Web release workflow
 - read-only operations: [Device Run diagnostics](android-device-run-diagnostics.md) and [Play release status](android-play-status.md)
@@ -16,7 +16,7 @@ The R8 coverage gate enforces Google Play's 25% minimum in each R8 category on t
 
 We treat the managed-device app instrumentation suite as the closest CI signal to production behavior, while GitHub-hosted jobs keep the fast unit/build/lint checks and the smaller `data:local` instrumentation gate. Google access uses Workload Identity Federation, never a long-lived service account key.
 
-A green `Android Release` run means the GitHub-hosted Android gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
+A green `Android Release` run means the GitHub-hosted Android gate and both Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
 Historical networking evidence is retained in the [Device Run incident and recovery record](android-device-run-network-issue.md).
 
@@ -27,12 +27,23 @@ Historical networking evidence is retained in the [Device Run incident and recov
 ## Device Run results and release correlation
 
 Download the exact run/attempt's `android-device-run-submissions` artifact
-(`summary.json`). It records the source, release, four effective sessions,
-named cases, APK hashes and private evidence references. The
+(`summary.json`). It records the source, release, effective sessions, named
+cases, APK hashes and private evidence references. The source selection and
+summary version identify the required sessions. Version 2 requires API 37 and
+API 30. Historical unversioned selections require all four original devices. The
 [collector](../scripts/android/collect-device-run-evidence.py) requires
 `DONE`/`PASSED` at session, job and execution levels, one job per device,
-exact APK inputs and complete reconciled JUnit selections before publication. Retain any
-`initial_failure` report separately from its passing retry. Use the
+exact APK inputs and complete reconciled JUnit selections before publication.
+
+One retry is allowed across the release. Device Run must report a terminal
+infrastructure failure before any execution, or confirm cancellation after the
+wrapper's own wait timeout with no execution reports or outputs before or after
+cancellation. A fresh catalog must show a different active, accessible, idle
+physical automation device on the same API. The scoped linked-auth DNS rule
+can retry the original device after the collector verifies the exact failure
+and healthy production endpoints. The same pinned APKs are used on either
+path. Retain the `initial_failure` report and any alternate catalog separately
+from the effective session. Use the
 [readiness generator](release/readiness.md#generate-the-android-manifest)
 after manual diagnostic review.
 
@@ -83,7 +94,9 @@ gcloud beta device-run devices list --project "${GCP_PROJECT_ID:?}" \
   --location global --format=json > device-run-catalog.json
 ```
 
-Configure exact catalog IDs, not model/version descriptors. `ANDROID_DEVICE_RUN_DEVICE` selects one API 37 destination; `ANDROID_DEVICE_RUN_COMPAT_DEVICES` is a JSON array of three distinct IDs ordered by API 30, 31 and 33. The configured selections are:
+Configure exact catalog IDs. `ANDROID_DEVICE_RUN_DEVICE` selects API 37.
+`ANDROID_DEVICE_RUN_COMPAT_DEVICES` keeps three distinct IDs ordered by API
+30, 31 and 33 for targeted diagnostics and historical release evidence.
 
 | Variable / position | Catalog ID | Device | API |
 | --- | --- | --- | --- |
@@ -92,13 +105,20 @@ Configure exact catalog IDs, not model/version descriptors. `ANDROID_DEVICE_RUN_
 | Compatibility `[1]` | `a21-31` | Galaxy A21 | 31 |
 | Compatibility `[2]` | `oriole-33` | Pixel 6 | 33 |
 
-Catalog availability can change. The `Require configured Device Run destinations in the current catalog` step of [the release workflow](../.github/workflows/android-release.yml) defines a suitable destination and fails explicitly on an unavailable or inaccessible one; check the catalog against it before submission, and record the four actual IDs/APIs and selected targets. No API is silently omitted and no device/version cross-product is generated. API 32 remains supported without a separate release destination.
+Check the two release destinations against the current catalog. The
+[release workflow](../.github/workflows/android-release.yml) requires active,
+accessible physical automation devices. Record the configured and effective
+IDs and APIs with the evidence.
 
 Set the IDs and bucket name in the local root `.env` or environment (`ANDROID_DEVICE_RUN_COMPAT_DEVICES='["redfin-30","a21-31","oriole-33"]'`), then sync them with [setup-github-android.sh](../scripts/android/setup-github-android.sh) when configuration sync is authorized.
 
-See the [Android release flow](release/android.md) for submission order. API 37
-runs the full app package excluding `ManualOnlyAndroidTest`. The other APIs use
-the four methods in [the configured selection](../scripts/android/device-run-test-selection.json).
+The [pinned selection](../scripts/android/device-run-test-selection.json)
+runs five API 37 journeys covering card creation, review, linked account and
+workspace, guest AI after consent, and tapping a reminder to open Review.
+API 30 runs the local repository-seeded card through Review. Use
+[Android Targeted Diagnostics](../.github/workflows/android-targeted-diagnostics.yml)
+when a change affects API 31 or 33 behavior, or for broader instrumentation
+on API 37 in bounded batches.
 
 ## One-time Play Console setup
 
@@ -129,11 +149,11 @@ Use Device Run project roles and dedicated bucket access described in [Google Cl
 
 ### 3. Configure trigger substitutions
 
-Set `_ANDROID_DEVICE_RUN_DEVICE` and `_ANDROID_DEVICE_RUN_RESULTS_BUCKET`. This optional entrypoint runs the latest full selection only; it does not supply the release's three compatibility sessions or Play publication gates.
+Set `_ANDROID_DEVICE_RUN_DEVICE` and `_ANDROID_DEVICE_RUN_RESULTS_BUCKET`. This optional entrypoint runs the latest full selection only; it is independent of the release and Play gates.
 
 ## Local Testing Rules
 
-For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The release adds three small API 30/31/33 Device Run smoke sessions and the first-release API 30 manual walkthrough in [the release procedure](release/android.md); broad older-device matrices remain out of scope.
+For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Keep full-suite local runs on API 37. The [release procedure](release/android.md) covers the minimum-OS smoke and any applicable API 30 manual walkthrough.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
 For local instrumentation runs, prefer one clean emulator only:
 

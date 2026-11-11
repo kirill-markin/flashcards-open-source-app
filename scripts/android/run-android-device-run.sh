@@ -16,6 +16,8 @@ ASYNC_SUBMISSION="false"
 INCLUDE_MANUAL_ONLY="false"
 SESSION_ID=""
 SESSION_ACTIVE="false"
+SESSION_CONFIG_VERIFIED="false"
+WAIT_TIMED_OUT="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -84,18 +86,34 @@ if [[ "${ASYNC_SUBMISSION}" != "true" ]]; then
   fi
 fi
 
+emit_terminal_failure_marker() {
+  if [[ "${SESSION_CONFIG_VERIFIED}" == "true" ]] && jq -e '.sessionReport |
+    .status.statusType == "DONE" and (.result.resultType == "FAILED" or .result.resultType == "ERROR")
+  ' "${SESSION_OUTPUT}" >/dev/null; then
+    echo "DEVICE_RUN_TERMINAL_FAILURE=${SESSION_ID}"
+  fi
+}
+
 cleanup_on_exit() {
   local exit_code=$?
   trap - EXIT INT TERM
   if [[ "${SESSION_ACTIVE}" == "true" ]]; then
     echo "WARNING: Cancelling Device Run session ${SESSION_ID} after exit ${exit_code}." >&2
-    if ! timeout --kill-after=10s 60s gcloud beta device-run sessions cancel "${SESSION_ID}" \
+    local cancellation_confirmed="false"
+    if timeout --kill-after=10s 60s gcloud beta device-run sessions cancel "${SESSION_ID}" \
       --project "${PROJECT_ID}" --location global --quiet; then
+      cancellation_confirmed="true"
+    else
       echo "ERROR: Cancellation failed for ${SESSION_ID}; inspect it with gcloud beta device-run sessions describe --full." >&2
     fi
     if timeout --kill-after=10s 60s gcloud beta device-run sessions describe "${SESSION_ID}" --full --format=json \
       --project "${PROJECT_ID}" --location global > "${SESSION_OUTPUT}.tmp" 2> "${SESSION_OUTPUT}.stderr"; then
       mv "${SESSION_OUTPUT}.tmp" "${SESSION_OUTPUT}"
+      emit_terminal_failure_marker
+      if [[ "${WAIT_TIMED_OUT}" == "true" && "${cancellation_confirmed}" == "true" ]] &&
+        jq -e '.sessionReport | .status.statusType == "DONE" and .result.resultType == "CANCELLED"' "${SESSION_OUTPUT}" >/dev/null; then
+        echo "DEVICE_RUN_CANCELLED_AFTER_WAIT_TIMEOUT=${SESSION_ID}"
+      fi
     else
       cat "${SESSION_OUTPUT}.stderr" >&2
       echo "ERROR: Could not refresh the cancelled session report for ${SESSION_ID}; retaining the previous report and submission log." >&2
@@ -152,9 +170,13 @@ fi
 describe_session() {
   local attempt
   local error_path="${SESSION_OUTPUT}.stderr"
+  local describe_command=(gcloud)
+  if [[ "${ASYNC_SUBMISSION}" == "false" ]]; then
+    describe_command=(timeout --kill-after=10s 60s gcloud)
+  fi
   # Creation is asynchronous; retry only the temporary absence of this exact session.
   for attempt in 1 2 3 4 5 6; do
-    if gcloud beta device-run sessions describe "${SESSION_ID}" --full --format=json \
+    if "${describe_command[@]}" beta device-run sessions describe "${SESSION_ID}" --full --format=json \
       --project "${PROJECT_ID}" --location global > "${SESSION_OUTPUT}.tmp" 2> "${error_path}"; then
       mv "${SESSION_OUTPUT}.tmp" "${SESSION_OUTPUT}"
       return 0
@@ -194,6 +216,7 @@ if ! jq -e --arg id "${SESSION_ID}" --arg bucket "${RESULTS_BUCKET}" --argjson d
   cat "${SESSION_OUTPUT}" >&2
   exit 1
 fi
+SESSION_CONFIG_VERIFIED="true"
 results_path="$(jq -r '.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path' "${SESSION_OUTPUT}")/${SESSION_ID}/"
 echo "INFO: Session=${SESSION_ID} ResultsPath=${results_path} Report=${SESSION_OUTPUT}"
 
@@ -208,11 +231,21 @@ wait_exit_code=$?
 set -e
 if [[ "${wait_exit_code}" -ne 0 ]]; then
   echo "ERROR: Device Run wait failed or exceeded ${MAX_SESSION_DURATION}. Session=${SESSION_ID} Exit=${wait_exit_code}." >&2
-  exit "${wait_exit_code}"
 fi
 describe_session
 if jq -e '.sessionReport.status.statusType == "DONE"' "${SESSION_OUTPUT}" >/dev/null; then
   SESSION_ACTIVE="false"
+elif [[ "${wait_exit_code}" -eq 124 && "${#DEVICES[@]}" -eq 1 ]] && jq -e '
+  .sessionReport |
+  (.status.statusType == "PENDING" or .status.statusType == "RUNNING" or .status.statusType == "SUSPENDED") and
+  ((if has("jobReports") then .jobReports else [] end) |
+    type == "array" and length <= 1 and
+    all(.[]; type == "object" and
+      (.executionReports == null or .executionReports == []) and
+      (.outputFiles == null or .outputFiles == [])))
+' "${SESSION_OUTPUT}" >/dev/null; then
+  cp "${SESSION_OUTPUT}" "${SESSION_OUTPUT}.before-cancel"
+  WAIT_TIMED_OUT="true"
 fi
 # Vendor wait returns rows for failed tests too; only the full report proves success.
 if ! jq -e --argjson count "${#DEVICES[@]}" '
@@ -224,11 +257,13 @@ if ! jq -e --argjson count "${#DEVICES[@]}" '
     (.executionReports | length > 0) and
     all(.executionReports[]; .status.statusType == "DONE" and .result.resultType == "PASSED"))
 ' "${SESSION_OUTPUT}" >/dev/null; then
-  if [[ "${SESSION_ACTIVE}" == "false" ]] &&
-    jq -e '.sessionReport.result.resultType == "FAILED"' "${SESSION_OUTPUT}" >/dev/null; then
-    echo "DEVICE_RUN_TERMINAL_TEST_FAILURE=${SESSION_ID}"
-  fi
+  emit_terminal_failure_marker
   echo "ERROR: Device Run session or a required job/execution did not pass. Session=${SESSION_ID}." >&2
   cat "${SESSION_OUTPUT}" >&2
+  if [[ "${wait_exit_code}" -ne 0 ]]; then
+    exit "${wait_exit_code}"
+  fi
   exit 1
 fi
+
+exit "${wait_exit_code}"

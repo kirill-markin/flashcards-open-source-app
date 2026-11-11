@@ -22,7 +22,9 @@ Both retain **Flashcards Open Source App**, Release configuration, App Store eli
 
 `tests-workflow` (`d16e0e37-0c3a-4b2e-841f-669b636ba3e8`) and `macos-tests-workflow` (`b737acb2-4548-45bb-a7a3-8ac26bc8f111`) remain disabled with configuration and history intact. Do not dispatch them routinely or require them for new release readiness. Retain the original `CloudSmoke` plan and historical schema contracts, including failures; disabling a workflow never changes a recorded result.
 
-Guest AI availability remains part of full local acceptance: guest AI must pass without login, and disabled/quota-exhausted responses are release failures. Cross-client live-smoke references are in [Release Gates](release-gates.md).
+The [critical local plans](ios-local-setup.md#local-native-acceptance) run in
+parallel with the signed Cloud archive. Live guest AI must pass after consent
+without login. Disabled guest AI or exhausted guest quota blocks the check.
 
 The acceptance plans set `diagnosticCollectionPolicy` to `Never`, disabling automatic diagnostic collection. This does not remove ordinary XCTest result/log records or the smoke harness's screenshot, hierarchy and diagnostic attachments; retain and inspect those in `.xcresult`, including failures. Record actual local-test/Cloud-archive elapsed times and diagnostic/export sizes in the release record.
 

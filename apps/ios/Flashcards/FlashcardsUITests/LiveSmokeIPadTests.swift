@@ -8,7 +8,24 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
 #if !targetEnvironment(macCatalyst)
         defer { XCUIDevice.shared.orientation = .portrait }
 #endif
-        // The tagged card gives the filter a tag row, the only choice that keeps the menu open with a pending draft.
+        try self.exerciseCompanionDraftAndRevealedAnswer()
+#if !targetEnvironment(macCatalyst)
+        try self.assertReviewFilterLifetimeAcrossCompanionLayouts()
+#endif
+    }
+
+#if !targetEnvironment(macCatalyst)
+    @MainActor
+    func testIPadCompanionPreservesDraftAndRevealedAnswer() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "This smoke requires an iPad.")
+        defer { XCUIDevice.shared.orientation = .portrait }
+        try self.exerciseCompanionDraftAndRevealedAnswer()
+    }
+#endif
+
+    @MainActor
+    private func exerciseCompanionDraftAndRevealedAnswer() throws {
+
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
 #if !targetEnvironment(macCatalyst)
         XCUIDevice.shared.orientation = .landscapeLeft
@@ -51,9 +68,6 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.waitForReviewAnswerReveal()
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.waitForAiComposerValue(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-#if !targetEnvironment(macCatalyst)
-        try self.assertReviewFilterLifetimeAcrossCompanionLayouts()
-#endif
     }
 
 #if !targetEnvironment(macCatalyst)

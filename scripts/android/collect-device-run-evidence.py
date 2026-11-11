@@ -10,7 +10,7 @@ import tarfile
 import time
 import xml.etree.ElementTree as ET
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
@@ -171,8 +171,8 @@ def passed(report: Json) -> bool:
             obj(report.get("result", {})).get("resultType") == "PASSED")
 
 
-def collect_session(report: Json, session_id: str, device: str, targets: list[str], labels: Json,
-                    expected: set[str], excluded: set[str], bucket: str, local: Path, diagnostics: Path) -> Json:
+def verify_submission(report: Json, session_id: str, device: str, targets: list[str], labels: Json,
+                      bucket: str, local: Path, diagnostics: Path) -> tuple[Json, Json, list[Json]]:
     base = f"gs://{bucket}/automation/sessions/{session_id}/"
     config = obj(report["sessionConfig"])
     jobs = records(config["jobConfigs"])
@@ -213,12 +213,19 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
             raise ValueError(f"Submitted {kind} APK hash differs from the pinned GitHub run artifact")
         artifacts.append({"kind": kind, "object": uri, "sha256": sha})
         apk.unlink()
-    executions = records(job_reports[0].get("executionReports", []))
+    return runtime, job_reports[0], artifacts
+
+
+def collect_session(report: Json, session_id: str, device: str, targets: list[str], labels: Json,
+                    expected: set[str], excluded: set[str], bucket: str, local: Path, diagnostics: Path) -> Json:
+    runtime, job_report, artifacts = verify_submission(report, session_id, device, targets, labels, bucket, local, diagnostics)
+    base = f"gs://{bucket}/automation/sessions/{session_id}/"
+    executions = records(job_report.get("executionReports", []))
     case_counts: Counter[tuple[str, str]] = Counter()
     execution_summaries: list[Json] = []
     job_cases: list[Counter[tuple[str, str]]] = []
     problems: list[str] = []
-    for index, owner in enumerate([*executions, job_reports[0]]):
+    for index, owner in enumerate([*executions, job_report]):
         files = records(owner.get("outputFiles", []))
         owner_cases: list[Counter[tuple[str, str]]] = []
         filenames: set[str] = set()
@@ -275,7 +282,7 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
         problems.append("selected_case_not_passed")
     if len(job_cases) != 1 or job_cases[0] != case_counts:
         problems.append("job_execution_junit_mismatch")
-    if not all(passed(owner) for owner in [runtime, job_reports[0], *executions]):
+    if not all(passed(owner) for owner in [runtime, job_report, *executions]):
         problems.append("terminal_result_not_passed")
     return {"session_id": session_id, "device": device, "expected_count": len(expected),
             "executions": execution_summaries, "counts": dict(Counter({status: sum(n for (identity, s), n in case_counts.items() if s == status) for status in ("passed", "failure", "error", "skipped")})),
@@ -283,26 +290,76 @@ def collect_session(report: Json, session_id: str, device: str, targets: list[st
             "artifacts": artifacts, "problems": problems, "passed": not problems}
 
 
-def release_destinations() -> list[Destination]:
+def named_selection(targets: list[str], inventory: set[str], count: int) -> set[str]:
+    names = {target.removeprefix("class ") for target in targets}
+    if (len(targets) != count or len(names) != count or not names <= inventory or
+            any(not target.startswith("class ") for target in targets)):
+        raise ValueError(f"Selection must name exactly {count} distinct non-manual methods declared in the pinned source")
+    return names
+
+
+def release_destinations() -> tuple[int, list[Destination]]:
     selected, excluded = inventory()
     selection = read(Path("scripts/android/device-run-test-selection.json"))
+    schema = selection.get("schemaVersion", 1)
+    if type(schema) is not int:
+        raise ValueError("Invalid Device Run selection schema version")
     latest = strings(selection["latest"])
-    if latest != ["package com.flashcardsopensourceapp.app", "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"]:
-        raise ValueError("Latest configured filters require explicit inventory support")
-    compat_targets = strings(selection["compat"])
-    compat = {target.removeprefix("class ") for target in compat_targets}
-    if len(compat) != 4 or len(compat_targets) != 4 or not compat <= selected or any(not target.startswith("class ") for target in compat_targets):
-        raise ValueError("Four configured compatibility methods must belong to the declared latest inventory")
-    devices = [os.environ["ANDROID_DEVICE_RUN_DEVICE"], *json.loads(os.environ["ANDROID_DEVICE_RUN_COMPAT_DEVICES"])]
-    if len(devices) != 4 or any(not isinstance(device, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", device) for device in devices):
-        raise ValueError("Expected four configured device IDs")
+    compat = strings(selection["compat"])
+    if schema == 1:
+        if latest != ["package com.flashcardsopensourceapp.app", "notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"]:
+            raise ValueError("Legacy latest filters require explicit inventory support")
+        latest_names = selected
+        compat_names = named_selection(compat, latest_names, 4)
+        compat_apis = ("30", "31", "33")
+    elif schema == 2:
+        latest_names = named_selection(latest, selected, 5)
+        compat_names = named_selection(compat, latest_names, 1)
+        compat_apis = ("30",)
+        excluded = set()
+    else:
+        raise ValueError("Unsupported Device Run selection schema")
+
+    configured_compat = strings(json.loads(os.environ["ANDROID_DEVICE_RUN_COMPAT_DEVICES"]))
+    devices = [os.environ["ANDROID_DEVICE_RUN_DEVICE"], *configured_compat]
+    if len(devices) != 4 or len(set(devices)) != 4 or any(not re.fullmatch(r"[A-Za-z0-9_-]+", device) for device in devices):
+        raise ValueError("Expected a distinct API 37 device and the configured API 30/31/33 catalog ID list")
     labels: Json = {"target_sha": os.environ["TARGET_SHA"], "github_run_id": os.environ["GITHUB_RUN_ID"],
                     "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"], "release_id": os.environ["RELEASE_ID"]}
-    return [
-        Destination("latest", "37", devices[0], latest, {**labels, "suite": "latest"}, selected, excluded),
-        *(Destination(f"compat-api{api}", api, device, compat_targets, {**labels, "suite": "compat"}, compat, set())
-          for api, device in zip(("30", "31", "33"), devices[1:], strict=True)),
+    return int(schema), [
+        Destination("latest", "37", devices[0], latest, {**labels, "suite": "latest"}, latest_names, excluded),
+        *(Destination(f"compat-api{api}", api, device, compat, {**labels, "suite": "compat"}, compat_names, set())
+          for api, device in zip(compat_apis, devices[1:len(compat_apis) + 1], strict=True)),
     ]
+
+
+def physical_devices(catalog: Path, api: str) -> list[Json]:
+    return [device for device in records(json.loads(catalog.read_text()))
+            if device.get("platform") == "ANDROID" and device.get("hardwareType") == "PHYSICAL" and
+            device.get("osVersion") == api and obj(device.get("lifecycle", {})).get("state") == "ACTIVE" and
+            not strings(device.get("accessDeniedReasons", [])) and
+            any(product.get("automation") is not None for product in records(device.get("supportedProducts", [])))]
+
+
+def catalog_id(device: Json) -> str:
+    device_id = text(device["name"]).rsplit("/", 1)[-1]
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", device_id):
+        raise ValueError("Invalid Device Run catalog ID")
+    return device_id
+
+
+def prepare_destinations() -> None:
+    schema, destinations = release_destinations()
+    temporary = Path(os.environ["RUNNER_TEMP"])
+    catalog = temporary / "device-run-catalog.json"
+    for destination in destinations:
+        if destination.device not in {catalog_id(device) for device in physical_devices(catalog, destination.api)}:
+            raise ValueError(f"API {destination.api} device {destination.device} is not an active, accessible physical Android automation destination")
+    if schema == 1:
+        latest, minimum, api31, api33 = destinations
+        destinations = [api31, latest, minimum, api33]
+    print(json.dumps([{"selection": item.selection, "api": item.api, "device": item.device,
+                       "suite": item.labels["suite"], "targets": item.targets} for item in destinations]))
 
 
 def session_ids(log: Path) -> list[str]:
@@ -420,34 +477,103 @@ def verify_production_health() -> None:
         raise ValueError("Production Android auth methods or API database health did not verify")
 
 
-def classify_lab_dns(selection: str) -> None:
+def no_execution_began(session: Json, job: Json, cancelled_after_timeout: bool) -> bool:
+    if (any(obj(owner["status"])["statusType"] != "DONE" for owner in (session, job)) or
+            records(job.get("executionReports", [])) or records(job.get("outputFiles", []))):
+        return False
+    session_result = obj(session["result"])
+    job_result = obj(job["result"])
+    cause = obj(obj(job_result["cause"])["summary"])
+    if cancelled_after_timeout:
+        return (session_result["resultType"] == job_result["resultType"] == cause["reason"] == "CANCELLED" and
+                obj(obj(session_result["cause"])["summary"])["reason"] == "CANCELLED")
+    return (session_result["resultType"] in ("ERROR", "FAILED") and job_result["resultType"] in ("ERROR", "FAILED") and
+            cause.get("type") == "INFRA" and bool(text(cause.get("reason"))))
+
+
+def alternate_destination(destination: Destination, catalog: Path) -> str | None:
+    availability = {"AVAILABILITY_HIGH": 0, "AVAILABILITY_MEDIUM": 1, "AVAILABILITY_LOW": 2}
+    candidates = sorted(
+        (availability[idle], catalog_id(device))
+        for device in physical_devices(catalog, destination.api)
+        if catalog_id(device) != destination.device
+        and (idle := obj(device.get("availability", {})).get("available")) in availability
+    )
+    return candidates[0][1] if candidates else None
+
+
+def classify_retry(selection: str) -> None:
     temporary = Path(os.environ["RUNNER_TEMP"])
     private = temporary / "device-run-private"
     private.mkdir(exist_ok=True)
     diagnostics = private / "collector.log"
     try:
-        destination, = [item for item in release_destinations() if item.selection == selection]
+        schema, destinations = release_destinations()
+        destination, = [item for item in destinations if item.selection == selection]
         log = temporary / f"device-run-{selection}-submit.log"
         session_id, = session_ids(log)
-        if re.findall(r"^DEVICE_RUN_TERMINAL_TEST_FAILURE=(.+)$", log.read_text(), re.M) != [session_id]:
-            raise ValueError("Device Run wrapper did not confirm a terminal test failure for the submitted session")
+        markers = re.findall(r"^(DEVICE_RUN_TERMINAL_FAILURE|DEVICE_RUN_CANCELLED_AFTER_WAIT_TIMEOUT)=(.+)$", log.read_text(), re.M)
+        (marker, marked_id), = markers
+        if marked_id != session_id:
+            raise ValueError("Retry marker differs from the submitted session")
         first = temporary / f"device-run-{selection}-session.json"
         local = private / session_id
         local.mkdir()
-        report = local / "session-full.json"
-        report.write_bytes(first.read_bytes())
-        evidence = collect_destination(report, session_id, destination, private)
-        if not auth_dns_failure(read(report), evidence, local):
-            raise ValueError("First session does not match the known auth DNS failure")
-        verify_production_health()
-        retry_record: Json = {"selection": selection, "session_id": session_id, "reason": "lab_dns_before_auth_request",
-                              "report": {"member": f"{session_id}/session-full.json", "sha256": digest(report)},
-                              "apk_sha256": {text(item["kind"]): item["sha256"] for item in records(evidence["artifacts"]) if "kind" in item}}
-        (temporary / "device-run-retry-evidence.json").write_text(json.dumps(retry_record) + "\n")
+        report_path = local / "session-full.json"
+        report_path.write_bytes(first.read_bytes())
+        report = read(report_path)
+        runtime = obj(report["sessionReport"])
+        job, = records(runtime["jobReports"])
+        cancelled_after_timeout = marker == "DEVICE_RUN_CANCELLED_AFTER_WAIT_TIMEOUT"
+        retry: Json = {"selection": selection, "session_id": session_id, "device": destination.device,
+                       "effective_device": destination.device,
+                       "report": {"member": f"{session_id}/session-full.json", "sha256": digest(report_path)}}
+        if schema == 2 and no_execution_began(runtime, job, cancelled_after_timeout):
+            _, _, artifacts = verify_submission(report, session_id, destination.device, destination.targets,
+                                                destination.labels, os.environ["ANDROID_DEVICE_RUN_RESULTS_BUCKET"],
+                                                local, diagnostics)
+            catalog = private / "retry-catalog.json"
+            gcloud(["beta", "device-run", "devices", "list", "--project", os.environ["GCP_PROJECT_ID"],
+                    "--location", "global", "--format=json"], catalog, diagnostics)
+            alternate = alternate_destination(destination, catalog)
+            if alternate is None:
+                raise SystemExit(f"No idle alternate physical Android device is available for API {destination.api}")
+            retry["effective_device"] = alternate
+            retry["reason"] = "lab_unavailable_before_execution"
+            retry["alternate_catalog"] = {"member": catalog.name, "sha256": digest(catalog)}
+        else:
+            if cancelled_after_timeout:
+                raise ValueError("Device Run reported execution or did not confirm a terminal cancellation")
+            evidence = collect_destination(report_path, session_id, destination, private)
+            if not auth_dns_failure(report, evidence, local):
+                raise ValueError("Device Run did not confirm a pre-execution infrastructure failure or the known auth DNS failure")
+            verify_production_health()
+            artifacts = records(evidence["artifacts"])
+            retry["reason"] = "lab_dns_before_auth_request"
+        retry["apk_sha256"] = {text(item["kind"]): item["sha256"] for item in artifacts if "kind" in item}
+        (temporary / "device-run-retry-evidence.json").write_text(json.dumps(retry) + "\n")
     except (ValueError, KeyError, OSError, ET.ParseError) as error:
         with diagnostics.open("a") as stream:
-            stream.write(f"{selection}: DNS retry classification declined: {error}\n")
-        raise SystemExit("Device Run DNS retry eligibility could not be verified; inspect private diagnostics")
+            stream.write(f"{selection}: retry classification declined: {error}\n")
+        raise SystemExit(f"Device Run retry declined for {selection}; inspect private diagnostics")
+
+
+def effective_destination(destination: Destination, retry: Json, ids: list[str], private: Path) -> Destination:
+    first_id, = ids
+    first_report = f"{first_id}/session-full.json"
+    if (retry.get("session_id") != first_id or retry.get("device") != destination.device or
+            retry.get("report") != {"member": first_report, "sha256": digest(private / first_report)} or
+            retry.get("apk_sha256") != release_apk_hashes()):
+        raise ValueError("Initial failed report, device or APK hashes do not match the retained evidence")
+    device = text(retry["effective_device"])
+    if retry["reason"] == "lab_unavailable_before_execution":
+        catalog = private / "retry-catalog.json"
+        if (retry.get("alternate_catalog") != {"member": catalog.name, "sha256": digest(catalog)} or
+                device != alternate_destination(destination, catalog)):
+            raise ValueError("Effective device does not match the retained same-API alternate catalog")
+    elif retry["reason"] != "lab_dns_before_auth_request" or device != destination.device:
+        raise ValueError("Unexpected Device Run retry reason or device")
+    return replace(destination, device=device)
 
 
 def main() -> None:
@@ -464,7 +590,9 @@ def main() -> None:
                      "release_id": os.environ["RELEASE_ID"], "private_archive": archive + "raw.tar.gz", "sessions": []}
     sessions: list[Json] = []
     try:
-        destinations = release_destinations()
+        schema, destinations = release_destinations()
+        if schema == 2:
+            summary["selection_schema_version"] = schema
         summary["latest_inventory"] = sorted(destinations[0].expected)
         summary["manual_exclusions"] = sorted(destinations[0].excluded)
         retry_path = temporary / "device-run-retry-evidence.json"
@@ -474,17 +602,23 @@ def main() -> None:
         for destination in destinations:
             suffix = destination.selection
             record: Json = {"selection": suffix, "device": destination.device, "api": destination.api, "passed": False}
+            if schema == 2:
+                record["configured_device"] = destination.device
             sessions.append(record)
             ids = session_ids(temporary / f"device-run-{suffix}-submit.log")
             if retry.get("selection") == suffix:
+                destination = effective_destination(destination, retry, ids, private)
                 first_id, = ids
                 ids = session_ids(temporary / f"device-run-{suffix}-retry-submit.log")
-                first_report = f"{first_id}/session-full.json"
-                if (first_id in ids or retry.get("session_id") != first_id or
-                        retry.get("report") != {"member": first_report, "sha256": digest(private / first_report)} or
-                        retry.get("apk_sha256") != release_apk_hashes()):
-                    raise ValueError("Initial failed report, retry session identity or APK hashes do not match the retained evidence")
-                record["initial_failure"] = {key: retry[key] for key in ("selection", "session_id", "reason", "report")}
+                if first_id in ids:
+                    raise ValueError("Retry must use a new session ID")
+                keys = ["selection", "session_id", "reason", "report"]
+                if schema == 2:
+                    keys += ["device", "apk_sha256"]
+                    if "alternate_catalog" in retry:
+                        keys.append("alternate_catalog")
+                record["initial_failure"] = {key: retry[key] for key in keys}
+                record["device"] = destination.device
             if len(ids) != 1:
                 record["problem"] = "session_not_created"
                 continue
@@ -521,16 +655,19 @@ def main() -> None:
         gcloud(["storage", "cp", str(archive_path), archive + "raw.tar.gz"], temporary / "device-run-private-upload.log", diagnostics)
         summary["private_archive_uploaded"] = True
         (public / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    if len(sessions) != 4 or not all(session["passed"] for session in sessions):
-        raise ValueError("All four sessions require complete, reconciled, passing native evidence before Play draft upload")
+    if len(sessions) != len(destinations) or not all(session["passed"] for session in sessions):
+        raise ValueError("All configured sessions require complete, reconciled, passing native evidence before Play draft upload")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--classify-lab-dns":
-        classify_lab_dns(sys.argv[2])
+    if len(sys.argv) == 3 and sys.argv[1] == "--classify-retry":
+        classify_retry(sys.argv[2])
+        raise SystemExit(0)
+    if sys.argv[1:] == ["--prepare-destinations"]:
+        prepare_destinations()
         raise SystemExit(0)
     if len(sys.argv) != 1:
-        raise SystemExit("Expected no arguments or --classify-lab-dns <selection>")
+        raise SystemExit("Expected --prepare-destinations, --classify-retry <selection>, or no arguments")
     try:
         main()
     except (ValueError, KeyError, OSError, ET.ParseError):

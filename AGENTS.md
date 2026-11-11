@@ -52,6 +52,7 @@ We do not optimize for blanket test coverage. Do not add unit tests, in an imple
 Targeted integration or module-boundary tests are allowed when they validate a real interaction between modules, storage layers, or contracts.
 The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment. Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
 Run the full existing mobile smoke selection on the latest OS; run only a small essential compatibility smoke on older supported OS versions.
+Keep deploy and release critical paths fast by running only the minimum critical tests and checks.
 A test plan offers only real testing: a real integration/end-to-end/smoke flow that exercises the app or API, or explicit manual test instructions for the user.
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).

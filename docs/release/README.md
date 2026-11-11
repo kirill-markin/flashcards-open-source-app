@@ -18,11 +18,12 @@ and continue independent work. Skip platforms only at the user's request.
 
 ## Standing Best-Effort Release Policy
 
-Run feasible testing with reasonable effort, including full latest-OS
-acceptance and focused compatibility. After bounded diagnosis of unavailable
-infrastructure, destinations or local tooling, record unexecuted checks,
-reasons, alternatives, coverage limits, retained evidence and a dated operator
-decision for the exact source and artifact in the [ledger](evidence.md#release-ledger).
+Run the critical checks in each platform procedure. Use targeted diagnostics
+to investigate failures or verify changed behavior outside that selection.
+After bounded diagnosis of unavailable infrastructure, destinations or local
+tooling, record unexecuted checks, reasons, alternatives, coverage limits,
+retained evidence and a dated operator decision for the exact source and
+artifact in the [ledger](evidence.md#release-ledger).
 Continue authorized publication on that decision, even when the readiness
 report remains blocked. Reuse unchanged diagnoses and retry on remediation
 or material new evidence.
@@ -30,8 +31,9 @@ or material new evidence.
 Fix identifiable app/test defects, actionable build/toolchain/configuration
 or security issues, and signing, archive, upload or publication failures
 before the affected action. Preserve failed and skipped results and blocked
-reports. Required CI, signing, artifact identity, store guards and all four
-Android physical Device Run sessions remain mandatory.
+reports. Required CI, signing, artifact identity, store guards and the
+[physical Android sessions selected at the release SHA](android.md) remain
+mandatory.
 
 ## Required Reading
 
@@ -102,7 +104,7 @@ observed public availability separately from required operator actions.
 | Channel | Operator completion boundary |
 | --- | --- |
 | iOS and macOS | Exact platform/version/build submitted for review with saved automatic release verified. In manual mode, complete available release actions and record actions awaiting approval as follow-up. |
-| Android | Required CI and four Device Run sessions pass, applicable OS-specific checks or coverage decisions are recorded, and the exact production version is public at the intended rollout scope. |
+| Android | Required CI and the [physical Device Run gates](android.md) pass, applicable checks or coverage decisions are recorded, and the exact production version is public at the intended rollout scope. |
 | Web/backend and MCP Registry | Intended runtime or registry version verified. |
 | Established connectors, plugins and directories | Required scans/checks pass and the exact update is accepted or unchanged publication is verified. For OpenAI, verify [hosted MCP and package](mcp-and-plugins.md#openai) separately. |
 
