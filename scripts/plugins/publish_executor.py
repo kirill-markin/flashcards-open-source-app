@@ -6,27 +6,28 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import NamedTuple, TypeAlias
+from typing import NamedTuple
 
-Json: TypeAlias = None | bool | int | float | str | list["Json"] | dict[str, "Json"]
-REPOSITORY = "kirill-markin/flashcards-open-source-app"
-SOURCE_REPOSITORY = "kirill-markin/nibomo-plugins"
-CORE_DIRECTORY = Path(__file__).resolve().parents[2]
-MAIN = "refs/remotes/origin/main"
-CORE_PIN = "core-source.json"
-CORE_EXECUTOR_PATH = "apps/executor"
-LEGACY_EXECUTOR_PATH = "executor"
+from executor_source import (
+    CORE_DIRECTORY,
+    CORE_PIN as CORE_PIN,
+    MAIN,
+    REPOSITORY,
+    SOURCE_PATHS,
+    SOURCE_REPOSITORY,
+    Json,
+    commit,
+    git,
+    record,
+    require,
+    reviewed_executor_source,
+    selected_executor_source,
+    string,
+)
+
 APP = "app_741c52b8-681c-4e8c-8536-9b278e02d671"
 PACKAGE = "@nibomo.executor.community/nibomo"
 HOST = "https://v2.executor.sh"
-SOURCE_PATHS = ["LICENSE", "README.md", "index.ts", "package.json", "provider.ts"]
-
-
-class ExecutorSource(NamedTuple):
-    repository: str
-    sha: str
-    path: str
-    files: dict[str, str]
 
 
 class RemoteRevision(NamedTuple):
@@ -34,33 +35,10 @@ class RemoteRevision(NamedTuple):
     files: dict[str, str]
 
 
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise ValueError(message)
-
-
-def record(value: Json) -> dict[str, Json]:
-    if not isinstance(value, dict):
-        raise ValueError("Expected a JSON object")
-    return value
-
-
 def items(value: Json) -> list[Json]:
     if not isinstance(value, list):
         raise ValueError("Expected a JSON array")
     return value
-
-
-def string(value: Json) -> str:
-    if not isinstance(value, str) or not value:
-        raise ValueError("Expected a nonempty JSON string")
-    return value
-
-
-def commit(value: Json) -> str:
-    result = string(value)
-    require(re.fullmatch(r"[a-f0-9]{40}", result) is not None, "Expected a full immutable Git commit")
-    return result
 
 
 def environment(name: str) -> str:
@@ -111,10 +89,6 @@ def executor(path: str, method: str, body: Json) -> Json:
     return request(f"{HOST}{path}", environment("EXECUTOR_API_TOKEN"), method, body)
 
 
-def git(directory: Path, *arguments: str) -> str:
-    return subprocess.check_output(["git", "-C", str(directory), *arguments], timeout=60).decode("utf-8")
-
-
 def ancestor(directory: Path, older: str, newer: str) -> None:
     subprocess.run(["git", "-C", str(directory), "merge-base", "--is-ancestor", older, newer],
                    check=True, timeout=60)
@@ -129,46 +103,6 @@ def companion_directory() -> Path:
     require(git(directory, "remote", "get-url", "origin").strip() == f"https://github.com/{SOURCE_REPOSITORY}.git",
             "PLUGIN_SOURCE_DIR must be a public clone of kirill-markin/nibomo-plugins")
     return directory
-
-
-def executor_snapshot(directory: Path, sha: str, path: str) -> dict[str, str] | None:
-    entries = git(directory, "ls-tree", "-r", "-z", sha, "--", f"{path}/").split("\0")[:-1]
-    regular_paths = [entry.split("\t", 1)[1] for entry in entries if entry.startswith("100644 blob ")]
-    expected_paths = [f"{path}/{name}" for name in SOURCE_PATHS]
-    if len(regular_paths) != len(entries) or regular_paths != expected_paths:
-        return None
-    return {name: git(directory, "show", f"{sha}:{path}/{name}") for name in SOURCE_PATHS}
-
-
-def core_pin_fields(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
-    require(len(pairs) == 1 and pairs[0][0] == "commit", f"{CORE_PIN} must contain exactly one commit field")
-    return dict(pairs)
-
-
-def selected_executor_source(companion: Path, sha: str) -> ExecutorSource:
-    marker = git(companion, "ls-tree", sha, "--", CORE_PIN)
-    if marker:
-        require(marker.startswith("100644 blob "), f"{CORE_PIN} must be a regular JSON file at {sha}")
-        pin = record(json.loads(git(companion, "show", f"{sha}:{CORE_PIN}"), object_pairs_hook=core_pin_fields))
-        source_sha = commit(pin["commit"])
-        require(source_sha in git(CORE_DIRECTORY, "rev-list", "--first-parent", MAIN).splitlines(),
-                f"{CORE_PIN} commit {source_sha} must be in the core main branch history")
-        directory, repository, path = CORE_DIRECTORY, REPOSITORY, CORE_EXECUTOR_PATH
-    else:
-        source_sha = sha
-        directory, repository, path = companion, SOURCE_REPOSITORY, LEGACY_EXECUTOR_PATH
-    snapshot = executor_snapshot(directory, source_sha, path)
-    if snapshot is None:
-        raise ValueError(f"Unexpected Executor source set in {repository} at {source_sha}:{path}; expected only {SOURCE_PATHS}")
-    return ExecutorSource(repository, source_sha, path, snapshot)
-
-
-def reviewed_executor_source(companion: Path, snapshot: dict[str, str]) -> bool:
-    for directory, path in [(CORE_DIRECTORY, CORE_EXECUTOR_PATH), (companion, LEGACY_EXECUTOR_PATH)]:
-        history = git(directory, "log", "--first-parent", "--format=%H", MAIN, "--", f"{path}/").splitlines()
-        if any(executor_snapshot(directory, sha, path) == snapshot for sha in history):
-            return True
-    return False
 
 
 def verify_remote_revisions(

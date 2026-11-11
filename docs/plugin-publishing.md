@@ -5,9 +5,10 @@ owns authorization and completion; [versioning](release/versioning.md) owns targ
 selection and source alignment. Documentation edits do not authorize publication.
 
 The main app repository owns [package tooling](../scripts/plugins/), the
-[Executor runtime](../apps/executor/), publisher workflows and operator
-instructions. The companion [nibomo-plugins](https://github.com/kirill-markin/nibomo-plugins)
-owns shared skills, manifests and the CI that validates the companion checkout.
+[Executor runtime](../apps/executor/), the [CI checkout action](../.github/actions/checkout-core-source/action.yml),
+publisher workflows and operator instructions. The companion
+[nibomo-plugins](https://github.com/kirill-markin/nibomo-plugins) owns shared
+skills, manifests and the CI workflows that validate the companion checkout.
 Release credentials stay outside the source Anthropic scans. Preserve Anthropic's
 repository root, tracked main, listing and connector pairing. Complete the
 applicable manual reviewer/publication action after the source scan passes.
