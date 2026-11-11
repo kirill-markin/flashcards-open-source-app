@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.feature.settings.cloud
 
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudSignedArchiveDownloadException
+import com.flashcardsopensourceapp.data.local.model.workspace.workspacePackageExportAnkiEmptyErrorCode
 import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import java.io.IOException
@@ -100,14 +102,27 @@ internal fun expectedWorkspacePackageImportCloudFailureMessage(
 
 internal fun expectedWorkspacePackageExportCloudFailureMessage(
     error: Throwable,
-    fallbackMessage: String
+    fallbackMessage: String,
+    ankiEmptyMessage: String
 ): String? {
-    expectedSettingsFailureMessage(
+    for (cause in generateSequence(error) { cause -> cause.cause }.take(maxExpectedSettingsFailureCauseDepth)) {
+        when (cause) {
+            is CloudRemoteException -> {
+                if (cause.errorCode?.trim().equals(workspacePackageExportAnkiEmptyErrorCode, ignoreCase = true)) {
+                    return ankiEmptyMessage
+                }
+            }
+            is CloudSignedArchiveDownloadException.Transport -> return fallbackMessage.takeIf { cause.isTransient }
+            is CloudSignedArchiveDownloadException.Http -> return fallbackMessage.takeIf {
+                isExpectedSettingsHttpStatusCode(statusCode = cause.statusCode)
+            }
+        }
+    }
+    return expectedSettingsFailureMessage(
         error = error,
         expectedCloudFailureCodes = expectedWorkspacePackageExportCloudFailureCodes,
         fallbackMessage = fallbackMessage
-    )?.let { message -> return message }
-    return null
+    )
 }
 
 internal fun expectedAgentCloudFailureMessage(
@@ -157,7 +172,7 @@ private fun expectedSingleSettingsFailureMessage(
     if (isExpectedSyncConflictCloudFailure(error = remoteError)) {
         return fallbackMessage
     }
-    if (remoteError.statusCode == 401 || remoteError.statusCode == 403 || remoteError.statusCode == 429) {
+    if (isExpectedSettingsHttpStatusCode(statusCode = remoteError.statusCode)) {
         return fallbackMessage
     }
     val normalizedCode = remoteError.errorCode?.trim()?.uppercase() ?: return null
@@ -166,6 +181,10 @@ private fun expectedSingleSettingsFailureMessage(
     } else {
         null
     }
+}
+
+private fun isExpectedSettingsHttpStatusCode(statusCode: Int?): Boolean {
+    return statusCode == 401 || statusCode == 403 || statusCode == 429
 }
 
 private fun isExpectedSyncConflictCloudFailure(error: CloudRemoteException): Boolean {

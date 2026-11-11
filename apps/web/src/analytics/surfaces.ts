@@ -5,6 +5,7 @@ import {
   devPreviewsRoutePrefix,
   friendInviteRoutePrefix,
   legacySettingsLibraryRoutes,
+  libraryAnkiExportRoute,
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
@@ -131,7 +132,12 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
     return "catalog";
   }
 
-  if (pathname === libraryRoute || pathname === libraryImportRoute || pathname === libraryExportRoute) {
+  if (
+    pathname === libraryRoute
+    || pathname === libraryImportRoute
+    || pathname === libraryExportRoute
+    || pathname === libraryAnkiExportRoute
+  ) {
     return "library";
   }
 

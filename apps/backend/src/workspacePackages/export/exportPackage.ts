@@ -35,6 +35,7 @@ import {
   workspacePackageFormatVersion,
   type PortableWorkspacePackageCardV1,
   type WorkspacePackageCardsJsonV1,
+  type WorkspacePackageMetadataV1,
 } from "../types";
 
 export const workspacePackageExportPackageDefaultMaxSelectedCards = 5_000;
@@ -84,13 +85,26 @@ type WorkspacePackageMediaFile = Readonly<{
 
 type LoadedWorkspacePackageMediaFile = Readonly<{
   path: string;
+  mimeType: string;
   bytes: Buffer;
 }>;
 
+export type WorkspacePackageExportCard = Readonly<{
+  cardId: string;
+  card: PortableWorkspacePackageCardV1;
+}>;
+
 type PreparedWorkspacePackageExport = Readonly<{
-  cardsJson: WorkspacePackageCardsJsonV1;
+  metadata: WorkspacePackageMetadataV1;
+  cards: ReadonlyArray<WorkspacePackageExportCard>;
   mediaFiles: ReadonlyArray<WorkspacePackageMediaFile>;
   limits: WorkspacePackageExportPackageLimits;
+}>;
+
+export type LoadedWorkspacePackageExport = Readonly<{
+  metadata: WorkspacePackageMetadataV1;
+  cards: ReadonlyArray<WorkspacePackageExportCard>;
+  mediaFiles: ReadonlyArray<LoadedWorkspacePackageMediaFile>;
 }>;
 
 type ZipEntry = Readonly<{
@@ -534,7 +548,7 @@ function buildPortablePackageCards(
   cards: ReadonlyArray<WorkspacePackageExportSelectedCardRow>,
   removedTags: ReadonlySet<string>,
   portablePathsByAssetId: ReadonlyMap<string, string>,
-): ReadonlyArray<PortableWorkspacePackageCardV1> {
+): ReadonlyArray<WorkspacePackageExportCard> {
   const resolvePortablePath = (assetId: string): string => {
     const portablePath = portablePathsByAssetId.get(assetId.toLowerCase());
     if (portablePath === undefined) {
@@ -544,12 +558,15 @@ function buildPortablePackageCards(
     return portablePath;
   };
 
-  return cards.map((card) => toPortableWorkspacePackageCard({
-    frontText: rewriteMarkdownFcAssetUrlsToSharedPortablePaths(card.front_text, resolvePortablePath),
-    backText: rewriteMarkdownFcAssetUrlsToSharedPortablePaths(card.back_text, resolvePortablePath),
-    tags: applyPackageTagRemoval(card.tags, removedTags),
-    cardType: card.card_type,
-    metadata: normalizeCardMetadata(card.metadata),
+  return cards.map((card) => ({
+    cardId: card.card_id,
+    card: toPortableWorkspacePackageCard({
+      frontText: rewriteMarkdownFcAssetUrlsToSharedPortablePaths(card.front_text, resolvePortablePath),
+      backText: rewriteMarkdownFcAssetUrlsToSharedPortablePaths(card.back_text, resolvePortablePath),
+      tags: applyPackageTagRemoval(card.tags, removedTags),
+      cardType: card.card_type,
+      metadata: normalizeCardMetadata(card.metadata),
+    }),
   }));
 }
 
@@ -574,6 +591,7 @@ async function loadWorkspacePackageMediaFile(
 
   return {
     path: mediaFile.path,
+    mimeType: mediaRow.mime_type.toLowerCase(),
     bytes: loadedBytes.bytes,
   };
 }
@@ -759,7 +777,8 @@ export async function exportWorkspacePackageInExecutor(
     limits,
   );
 
-  return assembleWorkspacePackageExport(workspaceId, input, dependencies, preparedExport);
+  const loadedExport = await loadPreparedWorkspacePackageExport(workspaceId, input, dependencies, preparedExport);
+  return assembleWorkspacePackageExport(loadedExport);
 }
 
 async function prepareWorkspacePackageExportInExecutor(
@@ -800,25 +819,20 @@ async function prepareWorkspacePackageExportInExecutor(
   const packageCards = buildPortablePackageCards(selectedCards, new Set(
     tagsSelectedForRemoval.map((tagCount) => tagCount.tag),
   ), portablePathsByAssetId);
-  const cardsJson: WorkspacePackageCardsJsonV1 = {
-    formatVersion: workspacePackageFormatVersion,
-    ...packageMetadata,
-    cards: packageCards,
-  };
-
   return {
-    cardsJson,
+    metadata: packageMetadata,
+    cards: packageCards,
     mediaFiles,
     limits: normalizedLimits,
   };
 }
 
-async function assembleWorkspacePackageExport(
+async function loadPreparedWorkspacePackageExport(
   workspaceId: string,
   input: WorkspacePackageExportPackageInput,
   dependencies: WorkspacePackageExportPackageDependencies,
   preparedExport: PreparedWorkspacePackageExport,
-): Promise<WorkspacePackageExportPackage> {
+): Promise<LoadedWorkspacePackageExport> {
   const loadedMediaFiles = await loadWorkspacePackageMediaFiles(
     workspaceId,
     input,
@@ -826,12 +840,27 @@ async function assembleWorkspacePackageExport(
     dependencies,
     preparedExport.mediaFiles,
   );
+  return {
+    metadata: preparedExport.metadata,
+    cards: preparedExport.cards,
+    mediaFiles: loadedMediaFiles,
+  };
+}
+
+function assembleWorkspacePackageExport(
+  loadedExport: LoadedWorkspacePackageExport,
+): WorkspacePackageExportPackage {
+  const cardsJson: WorkspacePackageCardsJsonV1 = {
+    formatVersion: workspacePackageFormatVersion,
+    ...loadedExport.metadata,
+    cards: loadedExport.cards.map(({ card }) => card),
+  };
   const zipEntries: ReadonlyArray<ZipEntry> = [
     {
       path: "cards.json",
-      bytes: createPackageCardsJsonBuffer(preparedExport.cardsJson),
+      bytes: createPackageCardsJsonBuffer(cardsJson),
     },
-    ...loadedMediaFiles.map((mediaFile) => ({
+    ...loadedExport.mediaFiles.map((mediaFile) => ({
       path: mediaFile.path,
       bytes: mediaFile.bytes,
     })),
@@ -844,11 +873,11 @@ async function assembleWorkspacePackageExport(
   };
 }
 
-export async function exportWorkspacePackage(
+export async function loadWorkspacePackageExport(
   userId: string,
   workspaceId: string,
   input: WorkspacePackageExportPackageInput,
-): Promise<WorkspacePackageExportPackage> {
+): Promise<LoadedWorkspacePackageExport> {
   const limits: WorkspacePackageExportPackageLimits = {
     maxSelectedCards: workspacePackageExportPackageDefaultMaxSelectedCards,
     maxMediaFiles: workspacePackageExportPackageDefaultMaxMediaFiles,
@@ -867,5 +896,14 @@ export async function exportWorkspacePackage(
     )
   ));
 
-  return assembleWorkspacePackageExport(workspaceId, input, dependencies, preparedExport);
+  return loadPreparedWorkspacePackageExport(workspaceId, input, dependencies, preparedExport);
+}
+
+export async function exportWorkspacePackage(
+  userId: string,
+  workspaceId: string,
+  input: WorkspacePackageExportPackageInput,
+): Promise<WorkspacePackageExportPackage> {
+  const loadedExport = await loadWorkspacePackageExport(userId, workspaceId, input);
+  return assembleWorkspacePackageExport(loadedExport);
 }

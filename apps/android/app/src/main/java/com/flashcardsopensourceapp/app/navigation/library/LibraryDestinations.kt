@@ -74,3 +74,7 @@ data object LibraryImportDestination {
 data object LibraryExportDestination {
     const val route: String = "library/export"
 }
+
+data object LibraryAnkiExportDestination {
+    const val route: String = "library/export/anki"
+}

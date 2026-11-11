@@ -51,6 +51,7 @@ import {
   legacySettingsExportRoute,
   legacySettingsImportRoute,
   legacySettingsTagsRoute,
+  libraryAnkiExportRoute,
   libraryDeckNewRoute,
   libraryDecksRoute,
   libraryExportRoute,
@@ -252,6 +253,9 @@ const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScr
 })));
 const WorkspaceSchedulerScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSchedulerScreen").then((module) => ({
   default: module.WorkspaceSchedulerScreen,
+})));
+const WorkspaceAnkiExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
+  default: module.WorkspaceAnkiExportScreen,
 })));
 const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
@@ -1091,6 +1095,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryAnkiExportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiExportScreen />, "loading.exportSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}`} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
           <Route path={`${workspaceRoutePattern}${libraryDeckNewRoute}`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />

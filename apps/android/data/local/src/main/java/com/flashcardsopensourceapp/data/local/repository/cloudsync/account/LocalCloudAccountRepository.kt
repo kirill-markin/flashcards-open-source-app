@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import com.flashcardsopensourceapp.data.local.model.sync.preservingLocalAccountIdentity
+import java.io.File
 
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -51,6 +52,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -624,15 +626,27 @@ class LocalCloudAccountRepository(
     }
 
     override suspend fun previewCurrentWorkspacePackageExport(
+        expectedWorkspaceId: String,
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview {
-        return workspaceOperationsCoordinator.previewCurrentWorkspacePackageExport(request = request)
+        return workspaceOperationsCoordinator.previewCurrentWorkspacePackageExport(
+            expectedWorkspaceId = expectedWorkspaceId,
+            request = request
+        )
     }
 
     override suspend fun exportCurrentWorkspacePackage(
-        request: WorkspacePackageExportRequest
+        expectedWorkspaceId: String,
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
-        return workspaceOperationsCoordinator.exportCurrentWorkspacePackage(request = request)
+        return workspaceOperationsCoordinator.exportCurrentWorkspacePackage(
+            expectedWorkspaceId = expectedWorkspaceId,
+            format = format,
+            request = request,
+            destination = destination
+        )
     }
 
     override suspend fun previewCurrentWorkspacePackageImport(

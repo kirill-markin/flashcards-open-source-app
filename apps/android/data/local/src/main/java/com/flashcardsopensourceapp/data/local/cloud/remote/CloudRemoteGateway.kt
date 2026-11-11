@@ -49,12 +49,14 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import org.json.JSONObject
+import java.io.File
 
 class CloudHealthValidationException(
     message: String,
@@ -175,7 +177,9 @@ interface CloudRemoteGateway {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
-        request: WorkspacePackageExportRequest
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse
     suspend fun previewWorkspacePackageImport(
         apiBaseUrl: String,

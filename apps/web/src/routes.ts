@@ -35,6 +35,7 @@ export const libraryTagsRoute: string = `${libraryRoute}/tags`;
 export const libraryTagDetailRoute: string = `${libraryTagsRoute}/detail`;
 export const libraryImportRoute: string = `${libraryRoute}/import`;
 export const libraryExportRoute: string = `${libraryRoute}/export`;
+export const libraryAnkiExportRoute: string = `${libraryExportRoute}/anki`;
 /** Addresses the Library screens had before the Library tab; `App.tsx` redirects each to its Library equivalent. */
 export const legacyCardsRoute: string = "/cards";
 export const legacySettingsDecksRoute: string = "/settings/decks";

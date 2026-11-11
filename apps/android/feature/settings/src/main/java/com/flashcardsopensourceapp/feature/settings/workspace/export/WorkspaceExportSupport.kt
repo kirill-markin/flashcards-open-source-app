@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.settings.workspace.export
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDefaultPackageMetadata
@@ -13,9 +14,18 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageEx
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagPolicyInput
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
+import java.io.Closeable
 import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.TimeUnit
 
-private const val workspacePackageExportShareDirectoryName: String = "workspace-package-export"
+private const val workspacePackageExportDirectoryName: String = "workspace-package-export"
+private const val workspacePackageExportSharePrefix: String = "share-"
+private const val workspacePackageExportDownloadPrefix: String = "download-"
+private val workspacePackageExportEntryLifetimeMillis: Long = TimeUnit.HOURS.toMillis(24)
 
 data class WorkspacePackageExportMetadataDraft(
     val label: String,
@@ -129,51 +139,98 @@ internal fun makeWorkspacePackageExportIncludedTagOptions(
         }
 }
 
-fun writeWorkspacePackageExportZip(
-    contentResolver: ContentResolver,
-    uri: Uri,
-    packageBytes: ByteArray
-) {
-    val outputStream = requireNotNull(contentResolver.openOutputStream(uri, "wt")) {
-        "Android package export destination is unavailable for writing."
-    }
+internal data class WorkspacePackageExportShare(
+    val uri: Uri,
+    val directory: File
+)
 
-    outputStream.use { stream ->
-        stream.write(packageBytes)
-        stream.flush()
+internal fun createWorkspacePackageExportFile(destinationDirectory: File): File {
+    val exportDirectory = File(destinationDirectory, workspacePackageExportDirectoryName)
+    Files.createDirectories(exportDirectory.toPath())
+    val expiresBefore = System.currentTimeMillis() - workspacePackageExportEntryLifetimeMillis
+    exportDirectory.listFiles()?.forEach { entry ->
+        if ((entry.name.startsWith(workspacePackageExportSharePrefix) ||
+                entry.name.startsWith(workspacePackageExportDownloadPrefix)) &&
+            entry.lastModified() < expiresBefore
+        ) {
+            deleteWorkspacePackageExportEntry(entry = entry)
+        }
+    }
+    return File.createTempFile(workspacePackageExportDownloadPrefix, ".tmp", exportDirectory)
+}
+
+internal class WorkspacePackageExportSave(
+    val fileName: String,
+    val archiveInput: FileInputStream
+) : Closeable {
+    override fun close() {
+        try {
+            archiveInput.close()
+        } catch (error: IOException) {
+            Log.w("WorkspacePackageExport", "Could not close a staged export.", error)
+        }
     }
 }
 
-fun prepareWorkspacePackageExportShareUri(
+internal fun openWorkspacePackageExportSave(
+    packageExport: WorkspacePackageExportDownloadResponse
+): WorkspacePackageExportSave {
+    val save = WorkspacePackageExportSave(
+        fileName = packageExport.fileName,
+        archiveInput = packageExport.archiveFile.inputStream()
+    )
+    try {
+        // The open descriptor retains the bytes until it closes, including while the picker is open.
+        Files.deleteIfExists(packageExport.archiveFile.toPath())
+        return save
+    } catch (error: Exception) {
+        save.close()
+        throw error
+    }
+}
+
+internal fun writeWorkspacePackageExport(
+    contentResolver: ContentResolver,
+    uri: Uri,
+    archiveInput: FileInputStream
+) {
+    val firstByte = archiveInput.read()
+    if (firstByte == -1) {
+        throw IOException("Android package export archive is empty.")
+    }
+    val outputStream = requireNotNull(contentResolver.openOutputStream(uri, "wt")) {
+        "Android package export destination is unavailable for writing."
+    }
+    outputStream.use { output ->
+        output.write(firstByte)
+        archiveInput.copyTo(output)
+    }
+}
+
+internal fun prepareWorkspacePackageExportShare(
     context: Context,
     packageExport: WorkspacePackageExportDownloadResponse
-): Uri {
-    val fileName: String = requireSafeWorkspacePackageExportFileName(fileName = packageExport.fileName)
-    val shareDirectory = File(context.cacheDir, workspacePackageExportShareDirectoryName)
-    if (shareDirectory.exists().not() && shareDirectory.mkdirs().not()) {
-        throw IllegalStateException(
-            "Android package export share cache directory could not be created: ${shareDirectory.absolutePath}"
+): WorkspacePackageExportShare {
+    val fileName = requireSafeWorkspacePackageExportFileName(fileName = packageExport.fileName)
+    val archiveFile = packageExport.archiveFile.toPath()
+    val shareDirectory = Files.createTempDirectory(archiveFile.parent, workspacePackageExportSharePrefix)
+    val shareFile = shareDirectory.resolve(fileName)
+    try {
+        Files.move(archiveFile, shareFile, StandardCopyOption.ATOMIC_MOVE)
+        return WorkspacePackageExportShare(
+            uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", shareFile.toFile()),
+            directory = shareDirectory.toFile()
         )
+    } catch (error: Exception) {
+        deleteWorkspacePackageExportEntry(entry = shareDirectory.toFile())
+        throw error
     }
-    if (shareDirectory.isDirectory.not()) {
-        throw IllegalStateException(
-            "Android package export share cache path is not a directory: ${shareDirectory.absolutePath}"
-        )
-    }
+}
 
-    val shareFile = File(shareDirectory, fileName)
-    if (shareFile.exists() && shareFile.delete().not()) {
-        throw IllegalStateException(
-            "Android package export share file could not be replaced: ${shareFile.absolutePath}"
-        )
+internal fun deleteWorkspacePackageExportEntry(entry: File) {
+    if (entry.deleteRecursively().not()) {
+        Log.w("WorkspacePackageExport", "Could not remove a staged export.")
     }
-    shareFile.writeBytes(packageExport.packageBytes)
-
-    return FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        shareFile
-    )
 }
 
 private fun makeWorkspacePackageExportSelection(selectedCardTags: Set<String>): WorkspacePackageExportSelection {
@@ -214,8 +271,8 @@ private fun optionalWorkspacePackageExportMetadataText(value: String): String? {
 
 private fun requireSafeWorkspacePackageExportFileName(fileName: String): String {
     val trimmedFileName: String = fileName.trim()
-    require(trimmedFileName.isNotEmpty()) {
-        "Android package export share requires a non-empty filename."
+    require(trimmedFileName.isNotEmpty() && trimmedFileName != "." && trimmedFileName != "..") {
+        "Android package export share requires a valid filename."
     }
     require(trimmedFileName.contains("/").not() && trimmedFileName.contains("\\").not()) {
         "Android package export share filename must not contain path separators: $trimmedFileName"
