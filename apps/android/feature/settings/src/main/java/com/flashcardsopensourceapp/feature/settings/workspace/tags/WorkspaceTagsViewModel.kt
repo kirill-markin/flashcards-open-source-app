@@ -24,6 +24,7 @@ class WorkspaceTagsViewModel(
         searchQuery
     ) { tagsSummary, query ->
         WorkspaceTagsUiState(
+            workspaceId = tagsSummary.workspaceId,
             searchQuery = query,
             tags = filterTags(
                 tags = tagsSummary.tags,
@@ -35,6 +36,7 @@ class WorkspaceTagsViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = WorkspaceTagsUiState(
+            workspaceId = null,
             searchQuery = "",
             tags = emptyList(),
             totalCards = 0

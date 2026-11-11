@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushRespon
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteSyncChange
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
 import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
@@ -19,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createSyncCardOutboxEntry
@@ -71,6 +73,7 @@ class LocalSyncRepositoryHotRowReplayTest {
             fsrsScheduledDays = null,
             deletedAtMillis = null
         )
+        val maintenanceRevision = 9_007_199_254_740_991L
         val remoteCardPayload = createRemoteCardHotPayload(
             cardId = dirtyCard.cardId,
             frontText = "Remote winning front",
@@ -78,6 +81,8 @@ class LocalSyncRepositoryHotRowReplayTest {
             tags = listOf("remote"),
             clientUpdatedAt = "2026-04-02T15:55:57.000Z"
         )
+        remoteCardPayload.getJSONObject("metadata").put("maintenanceRevision", maintenanceRevision)
+        val pushedCardPayloads = mutableListOf<JSONObject>()
         val hotPullCursors = mutableListOf<Long>()
         val baseGateway = FakeCloudRemoteGateway.standard()
         val remoteGateway = object : CloudRemoteGateway by baseGateway {
@@ -110,6 +115,12 @@ class LocalSyncRepositoryHotRowReplayTest {
                 body: JSONObject
             ): RemotePushResponse {
                 val operations = body.getJSONArray("operations")
+                repeat(operations.length()) { index ->
+                    val operation = operations.getJSONObject(index)
+                    if (operation.getString("entityType") == "card") {
+                        pushedCardPayloads.add(operation.getJSONObject("payload"))
+                    }
+                }
                 return RemotePushResponse(
                     operations = List(operations.length()) { index ->
                         RemotePushOperationResult(
@@ -183,6 +194,34 @@ class LocalSyncRepositoryHotRowReplayTest {
         assertEquals("25", persistedSyncState.lastSyncCursor)
         assertTrue(persistedSyncState.hasHydratedHotState)
         assertTrue(hotPullCursors.contains(0L))
+        assertEquals(
+            maintenanceRevision,
+            decodeCardMetadataJson(metadataJson = syncedCard.metadataJson).maintenanceRevision
+        )
+        val legacyPush = pushedCardPayloads.single()
+        assertEquals("Local pending front", legacyPush.getString("frontText"))
+        assertTrue(!legacyPush.getJSONObject("metadata").has("maintenanceRevision"))
+
+        val cardsRepository = LocalCardsRepository(
+            database = environment.database,
+            preferencesStore = environment.cloudPreferencesStore,
+            syncLocalStore = environment.createSyncLocalStore()
+        )
+        cardsRepository.updateCard(
+            cardId = dirtyCard.cardId,
+            cardDraft = CardDraft(
+                frontText = "Edited after pull",
+                backText = syncedCard.backText,
+                tags = listOf("remote")
+            ),
+            savedTags = listOf("remote")
+        )
+        syncRepository.syncNow()
+
+        val editedPush = pushedCardPayloads.last()
+        assertEquals(2, pushedCardPayloads.size)
+        assertEquals("Edited after pull", editedPush.getString("frontText"))
+        assertEquals(maintenanceRevision, editedPush.getJSONObject("metadata").getLong("maintenanceRevision"))
     }
 
     @Test

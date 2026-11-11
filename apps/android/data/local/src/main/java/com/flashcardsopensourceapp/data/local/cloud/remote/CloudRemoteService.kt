@@ -86,6 +86,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -479,6 +482,44 @@ class CloudRemoteService private constructor(
             bearerToken = bearerToken,
             workspaceId = workspaceId,
             confirmationText = confirmationText
+        )
+    }
+
+    override suspend fun previewCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        target: CloudCardMaintenanceTarget
+    ): CloudCardMaintenancePreview {
+        return accountWorkspaceApi.previewCardMaintenance(
+            apiBaseUrl = apiBaseUrl,
+            bearerToken = bearerToken,
+            target = target
+        )
+    }
+
+    override suspend fun executeCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        confirmation: CloudCardMaintenanceConfirmation
+    ): Int {
+        return accountWorkspaceApi.executeCardMaintenance(
+            apiBaseUrl = apiBaseUrl,
+            bearerToken = bearerToken,
+            confirmation = confirmation
+        )
+    }
+
+    override suspend fun reconcileCardMaintenance(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        previewFingerprint: String
+    ): Boolean {
+        return accountWorkspaceApi.reconcileCardMaintenance(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            previewFingerprint = previewFingerprint
         )
     }
 

@@ -99,11 +99,13 @@ struct CardMetadata: Codable, Hashable, Sendable {
     let version: Int
     let source: CardSourceMetadata?
     let onboardingDemo: OnboardingDemoMetadata?
+    let maintenanceRevision: Int64?
 
     enum CodingKeys: String, CodingKey {
         case version
         case source
         case onboardingDemo
+        case maintenanceRevision
     }
 
     init(source: CardSourceMetadata?) {
@@ -111,9 +113,14 @@ struct CardMetadata: Codable, Hashable, Sendable {
     }
 
     init(source: CardSourceMetadata?, onboardingDemo: OnboardingDemoMetadata?) {
+        self.init(source: source, onboardingDemo: onboardingDemo, maintenanceRevision: nil)
+    }
+
+    init(source: CardSourceMetadata?, onboardingDemo: OnboardingDemoMetadata?, maintenanceRevision: Int64?) {
         self.version = 1
         self.source = source
         self.onboardingDemo = onboardingDemo
+        self.maintenanceRevision = maintenanceRevision
     }
 
     init(from decoder: Decoder) throws {
@@ -130,12 +137,26 @@ struct CardMetadata: Codable, Hashable, Sendable {
         self.version = version
         self.source = try container.decode(CardSourceMetadata?.self, forKey: .source)
         self.onboardingDemo = try? container.decode(OnboardingDemoMetadata.self, forKey: .onboardingDemo)
+        if container.contains(.maintenanceRevision) {
+            let revision = try container.decode(Int64.self, forKey: .maintenanceRevision)
+            guard (1...9_007_199_254_740_991).contains(revision) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .maintenanceRevision,
+                    in: container,
+                    debugDescription: "Card maintenance revision must be a positive safe JSON integer"
+                )
+            }
+            self.maintenanceRevision = revision
+        } else {
+            self.maintenanceRevision = nil
+        }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.version, forKey: .version)
         try container.encodeIfPresent(self.onboardingDemo, forKey: .onboardingDemo)
+        try container.encodeIfPresent(self.maintenanceRevision, forKey: .maintenanceRevision)
         if let source = self.source {
             try container.encode(source, forKey: .source)
         } else {

@@ -140,6 +140,12 @@ data class ReviewSessionQueryInputs(
     val nowMillis: Long
 )
 
+/** A review session snapshot with the inputs it was read for; null when no workspace was read. */
+data class ReviewSessionQueryResult(
+    val queryInputs: ReviewSessionQueryInputs?,
+    val snapshot: ReviewSessionSnapshot
+)
+
 /** The Review tab badge count with the card Review shows first, for the Home Screen widget. */
 data class ReviewQueueHead(
     val workspaceId: String,

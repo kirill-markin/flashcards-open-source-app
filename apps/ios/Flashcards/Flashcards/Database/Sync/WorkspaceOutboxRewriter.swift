@@ -57,6 +57,14 @@ private enum WorkspaceForkJSONValue: Codable, Equatable {
 }
 
 private extension Dictionary where Key == String, Value == WorkspaceForkJSONValue {
+    mutating func replaceCardIdentity(cardId: String) {
+        self["cardId"] = .string(cardId)
+        if case .object(var metadata) = self["metadata"] {
+            metadata.removeValue(forKey: CardMetadata.CodingKeys.maintenanceRevision.rawValue)
+            self["metadata"] = .object(metadata)
+        }
+    }
+
     func requireString(fieldName: String, context: String) throws -> String {
         guard let value = self[fieldName] else {
             throw LocalStoreError.database("Workspace identity fork payload is missing \(fieldName) for \(context)")
@@ -231,8 +239,8 @@ struct WorkspaceOutboxRewriter {
         switch row.entityType {
         case .card:
             let sourceCardId = try payload.requireString(fieldName: "cardId", context: "fork.outbox.card.cardId")
-            payload["cardId"] = .string(
-                try forkMappings.cardIdsBySourceId.requireMappedId(entityType: "card", sourceId: sourceCardId)
+            payload.replaceCardIdentity(
+                cardId: try forkMappings.cardIdsBySourceId.requireMappedId(entityType: "card", sourceId: sourceCardId)
             )
             // The pending card body still carries the source asset ids, so it
             // has to follow the same rewrite the forked card row received.
@@ -313,7 +321,7 @@ struct WorkspaceOutboxRewriter {
             return
         }
 
-        payload["cardId"] = .string(replacementCardId)
+        payload.replaceCardIdentity(cardId: replacementCardId)
         try self.updatePublicSyncConflictOutboxRow(
             operationId: row.operationId,
             entityId: replacementCardId,

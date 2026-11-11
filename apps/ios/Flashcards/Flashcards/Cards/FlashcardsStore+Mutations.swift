@@ -46,17 +46,34 @@ extension FlashcardsStore {
         self.localReadVersion += 1
     }
 
+    @discardableResult
     func saveCard(
         input: CardEditorInput,
         editingCardId: String?,
         mediaAssetIdsReadyForUpload: Set<String>
-    ) throws {
+    ) throws -> Card {
+        try self.saveCard(
+            input: input,
+            editingCardId: editingCardId,
+            observedTags: nil,
+            mediaAssetIdsReadyForUpload: mediaAssetIdsReadyForUpload
+        )
+    }
+
+    @discardableResult
+    func saveCard(
+        input: CardEditorInput,
+        editingCardId: String?,
+        observedTags: [String]?,
+        mediaAssetIdsReadyForUpload: Set<String>
+    ) throws -> Card {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let savedCard = try context.database.saveCard(
             workspaceId: context.workspaceId,
             input: input,
             cardId: editingCardId,
+            observedTags: observedTags,
             mediaAssetIdsReadyForUpload: mediaAssetIdsReadyForUpload
         )
         self.reviewRuntime.invalidateReviewSource()
@@ -67,6 +84,7 @@ extension FlashcardsStore {
         }
         try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
+        return savedCard
     }
 
     func authorCardEditorManagedImage(
@@ -138,13 +156,14 @@ extension FlashcardsStore {
         return createdDeck
     }
 
-    func updateDeck(deckId: String, input: DeckEditorInput) throws {
+    func updateDeck(deckId: String, input: DeckEditorInput, observedTags: [String]) throws {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.updateDeck(
             workspaceId: context.workspaceId,
             deckId: deckId,
-            input: input
+            input: input,
+            observedTags: observedTags
         )
         self.reviewRuntime.invalidateReviewSource()
         try self.rebuildReviewData(reason: .localCardsChanged, now: now)
@@ -167,6 +186,8 @@ extension FlashcardsStore {
         try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        try requireLocalDatabase(database: self.database).outboxStore
+            .assertCardMaintenanceAllowsSnapshotWrites(workspaceId: workspaceId)
         let currentReviewState = self.currentReviewPublishedState()
         let reviewContext = makeReviewSubmissionContext(
             selectedReviewFilter: currentReviewState.selectedReviewFilter,

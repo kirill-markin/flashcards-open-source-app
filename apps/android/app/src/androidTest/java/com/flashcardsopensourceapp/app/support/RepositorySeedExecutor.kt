@@ -191,6 +191,7 @@ internal class RepositorySeedExecutor(
         delay(timeMillis = 5L)
         appGraph.cardsRepository.updateCard(
             cardId = seededCard.cardId,
+            savedTags = seededCard.tags,
             cardDraft = CardDraft(
                 frontText = seedCard.frontText,
                 backText = seedCard.backText,

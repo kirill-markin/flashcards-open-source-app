@@ -59,6 +59,7 @@ fun CardEditorRoute(
     onEditWithAi: (() -> Unit)?,
     onRemoveTag: (String) -> Unit,
     onSave: () -> Unit,
+    onResetProgress: (() -> Unit)?,
     onDelete: (() -> Unit)?,
     onBack: () -> Unit
 ) {
@@ -356,6 +357,17 @@ fun CardEditorRoute(
                     HorizontalDivider()
                 }
 
+                if (onResetProgress != null) {
+                    item {
+                        OutlinedButton(
+                            onClick = onResetProgress,
+                            modifier = Modifier.fillMaxWidth().testTag("card_editor_reset_progress")
+                        ) {
+                            Text(stringResource(R.string.cards_editor_reset_progress))
+                        }
+                    }
+                }
+
                 item {
                     OutlinedButton(
                         onClick = onDelete,
@@ -388,6 +400,7 @@ fun CardEditorLoadingOrUnavailableRoute(
         onEditWithAi = null,
         onRemoveTag = { unavailableAction() },
         onSave = unavailableAction,
+        onResetProgress = null,
         onDelete = null,
         onBack = onBack
     )

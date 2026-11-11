@@ -1453,6 +1453,19 @@ const zuCatalog: TranslationCatalog = {
       new: "Inqwaba entsha",
     },
   },
+  cardMaintenance: {
+    removeTag: "Susa umaka emakhadini",
+    linkedWorkspaceRequired: "Lesi senzo sidinga indawo yokusebenza yefu exhunyiwe.",
+    noChanges: "Alikho ikhadi elidinga lolu shintsho.",
+    overlap: "Lokhu kusetha kabusha nenqubekelaphambili kwamanye amadekhi nakomaka abaqukethe la makhadi.",
+    outcomeUnknown: "Asikwazanga ukuqinisekisa ukuthi ushintsho endaweni yokusebenza lwenziwe yini.",
+    previewChanged: "Amakhadi athintekayo ashintshile. Bheka ukubuka kuqala okubuyekeziwe bese uqinisekisa futhi.",
+    removePreview: "Lo maka uzosuswa emakhadini ({{cards}}). Amakhadi azogcinwa. Amadekhi asebenzisa lo maka emithethweni yawo: {{decks}}.",
+    resetComplete: "Inqubekelaphambili yokufunda isethwe kabusha.",
+    saveDeckRules: "Londoloza imithetho yedekhi ngaphambi kokusetha kabusha inqubekelaphambili yokufunda.",
+    syncFailed: "Hlola ukuxhumeka kwakho bese uzama ukuvumelanisa futhi.",
+    targetMissing: "Ikhadi, idekhi noma umaka okhethiwe awusekho.",
+  },
   tagsScreen: {
     counts: {
       total: "Sekukonke: {{count}}",

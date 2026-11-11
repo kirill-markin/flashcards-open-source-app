@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 struct CloudSyncOperationState {
     let id: String
+    let linkedSession: CloudLinkedSession
     let task: Task<CloudSyncResult, Error>
 }
 
@@ -32,6 +33,8 @@ final class CloudSessionRuntime {
     private let cloudSyncService: (any CloudSyncServing)?
     private let credentialStore: any CredentialStoring
     private(set) var state: CloudSessionRuntimeState
+    private(set) var syncGeneration = UUID()
+    private var workspaceSyncTransition: UUID?
     private(set) var workspaceIdPendingDeletion: String? = nil
 
     init(
@@ -135,6 +138,21 @@ final class CloudSessionRuntime {
         configuration: CloudServiceConfiguration,
         now: Date
     ) async throws -> StoredCloudCredentials {
+        try await self.refreshCloudCredentials(
+            forceRefresh: forceRefresh,
+            configuration: configuration,
+            now: now,
+            validateContext: {}
+        )
+    }
+
+    func refreshCloudCredentials(
+        forceRefresh: Bool,
+        configuration: CloudServiceConfiguration,
+        now: Date,
+        validateContext: () throws -> Void
+    ) async throws -> StoredCloudCredentials {
+        try validateContext()
         guard let storedCredentials = try self.credentialStore.loadCredentials() else {
             throw LocalStoreError.uninitialized("Cloud credentials are unavailable")
         }
@@ -161,6 +179,7 @@ final class CloudSessionRuntime {
         // credentials back into the Keychain that the reset around `cancelForAccountDeletion` has
         // just cleared, so the write has to re-read cancellation rather than trust the await.
         try Task.checkCancellation()
+        try validateContext()
         try self.credentialStore.saveCredentials(credentials: updatedCredentials)
 
         if let activeCloudSession = self.state.activeCloudSession {
@@ -459,8 +478,7 @@ final class CloudSessionRuntime {
             apiBaseUrl: configuration.apiBaseUrl,
             authorization: .bearer(bearerToken)
         )
-        self.state.activeCloudSession = linkedSession
-        setObservabilityIdentity(linkedSession: linkedSession)
+        self.setActiveCloudSession(linkedSession: linkedSession)
         return linkedSession
     }
 
@@ -485,6 +503,11 @@ final class CloudSessionRuntime {
     }
 
     func setActiveCloudSession(linkedSession: CloudLinkedSession) {
+        if let current = self.state.activeCloudSession,
+           cloudLinkedSessionsMatchStableContext(current, linkedSession) == false {
+            self.syncGeneration = UUID()
+            self.cancelAndClearActiveCloudSyncTask(stage: "clear_active_sync_task_session_changed")
+        }
         self.state.activeCloudSession = linkedSession
         setObservabilityIdentity(linkedSession: linkedSession)
     }
@@ -503,7 +526,7 @@ final class CloudSessionRuntime {
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
-        return try await self.runCloudSyncTask {
+        return try await self.runCloudSyncTask(linkedSession: linkedSession) {
             try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
             return try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
         }
@@ -511,7 +534,7 @@ final class CloudSessionRuntime {
 
     func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
-        return try await self.runCloudSyncTask {
+        return try await self.runCloudSyncTask(linkedSession: linkedSession) {
             try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
             return try await cloudSyncService.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
         }
@@ -519,7 +542,7 @@ final class CloudSessionRuntime {
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
-        return try await self.runFreshCloudSyncAfterActiveSyncSettles {
+        return try await self.runFreshCloudSyncAfterActiveSyncSettles(linkedSession: linkedSession) {
             try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
             return try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
         }
@@ -529,23 +552,59 @@ final class CloudSessionRuntime {
         linkedSession: CloudLinkedSession
     ) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
-        return try await self.runFreshCloudSyncAfterActiveSyncSettles {
+        return try await self.runFreshCloudSyncAfterActiveSyncSettles(linkedSession: linkedSession) {
             try self.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
             return try await cloudSyncService.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
         }
     }
 
+    func checkCurrentLinkedSyncSession(linkedSession: CloudLinkedSession) throws {
+        try Task.checkCancellation()
+        guard let activeSession = self.state.activeCloudSession,
+              cloudLinkedSessionsMatchStableContext(activeSession, linkedSession) else {
+            throw CancellationError()
+        }
+    }
+
+    func isCurrentSyncGeneration(_ generation: UUID) -> Bool {
+        self.syncGeneration == generation && self.workspaceSyncTransition == nil
+    }
+
+    func checkSyncGeneration(_ generation: UUID) throws {
+        try Task.checkCancellation()
+        guard self.isCurrentSyncGeneration(generation) else {
+            throw CancellationError()
+        }
+    }
+
     private func runFreshCloudSyncAfterActiveSyncSettles(
+        linkedSession: CloudLinkedSession,
         operation: @escaping @MainActor () async throws -> CloudSyncResult
     ) async throws -> CloudSyncResult {
-        await self.waitForActiveCloudSyncToSettle()
-        return try await self.startCloudSyncTask(operation: operation)
+        let generation = self.syncGeneration
+        try self.checkSyncGeneration(generation)
+        try self.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+        await self.waitForActiveCloudSyncToSettle(while: {
+            self.isCurrentSyncGeneration(generation) && Task.isCancelled == false
+        })
+        try self.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+        return try await self.startCloudSyncTask(linkedSession: linkedSession, generation: generation, operation: operation)
     }
 
     private func runCloudSyncTask(
+        linkedSession: CloudLinkedSession,
         operation: @escaping @MainActor () async throws -> CloudSyncResult
     ) async throws -> CloudSyncResult {
+        let generation = self.syncGeneration
+        try self.checkSyncGeneration(generation)
+        if let activeSession = self.state.activeCloudSession,
+           cloudLinkedSessionsMatchStableContext(activeSession, linkedSession) == false {
+            throw CancellationError()
+        }
         if let activeCloudSyncTask = self.state.activeCloudSyncTask {
+            guard cloudLinkedSessionsMatchStableContext(activeCloudSyncTask.linkedSession, linkedSession) else {
+                throw CancellationError()
+            }
             self.state.pendingCloudResync = true
             let startedAt = Date()
             self.addCloudSyncRuntimeBreadcrumb(
@@ -560,6 +619,7 @@ final class CloudSessionRuntime {
             )
             do {
                 let syncResult = try await activeCloudSyncTask.task.value
+                try self.checkSyncGeneration(generation)
                 self.addCloudSyncRuntimeBreadcrumb(
                     stage: "wait_active_sync",
                     phase: .success,
@@ -586,12 +646,15 @@ final class CloudSessionRuntime {
             }
         }
 
-        return try await self.startCloudSyncTask(operation: operation)
+        return try await self.startCloudSyncTask(linkedSession: linkedSession, generation: generation, operation: operation)
     }
 
     private func startCloudSyncTask(
+        linkedSession: CloudLinkedSession,
+        generation: UUID,
         operation: @escaping @MainActor () async throws -> CloudSyncResult
     ) async throws -> CloudSyncResult {
+        try self.checkSyncGeneration(generation)
         let startedAt = Date()
         self.addCloudSyncRuntimeBreadcrumb(
             stage: "start_active_sync_task",
@@ -605,14 +668,16 @@ final class CloudSessionRuntime {
         )
         let syncOperation = CloudSyncOperationState(
             id: UUID().uuidString.lowercased(),
+            linkedSession: linkedSession,
             task: Task { @MainActor in
-                try await self.runCloudSyncLoop(operation: operation)
+                try await self.runCloudSyncLoop(generation: generation, operation: operation)
             }
         )
         self.state.activeCloudSyncTask = syncOperation
 
         do {
             let syncResult = try await syncOperation.task.value
+            try self.checkSyncGeneration(generation)
             self.addCloudSyncRuntimeBreadcrumb(
                 stage: "start_active_sync_task",
                 phase: .success,
@@ -642,14 +707,15 @@ final class CloudSessionRuntime {
     }
 
     private func runCloudSyncLoop(
+        generation: UUID,
         operation: @escaping @MainActor () async throws -> CloudSyncResult
     ) async throws -> CloudSyncResult {
         var accumulatedResult = CloudSyncResult.noChanges
         while true {
-            try Task.checkCancellation()
+            try self.checkSyncGeneration(generation)
             self.state.pendingCloudResync = false
             let syncResult = try await operation()
-            try Task.checkCancellation()
+            try self.checkSyncGeneration(generation)
             accumulatedResult = accumulatedResult.merging(syncResult)
 
             if self.state.pendingCloudResync == false {
@@ -661,7 +727,11 @@ final class CloudSessionRuntime {
     }
 
     func waitForActiveCloudSyncToSettle() async {
-        while let activeCloudSyncTask = self.state.activeCloudSyncTask {
+        await self.waitForActiveCloudSyncToSettle(while: { true })
+    }
+
+    private func waitForActiveCloudSyncToSettle(while shouldWait: () -> Bool) async {
+        while shouldWait(), let activeCloudSyncTask = self.state.activeCloudSyncTask {
             let startedAt = Date()
             self.addCloudSyncRuntimeBreadcrumb(
                 stage: "wait_active_sync_to_settle",
@@ -909,6 +979,8 @@ final class CloudSessionRuntime {
     }
 
     func disconnectSession() {
+        self.syncGeneration = UUID()
+        self.workspaceSyncTransition = nil
         self.state.activeCloudSession = nil
         FlashcardsObservability.setIdentity(nil)
     }
@@ -947,6 +1019,26 @@ final class CloudSessionRuntime {
             if isRequestCancellationError(error: cancellationError) == false {
                 throw error
             }
+        }
+    }
+
+    func beginWorkspaceSyncTransition() -> UUID {
+        self.syncGeneration = UUID()
+        self.workspaceSyncTransition = self.syncGeneration
+        self.cancelForWorkspaceSwitch()
+        return self.syncGeneration
+    }
+
+    func checkWorkspaceSyncTransition(_ transition: UUID) throws {
+        try Task.checkCancellation()
+        guard self.workspaceSyncTransition == transition else {
+            throw CancellationError()
+        }
+    }
+
+    func endWorkspaceSyncTransition(_ transition: UUID) {
+        if self.workspaceSyncTransition == transition {
+            self.workspaceSyncTransition = nil
         }
     }
 
@@ -990,6 +1082,8 @@ final class CloudSessionRuntime {
      * follows it.
      */
     func cancelForAccountDeletion() {
+        self.syncGeneration = UUID()
+        self.workspaceSyncTransition = nil
         self.state.activeWorkspaceCompletionTask?.task.cancel()
         self.state.activeWorkspaceCompletionTask = nil
         self.state.activeCloudLinkTask?.task.cancel()
@@ -1013,7 +1107,7 @@ final class CloudSessionRuntime {
     }
 }
 
-private func cloudLinkedSessionsMatchStableContext(
+func cloudLinkedSessionsMatchStableContext(
     _ lhs: CloudLinkedSession,
     _ rhs: CloudLinkedSession
 ) -> Bool {

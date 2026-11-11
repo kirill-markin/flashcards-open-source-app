@@ -68,23 +68,19 @@ type WorkspaceLastActivityRow = Readonly<{
 const maximumWorkspacePageSize = 100;
 const maximumWorkspaceStatsCount = 100;
 
-function getResettableCardPredicateSql(): string {
-  return [
-    "workspace_id = $1",
-    "AND deleted_at IS NULL",
-    "AND (",
-    "due_at IS NOT NULL",
-    "OR reps <> 0",
-    "OR lapses <> 0",
-    "OR fsrs_card_state <> 'new'",
-    "OR fsrs_step_index IS NOT NULL",
-    "OR fsrs_stability IS NOT NULL",
-    "OR fsrs_difficulty IS NOT NULL",
-    "OR fsrs_last_reviewed_at IS NOT NULL",
-    "OR fsrs_scheduled_days IS NOT NULL",
-    ")",
-  ].join(" ");
-}
+export const cardNeedsProgressResetSql = [
+  "(",
+  "due_at IS NOT NULL",
+  "OR reps <> 0",
+  "OR lapses <> 0",
+  "OR fsrs_card_state <> 'new'",
+  "OR fsrs_step_index IS NOT NULL",
+  "OR fsrs_stability IS NOT NULL",
+  "OR fsrs_difficulty IS NOT NULL",
+  "OR fsrs_last_reviewed_at IS NOT NULL",
+  "OR fsrs_scheduled_days IS NOT NULL",
+  ")",
+].join(" ");
 
 async function loadWorkspaceMembershipRowInExecutor(
   executor: DatabaseExecutor,
@@ -269,8 +265,8 @@ export async function loadResettableCardCountInExecutor(
     [
       "SELECT COUNT(*)::int AS cards_to_reset_count",
       "FROM content.cards",
-      "WHERE",
-      getResettableCardPredicateSql(),
+      "WHERE workspace_id = $1 AND deleted_at IS NULL AND",
+      cardNeedsProgressResetSql,
     ].join(" "),
     [workspaceId],
   );
@@ -296,8 +292,8 @@ export async function loadResettableCardRowsInExecutor(
     [
       "SELECT card_id",
       "FROM content.cards",
-      "WHERE",
-      getResettableCardPredicateSql(),
+      "WHERE workspace_id = $1 AND deleted_at IS NULL AND",
+      cardNeedsProgressResetSql,
       "ORDER BY card_id ASC",
       "FOR UPDATE",
     ].join(" "),

@@ -580,7 +580,6 @@ describe("CardFormScreen lifecycle conflicts", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: movedFrontText,
       backText: resolvedBackText,
-      tags: ["grammar", "remote"],
     });
     expect(mocks.handoffCardToAiMock).toHaveBeenCalledTimes(1);
   });

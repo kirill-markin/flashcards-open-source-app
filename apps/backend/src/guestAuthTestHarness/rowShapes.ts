@@ -44,6 +44,10 @@ export function createCardQueryRow(card: CardState): Readonly<Record<string, unk
     last_operation_id: card.last_operation_id,
     updated_at: card.updated_at,
     deleted_at: card.deleted_at,
+    maintenance_revision: 0,
+    maintenance_reset_at: null,
+    maintenance_tag_removals: {},
+    maintenance_snapshot_lww_at: null,
   };
 }
 

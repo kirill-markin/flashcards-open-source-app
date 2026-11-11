@@ -8,9 +8,15 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
-import { makeDefaultCardMetadata, normalizeOnboardingDemoMetadata } from "../appData/domain/cardMetadata";
+import {
+  isValidCardMaintenanceRevision,
+  makeDefaultCardMetadata,
+  normalizeOnboardingDemoMetadata,
+} from "../appData/domain/cardMetadata";
 import { appendLegacyEffortTag } from "../legacyEffort";
 import {
+  ApiContractError,
+  describePath,
   joinPath,
   parseArray,
   parseEnum,
@@ -60,11 +66,23 @@ function parseCardSourceMetadata(value: unknown, endpoint: string, path: string)
   };
 }
 
+function parseCardMaintenanceRevision(value: unknown, endpoint: string, path: string): number {
+  if (isValidCardMaintenanceRevision(value) === false) {
+    throw new ApiContractError(endpoint, describePath(path), "a positive safe integer");
+  }
+
+  return value;
+}
+
 function parseCardMetadata(value: unknown, endpoint: string, path: string): CardMetadata {
   const objectValue = parseObject(value, endpoint, path);
   const onboardingDemo = normalizeOnboardingDemoMetadata(objectValue.onboardingDemo);
+  const maintenanceRevision = parseOptionalField(
+    objectValue, "maintenanceRevision", endpoint, path, parseCardMaintenanceRevision,
+  );
   return {
     ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
+    ...(maintenanceRevision === undefined ? {} : { maintenanceRevision }),
     version: parseLiteral(parseRequiredField(objectValue, "version", endpoint, path, parseNumber), endpoint, joinPath(path, "version"), 1),
     source: parseRequiredField(objectValue, "source", endpoint, path, parseCardSourceMetadata),
   };

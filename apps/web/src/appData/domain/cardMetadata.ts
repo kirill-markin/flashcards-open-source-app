@@ -65,6 +65,10 @@ export function makeDefaultCardMetadata(createdAt: string): CardMetadata {
   };
 }
 
+export function isValidCardMaintenanceRevision(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
 export function normalizeCardMetadata(value: unknown, createdAt: string): CardMetadata {
   if (value === undefined) {
     return makeDefaultCardMetadata(createdAt);
@@ -76,10 +80,16 @@ export function normalizeCardMetadata(value: unknown, createdAt: string): CardMe
   }
 
   const onboardingDemo = normalizeOnboardingDemoMetadata(record.onboardingDemo);
+  const maintenanceRevision = record.maintenanceRevision;
+  if (maintenanceRevision !== undefined && isValidCardMaintenanceRevision(maintenanceRevision) === false) {
+    throw new Error("metadata.maintenanceRevision must be a positive safe integer");
+  }
+
   return {
     version: 1,
     source: normalizeCardSourceMetadata(record.source),
     ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
+    ...(maintenanceRevision === undefined ? {} : { maintenanceRevision }),
   };
 }
 

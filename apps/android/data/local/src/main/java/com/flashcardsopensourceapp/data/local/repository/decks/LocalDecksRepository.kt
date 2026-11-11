@@ -7,8 +7,10 @@ import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterConflictException
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.cards.applyTagSelectionChanges
 import com.flashcardsopensourceapp.data.local.model.cards.matchesDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
@@ -103,42 +105,53 @@ class LocalDecksRepository(
         return deck.deckId
     }
 
-    override suspend fun updateDeck(deckId: String, deckDraft: DeckDraft) {
-        val currentDeck: DeckEntity = requireNotNull(database.deckDao().loadDeck(deckId = deckId)) {
-            "Cannot update missing deck: $deckId"
-        }
-        val normalizedDeckDraft: DeckDraft = normalizeDeckDraft(deckDraft = deckDraft)
-        val updatedDeck: DeckEntity = currentDeck.copy(
-            name = normalizedDeckDraft.name,
-            filterDefinitionJson = encodeDeckFilterDefinition(
-                filterDefinition = normalizedDeckDraft.filterDefinition
-            ),
-            updatedAtMillis = System.currentTimeMillis(),
-            deletedAtMillis = null
-        )
-
+    override suspend fun updateDeck(deckId: String, deckDraft: DeckDraft, savedDraft: DeckDraft) {
+        val normalizedDraft = normalizeDeckDraft(deckDraft = deckDraft)
         runLocalOutboxMutationTransaction(
             database = database,
             preferencesStore = preferencesStore
         ) {
+            val currentDeck = requireNotNull(database.deckDao().loadDeck(deckId = deckId)) {
+                "Cannot update missing deck: $deckId"
+            }
+            check(currentDeck.deletedAtMillis == null) {
+                "Cannot update deleted deck: $deckId"
+            }
+            val currentFilter = decodeDeckFilterDefinition(filterDefinitionJson = currentDeck.filterDefinitionJson)
+            val updatedFilter = currentFilter.copy(
+                tags = applyTagSelectionChanges(
+                    savedTags = savedDraft.filterDefinition.tags,
+                    selectedTags = normalizedDraft.filterDefinition.tags,
+                    currentTags = currentFilter.tags
+                )
+            )
+            if (normalizedDraft.filterDefinition.tags.isNotEmpty() && updatedFilter.tags.isEmpty()) {
+                throw DeckFilterConflictException()
+            }
+            val updatedDeck = currentDeck.copy(
+                name = if (normalizedDraft.name == savedDraft.name) currentDeck.name else normalizedDraft.name,
+                filterDefinitionJson = encodeDeckFilterDefinition(filterDefinition = updatedFilter),
+                updatedAtMillis = System.currentTimeMillis()
+            )
             database.deckDao().updateDeck(deck = updatedDeck)
             syncLocalStore.enqueueDeckUpsert(updatedDeck)
         }
     }
 
     override suspend fun deleteDeck(deckId: String) {
-        val existingDeck: DeckEntity = requireNotNull(database.deckDao().loadDeck(deckId = deckId)) {
-            "Cannot delete missing deck: $deckId"
-        }
-
-        val deletedDeck: DeckEntity = existingDeck.copy(
-            updatedAtMillis = System.currentTimeMillis(),
-            deletedAtMillis = System.currentTimeMillis()
-        )
         runLocalOutboxMutationTransaction(
             database = database,
             preferencesStore = preferencesStore
         ) {
+            val currentDeck = requireNotNull(database.deckDao().loadDeck(deckId = deckId)) {
+                "Cannot delete missing deck: $deckId"
+            }
+            if (currentDeck.deletedAtMillis != null) return@runLocalOutboxMutationTransaction
+            val deletionTimestamp = System.currentTimeMillis()
+            val deletedDeck = currentDeck.copy(
+                updatedAtMillis = deletionTimestamp,
+                deletedAtMillis = deletionTimestamp
+            )
             database.deckDao().updateDeck(deck = deletedDeck)
             syncLocalStore.enqueueDeckUpsert(deletedDeck)
         }

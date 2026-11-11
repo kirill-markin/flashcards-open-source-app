@@ -8,6 +8,7 @@ data class DeckEditorUiState(
     val deleteTarget: DeckEditorDeleteTarget?,
     val title: String,
     val isEditing: Boolean,
+    val hasUnsavedRules: Boolean,
     val name: String,
     val selectedTags: List<String>,
     val availableTags: List<WorkspaceTagSummary>,
@@ -16,5 +17,6 @@ data class DeckEditorUiState(
 
 data class DeckEditorDeleteTarget(
     val deckId: String,
+    val workspaceId: String,
     val name: String
 )

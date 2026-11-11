@@ -56,12 +56,13 @@ class LocalSyncOutboxContractTest {
                 tags = listOf("architecture"),
             )
         )
-        val createdCardId = database.cardDao().observeCardsWithRelations().first()
-            .first { card -> card.card.frontText == "What is a repository?" }
-            .card.cardId
+        val createdCard = database.cardDao().observeCardsWithRelations().first()
+            .single { card -> card.card.frontText == "What is a repository?" }
+        val createdCardId = createdCard.card.cardId
 
         cardsRepository.updateCard(
             cardId = createdCardId,
+            savedTags = createdCard.tags.map { tag -> tag.name },
             cardDraft = CardDraft(
                 frontText = "What is a repository pattern?",
                 backText = "A boundary that owns data access.",
@@ -147,12 +148,12 @@ class LocalSyncOutboxContractTest {
                 )
             )
         )
-        val createdDeckId = database.deckDao().observeDecks().first()
-            .first { deck -> deck.name == "Architecture" }
-            .deckId
+        val createdDeck = decksRepository.observeDecks().first().single { deck -> deck.name == "Architecture" }
+        val createdDeckId = createdDeck.deckId
 
         decksRepository.updateDeck(
             deckId = createdDeckId,
+            savedDraft = DeckDraft(name = createdDeck.name, filterDefinition = createdDeck.filterDefinition),
             deckDraft = DeckDraft(
                 name = "Architecture Updated",
                 filterDefinition = buildDeckFilterDefinition(

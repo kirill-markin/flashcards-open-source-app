@@ -73,8 +73,8 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0244_guest_browser_check_browser.sql",
-    expectedMigrationCount: 246,
+    migrationFileName: "0246_card_maintenance_sync.sql",
+    expectedMigrationCount: 248,
     testFiles: Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
@@ -86,7 +86,14 @@ export const boundaryDefinitions = Object.freeze([
       "src/auth/surrogateUserId.postgres.integration.ts",
       "src/auth/provedAccountUnion.postgres.integration.ts",
       "src/workspaces/starterVisibility.postgres.integration.ts",
+      "src/workspaces/cardMaintenance.postgres.integration.ts",
+      "src/sync/replication/cardMaintenance.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+      "src/sync/freshBootstrap.postgres.integration.ts",
+      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/cards/onboardingDemo.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -212,7 +219,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/chat/cardImages/promotion/jobsAccountOwner.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsAccountOwnerRace.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
     ]),
@@ -224,10 +230,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/admin/authz.postgres.integration.ts",
       "src/auth/principalSessions.postgres.integration.ts",
       "src/chat/store/historyService.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
-      "src/sync/freshBootstrap.postgres.integration.ts",
-      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
-      "src/cards/onboardingDemo.postgres.integration.ts",
       "src/chat/cardImages/generationBudget.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
       "src/catalog/authoring/lockOrder.postgres.integration.ts",

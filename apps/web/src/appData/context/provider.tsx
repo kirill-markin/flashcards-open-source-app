@@ -263,6 +263,8 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const syncEngine = useSyncEngine({
     onReviewSaved: firstReviewOnboarding.completeAfterReview,
+    maintenanceSyncFailureMessage: t("cardMaintenance.syncFailed"),
+    maintenanceOutcomeUnknownMessage: `${t("cardMaintenance.outcomeUnknown")} ${t("cardMaintenance.syncFailed")}`,
     sessionLoadState,
     sessionVerificationState,
     session,
@@ -592,6 +594,7 @@ export function AppDataProvider(props: Props): ReactElement {
     drainGuestWorkspace: syncEngine.drainGuestWorkspace,
     runMediaUploadTransfers: syncEngine.runMediaUploadTransfers,
     refreshLocalData: syncEngine.refreshLocalData,
+    runWithCardMaintenanceSync: syncEngine.runWithCardMaintenanceSync,
     getCardById: syncEngine.getCardById,
     getDeckById: syncEngine.getDeckById,
     createCardItem: syncEngine.createCardItem,

@@ -43,45 +43,7 @@ internal class CloudSessionProvider(
 
     suspend fun authenticatedSession(): AuthenticatedCloudSession = operationCoordinator.runExclusive {
         try {
-            val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
-            val storedCredentials: StoredCloudCredentials = requireNotNull(
-                withContext(Dispatchers.IO) { preferencesStore.loadCredentials() }
-            ) {
-                "Cloud account is not signed in."
-            }
-
-            val refreshedCredentials: StoredCloudCredentials = if (
-                shouldRefreshCloudIdToken(
-                    idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                    nowMillis = System.currentTimeMillis()
-                )
-            ) {
-                // Once the refresh spends the stored token, a cancelled caller must not drop the rotated one.
-                withContext(NonCancellable) {
-                    remoteService.refreshIdToken(
-                        refreshToken = storedCredentials.refreshToken,
-                        authBaseUrl = configuration.authBaseUrl
-                    ).also { credentials ->
-                        withContext(Dispatchers.IO) {
-                            preferencesStore.saveCredentials(credentials)
-                        }
-                    }
-                }
-            } else {
-                storedCredentials
-            }
-            val accountSnapshot: CloudAccountSnapshot = fetchCloudAccount(
-                credentials = refreshedCredentials,
-                configuration = configuration
-            )
-            requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot = accountSnapshot)
-            preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
-
-            AuthenticatedCloudSession(
-                configuration = configuration,
-                credentials = refreshedCredentials,
-                accountSnapshot = accountSnapshot
-            )
+            loadAuthenticatedSession()
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -91,6 +53,53 @@ internal class CloudSessionProvider(
             }
             throw error
         }
+    }
+
+    suspend fun authenticatedSessionForCardMaintenance(): AuthenticatedCloudSession {
+        operationCoordinator.requireExclusiveOperation(operationName = "Card maintenance session")
+        return loadAuthenticatedSession()
+    }
+
+    private suspend fun loadAuthenticatedSession(): AuthenticatedCloudSession {
+        val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
+        val storedCredentials: StoredCloudCredentials = requireNotNull(
+            withContext(Dispatchers.IO) { preferencesStore.loadCredentials() }
+        ) {
+            "Cloud account is not signed in."
+        }
+
+        val refreshedCredentials: StoredCloudCredentials = if (
+            shouldRefreshCloudIdToken(
+                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
+                nowMillis = System.currentTimeMillis()
+            )
+        ) {
+            // Once the refresh spends the stored token, a cancelled caller must not drop the rotated one.
+            withContext(NonCancellable) {
+                remoteService.refreshIdToken(
+                    refreshToken = storedCredentials.refreshToken,
+                    authBaseUrl = configuration.authBaseUrl
+                ).also { credentials ->
+                    withContext(Dispatchers.IO) {
+                        preferencesStore.saveCredentials(credentials)
+                    }
+                }
+            }
+        } else {
+            storedCredentials
+        }
+        val accountSnapshot: CloudAccountSnapshot = fetchCloudAccount(
+            credentials = refreshedCredentials,
+            configuration = configuration
+        )
+        requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot = accountSnapshot)
+        preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
+
+        return AuthenticatedCloudSession(
+            configuration = configuration,
+            credentials = refreshedCredentials,
+            accountSnapshot = accountSnapshot
+        )
     }
 
     suspend fun authenticatedSession(linkContext: CloudWorkspaceLinkContext): AuthenticatedCloudSession {

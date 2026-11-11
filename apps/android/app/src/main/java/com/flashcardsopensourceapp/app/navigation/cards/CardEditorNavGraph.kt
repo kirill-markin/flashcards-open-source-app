@@ -21,11 +21,13 @@ import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.analytics.analyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.enqueueMediaUploadWorker
+import com.flashcardsopensourceapp.app.navigation.maintenance.CardMaintenanceDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaSource
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceKind
 import com.flashcardsopensourceapp.feature.cards.R as CardsR
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
@@ -80,6 +82,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 )
             )
             val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+            val editingWorkspaceId = uiState.editingWorkspaceId
 
             CardEditorRoute(
                 uiState = uiState,
@@ -133,6 +136,19 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                             }
                         }
                     }
+                },
+                onResetProgress = if (editingCardId != null && editingWorkspaceId != null) {
+                    {
+                        navController.navigate(
+                            route = CardMaintenanceDestination.createRoute(
+                                workspaceId = editingWorkspaceId,
+                                kind = CloudCardMaintenanceKind.RESET_CARD,
+                                target = editingCardId
+                            )
+                        )
+                    }
+                } else {
+                    null
                 },
                 onDelete = if (editingCardId == null) {
                     null

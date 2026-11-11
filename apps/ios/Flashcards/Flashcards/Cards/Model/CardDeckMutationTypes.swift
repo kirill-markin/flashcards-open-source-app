@@ -21,6 +21,13 @@ struct DeckEditorInput: Hashable, Sendable {
     let filterDefinition: DeckFilterDefinition
 }
 
+func deckEditorEmptyRulesValidationMessage() -> String {
+    aiSettingsLocalized(
+        "settings.workspace.decks.emptyRuleValidation",
+        "Choose at least one tag, or use All Cards on Review."
+    )
+}
+
 struct DeckUpdateInput: Hashable, Sendable {
     let deckId: String
     let input: DeckEditorInput
