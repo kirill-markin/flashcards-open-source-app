@@ -18,7 +18,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnScope
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
@@ -31,12 +33,14 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import com.flashcardsopensourceapp.wear.R
+import com.flashcardsopensourceapp.wear.review.WearReviewScreen
+import com.flashcardsopensourceapp.wear.review.WearReviewViewModel
 import com.flashcardsopensourceapp.wear.session.WearSessionFailureMessage
 import com.flashcardsopensourceapp.wear.session.WearSessionState
 import com.flashcardsopensourceapp.wear.session.WearSessionViewModel
 
 @Composable
-fun WearRootScreen(viewModel: WearSessionViewModel) {
+fun WearRootScreen(viewModel: WearSessionViewModel, reviewViewModelFactory: ViewModelProvider.Factory) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val isRequestingHandoff by viewModel.isRequestingHandoff.collectAsStateWithLifecycle()
 
@@ -56,7 +60,11 @@ fun WearRootScreen(viewModel: WearSessionViewModel) {
             label = stringResource(R.string.wear_session_syncing)
         )
 
-        WearSessionState.Ready -> WearReviewPlaceholder()
+        WearSessionState.Ready -> {
+            // Created on the first Ready, once the local database is open.
+            val reviewViewModel: WearReviewViewModel = viewModel(factory = reviewViewModelFactory)
+            WearReviewScreen(viewModel = reviewViewModel)
+        }
 
         is WearSessionState.SwitchBlocked -> WearSwitchBlockedScreen(
             unsyncedRatingCount = currentState.unsyncedRatingCount,

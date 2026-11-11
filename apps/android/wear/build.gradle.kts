@@ -122,10 +122,19 @@ android {
             enableSplit = false
         }
     }
+
+    // The watch uses only the pure Markdown helpers of `:core:ui` and never renders formulas, so RaTeX's
+    // native renderer stays out of the package; its Kotlin classes stay so R8 resolves them.
+    packaging {
+        jniLibs {
+            excludes += "**/libratex_ffi.so"
+        }
+    }
 }
 
 dependencies {
     implementation(project(":core:observability"))
+    implementation(project(":core:ui"))
     implementation(project(":data:local"))
 
     implementation(libs.androidx.core.ktx)

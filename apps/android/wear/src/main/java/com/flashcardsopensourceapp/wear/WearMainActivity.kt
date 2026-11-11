@@ -10,6 +10,7 @@ import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.ColorScheme
 import androidx.wear.compose.material3.MaterialTheme
 import com.flashcardsopensourceapp.wear.handoff.WearHandoffClient
+import com.flashcardsopensourceapp.wear.review.WearReviewViewModel
 import com.flashcardsopensourceapp.wear.session.WearSessionViewModel
 import com.flashcardsopensourceapp.wear.ui.WearRootScreen
 
@@ -37,7 +38,13 @@ class WearMainActivity : ComponentActivity() {
             }
             MaterialTheme(colorScheme = wearColorScheme) {
                 AppScaffold {
-                    WearRootScreen(viewModel = sessionViewModel)
+                    WearRootScreen(
+                        viewModel = sessionViewModel,
+                        reviewViewModelFactory = WearReviewViewModel.factory(
+                            appGraph = (application as WearApplication).appGraph,
+                            sessionViewModel = sessionViewModel
+                        )
+                    )
                 }
             }
         }

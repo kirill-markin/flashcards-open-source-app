@@ -17,5 +17,13 @@
         <item quantity="other">Discard %d ratings?</item>
     </plurals>
     <string name="wear_session_switch_blocked_discard_confirmation_message">They will be lost. This can\'t be undone.</string>
-    <string name="wear_review_placeholder">Your cards are synced.</string>
+    <string name="wear_review_show_answer">Show answer</string>
+    <string name="wear_review_again">Again</string>
+    <string name="wear_review_hard">Hard</string>
+    <string name="wear_review_good">Good</string>
+    <string name="wear_review_easy">Easy</string>
+    <string name="wear_review_open_on_phone">Open on your phone to see the image or formula</string>
+    <string name="wear_review_all_done">All done</string>
+    <!-- %1$s is when the next card is due, for example "in 5 minutes" or "tomorrow". -->
+    <string name="wear_review_next_card_due">Next card %1$s</string>
 </resources>

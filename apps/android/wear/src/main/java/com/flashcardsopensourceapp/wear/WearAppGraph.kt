@@ -25,7 +25,6 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
@@ -142,7 +141,7 @@ class WearAppGraph(context: Context) {
         },
         onCloudIdentityReset = {}
     )
-    val reviewRepository: ReviewRepository = LocalReviewRepository(
+    val reviewRepository: LocalReviewRepository = LocalReviewRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
         reviewPreferencesStore = reviewPreferencesStore,

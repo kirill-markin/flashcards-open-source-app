@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.wear.handoff.WearHandoffReplyTimedOutExceptio
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -78,6 +79,10 @@ class WearSessionViewModel(
     val state: StateFlow<WearSessionState> = stateMutable.asStateFlow()
     private val isRequestingHandoffMutable = MutableStateFlow(false)
     val isRequestingHandoff: StateFlow<Boolean> = isRequestingHandoffMutable.asStateFlow()
+    private val lastSuccessfulSyncAtMillisMutable = MutableStateFlow<Long?>(null)
+    val lastSuccessfulSyncAtMillis: StateFlow<Long?> = lastSuccessfulSyncAtMillisMutable.asStateFlow()
+    private var requestedSyncJob: Job? = null
+    private var isSyncRequestedAgain: Boolean = false
 
     /** The phone's account a blocked switch moves to. */
     private var blockedSwitchAccount: WatchHandoffSignedInAccount? = null
@@ -91,6 +96,20 @@ class WearSessionViewModel(
     fun discardUnsyncedRatingsAndSwitch() {
         viewModelScope.launch {
             discardUnsyncedRatingsAndSwitchNow()
+        }
+    }
+
+    /** Requests during a requested sync add one more run after it instead of queueing one each. */
+    fun requestSync() {
+        if (requestedSyncJob?.isActive == true) {
+            isSyncRequestedAgain = true
+            return
+        }
+        requestedSyncJob = viewModelScope.launch {
+            do {
+                isSyncRequestedAgain = false
+                syncNow()
+            } while (isSyncRequestedAgain)
         }
     }
 
@@ -138,6 +157,7 @@ class WearSessionViewModel(
             signOut(reason = "sync_disconnected_account")
             return WearSyncOutcome.Succeeded
         }
+        lastSuccessfulSyncAtMillisMutable.value = System.currentTimeMillis()
         setStateUnlessSwitchBlocked(state = WearSessionState.Ready)
         return WearSyncOutcome.Succeeded
     }
