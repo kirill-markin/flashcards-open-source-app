@@ -1,0 +1,32 @@
+<resources>
+    <string name="ai_new_chat_content_description">Nouveau clavardage</string>
+    <string name="ai_loading_chat_title">Chargement du clavardage</string>
+    <string name="ai_loading_chat_body">Nous chargeons le dernier clavardage avec l’IA de ce compte avant d’activer le champ de rédaction.</string>
+    <string name="ai_chat_unavailable_title">Clavardage indisponible</string>
+    <string name="ai_bootstrap_generic_error_message">Impossible de charger le clavardage avec l’IA. Réessayez.</string>
+    <string name="ai_bootstrap_account_status_error_message">L’état de votre compte dans le nuage doit être confirmé pour charger le clavardage avec l’IA.</string>
+    <string name="ai_support">Soutien</string>
+    <string name="ai_empty_title">Commencer un clavardage avec l’IA</string>
+    <string name="ai_card_handoff_requires_new_chat">Commencez un nouveau clavardage avant de transmettre une carte à l’IA.</string>
+    <string name="ai_chat_not_current_notice">Un nouveau clavardage a remplacé celui-ci. Votre message est toujours dans le champ de rédaction. Renvoyez-le.</string>
+    <string name="ai_chat_failed">Le clavardage avec l’IA a échoué.</string>
+    <string name="ai_chat_error_context_length_exceeded">La conversation est trop longue pour que l’IA puisse continuer. Commencez un nouveau clavardage pour poursuivre.</string>
+    <string name="ai_selected_attachment_not_added_chat_busy">La pièce jointe sélectionnée n’a pas été ajoutée parce que le clavardage était occupé. Attendez un moment, puis joignez-la de nouveau.</string>
+    <string name="ai_attachment_too_large">Ce fichier est trop volumineux pour le clavardage avec l’IA. La taille maximale est de 30 Mo par fichier et de 10 Mo par image.</string>
+    <string name="ai_attachment_unsupported_message">Ce type de fichier n’est pas pris en charge dans le clavardage avec l’IA. Retirez le fichier ou enregistrez-le au format PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ou dans un format d’image, puis réessayez.</string>
+    <string name="ai_request_too_large_message">Le clavardage avec l’IA ne peut pas envoyer autant de contenu à la fois. Retirez une ou plusieurs pièces jointes, choisissez un fichier ou une photo de plus petite taille, ou divisez la demande et réessayez.</string>
+    <string name="ai_history_title">Historique des clavardages</string>
+    <string name="ai_history_search_placeholder">Rechercher des clavardages</string>
+    <string name="ai_history_loading">Chargement des clavardages…</string>
+    <string name="ai_history_empty">Aucun clavardage pour le moment. Vos clavardages s’afficheront ici.</string>
+    <string name="ai_history_no_search_results">Aucun clavardage ne correspond à votre recherche.</string>
+    <string name="ai_history_load_error">Impossible de charger l’historique des clavardages.</string>
+    <string name="ai_history_untitled_chat">Clavardage sans titre</string>
+    <string name="ai_history_rename_error">Impossible de renommer ce clavardage. Réessayez.</string>
+    <string name="ai_history_archive_error">Impossible d’archiver ce clavardage. Réessayez.</string>
+    <string name="ai_history_archive_active_run_error">Arrêtez la réponse en cours avant d’archiver ce clavardage.</string>
+    <string name="ai_history_unavailable">Ce clavardage n’est plus accessible.</string>
+    <string name="ai_history_read_only_notice">Lecture seule. Vous ne pouvez pas reprendre les anciens clavardages.</string>
+    <string name="ai_history_reader_loading">Chargement du clavardage…</string>
+    <string name="ai_history_reader_load_error">Impossible de charger ce clavardage.</string>
+</resources>

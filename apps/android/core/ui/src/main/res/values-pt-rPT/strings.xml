@@ -1,0 +1,4 @@
+<resources>
+    <string name="review_math_render_failed">Não foi possível apresentar a fórmula.</string>
+    <string name="markdown_preview_image">Imagem</string>
+</resources>

@@ -1,0 +1,24 @@
+<resources>
+    <string name="settings_auth_entry_title">Inicie sessão ou crie uma conta</string>
+    <string name="settings_auth_google">Iniciar sessão com Google</string>
+    <string name="settings_auth_email">Continuar com e-mail</string>
+    <string name="settings_auth_apple">Iniciar sessão com Apple</string>
+    <string name="settings_auth_last_used">Último método usado</string>
+    <string name="settings_auth_cancelled">O início de sessão com Google foi cancelado. Escolha um método para tentar novamente.</string>
+    <string name="settings_auth_google_failed">Não foi possível iniciar sessão com Google neste dispositivo. Tente novamente ou continue com o seu e-mail.</string>
+    <string name="settings_auth_fresh_attempt">Não foi possível concluir o início de sessão. Comece uma nova tentativa ou escolha outro método.</string>
+    <string name="settings_auth_apple_cleanup_pending">A limpeza do início de sessão com Apple ainda está em curso. Aguarde um momento e faça uma nova tentativa com Apple ou escolha outro método.</string>
+    <string name="settings_auth_network_restart">Não foi possível concluir o pedido de início de sessão pela rede. Verifique a ligação e faça uma nova tentativa.</string>
+    <string name="settings_auth_fresh_email_code">Não é possível repetir este pedido de código em segurança. Peça um novo código por e-mail para continuar.</string>
+    <string name="settings_auth_new_email_code">Pedir novo código por e-mail</string>
+    <string name="settings_auth_mailbox_body">Confirme o e-mail usado neste início de sessão. Introduza um endereço a que tenha acesso. Para uma conta existente, tem de confirmar novamente que lhe pertence.</string>
+    <string name="settings_auth_mailbox_code">Código de 6 a 8 dígitos enviado por e-mail</string>
+    <string name="settings_auth_mailbox_restart">Precisa de outro código? Inicie uma nova tentativa. Este pedido de verificação não permite reenviar o código.</string>
+    <string name="settings_auth_start_again">Recomeçar ou escolher outro método</string>
+    <string name="settings_auth_browser_waiting">Termine o início de sessão com Apple no navegador. Se fechou o navegador, recomece.</string>
+    <string name="settings_auth_return_title">Início de sessão com Apple</string>
+    <string name="settings_auth_return_storage_failed">Não foi possível guardar em segurança a resposta da Apple neste dispositivo. Liberte espaço de armazenamento e tente novamente. Se fechar esta mensagem, pode fazer uma nova tentativa.</string>
+    <string name="settings_auth_return_rejected">A resposta da Apple não permitiu concluir o início de sessão pendente. Faça uma nova tentativa nesta aplicação.</string>
+    <string name="settings_auth_retry">Tentar novamente</string>
+    <string name="settings_auth_close">Fechar</string>
+</resources>

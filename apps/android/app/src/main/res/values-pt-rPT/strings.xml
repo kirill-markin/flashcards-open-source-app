@@ -1,0 +1,250 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="top_level_review">Rever</string>
+    <string name="top_level_ai">IA</string>
+    <string name="top_level_progress">Progresso</string>
+    <string name="top_level_library">Biblioteca</string>
+    <string name="top_level_settings">Definições</string>
+    <string name="startup_error_title">Falha no arranque</string>
+    <string name="startup_error_message">O Nibomo não conseguiu concluir o arranque. Tente novamente ou abra os detalhes técnicos se o apoio os pedir.</string>
+    <string name="startup_error_retry">Tentar novamente</string>
+    <string name="technical_error_dialog_default_title">Ocorreu um erro</string>
+    <string name="technical_error_dialog_default_message">Ocorreu um erro técnico. Pode continuar a usar o Nibomo. A equipa de apoio poderá pedir-lhe os detalhes abaixo.</string>
+    <string name="technical_error_dialog_show_details">Mostrar detalhes técnicos</string>
+    <string name="technical_error_dialog_hide_details">Ocultar detalhes técnicos</string>
+    <string name="technical_error_dialog_close">Fechar</string>
+    <string name="technical_error_dialog_preview_details">Pré-visualização dos detalhes técnicos\ncode=android_technical_error_preview\nrequestId=preview-request-id\nstatus=not_reported</string>
+    <string name="account_deletion_blocking_title">A eliminar a conta</string>
+    <string name="account_deletion_in_progress_message">A sua conta está a ser eliminada. Mantenha este ecrã aberto até o processo terminar.</string>
+    <string name="account_deletion_failed_message">O pedido de eliminação ainda não foi concluído. Tente novamente para continuar a eliminar a conta.</string>
+    <string name="account_deletion_retry">Tentar eliminar novamente</string>
+    <string name="guest_sign_in_after_review_prompt_title">Guarde o seu progresso</string>
+    <string name="guest_sign_in_after_review_prompt_body">Inicie sessão com o seu e-mail para conservar estes cartões e o seu progresso nas revisões.</string>
+    <string name="guest_sign_in_after_review_prompt_sign_in">Iniciar sessão</string>
+    <string name="guest_sign_in_after_review_prompt_later">Mais tarde</string>
+    <string name="feedback_prompt_title">Tem uma ideia para o Nibomo?</string>
+    <string name="feedback_prompt_body">Diga-nos o que melhoraria a aplicação. O criador do Nibomo, %1$s, lê pessoalmente todas as mensagens.</string>
+    <string name="feedback_prompt_message_label">Escreva aqui a sua ideia</string>
+    <string name="feedback_prompt_send">Enviar</string>
+    <string name="feedback_prompt_cancel">Cancelar</string>
+    <string name="feedback_prompt_not_now">Agora não</string>
+    <string name="feedback_prompt_submit_success">Obrigado. A sua mensagem foi enviada.</string>
+    <string name="feedback_prompt_submit_failed">Não foi possível enviar a mensagem. Verifique a ligação e tente novamente.</string>
+    <string name="feedback_prompt_empty_message">Escreva uma mensagem antes de a enviar.</string>
+    <plurals name="feedback_prompt_message_too_long">
+        <item quantity="one">A mensagem pode ter até %1$d carácter.</item>
+        <item quantity="other">A mensagem pode ter até %1$d caracteres.</item>
+    </plurals>
+    <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
+    <string name="demo_card_front">Qual é a melhor aplicação para estudar?</string>
+    <!-- First paragraph on the back of the onboarding demo flashcard. The placeholder is the product name. -->
+    <string name="demo_card_back_1">
+        <xliff:g id="app_name" example="Nibomo">%1$s</xliff:g> — a aplicação que está a ver agora. Aqui tudo funciona com cartões de estudo: a pergunta está na frente e a resposta no verso.</string>
+    <!-- Second paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_2">Sugira um tema na conversa com a IA integrada. A IA cria um conjunto de cartões para si.</string>
+    <!-- Third paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
+    <string name="demo_card_back_3">Experimente agora: escolha <xliff:g id="again_button" example="Again">%1$s</xliff:g> para este cartão e voltará a vê-lo dentro de cerca de um minuto. Assim, fixa a resposta.</string>
+    <string name="notification_diagnostics_failed_message">O diagnóstico de notificações falhou.</string>
+    <string name="review_notification_channel_name">Lembretes de revisão</string>
+    <string name="review_notification_channel_description">Lembretes de estudo com cartões da sua fila de revisão.</string>
+    <string name="review_widget_label">Rever</string>
+    <string name="review_widget_description">Cartões por rever, a próxima pergunta e a sua sequência.</string>
+    <string name="review_widget_open_app_message">Abra a aplicação para começar a rever.</string>
+    <string name="review_widget_all_done">Tudo revisto</string>
+    <string name="review_widget_question_without_text">Pergunta com imagem</string>
+    <!-- The placeholder is a time today, otherwise a date and time. -->
+    <string name="review_widget_next_due">Próximo cartão: <xliff:g id="due_time" example="14:30">%1$s</xliff:g>
+    </string>
+    <string name="review_widget_due_label">por rever</string>
+    <plurals name="review_widget_cards_due">
+        <item quantity="one">%1$d cartão por rever</item>
+        <item quantity="other">%1$d cartões por rever</item>
+    </plurals>
+    <plurals name="review_widget_streak_days">
+        <item quantity="one">Sequência de %1$d dia</item>
+        <item quantity="other">Sequência de %1$d dias</item>
+    </plurals>
+    <string name="review_widget_preview_cards_due">12 cartões por rever</string>
+    <string name="review_widget_preview_question">O que produzem as mitocôndrias para a célula?</string>
+    <string name="review_widget_preview_streak">Sequência de 7 dias</string>
+    <string name="reviews_chart_widget_label">Revisões</string>
+    <string name="reviews_chart_widget_description">As suas revisões diárias nas últimas semanas.</string>
+    <string name="reviews_chart_widget_daily_average">Média diária: <xliff:g id="review_count" example="24">%1$d</xliff:g>
+    </string>
+    <plurals name="reviews_chart_widget_trend_up">
+        <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face a <xliff:g id="day_count" example="14">%2$d</xliff:g> dia anterior</item>
+        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
+    </plurals>
+    <plurals name="reviews_chart_widget_trend_down">
+        <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face a <xliff:g id="day_count" example="14">%2$d</xliff:g> dia anterior</item>
+        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
+    </plurals>
+    <string name="reviews_chart_widget_preview_daily_average">Média diária: 24</string>
+    <string name="coming_up_widget_label">Próximos dias</string>
+    <string name="coming_up_widget_description">Cartões a rever nos próximos 7 dias e o seu calendário de revisões.</string>
+    <plurals name="coming_up_widget_header">
+        <item quantity="one">Próximos 7 dias · <xliff:g id="card_count" example="1">%1$d</xliff:g> cartão</item>
+        <item quantity="other">Próximos 7 dias · <xliff:g id="card_count" example="58">%1$d</xliff:g> cartões</item>
+    </plurals>
+    <string name="coming_up_widget_preview_header">Próximos 7 dias · 58 cartões</string>
+    <string name="today_widget_label">Hoje</string>
+    <string name="today_widget_description">As revisões de hoje, os cartões que faltam e a sua sequência.</string>
+    <!-- Share of today's cards already reviewed, next to the progress bar. -->
+    <string name="today_widget_percent">
+        <xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
+    <string name="today_widget_no_cards_due">Nenhum cartão por rever</string>
+    <plurals name="today_widget_reviewed">
+        <item quantity="one">%1$d revisto</item>
+        <item quantity="other">%1$d revistos</item>
+    </plurals>
+    <plurals name="today_widget_left">
+        <item quantity="one">Falta %1$d</item>
+        <item quantity="other">Faltam %1$d</item>
+    </plurals>
+    <plurals name="today_widget_cards_left">
+        <item quantity="one">Falta %1$d cartão</item>
+        <item quantity="other">Faltam %1$d cartões</item>
+    </plurals>
+    <string name="today_widget_preview_reviewed">8 revistos</string>
+    <string name="today_widget_preview_cards_left">Faltam 4 cartões</string>
+    <string name="activity_widget_label">Atividade</string>
+    <string name="activity_widget_description">As suas revisões diárias num mapa de calor, com a sua sequência.</string>
+    <plurals name="activity_widget_streak_days">
+        <item quantity="one">🔥 %1$d dia</item>
+        <item quantity="other">🔥 %1$d dias</item>
+    </plurals>
+    <plurals name="activity_widget_reviews">
+        <item quantity="one">%1$d revisão</item>
+        <item quantity="other">%1$d revisões</item>
+    </plurals>
+    <plurals name="activity_widget_grid_description">
+        <item quantity="one">Revisões diárias na última %1$d semana</item>
+        <item quantity="other">Revisões diárias nas últimas %1$d semanas</item>
+    </plurals>
+    <string name="activity_widget_stat_current_streak">Sequência</string>
+    <string name="activity_widget_stat_best_streak">Melhor sequência</string>
+    <string name="activity_widget_stat_freezes">Proteções</string>
+    <string name="activity_widget_stat_reviews">Revisões</string>
+    <string name="activity_widget_stat_active_days">Dias ativos</string>
+    <string name="activity_widget_stat_today">Hoje</string>
+    <string name="activity_widget_stat_due_now">Por rever</string>
+    <string name="activity_widget_preview_streak">🔥 7 dias</string>
+    <string name="activity_widget_preview_reviews">342 revisões</string>
+    <string name="year_widget_label">Ano</string>
+    <string name="year_widget_description">Um ano de revisões diárias, uma linha por mês.</string>
+    <string name="year_widget_grid_description">Revisões diárias nos últimos 12 meses</string>
+    <plurals name="year_widget_active_days">
+        <item quantity="one">%1$d dia ativo</item>
+        <item quantity="other">%1$d dias ativos</item>
+    </plurals>
+    <string name="year_widget_preview_reviews">4120 revisões</string>
+    <string name="year_widget_preview_active_days">186 dias ativos</string>
+    <string name="streaks_widget_label">Sequências</string>
+    <string name="streaks_widget_description">A sequência atual, a melhor e as mais recentes.</string>
+    <!-- The longest streak ever, in days. -->
+    <string name="streaks_widget_best">Recorde: <xliff:g id="days" example="30">%1$d</xliff:g>
+    </string>
+    <string name="streaks_widget_empty">Reveja cartões hoje para começar uma sequência.</string>
+    <string name="streaks_widget_chart_description">A sequência atual e as mais recentes</string>
+    <string name="streaks_widget_preview_best">Recorde: 30</string>
+    <string name="month_calendar_widget_label">Calendário</string>
+    <string name="month_calendar_widget_description">Os dias em que manteve a sequência este mês.</string>
+    <plurals name="month_calendar_widget_chart_description">
+        <item quantity="one">Sequência mantida em %1$d dia deste mês</item>
+        <item quantity="other">Sequência mantida em %1$d dias deste mês</item>
+    </plurals>
+    <string name="month_calendar_widget_preview_month">Novembro</string>
+    <string name="dashboard_widget_label">Resumo</string>
+    <string name="dashboard_widget_description">O progresso de hoje, os cartões por rever, a sequência, a próxima pergunta e a atividade.</string>
+    <string name="premium_title">Premium</string>
+    <string name="premium_benefit_creator_support">Apoia o criador da aplicação</string>
+    <string name="premium_benefit_accent_color">Qualquer cor de destaque</string>
+    <string name="premium_benefit_themes">Temas escuro e claro</string>
+    <string name="premium_benefit_review_animations">Controlo das animações de revisão</string>
+    <string name="premium_benefit_app_icon">Ícone da aplicação personalizável</string>
+    <string name="premium_already_active">O seu plano já inclui as vantagens Premium.</string>
+    <string name="premium_offer_loading">A carregar a oferta do Google Play…</string>
+    <string name="premium_offer_unavailable">O Premium não está disponível no Google Play para esta conta neste momento. Pode tentar novamente ou restaurar uma compra anterior.</string>
+    <string name="premium_offer_terms_unavailable">O Google Play devolveu condições de preço que a aplicação não consegue apresentar. Volte a carregar a oferta antes de subscrever.</string>
+    <string name="premium_activity_unavailable">Feche este ecrã e abra o Premium novamente para iniciar uma compra.</string>
+    <string name="premium_retry_offer">Voltar a carregar a oferta</string>
+    <string name="premium_retry">Tentar novamente</string>
+    <string name="premium_phase_recurring">%1$s/%2$s</string>
+    <string name="premium_phase_free">%1$s grátis</string>
+    <string name="premium_phase_once">%1$s durante %2$s</string>
+    <string name="premium_phase_sequence">%1$s, depois %2$s</string>
+    <string name="premium_start_trial">Iniciar teste gratuito (%1$s)</string>
+    <string name="premium_subscribe">Subscrever — %1$s</string>
+    <string name="premium_pricing_sequence_renewal_disclosure">
+        <xliff:g id="pricing_sequence" example="$6.99/1 month">%1$s</xliff:g>. A subscrição renova-se automaticamente. Cancele no Google Play antes da renovação para evitar cobranças.</string>
+    <string name="premium_trial_pricing_sequence_renewal_disclosure">
+        <xliff:g id="pricing_sequence" example="7 days free, then $6.99/1 month">%1$s</xliff:g>. A subscrição renova-se automaticamente. Cancele no Google Play antes do fim do teste para evitar cobranças.</string>
+    <string name="premium_terms">Termos de serviço</string>
+    <string name="premium_privacy">Política de privacidade</string>
+    <string name="premium_restore">Restaurar compras</string>
+    <string name="premium_billing_loading">A estabelecer ligação ao Google Play…</string>
+    <string name="premium_billing_purchasing">Conclua a compra no Google Play. Pode fechar este ecrã enquanto a compra é processada.</string>
+    <string name="premium_billing_pending">O pagamento está pendente no Google Play. O Premium será ativado depois de confirmados o pagamento e a conta.</string>
+    <string name="premium_pending_refresh">Verificar o estado da compra</string>
+    <string name="premium_billing_verifying">A verificar a compra e a sincronizar o plano…</string>
+    <string name="premium_billing_complete">A compra foi confirmada. O Premium está ativo nesta conta.</string>
+    <string name="premium_nothing_to_restore">Não foi encontrada uma subscrição Premium para esta conta do Google Play.</string>
+    <string name="premium_store_unavailable">Não foi possível carregar os dados de pagamento do Google Play. Verifique a ligação e a conta do Google Play e tente novamente.</string>
+    <string name="premium_offer_changed">A oferta mudou. Volte a carregá-la e verifique o preço atual antes de subscrever.</string>
+    <string name="premium_identity_changed">A conta da aplicação mudou. Volte à conta que usou para comprar ou escolha Restaurar compras para associar a subscrição a esta conta.</string>
+    <string name="premium_verification_failed">Não foi possível verificar a compra com o Nibomo. Verifique a ligação e tente verificar a compra novamente. Não precisa de a repetir.</string>
+    <string name="premium_entitlement_unknown">É necessário verificar o plano atual antes de subscrever. Pode restaurar compras entretanto.</string>
+    <string name="premium_entitlement_refresh_failed">Não foi possível verificar o plano atual. Verifique a ligação e tente novamente.</string>
+    <string name="premium_retry_plan">Verificar o plano atual</string>
+    <string name="premium_purchase_preparation_failed">Não foi possível preparar a compra. Verifique a conta, a ligação e o espaço de armazenamento disponível e tente novamente. O ecrã de pagamento do Google Play ainda não abriu.</string>
+    <string name="premium_storage_failed">Não foi possível guardar os dados de recuperação da compra neste dispositivo. Verifique o espaço disponível e tente novamente ou restaure a compra.</string>
+    <string name="premium_purchase_failed">O Google Play não conseguiu concluir o pedido de pagamento. Verifique a conta do Google Play e a ligação e tente novamente. Se já pagou, escolha Restaurar compras.</string>
+    <string name="premium_entitlement_not_granted">A compra foi verificada, mas esta conta não tem acesso Premium ativo. Verifique a subscrição no Google Play ou escolha Restaurar compras para a associar a esta conta.</string>
+    <plurals name="premium_phase_finite">
+        <item quantity="one">%1$s/%2$s durante %3$d pagamento</item>
+        <item quantity="other">%1$s/%2$s durante %3$d pagamentos</item>
+    </plurals>
+    <plurals name="premium_period_days">
+        <item quantity="one">%1$d dia</item>
+        <item quantity="other">%1$d dias</item>
+    </plurals>
+    <plurals name="premium_period_months">
+        <item quantity="one">%1$d mês</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <plurals name="premium_period_years">
+        <item quantity="one">%1$d ano</item>
+        <item quantity="other">%1$d anos</item>
+    </plurals>
+    <string name="premium_close">Fechar Premium</string>
+    <string name="premium_ai_limit_title">Limite de mensagens de IA atingido</string>
+    <string name="premium_ai_limit_message">Já usou todas as mensagens de IA deste mês.</string>
+    <string name="premium_ai_renewal">As suas mensagens renovam-se a %1$s.</string>
+    <string name="premium_ai_usage_unavailable">Não foi possível carregar a data de renovação. Pode continuar a usar a sua própria chave da OpenAI.</string>
+    <string name="premium_own_key_help">Adicione a sua própria chave da OpenAI e volte a esta conversa para reenviar a mensagem quando quiser. A chave permite usar a IA sem alterar o plano.</string>
+    <string name="premium_own_key_action">Usar a sua própria chave da OpenAI</string>
+    <string name="premium_sign_in">Criar conta ou iniciar sessão</string>
+    <string name="premium_heading">Personalize o Nibomo <xliff:g id="yours" example="yours">%1$s</xliff:g>.</string>
+    <string name="premium_heading_emphasis">ao seu gosto</string>
+    <string name="premium_free_title">Gratuito</string>
+    <string name="premium_welcome">A mesma aplicação e o mesmo acolhimento. A escolha é sua.</string>
+    <string name="premium_free_description">Criado para estudantes sem emprego. Aberto a todos.</string>
+    <string name="premium_free_no_creator_support">Não apoia o criador da aplicação</string>
+    <string name="premium_free_benefits">Revisões essenciais, estudo offline e sincronização</string>
+    <string name="premium_free_limited_ai">Conversa com IA com limite de mensagens</string>
+    <string name="premium_free_default_styles">Apenas estilos predefinidos</string>
+    <string name="premium_free_no_other_premium_features">Sem outras funcionalidades Premium</string>
+    <string name="premium_dont_pay_creator">Não contribua para o criador da aplicação</string>
+    <string name="premium_creator_support">A sua subscrição ajuda o criador do Nibomo, %1$s, a pagar os servidores e a preparar a próxima atualização com café e piza.</string>
+    <string name="premium_start_seven_day_trial">Iniciar teste gratuito de 7 dias</string>
+    <string name="premium_manage">Gerir subscrição no Google Play</string>
+    <string name="premium_allowance_loading">A carregar o limite mensal de IA…</string>
+    <string name="premium_allowance_unavailable">Não foi possível carregar o limite mensal de IA. Verifique a ligação e tente novamente.</string>
+    <string name="premium_ai_unlimited">Mensagens de IA sem limite mensal</string>
+    <string name="premium_preview_purchase_notice">Modo de teste: não foi feita nenhuma compra. O seu plano não mudou.</string>
+    <string name="premium_preview_notice">Só para pré-visualização. Abra o Premium a partir de Subscrição para ver a oferta do Google Play.</string>
+    <plurals name="premium_ai_messages">
+        <item quantity="one">%1$d mensagem de IA por mês</item>
+        <item quantity="other">%1$d mensagens de IA por mês</item>
+    </plurals>
+</resources>

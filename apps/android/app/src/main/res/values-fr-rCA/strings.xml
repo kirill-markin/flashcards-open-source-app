@@ -1,0 +1,9 @@
+<resources>
+    <string name="startup_error_message">Nibomo n’a pas pu terminer le démarrage. Réessayez ou affichez les détails techniques si le soutien vous les demande.</string>
+    <string name="technical_error_dialog_default_message">Une erreur technique est survenue. Vous pouvez continuer à utiliser Nibomo. Le soutien pourrait vous demander les détails ci-dessous.</string>
+    <string name="guest_sign_in_after_review_prompt_body">Connectez-vous par courriel pour conserver ces cartes et votre progression dans les révisions.</string>
+    <!-- Second paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_2">Proposez un sujet dans le clavardage avec l’IA intégrée. L’IA créera un ensemble de cartes pour vous.</string>
+    <string name="premium_own_key_help">Ajoutez votre propre clé OpenAI, puis revenez à ce clavardage pour renvoyer votre message quand vous serez prêt. Votre clé donne accès à l’IA sans changer votre forfait.</string>
+    <string name="premium_free_limited_ai">Nombre limité de messages dans le clavardage avec l’IA</string>
+</resources>

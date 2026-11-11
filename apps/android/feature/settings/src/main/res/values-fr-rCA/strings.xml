@@ -1,0 +1,21 @@
+<resources>
+    <string name="settings_section_support">Soutien</string>
+    <string name="settings_ai_chat_suggestions_title">Suggestions de clavardage avec l’IA</string>
+    <string name="settings_account_support_title">Soutien</string>
+    <string name="settings_account_status_linked_email_label">Courriel associé</string>
+    <string name="settings_sign_in_email_title">Courriel</string>
+    <string name="settings_sign_in_guest_upgrade_body">Connectez-vous par courriel pour convertir cette session d’IA en mode invité en compte infonuagique associé.</string>
+    <string name="settings_sign_in_device_link_body">Connectez-vous par courriel pour associer cet appareil Android à votre espace de travail dans le nuage.</string>
+    <string name="settings_sign_in_email_fallback">votre adresse courriel</string>
+    <string name="settings_sign_in_send_code_invalid_email">Entrez une adresse courriel valide.</string>
+    <string name="settings_cloud_recovery_gate_guest_session_missing_body">La session en mode invité n’a pas pu être rétablie sur cet appareil. Vos données locales sont toujours là. Connectez-vous par courriel pour les conserver dans un espace de travail récupéré ou effacez les données locales pour repartir de zéro.</string>
+    <string name="settings_support_title">Soutien</string>
+    <string name="settings_support_page_title">Soutien</string>
+    <string name="settings_support_page_summary">Ouvrez la page de soutien dans votre navigateur.</string>
+    <string name="settings_methods_emails">Adresses courriel de récupération vérifiées</string>
+    <string name="settings_methods_read_only">Ces adresses vérifiées sont en lecture seule. La récupération par courriel ne peut pas être désactivée ici.</string>
+    <string name="settings_methods_no_emails">Aucune adresse courriel de récupération vérifiée et sans relais n’est indiquée. La récupération par courriel peut tout de même être active. Les comptes Apple dont l’adresse est masquée se reconnectent normalement avec Apple.</string>
+    <string name="settings_methods_last_usable">Avant de dissocier une méthode, gardez un autre fournisseur actif ou une adresse courriel de récupération vérifiée et sans relais. Le serveur vérifie les méthodes encore utilisables.</string>
+    <string name="settings_connection_target_email">Adresse courriel de l’autre compte</string>
+    <string name="settings_connection_consequences">Les cartes, l’historique de révision et les accès aux espaces de travail sont conservés. Le rôle de propriétaire prévaut. Les paramètres et le profil public du compte conservé s’appliquent avec les choix de confidentialité et de visibilité les plus restrictifs. Les identifiants d’intégration existants gardent leurs ID et suivent le compte associé. Les achats, les droits accordés et l’utilisation suivent le compte associé. Les abonnements auprès des fournisseurs restent inchangés et l’historique d’essai d’origine est conservé. Une adresse courriel principale sans relais est conservée si elle existe. Sinon, une adresse courriel sans relais, vérifiée et utilisable est retenue.</string>
+</resources>
