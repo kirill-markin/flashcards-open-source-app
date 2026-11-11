@@ -18,6 +18,7 @@ import {
 import { useI18n } from "../../../i18n";
 import {
   CardFormTagsField,
+  type CardFormTagEdit,
   type CardFormTagsFieldHandle,
 } from "./CardFormTagsField";
 import {
@@ -76,7 +77,7 @@ type Props = Readonly<{
   localReadVersion: number;
   managedMediaState: CardFormManagedMediaState;
   workspaceId: string | null;
-  onChange: (nextFormState: CardFormState) => void;
+  onChange: (nextFormState: CardFormState, tagEdit?: CardFormTagEdit) => void;
   onPrepareImageMedia: (request: CardFormImageMediaRequest) => Promise<string | null>;
   onRetryMediaUploadTransfer: (request: CardFormMediaUploadRetryRequest) => Promise<void>;
 }>;
@@ -932,7 +933,7 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
             suggestions={tagSuggestions}
             inputId={tagsFieldId}
             inputName="tags"
-            onChange={(nextValue) => updateField("tags", nextValue)}
+            onChange={(tags, tagEdit) => onChange({ ...formStateRef.current, tags }, tagEdit)}
             disabled={isSaving}
           />
         </div>

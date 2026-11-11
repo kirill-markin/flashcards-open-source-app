@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../appData";
-import { buildTagEdit } from "../../../appData/domain/cardTags";
+import { buildTagEdit, rebaseTagDraft } from "../../../appData/domain/cardTags";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
@@ -28,6 +28,7 @@ import {
   type CardFormTextareaSelectionRestore,
   type CardFormTextareaSelectionSnapshot,
 } from "./CardForm";
+import type { CardFormTagEdit } from "./CardFormTagsField";
 import { prepareCardImageMediaAuthoring } from "./cardImageAuthoring";
 import {
   isGeneratedMediaLifecycleConflictPresent,
@@ -392,9 +393,14 @@ export function CardFormScreen(): ReactElement {
     };
   }
 
-  function handleFormStateChange(nextFormState: CardFormState): void {
-    formStateRef.current = nextFormState;
-    setFormState(nextFormState);
+  function handleFormStateChange(nextFormState: CardFormState, tagEdit?: CardFormTagEdit): void {
+    const currentFormState = formStateRef.current;
+    const resolvedFormState = tagEdit === undefined ? nextFormState : {
+      ...currentFormState,
+      tags: rebaseTagDraft(tagEdit.baseline, currentFormState.tags, tagEdit.draft),
+    };
+    formStateRef.current = resolvedFormState;
+    setFormState(resolvedFormState);
   }
 
   function isSubmissionAllowed(): boolean {

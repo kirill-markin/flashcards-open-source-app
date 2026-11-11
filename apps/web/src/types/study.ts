@@ -50,6 +50,7 @@ export type CardMetadata = Readonly<{
   version: 1;
   source: CardSourceMetadata | null;
   onboardingDemo?: OnboardingDemoMetadata;
+  maintenanceRevision?: number;
 }>;
 
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::CardSummary.
