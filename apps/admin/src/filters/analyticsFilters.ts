@@ -1,6 +1,8 @@
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -100,9 +102,9 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
 /**
  * The complete filter selection of one analytics area.
  *
- * An empty list on an option field means "every value", except on `userCohorts` and
- * `eventPlatforms`, whose default is every value selected and where an empty list therefore means
- * "none" and matches nothing.
+ * An empty list on an option field means "every value", except on `userCohorts`, `eventPlatforms`
+ * and `eventDeviceTypes`, whose default is every value selected and where an empty list therefore
+ * means "none" and matches nothing.
  */
 export type AnalyticsFilterState = Readonly<{
   dateRange: AnalyticsDateRange;
@@ -111,6 +113,7 @@ export type AnalyticsFilterState = Readonly<{
   users: ReadonlyArray<string>;
   userCohorts: ReadonlyArray<ReviewEventCohort>;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   appVersions: ReadonlyArray<string>;
   minimumEventCounts: ReadonlyArray<AnalyticsMinimumEventCount>;
   connectionCountries: ReadonlyArray<string>;
@@ -172,6 +175,7 @@ const analyticsFilterFieldOrder = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  eventDeviceTypes: true,
   appVersions: true,
   minimumEventCounts: true,
   connectionCountries: true,
@@ -206,6 +210,7 @@ const funnelsAnalyticsFilterFieldApplicability = {
   users: false,
   userCohorts: false,
   eventPlatforms: true,
+  eventDeviceTypes: false,
   appVersions: false,
   minimumEventCounts: false,
   connectionCountries: true,
@@ -284,6 +289,7 @@ const userScopedAnalyticsFilterFieldApplicability = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  eventDeviceTypes: false,
   appVersions: false,
   minimumEventCounts: true,
   connectionCountries: true,
@@ -316,11 +322,11 @@ const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ana
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
 // `level-1-metrics` offers the date range and the platform, which every chart there can answer, and
-// the app version, which only the app open and study charts can; how each one reads them is the
-// explanation below. The Who saw us dataset pages draw one source that is a platform already, so they
+// the device class and app version, which only the app open and study charts can; how each one reads
+// them is the explanation below. The Who saw us dataset pages draw one source that is a platform already, so they
 // offer `whoSawUsDatasetAnalyticsFilterFields` instead, and the Web engaged page
 // `webEngagedAnalyticsFilterFields`.
-const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms", "appVersions"];
+const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms", "eventDeviceTypes", "appVersions"];
 
 export const whoSawUsDatasetAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
@@ -345,6 +351,7 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   users: "Specific users",
   userCohorts: "New vs returning users",
   eventPlatforms: "Client platform of events",
+  eventDeviceTypes: "Device class of events",
   appVersions: "App version",
   minimumEventCounts: "Users with at least N events",
   connectionCountries: "Connection country of the user",
@@ -413,6 +420,10 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // data because its events are judged by the platform their own row carries.
   eventPlatforms:
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform empties the Catalog deck installs section.",
+  // Offered on Level 1 metrics only. Cut from the on-screen text: with an app version picked too, Who
+  // studied places a person by their last app open in the bar on a picked platform and device class.
+  eventDeviceTypes:
+    "Who opened the app and Who studied count a person on a day only for an app open or answered review recorded on a device class you pick, read from the event row itself, so a tablet is an iPad or an Android tablet alike, Desktop is the Mac app and Android on Chromebooks or PCs, TV is Android in TV mode, and Unknown is an event that names none: web, the agent API and events stored before clients reported a device. New vs returning still reads their first use on any device. Who paid us and Who saw us carry no device class and are not narrowed by it.",
   // Level 1 metrics' wording; Review prompts overrides it.
   appVersions:
     "Who opened the app counts a person on a day only for an app open on a version you pick, and Who studied counts a person in a bar only when their last app open there, on a selected platform, is on a version you pick, so someone with no app open in the bar, such as an agent-only learner, drops out. New vs returning still reads their first use on any version. Who paid us and Who saw us carry no app version and are not narrowed by it; picking nothing keeps every version.",
@@ -618,6 +629,7 @@ const levelOneMetricsAnalyticsFilterFieldLabels: Readonly<
 > = {
   dateRange: "Date range of the days shown",
   eventPlatforms: "Platform",
+  eventDeviceTypes: "Device",
 };
 
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
@@ -652,6 +664,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     users: [],
     userCohorts: [...reviewEventCohorts],
     eventPlatforms: [...reviewEventPlatforms],
+    eventDeviceTypes: [...productEventDeviceTypes],
     appVersions: [],
     minimumEventCounts: [],
     connectionCountries: [],

@@ -129,17 +129,18 @@ export function LevelOneMetricsFrame(
   const rangeLookup = selectionState.rangeLookup;
   const dateRange = selectionState.selection.dateRange;
   const eventPlatforms = selectionState.selection.eventPlatforms;
+  const eventDeviceTypes = selectionState.selection.eventDeviceTypes;
   const appVersions = selectionState.selection.appVersions;
   const siteFilters = selectionState.selection.siteFilters;
   const appStoreFilters = selectionState.selection.appStoreFilters;
   const siteOptions = props.filterBar.siteOptions;
   const appStoreOptions = props.filterBar.appStoreOptions;
   const appVersionOptions = props.filterBar.appVersionOptions;
-  // The platform, version, site and App Store filters ride along on every page, so a page that does
-  // not offer them keeps them.
+  // The platform, device, version, site and App Store filters ride along on every page, so a page
+  // that does not offer them keeps them.
   const filters = useMemo(
-    () => ({ ...buildDefaultAnalyticsFilterState(dateRange), eventPlatforms, appVersions, ...siteFilters, ...appStoreFilters }),
-    [dateRange, eventPlatforms, appVersions, siteFilters, appStoreFilters],
+    () => ({ ...buildDefaultAnalyticsFilterState(dateRange), eventPlatforms, eventDeviceTypes, appVersions, ...siteFilters, ...appStoreFilters }),
+    [dateRange, eventPlatforms, eventDeviceTypes, appVersions, siteFilters, appStoreFilters],
   );
 
   return (

@@ -1,4 +1,4 @@
-import { runAdminQuery, type ReviewEventPlatform } from "../../adminApi";
+import { runAdminQuery, type ProductEventDeviceType, type ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { parseDailyNewReturningReport, type DailyNewReturningReport } from "../dailyNewReturning/query";
@@ -20,20 +20,21 @@ export function buildWhoStudiedThresholdsSql(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
   const isVersionNarrowed = appVersions.length > 0;
   const appVersionPeopleCtesSql = isVersionNarrowed
-    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, appVersions)}`
+    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, eventDeviceTypes, appVersions)}`
     : "";
   const appVersionPeopleJoinSql = isVersionNarrowed ? "\n  JOIN app_version_people USING (bucket_date, actor_id)" : "";
   const thresholdCountsSql = thresholdColumns.map(({ threshold, newUsers, returningUsers }) => `CASE WHEN buckets.selected_from >= coverage.history_from THEN
     COUNT(*) FILTER (WHERE first_use.first_use_date >= buckets.selected_from AND people.max_daily_reviews >= ${threshold}) END AS ${newUsers},
   CASE WHEN buckets.selected_from >= coverage.history_from THEN
     COUNT(*) FILTER (WHERE first_use.first_use_date < buckets.selected_from AND people.max_daily_reviews >= ${threshold}) END AS ${returningUsers}`).join(",\n  ");
-  return `WITH ${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms)}${appVersionPeopleCtesSql}, daily_review_counts AS (
+  return `WITH ${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms, eventDeviceTypes)}${appVersionPeopleCtesSql}, daily_review_counts AS (
   SELECT bucket_date, actor_id, COUNT(*) AS review_count
   FROM meaningful_range_reviews
   GROUP BY bucket_date, actor_id, activity_date
@@ -58,11 +59,12 @@ export async function loadWhoStudiedThresholdReports(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   reportLabel: string,
   signal: AbortSignal,
 ): Promise<ReadonlyArray<Readonly<{ threshold: StudyReviewThreshold; report: DailyNewReturningReport }>>> {
-  const sql = buildWhoStudiedThresholdsSql(dateRange, period, eventPlatforms, appVersions, reportLabel);
+  const sql = buildWhoStudiedThresholdsSql(dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, reportLabel);
   const response = await runAdminQuery(config, sql, signal);
   return thresholdColumns.map(({ threshold, ...countColumns }) => ({
     threshold,
