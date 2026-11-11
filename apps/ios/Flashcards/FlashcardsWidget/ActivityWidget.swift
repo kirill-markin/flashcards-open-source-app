@@ -104,7 +104,7 @@ struct ActivityWidgetView: View {
                 )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -150,9 +150,10 @@ private struct ActivityWidgetContentView: View {
 }
 
 private struct ActivityWidgetFlameView: View {
+    @Environment(\.widgetAccent) private var accent
     var body: some View {
         Image(systemName: "flame.fill")
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(self.accent.color)
             .widgetAccentable()
     }
 }

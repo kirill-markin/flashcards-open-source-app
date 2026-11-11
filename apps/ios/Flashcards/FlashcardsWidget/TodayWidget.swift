@@ -83,7 +83,7 @@ struct TodayWidgetView: View {
                     )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -166,6 +166,7 @@ private struct TodayWidgetSmallView: View {
 }
 
 private struct TodayWidgetMediumView: View {
+    @Environment(\.widgetAccent) private var accent
     let progress: WidgetTodayProgress
 
     var body: some View {
@@ -181,7 +182,7 @@ private struct TodayWidgetMediumView: View {
                 Spacer(minLength: 0)
                 HStack(spacing: 8) {
                     ProgressView(value: self.progress.fraction)
-                        .tint(Color.accentColor)
+                        .tint(self.accent.color)
                         .widgetAccentable()
                     // Rounded down so cards still left never read as 100%.
                     Text(self.progress.fraction, format: .percent.precision(.fractionLength(0)).rounded(rule: .down))
@@ -219,12 +220,13 @@ private func todayWidgetStatusText(progress: WidgetTodayProgress, leftText: Text
 
 /// The flame takes the accent colour once the user has reviewed today, as on the Review streak badge.
 private struct TodayWidgetStreakView: View {
+    @Environment(\.widgetAccent) private var accent
     let progress: WidgetTodayProgress
 
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(self.progress.reviewedCount > 0 ? Color.accentColor : Color.secondary)
+                .foregroundStyle(self.progress.reviewedCount > 0 ? self.accent.color : Color.secondary)
                 .widgetAccentable(self.progress.reviewedCount > 0)
             Text(self.progress.streakDays, format: .number)
                 .foregroundStyle(.secondary)

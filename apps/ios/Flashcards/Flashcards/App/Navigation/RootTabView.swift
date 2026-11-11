@@ -44,6 +44,7 @@ private struct WidgetSnapshotTaskID: Hashable {
     let progressBadgeState: ReviewProgressBadgeState
     let progressSnapshot: ProgressSnapshot?
     let reviewScheduleSnapshot: ReviewScheduleSnapshot?
+    let accentColor: AccountAccentColor
     let scenePhase: ScenePhase
 }
 #endif
@@ -116,6 +117,7 @@ struct RootTabView: View {
             progressBadgeState: store.reviewProgressBadgeState,
             progressSnapshot: store.widgetProgressSnapshot,
             reviewScheduleSnapshot: store.reviewScheduleSnapshot,
+            accentColor: store.effectiveAccountAccentColor,
             scenePhase: self.scenePhase
         )
     }

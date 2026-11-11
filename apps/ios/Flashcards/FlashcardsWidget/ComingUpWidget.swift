@@ -52,7 +52,7 @@ private struct ComingUpWidgetView: View {
                 )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -127,6 +127,7 @@ private struct ComingUpContentView: View {
 }
 
 private struct ComingUpPlotView: View {
+    @Environment(\.widgetAccent) private var accent
     let days: [ComingUpDay]
 
     var body: some View {
@@ -137,7 +138,7 @@ private struct ComingUpPlotView: View {
                 x: .value(comingUpDayPlotLabel, day.date, unit: .day),
                 y: .value(comingUpCardsPlotLabel, day.dueCount)
             )
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(self.accent.color)
             .annotation(position: .top, spacing: 2) {
                 Text(day.dueCount, format: .number)
                     .font(.caption2)

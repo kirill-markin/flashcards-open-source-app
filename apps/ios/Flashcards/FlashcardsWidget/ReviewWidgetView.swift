@@ -23,7 +23,7 @@ struct ReviewWidgetView: View {
                     )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -117,13 +117,14 @@ private struct ReviewWidgetContentView: View {
 }
 
 struct ReviewWidgetDueCountView: View {
+    @Environment(\.widgetAccent) private var accent
     let count: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(self.count, format: .number)
                 .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(self.accent.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .widgetAccentable()
@@ -159,12 +160,13 @@ struct ReviewWidgetNextCardView: View {
 }
 
 private struct ReviewWidgetStreakView: View {
+    @Environment(\.widgetAccent) private var accent
     let streakDays: Int
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(self.accent.color)
                 .widgetAccentable()
             Text("widget.streak_days \(self.streakDays)", tableName: widgetStringsTableName)
                 .foregroundStyle(.secondary)
@@ -176,6 +178,7 @@ private struct ReviewWidgetStreakView: View {
 }
 
 struct ReviewWidgetAllDoneView: View {
+    @Environment(\.widgetAccent) private var accent
     let entryDate: Date
     let nextDueAt: Date?
     let streakDays: Int?
@@ -184,7 +187,7 @@ struct ReviewWidgetAllDoneView: View {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(self.accent.color)
                 .widgetAccentable()
             Text("widget.all_done.title", tableName: widgetStringsTableName)
                 .font(.headline)
