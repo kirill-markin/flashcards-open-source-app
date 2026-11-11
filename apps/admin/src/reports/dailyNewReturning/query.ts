@@ -1,4 +1,4 @@
-import { runAdminQuery, type ReviewEventPlatform } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResponse, type ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildAppVersionsNarrowingSql, buildEventPlatformsNarrowingSql } from "../../filters/filterSql";
@@ -117,6 +117,15 @@ export async function loadDailyNewReturningReport(
   signal: AbortSignal,
 ): Promise<DailyNewReturningReport> {
   const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, eventPlatforms, appVersions, reportLabel), signal);
+  return parseDailyNewReturningReport(response, period, reportLabel, { newUsers: "new_users", returningUsers: "returning_users" });
+}
+
+export function parseDailyNewReturningReport(
+  response: AdminQueryResponse,
+  period: ReportPeriod,
+  reportLabel: string,
+  countColumns: Readonly<{ newUsers: string; returningUsers: string }>,
+): DailyNewReturningReport {
   const result = response.resultSets[0];
   const firstRow = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || firstRow === undefined) {
@@ -127,8 +136,13 @@ export async function loadDailyNewReturningReport(
     period,
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
     buckets: result.rows.map((row) => {
-      const newUsers = parseActivityCount(row.new_users ?? null, reportLabel, "new_users");
-      const returningUsers = parseActivityCount(row.returning_users ?? null, reportLabel, "returning_users");
+      const newUsersValue = row[countColumns.newUsers];
+      const returningUsersValue = row[countColumns.returningUsers];
+      if (newUsersValue === undefined || returningUsersValue === undefined) {
+        throw new Error(`${reportLabel} must return both ${countColumns.newUsers} and ${countColumns.returningUsers}.`);
+      }
+      const newUsers = parseActivityCount(newUsersValue, reportLabel, countColumns.newUsers);
+      const returningUsers = parseActivityCount(returningUsersValue, reportLabel, countColumns.returningUsers);
       if ((newUsers === null) !== (returningUsers === null)) {
         throw new Error(`${reportLabel} must report new and returning people together.`);
       }

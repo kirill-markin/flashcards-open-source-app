@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { UniqueUserCohortKey } from "../../charts/ChartLegends";
@@ -9,10 +9,7 @@ import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNot
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { renderDailyNewReturningChart } from "../../charts/dailyNewReturningChart";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
-import type { ReviewEventPlatform } from "../../adminApi";
-import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
   LevelOneMetricDetailsButton,
   type LevelOneMetricDetailsLink,
@@ -30,11 +27,13 @@ import {
   type DailyNewReturningReport,
   type NewReturningBucket,
 } from "./query";
+import {
+  useDailyNewReturningReport,
+  type DailyNewReturningLoadState,
+  type DailyNewReturningReportLoader,
+  type DailyNewReturningSelection,
+} from "./useDailyNewReturningReport";
 
-type LoadState =
-  | Readonly<{ status: "loading" }>
-  | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: DailyNewReturningReport }>;
 const formatCount = d3.format(",d");
 
 function describeBucket(entry: NewReturningBucket, report: DailyNewReturningReport): string {
@@ -49,45 +48,42 @@ function describeEmptyChart(report: DailyNewReturningReport): string | null {
   return null;
 }
 
-/** One Level 1 chart of unique people per bucket, stacked new vs returning; `source` must be a stable constant. */
-export function DailyNewReturningSection(props: Readonly<{
-  config: AdminAppConfig;
-  dateRange: AnalyticsDateRange;
+type DailyNewReturningChartProps = Readonly<{
   period: ReportPeriod;
-  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
-  appVersions: ReadonlyArray<string>;
-  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   title: string;
   testId: string;
   explanationId: string;
-  source: DailyActivitySource;
-  /** The `<li>` items of the (i) explanation. */
   explanation: ReactNode;
   detailsLink: LevelOneMetricDetailsLink | null;
+}>;
+
+export function DailyNewReturningSection(
+  props: DailyNewReturningChartProps & DailyNewReturningSelection & Readonly<{ source: DailyActivitySource }>,
+): JSX.Element {
+  const { source } = props;
+  const loadReport = useCallback<DailyNewReturningReportLoader<DailyNewReturningReport>>(
+    (config, dateRange, period, eventPlatforms, appVersions, reportLabel, signal) =>
+      loadDailyNewReturningReport(config, source, dateRange, period, eventPlatforms, appVersions, reportLabel, signal),
+    [source],
+  );
+  const { state, retry } = useDailyNewReturningReport(props, props.title, loadReport);
+  return <DailyNewReturningChartSection {...props} state={state} retry={retry} sharedPeak={null} />;
+}
+
+export function DailyNewReturningChartSection(props: DailyNewReturningChartProps & Readonly<{
+  state: DailyNewReturningLoadState<DailyNewReturningReport>;
+  retry: () => void;
+  sharedPeak: number | null;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
-  const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [revision, setRevision] = useState<number>(0);
   const { tooltipState, tooltipHandlers } = useChartTooltip();
-  const reportLabel = `${props.title} report`;
-  useEffect(() => {
-    let cancelled = false;
-    tooltipHandlers.hideTooltip();
-    setState({ status: "loading" });
-    const abortController = new AbortController();
-    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, props.period, props.eventPlatforms, props.appVersions, reportLabel, abortController.signal).then((report) => {
-      if (!cancelled) setState({ status: "ready", report });
-    }).catch((error: unknown) => {
-      if (cancelled || props.onTerminalAdminError(error, props.config)) return;
-      setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${props.title} query error.` });
-    });
-    return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.source, props.dateRange, props.period, props.eventPlatforms, props.appVersions, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
+  const { state, sharedPeak } = props;
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
   const chartNotes = useMemo(() => (state.status === "ready"
     ? placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket))
     : null), [state]);
   useEffect(() => {
+    tooltipHandlers.hideTooltip();
     if (chartRef.current === null || state.status !== "ready" || chartNotes === null) return;
     const getBucket = (key: string): NewReturningBucket => {
       const entry = bucketsByKey.get(key);
@@ -99,6 +95,7 @@ export function DailyNewReturningSection(props: Readonly<{
       svgElement: chartRef.current,
       buckets: state.report.buckets,
       notes: chartNotes,
+      sharedPeak,
       inProgressKey,
       xLabel: reportPeriodAxisLabels[state.report.period],
       formatTick: (key) => formatReportBucketTick(state.report.period, key),
@@ -106,7 +103,7 @@ export function DailyNewReturningSection(props: Readonly<{
       getTooltipHtml: (key) => `<p class="tooltip-title">${escapeHtml(formatReportBucketTitle(state.report.period, getBucket(key).bucket))} UTC${key === inProgressKey ? " · in progress" : ""}</p><p>${escapeHtml(describeBucket(getBucket(key), state.report))}</p>`,
       tooltipHandlers,
     });
-  }, [state, bucketsByKey, chartNotes, props.title, tooltipHandlers]);
+  }, [state, bucketsByKey, chartNotes, props.title, sharedPeak, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -124,7 +121,7 @@ export function DailyNewReturningSection(props: Readonly<{
       {state.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>{props.title} query failed.</strong><span>{state.message}</span>
-          <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+          <button className="filter-button" type="button" onClick={props.retry}>Retry</button>
         </div>
       ) : null}
       {state.status === "error" ? null : (
