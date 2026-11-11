@@ -111,15 +111,11 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             uiState.isConversationReady
         ) {
             val request = entryPrefillRequest ?: return@LaunchedEffect
-            if (
-                uiState.canEditDraft.not()
-                || uiState.isConsentRequired
-                || uiState.isConversationReady.not()
-            ) {
+            if (uiState.isConsentRequired || uiState.isConversationReady.not()) {
                 return@LaunchedEffect
             }
-            val didApplyRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
-            if (didApplyRequest) {
+            val didHandleRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
+            if (didHandleRequest) {
                 appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
             }
         }
