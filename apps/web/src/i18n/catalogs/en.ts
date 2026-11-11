@@ -779,6 +779,7 @@ const enCatalog = {
     groups: {
       yourCards: "Your cards",
       addCards: "Add cards",
+      transfer: "Transfer",
     },
     deckCatalog: {
       title: "Deck catalog",

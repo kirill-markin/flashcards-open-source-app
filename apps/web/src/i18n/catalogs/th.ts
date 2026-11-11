@@ -780,6 +780,7 @@ const thCatalog: TranslationCatalog = {
     groups: {
       yourCards: "การ์ดของคุณ",
       addCards: "เพิ่มการ์ด",
+      transfer: "การถ่ายโอนข้อมูล",
     },
     deckCatalog: {
       title: "แคตตาล็อกเด็ค",

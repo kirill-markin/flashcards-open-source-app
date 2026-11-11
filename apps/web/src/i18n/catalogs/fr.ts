@@ -780,6 +780,7 @@ const frCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vos cartes",
       addCards: "Ajouter des cartes",
+      transfer: "Transfert de données",
     },
     deckCatalog: {
       title: "Catalogue de paquets",

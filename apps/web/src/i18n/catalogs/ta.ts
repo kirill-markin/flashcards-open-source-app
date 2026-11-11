@@ -780,6 +780,7 @@ const taCatalog: TranslationCatalog = {
     groups: {
       yourCards: "உங்கள் அட்டைகள்",
       addCards: "அட்டைகளைச் சேர்க்கவும்",
+      transfer: "தரவுப் பரிமாற்றம்",
     },
     deckCatalog: {
       title: "தொகுப்புப் பட்டியல்",

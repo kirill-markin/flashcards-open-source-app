@@ -780,6 +780,7 @@ const paCatalog: TranslationCatalog = {
     groups: {
       yourCards: "ਤੁਹਾਡੇ ਕਾਰਡ",
       addCards: "ਕਾਰਡ ਜੋੜੋ",
+      transfer: "ਡਾਟਾ ਤਬਾਦਲਾ",
     },
     deckCatalog: {
       title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",

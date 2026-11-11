@@ -780,6 +780,7 @@ const lvCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Jūsu kartītes",
       addCards: "Pievienot kartītes",
+      transfer: "Datu pārsūtīšana",
     },
     deckCatalog: {
       title: "Kavu katalogs",

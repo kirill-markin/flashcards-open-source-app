@@ -780,6 +780,7 @@ export const zhHansCatalog = {
     groups: {
       yourCards: "你的卡片",
       addCards: "添加卡片",
+      transfer: "数据迁移",
     },
     deckCatalog: {
       title: "牌组目录",

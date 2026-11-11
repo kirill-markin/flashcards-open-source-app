@@ -780,6 +780,7 @@ const svCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Dina kort",
       addCards: "Lägg till kort",
+      transfer: "Dataöverföring",
     },
     deckCatalog: {
       title: "Kortlekskatalog",

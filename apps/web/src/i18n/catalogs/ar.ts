@@ -780,6 +780,7 @@ const arCatalog: TranslationCatalog = {
     groups: {
       yourCards: "بطاقاتك",
       addCards: "إضافة بطاقات",
+      transfer: "نقل البيانات",
     },
     deckCatalog: {
       title: "كتالوج المجموعات",

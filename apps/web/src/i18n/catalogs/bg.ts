@@ -780,6 +780,7 @@ const bgCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Вашите карти",
       addCards: "Добавяне на карти",
+      transfer: "Прехвърляне на данни",
     },
     deckCatalog: {
       title: "Каталог с тестета",
