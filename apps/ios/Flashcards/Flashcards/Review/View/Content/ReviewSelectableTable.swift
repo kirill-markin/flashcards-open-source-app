@@ -59,6 +59,9 @@ struct ReviewSelectableTable: UIViewRepresentable {
 
 final class ReviewSelectableTableView: UIView {
     let cells: [[ReviewSelectionTextView]]
+    #if targetEnvironment(macCatalyst)
+    var onJoinHierarchy: (() -> Void)?
+    #endif
 
     init(rows: [[NSAttributedString]]) {
         self.cells = rows.map { row in
@@ -99,6 +102,13 @@ final class ReviewSelectableTableView: UIView {
     }
 
     required init?(coder: NSCoder) { nil }
+
+    #if targetEnvironment(macCatalyst)
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        if self.superview != nil { self.onJoinHierarchy?() }
+    }
+    #endif
 
     private func updateBorderColors() {
         for row in self.cells {
