@@ -2,8 +2,6 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -21,7 +19,6 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.ContentScale
@@ -31,16 +28,11 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import java.time.LocalDate
-import kotlinx.coroutines.flow.first
 
-private val yearWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 /** The Scaffold's horizontal padding and the body's vertical padding. */
 private val yearWidgetPadding = 12.dp
 private val yearWidgetFooterSpacing = 6.dp
@@ -55,16 +47,8 @@ class YearWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetProgressContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val progress by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = yearWidgetColors) {
-                YearWidgetBody(progress = progress, layoutSize = LocalSize.current)
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetProgressContent) { progress ->
+            YearWidgetBody(progress = progress, layoutSize = LocalSize.current)
         }
     }
 }
@@ -113,6 +97,7 @@ private fun ColumnScope.YearWidgetMonths(progress: WidgetProgressContent, layout
         provider = ImageProvider(
             bitmap = drawYearBitmap(
                 progress = progress,
+                accentColor = widgetAccentColor(),
                 months = yearMonthDates(progress = progress),
                 areaSize = DpSize(
                     width = layoutSize.width - yearWidgetPadding * 2,

@@ -100,7 +100,7 @@ struct YearWidgetView: View {
                 )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
