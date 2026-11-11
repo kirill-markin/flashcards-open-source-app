@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { ReviewEventPlatform } from "../../adminApi";
+import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildPeopleBreakdowns, PeopleBreakdownSections } from "../levelOneMetrics/PeopleBreakdownSections";
@@ -24,6 +24,7 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   appVersions: ReadonlyArray<string>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
@@ -33,6 +34,7 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
       dateRange={props.dateRange}
       period={props.period}
       eventPlatforms={props.eventPlatforms}
+      eventDeviceTypes={props.eventDeviceTypes}
       appVersions={props.appVersions}
       onTerminalAdminError={props.onTerminalAdminError}
       metricTitle={metricTitle}

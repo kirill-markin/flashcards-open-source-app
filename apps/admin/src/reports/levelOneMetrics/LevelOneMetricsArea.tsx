@@ -33,6 +33,7 @@ export function LevelOneMetricsArea(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
@@ -42,6 +43,7 @@ export function LevelOneMetricsArea(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             detailsLink={buildLevelOneMetricDetailsLink("who-studied", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
@@ -51,6 +53,7 @@ export function LevelOneMetricsArea(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             detailsLink={buildLevelOneMetricDetailsLink("who-opened-the-app", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
@@ -60,6 +63,7 @@ export function LevelOneMetricsArea(
             dateRange={selection.dateRange}
             period={selection.period}
             series={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             siteFilters={defaultSiteVisitorFilterState}
             detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}

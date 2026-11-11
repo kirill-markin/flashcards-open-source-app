@@ -9,7 +9,7 @@ import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNot
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { paymentColors, renderWhoPaidUsChart } from "../../charts/whoPaidUsChart";
-import type { ReviewEventPlatform } from "../../adminApi";
+import { productEventDeviceTypes, type ProductEventDeviceType, type ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -99,6 +99,8 @@ export function WhoPaidUsSection(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  /** Never narrows the chart; a narrowed selection only shows that it does not. */
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   /** Never narrows the chart; a non-empty selection only shows that it does not. */
   appVersions: ReadonlyArray<string>;
   detailsLink: LevelOneMetricDetailsLink | null;
@@ -163,6 +165,7 @@ export function WhoPaidUsSection(props: Readonly<{
             <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded, and so are the people every Level 1 chart excludes; payments with no linked account still count, and erasure alone never drops one.</li>
             <li>Red bars below zero are cancellations: subscriptions whose auto-renewal the person turned off with Apple, Google Play or Stripe, during a trial or a paid period, counted on the UTC day of the provider’s own time for the change and excluding the same people as payments. Renewals a provider stopped after a failed charge are left out; a cancellation later undone still counts. Tracking starts on {cancellationsTrackedFrom} UTC, so a bar wholly before it is unavailable.</li>
             <li>The Platform filter keeps the payments and cancellations of the selected platforms’ stores: Apple for iOS, Google Play for Android and Stripe for web. A store left out counts 0, and Agent API and Unresolved have no store.</li>
+            <li>The Device filter does not narrow these events, because payments and cancellations carry no device class.</li>
             <li>The App version filter does not narrow these events, because payments and cancellations carry no app version.</li>
             <li>Apple notification discovery and Google discoverable orders are partial merchant inventories. Known counts remain visible after an import failure; absent or unclassified history is unavailable. Stripe completed production catalog scans can prove zero only for a bar whose every day lies inside their covered window.</li>
             {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
@@ -171,6 +174,9 @@ export function WhoPaidUsSection(props: Readonly<{
       </div>
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
+      {props.eventDeviceTypes.length !== productEventDeviceTypes.length ? <p className="activity-coverage-note" data-testid="who-paid-us-device-note">
+        Not filtered by device: payments and cancellations carry no device class.
+      </p> : null}
       {props.appVersions.length > 0 ? <p className="activity-coverage-note" data-testid="who-paid-us-app-version-note">
         Not filtered by app version: payments and cancellations carry no app version.
       </p> : null}
