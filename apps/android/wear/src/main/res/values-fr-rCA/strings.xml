@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="wear_retry">Réessayer</string>
+    <string name="wear_session_open_phone_app">Ouvrez Nibomo sur votre téléphone</string>
+    <string name="wear_session_not_connected_message">Connectez-vous sur votre téléphone pour réviser vos cartes sur la montre.</string>
+    <string name="wear_session_connecting">Connexion au téléphone…</string>
+    <string name="wear_session_syncing">Synchronisation des cartes…</string>
+    <string name="wear_session_update_required">Mettez à jour Nibomo sur votre téléphone et votre montre</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="one">%d évaluation ne peut pas encore être synchronisée</item>
+        <item quantity="many">%d évaluations ne peuvent pas encore être synchronisées</item>
+        <item quantity="other">%d évaluations ne peuvent pas encore être synchronisées</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">Votre téléphone a changé de compte ou d’espace de travail. Réessayez quand la montre sera en ligne, ou supprimez ces évaluations pour changer maintenant.</string>
+    <string name="wear_session_switch_blocked_discard">Supprimer et changer</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="one">Supprimer %d évaluation ?</item>
+        <item quantity="many">Supprimer %d évaluations ?</item>
+        <item quantity="other">Supprimer %d évaluations ?</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">Elles seront perdues. Cette action est irréversible.</string>
+    <string name="wear_review_show_answer">Afficher la réponse</string>
+    <string name="wear_review_again">À revoir</string>
+    <string name="wear_review_hard">Difficile</string>
+    <string name="wear_review_good">Correct</string>
+    <string name="wear_review_easy">Facile</string>
+    <string name="wear_review_open_on_phone">Ouvrez sur votre téléphone pour voir l’image ou la formule</string>
+    <string name="wear_review_all_done">Vous êtes à jour</string>
+    <string name="wear_review_next_card_due">Prochaine carte : %1$s</string>
+</resources>
