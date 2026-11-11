@@ -303,6 +303,19 @@ func loadProgressReviewedAtClientSourcesInBackground(
     }.value
 }
 
+func loadWorkspaceTagCountInBackground(
+    databaseURL: URL,
+    workspaceId: String
+) async throws -> Int {
+    try Task.checkCancellation()
+    return try await Task.detached(priority: .utility) {
+        let core = try DatabaseCore(readOnlyDatabaseURL: databaseURL)
+        let count = try CardStore(core: core).loadWorkspaceTagCount(workspaceId: workspaceId)
+        try core.close()
+        return count
+    }.value
+}
+
 func loadWorkspaceTagsSummaryInBackground(
     databaseURL: URL,
     workspaceId: String
