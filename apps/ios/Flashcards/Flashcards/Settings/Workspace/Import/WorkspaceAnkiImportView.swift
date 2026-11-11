@@ -1,12 +1,5 @@
 import SwiftUI
-
-func workspaceImportNibomoFormatTitle() -> String {
-    aiSettingsLocalized("settings.workspace.import.format.nibomo", "Nibomo format")
-}
-
-func workspaceImportAnkiFormatTitle() -> String {
-    aiSettingsLocalized("settings.workspace.import.format.anki", "Anki format")
-}
+import UniformTypeIdentifiers
 
 func ankiImportWorkspaceChangedMessage() -> String {
     aiSettingsLocalized(
@@ -19,49 +12,20 @@ func ankiImportWaitingMessage() -> String {
     aiSettingsLocalized("settings.workspace.import.anki.waiting", "Waiting to start Anki import…")
 }
 
-private struct AnkiImportFileError: LocalizedError {
-    let fileName: String
-    let underlyingError: any Error
-
-    var errorDescription: String? {
-        "\(self.fileName): \(Flashcards.errorMessage(error: self.underlyingError))"
-    }
-}
-
-private func stageAnkiImportFiles(urls: [URL]) throws -> [AIChatAttachment] {
-    var attachments: [AIChatAttachment] = []
-    do {
-        for url in urls {
-            try Task.checkCancellation()
-            do {
-                let attachment = try aiChatMakeAttachmentFromFile(url: url)
-                attachments.append(attachment)
-                if case .localFile(_, _, let sizeBytes) = attachment.payload {
-                    try aiChatValidateAttachmentSize(
-                        byteCount: sizeBytes,
-                        maximumByteCount: aiChatMaximumFileAttachmentBytes
-                    )
-                }
-            } catch {
-                throw AnkiImportFileError(fileName: url.lastPathComponent, underlyingError: error)
-            }
-        }
-        try validateAIChatOutgoingAttachments(attachments: attachments)
-        return attachments
-    } catch {
-        aiChatRemoveAttachmentFiles(attachments: attachments)
-        throw error
-    }
-}
-
 struct WorkspaceAnkiImportView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
-    @State private var selectedFiles: [URL] = []
+    @State private var selectedFiles: [WorkspaceAnkiImportFile] = []
+    @State private var isDropTargeted: Bool = false
     @State private var isFileImporterPresented: Bool = false
     @State private var stagingTask: Task<Void, Never>?
+    @State private var dropTask: Task<Void, Never>?
     @State private var errorMessage: String?
+
+    private var isBusy: Bool {
+        self.stagingTask != nil || self.dropTask != nil
+    }
 
     var body: some View {
         List {
@@ -74,19 +38,34 @@ struct WorkspaceAnkiImportView: View {
                 Button {
                     self.isFileImporterPresented = true
                 } label: {
-                    Label(
-                        aiSettingsLocalized("settings.workspace.import.anki.choose", "Choose .apkg Files"),
-                        systemImage: "doc.badge.plus"
-                    )
+                    Label {
+                        Text(aiSettingsLocalized("settings.workspace.import.anki.choose", "Choose .apkg Files"))
+                    } icon: {
+                        if self.dropTask != nil {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "doc.badge.plus")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                .disabled(self.stagingTask != nil)
+                .disabled(self.isBusy)
+                .accessibilityIdentifier(UITestIdentifier.workspaceImportChooseAnkiFilesButton)
+                .onDrop(
+                    of: aiChatAnkiPackageImporterContentTypes() + [.fileURL],
+                    isTargeted: self.$isDropTargeted,
+                    perform: self.handleDrop
+                )
+                .listRowBackground(self.isDropTargeted && !self.isBusy ? Color.accentColor.opacity(0.14) : nil)
 
-                ForEach(self.selectedFiles, id: \.self) { url in
+                ForEach(self.selectedFiles) { file in
                     HStack {
-                        Text(url.lastPathComponent)
+                        Text(file.url.lastPathComponent)
                         Spacer()
                         Button {
-                            self.selectedFiles.removeAll { $0 == url }
+                            self.selectedFiles.removeAll { $0.id == file.id }
+                            file.removeStagedCopy()
                             self.errorMessage = nil
                         } label: {
                             Label(
@@ -96,7 +75,7 @@ struct WorkspaceAnkiImportView: View {
                             .labelStyle(.iconOnly)
                         }
                         .buttonStyle(.borderless)
-                        .disabled(self.stagingTask != nil)
+                        .disabled(self.isBusy)
                     }
                 }
             }
@@ -110,11 +89,11 @@ struct WorkspaceAnkiImportView: View {
                         Text(aiSettingsLocalized("settings.workspace.import.anki.start", "Start Import"))
                     }
                 }
-                .disabled(self.selectedFiles.isEmpty || self.stagingTask != nil || self.navigation.ankiImportRequest != nil)
+                .disabled(self.selectedFiles.isEmpty || self.isBusy || self.navigation.ankiImportRequest != nil)
             }
         }
         .listStyle(.insetGrouped)
-        .nativeNavigationTitle(workspaceImportAnkiFormatTitle())
+        .nativeNavigationTitle(WorkspaceImportFormat.anki.localizedTitle)
         #if !targetEnvironment(macCatalyst)
         .toolbar {
             AICompanionToolbarItem()
@@ -128,39 +107,81 @@ struct WorkspaceAnkiImportView: View {
         )
         .onDisappear {
             self.stagingTask?.cancel()
+            self.dropTask?.cancel()
+            self.clearSelectedFiles()
         }
     }
 
     private func handleFileImporterResult(_ result: Result<[URL], Error>) {
+        guard !self.isBusy else { return }
         do {
-            let urls = try result.get()
+            let files = try result.get().map { url in
+                try validateAnkiImportFileExtension(fileName: url.lastPathComponent)
+                return WorkspaceAnkiImportFile(url: url, stagedDirectory: nil)
+            }
             var nextFiles = self.selectedFiles
-            for url in urls {
-                let fileExtension = url.pathExtension.lowercased()
-                guard fileExtension == "apkg" else {
-                    throw AnkiImportFileError(
-                        fileName: url.lastPathComponent,
-                        underlyingError: aiChatUnsupportedFileTypeError(fileExtension: fileExtension)
-                    )
-                }
-                if nextFiles.contains(url) == false {
-                    nextFiles.append(url)
-                }
+            var selectedURLs = Set(nextFiles.map(\.url))
+            for file in files where selectedURLs.insert(file.url).inserted {
+                nextFiles.append(file)
             }
-            guard nextFiles.count <= aiChatMaximumUploadsPerTurn else {
-                throw AIChatAttachmentLimitError.tooManyUploads
-            }
+            try self.validateSelectionCount(count: nextFiles.count)
             self.selectedFiles = nextFiles
             self.errorMessage = nil
         } catch {
-            if isRequestCancellationError(error: error) == false {
+            if !isRequestCancellationError(error: error) {
                 self.errorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }
 
+    private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard !self.isBusy, !providers.isEmpty else { return false }
+        do {
+            try self.validateSelectionCount(count: self.selectedFiles.count + providers.count)
+        } catch {
+            self.errorMessage = Flashcards.errorMessage(error: error)
+            return false
+        }
+
+        let contentTypes = aiChatAnkiPackageImporterContentTypes()
+        let drops = providers.map { provider in
+            loadWorkspaceImportDrop(provider: provider, contentTypes: contentTypes, readFile: stageAnkiImportDropFile(url:fileName:))
+        }
+        let fileTask = Task.detached(priority: .userInitiated) {
+            try await collectAnkiImportDropFiles(drops: drops)
+        }
+        self.errorMessage = nil
+        self.dropTask = Task {
+            defer { self.dropTask = nil }
+            do {
+                let files = try await fileTask.value
+                if Task.isCancelled {
+                    files.forEach { $0.removeStagedCopy() }
+                } else {
+                    self.selectedFiles.append(contentsOf: files)
+                }
+            } catch {
+                if !Task.isCancelled {
+                    self.errorMessage = Flashcards.errorMessage(error: error)
+                }
+            }
+        }
+        return true
+    }
+
+    private func validateSelectionCount(count: Int) throws {
+        guard count <= aiChatMaximumUploadsPerTurn else {
+            throw AIChatAttachmentLimitError.tooManyUploads
+        }
+    }
+
+    private func clearSelectedFiles() {
+        self.selectedFiles.forEach { $0.removeStagedCopy() }
+        self.selectedFiles = []
+    }
+
     private func startImport() {
-        guard self.stagingTask == nil, self.navigation.ankiImportRequest == nil, self.selectedFiles.isEmpty == false else {
+        guard !self.isBusy, self.navigation.ankiImportRequest == nil, !self.selectedFiles.isEmpty else {
             return
         }
         self.errorMessage = nil
@@ -171,7 +192,7 @@ struct WorkspaceAnkiImportView: View {
             return
         }
 
-        let urls = self.selectedFiles
+        let urls = self.selectedFiles.map(\.url)
         let fileTask = Task.detached(priority: .userInitiated) {
             try stageAnkiImportFiles(urls: urls)
         }
@@ -199,7 +220,7 @@ struct WorkspaceAnkiImportView: View {
                     self.errorMessage = ankiImportWaitingMessage()
                     return
                 }
-                self.selectedFiles = []
+                self.clearSelectedFiles()
             } catch {
                 if Task.isCancelled == false {
                     self.errorMessage = Flashcards.errorMessage(error: error)
