@@ -785,9 +785,6 @@ const frCatalog: TranslationCatalog = {
       title: "Catalogue de paquets",
       description: "Paquets gratuits prêts à réviser.",
     },
-    import: {
-      description: "Ajoutez des cartes depuis un fichier.",
-    },
     export: {
       description: "Téléchargez toutes vos cartes dans un fichier.",
     },
@@ -897,7 +894,17 @@ const frCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importer",
-    subtitle: "Ajoutez des cartes en collant du texte ou en choisissant un paquet Nibomo.",
+    nibomoFormat: "Format Nibomo",
+    anki: {
+      format: "Format Anki",
+      description: "Le chat IA importe les cartes à partir des fichiers Anki sélectionnés.",
+      chooseFiles: "Choisir des fichiers .apkg",
+      start: "Lancer l’importation",
+      invalidFile: "« {{file}} » n’est pas un fichier d’export Anki utilisable. Choisissez un fichier .apkg non vide.",
+      fileTooLarge: "« {{file}} » dépasse {{limit}} Mio. Choisissez un fichier Anki plus petit.",
+      request: "Importe les cartes d’Anki dans cet espace de travail.",
+      chatChanged: "La conversation active a changé. Retournez dans la bibliothèque et relancez l’importation Anki.",
+    },
     workspaceUnavailable: "L'espace de travail est indisponible",
     textTitle: "Coller du texte",
     textDescription: "Copiez des termes et des définitions depuis Quizlet, un tableur ou un document. Vérifiez chaque carte avant l'import.",

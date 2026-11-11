@@ -785,9 +785,6 @@ const lvCatalog: TranslationCatalog = {
       title: "Kavu katalogs",
       description: "Bezmaksas gatavas kavas mācībām.",
     },
-    import: {
-      description: "Pievienojiet kartītes no faila.",
-    },
     export: {
       description: "Lejupielādējiet visas savas kartītes kā failu.",
     },
@@ -897,7 +894,17 @@ const lvCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importēt",
-    subtitle: "Pievienojiet kartītes, ielīmējot tekstu vai izvēloties Nibomo pakotni.",
+    nibomoFormat: "Nibomo formāts",
+    anki: {
+      format: "Anki formāts",
+      description: "MI tērzēšana importē kartītes no atlasītajiem Anki eksporta failiem.",
+      chooseFiles: "Izvēlieties .apkg failus",
+      start: "Sākt importēšanu",
+      invalidFile: "“{{file}}” nav izmantojams Anki eksporta fails. Izvēlieties .apkg failu, kas nav tukšs.",
+      fileTooLarge: "“{{file}}” pārsniedz {{limit}} MiB. Izvēlieties mazāku Anki eksporta failu.",
+      request: "Importē kartītes no Anki šajā darbvietā.",
+      chatChanged: "Aktīvā saruna ir mainījusies. Atgriezieties bibliotēkā un sāciet Anki importēšanu no jauna.",
+    },
     workspaceUnavailable: "Darbvieta nav pieejama",
     textTitle: "Ielīmēt tekstu",
     textDescription: "Kopējiet terminus un skaidrojumus no Quizlet, izklājlapas vai dokumenta. Pirms importēšanas pārskatiet katru kartīti.",

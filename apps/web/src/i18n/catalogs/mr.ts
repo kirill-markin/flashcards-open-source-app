@@ -785,9 +785,6 @@ const mrCatalog: TranslationCatalog = {
       title: "संच कॅटलॉग",
       description: "अभ्यासासाठी मोफत तयार संच.",
     },
-    import: {
-      description: "फाइलमधून कार्डे जोडा.",
-    },
     export: {
       description: "तुमची सर्व कार्डे फाइल म्हणून डाउनलोड करा.",
     },
@@ -897,7 +894,17 @@ const mrCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "आयात",
-    subtitle: "मजकूर पेस्ट करून किंवा Nibomo पॅकेज निवडून कार्डे जोडा.",
+    nibomoFormat: "Nibomo स्वरूप",
+    anki: {
+      format: "Anki स्वरूप",
+      description: "AI चॅट निवडलेल्या Anki एक्सपोर्ट फाइलमधून कार्डे आयात करते.",
+      chooseFiles: ".apkg फाइल निवडा",
+      start: "आयात सुरू करा",
+      invalidFile: "“{{file}}” ही वापरता येणारी Anki एक्सपोर्ट फाइल नाही. रिकामी नसलेली .apkg फाइल निवडा.",
+      fileTooLarge: "“{{file}}” चा आकार {{limit}} MiB पेक्षा जास्त आहे. लहान Anki एक्सपोर्ट फाइल निवडा.",
+      request: "Anki मधील कार्डे या कार्यक्षेत्रात आयात करा.",
+      chatChanged: "सक्रिय चॅट बदलले आहे. लायब्ररीत परत जा आणि Anki आयात पुन्हा सुरू करा.",
+    },
     workspaceUnavailable: "कार्यक्षेत्र उपलब्ध नाही",
     textTitle: "मजकूर पेस्ट करा",
     textDescription: "Quizlet, स्प्रेडशीट किंवा दस्तऐवजातून संज्ञा आणि व्याख्या कॉपी करा. आयात करण्यापूर्वी प्रत्येक कार्ड तपासा.",

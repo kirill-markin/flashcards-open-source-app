@@ -792,9 +792,6 @@ const csCatalog: TranslationCatalog = {
       title: "Katalog balíčků",
       description: "Bezplatné hotové balíčky ke studiu.",
     },
-    import: {
-      description: "Přidejte kartičky ze souboru.",
-    },
     export: {
       description: "Stáhněte všechny své kartičky jako soubor.",
     },
@@ -905,7 +902,17 @@ const csCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Přidejte kartičky vložením textu nebo výběrem balíčku Nibomo.",
+    nibomoFormat: "Formát Nibomo",
+    anki: {
+      format: "Formát Anki",
+      description: "Chat s AI importuje kartičky z vybraných souborů exportovaných z Anki.",
+      chooseFiles: "Vybrat soubory .apkg",
+      start: "Spustit import",
+      invalidFile: "„{{file}}“ není použitelný export z Anki. Vyberte neprázdný soubor .apkg.",
+      fileTooLarge: "„{{file}}“ překračuje {{limit}} MiB. Vyberte menší export z Anki.",
+      request: "Importuj kartičky z Anki do tohoto pracovního prostoru.",
+      chatChanged: "Aktivní chat se změnil. Vraťte se do knihovny a spusťte import z Anki znovu.",
+    },
     workspaceUnavailable: "Pracovní prostor není dostupný",
     textTitle: "Vložit text",
     textDescription: "Zkopírujte pojmy a definice z Quizletu, tabulky nebo dokumentu. Před importem zkontrolujte každou kartičku.",

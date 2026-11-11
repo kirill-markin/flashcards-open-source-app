@@ -792,9 +792,6 @@ const ukCatalog: TranslationCatalog = {
       title: "Каталог колод",
       description: "Безкоштовні готові колоди для вивчення.",
     },
-    import: {
-      description: "Додайте картки з файлу.",
-    },
     export: {
       description: "Завантажте всі свої картки одним файлом.",
     },
@@ -905,7 +902,17 @@ const ukCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Імпорт",
-    subtitle: "Додайте картки, вставивши текст або обравши пакунок Nibomo.",
+    nibomoFormat: "Формат Nibomo",
+    anki: {
+      format: "Формат Anki",
+      description: "ШІ-чат імпортує картки з вибраних файлів Anki.",
+      chooseFiles: "Вибрати файли .apkg",
+      start: "Почати імпорт",
+      invalidFile: "«{{file}}» — непридатний файл експорту Anki. Виберіть непорожній файл .apkg.",
+      fileTooLarge: "Розмір файлу «{{file}}» перевищує {{limit}} МіБ. Виберіть менший файл експорту Anki.",
+      request: "Імпортуй картки з Anki до цього робочого простору.",
+      chatChanged: "Активний чат змінився. Поверніться до бібліотеки й почніть імпорт Anki знову.",
+    },
     workspaceUnavailable: "Робочий простір недоступний",
     textTitle: "Вставити текст",
     textDescription: "Скопіюйте терміни й визначення з Quizlet, таблиці або документа. Перевірте кожну картку перед імпортом.",

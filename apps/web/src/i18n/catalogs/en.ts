@@ -784,9 +784,6 @@ const enCatalog = {
       title: "Deck catalog",
       description: "Free ready-made decks to study.",
     },
-    import: {
-      description: "Add cards from a file.",
-    },
     export: {
       description: "Download all your cards as a file.",
     },
@@ -896,7 +893,17 @@ const enCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Add cards by pasting text or choosing a Nibomo package.",
+    nibomoFormat: "Nibomo format",
+    anki: {
+      format: "Anki format",
+      description: "AI chat imports cards from the selected Anki exports.",
+      chooseFiles: "Choose .apkg files",
+      start: "Start import",
+      invalidFile: "“{{file}}” isn’t a usable Anki export. Choose a non-empty .apkg file.",
+      fileTooLarge: "“{{file}}” exceeds {{limit}} MiB. Choose a smaller Anki export.",
+      request: "Import cards from Anki into this workspace.",
+      chatChanged: "The active chat changed. Return to Library and start the Anki import again.",
+    },
     workspaceUnavailable: "Workspace is unavailable",
     textTitle: "Paste text",
     textDescription: "Copy terms and definitions from Quizlet, a spreadsheet, or a document. Review every card before importing.",

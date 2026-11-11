@@ -785,9 +785,6 @@ const fiCatalog: TranslationCatalog = {
       title: "Pakkakatalogi",
       description: "Ilmaisia valmiita pakkoja opiskeluun.",
     },
-    import: {
-      description: "Lisää kortteja tiedostosta.",
-    },
     export: {
       description: "Lataa kaikki korttisi tiedostona.",
     },
@@ -897,7 +894,17 @@ const fiCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Tuonti",
-    subtitle: "Lisää kortteja liittämällä tekstiä tai valitsemalla Nibomo-paketti.",
+    nibomoFormat: "Nibomo-muoto",
+    anki: {
+      format: "Anki-muoto",
+      description: "Tekoälykeskustelu tuo kortit valituista Anki-vientitiedostoista.",
+      chooseFiles: "Valitse .apkg-tiedostot",
+      start: "Aloita tuonti",
+      invalidFile: "”{{file}}” ei ole käyttökelpoinen Anki-vientitiedosto. Valitse .apkg-tiedosto, joka ei ole tyhjä.",
+      fileTooLarge: "”{{file}}” ylittää {{limit}} MiB:n rajan. Valitse pienempi Anki-vientitiedosto.",
+      request: "Tuo kortit Ankista tähän työtilaan.",
+      chatChanged: "Aktiivinen keskustelu vaihtui. Palaa kirjastoon ja aloita Anki-tuonti uudelleen.",
+    },
     workspaceUnavailable: "Työtila ei käytettävissä",
     textTitle: "Liitä tekstiä",
     textDescription: "Kopioi termit ja määritelmät Quizletistä, taulukosta tai asiakirjasta. Tarkista jokainen kortti ennen tuontia.",

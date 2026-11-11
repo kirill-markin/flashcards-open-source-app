@@ -785,9 +785,6 @@ const zuCatalog: TranslationCatalog = {
       title: "Ikhathalogi yezinqwaba",
       description: "Izinqwaba zamahhala ezilungele ukufundwa.",
     },
-    import: {
-      description: "Engeza amakhadi kusuka kufayela.",
-    },
     export: {
       description: "Dawuniloda wonke amakhadi akho njengefayela.",
     },
@@ -897,7 +894,17 @@ const zuCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Ngenisa",
-    subtitle: "Engeza amakhadi ngokunamathisela umbhalo noma ngokukhetha iphakheji ye-Nibomo.",
+    nibomoFormat: "Ifomethi ye-Nibomo",
+    anki: {
+      format: "Ifomethi ye-Anki",
+      description: "Ingxoxo ye-AI ingenisa amakhadi asuka kumafayela e-Anki akhethiwe.",
+      chooseFiles: "Khetha amafayela e-.apkg",
+      start: "Qala ukungenisa",
+      invalidFile: "Ifayela elithi “{{file}}” alilona ifayela le-Anki elisebenzisekayo. Khetha ifayela le-.apkg elingelona elingenalutho.",
+      fileTooLarge: "Ifayela elithi “{{file}}” lidlula ku-{{limit}} MiB. Khetha ifayela le-Anki elincane.",
+      request: "Ngenisa amakhadi avela ku-Anki kule ndawo yokusebenza.",
+      chatChanged: "Ingxoxo ebivuliwe ishintshile. Buyela kulabhulali bese uqala ukungenisa i-Anki futhi.",
+    },
     workspaceUnavailable: "Indawo yokusebenza ayitholakali",
     textTitle: "Namathisela umbhalo",
     textDescription: "Kopisha amatemu nezincazelo ku-Quizlet, kuspredishithi noma kudokhumenti. Hlola wonke amakhadi ngaphambi kokungenisa.",

@@ -785,9 +785,6 @@ const bnCatalog: TranslationCatalog = {
       title: "ডেক ক্যাটালগ",
       description: "পড়ার জন্য বিনামূল্যের তৈরি ডেক।",
     },
-    import: {
-      description: "ফাইল থেকে কার্ড যোগ করুন।",
-    },
     export: {
       description: "আপনার সব কার্ড একটি ফাইল হিসেবে ডাউনলোড করুন।",
     },
@@ -897,7 +894,17 @@ const bnCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "আমদানি",
-    subtitle: "টেক্সট পেস্ট করে বা Nibomo প্যাকেজ বেছে নিয়ে কার্ড যোগ করুন।",
+    nibomoFormat: "Nibomo ফরম্যাট",
+    anki: {
+      format: "Anki ফরম্যাট",
+      description: "AI চ্যাট নির্বাচিত Anki এক্সপোর্ট ফাইল থেকে কার্ড আমদানি করে।",
+      chooseFiles: ".apkg ফাইল বেছে নিন",
+      start: "আমদানি শুরু করুন",
+      invalidFile: "“{{file}}” ব্যবহারযোগ্য Anki এক্সপোর্ট নয়। একটি খালি নয় এমন .apkg ফাইল বেছে নিন।",
+      fileTooLarge: "“{{file}}” ফাইলটি {{limit}} MiB-এর চেয়ে বড়। ছোট একটি Anki এক্সপোর্ট ফাইল বেছে নিন।",
+      request: "Anki থেকে কার্ড এই ওয়ার্কস্পেসে আমদানি করুন।",
+      chatChanged: "সক্রিয় চ্যাট বদলে গেছে। লাইব্রেরিতে ফিরে আবার Anki আমদানি শুরু করুন।",
+    },
     workspaceUnavailable: "কর্মক্ষেত্র উপলভ্য নয়",
     textTitle: "টেক্সট পেস্ট করুন",
     textDescription: "Quizlet, স্প্রেডশিট বা ডকুমেন্ট থেকে শব্দ ও সংজ্ঞা কপি করুন। আমদানির আগে প্রতিটি কার্ড দেখে নিন।",

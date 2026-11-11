@@ -785,9 +785,6 @@ const faCatalog: TranslationCatalog = {
       title: "فهرست دسته‌ها",
       description: "دسته‌های آمادهٔ رایگان برای مطالعه.",
     },
-    import: {
-      description: "کارت‌ها را از یک فایل اضافه کنید.",
-    },
     export: {
       description: "همهٔ کارت‌هایتان را به صورت یک فایل دریافت کنید.",
     },
@@ -897,7 +894,17 @@ const faCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "درون‌ریزی",
-    subtitle: "با چسباندن متن یا انتخاب یک بستهٔ Nibomo کارت اضافه کنید.",
+    nibomoFormat: "قالب Nibomo",
+    anki: {
+      format: "قالب Anki",
+      description: "گفت‌وگوی هوش مصنوعی کارت‌ها را از فایل‌های خروجی انتخاب‌شدهٔ Anki درون‌ریزی می‌کند.",
+      chooseFiles: "انتخاب فایل‌های ‎.apkg",
+      start: "شروع درون‌ریزی",
+      invalidFile: "«{{file}}» فایل خروجی قابل استفادهٔ Anki نیست. یک فایل ‎.apkg غیرخالی انتخاب کنید.",
+      fileTooLarge: "اندازهٔ «{{file}}» از {{limit}} MiB بیشتر است. فایل خروجی کوچک‌تری از Anki انتخاب کنید.",
+      request: "کارت‌های Anki را به این فضای کاری وارد کن.",
+      chatChanged: "گفت‌وگوی فعال تغییر کرده است. به کتابخانه برگردید و درون‌ریزی Anki را دوباره شروع کنید.",
+    },
     workspaceUnavailable: "فضای کاری در دسترس نیست",
     textTitle: "چسباندن متن",
     textDescription: "اصطلاحات و تعریف‌ها را از Quizlet، یک صفحه‌گسترده یا یک سند کپی کنید. پیش از درون‌ریزی هر کارت را بررسی کنید.",

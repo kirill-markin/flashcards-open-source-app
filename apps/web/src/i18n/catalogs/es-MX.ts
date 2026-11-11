@@ -785,9 +785,6 @@ const esMxCatalog: TranslationCatalog = {
       title: "Catálogo de mazos",
       description: "Mazos gratuitos y listos para estudiar.",
     },
-    import: {
-      description: "Agrega tarjetas desde un archivo.",
-    },
     export: {
       description: "Descarga todas tus tarjetas en un archivo.",
     },
@@ -897,7 +894,17 @@ const esMxCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importar",
-    subtitle: "Agrega tarjetas pegando texto o eligiendo un paquete de Nibomo.",
+    nibomoFormat: "Formato Nibomo",
+    anki: {
+      format: "Formato Anki",
+      description: "El chat con IA importa tarjetas desde los archivos exportados de Anki que selecciones.",
+      chooseFiles: "Seleccionar archivos .apkg",
+      start: "Iniciar importación",
+      invalidFile: "«{{file}}» no es un archivo de exportación de Anki válido. Selecciona un archivo .apkg que no esté vacío.",
+      fileTooLarge: "«{{file}}» supera los {{limit}} MiB. Selecciona un archivo de Anki más pequeño.",
+      request: "Importa las tarjetas de Anki a este espacio de trabajo.",
+      chatChanged: "El chat activo cambió. Regresa a la biblioteca y vuelve a iniciar la importación de Anki.",
+    },
     workspaceUnavailable: "El espacio de trabajo no está disponible",
     textTitle: "Pegar texto",
     textDescription: "Copia términos y definiciones de Quizlet, de una hoja de cálculo o de un documento. Revisa cada tarjeta antes de importarla.",

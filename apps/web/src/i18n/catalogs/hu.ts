@@ -785,9 +785,6 @@ const huCatalog: TranslationCatalog = {
       title: "Paklikatalógus",
       description: "Ingyenes, kész paklik tanuláshoz.",
     },
-    import: {
-      description: "Adj hozzá kártyákat fájlból.",
-    },
     export: {
       description: "Töltsd le az összes kártyádat egy fájlként.",
     },
@@ -897,7 +894,17 @@ const huCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importálás",
-    subtitle: "Adj hozzá kártyákat szöveg beillesztésével vagy Nibomo-csomag kiválasztásával.",
+    nibomoFormat: "Nibomo-formátum",
+    anki: {
+      format: "Anki-formátum",
+      description: "Az AI-csevegés a kiválasztott Anki-exportfájlokból importálja a kártyákat.",
+      chooseFiles: ".apkg fájlok kiválasztása",
+      start: "Importálás indítása",
+      invalidFile: "A(z) „{{file}}” nem használható Anki-exportfájl. Válassz egy nem üres .apkg fájlt.",
+      fileTooLarge: "A(z) „{{file}}” nagyobb mint {{limit}} MiB. Válassz kisebb Anki-exportfájlt.",
+      request: "Importáld az Anki-kártyákat ebbe a munkaterületbe.",
+      chatChanged: "Az aktív csevegés megváltozott. Térj vissza a könyvtárba, és indítsd újra az Anki-importálást.",
+    },
     workspaceUnavailable: "A munkaterület nem érhető el",
     textTitle: "Szöveg beillesztése",
     textDescription: "Másold ki a kifejezéseket és a meghatározásokat a Quizletből, egy táblázatból vagy egy dokumentumból. Importálás előtt nézz át minden kártyát.",

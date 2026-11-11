@@ -785,9 +785,6 @@ const ptBrCatalog: TranslationCatalog = {
       title: "Catálogo de baralhos",
       description: "Baralhos prontos e gratuitos para estudar.",
     },
-    import: {
-      description: "Adicione cartões a partir de um arquivo.",
-    },
     export: {
       description: "Baixe todos os seus cartões como um arquivo.",
     },
@@ -897,7 +894,17 @@ const ptBrCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importar",
-    subtitle: "Adicione cartões colando texto ou escolhendo um pacote do Nibomo.",
+    nibomoFormat: "Formato Nibomo",
+    anki: {
+      format: "Formato Anki",
+      description: "O chat com IA importa cartões dos arquivos do Anki selecionados.",
+      chooseFiles: "Escolher arquivos .apkg",
+      start: "Iniciar importação",
+      invalidFile: "“{{file}}” não é uma exportação válida do Anki. Escolha um arquivo .apkg que não esteja vazio.",
+      fileTooLarge: "“{{file}}” excede {{limit}} MiB. Escolha um arquivo menor do Anki.",
+      request: "Importe os cartões do Anki para este espaço de trabalho.",
+      chatChanged: "O chat ativo mudou. Volte à biblioteca e inicie a importação do Anki de novo.",
+    },
     workspaceUnavailable: "O espaço de trabalho está indisponível",
     textTitle: "Colar texto",
     textDescription: "Copie termos e definições do Quizlet, de uma planilha ou de um documento. Revise cada cartão antes de importar.",

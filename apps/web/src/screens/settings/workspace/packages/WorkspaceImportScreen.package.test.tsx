@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import ReactDOM from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../../api";
 import type { AppDataContextValue } from "../../../../appData";
@@ -286,7 +287,7 @@ function setupWorkspaceImportScreen(): WorkspaceImportScreenHarness {
       currentRoot.render(
         <I18nProvider>
           <AppErrorDialogProvider>
-            <WorkspaceImportScreen />
+            <MemoryRouter><WorkspaceImportScreen /></MemoryRouter>
           </AppErrorDialogProvider>
         </I18nProvider>,
       );

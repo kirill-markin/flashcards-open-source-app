@@ -785,9 +785,6 @@ export const jaCatalog = {
       title: "デッキカタログ",
       description: "すぐに学習できる無料のデッキ。",
     },
-    import: {
-      description: "ファイルからカードを追加します。",
-    },
     export: {
       description: "すべてのカードをファイルとしてダウンロードします。",
     },
@@ -897,7 +894,17 @@ export const jaCatalog = {
   },
   workspaceImport: {
     title: "インポート",
-    subtitle: "テキストを貼り付けるか、Nibomo パッケージを選択してカードを追加します。",
+    nibomoFormat: "Nibomo 形式",
+    anki: {
+      format: "Anki 形式",
+      description: "AI チャットが選択した Anki のエクスポートファイルからカードをインポートします。",
+      chooseFiles: ".apkg ファイルを選択",
+      start: "インポートを開始",
+      invalidFile: "「{{file}}」は使用できる Anki のエクスポートファイルではありません。空でない .apkg ファイルを選択してください。",
+      fileTooLarge: "「{{file}}」は {{limit}} MiB を超えています。より小さい Anki のエクスポートファイルを選択してください。",
+      request: "Anki のカードをこのワークスペースにインポートしてください。",
+      chatChanged: "使用中のチャットが変わりました。ライブラリに戻り、Anki のインポートをやり直してください。",
+    },
     workspaceUnavailable: "ワークスペースを利用できません",
     textTitle: "テキストを貼り付け",
     textDescription: "Quizlet、スプレッドシート、ドキュメントから用語と定義をコピーします。インポートする前にすべてのカードを確認してください。",

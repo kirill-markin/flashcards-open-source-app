@@ -785,9 +785,6 @@ const guCatalog: TranslationCatalog = {
       title: "ડેક કૅટલૉગ",
       description: "અભ્યાસ માટે મફત તૈયાર ડેક.",
     },
-    import: {
-      description: "ફાઇલમાંથી કાર્ડ ઉમેરો.",
-    },
     export: {
       description: "તમારાં બધાં કાર્ડ ફાઇલ તરીકે ડાઉનલોડ કરો.",
     },
@@ -897,7 +894,17 @@ const guCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "આયાત",
-    subtitle: "ટેક્સ્ટ પેસ્ટ કરીને અથવા Nibomo પૅકેજ પસંદ કરીને કાર્ડ ઉમેરો.",
+    nibomoFormat: "Nibomo ફૉર્મેટ",
+    anki: {
+      format: "Anki ફૉર્મેટ",
+      description: "AI ચૅટ પસંદ કરેલી Anki એક્સપોર્ટ ફાઇલોમાંથી કાર્ડ આયાત કરે છે.",
+      chooseFiles: ".apkg ફાઇલો પસંદ કરો",
+      start: "આયાત શરૂ કરો",
+      invalidFile: "“{{file}}” વાપરી શકાય તેવી Anki એક્સપોર્ટ ફાઇલ નથી. ખાલી ન હોય તેવી .apkg ફાઇલ પસંદ કરો.",
+      fileTooLarge: "“{{file}}”નું કદ {{limit}} MiB કરતાં વધારે છે. નાની Anki એક્સપોર્ટ ફાઇલ પસંદ કરો.",
+      request: "Ankiમાંથી કાર્ડ આ કાર્યસ્થળમાં આયાત કરો.",
+      chatChanged: "સક્રિય ચૅટ બદલાઈ ગઈ છે. લાઇબ્રેરીમાં પાછા જાઓ અને Anki આયાત ફરી શરૂ કરો.",
+    },
     workspaceUnavailable: "કાર્યક્ષેત્ર ઉપલબ્ધ નથી",
     textTitle: "ટેક્સ્ટ પેસ્ટ કરો",
     textDescription: "Quizlet, સ્પ્રેડશીટ કે દસ્તાવેજમાંથી શબ્દો અને વ્યાખ્યાઓ કૉપિ કરો. આયાત કરતાં પહેલાં દરેક કાર્ડ તપાસો.",

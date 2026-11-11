@@ -167,7 +167,10 @@ export function LibraryScreen(): ReactElement {
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.import.title")}
-            description={t("libraryScreen.import.description")}
+            description={new Intl.ListFormat(locale, { type: "unit" }).format([
+              t("workspaceImport.nibomoFormat"),
+              t("workspaceImport.anki.format"),
+            ])}
             value={null}
             to={workspacePath(libraryImportRoute)}
             testId="library-row-import"

@@ -785,9 +785,6 @@ const isCatalog: TranslationCatalog = {
       title: "Stokkasafn",
       description: "Ókeypis tilbúnir stokkar til að læra.",
     },
-    import: {
-      description: "Bættu við spjöldum úr skrá.",
-    },
     export: {
       description: "Sæktu öll spjöldin þín sem skrá.",
     },
@@ -897,7 +894,17 @@ const isCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Flytja inn",
-    subtitle: "Bættu við spjöldum með því að líma inn texta eða velja Nibomo-pakka.",
+    nibomoFormat: "Nibomo-snið",
+    anki: {
+      format: "Anki-snið",
+      description: "Gervigreindarspjallið flytur inn spjöld úr völdum Anki-skrám.",
+      chooseFiles: "Veldu .apkg-skrár",
+      start: "Hefja innflutning",
+      invalidFile: "„{{file}}“ er ekki nothæf Anki-útflutningsskrá. Veldu .apkg-skrá sem er ekki tóm.",
+      fileTooLarge: "„{{file}}“ er stærri en {{limit}} MiB. Veldu minni Anki-skrá.",
+      request: "Flyttu spjöld úr Anki inn á þetta vinnusvæði.",
+      chatChanged: "Virkt spjall hefur breyst. Farðu aftur í safnið og byrjaðu Anki-innflutninginn aftur.",
+    },
     workspaceUnavailable: "Vinnusvæði er ekki tiltækt",
     textTitle: "Líma inn texta",
     textDescription: "Afritaðu hugtök og skilgreiningar úr Quizlet, töflureikni eða skjali. Yfirfarðu hvert spjald áður en þú flytur inn.",
