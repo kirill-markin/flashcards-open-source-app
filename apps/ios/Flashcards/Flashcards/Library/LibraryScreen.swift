@@ -79,16 +79,6 @@ struct LibraryScreen: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.libraryExportRow)
-
-                NavigationLink(value: LibraryNavigationDestination.exportAnkiDeck) {
-                    LibraryRow(
-                        title: LibrarySection.exportAnkiDeck.localizedTitle,
-                        subtitle: nil,
-                        systemImage: LibrarySection.exportAnkiDeck.systemImage,
-                        count: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.libraryAnkiExportRow)
             }
         }
         .listStyle(.insetGrouped)

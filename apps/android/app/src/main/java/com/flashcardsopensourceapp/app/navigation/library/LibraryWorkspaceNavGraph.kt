@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
+import com.flashcardsopensourceapp.feature.cards.library.LibraryExportRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorSaveResult
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorRoute
@@ -268,8 +269,22 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
         )
     }
 
+    composable(route = LibraryExportDestination.route) {
+        LibraryExportRoute(
+            onOpenNibomoExport = {
+                navController.navigate(route = LibraryNibomoExportDestination.route)
+            },
+            onOpenAnkiExport = {
+                navController.navigate(route = LibraryAnkiExportDestination.route)
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
     registerLibraryWorkspaceExportDestination(
-        route = LibraryExportDestination.route,
+        route = LibraryNibomoExportDestination.route,
         format = WorkspacePackageExportFormat.NIBOMO,
         appGraph = appGraph,
         navController = navController

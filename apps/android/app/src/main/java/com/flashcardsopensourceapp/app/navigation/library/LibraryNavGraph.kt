@@ -49,9 +49,6 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
                 },
                 onOpenExport = {
                     navController.navigate(route = LibraryExportDestination.route)
-                },
-                onOpenAnkiExport = {
-                    navController.navigate(route = LibraryAnkiExportDestination.route)
                 }
             )
         }

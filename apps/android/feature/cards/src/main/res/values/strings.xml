@@ -14,10 +14,10 @@
     <string name="library_import_nibomo_summary" translatable="false">.zip</string>
     <string name="library_import_anki_summary" translatable="false">.apkg</string>
     <string name="library_import_back_content_description">Back</string>
-    <string name="library_export_title">Export Nibomo package</string>
-    <string name="library_export_summary">Save a ZIP package for use in Nibomo.</string>
-    <string name="library_anki_export_title">Export Anki deck</string>
-    <string name="library_anki_export_summary">Save an .apkg file for use in Anki.</string>
+    <string name="library_export_title">Export</string>
+    <string name="library_export_summary">Save cards to a file.</string>
+    <string name="library_export_nibomo_title">Nibomo package (.zip)</string>
+    <string name="library_export_anki_title">Anki deck (.apkg)</string>
     <string name="catalog_back_content_description">Back</string>
     <string name="catalog_search_placeholder">Search decks</string>
     <string name="catalog_clear_search_content_description">Clear search</string>

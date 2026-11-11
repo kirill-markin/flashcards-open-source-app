@@ -41,8 +41,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .importData, pages: [.importAnki])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
-    case .exportAnkiDeck:
-        return LibraryLocation(section: .exportAnkiDeck, pages: [])
+    case .exportFormat:
+        return LibraryLocation(section: .exportData, pages: [destination])
     }
 }
 #else
@@ -64,8 +64,10 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.importData]
     case .importAnki:
         return [.importData, .importAnki]
-    case .exportData, .exportAnkiDeck:
-        return [destination]
+    case .exportData:
+        return [.exportData]
+    case .exportFormat:
+        return [.exportData, destination]
     }
 }
 #endif
@@ -382,14 +384,6 @@ final class AppNavigationModel {
         if self.isLibraryPathRoot(.deckCatalog) {
             return .catalog
         }
-        #if targetEnvironment(macCatalyst)
-        let depth = self.libraryPath.count + (self.librarySection == nil ? 0 : 1)
-        #else
-        let depth = self.libraryPath.count
-        #endif
-        if depth > 1 && self.isLibraryPathRoot(.importData) == false {
-            return .deckDetail
-        }
         if self.isLibraryPathRoot(.cards) {
             return .cards
         }
@@ -397,7 +391,11 @@ final class AppNavigationModel {
             return .tags
         }
         if self.isLibraryPathRoot(.decks) {
-            return .decks
+            #if targetEnvironment(macCatalyst)
+            return self.libraryPath.isEmpty ? .decks : .deckDetail
+            #else
+            return self.libraryPath.count == 1 ? .decks : .deckDetail
+            #endif
         }
         return .library
     }
