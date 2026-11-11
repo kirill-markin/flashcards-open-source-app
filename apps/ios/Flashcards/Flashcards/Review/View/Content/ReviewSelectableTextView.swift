@@ -465,6 +465,9 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
 /// The hosted view is in this view only while the controller is contained, in UIKit's containment order.
 private final class ReviewContentAttachmentHostView: UIView {
     private let hostingController: UIHostingController<AnyView>
+    #if targetEnvironment(macCatalyst)
+    private var isContainmentUpdateScheduled = false
+    #endif
 
     init(hostingController: UIHostingController<AnyView>) {
         self.hostingController = hostingController
@@ -492,12 +495,27 @@ private final class ReviewContentAttachmentHostView: UIView {
 
     override func didMoveToSuperview() {
         super.didMoveToSuperview()
-        self.updateContainment()
+        self.updateContainmentAfterHierarchyChange()
     }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        self.updateContainmentAfterHierarchyChange()
+    }
+
+    private func updateContainmentAfterHierarchyChange() {
+        #if targetEnvironment(macCatalyst)
+        // TextKit can move nested attachments during layout. Hosting appearance must run outside that pass.
+        guard self.isContainmentUpdateScheduled == false else { return }
+        self.isContainmentUpdateScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.isContainmentUpdateScheduled = false
+            self.updateContainment()
+        }
+        #else
         self.updateContainment()
+        #endif
     }
 
     /// Follows the view's ancestors rather than the window, so a presentation that takes the screen
