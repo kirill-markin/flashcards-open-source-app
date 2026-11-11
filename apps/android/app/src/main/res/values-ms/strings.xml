@@ -1,0 +1,221 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="top_level_review">Ulang kaji</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_progress">Kemajuan</string>
+    <string name="top_level_library">Pustaka</string>
+    <string name="top_level_settings">Tetapan</string>
+    <string name="startup_error_title">Aplikasi gagal dimulakan</string>
+    <string name="startup_error_message">Nibomo tidak dapat dimulakan sepenuhnya. Cuba mulakan semula, atau buka butiran teknikal jika diminta oleh pasukan sokongan.</string>
+    <string name="startup_error_retry">Cuba mulakan semula</string>
+    <string name="technical_error_dialog_default_title">Ada masalah</string>
+    <string name="technical_error_dialog_default_message">Aplikasi mengalami masalah teknikal. Anda masih boleh menggunakan Nibomo. Pasukan sokongan mungkin meminta butiran di bawah.</string>
+    <string name="technical_error_dialog_show_details">Tunjukkan butiran teknikal</string>
+    <string name="technical_error_dialog_hide_details">Sembunyikan butiran teknikal</string>
+    <string name="technical_error_dialog_close">Tutup</string>
+    <string name="technical_error_dialog_preview_details">Pratonton butiran teknikal\ncode=android_technical_error_preview\nrequestId=preview-request-id\nstatus=not_reported</string>
+    <string name="account_deletion_blocking_title">Memadamkan akaun</string>
+    <string name="account_deletion_in_progress_message">Akaun anda sedang dipadamkan. Biarkan skrin ini terbuka sehingga proses selesai.</string>
+    <string name="account_deletion_failed_message">Permintaan pemadaman belum selesai. Cuba lagi untuk meneruskan pemadaman akaun.</string>
+    <string name="account_deletion_retry">Cuba semula pemadaman</string>
+    <string name="guest_sign_in_after_review_prompt_title">Simpan kemajuan anda</string>
+    <string name="guest_sign_in_after_review_prompt_body">Log masuk dengan e-mel supaya kad dan kemajuan ulang kaji anda tidak hilang.</string>
+    <string name="guest_sign_in_after_review_prompt_sign_in">Log masuk</string>
+    <string name="guest_sign_in_after_review_prompt_later">Kemudian</string>
+    <string name="feedback_prompt_title">Ada idea untuk Nibomo?</string>
+    <string name="feedback_prompt_body">Kongsi cara untuk menambah baik aplikasi ini. Pencipta Nibomo, %1$s, membaca sendiri setiap mesej.</string>
+    <string name="feedback_prompt_message_label">Tulis idea anda di sini</string>
+    <string name="feedback_prompt_send">Hantar</string>
+    <string name="feedback_prompt_cancel">Batal</string>
+    <string name="feedback_prompt_not_now">Bukan sekarang</string>
+    <string name="feedback_prompt_submit_success">Terima kasih. Maklum balas anda telah dihantar.</string>
+    <string name="feedback_prompt_submit_failed">Maklum balas tidak dapat dihantar. Semak sambungan anda dan cuba lagi.</string>
+    <string name="feedback_prompt_empty_message">Tulis mesej sebelum menghantar.</string>
+    <plurals name="feedback_prompt_message_too_long">
+        <item quantity="other">Had maklum balas ialah %1$d aksara.</item>
+    </plurals>
+    <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
+    <string name="demo_card_front">Apakah aplikasi terbaik untuk belajar?</string>
+    <!-- First paragraph on the back of the onboarding demo flashcard. The placeholder is the product name. -->
+    <string name="demo_card_back_1"><xliff:g id="app_name" example="Nibomo">%1$s</xliff:g> ialah aplikasi yang sedang anda lihat. Semuanya dalam bentuk kad imbas: soalan di bahagian depan, jawapan di bahagian belakang.</string>
+    <!-- Second paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_2">Beri satu topik kepada sembang AI dalam aplikasi dan AI akan menyediakan set kad untuk anda.</string>
+    <!-- Third paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
+    <string name="demo_card_back_3">Cuba sekarang. Pilih <xliff:g id="again_button" example="Again">%1$s</xliff:g> untuk kad ini. Kad ini akan muncul semula dalam kira-kira seminit supaya anda lebih ingat jawapannya.</string>
+    <string name="notification_diagnostics_failed_message">Diagnostik pemberitahuan gagal.</string>
+    <string name="review_notification_channel_name">Peringatan ulang kaji</string>
+    <string name="review_notification_channel_description">Peringatan belajar yang memaparkan kad daripada senarai ulang kaji anda.</string>
+    <string name="review_widget_label">Ulang kaji</string>
+    <string name="review_widget_description">Kad untuk diulang kaji, soalan seterusnya dan rekod hari berturut-turut anda.</string>
+    <string name="review_widget_open_app_message">Buka aplikasi untuk mula mengulang kaji.</string>
+    <string name="review_widget_all_done">Semua selesai</string>
+    <string name="review_widget_question_without_text">Soalan bergambar</string>
+    <string name="review_widget_next_due">Kad seterusnya: <xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
+    <string name="review_widget_due_label">untuk ulang kaji</string>
+    <plurals name="review_widget_cards_due">
+        <item quantity="other">%1$d kad untuk ulang kaji</item>
+    </plurals>
+    <plurals name="review_widget_streak_days">
+        <item quantity="other">%1$d hari berturut-turut</item>
+    </plurals>
+    <string name="review_widget_preview_cards_due">12 kad untuk ulang kaji</string>
+    <string name="review_widget_preview_question">Apakah yang dihasilkan oleh mitokondria untuk sel?</string>
+    <string name="review_widget_preview_streak">7 hari berturut-turut</string>
+    <string name="reviews_chart_widget_label">Ulang kaji</string>
+    <string name="reviews_chart_widget_description">Ulang kaji harian anda sepanjang beberapa minggu lalu.</string>
+    <string name="reviews_chart_widget_daily_average">Purata harian <xliff:g id="review_count" example="24">%1$d</xliff:g></string>
+    <plurals name="reviews_chart_widget_trend_up">
+        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% berbanding <xliff:g id="day_count" example="14">%2$d</xliff:g> hari sebelumnya</item>
+    </plurals>
+    <plurals name="reviews_chart_widget_trend_down">
+        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% berbanding <xliff:g id="day_count" example="14">%2$d</xliff:g> hari sebelumnya</item>
+    </plurals>
+    <string name="reviews_chart_widget_preview_daily_average">Purata harian 24</string>
+    <string name="coming_up_widget_label">Akan datang</string>
+    <string name="coming_up_widget_description">Kad untuk diulang kaji dalam 7 hari akan datang dan jadual ulang kaji anda.</string>
+    <plurals name="coming_up_widget_header">
+        <item quantity="other">7 hari akan datang · <xliff:g id="card_count" example="58">%1$d</xliff:g> kad</item>
+    </plurals>
+    <string name="coming_up_widget_preview_header">7 hari akan datang · 58 kad</string>
+    <string name="today_widget_label">Hari ini</string>
+    <string name="today_widget_description">Ulang kaji hari ini, baki kad dan rekod hari berturut-turut anda.</string>
+    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
+    <string name="today_widget_no_cards_due">Tiada kad untuk ulang kaji</string>
+    <plurals name="today_widget_reviewed">
+        <item quantity="other">%1$d telah diulang kaji</item>
+    </plurals>
+    <plurals name="today_widget_left">
+        <item quantity="other">Baki %1$d</item>
+    </plurals>
+    <plurals name="today_widget_cards_left">
+        <item quantity="other">Baki %1$d kad</item>
+    </plurals>
+    <string name="today_widget_preview_reviewed">8 telah diulang kaji</string>
+    <string name="today_widget_preview_cards_left">Baki 4 kad</string>
+    <string name="activity_widget_label">Aktiviti</string>
+    <string name="activity_widget_description">Peta haba ulang kaji harian dan rekod hari berturut-turut anda.</string>
+    <plurals name="activity_widget_streak_days">
+        <item quantity="other">🔥 %1$d hari</item>
+    </plurals>
+    <plurals name="activity_widget_reviews">
+        <item quantity="other">%1$d ulang kaji</item>
+    </plurals>
+    <plurals name="activity_widget_grid_description">
+        <item quantity="other">Ulang kaji harian dalam %1$d minggu lalu</item>
+    </plurals>
+    <string name="activity_widget_stat_current_streak">Hari berturut-turut</string>
+    <string name="activity_widget_stat_best_streak">Rekod terbaik</string>
+    <string name="activity_widget_stat_freezes">Perlindungan rekod</string>
+    <string name="activity_widget_stat_reviews">Ulang kaji</string>
+    <string name="activity_widget_stat_active_days">Hari aktif</string>
+    <string name="activity_widget_stat_today">Hari ini</string>
+    <string name="activity_widget_stat_due_now">Untuk ulang kaji sekarang</string>
+    <string name="activity_widget_preview_streak">🔥 7 hari</string>
+    <string name="activity_widget_preview_reviews">342 ulang kaji</string>
+    <string name="year_widget_label">Tahun</string>
+    <string name="year_widget_description">Ulang kaji harian sepanjang setahun, satu baris bagi setiap bulan.</string>
+    <string name="year_widget_grid_description">Ulang kaji harian dalam 12 bulan lalu</string>
+    <plurals name="year_widget_active_days">
+        <item quantity="other">%1$d hari aktif</item>
+    </plurals>
+    <string name="year_widget_preview_reviews">4,120 ulang kaji</string>
+    <string name="year_widget_preview_active_days">186 hari aktif</string>
+    <string name="streaks_widget_label">Rekod hari berturut-turut</string>
+    <string name="streaks_widget_description">Rekod hari berturut-turut anda sekarang, yang terbaik dan yang terkini.</string>
+    <string name="streaks_widget_best">Terbaik <xliff:g id="days" example="30">%1$d</xliff:g></string>
+    <string name="streaks_widget_empty">Ulang kaji hari ini untuk memulakan rekod hari berturut-turut.</string>
+    <string name="streaks_widget_chart_description">Rekod hari berturut-turut anda sekarang dan yang terkini</string>
+    <string name="streaks_widget_preview_best">Terbaik 30</string>
+    <string name="month_calendar_widget_label">Kalendar</string>
+    <string name="month_calendar_widget_description">Hari anda mengekalkan rekod berturut-turut pada bulan ini.</string>
+    <plurals name="month_calendar_widget_chart_description">
+        <item quantity="other">Rekod berturut-turut dikekalkan selama %1$d hari pada bulan ini</item>
+    </plurals>
+    <string name="month_calendar_widget_preview_month">November</string>
+    <string name="dashboard_widget_label">Papan pemuka</string>
+    <string name="dashboard_widget_description">Kemajuan hari ini, kad untuk diulang kaji, rekod hari berturut-turut, soalan seterusnya dan aktiviti anda.</string>
+    <string name="premium_title">Premium</string>
+    <string name="premium_benefit_creator_support">Menyokong pencipta aplikasi</string>
+    <string name="premium_benefit_accent_color">Sebarang warna aksen</string>
+    <string name="premium_benefit_themes">Tema gelap dan cerah</string>
+    <string name="premium_benefit_review_animations">Kawalan animasi ulang kaji</string>
+    <string name="premium_benefit_app_icon">Ikon aplikasi tersuai</string>
+    <string name="premium_already_active">Pelan anda sudah termasuk manfaat Premium.</string>
+    <string name="premium_offer_loading">Memuatkan tawaran daripada Google Play…</string>
+    <string name="premium_offer_unavailable">Premium belum tersedia melalui Google Play untuk akaun ini. Anda boleh cuba lagi atau memulihkan pembelian sedia ada.</string>
+    <string name="premium_offer_terms_unavailable">Google Play memberikan butiran harga yang tidak dapat dipaparkan oleh aplikasi. Muat semula tawaran sebelum melanggan.</string>
+    <string name="premium_activity_unavailable">Tutup skrin ini dan buka semula Premium untuk memulakan pembelian.</string>
+    <string name="premium_retry_offer">Muat semula tawaran</string>
+    <string name="premium_retry">Cuba lagi</string>
+    <string name="premium_phase_recurring">%1$s/%2$s</string>
+    <string name="premium_phase_free">%1$s percuma</string>
+    <string name="premium_phase_once">%1$s untuk %2$s</string>
+    <string name="premium_phase_sequence">%1$s, kemudian %2$s</string>
+    <string name="premium_start_trial">Mulakan percubaan percuma (%1$s)</string>
+    <string name="premium_subscribe">Langgan — %1$s</string>
+    <string name="premium_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="$6.99/1 month">%1$s</xliff:g>. Langganan diperbaharui secara automatik. Batalkan langganan di Google Play sebelum tarikh pembaharuan untuk mengelakkan caj.</string>
+    <string name="premium_trial_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="7 days free, then $6.99/1 month">%1$s</xliff:g>. Langganan diperbaharui secara automatik. Batalkan langganan di Google Play sebelum percubaan tamat untuk mengelakkan caj.</string>
+    <string name="premium_terms">Syarat Perkhidmatan</string>
+    <string name="premium_privacy">Dasar Privasi</string>
+    <string name="premium_restore">Pulihkan pembelian</string>
+    <string name="premium_billing_loading">Menyambung ke Google Play…</string>
+    <string name="premium_billing_purchasing">Selesaikan pembelian anda di Google Play. Anda boleh menutup skrin ini sementara pembelian diproses.</string>
+    <string name="premium_billing_pending">Bayaran masih belum selesai di Google Play. Premium akan diaktifkan selepas bayaran dan pengesahan akaun selesai.</string>
+    <string name="premium_pending_refresh">Semak status pembelian</string>
+    <string name="premium_billing_verifying">Mengesahkan pembelian dan menyegerakkan pelan anda…</string>
+    <string name="premium_billing_complete">Pembelian anda telah disahkan. Premium aktif pada akaun ini.</string>
+    <string name="premium_nothing_to_restore">Tiada langganan Premium ditemukan untuk akaun Google Play ini.</string>
+    <string name="premium_store_unavailable">Pengebilan Google Play tidak dapat dimuatkan. Semak sambungan dan akaun Google Play anda, kemudian cuba lagi.</string>
+    <string name="premium_offer_changed">Tawaran telah berubah. Muat semula tawaran dan semak harga semasa sebelum melanggan.</string>
+    <string name="premium_identity_changed">Akaun aplikasi anda telah bertukar. Kembali ke akaun yang digunakan untuk membeli, atau pilih Pulihkan pembelian untuk memautkan langganan kepada akaun ini.</string>
+    <string name="premium_verification_failed">Pembelian anda tidak dapat disahkan dengan Nibomo. Semak sambungan dan cuba sahkan lagi. Anda tidak perlu membeli semula.</string>
+    <string name="premium_entitlement_unknown">Pelan semasa anda perlu disemak sebelum anda boleh melanggan. Anda masih boleh memulihkan pembelian.</string>
+    <string name="premium_entitlement_refresh_failed">Pelan semasa anda tidak dapat disemak. Semak sambungan dan cuba lagi.</string>
+    <string name="premium_retry_plan">Semak pelan semasa</string>
+    <string name="premium_purchase_preparation_failed">Pembelian anda tidak dapat disediakan. Semak akaun, sambungan dan ruang storan peranti, kemudian cuba lagi. Skrin pembayaran Google Play belum dibuka.</string>
+    <string name="premium_storage_failed">Maklumat pemulihan pembelian tidak dapat disimpan pada peranti ini. Semak ruang storan dan cuba lagi atau pulihkan pembelian.</string>
+    <string name="premium_purchase_failed">Google Play tidak dapat menyelesaikan permintaan pengebilan. Semak akaun Google Play dan sambungan anda, kemudian cuba lagi. Jika anda sudah membuat pembelian, pilih Pulihkan pembelian.</string>
+    <string name="premium_entitlement_not_granted">Pembelian telah disemak, tetapi akses Premium tidak aktif pada akaun ini. Semak langganan di Google Play atau pilih Pulihkan pembelian untuk memautkannya kepada akaun ini.</string>
+    <plurals name="premium_phase_finite">
+        <item quantity="other">%1$s/%2$s untuk %3$d bayaran</item>
+    </plurals>
+    <plurals name="premium_period_days">
+        <item quantity="other">%1$d hari</item>
+    </plurals>
+    <plurals name="premium_period_months">
+        <item quantity="other">%1$d bulan</item>
+    </plurals>
+    <plurals name="premium_period_years">
+        <item quantity="other">%1$d tahun</item>
+    </plurals>
+    <string name="premium_close">Tutup Premium</string>
+    <string name="premium_ai_limit_title">Had mesej AI dicapai</string>
+    <string name="premium_ai_limit_message">Anda telah menggunakan semua mesej AI untuk bulan ini.</string>
+    <string name="premium_ai_renewal">Kuota mesej anda diperbaharui pada %1$s.</string>
+    <string name="premium_ai_usage_unavailable">Tarikh pembaharuan tidak dapat dimuatkan. Anda masih boleh menggunakan kunci OpenAI sendiri.</string>
+    <string name="premium_own_key_help">Tambah kunci OpenAI sendiri, kemudian kembali ke sembang ini dan hantar semula mesej apabila anda sudah bersedia. Kunci itu membolehkan anda menggunakan AI tanpa mengubah pelan anda.</string>
+    <string name="premium_own_key_action">Gunakan kunci OpenAI sendiri</string>
+    <string name="premium_sign_in">Buat akaun atau log masuk</string>
+    <string name="premium_heading">Jadikan Nibomo <xliff:g id="yours" example="yours">%1$s</xliff:g>.</string>
+    <string name="premium_heading_emphasis">milik anda</string>
+    <string name="premium_free_title">Percuma</string>
+    <string name="premium_welcome">Aplikasi yang sama. Semua dialu-alukan. Pilihan di tangan anda.</string>
+    <string name="premium_free_description">Dicipta untuk pelajar yang belum bekerja. Terbuka kepada semua.</string>
+    <string name="premium_free_no_creator_support">Tidak menyokong pencipta aplikasi</string>
+    <string name="premium_free_benefits">Ulang kaji asas, pembelajaran luar talian dan penyegerakan</string>
+    <string name="premium_free_limited_ai">Sembang AI terhad</string>
+    <string name="premium_free_default_styles">Gaya lalai sahaja</string>
+    <string name="premium_free_no_other_premium_features">Tiada ciri Premium lain</string>
+    <string name="premium_dont_pay_creator">Tanpa bayaran kepada pencipta aplikasi</string>
+    <string name="premium_creator_support">Langganan anda membantu pencipta Nibomo, %1$s, membayar kos pelayan serta membeli kopi dan piza untuk menyiapkan kemas kini seterusnya.</string>
+    <string name="premium_start_seven_day_trial">Mulakan percubaan percuma 7 hari</string>
+    <string name="premium_manage">Urus langganan di Google Play</string>
+    <string name="premium_allowance_loading">Memuatkan kuota bulanan AI…</string>
+    <string name="premium_allowance_unavailable">Kuota bulanan AI tidak dapat dimuatkan. Semak sambungan dan cuba lagi.</string>
+    <string name="premium_ai_unlimited">Mesej AI tanpa had bulanan</string>
+    <string name="premium_preview_purchase_notice">Mod ujian: tiada pembelian dibuat. Pelan anda kekal sama.</string>
+    <string name="premium_preview_notice">Pratonton sahaja. Buka Premium daripada Langganan untuk melihat tawaran Google Play anda.</string>
+    <plurals name="premium_ai_messages">
+        <item quantity="other">%1$d mesej sembang AI sebulan</item>
+    </plurals>
+</resources>
