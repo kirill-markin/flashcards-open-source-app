@@ -8,6 +8,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
 import com.flashcardsopensourceapp.app.navigation.library.LibraryDecksDestination
+import com.flashcardsopensourceapp.app.navigation.library.LibraryTagsDestination
 
 /**
  * A prefix owns the route when the route is the prefix itself or continues past it at a character
@@ -123,6 +124,7 @@ fun navigateToTopLevelDestination(
 internal val LibraryNavigationTarget.route: String
     get() = when (this) {
         LibraryNavigationTarget.DECKS -> LibraryDecksDestination.route
+        LibraryNavigationTarget.TAGS -> LibraryTagsDestination.route
     }
 
 internal data class AppPackageInfo(

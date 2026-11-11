@@ -148,6 +148,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenCurrentCard = {},
                     onOpenCurrentCardWithAi = { _, _, _, _ -> },
                     onOpenDeckManagement = {},
+                    onOpenTagManagement = {},
                     onOpenLeaderboard = {
                         openLeaderboardCalls += 1
                     },
@@ -480,6 +481,7 @@ private fun ReviewRouteTestContent(
             onOpenCurrentCard = {},
             onOpenCurrentCardWithAi = { _, _, _, _ -> },
             onOpenDeckManagement = onOpenDeckManagement,
+            onOpenTagManagement = {},
             onCreateCard = {},
             onCreateCardWithAi = {},
             onSwitchToAllCards = {},

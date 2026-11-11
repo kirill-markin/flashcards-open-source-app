@@ -65,6 +65,7 @@ import com.flashcardsopensourceapp.feature.review.reviewFilterTagOptionTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewTagsButtonTag
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.deck.deckCardRowTag
 import com.flashcardsopensourceapp.feature.settings.deck.deckEditorNameFieldTag
@@ -533,6 +534,13 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         composeRule.onNodeWithText("Review scope").fetchSemanticsNode()
         composeRule.onNodeWithText("Review the full local queue").performClick()
+        waitForReviewFilterSheetToClose()
+
+        composeRule.onNodeWithTag(reviewTagsButtonTag).performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(workspaceTagsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = "android")).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @Test

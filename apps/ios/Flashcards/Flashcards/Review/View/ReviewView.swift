@@ -3,6 +3,7 @@ import UIKit
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
+private let reviewCardContentHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
@@ -810,6 +811,10 @@ struct ReviewView: View {
         navigation.openLibrary(destination: .decks)
     }
 
+    private func openLibraryTags() {
+        self.navigation.openLibrary(destination: .tags)
+    }
+
     private var reviewLoadingView: some View {
         VStack {
             Spacer()
@@ -826,7 +831,7 @@ struct ReviewView: View {
             ScrollView {
                 ReadableContentLayout(
                     maxWidth: flashcardsReadableContentMaxWidth,
-                    horizontalPadding: 20
+                    horizontalPadding: reviewCardContentHorizontalPadding
                 ) {
                     activeCardContentView(card: card, preparedRevealState: preparedRevealState)
                         .padding(.vertical, 20)
@@ -880,34 +885,18 @@ struct ReviewView: View {
                     .foregroundStyle(.red)
             }
 
-            HStack(alignment: .top, spacing: 12) {
-                HStack(spacing: 12) {
-                    ReviewCardTagChipRow(
-                        tags: card.tags,
-                        onSelectTag: self.requestReviewTagFilter(tag:)
-                    )
-                    reviewRepetitionBadge(reps: card.reps)
-                }
-                // Without priority the trailing Spacer takes an equal share and the chips overflow early.
-                .layoutPriority(1)
-
-                Spacer(minLength: 12)
-
-                Button {
-                    self.beginEditing(card: card)
-                } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.title3)
-                        #if targetEnvironment(macCatalyst)
-                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                        .contentShape(Rectangle())
-                        #endif
-                }
-                .accessibilityLabel(String(localized: "Edit card", table: reviewCardsStringsTableName))
-                .accessibilityIdentifier(UITestIdentifier.reviewEditCardButton)
-            }
+            ReviewCardTagChipRow(
+                tags: card.tags,
+                leadingBleed: reviewCardContentHorizontalPadding,
+                // Compact width runs the chips to the screen edge; regular width stops them at the card edge.
+                trailingBleed: self.horizontalSizeClass == .compact ? reviewCardContentHorizontalPadding : 0,
+                onOpenTags: self.openLibraryTags,
+                onSelectTag: self.requestReviewTagFilter(tag:)
+            )
             .font(.subheadline)
             .foregroundStyle(.secondary)
+            // A new card starts its chips from the first tag.
+            .id(card.cardId)
 
             ReviewCardSideView(
                 label: String(localized: "Front", table: reviewCardsStringsTableName),
@@ -916,11 +905,15 @@ struct ReviewView: View {
                 onSelectText: {
                     self.openReviewTextSelection(card: card, side: .front)
                 },
+                repetitionCount: card.reps,
                 isSpeechPlaying: self.reviewSpeechController.activeSide == .front,
                 onToggleSpeech: {
                     self.toggleSpeech(side: .front, sourceText: card.frontText)
                 },
                 showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
+                onEdit: {
+                    self.beginEditing(card: card)
+                },
                 showsAiButton: false,
                 aiButtonAccentColor: self.store.displayedAccountAccentColor,
                 onOpenAi: {},
@@ -945,11 +938,13 @@ struct ReviewView: View {
                     onSelectText: {
                         self.openReviewTextSelection(card: card, side: .back)
                     },
+                    repetitionCount: nil,
                     isSpeechPlaying: self.reviewSpeechController.activeSide == .back,
                     onToggleSpeech: {
                         self.toggleSpeech(side: .back, sourceText: card.backText)
                     },
                     showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
+                    onEdit: nil,
                     showsAiButton: true,
                     aiButtonAccentColor: self.store.displayedAccountAccentColor,
                     onOpenAi: {
@@ -1589,22 +1584,6 @@ private func reviewTagFilterAlertMessage(request: ReviewTagFilterRequest) -> Str
         comment: "Alert message asking before switching the review filter to a tapped tag. The first %@ is the current review filter, the second %@ is the tag."
     )
     return String(format: localizedFormat, locale: Locale.current, request.currentFilterTitle, request.tag)
-}
-
-@ViewBuilder
-private func reviewRepetitionBadge(reps: Int) -> some View {
-    let accessibilityLabel = String(localized: "Reps", table: reviewCardsStringsTableName)
-    let accessibilityValue = reps == 0
-        ? String(localized: "New", table: reviewCardsStringsTableName)
-        : localizedCardCountValue(count: reps)
-
-    Label(accessibilityValue, systemImage: "arrow.clockwise")
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.thinMaterial, in: Capsule(style: .continuous))
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue(accessibilityValue)
 }
 
 #Preview {

@@ -16,9 +16,13 @@ struct ReviewCardSideView: View {
     let content: ReviewRenderedContent
     let sourceText: String
     let onSelectText: () -> Void
+    /// Shown beside the caption; nil hides it.
+    let repetitionCount: Int?
     let isSpeechPlaying: Bool
     let onToggleSpeech: () -> Void
     let showsSpeechButton: Bool
+    /// Shown as the last bottom action; nil hides it.
+    let onEdit: (() -> Void)?
     let showsAiButton: Bool
     let aiButtonAccentColor: AccountAccentColor
     let onOpenAi: () -> Void
@@ -31,15 +35,19 @@ struct ReviewCardSideView: View {
     /// Restarts the copied-feedback reset task on every successful copy.
     @State private var successfulCopyCount: Int = 0
     @State private var copyError: String?
+    /// The widest action glyph, the speaker; every action is a circle of this width with six points around it.
+    @ScaledMetric(relativeTo: .callout) private var actionGlyphWidth: CGFloat = 24
 
     init(
         label: String,
         content: ReviewRenderedContent,
         sourceText: String,
         onSelectText: @escaping () -> Void,
+        repetitionCount: Int?,
         isSpeechPlaying: Bool,
         onToggleSpeech: @escaping () -> Void,
         showsSpeechButton: Bool,
+        onEdit: (() -> Void)?,
         showsAiButton: Bool,
         aiButtonAccentColor: AccountAccentColor,
         onOpenAi: @escaping () -> Void,
@@ -51,9 +59,11 @@ struct ReviewCardSideView: View {
         self.content = content
         self.sourceText = sourceText
         self.onSelectText = onSelectText
+        self.repetitionCount = repetitionCount
         self.isSpeechPlaying = isSpeechPlaying
         self.onToggleSpeech = onToggleSpeech
         self.showsSpeechButton = showsSpeechButton
+        self.onEdit = onEdit
         self.showsAiButton = showsAiButton
         self.aiButtonAccentColor = aiButtonAccentColor
         self.onOpenAi = onOpenAi
@@ -64,34 +74,41 @@ struct ReviewCardSideView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Button(action: self.onSelectText) {
-                Text(self.label)
-                    .font(.caption)
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-                    #if targetEnvironment(macCatalyst)
-                    .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget, alignment: .leading)
-                    #endif
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier(self.surfaceStyle == .front
-                ? UITestIdentifier.reviewFrontTextSelectionButton
-                : UITestIdentifier.reviewBackTextSelectionButton)
-            .accessibilityLabel(
-                Text(self.label) + Text(", ") + Text(String(
-                    localized: "review.text_selection.action",
-                    defaultValue: "Select text",
+            HStack(spacing: 12) {
+                Button(action: self.onSelectText) {
+                    Text(self.label)
+                        .font(.caption)
+                        .textCase(.uppercase)
+                        .foregroundStyle(.secondary)
+                        #if targetEnvironment(macCatalyst)
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget, alignment: .leading)
+                        #endif
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(self.surfaceStyle == .front
+                    ? UITestIdentifier.reviewFrontTextSelectionButton
+                    : UITestIdentifier.reviewBackTextSelectionButton)
+                .accessibilityLabel(
+                    Text(self.label) + Text(", ") + Text(String(
+                        localized: "review.text_selection.action",
+                        defaultValue: "Select text",
+                        table: reviewCardsStringsTableName,
+                        comment: "Accessibility action appended to the Front or Back card caption button"
+                    ))
+                )
+                .accessibilityHint(String(
+                    localized: "review.text_selection.hint",
+                    defaultValue: "Opens the complete text for selection and copying.",
                     table: reviewCardsStringsTableName,
-                    comment: "Accessibility action appended to the Front or Back card caption button"
+                    comment: "Accessibility hint for opening a card side in the native text selection sheet"
                 ))
-            )
-            .accessibilityHint(String(
-                localized: "review.text_selection.hint",
-                defaultValue: "Opens the complete text for selection and copying.",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility hint for opening a card side in the native text selection sheet"
-            ))
+
+                if let repetitionCount = self.repetitionCount {
+                    Spacer(minLength: 0)
+                    reviewRepetitionCount(reps: repetitionCount)
+                }
+            }
 
             ReviewSelectableTextView(sourceText: self.sourceText, content: self.content, surfaceStyle: self.surfaceStyle)
                 .accessibilityIdentifier(self.surfaceStyle == .front
@@ -102,14 +119,10 @@ struct ReviewCardSideView: View {
                 Spacer(minLength: 0)
 
                 let copyButton = Button(action: self.copySide) {
-                    Image(systemName: self.hasCopied ? "checkmark" : "square.on.square")
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(6)
-                        .frame(minWidth: 32, minHeight: 32)
-                        .background(.thinMaterial, in: Capsule())
-                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                        .contentShape(Rectangle())
+                    reviewCardSideActionIcon(
+                        systemName: self.hasCopied ? "checkmark" : "square.on.square",
+                        diameter: self.actionDiameter
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier(self.surfaceStyle == .front
@@ -124,14 +137,10 @@ struct ReviewCardSideView: View {
 
                 if self.showsSpeechButton {
                     let speechButton = Button(action: self.onToggleSpeech) {
-                        Image(systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(6)
-                            .frame(minWidth: 32, minHeight: 32)
-                            .background(.thinMaterial, in: Capsule())
-                            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                            .contentShape(Rectangle())
+                        reviewCardSideActionIcon(
+                            systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2",
+                            diameter: self.actionDiameter
+                        )
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(
@@ -154,14 +163,25 @@ struct ReviewCardSideView: View {
                     }
                 }
 
+                if let onEdit = self.onEdit {
+                    let editLabel = String(localized: "Edit card", table: reviewCardsStringsTableName)
+                    Button(action: onEdit) {
+                        reviewCardSideActionIcon(systemName: "pencil", diameter: self.actionDiameter)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(UITestIdentifier.reviewEditCardButton)
+                    .accessibilityLabel(editLabel)
+                    .help(editLabel)
+                }
+
                 if self.showsAiButton {
                     Button(action: self.onOpenAi) {
                         Text(String(localized: "AI", table: reviewCardsStringsTableName))
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(self.aiButtonAccentColor.contrastingForegroundColor)
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 11)
-                            .frame(minHeight: 32)
+                            // "AI" fits inside the shared circle; a long translation widens it at the same height.
+                            .padding(.horizontal, 6)
+                            .frame(minWidth: self.actionDiameter, minHeight: self.actionDiameter)
                             .background(self.aiButtonAccentColor.color, in: Capsule())
                             .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                             .contentShape(Rectangle())
@@ -228,6 +248,10 @@ struct ReviewCardSideView: View {
         self.hasCopied = false
     }
 
+    private var actionDiameter: CGFloat {
+        self.actionGlyphWidth + 12
+    }
+
     private var copyActionLabel: String {
         self.hasCopied
             ? String(localized: "Copied", table: reviewCardsStringsTableName)
@@ -242,6 +266,37 @@ struct ReviewCardSideView: View {
             return AnyShapeStyle(.regularMaterial)
         }
     }
+}
+
+/// The icon of a card-side action: a material circle inside the minimum touch target.
+private func reviewCardSideActionIcon(systemName: String, diameter: CGFloat) -> some View {
+    Image(systemName: systemName)
+        .font(.callout.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .frame(width: diameter, height: diameter)
+        .background(.thinMaterial, in: Circle())
+        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+        .contentShape(Rectangle())
+}
+
+/// Caption-sized metadata, because a material capsule would vanish on the card's own material.
+private func reviewRepetitionCount(reps: Int) -> some View {
+    let accessibilityLabel = String(localized: "Reps", table: reviewCardsStringsTableName)
+    let accessibilityValue = reps == 0
+        ? String(localized: "New", table: reviewCardsStringsTableName)
+        : localizedCardCountValue(count: reps)
+
+    return HStack(spacing: 4) {
+        // At caption size the symbol is taller than the caption line, so a Label would make the caption row taller.
+        Image(systemName: "arrow.clockwise")
+            .font(.caption2)
+        Text(accessibilityValue)
+    }
+    .font(.caption.monospacedDigit())
+    .foregroundStyle(.secondary)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(accessibilityLabel)
+    .accessibilityValue(accessibilityValue)
 }
 
 private extension View {

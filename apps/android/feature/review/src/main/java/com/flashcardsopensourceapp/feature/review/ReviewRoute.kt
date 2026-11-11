@@ -91,6 +91,7 @@ fun ReviewRoute(
         tags: List<String>
     ) -> Unit,
     onOpenDeckManagement: () -> Unit,
+    onOpenTagManagement: () -> Unit,
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
     onSwitchToAllCards: () -> Unit,
@@ -591,6 +592,7 @@ fun ReviewRoute(
                         )
                     }
                 },
+                onOpenTags = onOpenTagManagement,
                 modifier = Modifier.padding(
                     top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + reviewContentBottomPadding(

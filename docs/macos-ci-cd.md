@@ -201,8 +201,8 @@ and [scroll-edge guidance](https://developer.apple.com/design/human-interface-gu
 
 Glass is reserved primarily for toolbar and floating chat controls; reading
 surfaces and inline actions stay restrained, Review answer/rating actions stay
-prominent, and Edit sits beside the card metadata rather than among window
-commands. Custom plain controls use [`appMinimumTouchTarget`](../apps/ios/Flashcards/Flashcards/NativeActionButtonStyles.swift);
+prominent, and Edit sits with the card's own actions at the bottom of the card
+rather than among window commands. Custom plain controls use [`appMinimumTouchTarget`](../apps/ios/Flashcards/Flashcards/NativeActionButtonStyles.swift);
 it sets a pointer target, not a visible bezel or toolbar height. Preserve
 iPhone/iPad target behavior separately. Check real outer-edge pointer actions,
 native hover/press, disabled/inactive appearance, containment and narrow→wide

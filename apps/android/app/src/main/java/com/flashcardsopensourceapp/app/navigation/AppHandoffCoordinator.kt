@@ -60,7 +60,8 @@ data class ReviewWidgetTapHandoffRequest(
 )
 
 enum class LibraryNavigationTarget {
-    DECKS
+    DECKS,
+    TAGS
 }
 
 data class LibraryNavigationRequest(
