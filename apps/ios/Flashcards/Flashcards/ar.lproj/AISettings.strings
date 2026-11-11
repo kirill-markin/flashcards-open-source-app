@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "تم استيراد %d بطاقة مع الوسم %@.";
 "settings.workspace.import.success" = "تم استيراد %d بطاقة.";
-"settings.workspace.import.section.package" = "الحزمة";
+"settings.workspace.import.format.nibomo" = "تنسيق Nibomo";
+"settings.workspace.import.format.anki" = "تنسيق Anki";
+"settings.workspace.import.anki.choose" = "اختيار ملفات .apkg";
+"settings.workspace.import.anki.remove" = "إزالة الملف";
+"settings.workspace.import.anki.start" = "بدء الاستيراد";
+"settings.workspace.import.anki.waiting" = "بانتظار بدء استيراد Anki…";
+"settings.workspace.import.anki.request" = "استورد كل مجموعات بطاقات Anki المرفقة إلى مساحة العمل هذه.";
+"ai.composer.ankiImport.unconfirmed" = "تعذّر تأكيد استيراد Anki. راجع هذه المحادثة ومكتبتك قبل بدء عملية استيراد أخرى.";
+"settings.workspace.import.anki.workspaceChanged" = "تغيّرت مساحة العمل أو الحساب. عُد إلى المكتبة وابدأ الاستيراد من جديد.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "إرفاق الملفات غير متاح في دردشة الذكاء الاصطناعي. حاول الاستيراد مجددًا عندما يصبح الإرفاق متاحًا.";
 "settings.workspace.import.choosePackage" = "اختيار حزمة ZIP";
 "settings.workspace.import.previewing" = "جارٍ إنشاء المعاينة...";
 "settings.workspace.import.importing" = "جارٍ الاستيراد...";

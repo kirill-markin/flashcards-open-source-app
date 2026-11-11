@@ -104,7 +104,7 @@ struct WorkspaceImportView: View {
                 }
             }
 
-            Section(aiSettingsLocalized("settings.workspace.import.section.package", "Package")) {
+            Section(workspaceImportNibomoFormatTitle()) {
                 Button {
                     self.isFileImporterPresented = true
                 } label: {
@@ -133,6 +133,13 @@ struct WorkspaceImportView: View {
                 self.importOptionsSection(preview: preview)
                 self.warningSection(preview: preview)
                 self.confirmSection(preview: preview)
+            }
+
+            Section {
+                NavigationLink(value: LibraryNavigationDestination.importAnki) {
+                    Label(workspaceImportAnkiFormatTitle(), systemImage: "doc.badge.plus")
+                }
+                .disabled(self.isBusy)
             }
         }
         .listStyle(.insetGrouped)

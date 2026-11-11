@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Εισήχθησαν %d κάρτες με ετικέτα %@.";
 "settings.workspace.import.success" = "Εισήχθησαν %d κάρτες.";
-"settings.workspace.import.section.package" = "Πακέτο";
+"settings.workspace.import.format.nibomo" = "Μορφή Nibomo";
+"settings.workspace.import.format.anki" = "Μορφή Anki";
+"settings.workspace.import.anki.choose" = "Επιλογή αρχείων .apkg";
+"settings.workspace.import.anki.remove" = "Αφαίρεση αρχείου";
+"settings.workspace.import.anki.start" = "Έναρξη εισαγωγής";
+"settings.workspace.import.anki.waiting" = "Αναμονή για έναρξη της εισαγωγής από το Anki…";
+"settings.workspace.import.anki.request" = "Εισήγαγε όλα τα συνημμένα πακέτα καρτών Anki σε αυτόν τον χώρο εργασίας.";
+"ai.composer.ankiImport.unconfirmed" = "Δεν ήταν δυνατό να επιβεβαιωθεί η εισαγωγή από το Anki. Έλεγξε αυτή τη συνομιλία και τη βιβλιοθήκη σου πριν ξεκινήσεις νέα εισαγωγή.";
+"settings.workspace.import.anki.workspaceChanged" = "Ο χώρος εργασίας ή ο λογαριασμός άλλαξε. Επίστρεψε στη βιβλιοθήκη και ξεκίνησε ξανά την εισαγωγή.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Τα συνημμένα αρχεία δεν είναι διαθέσιμα στη συνομιλία με AI. Δοκίμασε ξανά όταν γίνουν διαθέσιμα.";
 "settings.workspace.import.choosePackage" = "Επιλογή πακέτου ZIP";
 "settings.workspace.import.previewing" = "Φόρτωση προεπισκόπησης…";
 "settings.workspace.import.importing" = "Εισαγωγή…";

@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Fișe importate: %d, cu eticheta %@.";
 "settings.workspace.import.success" = "Fișe importate: %d.";
-"settings.workspace.import.section.package" = "Pachet";
+"settings.workspace.import.format.nibomo" = "Format Nibomo";
+"settings.workspace.import.format.anki" = "Format Anki";
+"settings.workspace.import.anki.choose" = "Alege fișiere .apkg";
+"settings.workspace.import.anki.remove" = "Elimină fișierul";
+"settings.workspace.import.anki.start" = "Începe importul";
+"settings.workspace.import.anki.waiting" = "Se așteaptă începerea importului din Anki…";
+"settings.workspace.import.anki.request" = "Importă toate pachetele Anki atașate în acest spațiu de lucru.";
+"ai.composer.ankiImport.unconfirmed" = "Importul din Anki nu a putut fi confirmat. Verifică această conversație și biblioteca înainte de a începe un nou import.";
+"settings.workspace.import.anki.workspaceChanged" = "Spațiul de lucru sau contul s-a schimbat. Revino la bibliotecă și începe din nou importul.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Atașarea fișierelor nu este disponibilă în conversația cu AI. Încearcă din nou când atașamentele sunt disponibile.";
 "settings.workspace.import.choosePackage" = "Alege pachetul ZIP";
 "settings.workspace.import.previewing" = "Se pregătește previzualizarea...";
 "settings.workspace.import.importing" = "Se importă...";

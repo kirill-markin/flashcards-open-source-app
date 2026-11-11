@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Импортировано карточек: %d, тег: %@.";
 "settings.workspace.import.success" = "Импортировано карточек: %d.";
-"settings.workspace.import.section.package" = "Пакет";
+"settings.workspace.import.format.nibomo" = "Формат Nibomo";
+"settings.workspace.import.format.anki" = "Формат Anki";
+"settings.workspace.import.anki.choose" = "Выбрать файлы .apkg";
+"settings.workspace.import.anki.remove" = "Убрать файл";
+"settings.workspace.import.anki.start" = "Начать импорт";
+"settings.workspace.import.anki.waiting" = "Ожидание начала импорта из Anki…";
+"settings.workspace.import.anki.request" = "Импортируй все прикреплённые колоды Anki в это рабочее пространство.";
+"ai.composer.ankiImport.unconfirmed" = "Не удалось подтвердить импорт из Anki. Проверьте этот чат и библиотеку, прежде чем запускать новый импорт.";
+"settings.workspace.import.anki.workspaceChanged" = "Рабочее пространство или аккаунт изменились. Вернитесь в библиотеку и начните импорт заново.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "В чате с ИИ нельзя прикреплять файлы. Повторите импорт, когда вложения станут доступны.";
 "settings.workspace.import.choosePackage" = "Выбрать ZIP-пакет";
 "settings.workspace.import.previewing" = "Создание предпросмотра...";
 "settings.workspace.import.importing" = "Импорт...";

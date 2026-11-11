@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "יובאו %d כרטיסיות עם התגית %@.";
 "settings.workspace.import.success" = "יובאו %d כרטיסיות.";
-"settings.workspace.import.section.package" = "חבילה";
+"settings.workspace.import.format.nibomo" = "פורמט Nibomo";
+"settings.workspace.import.format.anki" = "פורמט Anki";
+"settings.workspace.import.anki.choose" = "בחירת קובצי ‎.apkg";
+"settings.workspace.import.anki.remove" = "הסרת קובץ";
+"settings.workspace.import.anki.start" = "התחלת הייבוא";
+"settings.workspace.import.anki.waiting" = "ממתין להתחלת הייבוא מ־Anki…";
+"settings.workspace.import.anki.request" = "יש לייבא את כל חפיסות Anki המצורפות לסביבת העבודה הזאת.";
+"ai.composer.ankiImport.unconfirmed" = "לא ניתן היה לאמת את הייבוא מ‑Anki. לפני ייבוא נוסף, יש לבדוק את השיחה הזו ואת הספרייה שלך.";
+"settings.workspace.import.anki.workspaceChanged" = "סביבת העבודה או החשבון השתנו. יש לחזור לספרייה ולהתחיל את הייבוא מחדש.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "אי אפשר לצרף קבצים בצ׳אט עם הבינה המלאכותית כרגע. יש לנסות לייבא שוב כשאפשר יהיה לצרף קבצים.";
 "settings.workspace.import.choosePackage" = "בחירת חבילת ZIP";
 "settings.workspace.import.previewing" = "מכין תצוגה מקדימה...";
 "settings.workspace.import.importing" = "מתבצע ייבוא...";

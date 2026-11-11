@@ -61,7 +61,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.importData) {
                     LibraryRow(
                         title: LibrarySection.importData.localizedTitle,
-                        subtitle: String(localized: "library.row.import.subtitle", table: libraryStringsTableName),
+                        subtitle: [workspaceImportNibomoFormatTitle(), workspaceImportAnkiFormatTitle()].joined(separator: "\n"),
                         systemImage: LibrarySection.importData.systemImage,
                         count: nil
                     )
@@ -132,6 +132,7 @@ private struct LibraryRow: View {
                         Text(subtitle)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             } icon: {

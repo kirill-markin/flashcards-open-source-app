@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@ : %@";
 "settings.workspace.import.successWithTag" = "%d cartes importées avec le tag %@.";
 "settings.workspace.import.success" = "%d cartes importées.";
-"settings.workspace.import.section.package" = "Archive";
+"settings.workspace.import.format.nibomo" = "Format Nibomo";
+"settings.workspace.import.format.anki" = "Format Anki";
+"settings.workspace.import.anki.choose" = "Choisir des fichiers .apkg";
+"settings.workspace.import.anki.remove" = "Retirer le fichier";
+"settings.workspace.import.anki.start" = "Lancer l’importation";
+"settings.workspace.import.anki.waiting" = "En attente du lancement de l’importation Anki…";
+"settings.workspace.import.anki.request" = "Importe tous les paquets Anki joints dans cet espace de travail.";
+"ai.composer.ankiImport.unconfirmed" = "Impossible de confirmer l’importation depuis Anki. Vérifiez cette conversation et votre bibliothèque avant de lancer une nouvelle importation.";
+"settings.workspace.import.anki.workspaceChanged" = "L’espace de travail ou le compte a changé. Retournez dans la bibliothèque et relancez l’importation.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Les pièces jointes ne sont pas disponibles dans la conversation avec l’IA. Réessayez l’importation lorsqu’elles seront disponibles.";
 "settings.workspace.import.choosePackage" = "Choisir une archive ZIP";
 "settings.workspace.import.previewing" = "Aperçu en cours...";
 "settings.workspace.import.importing" = "Import en cours...";

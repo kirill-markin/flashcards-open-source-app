@@ -86,12 +86,13 @@ final class AIChatStore {
     @ObservationIgnored var editorDiagnosticPresentation: NativeEditorPresentation?
 
     var inputText: String {
-        get { self.composerState.inputText }
+        get { self.composerState.draft.inputText }
         set {
             let beforeCount = self.inputText.utf16.count
             self.recordComposerEditing(operation: .input, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: newValue.utf16.count)
             var updatedState = self.composerState
-            updatedState.inputText = newValue
+            updatedState.draft.inputText = newValue
+            updatedState.draft.clearOriginIfEmpty()
             self.composerState = updatedState
             self.recordComposerEditing(operation: .input, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: newValue.utf16.count)
             self.schedulePersistCurrentDraftState()
@@ -108,10 +109,11 @@ final class AIChatStore {
     }
 
     var pendingAttachments: [AIChatAttachment] {
-        get { self.composerState.pendingAttachments }
+        get { self.composerState.draft.pendingAttachments }
         set {
             var updatedState = self.composerState
-            updatedState.pendingAttachments = newValue
+            updatedState.draft.pendingAttachments = newValue
+            updatedState.draft.clearOriginIfEmpty()
             self.composerState = updatedState
             self.schedulePersistCurrentDraftState()
         }
@@ -532,10 +534,7 @@ final class AIChatStore {
     }
 
     func currentComposerDraft() -> AIChatComposerDraft {
-        AIChatComposerDraft(
-            inputText: self.inputText,
-            pendingAttachments: self.pendingAttachments
-        )
+        self.composerState.draft
     }
 
     func applyComposerDraft(inputText: String, pendingAttachments: [AIChatAttachment]) {
@@ -547,16 +546,22 @@ final class AIChatStore {
         pendingAttachments: [AIChatAttachment],
         operation: NativeEditorOperation
     ) {
+        self.applyComposerDraft(
+            AIChatComposerDraft(inputText: inputText, pendingAttachments: pendingAttachments),
+            operation: operation
+        )
+    }
+
+    func applyComposerDraft(_ draft: AIChatComposerDraft, operation: NativeEditorOperation) {
         let beforeCount = self.inputText.utf16.count
-        self.recordComposerEditing(operation: operation, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: inputText.utf16.count)
-        if self.inputText != inputText {
+        self.recordComposerEditing(operation: operation, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: draft.inputText.utf16.count)
+        if self.inputText != draft.inputText {
             self.composerSelection = nil
         }
         var updatedState = self.composerState
-        updatedState.inputText = inputText
-        updatedState.pendingAttachments = pendingAttachments
+        updatedState.draft = draft
         self.composerState = updatedState
-        self.recordComposerEditing(operation: operation, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: inputText.utf16.count)
+        self.recordComposerEditing(operation: operation, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: draft.inputText.utf16.count)
     }
 
     func recordComposerEditing(
@@ -621,8 +626,7 @@ final class AIChatStore {
             oldestCursor: nil
         )
         self.composerState = AIChatComposerState(
-            inputText: "",
-            pendingAttachments: [],
+            draft: AIChatComposerDraft(inputText: "", pendingAttachments: []),
             serverSuggestions: persistedState.composerSuggestions,
             dictationState: .idle,
             completedDictationTranscript: nil
@@ -672,8 +676,7 @@ final class AIChatStore {
             )
         }
         self.composerState = AIChatComposerState(
-            inputText: initialDraft.inputText,
-            pendingAttachments: initialDraft.pendingAttachments,
+            draft: initialDraft,
             serverSuggestions: persistedState.composerSuggestions,
             dictationState: .idle,
             completedDictationTranscript: nil

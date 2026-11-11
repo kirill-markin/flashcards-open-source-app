@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Tuotiin %d korttia tunnisteella %@.";
 "settings.workspace.import.success" = "Tuotiin %d korttia.";
-"settings.workspace.import.section.package" = "Paketti";
+"settings.workspace.import.format.nibomo" = "Nibomo-muoto";
+"settings.workspace.import.format.anki" = "Anki-muoto";
+"settings.workspace.import.anki.choose" = "Valitse .apkg-tiedostot";
+"settings.workspace.import.anki.remove" = "Poista tiedosto";
+"settings.workspace.import.anki.start" = "Aloita tuonti";
+"settings.workspace.import.anki.waiting" = "Odotetaan Anki-tuonnin aloitusta…";
+"settings.workspace.import.anki.request" = "Tuo kaikki liitetyt Anki-pakat tähän työtilaan.";
+"ai.composer.ankiImport.unconfirmed" = "Anki-tuontia ei voitu vahvistaa. Tarkista tämä keskustelu ja kirjastosi ennen kuin aloitat uuden tuonnin.";
+"settings.workspace.import.anki.workspaceChanged" = "Työtila tai tili on vaihtunut. Palaa kirjastoon ja aloita tuonti uudelleen.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Tiedostoja ei voi liittää tekoälykeskusteluun. Yritä uudelleen, kun liitteitä voi taas lisätä.";
 "settings.workspace.import.choosePackage" = "Valitse ZIP-paketti";
 "settings.workspace.import.previewing" = "Luodaan esikatselua...";
 "settings.workspace.import.importing" = "Tuodaan...";

@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Se importaron %d tarjetas con la etiqueta %@.";
 "settings.workspace.import.success" = "Se importaron %d tarjetas.";
-"settings.workspace.import.section.package" = "Paquete";
+"settings.workspace.import.format.nibomo" = "Formato de Nibomo";
+"settings.workspace.import.format.anki" = "Formato de Anki";
+"settings.workspace.import.anki.choose" = "Elegir archivos .apkg";
+"settings.workspace.import.anki.remove" = "Quitar archivo";
+"settings.workspace.import.anki.start" = "Iniciar importación";
+"settings.workspace.import.anki.waiting" = "Esperando para iniciar la importación de Anki…";
+"settings.workspace.import.anki.request" = "Importa todos los mazos de Anki adjuntos a este espacio de trabajo.";
+"ai.composer.ankiImport.unconfirmed" = "No se pudo confirmar la importación de Anki. Revisa este chat y tu biblioteca antes de iniciar otra importación.";
+"settings.workspace.import.anki.workspaceChanged" = "El espacio de trabajo o la cuenta cambió. Vuelve a la biblioteca e inicia la importación otra vez.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "No se pueden adjuntar archivos en el chat con IA. Intenta importar de nuevo cuando se puedan adjuntar.";
 "settings.workspace.import.choosePackage" = "Elegir paquete ZIP";
 "settings.workspace.import.previewing" = "Generando vista previa...";
 "settings.workspace.import.importing" = "Importando...";

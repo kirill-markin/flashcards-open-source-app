@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%d કાર્ડ %@ ટૅગ સાથે આયાત કર્યાં.";
 "settings.workspace.import.success" = "%d કાર્ડ આયાત કર્યાં.";
-"settings.workspace.import.section.package" = "પૅકેજ";
+"settings.workspace.import.format.nibomo" = "Nibomo ફોર્મેટ";
+"settings.workspace.import.format.anki" = "Anki ફોર્મેટ";
+"settings.workspace.import.anki.choose" = ".apkg ફાઇલો પસંદ કરો";
+"settings.workspace.import.anki.remove" = "ફાઇલ દૂર કરો";
+"settings.workspace.import.anki.start" = "આયાત શરૂ કરો";
+"settings.workspace.import.anki.waiting" = "Ankiમાંથી આયાત શરૂ થવાની રાહ જોવાઈ રહી છે…";
+"settings.workspace.import.anki.request" = "જોડેલા બધા Anki ડેક આ કાર્યસ્થળમાં આયાત કરો.";
+"ai.composer.ankiImport.unconfirmed" = "Ankiમાંથી આયાતની પુષ્ટિ થઈ શકી નથી. ફરી આયાત શરૂ કરતાં પહેલાં આ ચૅટ અને તમારી લાઇબ્રેરી તપાસો.";
+"settings.workspace.import.anki.workspaceChanged" = "કાર્યસ્થળ અથવા એકાઉન્ટ બદલાઈ ગયું છે. લાઇબ્રેરીમાં પાછા જઈને ફરીથી આયાત શરૂ કરો.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AI ચેટમાં ફાઇલો જોડી શકાતી નથી. ફાઇલો જોડવાનું ઉપલબ્ધ થાય ત્યારે ફરીથી આયાત કરો.";
 "settings.workspace.import.choosePackage" = "ZIP પૅકેજ પસંદ કરો";
 "settings.workspace.import.previewing" = "પૂર્વાવલોકન થઈ રહ્યું છે...";
 "settings.workspace.import.importing" = "આયાત થઈ રહી છે...";

@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Počet importovaných kariet: %d, značka: %@.";
 "settings.workspace.import.success" = "Počet importovaných kariet: %d.";
-"settings.workspace.import.section.package" = "Balík";
+"settings.workspace.import.format.nibomo" = "Formát Nibomo";
+"settings.workspace.import.format.anki" = "Formát Anki";
+"settings.workspace.import.anki.choose" = "Vybrať súbory .apkg";
+"settings.workspace.import.anki.remove" = "Odstrániť súbor";
+"settings.workspace.import.anki.start" = "Spustiť import";
+"settings.workspace.import.anki.waiting" = "Čaká sa na spustenie importu z Anki…";
+"settings.workspace.import.anki.request" = "Importuj všetky priložené balíčky Anki do tohto pracovného priestoru.";
+"ai.composer.ankiImport.unconfirmed" = "Import z Anki sa nepodarilo potvrdiť. Pred ďalším importom skontroluj tento čet a svoju knižnicu.";
+"settings.workspace.import.anki.workspaceChanged" = "Pracovný priestor alebo účet sa zmenil. Vráťte sa do knižnice a spustite import znova.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "V čete s AI nie je možné pripojiť súbory. Skúste import znova, keď budú prílohy dostupné.";
 "settings.workspace.import.choosePackage" = "Vybrať ZIP balík";
 "settings.workspace.import.previewing" = "Pripravuje sa náhľad...";
 "settings.workspace.import.importing" = "Importuje sa...";

@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%dটি কার্ড আমদানি হয়েছে। ট্যাগ: %@।";
 "settings.workspace.import.success" = "%d কার্ড আমদানি করা হয়েছে।";
-"settings.workspace.import.section.package" = "প্যাকেজ";
+"settings.workspace.import.format.nibomo" = "Nibomo ফরম্যাট";
+"settings.workspace.import.format.anki" = "Anki ফরম্যাট";
+"settings.workspace.import.anki.choose" = ".apkg ফাইল বেছে নিন";
+"settings.workspace.import.anki.remove" = "ফাইল সরান";
+"settings.workspace.import.anki.start" = "আমদানি শুরু করুন";
+"settings.workspace.import.anki.waiting" = "Anki থেকে আমদানি শুরুর অপেক্ষায়…";
+"settings.workspace.import.anki.request" = "সংযুক্ত সব Anki ডেক এই ওয়ার্কস্পেসে আমদানি করো।";
+"ai.composer.ankiImport.unconfirmed" = "Anki থেকে আমদানি নিশ্চিত করা যায়নি। আবার আমদানি শুরু করার আগে এই চ্যাট এবং আপনার লাইব্রেরি দেখুন।";
+"settings.workspace.import.anki.workspaceChanged" = "ওয়ার্কস্পেস বা অ্যাকাউন্ট বদলে গেছে। লাইব্রেরিতে ফিরে আবার আমদানি শুরু করুন।";
+"settings.workspace.import.anki.attachmentsUnavailable" = "এআই চ্যাটে ফাইল সংযুক্ত করা যাচ্ছে না। সংযুক্তি চালু হলে আবার আমদানি করুন।";
 "settings.workspace.import.choosePackage" = "ZIP প্যাকেজ বেছে নিন";
 "settings.workspace.import.previewing" = "পূর্বরূপ দেখা হচ্ছে...";
 "settings.workspace.import.importing" = "আমদানি করা হচ্ছে...";

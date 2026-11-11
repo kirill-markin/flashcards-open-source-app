@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Inani lamakhadi angenisiwe: %d, ngethegi %@.";
 "settings.workspace.import.success" = "Inani lamakhadi angenisiwe: %d.";
-"settings.workspace.import.section.package" = "Iphakheji";
+"settings.workspace.import.format.nibomo" = "Ifomethi ye-Nibomo";
+"settings.workspace.import.format.anki" = "Ifomethi ye-Anki";
+"settings.workspace.import.anki.choose" = "Khetha amafayela e-.apkg";
+"settings.workspace.import.anki.remove" = "Susa ifayela";
+"settings.workspace.import.anki.start" = "Qala ukungenisa";
+"settings.workspace.import.anki.waiting" = "Ilinde ukuqala ukungenisa okuvela ku-Anki…";
+"settings.workspace.import.anki.request" = "Ngenisa wonke amadekhi e-Anki anamathiselwe kule ndawo yokusebenza.";
+"ai.composer.ankiImport.unconfirmed" = "Akukwazekanga ukuqinisekisa ukungenisa okuvela ku-Anki. Hlola le ngxoxo nomtapo wakho ngaphambi kokuphinda ungenise.";
+"settings.workspace.import.anki.workspaceChanged" = "Indawo yokusebenza noma i-akhawunti ishintshile. Buyela kumtapo wezincwadi bese uqala ukungenisa futhi.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Amafayela awakwazi ukunamathiselwa engxoxweni ye-AI. Zama futhi uma sekungenzeka ukunamathisela amafayela.";
 "settings.workspace.import.choosePackage" = "Khetha iphakheji ye-ZIP";
 "settings.workspace.import.previewing" = "Kulungiswa ukubuka kuqala...";
 "settings.workspace.import.importing" = "Kuyangeniswa...";

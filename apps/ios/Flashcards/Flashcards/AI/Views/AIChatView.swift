@@ -110,6 +110,9 @@ struct AIChatView: View {
             .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
                 self.handlePresentationRequestChange(request: request)
             }
+            .onChange(of: self.readyAnkiImportRequestID, initial: true) { _, requestID in
+                self.handleAnkiImportRequest(id: requestID)
+            }
             .onChange(of: self.chatStore.bootstrapPhase) { _, nextPhase in
                 self.handleBootstrapPhaseChange(nextPhase: nextPhase)
             }
@@ -278,6 +281,15 @@ struct AIChatView: View {
             case .consentRequired:
                 self.consentGate
             case .ready:
+                if self.isPresentationActive && self.navigation.ankiImportRequest != nil {
+                    HStack {
+                        ProgressView(ankiImportWaitingMessage())
+                        Spacer()
+                        Button(aiSettingsLocalized("common.cancel", "Cancel"), action: self.navigation.cancelAnkiImport)
+                    }
+                    .padding(.horizontal, self.chatContentHorizontalPadding)
+                    .padding(.vertical, 8)
+                }
                 self.chatContent
             }
         }
@@ -569,12 +581,16 @@ struct AIChatView: View {
     }
 
     func leaveAIAfterDecliningConsent() {
+        let wasAnkiImport = self.navigation.ankiImportRequest != nil
+        self.navigation.cancelAnkiImport()
         self.presentationRequestCoordinator.clearDeferredPresentationRequest()
         if let request = self.navigation.aiChatPresentationRequest {
             self.navigation.clearAIChatPresentationRequest(request: request)
         }
         self.navigation.isAICompanionPresented = false
-        if self.navigation.selectedTab == .ai { self.navigation.selectTab(.review) }
+        if self.navigation.selectedTab == .ai {
+            self.navigation.selectTab(wasAnkiImport ? .library : .review)
+        }
     }
 
     func refreshExternalAIConsentState() {
@@ -612,6 +628,61 @@ struct AIChatView: View {
         return true
     }
 
+    private var readyAnkiImportRequestID: UUID? {
+        guard self.isPresentationActive, self.scenePhase == .active,
+              self.isCompanion || self.navigation.aiPath.isEmpty,
+              let request = self.navigation.ankiImportRequest else {
+            return nil
+        }
+
+        if self.matchesCurrentAccessContext(request) == false {
+            return request.id
+        }
+
+        guard self.chatStore.hasExternalProviderConsent,
+              self.chatStore.isChatInteractive,
+              self.chatStore.composerPhase == .idle,
+              self.chatStore.dictationState == .idle else {
+            return nil
+        }
+        return request.id
+    }
+
+    private func handleAnkiImportRequest(id: UUID?) {
+        guard let id, id == self.readyAnkiImportRequestID else {
+            return
+        }
+
+        self.syncChatSurface(refreshConsent: true)
+        guard id == self.readyAnkiImportRequestID,
+              let request = self.navigation.takeAnkiImportRequest() else {
+            return
+        }
+        guard self.matchesCurrentAccessContext(request) else {
+            aiChatRemoveAttachmentFiles(attachments: request.attachments)
+            self.chatStore.showGeneralError(message: ankiImportWorkspaceChangedMessage())
+            return
+        }
+        guard self.chatStore.serverChatConfig.features.attachmentsEnabled else {
+            aiChatRemoveAttachmentFiles(attachments: request.attachments)
+            self.chatStore.showGeneralError(message: aiSettingsLocalized(
+                "settings.workspace.import.anki.attachmentsUnavailable",
+                "File attachments are unavailable in AI chat. Try importing again when attachments are available."
+            ))
+            return
+        }
+
+        self.dismissComposerFocus()
+        self.chatStore.startAnkiImport(attachments: request.attachments)
+    }
+
+    private func matchesCurrentAccessContext(_ request: AnkiImportPresentationRequest) -> Bool {
+        request.matches(
+            accessContext: self.chatStore.currentAccessContext(),
+            preservedGuestLink: self.flashcardsStore.preservedGuestWorkspaceLink
+        )
+    }
+
     private var presentationRequestContext: AIChatPresentationRequestContext {
         AIChatPresentationRequestContext(
             isPresentationActive: self.isPresentationActive,
@@ -640,6 +711,11 @@ struct AIChatView: View {
         request: AIChatPresentationRequest?,
         source: AIChatPresentationLifecycleSource
     ) {
+        guard self.navigation.ankiImportRequest == nil else {
+            self.presentationRequestCoordinator.clearDeferredPresentationRequest()
+            return
+        }
+
         guard let completedRequest = self.presentationRequestCoordinator.handle(
             request: request,
             source: source,

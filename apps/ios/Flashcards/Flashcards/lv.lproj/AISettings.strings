@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Importēto kartīšu skaits: %d; birka: %@.";
 "settings.workspace.import.success" = "Importēto kartīšu skaits: %d.";
-"settings.workspace.import.section.package" = "Pakotne";
+"settings.workspace.import.format.nibomo" = "Nibomo formāts";
+"settings.workspace.import.format.anki" = "Anki formāts";
+"settings.workspace.import.anki.choose" = "Izvēlēties .apkg failus";
+"settings.workspace.import.anki.remove" = "Noņemt failu";
+"settings.workspace.import.anki.start" = "Sākt importēšanu";
+"settings.workspace.import.anki.waiting" = "Gaida importēšanas sākšanu no Anki…";
+"settings.workspace.import.anki.request" = "Importē visas pievienotās Anki kartīšu kavas šajā darbvietā.";
+"ai.composer.ankiImport.unconfirmed" = "Neizdevās apstiprināt importēšanu no Anki. Pirms sāc jaunu importēšanu, pārbaudi šo sarunu un savu bibliotēku.";
+"settings.workspace.import.anki.workspaceChanged" = "Darbvieta vai konts ir mainījies. Atgriezieties bibliotēkā un sāciet importēšanu no jauna.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "MI sarunā nevar pievienot failus. Mēģiniet importēt vēlreiz, kad failu pievienošana būs pieejama.";
 "settings.workspace.import.choosePackage" = "Izvēlēties ZIP pakotni";
 "settings.workspace.import.previewing" = "Sagatavo priekšskatījumu...";
 "settings.workspace.import.importing" = "Importē...";

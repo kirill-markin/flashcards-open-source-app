@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Đã nhập %d thẻ với nhãn %@.";
 "settings.workspace.import.success" = "Đã nhập %d thẻ.";
-"settings.workspace.import.section.package" = "Gói";
+"settings.workspace.import.format.nibomo" = "Định dạng Nibomo";
+"settings.workspace.import.format.anki" = "Định dạng Anki";
+"settings.workspace.import.anki.choose" = "Chọn tệp .apkg";
+"settings.workspace.import.anki.remove" = "Gỡ tệp";
+"settings.workspace.import.anki.start" = "Bắt đầu nhập";
+"settings.workspace.import.anki.waiting" = "Đang chờ bắt đầu nhập từ Anki…";
+"settings.workspace.import.anki.request" = "Nhập tất cả bộ thẻ Anki đính kèm vào không gian làm việc này.";
+"ai.composer.ankiImport.unconfirmed" = "Không thể xác nhận lượt nhập từ Anki. Hãy kiểm tra cuộc trò chuyện này và thư viện của bạn trước khi nhập lại.";
+"settings.workspace.import.anki.workspaceChanged" = "Không gian làm việc hoặc tài khoản đã thay đổi. Hãy quay lại thư viện và bắt đầu nhập lại.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Không thể đính kèm tệp trong cuộc trò chuyện AI. Hãy thử nhập lại khi có thể đính kèm tệp.";
 "settings.workspace.import.choosePackage" = "Chọn gói ZIP";
 "settings.workspace.import.previewing" = "Đang tạo bản xem trước...";
 "settings.workspace.import.importing" = "Đang nhập...";

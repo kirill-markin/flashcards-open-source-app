@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Importierte Karten: %d. Tag: %@.";
 "settings.workspace.import.success" = "Importierte Karten: %d.";
-"settings.workspace.import.section.package" = "Paket";
+"settings.workspace.import.format.nibomo" = "Nibomo-Format";
+"settings.workspace.import.format.anki" = "Anki-Format";
+"settings.workspace.import.anki.choose" = ".apkg-Dateien auswählen";
+"settings.workspace.import.anki.remove" = "Datei entfernen";
+"settings.workspace.import.anki.start" = "Import starten";
+"settings.workspace.import.anki.waiting" = "Warte auf den Start des Anki-Imports…";
+"settings.workspace.import.anki.request" = "Importiere alle angehängten Anki-Stapel in diesen Arbeitsbereich.";
+"ai.composer.ankiImport.unconfirmed" = "Der Anki-Import konnte nicht bestätigt werden. Prüfe diesen Chat und deine Bibliothek, bevor du einen weiteren Import startest.";
+"settings.workspace.import.anki.workspaceChanged" = "Der Arbeitsbereich oder das Konto hat sich geändert. Gehe zurück zur Bibliothek und starte den Import erneut.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Im KI-Chat sind Dateianhänge nicht verfügbar. Versuche den Import erneut, sobald Anhänge wieder verfügbar sind.";
 "settings.workspace.import.choosePackage" = "ZIP-Paket auswählen";
 "settings.workspace.import.previewing" = "Vorschau wird erstellt...";
 "settings.workspace.import.importing" = "Importieren...";

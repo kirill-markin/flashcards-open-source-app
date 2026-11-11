@@ -37,6 +37,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
+    case .importAnki:
+        return LibraryLocation(section: .importData, pages: [.importAnki])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
     }
@@ -58,6 +60,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
+    case .importAnki:
+        return [.importData, .importAnki]
     case .exportData:
         return [.exportData]
     }
@@ -147,6 +151,7 @@ final class AppNavigationModel {
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
+    private(set) var ankiImportRequest: AnkiImportPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
     private(set) var canPresentAICompanion: Bool = false
@@ -270,6 +275,7 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
+        self.cancelAnkiImport()
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
@@ -278,12 +284,41 @@ final class AppNavigationModel {
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
+        self.cancelAnkiImport()
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
         self.popAIToLiveChat()
+    }
+
+    func openAIAnkiImport(request: AnkiImportPresentationRequest) -> Bool {
+        guard self.ankiImportRequest == nil else {
+            return false
+        }
+
+        self.aiChatPresentationRequest = nil
+        self.ankiImportRequest = request
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
+        self.popAIToLiveChat()
+        return true
+    }
+
+    func takeAnkiImportRequest() -> AnkiImportPresentationRequest? {
+        guard let request = self.ankiImportRequest else {
+            return nil
+        }
+        self.ankiImportRequest = nil
+        return request
+    }
+
+    func cancelAnkiImport() {
+        if let request = self.takeAnkiImportRequest() {
+            aiChatRemoveAttachmentFiles(attachments: request.attachments)
+        }
     }
 
     func popAIToLiveChat() {
@@ -350,7 +385,7 @@ final class AppNavigationModel {
         #else
         let depth = self.libraryPath.count
         #endif
-        if depth > 1 {
+        if depth > 1 && self.isLibraryPathRoot(.importData) == false {
             return .deckDetail
         }
         if self.isLibraryPathRoot(.cards) {
@@ -380,8 +415,6 @@ final class AppNavigationModel {
         self.isLibraryPathRoot(.tags)
     }
 
-    /// Every Library screen except a deck detail and a catalog deck page is reachable only as the
-    /// first page of the stack, which on Mac is the sidebar section.
     private func isLibraryPathRoot(_ destination: LibraryNavigationDestination) -> Bool {
         #if targetEnvironment(macCatalyst)
         return self.librarySection?.destination == destination

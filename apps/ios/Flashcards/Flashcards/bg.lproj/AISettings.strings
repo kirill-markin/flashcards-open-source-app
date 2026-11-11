@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Импортирани са %d карти с етикет %@.";
 "settings.workspace.import.success" = "Импортирани %d карти.";
-"settings.workspace.import.section.package" = "Пакет";
+"settings.workspace.import.format.nibomo" = "Формат Nibomo";
+"settings.workspace.import.format.anki" = "Формат Anki";
+"settings.workspace.import.anki.choose" = "Изберете .apkg файлове";
+"settings.workspace.import.anki.remove" = "Премахване на файла";
+"settings.workspace.import.anki.start" = "Стартиране на импортирането";
+"settings.workspace.import.anki.waiting" = "Изчакване на импортирането от Anki…";
+"settings.workspace.import.anki.request" = "Импортирай всички прикачени тестета от Anki в това работно пространство.";
+"ai.composer.ankiImport.unconfirmed" = "Импортирането от Anki не можа да бъде потвърдено. Провери този чат и библиотеката си, преди да започнеш ново импортиране.";
+"settings.workspace.import.anki.workspaceChanged" = "Работното пространство или акаунтът е променен. Върнете се в библиотеката и започнете импортирането отново.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Прикачването на файлове в чата с ИИ не е налично. Опитайте да импортирате отново, когато стане налично.";
 "settings.workspace.import.choosePackage" = "Изберете пакет ZIP";
 "settings.workspace.import.previewing" = "Зареждане на предварителен преглед...";
 "settings.workspace.import.importing" = "Импортиране...";

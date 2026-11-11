@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%d کارت با برچسب %@ درون‌ریزی شد.";
 "settings.workspace.import.success" = "%d کارت درون‌ریزی شد.";
-"settings.workspace.import.section.package" = "بسته";
+"settings.workspace.import.format.nibomo" = "قالب Nibomo";
+"settings.workspace.import.format.anki" = "قالب Anki";
+"settings.workspace.import.anki.choose" = "انتخاب فایل‌های ‎.apkg";
+"settings.workspace.import.anki.remove" = "برداشتن فایل";
+"settings.workspace.import.anki.start" = "شروع وارد کردن";
+"settings.workspace.import.anki.waiting" = "در انتظار شروع وارد کردن از Anki…";
+"settings.workspace.import.anki.request" = "همهٔ دسته‌های پیوست‌شدهٔ Anki را به این فضای کاری وارد کن.";
+"ai.composer.ankiImport.unconfirmed" = "تأیید وارد کردن از Anki ممکن نشد. پیش از شروع دوباره، این گفت‌وگو و کتابخانه‌تان را بررسی کنید.";
+"settings.workspace.import.anki.workspaceChanged" = "فضای کاری یا حساب تغییر کرده است. به کتابخانه برگردید و دوباره وارد کردن را شروع کنید.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "امکان پیوست فایل در گفت‌وگوی هوش مصنوعی وجود ندارد. وقتی پیوست فعال شد، دوباره تلاش کنید.";
 "settings.workspace.import.choosePackage" = "انتخاب بستهٔ ZIP";
 "settings.workspace.import.previewing" = "در حال پیش‌نمایش...";
 "settings.workspace.import.importing" = "در حال درون‌ریزی...";

@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Imporditi %d kaarti sildiga %@.";
 "settings.workspace.import.success" = "Imporditi %d kaarti.";
-"settings.workspace.import.section.package" = "Pakett";
+"settings.workspace.import.format.nibomo" = "Nibomo vorming";
+"settings.workspace.import.format.anki" = "Anki vorming";
+"settings.workspace.import.anki.choose" = "Vali .apkg-failid";
+"settings.workspace.import.anki.remove" = "Eemalda fail";
+"settings.workspace.import.anki.start" = "Alusta importi";
+"settings.workspace.import.anki.waiting" = "Ankist importimise alustamise ootel…";
+"settings.workspace.import.anki.request" = "Impordi kõik lisatud Anki kaardipakid sellesse tööruumi.";
+"ai.composer.ankiImport.unconfirmed" = "Ankist importimist ei õnnestunud kinnitada. Enne uue importimise alustamist vaata üle see vestlus ja oma teek.";
+"settings.workspace.import.anki.workspaceChanged" = "Tööruum või konto on muutunud. Mine tagasi teeki ja alusta importi uuesti.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Tehisintellekti vestluses ei saa faile manustada. Proovi uuesti, kui manuste lisamine on saadaval.";
 "settings.workspace.import.choosePackage" = "Vali ZIP-pakett";
 "settings.workspace.import.previewing" = "Eelvaate koostamine...";
 "settings.workspace.import.importing" = "Importimine...";

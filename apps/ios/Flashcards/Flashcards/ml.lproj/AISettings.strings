@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "ഇംപോർട്ട് ചെയ്ത കാർഡുകൾ: %d; ടാഗ്: %@.";
 "settings.workspace.import.success" = "ഇംപോർട്ട് ചെയ്ത കാർഡുകൾ: %d.";
-"settings.workspace.import.section.package" = "പാക്കേജ്";
+"settings.workspace.import.format.nibomo" = "Nibomo ഫോർമാറ്റ്";
+"settings.workspace.import.format.anki" = "Anki ഫോർമാറ്റ്";
+"settings.workspace.import.anki.choose" = ".apkg ഫയലുകൾ തിരഞ്ഞെടുക്കുക";
+"settings.workspace.import.anki.remove" = "ഫയൽ നീക്കം ചെയ്യുക";
+"settings.workspace.import.anki.start" = "ഇറക്കുമതി തുടങ്ങുക";
+"settings.workspace.import.anki.waiting" = "Anki ഇറക്കുമതി തുടങ്ങാൻ കാത്തിരിക്കുന്നു…";
+"settings.workspace.import.anki.request" = "അറ്റാച്ച് ചെയ്ത എല്ലാ Anki ഡെക്കുകളും ഈ വർക്ക്‌സ്‌പെയ്‌സിലേക്ക് ഇറക്കുമതി ചെയ്യൂ.";
+"ai.composer.ankiImport.unconfirmed" = "Anki ഇറക്കുമതി സ്ഥിരീകരിക്കാനായില്ല. വീണ്ടും ഇറക്കുമതി തുടങ്ങുന്നതിന് മുമ്പ് ഈ ചാറ്റും നിങ്ങളുടെ ലൈബ്രറിയും പരിശോധിക്കുക.";
+"settings.workspace.import.anki.workspaceChanged" = "വർക്ക്‌സ്‌പെയ്‌സോ അക്കൗണ്ടോ മാറി. ലൈബ്രറിയിലേക്ക് തിരിച്ചുപോയി ഇറക്കുമതി വീണ്ടും തുടങ്ങുക.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AI ചാറ്റിൽ ഫയലുകൾ അറ്റാച്ച് ചെയ്യാൻ കഴിയില്ല. അത് സാധ്യമാകുമ്പോൾ വീണ്ടും ഇറക്കുമതി ചെയ്യാൻ ശ്രമിക്കുക.";
 "settings.workspace.import.choosePackage" = "ZIP പാക്കേജ് തിരഞ്ഞെടുക്കുക";
 "settings.workspace.import.previewing" = "പ്രിവ്യൂ തയ്യാറാക്കുന്നു...";
 "settings.workspace.import.importing" = "ഇംപോർട്ട് ചെയ്യുന്നു...";
