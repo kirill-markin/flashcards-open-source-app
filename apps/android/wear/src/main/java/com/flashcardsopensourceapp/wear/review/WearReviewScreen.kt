@@ -536,16 +536,20 @@ private fun WearReviewFailureScreen(message: String, submissionFailureMessage: S
 
 @Composable
 private fun WearReviewLoadingScreen(submissionFailureMessage: String?) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (submissionFailureMessage != null) {
-                WearReviewSubmissionFailureText(message = submissionFailureMessage, modifier = Modifier)
-            }
+    if (submissionFailureMessage == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
+        }
+        return
+    }
+    // The failure text can run long, so it scrolls clear of a round screen's curve like the other status screens.
+    WearReviewMessageScreen(submissionFailureMessage = submissionFailureMessage) { transformationSpec ->
+        item {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .transformedListItem(itemScope = this, transformationSpec = transformationSpec)
+                    .minimumVerticalContentPadding(ButtonDefaults.minimumVerticalListContentPadding)
+            )
         }
     }
 }

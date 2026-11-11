@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   play_status:
-    name: Read production Play release lifecycle
+    name: Read phone and Wear OS Play release lifecycle
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -57,7 +57,7 @@ jobs:
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
-      - name: Read exact production release status
+      - name: Read exact production and Wear OS internal testing release status
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           ANDROID_VERSION_CODE: ${{ inputs.version_code }}
