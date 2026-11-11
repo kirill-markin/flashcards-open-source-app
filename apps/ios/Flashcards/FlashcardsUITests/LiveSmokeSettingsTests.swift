@@ -49,6 +49,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             ] {
                 try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabLibraryExportItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             #else
             try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .library)
             try self.assertScreenVisible(screen: .library, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -59,12 +60,33 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             ] {
                 try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
-            try self.assertElementExistsScrollingIntoView(
+            try self.tapButtonScrollingIntoView(
                 identifier: LiveSmokeIdentifier.libraryExportRow,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-            try self.tapButton(identifier: LiveSmokeIdentifier.libraryCardsRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             #endif
+
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.libraryAnkiExportRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.libraryNibomoExportRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.workspacePackageExportPreviewButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.tapFirstNavigationBackButton()
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.libraryNibomoExportRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            #if !targetEnvironment(macCatalyst)
+            try self.tapFirstNavigationBackButton()
+            #endif
+            try self.openLibraryCards()
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
