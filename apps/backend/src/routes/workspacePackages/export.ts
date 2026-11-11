@@ -1,6 +1,12 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import {
+  ankiExportMaxInlineBytes,
+  exportAnkiWorkspacePackage,
+  type AnkiWorkspacePackage,
+} from "../../workspacePackages/export/ankiPackage";
+import { createAnkiWorkspacePackageDownload } from "../../workspacePackages/export/ankiDownload";
+import {
   exportWorkspacePackage,
   previewWorkspacePackageExport,
   type WorkspacePackageExportCardSelection,
@@ -39,6 +45,8 @@ export type WorkspacePackageExportRoutesOptions = Readonly<{
   assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
   previewWorkspacePackageExportFn?: typeof previewWorkspacePackageExport;
   exportWorkspacePackageFn?: typeof exportWorkspacePackage;
+  exportAnkiWorkspacePackageFn?: typeof exportAnkiWorkspacePackage;
+  createAnkiWorkspacePackageDownloadFn?: typeof createAnkiWorkspacePackageDownload;
 }>;
 
 export type WorkspacePackageExportRouteInput = Readonly<{
@@ -144,7 +152,7 @@ function createWorkspacePackageExportInput(
   };
 }
 
-function createContentDispositionHeader(packageExport: WorkspacePackageExportPackage): string {
+function createContentDispositionHeader(packageExport: WorkspacePackageExportPackage | AnkiWorkspacePackage): string {
   return `attachment; filename="${packageExport.fileName}"`;
 }
 
@@ -154,6 +162,8 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
   const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
   const previewWorkspacePackageExportFn = options.previewWorkspacePackageExportFn ?? previewWorkspacePackageExport;
   const exportWorkspacePackageFn = options.exportWorkspacePackageFn ?? exportWorkspacePackage;
+  const exportAnkiWorkspacePackageFn = options.exportAnkiWorkspacePackageFn ?? exportAnkiWorkspacePackage;
+  const createAnkiWorkspacePackageDownloadFn = options.createAnkiWorkspacePackageDownloadFn ?? createAnkiWorkspacePackageDownload;
 
   app.post("/workspaces/:workspaceId/packages/export/preview", async (context) => {
     const requestId = context.get("requestId");
@@ -196,58 +206,91 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
     }
   });
 
-  app.post("/workspaces/:workspaceId/packages/export", async (context) => {
-    const requestId = context.get("requestId");
-    let requestContext: RequestContext | null = null;
-    let workspaceId: string | null = null;
+  type PackageDownload = Readonly<{
+    archive: WorkspacePackageExportPackage | AnkiWorkspacePackage;
+    downloadUrl?: string;
+  }>;
 
-    try {
-      const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
-      requestContext = loadedContext.requestContext;
-      workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-      await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
-      const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
-      const routeInput = parseWorkspacePackageExportRouteInput(await parseJsonBody(context.req.raw));
-      const input: WorkspacePackageExportPackageInput = {
-        ...createWorkspacePackageExportInput(routeInput, new Date().toISOString()),
-        observationScope: scope,
-      };
-      const packageExport = await exportWorkspacePackageFn(requestContext.userId, workspaceId, input);
-      addBackendBreadcrumb({
-        action: "workspace_package_export",
-        scope,
-        details: {
-          statusCode: 200,
-          bytesCount: packageExport.bytes.byteLength,
-        },
-      });
-      // After the package was built, which is everything an export commits: it writes no row, so
-      // the bytes existing is the whole fact. Nothing about their contents is reported.
-      await recordWorkspacePackageExportedAnalytics({
-        userId: requestContext.userId,
-        subjectUserId: requestContext.subjectUserId,
-        guestSessionId: requestContext.guestSessionId,
-        workspaceId,
-      });
+  function addPackageDownloadRoute(
+    path: string,
+    prepareDownload: (userId: string, workspaceId: string, input: WorkspacePackageExportPackageInput) => Promise<PackageDownload>,
+  ): void {
+    app.post(path, async (context) => {
+      const requestId = context.get("requestId");
+      let requestContext: RequestContext | null = null;
+      let workspaceId: string | null = null;
 
-      context.header("Content-Disposition", createContentDispositionHeader(packageExport));
-      context.header("Content-Length", packageExport.bytes.byteLength.toString());
-      context.header("Content-Type", packageExport.contentType);
-      return context.body(new Uint8Array(packageExport.bytes), 200);
-    } catch (error) {
-      const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, getRequestContextUserId(requestContext), workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
-      const details = {
-        bytesCount: null,
-        ...createBackendFailureDetails(error),
-      };
-      reportBackendExceptionOrBreadcrumb(
-        error,
-        { action: "workspace_package_export_error", error: normalizeCaughtError(error), scope, details },
-        { action: "workspace_package_export_error", scope, details },
-      );
-      throw error;
-    }
-  });
+      try {
+        const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+        requestContext = loadedContext.requestContext;
+        workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+        await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
+        const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
+        const routeInput = parseWorkspacePackageExportRouteInput(await parseJsonBody(context.req.raw));
+        const input: WorkspacePackageExportPackageInput = {
+          ...createWorkspacePackageExportInput(routeInput, new Date().toISOString()),
+          observationScope: scope,
+        };
+        const { archive, downloadUrl } = await prepareDownload(requestContext.userId, workspaceId, input);
+        addBackendBreadcrumb({
+          action: "workspace_package_export",
+          scope,
+          details: {
+            statusCode: 200,
+            bytesCount: archive.bytes.byteLength,
+          },
+        });
+        await recordWorkspacePackageExportedAnalytics({
+          userId: requestContext.userId,
+          subjectUserId: requestContext.subjectUserId,
+          guestSessionId: requestContext.guestSessionId,
+          workspaceId,
+        });
+
+        if (archive.contentType === "application/apkg") {
+          context.header("Cache-Control", "private, no-store");
+        }
+        if (downloadUrl !== undefined) {
+          return context.json({ downloadUrl, fileName: archive.fileName, contentType: archive.contentType });
+        }
+
+        context.header("Content-Disposition", createContentDispositionHeader(archive));
+        context.header("Content-Length", archive.bytes.byteLength.toString());
+        context.header("Content-Type", archive.contentType);
+        return context.body(new Uint8Array(archive.bytes), 200);
+      } catch (error) {
+        const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, getRequestContextUserId(requestContext), workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
+        const details = {
+          bytesCount: null,
+          ...createBackendFailureDetails(error),
+        };
+        reportBackendExceptionOrBreadcrumb(
+          error,
+          { action: "workspace_package_export_error", error: normalizeCaughtError(error), scope, details },
+          { action: "workspace_package_export_error", scope, details },
+        );
+        throw error;
+      }
+    });
+  }
+
+  addPackageDownloadRoute(
+    "/workspaces/:workspaceId/packages/export",
+    async (userId, workspaceId, input) => ({ archive: await exportWorkspacePackageFn(userId, workspaceId, input) }),
+  );
+  addPackageDownloadRoute(
+    "/workspaces/:workspaceId/packages/export/anki",
+    async (userId, workspaceId, input) => {
+      const archive = await exportAnkiWorkspacePackageFn(userId, workspaceId, input);
+      // API Gateway base64-encodes the binary body inside Lambda's buffered response.
+      if (archive.bytes.byteLength <= ankiExportMaxInlineBytes) {
+        return { archive };
+      }
+
+      const downloadUrl = await createAnkiWorkspacePackageDownloadFn(workspaceId, archive);
+      return { archive, downloadUrl };
+    },
+  );
 
   return app;
 }
