@@ -15,21 +15,34 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +58,7 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.CompactButton
+import androidx.wear.compose.material3.CompactButtonDefaults
 import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.Icon
@@ -52,6 +66,7 @@ import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ListHeaderDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.ScreenScaffoldDefaults
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextDefaults
@@ -67,11 +82,22 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.roundToLong
+import kotlin.math.sqrt
+import kotlinx.coroutines.flow.first
 
 private const val minuteMillis: Long = 60_000L
 private const val hourMillis: Long = 60L * minuteMillis
 private const val dayMillis: Long = 24L * hourMillis
 private val answerDividerHeight: Dp = 1.dp
+// The card list's default item spacing, set explicitly because the reveal scroll offset counts it.
+private val cardListItemSpacing: Dp = 4.dp
+private val ratingGridSpacing: Dp = 4.dp
+// A CompactButton's visible height, its height without the tap-target padding above and below.
+private val ratingButtonHeight: Dp = CompactButtonDefaults.Height -
+    CompactButtonDefaults.TapTargetPadding.calculateTopPadding() -
+    CompactButtonDefaults.TapTargetPadding.calculateBottomPadding()
+// Keeps the rating buttons' antialiased ends off the round screen's edge.
+private val ratingGridRoundEdgeClearance: Dp = 1.dp
 
 @Composable
 fun WearReviewScreen(viewModel: WearReviewViewModel) {
@@ -124,34 +150,73 @@ private fun WearReviewCardScreen(
     val listState = rememberTransformingLazyColumnState()
     val transformationSpec = rememberTransformationSpec()
     val answerDividerIndex = if (submissionFailureMessage != null) 2 else 1
-    val answerDividerHeightPx = with(LocalDensity.current) { answerDividerHeight.roundToPx() }
+    val density = LocalDensity.current
+    val answerDividerHeightPx = with(density) { answerDividerHeight.roundToPx() }
+    val cardListItemSpacingPx = with(density) { cardListItemSpacing.roundToPx() }
+    val screenContentPadding = ScreenScaffoldDefaults.contentPadding
+    // The list's first item rests this far from the top, the larger of the two paddings.
+    val listTopPadding = maxOf(screenContentPadding.calculateTopPadding(), TextDefaults.minimumTopListContentPadding)
+    val listTopPaddingPx = with(density) { listTopPadding.roundToPx() }
+    val listViewportHeightPx by remember { derivedStateOf { listState.layoutInfo.viewportSize.height } }
+    var listCoordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
+    // True while the list rests where the screen put it, on appear or after the reveal, until the user scrolls.
+    var restsWhereShown by remember { mutableStateOf(true) }
+    // True while the answer rests at the top after the reveal, until the user scrolls.
+    var answerRestsAtTop by remember { mutableStateOf(false) }
     // A card restored after a failed save appears revealed and starts at the top like any new card.
     val isAnswerRevealedOnAppear = remember { isAnswerRevealed }
 
     LaunchedEffect(isAnswerRevealed) {
         if (isAnswerRevealed && isAnswerRevealedOnAppear.not()) {
-            // The offset is from the screen's center, so this brings the divider to the top of the list.
-            val layoutInfo = listState.layoutInfo
+            restsWhereShown = false
+            // The answer rests where the list's first item would, the divider one item spacing above it. The
+            // offset is from the list's center to the divider's center.
+            val answerDividerTopPx = listTopPaddingPx - cardListItemSpacingPx - answerDividerHeightPx
             listState.animateScrollToItem(
                 index = answerDividerIndex,
-                scrollOffset = layoutInfo.viewportSize.height / 2 - layoutInfo.beforeContentPadding - answerDividerHeightPx / 2
+                scrollOffset = listState.layoutInfo.viewportSize.height / 2 - answerDividerHeightPx / 2 - answerDividerTopPx
             )
+            restsWhereShown = true
+            answerRestsAtTop = true
         }
+        snapshotFlow { listState.isScrollInProgress }.first { isScrollInProgress -> isScrollInProgress }
+        restsWhereShown = false
+        answerRestsAtTop = false
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isScreenRound = LocalConfiguration.current.isScreenRound
         // A round screen narrows toward the bottom, so the rating grid keeps clear of the curve.
         val ratingGridHorizontalPadding = if (isScreenRound) maxWidth * 0.17f else 8.dp
-        val ratingGridBottomPadding = if (isScreenRound) maxHeight * 0.06f else 8.dp
+        val ratingGridBottomPadding = if (isScreenRound) {
+            roundRatingGridBottomPadding(screenDiameter = maxWidth, horizontalPadding = ratingGridHorizontalPadding)
+        } else {
+            8.dp
+        }
 
         Column(modifier = Modifier.fillMaxSize()) {
-            ScreenScaffold(scrollState = listState, modifier = Modifier.weight(1f)) { contentPadding ->
+            ScreenScaffold(
+                scrollState = listState,
+                modifier = Modifier.weight(1f),
+                contentPadding = screenContentPadding
+            ) { contentPadding ->
                 val layoutDirection = LocalLayoutDirection.current
+                val restingListCoordinates = if (restsWhereShown) listCoordinates else null
                 TransformingLazyColumn(
                     state = listState,
                     // The list draws past its bounds, which would show the card between the docked buttons.
-                    modifier = Modifier.clipToBounds(),
+                    modifier = Modifier
+                        .clipToBounds()
+                        // The question and divider above the resting answer would show a slice in the list's top
+                        // padding, so the list draws nothing above the answer there.
+                        .drawWithContent {
+                            if (answerRestsAtTop) {
+                                clipRect(top = listTopPaddingPx.toFloat()) { this@drawWithContent.drawContent() }
+                            } else {
+                                drawContent()
+                            }
+                        }
+                        .onPlaced { coordinates -> listCoordinates = coordinates },
                     // The list ends at the docked buttons, not the screen's curved edge, so its end rests just
                     // above them.
                     contentPadding = PaddingValues(
@@ -159,7 +224,8 @@ private fun WearReviewCardScreen(
                         top = contentPadding.calculateTopPadding(),
                         end = contentPadding.calculateEndPadding(layoutDirection),
                         bottom = 0.dp
-                    )
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(space = cardListItemSpacing, alignment = Alignment.Top)
                 ) {
                     if (submissionFailureMessage != null) {
                         item {
@@ -173,6 +239,9 @@ private fun WearReviewCardScreen(
                         WearReviewCardSide(
                             sideText = frontText,
                             textStyle = MaterialTheme.typography.titleMedium,
+                            minHeight = 0.dp,
+                            restingListCoordinates = restingListCoordinates,
+                            listViewportHeightPx = listViewportHeightPx,
                             transformationSpec = transformationSpec
                         )
                     }
@@ -187,9 +256,17 @@ private fun WearReviewCardScreen(
                             )
                         }
                         item {
+                            // After the reveal the answer rests where the list's first item would, with the
+                            // question and divider out of view above it. It reaches from there to the list's
+                            // end, so even a short answer can rest there.
                             WearReviewCardSide(
                                 sideText = backText,
                                 textStyle = MaterialTheme.typography.bodyMedium,
+                                minHeight = with(density) {
+                                    (listViewportHeightPx - listTopPaddingPx).coerceAtLeast(0).toDp()
+                                },
+                                restingListCoordinates = restingListCoordinates,
+                                listViewportHeightPx = listViewportHeightPx,
                                 transformationSpec = transformationSpec
                             )
                         }
@@ -201,8 +278,8 @@ private fun WearReviewCardScreen(
                 WearReviewRatingGrid(
                     modifier = Modifier.padding(
                         start = ratingGridHorizontalPadding,
+                        top = ratingGridSpacing,
                         end = ratingGridHorizontalPadding,
-                        top = 4.dp,
                         bottom = ratingGridBottomPadding
                     ),
                     onRate = onRate
@@ -224,6 +301,9 @@ private fun WearReviewCardScreen(
 private fun TransformingLazyColumnItemScope.WearReviewCardSide(
     sideText: WearReviewCardSideText,
     textStyle: TextStyle,
+    minHeight: Dp,
+    restingListCoordinates: LayoutCoordinates?,
+    listViewportHeightPx: Int,
     transformationSpec: TransformationSpec
 ) {
     Column(
@@ -232,33 +312,83 @@ private fun TransformingLazyColumnItemScope.WearReviewCardSide(
             .transformedListItem(itemScope = this, transformationSpec = transformationSpec)
             // The docked buttons, not the screen's curved edge, end the list, so the end needs no extra room.
             .minimumVerticalContentPadding(top = TextDefaults.minimumTopListContentPadding, bottom = 0.dp)
+            .heightIn(min = minHeight)
             // Either side can sit at the top, on appear or after the reveal scroll, so it takes a header's
             // padding, clear of a round screen's curve.
             .padding(ListHeaderDefaults.ContentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (sideText.text.isNotEmpty()) {
-            Text(text = sideText.text, modifier = Modifier.fillMaxWidth(), style = textStyle)
+            WearReviewCardText(
+                text = sideText.text,
+                color = Color.Unspecified,
+                style = textStyle,
+                restingListCoordinates = restingListCoordinates,
+                listViewportHeightPx = listViewportHeightPx
+            )
         }
         if (sideText.hasOmittedContent) {
-            Text(
+            WearReviewCardText(
                 text = stringResource(R.string.wear_review_open_on_phone),
-                modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                restingListCoordinates = restingListCoordinates,
+                listViewportHeightPx = listViewportHeightPx
             )
         }
     }
 }
 
+/** While the list rests where the screen put it, a line cut by the list's bottom edge is hidden whole. */
+@Composable
+private fun WearReviewCardText(
+    text: String,
+    color: Color,
+    style: TextStyle,
+    restingListCoordinates: LayoutCoordinates?,
+    listViewportHeightPx: Int
+) {
+    var textLayout: TextLayoutResult? by remember { mutableStateOf(null) }
+    var textCoordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
+    Text(
+        text = text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .onPlaced { coordinates -> textCoordinates = coordinates }
+            .drawWithContent {
+                val listCoordinates = restingListCoordinates
+                val layout = textLayout
+                val coordinates = textCoordinates
+                if (listCoordinates == null || layout == null || coordinates == null) {
+                    drawContent()
+                    return@drawWithContent
+                }
+                // The list's height comes from observed state, unlike its coordinates, so a resize at rest redraws.
+                val listBottom = coordinates.localPositionOf(
+                    sourceCoordinates = listCoordinates,
+                    relativeToSource = Offset(x = 0f, y = listViewportHeightPx.toFloat())
+                ).y
+                val cutLine = (0 until layout.lineCount).firstOrNull { line -> layout.getLineBottom(line) > listBottom }
+                if (cutLine == null) {
+                    drawContent()
+                } else {
+                    clipRect(bottom = layout.getLineTop(cutLine)) { this@drawWithContent.drawContent() }
+                }
+            },
+        color = color,
+        style = style,
+        onTextLayout = { layout -> textLayout = layout }
+    )
+}
+
 @Composable
 private fun WearReviewRatingGrid(modifier: Modifier, onRate: (ReviewRating) -> Unit) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(ratingGridSpacing)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(ratingGridSpacing)) {
             WearReviewRatingButton(rating = ReviewRating.AGAIN, modifier = Modifier.weight(1f), onRate = onRate)
             WearReviewRatingButton(rating = ReviewRating.HARD, modifier = Modifier.weight(1f), onRate = onRate)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(ratingGridSpacing)) {
             WearReviewRatingButton(rating = ReviewRating.GOOD, modifier = Modifier.weight(1f), onRate = onRate)
             WearReviewRatingButton(rating = ReviewRating.EASY, modifier = Modifier.weight(1f), onRate = onRate)
         }
@@ -269,7 +399,12 @@ private fun WearReviewRatingGrid(modifier: Modifier, onRate: (ReviewRating) -> U
 private fun WearReviewRatingButton(rating: ReviewRating, modifier: Modifier, onRate: (ReviewRating) -> Unit) {
     CompactButton(
         onClick = { onRate(rating) },
-        modifier = modifier,
+        // A deliberate accessibility trade-off: the tap area is the visible 32dp, not Wear's recommended 48dp,
+        // so the rows sit close and the answer gets more room. The button pads itself to 48dp; the layout keeps
+        // only the visible part.
+        modifier = modifier
+            .height(ratingButtonHeight)
+            .wrapContentHeight(unbounded = true),
         colors = ButtonDefaults.filledTonalButtonColors()
     ) {
         Text(
@@ -280,6 +415,21 @@ private fun WearReviewRatingButton(rating: ReviewRating, modifier: Modifier, onR
             overflow = TextOverflow.Ellipsis
         )
     }
+}
+
+/**
+ * The smallest bottom padding that keeps the bottom row inside a round screen. A [CompactButton]'s ends are
+ * fully rounded, so each outer end is a half circle that must stay within the screen's circle. At the grid's
+ * width those ends already sit about 1dp inside the circle, so the grid sits no lower without narrower
+ * buttons; the width is kept by choice.
+ */
+private fun roundRatingGridBottomPadding(screenDiameter: Dp, horizontalPadding: Dp): Dp {
+    val screenRadius = screenDiameter.value / 2f
+    val buttonEndRadius = ratingButtonHeight.value / 2f
+    val buttonEndCenterX = screenRadius - horizontalPadding.value - buttonEndRadius
+    val buttonEndCenterMaxDistance = screenRadius - ratingGridRoundEdgeClearance.value - buttonEndRadius
+    val buttonEndCenterY = sqrt(buttonEndCenterMaxDistance * buttonEndCenterMaxDistance - buttonEndCenterX * buttonEndCenterX)
+    return (screenRadius - buttonEndCenterY - buttonEndRadius).dp
 }
 
 private fun ratingTitleResource(rating: ReviewRating): Int {
