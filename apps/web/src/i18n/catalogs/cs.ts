@@ -787,6 +787,7 @@ const csCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vaše kartičky",
       addCards: "Přidat kartičky",
+      transfer: "Přenos dat",
     },
     deckCatalog: {
       title: "Katalog balíčků",

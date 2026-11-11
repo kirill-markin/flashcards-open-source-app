@@ -794,6 +794,7 @@ const slCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vaše kartice",
       addCards: "Dodajanje kartic",
+      transfer: "Prenos podatkov",
     },
     deckCatalog: {
       title: "Katalog kompletov",

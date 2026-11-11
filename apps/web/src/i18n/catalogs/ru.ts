@@ -787,6 +787,7 @@ export const ruCatalog = {
     groups: {
       yourCards: "Ваши карточки",
       addCards: "Добавить карточки",
+      transfer: "Перенос данных",
     },
     deckCatalog: {
       title: "Каталог колод",

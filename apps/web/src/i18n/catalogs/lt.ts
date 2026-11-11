@@ -787,6 +787,7 @@ const ltCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Jūsų kortelės",
       addCards: "Pridėti korteles",
+      transfer: "Duomenų perkėlimas",
     },
     deckCatalog: {
       title: "Kaladžių katalogas",

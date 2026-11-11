@@ -787,6 +787,7 @@ const skCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vaše karty",
       addCards: "Pridať karty",
+      transfer: "Prenos údajov",
     },
     deckCatalog: {
       title: "Katalóg balíčkov",

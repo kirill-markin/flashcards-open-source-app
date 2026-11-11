@@ -780,6 +780,7 @@ export const jaCatalog = {
     groups: {
       yourCards: "自分のカード",
       addCards: "カードを追加",
+      transfer: "データ移行",
     },
     deckCatalog: {
       title: "デッキカタログ",

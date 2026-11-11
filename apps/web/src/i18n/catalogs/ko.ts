@@ -780,6 +780,7 @@ const koCatalog: TranslationCatalog = {
     groups: {
       yourCards: "내 카드",
       addCards: "카드 추가",
+      transfer: "데이터 이전",
     },
     deckCatalog: {
       title: "덱 카탈로그",

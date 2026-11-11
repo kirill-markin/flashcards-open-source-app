@@ -780,6 +780,7 @@ const huCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kártyáid",
       addCards: "Kártyák hozzáadása",
+      transfer: "Adatátvitel",
     },
     deckCatalog: {
       title: "Paklikatalógus",

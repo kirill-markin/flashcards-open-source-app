@@ -780,6 +780,7 @@ const etCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Sinu kaardid",
       addCards: "Lisa kaarte",
+      transfer: "Andmete ülekandmine",
     },
     deckCatalog: {
       title: "Pakkide kataloog",

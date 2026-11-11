@@ -780,6 +780,7 @@ const guCatalog: TranslationCatalog = {
     groups: {
       yourCards: "તમારાં કાર્ડ",
       addCards: "કાર્ડ ઉમેરો",
+      transfer: "ડેટા ટ્રાન્સફર",
     },
     deckCatalog: {
       title: "ડેક કૅટલૉગ",

@@ -780,6 +780,7 @@ const teCatalog: TranslationCatalog = {
     groups: {
       yourCards: "మీ కార్డులు",
       addCards: "కార్డులను జోడించండి",
+      transfer: "డేటా బదిలీ",
     },
     deckCatalog: {
       title: "డెక్ కేటలాగ్",

@@ -780,6 +780,7 @@ const daCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Dine kort",
       addCards: "Tilføj kort",
+      transfer: "Dataoverførsel",
     },
     deckCatalog: {
       title: "Bunkekatalog",

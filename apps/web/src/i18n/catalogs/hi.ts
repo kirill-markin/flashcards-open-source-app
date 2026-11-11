@@ -780,6 +780,7 @@ const hiCatalog: TranslationCatalog = {
     groups: {
       yourCards: "आपके कार्ड",
       addCards: "कार्ड जोड़ें",
+      transfer: "डेटा ट्रांसफ़र",
     },
     deckCatalog: {
       title: "डेक कैटलॉग",

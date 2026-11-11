@@ -780,6 +780,7 @@ const mrCatalog: TranslationCatalog = {
     groups: {
       yourCards: "तुमची कार्डे",
       addCards: "कार्डे जोडा",
+      transfer: "डेटा हस्तांतरण",
     },
     deckCatalog: {
       title: "संच कॅटलॉग",

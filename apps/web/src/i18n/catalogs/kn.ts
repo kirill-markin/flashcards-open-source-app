@@ -780,6 +780,7 @@ const knCatalog: TranslationCatalog = {
     groups: {
       yourCards: "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
       addCards: "ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
+      transfer: "ಡೇಟಾ ವರ್ಗಾವಣೆ",
     },
     deckCatalog: {
       title: "ಡೆಕ್ ಕ್ಯಾಟಲಾಗ್",

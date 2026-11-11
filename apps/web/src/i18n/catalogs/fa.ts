@@ -780,6 +780,7 @@ const faCatalog: TranslationCatalog = {
     groups: {
       yourCards: "کارت‌های شما",
       addCards: "افزودن کارت",
+      transfer: "انتقال داده‌ها",
     },
     deckCatalog: {
       title: "فهرست دسته‌ها",

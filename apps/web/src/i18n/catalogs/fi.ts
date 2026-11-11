@@ -780,6 +780,7 @@ const fiCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Korttisi",
       addCards: "Lisää kortteja",
+      transfer: "Tiedonsiirto",
     },
     deckCatalog: {
       title: "Pakkakatalogi",

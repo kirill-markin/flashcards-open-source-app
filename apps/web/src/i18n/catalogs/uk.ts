@@ -787,6 +787,7 @@ const ukCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Ваші картки",
       addCards: "Додати картки",
+      transfer: "Перенесення даних",
     },
     deckCatalog: {
       title: "Каталог колод",
