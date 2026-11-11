@@ -794,9 +794,6 @@ const orCatalog: TranslationCatalog = {
       title: "ଡେକ୍ କ୍ୟାଟାଲଗ୍",
       description: "ପଢ଼ିବାକୁ ମାଗଣା ପ୍ରସ୍ତୁତ ଡେକ୍।",
     },
-    import: {
-      description: "ଫାଇଲ୍‌ରୁ କାର୍ଡ ଯୋଡ଼ନ୍ତୁ।",
-    },
     export: {
       description: "ଆପଣଙ୍କ ସବୁ କାର୍ଡ ଏକ ଫାଇଲ୍ ଭାବେ ଡାଉନଲୋଡ୍ କରନ୍ତୁ।",
     },
@@ -906,7 +903,17 @@ const orCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "ଇମ୍ପୋର୍ଟ",
-    subtitle: "ଲେଖା ପେଷ୍ଟ କରି କିମ୍ବା ଏକ Nibomo ପ୍ୟାକେଜ୍ ବାଛି କାର୍ଡ ଯୋଡ଼ନ୍ତୁ।",
+    nibomoFormat: "Nibomo ଫର୍ମାଟ୍",
+    anki: {
+      format: "Anki ଫର୍ମାଟ୍",
+      description: "AI ଚାଟ୍ ବଛାଯାଇଥିବା Anki ଏକ୍ସପୋର୍ଟ ଫାଇଲ୍‌ରୁ କାର୍ଡ ଇମ୍ପୋର୍ଟ କରେ।",
+      chooseFiles: ".apkg ଫାଇଲ୍ ବାଛନ୍ତୁ",
+      start: "ଇମ୍ପୋର୍ଟ ଆରମ୍ଭ କରନ୍ତୁ",
+      invalidFile: "“{{file}}” ବ୍ୟବହାର କରିବା ଯୋଗ୍ୟ Anki ଏକ୍ସପୋର୍ଟ ଫାଇଲ୍ ନୁହେଁ। ଖାଲି ନଥିବା ଏକ .apkg ଫାଇଲ୍ ବାଛନ୍ତୁ।",
+      fileTooLarge: "“{{file}}” ଫାଇଲ୍‌ର ଆକାର {{limit}} MiBରୁ ଅଧିକ। ଏକ ଛୋଟ Anki ଏକ୍ସପୋର୍ଟ ଫାଇଲ୍ ବାଛନ୍ତୁ।",
+      request: "Ankiରୁ ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ରକୁ କାର୍ଡ ଇମ୍ପୋର୍ଟ କରନ୍ତୁ।",
+      chatChanged: "ସକ୍ରିୟ ଚାଟ୍ ବଦଳିଗଲା। ଲାଇବ୍ରେରିକୁ ଫେରି Anki ଇମ୍ପୋର୍ଟ ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ।",
+    },
     workspaceUnavailable: "କାର୍ଯ୍ୟକ୍ଷେତ୍ର ଉପଲବ୍ଧ ନାହିଁ",
     textTitle: "ଲେଖା ପେଷ୍ଟ କରନ୍ତୁ",
     textDescription: "Quizlet, ସ୍ପ୍ରେଡ୍‌ସିଟ୍ କିମ୍ବା ଡକ୍ୟୁମେଣ୍ଟରୁ ଶବ୍ଦ ଓ ସଂଜ୍ଞା କପି କରନ୍ତୁ। ଇମ୍ପୋର୍ଟ ପୂର୍ବରୁ ପ୍ରତି କାର୍ଡ ଯାଞ୍ଚ କରନ୍ତୁ।",

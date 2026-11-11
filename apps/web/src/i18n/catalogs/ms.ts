@@ -794,9 +794,6 @@ const msCatalog: TranslationCatalog = {
       title: "Katalog dek",
       description: "Dek sedia guna percuma untuk belajar.",
     },
-    import: {
-      description: "Tambah kad daripada fail.",
-    },
     export: {
       description: "Muat turun semua kad anda sebagai fail.",
     },
@@ -906,7 +903,17 @@ const msCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Tambah kad dengan menampal teks atau memilih pakej Nibomo.",
+    nibomoFormat: "Format Nibomo",
+    anki: {
+      format: "Format Anki",
+      description: "Sembang AI mengimport kad daripada fail eksport Anki yang dipilih.",
+      chooseFiles: "Pilih fail .apkg",
+      start: "Mulakan import",
+      invalidFile: "“{{file}}” bukan fail eksport Anki yang boleh digunakan. Pilih fail .apkg yang tidak kosong.",
+      fileTooLarge: "“{{file}}” melebihi {{limit}} MiB. Pilih fail eksport Anki yang lebih kecil.",
+      request: "Import kad daripada Anki ke ruang kerja ini.",
+      chatChanged: "Sembang aktif telah bertukar. Kembali ke Pustaka dan mulakan semula import Anki.",
+    },
     workspaceUnavailable: "Ruang kerja tidak tersedia",
     textTitle: "Tampal teks",
     textDescription: "Salin istilah dan takrif daripada Quizlet, hamparan atau dokumen. Semak setiap kad sebelum mengimport.",

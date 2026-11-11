@@ -794,9 +794,6 @@ export const zhHantCatalog = {
       title: "牌組目錄",
       description: "直接使用現成的免費牌組開始學習。",
     },
-    import: {
-      description: "從檔案匯入卡片。",
-    },
     export: {
       description: "將你的所有卡片下載成一個檔案。",
     },
@@ -906,7 +903,17 @@ export const zhHantCatalog = {
   },
   workspaceImport: {
     title: "匯入",
-    subtitle: "貼上文字或選擇 Nibomo 套件來匯入卡片。",
+    nibomoFormat: "Nibomo 格式",
+    anki: {
+      format: "Anki 格式",
+      description: "AI 聊天會從你選擇的 Anki 匯出檔案中匯入卡片。",
+      chooseFiles: "選擇 .apkg 檔案",
+      start: "開始匯入",
+      invalidFile: "「{{file}}」不是可用的 Anki 匯出檔案。請選擇含有資料的 .apkg 檔案。",
+      fileTooLarge: "「{{file}}」超過 {{limit}} MiB。請選擇較小的 Anki 匯出檔案。",
+      request: "請將 Anki 卡片匯入這個工作區。",
+      chatChanged: "目前的聊天已變更。請返回卡片庫，重新開始匯入 Anki 卡片。",
+    },
     workspaceUnavailable: "工作區不可用",
     textTitle: "貼上文字",
     textDescription: "從 Quizlet、試算表或文件複製詞語和定義。匯入前請先確認每張卡片。",
