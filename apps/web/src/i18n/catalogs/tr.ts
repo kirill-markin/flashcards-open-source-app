@@ -786,9 +786,6 @@ const trCatalog: TranslationCatalog = {
       title: "Deste kataloğu",
       description: "Çalışmak için ücretsiz hazır desteler.",
     },
-    import: {
-      description: "Bir dosyadan kart ekleyin.",
-    },
     export: {
       description: "Tüm kartlarınızı bir dosya olarak indirin.",
     },
@@ -898,7 +895,17 @@ const trCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "İçe aktar",
-    subtitle: "Metin yapıştırarak ya da bir Nibomo paketi seçerek kart ekleyin.",
+    nibomoFormat: "Nibomo biçimi",
+    anki: {
+      format: "Anki biçimi",
+      description: "Yapay zekâ sohbeti, seçilen Anki dosyalarındaki kartları içe aktarır.",
+      chooseFiles: ".apkg dosyalarını seç",
+      start: "İçe aktarmayı başlat",
+      invalidFile: "“{{file}}” kullanılabilir bir Anki dışa aktarma dosyası değil. Boş olmayan bir .apkg dosyası seçin.",
+      fileTooLarge: "“{{file}}” {{limit}} MiB sınırını aşıyor. Daha küçük bir Anki dosyası seçin.",
+      request: "Anki kartlarını bu çalışma alanına aktar.",
+      chatChanged: "Etkin sohbet değişti. Kitaplığa dönüp Anki içe aktarmasını yeniden başlatın.",
+    },
     workspaceUnavailable: "Çalışma alanı kullanılamıyor",
     textTitle: "Metin yapıştır",
     textDescription: "Terimleri ve tanımları Quizlet'ten, bir elektronik tablodan veya bir belgeden kopyalayın. İçe aktarmadan önce her kartı gözden geçirin.",

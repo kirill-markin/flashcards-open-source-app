@@ -786,9 +786,6 @@ const knCatalog: TranslationCatalog = {
       title: "ಡೆಕ್ ಕ್ಯಾಟಲಾಗ್",
       description: "ಅಧ್ಯಯನಕ್ಕಾಗಿ ಉಚಿತ ಸಿದ್ಧ ಡೆಕ್‌ಗಳು.",
     },
-    import: {
-      description: "ಫೈಲ್‌ನಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ.",
-    },
     export: {
       description: "ನಿಮ್ಮ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳನ್ನು ಫೈಲ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
     },
@@ -898,7 +895,17 @@ const knCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "ಆಮದು",
-    subtitle: "ಪಠ್ಯ ಅಂಟಿಸಿ ಅಥವಾ Nibomo ಪ್ಯಾಕೇಜ್ ಆಯ್ಕೆಮಾಡಿ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ.",
+    nibomoFormat: "Nibomo ಸ್ವರೂಪ",
+    anki: {
+      format: "Anki ಸ್ವರೂಪ",
+      description: "AI ಚಾಟ್ ಆಯ್ಕೆ ಮಾಡಿದ Anki ರಫ್ತು ಕಡತಗಳಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಆಮದು ಮಾಡುತ್ತದೆ.",
+      chooseFiles: ".apkg ಕಡತಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      start: "ಆಮದು ಪ್ರಾರಂಭಿಸಿ",
+      invalidFile: "“{{file}}” ಬಳಸಬಹುದಾದ Anki ರಫ್ತು ಕಡತವಲ್ಲ. ಖಾಲಿಯಲ್ಲದ .apkg ಕಡತವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+      fileTooLarge: "“{{file}}” ಗಾತ್ರ {{limit}} MiB ಮೀರಿದೆ. ಚಿಕ್ಕ Anki ರಫ್ತು ಕಡತವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+      request: "Ankiಯಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಈ ಕಾರ್ಯಕ್ಷೇತ್ರಕ್ಕೆ ಆಮದು ಮಾಡಿ.",
+      chatChanged: "ಸಕ್ರಿಯ ಚಾಟ್ ಬದಲಾಗಿದೆ. ಲೈಬ್ರರಿಗೆ ಹಿಂತಿರುಗಿ Anki ಆಮದನ್ನು ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.",
+    },
     workspaceUnavailable: "ಕಾರ್ಯಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ",
     textTitle: "ಪಠ್ಯ ಅಂಟಿಸಿ",
     textDescription: "Quizlet, ಸ್ಪ್ರೆಡ್‌ಶೀಟ್ ಅಥವಾ ದಾಖಲೆಯಿಂದ ಪದಗಳು ಮತ್ತು ಅರ್ಥಗಳನ್ನು ನಕಲಿಸಿ. ಆಮದು ಮಾಡುವ ಮೊದಲು ಪ್ರತಿ ಕಾರ್ಡ್ ಪರಿಶೀಲಿಸಿ.",

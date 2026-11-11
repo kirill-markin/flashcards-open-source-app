@@ -786,9 +786,6 @@ const caCatalog: TranslationCatalog = {
       title: "Catàleg de baralles",
       description: "Baralles gratuïtes i llestes per estudiar.",
     },
-    import: {
-      description: "Afegeix targetes des d'un fitxer.",
-    },
     export: {
       description: "Descarrega totes les teves targetes en un fitxer.",
     },
@@ -898,7 +895,17 @@ const caCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importa",
-    subtitle: "Afegeix targetes enganxant text o triant un paquet de Nibomo.",
+    nibomoFormat: "Format Nibomo",
+    anki: {
+      format: "Format Anki",
+      description: "El xat amb IA importa targetes dels fitxers exportats d’Anki que triïs.",
+      chooseFiles: "Tria fitxers .apkg",
+      start: "Inicia la importació",
+      invalidFile: "«{{file}}» no és un fitxer d’exportació d’Anki vàlid. Tria un fitxer .apkg que no estigui buit.",
+      fileTooLarge: "«{{file}}» supera els {{limit}} MiB. Tria un fitxer d’Anki més petit.",
+      request: "Importa les targetes d’Anki en aquest espai de treball.",
+      chatChanged: "El xat actiu ha canviat. Torna a la biblioteca i reinicia la importació d’Anki.",
+    },
     workspaceUnavailable: "L'espai de treball no està disponible",
     textTitle: "Enganxa text",
     textDescription: "Copia termes i definicions de Quizlet, d'un full de càlcul o d'un document. Revisa cada targeta abans d'importar-la.",

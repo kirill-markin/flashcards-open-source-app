@@ -786,9 +786,6 @@ const deCatalog: TranslationCatalog = {
       title: "Deck-Katalog",
       description: "Kostenlose fertige Decks zum Lernen.",
     },
-    import: {
-      description: "Füge Karten aus einer Datei hinzu.",
-    },
     export: {
       description: "Lade alle deine Karten als Datei herunter.",
     },
@@ -898,7 +895,17 @@ const deCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Füge Karten hinzu, indem du Text einfügst oder ein Nibomo-Paket wählst.",
+    nibomoFormat: "Nibomo-Format",
+    anki: {
+      format: "Anki-Format",
+      description: "Der KI-Chat importiert Karten aus den ausgewählten Anki-Exporten.",
+      chooseFiles: ".apkg-Dateien auswählen",
+      start: "Import starten",
+      invalidFile: "„{{file}}“ ist kein nutzbarer Anki-Export. Wähle eine nicht leere .apkg-Datei.",
+      fileTooLarge: "„{{file}}“ ist größer als {{limit}} MiB. Wähle einen kleineren Anki-Export.",
+      request: "Importiere Karten aus Anki in diesen Arbeitsbereich.",
+      chatChanged: "Der aktive Chat hat sich geändert. Kehre zur Bibliothek zurück und starte den Anki-Import erneut.",
+    },
     workspaceUnavailable: "Arbeitsbereich ist nicht verfügbar",
     textTitle: "Text einfügen",
     textDescription: "Kopiere Begriffe und Definitionen aus Quizlet, einer Tabelle oder einem Dokument. Prüfe jede Karte vor dem Import.",
