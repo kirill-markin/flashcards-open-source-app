@@ -1,0 +1,134 @@
+<resources>
+    <string name="progress_title">ପ୍ରଗତି</string>
+    <string name="progress_retry">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</string>
+    <string name="progress_loading">ପ୍ରଗତିର ଇତିହାସ ଲୋଡ୍ ହେଉଛି</string>
+    <string name="progress_error_title">ପ୍ରଗତି ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ</string>
+    <string name="progress_error_message">ପ୍ରଗତିର ତଥ୍ୟ ସାମୟିକ ଭାବେ ଉପଲବ୍ଧ ନାହିଁ। ଇତିହାସ ପୁଣି ଲୋଡ୍ କରିବାକୁ ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="progress_sign_in_required_title">ପ୍ରଗତି ଦେଖିବାକୁ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ</string>
+    <string name="progress_sign_in_required_message">ସାଇନ୍ ଇନ୍ କଲେ ବା ଅତିଥି ଭାବେ AI ବ୍ୟବହାର ଆରମ୍ଭ କଲେ ହିଁ ପ୍ରଗତିର ଇତିହାସ ଦେଖିପାରିବେ।</string>
+    <string name="progress_unavailable_title">ପ୍ରଗତି ଦେଖିବାକୁ କ୍ଲାଉଡ୍ ସେଟ୍‌ଅପ୍ ପୂରା କରନ୍ତୁ</string>
+    <string name="progress_unavailable_message">ପ୍ରଗତି ଇତିହାସ ଲୋଡ୍ କରିବା ଆଗରୁ ୱର୍କସ୍ପେସ୍ ବାଛି ସାଇନ୍ ଇନ୍ ପୂରା କରନ୍ତୁ।</string>
+    <string name="progress_streak_title">ଲଗାତାର ଅଭ୍ୟାସ</string>
+    <string name="progress_streak_subtitle">ଗତ ୫ ସପ୍ତାହ</string>
+    <string name="progress_streak_summary_reviewed_today">ଆଜି ଅଭ୍ୟାସ କରିଛନ୍ତି</string>
+    <string name="progress_streak_summary_not_reviewed_today">ଆଜି ଅଭ୍ୟାସ ହୋଇନାହିଁ</string>
+    <string name="progress_streak_freeze_bank_value">%1$d/%2$d</string>
+    <string name="progress_streak_freeze_bank_content_description">ଅଭ୍ୟାସ ଧାରା ପାଇଁ %2$dରୁ %1$dଟି ବିରତି ସୁଯୋଗ ବାକି।</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">ଅଭ୍ୟାସରେ ବିରତି ସୁଯୋଗ ବିଷୟରେ</string>
+    <string name="progress_streak_freeze_bank_info_title">ଅଭ୍ୟାସରେ ବିରତି ସୁଯୋଗ</string>
+    <string name="progress_streak_freeze_bank_info_body">ଉପଲବ୍ଧ: %1$d/%2$d। ପୁଣି ମିଳିବାର ପ୍ରଗତି: %3$d/%4$d। ଅଭ୍ୟାସ ଛାଡ଼ିଯାଇଥିବା ଦିନରେ ବିରତି ସୁଯୋଗ ଆପଣଙ୍କ ଧାରା ବଜାୟ ରଖେ। ଲଗାତାର ଅଭ୍ୟାସ କଲେ ଏହି ସୁଯୋଗ ପୁଣି ମିଳେ।</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">ଠିକ୍ ଅଛି</string>
+    <string name="progress_streak_day_reviewed_content_description">%1$s: ଅଭ୍ୟାସ ସରିଛି।</string>
+    <string name="progress_streak_day_frozen_content_description">%1$s: ବିରତି ସୁଯୋଗ ଧାରା ବଜାୟ ରଖିଛି।</string>
+    <string name="progress_streak_day_future_content_description">%1$s: ଆଗାମୀ ଦିନ।</string>
+    <string name="progress_streak_day_pending_content_description">%1$s: ଅଭ୍ୟାସ ବାକି।</string>
+    <string name="progress_streak_day_missed_content_description">%1$s: ଅଭ୍ୟାସ ଛାଡ଼ିଯାଇଛି।</string>
+    <string name="progress_reviews_title">ଅଭ୍ୟାସ</string>
+    <string name="progress_reviews_previous_week">ପୂର୍ବ ସପ୍ତାହ</string>
+    <string name="progress_reviews_next_week">ଆଗାମୀ ସପ୍ତାହ</string>
+    <string name="progress_reviews_rating_again">ପୁଣି</string>
+    <string name="progress_reviews_rating_hard">କଠିନ</string>
+    <string name="progress_reviews_rating_good">ଭଲ</string>
+    <string name="progress_reviews_rating_easy">ସହଜ</string>
+    <string name="progress_reviews_rating_count_percentage">%1$d (%2$s)</string>
+    <string name="progress_reviews_chart_clear_content_description">ଅଭ୍ୟାସ ଚାର୍ଟର ବଛା ଅଂଶ ସଫା କରନ୍ତୁ</string>
+    <string name="progress_review_schedule_title">ଅଭ୍ୟାସ ସୂଚୀ</string>
+    <string name="progress_review_schedule_empty">ଏଯାଏ କୌଣସି କାର୍ଡ ସକ୍ରିୟ ନାହିଁ।</string>
+    <string name="progress_review_schedule_chart_content_description">ଅଭ୍ୟାସ ସୂଚୀର ଚାର୍ଟ</string>
+    <string name="progress_review_schedule_bucket_new">ନୂଆ</string>
+    <string name="progress_review_schedule_bucket_today">ଆଜି</string>
+    <string name="progress_review_schedule_bucket_days_1_to_7">୧–୭ ଦିନ</string>
+    <string name="progress_review_schedule_bucket_days_8_to_30">୮–୩୦ ଦିନ</string>
+    <string name="progress_review_schedule_bucket_days_31_to_90">୩୧–୯୦ ଦିନ</string>
+    <string name="progress_review_schedule_bucket_days_91_to_360">୯୧–୩୬୦ ଦିନ</string>
+    <string name="progress_review_schedule_bucket_years_1_to_2">୧–୨ ବର୍ଷ</string>
+    <string name="progress_review_schedule_bucket_later">ପରେ</string>
+    <string name="progress_review_schedule_bucket_value">%1$s (%2$s)</string>
+    <string name="progress_leaderboard_title">ରେଟିଂ ରାଙ୍କିଂ ତାଲିକା</string>
+    <string name="progress_leaderboard_info_button_content_description">ରେଟିଂ ରାଙ୍କିଂ ତାଲିକା ବିଷୟରେ</string>
+    <string name="progress_leaderboard_info_title">ରେଟିଂରୁ ରାଙ୍କ୍ କିପରି ମିଳେ</string>
+    <string name="progress_leaderboard_info_fallback_body">«କଠିନ», «ଭଲ» ଓ «ସହଜ» ବାଛିଥିବା ଅଭ୍ୟାସ ରାଙ୍କ୍ ପାଇଁ ଗଣାଯାଏ। «ପୁଣି» ବାଛିଥିବା ଅଭ୍ୟାସ ଗଣାଯାଏ ନାହିଁ।</string>
+    <string name="progress_leaderboard_info_dismiss">ଠିକ୍ ଅଛି</string>
+    <string name="progress_leaderboard_window_last_24_hours">୨୪ ଘଣ୍ଟା</string>
+    <string name="progress_leaderboard_window_last_3_days">୩ ଦିନ</string>
+    <string name="progress_leaderboard_window_last_7_days">୭ ଦିନ</string>
+    <string name="progress_leaderboard_window_last_30_days">୩୦ ଦିନ</string>
+    <string name="progress_leaderboard_window_all_time">ସମସ୍ତ ସମୟ</string>
+    <string name="progress_leaderboard_you">ଆପଣ</string>
+    <string name="progress_leaderboard_rank_label">#%1$s</string>
+    <string name="progress_leaderboard_gap_content_description">ଲୁଚାଯାଇଥିବା ରାଙ୍କ୍</string>
+    <string name="progress_leaderboard_empty_window">ଏହି ଅବଧିରେ ରାଙ୍କ୍ ପାଇଁ ଗଣାଯିବା ଭଳି ଅଭ୍ୟାସ ଏଯାଏ ହୋଇନାହିଁ।</string>
+    <string name="progress_leaderboard_sign_in_message">ରେଟିଂ ରାଙ୍କିଂ ତାଲିକାରେ ଆପଣଙ୍କ ଅଭ୍ୟାସର ସ୍ଥାନ ଦେଖିବାକୁ ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ ବା ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="progress_leaderboard_sign_in_button">ସାଇନ୍ ଇନ୍ କରନ୍ତୁ</string>
+    <string name="progress_leaderboard_participation_disabled_message">ଆପଣ ଭାଗ ନେଉଥିଲେ ହିଁ ରେଟିଂ ରାଙ୍କିଂ ଦେଖିପାରିବେ। ରାଙ୍କିଂ ସେଟିଂସ୍‌ରେ ଅଂଶଗ୍ରହଣ ଚାଲୁ କରନ୍ତୁ।</string>
+    <string name="progress_leaderboard_participation_disabled_button">ରାଙ୍କିଂ ସେଟିଂସ୍ ଖୋଲନ୍ତୁ</string>
+    <string name="progress_leaderboard_offline_message">ରେଟିଂ ରାଙ୍କିଂ ତାଲିକା ପାଇଁ ସଂଯୋଗ ଦରକାର। ପୁଣି ଅନଲାଇନ୍ ହେଲେ ଏହା ଲୋଡ୍ ହେବ।</string>
+    <string name="progress_leaderboard_unavailable_message">ରେଟିଂ ରାଙ୍କିଂ ତାଲିକା ଏଯାଏ ପ୍ରସ୍ତୁତ ନାହିଁ। ଟିକେ ପରେ ଦେଖନ୍ତୁ।</string>
+    <string name="progress_leaderboard_profile_row_content_description">%1$sଙ୍କ ପ୍ରୋଫାଇଲ୍ ଖୋଲନ୍ତୁ</string>
+    <string name="progress_leaderboard_profile_friend_label">ସାଙ୍ଗ</string>
+    <string name="progress_leaderboard_profile_current_streak_label">ଏବେର ଅଭ୍ୟାସ ଧାରା</string>
+    <string name="progress_leaderboard_profile_best_rating_label">ସର୍ବୋତ୍ତମ ରେଟିଂ ରାଙ୍କ୍</string>
+    <string name="progress_leaderboard_profile_best_rating_value">%2$sରେ %1$s</string>
+    <string name="progress_leaderboard_profile_no_rating_value">ଏଯାଏ ରାଙ୍କ୍ ମିଳିନାହିଁ</string>
+    <string name="progress_leaderboard_profile_activity_title">ଗତ ୩୦ ଦିନ</string>
+    <string name="progress_leaderboard_profile_activity_chart_content_description">ଗତ ୩୦ ଦିନର ଅଭ୍ୟାସ</string>
+    <string name="progress_leaderboard_profile_joined_value">%1$sରେ ଯୋଗ ଦେଲେ</string>
+    <string name="progress_leaderboard_profile_linked_account_required_message">ରାଙ୍କିଂ ପ୍ରୋଫାଇଲ୍ ଦେଖିବାକୁ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="progress_leaderboard_profile_participation_disabled_message">ପ୍ରୋଫାଇଲ୍ ଦେଖିବାକୁ ରାଙ୍କିଂରେ ଅଂଶଗ୍ରହଣ ଚାଲୁ କରନ୍ତୁ।</string>
+    <string name="progress_leaderboard_profile_unavailable_message">ଏହି ରାଙ୍କିଂ ପ୍ରୋଫାଇଲ୍ ଉପଲବ୍ଧ ନାହିଁ।</string>
+    <string name="progress_leaderboard_profile_error_message">ଏହି ପ୍ରୋଫାଇଲ୍ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="progress_streak_leaderboard_title">ଲଗାତାର ଅଭ୍ୟାସ ରାଙ୍କିଂ</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">ଲଗାତାର ଅଭ୍ୟାସ ରାଙ୍କିଂ ବିଷୟରେ</string>
+    <string name="progress_streak_leaderboard_info_title">ଲଗାତାର ଅଭ୍ୟାସରୁ ରାଙ୍କ୍ କିପରି ମିଳେ</string>
+    <string name="progress_streak_leaderboard_info_fallback_body">ସାର୍ବଜନୀନ ଦୈନିକ ତଥ୍ୟରେ ଥିବା ଏବେର ଅଭ୍ୟାସ ଧାରାର ଦିନ ସଂଖ୍ୟାରୁ ରାଙ୍କ୍ ମିଳେ। ସ୍ଥାନୀୟ ସମୟ ଅନୁସାରେ ଯେଉଁ ଦିନ ଅତି କମରେ ଗୋଟିଏ କାର୍ଡ ପାଇଁ «ପୁଣି», «କଠିନ», «ଭଲ» ବା «ସହଜ» ବାଛନ୍ତି, ସେ ଦିନଟି ଧାରାରେ ଗଣାଯାଏ। ସାର୍ବଜନୀନ ହିସାବ ଆପଣଙ୍କ ନିଜର ସଦ୍ୟତମ ହିସାବଠାରୁ ପଛରେ ଥାଇପାରେ।</string>
+    <string name="progress_streak_leaderboard_empty">ଲଗାତାର ଅଭ୍ୟାସ ରାଙ୍କିଂରେ ଏଯାଏ କୌଣସି ନାମ ନାହିଁ।</string>
+    <string name="progress_streak_leaderboard_sign_in_message">ଅନ୍ୟମାନଙ୍କ ସହ ଲଗାତାର ଅଭ୍ୟାସର ହିସାବ ତୁଳନା କରିବାକୁ ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ ବା ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="progress_streak_leaderboard_participation_disabled_message">ଆପଣ ଭାଗ ନେଉଥିଲେ ହିଁ ଲଗାତାର ଅଭ୍ୟାସ ରାଙ୍କିଂ ଦେଖିପାରିବେ। ରାଙ୍କିଂ ସେଟିଂସ୍‌ରେ ଅଂଶଗ୍ରହଣ ଚାଲୁ କରନ୍ତୁ।</string>
+    <string name="progress_streak_leaderboard_offline_message">ଲଗାତାର ଅଭ୍ୟାସ ରାଙ୍କିଂ ପାଇଁ ସଂଯୋଗ ଦରକାର। ପୁଣି ଅନଲାଇନ୍ ହେଲେ ଏହା ଲୋଡ୍ ହେବ।</string>
+    <string name="progress_streak_leaderboard_unavailable_message">ଲଗାତାର ଅଭ୍ୟାସ ରାଙ୍କିଂ ଏଯାଏ ପ୍ରସ୍ତୁତ ନାହିଁ। ଟିକେ ପରେ ଦେଖନ୍ତୁ।</string>
+    <string name="progress_today">ଆଜି</string>
+    <plurals name="progress_streak_summary_content_description">
+        <item quantity="one">ଲଗାତାର %d ଦିନ ଅଭ୍ୟାସ।</item>
+        <item quantity="other">ଲଗାତାର %d ଦିନ ଅଭ୍ୟାସ।</item>
+    </plurals>
+    <plurals name="progress_reviews_day_content_description">
+        <item quantity="one">%1$s ବାଛନ୍ତୁ, %2$dଟି ଅଭ୍ୟାସ।</item>
+        <item quantity="other">%1$s ବାଛନ୍ତୁ, %2$dଟି ଅଭ୍ୟାସ।</item>
+    </plurals>
+    <plurals name="progress_reviews_day_selected_content_description">
+        <item quantity="one">%1$s ବଛାଯାଇଛି, %2$dଟି ଅଭ୍ୟାସ।</item>
+        <item quantity="other">%1$s ବଛାଯାଇଛି, %2$dଟି ଅଭ୍ୟାସ।</item>
+    </plurals>
+    <plurals name="progress_leaderboard_participant_count">
+        <item quantity="one">%1$s ଜଣ ଅଂଶଗ୍ରହଣକାରୀ</item>
+        <item quantity="other">%1$s ଜଣ ଅଂଶଗ୍ରହଣକାରୀ</item>
+    </plurals>
+    <plurals name="progress_streak_leaderboard_day_count">
+        <item quantity="one">%1$s ଦିନ</item>
+        <item quantity="other">%1$s ଦିନ</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_minute_label">
+        <item quantity="one">%1$d ମିନିଟ୍ ଆଗରୁ ଅପଡେଟ୍ ହୋଇଛି</item>
+        <item quantity="other">%1$d ମିନିଟ୍ ଆଗରୁ ଅପଡେଟ୍ ହୋଇଛି</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_label">
+        <item quantity="one">%1$d ଘଣ୍ଟା ଆଗରୁ ଅପଡେଟ୍ ହୋଇଛି</item>
+        <item quantity="other">%1$d ଘଣ୍ଟା ଆଗରୁ ଅପଡେଟ୍ ହୋଇଛି</item>
+    </plurals>
+    <plurals name="progress_leaderboard_elapsed_minute_count">
+        <item quantity="one">%1$d ମିନିଟ୍</item>
+        <item quantity="other">%1$d ମିନିଟ୍</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_minute_label">
+        <item quantity="one">%1$d ଘଣ୍ଟା %2$s ଆଗରୁ ଅପଡେଟ୍ ହୋଇଛି</item>
+        <item quantity="other">%1$d ଘଣ୍ଟା %2$s ଆଗରୁ ଅପଡେଟ୍ ହୋଇଛି</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_activity_total">
+        <item quantity="one">ମୋଟ %1$sଟି ଅଭ୍ୟାସ</item>
+        <item quantity="other">ମୋଟ %1$sଟି ଅଭ୍ୟାସ</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_total_cards_value">
+        <item quantity="one">%1$sଟି କାର୍ଡ</item>
+        <item quantity="other">%1$sଟି କାର୍ଡ</item>
+    </plurals>
+</resources>

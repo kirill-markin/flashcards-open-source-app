@@ -1,0 +1,264 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Nibomo ଫ୍ଲାସ୍‌କାର୍ଡ</string>
+    <string name="top_level_review">ଅଭ୍ୟାସ</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_progress">ପ୍ରଗତି</string>
+    <string name="top_level_library">ଲାଇବ୍ରେରି</string>
+    <string name="top_level_settings">ସେଟିଂସ୍</string>
+    <string name="startup_error_title">ଆପ୍ ଆରମ୍ଭ ହୋଇପାରିଲା ନାହିଁ</string>
+    <string name="startup_error_message">Nibomo ଆରମ୍ଭ ହୋଇପାରିଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ, କିମ୍ବା ସହାୟତା ଦଳ ମାଗିଲେ ବୈଷୟିକ ବିବରଣୀ ଖୋଲନ୍ତୁ।</string>
+    <string name="startup_error_retry">ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ</string>
+    <string name="technical_error_dialog_default_title">କିଛି ଭୁଲ ହୋଇଛି</string>
+    <string name="technical_error_dialog_default_message">ଆପ୍‌ରେ ଏକ ବୈଷୟିକ ତ୍ରୁଟି ହୋଇଛି। ଆପଣ Nibomo ବ୍ୟବହାର ଜାରି ରଖିପାରିବେ। ସହାୟତା ଦଳ ନିମ୍ନରେ ଥିବା ବିବରଣୀ ମାଗିପାରେ।</string>
+    <string name="technical_error_dialog_show_details">ବୈଷୟିକ ବିବରଣୀ ଦେଖାନ୍ତୁ</string>
+    <string name="technical_error_dialog_hide_details">ବୈଷୟିକ ବିବରଣୀ ଲୁଚାନ୍ତୁ</string>
+    <string name="technical_error_dialog_close">ବନ୍ଦ କରନ୍ତୁ</string>
+    <string name="technical_error_dialog_preview_details">ବୈଷୟିକ ବିବରଣୀର ନମୁନା\ncode=android_technical_error_preview\nrequestId=preview-request-id\nstatus=not_reported</string>
+    <string name="account_deletion_blocking_title">ଆକାଉଣ୍ଟ ଡିଲିଟ୍ ହେଉଛି</string>
+    <string name="account_deletion_in_progress_message">ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ଡିଲିଟ୍ ହେଉଛି। ଏହା ସରିବା ପର୍ଯ୍ୟନ୍ତ ଏହି ସ୍କ୍ରିନ୍ ଖୋଲା ରଖନ୍ତୁ।</string>
+    <string name="account_deletion_failed_message">ଆକାଉଣ୍ଟ ଡିଲିଟ୍ କରିବା ଏଯାଏ ସରିନାହିଁ। ପ୍ରକ୍ରିୟା ଜାରି ରଖିବା ପାଇଁ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="account_deletion_retry">ପୁଣି ଡିଲିଟ୍ କରନ୍ତୁ</string>
+    <string name="guest_sign_in_after_review_prompt_title">ଆପଣଙ୍କ ପ୍ରଗତି ସେଭ୍ କରନ୍ତୁ</string>
+    <string name="guest_sign_in_after_review_prompt_body">ଏହି କାର୍ଡ ଓ ଅଭ୍ୟାସର ପ୍ରଗତି ସୁରକ୍ଷିତ ରଖିବା ପାଇଁ ଇମେଲ୍ ଦ୍ୱାରା ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="guest_sign_in_after_review_prompt_sign_in">ସାଇନ୍ ଇନ୍ କରନ୍ତୁ</string>
+    <string name="guest_sign_in_after_review_prompt_later">ପରେ</string>
+    <string name="feedback_prompt_title">Nibomo ପାଇଁ କିଛି ପରାମର୍ଶ ଅଛି କି?</string>
+    <string name="feedback_prompt_body">ଆପ୍‌କୁ ଆହୁରି ଭଲ କରିବା ପାଇଁ ଆପଣଙ୍କ ପରାମର୍ଶ ଦିଅନ୍ତୁ। Nibomo ନିର୍ମାତା %1$s ନିଜେ ପ୍ରତ୍ୟେକ ମେସେଜ୍ ପଢ଼ନ୍ତି।</string>
+    <string name="feedback_prompt_message_label">ଏଠାରେ ଆପଣଙ୍କ ପରାମର୍ଶ ଲେଖନ୍ତୁ</string>
+    <string name="feedback_prompt_send">ପଠାନ୍ତୁ</string>
+    <string name="feedback_prompt_cancel">ବାତିଲ କରନ୍ତୁ</string>
+    <string name="feedback_prompt_not_now">ଏବେ ନୁହେଁ</string>
+    <string name="feedback_prompt_submit_success">ଧନ୍ୟବାଦ। ଆପଣଙ୍କ ମତାମତ ପଠାଯାଇଛି।</string>
+    <string name="feedback_prompt_submit_failed">ମତାମତ ପଠାଯାଇପାରିଲା ନାହିଁ। ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="feedback_prompt_empty_message">ପଠାଇବା ଆଗରୁ ଏକ ମେସେଜ୍ ଲେଖନ୍ତୁ।</string>
+    <plurals name="feedback_prompt_message_too_long">
+        <item quantity="one">ମତାମତ %1$d ଅକ୍ଷର ଭିତରେ ଲେଖନ୍ତୁ।</item>
+        <item quantity="other">ମତାମତ %1$d ଅକ୍ଷର ଭିତରେ ଲେଖନ୍ତୁ।</item>
+    </plurals>
+    <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
+    <string name="demo_card_front">ପଢ଼ିବା ପାଇଁ ସବୁଠାରୁ ଭଲ ଆପ୍ କେଉଁଟି?</string>
+    <!-- First paragraph on the back of the onboarding demo flashcard. The placeholder is the product name. -->
+    <string name="demo_card_back_1"><xliff:g id="app_name" example="Nibomo">%1$s</xliff:g> — ଆପଣ ଏବେ ଯେଉଁ ଆପ୍‌ଟି ଦେଖୁଛନ୍ତି। ଏଠାରେ ପ୍ରତ୍ୟେକଟି ଏକ ଫ୍ଲାସ୍‌କାର୍ଡ। ଆଗ ପଟେ ପ୍ରଶ୍ନ ଓ ପଛ ପଟେ ଉତ୍ତର ଥାଏ।</string>
+    <!-- Second paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_2">ଆପ୍‌ର AI ଚାଟ୍‌କୁ ଏକ ବିଷୟ ଦିଅନ୍ତୁ। ଏହା ଆପଣଙ୍କ ପାଇଁ ଏକ ସେଟ୍ କାର୍ଡ ତିଆରି କରିଦେବ।</string>
+    <!-- Third paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
+    <string name="demo_card_back_3">ଏବେ ଚେଷ୍ଟା କରନ୍ତୁ। ଏହି କାର୍ଡ ପାଇଁ <xliff:g id="again_button" example="Again">%1$s</xliff:g> ବାଛନ୍ତୁ। ପ୍ରାୟ ଏକ ମିନିଟ୍ ପରେ କାର୍ଡଟି ପୁଣି ଆସିବ, ଫଳରେ ଉତ୍ତରଟି ମନେ ରହିବ।</string>
+    <string name="notification_diagnostics_failed_message">ନୋଟିଫିକେସନ୍ ଯାଞ୍ଚ ବିଫଳ ହେଲା।</string>
+    <string name="review_notification_channel_name">ଅଭ୍ୟାସ ପାଇଁ ସ୍ମରଣ</string>
+    <string name="review_notification_channel_description">ଅଭ୍ୟାସ ତାଲିକାର କାର୍ଡ ସହ ପଢ଼ିବା ପାଇଁ ସ୍ମରଣ।</string>
+    <!-- Home Screen widget name in the launcher's widget picker. -->
+    <string name="review_widget_label">ଅଭ୍ୟାସ</string>
+    <string name="review_widget_description">ଅଭ୍ୟାସ ବାକି ଥିବା କାର୍ଡ, ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ ଓ ଲଗାତାର ଅଭ୍ୟାସର ହିସାବ।</string>
+    <string name="review_widget_open_app_message">ଅଭ୍ୟାସ ଆରମ୍ଭ କରିବାକୁ ଆପ୍ ଖୋଲନ୍ତୁ।</string>
+    <string name="review_widget_all_done">ସବୁ ସରିଲା</string>
+    <!-- Shown instead of the next card's question when its front has no text, such as an image only. -->
+    <string name="review_widget_question_without_text">ଛବି ଥିବା ପ୍ରଶ୍ନ</string>
+    <!-- The placeholder is a time today, otherwise a date and time. -->
+    <string name="review_widget_next_due">ପରବର୍ତ୍ତୀ କାର୍ଡ: <xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
+    <!-- Shown under the big due count on the small widget. -->
+    <string name="review_widget_due_label">ବାକି</string>
+    <plurals name="review_widget_cards_due">
+        <item quantity="one">%1$dଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</item>
+        <item quantity="other">%1$dଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</item>
+    </plurals>
+    <plurals name="review_widget_streak_days">
+        <item quantity="one">ଲଗାତାର %1$d ଦିନ</item>
+        <item quantity="other">ଲଗାତାର %1$d ଦିନ</item>
+    </plurals>
+    <!-- Sample content of the widget preview in the launcher's widget picker. -->
+    <string name="review_widget_preview_cards_due">୧୨ଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</string>
+    <string name="review_widget_preview_question">ମାଇଟୋକଣ୍ଡ୍ରିଆ କୋଷ ପାଇଁ କ’ଣ ଉତ୍ପାଦନ କରେ?</string>
+    <string name="review_widget_preview_streak">ଲଗାତାର ୭ ଦିନ</string>
+    <!-- Reviews chart Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="reviews_chart_widget_label">ଅଭ୍ୟାସ ଚାର୍ଟ</string>
+    <string name="reviews_chart_widget_description">ଗତ କିଛି ସପ୍ତାହର ଦୈନିକ ଅଭ୍ୟାସ।</string>
+    <string name="reviews_chart_widget_daily_average">ଦୈନିକ ହାରାହାରି <xliff:g id="review_count" example="24">%1$d</xliff:g></string>
+    <!-- The quantity is the day count. -->
+    <plurals name="reviews_chart_widget_trend_up">
+        <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
+        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
+    </plurals>
+    <!-- The quantity is the day count. -->
+    <plurals name="reviews_chart_widget_trend_down">
+        <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
+        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
+    </plurals>
+    <string name="reviews_chart_widget_preview_daily_average">ଦୈନିକ ହାରାହାରି ୨୪</string>
+    <!-- Coming up Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="coming_up_widget_label">ଆଗାମୀ ଅଭ୍ୟାସ</string>
+    <string name="coming_up_widget_description">ଆଗାମୀ ୭ ଦିନରେ ଅଭ୍ୟାସ କରିବାକୁ ଥିବା କାର୍ଡ ଓ ଆପଣଙ୍କ ଅଭ୍ୟାସ ସୂଚୀ।</string>
+    <plurals name="coming_up_widget_header">
+        <item quantity="one">ଆଗାମୀ ୭ ଦିନ · <xliff:g id="card_count" example="1">%1$d</xliff:g>ଟି କାର୍ଡ</item>
+        <item quantity="other">ଆଗାମୀ ୭ ଦିନ · <xliff:g id="card_count" example="58">%1$d</xliff:g>ଟି କାର୍ଡ</item>
+    </plurals>
+    <string name="coming_up_widget_preview_header">ଆଗାମୀ ୭ ଦିନ · ୫୮ଟି କାର୍ଡ</string>
+    <!-- Today Home Screen widget name in the launcher's widget picker, also its title on the medium widget. -->
+    <string name="today_widget_label">ଆଜି</string>
+    <string name="today_widget_description">ଆଜିର ଅଭ୍ୟାସ, ବାକି କାର୍ଡ ଓ ଲଗାତାର ଅଭ୍ୟାସର ହିସାବ।</string>
+    <!-- Share of today's cards already reviewed, next to the progress bar. -->
+    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
+    <!-- Shown when no card was reviewed today and none is due. -->
+    <string name="today_widget_no_cards_due">କୌଣସି କାର୍ଡ ବାକି ନାହିଁ</string>
+    <plurals name="today_widget_reviewed">
+        <item quantity="one">%1$dଟି ସରିଛି</item>
+        <item quantity="other">%1$dଟି ସରିଛି</item>
+    </plurals>
+    <!-- Cards still due today, under the ring on the small widget. -->
+    <plurals name="today_widget_left">
+        <item quantity="one">%1$dଟି ବାକି</item>
+        <item quantity="other">%1$dଟି ବାକି</item>
+    </plurals>
+    <plurals name="today_widget_cards_left">
+        <item quantity="one">%1$dଟି କାର୍ଡ ବାକି</item>
+        <item quantity="other">%1$dଟି କାର୍ଡ ବାକି</item>
+    </plurals>
+    <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
+    <string name="today_widget_preview_reviewed">୮ଟି ସରିଛି</string>
+    <string name="today_widget_preview_cards_left">୪ଟି କାର୍ଡ ବାକି</string>
+    <!-- Activity heatmap widget name in the launcher's widget picker. -->
+    <string name="activity_widget_label">କାର୍ଯ୍ୟକଳାପ</string>
+    <string name="activity_widget_description">ରଙ୍ଗିନ ଚାର୍ଟରେ ଦୈନିକ ଅଭ୍ୟାସ ଓ ଲଗାତାର ଅଭ୍ୟାସର ହିସାବ।</string>
+    <plurals name="activity_widget_streak_days">
+        <item quantity="one">🔥 %1$d ଦିନ</item>
+        <item quantity="other">🔥 %1$d ଦିନ</item>
+    </plurals>
+    <plurals name="activity_widget_reviews">
+        <item quantity="one">%1$dଟି ଅଭ୍ୟାସ</item>
+        <item quantity="other">%1$dଟି ଅଭ୍ୟାସ</item>
+    </plurals>
+    <plurals name="activity_widget_grid_description">
+        <item quantity="one">ଗତ %1$d ସପ୍ତାହର ଦୈନିକ ଅଭ୍ୟାସ</item>
+        <item quantity="other">ଗତ %1$d ସପ୍ତାହର ଦୈନିକ ଅଭ୍ୟାସ</item>
+    </plurals>
+    <!-- Stat labels on the large Activity widget; reviews and active days count the weeks the grid shows. -->
+    <string name="activity_widget_stat_current_streak">ଲଗାତାର ଅଭ୍ୟାସ</string>
+    <string name="activity_widget_stat_best_streak">ସବୁଠାରୁ ଲମ୍ବା ଧାରା</string>
+    <string name="activity_widget_stat_freezes">ବିରତି ସୁଯୋଗ</string>
+    <string name="activity_widget_stat_reviews">ଅଭ୍ୟାସ</string>
+    <string name="activity_widget_stat_active_days">ସକ୍ରିୟ ଦିନ</string>
+    <string name="activity_widget_stat_today">ଆଜି</string>
+    <string name="activity_widget_stat_due_now">ଏବେ ବାକି</string>
+    <!-- Sample content of the Activity widget preview in the launcher's widget picker. -->
+    <string name="activity_widget_preview_streak">🔥 ୭ ଦିନ</string>
+    <string name="activity_widget_preview_reviews">୩୪୨ଟି ଅଭ୍ୟାସ</string>
+    <!-- Year view widget name in the launcher's widget picker. -->
+    <string name="year_widget_label">ବର୍ଷ</string>
+    <string name="year_widget_description">ବର୍ଷକର ଦୈନିକ ଅଭ୍ୟାସ, ପ୍ରତି ମାସ ପାଇଁ ଗୋଟିଏ ଧାଡ଼ି।</string>
+    <string name="year_widget_grid_description">ଗତ ୧୨ ମାସର ଦୈନିକ ଅଭ୍ୟାସ</string>
+    <plurals name="year_widget_active_days">
+        <item quantity="one">%1$d ଦିନ ସକ୍ରିୟ</item>
+        <item quantity="other">%1$d ଦିନ ସକ୍ରିୟ</item>
+    </plurals>
+    <!-- Sample content of the Year widget preview in the launcher's widget picker. -->
+    <string name="year_widget_preview_reviews">୪,୧୨୦ଟି ଅଭ୍ୟାସ</string>
+    <string name="year_widget_preview_active_days">୧୮୬ ଦିନ ସକ୍ରିୟ</string>
+    <!-- Streaks Home Screen widget name in the launcher's widget picker; also its medium-size header. -->
+    <string name="streaks_widget_label">ଲଗାତାର ଅଭ୍ୟାସ</string>
+    <string name="streaks_widget_description">ଏବେର ଅଭ୍ୟାସ ଧାରା, ସବୁଠାରୁ ଲମ୍ବା ଧାରା ଓ ଗତ କିଛି ଧାରା।</string>
+    <!-- The longest streak ever, in days. -->
+    <string name="streaks_widget_best">ସର୍ବାଧିକ <xliff:g id="days" example="30">%1$d</xliff:g> ଦିନ</string>
+    <string name="streaks_widget_empty">ଲଗାତାର ଅଭ୍ୟାସର ଧାରା ଆରମ୍ଭ କରିବାକୁ ଆଜି ଅଭ୍ୟାସ କରନ୍ତୁ।</string>
+    <string name="streaks_widget_chart_description">ଏବେର ଓ ଗତ କିଛି ଅଭ୍ୟାସ ଧାରା</string>
+    <string name="streaks_widget_preview_best">ସର୍ବାଧିକ ୩୦ ଦିନ</string>
+    <!-- Month calendar Home Screen widget name in the launcher's widget picker. -->
+    <string name="month_calendar_widget_label">କ୍ୟାଲେଣ୍ଡର</string>
+    <string name="month_calendar_widget_description">ଏହି ମାସରେ ଆପଣ ଯେଉଁ ଦିନଗୁଡ଼ିକରେ ଅଭ୍ୟାସ ଧାରା ବଜାୟ ରଖିଛନ୍ତି।</string>
+    <plurals name="month_calendar_widget_chart_description">
+        <item quantity="one">ଏହି ମାସରେ %1$d ଦିନ ଅଭ୍ୟାସ ଧାରା ବଜାୟ ରହିଛି</item>
+        <item quantity="other">ଏହି ମାସରେ %1$d ଦିନ ଅଭ୍ୟାସ ଧାରା ବଜାୟ ରହିଛି</item>
+    </plurals>
+    <!-- Sample month of the Calendar widget preview in the launcher's widget picker. -->
+    <string name="month_calendar_widget_preview_month">ନଭେମ୍ବର</string>
+    <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
+    <string name="dashboard_widget_label">ଡ୍ୟାସ୍‌ବୋର୍ଡ</string>
+    <string name="dashboard_widget_description">ଆଜିର ପ୍ରଗତି, ବାକି କାର୍ଡ, ଲଗାତାର ଅଭ୍ୟାସ, ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ ଓ ଆପଣଙ୍କ କାର୍ଯ୍ୟକଳାପ।</string>
+    <string name="premium_title">ପ୍ରିମିୟମ୍</string>
+    <string name="premium_benefit_creator_support">ଆପ୍‌ର ନିର୍ମାତାଙ୍କୁ ସହଯୋଗ</string>
+    <string name="premium_benefit_accent_color">ନିଜ ପସନ୍ଦର ଆପ୍ ରଙ୍ଗ</string>
+    <string name="premium_benefit_themes">ଗାଢ଼ ଓ ହାଲୁକା ଥିମ୍</string>
+    <string name="premium_benefit_review_animations">ଅଭ୍ୟାସର ଆନିମେସନ୍ ନିୟନ୍ତ୍ରଣ</string>
+    <string name="premium_benefit_app_icon">ନିଜ ପସନ୍ଦର ଆପ୍ ଆଇକନ୍</string>
+    <string name="premium_already_active">ଆପଣଙ୍କ ପ୍ଲାନ୍‌ରେ ପ୍ରିମିୟମ୍ ସୁବିଧା ଆଗରୁ ଅଛି।</string>
+    <string name="premium_offer_loading">Google Playରୁ ଅଫର୍ ଲୋଡ୍ ହେଉଛି…</string>
+    <string name="premium_offer_unavailable">ଏହି ଆକାଉଣ୍ଟ ପାଇଁ Google Playରେ ଏବେ ପ୍ରିମିୟମ୍ ଉପଲବ୍ଧ ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ କିମ୍ବା ଆଗରୁ କିଣିଥିବା ସୁବିଧା ଫେରାଇ ଆଣନ୍ତୁ।</string>
+    <string name="premium_offer_terms_unavailable">Google Playରୁ ଆସିଥିବା ମୂଲ୍ୟ ସର୍ତ୍ତ ଆପ୍‌ରେ ଦେଖାଯାଇପାରୁନି। ସବ୍‌ସ୍କ୍ରାଇବ୍ କରିବା ଆଗରୁ ଅଫର୍ ପୁଣି ଲୋଡ୍ କରନ୍ତୁ।</string>
+    <string name="premium_activity_unavailable">କିଣିବାକୁ ଏହି ସ୍କ୍ରିନ୍ ବନ୍ଦ କରି ପ୍ରିମିୟମ୍ ପୁଣି ଖୋଲନ୍ତୁ।</string>
+    <string name="premium_retry_offer">ଅଫର୍ ପୁଣି ଲୋଡ୍ କରନ୍ତୁ</string>
+    <string name="premium_retry">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</string>
+    <string name="premium_phase_recurring">%1$s/%2$s</string>
+    <string name="premium_phase_free">%1$s ମାଗଣା</string>
+    <string name="premium_phase_once">%2$s ପାଇଁ %1$s</string>
+    <string name="premium_phase_sequence">%1$s, ତା’ପରେ %2$s</string>
+    <string name="premium_start_trial">ମାଗଣା ଟ୍ରାଏଲ୍ ଆରମ୍ଭ କରନ୍ତୁ (%1$s)</string>
+    <string name="premium_subscribe">ସବ୍‌ସ୍କ୍ରାଇବ୍ କରନ୍ତୁ — %1$s</string>
+    <string name="premium_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="$6.99/1 month">%1$s</xliff:g>। ଆପେଆପେ ନବୀକରଣ ହେବ। ଟଙ୍କା କଟିବା ଏଡ଼ାଇବାକୁ ନବୀକରଣ ଆଗରୁ Google Playରେ ବାତିଲ କରନ୍ତୁ।</string>
+    <string name="premium_trial_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="7 days free, then $6.99/1 month">%1$s</xliff:g>। ଆପେଆପେ ନବୀକରଣ ହେବ। ଟଙ୍କା କଟିବା ଏଡ଼ାଇବାକୁ ମାଗଣା ଟ୍ରାଏଲ୍ ସରିବା ଆଗରୁ Google Playରେ ବାତିଲ କରନ୍ତୁ।</string>
+    <string name="premium_terms">ସେବାର ସର୍ତ୍ତାବଳୀ</string>
+    <string name="premium_privacy">ଗୋପନୀୟତା ନୀତି</string>
+    <string name="premium_restore">କିଣିଥିବା ସୁବିଧା ଫେରାନ୍ତୁ</string>
+    <string name="premium_billing_loading">Google Play ସହ ସଂଯୋଗ ହେଉଛି…</string>
+    <string name="premium_billing_purchasing">Google Playରେ କିଣାକିଣି ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ। ସେହି ସମୟରେ ଏହି ସ୍କ୍ରିନ୍ ବନ୍ଦ କରିପାରିବେ।</string>
+    <string name="premium_billing_pending">Google Playରେ ଦେୟ ପ୍ରକ୍ରିୟା ଏଯାଏ ସରିନାହିଁ। ଦେୟ ଓ ଆକାଉଣ୍ଟ ଯାଞ୍ଚ ସରିଲେ ପ୍ରିମିୟମ୍ ସକ୍ରିୟ ହେବ।</string>
+    <string name="premium_pending_refresh">କିଣାକିଣିର ସ୍ଥିତି ଯାଞ୍ଚ କରନ୍ତୁ</string>
+    <string name="premium_billing_verifying">କିଣାକିଣି ଯାଞ୍ଚ ଓ ପ୍ଲାନ୍ ସିଙ୍କ୍ ହେଉଛି…</string>
+    <string name="premium_billing_complete">ଆପଣଙ୍କ କିଣାକିଣି ଯାଞ୍ଚ ହୋଇଛି। ଏହି ଆକାଉଣ୍ଟରେ ପ୍ରିମିୟମ୍ ସକ୍ରିୟ ଅଛି।</string>
+    <string name="premium_nothing_to_restore">ଏହି Google Play ଆକାଉଣ୍ଟ ପାଇଁ କୌଣସି ପ୍ରିମିୟମ୍ ସବ୍‌ସ୍କ୍ରିପ୍ସନ୍ ମିଳିଲା ନାହିଁ।</string>
+    <string name="premium_store_unavailable">Google Play ବିଲିଂ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଓ Google Play ଆକାଉଣ୍ଟ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="premium_offer_changed">ଅଫର୍ ବଦଳିଛି। ସବ୍‌ସ୍କ୍ରାଇବ୍ କରିବା ଆଗରୁ ଏହାକୁ ପୁଣି ଲୋଡ୍ କରି ଏବେର ମୂଲ୍ୟ ଦେଖନ୍ତୁ।</string>
+    <string name="premium_identity_changed">ଆପ୍ ଆକାଉଣ୍ଟ ବଦଳିଛି। ଯେଉଁ ଆକାଉଣ୍ଟରୁ କିଣିଥିଲେ ସେଠାକୁ ଫେରନ୍ତୁ, କିମ୍ବା ସବ୍‌ସ୍କ୍ରିପ୍ସନ୍‌କୁ ଏହି ଆକାଉଣ୍ଟ ସହ ଯୋଡ଼ିବା ପାଇଁ «କିଣିଥିବା ସୁବିଧା ଫେରାନ୍ତୁ» ବାଛନ୍ତୁ।</string>
+    <string name="premium_verification_failed">Nibomoରେ ଆପଣଙ୍କ କିଣାକିଣି ଯାଞ୍ଚ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। ପୁଣି କିଣିବା ଦରକାର ନାହିଁ।</string>
+    <string name="premium_entitlement_unknown">ସବ୍‌ସ୍କ୍ରାଇବ୍ କରିବା ଆଗରୁ ଆପଣଙ୍କ ଏବେର ପ୍ଲାନ୍ ଯାଞ୍ଚ ହେବା ଦରକାର। ଆଗରୁ କିଣିଥିବା ସୁବିଧା ଫେରାଇ ଆଣିପାରିବେ।</string>
+    <string name="premium_entitlement_refresh_failed">ଆପଣଙ୍କ ଏବେର ପ୍ଲାନ୍ ଯାଞ୍ଚ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="premium_retry_plan">ଏବେର ପ୍ଲାନ୍ ଯାଞ୍ଚ କରନ୍ତୁ</string>
+    <string name="premium_purchase_preparation_failed">କିଣାକିଣି ଆରମ୍ଭ କରିହେଲା ନାହିଁ। ଆକାଉଣ୍ଟ, ସଂଯୋଗ ଓ ଡିଭାଇସ୍‌ର ଖାଲି ଜାଗା ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। Google Play ପେମେଣ୍ଟ ସ୍କ୍ରିନ୍ ଖୋଲିନାହିଁ।</string>
+    <string name="premium_storage_failed">ଏହି ଡିଭାଇସ୍‌ରେ କିଣାକିଣି ଫେରାଇବା ପାଇଁ ଦରକାରୀ ତଥ୍ୟ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ। ଖାଲି ଜାଗା ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ କିମ୍ବା କିଣିଥିବା ସୁବିଧା ଫେରାନ୍ତୁ।</string>
+    <string name="premium_purchase_failed">Google Play କିଣାକିଣି ଅନୁରୋଧ ପୂରା କରିପାରିଲା ନାହିଁ। Google Play ଆକାଉଣ୍ଟ ଓ ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। ଆଗରୁ କିଣିଥିଲେ «କିଣିଥିବା ସୁବିଧା ଫେରାନ୍ତୁ» ବାଛନ୍ତୁ।</string>
+    <string name="premium_entitlement_not_granted">କିଣାକିଣି ଯାଞ୍ଚ ହେଲା, ହେଲେ ଏହି ଆକାଉଣ୍ଟରେ ପ୍ରିମିୟମ୍ ସକ୍ରିୟ ନାହିଁ। Google Playରେ ସବ୍‌ସ୍କ୍ରିପ୍ସନ୍ ଯାଞ୍ଚ କରନ୍ତୁ କିମ୍ବା ଏହି ଆକାଉଣ୍ଟ ସହ ଯୋଡ଼ିବାକୁ «କିଣିଥିବା ସୁବିଧା ଫେରାନ୍ତୁ» ବାଛନ୍ତୁ।</string>
+    <plurals name="premium_phase_finite">
+        <item quantity="one">%1$s/%2$s ହାରରେ %3$d ଥର ଦେୟ</item>
+        <item quantity="other">%1$s/%2$s ହାରରେ %3$d ଥର ଦେୟ</item>
+    </plurals>
+    <plurals name="premium_period_days">
+        <item quantity="one">%1$d ଦିନ</item>
+        <item quantity="other">%1$d ଦିନ</item>
+    </plurals>
+    <plurals name="premium_period_months">
+        <item quantity="one">%1$d ମାସ</item>
+        <item quantity="other">%1$d ମାସ</item>
+    </plurals>
+    <plurals name="premium_period_years">
+        <item quantity="one">%1$d ବର୍ଷ</item>
+        <item quantity="other">%1$d ବର୍ଷ</item>
+    </plurals>
+    <string name="premium_close">ପ୍ରିମିୟମ୍ ବନ୍ଦ କରନ୍ତୁ</string>
+    <string name="premium_ai_limit_title">AI ମେସେଜ୍ ସୀମା ପୂରା ହୋଇଛି</string>
+    <string name="premium_ai_limit_message">ଏହି ମାସର ସମସ୍ତ AI ମେସେଜ୍ ବ୍ୟବହାର ହୋଇଯାଇଛି।</string>
+    <string name="premium_ai_renewal">%1$sରେ ପୁଣି ପୂରା ମାସିକ AI ମେସେଜ୍ କୋଟା ମିଳିବ।</string>
+    <string name="premium_ai_usage_unavailable">AI ମେସେଜ୍ କୋଟା ପୁଣି ମିଳିବାର ତାରିଖ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ଆପଣ ନିଜର OpenAI କି ବ୍ୟବହାର କରିପାରିବେ।</string>
+    <string name="premium_own_key_help">ନିଜର OpenAI କି ଯୋଡ଼ନ୍ତୁ। ତା’ପରେ ଏହି ଚାଟ୍‌କୁ ଫେରି ପ୍ରସ୍ତୁତ ହେଲେ ମେସେଜ୍ ପୁଣି ପଠାନ୍ତୁ। ନିଜ କି ଦ୍ୱାରା AI ବ୍ୟବହାର କରିପାରିବେ, ଆପଣଙ୍କ ପ୍ଲାନ୍ ବଦଳିବ ନାହିଁ।</string>
+    <string name="premium_own_key_action">ନିଜର OpenAI କି ବ୍ୟବହାର କରନ୍ତୁ</string>
+    <string name="premium_sign_in">ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ କିମ୍ବା ଲଗ୍ ଇନ୍ କରନ୍ତୁ</string>
+    <string name="premium_heading">Nibomoକୁ <xliff:g id="yours" example="yours">%1$s</xliff:g> କରନ୍ତୁ।</string>
+    <string name="premium_heading_emphasis">ନିଜର</string>
+    <string name="premium_free_title">ମାଗଣା</string>
+    <string name="premium_welcome">ଗୋଟିଏ ଆପ୍। ସମସ୍ତଙ୍କୁ ସ୍ୱାଗତ। ପସନ୍ଦ ଆପଣଙ୍କର।</string>
+    <string name="premium_free_description">ରୋଜଗାର କରୁନଥିବା ଛାତ୍ରଛାତ୍ରୀଙ୍କ ପାଇଁ ତିଆରି। ସମସ୍ତେ ବ୍ୟବହାର କରିପାରିବେ।</string>
+    <string name="premium_free_no_creator_support">ଆପ୍ ନିର୍ମାତାଙ୍କୁ ଆର୍ଥିକ ସହଯୋଗ ନାହିଁ</string>
+    <string name="premium_free_benefits">ମୂଳ ଅଭ୍ୟାସ ସୁବିଧା, ଅଫଲାଇନ୍ ପଢ଼ା ଓ ସିଙ୍କ୍</string>
+    <string name="premium_free_limited_ai">ସୀମିତ AI ଚାଟ୍</string>
+    <string name="premium_free_default_styles">କେବଳ ଡିଫଲ୍ଟ ଷ୍ଟାଇଲ୍</string>
+    <string name="premium_free_no_other_premium_features">ଅନ୍ୟ ପ୍ରିମିୟମ୍ ସୁବିଧା ନାହିଁ</string>
+    <string name="premium_dont_pay_creator">ଆପ୍‌ର ନିର୍ମାତାଙ୍କୁ ଟଙ୍କା ଦିଅନ୍ତୁ ନାହିଁ</string>
+    <string name="premium_creator_support">ଆପଣଙ୍କ ସବ୍‌ସ୍କ୍ରିପ୍ସନ୍ Nibomo ନିର୍ମାତା %1$sଙ୍କ ସର୍ଭର୍ ଖର୍ଚ୍ଚରେ ସାହାଯ୍ୟ କରେ। ପରବର୍ତ୍ତୀ ଅପଡେଟ୍ ତିଆରି ବେଳେ କଫି ଓ ପିଜା ପାଇଁ ମଧ୍ୟ।</string>
+    <string name="premium_start_seven_day_trial">୭ ଦିନର ମାଗଣା ଟ୍ରାଏଲ୍ ଆରମ୍ଭ କରନ୍ତୁ</string>
+    <string name="premium_manage">Google Playରେ ସବ୍‌ସ୍କ୍ରିପ୍ସନ୍ ପରିଚାଳନା କରନ୍ତୁ</string>
+    <string name="premium_allowance_loading">ମାସିକ AI ମେସେଜ୍ ସୀମା ଲୋଡ୍ ହେଉଛି…</string>
+    <string name="premium_allowance_unavailable">ମାସିକ AI ମେସେଜ୍ ସୀମା ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="premium_ai_unlimited">ମାସିକ ସୀମା ବିନା AI ମେସେଜ୍</string>
+    <string name="premium_preview_purchase_notice">ପରୀକ୍ଷଣ ମୋଡ୍: କିଛି କିଣାଯାଇନାହିଁ। ଆପଣଙ୍କ ପ୍ଲାନ୍ ବଦଳିନାହିଁ।</string>
+    <string name="premium_preview_notice">କେବଳ ପୂର୍ବଦୃଶ୍ୟ। Google Play ଅଫର୍ ଦେଖିବାକୁ ସବ୍‌ସ୍କ୍ରିପ୍ସନ୍‌ରୁ ପ୍ରିମିୟମ୍ ଖୋଲନ୍ତୁ।</string>
+    <plurals name="premium_ai_messages">
+        <item quantity="one">ମାସକୁ %1$dଟି AI ଚାଟ୍ ମେସେଜ୍</item>
+        <item quantity="other">ମାସକୁ %1$dଟି AI ଚାଟ୍ ମେସେଜ୍</item>
+    </plurals>
+</resources>
