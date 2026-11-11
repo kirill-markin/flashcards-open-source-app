@@ -780,6 +780,7 @@ const guCatalog: TranslationCatalog = {
     groups: {
       yourCards: "તમારાં કાર્ડ",
       addCards: "કાર્ડ ઉમેરો",
+      transfer: "ડેટા ટ્રાન્સફર",
     },
     deckCatalog: {
       title: "ડેક કૅટલૉગ",
@@ -1459,6 +1460,19 @@ const guCatalog: TranslationCatalog = {
       edit: "ડેક સંપાદિત કરો",
       new: "નવું ડેક",
     },
+  },
+  cardMaintenance: {
+    removeTag: "કાર્ડમાંથી ટૅગ દૂર કરો",
+    linkedWorkspaceRequired: "આ ક્રિયા માટે જોડાયેલ ક્લાઉડ કાર્યસ્થળ જરૂરી છે.",
+    noChanges: "કોઈ કાર્ડમાં આ ફેરફારની જરૂર નથી.",
+    overlap: "આ કાર્ડ ધરાવતાં અન્ય ડેક અને ટૅગની અભ્યાસ પ્રગતિ પણ રીસેટ થશે.",
+    outcomeUnknown: "વર્કસ્પેસમાં ફેરફાર લાગુ થયો છે કે નહીં તેની ખાતરી થઈ શકી નથી.",
+    previewChanged: "અસરગ્રસ્ત કાર્ડ બદલાયાં છે. અપડેટ કરેલું પૂર્વાવલોકન તપાસો અને ફરી પુષ્ટિ કરો.",
+    removePreview: "{{cards}} પરથી આ ટૅગ દૂર થશે. કાર્ડ સાચવી રાખવામાં આવશે. નિયમોમાં આ ટૅગ ધરાવતા ડેક: {{decks}}.",
+    resetComplete: "અભ્યાસની પ્રગતિ રીસેટ થઈ.",
+    saveDeckRules: "અભ્યાસની પ્રગતિ રીસેટ કરતાં પહેલાં ડેકના નિયમો સાચવો.",
+    syncFailed: "કનેક્શન તપાસો અને ફરી સિંક કરવાનો પ્રયાસ કરો.",
+    targetMissing: "પસંદ કરેલું કાર્ડ, ડેક અથવા ટૅગ હવે અસ્તિત્વમાં નથી.",
   },
   tagsScreen: {
     counts: {

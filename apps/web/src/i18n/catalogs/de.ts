@@ -780,6 +780,7 @@ const deCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Deine Karten",
       addCards: "Karten hinzufügen",
+      transfer: "Datentransfer",
     },
     deckCatalog: {
       title: "Deck-Katalog",
@@ -1459,6 +1460,19 @@ const deCatalog: TranslationCatalog = {
       edit: "Deck bearbeiten",
       new: "Neues Deck",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Tag von Karten entfernen",
+    linkedWorkspaceRequired: "Diese Aktion erfordert einen verknüpften Cloud-Arbeitsbereich.",
+    noChanges: "Für keine Karte ist diese Änderung nötig.",
+    overlap: "Dadurch wird der Lernfortschritt auch in anderen Stapeln und Tags zurückgesetzt, die diese Karten enthalten.",
+    outcomeUnknown: "Wir konnten nicht bestätigen, ob die Änderung im Arbeitsbereich übernommen wurde.",
+    previewChanged: "Die betroffenen Karten haben sich geändert. Prüfe die aktualisierte Vorschau und bestätige erneut.",
+    removePreview: "Der Tag wird von {{cards}} entfernt. Die Karten bleiben erhalten. Stapel mit diesem Tag in ihren Regeln: {{decks}}.",
+    resetComplete: "Lernfortschritt zurückgesetzt.",
+    saveDeckRules: "Speichere die Stapelregeln, bevor du den Lernfortschritt zurücksetzt.",
+    syncFailed: "Prüfe deine Verbindung und versuche erneut zu synchronisieren.",
+    targetMissing: "Die ausgewählte Karte, der Stapel oder der Tag existiert nicht mehr.",
   },
   tagsScreen: {
     counts: {

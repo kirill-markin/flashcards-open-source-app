@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CardSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.sync.DeckSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
+import com.flashcardsopensourceapp.data.local.model.cards.cardMaintenanceRevisionKey
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.MediaAssetSyncPayload
 import com.flashcardsopensourceapp.data.local.model.sync.ReviewEventSyncPayload
@@ -30,6 +31,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeCardType
+import com.flashcardsopensourceapp.data.local.model.cards.parseCardMaintenanceRevision
 import com.flashcardsopensourceapp.data.local.model.scheduling.decodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
@@ -399,7 +401,16 @@ internal fun parseCardPayloadMetadata(
                 fieldPath = "$fieldPath.metadata.source"
             )
         },
-        onboardingDemo = decodeOnboardingDemoMetadata(value = metadataObject.opt("onboardingDemo"))
+        onboardingDemo = decodeOnboardingDemoMetadata(value = metadataObject.opt("onboardingDemo")),
+        maintenanceRevision = if (metadataObject.has(cardMaintenanceRevisionKey)) {
+            val value = metadataObject.get(cardMaintenanceRevisionKey)
+            parseCardMaintenanceRevision(value = value) ?: throw CloudContractMismatchException(
+                "Cloud contract mismatch for $fieldPath.metadata.$cardMaintenanceRevisionKey: " +
+                    "expected a positive safe integer, got $value"
+            )
+        } else {
+            null
+        }
     )
 }
 

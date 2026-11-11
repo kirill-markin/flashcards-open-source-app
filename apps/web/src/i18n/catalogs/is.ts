@@ -780,6 +780,7 @@ const isCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Spjöldin þín",
       addCards: "Bæta við spjöldum",
+      transfer: "Gagnaflutningur",
     },
     deckCatalog: {
       title: "Stokkasafn",
@@ -1459,6 +1460,19 @@ const isCatalog: TranslationCatalog = {
       edit: "Breyta stokki",
       new: "Nýr stokkur",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Fjarlægja merki af spjöldum",
+    linkedWorkspaceRequired: "Þessi aðgerð krefst tengds vinnusvæðis í skýinu.",
+    noChanges: "Ekkert spjald þarf þessa breytingu.",
+    overlap: "Þetta endurstillir líka námsframvindu í öðrum stokkum og merkjum sem innihalda þessi spjöld.",
+    outcomeUnknown: "Ekki tókst að staðfesta hvort breytingin á vinnusvæðinu var framkvæmd.",
+    previewChanged: "Spjöldin sem verða fyrir áhrifum hafa breyst. Skoðaðu uppfærða forskoðun og staðfestu aftur.",
+    removePreview: "Merkið verður fjarlægt af spjöldum ({{cards}}). Spjöldin verða áfram til. Stokkar sem nota þetta merki í reglum sínum: {{decks}}.",
+    resetComplete: "Námsframvinda var endurstillt.",
+    saveDeckRules: "Vistaðu reglur stokksins áður en þú endurstillir námsframvindu.",
+    syncFailed: "Athugaðu tenginguna og reyndu að samstilla aftur.",
+    targetMissing: "Valið spjald, stokkur eða merki er ekki lengur til.",
   },
   tagsScreen: {
     counts: {

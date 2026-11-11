@@ -343,14 +343,29 @@ struct WorkspacePackageCardMetadata: Codable, Hashable, Sendable {
     let version: Int
     let source: CardSourceMetadata?
 
+    private enum CodingKeys: String, CodingKey {
+        case version
+        case source
+    }
+
     init(from decoder: Decoder) throws {
-        let metadata = try CardMetadata(from: decoder)
-        self.version = metadata.version
-        self.source = metadata.source
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let version = try container.decode(Int.self, forKey: .version)
+        guard version == 1 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .version,
+                in: container,
+                debugDescription: "Workspace package card metadata version must be 1"
+            )
+        }
+        self.version = version
+        self.source = try container.decode(CardSourceMetadata?.self, forKey: .source)
     }
 
     func encode(to encoder: Encoder) throws {
-        try CardMetadata(source: self.source).encode(to: encoder)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.version, forKey: .version)
+        try container.encode(self.source, forKey: .source)
     }
 }
 

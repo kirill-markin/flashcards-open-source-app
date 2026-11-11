@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
 import com.flashcardsopensourceapp.app.navigation.cards.registerCardEditorNavGraph
 import com.flashcardsopensourceapp.app.navigation.library.LibraryCardsDestination
 import com.flashcardsopensourceapp.app.navigation.library.registerLibraryNavGraph
+import com.flashcardsopensourceapp.app.navigation.maintenance.registerCardMaintenanceDestination
 import com.flashcardsopensourceapp.app.navigation.progress.registerProgressNavGraph
 import com.flashcardsopensourceapp.app.navigation.review.ReviewPreviewDestination
 import com.flashcardsopensourceapp.app.navigation.review.ReviewRootGraph
@@ -69,6 +70,7 @@ internal fun AppNavHost(
             navController = navController,
             destination = ReviewDestination
         )
+        navController.popBackStack(route = ReviewDestination.route, inclusive = false)
     }
 
     LaunchedEffect(appNotificationTapRequest?.requestId) {
@@ -145,6 +147,7 @@ internal fun AppNavHost(
             navController = navController,
             coroutineScope = coroutineScope
         )
+        registerCardMaintenanceDestination(appGraph = appGraph, navController = navController)
         registerAiNavGraph(
             appGraph = appGraph,
             navController = navController,

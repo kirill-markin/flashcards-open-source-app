@@ -38,7 +38,7 @@ internal fun toWorkspaceSchedulerSettings(
     )
 }
 
-internal fun makeWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSummary {
+internal fun makeWorkspaceTagsSummary(cards: List<CardSummary>, workspaceId: String?): WorkspaceTagsSummary {
     // Deleted cards keep their tags locally, so a tag whose cards are all deleted must disappear here.
     val activeCards: List<CardSummary> = cards.filter { card ->
         card.deletedAtMillis == null
@@ -62,12 +62,14 @@ internal fun makeWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSu
     )
 
     return WorkspaceTagsSummary(
+        workspaceId = workspaceId,
         tags = tags,
         totalCards = activeCards.size
     )
 }
 
 internal fun makeWorkspaceTagsSummaryFromStoredTagNames(
+    workspaceId: String,
     tagNames: List<String>,
     totalCards: Int
 ): WorkspaceTagsSummary {
@@ -79,6 +81,7 @@ internal fun makeWorkspaceTagsSummaryFromStoredTagNames(
     }
 
     return WorkspaceTagsSummary(
+        workspaceId = workspaceId,
         tags = tags,
         totalCards = totalCards
     )

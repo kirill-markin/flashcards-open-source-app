@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseSyncEntityType
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.model.cards.cardMaintenanceRevisionKey
 import com.flashcardsopensourceapp.data.local.model.media.rewriteManagedMediaAssetReferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONObject
@@ -192,13 +193,15 @@ internal fun rewriteOutboxEntryForFork(
     }
     when (entityType) {
         SyncEntityType.CARD -> {
-            payloadJson.put(
-                "cardId",
-                forkMappings.cardIdsBySourceId.requireMappedId(
-                    entityType = "card",
-                    sourceId = payloadJson.requireCloudString("cardId", "fork.outbox.card.cardId")
-                )
+            val payloadCardId = payloadJson.requireCloudString("cardId", "fork.outbox.card.cardId")
+            val rewrittenCardId = forkMappings.cardIdsBySourceId.requireMappedId(
+                entityType = "card",
+                sourceId = payloadCardId
             )
+            payloadJson.put("cardId", rewrittenCardId)
+            if (rewrittenCardId != payloadCardId) {
+                payloadJson.optJSONObject("metadata")?.remove(cardMaintenanceRevisionKey)
+            }
             payloadJson.put(
                 "frontText",
                 rewriteManagedMediaAssetReferences(
@@ -286,6 +289,7 @@ internal fun rewriteOutboxEntryForWorkspaceForkEntityReId(
                 if (entry.entityId == oldEntityId || payloadCardId == oldEntityId) {
                     rewrittenEntityId = newEntityId
                     payloadJson.put("cardId", newEntityId)
+                    payloadJson.optJSONObject("metadata")?.remove(cardMaintenanceRevisionKey)
                     changed = entry.entityId != newEntityId || payloadCardId != newEntityId
                 }
             } else if (entryEntityType == SyncEntityType.REVIEW_EVENT) {

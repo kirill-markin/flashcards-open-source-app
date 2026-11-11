@@ -850,6 +850,19 @@
 "settings.workspace.decks.section.name" = "Nome";
 "settings.workspace.decks.deckName" = "Nome do baralho";
 
+"settings.workspace.cardMaintenance.applied" = "As alterações foram salvas no servidor. Sincronize este dispositivo para vê-las aqui.";
+"settings.workspace.cardMaintenance.previewChanged" = "O escopo mudou. Revise a prévia atualizada e confirme de novo.";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "As regras do baralho mudaram. Feche esta tela e revise as regras.";
+"settings.workspace.cardMaintenance.refreshRequired" = "Sincronize este espaço de trabalho antes de editar ou estudar.";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "Regras de baralhos que usam esta etiqueta";
+"settings.workspace.cardMaintenance.cardsRemain" = "Seus cartões serão mantidos.";
+"settings.workspace.cardMaintenance.overlap" = "Esses cartões também podem aparecer em outros baralhos ou com outras etiquetas.";
+"settings.workspace.cardMaintenance.noCards" = "Não há cartões para alterar.";
+"settings.workspace.cardMaintenance.signIn" = "Entre na sua conta e vincule este espaço de trabalho para continuar.";
+"settings.workspace.cardMaintenance.workspaceChanged" = "O espaço de trabalho mudou. Feche esta tela e abra a ação de novo.";
+"settings.workspace.cardMaintenance.targetMissing" = "Este item não está mais disponível no espaço de trabalho.";
+"settings.workspace.cardMaintenance.removeTag" = "Remover etiqueta dos cartões";
+"settings.workspace.cardMaintenance.saveDeckRules" = "Salve as regras do baralho antes de redefinir o progresso de estudo.";
 "settings.workspace.tags.description" = "As etiquetas agrupam cartões em todo o espaço de trabalho. As contagens por etiqueta podem se sobrepor quando um cartão tem várias etiquetas.";
 "settings.workspace.tags.loading" = "Carregando etiquetas…";
 "settings.workspace.tags.empty" = "Nenhuma etiqueta foi usada ainda.";

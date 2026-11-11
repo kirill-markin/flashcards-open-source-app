@@ -668,6 +668,64 @@ final class CloudSyncService: @unchecked Sendable {
         return response
     }
 
+    #if !os(watchOS)
+    func loadCardMaintenancePreview(
+        session: CloudLinkedSession,
+        scope: CardMaintenanceScope
+    ) async throws -> CardMaintenancePreviewResponse {
+        do {
+            return try await self.transport.request(
+                apiBaseUrl: session.apiBaseUrl,
+                authorizationHeader: session.authorizationHeaderValue,
+                path: "/workspaces/\(scope.workspaceId)/card-maintenance/preview",
+                method: "POST",
+                body: CardMaintenancePreviewRequest(kind: scope.kind, target: scope.target)
+            )
+        } catch CloudSyncError.invalidResponse(let details, 404) where details.code == "CARD_MAINTENANCE_TARGET_NOT_FOUND" {
+            throw CardMaintenanceError.targetNotFound
+        }
+    }
+
+    func executeCardMaintenance(
+        session: CloudLinkedSession,
+        preview: CardMaintenancePreview,
+        confirmationText: String
+    ) async throws -> CardMaintenanceExecuteResponse {
+        let scope = preview.scope
+        do {
+            return try await self.transport.request(
+                apiBaseUrl: session.apiBaseUrl,
+                authorizationHeader: session.authorizationHeaderValue,
+                path: "/workspaces/\(scope.workspaceId)/card-maintenance/execute",
+                method: "POST",
+                body: CardMaintenanceExecuteRequest(
+                    kind: scope.kind,
+                    target: scope.target,
+                    confirmationText: confirmationText,
+                    previewFingerprint: preview.response.previewFingerprint
+                )
+            )
+        } catch CloudSyncError.invalidResponse(let details, 409) where details.code == "CARD_MAINTENANCE_PREVIEW_CHANGED" {
+            throw CardMaintenanceError.previewChanged
+        } catch CloudSyncError.invalidResponse(let details, 400) where details.code == "CARD_MAINTENANCE_CONFIRMATION_INVALID" {
+            throw CardMaintenanceError.confirmationInvalid
+        }
+    }
+
+    func reconcileCardMaintenance(
+        session: CloudLinkedSession,
+        previewFingerprint: String
+    ) async throws -> CardMaintenanceReconcileResponse {
+        try await self.transport.request(
+            apiBaseUrl: session.apiBaseUrl,
+            authorizationHeader: session.authorizationHeaderValue,
+            path: "/workspaces/\(session.workspaceId)/card-maintenance/reconcile",
+            method: "POST",
+            body: CardMaintenanceReconcileRequest(previewFingerprint: previewFingerprint)
+        )
+    }
+    #endif
+
     func selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String) async throws -> CloudWorkspaceSummary {
         logCloudFlowPhase(
             phase: .workspaceSelect,

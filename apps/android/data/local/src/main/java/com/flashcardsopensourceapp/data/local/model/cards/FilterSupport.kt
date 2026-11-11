@@ -69,6 +69,21 @@ fun normalizeTags(values: List<String>, referenceTags: List<String>): List<Strin
     }
 }
 
+fun applyTagSelectionChanges(
+    savedTags: List<String>,
+    selectedTags: List<String>,
+    currentTags: List<String>
+): List<String> {
+    val savedKeys = savedTags.map(::normalizeTagKey).toSet()
+    val selectedKeys = selectedTags.map(::normalizeTagKey).toSet()
+    val removedKeys = savedKeys - selectedKeys
+    val addedTags = selectedTags.filter { tag -> normalizeTagKey(tag) !in savedKeys }
+    return normalizeTags(
+        values = currentTags.filter { tag -> normalizeTagKey(tag) !in removedKeys } + addedTags,
+        referenceTags = currentTags
+    )
+}
+
 fun buildCardFilter(tags: List<String>, referenceTags: List<String>): CardFilter {
     return CardFilter(
         tags = normalizeTags(values = tags, referenceTags = referenceTags)

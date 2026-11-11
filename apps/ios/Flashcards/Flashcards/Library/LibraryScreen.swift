@@ -69,7 +69,7 @@ struct LibraryScreen: View {
                 .accessibilityIdentifier(UITestIdentifier.libraryImportRow)
             }
 
-            Section {
+            Section(String(localized: "library.section.transfer", table: libraryStringsTableName)) {
                 NavigationLink(value: LibraryNavigationDestination.exportData) {
                     LibraryRow(
                         title: LibrarySection.exportData.localizedTitle,

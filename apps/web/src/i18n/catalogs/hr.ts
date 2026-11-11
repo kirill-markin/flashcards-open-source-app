@@ -787,6 +787,7 @@ const hrCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vaše kartice",
       addCards: "Dodavanje kartica",
+      transfer: "Prijenos podataka",
     },
     deckCatalog: {
       title: "Katalog špilova",
@@ -1469,6 +1470,19 @@ const hrCatalog: TranslationCatalog = {
       edit: "Uredi špil",
       new: "Novi špil",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Ukloni oznaku s kartica",
+    linkedWorkspaceRequired: "Ova radnja zahtijeva povezan radni prostor u oblaku.",
+    noChanges: "Nijedna kartica ne treba ovu promjenu.",
+    overlap: "Time se poništava napredak i u drugim špilovima i oznakama koje obuhvaćaju te kartice.",
+    outcomeUnknown: "Nismo mogli potvrditi je li promjena u radnom prostoru primijenjena.",
+    previewChanged: "Kartice na koje se radnja odnosi su se promijenile. Pregledajte ažurirani prikaz i ponovno potvrdite.",
+    removePreview: "Oznaka će se ukloniti s kartica ({{cards}}). Kartice će se zadržati. Špilovi s ovom oznakom u pravilima: {{decks}}.",
+    resetComplete: "Napredak u učenju je poništen.",
+    saveDeckRules: "Spremite pravila špila prije poništavanja napretka u učenju.",
+    syncFailed: "Provjerite vezu i ponovno pokušajte sinkronizirati.",
+    targetMissing: "Odabrana kartica, špil ili oznaka više ne postoji.",
   },
   tagsScreen: {
     counts: {

@@ -8,8 +8,33 @@ private let progressReviewScheduleRefreshEndpointPath: String = "/me/progress/re
 private let progressLeaderboardRefreshEndpointPath: String = "/me/progress/leaderboard"
 private let progressStreakLeaderboardRefreshEndpointPath: String = "/me/progress/leaderboards/streak"
 
+enum ProgressPostSyncContext {
+    @TaskLocal static var generation: UUID?
+}
+
 @MainActor
 extension FlashcardsStore {
+    var isCurrentProgressPostSyncContext: Bool {
+        guard let generation = ProgressPostSyncContext.generation else {
+            return true
+        }
+        return Task.isCancelled == false && self.cloudRuntime.isCurrentSyncGeneration(generation)
+    }
+
+    private func withProgressCloudSession<Result>(
+        linkedSession: CloudLinkedSession,
+        operation: @MainActor (CloudLinkedSession) async throws -> Result
+    ) async throws -> Result {
+        if let generation = ProgressPostSyncContext.generation {
+            return try await self.withCurrentCloudSession(
+                linkedSession: linkedSession,
+                syncGeneration: generation,
+                operation: operation
+            )
+        }
+        return try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession, operation: operation)
+    }
+
     func shouldPresentProgressRefreshTechnicalError(error: Error) -> Bool {
         if isRequestCancellationError(error: error) {
             return false
@@ -71,6 +96,9 @@ extension FlashcardsStore {
         scopeKey: ProgressSummaryScopeKey,
         linkedSession: CloudLinkedSession
     ) async {
+        guard self.isCurrentProgressPostSyncContext else {
+            return
+        }
         let refreshToken = self.progressSummaryRefreshToken
         if self.progressActiveSummaryRefreshScopeKey == scopeKey,
            self.progressActiveSummaryRefreshToken == refreshToken {
@@ -99,7 +127,8 @@ extension FlashcardsStore {
                 linkedSession: linkedSession
             )
 
-            guard self.isCurrentProgressSummaryRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressSummaryRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -130,7 +159,8 @@ extension FlashcardsStore {
                 return
             }
 
-            guard self.isCurrentProgressSummaryRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressSummaryRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -155,6 +185,9 @@ extension FlashcardsStore {
         scopeKey: ProgressScopeKey,
         linkedSession: CloudLinkedSession
     ) async {
+        guard self.isCurrentProgressPostSyncContext else {
+            return
+        }
         let refreshToken = self.progressSeriesRefreshToken
         if self.progressActiveSeriesRefreshScopeKey == scopeKey,
            self.progressActiveSeriesRefreshToken == refreshToken {
@@ -183,7 +216,8 @@ extension FlashcardsStore {
                 linkedSession: linkedSession
             )
 
-            guard self.isCurrentProgressSeriesRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressSeriesRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -202,7 +236,8 @@ extension FlashcardsStore {
                 return
             }
 
-            guard self.isCurrentProgressSeriesRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressSeriesRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -227,6 +262,9 @@ extension FlashcardsStore {
         scopeKey: ReviewScheduleScopeKey,
         linkedSession: CloudLinkedSession
     ) async {
+        guard self.isCurrentProgressPostSyncContext else {
+            return
+        }
         let refreshToken = self.progressReviewScheduleRefreshToken
         if self.progressActiveReviewScheduleRefreshScopeKey == scopeKey,
            self.progressActiveReviewScheduleRefreshToken == refreshToken {
@@ -255,7 +293,8 @@ extension FlashcardsStore {
                 linkedSession: linkedSession
             )
 
-            guard self.isCurrentProgressReviewScheduleRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressReviewScheduleRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -281,7 +320,8 @@ extension FlashcardsStore {
                 return
             }
 
-            guard self.isCurrentProgressReviewScheduleRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressReviewScheduleRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -306,6 +346,9 @@ extension FlashcardsStore {
         scopeKey: ProgressLeaderboardScopeKey,
         linkedSession: CloudLinkedSession
     ) async {
+        guard self.isCurrentProgressPostSyncContext else {
+            return
+        }
         let refreshToken = self.progressLeaderboardRefreshToken
         if self.progressActiveLeaderboardRefreshScopeKey == scopeKey,
            self.progressActiveLeaderboardRefreshToken == refreshToken {
@@ -333,7 +376,8 @@ extension FlashcardsStore {
                 linkedSession: linkedSession
             )
 
-            guard self.isCurrentProgressLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -358,7 +402,8 @@ extension FlashcardsStore {
                 return
             }
 
-            guard self.isCurrentProgressLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -383,6 +428,9 @@ extension FlashcardsStore {
         scopeKey: ProgressLeaderboardScopeKey,
         linkedSession: CloudLinkedSession
     ) async {
+        guard self.isCurrentProgressPostSyncContext else {
+            return
+        }
         let refreshToken = self.progressStreakLeaderboardRefreshToken
         if self.progressActiveStreakLeaderboardRefreshScopeKey == scopeKey,
            self.progressActiveStreakLeaderboardRefreshToken == refreshToken {
@@ -410,7 +458,8 @@ extension FlashcardsStore {
                 linkedSession: linkedSession
             )
 
-            guard self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -439,7 +488,8 @@ extension FlashcardsStore {
                 return
             }
 
-            guard self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+            guard self.isCurrentProgressPostSyncContext,
+                  self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
 
@@ -570,7 +620,7 @@ extension FlashcardsStore {
             return nil
         }
 
-        return try await self.withCloudSessionPreservingStableContext(linkedSession: activeSession) { session in
+        return try await self.withProgressCloudSession(linkedSession: activeSession) { session in
             session
         }
     }
@@ -691,7 +741,7 @@ extension FlashcardsStore {
         scopeKey: ProgressSummaryScopeKey,
         linkedSession: CloudLinkedSession
     ) async throws -> UserProgressSummary {
-        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+        try await self.withProgressCloudSession(linkedSession: linkedSession) { refreshedSession in
             try await self.loadProgressSummaryServerBase(
                 scopeKey: scopeKey,
                 linkedSession: refreshedSession
@@ -724,7 +774,7 @@ extension FlashcardsStore {
         scopeKey: ProgressScopeKey,
         linkedSession: CloudLinkedSession
     ) async throws -> UserProgressSeries {
-        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+        try await self.withProgressCloudSession(linkedSession: linkedSession) { refreshedSession in
             try await self.loadProgressSeriesServerBase(
                 scopeKey: scopeKey,
                 linkedSession: refreshedSession
@@ -753,7 +803,7 @@ extension FlashcardsStore {
         scopeKey: ReviewScheduleScopeKey,
         linkedSession: CloudLinkedSession
     ) async throws -> UserReviewSchedule {
-        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+        try await self.withProgressCloudSession(linkedSession: linkedSession) { refreshedSession in
             try await self.loadProgressReviewScheduleServerBase(
                 scopeKey: scopeKey,
                 linkedSession: refreshedSession
@@ -776,7 +826,7 @@ extension FlashcardsStore {
     private func loadProgressLeaderboardServerBaseWithSessionRecovery(
         linkedSession: CloudLinkedSession
     ) async throws -> UserProgressLeaderboard {
-        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+        try await self.withProgressCloudSession(linkedSession: linkedSession) { refreshedSession in
             try await self.loadProgressLeaderboardServerBase(linkedSession: refreshedSession)
         }
     }
@@ -796,7 +846,7 @@ extension FlashcardsStore {
     private func loadProgressStreakLeaderboardServerBaseWithSessionRecovery(
         linkedSession: CloudLinkedSession
     ) async throws -> UserProgressStreakLeaderboard {
-        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+        try await self.withProgressCloudSession(linkedSession: linkedSession) { refreshedSession in
             try await self.loadProgressStreakLeaderboardServerBase(linkedSession: refreshedSession)
         }
     }

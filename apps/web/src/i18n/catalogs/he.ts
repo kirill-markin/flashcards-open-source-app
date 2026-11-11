@@ -780,6 +780,7 @@ const heCatalog: TranslationCatalog = {
     groups: {
       yourCards: "הכרטיסים שלך",
       addCards: "הוספת כרטיסים",
+      transfer: "העברת נתונים",
     },
     deckCatalog: {
       title: "קטלוג חפיסות",
@@ -1459,6 +1460,19 @@ const heCatalog: TranslationCatalog = {
       edit: "עריכת חפיסה",
       new: "חפיסה חדשה",
     },
+  },
+  cardMaintenance: {
+    removeTag: "הסרת תג מכרטיסים",
+    linkedWorkspaceRequired: "הפעולה דורשת סביבת עבודה מקושרת בענן.",
+    noChanges: "אין כרטיסים שצריכים את השינוי הזה.",
+    overlap: "הפעולה מאפסת גם את ההתקדמות בחפיסות ובתגים אחרים שכוללים את הכרטיסים האלה.",
+    outcomeUnknown: "לא הצלחנו לוודא שהשינוי בסביבת העבודה הוחל.",
+    previewChanged: "הכרטיסים שיושפעו השתנו. יש לעיין בתצוגה המקדימה המעודכנת ולאשר שוב.",
+    removePreview: "התג יוסר מ־{{cards}}. הכרטיסים יישמרו. חפיסות עם התג הזה בכללים שלהן: {{decks}}.",
+    resetComplete: "התקדמות הלמידה אופסה.",
+    saveDeckRules: "יש לשמור את כללי החפיסה לפני איפוס התקדמות הלמידה.",
+    syncFailed: "יש לבדוק את החיבור ולנסות שוב לסנכרן.",
+    targetMissing: "הכרטיס, החפיסה או התג שנבחרו כבר אינם קיימים.",
   },
   tagsScreen: {
     counts: {

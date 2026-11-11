@@ -780,6 +780,7 @@ const urCatalog: TranslationCatalog = {
     groups: {
       yourCards: "آپ کے کارڈز",
       addCards: "کارڈز شامل کریں",
+      transfer: "ڈیٹا کی منتقلی",
     },
     deckCatalog: {
       title: "ڈیک کیٹلاگ",
@@ -1459,6 +1460,19 @@ const urCatalog: TranslationCatalog = {
       edit: "ڈیک میں ترمیم کریں",
       new: "نیا ڈیک",
     },
+  },
+  cardMaintenance: {
+    removeTag: "کارڈز سے ٹیگ ہٹائیں",
+    linkedWorkspaceRequired: "اس عمل کے لیے منسلک کلاؤڈ ورک اسپیس درکار ہے۔",
+    noChanges: "کسی کارڈ کو اس تبدیلی کی ضرورت نہیں ہے۔",
+    overlap: "اس سے ان کارڈز والے دوسرے ڈیک اور ٹیگ میں مطالعے کی پیش رفت بھی ری سیٹ ہوگی۔",
+    outcomeUnknown: "اس بات کی تصدیق نہیں ہو سکی کہ ورک اسپیس میں تبدیلی لاگو ہوئی ہے یا نہیں۔",
+    previewChanged: "متاثرہ کارڈز بدل گئے ہیں۔ تازہ پیش منظر دیکھیں اور دوبارہ تصدیق کریں۔",
+    removePreview: "یہ ٹیگ {{cards}} سے ہٹایا جائے گا۔ کارڈز برقرار رہیں گے۔ اس ٹیگ کو اپنے قواعد میں استعمال کرنے والے ڈیک: {{decks}}۔",
+    resetComplete: "مطالعے کی پیش رفت ری سیٹ ہو گئی۔",
+    saveDeckRules: "مطالعے کی پیش رفت ری سیٹ کرنے سے پہلے ڈیک کے قواعد محفوظ کریں۔",
+    syncFailed: "کنکشن چیک کریں اور دوبارہ سنک کرنے کی کوشش کریں۔",
+    targetMissing: "منتخب کارڈ، ڈیک یا ٹیگ اب موجود نہیں ہے۔",
   },
   tagsScreen: {
     counts: {

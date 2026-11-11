@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Android release bundle with explicit signing inputs.
+# Build the phone and Wear OS release bundles with explicit signing inputs.
 
 set -euo pipefail
 
@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 ANDROID_DIR="${ROOT_DIR}/apps/android"
 VERSION_CODE=""
+WEAR_VERSION_CODE=""
 KEYSTORE_PATH="${ANDROID_RELEASE_STORE_FILE:-}"
 KEYSTORE_PASSWORD="${ANDROID_RELEASE_STORE_PASSWORD:-}"
 KEY_ALIAS="${ANDROID_RELEASE_KEY_ALIAS:-}"
@@ -15,6 +16,7 @@ KEY_PASSWORD="${ANDROID_RELEASE_KEY_PASSWORD:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --version-code) VERSION_CODE="$2"; shift 2 ;;
+    --wear-version-code) WEAR_VERSION_CODE="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -26,6 +28,11 @@ fi
 
 if [[ -z "${VERSION_CODE}" ]]; then
   echo "ERROR: --version-code is required." >&2
+  exit 1
+fi
+
+if [[ -z "${WEAR_VERSION_CODE}" ]]; then
+  echo "ERROR: --wear-version-code is required." >&2
   exit 1
 fi
 
@@ -57,8 +64,9 @@ fi
 cd "${ANDROID_DIR}"
 
 ANDROID_VERSION_CODE="${VERSION_CODE}" \
+ANDROID_WEAR_VERSION_CODE="${WEAR_VERSION_CODE}" \
 ANDROID_RELEASE_STORE_FILE="${KEYSTORE_PATH}" \
 ANDROID_RELEASE_STORE_PASSWORD="${KEYSTORE_PASSWORD}" \
 ANDROID_RELEASE_KEY_ALIAS="${KEY_ALIAS}" \
 ANDROID_RELEASE_KEY_PASSWORD="${KEY_PASSWORD}" \
-./gradlew --no-daemon --warning-mode all :app:bundleRelease
+./gradlew --no-daemon --warning-mode all :app:bundleRelease :wear:bundleRelease

@@ -780,6 +780,7 @@ export const zhHansCatalog = {
     groups: {
       yourCards: "你的卡片",
       addCards: "添加卡片",
+      transfer: "数据迁移",
     },
     deckCatalog: {
       title: "牌组目录",
@@ -1459,6 +1460,19 @@ export const zhHansCatalog = {
       edit: "编辑牌组",
       new: "新建牌组",
     },
+  },
+  cardMaintenance: {
+    removeTag: "从卡片中移除标签",
+    linkedWorkspaceRequired: "此操作需要已关联的云端工作区。",
+    noChanges: "没有卡片需要此更改。",
+    overlap: "这也会重置包含这些卡片的其他卡组和标签中的学习进度。",
+    outcomeUnknown: "无法确认工作区中的更改是否已应用。",
+    previewChanged: "受影响的卡片已更改。请查看更新后的预览并重新确认。",
+    removePreview: "将从{{cards}}中移除此标签。卡片会保留。规则中包含此标签的卡组数：{{decks}}。",
+    resetComplete: "学习进度已重置。",
+    saveDeckRules: "请先保存卡组规则，再重置学习进度。",
+    syncFailed: "请检查连接并重试同步。",
+    targetMissing: "所选的卡片、卡组或标签已不存在。",
   },
   tagsScreen: {
     counts: {

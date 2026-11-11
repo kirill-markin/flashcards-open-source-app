@@ -780,6 +780,7 @@ const idCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kartu Anda",
       addCards: "Tambahkan kartu",
+      transfer: "Transfer data",
     },
     deckCatalog: {
       title: "Katalog dek",
@@ -1459,6 +1460,19 @@ const idCatalog: TranslationCatalog = {
       edit: "Edit dek",
       new: "Dek baru",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Hapus tag dari kartu",
+    linkedWorkspaceRequired: "Tindakan ini memerlukan ruang kerja cloud yang tertaut.",
+    noChanges: "Tidak ada kartu yang memerlukan perubahan ini.",
+    overlap: "Ini juga mereset kemajuan di dek dan tag lain yang menyertakan kartu ini.",
+    outcomeUnknown: "Kami tidak dapat memastikan apakah perubahan pada ruang kerja telah diterapkan.",
+    previewChanged: "Kartu yang terdampak telah berubah. Tinjau pratinjau terbaru lalu konfirmasi lagi.",
+    removePreview: "Tag ini akan dihapus dari {{cards}}. Kartu tetap disimpan. Dek dengan tag ini dalam aturannya: {{decks}}.",
+    resetComplete: "Kemajuan belajar telah direset.",
+    saveDeckRules: "Simpan aturan dek sebelum mereset kemajuan belajar.",
+    syncFailed: "Periksa koneksi Anda dan coba sinkronkan lagi.",
+    targetMissing: "Kartu, dek, atau tag yang dipilih sudah tidak ada.",
   },
   tagsScreen: {
     counts: {

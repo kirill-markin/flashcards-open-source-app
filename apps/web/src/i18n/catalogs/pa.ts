@@ -780,6 +780,7 @@ const paCatalog: TranslationCatalog = {
     groups: {
       yourCards: "ਤੁਹਾਡੇ ਕਾਰਡ",
       addCards: "ਕਾਰਡ ਜੋੜੋ",
+      transfer: "ਡਾਟਾ ਤਬਾਦਲਾ",
     },
     deckCatalog: {
       title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",
@@ -1459,6 +1460,19 @@ const paCatalog: TranslationCatalog = {
       edit: "ਡੈੱਕ ਸੋਧੋ",
       new: "ਨਵਾਂ ਡੈੱਕ",
     },
+  },
+  cardMaintenance: {
+    removeTag: "ਕਾਰਡਾਂ ਤੋਂ ਟੈਗ ਹਟਾਓ",
+    linkedWorkspaceRequired: "ਇਸ ਕਾਰਵਾਈ ਲਈ ਇੱਕ ਲਿੰਕ ਕੀਤਾ ਕਲਾਊਡ ਵਰਕਸਪੇਸ ਲੋੜੀਂਦਾ ਹੈ।",
+    noChanges: "ਕਿਸੇ ਕਾਰਡ ਨੂੰ ਇਸ ਬਦਲਾਅ ਦੀ ਲੋੜ ਨਹੀਂ ਹੈ।",
+    overlap: "ਇਸ ਨਾਲ ਇਹਨਾਂ ਕਾਰਡਾਂ ਨੂੰ ਸ਼ਾਮਲ ਕਰਨ ਵਾਲੇ ਹੋਰ ਡੈਕਾਂ ਅਤੇ ਟੈਗਾਂ ਦੀ ਪੜ੍ਹਾਈ ਦੀ ਤਰੱਕੀ ਵੀ ਰੀਸੈੱਟ ਹੋਵੇਗੀ।",
+    outcomeUnknown: "ਇਹ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋ ਸਕੀ ਕਿ ਵਰਕਸਪੇਸ ਵਿੱਚ ਤਬਦੀਲੀ ਲਾਗੂ ਹੋਈ ਹੈ ਜਾਂ ਨਹੀਂ।",
+    previewChanged: "ਪ੍ਰਭਾਵਿਤ ਕਾਰਡ ਬਦਲ ਗਏ ਹਨ। ਅੱਪਡੇਟ ਕੀਤਾ ਝਲਕ ਵੇਖੋ ਅਤੇ ਮੁੜ ਪੁਸ਼ਟੀ ਕਰੋ।",
+    removePreview: "ਇਹ ਟੈਗ {{cards}} ਤੋਂ ਹਟਾਇਆ ਜਾਵੇਗਾ। ਕਾਰਡ ਰੱਖੇ ਜਾਣਗੇ। ਆਪਣੇ ਨਿਯਮਾਂ ਵਿੱਚ ਇਸ ਟੈਗ ਵਾਲੇ ਡੈਕ: {{decks}}।",
+    resetComplete: "ਪੜ੍ਹਾਈ ਦੀ ਤਰੱਕੀ ਰੀਸੈੱਟ ਹੋ ਗਈ।",
+    saveDeckRules: "ਪੜ੍ਹਾਈ ਦੀ ਤਰੱਕੀ ਰੀਸੈੱਟ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਡੈਕ ਦੇ ਨਿਯਮ ਸੇਵ ਕਰੋ।",
+    syncFailed: "ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਮੁੜ ਸਿੰਕ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    targetMissing: "ਚੁਣਿਆ ਕਾਰਡ, ਡੈਕ ਜਾਂ ਟੈਗ ਹੁਣ ਮੌਜੂਦ ਨਹੀਂ ਹੈ।",
   },
   tagsScreen: {
     counts: {

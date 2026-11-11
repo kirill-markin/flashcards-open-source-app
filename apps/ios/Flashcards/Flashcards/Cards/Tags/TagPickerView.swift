@@ -100,23 +100,47 @@ struct TagPickerView: View {
     @Environment(\.dismiss) private var dismiss
 
     let suggestions: [TagSuggestion]
-    let onSave: ([String]) -> Void
-
+    @Binding private var selectedTags: [String]
+    @State private var observedTags: [String]
     @State private var draftTags: [String]
-    @State private var searchText: String
+    @State private var searchText: String = ""
     @FocusState private var isInputFocused: Bool
 
-    init(selectedTags: [String], suggestions: [TagSuggestion], onSave: @escaping ([String]) -> Void) {
+    init(selectedTags: Binding<[String]>, suggestions: [TagSuggestion]) {
         let normalizedSuggestions = normalizeTagSuggestions(suggestions: suggestions)
-        self.suggestions = normalizedSuggestions
-        self.onSave = onSave
-        self._draftTags = State(
-            initialValue: normalizeTags(
-                values: selectedTags,
-                referenceTags: normalizedSuggestions.map(\.tag)
-            )
+        let normalizedTags = normalizeTags(
+            values: selectedTags.wrappedValue,
+            referenceTags: normalizedSuggestions.map(\.tag)
         )
-        self._searchText = State(initialValue: "")
+        self.suggestions = normalizedSuggestions
+        self._selectedTags = selectedTags
+        self._observedTags = State(initialValue: normalizedTags)
+        self._draftTags = State(initialValue: normalizedTags)
+    }
+
+    private var sourceTags: [String] {
+        normalizeTags(values: selectedTags, referenceTags: suggestions.map(\.tag))
+    }
+
+    private func reconcileTagsWithSelection() {
+        let refreshedTags = self.sourceTags
+        self.draftTags = reconcileDraftTags(
+            draftTags: self.draftTags,
+            observedTags: self.observedTags,
+            refreshedTags: refreshedTags
+        )
+        self.observedTags = refreshedTags
+    }
+
+    private func addTag(_ tag: String) {
+        self.reconcileTagsWithSelection()
+        self.draftTags = normalizeTags(values: self.draftTags + [tag], referenceTags: self.suggestions.map(\.tag))
+    }
+
+    private func removeTag(_ tag: String) {
+        self.reconcileTagsWithSelection()
+        let key = normalizeTagKey(tag: tag)
+        self.draftTags.removeAll { normalizeTagKey(tag: $0) == key }
     }
 
     private var filteredSuggestions: [TagSuggestion] {
@@ -145,11 +169,7 @@ struct TagPickerView: View {
             return
         }
 
-        draftTags = toggleTagSelection(
-            selectedTags: draftTags,
-            tag: nextCreatableTag,
-            suggestions: suggestions
-        )
+        self.addTag(nextCreatableTag)
         searchText = ""
     }
 
@@ -176,11 +196,7 @@ struct TagPickerView: View {
                 Section {
                     ForEach(selectedSuggestions, id: \.tag) { suggestion in
                         Button {
-                            draftTags = toggleTagSelection(
-                                selectedTags: draftTags,
-                                tag: suggestion.tag,
-                                suggestions: suggestions
-                            )
+                            self.removeTag(suggestion.tag)
                         } label: {
                             TagPickerRow(
                                 title: suggestion.tag,
@@ -198,11 +214,7 @@ struct TagPickerView: View {
             Section {
                 if let nextCreatableTag {
                     Button {
-                        draftTags = toggleTagSelection(
-                            selectedTags: draftTags,
-                            tag: nextCreatableTag,
-                            suggestions: suggestions
-                        )
+                        self.addTag(nextCreatableTag)
                         searchText = ""
                     } label: {
                         TagPickerRow(
@@ -231,11 +243,7 @@ struct TagPickerView: View {
                 } else {
                     ForEach(filteredSuggestions, id: \.tag) { suggestion in
                         Button {
-                            draftTags = toggleTagSelection(
-                                selectedTags: draftTags,
-                                tag: suggestion.tag,
-                                suggestions: suggestions
-                            )
+                            self.addTag(suggestion.tag)
                         } label: {
                             TagPickerRow(
                                 title: suggestion.tag,
@@ -251,6 +259,9 @@ struct TagPickerView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .onChange(of: self.sourceTags) {
+            self.reconcileTagsWithSelection()
+        }
         .navigationTitle(String(localized: "Tags", table: reviewCardsStringsTableName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -262,7 +273,8 @@ struct TagPickerView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button(String(localized: "Done", table: reviewCardsStringsTableName)) {
-                    onSave(normalizeTags(values: draftTags, referenceTags: suggestions.map(\.tag)))
+                    self.reconcileTagsWithSelection()
+                    self.selectedTags = normalizeTags(values: draftTags, referenceTags: suggestions.map(\.tag))
                     dismiss()
                 }
             }

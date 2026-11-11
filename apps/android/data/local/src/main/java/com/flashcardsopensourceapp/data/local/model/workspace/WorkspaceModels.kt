@@ -12,6 +12,7 @@ data class WorkspaceTagSummary(
 )
 
 data class WorkspaceTagsSummary(
+    val workspaceId: String?,
     val tags: List<WorkspaceTagSummary>,
     val totalCards: Int
 )

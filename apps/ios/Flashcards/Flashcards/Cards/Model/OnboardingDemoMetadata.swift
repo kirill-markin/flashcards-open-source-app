@@ -75,8 +75,12 @@ func cardMetadataAfterAuthoredEdit(card: Card, input: CardEditorInput) -> CardMe
     let wasEdited = demo.wasEdited
         || !demo.matches(frontText: input.frontText, backText: input.backText, tags: input.tags, cardType: card.cardType)
         || !previous.matches(frontText: input.frontText, backText: input.backText, tags: input.tags, cardType: card.cardType)
-    return CardMetadata(source: card.metadata.source, onboardingDemo: OnboardingDemoMetadata(
-        frontText: demo.frontText, backText: demo.backText, tags: demo.tags,
-        cardType: demo.cardType, wasEdited: wasEdited
-    ))
+    return CardMetadata(
+        source: card.metadata.source,
+        onboardingDemo: OnboardingDemoMetadata(
+            frontText: demo.frontText, backText: demo.backText, tags: demo.tags,
+            cardType: demo.cardType, wasEdited: wasEdited
+        ),
+        maintenanceRevision: card.metadata.maintenanceRevision
+    )
 }

@@ -177,7 +177,7 @@ export function LibraryScreen(): ReactElement {
         </div>
       </SettingsGroup>
 
-      <SettingsGroup>
+      <SettingsGroup title={t("libraryScreen.groups.transfer")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("settingsWorkspace.export.title")}

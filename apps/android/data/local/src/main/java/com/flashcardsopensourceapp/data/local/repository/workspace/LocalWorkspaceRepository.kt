@@ -147,7 +147,10 @@ class LocalWorkspaceRepository(
                 card.workspaceId == workspace.workspaceId && card.deletedAtMillis == null
             }
             val nowMillis: Long = System.currentTimeMillis()
-            val tagsSummary: WorkspaceTagsSummary = makeWorkspaceTagsSummary(cards = currentWorkspaceCards)
+            val tagsSummary: WorkspaceTagsSummary = makeWorkspaceTagsSummary(
+                cards = currentWorkspaceCards,
+                workspaceId = workspace.workspaceId
+            )
 
             WorkspaceOverviewSummary(
                 workspaceId = workspace.workspaceId,
@@ -200,12 +203,13 @@ class LocalWorkspaceRepository(
             database.cardDao().observeCardsWithRelations()
         ) { workspace, cards ->
             if (workspace == null) {
-                return@combine WorkspaceTagsSummary(tags = emptyList(), totalCards = 0)
+                return@combine WorkspaceTagsSummary(workspaceId = null, tags = emptyList(), totalCards = 0)
             }
             makeWorkspaceTagsSummary(
                 cards = cards.map(::toCardSummary).filter { card ->
                     card.workspaceId == workspace.workspaceId
-                }
+                },
+                workspaceId = workspace.workspaceId
             )
         }
     }

@@ -13,6 +13,7 @@ struct ProgressPresentationRequest: Hashable, Sendable {
 enum LibraryNavigationDestination: Hashable, Sendable {
     case cards
     case tags
+    case tagDetail(tag: String, workspaceId: String)
     case decks
     case deckDetail(DeckScreenDestination)
     case deckCatalog
@@ -23,7 +24,7 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case exportFormat(WorkspacePackageExportFormat)
 }
 
-/// A first-level Library page: a hub row, and on the Mac sidebar a row under Library.
+/// A first-level Library page shown in the hub and in the Mac sidebar.
 enum LibrarySection: Hashable, CaseIterable, Sendable {
     case cards
     case tags

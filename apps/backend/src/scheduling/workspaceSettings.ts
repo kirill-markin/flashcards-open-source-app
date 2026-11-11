@@ -236,6 +236,7 @@ export async function getWorkspaceSchedulerConfig(
   workspaceId: string,
 ): Promise<WorkspaceSchedulerConfig> {
   // Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::loadWorkspaceSchedulerSettings(workspaceId:).
+  // Sync registration can hold KEY SHARE here while it waits for the hot-change lock.
   const result = await executor.query<WorkspaceSchedulerSettingsRow>(
     [
       "SELECT",
@@ -244,7 +245,7 @@ export async function getWorkspaceSchedulerConfig(
       "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
-      "FOR UPDATE",
+      "FOR NO KEY UPDATE",
     ].join(" "),
     [workspaceId],
   );
@@ -316,7 +317,7 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
       "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
-      "FOR UPDATE",
+      "FOR NO KEY UPDATE",
     ].join(" "),
     [workspaceId],
   );

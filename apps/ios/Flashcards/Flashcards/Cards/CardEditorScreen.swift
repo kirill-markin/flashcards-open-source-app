@@ -12,13 +12,14 @@ struct CardFormState {
     // Retain the active field alongside its draft when native sheet bounds change.
     var navigationPath = NavigationPath()
     var editorSessionId: UUID
-    let readOnlyMetadata: CardEditorReadOnlyMetadata?
+    var readOnlyMetadata: CardEditorReadOnlyMetadata?
     var frontText: String
     var backText: String
     var frontTextSelection: TextSelection?
     var backTextSelection: TextSelection?
     var observedFrontText: String?
     var observedBackText: String?
+    var observedTags: [String]
     var tags: [String]
     var mediaAssetIdsReadyForUpload: Set<String>
 }
@@ -38,11 +39,15 @@ func cardEditorInlineErrorMessage(error: Error) -> String? {
     }
 }
 
-func cardFormStateByReconcilingMediaLifecycle(
+func cardFormStateByReconcilingSyncedCard(
     formState: CardFormState,
     refreshedCard: Card
 ) -> CardFormState {
     var nextFormState = formState
+    let refreshedMetadata = cardEditorReadOnlyMetadata(card: refreshedCard)
+    if formState.readOnlyMetadata?.maintenanceScope == refreshedMetadata.maintenanceScope {
+        nextFormState.readOnlyMetadata = refreshedMetadata
+    }
 
     if let observedFrontText = formState.observedFrontText {
         let frontReconciliation = cardEditorTextByReconcilingMediaLifecycle(
@@ -68,6 +73,12 @@ func cardFormStateByReconcilingMediaLifecycle(
 
     nextFormState.observedFrontText = refreshedCard.frontText
     nextFormState.observedBackText = refreshedCard.backText
+    nextFormState.tags = reconcileDraftTags(
+        draftTags: formState.tags,
+        observedTags: formState.observedTags,
+        refreshedTags: refreshedCard.tags
+    )
+    nextFormState.observedTags = refreshedCard.tags
     return nextFormState
 }
 
@@ -191,8 +202,10 @@ struct CardEditorScreen: View {
                     Text(String(localized: "Metadata", table: reviewCardsStringsTableName))
                 }
 
-                if formState.readOnlyMetadata != nil {
+                if let metadata = formState.readOnlyMetadata {
                     Section {
+                        CardMaintenanceButton(scope: metadata.maintenanceScope, isAvailable: true, onDismiss: {}, onCompleted: {})
+
                         Button(String(localized: "Delete card", table: reviewCardsStringsTableName), role: .destructive) {
                             self.isDeleteConfirmationPresented = true
                         }
@@ -214,11 +227,8 @@ struct CardEditorScreen: View {
                 )
             case .tags:
                 TagPickerView(
-                    selectedTags: formState.tags,
-                    suggestions: availableTagSuggestions,
-                    onSave: { nextTags in
-                        formState.tags = nextTags
-                    }
+                    selectedTags: $formState.tags,
+                    suggestions: availableTagSuggestions
                 )
             }
         }

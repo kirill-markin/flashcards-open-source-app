@@ -850,6 +850,19 @@
 "settings.workspace.decks.section.name" = "Name";
 "settings.workspace.decks.deckName" = "Deckname";
 
+"settings.workspace.cardMaintenance.applied" = "Die Änderungen wurden auf dem Server gespeichert. Synchronisiere dieses Gerät, um sie hier zu sehen.";
+"settings.workspace.cardMaintenance.previewChanged" = "Der Umfang hat sich geändert. Prüfe die aktualisierte Vorschau und bestätige erneut.";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "Die Stapelregeln wurden geändert. Schließe diese Ansicht und prüfe die Regeln.";
+"settings.workspace.cardMaintenance.refreshRequired" = "Synchronisiere diesen Arbeitsbereich, bevor du Karten bearbeitest oder lernst.";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "Deckregeln mit diesem Tag";
+"settings.workspace.cardMaintenance.cardsRemain" = "Deine Karten bleiben erhalten.";
+"settings.workspace.cardMaintenance.overlap" = "Diese Karten können auch in anderen Decks oder unter anderen Tags erscheinen.";
+"settings.workspace.cardMaintenance.noCards" = "Es gibt keine Karten zu ändern.";
+"settings.workspace.cardMaintenance.signIn" = "Melde dich an und verknüpfe diesen Arbeitsbereich, um fortzufahren.";
+"settings.workspace.cardMaintenance.workspaceChanged" = "Der Arbeitsbereich hat sich geändert. Schließe diese Ansicht und öffne die Aktion erneut.";
+"settings.workspace.cardMaintenance.targetMissing" = "Dieses Element ist im Arbeitsbereich nicht mehr verfügbar.";
+"settings.workspace.cardMaintenance.removeTag" = "Tag von Karten entfernen";
+"settings.workspace.cardMaintenance.saveDeckRules" = "Speichere die Deckregeln, bevor du den Lernfortschritt zurücksetzt.";
 "settings.workspace.tags.description" = "Tags gruppieren Karten im gesamten Arbeitsbereich. Die Zählungen pro Tag können sich überschneiden, wenn eine Karte mehrere Tags hat.";
 "settings.workspace.tags.loading" = "Tags werden geladen...";
 "settings.workspace.tags.empty" = "Es wurde noch kein Tag verwendet.";

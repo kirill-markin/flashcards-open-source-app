@@ -302,6 +302,19 @@ extension LocalDatabase {
         try self.cardStore.loadWorkspaceTagsSummary(workspaceId: workspaceId)
     }
 
+    func loadTagCardStats(workspaceId: String, tag: String, now: Date) throws -> DeckCardStats {
+        let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+        let filterDefinition = resolveDeckFilterDefinitionTagNames(
+            filterDefinition: buildDeckFilterDefinition(tags: [tag]),
+            storedTagNames: storedTagNames
+        )
+        return try self.cardStore.loadDeckCardStats(
+            workspaceId: workspaceId,
+            filterDefinition: filterDefinition,
+            now: now
+        )
+    }
+
     func loadCardsMatchingDeck(
         workspaceId: String,
         filterDefinition: DeckFilterDefinition

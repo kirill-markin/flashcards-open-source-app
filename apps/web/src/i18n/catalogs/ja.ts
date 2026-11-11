@@ -780,6 +780,7 @@ export const jaCatalog = {
     groups: {
       yourCards: "自分のカード",
       addCards: "カードを追加",
+      transfer: "データ移行",
     },
     deckCatalog: {
       title: "デッキカタログ",
@@ -1459,6 +1460,19 @@ export const jaCatalog = {
       edit: "デッキを編集",
       new: "新しいデッキ",
     },
+  },
+  cardMaintenance: {
+    removeTag: "カードからタグを削除",
+    linkedWorkspaceRequired: "この操作にはリンク済みのクラウドワークスペースが必要です。",
+    noChanges: "この変更が必要なカードはありません。",
+    overlap: "これらのカードを含む他のデッキやタグでも学習進捗がリセットされます。",
+    outcomeUnknown: "ワークスペースの変更が反映されたか確認できませんでした。",
+    previewChanged: "対象カードが変更されました。最新のプレビューを確認し、もう一度確定してください。",
+    removePreview: "{{cards}}からこのタグが削除されます。カード自体は残ります。このタグをルールに含むデッキ数：{{decks}}。",
+    resetComplete: "学習進捗をリセットしました。",
+    saveDeckRules: "学習進捗をリセットする前に、デッキのルールを保存してください。",
+    syncFailed: "接続を確認して、同期を再試行してください。",
+    targetMissing: "選択したカード、デッキ、またはタグは存在しません。",
   },
   tagsScreen: {
     counts: {

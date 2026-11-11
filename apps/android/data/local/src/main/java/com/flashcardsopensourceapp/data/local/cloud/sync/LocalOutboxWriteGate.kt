@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.AbstractCoroutineContextElement
@@ -21,6 +22,8 @@ private fun completedUnitSignal(): CompletableDeferred<Unit> {
     return signal
 }
 
+class LocalOutboxWritesBlockedException(message: String) : IllegalStateException(message)
+
 internal class LocalOutboxWriteGate(
     private val hasPendingGuestUpgrade: suspend () -> Boolean
 ) {
@@ -38,7 +41,7 @@ internal class LocalOutboxWriteGate(
             transactionsDrained.await()
             return block()
         } finally {
-            clearLocalOutboxWriteBlock()
+            withContext(NonCancellable) { clearLocalOutboxWriteBlock() }
         }
     }
 
@@ -49,7 +52,7 @@ internal class LocalOutboxWriteGate(
                 block()
             }
         } finally {
-            finishLocalOutboxMutationTransaction()
+            withContext(NonCancellable) { finishLocalOutboxMutationTransaction() }
         }
     }
 
@@ -129,6 +132,6 @@ internal class LocalOutboxWriteGate(
             throw IllegalStateException(pendingGuestUpgradeLocalOutboxBlockReason)
         }
         val blockedReason = localOutboxWriteBlockReason ?: return
-        throw IllegalStateException(blockedReason)
+        throw LocalOutboxWritesBlockedException(blockedReason)
     }
 }

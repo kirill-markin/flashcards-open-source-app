@@ -28,6 +28,8 @@ jobs:
       android_target_short_sha: ${{ steps.release-metadata.outputs.android_target_short_sha }}
       android_release_id: ${{ steps.release-metadata.outputs.android_release_id }}
       android_play_release_name: ${{ steps.release-metadata.outputs.android_play_release_name }}
+      android_wear_version_code: ${{ steps.release-metadata.outputs.android_wear_version_code }}
+      android_wear_play_release_name: ${{ steps.release-metadata.outputs.android_wear_play_release_name }}
 
     steps:
       - uses: actions/checkout@v7
@@ -71,16 +73,21 @@ jobs:
           target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
           release_id="vc${version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
           play_release_name="main-draft-${release_id}"
+          # Phone codes are seconds, so the next code is unique to this release.
+          wear_version_code=$(( version_code + 1 ))
+          wear_play_release_name="main-draft-vc${wear_version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
 
-          if [[ "${version_code}" -le 0 ]]; then
-            echo "Resolved Android version code must be positive. Got: ${version_code}." >&2
-            exit 1
-          fi
+          for code in "${version_code}" "${wear_version_code}"; do
+            if [[ "${code}" -le 0 ]]; then
+              echo "Resolved Android version code must be positive. Got: ${code}." >&2
+              exit 1
+            fi
 
-          if [[ "${version_code}" -gt 2100000000 ]]; then
-            echo "Resolved Android version code exceeds Google Play limit. Got: ${version_code}." >&2
-            exit 1
-          fi
+            if [[ "${code}" -gt 2100000000 ]]; then
+              echo "Resolved Android version code exceeds Google Play limit. Got: ${code}." >&2
+              exit 1
+            fi
+          done
 
           if [[ -z "${version_name}" ]]; then
             echo "Could not resolve Android versionName from apps/android/app/build.gradle.kts." >&2
@@ -98,6 +105,8 @@ jobs:
             echo "android_target_short_sha=${target_short_sha}"
             echo "android_release_id=${release_id}"
             echo "android_play_release_name=${play_release_name}"
+            echo "android_wear_version_code=${wear_version_code}"
+            echo "android_wear_play_release_name=${wear_play_release_name}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Check out release-notes tooling from the workflow source
@@ -135,6 +144,8 @@ jobs:
             echo "- Version name: \`${{ steps.release-metadata.outputs.android_version_name }}\`"
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
+            echo "- Wear OS version code: \`${{ steps.release-metadata.outputs.android_wear_version_code }}\`"
+            echo "- Wear OS Play release name: \`${{ steps.release-metadata.outputs.android_wear_play_release_name }}\`"
             echo "- Upload draft to Play: \`true\`"
             echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -360,9 +371,12 @@ jobs:
       contents: read
     outputs:
       aab_sha256: ${{ steps.bundle.outputs.sha256 }}
+      wear_aab_sha256: ${{ steps.bundle.outputs.wear_sha256 }}
     env:
       AAB_PATH: apps/android/app/build/outputs/bundle/release/app-release.aab
+      WEAR_AAB_PATH: apps/android/wear/build/outputs/bundle/release/wear-release.aab
       ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      ANDROID_WEAR_VERSION_CODE: ${{ needs.preflight.outputs.android_wear_version_code }}
       ANDROID_SENTRY_DSN: ${{ vars.ANDROID_SENTRY_DSN }}
       ANDROID_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.ANDROID_SENTRY_TRACES_SAMPLE_RATE || '0' }}
       SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -464,14 +478,19 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           bash scripts/android/run-android-release.sh \
-            --version-code "${ANDROID_VERSION_CODE}"
+            --version-code "${ANDROID_VERSION_CODE}" \
+            --wear-version-code "${ANDROID_WEAR_VERSION_CODE}"
 
       - name: Record signed Android App Bundle checksum
         id: bundle
         run: |
           set -euo pipefail
           aab_sha256="$(sha256sum "${AAB_PATH}" | cut -d ' ' -f 1)"
-          echo "sha256=${aab_sha256}" >> "${GITHUB_OUTPUT}"
+          wear_aab_sha256="$(sha256sum "${WEAR_AAB_PATH}" | cut -d ' ' -f 1)"
+          {
+            echo "sha256=${aab_sha256}"
+            echo "wear_sha256=${wear_aab_sha256}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Upload signed Android App Bundle artifact
         id: upload-bundle
@@ -481,58 +500,75 @@ jobs:
           if-no-files-found: error
           path: ${{ env.AAB_PATH }}
 
+      - name: Upload signed Wear OS App Bundle artifact
+        id: upload-wear-bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-wear-release-bundle-r${{ github.run_id }}a${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ env.WEAR_AAB_PATH }}
+
       - name: Report and gate R8 optimization coverage
         env:
           ANDROID_R8_MIN_COVERAGE_PERCENT: '25'
         run: |
           set -euo pipefail
 
-          r8_metadata_path="${RUNNER_TEMP}/android-release-r8.json"
-
-          if ! unzip -p "${AAB_PATH}" "BUNDLE-METADATA/com.android.tools/r8.json" > "${r8_metadata_path}"; then
-            echo "BUNDLE-METADATA/com.android.tools/r8.json is missing from ${AAB_PATH}. R8 optimization coverage cannot be verified." >&2
-            exit 1
-          fi
-
-          if [[ "$(jq -r 'try ((.stats.noShrinkingPercentage | numbers) != null) catch false' "${r8_metadata_path}")" != "true" ]]; then
-            echo "R8 metadata in ${AAB_PATH} has no usable stats object." >&2
-            cat "${r8_metadata_path}" >&2
-            exit 1
-          fi
-
-          r8_version="$(jq -r '.version // "unknown"' "${r8_metadata_path}")"
-          coverage_report="$(
-            jq -r '
-              .stats
-              | [
-                  ["Shrinking", ((100 - .noShrinkingPercentage) * 100 | round / 100)],
-                  ["Optimization", ((100 - .noOptimizationPercentage) * 100 | round / 100)],
-                  ["Obfuscation", ((100 - .noObfuscationPercentage) * 100 | round / 100)]
-                ]
-              | .[]
-              | "\(.[0])\t\(.[1])"
-            ' "${r8_metadata_path}"
-          )"
-
-          summary_lines=()
           failures=()
 
-          while IFS=$'\t' read -r category coverage; do
-            summary_lines+=("- ${category} coverage: \`${coverage}%\`")
-            if ! awk -v value="${coverage}" -v minimum="${ANDROID_R8_MIN_COVERAGE_PERCENT}" 'BEGIN { exit !(value >= minimum) }'; then
-              failures+=("${category} coverage ${coverage}% is below the required ${ANDROID_R8_MIN_COVERAGE_PERCENT}%")
+          gate_r8_coverage() {
+            local bundle_label="$1" aab_path="$2"
+            local r8_metadata_path="${RUNNER_TEMP}/android-release-r8-${bundle_label}.json"
+
+            if ! unzip -p "${aab_path}" "BUNDLE-METADATA/com.android.tools/r8.json" > "${r8_metadata_path}"; then
+              echo "BUNDLE-METADATA/com.android.tools/r8.json is missing from ${aab_path}. R8 optimization coverage cannot be verified." >&2
+              exit 1
             fi
-          done <<< "${coverage_report}"
 
-          {
-            echo "## Android R8 optimization coverage"
-            echo ""
-            echo "- R8 version: \`${r8_version}\`"
-            echo "- Google Play minimum per category: \`${ANDROID_R8_MIN_COVERAGE_PERCENT}%\`"
+            if [[ "$(jq -r 'try ((.stats.noShrinkingPercentage | numbers) != null) catch false' "${r8_metadata_path}")" != "true" ]]; then
+              echo "R8 metadata in ${aab_path} has no usable stats object." >&2
+              cat "${r8_metadata_path}" >&2
+              exit 1
+            fi
+
+            local r8_version coverage_report
+            r8_version="$(jq -r '.version // "unknown"' "${r8_metadata_path}")"
+            coverage_report="$(
+              jq -r '
+                .stats
+                | [
+                    ["Shrinking", ((100 - .noShrinkingPercentage) * 100 | round / 100)],
+                    ["Optimization", ((100 - .noOptimizationPercentage) * 100 | round / 100)],
+                    ["Obfuscation", ((100 - .noObfuscationPercentage) * 100 | round / 100)]
+                  ]
+                | .[]
+                | "\(.[0])\t\(.[1])"
+              ' "${r8_metadata_path}"
+            )"
+
+            local summary_lines=() category coverage
+            while IFS=$'\t' read -r category coverage; do
+              summary_lines+=("- ${category} coverage: \`${coverage}%\`")
+              if ! awk -v value="${coverage}" -v minimum="${ANDROID_R8_MIN_COVERAGE_PERCENT}" 'BEGIN { exit !(value >= minimum) }'; then
+                failures+=("${bundle_label} ${category} coverage ${coverage}% is below the required ${ANDROID_R8_MIN_COVERAGE_PERCENT}%")
+              fi
+            done <<< "${coverage_report}"
+
+            {
+              echo "## Android R8 optimization coverage: ${bundle_label}"
+              echo ""
+              echo "- Bundle: \`${aab_path}\`"
+              echo "- R8 version: \`${r8_version}\`"
+              echo "- Google Play minimum per category: \`${ANDROID_R8_MIN_COVERAGE_PERCENT}%\`"
+              printf '%s\n' "${summary_lines[@]}"
+            } >> "${GITHUB_STEP_SUMMARY}"
+
+            echo "${bundle_label} bundle:"
             printf '%s\n' "${summary_lines[@]}"
-          } >> "${GITHUB_STEP_SUMMARY}"
+          }
 
-          printf '%s\n' "${summary_lines[@]}"
+          gate_r8_coverage phone "${AAB_PATH}"
+          gate_r8_coverage wear "${WEAR_AAB_PATH}"
 
           if [[ "${#failures[@]}" -gt 0 ]]; then
             printf 'R8 optimization coverage gate failed: %s\n' "${failures[*]}" >&2
@@ -544,12 +580,17 @@ jobs:
           AAB_SHA256: ${{ steps.bundle.outputs.sha256 }}
           BUNDLE_ARTIFACT_URL: ${{ steps.upload-bundle.outputs.artifact-url }}
           BUNDLE_ARTIFACT_ID: ${{ steps.upload-bundle.outputs.artifact-id }}
+          WEAR_AAB_SHA256: ${{ steps.bundle.outputs.wear_sha256 }}
+          WEAR_BUNDLE_ARTIFACT_URL: ${{ steps.upload-wear-bundle.outputs.artifact-url }}
+          WEAR_BUNDLE_ARTIFACT_ID: ${{ steps.upload-wear-bundle.outputs.artifact-id }}
         run: |
           {
             echo "## Signed Android App Bundle"
             echo ""
             echo "- Bundle artifact: [${BUNDLE_ARTIFACT_ID}](${BUNDLE_ARTIFACT_URL})"
             echo "- Bundle SHA-256: \`${AAB_SHA256}\`"
+            echo "- Wear OS bundle artifact: [${WEAR_BUNDLE_ARTIFACT_ID}](${WEAR_BUNDLE_ARTIFACT_URL})"
+            echo "- Wear OS bundle SHA-256: \`${WEAR_AAB_SHA256}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   publish_android:
@@ -636,6 +677,7 @@ jobs:
           AAB_PATH: ${{ runner.temp }}/android-release-bundle/app-release.aab
           AAB_SHA256: ${{ needs.build_signed_android.outputs.aab_sha256 }}
           ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+          ANDROID_PLAY_TRACK: production
           ARTIFACT_SOURCE_SHA: ${{ needs.preflight.outputs.target_sha }}
           PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-publisher-provenance.json
           PLAY_NOTES_PATH: ${{ runner.temp }}/play-release-notes/release-notes.json
@@ -669,6 +711,84 @@ jobs:
             echo "- Next step: inspect native results, complete operator readiness and Play-delivered verification, review translations, then publish manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  publish_wear_android:
+    name: Upload Wear OS bundle to Google Play wear production draft release
+    # After the phone publisher, so the two Play edits never overlap.
+    needs:
+      - preflight
+      - build_signed_android
+      - publish_android
+    if: ${{ !cancelled() && needs.publish_android.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    concurrency:
+      group: android-release-publish-main
+      cancel-in-progress: false
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_wear_version_code }}
+      ANDROID_PLAY_RELEASE_NAME: ${{ needs.preflight.outputs.android_wear_play_release_name }}
+
+    steps:
+      - name: Check out publisher tooling from the workflow source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: |
+            scripts/android/publish-play-draft.py
+            scripts/android/play_release_notes.py
+          sparse-checkout-cone-mode: false
+
+      - name: Download signed Wear OS App Bundle for this attempt
+        uses: actions/download-artifact@v8
+        with:
+          name: android-wear-release-bundle-r${{ github.run_id }}a${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-wear-release-bundle
+
+      - name: Authenticate to Google Play
+        uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          create_credentials_file: false
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Upload Wear OS bundle to Google Play wear production track as draft release
+        env:
+          PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          AAB_PATH: ${{ runner.temp }}/android-wear-release-bundle/wear-release.aab
+          AAB_SHA256: ${{ needs.build_signed_android.outputs.wear_aab_sha256 }}
+          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+          ANDROID_PLAY_TRACK: 'wear:production'
+          ARTIFACT_SOURCE_SHA: ${{ needs.preflight.outputs.target_sha }}
+          PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-wear-publisher-provenance.json
+        run: python3 .release-tools/scripts/android/publish-play-draft.py
+
+      - name: Retain Wear OS Play publisher correlation
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-wear-play-publisher-provenance
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/play-wear-publisher-provenance.json
+
+      - name: Summarize Wear OS Play draft upload
+        run: |
+          {
+            echo "## Wear OS Play draft upload"
+            echo ""
+            echo "- Track: \`wear:production\`"
+            echo "- Release name: \`${ANDROID_PLAY_RELEASE_NAME}\`"
+            echo "- Version code: \`${ANDROID_VERSION_CODE}\`"
+            echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
+            echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
+            echo "- Upload state: \`draft\`"
+            echo "- Next step: publish manually in Play Console together with the phone draft of this release."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
   release_summary:
     name: Android release summary
     if: ${{ always() }}
@@ -678,6 +798,7 @@ jobs:
       - device_run_submission
       - build_signed_android
       - publish_android
+      - publish_wear_android
     runs-on: ubuntu-24.04
 
     steps:
@@ -695,6 +816,9 @@ jobs:
             echo "- Signed bundle and R8 gate result: \`${{ needs.build_signed_android.result }}\`"
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
+            echo "- Wear OS version code: \`${{ needs.preflight.outputs.android_wear_version_code || 'n/a' }}\`"
+            echo "- Wear OS Play release name: \`${{ needs.preflight.outputs.android_wear_play_release_name || 'n/a' }}\`"
+            echo "- Wear OS Play draft upload result: \`${{ needs.publish_wear_android.result }}\`"
             echo "- Device Run named results and private evidence references: \`android-device-run-submissions\`"
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -180,6 +180,9 @@ class CloudIdentityResetCoordinator(
     suspend fun disconnectDeletedCloudIdentityPreservingLocalState() {
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
+                database.workspaceDao().loadWorkspaces().forEach { workspace ->
+                    cloudPreferencesStore.clearCardMaintenanceAttempt(workspaceId = workspace.workspaceId)
+                }
                 disconnectCloudIdentityPreservingLocalStateLocked()
                 cloudPreferencesStore.clearAccountPreferences()
                 guestAiSessionStore.clearAllSessions()

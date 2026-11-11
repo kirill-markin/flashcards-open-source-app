@@ -787,6 +787,7 @@ const ltCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Jūsų kortelės",
       addCards: "Pridėti korteles",
+      transfer: "Duomenų perkėlimas",
     },
     deckCatalog: {
       title: "Kaladžių katalogas",
@@ -1469,6 +1470,19 @@ const ltCatalog: TranslationCatalog = {
       edit: "Redaguoti kaladę",
       new: "Nauja kaladė",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Pašalinti žymą iš kortelių",
+    linkedWorkspaceRequired: "Šiam veiksmui reikia susietos debesijos darbo srities.",
+    noChanges: "Nė vienai kortelei šio pakeitimo nereikia.",
+    overlap: "Taip bus iš naujo nustatyta pažanga ir kituose rinkiniuose bei žymose, kuriuose yra šios kortelės.",
+    outcomeUnknown: "Nepavyko patvirtinti, ar pakeitimas darbo srityje buvo pritaikytas.",
+    previewChanged: "Kortelės, kurioms bus pritaikytas veiksmas, pasikeitė. Peržiūrėkite atnaujintą peržiūrą ir patvirtinkite dar kartą.",
+    removePreview: "Žyma bus pašalinta iš šių kortelių ({{cards}}). Kortelės bus išsaugotos. Rinkiniai, kurių taisyklėse yra ši žyma: {{decks}}.",
+    resetComplete: "Mokymosi pažanga nustatyta iš naujo.",
+    saveDeckRules: "Prieš nustatydami mokymosi pažangą iš naujo išsaugokite rinkinio taisykles.",
+    syncFailed: "Patikrinkite ryšį ir bandykite sinchronizuoti dar kartą.",
+    targetMissing: "Pasirinktos kortelės, rinkinio ar žymos nebėra.",
   },
   tagsScreen: {
     counts: {

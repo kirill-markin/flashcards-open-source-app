@@ -157,6 +157,44 @@ internal class CloudWorkspaceLinkCoordinator(
         }
     }
 
+    /**
+     * Links a replica that owns no content, the Wear OS watch, to [workspaceId]. Unlike [completeCloudLink]
+     * it never forks local data into the workspace: the local shell, outbox and review history are always
+     * replaced, so the workspace bootstraps from the server, and any recovery state is moot.
+     */
+    suspend fun completeReplicaCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        workspaceId: String
+    ): CloudWorkspaceSummary {
+        return operationCoordinator.runExclusive {
+            require(linkContext.guestUpgradeMode == null) {
+                "A replica link never upgrades a guest session."
+            }
+            val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession(
+                linkContext = linkContext
+            )
+            require(authenticatedSession.accountSnapshot.workspaces.any { workspace ->
+                workspace.workspaceId == workspaceId
+            }) {
+                "Selected workspace is unavailable for this account."
+            }
+            val selectedWorkspace: CloudWorkspaceSummary = remoteService.selectWorkspace(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                bearerToken = authenticatedSession.credentials.idToken,
+                workspaceId = workspaceId
+            )
+            transitionCoordinator.applyLinkedWorkspaceReplacingLocalShell(
+                accountSnapshot = authenticatedSession.accountSnapshot,
+                selectedWorkspace = selectedWorkspace
+            )
+            withContext(Dispatchers.IO) {
+                preferencesStore.saveCredentials(authenticatedSession.credentials)
+            }
+            preferencesStore.clearCloudCredentialRecoveryState()
+            selectedWorkspace
+        }
+    }
+
     suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,

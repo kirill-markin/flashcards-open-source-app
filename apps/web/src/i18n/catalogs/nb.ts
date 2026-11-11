@@ -780,6 +780,7 @@ const nbCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kortene dine",
       addCards: "Legg til kort",
+      transfer: "Dataoverføring",
     },
     deckCatalog: {
       title: "Katalog med kortstokker",
@@ -1459,6 +1460,19 @@ const nbCatalog: TranslationCatalog = {
       edit: "Rediger kortstokk",
       new: "Ny kortstokk",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Fjern taggen fra kortene",
+    linkedWorkspaceRequired: "Denne handlingen krever et tilknyttet arbeidsområde i skyen.",
+    noChanges: "Ingen kort trenger denne endringen.",
+    overlap: "Dette nullstiller også fremdriften i andre kortstokker og tagger som omfatter disse kortene.",
+    outcomeUnknown: "Vi kunne ikke bekrefte om endringen i arbeidsområdet ble gjennomført.",
+    previewChanged: "De berørte kortene har endret seg. Sjekk den oppdaterte forhåndsvisningen og bekreft på nytt.",
+    removePreview: "Taggen fjernes fra {{cards}}. Kortene beholdes. Kortstokker med denne taggen i reglene: {{decks}}.",
+    resetComplete: "Studiefremdriften er nullstilt.",
+    saveDeckRules: "Lagre reglene for kortstokken før du nullstiller studiefremdriften.",
+    syncFailed: "Sjekk tilkoblingen og prøv å synkronisere på nytt.",
+    targetMissing: "Det valgte kortet, kortstokken eller taggen finnes ikke lenger.",
   },
   tagsScreen: {
     counts: {

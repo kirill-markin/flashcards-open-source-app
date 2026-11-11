@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.applyTagSelectionChanges
 import com.flashcardsopensourceapp.data.local.model.cards.cardMetadataAfterAuthoredEdit
 import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.encodeCardMetadataJson
@@ -17,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadat
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.cards.queryCards
+import com.flashcardsopensourceapp.data.local.repository.CardUnavailableException
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
@@ -96,27 +98,36 @@ class LocalCardsRepository(
         }
     }
 
-    override suspend fun updateCard(cardId: String, cardDraft: CardDraft) {
-        runLocalOutboxMutationTransaction(
+    override suspend fun updateCard(cardId: String, cardDraft: CardDraft, savedTags: List<String>): CardDraft {
+        return runLocalOutboxMutationTransaction(
             database = database,
             preferencesStore = preferencesStore
         ) {
-            val currentCard: CardEntity = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
-                "Cannot update missing card: $cardId"
+            val currentCard = database.cardDao().loadCard(cardId = cardId)
+            if (currentCard == null || currentCard.deletedAtMillis != null) {
+                throw CardUnavailableException(cardId = cardId)
             }
             val currentTags = requireNotNull(database.cardDao().observeCardWithRelations(cardId = cardId).first()) {
                 "Cannot load relations for card being updated: $cardId"
             }.tags.map(TagEntity::name)
+            val updatedDraft = CardDraft(
+                frontText = cardDraft.frontText,
+                backText = cardDraft.backText,
+                tags = applyTagSelectionChanges(
+                    savedTags = savedTags,
+                    selectedTags = cardDraft.tags,
+                    currentTags = currentTags
+                )
+            )
             val updatedCard: CardEntity = currentCard.copy(
                 frontText = cardDraft.frontText,
                 backText = cardDraft.backText,
                 metadataJson = encodeCardMetadataJson(metadata = cardMetadataAfterAuthoredEdit(
                     metadata = decodeCardMetadataJson(metadataJson = currentCard.metadataJson),
                     frontText = currentCard.frontText, backText = currentCard.backText,
-                    tags = currentTags, cardType = currentCard.cardType, input = cardDraft
+                    tags = currentTags, cardType = currentCard.cardType, input = updatedDraft
                 )),
-                updatedAtMillis = System.currentTimeMillis(),
-                deletedAtMillis = null
+                updatedAtMillis = System.currentTimeMillis()
             )
 
             database.cardDao().updateCard(card = updatedCard)
@@ -124,13 +135,14 @@ class LocalCardsRepository(
                 database = database,
                 workspaceId = currentCard.workspaceId,
                 cardId = cardId,
-                tags = cardDraft.tags
+                tags = updatedDraft.tags
             )
             syncLocalStore.enqueueCardUpsert(
                 card = updatedCard,
-                tags = cardDraft.tags,
-                affectsReviewSchedule = currentCard.deletedAtMillis != null
+                tags = updatedDraft.tags,
+                affectsReviewSchedule = false
             )
+            updatedDraft
         }
     }
 

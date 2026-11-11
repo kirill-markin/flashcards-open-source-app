@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../appData";
+import { buildTagEdit, rebaseTagDraft } from "../../../appData/domain/cardTags";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../../appError/AppErrorContext";
 import { useAiCardHandoff } from "../../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../../i18n";
+import { CardMaintenanceAction } from "../../settings/workspace/CardMaintenanceAction";
 import {
   cancelCardFormTextareaSelectionRestore,
   captureCardFormTextareaSelection,
@@ -26,6 +28,7 @@ import {
   type CardFormTextareaSelectionRestore,
   type CardFormTextareaSelectionSnapshot,
 } from "./CardForm";
+import type { CardFormTagEdit } from "./CardFormTagsField";
 import { prepareCardImageMediaAuthoring } from "./cardImageAuthoring";
 import {
   isGeneratedMediaLifecycleConflictPresent,
@@ -380,16 +383,24 @@ export function CardFormScreen(): ReactElement {
 
   function buildUpdatePayload(): UpdateCardInput {
     const currentFormState = formStateRef.current;
+    const baseline = reconciliationBaselineCardRef.current;
+    if (baseline === null) throw new Error("Cannot edit a card before it is loaded.");
+    const tagEdit = buildTagEdit(baseline.tags, currentFormState.tags);
     return {
       frontText: currentFormState.frontText,
       backText: currentFormState.backText,
-      tags: currentFormState.tags,
+      ...(tagEdit === undefined ? {} : { tagEdit }),
     };
   }
 
-  function handleFormStateChange(nextFormState: CardFormState): void {
-    formStateRef.current = nextFormState;
-    setFormState(nextFormState);
+  function handleFormStateChange(nextFormState: CardFormState, tagEdit?: CardFormTagEdit): void {
+    const currentFormState = formStateRef.current;
+    const resolvedFormState = tagEdit === undefined ? nextFormState : {
+      ...currentFormState,
+      tags: rebaseTagDraft(tagEdit.baseline, currentFormState.tags, tagEdit.draft),
+    };
+    formStateRef.current = resolvedFormState;
+    setFormState(resolvedFormState);
   }
 
   function isSubmissionAllowed(): boolean {
@@ -847,6 +858,13 @@ export function CardFormScreen(): ReactElement {
           ref={cardFormFieldsRef}
           tagSuggestions={tagSuggestions}
           currentCard={currentCard}
+          metadataAction={isCreateMode || currentCard === null ? undefined : (
+            <CardMaintenanceAction
+              kind="resetCard"
+              target={currentCard.cardId}
+              disabled={isSaving || isDeleting || isAuthoringMedia}
+            />
+          )}
           formState={formState}
           formIdPrefix="card-form-screen"
           isSaving={isSaving}

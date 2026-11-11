@@ -850,6 +850,19 @@
 "settings.workspace.decks.section.name" = "الاسم";
 "settings.workspace.decks.deckName" = "اسم المجموعة";
 
+"settings.workspace.cardMaintenance.applied" = "تم حفظ التغييرات على الخادم. زامن هذا الجهاز لعرضها هنا.";
+"settings.workspace.cardMaintenance.previewChanged" = "تغيّر النطاق. راجع المعاينة المحدّثة وأكّد من جديد.";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "تغيّرت قواعد المجموعة. أغلق هذه الشاشة وراجعها.";
+"settings.workspace.cardMaintenance.refreshRequired" = "زامن مساحة العمل هذه قبل التعديل أو الدراسة.";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "قواعد المجموعات التي تستخدم هذه العلامة";
+"settings.workspace.cardMaintenance.cardsRemain" = "ستبقى بطاقاتك.";
+"settings.workspace.cardMaintenance.overlap" = "قد تظهر هذه البطاقات أيضًا في مجموعات أخرى أو تحت علامات أخرى.";
+"settings.workspace.cardMaintenance.noCards" = "لا توجد بطاقات لتغييرها.";
+"settings.workspace.cardMaintenance.signIn" = "سجّل الدخول واربط مساحة العمل هذه للمتابعة.";
+"settings.workspace.cardMaintenance.workspaceChanged" = "تغيّرت مساحة العمل. أغلق هذه الشاشة وافتح الإجراء من جديد.";
+"settings.workspace.cardMaintenance.targetMissing" = "لم يعد هذا العنصر متاحًا في مساحة العمل.";
+"settings.workspace.cardMaintenance.removeTag" = "إزالة العلامة من البطاقات";
+"settings.workspace.cardMaintenance.saveDeckRules" = "احفظ قواعد المجموعة قبل إعادة تعيين تقدم الدراسة.";
 "settings.workspace.tags.description" = "قم بتسمية بطاقات المجموعة في جميع أنحاء مساحة العمل. قد يتداخل الأعداد لكل علامة عندما تحتوي البطاقة على علامات متعددة.";
 "settings.workspace.tags.loading" = "جارٍ تحميل العلامات...";
 "settings.workspace.tags.empty" = "لم يتم استخدام أي علامة بعد.";

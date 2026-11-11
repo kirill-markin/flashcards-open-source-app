@@ -779,6 +779,7 @@ const enCatalog = {
     groups: {
       yourCards: "Your cards",
       addCards: "Add cards",
+      transfer: "Transfer",
     },
     deckCatalog: {
       title: "Deck catalog",
@@ -1458,6 +1459,19 @@ const enCatalog = {
       edit: "Edit deck",
       new: "New deck",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Remove tag from cards",
+    linkedWorkspaceRequired: "This action requires a linked cloud workspace.",
+    noChanges: "No cards need this change.",
+    overlap: "This also resets progress in other decks and tags that include these cards.",
+    outcomeUnknown: "We couldn't confirm whether the workspace change was applied.",
+    previewChanged: "The affected cards changed. Review the updated preview and confirm again.",
+    removePreview: "{{cards}} will lose this tag. The cards will be kept. Decks with this tag in their rules: {{decks}}.",
+    resetComplete: "Study progress reset.",
+    saveDeckRules: "Save the deck rules before resetting study progress.",
+    syncFailed: "Check your connection and retry syncing.",
+    targetMissing: "The selected card, deck, or tag no longer exists.",
   },
   tagsScreen: {
     counts: {

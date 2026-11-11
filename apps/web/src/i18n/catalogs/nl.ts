@@ -780,6 +780,7 @@ const nlCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Jouw kaarten",
       addCards: "Kaarten toevoegen",
+      transfer: "Gegevensoverdracht",
     },
     deckCatalog: {
       title: "Deckcatalogus",
@@ -1459,6 +1460,19 @@ const nlCatalog: TranslationCatalog = {
       edit: "Deck bewerken",
       new: "Nieuw deck",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Tag van kaarten verwijderen",
+    linkedWorkspaceRequired: "Voor deze actie is een gekoppelde cloudwerkruimte vereist.",
+    noChanges: "Geen enkele kaart heeft deze wijziging nodig.",
+    overlap: "Hiermee wordt ook de voortgang gereset in andere kaartensets en tags die deze kaarten bevatten.",
+    outcomeUnknown: "We konden niet bevestigen of de wijziging in de werkruimte is doorgevoerd.",
+    previewChanged: "De betrokken kaarten zijn gewijzigd. Bekijk het bijgewerkte voorbeeld en bevestig opnieuw.",
+    removePreview: "De tag wordt verwijderd van {{cards}}. De kaarten blijven behouden. Kaartensets met deze tag in hun regels: {{decks}}.",
+    resetComplete: "Leervoortgang gereset.",
+    saveDeckRules: "Sla de regels van de kaartenset op voordat je de leervoortgang reset.",
+    syncFailed: "Controleer je verbinding en probeer opnieuw te synchroniseren.",
+    targetMissing: "De geselecteerde kaart, kaartenset of tag bestaat niet meer.",
   },
   tagsScreen: {
     counts: {

@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../../api";
 import type { AppDataContextValue } from "../../../../appData";
+import { WorkspaceMaintenancePendingError } from "../../../../appData/sync/engine/workspaceMaintenanceLock";
 import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
 import { I18nProvider } from "../../../../i18n";
 import type {
@@ -491,6 +492,39 @@ describe("WorkspaceImportScreen package import", () => {
       importTag: "import:2026-07-01",
       removeTags: [],
     }));
+  });
+
+  it("clears a confirmed text import and retries only sync after maintenance contention", async () => {
+    previewWorkspacePackageImportMock.mockResolvedValueOnce({ ...createPreviewResponse(), cardCount: 2 });
+    captureAppOperationErrorMock.mockReturnValue(false);
+    let rejectRefresh: (error: Error) => void = (error) => { throw error; };
+    const pendingRefresh = new Promise<void>((_resolve, reject) => {
+      rejectRefresh = reject;
+    });
+    const refreshLocalDataMock = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockReturnValueOnce(pendingRefresh)
+      .mockResolvedValueOnce(undefined);
+    getAppData().refreshLocalData = refreshLocalDataMock;
+
+    await renderScreen();
+    const input = requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement);
+    const confirmButton = requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement);
+    await setTextAreaValue(input, "Canada\tOttawa\nFrance\tParis");
+    await clickElement(confirmButton);
+    await waitForCondition("Confirmed text import did not clear its draft", () => input.value === "");
+    expect(refreshLocalDataMock).toHaveBeenCalledTimes(2);
+    expect(getContainer().querySelector("[data-testid='workspace-import-success']")).not.toBeNull();
+
+    await act(async () => rejectRefresh(new WorkspaceMaintenancePendingError("Retry syncing.")));
+    expect(confirmButton.disabled).toBe(true);
+    const retry = requireElement("[data-testid='workspace-text-import-retry-sync']", HTMLButtonElement);
+    await clickElement(retry);
+
+    expect(refreshLocalDataMock).toHaveBeenCalledTimes(3);
+    expect(previewWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
+    expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector("[data-testid='workspace-text-import-retry-sync']")).toBeNull();
   });
 
   it("blocks pasted text import until every preview card has a front and back", async () => {

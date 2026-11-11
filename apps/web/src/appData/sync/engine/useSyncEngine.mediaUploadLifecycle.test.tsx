@@ -116,6 +116,7 @@ function renderSyncEngineHarness(): Readonly<{
     const [, setTechnicalError] = useState<Error | null>(null);
     latestApi = useSyncEngine({
       onReviewSaved: vi.fn(async (): Promise<void> => undefined),
+      maintenanceSyncFailureMessage: "Retry sync.",
       sessionLoadState: "ready",
       sessionVerificationState: "verified",
       session,

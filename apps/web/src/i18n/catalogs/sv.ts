@@ -780,6 +780,7 @@ const svCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Dina kort",
       addCards: "Lägg till kort",
+      transfer: "Dataöverföring",
     },
     deckCatalog: {
       title: "Kortlekskatalog",
@@ -1459,6 +1460,19 @@ const svCatalog: TranslationCatalog = {
       edit: "Redigera kortleken",
       new: "Ny kortlek",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Ta bort taggen från korten",
+    linkedWorkspaceRequired: "Den här åtgärden kräver en länkad arbetsyta i molnet.",
+    noChanges: "Inga kort behöver den här ändringen.",
+    overlap: "Detta nollställer även framstegen i andra kortlekar och taggar som omfattar de här korten.",
+    outcomeUnknown: "Vi kunde inte bekräfta om ändringen i arbetsytan genomfördes.",
+    previewChanged: "De berörda korten har ändrats. Granska den uppdaterade förhandsvisningen och bekräfta igen.",
+    removePreview: "Taggen tas bort från {{cards}}. Korten behålls. Kortlekar med den här taggen i sina regler: {{decks}}.",
+    resetComplete: "Studieframstegen har nollställts.",
+    saveDeckRules: "Spara kortlekens regler innan du nollställer studieframstegen.",
+    syncFailed: "Kontrollera anslutningen och försök att synkronisera igen.",
+    targetMissing: "Det valda kortet, kortleken eller taggen finns inte längre.",
   },
   tagsScreen: {
     counts: {

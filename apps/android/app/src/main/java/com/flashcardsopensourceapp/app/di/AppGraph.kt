@@ -30,7 +30,7 @@ import com.flashcardsopensourceapp.app.analytics.AppAnalyticsCredentialProvider
 import com.flashcardsopensourceapp.app.analytics.currentAppUiLocaleTag
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
 import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForProcess
-import com.flashcardsopensourceapp.app.automation.resolveAutomationEnvironment
+import com.flashcardsopensourceapp.core.observability.resolveAutomationEnvironment
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidReviewPromptRemoteConfigStage
@@ -106,6 +106,7 @@ import com.flashcardsopensourceapp.data.local.review.SharedPreferencesStoreRevie
 import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
 import com.flashcardsopensourceapp.data.local.review.prompts.RemoteReviewPromptConfig
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptConfigStore
+import com.flashcardsopensourceapp.data.local.watch.WatchHandoffReplyBuilder
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
@@ -341,6 +342,12 @@ class AppGraph(
      */
     val pendingSignOutReport = PendingSignOutReport()
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
+    val watchHandoffReplyBuilder = WatchHandoffReplyBuilder(
+        preferencesStore = cloudPreferencesStore,
+        reviewPreferencesStore = reviewPreferencesStore,
+        remoteService = cloudRemoteService,
+        operationCoordinator = cloudOperationCoordinator
+    )
     val reviewPromptConfigStore = ReviewPromptConfigStore(
         context = context,
         onCacheUnreadable = { error ->

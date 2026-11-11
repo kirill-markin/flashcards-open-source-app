@@ -794,6 +794,7 @@ const slCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vaše kartice",
       addCards: "Dodajanje kartic",
+      transfer: "Prenos podatkov",
     },
     deckCatalog: {
       title: "Katalog kompletov",
@@ -1479,6 +1480,19 @@ const slCatalog: TranslationCatalog = {
       edit: "Uredi komplet",
       new: "Nov komplet",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Odstrani oznako s kartic",
+    linkedWorkspaceRequired: "Za to dejanje je potreben povezan delovni prostor v oblaku.",
+    noChanges: "Nobena kartica ne potrebuje te spremembe.",
+    overlap: "S tem se ponastavi tudi napredek v drugih kompletih in oznakah, ki vključujejo te kartice.",
+    outcomeUnknown: "Ni bilo mogoče potrditi, ali je bila sprememba v delovnem prostoru uveljavljena.",
+    previewChanged: "Kartice, na katere vpliva dejanje, so se spremenile. Preglej posodobljen predogled in znova potrdi.",
+    removePreview: "Oznaka bo odstranjena s kartic ({{cards}}). Kartice bodo ohranjene. Kompleti s to oznako v pravilih: {{decks}}.",
+    resetComplete: "Napredek pri učenju je ponastavljen.",
+    saveDeckRules: "Pred ponastavitvijo napredka pri učenju shrani pravila kompleta.",
+    syncFailed: "Preveri povezavo in znova poskusi sinhronizirati.",
+    targetMissing: "Izbrana kartica, komplet ali oznaka ne obstaja več.",
   },
   tagsScreen: {
     counts: {

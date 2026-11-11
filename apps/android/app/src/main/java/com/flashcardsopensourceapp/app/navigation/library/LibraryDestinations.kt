@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation.library
 
+import com.flashcardsopensourceapp.app.navigation.encodeRouteText
+
 internal data object LibraryRootGraph {
     const val route: String = "library/root"
 }
@@ -38,6 +40,17 @@ data object LibraryDeckEditorDestination {
 
 data object LibraryTagsDestination {
     const val route: String = "library/tags"
+}
+
+data object LibraryTagDetailDestination {
+    private const val routePrefix = "library/tags/detail"
+    const val workspaceArgument = "workspaceId"
+    const val tagArgument = "tag"
+    const val routePattern = "$routePrefix/{$workspaceArgument}/{$tagArgument}"
+
+    fun createRoute(workspaceId: String, tag: String): String {
+        return "$routePrefix/$workspaceId/${encodeRouteText(value = tag)}"
+    }
 }
 
 data object LibraryDeckCatalogDestination {

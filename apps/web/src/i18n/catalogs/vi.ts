@@ -780,6 +780,7 @@ const viCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Thẻ của bạn",
       addCards: "Thêm thẻ",
+      transfer: "Chuyển dữ liệu",
     },
     deckCatalog: {
       title: "Danh mục bộ thẻ",
@@ -1459,6 +1460,19 @@ const viCatalog: TranslationCatalog = {
       edit: "Sửa bộ thẻ",
       new: "Bộ thẻ mới",
     },
+  },
+  cardMaintenance: {
+    removeTag: "Gỡ thẻ khỏi các thẻ học",
+    linkedWorkspaceRequired: "Thao tác này cần một không gian làm việc đám mây đã liên kết.",
+    noChanges: "Không có thẻ học nào cần thay đổi này.",
+    overlap: "Thao tác này cũng đặt lại tiến độ trong các bộ thẻ và thẻ phân loại khác có chứa những thẻ học này.",
+    outcomeUnknown: "Không thể xác nhận thay đổi đã được áp dụng trong không gian làm việc hay chưa.",
+    previewChanged: "Các thẻ học bị ảnh hưởng đã thay đổi. Hãy xem bản xem trước mới và xác nhận lại.",
+    removePreview: "Sẽ gỡ thẻ phân loại này khỏi {{cards}}. Các thẻ học vẫn được giữ lại. Số bộ thẻ có quy tắc dùng thẻ phân loại này: {{decks}}.",
+    resetComplete: "Đã đặt lại tiến độ học.",
+    saveDeckRules: "Hãy lưu quy tắc của bộ thẻ trước khi đặt lại tiến độ học.",
+    syncFailed: "Kiểm tra kết nối và thử đồng bộ lại.",
+    targetMissing: "Thẻ học, bộ thẻ hoặc thẻ phân loại đã chọn không còn tồn tại.",
   },
   tagsScreen: {
     counts: {

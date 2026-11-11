@@ -9,8 +9,11 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterConflictException
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.cards.applyTagSelectionChanges
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -49,7 +52,7 @@ class DeckEditorViewModel(
             selectedTags = emptyList(),
             errorMessage = "",
             loadedEditingDeckId = null,
-            persistedDeckName = null,
+            persistedDeck = null,
             isSubmitting = false,
             isEditingDeckMissing = false
         )
@@ -127,7 +130,10 @@ class DeckEditorViewModel(
             return null
         }
 
-        if (isDeckFilterEmpty(selectedTags = state.selectedTags)) {
+        val savedDeck = state.persistedDeck
+        if (isDeckFilterEmpty(selectedTags = state.selectedTags) &&
+            (savedDeck == null || state.hasUnsavedRules(savedDeck = savedDeck))
+        ) {
             inputState.update { currentState ->
                 currentState.copy(errorMessage = strings.get(R.string.settings_deck_editor_filter_required))
             }
@@ -151,11 +157,21 @@ class DeckEditorViewModel(
                     deckId = decksRepository.createDeck(deckDraft = deckDraft)
                 )
             } else {
-                decksRepository.updateDeck(deckId = editingDeckId, deckDraft = deckDraft)
+                val originalDeck = requireNotNull(savedDeck)
+                decksRepository.updateDeck(
+                    deckId = editingDeckId,
+                    deckDraft = deckDraft,
+                    savedDraft = DeckDraft(name = originalDeck.name, filterDefinition = originalDeck.filterDefinition)
+                )
                 DeckEditorSaveResult.Updated
             }
         } catch (error: CancellationException) {
             throw error
+        } catch (error: DeckFilterConflictException) {
+            inputState.update { currentState ->
+                currentState.copy(errorMessage = strings.get(R.string.settings_deck_editor_filter_conflict))
+            }
+            return null
         } catch (error: Exception) {
             reportSubmissionError(
                 error = error,
@@ -245,7 +261,7 @@ private data class DeckEditorInputState(
     val selectedTags: List<String>,
     val errorMessage: String,
     val loadedEditingDeckId: String?,
-    val persistedDeckName: String?,
+    val persistedDeck: DeckSummary?,
     val isSubmitting: Boolean,
     val isEditingDeckMissing: Boolean
 )
@@ -255,18 +271,32 @@ private fun applyObservedEditingDeck(
     deck: DeckSummary?
 ): DeckEditorInputState {
     if (deck == null) {
-        return currentState.copy(isEditingDeckMissing = true, persistedDeckName = null)
+        return currentState.copy(isEditingDeckMissing = true, persistedDeck = null)
     }
 
     if (currentState.loadedEditingDeckId == deck.deckId) {
-        return currentState.copy(isEditingDeckMissing = false, persistedDeckName = deck.name)
+        val savedDeck = currentState.persistedDeck
+        return currentState.copy(
+            name = if (savedDeck != null && currentState.name.trim() == savedDeck.name) deck.name else currentState.name,
+            selectedTags = if (savedDeck == null) {
+                currentState.selectedTags
+            } else {
+                applyTagSelectionChanges(
+                    savedTags = savedDeck.filterDefinition.tags,
+                    selectedTags = currentState.selectedTags,
+                    currentTags = deck.filterDefinition.tags
+                )
+            },
+            isEditingDeckMissing = false,
+            persistedDeck = deck
+        )
     }
 
     return currentState.copy(
         name = deck.name,
         selectedTags = deck.filterDefinition.tags,
         loadedEditingDeckId = deck.deckId,
-        persistedDeckName = deck.name,
+        persistedDeck = deck,
         isEditingDeckMissing = false
     )
 }
@@ -277,6 +307,7 @@ private fun toDeckEditorUiState(
     editingDeckId: String?,
     strings: SettingsStringResolver
 ): DeckEditorUiState {
+    val savedDeck = inputState.persistedDeck
     return DeckEditorUiState(
         isLoading = isDeckEditorLoading(
             inputState = inputState,
@@ -284,15 +315,8 @@ private fun toDeckEditorUiState(
         ),
         isDeckMissing = inputState.isEditingDeckMissing,
         isSubmitting = inputState.isSubmitting,
-        deleteTarget = if (inputState.loadedEditingDeckId != null && inputState.persistedDeckName != null &&
-            !inputState.isEditingDeckMissing
-        ) {
-            DeckEditorDeleteTarget(
-                deckId = inputState.loadedEditingDeckId,
-                name = inputState.persistedDeckName
-            )
-        } else {
-            null
+        deleteTarget = savedDeck?.let { deck ->
+            DeckEditorDeleteTarget(deckId = deck.deckId, workspaceId = deck.workspaceId, name = deck.name)
         },
         title = if (editingDeckId == null) {
             strings.get(R.string.settings_deck_editor_new_title)
@@ -300,11 +324,16 @@ private fun toDeckEditorUiState(
             strings.get(R.string.settings_deck_editor_edit_title)
         },
         isEditing = editingDeckId != null,
+        hasUnsavedRules = savedDeck != null && inputState.hasUnsavedRules(savedDeck = savedDeck),
         name = inputState.name,
         selectedTags = inputState.selectedTags,
         availableTags = availableTags,
         errorMessage = inputState.errorMessage
     )
+}
+
+private fun DeckEditorInputState.hasUnsavedRules(savedDeck: DeckSummary): Boolean {
+    return selectedTags.map(::normalizeTagKey).toSet() != savedDeck.filterDefinition.tags.map(::normalizeTagKey).toSet()
 }
 
 private fun isDeckEditorLoading(

@@ -177,6 +177,7 @@ final class FlashcardsStore {
     /// changes, or failed after possibly applying pulled pages, and cleared by the sync rebuild in
     /// `applySyncResultWithoutBlockingReset`. See docs/fsrs-scheduling-logic.md#non-blocking-review.
     @ObservationIgnored var hasUnrebuiltSyncWrites: Bool = false
+    @ObservationIgnored var executingCardMaintenanceWorkspaceIds: Set<String> = []
 
     @ObservationIgnored let database: LocalDatabase?
     @ObservationIgnored let dependencies: FlashcardsStoreDependencies

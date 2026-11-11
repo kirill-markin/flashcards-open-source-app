@@ -57,13 +57,16 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    [independent-client card and rating sync check](evidence.md#independent-client-sync-check).
 5. Require green `Android Release` and signed AAB publisher provenance, or
    [recover an exact bundle](#exact-bundle-upload-recovery) after a publisher-only
-   failure. Inspect build/lint and native diagnostics under the
+   failure. If only the Wear OS upload failed after the phone draft committed,
+   dispatch a new release instead of publishing that phone draft: re-running
+   failed jobs cannot work, because the Wear OS job downloads its own attempt's bundle. Inspect build/lint and native diagnostics under the
    [warning policy](README.md#release-warning-policy), then retain the
    [readiness manifest and report](readiness.md#generate-the-android-manifest).
 6. Open Google Play Console and select that draft by its
-   `main-draft-<releaseIdentifier>` name and version code. Confirm it belongs
-   to the same SHA/run/attempt as the passing Device Run sessions. Confirm the uploaded
-   AAB manifest advertises minimum API 30 and target API 37; source declarations
+   `main-draft-<releaseIdentifier>` name and version code, and the Wear OS
+   `wear:production` draft by its wear name and version code from the run summary.
+   Confirm both belong to the same SHA/run/attempt as the passing Device Run sessions. Confirm the uploaded
+   phone AAB manifest advertises minimum API 30 and target API 37; source declarations
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
@@ -78,7 +81,7 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
 7. Compare the uploaded localized notes with the retained input, or fill them
    from the chat when the dispatch input was empty. Review the draft and required
    translations, and complete the production publication controls for that
-   exact bundle. Keep its identity pinned; do not select a newer unrelated
+   exact bundle and its `wear:production` draft. Keep its identity pinned; do not select a newer unrelated
    upload. After required release gates pass and any other unavailable testing is recorded under the standing policy, inspect the complete app-wide
    change set and submit the intended changes when a manual submission is
    required. Verify the actual review status; complete any publication action
@@ -176,6 +179,9 @@ Source changes require the bounded comparisons and affected gates in
 5. Resume step 6 above with the exact recovered bundle. Recheck app-wide Play
    state, delivered translations, processing and publication controls; upload
    recovery alone does not establish readiness or public availability.
+   Recovery re-uploads only the phone bundle, so a recovered release has no
+   `wear:production` draft: publish the phone draft alone; the Wear OS bundle
+   ships with the next normal release.
 
 ## First-release API 30 walkthrough
 

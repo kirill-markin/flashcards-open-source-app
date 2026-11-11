@@ -850,6 +850,19 @@
 "settings.workspace.decks.section.name" = "Nom";
 "settings.workspace.decks.deckName" = "Nom du paquet";
 
+"settings.workspace.cardMaintenance.applied" = "Les modifications ont été enregistrées sur le serveur. Synchronise cet appareil pour les voir ici.";
+"settings.workspace.cardMaintenance.previewChanged" = "Le périmètre a changé. Vérifie l’aperçu mis à jour et confirme à nouveau.";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "Les règles du paquet ont changé. Fermez cet écran et vérifiez-les.";
+"settings.workspace.cardMaintenance.refreshRequired" = "Synchronisez cet espace de travail avant de modifier ou d’étudier vos cartes.";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "Règles de paquets utilisant ce tag";
+"settings.workspace.cardMaintenance.cardsRemain" = "Tes cartes seront conservées.";
+"settings.workspace.cardMaintenance.overlap" = "Ces cartes peuvent aussi apparaître dans d’autres paquets ou avec d’autres tags.";
+"settings.workspace.cardMaintenance.noCards" = "Aucune carte à modifier.";
+"settings.workspace.cardMaintenance.signIn" = "Connecte-toi et associe cet espace de travail pour continuer.";
+"settings.workspace.cardMaintenance.workspaceChanged" = "L’espace de travail a changé. Ferme cet écran et rouvre l’action.";
+"settings.workspace.cardMaintenance.targetMissing" = "Cet élément n’est plus disponible dans l’espace de travail.";
+"settings.workspace.cardMaintenance.removeTag" = "Retirer le tag des cartes";
+"settings.workspace.cardMaintenance.saveDeckRules" = "Enregistre les règles du paquet avant de réinitialiser la progression d’étude.";
 "settings.workspace.tags.description" = "Les tags regroupent les cartes de tout l’espace de travail. Les décomptes par tag peuvent se chevaucher lorsqu’une carte a plusieurs tags.";
 "settings.workspace.tags.loading" = "Chargement des tags…";
 "settings.workspace.tags.empty" = "Aucun tag n’a encore été utilisé.";
