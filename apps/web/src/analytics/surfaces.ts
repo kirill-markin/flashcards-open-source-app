@@ -9,6 +9,7 @@ import {
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
+  libraryNibomoExportRoute,
   libraryRoute,
   libraryTagsRoute,
   normalizeRoutePath,
@@ -135,6 +136,7 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
     pathname === libraryRoute
     || pathname === libraryImportRoute
     || pathname === libraryExportRoute
+    || pathname === libraryNibomoExportRoute
     || pathname === libraryAnkiExportRoute
   ) {
     return "library";
