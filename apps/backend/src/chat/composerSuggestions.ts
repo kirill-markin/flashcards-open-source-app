@@ -15,6 +15,7 @@ import {
 import { getOpenAIClient } from "./openai/client";
 import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 import type { ContentPart } from "./types";
+import { parseUiCopyLocale, resolveSpecializedUiCopyLocale } from "../uiCopyLocale";
 import {
   appendAiUsageEvent,
   toOpenAIResponsesUsageCounters,
@@ -60,11 +61,21 @@ const MAX_CHAT_COMPOSER_SUGGESTIONS = 2;
  */
 const FOLLOW_UP_SUGGESTIONS_ATTEMPT_TIMEOUT_MS = 20_000;
 
+const ENGLISH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS = [
+  "Help me create a card",
+  "What should I study next?",
+] as const;
+
+const FRENCH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS = [
+  "Aide-moi à créer une carte",
+  "Que devrais-je étudier ensuite ?",
+] as const;
+
 const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
-  en: [
-    "Help me create a card",
-    "What should I study next?",
-  ],
+  en: ENGLISH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS,
+  "en-AU": ENGLISH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS,
+  "en-CA": ENGLISH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS,
+  "en-GB": ENGLISH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS,
   ar: [
     "ساعدني في إنشاء بطاقة",
     "ماذا يجب أن أدرس بعد ذلك؟",
@@ -121,10 +132,8 @@ const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
     "Auta minua luomaan kortti",
     "Mitä minun pitäisi opiskella seuraavaksi?",
   ],
-  fr: [
-    "Aide-moi à créer une carte",
-    "Que devrais-je étudier ensuite ?",
-  ],
+  fr: FRENCH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS,
+  "fr-CA": FRENCH_INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS,
   gu: [
     "મને એક કાર્ડ બનાવવામાં મદદ કરો",
     "હવે મને આગળ શું અભ્યાસ કરવો જોઈએ?",
@@ -185,6 +194,10 @@ const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
     "मला एक कार्ड तयार करण्यात मदत करा",
     "पुढे मला काय अभ्यासावे?",
   ],
+  ms: [
+    "Bantu saya buat kad",
+    "Apakah yang patut saya pelajari seterusnya?",
+  ],
   nl: [
     "Help me een kaart te maken",
     "Wat moet ik hierna bestuderen?",
@@ -192,6 +205,10 @@ const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
   no: [
     "Hjelp meg å lage et kort",
     "Hva bør jeg studere videre?",
+  ],
+  or: [
+    "ଗୋଟିଏ କାର୍ଡ ତିଆରି କରିବାରେ ମୋତେ ସାହାଯ୍ୟ କରନ୍ତୁ",
+    "ଏହା ପରେ ମୁଁ କ’ଣ ପଢ଼ିବି?",
   ],
   pa: [
     "ਮੈਨੂੰ ਇੱਕ ਕਾਰਡ ਬਣਾਉਣ ਵਿੱਚ ਮਦਦ ਕਰੋ",
@@ -203,6 +220,10 @@ const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
   ],
   pt: [
     "Ajude-me a criar um cartão",
+    "O que devo estudar a seguir?",
+  ],
+  "pt-PT": [
+    "Ajuda-me a criar um cartão",
     "O que devo estudar a seguir?",
   ],
   ro: [
@@ -264,6 +285,10 @@ const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
   "zh-Hans": [
     "帮我创建一张卡片",
     "我下一步该学什么？",
+  ],
+  "zh-Hant": [
+    "幫我建立一張卡片",
+    "接下來該學什麼？",
   ],
   zu: [
     "Ngisize ngenze ikhadi",
@@ -344,20 +369,6 @@ function hasOwnProperty<Value>(
   return Object.prototype.hasOwnProperty.call(record, key);
 }
 
-function normalizeLocaleTag(value: string): string | null {
-  const normalizedTag = value.replaceAll("_", "-").trim();
-  if (normalizedTag === "") {
-    return null;
-  }
-
-  try {
-    const canonicalLocale = Intl.getCanonicalLocales(normalizedTag)[0];
-    return canonicalLocale ?? null;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * `uiLocale` stays optional while released clients at 1.5.0 and older migrate
  * to the explicit request field. Missing locale therefore falls back to English
@@ -372,16 +383,20 @@ export function normalizeChatComposerSuggestionsUiLocale(
     return "en";
   }
 
-  const normalizedLocale = normalizeLocaleTag(uiLocale);
-  if (normalizedLocale === null) {
+  const locale = parseUiCopyLocale(uiLocale);
+  if (locale === null) {
     throw new Error(`Unsupported chat composer locale: ${uiLocale}`);
   }
 
+  const normalizedLocale = locale.toString();
   if (hasOwnProperty(INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE, normalizedLocale)) {
     return normalizedLocale as ChatComposerSuggestionsLocale;
   }
 
-  const locale = new Intl.Locale(normalizedLocale);
+  const specializedLocale = resolveSpecializedUiCopyLocale(locale);
+  if (specializedLocale !== null) {
+    return specializedLocale;
+  }
 
   if (locale.language === "es") {
     if (locale.region === "ES") {
