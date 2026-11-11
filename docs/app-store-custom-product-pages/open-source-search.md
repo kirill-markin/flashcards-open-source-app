@@ -1,9 +1,9 @@
 # Open source search
 
-Use this page for all 42 existing Nibomo App Store locales on iPhone and iPad.
-Each locale below has promotional text and a keyword candidate. Check local
-search demand and ranking before assigning a candidate. Select keywords from
-the latest approved app metadata for that locale. Add a missing term in a
+Use this source for the Nibomo custom page on iPhone and iPad. Each locale has
+promotional text and a keyword candidate. Check local search demand and ranking
+before assigning a candidate. Assign it only once it appears in the latest
+approved default app metadata for the matching locale. Add a missing term in a
 regular iOS update if it passes the check. [Default listing metadata](../app-store-connect-metadata.md)
 
 ## Page settings
@@ -438,3 +438,83 @@ Thẻ học mã nguồn mở với tính năng ôn tập ngắt quãng. Ôn lạ
 ### Keywords
 
 `mã nguồn mở`
+
+## Chinese (Traditional) (`zh-Hant`)
+
+### Promotional Text
+
+支援間隔複習的開源閃卡。離線也能複習已儲存的閃卡。
+
+### Keywords
+
+`開源閃卡`
+
+## English (Australia) (`en-AU`)
+
+### Promotional Text
+
+Open-source flashcards with spaced repetition. Review saved cards offline.
+
+### Keywords
+
+`open source`
+
+## English (Canada) (`en-CA`)
+
+### Promotional Text
+
+Open-source flashcards with spaced repetition. Review saved cards offline.
+
+### Keywords
+
+`open source`
+
+## English (U.K.) (`en-GB`)
+
+### Promotional Text
+
+Open-source flashcards with spaced repetition. Review saved cards offline.
+
+### Keywords
+
+`open source`
+
+## French (Canada) (`fr-CA`)
+
+### Promotional Text
+
+Fiches de révision et répétition espacée dans une application à code source ouvert. Révisez hors ligne les fiches que vous avez enregistrées.
+
+### Keywords
+
+`code source ouvert`
+
+## Portuguese (Portugal) (`pt-PT`)
+
+### Promotional Text
+
+Flashcards de código aberto com repetição espaçada. Reveja os cartões que guardou, mesmo offline.
+
+### Keywords
+
+`código aberto`
+
+## Malay (`ms`)
+
+### Promotional Text
+
+Kad imbas sumber terbuka dengan pengulangan berjarak. Ulang kaji kad yang disimpan walaupun di luar talian.
+
+### Keywords
+
+`sumber terbuka`
+
+## Odia (`or-IN`)
+
+### Promotional Text
+
+ବ୍ୟବଧାନ ରଖି ପୁନରାବୃତ୍ତି କରିବା ପାଇଁ ଓପନ୍ ସୋର୍ସ ଫ୍ଲାଶକାର୍ଡ। ସେଭ୍ କରିଥିବା କାର୍ଡଗୁଡ଼ିକୁ ଅଫଲାଇନ୍‌ରେ ପୁଣି ପଢ଼ନ୍ତୁ।
+
+### Keywords
+
+`ଓପନ୍ ସୋର୍ସ`
