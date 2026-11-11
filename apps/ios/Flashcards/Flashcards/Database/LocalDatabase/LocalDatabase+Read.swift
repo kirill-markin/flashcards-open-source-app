@@ -302,17 +302,28 @@ extension LocalDatabase {
         try self.cardStore.loadWorkspaceTagsSummary(workspaceId: workspaceId)
     }
 
-    func loadTagCardStats(workspaceId: String, tag: String, now: Date) throws -> DeckCardStats {
-        let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
-        let filterDefinition = resolveDeckFilterDefinitionTagNames(
-            filterDefinition: buildDeckFilterDefinition(tags: [tag]),
-            storedTagNames: storedTagNames
-        )
-        return try self.cardStore.loadDeckCardStats(
-            workspaceId: workspaceId,
-            filterDefinition: filterDefinition,
-            now: now
-        )
+    func loadTagDetailSnapshot(
+        workspaceId: String,
+        tag: String,
+        now: Date
+    ) throws -> (stats: DeckCardStats, cards: [Card]) {
+        try self.core.inReadTransaction {
+            let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+            let filterDefinition = resolveDeckFilterDefinitionTagNames(
+                filterDefinition: buildDeckFilterDefinition(tags: [tag]),
+                storedTagNames: storedTagNames
+            )
+            let stats = try self.cardStore.loadDeckCardStats(
+                workspaceId: workspaceId,
+                filterDefinition: filterDefinition,
+                now: now
+            )
+            let cards = try self.cardStore.loadCardsMatchingDeck(
+                workspaceId: workspaceId,
+                filterDefinition: filterDefinition
+            )
+            return (stats: stats, cards: cards)
+        }
     }
 
     func loadCardsMatchingDeck(
