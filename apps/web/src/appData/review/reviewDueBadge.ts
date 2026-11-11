@@ -11,15 +11,12 @@ import {
   reviewCountsRepairDelay,
 } from "./localReviewSchedule";
 
-const emptyReviewDueBadgeSummary: ReviewDueBadgeSummary = {
-  dueCount: 0,
-  nextDueAtMillis: null,
-};
+type WorkspaceReviewDueBadgeSummary = ReviewDueBadgeSummary & Readonly<{ workspaceId: string }>;
 
 export function useReviewDueBadgeCount(): number {
-  const { activeWorkspace, lastLocalReview, localReadVersion, selectedReviewFilter } = useAppData();
+  const { activeWorkspace, lastLocalReview, localReadVersion } = useAppData();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
-  const [summary, setSummary] = useState<ReviewDueBadgeSummary>(emptyReviewDueBadgeSummary);
+  const [summary, setSummary] = useState<WorkspaceReviewDueBadgeSummary | null>(null);
   const [refreshVersion, setRefreshVersion] = useState<number>(0);
   const observedLocalReviewRef = useRef<LocalReview | null>(lastLocalReview);
   // Moves on every local rating; a load that overlapped one may hold a summary from before that rating.
@@ -30,6 +27,7 @@ export function useReviewDueBadgeCount(): number {
   // local patches that keep it never rescan once per rating: docs/fsrs-scheduling-logic.md#non-blocking-review
   const scannedPastNextDueAtMillisRef = useRef<number | null>(null);
   const activeWorkspaceId: string | null = activeWorkspace?.workspaceId ?? null;
+  const activeSummary = summary?.workspaceId === activeWorkspaceId ? summary : null;
 
   function clearCountsRepairTimer(): void {
     if (countsRepairTimeoutIdRef.current !== null) {
@@ -53,11 +51,11 @@ export function useReviewDueBadgeCount(): number {
   }
 
   useEffect(() => {
-    return () => {
-      clearCountsRepairTimer();
-    };
-    // The cleanup reads the timer through a ref.
-  }, []);
+    setSummary(null);
+    isCountsRepairNeededRef.current = false;
+    scannedPastNextDueAtMillisRef.current = null;
+    return clearCountsRepairTimer;
+  }, [activeWorkspaceId]);
 
   useEffect(() => {
     function handleVisibilityChange(): void {
@@ -81,12 +79,11 @@ export function useReviewDueBadgeCount(): number {
       }
 
       if (activeWorkspaceId === null) {
-        setSummary(emptyReviewDueBadgeSummary);
         return;
       }
 
       const localReviewSequenceAtStart = localReviewSequenceRef.current;
-      const nextSummary = await loadReviewDueBadgeSummary(activeWorkspaceId, selectedReviewFilter, Date.now());
+      const nextSummary = await loadReviewDueBadgeSummary(activeWorkspaceId, Date.now());
       if (isCancelled || indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
@@ -100,7 +97,7 @@ export function useReviewDueBadgeCount(): number {
       isCountsRepairNeededRef.current = false;
       clearCountsRepairTimer();
       scannedPastNextDueAtMillisRef.current = null;
-      setSummary(nextSummary);
+      setSummary({ ...nextSummary, workspaceId: activeWorkspaceId });
     }
 
     void refreshDueCount().catch((error: unknown): void => {
@@ -116,10 +113,10 @@ export function useReviewDueBadgeCount(): number {
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, indexedDbOpenRecoveryState, localReadVersion, refreshVersion, selectedReviewFilter]);
+  }, [activeWorkspaceId, indexedDbOpenRecoveryState, localReadVersion, refreshVersion]);
 
   useEffect(() => {
-    const nextDueAtMillis = summary.nextDueAtMillis;
+    const nextDueAtMillis = activeSummary?.nextDueAtMillis ?? null;
     if (nextDueAtMillis === null || nextDueAtMillis === scannedPastNextDueAtMillisRef.current) {
       return undefined;
     }
@@ -135,7 +132,7 @@ export function useReviewDueBadgeCount(): number {
       window.clearTimeout(nextDueTimeoutId);
     };
     // Every new summary re-arms, so an unchanged due time after a clamped timeout still gets a timer.
-  }, [summary]);
+  }, [activeSummary]);
 
   // A local rating patches the badge in memory: docs/fsrs-scheduling-logic.md#non-blocking-review
   useEffect(() => {
@@ -144,22 +141,23 @@ export function useReviewDueBadgeCount(): number {
     }
 
     observedLocalReviewRef.current = lastLocalReview;
-    localReviewSequenceRef.current += 1;
-    restartCountsRepairTimer();
     if (lastLocalReview === null || lastLocalReview.workspaceId !== activeWorkspaceId) {
       return;
     }
 
+    localReviewSequenceRef.current += 1;
+    restartCountsRepairTimer();
     const nowTimestamp = Date.now();
-    setSummary((currentSummary) => ({
+    setSummary((currentSummary) => currentSummary?.workspaceId !== activeWorkspaceId ? currentSummary : {
+      workspaceId: activeWorkspaceId,
       dueCount: dueCountAfterLocalReview(currentSummary.dueCount),
       nextDueAtMillis: nextDueAtMillisAfterLocalReview(
         currentSummary.nextDueAtMillis,
         lastLocalReview.reviewedCard,
         nowTimestamp,
       ),
-    }));
+    });
   }, [activeWorkspaceId, lastLocalReview]);
 
-  return summary.dueCount;
+  return activeSummary?.dueCount ?? 0;
 }

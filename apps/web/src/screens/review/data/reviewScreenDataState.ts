@@ -5,7 +5,6 @@ import {
   matchesDeckFilterDefinition,
   normalizeTagKey,
 } from "../../../appData/domain";
-import { parseDueAtMillis } from "../../../appData/domain/dueAt";
 import type {
   Card,
   DeckSummary,
@@ -224,22 +223,6 @@ export function insertReviewedCardIntoTimeline(
   ];
 }
 
-/**
- * The timeline page lists future cards by due time after the due ones, so it holds the earliest
- * upcoming due time unless due cards fill the whole page; then the next rebuild picks it up.
- */
-export function findNextReviewDueAtMillis(reviewTimeline: ReadonlyArray<Card>, nowTimestamp: number): number | null {
-  let nextDueAtMillis: number | null = null;
-  for (const card of reviewTimeline) {
-    const dueAtMillis = card.dueAt === null ? null : parseDueAtMillis(card.dueAt);
-    if (dueAtMillis !== null && dueAtMillis > nowTimestamp && (nextDueAtMillis === null || dueAtMillis < nextDueAtMillis)) {
-      nextDueAtMillis = dueAtMillis;
-    }
-  }
-
-  return nextDueAtMillis;
-}
-
 export type LocallyRatedCard = Readonly<{
   ratingSequence: number;
   reviewedCard: Card;
@@ -418,6 +401,27 @@ export function isReviewSessionSignatureCompatible(
     && isReviewSessionCardSignaturePrefix(comparablePreviousQueueCards, nextSignature.queueCards);
 }
 
+export function isResolvedReviewScopeEqual(
+  previousFilter: ReviewFilter,
+  previousDeckSummaries: ReadonlyArray<DeckSummary>,
+  nextFilter: ReviewFilter,
+  nextDeckSummaries: ReadonlyArray<DeckSummary>,
+): boolean {
+  if (isReviewFilterEqual(previousFilter, nextFilter) === false) {
+    return false;
+  }
+
+  if (previousFilter.kind !== "deck") {
+    return true;
+  }
+
+  const previousDeckSummary = findDeckSummaryByReviewFilter(previousFilter, previousDeckSummaries);
+  const nextDeckSummary = findDeckSummaryByReviewFilter(nextFilter, nextDeckSummaries);
+  return previousDeckSummary !== null
+    && nextDeckSummary !== null
+    && isDeckFilterDefinitionEqual(previousDeckSummary.filterDefinition, nextDeckSummary.filterDefinition);
+}
+
 export function isReviewSubmissionContextCurrent(
   submissionContext: ReviewSubmissionContext,
   activeWorkspaceId: string | null,
@@ -438,22 +442,12 @@ export function isReviewSubmissionContextCurrent(
     return false;
   }
 
-  if (isReviewFilterEqual(resolvedReviewFilter, submissionContext.resolvedReviewFilter) === false) {
-    return false;
-  }
-
-  if (submissionContext.resolvedReviewFilter.kind !== "deck") {
-    return true;
-  }
-
-  const submittedDeckSummary = findDeckSummaryByReviewFilter(
+  return isResolvedReviewScopeEqual(
     submissionContext.resolvedReviewFilter,
     submissionContext.deckSummaries,
+    resolvedReviewFilter,
+    deckSummaries,
   );
-  const currentDeckSummary = findDeckSummaryByReviewFilter(resolvedReviewFilter, deckSummaries);
-  return submittedDeckSummary !== null
-    && currentDeckSummary !== null
-    && isDeckFilterDefinitionEqual(submittedDeckSummary.filterDefinition, currentDeckSummary.filterDefinition);
 }
 
 function isMissingPresentedCardError(error: unknown, cardId: string): boolean {

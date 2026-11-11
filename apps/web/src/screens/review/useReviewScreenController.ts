@@ -175,6 +175,7 @@ export function useReviewScreenController(
     showMessage: showReviewSpeechMessage,
     speechUnavailableMessage: t("reviewScreen.speechUnavailable"),
   });
+  const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
   const {
     activeReviewFilterOptionId,
     activeReviewFilterOptionKey,
@@ -182,34 +183,30 @@ export function useReviewScreenController(
     handleCloseMenu,
     handleReviewFilterComboboxKeyDown,
     handleReviewFilterListboxKeyDown,
-    handleReviewFilterMenuOpenFromKeyboard,
-    handleReviewFilterMenuOpenFromMoreActions,
+    openReviewFilterMenu,
     handleReviewFilterMenuToggle,
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
-    menuReviewFilter,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
     reviewFilterListboxId,
     reviewFilterListboxRef,
-    reviewFilterMenuAnchorRef,
     reviewFilterMenuRef,
     reviewFilterMenuItems,
     reviewFilterTriggerRef,
-    reviewMoreActionsTriggerRef,
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   } = useReviewFilterMenu({
     deckSummaries,
+    onOpen: () => setIsReviewMoreActionsMenuOpen(false),
     onSelectReviewFilter: selectReviewFilter,
     reviewTagSummaries,
     selectedReviewFilter,
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
-  const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
   const [isReviewTagOverflowMenuOpen, setIsReviewTagOverflowMenuOpen] = useState<boolean>(false);
   const {
     captureEditorPresentationToken,
@@ -296,10 +293,6 @@ export function useReviewScreenController(
     : isReviewLoading
       ? requestedReviewFilterTitle
       : selectedReviewFilterTitle;
-  // An open menu's tag rows apply on close, so the trigger names that selection at once, as a deck choice does.
-  const reviewFilterTriggerTitle = isReviewFilterEqual(menuReviewFilter, selectedReviewFilter)
-    ? visibleSelectedReviewFilterTitle
-    : resolveLocalizedReviewFilterTitle(menuReviewFilter);
   const visibleQueueCardsCount = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.queuePreview.length
     : queueCards.length;
@@ -574,7 +567,7 @@ export function useReviewScreenController(
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     onShortcutInputStart: dismissReviewReactions,
-    openReviewFilterMenu: handleReviewFilterMenuOpenFromKeyboard,
+    openReviewFilterMenu,
     selectedBackSpeakableText,
     selectedCard,
     selectedFrontSpeakableText,
@@ -680,11 +673,11 @@ export function useReviewScreenController(
         reviewDeckSearchText,
         reviewFilterListboxId,
         reviewFilterListboxRef,
-        reviewFilterMenuAnchorRef,
         reviewFilterMenuRef,
         reviewFilterMenuItems,
         reviewFilterTriggerRef,
-        selectedReviewFilterTitle: reviewFilterTriggerTitle,
+        selectedReviewFilterDueCount: reviewCounts.dueCount,
+        selectedReviewFilterTitle: visibleSelectedReviewFilterTitle,
         setReviewDeckSearchText,
         shouldShowReviewDeckSearch,
         visibleReviewDeckFilterMenuItems,
@@ -694,7 +687,7 @@ export function useReviewScreenController(
       isReviewMoreActionsMenuOpen,
       isReviewQueuePanelOpen,
       onRetry: handleRetryReviewLoad,
-      onReviewFilterMenuOpenFromMoreActions: handleReviewFilterMenuOpenFromMoreActions,
+      onReviewFilterMenuOpenFromMoreActions: openReviewFilterMenu,
       onReviewMoreActionsMenuOpenChange: setIsReviewMoreActionsMenuOpen,
       onReviewQueueShortcutClick: handleReviewQueueShortcutClick,
       reviewQueueTotalCount: isInitialReviewLoad && reviewLoadingSnapshot !== null
@@ -703,7 +696,6 @@ export function useReviewScreenController(
       reviewLoadErrorMessage,
       reviewLeaderboardBadge,
       reviewProgressBadge,
-      reviewMoreActionsTriggerRef,
       reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,
     },
     paneProps: {

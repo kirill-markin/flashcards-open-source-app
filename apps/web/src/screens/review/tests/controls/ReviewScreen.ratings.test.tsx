@@ -214,6 +214,10 @@ describe("ReviewScreen rating controls", () => {
     await waitForReviewReactionLottieTestPrewarm();
     await revealAnswer();
 
+    const scopeBadgeSelector = "[data-testid='review-filter-trigger'] .review-due-badge";
+    expect(getContainer().querySelector(scopeBadgeSelector)?.textContent).toBe("2");
+    loadReviewQueueSnapshotMock.mockClear();
+
     const goodButton = getContainer().querySelector("[data-testid='review-rate-good']");
     if (!(goodButton instanceof HTMLButtonElement)) {
       throw new Error("Good rating button was not found");
@@ -222,6 +226,8 @@ describe("ReviewScreen rating controls", () => {
     await clickElementAsync(goodButton);
     await flushReviewScreenPromises();
 
+    expect(getContainer().querySelector(scopeBadgeSelector)?.textContent).toBe("1");
+    expect(loadReviewQueueSnapshotMock).not.toHaveBeenCalled();
     expect(getContainer().querySelectorAll("[data-testid='review-rating-reaction-event']")).toHaveLength(0);
     expect(getContainer().textContent).toContain("Second reaction question");
 
