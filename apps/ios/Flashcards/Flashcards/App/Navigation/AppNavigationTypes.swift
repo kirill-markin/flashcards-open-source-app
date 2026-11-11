@@ -19,7 +19,7 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case catalogDeck(CatalogBrowseIndexDeck)
     case importData
     case exportData
-    case exportAnkiDeck
+    case exportFormat(WorkspacePackageExportFormat)
 }
 
 /// A first-level Library page: a hub row, and on the Mac sidebar a row under Library.
@@ -30,7 +30,6 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
     case deckCatalog
     case importData
     case exportData
-    case exportAnkiDeck
 
     var destination: LibraryNavigationDestination {
         switch self {
@@ -40,7 +39,6 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .deckCatalog: .deckCatalog
         case .importData: .importData
         case .exportData: .exportData
-        case .exportAnkiDeck: .exportAnkiDeck
         }
     }
 
@@ -51,8 +49,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .decks: aiSettingsLocalized("settings.workspace.row.decks", "Decks")
         case .deckCatalog: String(localized: "library.row.deck_catalog.title", table: "Foundation")
         case .importData: aiSettingsLocalized("settings.workspace.import.title", "Import")
-        case .exportData: WorkspacePackageExportFormat.nibomo.localizedTitle
-        case .exportAnkiDeck: WorkspacePackageExportFormat.anki.localizedTitle
+        case .exportData: String(localized: "library.row.export.title", table: "Foundation")
         }
     }
 
@@ -63,7 +60,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .decks: "square.stack.3d.up"
         case .deckCatalog: "rectangle.stack.badge.plus"
         case .importData: "square.and.arrow.down"
-        case .exportData, .exportAnkiDeck: "square.and.arrow.up"
+        case .exportData: "square.and.arrow.up"
         }
     }
 }
