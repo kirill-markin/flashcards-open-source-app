@@ -102,6 +102,7 @@
     <string name="ai_request_failed">AI request failed.</string>
     <string name="ai_no_speech_recorded">No speech was recorded.</string>
     <string name="ai_card_handoff_requires_new_chat">Start a new chat before handing off a card to AI.</string>
+    <string name="ai_entry_prefill_requires_new_chat">An Anki import is pending in this chat. Open a new chat, then try Create with AI again.</string>
     <string name="ai_response_in_progress">A response is already in progress. Wait for it to finish or stop it before sending another message.</string>
     <string name="ai_chat_not_current_notice">This chat was replaced by a newer one. Your message is still in the box — send it again.</string>
     <string name="ai_chat_not_current_anki_import_notice">The current chat has a pending Anki import. Finish it or start a new chat before sending your message.</string>

@@ -389,9 +389,15 @@ internal class AiChatRuntime(
             currentState.workspaceId == null
             || context.hasConsent().not()
             || currentState.conversationBootstrapState != AiConversationBootstrapState.READY
-            || canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()
-            || currentState.dictationState != AiChatDictationState.IDLE
         ) {
+            return false
+        }
+
+        if (currentState.ankiImportRequest != null) {
+            showErrorMessage(message = context.textProvider.entryPrefillRequiresNewChat)
+            return true
+        }
+        if (canEditAiDraft(state = currentState).not()) {
             return false
         }
 
