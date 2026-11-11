@@ -426,12 +426,14 @@ final class CloudSyncService: @unchecked Sendable {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
+        format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse {
         try await self.transport.exportWorkspacePackage(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             workspaceId: workspaceId,
+            format: format,
             requestBody: request
         )
     }

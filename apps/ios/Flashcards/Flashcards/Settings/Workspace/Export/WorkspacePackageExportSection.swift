@@ -3,6 +3,8 @@ import SwiftUI
 struct WorkspacePackageExportSection: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
+    let format: WorkspacePackageExportFormat
+    @Binding var exportTask: Task<Void, Never>?
     let exportCleanupErrorMessage: String
     let cleanupExportedFile: @MainActor () -> Bool
     let presentExportedFile: @MainActor (URL) -> Void
@@ -16,6 +18,7 @@ struct WorkspacePackageExportSection: View {
         createdAt: "",
         sourceUrl: ""
     )
+    @State private var ankiDeckName: String = "Nibomo Export"
     @State private var selectedCardTags: Set<String> = []
     @State private var previewSelectedCardTags: Set<String> = []
     @State private var cardSelectionTagOptions: [WorkspacePackageExportTagCount] = []
@@ -92,7 +95,12 @@ struct WorkspacePackageExportSection: View {
             if let currentPreview {
                 self.cardSelectionSection
                 self.contentsSection(preview: currentPreview)
-                self.metadataSection
+                switch self.format {
+                case .nibomo:
+                    self.metadataSection
+                case .anki:
+                    self.ankiDeckNameSection
+                }
                 self.tagsSection(preview: currentPreview)
                 self.confirmSection(preview: currentPreview)
             } else if self.shouldShowStalePreviewSection {
@@ -100,20 +108,12 @@ struct WorkspacePackageExportSection: View {
                 self.previewSection
             }
         }
-        .onChange(of: self.currentWorkspaceId) { _, _ in
-            self.resetWorkspaceExportState()
-        }
     }
 
     private var packageSection: some View {
-        Section(aiSettingsLocalized("settings.workspace.export.package.section", "flashcards.zip Package")) {
-            Text(
-                aiSettingsLocalized(
-                    "settings.workspace.export.package.description",
-                    "Export active cards, tags, and referenced media as flashcards.zip."
-                )
-            )
-            .foregroundStyle(.secondary)
+        Section {
+            Text(self.packageDescription)
+                .foregroundStyle(.secondary)
 
             if self.shouldShowInitialPreviewButton {
                 self.previewButton
@@ -123,6 +123,22 @@ struct WorkspacePackageExportSection: View {
                 Text(cloudRequirementMessage)
                     .foregroundStyle(.secondary)
             }
+        } header: {
+            if self.format == .nibomo {
+                Text(aiSettingsLocalized("settings.workspace.export.package.section", "flashcards.zip Package"))
+            }
+        }
+    }
+
+    private var packageDescription: String {
+        switch self.format {
+        case .nibomo:
+            aiSettingsLocalized(
+                "settings.workspace.export.package.description",
+                "Export active cards, tags, and referenced media as flashcards.zip."
+            )
+        case .anki:
+            String(localized: "library.export.anki.description", table: "Foundation")
         }
     }
 
@@ -134,7 +150,7 @@ struct WorkspacePackageExportSection: View {
 
     private var previewButton: some View {
         Button {
-            Task { @MainActor in
+            self.runExportTask {
                 await self.previewPackageExport()
             }
         } label: {
@@ -187,6 +203,17 @@ struct WorkspacePackageExportSection: View {
         }
     }
 
+    private var ankiDeckNameSection: some View {
+        Section {
+            TextField(
+                aiSettingsLocalized("settings.workspace.decks.deckName", "Deck name"),
+                text: self.$ankiDeckName
+            )
+            .disabled(self.isBusy)
+            .accessibilityIdentifier(UITestIdentifier.workspaceAnkiExportDeckNameField)
+        }
+    }
+
     private var previewButtonTitle: String {
         if self.isPreviewing {
             return aiSettingsLocalized("settings.workspace.export.package.previewing", "Previewing...")
@@ -200,7 +227,12 @@ struct WorkspacePackageExportSection: View {
             return aiSettingsLocalized("settings.workspace.export.package.exporting", "Exporting...")
         }
 
-        return aiSettingsLocalized("settings.workspace.export.package.export", "Export flashcards.zip")
+        switch self.format {
+        case .nibomo:
+            return aiSettingsLocalized("settings.workspace.export.package.export", "Export flashcards.zip")
+        case .anki:
+            return self.format.localizedTitle
+        }
     }
 
     private func contentsSection(preview: WorkspacePackageExportPreviewResponse) -> some View {
@@ -296,10 +328,21 @@ struct WorkspacePackageExportSection: View {
         }
     }
 
+    private var emptyAnkiExportMessage: String {
+        String(localized: "No Matching Cards", table: "ReviewCards")
+    }
+
     private func confirmSection(preview: WorkspacePackageExportPreviewResponse) -> some View {
-        Section {
+        let isEmptyAnkiExport = self.format == .anki && preview.selectedCardCount == 0
+        return Section {
+            if isEmptyAnkiExport {
+                Text(self.emptyAnkiExportMessage)
+                    .foregroundStyle(.secondary)
+                self.previewButton
+            }
+
             Button {
-                Task { @MainActor in
+                self.runExportTask {
                     await self.exportPackage(preview: preview)
                 }
             } label: {
@@ -310,7 +353,7 @@ struct WorkspacePackageExportSection: View {
                     Text(self.exportButtonTitle)
                 }
             }
-            .disabled(self.isBusy)
+            .disabled(self.isBusy || self.cloudRequirementMessage != nil || isEmptyAnkiExport)
             .accessibilityIdentifier(UITestIdentifier.workspacePackageExportConfirmButton)
         }
     }
@@ -383,6 +426,19 @@ struct WorkspacePackageExportSection: View {
         aiSettingsLocalizedFormat("settings.workspace.export.package.includeTag", "Include %@", tag)
     }
 
+    private func runExportTask(operation: @escaping @MainActor () async -> Void) {
+        guard self.exportTask == nil else {
+            return
+        }
+
+        self.exportTask = Task { @MainActor in
+            defer { self.exportTask = nil }
+            if Task.isCancelled == false {
+                await operation()
+            }
+        }
+    }
+
     @MainActor
     private func previewPackageExport() async {
         guard self.cleanupExportedFile() else {
@@ -390,8 +446,11 @@ struct WorkspacePackageExportSection: View {
         }
 
         self.isPreviewing = true
+        defer { self.isPreviewing = false }
+
         self.errorMessage = ""
         self.successMessage = ""
+        let workspaceId = self.currentWorkspaceId
         let selectedCardTags = self.selectedCardTags
         let additionalRemovedTags = Set(self.currentPreview.map { preview in
             makeWorkspacePackageExportAdditionalRemovedTags(
@@ -403,35 +462,41 @@ struct WorkspacePackageExportSection: View {
 
         do {
             let preview = try await self.store.previewCurrentWorkspacePackageExport(
+                workspaceId: workspaceId,
                 request: makeWorkspacePackageExportPreviewRequest(
                     selectedCardTags: selectedCardTags,
                     additionalRemovedTags: additionalRemovedTags
                 )
             )
+            try Task.checkCancellation()
+            guard self.currentWorkspaceId == workspaceId else {
+                return
+            }
+
             self.preview = preview
-            self.previewWorkspaceId = self.currentWorkspaceId
+            self.previewWorkspaceId = workspaceId
             self.previewSelectedCardTags = selectedCardTags
-            self.metadataDraft = WorkspacePackageExportMetadataDraft(
-                defaultPackageMetadata: preview.defaultPackageMetadata
-            )
+            if self.format == .nibomo {
+                self.metadataDraft = WorkspacePackageExportMetadataDraft(
+                    defaultPackageMetadata: preview.defaultPackageMetadata
+                )
+            }
             self.includedPackageTags = makeWorkspacePackageExportInitialIncludedTags(preview: preview)
             if selectedCardTags.isEmpty || self.cardSelectionTagOptions.isEmpty {
                 self.cardSelectionTagOptions = preview.availableTagCounts
             }
         } catch {
-            if isRequestCancellationError(error: error) {
-                self.isPreviewing = false
-                return
+            if Task.isCancelled == false, self.currentWorkspaceId == workspaceId,
+               isRequestCancellationError(error: error) == false {
+                self.errorMessage = Flashcards.errorMessage(error: error)
             }
-            self.errorMessage = Flashcards.errorMessage(error: error)
         }
-
-        self.isPreviewing = false
     }
 
     @MainActor
     private func exportPackage(preview: WorkspacePackageExportPreviewResponse) async {
-        guard self.previewWorkspaceId == self.currentWorkspaceId,
+        let workspaceId = self.currentWorkspaceId
+        guard self.previewWorkspaceId == workspaceId,
               self.previewSelectedCardTags == self.selectedCardTags else {
             self.resetPreview()
             self.errorMessage = aiSettingsLocalized(
@@ -445,37 +510,58 @@ struct WorkspacePackageExportSection: View {
         }
 
         self.isExporting = true
+        defer { self.isExporting = false }
+
         self.errorMessage = ""
         self.successMessage = ""
 
         do {
+            let packageMetadata = switch self.format {
+            case .nibomo: self.metadataDraft.packageMetadata
+            case .anki: makeWorkspaceAnkiExportMetadata(deckName: self.ankiDeckName)
+            }
             let response = try await self.store.exportCurrentWorkspacePackage(
+                workspaceId: workspaceId,
+                format: self.format,
                 request: makeWorkspacePackageExportRequest(
                     preview: preview,
-                    metadataDraft: self.metadataDraft,
+                    packageMetadata: packageMetadata,
                     selectedCardTags: self.selectedCardTags,
                     includedTags: self.includedPackageTags
                 )
             )
-            let fileManager = FileManager.default
-            let exportedFileURL = try prepareWorkspacePackageExportDownload(
-                response: response,
-                fileManager: fileManager,
-                temporaryDirectory: fileManager.temporaryDirectory
-            )
-            self.successMessage = aiSettingsLocalized(
-                "settings.workspace.export.package.success",
-                "flashcards.zip is ready to share."
-            )
-            self.isExporting = false
-            self.presentExportedFile(exportedFileURL)
-        } catch {
-            if isRequestCancellationError(error: error) {
-                self.isExporting = false
+            let exportedFileURL: URL
+            switch response {
+            case .inline(let packageBytes, let fileName):
+                exportedFileURL = try await prepareWorkspacePackageExportFile(fileName: fileName) { fileURL in
+                    try packageBytes.write(to: fileURL, options: .atomic)
+                }
+            case .file(let fileURL):
+                exportedFileURL = fileURL
+            }
+
+            guard Task.isCancelled == false, self.currentWorkspaceId == workspaceId else {
+                try FileManager.default.removeItem(at: exportedFileURL.deletingLastPathComponent())
                 return
             }
-            self.errorMessage = Flashcards.errorMessage(error: error)
-            self.isExporting = false
+
+            self.successMessage = switch self.format {
+            case .nibomo:
+                aiSettingsLocalized("settings.workspace.export.package.success", "flashcards.zip is ready to share.")
+            case .anki:
+                String(localized: "library.export.anki.success", table: "Foundation")
+            }
+            self.presentExportedFile(exportedFileURL)
+        } catch {
+            if Task.isCancelled == false, self.currentWorkspaceId == workspaceId,
+               isRequestCancellationError(error: error) == false {
+                if self.format == .anki, workspaceAnkiExportSelectionIsEmpty(error: error) {
+                    self.resetPreview()
+                    self.errorMessage = self.emptyAnkiExportMessage
+                } else {
+                    self.errorMessage = workspacePackageExportFailureMessage(error: error, format: self.format)
+                }
+            }
         }
     }
 
@@ -485,17 +571,13 @@ struct WorkspacePackageExportSection: View {
         self.previewSelectedCardTags = []
         self.includedPackageTags = []
     }
-
-    private func resetWorkspaceExportState() {
-        self.resetPreview()
-        self.selectedCardTags = []
-        self.cardSelectionTagOptions = []
-    }
 }
 
 #Preview {
     List {
         WorkspacePackageExportSection(
+            format: .anki,
+            exportTask: .constant(nil),
             exportCleanupErrorMessage: "",
             cleanupExportedFile: { true },
             presentExportedFile: { _ in }
