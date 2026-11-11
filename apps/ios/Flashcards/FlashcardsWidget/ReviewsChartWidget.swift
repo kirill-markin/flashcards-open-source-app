@@ -47,7 +47,7 @@ private struct ReviewsChartWidgetView: View {
                 )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -196,6 +196,7 @@ private func makeReviewsChartRatingSegments(days: [ReviewsChartDay]) -> [Reviews
 }
 
 private struct ReviewsChartPlotView: View {
+    @Environment(\.widgetAccent) private var accent
     @Environment(\.widgetRenderingMode) private var renderingMode
     let size: WidgetChartSize
     let summary: ReviewsChartSummary
@@ -216,7 +217,7 @@ private struct ReviewsChartPlotView: View {
                         x: .value(reviewsChartDayPlotLabel, day.date, unit: .day),
                         y: .value(reviewsChartReviewsPlotLabel, day.progressDay.reviewCount)
                     )
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(self.accent.color)
                 }
             case .large:
                 ForEach(makeReviewsChartRatingSegments(days: self.summary.days)) { segment in

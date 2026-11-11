@@ -8,8 +8,6 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.DisplayMetrics
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
@@ -17,7 +15,6 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
@@ -25,7 +22,6 @@ import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
@@ -34,7 +30,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.text.Text
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
@@ -43,7 +38,6 @@ import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.TextStyle as DateTextStyle
 import java.util.Locale
-import kotlinx.coroutines.flow.first
 
 private val comingUpScheduleStripHeight = 8.dp
 private val comingUpHeaderSpacing = 4.dp
@@ -67,16 +61,8 @@ class ComingUpWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = chartWidgetSizeMode
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = chartWidgetColors) {
-                ComingUpWidgetBody(content = content, widgetSize = LocalSize.current)
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetContent) { content ->
+            ComingUpWidgetBody(content = content, widgetSize = LocalSize.current)
         }
     }
 }
@@ -102,10 +88,10 @@ private fun makeComingUpBars(dueNowCount: Int, progress: WidgetProgressContent):
 }
 
 @Composable
-private fun ComingUpWidgetBody(content: WidgetContent, widgetSize: DpSize) {
+private fun ComingUpWidgetBody(content: WidgetContent?, widgetSize: DpSize) {
     val size: ReviewWidgetSize = chartWidgetSize(size = widgetSize)
-    val queue: ReviewWidgetContent? = content.queue
-    val progress: WidgetProgressContent? = content.progress
+    val queue: ReviewWidgetContent? = content?.queue
+    val progress: WidgetProgressContent? = content?.progress
     ChartWidgetScaffold(size = size, kind = WidgetKind.COMING_UP) {
         if (queue == null || progress == null) {
             ChartWidgetOpenApp()
@@ -159,6 +145,7 @@ private fun ColumnScope.ComingUpBarsSection(bars: List<ComingUpBar>, widgetSize:
         maxLines = 1
     )
     Spacer(modifier = GlanceModifier.height(comingUpHeaderSpacing))
+    val accentArgb: Int = widgetAccentColor().toArgb()
     ChartWidgetImage(
         bitmap = drawWidgetBitmap(
             size = chartWidgetBitmapSize(
@@ -167,7 +154,13 @@ private fun ColumnScope.ComingUpBarsSection(bars: List<ComingUpBar>, widgetSize:
             ),
             density = displayMetrics.density
         ) { canvas ->
-            drawComingUpBars(canvas = canvas, bars = bars, displayMetrics = displayMetrics, locale = locale)
+            drawComingUpBars(
+                canvas = canvas,
+                bars = bars,
+                displayMetrics = displayMetrics,
+                locale = locale,
+                accentArgb = accentArgb
+            )
         }
     )
 }
@@ -214,7 +207,13 @@ private fun ColumnScope.ComingUpScheduleSection(buckets: List<CloudProgressRevie
 }
 
 /** A count above each bar and the short weekday below it; today's bar is full colour. */
-private fun drawComingUpBars(canvas: Canvas, bars: List<ComingUpBar>, displayMetrics: DisplayMetrics, locale: Locale) {
+private fun drawComingUpBars(
+    canvas: Canvas,
+    bars: List<ComingUpBar>,
+    displayMetrics: DisplayMetrics,
+    locale: Locale,
+    accentArgb: Int
+) {
     val density: Float = displayMetrics.density
     val width: Float = canvas.width.toFloat()
     val height: Float = canvas.height.toFloat()
@@ -255,7 +254,7 @@ private fun drawComingUpBars(canvas: Canvas, bars: List<ComingUpBar>, displayMet
         val slotCenter: Float = index * slotWidth + slotWidth / 2f
         val barTop: Float = chartBottom - bar.count / maxCount * chartHeight
         if (bar.count > 0) {
-            barPaint.color = chartWidgetPrimaryArgb
+            barPaint.color = accentArgb
             barPaint.alpha = if (index == 0) 255 else 150
             val cornerRadius: Float = 2f * density
             canvas.drawRoundRect(

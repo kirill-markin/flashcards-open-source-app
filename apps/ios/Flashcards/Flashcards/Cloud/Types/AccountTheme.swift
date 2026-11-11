@@ -28,6 +28,17 @@ enum AccountTheme: String, Codable, CaseIterable, Identifiable, Hashable, Sendab
     }
 }
 
+extension AccountAccentColor {
+    func displayed(theme: AccountTheme) -> AccountAccentColor {
+        switch theme {
+        case .dark:
+            return self
+        case .light:
+            return self.adjustedForContrast(against: AccountAccentColor(rgb: 0xFFFFFF), minimumRatio: 3)
+        }
+    }
+}
+
 #if !os(watchOS)
 /// Resolves per appearance, so it follows the theme the root view applies with `.preferredColorScheme`.
 func themeAdaptiveColor(light: UIColor, dark: UIColor) -> Color {

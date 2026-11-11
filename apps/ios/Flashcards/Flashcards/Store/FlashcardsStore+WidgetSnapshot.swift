@@ -71,7 +71,8 @@ extension FlashcardsStore {
                     dueCounts: databaseRead.upcomingDueDayCounts,
                     calendar: dueDayCalendar
                 ),
-                reviewSchedule: reviewSchedule
+                reviewSchedule: reviewSchedule,
+                accentColor: self.effectiveAccountAccentColor
             )
             if let lastWrittenWidgetSnapshot = self.lastWrittenWidgetSnapshot,
                hasSameWidgetSnapshotContent(lhs: lastWrittenWidgetSnapshot, rhs: snapshot) {
@@ -274,5 +275,6 @@ private func hasSameWidgetSnapshotContent(lhs: WidgetSnapshot, rhs: WidgetSnapsh
         && lhs.progress == rhs.progress
         && lhs.upcomingDueDays == rhs.upcomingDueDays
         && lhs.reviewSchedule == rhs.reviewSchedule
+        && lhs.accentColor == rhs.accentColor
 }
 #endif
