@@ -21,7 +21,7 @@ matching release counts complete under the shared historical evidence rule;
 record its identity and rollout scope at step 9 without reconstructing old logs.
 Otherwise create a new artifact through every gate below.
 
-Apply the [standing best-effort policy](README.md#standing-best-effort-release-policy) to unavailable testing outside the four mandatory physical Device Run sessions.
+Apply the [standing best-effort policy](README.md#standing-best-effort-release-policy) to unavailable testing outside the mandatory physical Device Run sessions.
 
 1. Pin the intended release SHA and confirm its required
    `Repository static checks` passed. Use a checkout with no uncommitted source
@@ -45,16 +45,16 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    `Git SHA to release` (`target_sha`) set to the release commit and optionally
    supply the [localized notes JSON](release-notes.md#android-draft-upload-input). Record its
    target SHA, run/attempt, version code, and release identifier from the summary.
-3. Device Run submits sequentially on API 31 (smoke), 37 (full), 30 (smoke)
-   and 33 (smoke), using the shared linked test account. The signed AAB build
-   and R8 checks run in parallel with the native gate. Play draft upload waits
-   for successful hosted CI, signed build and all four passing sessions.
-4. Verify the four effective physical sessions, every job/execution and every
-   selected named case with the [Device Run evidence](../android-ci-cd.md#device-run-results-and-release-correlation).
-   Preserve original failures. CI allows one same-run retry of the affected
-   destination only for its narrowly classified lab DNS failure. Keep the
-   initial failed session and the retry as separate attempts. Failed, missing
-   or unexpectedly skipped required results block publication.
+3. Device Run runs the [named critical journeys and compatibility smoke](../android-ci-cd.md#choose-the-device-run-devices)
+   sequentially on physical API 37 and API 30 devices. The signed AAB build and
+   R8 gate run in parallel. The Play draft upload waits for hosted CI, the
+   signed build and both passing sessions.
+4. Verify the effective physical sessions, every job/execution and every
+   selected named case using the [Device Run evidence](../android-ci-cd.md#device-run-results-and-release-correlation).
+   Preserve any original failed attempt and inspect the reason and destination
+   of its retry. Failed, missing or unexpectedly skipped required results
+   block publication. Record the release candidate's
+   [independent-client card and rating sync check](evidence.md#independent-client-sync-check).
 5. Require green `Android Release` and signed AAB publisher provenance, or
    [recover an exact bundle](#exact-bundle-upload-recovery) after a publisher-only
    failure. If only the Wear OS upload failed after the phone draft committed,
@@ -65,7 +65,7 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code, and the Wear OS
    `wear:production` draft by its wear name and version code from the run summary.
-   Confirm both belong to the same SHA/run/attempt as all four passing Device Run sessions. Confirm the uploaded
+   Confirm both belong to the same SHA/run/attempt as the passing Device Run sessions. Confirm the uploaded
    phone AAB manifest advertises minimum API 30 and target API 37; source declarations
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
@@ -103,7 +103,9 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    availability. If approved but unavailable at the selected scope, keep the
    channel open as propagation pending or blocked according to evidence.
 
-Completion: required GitHub gates and all four physical Device Run sessions pass; OS-specific acceptance is complete or unavailable coverage is recorded under the standing policy; the exact production version is public at the intended rollout scope.
+Completion requires passing GitHub and physical Device Run gates, applicable
+OS-specific acceptance or an unavailability record under the standing policy,
+and public availability of the exact production version at the intended scope.
 Already-published matching releases use the shared historical evidence rule.
 Submission or review approval alone leaves this channel open
 under the [canonical completion contract](README.md#release-inventory-and-completion).
@@ -132,7 +134,7 @@ Verify the exact production version is public before calling Android complete.
 
 Use `Android Release Upload Recovery`
 ([workflow](../../.github/workflows/android-release-upload-recovery.yml)) only
-when the original release's CI, four Device Run sessions, signed build and R8
+when the original release's CI, required Device Run sessions, signed build and R8
 checks passed and only its Play publisher failed. This includes a failed
 upload or, with a separate signed-build job, a skipped upload following a
 failed publisher configuration, checkout, artifact/notes download or Play
@@ -155,8 +157,10 @@ Source changes require the bounded comparisons and affected gates in
    publication; see Google's [publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
 3. Supply the pinned identities and hashes to the recovery workflow and confirm
    the preflight only after all retained gates are reviewed. It downloads exact
-   artifact IDs, verifies GitHub ZIP digests, original successful gates and all
-   four named selections. It discovers the original attempt notes artifact by
+   artifact IDs, verifies GitHub ZIP digests, original successful gates and
+   the named selections at the original source SHA. Historical four-device
+   runs retain all four required selections. It discovers the original
+   attempt notes artifact by
    exact name/ID and creation time, verifies its ZIP digest, logged manifest hash
    and source/version/run/attempt binding, and supplies identical notes to the
    publisher. Missing or mismatched notes evidence blocks recovery. No new notes
@@ -182,24 +186,22 @@ Source changes require the bounded comparisons and affected gates in
 ## First-release API 30 walkthrough
 
 Complete this walkthrough for the first API-30-compatible release. For later
-releases, repeat only steps affected by OS-specific behavior changes; unchanged
-behavior does not require recurring manual scrolling, reset or offline checks.
+releases, repeat steps 1–3 together whenever an OS-specific behavior change
+affects any of them. Repeat step 4 or 5 only if the change affects that step.
 Reuse the completed first-release evidence, recording its source/build/device,
 results and why the current changes leave the exercised behavior applicable.
 Use the shared source-comparison rules when the artifact source differs.
 
 When applicable, use an Android 11 / API 30 device with the release candidate
 for the same SHA, record the build identity and device, and retain
-screenshots/logs for failures. Keep the full latest Device Run selection and
-all three older-OS smoke sessions as well.
+screenshots/logs for failures.
 
-1. Open the intended linked test workspace, go offline, create a card with a
-   question on the front and answer on the back, reveal/rate it and verify it
-   in Cards.
+1. Start the [independent-client sync check](evidence.md#independent-client-sync-check)
+   and record its baseline before going offline. Create and rate the check card
+   offline and verify it in Cards.
 2. Close and relaunch the app while still offline. Confirm the card and review
    state remain intact and the local workspace still opens.
-3. Reconnect in the same test workspace. Wait for sync and
-   verify the new card and review state on another client in that workspace.
+3. Reconnect and complete the sync check with the same card and rating.
 4. Attach an image using the existing system media picker, return to the editor,
    save, and verify the attachment opens. Confirm there is no broad storage
    permission requirement.

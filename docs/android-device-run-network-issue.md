@@ -49,8 +49,7 @@ the exact Atlanta route or the network failure's mechanism.
 ## Release acceptance
 
 The original report is [Google issue 574921431](https://issuetracker.google.com/issues/574921431).
-Android releases require all four physical Device Run sessions and the other gates
-in [the Android release procedure](release/android.md), with complete named results
+Follow the required sessions and other gates in [the Android release procedure](release/android.md), with complete named results
 under [release result verification](android-ci-cd.md#device-run-results-and-release-correlation).
 These diagnostic selections do not replace release acceptance. Preserve historical
 failures, skips and readiness records.

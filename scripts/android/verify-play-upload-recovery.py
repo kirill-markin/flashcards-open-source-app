@@ -55,6 +55,102 @@ def artifact_file(artifact_id: str, expected_name: str, member_name: str, run_id
     return metadata
 
 
+def named_selection(value: Json, count: int) -> set[str]:
+    targets = array_value(value)
+    require(len(targets) == count and all(isinstance(target, str) and
+            re.fullmatch(r'class com\.flashcardsopensourceapp\.app\.[\w.]+#\w+', target) for target in targets),
+            f'Original pinned source selection must contain {count} named methods')
+    names = {str(target).removeprefix('class ') for target in targets}
+    require(len(names) == count, 'Original pinned source selection has duplicate methods')
+    return names
+
+
+def is_digest(value: Json) -> bool:
+    return isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value) is not None
+
+
+def verified_session_id(record: dict[str, Json]) -> str:
+    session_id = str(record.get('session_id'))
+    report = object_value(record.get('report'))
+    require(re.fullmatch(r'session-[a-f0-9-]+', session_id) is not None and
+            report.get('member') == f'{session_id}/session-full.json' and is_digest(report.get('sha256')),
+            'Original native full session report is missing or invalid')
+    return session_id
+
+
+def verify_native(native: dict[str, Json], selection: dict[str, Json], expected_devices: dict[str, str]) -> None:
+    schema = selection.get('schemaVersion', 1)
+    summary_schema = native.get('selection_schema_version', 1)
+    require(type(schema) is int and schema in (1, 2) and type(summary_schema) is int and summary_schema == schema,
+            'Original native selection schema differs from the pinned source')
+    apis = {'37', '30', '31', '33'} if schema == 1 else {'37', '30'}
+    compat = named_selection(selection.get('compat'), 4 if schema == 1 else 1)
+    sessions = [object_value(session) for session in array_value(native.get('sessions'))]
+    require(len(sessions) == len(apis) and {session.get('api') for session in sessions} == apis,
+            'Original native evidence does not contain the required APIs')
+    require(len({session.get('session_id') for session in sessions}) == len(apis), 'Original native session IDs are duplicated')
+    inventory = array_value(native.get('latest_inventory'))
+    require(len(inventory) > 0 and len(inventory) == len(set(inventory)), 'Original full source inventory is empty or duplicated')
+    if schema == 2:
+        require(set(inventory) == named_selection(selection.get('latest'), 5) and compat <= set(inventory),
+                'Original native inventory differs from the pinned source')
+
+    session_ids: set[str] = set()
+    retry_ids: list[str] = []
+    apk_hashes: list[dict[str, Json]] = []
+    effective_devices: set[str] = set()
+    for session in sessions:
+        api = str(session['api'])
+        configured = expected_devices[api]
+        effective = str(session.get('device'))
+        require(session.get('passed') is True and session.get('problems') == [],
+                f'Original API {api} native gate did not pass')
+        cases = [object_value(case) for case in array_value(session.get('cases'))]
+        expected_cases = set(inventory) if api == '37' else compat
+        require(len(cases) == len(expected_cases) and {case.get('identity') for case in cases} == expected_cases,
+                f'Original API {api} named inventory differs')
+        require(all(case.get('status') == 'passed' and case.get('count') == 1 for case in cases),
+                f'Original API {api} contains a nonpassing or duplicate named case')
+        require(session.get('counts') == {'passed': len(cases), 'failure': 0, 'error': 0, 'skipped': 0},
+                f'Original API {api} native totals differ')
+        if schema == 1:
+            require(effective == configured, f'Original API {api} did not run on the configured destination')
+            continue
+        require(session.get('configured_device') == configured and
+                re.fullmatch(r'[A-Za-z0-9_-]+', effective) is not None and
+                session.get('selection') == ('latest' if api == '37' else f'compat-api{api}') and
+                session.get('expected_count') == len(expected_cases),
+                f'Original API {api} selection or device pin differs')
+        effective_devices.add(effective)
+        session_ids.add(verified_session_id(session))
+        artifacts = [object_value(item) for item in array_value(session.get('artifacts'))]
+        hashes = {}
+        for kind in ('app', 'test'):
+            matching = [artifact.get('sha256') for artifact in artifacts if artifact.get('kind') == kind]
+            require(len(matching) == 1 and is_digest(matching[0]), f'Original API {api} {kind} APK hash is missing or invalid')
+            hashes[kind] = matching[0]
+        apk_hashes.append(hashes)
+        if 'initial_failure' not in session:
+            require(effective == configured, f'Original API {api} has an alternate device without classified failure evidence')
+            continue
+        failure = object_value(session['initial_failure'])
+        retry_ids.append(verified_session_id(failure))
+        require(failure.get('selection') == session['selection'] and failure.get('device') == configured and
+                failure.get('apk_sha256') == hashes,
+                f'Original API {api} retry does not match its first device and APK hashes')
+        if failure.get('reason') == 'lab_unavailable_before_execution':
+            catalog = object_value(failure.get('alternate_catalog'))
+            require(effective != configured and catalog.get('member') == 'retry-catalog.json' and is_digest(catalog.get('sha256')),
+                    f'Original API {api} retry is missing alternate device catalog evidence')
+        else:
+            require(failure.get('reason') == 'lab_dns_before_auth_request' and effective == configured,
+                    f'Original API {api} retry has an unsupported reason or device')
+    if schema == 2:
+        require(len(effective_devices) == len(apis) and len(retry_ids) <= 1 and session_ids.isdisjoint(retry_ids),
+                'Original native effective devices or retry sessions are duplicated, or retry limit exceeded')
+        require(all(hashes == apk_hashes[0] for hashes in apk_hashes), 'Original Device Run sessions used different APK bytes')
+
+
 def main() -> None:
     require(os.environ['PLAY_PREFLIGHT_CONFIRMED'] == 'true', 'Fresh Play preflight must confirm managed publishing OFF (unless user requested a hold), no active review, an empty ready-to-submit queue and all retained release gates reviewed')
     run_id = os.environ['SOURCE_RUN_ID']
@@ -141,24 +237,16 @@ def main() -> None:
     release_id = f'vc{code}-r{run_id}a{attempt}-s{source[:8]}'
     require(native.get('target_sha') == source and native.get('github_run_id') == run_id and native.get('github_run_attempt') == attempt and native.get('release_id') == release_id, 'Original native source/run/attempt/code labels differ')
     require(native.get('private_archive_uploaded') is True and isinstance(native.get('private_archive_sha256'), str), 'Original full private native evidence is missing')
-    sessions = [object_value(session) for session in array_value(native.get('sessions'))]
     expected_devices = {'37': os.environ['ANDROID_DEVICE_RUN_DEVICE'], **dict(zip(('30', '31', '33'), json.loads(os.environ['ANDROID_DEVICE_RUN_COMPAT_DEVICES']), strict=True))}
-    require(len(sessions) == 4 and {session.get('api') for session in sessions} == set(expected_devices), 'Original native evidence does not contain all four APIs')
-    require(len({session.get('session_id') for session in sessions}) == 4, 'Original native session IDs are duplicated')
-    inventory = array_value(native.get('latest_inventory'))
-    require(len(inventory) > 0 and len(inventory) == len(set(inventory)), 'Original full source inventory is empty or duplicated')
     selection = github(f'repos/{repository}/contents/scripts/android/device-run-test-selection.json?ref={source}')
     selection_data = object_value(json.loads(base64.b64decode(str(selection['content']))))
-    compat = {str(target).removeprefix('class ') for target in array_value(selection_data.get('compat'))}
-    require(len(compat) == 4, 'Original compatibility source selection must contain four methods')
-    for session in sessions:
-        api = str(session['api'])
-        require(session.get('device') == expected_devices[api] and session.get('passed') is True and session.get('problems') == [], f'Original API {api} native gate did not pass on the configured destination')
-        cases = [object_value(case) for case in array_value(session.get('cases'))]
-        expected_cases = set(inventory) if api == '37' else compat
-        require(len(cases) == len(expected_cases) and {case.get('identity') for case in cases} == expected_cases, f'Original API {api} named inventory differs')
-        require(all(case.get('status') == 'passed' and case.get('count') == 1 for case in cases), f'Original API {api} contains a nonpassing or duplicate named case')
-        require(session.get('counts') == {'passed': len(cases), 'failure': 0, 'error': 0, 'skipped': 0}, f'Original API {api} native totals differ')
+    verify_native(native, selection_data, expected_devices)
+    if selection_data.get('schemaVersion') == 2:
+        require(is_digest(native.get('private_archive_sha256')), 'Original private native archive hash is missing or invalid')
+        native_steps = array_value(jobs_by_name['Device Run app instrumentation'].get('steps'))
+        require(sum(step.get('name') == 'Collect private native evidence and gate named results' and
+                    step.get('conclusion') == 'success' for step in map(object_value, native_steps)) == 1,
+                'Original Device Run native evidence collection step did not pass')
     source_build = github(f'repos/{repository}/contents/apps/android/app/build.gradle.kts?ref={source}')
     version_matches = re.findall(r'versionName\s*=\s*"([^"]+)"', base64.b64decode(str(source_build['content'])).decode())
     require(len(version_matches) == 1, 'Original source version name is missing or ambiguous')

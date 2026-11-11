@@ -52,6 +52,34 @@ evidence durably. Its offline result covers recorded build/test gates only;
 manual diagnostics, store checks and completion remain governed by the platform
 procedures and canonical boundaries above.
 
+## Independent Client Sync Check
+
+Use this check when passing native results do not show the card and rating on
+a second client. Use web as the separate client by default. Use another client
+only if you can provide equivalent proof of both successful server refreshes.
+
+1. Sign in to the exact candidate and a separate client with the same disposable
+   account. Use a disposable linked workspace and keep all other review activity
+   off the account across workspaces. Refresh Progress on the separate client.
+   After the server refresh succeeds, record the expected grade's count and
+   reporting range before creating the card or taking the candidate offline.
+2. Create a card with a unique question on the front and its answer on the back,
+   then reveal and rate it once on the candidate. Use the same card and rating
+   for any applicable offline relaunch or upgrade check.
+3. Sync the candidate, then sync the separate client and find the card in Cards.
+   Refresh Progress again on the separate client. After the server refresh
+   succeeds, verify that the expected grade's count increased by exactly one
+   over the same reporting range.
+
+On web, use Refresh in Progress and confirm a successful
+`GET /v1/me/progress/series` in the browser's Network panel for each count.
+
+In the [ledger](#release-ledger), keep the candidate SHA and artifact, both
+clients' versions/builds and OS versions, account, workspace and card
+identifiers, expected grade, reporting range, before and after counts, time
+and outcome. Retain screenshots or a native result showing the observations.
+Reuse evidence for the same candidate and scope.
+
 ## macOS Evidence
 
 Before a new Mac submission/publication, retain a separate readiness manifest
@@ -62,8 +90,13 @@ version/build, workflow/run/action/artifact and uploaded `MAC_OS` build IDs,
 export checksum, both architectures' signing/profile/capability evidence, full
 independently reviewed native inventory and named results, exact skip reasons,
 diagnostics/warning decisions, screenshot/manual-check results and gaps.
-Record **Flashcards Native Acceptance** / **LocalMac** / **Acceptance**, both non-UI/UI bundles, actual macOS/Xcode/SDK and genuine development profile/certificate. Full signed local acceptance, or its [targeted recovery](#targeted-recovery), is the normal required gate. Preserve historical failed Cloud actions and Keychain diagnoses separately; a Cloud failure never becomes a pass. Include bounded source comparisons, reviewer, inspection time and the
-submission/publication decision with durable private evidence references.
+Record the [signed `LocalMacCritical` selection](../macos-ci-cd.md#signed-local-native-acceptance),
+actual macOS/Xcode/SDK and development profile/certificate. Retained Mac
+records keep their original plan. Keep any
+[targeted recovery](#targeted-recovery) and bounded source comparisons.
+Preserve historical failed Cloud actions and Keychain diagnoses separately.
+Include the reviewer, inspection time and submission/publication decision
+with durable private evidence references.
 
 ## Validation Activities
 
@@ -116,17 +149,15 @@ when reusing an artifact, including when later docs-only or unrelated commits
 changed the root SHA. For a matching artifact, continue at the next unfinished
 step; an approved or live binary does not need another build or submission.
 
-For an artifact awaiting a new publication/submission, retain the original
-gates and their recorded contract: recover required local preflight logs,
-cloud runs, artifact identity, and actual smoke/test results. New iOS artifacts use schema 4 with full local acceptance and Cloud archive; new Android artifacts use schema 2 with the cloud-first gates below. Retained schema-1/3 readiness records keep their original local and Cloud requirements; never relabel historical evidence to erase a required gate or failed history. For Android, correlate the
-signed AAB, version code, GitHub
-run/attempt and all four exact completed Device Run sessions, job labels and named
-case results. For iOS, recover complete local-plan results, the Cloud release archive and uploaded build identity; historical records keep their recorded selection. For macOS, recover the Cloud release archive, full signed local acceptance (or its [targeted recovery](#targeted-recovery)) and uploaded build identity. Mac additionally retains
-its exact export and [full native/manual evidence](macos.md), including any
-historical Cloud signing diagnosis retained separately from current mandatory local acceptance. Record
-passed/failed/skipped cases,
-skip reasons, coverage limits, and inspected warnings. Investigate unexpected
-skips; a green summary or unexecuted test is not a pass.
+For an artifact awaiting a new publication/submission, recover the original
+gates and evidence under its recorded contract. Use the [iOS and Android
+readiness contracts](readiness.md#input-contract) or [Mac evidence](#macos-evidence).
+Keep the original source selection, build and test identities, all named
+results and skip reasons, coverage limits and inspected warnings. Historical
+Apple manifests keep their original local and Cloud requirements. Historical
+Android evidence retains every device and named case selected at its pinned
+source, including four-device runs under readiness schema 2. Preserve all
+failed attempts. Investigate unexpected skips and missing cases.
 
 An already-published matching mobile artifact counts complete once its
 source/build identity and publication at the intended scope are established.
@@ -147,7 +178,10 @@ or diagnosed access blockers, including final store publication.
 
 ## Targeted Recovery
 
-After a failed, interrupted or passed native attempt of an Apple local acceptance gate (`local-full`, `local-ipad`, `local-ios18` or `LocalMac`), a later test-automation-only change may rerun only affected cases when:
+After a failed, interrupted or passed attempt of an [iOS local acceptance
+plan](readiness.md#ios-critical-release-schema-5), a historical schema-3/4
+local plan or signed Mac acceptance, a test-automation-only change may rerun
+only affected cases when:
 
 - app source, resources, dependencies, build settings, relevant environment and distribution inputs are unchanged or proven equivalent under [source snapshots](#source-snapshots);
 - the change repairs test interaction, setup or diagnostics without weakening assertions, removing required cases or changing the product contract;
@@ -155,7 +189,11 @@ After a failed, interrupted or passed native attempt of an Apple local acceptanc
 
 Keep the complete independently established inventory and every original native attempt with its failures, statuses and artifacts. On the corrected snapshot, execute all failed, missing, interrupted and affected cases; reuse earlier passes only while their inputs remain valid. Account for every required case with the attempt that supplies it. If impact cannot be bounded, run the complete affected plan; app changes follow normal affected-plan acceptance. Never call the original failed attempt passed, and label readiness assembled from several attempts as such. A filtered diagnostic run alone is not acceptance.
 
-For `local-full`, `local-ipad` and `local-ios18`, the latest full-plan attempt whose app inputs remain valid stays the gate's `results` entry with its real status and source, and the [mobile readiness](readiness.md) report stays blocked; never merge attempts into one passed result. Retain next to that manifest/report in the ledger a recovery record and an explicit operator readiness decision. The record lists:
+For iOS, use the latest complete-plan attempt whose app inputs remain valid
+as the gate's `results` entry, with its real status and source. The [mobile
+readiness](readiness.md) report stays blocked when acceptance depends on
+combining attempts. Retain a recovery record and an explicit operator
+readiness decision alongside the manifest and report in the ledger. Record:
 
 - gate; every attempt with its real overall status, source snapshot/artifact identity and native result references;
 - changed files and the enumerated affected chain;
@@ -165,41 +203,20 @@ For `local-full`, `local-ipad` and `local-ios18`, the latest full-plan attempt w
 
 Mac uses the same record beside its [manually inspected readiness](#macos-evidence), never relabelled as a mobile CLI pass. Android keeps its Device Run and [exact-bundle](android.md#exact-bundle-upload-recovery) rules.
 
-Example: `LocalMac` failed on a clipped workspace-picker row. Commit `87031c682` changed only `LiveSmokeWorkspaceFlows.swift` inside `#if targetEnvironment(macCatalyst)`: a new private helper `tapCreateWorkspaceInCurrentPicker`, called once from `createWorkspaceFromCurrentWorkspaceSelection`, which `runGuestToLinkedWorkspaceScenario` reaches from `LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()`, `LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()` and `LiveSmokeAIConsentTests/testGuestReceiptTransfersThroughVerifiedReviewAccountAndLogoutClearsAdmission()`. Rerun those three plus every failed, missing or interrupted case on the corrected snapshot, reuse the original attempt's other passes and keep its failure recorded. iOS gates are unaffected because the non-Mac path is textually unchanged.
+Historical example: `LocalMac` failed on a clipped workspace-picker row. Commit `87031c682` changed only `LiveSmokeWorkspaceFlows.swift` inside `#if targetEnvironment(macCatalyst)`: a new private helper `tapCreateWorkspaceInCurrentPicker`, called once from `createWorkspaceFromCurrentWorkspaceSelection`, which `runGuestToLinkedWorkspaceScenario` reaches from `LiveSmokeSettingsTests/testLiveSmokeResetWorkspaceProgressFlow()`, `LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()` and `LiveSmokeAIConsentTests/testGuestReceiptTransfersThroughVerifiedReviewAccountAndLogoutClearsAdmission()`. Rerun those three plus every failed, missing or interrupted case on the corrected snapshot, reuse the original attempt's other passes and keep its failure recorded. iOS gates are unaffected because the non-Mac path is textually unchanged.
 
 ## Local Mobile Release Gate
 
-Run [iOS local acceptance](ios.md) alongside the pinned Cloud archive after
-[Cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight).
-Both tracks must be reconciled before review. Keep build logs, native reports,
-toolchain versions, [source snapshots](#source-snapshots) and every failed
-attempt. Use `set -o pipefail` when recording logs through `tee` and apply
-the [warning policy](README.md#release-warning-policy). For unavailable
-testing follow the standing policy. For fixes repeat affected checks under
-[artifact reuse](#reuse-existing-artifacts) and [targeted recovery](#targeted-recovery).
+Follow the [iOS release procedure](ios.md) for the local archive, critical
+plans and signed Cloud archive. Keep build logs, native reports, toolchain
+versions, [source snapshots](#source-snapshots) and every failed attempt.
+Use `set -o pipefail` when recording logs through `tee`.
 
 ## Android Cloud Release Gate
 
-For new Android artifacts, follow the [Android procedure](android.md) on the
-intended release SHA with no uncommitted source changes. Require the complete
-`Android Release` workflow, cloud checks and optimized signed Release AAB,
-and all four sequential physical Device Run sessions with their complete named results.
-Generate the [recorded readiness](readiness.md#generate-the-android-manifest)
-from the exact signed build, native summary and publisher provenance after
-reviewing the retained logs and diagnostics. A publisher-only failure can use
-[exact-bundle recovery](android.md#exact-bundle-upload-recovery): keep the original
-passing build/native gates and failed workflow conclusion, plus the separate
-successful publisher workflow bound to the same signed AAB hash and code.
-
-The [local parity commands](../android-ci-cd.md#local-parity-commands) remain
-available for diagnosis and OS-specific behavior that cloud selection does not
-cover. Local CI, Release builds and emulator smokes are not recurring
-pre-dispatch prerequisites; missing local Android SDKs or upload keys do not
-block cloud dispatch. Record any diagnostic execution and its outcome in the
-ledger. Fix identifiable app/test defects before publication under the standing policy.
-
-After a source-affecting fix, merge through normal CI and repeat affected cloud
-gates for the corrected SHA under the reuse rules above. Repeat applicable
-OS-specific checks when their exercised behavior changes; reuse the completed
-first API 30 walkthrough when those inputs remain applicable. Store checks and
-publication completion remain mandatory under the platform procedure.
+Follow the [Android release procedure](android.md) for required cloud CI,
+the signed AAB and both sequential physical Device Run gates. Generate
+[recorded readiness](readiness.md#generate-the-android-manifest) from the exact
+signed build, native summary and publisher provenance. Record any diagnostic
+execution and its outcome in the ledger. Use [exact-bundle
+recovery](android.md#exact-bundle-upload-recovery) for a publisher-only failure.

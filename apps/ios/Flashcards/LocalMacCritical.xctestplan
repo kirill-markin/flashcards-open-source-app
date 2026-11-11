@@ -1,0 +1,51 @@
+{
+  "configurations": [
+    {
+      "id": "C63F203F-87B9-4776-9307-545740E169A2",
+      "name": "Acceptance",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "diagnosticCollectionPolicy": "Never",
+    "environmentVariableEntries": [
+      {
+        "key": "FLASHCARDS_AUTOMATION_RUN",
+        "value": "1"
+      },
+      {
+        "key": "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE",
+        "value": "ci-simulator"
+      }
+    ],
+    "targetForVariableExpansion": {
+      "containerPath": "container:Flashcards Open Source App.xcodeproj",
+      "identifier": "A10000000000000000000004",
+      "name": "Flashcards Open Source App"
+    }
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Flashcards Open Source App.xcodeproj",
+        "identifier": "A10000000000000000000022",
+        "name": "Flashcards Open Source App Tests"
+      }
+    },
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Flashcards Open Source App.xcodeproj",
+        "identifier": "A10000000000000000000035",
+        "name": "Flashcards Open Source App UI Tests"
+      },
+      "selectedTests": [
+        "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()",
+        "LiveSmokeMacCatalystTests/testMacReviewWithKeyboardAndPointer()",
+        "LiveSmokeMacCatalystTests/testMacReviewHoverPreservesAICompanionTypingFocus()"
+      ]
+    }
+  ],
+  "version": 1
+}

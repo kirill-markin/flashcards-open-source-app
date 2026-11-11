@@ -44,10 +44,10 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    browser fallback and resolve missing factual declarations/access with the user.
 4. Run [signed local native acceptance](../macos-ci-cd.md#signed-local-native-acceptance)
    in parallel with step 5. Check disk, host macOS and local signing first.
-   On the same reserved desktop, complete the [launch preflight](../macos-ci-cd.md#desktop-launch-preflight) before starting
-   `LocalMac`. Independently discover the full non-UI and Mac-eligible UI
-   inventory. Retain every named result, full logs, `.xcresult`, diagnostics
-   and inspected [formula/focus screenshots](../macos-ci-cd.md#native-smoke-evidence).
+   On the dedicated, logged-in desktop, complete the
+   [launch preflight](../macos-ci-cd.md#desktop-launch-preflight) before starting
+   `LocalMacCritical`. Retain the discovered inventory, named results,
+   logs, `.xcresult`, diagnostics and [focus screenshots](../macos-ci-cd.md#existing-native-flows).
 5. After step 3, dispatch only **macOS Release Build**
    (`9d704b65-5254-4f04-be24-bebc0f0cfc7d`) on the pinned merged `main` SHA.
    Verify the accepted run source. Save workflow/run/Archive action IDs, source
@@ -55,7 +55,7 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    warnings and artifacts under [Cloud data access](../xcode-cloud-data-access.md).
    Require archive, signing, hooks, upload and processing. Keep TestFlight
    distribution internal during acceptance.
-6. Before review preparation, reconcile signed `LocalMac` and Cloud results.
+6. Before review preparation, reconcile signed `LocalMacCritical` and Cloud results.
    Require every available selected case to pass, in a complete attempt or under
    [targeted recovery](evidence.md#targeted-recovery). Investigate missing cases,
    unexpected skips, failures and interruptions. Record any unavailable coverage
@@ -94,17 +94,14 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    may omit an explicit sharing group; never invent one to silence a mismatch.
    Correlate these observations with the uploaded build's `buildBundles`
    metadata. Missing export/provenance or a mismatch blocks attachment for review.
-9. Complete and record the [manual Mac checklist](../macos-ci-cd.md#manual-checklist-on-the-verified-mac-artifact)
-   on the verified signed release app, with artifact/source/version/build, OS,
-   steps and outcomes. Launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"` and verify `automation_run_decided` reports `isAutomation=true` before interaction, including TestFlight. Cover resizing/dark layout, pointer/keyboard/composer focus,
-   math, editor/speech, offline relaunch/sync, AI media/dictation permissions,
-   notifications and sandbox subscriptions/purchase/restore/manage. Require all
-   available exact-artifact checks to pass and resolve any observed blocking
-   failure before withdrawing an older submission or attaching the verified
-   build. For unavailable coverage only, record the unexecuted checks and a
-   dated [standing-policy](README.md#standing-best-effort-release-policy)
-   decision bound to the verified source and artifact before either action.
-   Resolve required store blockers before submission.
+9. Record the [signed TestFlight smoke](../macos-ci-cd.md#manual-checklist-on-the-verified-mac-artifact)
+   and any diagnostics relevant to the changes. Require all available
+   exact-artifact checks to pass and resolve blocking failures before withdrawing
+   an older submission or attaching the verified build. For unavailable coverage,
+   record the unexecuted checks and a dated
+   [standing-policy](README.md#standing-best-effort-release-policy) decision
+   bound to the verified source and artifact before either action. Resolve
+   required store blockers before submission.
 10. Re-read the current Mac version and submission state through the App Store
     Connect API. If an older version is in `PENDING_DEVELOPER_RELEASE`,
     complete its manual publication in step 12 before continuing, honoring any

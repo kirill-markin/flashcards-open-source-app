@@ -759,6 +759,47 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         self.attachMacScreenshot(name: "mac-review-table-after-closing-companion")
     }
 
+    @MainActor
+    func testMacReviewWithKeyboardAndPointer() throws {
+        let context = self.makeRunContext()
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .cards)
+        try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
+        try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+            timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+        )
+        self.app.activate()
+
+        try self.step("reveal with Space and rate with the pointer") {
+            self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
+            try self.waitForReviewAnswerReveal()
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+        }
+
+        try self.step("reveal the next card and rate it Easy by keyboard without a focus click") {
+            self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
+            try self.waitForReviewAnswerReveal()
+            self.app.typeKey("4", modifierFlags: [])
+            try self.assertElementDoesNotExist(
+                identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+        }
+
+        try self.step("confirm that the pointer's Good and keyboard's Easy were both saved") {
+            try self.tapTabBarItem(selectedTab: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForSavedLocalReviewRatings(goodCount: 1, easyCount: 1)
+        }
+    }
+
     // XCTest synthesizes .enter as HID 52 in this Catalyst runner; cover physical keypad Enter manually.
     @MainActor
     func testMacPointerRatingRestoresSpaceAndAllRatingKeys() throws {

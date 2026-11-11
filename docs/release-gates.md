@@ -18,7 +18,7 @@ Pushes to `main` use independent release and check streams:
 - it finishes healthy only when every selected component deployed and passed its smokes: the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts` runs when `web` or `platform` deployed and gates both, and the external agent API smoke in `scripts/checks/check-agent-api-smoke.sh` and the MCP endpoint smoke in `scripts/checks/check-mcp-smoke.sh` gate `platform`; a smoke skipped because no component that needs it was selected is not a failure
 - rollback is automatic only when the failed AWS release did not include new DB migrations
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
-- Android production draft upload is manual-only through `.github/workflows/android-release.yml` ([where Android CI runs](android-ci-cd.md)); that workflow requires terminal success from all four sequential Device Run sessions before the signed Play draft upload starts
+- Android production draft upload is manual-only through `.github/workflows/android-release.yml`. The workflow waits for hosted CI, the signed build and the [pinned physical Device Run gates](release/android.md) before uploading the bundle to Play.
 - Manually dispatched Apple archives run in Xcode Cloud alongside local acceptance. Follow the
   [iOS](release/ios.md#ios) and [macOS](release/macos.md#preflight-and-cloud-gates)
   procedures for dispatch and the evidence required before App Review.
@@ -141,5 +141,5 @@ Cross-client live smoke references:
 - Manual managed image sync: [docs/managed-media-cross-client-smoke.md](./managed-media-cross-client-smoke.md)
 
 These live smoke flows are the highest-confidence checks in the repository because they exercise the real app closest to production conditions.
-On Android, these live smoke flows run as part of the broader Device Run app instrumentation suite in the manual `Android Release` workflow.
+The [Android release selection](android-ci-cd.md#choose-the-device-run-devices) runs in the manual `Android Release` workflow.
 When a code change affects a primary user flow, main screen, or cross-client navigation path, check the relevant live smoke or targeted integration tests in the same change and update them when the expected behavior changed. We do not try to guard every internal detail with tests. For small internal or low-risk changes that do not affect the main user journey, updating those tests is optional.
