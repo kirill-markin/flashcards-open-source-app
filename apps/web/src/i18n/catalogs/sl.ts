@@ -796,6 +796,15 @@ const slCatalog: TranslationCatalog = {
       addCards: "Dodajanje kartic",
       transfer: "Prenos podatkov",
     },
+    cards: {
+      description: "Vse kartice v tem delovnem prostoru.",
+    },
+    tags: {
+      description: "Oznake na vaših karticah.",
+    },
+    decks: {
+      description: "Skupine kartic glede na oznake, ki jih izberete.",
+    },
     deckCatalog: {
       title: "Katalog kompletov",
       description: "Brezplačni pripravljeni kompleti za učenje.",

@@ -726,6 +726,12 @@ extension CardStore {
         return WorkspaceTagsSummary(tags: tags, totalCards: totalCards)
     }
 
+    func loadWorkspaceTagCount(workspaceId: String) throws -> Int {
+        let storedTagNames = try self.loadStoredTagNames(workspaceId: workspaceId)
+        let tagKeys = storedTagNames.lazy.map(normalizeTagKey).filter { $0.isEmpty == false }
+        return Set(tagKeys).count
+    }
+
     func loadStoredTagNames(workspaceId: String) throws -> [String] {
         try self.core.query(
             sql: """

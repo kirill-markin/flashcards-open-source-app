@@ -782,6 +782,15 @@ const guCatalog: TranslationCatalog = {
       addCards: "કાર્ડ ઉમેરો",
       transfer: "ડેટા ટ્રાન્સફર",
     },
+    cards: {
+      description: "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ.",
+    },
+    tags: {
+      description: "તમારાં કાર્ડ પર વપરાતા ટૅગ.",
+    },
+    decks: {
+      description: "તમે પસંદ કરેલા ટૅગ પર આધારિત કાર્ડના જૂથો.",
+    },
     deckCatalog: {
       title: "ડેક કૅટલૉગ",
       description: "અભ્યાસ માટે મફત તૈયાર ડેક.",

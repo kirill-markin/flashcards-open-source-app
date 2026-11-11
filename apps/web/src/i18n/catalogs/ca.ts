@@ -782,6 +782,15 @@ const caCatalog: TranslationCatalog = {
       addCards: "Afegeix targetes",
       transfer: "Transferència de dades",
     },
+    cards: {
+      description: "Totes les targetes d’aquest espai de treball.",
+    },
+    tags: {
+      description: "Etiquetes que fas servir a les teves targetes.",
+    },
+    decks: {
+      description: "Grups de targetes segons les etiquetes que triïs.",
+    },
     deckCatalog: {
       title: "Catàleg de baralles",
       description: "Baralles gratuïtes i llestes per estudiar.",

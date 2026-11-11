@@ -782,6 +782,15 @@ const etCatalog: TranslationCatalog = {
       addCards: "Lisa kaarte",
       transfer: "Andmete ülekandmine",
     },
+    cards: {
+      description: "Kõik kaardid selles tööruumis.",
+    },
+    tags: {
+      description: "Sinu kaartidel kasutatavad sildid.",
+    },
+    decks: {
+      description: "Kaardirühmad sinu valitud siltide järgi.",
+    },
     deckCatalog: {
       title: "Pakkide kataloog",
       description: "Tasuta valmis pakid õppimiseks.",

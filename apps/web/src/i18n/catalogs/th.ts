@@ -782,6 +782,15 @@ const thCatalog: TranslationCatalog = {
       addCards: "เพิ่มการ์ด",
       transfer: "การถ่ายโอนข้อมูล",
     },
+    cards: {
+      description: "การ์ดทั้งหมดในพื้นที่ทำงานนี้",
+    },
+    tags: {
+      description: "แท็กที่ใช้กับการ์ดของคุณ",
+    },
+    decks: {
+      description: "กลุ่มการ์ดตามแท็กที่คุณเลือก",
+    },
     deckCatalog: {
       title: "แคตตาล็อกเด็ค",
       description: "เด็คสำเร็จรูปฟรีสำหรับเรียน",
