@@ -285,7 +285,7 @@
     <string name="settings_account_status_sync_status_label">Status penyegerakan</string>
     <string name="settings_account_status_last_successful_sync_label">Penyegerakan terakhir yang berjaya</string>
     <string name="settings_account_status_sync_blocked_title">Penyegerakan disekat pada peranti ini</string>
-    <string name="settings_account_status_sync_blocked_body">Pilih Log keluar untuk mengosongkan identiti awan setempat pada peranti ini sebelum menyambung semula.</string>
+    <string name="settings_account_status_sync_blocked_body">Untuk menyambung semula, log keluar dan log masuk semula. Log keluar akan membuang data setempat daripada peranti ini, termasuk perubahan yang belum disegerakkan.</string>
     <string name="settings_account_status_sign_in_button">Log masuk atau daftar</string>
     <string name="settings_account_status_sync_now_button">Segerakkan sekarang</string>
     <string name="settings_account_status_logout_dialog_title">Log keluar dan padam data Nibomo daripada peranti ini?</string>
@@ -470,6 +470,7 @@
     <string name="settings_deck_editor_delete_confirmation_body">Kad anda dikekalkan. Tindakan ini hanya mengalih keluar penapis dek yang disimpan.</string>
     <string name="settings_deck_editor_delete_failed">Dek tidak dapat dipadamkan.</string>
     <string name="settings_deck_editor_name_required">Nama dek diperlukan.</string>
+    <string name="settings_deck_editor_filter_conflict">Tag dek berubah semasa penyegerakan. Pilih sekurang-kurangnya satu tag yang tersedia sekarang, kemudian simpan semula.</string>
     <string name="settings_deck_editor_filter_required">Pilih sekurang-kurangnya satu tag atau gunakan Semua kad dalam Ulang kaji.</string>
     <string name="settings_deck_editor_save_failed">Dek tidak dapat disimpan.</string>
     <string name="settings_deck_filter_tags_any">mana-mana tag daripada %1$s</string>
@@ -812,4 +813,10 @@
     <string name="settings_first_review_onboarding_save_failed">Ulang kaji anda telah disimpan, tetapi tetapan panduan tidak dapat disimpan pada peranti ini.</string>
     <string name="settings_first_review_onboarding_local_save_failed">Tetapan panduan tidak dapat disimpan pada peranti ini. Cuba lagi.</string>
     <string name="settings_first_review_onboarding_update_failed">Tetapan panduan tidak dapat dikemas kini. Perubahan luar talian disimpan pada peranti ini dan akan disegerakkan apabila sambungan tersedia.</string>
+
+    <string name="settings_deck_editor_save_rules_before_reset">Simpan perubahan penapis sebelum menetapkan semula kemajuan belajar.</string>
+    <string name="settings_tag_detail_total">Jumlah</string>
+    <string name="settings_tag_detail_open_review">Buka Ulang kaji</string>
+    <string name="settings_tag_detail_remove_tag">Alih keluar tag daripada kad</string>
+    <string name="settings_tag_detail_unavailable">Tag ini tidak lagi tersedia dalam ruang kerja semasa.</string>
 </resources>

@@ -261,4 +261,52 @@
         <item quantity="one">ମାସକୁ %1$dଟି AI ଚାଟ୍ ମେସେଜ୍</item>
         <item quantity="other">ମାସକୁ %1$dଟି AI ଚାଟ୍ ମେସେଜ୍</item>
     </plurals>
+
+    <string name="card_maintenance_back">ପଛକୁ</string>
+    <string name="card_maintenance_reset_title">ପଢ଼ା ପ୍ରଗତି ରିସେଟ୍ କରନ୍ତୁ</string>
+    <string name="card_maintenance_remove_title">କାର୍ଡରୁ ଟ୍ୟାଗ୍ ହଟାନ୍ତୁ</string>
+    <string name="card_maintenance_loading">ଯେଉଁ କାର୍ଡଗୁଡ଼ିକରେ ପରିବର୍ତ୍ତନ ହେବ, ସେଗୁଡ଼ିକ ଯାଞ୍ଚ ହେଉଛି…</string>
+    <string name="card_maintenance_applying">ପରିବର୍ତ୍ତନ ଲାଗୁ ଓ ସିଙ୍କ୍ ହେଉଛି…</string>
+    <string name="card_maintenance_sign_in">ସେଟିଂସ୍‌ରେ ଲିଙ୍କ୍ ହୋଇଥିବା କ୍ଲାଉଡ୍ ୱର୍କସ୍ପେସ୍‌ରେ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ, ତା’ପରେ ଏହି ବିକଳ୍ପ ପୁଣି ଖୋଲନ୍ତୁ।</string>
+    <string name="card_maintenance_workspace_changed">ସକ୍ରିୟ ୱର୍କସ୍ପେସ୍ ବଦଳିଛି। ପୂର୍ବ ୱର୍କସ୍ପେସ୍‌କୁ ଫେରି ଏହି ବିକଳ୍ପ ପୁଣି ଖୋଲନ୍ତୁ।</string>
+    <string name="card_maintenance_target_unavailable">ଏହି ଆଇଟମ୍ ଆଉ ଉପଲବ୍ଧ ନାହିଁ। ତାଲିକା ରିଫ୍ରେସ୍ କରିବା ପାଇଁ ପଛକୁ ଯାଆନ୍ତୁ।</string>
+    <string name="card_maintenance_access_denied">ଆପଣଙ୍କ ଆକାଉଣ୍ଟରୁ ଏହି ୱର୍କସ୍ପେସ୍‌ରେ ପରିବର୍ତ୍ତନ କରିହେବ ନାହିଁ। ସେଟିଂସ୍‌ରେ ୱର୍କସ୍ପେସ୍ ଆକ୍ସେସ୍ ଯାଞ୍ଚ କରନ୍ତୁ।</string>
+    <string name="card_maintenance_preview_failed">ପୂର୍ବଦୃଶ୍ୟ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="card_maintenance_execute_pending">ସର୍ଭର୍ ହୁଏତ ଏବେ ବି ଏହି ପରିବର୍ତ୍ତନ ଲାଗୁ କରୁଛି। ପୂର୍ବଦୃଶ୍ୟ ଖୋଲିବା ସମୟରୁ ଦୁଇ ମିନିଟ୍ ପର୍ଯ୍ୟନ୍ତ ଅପେକ୍ଷା କରନ୍ତୁ, ତା’ପରେ ପୁଣି ସିଙ୍କ୍ କରି ଦେଖନ୍ତୁ।</string>
+    <string name="card_maintenance_execute_unverified">ଫଳାଫଳ ଯାଞ୍ଚ କରିହେଲା ନାହିଁ। ଆଉ କ’ଣ ବଦଳାଇବା ବାକି ଅଛି ଜାଣିବାକୁ ପୂର୍ବଦୃଶ୍ୟ ପୁଣି ଲୋଡ୍ କରନ୍ତୁ।</string>
+    <string name="card_maintenance_preview_changed">ଏହି କାମରେ ସାମିଲ କାର୍ଡ ବା ଡେକ୍‌ର ନିୟମ ବଦଳିଛି। ନିଶ୍ଚିତ କରିବା ପୂର୍ବରୁ ଏହି ନୂଆ ପୂର୍ବଦୃଶ୍ୟ ଦେଖନ୍ତୁ।</string>
+    <string name="card_maintenance_confirmation_invalid">ନିଶ୍ଚିତ କରିବାର ବାକ୍ୟଟି ବଦଳିଛି। ନୂଆ ପୂର୍ବଦୃଶ୍ୟରେ ଦେଖାଯାଉଥିବା ବାକ୍ୟଟି ଲେଖନ୍ତୁ।</string>
+    <string name="card_maintenance_refresh_failed">ଆପଣଙ୍କ ପରିବର୍ତ୍ତନ ସେଭ୍ ହୋଇଛି। ଏହି ଡିଭାଇସ୍ ଅପଡେଟ୍ କରିବାକୁ ପୁଣି ସିଙ୍କ୍ କରି ଦେଖନ୍ତୁ।</string>
+    <string name="card_maintenance_retry_preview">ପୂର୍ବଦୃଶ୍ୟ ଲୋଡ୍ କରନ୍ତୁ</string>
+    <string name="card_maintenance_retry_sync">ପୁଣି ସିଙ୍କ୍ କରନ୍ତୁ</string>
+    <string name="card_maintenance_entire_workspace">ଏହି ଡେକ୍‌ରେ ୱର୍କସ୍ପେସ୍‌ର ସବୁ କାର୍ଡ ଅଛି।</string>
+    <string name="card_maintenance_empty_remove">କୌଣସି କାର୍ଡରେ ଏହି ଟ୍ୟାଗ୍ ନାହିଁ।</string>
+    <string name="card_maintenance_empty_reset">ଏଠାରେ କୌଣସି କାର୍ଡର ପଢ଼ା ପ୍ରଗତି ରିସେଟ୍ କରିବାକୁ ନାହିଁ।</string>
+    <string name="card_maintenance_keep_cards">ସବୁ କାର୍ଡ ରହିବ।</string>
+    <string name="card_maintenance_no_decks">କୌଣସି ଡେକ୍‌ର ନିୟମରେ ଏହି ଟ୍ୟାଗ୍ ବ୍ୟବହାର ହୋଇନାହିଁ।</string>
+    <string name="card_maintenance_overlapping_scope">ଏହି କାର୍ଡଗୁଡ଼ିକ ଅନ୍ୟ ଯେଉଁ ଡେକ୍ ବା ଟ୍ୟାଗ୍‌ରେ ଅଛି, ସେଠାରେ ମଧ୍ୟ ଏଗୁଡ଼ିକର ପ୍ରଗତି ରିସେଟ୍ ହେବ।</string>
+    <string name="card_maintenance_type_phrase">ନିଶ୍ଚିତ କରିବା ପାଇଁ ଏହି ବାକ୍ୟଟି ଠିକ୍ ସେହିପରି ଲେଖନ୍ତୁ।</string>
+    <string name="card_maintenance_confirmation_label">ନିଶ୍ଚିତ କରିବାର ବାକ୍ୟ</string>
+    <string name="card_maintenance_confirm_reset">ପ୍ରଗତି ରିସେଟ୍ କରନ୍ତୁ</string>
+    <string name="card_maintenance_confirm_remove">ଟ୍ୟାଗ୍ ହଟାନ୍ତୁ</string>
+    <plurals name="card_maintenance_reset_preview">
+        <item quantity="one">%1$dଟି କାର୍ଡର ପଢ଼ା ପ୍ରଗତି ରିସେଟ୍ ହେବ।</item>
+        <item quantity="other">%1$dଟି କାର୍ଡର ପଢ଼ା ପ୍ରଗତି ରିସେଟ୍ ହେବ।</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_preview">
+        <item quantity="one">%1$dଟି କାର୍ଡରୁ ଏହି ଟ୍ୟାଗ୍ ହଟିବ।</item>
+        <item quantity="other">%1$dଟି କାର୍ଡରୁ ଏହି ଟ୍ୟାଗ୍ ହଟିବ।</item>
+    </plurals>
+    <plurals name="card_maintenance_keep_deck_rules">
+        <item quantity="one">%1$dଟି ଡେକ୍‌ରେ ଏହି ଟ୍ୟାଗ୍ ବ୍ୟବହାର ହେଉଛି। ସେହି ଡେକ୍‌ର ନିୟମ ବଦଳିବ ନାହିଁ।</item>
+        <item quantity="other">%1$dଟି ଡେକ୍‌ରେ ଏହି ଟ୍ୟାଗ୍ ବ୍ୟବହାର ହେଉଛି। ସେହି ଡେକ୍‌ର ନିୟମ ବଦଳିବ ନାହିଁ।</item>
+    </plurals>
+    <plurals name="card_maintenance_reset_success">
+        <item quantity="one">%1$dଟି କାର୍ଡର ପ୍ରଗତି ରିସେଟ୍ ହୋଇଛି।</item>
+        <item quantity="other">%1$dଟି କାର୍ଡର ପ୍ରଗତି ରିସେଟ୍ ହୋଇଛି।</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_success">
+        <item quantity="one">%1$dଟି କାର୍ଡରୁ ଏହି ଟ୍ୟାଗ୍ ହଟିଛି।</item>
+        <item quantity="other">%1$dଟି କାର୍ଡରୁ ଏହି ଟ୍ୟାଗ୍ ହଟିଛି।</item>
+    </plurals>
 </resources>

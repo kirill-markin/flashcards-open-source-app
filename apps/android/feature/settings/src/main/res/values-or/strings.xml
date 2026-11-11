@@ -286,7 +286,7 @@
     <string name="settings_account_status_sync_status_label">ସିଙ୍କ୍ ସ୍ଥିତି</string>
     <string name="settings_account_status_last_successful_sync_label">ଶେଷ ସଫଳ ସିଙ୍କ୍</string>
     <string name="settings_account_status_sync_blocked_title">ଏହି ଡିଭାଇସ୍‌ରେ ସିଙ୍କ୍ ଅଟକିଛି</string>
-    <string name="settings_account_status_sync_blocked_body">ପୁଣି ସଂଯୋଗ କରିବା ଆଗରୁ «ଲଗ୍ ଆଉଟ୍ କରନ୍ତୁ» ବାଛି ଏହି ଡିଭାଇସ୍‌ରୁ କ୍ଲାଉଡ୍ ପରିଚୟ ହଟାନ୍ତୁ।</string>
+    <string name="settings_account_status_sync_blocked_body">ପୁଣି ସଂଯୋଗ କରିବାକୁ ଲଗ୍ ଆଉଟ୍ କରି ପୁଣି ସାଇନ୍ ଇନ୍ କରନ୍ତୁ। ଲଗ୍ ଆଉଟ୍ କଲେ ଏହି ଡିଭାଇସ୍‌ରେ ଥିବା ଡାଟା ହଟିଯିବ। ସିଙ୍କ୍ ହୋଇନଥିବା ପରିବର୍ତ୍ତନ ମଧ୍ୟ ହଟିଯିବ।</string>
     <string name="settings_account_status_sign_in_button">ସାଇନ୍ ଇନ୍ କରନ୍ତୁ ବା ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ</string>
     <string name="settings_account_status_sync_now_button">ଏବେ ସିଙ୍କ୍ କରନ୍ତୁ</string>
     <string name="settings_account_status_logout_dialog_title">ଲଗ୍ ଆଉଟ୍ କରି ଏହି ଡିଭାଇସ୍‌ରୁ Nibomo ଡାଟା ଲିଭାଇବେ କି?</string>
@@ -471,6 +471,7 @@
     <string name="settings_deck_editor_delete_confirmation_body">ଆପଣଙ୍କ କାର୍ଡ ରହିବ। କେବଳ ସେଭ୍ ହୋଇଥିବା ଡେକ୍ ଫିଲ୍ଟର୍ ହଟିବ।</string>
     <string name="settings_deck_editor_delete_failed">ଡେକ୍ ଡିଲିଟ୍ ହୋଇପାରିଲା ନାହିଁ।</string>
     <string name="settings_deck_editor_name_required">ଡେକ୍‌ର ନାମ ଦରକାର।</string>
+    <string name="settings_deck_editor_filter_conflict">ସିଙ୍କ୍ ହେବା ବେଳେ ଡେକ୍‌ର ଟ୍ୟାଗ୍ ବଦଳିଛି। ଏବେ ଥିବା ଟ୍ୟାଗ୍‌ଗୁଡ଼ିକ ମଧ୍ୟରୁ ଅତି କମରେ ଗୋଟିଏ ବାଛି ପୁଣି ସେଭ୍ କରନ୍ତୁ।</string>
     <string name="settings_deck_editor_filter_required">ଅତି କମରେ ଗୋଟିଏ ଟ୍ୟାଗ୍ ବାଛନ୍ତୁ ବା ଅଭ୍ୟାସରେ «ସବୁ କାର୍ଡ» ବାଛନ୍ତୁ।</string>
     <string name="settings_deck_editor_save_failed">ଡେକ୍ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ।</string>
     <string name="settings_deck_filter_tags_any">%1$sରୁ ଯେକୌଣସି ଟ୍ୟାଗ୍</string>
@@ -825,4 +826,10 @@
     <string name="settings_first_review_onboarding_save_failed">ଆପଣଙ୍କ ଅଭ୍ୟାସ ସେଭ୍ ହୋଇଛି, ହେଲେ ଏହି ଡିଭାଇସ୍‌ରେ ଗାଇଡ୍ ସେଟିଂ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ।</string>
     <string name="settings_first_review_onboarding_local_save_failed">ଏହି ଡିଭାଇସ୍‌ରେ ଗାଇଡ୍ ସେଟିଂ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
     <string name="settings_first_review_onboarding_update_failed">ଗାଇଡ୍ ସେଟିଂ ଅପଡେଟ୍ ହୋଇପାରିଲା ନାହିଁ। ଅଫଲାଇନ୍ ପରିବର୍ତ୍ତନ ଏହି ଡିଭାଇସ୍‌ରେ ସେଭ୍ ରହେ ଓ ସଂଯୋଗ ହେଲେ ସିଙ୍କ୍ ହେବ।</string>
+
+    <string name="settings_deck_editor_save_rules_before_reset">ପଢ଼ା ପ୍ରଗତି ରିସେଟ୍ କରିବା ଆଗରୁ ଫିଲ୍ଟର୍‌ର ପରିବର୍ତ୍ତନ ସେଭ୍ କରନ୍ତୁ।</string>
+    <string name="settings_tag_detail_total">ମୋଟ</string>
+    <string name="settings_tag_detail_open_review">ଅଭ୍ୟାସ ଖୋଲନ୍ତୁ</string>
+    <string name="settings_tag_detail_remove_tag">କାର୍ଡରୁ ଟ୍ୟାଗ୍ ହଟାନ୍ତୁ</string>
+    <string name="settings_tag_detail_unavailable">ବର୍ତ୍ତମାନର ୱର୍କସ୍ପେସ୍‌ରେ ଏହି ଟ୍ୟାଗ୍ ଆଉ ଉପଲବ୍ଧ ନାହିଁ।</string>
 </resources>

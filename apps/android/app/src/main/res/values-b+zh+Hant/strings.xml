@@ -250,4 +250,47 @@
     <plurals name="premium_ai_messages">
         <item quantity="other">每月 %1$d 則 AI 聊天訊息</item>
     </plurals>
+
+    <string name="card_maintenance_back">返回</string>
+    <string name="card_maintenance_reset_title">重設學習進度</string>
+    <string name="card_maintenance_remove_title">從卡片移除標籤</string>
+    <string name="card_maintenance_loading">正在檢查受影響的卡片…</string>
+    <string name="card_maintenance_applying">正在套用變更並同步…</string>
+    <string name="card_maintenance_sign_in">請在「設定」中登入已連結的雲端工作區，然後重新開啟此操作。</string>
+    <string name="card_maintenance_workspace_changed">使用中的工作區已變更。請切換回原本的工作區，再重新開啟此操作。</string>
+    <string name="card_maintenance_target_unavailable">此項目已無法使用。請返回以重新整理清單。</string>
+    <string name="card_maintenance_access_denied">你的帳號無法變更此工作區。請在「設定」中確認工作區存取權限。</string>
+    <string name="card_maintenance_preview_failed">無法載入預覽。請檢查網路連線後重試。</string>
+    <string name="card_maintenance_execute_pending">伺服器可能仍在套用這項變更。請從開啟預覽起最多等候兩分鐘，再重試同步。</string>
+    <string name="card_maintenance_execute_unverified">無法確認結果。請重新載入預覽，查看還有哪些變更尚未完成。</string>
+    <string name="card_maintenance_preview_changed">受影響的卡片或牌組規則已變更。請查看新的預覽再確認。</string>
+    <string name="card_maintenance_confirmation_invalid">確認文字已變更。請輸入新預覽顯示的確認文字。</string>
+    <string name="card_maintenance_refresh_failed">已儲存變更。請重試同步以更新此裝置。</string>
+    <string name="card_maintenance_retry_preview">載入預覽</string>
+    <string name="card_maintenance_retry_sync">重試同步</string>
+    <string name="card_maintenance_entire_workspace">此牌組包含工作區中的所有卡片。</string>
+    <string name="card_maintenance_empty_remove">沒有卡片使用此標籤。</string>
+    <string name="card_maintenance_empty_reset">這個範圍內沒有卡片的學習進度需要重設。</string>
+    <string name="card_maintenance_keep_cards">所有卡片都會保留。</string>
+    <string name="card_maintenance_no_decks">沒有牌組規則使用此標籤。</string>
+    <string name="card_maintenance_overlapping_scope">這些卡片在其他所屬牌組或標籤中的學習進度也會重設。</string>
+    <string name="card_maintenance_type_phrase">請輸入完全相同的確認文字。</string>
+    <string name="card_maintenance_confirmation_label">確認文字</string>
+    <string name="card_maintenance_confirm_reset">重設進度</string>
+    <string name="card_maintenance_confirm_remove">移除標籤</string>
+    <plurals name="card_maintenance_reset_preview">
+        <item quantity="other">將重設 %1$d 張卡片的學習進度。</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_preview">
+        <item quantity="other">將從 %1$d 張卡片移除此標籤。</item>
+    </plurals>
+    <plurals name="card_maintenance_keep_deck_rules">
+        <item quantity="other">有 %1$d 個牌組使用此標籤。這些牌組的規則會保留。</item>
+    </plurals>
+    <plurals name="card_maintenance_reset_success">
+        <item quantity="other">已重設 %1$d 張卡片的學習進度。</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_success">
+        <item quantity="other">已從 %1$d 張卡片移除此標籤。</item>
+    </plurals>
 </resources>

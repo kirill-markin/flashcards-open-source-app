@@ -285,7 +285,7 @@
     <string name="settings_account_status_sync_status_label">同步狀態</string>
     <string name="settings_account_status_last_successful_sync_label">上次成功同步的時間</string>
     <string name="settings_account_status_sync_blocked_title">此裝置無法同步</string>
-    <string name="settings_account_status_sync_blocked_body">重新連線前，請使用「登出」清除此裝置上的雲端身分資料。</string>
+    <string name="settings_account_status_sync_blocked_body">若要重新連線，請先登出再重新登入。登出會移除此裝置上的本機資料，包括尚未同步的變更。</string>
     <string name="settings_account_status_sign_in_button">登入或註冊</string>
     <string name="settings_account_status_sync_now_button">立即同步</string>
     <string name="settings_account_status_logout_dialog_title">要登出並清除此裝置上的 Nibomo 資料嗎？</string>
@@ -470,6 +470,7 @@
     <string name="settings_deck_editor_delete_confirmation_body">只會移除已儲存的牌組篩選條件，卡片會保留。</string>
     <string name="settings_deck_editor_delete_failed">無法刪除牌組。</string>
     <string name="settings_deck_editor_name_required">請輸入牌組名稱。</string>
+    <string name="settings_deck_editor_filter_conflict">同步時，牌組的標籤已變更。請從目前的標籤中至少選擇一個，再儲存一次。</string>
     <string name="settings_deck_editor_filter_required">請至少選擇一個標籤，或在複習時選擇「所有卡片」。</string>
     <string name="settings_deck_editor_save_failed">無法儲存牌組。</string>
     <string name="settings_deck_filter_tags_any">包含以下任一標籤：%1$s</string>
@@ -812,4 +813,10 @@
     <string name="settings_first_review_onboarding_save_failed">複習紀錄已儲存，但無法在此裝置儲存導覽設定。</string>
     <string name="settings_first_review_onboarding_local_save_failed">無法在此裝置儲存導覽設定。請再試一次。</string>
     <string name="settings_first_review_onboarding_update_failed">無法更新導覽設定。離線時的變更會保存在此裝置，並在連線後同步。</string>
+
+    <string name="settings_deck_editor_save_rules_before_reset">請先儲存篩選條件的變更，再重設學習進度。</string>
+    <string name="settings_tag_detail_total">總計</string>
+    <string name="settings_tag_detail_open_review">開啟複習</string>
+    <string name="settings_tag_detail_remove_tag">從卡片移除標籤</string>
+    <string name="settings_tag_detail_unavailable">此標籤在目前的工作區中已無法使用。</string>
 </resources>

@@ -247,4 +247,52 @@
         <item quantity="one">%1$d mensagem de IA por mês</item>
         <item quantity="other">%1$d mensagens de IA por mês</item>
     </plurals>
+
+    <string name="card_maintenance_back">Voltar</string>
+    <string name="card_maintenance_reset_title">Repor progresso de estudo</string>
+    <string name="card_maintenance_remove_title">Remover etiqueta dos cartões</string>
+    <string name="card_maintenance_loading">A verificar os cartões afetados…</string>
+    <string name="card_maintenance_applying">A aplicar as alterações e a sincronizar…</string>
+    <string name="card_maintenance_sign_in">Nas Definições, inicie sessão num espaço de trabalho ligado à nuvem e volte a abrir esta ação.</string>
+    <string name="card_maintenance_workspace_changed">O espaço de trabalho ativo mudou. Volte ao espaço de trabalho original e abra novamente esta ação.</string>
+    <string name="card_maintenance_target_unavailable">O elemento já não está disponível. Volte atrás para atualizar a lista.</string>
+    <string name="card_maintenance_access_denied">A sua conta não tem permissão para alterar este espaço de trabalho. Verifique o seu acesso ao espaço de trabalho nas Definições.</string>
+    <string name="card_maintenance_preview_failed">Não foi possível carregar a pré-visualização. Verifique a ligação e tente novamente.</string>
+    <string name="card_maintenance_execute_pending">O servidor pode ainda estar a aplicar esta alteração. Aguarde até dois minutos a contar da abertura da pré-visualização e tente sincronizar novamente.</string>
+    <string name="card_maintenance_execute_unverified">Não foi possível verificar o resultado. Carregue uma nova pré-visualização para ver o que ainda falta alterar.</string>
+    <string name="card_maintenance_preview_changed">Os cartões afetados ou as regras do baralho mudaram. Consulte a nova pré-visualização antes de confirmar.</string>
+    <string name="card_maintenance_confirmation_invalid">A frase de confirmação mudou. Introduza a frase que aparece na nova pré-visualização.</string>
+    <string name="card_maintenance_refresh_failed">As suas alterações foram guardadas. Tente sincronizar novamente para atualizar este dispositivo.</string>
+    <string name="card_maintenance_retry_preview">Carregar pré-visualização</string>
+    <string name="card_maintenance_retry_sync">Tentar sincronizar novamente</string>
+    <string name="card_maintenance_entire_workspace">Este baralho inclui todos os cartões do espaço de trabalho.</string>
+    <string name="card_maintenance_empty_remove">Nenhum cartão tem esta etiqueta.</string>
+    <string name="card_maintenance_empty_reset">Nenhum dos cartões abrangidos tem progresso de estudo para repor.</string>
+    <string name="card_maintenance_keep_cards">Todos os cartões serão conservados.</string>
+    <string name="card_maintenance_no_decks">Nenhuma regra de baralho usa esta etiqueta.</string>
+    <string name="card_maintenance_overlapping_scope">O progresso destes cartões também será reposto nos outros baralhos ou etiquetas a que pertencem.</string>
+    <string name="card_maintenance_type_phrase">Introduza esta frase exatamente como aparece para confirmar.</string>
+    <string name="card_maintenance_confirmation_label">Texto de confirmação</string>
+    <string name="card_maintenance_confirm_reset">Repor progresso</string>
+    <string name="card_maintenance_confirm_remove">Remover etiqueta</string>
+    <plurals name="card_maintenance_reset_preview">
+        <item quantity="one">Será reposto o progresso de estudo de %1$d cartão.</item>
+        <item quantity="other">Será reposto o progresso de estudo de %1$d cartões.</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_preview">
+        <item quantity="one">Esta etiqueta será removida de %1$d cartão.</item>
+        <item quantity="other">Esta etiqueta será removida de %1$d cartões.</item>
+    </plurals>
+    <plurals name="card_maintenance_keep_deck_rules">
+        <item quantity="one">%1$d baralho usa esta etiqueta. As suas regras serão mantidas.</item>
+        <item quantity="other">%1$d baralhos usam esta etiqueta. As suas regras serão mantidas.</item>
+    </plurals>
+    <plurals name="card_maintenance_reset_success">
+        <item quantity="one">Progresso reposto para %1$d cartão.</item>
+        <item quantity="other">Progresso reposto para %1$d cartões.</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_success">
+        <item quantity="one">Etiqueta removida de %1$d cartão.</item>
+        <item quantity="other">Etiqueta removida de %1$d cartões.</item>
+    </plurals>
 </resources>

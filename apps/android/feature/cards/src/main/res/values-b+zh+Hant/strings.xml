@@ -9,6 +9,7 @@
     <string name="library_deck_catalog_summary">免費牌組，選好就能開始學習。</string>
     <string name="library_import_title">匯入</string>
     <string name="library_import_summary">從檔案加入卡片。</string>
+    <string name="library_transfer_section_title">資料傳輸</string>
     <string name="library_export_title">匯出</string>
     <string name="library_export_summary">將卡片儲存到檔案。</string>
     <string name="library_export_nibomo_title">Nibomo 套件 (.zip)</string>
@@ -86,6 +87,7 @@
     <string name="cards_editor_remove_image">移除</string>
     <string name="cards_editor_image_reference_missing">這張卡片的文字已沒有該圖片的參照。</string>
     <string name="cards_editor_card_unavailable">這張卡片已無法使用。請返回並選擇其他卡片。</string>
+    <string name="cards_editor_writes_blocked">請先完成此工作區的同步，再試一次。</string>
     <string name="cards_editor_add_image_failed">無法加入圖片：%1$s</string>
     <string name="cards_editor_add_image_unknown_error">發生不明的匯入錯誤。</string>
     <string name="cards_editor_guidance">正面放複習題目，背面放答案。兩面都可以輸入長文，各有專用的 Android 編輯畫面。</string>
@@ -108,4 +110,6 @@
     <string name="cards_workspace_suggestions">工作區標籤建議</string>
     <string name="cards_add_custom_tag">新增自訂標籤</string>
     <string name="cards_no_workspace_tags_match_search">找不到符合目前搜尋條件的工作區標籤。</string>
+
+    <string name="cards_editor_reset_progress">重設學習進度</string>
 </resources>

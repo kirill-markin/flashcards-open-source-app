@@ -9,6 +9,7 @@
     <string name="library_deck_catalog_summary">ପଢ଼ିବା ପାଇଁ ପୂର୍ବରୁ ତିଆରି ମାଗଣା ଡେକ୍।</string>
     <string name="library_import_title">ଇମ୍ପୋର୍ଟ</string>
     <string name="library_import_summary">ଫାଇଲ୍‌ରୁ କାର୍ଡ ଯୋଡ଼ନ୍ତୁ।</string>
+    <string name="library_transfer_section_title">ଡାଟା ସ୍ଥାନାନ୍ତର</string>
     <string name="library_export_title">ଏକ୍ସପୋର୍ଟ</string>
     <string name="library_export_summary">କାର୍ଡଗୁଡ଼ିକୁ ଏକ ଫାଇଲ୍‌ରେ ସେଭ୍ କରନ୍ତୁ।</string>
     <string name="library_export_nibomo_title">Nibomo ପ୍ୟାକେଜ୍ (.zip)</string>
@@ -88,6 +89,7 @@
     <string name="cards_editor_remove_image">ହଟାନ୍ତୁ</string>
     <string name="cards_editor_image_reference_missing">ଏହି କାର୍ଡର ଲେଖାରେ ଛବିର ସନ୍ଦର୍ଭ ଆଉ ନାହିଁ।</string>
     <string name="cards_editor_card_unavailable">ଏହି କାର୍ଡ ଆଉ ଉପଲବ୍ଧ ନାହିଁ। ପଛକୁ ଯାଇ ଅନ୍ୟ ଏକ କାର୍ଡ ବାଛନ୍ତୁ।</string>
+    <string name="cards_editor_writes_blocked">ଏହି ୱର୍କସ୍ପେସ୍‌ର ସିଙ୍କ୍ ଶେଷ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
     <string name="cards_editor_add_image_failed">ଛବି ଯୋଡ଼ିହେଲା ନାହିଁ: %1$s</string>
     <string name="cards_editor_add_image_unknown_error">ଇମ୍ପୋର୍ଟ କଲାବେଳେ ଅଜଣା ତ୍ରୁଟି ହେଲା।</string>
     <string name="cards_editor_guidance">ଅଭ୍ୟାସ ପାଇଁ ଆଗ ପଟେ ପ୍ରଶ୍ନ ଓ ପଛ ପଟେ ଉତ୍ତର ରଖନ୍ତୁ। ଦୁଇ ପଟେ ଲମ୍ବା ଲେଖା ରଖିପାରିବେ ଓ Androidରେ ଅଲଗା ସ୍କ୍ରିନ୍‌ରେ ତାହା ସମ୍ପାଦନା କରିପାରିବେ।</string>
@@ -110,4 +112,6 @@
     <string name="cards_workspace_suggestions">ୱର୍କସ୍ପେସ୍‌ର ଟ୍ୟାଗ୍ ପରାମର୍ଶ</string>
     <string name="cards_add_custom_tag">ନିଜର ଟ୍ୟାଗ୍ ଯୋଡ଼ନ୍ତୁ</string>
     <string name="cards_no_workspace_tags_match_search">ଏବେର ସନ୍ଧାନ ସହ ୱର୍କସ୍ପେସ୍‌ର କୌଣସି ଟ୍ୟାଗ୍ ମେଳ ଖାଉନାହିଁ।</string>
+
+    <string name="cards_editor_reset_progress">ପଢ଼ା ପ୍ରଗତି ରିସେଟ୍ କରନ୍ତୁ</string>
 </resources>

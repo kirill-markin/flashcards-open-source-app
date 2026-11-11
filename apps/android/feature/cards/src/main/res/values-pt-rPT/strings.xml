@@ -9,6 +9,7 @@
     <string name="library_deck_catalog_summary">Baralhos gratuitos prontos a estudar.</string>
     <string name="library_import_title">Importar</string>
     <string name="library_import_summary">Adicione cartões a partir de um ficheiro.</string>
+    <string name="library_transfer_section_title">Transferência</string>
     <string name="library_export_title">Exportar</string>
     <string name="library_export_summary">Guarde os cartões num ficheiro.</string>
     <string name="library_export_nibomo_title">Pacote Nibomo (.zip)</string>
@@ -88,6 +89,7 @@
     <string name="cards_editor_remove_image">Remover</string>
     <string name="cards_editor_image_reference_missing">A referência à imagem já não está no texto deste cartão.</string>
     <string name="cards_editor_card_unavailable">Este cartão já não está disponível. Volte atrás e escolha outro.</string>
+    <string name="cards_editor_writes_blocked">Conclua a sincronização deste espaço de trabalho e tente novamente.</string>
     <string name="cards_editor_add_image_failed">Não foi possível adicionar a imagem: %1$s</string>
     <string name="cards_editor_add_image_unknown_error">Erro de importação desconhecido.</string>
     <string name="cards_editor_guidance">A frente contém a pergunta de revisão e o verso contém a resposta. Pode escrever textos longos em ambos os lados e editá-los em ecrãs próprios no Android.</string>
@@ -110,4 +112,6 @@
     <string name="cards_workspace_suggestions">Sugestões do espaço de trabalho</string>
     <string name="cards_add_custom_tag">Adicionar etiqueta personalizada</string>
     <string name="cards_no_workspace_tags_match_search">Nenhuma etiqueta do espaço de trabalho corresponde à pesquisa.</string>
+
+    <string name="cards_editor_reset_progress">Repor progresso de estudo</string>
 </resources>

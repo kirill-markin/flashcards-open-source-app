@@ -280,7 +280,7 @@
     <string name="settings_account_status_sync_status_label">Estado da sincronização</string>
     <string name="settings_account_status_last_successful_sync_label">Última sincronização bem-sucedida</string>
     <string name="settings_account_status_sync_blocked_title">A sincronização está bloqueada neste dispositivo</string>
-    <string name="settings_account_status_sync_blocked_body">Use Terminar sessão para apagar a identidade local na nuvem neste dispositivo antes de voltar a ligar-se.</string>
+    <string name="settings_account_status_sync_blocked_body">Para restabelecer a ligação, termine sessão e volte a iniciá-la. Ao terminar sessão, os dados locais são removidos deste dispositivo, incluindo as alterações que ainda não foram sincronizadas.</string>
     <string name="settings_account_status_sign_in_button">Iniciar sessão ou criar conta</string>
     <string name="settings_account_status_sync_now_button">Sincronizar agora</string>
     <string name="settings_account_status_logout_dialog_title">Terminar sessão e apagar os dados do Nibomo deste dispositivo?</string>
@@ -457,6 +457,7 @@
     <string name="settings_deck_editor_delete_confirmation_body">Os seus cartões são conservados. Só será eliminado o filtro guardado do baralho.</string>
     <string name="settings_deck_editor_delete_failed">Não foi possível eliminar o baralho.</string>
     <string name="settings_deck_editor_name_required">O nome do baralho é obrigatório.</string>
+    <string name="settings_deck_editor_filter_conflict">As etiquetas do baralho mudaram durante a sincronização. Escolha pelo menos uma das etiquetas disponíveis e volte a guardar.</string>
     <string name="settings_deck_editor_filter_required">Escolha pelo menos uma etiqueta ou use Todos os cartões em Rever.</string>
     <string name="settings_deck_editor_save_failed">Não foi possível guardar o baralho.</string>
     <string name="settings_deck_filter_tags_any">tem uma das etiquetas %1$s</string>
@@ -803,4 +804,10 @@
     <string name="settings_first_review_onboarding_save_failed">A revisão foi guardada, mas não foi possível guardar a definição do guia neste dispositivo.</string>
     <string name="settings_first_review_onboarding_local_save_failed">Não foi possível guardar a definição do guia neste dispositivo. Tente novamente.</string>
     <string name="settings_first_review_onboarding_update_failed">Não foi possível atualizar a definição do guia. Uma alteração feita offline fica guardada neste dispositivo e é sincronizada quando houver ligação.</string>
+
+    <string name="settings_deck_editor_save_rules_before_reset">Guarde as alterações ao filtro antes de repor o progresso de estudo.</string>
+    <string name="settings_tag_detail_total">Total</string>
+    <string name="settings_tag_detail_open_review">Abrir «Rever»</string>
+    <string name="settings_tag_detail_remove_tag">Remover etiqueta dos cartões</string>
+    <string name="settings_tag_detail_unavailable">Esta etiqueta já não está disponível no espaço de trabalho atual.</string>
 </resources>

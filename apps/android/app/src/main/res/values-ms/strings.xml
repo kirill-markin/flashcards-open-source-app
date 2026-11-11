@@ -218,4 +218,47 @@
     <plurals name="premium_ai_messages">
         <item quantity="other">%1$d mesej sembang AI sebulan</item>
     </plurals>
+
+    <string name="card_maintenance_back">Kembali</string>
+    <string name="card_maintenance_reset_title">Tetapkan semula kemajuan belajar</string>
+    <string name="card_maintenance_remove_title">Alih keluar tag daripada kad</string>
+    <string name="card_maintenance_loading">Menyemak kad yang terlibat…</string>
+    <string name="card_maintenance_applying">Perubahan sedang dilaksanakan dan disegerakkan…</string>
+    <string name="card_maintenance_sign_in">Log masuk ke ruang kerja awan yang dipautkan dalam Tetapan, kemudian buka semula tindakan ini.</string>
+    <string name="card_maintenance_workspace_changed">Ruang kerja aktif telah berubah. Kembali ke ruang kerja asal, kemudian buka semula tindakan ini.</string>
+    <string name="card_maintenance_target_unavailable">Item ini tidak lagi tersedia. Kembali untuk memuat semula senarai.</string>
+    <string name="card_maintenance_access_denied">Akaun anda tidak boleh membuat perubahan pada ruang kerja ini. Semak akses ruang kerja anda dalam Tetapan.</string>
+    <string name="card_maintenance_preview_failed">Pratonton tidak dapat dimuatkan. Semak sambungan dan cuba lagi.</string>
+    <string name="card_maintenance_execute_pending">Pelayan mungkin masih melaksanakan perubahan ini. Tunggu sehingga dua minit dari masa anda membuka pratonton, kemudian cuba segerakkan semula.</string>
+    <string name="card_maintenance_execute_unverified">Hasilnya tidak dapat disahkan. Muatkan pratonton baharu untuk melihat perubahan yang masih perlu dibuat.</string>
+    <string name="card_maintenance_preview_changed">Kad yang terlibat atau peraturan dek telah berubah. Semak pratonton baharu ini sebelum mengesahkan.</string>
+    <string name="card_maintenance_confirmation_invalid">Frasa pengesahan telah berubah. Masukkan frasa yang ditunjukkan dalam pratonton baharu.</string>
+    <string name="card_maintenance_refresh_failed">Perubahan anda telah disimpan. Cuba segerakkan semula untuk mengemas kini peranti ini.</string>
+    <string name="card_maintenance_retry_preview">Muatkan pratonton</string>
+    <string name="card_maintenance_retry_sync">Cuba segerakkan semula</string>
+    <string name="card_maintenance_entire_workspace">Dek ini merangkumi semua kad dalam ruang kerja.</string>
+    <string name="card_maintenance_empty_remove">Tiada kad dengan tag ini.</string>
+    <string name="card_maintenance_empty_reset">Tiada kemajuan belajar untuk ditetapkan semula bagi kad yang terlibat.</string>
+    <string name="card_maintenance_keep_cards">Semua kad akan dikekalkan.</string>
+    <string name="card_maintenance_no_decks">Tiada peraturan dek yang menggunakan tag ini.</string>
+    <string name="card_maintenance_overlapping_scope">Kemajuan belajar bagi kad ini juga akan ditetapkan semula dalam mana-mana dek atau tag lain yang merangkuminya.</string>
+    <string name="card_maintenance_type_phrase">Masukkan frasa ini tepat seperti yang ditunjukkan untuk mengesahkan.</string>
+    <string name="card_maintenance_confirmation_label">Teks pengesahan</string>
+    <string name="card_maintenance_confirm_reset">Tetapkan semula kemajuan</string>
+    <string name="card_maintenance_confirm_remove">Alih keluar tag</string>
+    <plurals name="card_maintenance_reset_preview">
+        <item quantity="other">Kemajuan belajar bagi %1$d kad akan ditetapkan semula.</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_preview">
+        <item quantity="other">Tag ini akan dialih keluar daripada %1$d kad.</item>
+    </plurals>
+    <plurals name="card_maintenance_keep_deck_rules">
+        <item quantity="other">Tag ini digunakan dalam %1$d dek. Peraturan dek tersebut akan dikekalkan.</item>
+    </plurals>
+    <plurals name="card_maintenance_reset_success">
+        <item quantity="other">Kemajuan bagi %1$d kad telah ditetapkan semula.</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_success">
+        <item quantity="other">Tag ini telah dialih keluar daripada %1$d kad.</item>
+    </plurals>
 </resources>
