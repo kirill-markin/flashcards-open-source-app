@@ -13,6 +13,7 @@ import {
 } from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
+import { libraryExportRoute } from "../../../../routes";
 import {
   workspaceAnkiExportFilename,
   workspacePackageExportFilename,
@@ -20,6 +21,7 @@ import {
   type WorkspacePackageExportPreviewResponse,
   type WorkspacePackageExportRequest,
 } from "../../../../types";
+import { useWorkspacePath } from "../../../../useWorkspacePath";
 import { SettingsShell } from "../../SettingsShared";
 
 type PackageMetadataRow = Readonly<{
@@ -206,6 +208,7 @@ function WorkspaceExportForm({ format }: Readonly<{ format: "nibomo" | "anki" }>
   const { activeWorkspace, cloudSettings, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
+  const workspacePath = useWorkspacePath();
   const requestSignalRef = useRef<AbortSignal>(null);
   const [ankiDeckName, setAnkiDeckName] = useState<string>(defaultAnkiDeckName);
   const [isPackageExporting, setIsPackageExporting] = useState<boolean>(false);
@@ -490,6 +493,7 @@ function WorkspaceExportForm({ format }: Readonly<{ format: "nibomo" | "anki" }>
       title={t(isAnkiExport ? "workspaceExport.ankiTitle" : "workspaceExport.title")}
       subtitle={t("workspaceExport.subtitle")}
       activeTab="workspace"
+      backLink={{ label: t("deckDetail.actions.back"), to: workspacePath(libraryExportRoute), testId: "workspace-export-back" }}
     >
       <section className="settings-group">
         <article className="content-card workspace-export-format-card">

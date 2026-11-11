@@ -56,6 +56,7 @@ import {
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
+  libraryNibomoExportRoute,
   libraryRoute,
   libraryTagsRoute,
   normalizeRoutePath,
@@ -98,6 +99,7 @@ import { AIChatPreferencesProvider } from "./chat/preferences/AIChatPreferencesC
 import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
+import { LibraryExportScreen } from "./screens/library/LibraryExportScreen";
 import { LibraryScreen } from "./screens/library/LibraryScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
@@ -1090,7 +1092,8 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${cardsRoute}/new`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
-          <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={<LibraryExportScreen />} />
+          <Route path={`${workspaceRoutePattern}${libraryNibomoExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryAnkiExportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiExportScreen />, "loading.exportSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}`} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
           <Route path={`${workspaceRoutePattern}${libraryDeckNewRoute}`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
@@ -1101,7 +1104,7 @@ export function RoutedShell(): ReactElement {
           {renderLegacyLibraryRedirects(legacySettingsDecksRoute, libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
           {renderLegacyLibraryRedirects(legacySettingsTagsRoute, libraryTagsRoute, [""])}
           {renderLegacyLibraryRedirects(legacySettingsImportRoute, libraryImportRoute, [""])}
-          {renderLegacyLibraryRedirects(legacySettingsExportRoute, libraryExportRoute, [""])}
+          {renderLegacyLibraryRedirects(legacySettingsExportRoute, libraryNibomoExportRoute, [""])}
           {renderLegacyLibraryRedirects("/decks", libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
           {renderLegacyLibraryRedirects("/tags", libraryTagsRoute, [""])}
           <Route path={`${workspaceRoutePattern}${reviewRoute}`} element={<ReviewScreen />} />

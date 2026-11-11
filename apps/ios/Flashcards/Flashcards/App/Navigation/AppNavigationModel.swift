@@ -39,8 +39,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .importData, pages: [])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
-    case .exportAnkiDeck:
-        return LibraryLocation(section: .exportAnkiDeck, pages: [])
+    case .exportFormat:
+        return LibraryLocation(section: .exportData, pages: [destination])
     }
 }
 #else
@@ -60,8 +60,10 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
-    case .exportData, .exportAnkiDeck:
-        return [destination]
+    case .exportData:
+        return [.exportData]
+    case .exportFormat:
+        return [.exportData, destination]
     }
 }
 #endif
@@ -347,14 +349,6 @@ final class AppNavigationModel {
         if self.isLibraryPathRoot(.deckCatalog) {
             return .catalog
         }
-        #if targetEnvironment(macCatalyst)
-        let depth = self.libraryPath.count + (self.librarySection == nil ? 0 : 1)
-        #else
-        let depth = self.libraryPath.count
-        #endif
-        if depth > 1 {
-            return .deckDetail
-        }
         if self.isLibraryPathRoot(.cards) {
             return .cards
         }
@@ -362,7 +356,11 @@ final class AppNavigationModel {
             return .tags
         }
         if self.isLibraryPathRoot(.decks) {
-            return .decks
+            #if targetEnvironment(macCatalyst)
+            return self.libraryPath.isEmpty ? .decks : .deckDetail
+            #else
+            return self.libraryPath.count == 1 ? .decks : .deckDetail
+            #endif
         }
         return .library
     }
@@ -382,8 +380,6 @@ final class AppNavigationModel {
         self.isLibraryPathRoot(.tags)
     }
 
-    /// Every Library screen except a deck detail and a catalog deck page is reachable only as the
-    /// first page of the stack, which on Mac is the sidebar section.
     private func isLibraryPathRoot(_ destination: LibraryNavigationDestination) -> Bool {
         #if targetEnvironment(macCatalyst)
         return self.librarySection?.destination == destination
