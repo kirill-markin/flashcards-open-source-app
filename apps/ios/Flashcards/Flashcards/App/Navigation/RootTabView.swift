@@ -17,7 +17,6 @@ private struct ReviewDueBadgeTaskID: Hashable {
 }
 
 #if targetEnvironment(macCatalyst)
-/// A Mac sidebar row: a top-level destination, or a Library section listed under Library.
 private enum MacSidebarSelection: Hashable {
     case tab(AppTab)
     case librarySection(LibrarySection)
@@ -542,19 +541,12 @@ struct RootTabView: View {
             self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem, shortcutKey: MacNavigationShortcut.progress.key)
             self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem, shortcutKey: MacNavigationShortcut.ai.key)
             Section(AppTab.library.localizedTitle) {
-                ForEach(LibrarySection.allCases, id: \.self) { section in
-                    let row = Label(section.localizedTitle, systemImage: section.systemImage)
-                        .accessibilityIdentifier(librarySidebarItemIdentifier(section))
-                        .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
-                    Group {
-                        if section == .cards {
-                            row.macSidebarShortcutHelp(title: section.localizedTitle, key: MacNavigationShortcut.cards.key)
-                        } else {
-                            row
-                        }
-                    }
-                    .tag(MacSidebarSelection.librarySection(section))
+                ForEach(LibrarySection.allCases.filter { $0 != .exportData }, id: \.self) { section in
+                    self.macLibrarySidebarRow(section)
                 }
+            }
+            Section(String(localized: "library.section.transfer", table: "Foundation")) {
+                self.macLibrarySidebarRow(.exportData)
             }
             Section(String(localized: "mac.sidebar.app_section.title", table: "Foundation")) {
                 self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem, shortcutKey: macAppSettingsShortcutKey)
@@ -567,6 +559,20 @@ struct RootTabView: View {
         .scrollContentBackground(.hidden)
         .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func macLibrarySidebarRow(_ section: LibrarySection) -> some View {
+        let row = Label(section.localizedTitle, systemImage: section.systemImage)
+            .accessibilityIdentifier(librarySidebarItemIdentifier(section))
+            .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
+        return Group {
+            if section == .cards {
+                row.macSidebarShortcutHelp(title: section.localizedTitle, key: MacNavigationShortcut.cards.key)
+            } else {
+                row
+            }
+        }
+        .tag(MacSidebarSelection.librarySection(section))
     }
 
     private func macSidebarRow(_ tab: AppTab, identifier: String, shortcutKey: KeyEquivalent) -> some View {
