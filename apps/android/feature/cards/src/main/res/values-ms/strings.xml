@@ -9,10 +9,10 @@
     <string name="library_deck_catalog_summary">Dek percuma yang sedia untuk dipelajari.</string>
     <string name="library_import_title">Import</string>
     <string name="library_import_summary">Tambah kad daripada fail.</string>
-    <string name="library_export_title">Eksport pakej Nibomo</string>
-    <string name="library_export_summary">Simpan pakej ZIP untuk digunakan dalam Nibomo.</string>
-    <string name="library_anki_export_title">Eksport dek Anki</string>
-    <string name="library_anki_export_summary">Simpan fail .apkg untuk digunakan dalam Anki.</string>
+    <string name="library_export_title">Eksport</string>
+    <string name="library_export_summary">Simpan kad ke dalam fail.</string>
+    <string name="library_export_nibomo_title">Pakej Nibomo (.zip)</string>
+    <string name="library_export_anki_title">Dek Anki (.apkg)</string>
     <string name="catalog_back_content_description">Kembali</string>
     <string name="catalog_search_placeholder">Cari dek</string>
     <string name="catalog_clear_search_content_description">Kosongkan carian</string>

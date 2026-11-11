@@ -9,10 +9,10 @@
     <string name="library_deck_catalog_summary">ପଢ଼ିବା ପାଇଁ ପୂର୍ବରୁ ତିଆରି ମାଗଣା ଡେକ୍।</string>
     <string name="library_import_title">ଇମ୍ପୋର୍ଟ</string>
     <string name="library_import_summary">ଫାଇଲ୍‌ରୁ କାର୍ଡ ଯୋଡ଼ନ୍ତୁ।</string>
-    <string name="library_export_title">Nibomo ପ୍ୟାକେଜ୍ ଏକ୍ସପୋର୍ଟ କରନ୍ତୁ</string>
-    <string name="library_export_summary">Nibomoରେ ବ୍ୟବହାର ପାଇଁ ଏକ ZIP ପ୍ୟାକେଜ୍ ସେଭ୍ କରନ୍ତୁ।</string>
-    <string name="library_anki_export_title">Anki ଡେକ୍ ଏକ୍ସପୋର୍ଟ କରନ୍ତୁ</string>
-    <string name="library_anki_export_summary">Ankiରେ ବ୍ୟବହାର ପାଇଁ ଏକ .apkg ଫାଇଲ୍ ସେଭ୍ କରନ୍ତୁ।</string>
+    <string name="library_export_title">ଏକ୍ସପୋର୍ଟ</string>
+    <string name="library_export_summary">କାର୍ଡଗୁଡ଼ିକୁ ଏକ ଫାଇଲ୍‌ରେ ସେଭ୍ କରନ୍ତୁ।</string>
+    <string name="library_export_nibomo_title">Nibomo ପ୍ୟାକେଜ୍ (.zip)</string>
+    <string name="library_export_anki_title">Anki ଡେକ୍ (.apkg)</string>
     <string name="catalog_back_content_description">ପଛକୁ</string>
     <string name="catalog_search_placeholder">ଡେକ୍ ଖୋଜନ୍ତୁ</string>
     <string name="catalog_clear_search_content_description">ସନ୍ଧାନ ସଫା କରନ୍ତୁ</string>

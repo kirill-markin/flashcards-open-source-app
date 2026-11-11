@@ -9,10 +9,10 @@
     <string name="library_deck_catalog_summary">Baralhos gratuitos prontos a estudar.</string>
     <string name="library_import_title">Importar</string>
     <string name="library_import_summary">Adicione cartões a partir de um ficheiro.</string>
-    <string name="library_export_title">Exportar pacote Nibomo</string>
-    <string name="library_export_summary">Guarde um pacote ZIP para usar no Nibomo.</string>
-    <string name="library_anki_export_title">Exportar baralho Anki</string>
-    <string name="library_anki_export_summary">Guarde um ficheiro .apkg para usar no Anki.</string>
+    <string name="library_export_title">Exportar</string>
+    <string name="library_export_summary">Guarde os cartões num ficheiro.</string>
+    <string name="library_export_nibomo_title">Pacote Nibomo (.zip)</string>
+    <string name="library_export_anki_title">Baralho Anki (.apkg)</string>
     <string name="catalog_back_content_description">Voltar</string>
     <string name="catalog_search_placeholder">Pesquisar baralhos</string>
     <string name="catalog_clear_search_content_description">Limpar pesquisa</string>

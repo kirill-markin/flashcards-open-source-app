@@ -9,10 +9,10 @@
     <string name="library_deck_catalog_summary">免費牌組，選好就能開始學習。</string>
     <string name="library_import_title">匯入</string>
     <string name="library_import_summary">從檔案加入卡片。</string>
-    <string name="library_export_title">匯出 Nibomo 套件</string>
-    <string name="library_export_summary">儲存 ZIP 套件，供 Nibomo 使用。</string>
-    <string name="library_anki_export_title">匯出 Anki 牌組</string>
-    <string name="library_anki_export_summary">儲存 .apkg 檔案，供 Anki 使用。</string>
+    <string name="library_export_title">匯出</string>
+    <string name="library_export_summary">將卡片儲存到檔案。</string>
+    <string name="library_export_nibomo_title">Nibomo 套件 (.zip)</string>
+    <string name="library_export_anki_title">Anki 牌組 (.apkg)</string>
     <string name="catalog_back_content_description">返回</string>
     <string name="catalog_search_placeholder">搜尋牌組</string>
     <string name="catalog_clear_search_content_description">清除搜尋</string>
