@@ -15,7 +15,6 @@ data class ReviewWidgetCard(
     val frontPlainText: String
 )
 
-/** What every widget size renders; the queue part follows the Review tab badge and its saved filter. */
 data class ReviewWidgetContent(
     val workspaceId: String,
     val dueCount: Int,

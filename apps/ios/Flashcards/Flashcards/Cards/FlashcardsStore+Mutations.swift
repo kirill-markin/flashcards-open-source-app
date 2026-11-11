@@ -103,15 +103,43 @@ extension FlashcardsStore {
         return result
     }
 
-    func createCards(inputs: [CardEditorInput]) throws -> [Card] {
+    var spreadsheetImportScope: SpreadsheetImportScope? {
+        guard let workspaceId = self.workspace?.workspaceId, let cloudSettings = self.cloudSettings else {
+            return nil
+        }
+        return SpreadsheetImportScope(workspaceId: workspaceId, cloudSettings: cloudSettings)
+    }
+
+    func createSpreadsheetImportCards(
+        scope: SpreadsheetImportScope,
+        cards: [WorkspaceSpreadsheetCard],
+        tags: [String]
+    ) async throws -> Int {
         let context = try self.requireLocalOutboxMutationContext()
-        let now = Date()
-        let createdCards = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
-        self.reviewRuntime.invalidateReviewSource()
-        self.handleReviewScheduleLocalCardStateDidChange(now: now)
-        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
-        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
-        return createdCards
+        guard self.spreadsheetImportScope == scope else {
+            throw SpreadsheetImportScope.changedError()
+        }
+        guard self.activeSpreadsheetImportTask == nil else {
+            throw LocalStoreError.validation("A spreadsheet import is already in progress. Try again when it finishes.")
+        }
+        let databaseURL = context.database.databaseURL
+        let task = Task.detached(priority: .userInitiated) {
+            let inputs = cards.map { $0.makeEditorInput(tags: tags) }
+            let database = try LocalDatabase(existingWritableDatabaseURL: databaseURL)
+            return try database.createSpreadsheetImportCards(scope: scope, inputs: inputs)
+        }
+        self.activeSpreadsheetImportTask = task
+        defer { self.activeSpreadsheetImportTask = nil }
+
+        let createdCount = try await task.value
+        if self.spreadsheetImportScope == scope, self.localDatabaseURL == databaseURL {
+            let now = Date()
+            self.reviewRuntime.invalidateReviewSource()
+            self.handleReviewScheduleLocalCardStateDidChange(now: now)
+            self.rebuildReviewDataReportingFailure(reason: .localCardsChanged, now: now)
+            self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
+        }
+        return createdCount
     }
 
     func deleteCard(cardId: String) throws {

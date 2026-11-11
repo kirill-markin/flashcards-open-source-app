@@ -23,7 +23,8 @@ internal enum class ReviewDataRebuildReason {
 
 internal data class ReviewDataRebuild(
     val reason: ReviewDataRebuildReason,
-    val generation: Long
+    val generation: Long,
+    val workspaceId: String?
 )
 
 internal val reviewSafetyRebuildInterval: Duration = 10.minutes

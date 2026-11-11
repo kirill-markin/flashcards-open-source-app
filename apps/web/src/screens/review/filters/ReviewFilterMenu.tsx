@@ -1,9 +1,10 @@
-import type { ReactElement } from "react";
+import { useId, type ReactElement } from "react";
 import { Link } from "react-router";
 import { AnchoredFloatingOverlay } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import type { ReviewFilter } from "../../../types";
 import { reviewFilterShortcutKey } from "../input/reviewShortcutKeys";
+import { ReviewDueBadge } from "../ReviewDueBadge";
 import type { ReviewFilterChoiceMenuItem, ReviewFilterMenuItem } from "./useReviewFilterMenu";
 
 const REVIEW_FILTER_MENU_OFFSET_PX = 10;
@@ -27,10 +28,10 @@ type ReviewFilterMenuProps = Readonly<{
   reviewDeckSearchText: string;
   reviewFilterListboxId: string;
   reviewFilterListboxRef: React.RefObject<HTMLDivElement | null>;
-  reviewFilterMenuAnchorRef: React.RefObject<HTMLButtonElement | null>;
   reviewFilterMenuRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterMenuItems: ReadonlyArray<ReviewFilterMenuItem>;
   reviewFilterTriggerRef: React.RefObject<HTMLButtonElement | null>;
+  selectedReviewFilterDueCount: number;
   selectedReviewFilterTitle: string;
   setReviewDeckSearchText: (value: string) => void;
   shouldShowReviewDeckSearch: boolean;
@@ -76,6 +77,14 @@ function ReviewFilterCheckIcon(): ReactElement {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function ReviewFilterScopeIcon(): ReactElement {
+  return (
+    <svg className="review-filter-trigger-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M3 5H15M5 9H13M7 13H11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -127,10 +136,10 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
     reviewDeckSearchText,
     reviewFilterListboxId,
     reviewFilterListboxRef,
-    reviewFilterMenuAnchorRef,
     reviewFilterMenuRef,
     reviewFilterMenuItems,
     reviewFilterTriggerRef,
+    selectedReviewFilterDueCount,
     selectedReviewFilterTitle,
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
@@ -138,28 +147,33 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
     visibleReviewTagFilterMenuItems,
   } = props;
   const { t } = useI18n();
+  const scopeTitleId = useId();
+  const dueBadgeId = useId();
 
   return (
     <div className="review-filter-menu-wrap">
       <button
         ref={reviewFilterTriggerRef}
-        className={`ghost-btn review-filter-trigger${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
+        className={`ghost-btn review-filter-trigger review-due-badge-target${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
         type="button"
         aria-expanded={isReviewFilterMenuOpen}
         aria-controls={isReviewFilterMenuOpen ? reviewFilterListboxId : undefined}
         aria-haspopup="listbox"
         aria-label={t("reviewFilterMenu.openAriaLabel")}
+        aria-describedby={selectedReviewFilterDueCount === 0 ? scopeTitleId : `${scopeTitleId} ${dueBadgeId}`}
         aria-keyshortcuts={reviewFilterShortcutKey}
         title={t("reviewFilterMenu.triggerTooltip", { filter: selectedReviewFilterTitle, key: reviewFilterShortcutKey })}
         onClick={handleReviewFilterMenuToggle}
         data-testid="review-filter-trigger"
       >
-        <span className="review-filter-trigger-value">{selectedReviewFilterTitle}</span>
+        <span id={scopeTitleId} className="review-filter-trigger-value">{selectedReviewFilterTitle}</span>
+        <ReviewFilterScopeIcon />
+        <ReviewDueBadge dueCount={selectedReviewFilterDueCount} id={dueBadgeId} />
         <ReviewFilterChevronIcon />
       </button>
       <AnchoredFloatingOverlay
         isOpen={isReviewFilterMenuOpen}
-        referenceRef={reviewFilterMenuAnchorRef}
+        referenceRef={reviewFilterTriggerRef}
         floatingRef={reviewFilterMenuRef}
         placement="bottom-end"
         viewportPaddingPx={REVIEW_FILTER_MENU_VIEWPORT_PADDING_PX}

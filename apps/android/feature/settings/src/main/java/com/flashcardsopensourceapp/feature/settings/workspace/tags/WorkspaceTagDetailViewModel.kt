@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
+import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.isCardDue
 import com.flashcardsopensourceapp.data.local.model.cards.isNewCard
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
@@ -15,8 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-data class WorkspaceTagDetailStats(
-    val totalCards: Int,
+data class WorkspaceTagDetailUiState(
+    val cards: List<CardSummary>,
     val newCards: Int,
     val dueCards: Int
 )
@@ -27,7 +28,7 @@ class WorkspaceTagDetailViewModel(
     workspaceId: String,
     tag: String
 ) : ViewModel() {
-    val stats: StateFlow<WorkspaceTagDetailStats?> = combine(
+    val uiState: StateFlow<WorkspaceTagDetailUiState?> = combine(
         workspaceRepository.observeWorkspace(),
         cardsRepository.observeCards(searchQuery = "", filter = CardFilter(tags = listOf(tag)))
     ) { workspace, cards ->
@@ -35,8 +36,8 @@ class WorkspaceTagDetailViewModel(
             workspace?.workspaceId == workspaceId && card.workspaceId == workspaceId
         }
         val nowMillis = System.currentTimeMillis()
-        WorkspaceTagDetailStats(
-            totalCards = matchingCards.size,
+        WorkspaceTagDetailUiState(
+            cards = matchingCards,
             newCards = matchingCards.count(::isNewCard),
             dueCards = matchingCards.count { card -> isCardDue(card = card, nowMillis = nowMillis) }
         )

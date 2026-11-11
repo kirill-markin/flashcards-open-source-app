@@ -80,7 +80,7 @@ private data class ComingUpBar(val localDate: LocalDate, val count: Int)
  * first forecast day, so the weekday labels stay consecutive whichever clock is ahead.
  */
 private fun makeComingUpBars(dueNowCount: Int, progress: WidgetProgressContent): List<ComingUpBar> {
-    val forecastBars: List<ComingUpBar> = progress.upcomingDueDays
+    val forecastBars: List<ComingUpBar> = progress.dueForecast.days
         .filter { day -> day.localDate > progress.todayLocalDate }
         .map { day -> ComingUpBar(localDate = day.localDate, count = day.dueCount) }
     val today: LocalDate = forecastBars.firstOrNull()?.localDate?.minusDays(1L) ?: progress.todayLocalDate

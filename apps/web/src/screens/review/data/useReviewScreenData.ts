@@ -5,6 +5,7 @@ import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
 import {
   delayUntilNextDueMillis,
   dueCountAfterLocalReview,
+  nextDueAtMillisAfterLocalReview,
   reviewCountsRepairDelay,
 } from "../../../appData/review/localReviewSchedule";
 import {
@@ -58,10 +59,10 @@ import {
   createEmptyReviewCounts,
   filterExcludedReviewCards,
   filterPendingReviewCards,
-  findNextReviewDueAtMillis,
   insertReviewedCardIntoTimeline,
   isMissingDeckReviewFilterFallback,
   isPreservablePresentedCard,
+  isResolvedReviewScopeEqual,
   isReviewSessionSignatureCompatible,
   isReviewSessionSignatureEqual,
   isReviewSubmissionContextCurrent,
@@ -156,8 +157,7 @@ function toLocalDateKey(timestamp: number): string {
 }
 
 // A new object re-arms the timer even for an unchanged due time, such as after a clamped timeout.
-function nextDueRefreshFrom(reviewTimeline: ReadonlyArray<Card>, fromTimestamp: number): NextDueRefresh | null {
-  const dueAtMillis = findNextReviewDueAtMillis(reviewTimeline, fromTimestamp);
+function nextDueRefreshFrom(dueAtMillis: number | null): NextDueRefresh | null {
   return dueAtMillis === null ? null : { dueAtMillis };
 }
 
@@ -227,6 +227,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const queueCardsRef = useRef<ReadonlyArray<Card>>([]);
   const resolvedReviewFilterRef = useRef<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
   const reviewQueueCursorRef = useRef<string | null>(null);
+  const reviewCountsRef = useRef<ReviewCounts>(reviewCounts);
   const reviewSessionGenerationRef = useRef<number>(0);
   const reviewSessionSignatureRef = useRef<ReviewSessionSignature | null>(null);
   const selectedReviewFilterKey = serializeReviewFilterKey(selectedReviewFilter);
@@ -333,6 +334,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setResolvedReviewFilter(nextResolvedReviewFilter);
   }
 
+  function setReviewCountsState(nextReviewCounts: ReviewCounts): void {
+    reviewCountsRef.current = nextReviewCounts;
+    setReviewCounts(nextReviewCounts);
+  }
+
   function setReviewQueueCursorState(nextReviewQueueCursor: string | null): void {
     reviewQueueCursorRef.current = nextReviewQueueCursor;
     setReviewQueueCursor(nextReviewQueueCursor);
@@ -396,14 +402,18 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setPresentedCardState(nextPresentedCard);
     setQueueCardsState(nextQueueCards);
     setCurrentReviewSessionSignature(nextActiveReviewQueue, nextQueueCards);
-    setReviewCounts((currentCounts) => ({
-      dueCount: dueCountAfterLocalReview(currentCounts.dueCount),
-      totalCount: currentCounts.totalCount,
-    }));
+    setReviewCountsState({
+      ...reviewCountsRef.current,
+      dueCount: dueCountAfterLocalReview(reviewCountsRef.current.dueCount),
+    });
     // A timer still pending for a card that is already due must keep running; the rated card cannot be due sooner.
     setNextDueRefresh((currentRefresh) => currentRefresh !== null && currentRefresh.dueAtMillis <= nowTimestamp
       ? currentRefresh
-      : nextDueRefreshFrom(nextQueueCards, nowTimestamp));
+      : nextDueRefreshFrom(nextDueAtMillisAfterLocalReview(
+        currentRefresh?.dueAtMillis ?? null,
+        reviewedCard,
+        nowTimestamp,
+      )));
     return {
       canonicalReviewQueue: nextCanonicalReviewQueue,
       presentedCard: nextPresentedCard,
@@ -419,20 +429,34 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     ]);
   }
 
-  // One timer at the earliest due time after `fromTimestamp`; it refreshes only the bounded queue window and
-  // the counts: docs/fsrs-scheduling-logic.md#non-blocking-review
-  // A load passes its start time, so a card that fell due while it ran re-arms the timer at once.
-  function scheduleNextDueRefresh(reviewTimeline: ReadonlyArray<Card>, fromTimestamp: number): void {
-    setNextDueRefresh(nextDueRefreshFrom(reviewTimeline, fromTimestamp));
+  // A concurrent rating may schedule a card sooner than the snapshot's next due time.
+  function scheduleNextDueRefresh(
+    nextDueAtMillis: number | null,
+    cardsRatedDuringLoad: ReadonlyArray<Card>,
+    loadStartTimestamp: number,
+  ): void {
+    const nextDueIncludingRatings = cardsRatedDuringLoad.reduce(
+      (nextDueAt, card) => nextDueAtMillisAfterLocalReview(nextDueAt, card, loadStartTimestamp),
+      nextDueAtMillis,
+    );
+    setNextDueRefresh(nextDueRefreshFrom(nextDueIncludingRatings));
   }
 
-  // Counts read while a rating was in flight or saved may miss or double-count it. Only an applied load
-  // decides: one that overlapped no rating read fresh counts, so it also settles an earlier repair; a
-  // dropped load leaves the need to the load that replaced it.
-  function refreshCountsIfLoadOverlappedRating(ratingSequenceAtStart: number): void {
-    isCountsRefreshAfterRatingsNeededRef.current = ratingSequenceRef.current !== ratingSequenceAtStart
+  // A snapshot that overlaps a rating may already include it or still show its old due status.
+  function applyLoadedReviewCounts(
+    snapshotCounts: ReviewCounts,
+    ratingSequenceAtStart: number,
+    dueCountDuringOverlap: number,
+  ): ReviewCounts {
+    const loadOverlappedRating = ratingSequenceRef.current !== ratingSequenceAtStart
       || pendingReviewSnapshotsRef.current.size > 0;
+    const nextReviewCounts = loadOverlappedRating
+      ? { ...snapshotCounts, dueCount: dueCountDuringOverlap }
+      : snapshotCounts;
+    setReviewCountsState(nextReviewCounts);
+    isCountsRefreshAfterRatingsNeededRef.current = loadOverlappedRating;
     restartCountsRepairTimer();
+    return nextReviewCounts;
   }
 
   function clearCountsRepairTimer(): void {
@@ -531,9 +555,8 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       setReviewQueueCursorState(reviewQueueSnapshot.nextCursor);
       setQueueCardsState(nextQueueCards);
       setCurrentReviewSessionSignature(nextActiveReviewQueue, nextQueueCards);
-      setReviewCounts(reviewQueueSnapshot.reviewCounts);
-      scheduleNextDueRefresh(nextQueueCards, refreshStartTimestamp);
-      refreshCountsIfLoadOverlappedRating(ratingSequenceAtStart);
+      applyLoadedReviewCounts(reviewQueueSnapshot.reviewCounts, ratingSequenceAtStart, reviewCountsRef.current.dueCount);
+      scheduleNextDueRefresh(reviewQueueSnapshot.nextDueAtMillis, cardsRatedDuringRefresh, refreshStartTimestamp);
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
@@ -884,12 +907,23 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         if (isNewReviewSession) {
           setIsReviewRatingStorageFull(false);
         }
+        const isSameReviewScope = loadedWorkspaceIdRef.current === activeWorkspaceId
+          && isResolvedReviewScopeEqual(
+            previousResolvedReviewFilter,
+            deckSummariesRef.current,
+            nextResolvedReviewFilter,
+            decksSnapshot.deckSummaries,
+          );
+        const nextReviewCounts = applyLoadedReviewCounts(
+          reviewQueueSnapshot.reviewCounts,
+          ratingSequenceAtStart,
+          isSameReviewScope ? reviewCountsRef.current.dueCount : reviewQueueSnapshot.reviewCounts.dueCount,
+        );
         setResolvedReviewFilterState(nextResolvedReviewFilter);
         setSelectedReviewFilterTitle(nextSelectedReviewFilterTitle);
         setCanonicalReviewQueueState(nextCanonicalReviewQueue);
         setPresentedCardState(nextPresentedCard);
-        setReviewCounts(reviewQueueSnapshot.reviewCounts);
-        scheduleNextDueRefresh(nextQueueCards, loadStartTimestamp);
+        scheduleNextDueRefresh(reviewQueueSnapshot.nextDueAtMillis, cardsRatedDuringLoad, loadStartTimestamp);
         setReviewQueueCursorState(reviewQueueSnapshot.nextCursor);
         setQueueCardsState(nextQueueCards);
         setReviewTagSummaries(tagsSummary.tags);
@@ -905,7 +939,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           workspaceId: activeWorkspaceId,
           selectedReviewFilterKey: loadedSelectedReviewFilterKey,
           resolvedReviewFilterTitle: nextSelectedReviewFilterTitle,
-          reviewCounts: reviewQueueSnapshot.reviewCounts,
+          reviewCounts: nextReviewCounts,
           currentCard: nextActiveReviewQueue[0] === undefined ? null : buildReviewLoadingCardPreview(nextActiveReviewQueue[0]),
           queuePreview: nextQueueCards
             .slice(0, 6)
@@ -913,7 +947,6 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           savedAt: new Date().toISOString(),
         });
         setHasLoadedReviewData(true);
-        refreshCountsIfLoadOverlappedRating(ratingSequenceAtStart);
         if (shouldPromoteResolvedReviewFilter) {
           carriedReviewDataContextRef.current = {
             contextKey: loadedReviewDataContextKey,

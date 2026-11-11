@@ -38,6 +38,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewPreviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        sessionWorkspaceId = null,
                         requestedFilter = ReviewFilter.AllCards,
                         isRequestedFilterSessionPending = false,
                         selectedFilter = ReviewFilter.AllCards,
@@ -107,6 +108,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewPreviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        sessionWorkspaceId = null,
                         requestedFilter = ReviewFilter.AllCards,
                         isRequestedFilterSessionPending = false,
                         selectedFilter = ReviewFilter.AllCards,
@@ -162,6 +164,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewPreviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        sessionWorkspaceId = null,
                         requestedFilter = ReviewFilter.AllCards,
                         isRequestedFilterSessionPending = false,
                         selectedFilter = ReviewFilter.AllCards,

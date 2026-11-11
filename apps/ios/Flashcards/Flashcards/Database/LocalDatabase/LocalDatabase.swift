@@ -24,21 +24,19 @@ final class LocalDatabase {
     let syncApplier: SyncApplier
     let workspaceSettingsStore: WorkspaceSettingsStore
 
-    init() throws {
-        let core = try DatabaseCore()
-        self.databaseURL = core.databaseURL
-        self.core = core
-        self.cardStore = CardStore(core: core)
-        self.deckStore = DeckStore(core: core)
-        self.mediaAssetStore = MediaAssetStore(core: core)
-        self.mediaTransferStore = MediaTransferStore(core: core)
-        self.outboxStore = OutboxStore(core: core)
-        self.syncApplier = SyncApplier(core: core)
-        self.workspaceSettingsStore = WorkspaceSettingsStore(core: core)
+    convenience init() throws {
+        try self.init(core: DatabaseCore())
     }
 
-    init(databaseURL: URL) throws {
-        let core = try DatabaseCore(databaseURL: databaseURL)
+    convenience init(databaseURL: URL) throws {
+        try self.init(core: DatabaseCore(databaseURL: databaseURL))
+    }
+
+    convenience init(existingWritableDatabaseURL: URL) throws {
+        try self.init(core: DatabaseCore(existingWritableDatabaseURL: existingWritableDatabaseURL))
+    }
+
+    private init(core: DatabaseCore) {
         self.databaseURL = core.databaseURL
         self.core = core
         self.cardStore = CardStore(core: core)

@@ -53,12 +53,15 @@ import {
   legacySettingsImportRoute,
   legacySettingsTagsRoute,
   libraryAnkiExportRoute,
+  libraryAnkiImportRoute,
   libraryDeckNewRoute,
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
   libraryNibomoExportRoute,
+  libraryNibomoImportRoute,
   libraryRoute,
+  librarySpreadsheetImportRoute,
   libraryTagDetailRoute,
   libraryTagsRoute,
   normalizeRoutePath,
@@ -102,10 +105,12 @@ import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { LibraryExportScreen } from "./screens/library/LibraryExportScreen";
+import { LibraryImportScreen } from "./screens/library/LibraryImportScreen";
 import { LibraryScreen } from "./screens/library/LibraryScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
+import { WorkspacePackageImportProvider } from "./screens/settings/workspace/packages/WorkspacePackageImportContext";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
 import { GuestConversionGate } from "./screens/settings/account/guest/GuestConversionGate";
@@ -263,8 +268,14 @@ const WorkspaceAnkiExportScreen = lazy(async () => import("./screens/settings/wo
 const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
 })));
+const WorkspaceAnkiImport = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceAnkiImport").then((module) => ({
+  default: module.WorkspaceAnkiImport,
+})));
 const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceImportScreen").then((module) => ({
   default: module.WorkspaceImportScreen,
+})));
+const WorkspaceTextImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceTextImportScreen").then((module) => ({
+  default: module.WorkspaceTextImportScreen,
 })));
 const CatalogImportScreen = lazy(async () => import("./screens/catalog/CatalogImportScreen").then((module) => ({
   default: module.CatalogImportScreen,
@@ -966,9 +977,13 @@ export function AppShell(): ReactElement {
               <div className="nav-links">
                 {primaryNavigationItems.map((item) => (
                   <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${buildPrimaryNavigationBadgeTargetClassName(item.route)}`} to={workspacePath(item.route)}>
-                    {t(item.labelKey)}
-                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                    {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                    {({ isActive }) => (
+                      <>
+                        {t(item.labelKey)}
+                        {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                        {item.route === reviewRoute && !isActive ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -1028,9 +1043,13 @@ export function AppShell(): ReactElement {
                 to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
-                {t(item.labelKey)}
-                {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                {({ isActive }) => (
+                  <>
+                    {t(item.labelKey)}
+                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                    {item.route === reviewRoute && !isActive ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                  </>
+                )}
               </NavLink>
             ))}
           </AnchoredFloatingOverlay>
@@ -1096,7 +1115,10 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${cardsRoute}`} element={<CardsScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/new`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
-          <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={<LibraryImportScreen />} />
+          <Route path={`${workspaceRoutePattern}${libraryNibomoImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryAnkiImportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiImport />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${librarySpreadsheetImportRoute}`} element={renderDeferredRoute(<WorkspaceTextImportScreen />, "loading.importSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={<LibraryExportScreen />} />
           <Route path={`${workspaceRoutePattern}${libraryNibomoExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryAnkiExportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiExportScreen />, "loading.exportSettings")} />
@@ -1220,7 +1242,9 @@ function AuthenticatedApp(): ReactElement {
                 <ChatDraftProvider>
                   <AnkiImportHandoffProvider>
                     <AccountDeletionRecoveryGate>
-                      <AppShell />
+                      <WorkspacePackageImportProvider>
+                        <AppShell />
+                      </WorkspacePackageImportProvider>
                     </AccountDeletionRecoveryGate>
                   </AnkiImportHandoffProvider>
                 </ChatDraftProvider>

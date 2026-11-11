@@ -68,6 +68,8 @@ internal fun makePinnedReviewDraftState(
         revealedCardId = null,
         reviewedInSessionCount = reviewedInSessionCount,
         pendingReviewedCards = pendingReviewedCards,
+        ratingRevision = 0L,
+        committedCountRatings = emptyMap(),
         optimisticPreparedCurrentCard = optimisticPreparedCurrentCard,
         previewCards = emptyList(),
         nextPreviewOffset = 0,

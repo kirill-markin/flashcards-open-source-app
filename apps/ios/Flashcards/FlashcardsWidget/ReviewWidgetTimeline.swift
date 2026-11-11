@@ -11,7 +11,7 @@ let reviewWidgetLogger: Logger = Logger(
 
 enum ReviewWidgetContent: Sendable, Equatable {
     case noSnapshot
-    /// `nextCard` is nil when cards became due after the snapshot was written.
+    /// The saved Review filter may have no ready card while the workspace does.
     case due(count: Int, nextCard: WidgetSnapshotCard?, streakDays: Int?)
     case allDone(nextDueAt: Date?, streakDays: Int?)
 }

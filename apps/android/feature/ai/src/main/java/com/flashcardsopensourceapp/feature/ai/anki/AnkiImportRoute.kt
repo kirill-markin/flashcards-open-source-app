@@ -1,36 +1,39 @@
 package com.flashcardsopensourceapp.feature.ai.anki
 
 import android.content.ActivityNotFoundException
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flashcardsopensourceapp.core.ui.ImportFileField
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumFileAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumUploadedAttachmentsPerMessage
 import com.flashcardsopensourceapp.feature.ai.R
@@ -48,6 +51,7 @@ fun AnkiImportRoute(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activity = LocalActivity.current
     val prompt = stringResource(id = R.string.ai_anki_import_prompt)
     val openDocuments = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -95,7 +99,20 @@ fun AnkiImportRoute(
                 )
             }
             item {
-                OutlinedButton(
+                ImportFileField(
+                    activity = activity,
+                    label = stringResource(R.string.ai_anki_import_files_label),
+                    supportingContent = {
+                        if (uiState.files.isEmpty()) {
+                            Text(stringResource(R.string.ai_anki_import_choose_files))
+                        } else {
+                            AnkiImportFileNames(
+                                files = uiState.files,
+                                enabled = !uiState.isBusy,
+                                onRemoveFile = viewModel::removeFile
+                            )
+                        }
+                    },
                     onClick = {
                         if (viewModel.beginFilePicker()) {
                             try {
@@ -107,10 +124,12 @@ fun AnkiImportRoute(
                     },
                     enabled = origin != null && uiState.isBusy.not() &&
                         uiState.files.size < aiChatMaximumUploadedAttachmentsPerMessage,
-                    modifier = Modifier.testTag(ankiImportChooseFilesButtonTag)
-                ) {
-                    Text(stringResource(id = R.string.ai_anki_import_choose_files))
-                }
+                    onDrop = viewModel::onFilesDropped,
+                    modifier = Modifier.testTag(ankiImportChooseFilesButtonTag),
+                    trailingContent = {
+                        Icon(imageVector = Icons.Outlined.FolderOpen, contentDescription = null)
+                    }
+                )
             }
             if (progressMessage != null) {
                 item {
@@ -122,20 +141,6 @@ fun AnkiImportRoute(
                 item {
                     Text(text = message, color = MaterialTheme.colorScheme.error)
                 }
-            }
-            items(items = uiState.files, key = { file -> file.uri.toString() }) { file ->
-                val fileName = file.attachment.fileName
-                ListItem(
-                    headlineContent = { Text(fileName) },
-                    trailingContent = {
-                        IconButton(onClick = { viewModel.removeFile(file = file) }, enabled = uiState.isBusy.not()) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = stringResource(R.string.ai_anki_import_remove_file, fileName)
-                            )
-                        }
-                    }
-                )
             }
             item {
                 Button(
@@ -151,6 +156,28 @@ fun AnkiImportRoute(
                     modifier = Modifier.testTag(ankiImportStartButtonTag)
                 ) {
                     Text(stringResource(id = R.string.ai_anki_import_start))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnkiImportFileNames(
+    files: List<AnkiImportFile>,
+    enabled: Boolean,
+    onRemoveFile: (AnkiImportFile) -> Unit
+) {
+    Column {
+        files.forEach { file ->
+            val fileName = file.attachment.fileName
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = fileName, modifier = Modifier.weight(1f))
+                IconButton(onClick = { onRemoveFile(file) }, enabled = enabled) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = stringResource(R.string.ai_anki_import_remove_file, fileName)
+                    )
                 }
             }
         }

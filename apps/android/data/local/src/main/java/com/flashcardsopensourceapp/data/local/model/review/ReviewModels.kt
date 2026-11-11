@@ -137,20 +137,41 @@ data class ReviewSessionQueryInputs(
     val pendingReviewedCards: Set<PendingReviewedCard>,
     val presentedCardId: String?,
     val preparedNextCardId: String?,
-    val nowMillis: Long
-)
+    val nowMillis: Long,
+    val ratingRevision: Long
+) {
+    constructor(
+        pendingReviewedCards: Set<PendingReviewedCard>,
+        presentedCardId: String?,
+        preparedNextCardId: String?,
+        nowMillis: Long
+    ) : this(
+        pendingReviewedCards = pendingReviewedCards,
+        presentedCardId = presentedCardId,
+        preparedNextCardId = preparedNextCardId,
+        nowMillis = nowMillis,
+        ratingRevision = 0L
+    )
+}
 
 /** A review session snapshot with the inputs it was read for; null when no workspace was read. */
 data class ReviewSessionQueryResult(
+    val workspaceId: String?,
     val queryInputs: ReviewSessionQueryInputs?,
-    val snapshot: ReviewSessionSnapshot
+    val snapshot: ReviewSessionSnapshot,
+    /** Membership in the due count for the bounded queue and tracked cards, read in the same transaction. */
+    val countedCardVersions: Set<PendingReviewedCard>
 )
 
-/** The Review tab badge count with the card Review shows first, for the Home Screen widget. */
+data class WorkspaceReviewDueCount(
+    val workspaceId: String,
+    val dueCount: Int
+)
+
+/** Workspace due counts with the first card in the saved Review filter, for Home Screen widgets. */
 data class ReviewQueueHead(
     val workspaceId: String,
     val dueCount: Int,
-    /** The earliest future due time in the filter. */
     val nextDueAtMillis: Long?,
     val topCard: ReviewQueueHeadCard?
 )
@@ -160,7 +181,11 @@ data class ReviewQueueHeadCard(
     val frontText: String
 )
 
-/** Cards in the Review filter that fall due on [localDate]; new cards have no due time and never count. */
+data class WorkspaceReviewDueForecast(
+    val workspaceId: String,
+    val days: List<ReviewDueDay>
+)
+
 data class ReviewDueDay(
     val localDate: LocalDate,
     val dueCount: Int

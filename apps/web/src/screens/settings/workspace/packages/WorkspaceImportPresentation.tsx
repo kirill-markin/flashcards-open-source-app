@@ -1,4 +1,6 @@
-import { Fragment, type ReactElement } from "react";
+import type { ReactElement } from "react";
+import { useI18n } from "../../../../i18n";
+import { WorkspaceImportFileField } from "./WorkspaceImportFileField";
 import type {
   WorkspaceImportOptions,
   WorkspaceImportPresentationCopy,
@@ -7,17 +9,19 @@ import type {
 
 type WorkspaceImportPresentationProps = Readonly<{
   copy: WorkspaceImportPresentationCopy;
+  fileName: string | null;
   preview: WorkspaceImportPreviewModel | null;
   options: WorkspaceImportOptions;
   isControlDisabled: boolean;
   canConfirm: boolean;
-  isConfirming: boolean;
+  isPreviewing: boolean;
+  isBusy: boolean;
   unavailableMessage: string | null;
   errorMessage: string;
   successMessage: string;
-  onSelect: () => void;
+  onSelect: (files: ReadonlyArray<File>) => void;
   onOptionsChange: (options: WorkspaceImportOptions) => void;
-  onConfirm: (options: WorkspaceImportOptions) => void;
+  onConfirm: () => void;
 }>;
 
 type WorkspaceImportPreviewProps = Readonly<{
@@ -133,11 +137,13 @@ function WorkspaceImportPreview(props: WorkspaceImportPreviewProps): ReactElemen
 export function WorkspaceImportPresentation(props: WorkspaceImportPresentationProps): ReactElement {
   const {
     copy,
+    fileName,
     preview,
     options,
     isControlDisabled,
     canConfirm,
-    isConfirming,
+    isPreviewing,
+    isBusy,
     unavailableMessage,
     errorMessage,
     successMessage,
@@ -145,34 +151,51 @@ export function WorkspaceImportPresentation(props: WorkspaceImportPresentationPr
     onOptionsChange,
     onConfirm,
   } = props;
+  const { t } = useI18n();
 
   return (
-    <Fragment>
+    <>
       <article
         className="content-card workspace-export-format-card"
         data-testid="workspace-package-import-card"
       >
-        <div className="settings-nav-card-copy">
-          <strong className="panel-subtitle">{copy.title}</strong>
-          <p className="subtitle">{copy.description}</p>
-        </div>
-        <label className="workspace-import-tag-control">
-          <input
-            type="checkbox"
-            checked={options.addImportTag}
-            disabled={isControlDisabled}
-            data-testid="workspace-package-import-tag-checkbox"
-            onChange={(event) => onOptionsChange(updateImportTagEnabled(
-              options,
-              preview?.suggestedImportTag ?? null,
-              event.currentTarget.checked,
-            ))}
-          />
-          <span className="workspace-import-tag-copy">
-            <span>{copy.importTagLabel}</span>
-            <span className="subtitle">{copy.importTagDescription}</span>
-          </span>
-        </label>
+        <p className="subtitle">{copy.description}</p>
+        <WorkspaceImportFileField
+          accept=".zip,application/zip,application/x-zip-compressed"
+          multiple={false}
+          label={copy.selectionActionLabel}
+          isDisabled={isControlDisabled}
+          isBusy={isPreviewing}
+          inputTestId="workspace-package-import-file-input"
+          pickerTestId="workspace-package-import-button"
+          onSelect={onSelect}
+        >
+          {fileName === null ? null : (
+            <p className="workspace-import-file-name" data-testid="workspace-package-import-file-name">
+              <bdi>{fileName}</bdi>
+            </p>
+          )}
+        </WorkspaceImportFileField>
+        <details className="workspace-import-advanced">
+          <summary data-testid="workspace-package-import-advanced">{t("settingsHome.groups.advanced")}</summary>
+          <label className="workspace-import-tag-control">
+            <input
+              type="checkbox"
+              checked={options.addImportTag}
+              disabled={isControlDisabled}
+              data-testid="workspace-package-import-tag-checkbox"
+              onChange={(event) => onOptionsChange(updateImportTagEnabled(
+                options,
+                preview?.suggestedImportTag ?? null,
+                event.currentTarget.checked,
+              ))}
+            />
+            <span className="workspace-import-tag-copy">
+              <span>{copy.importTagLabel}</span>
+              <span className="subtitle">{copy.importTagDescription}</span>
+            </span>
+          </label>
+        </details>
         {preview === null ? null : (
           <WorkspaceImportPreview
             copy={copy}
@@ -186,20 +209,12 @@ export function WorkspaceImportPresentation(props: WorkspaceImportPresentationPr
           <button
             className="primary-btn"
             type="button"
-            disabled={isControlDisabled}
-            data-testid="workspace-package-import-button"
-            onClick={onSelect}
-          >
-            {copy.selectionActionLabel}
-          </button>
-          <button
-            className="primary-btn"
-            type="button"
             disabled={!canConfirm}
+            aria-busy={isBusy}
             data-testid="workspace-package-import-confirm-button"
-            onClick={() => onConfirm(options)}
+            onClick={onConfirm}
           >
-            {isConfirming ? copy.confirmingActionLabel : copy.confirmActionLabel}
+            {copy.confirmActionLabel}
           </button>
         </div>
         {unavailableMessage === null ? null : (
@@ -210,8 +225,8 @@ export function WorkspaceImportPresentation(props: WorkspaceImportPresentationPr
         <p className="error-banner" role="alert" data-testid="workspace-import-error">{errorMessage}</p>
       )}
       {successMessage === "" ? null : (
-        <p className="subtitle" data-testid="workspace-import-success">{successMessage}</p>
+        <p className="subtitle" role="status" data-testid="workspace-import-success">{successMessage}</p>
       )}
-    </Fragment>
+    </>
   );
 }

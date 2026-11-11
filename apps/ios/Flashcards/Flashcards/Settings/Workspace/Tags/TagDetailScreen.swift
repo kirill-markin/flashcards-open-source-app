@@ -8,34 +8,27 @@ struct TagDetailScreen: View {
     let tag: String
     let workspaceId: String
 
-    @State private var stats: DeckCardStats?
-    @State private var statsLoadFailed = false
+    @State private var snapshot: (stats: DeckCardStats, cards: [Card])?
+    @State private var snapshotLoadFailed = false
+
+    private var isCurrentWorkspace: Bool {
+        self.store.workspace?.workspaceId == self.workspaceId
+    }
 
     private var isTagAvailable: Bool {
-        self.store.workspace?.workspaceId == self.workspaceId && (self.stats?.totalCards ?? 0) > 0
+        self.isCurrentWorkspace && (self.snapshot?.stats.totalCards ?? 0) > 0
     }
 
     var body: some View {
         List {
             Section {
-                if let stats {
-                    LabeledContent(
-                        aiSettingsLocalized("settings.workspace.tags.totalCards", "Total cards"),
-                        value: stats.totalCards.formatted()
-                    )
-                    LabeledContent(
-                        aiSettingsLocalized("settings.workspace.overview.new", "New"),
-                        value: stats.newCards.formatted()
-                    )
-                    LabeledContent(
-                        aiSettingsLocalized("settings.workspace.decks.toStudy", "To study"),
-                        value: stats.dueCards.formatted()
-                    )
-                } else if self.statsLoadFailed {
+                if let snapshot, self.isCurrentWorkspace {
+                    DeckCardSummaryRows(stats: snapshot.stats)
+                } else if self.snapshotLoadFailed {
                     Text(aiSettingsLocalized("common.unavailable", "Unavailable"))
                         .foregroundStyle(.secondary)
                     Button(aiSettingsLocalized("common.retry", "Retry")) {
-                        self.reloadStats()
+                        self.reloadSnapshot()
                     }
                 } else {
                     ProgressView(aiSettingsLocalized("common.loading", "Loading..."))
@@ -66,6 +59,19 @@ struct TagDetailScreen: View {
                     onCompleted: { self.dismiss() }
                 )
             }
+
+            if let snapshot, self.isCurrentWorkspace {
+                Section(aiSettingsLocalized("settings.workspace.decks.section.matchingCards", "Matching cards")) {
+                    if snapshot.cards.isEmpty {
+                        Text(String(localized: "No Matching Cards", table: "ReviewCards"))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(snapshot.cards) { card in
+                            CardRow(card: card)
+                        }
+                    }
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .nativeNavigationTitle(self.tag)
@@ -77,7 +83,7 @@ struct TagDetailScreen: View {
         }
         #endif
         .task(id: "\(self.store.localReadVersion)|\(self.store.reviewScheduleVersion)") {
-            self.reloadStats()
+            self.reloadSnapshot()
         }
         .onChange(of: self.store.workspace?.workspaceId) { _, workspaceId in
             if workspaceId != self.workspaceId {
@@ -86,18 +92,18 @@ struct TagDetailScreen: View {
         }
     }
 
-    private func reloadStats() {
-        guard self.store.workspace?.workspaceId == self.workspaceId else {
+    private func reloadSnapshot() {
+        guard self.isCurrentWorkspace else {
             return
         }
 
         do {
             let database = try requireLocalDatabase(database: self.store.database)
-            self.stats = try database.loadTagCardStats(workspaceId: self.workspaceId, tag: self.tag, now: Date())
-            self.statsLoadFailed = false
+            self.snapshot = try database.loadTagDetailSnapshot(workspaceId: self.workspaceId, tag: self.tag, now: Date())
+            self.snapshotLoadFailed = false
         } catch {
-            self.stats = nil
-            self.statsLoadFailed = true
+            self.snapshot = nil
+            self.snapshotLoadFailed = true
             self.store.presentTechnicalError(error)
         }
     }

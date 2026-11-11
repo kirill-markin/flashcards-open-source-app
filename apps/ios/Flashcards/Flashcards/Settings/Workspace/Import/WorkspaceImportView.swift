@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 private struct WorkspaceImportMetadataRow: Hashable, Identifiable {
     let id: String
@@ -12,17 +13,19 @@ struct WorkspaceImportView: View {
 
     @State private var selectedFile: WorkspacePackageImportSelectedFile?
     @State private var preview: WorkspacePackageImportPreviewResponse?
-    @State private var addImportTag: Bool = true
+    @State private var addImportTagOverride: Bool?
+    @State private var isAdvancedExpanded: Bool = false
     @State private var importTag: String = ""
     @State private var removedTags: Set<String> = []
     @State private var isFileImporterPresented: Bool = false
-    @State private var isPreviewing: Bool = false
+    @State private var previewTask: Task<Void, Never>?
+    @State private var isDropTargeted: Bool = false
     @State private var isImporting: Bool = false
     @State private var errorMessage: String = ""
     @State private var successMessage: String = ""
 
     private var isBusy: Bool {
-        self.isPreviewing || self.isImporting
+        self.previewTask != nil || self.isImporting
     }
 
     private var cloudRequirementMessage: String? {
@@ -104,21 +107,43 @@ struct WorkspaceImportView: View {
                 }
             }
 
-            Section(workspaceImportNibomoFormatTitle()) {
+            Section {
                 Button {
                     self.isFileImporterPresented = true
                 } label: {
-                    Label(self.choosePackageTitle, systemImage: "doc.badge.plus")
+                    Label {
+                        if self.previewTask != nil {
+                            Text(aiSettingsLocalized("settings.workspace.import.previewing", "Previewing..."))
+                        } else {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(aiSettingsLocalized("settings.workspace.import.choosePackage", "Choose ZIP Package"))
+                                if let selectedFile {
+                                    Text(selectedFile.fileName)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    } icon: {
+                        if self.previewTask != nil {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "doc.badge.plus")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .disabled(self.isBusy)
                 .accessibilityIdentifier(UITestIdentifier.workspaceImportChooseFileButton)
+                .onDrop(
+                    of: workspacePackageImportAllowedContentTypes() + [.fileURL],
+                    isTargeted: self.$isDropTargeted,
+                    perform: self.handleDrop
+                )
+                .listRowBackground(self.isDropTargeted && !self.isBusy ? Color.accentColor.opacity(0.14) : nil)
 
-                if let selectedFile {
-                    LabeledContent(aiSettingsLocalized("settings.workspace.import.file", "File")) {
-                        Text(selectedFile.fileName)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
+                self.advancedOptions
 
                 if let cloudRequirementMessage {
                     Text(cloudRequirementMessage)
@@ -130,20 +155,15 @@ struct WorkspaceImportView: View {
                 self.sourceSection(preview: preview)
                 self.packageMetadataSection
                 self.countsSection(preview: preview)
-                self.importOptionsSection(preview: preview)
+                if preview.tagCounts.isEmpty == false {
+                    self.packageTagsSection(preview: preview)
+                }
                 self.warningSection(preview: preview)
                 self.confirmSection(preview: preview)
             }
-
-            Section {
-                NavigationLink(value: LibraryNavigationDestination.importAnki) {
-                    Label(workspaceImportAnkiFormatTitle(), systemImage: "doc.badge.plus")
-                }
-                .disabled(self.isBusy)
-            }
         }
         .listStyle(.insetGrouped)
-        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.import.title", "Import"))
+        .nativeNavigationTitle(WorkspaceImportFormat.nibomo.localizedTitle)
         .accessibilityIdentifier(UITestIdentifier.workspaceImportScreen)
         #if !targetEnvironment(macCatalyst)
         .toolbar {
@@ -157,20 +177,20 @@ struct WorkspaceImportView: View {
         ) { result in
             self.handleFileImporterResult(result: result)
         }
+        .onDisappear {
+            self.previewTask?.cancel()
+        }
     }
 
-    private var choosePackageTitle: String {
-        if self.isPreviewing {
-            return aiSettingsLocalized("settings.workspace.import.previewing", "Previewing...")
-        }
-        return aiSettingsLocalized("settings.workspace.import.choosePackage", "Choose ZIP Package")
+    private var addImportTag: Bool {
+        self.addImportTagOverride ?? self.preview?.defaultOptions.addImportTag ?? true
     }
 
     private var importButtonTitle: String {
         if self.isImporting {
             return aiSettingsLocalized("settings.workspace.import.importing", "Importing...")
         }
-        return aiSettingsLocalized("settings.workspace.import.confirm", "Import Package")
+        return aiSettingsLocalized("settings.workspace.import.confirm", "Import cards")
     }
 
     private func sourceSection(preview: WorkspacePackageImportPreviewResponse) -> some View {
@@ -222,35 +242,41 @@ struct WorkspaceImportView: View {
         }
     }
 
-    private func importOptionsSection(preview: WorkspacePackageImportPreviewResponse) -> some View {
-        Section(aiSettingsLocalized("settings.workspace.import.section.options", "Options")) {
+    private var advancedOptions: some View {
+        DisclosureGroup(
+            aiSettingsLocalized("settings.section.advanced", "Advanced"),
+            isExpanded: self.$isAdvancedExpanded
+        ) {
             Toggle(
-                aiSettingsLocalized("settings.workspace.import.addImportTag", "Add import tag"),
-                isOn: self.$addImportTag
+                aiSettingsLocalized("settings.workspace.import.addImportTag", "Tag imported cards"),
+                isOn: Binding(get: { self.addImportTag }, set: { self.addImportTagOverride = $0 })
             )
+            .disabled(self.isBusy)
             .accessibilityIdentifier(UITestIdentifier.workspaceImportAddImportTagToggle)
 
-            if self.addImportTag {
+            if self.addImportTag && self.preview != nil {
                 TextField(aiSettingsLocalized("settings.workspace.import.importTag", "Import Tag"), text: self.$importTag)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .disabled(self.isBusy)
                     .accessibilityIdentifier(UITestIdentifier.workspaceImportImportTagField)
             }
+        }
+    }
 
-            if preview.tagCounts.isEmpty == false {
-                ForEach(makeWorkspacePackageImportTagOptions(preview: preview, removedTags: self.removedTags)) { tagOption in
-                    Toggle(isOn: self.keepTagBinding(tag: tagOption.tag)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(self.keepTagTitle(tag: tagOption.tag))
-                            Text(self.tagCardsCountTitle(cardsCount: tagOption.cardsCount))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+    private func packageTagsSection(preview: WorkspacePackageImportPreviewResponse) -> some View {
+        Section(aiSettingsLocalized("settings.workspace.import.section.options", "Options")) {
+            ForEach(makeWorkspacePackageImportTagOptions(preview: preview, removedTags: self.removedTags)) { tagOption in
+                Toggle(isOn: self.keepTagBinding(tag: tagOption.tag)) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(self.keepTagTitle(tag: tagOption.tag))
+                        Text(self.tagCardsCountTitle(cardsCount: tagOption.cardsCount))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .disabled(self.isBusy)
-                    .accessibilityIdentifier(UITestIdentifier.workspaceImportTagTogglePrefix + tagOption.tag)
                 }
+                .disabled(self.isBusy)
+                .accessibilityIdentifier(UITestIdentifier.workspaceImportTagTogglePrefix + tagOption.tag)
             }
         }
     }
@@ -323,61 +349,72 @@ struct WorkspaceImportView: View {
     }
 
     private func handleFileImporterResult(result: Result<[URL], Error>) {
-        switch result {
-        case .success(let urls):
-            guard let selectedUrl = urls.first else {
-                self.errorMessage = aiSettingsLocalized(
-                    "settings.workspace.import.noFileSelected",
-                    "No package file was selected."
+        guard !self.isBusy else { return }
+        do {
+            guard let selectedUrl = try result.get().first else {
+                throw LocalStoreError.validation(
+                    aiSettingsLocalized("settings.workspace.import.noFileSelected", "No package file was selected.")
                 )
-                return
             }
-
-            Task { @MainActor in
-                await self.previewSelectedFile(url: selectedUrl)
+            self.startPreview(fileTask: Task.detached(priority: .userInitiated) {
+                try readWorkspacePackageImportSelectedFile(url: selectedUrl)
+            })
+        } catch {
+            if !isRequestCancellationError(error: error) {
+                self.errorMessage = Flashcards.errorMessage(error: error)
+                self.successMessage = ""
             }
-        case .failure(let error):
-            if isRequestCancellationError(error: error) {
-                return
-            }
-            self.errorMessage = Flashcards.errorMessage(error: error)
-            self.successMessage = ""
         }
     }
 
-    @MainActor
-    private func previewSelectedFile(url: URL) async {
-        self.isPreviewing = true
+    private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard !self.isBusy else { return false }
+        guard providers.count == 1, let provider = providers.first else {
+            self.errorMessage = aiSettingsLocalized("settings.workspace.import.invalidFile", "Choose a Nibomo ZIP package.")
+            self.successMessage = ""
+            return false
+        }
+        let file = loadWorkspaceImportDrop(
+            provider: provider,
+            contentTypes: workspacePackageImportAllowedContentTypes(),
+            readFile: readWorkspacePackageImportSelectedFile(url:fileName:)
+        )
+        self.startPreview(fileTask: Task.detached(priority: .userInitiated) {
+            for await result in file {
+                return try result.get()
+            }
+            throw CocoaError(.fileReadUnknown)
+        })
+        return true
+    }
+
+    private func startPreview(fileTask: Task<WorkspacePackageImportSelectedFile, any Error>) {
         self.errorMessage = ""
         self.successMessage = ""
-        self.preview = nil
-        self.selectedFile = nil
-        self.removedTags = []
-        self.importTag = ""
-
-        do {
-            let selectedFile = try readWorkspacePackageImportSelectedFile(url: url)
-            let preview = try await self.store.previewCurrentWorkspacePackageImport(
-                packageBytes: selectedFile.packageBytes
-            )
-            self.selectedFile = selectedFile
-            self.preview = preview
-            self.addImportTag = preview.defaultOptions.addImportTag
-            self.importTag = preview.defaultOptions.suggestedImportTag
-            self.removedTags = Set(preview.defaultOptions.removedTags)
-        } catch {
-            if isRequestCancellationError(error: error) {
-                self.isPreviewing = false
-                return
+        self.previewTask = Task {
+            defer { self.previewTask = nil }
+            do {
+                let selectedFile = try await fileTask.value
+                try Task.checkCancellation()
+                let preview = try await self.store.previewCurrentWorkspacePackageImport(
+                    packageBytes: selectedFile.packageBytes
+                )
+                try Task.checkCancellation()
+                self.selectedFile = selectedFile
+                self.preview = preview
+                self.importTag = preview.defaultOptions.suggestedImportTag
+                self.removedTags = Set(preview.defaultOptions.removedTags)
+            } catch {
+                if !Task.isCancelled && !isRequestCancellationError(error: error) {
+                    self.errorMessage = Flashcards.errorMessage(error: error)
+                }
             }
-            self.errorMessage = Flashcards.errorMessage(error: error)
         }
-
-        self.isPreviewing = false
     }
 
     @MainActor
     private func confirmImport(preview: WorkspacePackageImportPreviewResponse) async {
+        guard !self.isBusy else { return }
         guard let selectedFile else {
             self.errorMessage = aiSettingsLocalized(
                 "settings.workspace.import.previewRequired",
@@ -420,6 +457,8 @@ struct WorkspaceImportView: View {
             self.selectedFile = nil
             self.removedTags = []
             self.importTag = ""
+            self.addImportTagOverride = nil
+            self.isAdvancedExpanded = false
         } catch {
             if isRequestCancellationError(error: error) {
                 self.isImporting = false

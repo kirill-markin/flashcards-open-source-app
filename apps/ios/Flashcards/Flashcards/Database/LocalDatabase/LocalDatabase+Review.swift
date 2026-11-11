@@ -1,8 +1,13 @@
 import Foundation
 
+struct ReviewSubmissionChange: Sendable {
+    let previousCard: Card
+    let ratedCard: Card
+}
+
 extension LocalDatabase {
     // Keep in sync with apps/backend/src/cards/review/reviews.ts::submitReview.
-    func submitReview(workspaceId: String, reviewSubmission: ReviewSubmission) throws -> Card {
+    func submitReview(workspaceId: String, reviewSubmission: ReviewSubmission) throws -> ReviewSubmissionChange {
         return try self.core.inTransaction {
             let card = try self.cardStore.loadCard(workspaceId: workspaceId, cardId: reviewSubmission.cardId)
             let schedulerSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
@@ -65,7 +70,7 @@ extension LocalDatabase {
                 completed: true,
                 reviewToken: "\(reviewSubmission.cardId)|\(reviewSubmission.reviewedAtClient)"
             )
-            return updatedCard
+            return ReviewSubmissionChange(previousCard: card, ratedCard: updatedCard)
         }
     }
 

@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.CardImportText
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
@@ -73,9 +74,11 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
+import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueCount
+import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueForecast
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryResult
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -96,10 +99,13 @@ import java.time.ZoneId
 
 class CardUnavailableException(cardId: String) : IllegalStateException("Card '$cardId' is unavailable.")
 
+class CardImportWorkspaceChangedException : IllegalStateException("The active workspace changed before importing cards.")
+
 interface CardsRepository {
     fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>>
     fun observeCard(cardId: String): Flow<CardSummary?>
     suspend fun createCard(cardDraft: CardDraft)
+    suspend fun importSpreadsheetCards(workspaceId: String, rows: List<CardImportText>, tags: List<String>)
     suspend fun updateCard(cardId: String, cardDraft: CardDraft, savedTags: List<String>): CardDraft
 
     /** Soft-deletes a card. Missing and already deleted cards are successful no-ops. */
@@ -139,17 +145,21 @@ interface ReviewRepository {
         queryInputs: Flow<ReviewSessionQueryInputs>
     ): Flow<ReviewSessionSnapshot>
 
+    fun observeReviewSessionWithInputs(
+        selectedFilter: ReviewFilter,
+        queryInputs: Flow<ReviewSessionQueryInputs>
+    ): Flow<ReviewSessionQueryResult>
+
     /** Deck and tag choices with due counts; collect only while the filter sheet is open. */
     fun observeReviewFilterOptions(): Flow<ReviewFilterOptions>
 
-    /** New and due cards in the current workspace under its persisted Review filter. */
-    fun observeReviewDueBadgeCount(): Flow<Int>
+    fun observeWorkspaceReviewDueCount(): Flow<WorkspaceReviewDueCount?>
 
-    /** [observeReviewDueBadgeCount] with the card Review shows first; null without a current workspace. */
+    /** Null without a current workspace. */
     fun observeReviewQueueHead(): Flow<ReviewQueueHead?>
 
-    /** The [dayCount] local days after today, oldest first, under the same filter; null without a current workspace. */
-    fun observeUpcomingReviewDueDays(dayCount: Int): Flow<List<ReviewDueDay>?>
+    /** The [dayCount] local days after today, oldest first. Null without a current workspace. */
+    fun observeWorkspaceReviewDueForecast(dayCount: Int): Flow<WorkspaceReviewDueForecast?>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 

@@ -25,15 +25,14 @@ let cardStoreSelectColumnsSQL: String = """
     deleted_at
 """
 
-let cardStoreActiveReviewDueEligibilitySQL: String = """
-(
-    due_at IS NULL
-    OR (
-        due_at IS NOT NULL
-        AND due_at_millis IS NOT NULL
-        AND due_at_millis <= ?
-    )
-)
+let cardStoreActiveReviewNewEligibilitySQL = "due_at IS NULL"
+let cardStoreActiveReviewScheduledDueEligibilitySQL = """
+due_at IS NOT NULL
+AND due_at_millis IS NOT NULL
+AND due_at_millis <= ?
+"""
+let cardStoreActiveReviewDueEligibilitySQL = """
+(\(cardStoreActiveReviewNewEligibilitySQL) OR (\(cardStoreActiveReviewScheduledDueEligibilitySQL)))
 """
 
 let cardStoreActiveDueBucketOrderSQL: String = "due_at_millis ASC, created_at ASC, card_id ASC"
@@ -82,7 +81,7 @@ private func makeActiveReviewQueueBucketSQL(bucket: ActiveReviewQueueSQLBucket) 
         )
     case .new:
         return ReviewQuerySQL(
-            clause: " AND due_at IS NULL",
+            clause: " AND \(cardStoreActiveReviewNewEligibilitySQL)",
             values: []
         )
     }

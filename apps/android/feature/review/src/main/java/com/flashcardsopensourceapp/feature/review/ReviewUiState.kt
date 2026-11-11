@@ -35,6 +35,7 @@ enum class NotificationPermissionPromptContinueAction {
 
 data class ReviewUiState(
     val isLoading: Boolean,
+    val sessionWorkspaceId: String?,
     val requestedFilter: ReviewFilter,
     /** True until the session for [requestedFilter] loads; the shown session is still the previous filter's. */
     val isRequestedFilterSessionPending: Boolean,

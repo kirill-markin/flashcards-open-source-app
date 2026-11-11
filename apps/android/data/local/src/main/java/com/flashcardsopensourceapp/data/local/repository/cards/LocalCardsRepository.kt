@@ -4,10 +4,12 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.CardImportText
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.applyTagSelectionChanges
@@ -15,11 +17,14 @@ import com.flashcardsopensourceapp.data.local.model.cards.cardMetadataAfterAutho
 import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.encodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.cards.queryCards
+import com.flashcardsopensourceapp.data.local.repository.CardImportWorkspaceChangedException
 import com.flashcardsopensourceapp.data.local.repository.CardUnavailableException
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import kotlinx.coroutines.flow.Flow
@@ -54,29 +59,10 @@ class LocalCardsRepository(
             preferencesStore = preferencesStore,
             missingWorkspaceMessage = "Workspace is required before creating cards."
         )
-        val currentTimeMillis: Long = System.currentTimeMillis()
-        val cardId: String = UUID.randomUUID().toString()
-        val card: CardEntity = CardEntity(
-            cardId = cardId,
+        val card = makeNewCard(
             workspaceId = workspace.workspaceId,
-            frontText = cardDraft.frontText,
-            backText = cardDraft.backText,
-            cardType = defaultCardType,
-            metadataJson = encodeCardMetadataJson(metadata = makeDefaultCardMetadata(
-                createdAt = formatIsoTimestamp(currentTimeMillis)
-            ).copy(onboardingDemo = cardDraft.onboardingDemo)),
-            dueAtMillis = null,
-            createdAtMillis = currentTimeMillis,
-            updatedAtMillis = currentTimeMillis,
-            reps = 0,
-            lapses = 0,
-            fsrsCardState = FsrsCardState.NEW,
-            fsrsStepIndex = null,
-            fsrsStability = null,
-            fsrsDifficulty = null,
-            fsrsLastReviewedAtMillis = null,
-            fsrsScheduledDays = null,
-            deletedAtMillis = null
+            cardDraft = cardDraft,
+            currentTimeMillis = System.currentTimeMillis()
         )
 
         runLocalOutboxMutationTransaction(
@@ -87,7 +73,7 @@ class LocalCardsRepository(
             replaceCardTags(
                 database = database,
                 workspaceId = workspace.workspaceId,
-                cardId = cardId,
+                cardId = card.cardId,
                 tags = cardDraft.tags
             )
             syncLocalStore.enqueueCardUpsert(
@@ -95,6 +81,35 @@ class LocalCardsRepository(
                 tags = cardDraft.tags,
                 affectsReviewSchedule = true
             )
+        }
+    }
+
+    override suspend fun importSpreadsheetCards(workspaceId: String, rows: List<CardImportText>, tags: List<String>) {
+        require(rows.isNotEmpty() && rows.all { row -> row.frontText.isNotBlank() && row.backText.isNotBlank() }) {
+            "Spreadsheet import requires cards with both sides filled in."
+        }
+        runLocalOutboxMutationTransaction(database = database, preferencesStore = preferencesStore) {
+            val workspace = loadCurrentWorkspaceOrNull(database = database, preferencesStore = preferencesStore)
+            if (workspace?.workspaceId != workspaceId) throw CardImportWorkspaceChangedException()
+
+            val existingTags = database.tagDao().loadTagsForWorkspace(workspaceId = workspaceId).map(TagEntity::name)
+            val currentTimeMillis = System.currentTimeMillis()
+            val tagNames = normalizeTags(values = tags, referenceTags = existingTags).ifEmpty {
+                listOf(makeSpreadsheetImportTag(currentTimeMillis = currentTimeMillis))
+            }
+            val resolvedTags = resolveOrCreateCardTags(database = database, workspaceId = workspaceId, names = tagNames)
+            for (row in rows) {
+                val card = makeNewCard(
+                    workspaceId = workspaceId,
+                    cardDraft = CardDraft(frontText = row.frontText.trim(), backText = row.backText.trim(), tags = tagNames),
+                    currentTimeMillis = currentTimeMillis
+                )
+                database.cardDao().insertCard(card = card)
+                database.tagDao().insertCardTags(cardTags = resolvedTags.map { tag ->
+                    CardTagEntity(cardId = card.cardId, tagId = tag.tagId)
+                })
+                syncLocalStore.enqueueCardUpsert(card = card, tags = tagNames, affectsReviewSchedule = true)
+            }
         }
     }
 
@@ -175,4 +190,34 @@ class LocalCardsRepository(
             )
         }
     }
+}
+
+private fun makeNewCard(workspaceId: String, cardDraft: CardDraft, currentTimeMillis: Long): CardEntity {
+    return CardEntity(
+        cardId = UUID.randomUUID().toString(),
+        workspaceId = workspaceId,
+        frontText = cardDraft.frontText,
+        backText = cardDraft.backText,
+        cardType = defaultCardType,
+        metadataJson = encodeCardMetadataJson(metadata = makeDefaultCardMetadata(
+            createdAt = formatIsoTimestamp(currentTimeMillis)
+        ).copy(onboardingDemo = cardDraft.onboardingDemo)),
+        dueAtMillis = null,
+        createdAtMillis = currentTimeMillis,
+        updatedAtMillis = currentTimeMillis,
+        reps = 0,
+        lapses = 0,
+        fsrsCardState = FsrsCardState.NEW,
+        fsrsStepIndex = null,
+        fsrsStability = null,
+        fsrsDifficulty = null,
+        fsrsLastReviewedAtMillis = null,
+        fsrsScheduledDays = null,
+        deletedAtMillis = null
+    )
+}
+
+private fun makeSpreadsheetImportTag(currentTimeMillis: Long): String {
+    val date = formatIsoTimestamp(currentTimeMillis).take(10)
+    return "import:$date-${UUID.randomUUID()}"
 }
