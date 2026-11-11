@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.text.format.DateFormat
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
@@ -100,6 +101,7 @@ private fun makeHistoryStreakRuns(days: List<WidgetProgressDay>): List<WidgetStr
 internal fun drawStreakBarsBitmap(
     context: Context,
     runs: List<WidgetStreakRun>,
+    accentColor: Color,
     size: DpSize
 ): Bitmap {
     val displayMetrics = context.resources.displayMetrics
@@ -110,6 +112,10 @@ internal fun drawStreakBarsBitmap(
         locale
     )
     val longestDayCount: Int = runs.maxOf { run -> run.dayCount }
+    val currentBarArgb: Int = accentColor.toArgb()
+    val pastBarArgb: Int = accentColor.copy(alpha = 0.35f).toArgb()
+    val currentLabelArgb: Int = widgetFillLabelArgb(fillArgb = currentBarArgb)
+    val pastLabelArgb: Int = widgetFillLabelArgb(fillArgb = pastBarArgb)
     return drawWidgetBitmap(size = size, density = density) { canvas ->
         val textSize: Float = widgetTextSizePx(fontSize = streakBarTextSize, displayMetrics = displayMetrics)
         val rowHeight: Float = min(canvas.height.toFloat() / runs.size, textSize * streakBarRowHeightPerTextSize)
@@ -154,11 +160,7 @@ internal fun drawStreakBarsBitmap(
             val barWidth: Float = max(minBarWidth, barAreaWidth * run.dayCount / longestDayCount).coerceAtMost(barAreaWidth)
             val barLeft: Float = barAreaLeft + (barAreaWidth - barWidth) / 2
             val barRight: Float = barLeft + barWidth
-            barPaint.color = if (run.isCurrent) {
-                FlashcardsDarkColorScheme.primary.toArgb()
-            } else {
-                FlashcardsDarkColorScheme.primary.copy(alpha = 0.35f).toArgb()
-            }
+            barPaint.color = if (run.isCurrent) currentBarArgb else pastBarArgb
             canvas.drawRoundRect(
                 barLeft,
                 centerY - barHeight / 2,
@@ -168,11 +170,7 @@ internal fun drawStreakBarsBitmap(
                 barHeight / 2,
                 barPaint
             )
-            countPaint.color = if (run.isCurrent) {
-                FlashcardsDarkColorScheme.onPrimary.toArgb()
-            } else {
-                FlashcardsDarkColorScheme.onSurface.toArgb()
-            }
+            countPaint.color = if (run.isCurrent) currentLabelArgb else pastLabelArgb
             canvas.drawText(countText, barLeft + barWidth / 2, centeredBaseline(centerY = centerY, paint = countPaint), countPaint)
             val dateBaseline: Float = centeredBaseline(centerY = centerY, paint = datePaint)
             datePaint.textAlign = Paint.Align.RIGHT

@@ -5,10 +5,12 @@ import WidgetKit
 let monthCalendarWidgetKind: String = "MonthCalendarWidget"
 
 private let monthCalendarWidgetLargeMarkDiameter: CGFloat = 28
+private let monthCalendarWidgetLargeFrozenOutlineDiameter: CGFloat = 24
 private let monthCalendarWidgetLargeTodayRingDiameter: CGFloat = 32
 private let monthCalendarWidgetLargeRowHeight: CGFloat = 34
 private let monthCalendarWidgetSmallDotDiameter: CGFloat = 9
 private let monthCalendarWidgetSmallTodayRingDiameter: CGFloat = 13
+private let monthCalendarWidgetFrozenOutlineWidth: CGFloat = 1.5
 
 struct MonthCalendarWidget: Widget {
     var body: some WidgetConfiguration {
@@ -49,7 +51,7 @@ struct MonthCalendarWidgetView: View {
                     )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -185,18 +187,6 @@ private struct MonthCalendarWidgetContentView: View {
     }
 }
 
-/// Nil for an unmarked day.
-private func monthCalendarWidgetMarkColor(mark: MonthCalendarWidgetDayMark) -> Color? {
-    switch mark {
-    case .reviewed:
-        return Color.accentColor
-    case .frozen:
-        return streakWidgetFrozenColor
-    case .unmarked:
-        return nil
-    }
-}
-
 private struct MonthCalendarWidgetLargeView: View {
     let month: MonthCalendarWidgetMonth
     let monthFormatStyle: Date.FormatStyle
@@ -230,23 +220,31 @@ private struct MonthCalendarWidgetLargeView: View {
     }
 }
 
-/// A marked day is a circle; bridges to marked neighbours of the same row join a run into one pill.
 private struct MonthCalendarWidgetLargeDayCell: View {
+    @Environment(\.widgetAccent) private var accent
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let day: MonthCalendarWidgetDay?
 
     var body: some View {
         ZStack {
             if let day {
-                if let markColor = monthCalendarWidgetMarkColor(mark: day.mark) {
-                    HStack(spacing: 0) {
-                        MonthCalendarWidgetBridge(color: day.joinsPrevious ? markColor : nil, mark: day.mark)
-                        MonthCalendarWidgetBridge(color: day.joinsNext ? markColor : nil, mark: day.mark)
-                    }
-                    .frame(height: monthCalendarWidgetLargeMarkDiameter)
+                switch day.mark {
+                case .reviewed:
+                    self.dayPill(day: day, color: self.accent.color)
+                        .widgetAccentable()
+                case .frozen:
+                    let isFullColor = self.renderingMode == .fullColor
+                    self.dayPill(day: day, color: isFullColor ? streakWidgetFrozenColor : .primary)
+                        .compositingGroup()
+                        .opacity(isFullColor ? 1 : 0.25)
                     Circle()
-                        .fill(markColor)
-                        .frame(width: monthCalendarWidgetLargeMarkDiameter, height: monthCalendarWidgetLargeMarkDiameter)
-                        .widgetAccentable(day.mark == .reviewed)
+                        .strokeBorder(self.frozenLabelColor, lineWidth: monthCalendarWidgetFrozenOutlineWidth)
+                        .frame(
+                            width: monthCalendarWidgetLargeFrozenOutlineDiameter,
+                            height: monthCalendarWidgetLargeFrozenOutlineDiameter
+                        )
+                case .unmarked:
+                    EmptyView()
                 }
                 if day.isToday {
                     Circle()
@@ -258,7 +256,7 @@ private struct MonthCalendarWidgetLargeDayCell: View {
                 }
                 Text(day.dayNumber, format: .number)
                     .font(.subheadline.weight(day.mark == .unmarked ? .regular : .semibold))
-                    .foregroundStyle(day.mark == .unmarked ? Color.primary : Color.white)
+                    .foregroundStyle(self.labelColor(mark: day.mark))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -266,20 +264,32 @@ private struct MonthCalendarWidgetLargeDayCell: View {
         .frame(maxWidth: .infinity)
         .frame(height: monthCalendarWidgetLargeRowHeight)
     }
-}
 
-/// Half a cell of pill between a marked day and its neighbour; clear when the day does not join that side.
-private struct MonthCalendarWidgetBridge: View {
-    let color: Color?
-    let mark: MonthCalendarWidgetDayMark
-
-    var body: some View {
-        if let color {
-            Rectangle()
+    private func dayPill(day: MonthCalendarWidgetDay, color: Color) -> some View {
+        ZStack {
+            HStack(spacing: 0) {
+                Rectangle().fill(day.joinsPrevious ? color : .clear)
+                Rectangle().fill(day.joinsNext ? color : .clear)
+            }
+            .frame(height: monthCalendarWidgetLargeMarkDiameter)
+            Circle()
                 .fill(color)
-                .widgetAccentable(self.mark == .reviewed)
-        } else {
-            Color.clear
+                .frame(width: monthCalendarWidgetLargeMarkDiameter, height: monthCalendarWidgetLargeMarkDiameter)
+        }
+    }
+
+    private var frozenLabelColor: Color {
+        self.renderingMode == .fullColor ? .white : .primary
+    }
+
+    private func labelColor(mark: MonthCalendarWidgetDayMark) -> Color {
+        switch mark {
+        case .reviewed:
+            return self.accent.filledLabelColor
+        case .frozen:
+            return self.frozenLabelColor
+        case .unmarked:
+            return .primary
         }
     }
 }
@@ -309,21 +319,31 @@ private struct MonthCalendarWidgetSmallView: View {
 }
 
 private struct MonthCalendarWidgetSmallDayCell: View {
+    @Environment(\.widgetAccent) private var accent
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let day: MonthCalendarWidgetDay?
 
     var body: some View {
         ZStack {
             if let day {
-                if let markColor = monthCalendarWidgetMarkColor(mark: day.mark) {
-                    Circle()
-                        .fill(markColor)
-                        .frame(width: monthCalendarWidgetSmallDotDiameter, height: monthCalendarWidgetSmallDotDiameter)
-                        .widgetAccentable(day.mark == .reviewed)
-                } else {
-                    Circle()
-                        .fill(Color.secondary.opacity(0.3))
-                        .frame(width: monthCalendarWidgetSmallDotDiameter, height: monthCalendarWidgetSmallDotDiameter)
+                Group {
+                    switch day.mark {
+                    case .reviewed:
+                        Circle()
+                            .fill(self.accent.color)
+                            .widgetAccentable()
+                    case .frozen:
+                        Circle()
+                            .strokeBorder(
+                                self.renderingMode == .fullColor ? streakWidgetFrozenColor : Color.primary.opacity(0.6),
+                                lineWidth: monthCalendarWidgetFrozenOutlineWidth
+                            )
+                    case .unmarked:
+                        Circle()
+                            .fill(Color.secondary.opacity(0.3))
+                    }
                 }
+                .frame(width: monthCalendarWidgetSmallDotDiameter, height: monthCalendarWidgetSmallDotDiameter)
                 if day.isToday {
                     Circle()
                         .strokeBorder(Color.primary, lineWidth: 1.5)

@@ -2,8 +2,6 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -21,7 +19,6 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
@@ -33,21 +30,16 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import java.time.LocalDate
-import kotlinx.coroutines.flow.first
 
 /** Narrower widgets get the small layout. */
 private val activityWidgetMediumMinWidth = 220.dp
 /** Wide widgets at least this tall get the large layout. */
 private val activityWidgetLargeMinHeight = 220.dp
-private val activityWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 private const val activityWidgetSmallWeekCount: Int = 5
 private const val activityWidgetWideWeekCount: Int = 20
 /** The Scaffold's horizontal padding and the body's vertical padding. */
@@ -69,16 +61,8 @@ class ActivityWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = activityWidgetColors) {
-                ActivityWidgetBody(content = content, layoutSize = LocalSize.current)
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetContent) { content ->
+            ActivityWidgetBody(content = content, layoutSize = LocalSize.current)
         }
     }
 }
@@ -96,11 +80,11 @@ internal fun activityWidgetSize(layoutSize: DpSize): ReviewWidgetSize {
 }
 
 @Composable
-private fun ActivityWidgetBody(content: WidgetContent, layoutSize: DpSize) {
+private fun ActivityWidgetBody(content: WidgetContent?, layoutSize: DpSize) {
     val context = LocalContext.current
     val size: ReviewWidgetSize = activityWidgetSize(layoutSize = layoutSize)
-    val progress: WidgetProgressContent? = content.progress
-    val queue: ReviewWidgetContent? = content.queue
+    val progress: WidgetProgressContent? = content?.progress
+    val queue: ReviewWidgetContent? = content?.queue
     Scaffold(
         backgroundColor = GlanceTheme.colors.surface,
         modifier = GlanceModifier.clickable(
@@ -305,6 +289,7 @@ private fun ActivityWidgetGrid(
         provider = ImageProvider(
             bitmap = drawActivityHeatmapBitmap(
                 progress = progress,
+                accentColor = widgetAccentColor(),
                 dates = dates,
                 weekCount = weekCount,
                 areaSize = areaSize,

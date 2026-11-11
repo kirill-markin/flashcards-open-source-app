@@ -3,8 +3,6 @@ package com.flashcardsopensourceapp.app.widget
 import android.content.Context
 import android.text.format.DateUtils
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,43 +17,29 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
-import kotlinx.coroutines.flow.first
 import java.util.Calendar
 
 private val reviewWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
 private val reviewWidgetMediumSize = DpSize(width = 220.dp, height = 100.dp)
 private val reviewWidgetLargeSize = DpSize(width = 220.dp, height = 220.dp)
-private val reviewWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 internal val reviewWidgetSizes: Set<DpSize> = setOf(reviewWidgetSmallSize, reviewWidgetMediumSize, reviewWidgetLargeSize)
 
 class ReviewWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(sizes = reviewWidgetSizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeReviewWidgetContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = reviewWidgetColors) {
-                ReviewWidgetBody(content = content, size = reviewWidgetSize(size = LocalSize.current))
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeReviewWidgetContent) { content ->
+            ReviewWidgetBody(content = content, size = reviewWidgetSize(size = LocalSize.current))
         }
     }
 }

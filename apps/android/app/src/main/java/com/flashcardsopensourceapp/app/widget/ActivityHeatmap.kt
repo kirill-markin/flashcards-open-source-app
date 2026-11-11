@@ -4,9 +4,11 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.ColorUtils
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import java.time.LocalDate
@@ -24,11 +26,14 @@ private const val activityLevelCount: Int = 4
 /** The share of a cell's pitch left as the gap to its neighbour. */
 private const val activityCellGapFraction: Float = 0.18f
 private const val activityCellCornerFraction: Float = 0.2f
+private const val frozenDayMarkRadiusFraction: Float = 0.22f
 private val reviewedDayAlphas: List<Float> = listOf(0.3f, 0.5f, 0.75f, 1f)
+private val subtleAccentReviewedDayAlphas: List<Float> = listOf(0.42f, 0.59f, 0.79f, 1f)
+private const val minimumReviewedDayContrast: Double = 1.2
 private val emptyDayColor: Int = FlashcardsDarkColorScheme.onSurface.copy(alpha = 0.1f).toArgb()
 /** The ice blue of frozen days in the Progress streak calendar. */
 private val frozenDayColor: Int = 0xFF90CAF9.toInt()
-private val todayOutlineColor: Int = FlashcardsDarkColorScheme.onSurface.toArgb()
+private val frozenDayMarkColor: Int = widgetFillLabelArgb(fillArgb = frozenDayColor)
 private val monthLabelColor: Int = FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
 private val maxMonthLabelTextSize = 11.dp
 /** A Year view row is at least this many label text sizes tall, so labels never overlap. */
@@ -93,6 +98,7 @@ internal fun countActiveDays(progress: WidgetProgressContent, dates: Set<LocalDa
  */
 internal fun drawActivityHeatmapBitmap(
     progress: WidgetProgressContent,
+    accentColor: Color,
     dates: List<LocalDate>,
     weekCount: Int,
     areaSize: DpSize,
@@ -101,6 +107,7 @@ internal fun drawActivityHeatmapBitmap(
     val pitchDp: Float = min(areaSize.width.value / weekCount, areaSize.height.value / daysPerWeek)
     val gridSize = DpSize(width = (pitchDp * weekCount).dp, height = (pitchDp * daysPerWeek).dp)
     val cells: Map<LocalDate, ActivityDayCell> = makeActivityDayCells(progress = progress, dates = dates)
+    val reviewedColors: List<Int> = makeReviewedDayColors(accentColor = accentColor)
     return drawWidgetBitmap(size = gridSize, density = density) { canvas ->
         val pitchPx: Float = pitchDp * density
         val gapPx: Float = pitchPx * activityCellGapFraction
@@ -113,7 +120,8 @@ internal fun drawActivityHeatmapBitmap(
                 cell = cells.getValue(date),
                 rect = RectF(left, top, left + pitchPx - gapPx, top + pitchPx - gapPx),
                 paint = paint,
-                density = density
+                density = density,
+                reviewedColors = reviewedColors
             )
         }
     }
@@ -126,6 +134,7 @@ internal fun drawActivityHeatmapBitmap(
  */
 internal fun drawYearBitmap(
     progress: WidgetProgressContent,
+    accentColor: Color,
     months: List<YearMonthDates>,
     areaSize: DpSize,
     density: Float
@@ -150,6 +159,7 @@ internal fun drawYearBitmap(
         width = ((labelWidthPx + columnPitchPx * maxDaysPerMonth) / density).dp,
         height = areaSize.height
     )
+    val reviewedColors: List<Int> = makeReviewedDayColors(accentColor = accentColor)
     return drawWidgetBitmap(size = gridSize, density = density) { canvas ->
         val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         months.forEachIndexed { rowIndex, month ->
@@ -168,7 +178,8 @@ internal fun drawYearBitmap(
                     cell = cells.getValue(date),
                     rect = RectF(left, top, left + cellSizePx, top + cellSizePx),
                     paint = cellPaint,
-                    density = density
+                    density = density,
+                    reviewedColors = reviewedColors
                 )
             }
         }
@@ -201,20 +212,42 @@ private fun activityLevel(reviewCount: Int, sortedReviewCounts: List<Int>): Int 
     return ceil(activityLevelCount.toDouble() * countAtOrBelow / sortedReviewCounts.size).toInt()
 }
 
-private fun drawActivityCell(canvas: Canvas, cell: ActivityDayCell, rect: RectF, paint: Paint, density: Float) {
+private fun makeReviewedDayColors(accentColor: Color): List<Int> {
+    val lowestReviewedDay: Int = accentColor.copy(alpha = reviewedDayAlphas.first()).toArgb()
+    val contrast: Double = ColorUtils.calculateContrast(
+        widgetFillOnSurfaceArgb(fillArgb = lowestReviewedDay),
+        widgetFillOnSurfaceArgb(fillArgb = emptyDayColor)
+    )
+    val alphas: List<Float> = if (contrast >= minimumReviewedDayContrast) reviewedDayAlphas else subtleAccentReviewedDayAlphas
+    return alphas.map { alpha -> accentColor.copy(alpha = alpha).toArgb() }
+}
+
+private fun drawActivityCell(
+    canvas: Canvas,
+    cell: ActivityDayCell,
+    rect: RectF,
+    paint: Paint,
+    density: Float,
+    reviewedColors: List<Int>
+) {
     val cornerRadius: Float = rect.width() * activityCellCornerFraction
     paint.style = Paint.Style.FILL
-    paint.color = when {
+    val fillArgb: Int = when {
         cell.isFrozen -> frozenDayColor
         cell.level == 0 -> emptyDayColor
-        else -> FlashcardsDarkColorScheme.primary.copy(alpha = reviewedDayAlphas[cell.level - 1]).toArgb()
+        else -> reviewedColors[cell.level - 1]
     }
+    paint.color = fillArgb
     canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
+    if (cell.isFrozen) {
+        paint.color = frozenDayMarkColor
+        canvas.drawCircle(rect.centerX(), rect.centerY(), rect.width() * frozenDayMarkRadiusFraction, paint)
+    }
     if (cell.isToday) {
         val outlineWidth: Float = todayOutlineWidth.value * density
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = outlineWidth
-        paint.color = todayOutlineColor
+        paint.color = widgetFillOutlineArgb(fillArgb = fillArgb)
         val outlineRect = RectF(rect).apply { inset(outlineWidth / 2f, outlineWidth / 2f) }
         canvas.drawRoundRect(outlineRect, cornerRadius, cornerRadius, paint)
     }

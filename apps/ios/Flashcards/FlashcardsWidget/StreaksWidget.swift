@@ -49,7 +49,7 @@ struct StreaksWidgetView: View {
                     )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -177,6 +177,7 @@ private struct StreaksWidgetContentView: View {
 }
 
 private struct StreaksWidgetSmallView: View {
+    @Environment(\.widgetAccent) private var accent
     let progress: WidgetSnapshotProgress
 
     var body: some View {
@@ -184,7 +185,7 @@ private struct StreaksWidgetSmallView: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 32, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(self.accent.color)
                     .widgetAccentable()
                 Text(self.progress.currentStreakDays, format: .number)
                     .font(.system(size: 48, weight: .bold, design: .rounded))
@@ -239,6 +240,7 @@ private struct StreaksWidgetFreezeView: View {
 }
 
 private struct StreaksWidgetMediumView: View {
+    @Environment(\.widgetAccent) private var accent
     let progress: WidgetSnapshotProgress
     let runs: [StreaksWidgetRun]
     let dateFormatStyle: Date.FormatStyle
@@ -247,7 +249,7 @@ private struct StreaksWidgetMediumView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(self.accent.color)
                     .widgetAccentable()
                 Text("widget.streak_days \(self.progress.currentStreakDays)", tableName: widgetStringsTableName)
                     .lineLimit(1)
@@ -297,6 +299,7 @@ private struct StreaksWidgetBarsView: View {
 }
 
 private struct StreaksWidgetBarRow: View {
+    @Environment(\.widgetAccent) private var accent
     @Environment(\.widgetRenderingMode) private var renderingMode
     let run: StreaksWidgetRun
     let barWidth: CGFloat
@@ -309,7 +312,7 @@ private struct StreaksWidgetBarRow: View {
             ZStack {
                 if self.isAccentFilled {
                     Capsule()
-                        .fill(Color.accentColor)
+                        .fill(self.accent.color)
                         .widgetAccentable()
                 } else {
                     Capsule()
@@ -324,7 +327,7 @@ private struct StreaksWidgetBarRow: View {
                 }
                 Text(self.run.dayCount, format: .number)
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(self.isAccentFilled ? Color.white : Color.primary)
+                    .foregroundStyle(self.isAccentFilled ? self.accent.filledLabelColor : Color.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .padding(.horizontal, 4)

@@ -70,7 +70,7 @@ struct DashboardWidgetView: View {
                 )
             )
         )
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
     }
 }
 
@@ -125,12 +125,13 @@ private struct DashboardWidgetRingView: View {
 
 /// The flame takes the accent colour once the user has reviewed today, as on the Today widget.
 private struct DashboardWidgetStreakView: View {
+    @Environment(\.widgetAccent) private var accent
     let today: WidgetTodayProgress
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(self.today.reviewedCount > 0 ? Color.accentColor : Color.secondary)
+                .foregroundStyle(self.today.reviewedCount > 0 ? self.accent.color : Color.secondary)
                 .widgetAccentable(self.today.reviewedCount > 0)
             Text("widget.streak_days \(self.today.streakDays)", tableName: widgetStringsTableName)
                 .foregroundStyle(.secondary)
