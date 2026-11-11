@@ -6,11 +6,13 @@ supported_locales=(
     "en-US"
     "ar"
     "zh-Hans"
+    "zh-Hant"
     "fr"
     "de"
     "hi"
     "ja"
     "pt-BR"
+    "pt-PT"
     "ru"
     "es-MX"
     "es-ES"
@@ -36,8 +38,10 @@ supported_locales=(
     "lv"
     "ml"
     "mr"
+    "ms"
     "nb"
     "nl"
+    "or"
     "pa"
     "pl"
     "ro"
@@ -78,11 +82,13 @@ Supported locales:
   en-US
   ar
   zh-Hans
+  zh-Hant
   fr
   de
   hi
   ja
   pt-BR
+  pt-PT
   ru
   es-MX
   es-ES
@@ -108,8 +114,10 @@ Supported locales:
   lv
   ml
   mr
+  ms
   nb
   nl
+  or
   pa
   pl
   ro
@@ -171,7 +179,7 @@ canonicalize_locale() {
     local raw_locale="$1"
 
     case "$raw_locale" in
-        en | en-US)
+        en | en-US | en-AU | en-CA | en-GB)
             echo "en-US"
             ;;
         ar | ar-SA)
@@ -180,7 +188,10 @@ canonicalize_locale() {
         zh-CN | zh-Hans)
             echo "zh-Hans"
             ;;
-        fr | fr-FR)
+        zh-Hant)
+            echo "zh-Hant"
+            ;;
+        fr | fr-FR | fr-CA)
             echo "fr"
             ;;
         de | de-DE)
@@ -194,6 +205,9 @@ canonicalize_locale() {
             ;;
         pt-BR | pt)
             echo "pt-BR"
+            ;;
+        pt-PT)
+            echo "pt-PT"
             ;;
         ru | ru-RU)
             echo "ru"
@@ -270,11 +284,17 @@ canonicalize_locale() {
         mr | mr-IN)
             echo "mr"
             ;;
+        ms)
+            echo "ms"
+            ;;
         nb | no)
             echo "nb"
             ;;
         nl | nl-NL)
             echo "nl"
+            ;;
+        or | or-IN)
+            echo "or"
             ;;
         pa | pa-IN)
             echo "pa"

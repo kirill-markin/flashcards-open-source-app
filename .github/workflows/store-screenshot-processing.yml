@@ -6,6 +6,7 @@ on:
       - .github/workflows/store-screenshot-processing.yml
       - .gitignore
       - scripts/store-screenshots/**
+      - scripts/ios/app-store-localization-inputs.mts
       - scripts/media/**
       - docs/media-assets.md
       - docs/store-screenshot-processing.md
@@ -39,7 +40,7 @@ on:
           - iphone-duo-inner
           - macos
       locales:
-        description: Comma-separated locale IDs; empty processes all configured sets
+        description: Comma-separated locale IDs. Leave empty to process complete saved sets.
         required: false
         type: string
 
