@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import ReactDOM from "react-dom/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { reviewCountsRepairDelay } from "../../../appData/review/localReviewSchedule";
 import type { Card, ReviewQueueSnapshot } from "../../../types";
 import { I18nProvider } from "../../../i18n";
 import {
@@ -360,6 +361,7 @@ describe("useReviewScreenData submit", () => {
           resolvedReviewFilter: state.appData.selectedReviewFilter,
           cards: [newCanonicalHead, newCanonicalNext],
           nextCursor: null,
+          nextDueAtMillis: null,
           reviewCounts: {
             dueCount: 2,
             totalCount: 2,
@@ -382,6 +384,7 @@ describe("useReviewScreenData submit", () => {
       expect(state.appData.getCardById).not.toHaveBeenCalledWith(oldNextCard.cardId);
       expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).toEqual(expectedActiveQueueCardIds);
       expect(latestResult?.queueCards.map((queueCard) => queueCard.cardId)).toEqual(expectedTimelineCardIds);
+      expect(latestResult?.reviewCounts).toEqual({ dueCount: 2, totalCount: 2 });
 
       await act(async () => {
         submitReviewPromise.reject(new Error("Review submit failed"));
@@ -545,6 +548,7 @@ describe("useReviewScreenData submit", () => {
           resolvedReviewFilter: state.appData.selectedReviewFilter,
           cards: [newFilterHead, newFilterNext],
           nextCursor: null,
+          nextDueAtMillis: null,
           reviewCounts: {
             dueCount: 2,
             totalCount: 2,
@@ -793,6 +797,8 @@ describe("useReviewScreenData submit", () => {
     state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => submitReviewPromise.promise);
 
     await renderReviewScreen();
+    const scopeBadgeSelector = "[data-testid='review-filter-trigger'] .review-due-badge";
+    expect(getContainer().querySelector(scopeBadgeSelector)?.textContent).toBe("2");
 
     state.cards = [refreshedCurrentCard, nextCard];
     state.reviewQueue = [nextCard];
@@ -819,12 +825,23 @@ describe("useReviewScreenData submit", () => {
     expect(getContainer().textContent).not.toContain("Race current original front");
     expect(getContainer().textContent).not.toContain("Race current refreshed front");
     expect(queueTitlesAfterRefresh).toEqual(["Race next front"]);
+    expect(getContainer().querySelector(scopeBadgeSelector)?.textContent).toBe("2");
 
     await act(async () => {
-      submitReviewPromise.resolve(refreshedCurrentCard);
+      submitReviewPromise.resolve({
+        ...refreshedCurrentCard,
+        dueAt: "2026-03-10T13:00:00.000Z",
+      });
       await Promise.resolve();
       await Promise.resolve();
     });
+    expect(getContainer().querySelector(scopeBadgeSelector)?.textContent).toBe("1");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(reviewCountsRepairDelay);
+    });
+    expect(loadReviewQueueSnapshotMock).toHaveBeenCalledTimes(3);
+    expect(getContainer().querySelector(scopeBadgeSelector)?.textContent).toBe("1");
   });
 
   it("optimistically decrements due count without decrementing total count", async () => {

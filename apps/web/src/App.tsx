@@ -977,9 +977,13 @@ export function AppShell(): ReactElement {
               <div className="nav-links">
                 {primaryNavigationItems.map((item) => (
                   <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${buildPrimaryNavigationBadgeTargetClassName(item.route)}`} to={workspacePath(item.route)}>
-                    {t(item.labelKey)}
-                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                    {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                    {({ isActive }) => (
+                      <>
+                        {t(item.labelKey)}
+                        {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                        {item.route === reviewRoute && !isActive ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -1039,9 +1043,13 @@ export function AppShell(): ReactElement {
                 to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
-                {t(item.labelKey)}
-                {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                {({ isActive }) => (
+                  <>
+                    {t(item.labelKey)}
+                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                    {item.route === reviewRoute && !isActive ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                  </>
+                )}
               </NavLink>
             ))}
           </AnchoredFloatingOverlay>

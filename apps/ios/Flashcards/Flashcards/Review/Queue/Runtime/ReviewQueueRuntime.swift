@@ -88,38 +88,12 @@ struct ReviewQueueRuntime {
         cards: [Card],
         decks: [Deck]
     ) -> Int {
-        let resolvedReviewQuery = resolveReviewQuery(
-            reviewFilter: publishedState.selectedReviewFilter,
-            decks: decks,
-            cards: cards
-        )
-
-        return publishedState.pendingReviewCardIds.reduce(into: 0) { result, cardId in
-            guard let card = cards.first(where: { existingCard in
-                existingCard.cardId == cardId
-            }) else {
+        publishedState.pendingReviewCardIds.reduce(into: 0) { count, cardId in
+            guard let card = cards.first(where: { $0.cardId == cardId }),
+                  cardMatchesResolvedReviewFilter(reviewFilter: publishedState.selectedReviewFilter, decks: decks, card: card) else {
                 return
             }
-            guard card.deletedAt == nil else {
-                return
-            }
-
-            let isIncluded: Bool
-            switch resolvedReviewQuery.queryDefinition {
-            case .allCards:
-                isIncluded = true
-            case .deck(let filterDefinition):
-                isIncluded = matchesDeckFilterDefinition(filterDefinition: filterDefinition, card: card)
-            case .tag(let exactTagNames):
-                let exactTagNameSet = Set<String>(exactTagNames)
-                isIncluded = card.tags.contains { tag in
-                    exactTagNameSet.contains(tag)
-                }
-            }
-
-            if isIncluded {
-                result += 1
-            }
+            count += 1
         }
     }
 

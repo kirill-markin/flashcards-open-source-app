@@ -123,6 +123,7 @@ export type ReviewQueueSnapshot = Readonly<{
   cards: ReadonlyArray<Card>;
   nextCursor: string | null;
   reviewCounts: ReviewCounts;
+  nextDueAtMillis: number | null;
 }>;
 
 export type ReviewTimelinePage = Readonly<{

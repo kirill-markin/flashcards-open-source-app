@@ -535,30 +535,34 @@ async function iterateReviewCardsInCanonicalOrder(
   await iterateMalformedDueAtReviewCards(database, workspaceId, nowTimestamp, onCard);
 }
 
-async function makeReviewCountsFromIndexedDb(
+async function loadReviewScheduleSummary(
   database: IDBDatabase,
   workspaceId: string,
   filterResolution: ReviewFilterResolution,
   nowTimestamp: number,
-): Promise<ReviewCounts> {
-  let reviewCounts: ReviewCounts = {
-    dueCount: 0,
-    totalCount: 0,
-  };
+): Promise<Readonly<{ reviewCounts: ReviewCounts; nextDueAtMillis: number | null }>> {
+  let dueCount = 0;
+  let totalCount = 0;
+  let nextDueAtMillis: number | null = null;
 
   await iterateLocalStoredCardsByCreatedAtDesc(database, workspaceId, (card) => {
     if (card.deletedAt !== null || matchesResolvedReviewFilter(card, filterResolution) === false) {
       return true;
     }
 
-    reviewCounts = {
-      dueCount: reviewCounts.dueCount + (isLocalStoredCardDue(card, nowTimestamp) ? 1 : 0),
-      totalCount: reviewCounts.totalCount + 1,
-    };
+    totalCount += 1;
+    if (isLocalStoredCardDue(card, nowTimestamp)) {
+      dueCount += 1;
+    } else if (
+      card.dueAtMillis !== null
+      && (nextDueAtMillis === null || card.dueAtMillis < nextDueAtMillis)
+    ) {
+      nextDueAtMillis = card.dueAtMillis;
+    }
     return true;
   });
 
-  return reviewCounts;
+  return { reviewCounts: { dueCount, totalCount }, nextDueAtMillis };
 }
 
 async function loadActiveReviewQueuePage(
@@ -687,7 +691,7 @@ export async function loadReviewQueueSnapshot(
   return closeDatabaseAfter(async (database) => {
     const nowTimestamp = Date.now();
     const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
-    const [queuePage, reviewCounts] = await Promise.all([
+    const [queuePage, scheduleSummary] = await Promise.all([
       loadActiveReviewQueuePage(
         database,
         workspaceId,
@@ -697,14 +701,14 @@ export async function loadReviewQueueSnapshot(
         limit,
         new Set<string>(),
       ),
-      makeReviewCountsFromIndexedDb(database, workspaceId, filterResolution, nowTimestamp),
+      loadReviewScheduleSummary(database, workspaceId, filterResolution, nowTimestamp),
     ]);
 
     return {
       resolvedReviewFilter: filterResolution.resolvedReviewFilter,
       cards: queuePage.cards,
       nextCursor: queuePage.nextCursor,
-      reviewCounts,
+      ...scheduleSummary,
     };
   });
 }
@@ -714,34 +718,19 @@ export type ReviewDueBadgeSummary = Readonly<{
   nextDueAtMillis: number | null;
 }>;
 
-/** Malformed `dueAt` values are neither due nor upcoming. */
 export async function loadReviewDueBadgeSummary(
   workspaceId: string,
-  reviewFilter: ReviewFilter,
   nowTimestamp: number,
 ): Promise<ReviewDueBadgeSummary> {
   return closeDatabaseAfter(async (database) => {
-    const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
-    let dueCount = 0;
-    let nextDueAtMillis: number | null = null;
-
-    await iterateLocalStoredCardsByCreatedAtDesc(database, workspaceId, (card) => {
-      if (card.deletedAt !== null || matchesResolvedReviewFilter(card, filterResolution) === false) {
-        return true;
-      }
-
-      if (isLocalStoredCardDue(card, nowTimestamp)) {
-        dueCount += 1;
-      } else if (
-        card.dueAtMillis !== null
-        && (nextDueAtMillis === null || card.dueAtMillis < nextDueAtMillis)
-      ) {
-        nextDueAtMillis = card.dueAtMillis;
-      }
-      return true;
-    });
-
-    return { dueCount, nextDueAtMillis };
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, ALL_CARDS_REVIEW_FILTER);
+    const { reviewCounts, nextDueAtMillis } = await loadReviewScheduleSummary(
+      database,
+      workspaceId,
+      filterResolution,
+      nowTimestamp,
+    );
+    return { dueCount: reviewCounts.dueCount, nextDueAtMillis };
   });
 }
 

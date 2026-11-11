@@ -19,7 +19,6 @@ type ReviewMoreActionsMenuProps = Readonly<{
   onOpenReviewFilterMenu: () => void;
   onReviewQueueShortcutClick: () => void;
   selectedReviewFilterTitle: string;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
 }>;
 
 function ReviewMoreActionsIcon(): ReactElement {
@@ -46,7 +45,6 @@ function ReviewMoreActionsChevronIcon(): ReactElement {
   );
 }
 
-// Phone-width entry point to the review scope list and queue, which the compact header hides.
 export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactElement {
   const {
     isOpen,
@@ -57,9 +55,9 @@ export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactE
     onOpenReviewFilterMenu,
     onReviewQueueShortcutClick,
     selectedReviewFilterTitle,
-    triggerRef,
   } = props;
   const { t } = useI18n();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerAriaLabel = t("reviewScreen.moreActions.ariaLabel");
 
@@ -96,20 +94,14 @@ export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactE
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onOpenChange, triggerRef]);
+  }, [isOpen, onOpenChange]);
 
   function handleTriggerClick(): void {
     if (isReviewFilterMenuOpen) {
       onCloseReviewFilterMenu();
-      return;
     }
 
     onOpenChange(!isOpen);
-  }
-
-  function handleScopeClick(): void {
-    onOpenChange(false);
-    onOpenReviewFilterMenu();
   }
 
   function handleQueueClick(): void {
@@ -154,7 +146,7 @@ export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactE
           className="review-filter-menu-entry review-more-actions-entry"
           type="button"
           data-testid="review-more-actions-scope"
-          onClick={handleScopeClick}
+          onClick={onOpenReviewFilterMenu}
         >
           <span className="review-filter-menu-item-label">
             {`${t("reviewFilterMenu.scopeLabel")}: ${selectedReviewFilterTitle}`}

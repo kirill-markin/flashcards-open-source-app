@@ -73,12 +73,23 @@ final class FlashcardsStore {
     var isProductAnalyticsEnabled: Bool
     var cards: [Card]
     var decks: [Deck]
-    var selectedReviewFilter: ReviewFilter
+    var selectedReviewFilter: ReviewFilter {
+        didSet {
+            if self.selectedReviewFilter != oldValue {
+                self.appliedReviewDueCutoff = nil
+                self.scheduleNextDueRefresh(nextDueAt: nil)
+            }
+        }
+    }
     var reviewQueue: [Card]
     var presentedReviewCard: Card?
     /// Signals a transient Review presentation reset after an explicit workspace switch or progress reset.
     var reviewPresentationResetRevision: Int = 0
-    var reviewDueBadgeCount: Int = 0
+    var workspaceReviewDue: WorkspaceReviewDueState? = nil
+    var workspaceReviewDueRatingVersion: Int = 0
+    @ObservationIgnored var workspaceReviewDueRatingSavesInFlight: Int = 0
+    var appliedReviewDueCutoff: Date? = nil
+    var appliedReviewLoadState: AppliedReviewLoadState = .settled
     var reviewCounts: ReviewCounts
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
@@ -173,6 +184,7 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewDataLeftForegroundAt: Date? = nil
     @ObservationIgnored var nextDueRefreshTask: Task<Void, Never>? = nil
     @ObservationIgnored var nextDueRefreshAt: Date? = nil
+    @ObservationIgnored var appliedReviewDueReconcileState: AppliedReviewDueReconcileState = .idle
     /// The database holds sync writes Review has not rebuilt from yet: set as soon as a sync applied remote
     /// changes, or failed after possibly applying pulled pages, and cleared by the sync rebuild in
     /// `applySyncResultWithoutBlockingReset`. See docs/fsrs-scheduling-logic.md#non-blocking-review.
@@ -260,6 +272,7 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewProgressBadgeSource: ReviewProgressBadgeSource?
     /// What the app last handed the Home Screen widget in this process; see `FlashcardsStore+WidgetSnapshot`.
     @ObservationIgnored var lastWrittenWidgetSnapshot: WidgetSnapshot? = nil
+    @ObservationIgnored var widgetSnapshotRequestSequence: Int = 0
     @ObservationIgnored var progressSnapshotPublishedClientRevision: Int?
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressErrorState: ProgressErrorState

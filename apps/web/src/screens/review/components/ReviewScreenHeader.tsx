@@ -26,7 +26,6 @@ export type ReviewScreenHeaderProps = Readonly<{
   reviewQueueTotalCount: number;
   reviewLoadErrorMessage: string;
   reviewLeaderboardBadge: ReviewLeaderboardBadgeState;
-  reviewMoreActionsTriggerRef: React.RefObject<HTMLButtonElement | null>;
   reviewProgressBadge: ReviewProgressBadgeState;
   reviewSpeechMessage: string;
 }>;
@@ -44,7 +43,6 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     reviewQueueTotalCount,
     reviewLoadErrorMessage,
     reviewLeaderboardBadge,
-    reviewMoreActionsTriggerRef,
     reviewProgressBadge,
     reviewSpeechMessage,
   } = props;
@@ -86,7 +84,6 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
                 onOpenReviewFilterMenu={onReviewFilterMenuOpenFromMoreActions}
                 onReviewQueueShortcutClick={onReviewQueueShortcutClick}
                 selectedReviewFilterTitle={filterMenuProps.selectedReviewFilterTitle}
-                triggerRef={reviewMoreActionsTriggerRef}
               />
               <button
                 className="badge review-progress-badge review-screen-head-badge review-queue-shortcut"

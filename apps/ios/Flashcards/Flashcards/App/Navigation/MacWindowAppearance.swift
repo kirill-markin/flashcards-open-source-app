@@ -1,4 +1,5 @@
 #if targetEnvironment(macCatalyst)
+import AppKit
 import SwiftUI
 import UIKit
 
@@ -378,6 +379,9 @@ struct MacWindowAppearance: UIViewRepresentable {
             entry.item.paletteLabel = action.label
             entry.item.toolTip = action.toolTip ?? action.label
             entry.item.isEnabled = action.isEnabled
+            if #available(macCatalyst 26.0, *) {
+                entry.item.badge = action.badgeCount.map { NSItemBadge.count($0) }
+            }
             entry.item.itemMenuFormRepresentation = UIAction(title: action.label, image: image,
                 attributes: action.isEnabled ? [] : .disabled, state: action.isSelected ? .on : .off) { [weak self] _ in
                 self?.performAction(identifier: action.identifier)

@@ -37,7 +37,14 @@ Inside the two due buckets the order is `dueAt ASC`, then `createdAt ASC`, then 
 
 Cards that become due after `Again` or another short-step review can therefore rise ahead of a large old-overdue tail on the next normal queue refresh or review action.
 
-The Review tab badge counts active cards with `dueAt <= now` plus new cards (`dueAt` null) under the current workspace's selected Review filter; future-due and malformed `dueAt` cards are excluded. It is hidden at 0, shows the exact number with no cap, and refreshes on filter change, local data change, app foreground, and at the next card's due time; a rating adjusts it in memory instead of recounting.
+### Review counts
+
+Review counts include new cards and cards due now or overdue in the selected workspace, using the queue eligibility above. Deleted cards are excluded. On web, iOS/iPadOS, Mac Catalyst, and Android:
+
+- When Review is inactive, its navigation badge shows the count for the whole workspace.
+- When Review is active, the filter control shows the count for the applied filter and the navigation badge is hidden. On Apple platforms, use a native toolbar badge where available and an inline count beside the filter elsewhere.
+
+Show the exact count and hide it at zero. Counts update under the [non-blocking review](#non-blocking-review) rules.
 
 ### Non-blocking review
 
@@ -46,8 +53,8 @@ Review never blinks or blocks on any client:
 - The card on screen stays until the user rates it, even if the canonical queue order changes in the background. No background refresh, rebuild, or sync swaps it or the prepared next card for another card; edits to either card update it in place. Exceptions: a filter change or workspace switch starts a new session in the new scope, including the fallback to all cards when the selected deck no longer exists (a tag selection that comes to cover every tag is the same scope, not a change), a [Home Screen widget](home-screen-widgets.md#tap) tap on a card still in review starts a new session showing that card first, and a card that leaves review (deleted locally or through sync, out of the filter, or no longer due because it was reviewed on another device) is replaced: a shown card advances to the prepared next card, and a prepared next card is re-prepared.
 - The card a rating shows next is already prepared: text, answer buttons, and images (the next card's front and back, plus the current card's back); when no card remains, the empty state shows at once. If an image is still downloading, the card appears at once with an in-place placeholder sized from the local file when it is on disk, otherwise 4:3.
 - A rating's reaction animation never delays the next card: it is fully prepared before the tap, starts only after the next card is on screen, and any touch or shortcut hides it at once.
-- A rating saves one card and one review event and updates in memory only that card, the queue, due and total counts, the badge, today's review count, and the streak badge. It never reads the whole workspace.
-- As time passes, one timer at the next due time refreshes only the bounded queue window and counts. Timing is approximate: "Again in 1 minute" may show a little later.
+- A rating saves one card and one review event and updates in memory only that card, the queue, workspace and filtered due counts, total counts, today's review count, and the streak badge. It never reads the whole workspace.
+- Refresh the affected counts without scanning the full queue whenever the app returns to the foreground or the timer for the next due card fires. Refresh the bounded queue window when needed. Timing is approximate: "Again in 1 minute" may show a little later.
 - A full rebuild runs only for a named reason: initial load, filter change, workspace switch, local card create/edit/delete/import, a sync that applied remote changes, return after 30+ minutes away or a date change, and a safety rebuild every 10 minutes while the app is open. It runs in the background, and the first rule above still holds.
 - Screens that are not visible (decks, tags, card list, Progress charts, leaderboard) refresh when shown or a few seconds after the last rating, not on every rating.
 
