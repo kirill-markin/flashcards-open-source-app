@@ -62,7 +62,8 @@ class CloudIdentityResetCoordinatorTest {
                 lastKnownChatConfig = null,
                 pendingToolRunPostSync = false,
                 requiresRemoteSessionProvisioning = false
-            )
+            ),
+            ankiImportRequest = null
         )
         environment.guestAiSessionStore.saveSession(
             localWorkspaceId = initialLocalWorkspaceId,

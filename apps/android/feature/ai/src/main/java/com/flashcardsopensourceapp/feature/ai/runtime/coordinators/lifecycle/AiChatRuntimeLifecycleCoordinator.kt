@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessConte
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.forSession
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.isAiChatConversationStale
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAiDraftState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.normalizeAiChatPersistedStateForWorkspace
@@ -110,13 +111,14 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 workspaceId = accessContext.workspaceId,
                 sessionId = persistedState.chatSessionId
             )
-            val draftState = context.aiChatRepository.loadDraftState(
+            val storedDraft = context.aiChatRepository.loadDraftState(
                 workspaceId = accessContext.workspaceId,
                 sessionId = persistedSessionId
             )
             if (loadGeneration != accessContextLoadGeneration) {
                 return@launch
             }
+            val draftState = storedDraft.forSession(workspaceId = accessContext.workspaceId, sessionId = persistedSessionId)
             val nextState = makeAiDraftState(
                 workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
@@ -124,6 +126,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 loadedAccessKey = context.activeAccessContext?.runtimeKey(),
                 draftMessage = draftState.draftMessage,
                 pendingAttachments = draftState.pendingAttachments,
+                ankiImportRequest = draftState.ankiImportRequest,
                 conversationBootstrapState = if (accessContext.workspaceId == null) {
                     AiConversationBootstrapState.LOADING
                 } else if (shouldBootstrapConversation(
@@ -138,7 +141,9 @@ internal class AiChatRuntimeLifecycleCoordinator(
             )
 
             context.runtimeStateMutable.value = nextState
-            context.persistCurrentState()
+            if (storedDraft.ankiImportRequest == null || draftState.ankiImportRequest != null) {
+                context.persistCurrentState()
+            }
             if (accessContext.workspaceId == null) {
                 return@launch
             }
@@ -382,7 +387,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
         if (canUseAi.not()) {
             return false
         }
-        if (context.activeFreshSessionJob != null) {
+        if (context.activeFreshSessionJob != null || state.ankiImportRequest != null) {
             return false
         }
 

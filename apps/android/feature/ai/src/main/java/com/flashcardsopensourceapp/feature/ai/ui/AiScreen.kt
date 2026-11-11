@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -14,7 +16,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.AddComment
@@ -678,6 +682,46 @@ internal fun AiRouteContent(
                     hideDetailsLabel = stringResource(id = R.string.ai_error_hide_details),
                     dismissLabel = stringResource(id = R.string.ai_ok),
                     onDismiss = onDismissAlert
+                )
+            }
+
+            is AiAlertState.UnsentMessage -> {
+                val copyLabel = stringResource(id = R.string.ai_copy_unsent_message)
+                AlertDialog(
+                    onDismissRequest = onDismissAlert,
+                    title = { Text(activeAlert.title) },
+                    text = {
+                        Column(
+                            modifier = Modifier.verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(activeAlert.message)
+                            if (activeAlert.draftMessage.isNotBlank()) {
+                                Text(activeAlert.draftMessage)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = onDismissAlert) {
+                            Text(stringResource(id = R.string.ai_ok))
+                        }
+                    },
+                    dismissButton = if (activeAlert.draftMessage.isNotBlank()) {
+                        {
+                            TextButton(
+                                onClick = {
+                                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(
+                                        ClipData.newPlainText(copyLabel, activeAlert.draftMessage)
+                                    )
+                                    onDismissAlert()
+                                }
+                            ) {
+                                Text(copyLabel)
+                            }
+                        }
+                    } else {
+                        null
+                    }
                 )
             }
 

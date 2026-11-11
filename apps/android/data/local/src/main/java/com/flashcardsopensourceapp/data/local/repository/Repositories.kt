@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
@@ -367,7 +367,7 @@ data class AiChatPreparedRemoteSession(
 )
 
 data class AiChatPreparedAnkiImport(
-    val target: AiAnkiImportTarget,
+    val request: AiChatAnkiImportRequest,
     val remoteSession: AiChatPreparedRemoteSession
 )
 
@@ -387,14 +387,24 @@ interface AiChatRepository {
     suspend fun loadAiUsage(workspaceId: String?): AiUsageStatus
     fun makeExplicitSessionId(): String
     suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession
-    suspend fun prepareAnkiImportSession(target: AiAnkiImportTarget): AiChatPreparedAnkiImport
+    suspend fun prepareAnkiImportSession(request: AiChatAnkiImportRequest): AiChatPreparedAnkiImport
     suspend fun ensureReadyForSend(workspaceId: String?)
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
-    suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
+    suspend fun savePersistedState(
+        workspaceId: String?,
+        state: AiChatPersistedState,
+        ankiImportRequest: AiChatAnkiImportRequest?
+    )
     suspend fun clearPersistedState(workspaceId: String?)
     suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState
-    suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState)
+    suspend fun saveDraftState(
+        workspaceId: String?,
+        sessionId: String?,
+        state: AiChatDraftState
+    ): Boolean
     suspend fun clearDraftState(workspaceId: String?, sessionId: String?)
+    suspend fun saveAnkiImportState(state: AiChatPersistedState, draftState: AiChatDraftState)
+    suspend fun finishAnkiImport(request: AiChatAnkiImportRequest, state: AiChatPersistedState?): Boolean
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
     suspend fun ensureSessionId(
         workspaceId: String?,

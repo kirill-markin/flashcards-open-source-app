@@ -91,6 +91,8 @@ internal fun mapToAiUiState(
         && isConversationReady
         && runtimeState.dictationState == AiChatDictationState.IDLE
         && runtimeState.isImportingAttachment.not()
+    val isSendingAnkiImport = runtimeState.ankiImportRequest != null &&
+        (runtimeState.composerPhase == AiComposerPhase.PREPARING_SEND || runtimeState.composerPhase == AiComposerPhase.STARTING_RUN)
     val canEditDraftText = canEditAiDraftText(state = runtimeState)
     val canEditDraft = canEditAiDraft(state = runtimeState)
     val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
@@ -113,9 +115,9 @@ internal fun mapToAiUiState(
         currentWorkspaceName = metadata.currentWorkspaceName ?: textProvider.unavailableLabel,
         conversationScrollStateKey = aiConversationScrollStateKey(runtimeState = runtimeState),
         messages = runtimeState.persistedState.messages,
-        pendingAttachments = runtimeState.pendingAttachments,
+        pendingAttachments = if (isSendingAnkiImport) emptyList() else runtimeState.pendingAttachments,
         isImportingAttachment = runtimeState.isImportingAttachment,
-        draftMessage = runtimeState.draftMessage,
+        draftMessage = if (isSendingAnkiImport) "" else runtimeState.draftMessage,
         focusComposerRequestVersion = runtimeState.focusComposerRequestVersion,
         composerSuggestions = composerSuggestions,
         chatConfig = chatConfig,

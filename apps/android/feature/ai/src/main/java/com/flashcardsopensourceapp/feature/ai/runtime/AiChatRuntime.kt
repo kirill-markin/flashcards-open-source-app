@@ -440,11 +440,12 @@ internal class AiChatRuntime(
             return true
         }
 
-        sessionCoordinator.prepareFreshConversationForSend(
+        sessionCoordinator.prepareAnkiImportConversation(
             draftMessage = ankiImport.message,
-            pendingAttachments = ankiImport.attachments
+            pendingAttachments = ankiImport.attachments,
+            target = workspace
         )
-        sendCoordinator.sendMessage(ankiImportTarget = workspace)
+        sendCoordinator.sendMessage()
         return true
     }
 
@@ -643,7 +644,7 @@ internal class AiChatRuntime(
     }
 
     fun sendMessage() {
-        sendCoordinator.sendMessage(ankiImportTarget = null)
+        sendCoordinator.sendMessage()
     }
 
     private fun hasConsent(): Boolean {
