@@ -145,7 +145,7 @@ struct PublicSyncConflictRepairer {
                 front_text,
                 back_text,
                 card_type,
-                metadata_json,
+                json_remove(metadata_json, '$.maintenanceRevision'),
                 tags_json,
                 due_at,
                 due_at_millis,
