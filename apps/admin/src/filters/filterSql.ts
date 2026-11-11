@@ -12,8 +12,10 @@ import {
 } from "../../../backend/src/reviewMetricsSql";
 export { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -322,6 +324,30 @@ export function buildEventPlatformsNarrowingSql(
   return isEventPlatformsNarrowed(eventPlatforms)
     ? `AND ${buildEventPlatformsFilterSql(platformSqlExpression, eventPlatforms)}`
     : "";
+}
+
+/**
+ * `AND` and the device class predicate on the raw `device_type` column, or `""` when every class is
+ * selected, as `buildEventPlatformsNarrowingSql`: an empty selection matches nothing. `unknown` becomes
+ * `IS NULL` rather than a `COALESCE`, which the planner cannot estimate: stacked on the platform
+ * predicate it estimated one `app_opened` row and turned every join above into a nested loop.
+ */
+export function buildEventDeviceTypesNarrowingSql(
+  deviceTypeColumnSql: string,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+): string {
+  if (eventDeviceTypes.length === productEventDeviceTypes.length) {
+    return "";
+  }
+
+  const knownDeviceTypes = eventDeviceTypes.filter((deviceType) => deviceType !== "unknown");
+  if (!eventDeviceTypes.includes("unknown")) {
+    return `AND ${buildInPredicateSql(deviceTypeColumnSql, knownDeviceTypes)}`;
+  }
+
+  return knownDeviceTypes.length === 0
+    ? `AND ${deviceTypeColumnSql} IS NULL`
+    : `AND (${buildInPredicateSql(deviceTypeColumnSql, knownDeviceTypes)} OR ${deviceTypeColumnSql} IS NULL)`;
 }
 
 /** Picking no app version keeps every version, an unknown one included, so an empty selection is no filter. */

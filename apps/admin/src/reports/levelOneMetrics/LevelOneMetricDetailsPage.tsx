@@ -46,6 +46,7 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
@@ -55,6 +56,7 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -68,6 +70,7 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -76,6 +79,7 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -84,6 +88,7 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             onNavigate={props.onNavigate}
             onTerminalAdminError={props.onTerminalAdminError}
@@ -98,6 +103,7 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             eventPlatforms={selection.eventPlatforms}
+            eventDeviceTypes={selection.eventDeviceTypes}
             appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}

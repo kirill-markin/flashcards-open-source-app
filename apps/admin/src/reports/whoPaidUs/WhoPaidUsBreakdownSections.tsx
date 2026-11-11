@@ -35,6 +35,7 @@ export function WhoPaidUsBreakdownSections(props: Readonly<{
           <li>The trial starts, first payments and recurring payments of Who paid us together, under the provider that recorded them, so each bar adds up to that chart’s bar for the same day, week or month.</li>
           <li>These are events, not unique people, revenue or active paying customers.</li>
           <li>The Platform filter keeps only the providers of the selected platforms: Apple for iOS, Google for Android and Stripe for web.</li>
+          <li>The Device filter does not narrow these events, because payments carry no device class.</li>
           <li>Apple and Google merchant history is partial, so counts are partial and cannot prove zero. A bar with no recorded classified trial start, first payment or recurring payment is unavailable exactly when the Who paid us bar is. While iOS or Android is selected it is never zero; with neither, it is a proven 0 when Web is not selected either or Stripe’s scans cover all of its days.</li>
         </>}
         countLabel="Events"

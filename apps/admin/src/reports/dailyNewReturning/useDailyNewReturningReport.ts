@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ReviewEventPlatform } from "../../adminApi";
+import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
@@ -9,6 +9,7 @@ export type DailyNewReturningSelection = Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   appVersions: ReadonlyArray<string>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>;
@@ -23,6 +24,7 @@ export type DailyNewReturningReportLoader<Report> = (
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   reportLabel: string,
   signal: AbortSignal,
@@ -33,20 +35,20 @@ export function useDailyNewReturningReport<Report>(
   title: string,
   loadReport: DailyNewReturningReportLoader<Report>,
 ): Readonly<{ state: DailyNewReturningLoadState<Report>; retry: () => void }> {
-  const { config, dateRange, period, eventPlatforms, appVersions, onTerminalAdminError } = selection;
+  const { config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, onTerminalAdminError } = selection;
   const [state, setState] = useState<DailyNewReturningLoadState<Report>>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadReport(config, dateRange, period, eventPlatforms, appVersions, `${title} report`, abortController.signal).then((report) => {
+    void loadReport(config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, `${title} report`, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || onTerminalAdminError(error, config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${title} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [config, dateRange, period, eventPlatforms, appVersions, onTerminalAdminError, title, loadReport, revision]);
+  }, [config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, onTerminalAdminError, title, loadReport, revision]);
   return { state, retry: () => setRevision((value) => value + 1) };
 }

@@ -1,12 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
   type ReviewEventsByDateUser,
 } from "../adminApi";
 import {
+  deviceTypeLabels,
   getPlatformColor,
   platformLabels,
   uniqueUserCohortColors,
@@ -718,6 +721,10 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     () => new Set(props.filters.eventPlatforms),
     [props.filters.eventPlatforms],
   );
+  const selectedDeviceTypes = useMemo(
+    () => new Set(props.filters.eventDeviceTypes),
+    [props.filters.eventDeviceTypes],
+  );
   const userOptionById = useMemo(
     () => new Map<string, ReviewEventsByDateUser>(
       props.userOptions.map((user) => [user.userId, user]),
@@ -927,6 +934,43 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                 onReset={() => props.onFiltersChange({
                   ...props.filters,
                   eventPlatforms: defaultFilters.eventPlatforms,
+                })}
+              />
+            )}
+          </>
+        ),
+      };
+    }
+
+    if (field === "eventDeviceTypes") {
+      return {
+        summary: getEnumSelectionSummary(
+          props.filters.eventDeviceTypes,
+          productEventDeviceTypes,
+          deviceTypeLabels,
+        ),
+        isFiltered: props.filters.eventDeviceTypes.length !== productEventDeviceTypes.length,
+        isWide: false,
+        content: (
+          <>
+            <FilterOptionList
+              options={productEventDeviceTypes.map((deviceType) => ({
+                value: deviceType,
+                label: deviceTypeLabels[deviceType],
+                swatchColor: filterValueSwatchColor,
+              }))}
+              selectedValues={selectedDeviceTypes}
+              onToggle={(deviceType: ProductEventDeviceType, isChecked) => props.onFiltersChange({
+                ...props.filters,
+                eventDeviceTypes: toggleSelectedValue(props.filters.eventDeviceTypes, deviceType, isChecked),
+              })}
+            />
+            {props.filters.eventDeviceTypes.length === productEventDeviceTypes.length ? null : (
+              <FilterFieldResetButton
+                label="Select every device"
+                onReset={() => props.onFiltersChange({
+                  ...props.filters,
+                  eventDeviceTypes: defaultFilters.eventDeviceTypes,
                 })}
               />
             )}
