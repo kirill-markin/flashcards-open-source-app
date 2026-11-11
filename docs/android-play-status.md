@@ -1,11 +1,13 @@
 # Read Android Play release status
 
 Use **Android Play Status** ([workflow](../.github/workflows/android-play-status.yml))
-in GitHub Actions to inspect the production lifecycle of an exact version code.
+in GitHub Actions to inspect the lifecycle of an exact version code on the phone
+`production` track or the Wear OS internal testing `wear:qa` track.
 It reads with the existing Play repository variables, creates no Play edit and
 changes no release.
 
-1. Find the exact version code in the original Android Release run summary.
+1. Find the exact phone or Wear OS version code in the original Android Release
+   run summary.
 2. Open **Actions → Android Play Status → Run workflow**, select `main`, and enter
    that positive version code. Alternatively:
 
@@ -14,8 +16,8 @@ changes no release.
    ```
 
 3. Inspect the run summary and retained `android-play-status` JSON artifact.
-   A successful lookup reports one release name, its exact active artifact version
-   codes, lifecycle state, and check time. Missing or ambiguous matches fail the
+   A successful lookup reports one release name, its track, exact active artifact
+   version codes, lifecycle state, and check time. Missing or ambiguous matches fail the
    run; [the reader](../scripts/android/read-play-release-status.py) states the
    API's limits in its result. An absent version code is unconfirmed, including
    when its release has become obsolete.

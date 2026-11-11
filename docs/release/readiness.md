@@ -52,8 +52,10 @@ For a green `Android Release`, use the routine offline generator from the
 repository root. Retain the exact attempt's signed AAB
 (`android-release-bundle-r<runId>a<attempt>`, legacy `android-release-bundle`),
 [Device Run summary and private evidence](../android-ci-cd.md#device-run-results-and-release-correlation),
-and `play-publisher-provenance.json`. Verify artifact IDs/attempt and pin the
-SHA, version, code and bundle checksum from the release/build records. Retain
+`play-publisher-provenance.json` and, for runs with the Wear OS upload job,
+`play-wear-publisher-provenance.json` (artifact `android-wear-play-publisher-provenance`).
+Verify artifact IDs/attempt and pin the SHA, version, phone and Wear OS codes and
+both bundle checksums from the release/build records. Retain
 the signed-binary, warning and native diagnostics inspections required by the
 [Android procedure](android.md). Use a fresh output path for each attempt
 or review revision. Save the attempt-specific job record:
@@ -63,12 +65,15 @@ gh run view "$run_id" --attempt "$attempt" --json databaseId,attempt,status,conc
   > "$record/github-run.json" &&
 node scripts/release/assemble-android-readiness.mjs "$record/review.json" "$record/github-run.json" \
   "$record/summary.json" "$record/play-publisher-provenance.json" "$record/app-release.aab" \
+  "$record/play-wear-publisher-provenance.json" \
   > "$record/mobile-manifest.json" &&
 node scripts/release/check-mobile-readiness.mjs "$record/mobile-manifest.json" > "$record/mobile-readiness.json"
 ```
 
 In `review.json`, supply string fields `sourceSha`, `version`, `versionCode`,
-`runId`, `attempt`, `aabSha256`, and `reviewedBy`. Set `devices` to the
+`runId`, `attempt`, `aabSha256`, and `reviewedBy`, plus `wearVersionCode` and
+`wearAabSha256` for runs with the Wear OS upload job (omit the last argument
+otherwise). Set `devices` to the
 verified configured catalog IDs keyed by API: `37` and `30` for the current
 selection, and `37`, `30`, `31`, `33` for the pinned historical selection.
 Under `reviews`, give `cloud-release` and `firebase-tests` their own `inventoryRef`,
