@@ -11,16 +11,17 @@ const CATALOG_MODULE_SUFFIX = ".ts";
 const CATALOG_MODULE_SPECIFIER_PREFIX = "./catalogs/";
 const LOCALE_NAMES_PATH = ["locale", "names"];
 
-// catalog.ts registers a locale as one entry of the lazy loader record
-// `Readonly<Record<Locale, () => Promise<TranslationCatalog>>>`: one dynamic import per locale, with
-// the default locale resolved from its static import. This check asserts the loader record keys, not
-// an eager `Record<Locale, TranslationCatalog>` of static imports, which the file no longer holds.
 const CATALOG_LOADERS_RECORD = {
   recordFile: join(I18N_ROOT, "catalog.ts"),
   record: "translationCatalogLoaders",
 };
+const REGIONAL_CATALOGS_RECORD = {
+  recordFile: CATALOG_LOADERS_RECORD.recordFile,
+  record: "regionalCatalogs",
+};
 const REGISTRATION_RECORDS = [
   { recordFile: join(I18N_ROOT, "locales.ts"), record: "localeDirections" },
+  { recordFile: join(I18N_ROOT, "localeDisplayNames.ts"), record: "localeDisplayNames" },
   { recordFile: join(I18N_ROOT, "weekContext.ts"), record: "localeFirstDayFallbacks" },
 ];
 
@@ -695,6 +696,22 @@ function findLoaderSpecifierViolations(entry, defaultCatalog, file, record) {
   ];
 }
 
+function findRegionalCatalogViolations(supportedLocales, dedicatedLocales, entries) {
+  const { recordFile, record } = REGIONAL_CATALOGS_RECORD;
+  const file = relative(REPO_ROOT, recordFile);
+
+  return entries.flatMap((entry) => {
+    const baseLocaleEntry = parseObjectEntries(entry.valueBody ?? "")
+      ?.find(({ key }) => key === "baseLocale");
+    const [baseLocale] = parseStringArrayItems(baseLocaleEntry?.valueText ?? "") ?? [];
+    if (supportedLocales.includes(entry.key) && dedicatedLocales.includes(baseLocale) && entry.key !== baseLocale) {
+      return [];
+    }
+
+    return [{ rule: "invalid-regional-catalog", file, record, locale: entry.key, baseLocale }];
+  });
+}
+
 function findCatalogLoaderViolations(supportedLocales, defaultLocale) {
   const { recordFile, record } = CATALOG_LOADERS_RECORD;
   const file = relative(REPO_ROOT, recordFile);
@@ -722,23 +739,22 @@ function findCatalogLoaderViolations(supportedLocales, defaultLocale) {
   ];
 }
 
-// A locale.names key may exist for a tag that has no catalog yet, so names are only required to
-// cover supportedLocales and never compared back against it.
-function findLocaleNameViolations(supportedLocales, catalogLocale) {
+function readCatalogLocaleNames(catalogLocale) {
   const catalogFile = catalogModulePath(catalogLocale);
   const file = relative(REPO_ROOT, catalogFile);
   const content = readFileSync(catalogFile, "utf8");
   const declarations = [...content.matchAll(CATALOG_DECLARATION_PATTERN)];
 
   if (declarations.length !== 1) {
-    return [
-      {
+    return {
+      keys: [],
+      violations: [{
         rule: "unparsable-catalog",
         file,
         locale: catalogLocale,
         reason: `expected exactly one "const <name>Catalog = {" declaration, found ${declarations.length}`,
-      },
-    ];
+      }],
+    };
   }
 
   const declaration = declarations[0];
@@ -748,40 +764,46 @@ function findLocaleNameViolations(supportedLocales, catalogLocale) {
   );
 
   if (catalogBlock === null) {
-    return [
-      {
+    return {
+      keys: [],
+      violations: [{
         rule: "unparsable-catalog",
         file,
         locale: catalogLocale,
         reason: "catalog object literal is unbalanced",
-      },
-    ];
+      }],
+    };
   }
 
   const localeNameKeys = readNestedObjectKeys(catalogBlock.body, LOCALE_NAMES_PATH);
 
   if (localeNameKeys === null) {
-    return [
-      {
+    return {
+      keys: [],
+      violations: [{
         rule: "unparsable-catalog",
         file,
         locale: catalogLocale,
         reason: `no readable "${LOCALE_NAMES_PATH.join(".")}" object`,
-      },
-    ];
+      }],
+    };
   }
 
-  const localeNameKeySet = new Set(localeNameKeys);
+  return { keys: localeNameKeys, violations: [] };
+}
 
-  return supportedLocales
-    .filter((locale) => !localeNameKeySet.has(locale))
-    .map((locale) => ({
-      rule: "missing-locale-name",
-      file,
-      catalogLocale,
-      record: LOCALE_NAMES_PATH.join("."),
-      locale,
-    }));
+function findLocaleNameViolations(supportedLocales, authoredNameKeys, catalogLocale, keys) {
+  const file = relative(REPO_ROOT, catalogModulePath(catalogLocale));
+  const record = LOCALE_NAMES_PATH.join(".");
+
+  return [
+    ...authoredNameKeys
+      .filter((locale) => !keys.includes(locale))
+      .map((locale) => ({ rule: "missing-locale-name", file, catalogLocale, record, locale })),
+    ...keys
+      .filter((locale) => !supportedLocales.includes(locale))
+      .map((locale) => ({ rule: "unsupported-locale-name", file, catalogLocale, record, locale })),
+  ];
 }
 
 const { supportedLocales, defaultLocale, violation: localeSourceViolation } = readLocaleSource();
@@ -800,17 +822,27 @@ if (catalogLocales === null) {
   process.exit(1);
 }
 
+const regionalCatalogs = readRecordEntries(REGIONAL_CATALOGS_RECORD.recordFile, REGIONAL_CATALOGS_RECORD.record);
+const regionalLocales = new Set((regionalCatalogs.entries ?? []).map(({ key }) => key));
+const dedicatedLocales = supportedLocales.filter((locale) => !regionalLocales.has(locale));
 const catalogLocaleSet = new Set(catalogLocales);
-const supportedCatalogLocales = supportedLocales.filter((locale) => catalogLocaleSet.has(locale));
+const catalogNames = new Map(
+  dedicatedLocales.filter((locale) => catalogLocaleSet.has(locale))
+    .map((locale) => [locale, readCatalogLocaleNames(locale)]),
+);
+const authoredNameKeys = catalogNames.get(defaultLocale)?.keys ?? [];
 const violations = [
-  ...findCatalogModuleViolations(supportedLocales, catalogLocales),
-  ...findCatalogLoaderViolations(supportedLocales, defaultLocale),
+  ...regionalCatalogs.violations,
+  ...findRegionalCatalogViolations(supportedLocales, dedicatedLocales, regionalCatalogs.entries ?? []),
+  ...findCatalogModuleViolations(dedicatedLocales, catalogLocales),
+  ...findCatalogLoaderViolations(dedicatedLocales, defaultLocale),
   ...REGISTRATION_RECORDS.flatMap((registrationRecord) =>
     findRegistrationViolations(supportedLocales, registrationRecord),
   ),
-  ...supportedCatalogLocales.flatMap((catalogLocale) =>
-    findLocaleNameViolations(supportedLocales, catalogLocale),
-  ),
+  ...Array.from(catalogNames).flatMap(([locale, result]) => [
+    ...result.violations,
+    ...findLocaleNameViolations(supportedLocales, authoredNameKeys, locale, result.keys),
+  ]),
 ];
 
 if (violations.length > 0) {
@@ -828,6 +860,7 @@ if (violations.length > 0) {
 console.log("Web localization parity check passed.", {
   supportedLocales,
   defaultLocale,
-  catalogs: supportedCatalogLocales.length,
-  registrationRecords: [CATALOG_LOADERS_RECORD, ...REGISTRATION_RECORDS].map(({ record }) => record),
+  catalogs: catalogNames.size,
+  regionalCatalogs: regionalLocales.size,
+  registrationRecords: [CATALOG_LOADERS_RECORD, REGIONAL_CATALOGS_RECORD, ...REGISTRATION_RECORDS].map(({ record }) => record),
 });

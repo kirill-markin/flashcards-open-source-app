@@ -6,15 +6,34 @@ export type LocaleDisplayName = {
   readonly searchAliases: ReadonlyArray<string>;
 };
 
-// `englishName` copies `locale.names.<tag>` in catalogs/en.ts; native names shared with the website's
-// `src/lib/localeConfig.ts` stay identical to it.
+// The picker uses native and English names regardless of the current app language.
 export const localeDisplayNames: Readonly<Record<Locale, LocaleDisplayName>> = {
   en: { nativeName: "English", englishName: "English", searchAliases: [] },
+  "en-AU": {
+    nativeName: "English (Australia)",
+    englishName: "English (Australia)",
+    searchAliases: ["Australian English"],
+  },
+  "en-CA": {
+    nativeName: "English (Canada)",
+    englishName: "English (Canada)",
+    searchAliases: ["Canadian English"],
+  },
+  "en-GB": {
+    nativeName: "English (United Kingdom)",
+    englishName: "English (United Kingdom)",
+    searchAliases: ["British English", "en-UK"],
+  },
   ar: { nativeName: "العربية", englishName: "Arabic", searchAliases: ["arabi"] },
   "zh-Hans": {
     nativeName: "简体中文",
     englishName: "Chinese (Simplified)",
     searchAliases: ["mandarin", "chinese", "zhongwen", "中文", "普通话"],
+  },
+  "zh-Hant": {
+    nativeName: "繁體中文",
+    englishName: "Chinese (Traditional)",
+    searchAliases: ["Traditional Chinese", "zh-TW", "zh-HK", "zh-MO", "mandarin", "zhongwen", "中文", "普通話"],
   },
   de: { nativeName: "Deutsch", englishName: "German", searchAliases: [] },
   hi: { nativeName: "हिन्दी", englishName: "Hindi", searchAliases: [] },
@@ -31,10 +50,20 @@ export const localeDisplayNames: Readonly<Record<Locale, LocaleDisplayName>> = {
     searchAliases: ["castellano", "spanish", "spain"],
   },
   fr: { nativeName: "Français", englishName: "French", searchAliases: [] },
+  "fr-CA": {
+    nativeName: "français (Canada)",
+    englishName: "French (Canada)",
+    searchAliases: ["Canadian French", "français canadien"],
+  },
   "pt-BR": {
     nativeName: "Português (Brasil)",
     englishName: "Portuguese (Brazil)",
     searchAliases: ["brasileiro", "brazilian", "portuguese"],
+  },
+  "pt-PT": {
+    nativeName: "Português (Portugal)",
+    englishName: "Portuguese (Portugal)",
+    searchAliases: ["European Portuguese", "português europeu"],
   },
   it: { nativeName: "Italiano", englishName: "Italian", searchAliases: [] },
   ko: { nativeName: "한국어", englishName: "Korean", searchAliases: ["hangugeo", "hangul"] },
@@ -69,6 +98,8 @@ export const localeDisplayNames: Readonly<Record<Locale, LocaleDisplayName>> = {
   kn: { nativeName: "ಕನ್ನಡ", englishName: "Kannada", searchAliases: [] },
   ml: { nativeName: "മലയാളം", englishName: "Malayalam", searchAliases: [] },
   mr: { nativeName: "मराठी", englishName: "Marathi", searchAliases: [] },
+  ms: { nativeName: "Bahasa Melayu", englishName: "Malay", searchAliases: ["ms-MY"] },
+  or: { nativeName: "ଓଡ଼ିଆ", englishName: "Odia", searchAliases: ["Oriya", "or-IN"] },
   pa: { nativeName: "ਪੰਜਾਬੀ", englishName: "Punjabi", searchAliases: ["panjabi", "gurmukhi"] },
   ta: { nativeName: "தமிழ்", englishName: "Tamil", searchAliases: [] },
   te: { nativeName: "తెలుగు", englishName: "Telugu", searchAliases: [] },
@@ -84,6 +115,29 @@ export const localeDisplayNames: Readonly<Record<Locale, LocaleDisplayName>> = {
   sl: { nativeName: "Slovenščina", englishName: "Slovenian", searchAliases: ["slovene"] },
   zu: { nativeName: "isiZulu", englishName: "Zulu", searchAliases: [] },
 };
+
+export function formatLocaleDisplayName(
+  locale: Locale,
+  displayLocale: Locale,
+  localizedNames: Readonly<Partial<Record<Locale, string>>>,
+): string {
+  const catalogName = localizedNames[locale];
+  if (catalogName !== undefined) {
+    return catalogName;
+  }
+
+  if (typeof Intl.DisplayNames !== "function") {
+    return localeDisplayNames[locale].englishName;
+  }
+
+  const displayNames = new Intl.DisplayNames([displayLocale, "en"], {
+    type: "language",
+    languageDisplay: "standard",
+    fallback: "none",
+  });
+
+  return displayNames.of(locale) ?? localeDisplayNames[locale].englishName;
+}
 
 // Case-, accent-, and whitespace-insensitive, so "espanol" matches "Español".
 function normalizeLocaleSearchText(text: string): string {

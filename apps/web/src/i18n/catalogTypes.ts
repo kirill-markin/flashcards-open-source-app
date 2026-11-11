@@ -1,4 +1,5 @@
 import { enCatalog } from "./catalogs/en";
+import type { Locale } from "./types";
 
 // A plural label object may carry the `two` and `few` forms English does not have.
 type OptionalPluralForms = {
@@ -23,5 +24,10 @@ type TranslationKeyForNode<Node> = {
     : JoinTranslationKey<Key, TranslationKeyForNode<Node[Key]>>;
 }[keyof Node & string];
 
-export type TranslationCatalog = CatalogShape<typeof enCatalog>;
+type BaseCatalog = CatalogShape<typeof enCatalog>;
+type CatalogLocaleNames = BaseCatalog["locale"]["names"] & Readonly<Partial<Record<Locale, string>>>;
+
+export type TranslationCatalog = Omit<BaseCatalog, "locale"> & Readonly<{
+  locale: Omit<BaseCatalog["locale"], "names"> & Readonly<{ names: CatalogLocaleNames }>;
+}>;
 export type TranslationKey = TranslationKeyForNode<typeof enCatalog>;
