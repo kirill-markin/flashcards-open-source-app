@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.app.observability
 
 import android.app.Application
 import com.flashcardsopensourceapp.app.BuildConfig
-import com.flashcardsopensourceapp.app.automation.isFirebaseTestLabDevice
+import com.flashcardsopensourceapp.core.observability.isFirebaseTestLabDevice
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.AppPerformanceTracing
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget

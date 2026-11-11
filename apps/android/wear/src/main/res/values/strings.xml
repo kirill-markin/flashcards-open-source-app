@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="wear_retry">Retry</string>
+    <string name="wear_session_open_phone_app">Open Nibomo on your phone</string>
+    <string name="wear_session_not_connected_message">Sign in there to review your cards on your watch.</string>
+    <string name="wear_session_connecting">Connecting to phone…</string>
+    <string name="wear_session_syncing">Syncing cards…</string>
+    <string name="wear_session_update_required">Update Nibomo on your phone and watch</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="one">%d rating can\'t sync yet</item>
+        <item quantity="other">%d ratings can\'t sync yet</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">Your phone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now.</string>
+    <string name="wear_session_switch_blocked_discard">Discard and switch</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="one">Discard %d rating?</item>
+        <item quantity="other">Discard %d ratings?</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">They will be lost. This can\'t be undone.</string>
+    <string name="wear_review_placeholder">Your cards are synced.</string>
+</resources>

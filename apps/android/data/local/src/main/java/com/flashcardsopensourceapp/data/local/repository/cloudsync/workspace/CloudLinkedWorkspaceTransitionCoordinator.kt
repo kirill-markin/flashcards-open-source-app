@@ -68,6 +68,22 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
         )
     }
 
+    /** A replica owns no content, so it always replaces its local shell, even for an empty remote workspace. */
+    suspend fun applyLinkedWorkspaceReplacingLocalShell(
+        accountSnapshot: CloudAccountSnapshot,
+        selectedWorkspace: CloudWorkspaceSummary
+    ) {
+        operationCoordinator.requireExclusiveOperation(operationName = "Linked workspace application")
+        if (retainCurrentLinkedWorkspace(accountSnapshot = accountSnapshot, selectedWorkspace = selectedWorkspace)) {
+            return
+        }
+        migrateLocalShellToLinkedWorkspace(
+            accountSnapshot = accountSnapshot,
+            selectedWorkspace = selectedWorkspace,
+            remoteWorkspaceIsEmpty = false
+        )
+    }
+
     suspend fun applyLinkedWorkspaceAndSync(
         authenticatedSession: AuthenticatedCloudSession,
         selectedWorkspace: CloudWorkspaceSummary

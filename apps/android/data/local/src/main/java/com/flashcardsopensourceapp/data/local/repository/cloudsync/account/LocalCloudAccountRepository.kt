@@ -534,6 +534,14 @@ class LocalCloudAccountRepository(
         )
     }
 
+    /** The Wear OS watch's link: always replaces the local shell; see [CloudWorkspaceLinkCoordinator.completeReplicaCloudLink]. */
+    suspend fun completeReplicaCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        workspaceId: String
+    ): CloudWorkspaceSummary {
+        return workspaceLinkCoordinator.completeReplicaCloudLink(linkContext = linkContext, workspaceId = workspaceId)
+    }
+
     internal suspend fun completeSocialCloudLink(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,
