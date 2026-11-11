@@ -1,4 +1,9 @@
-import { runAdminQuery, type AdminQueryResponse, type ReviewEventPlatform } from "../../adminApi";
+import {
+  runAdminQuery,
+  type AdminQueryResponse,
+  type ProductEventDeviceType,
+  type ReviewEventPlatform,
+} from "../../adminApi";
 import { breakdownOtherValue, breakdownUnknownValue } from "../../charts/stackedBreakdownChart";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -22,7 +27,7 @@ export function isNamedPerson(value: string): boolean {
   return value !== breakdownOtherValue && value !== breakdownUnknownValue;
 }
 
-// Every answered review on a selected platform the Who studied people made in an available bar, each
+// Every answered review on a selected platform and device class the Who studied people made in an available bar, each
 // under `valueSql` over its `meaningful_range_reviews` row; an app version selection keeps a person's
 // reviews in a bar as Who studied keeps the person there.
 function buildReviewEventsBreakdownSql(
@@ -30,16 +35,17 @@ function buildReviewEventsBreakdownSql(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
   const isVersionNarrowed = appVersions.length > 0;
   const appVersionPeopleCtesSql = isVersionNarrowed
-    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, appVersions)}`
+    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, eventDeviceTypes, appVersions)}`
     : "";
   const appVersionPeopleJoinSql = isVersionNarrowed ? "\n  JOIN app_version_people USING (bucket_date, actor_id)" : "";
-  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms)}${appVersionPeopleCtesSql}, measured_buckets AS (
+  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms, eventDeviceTypes)}${appVersionPeopleCtesSql}, measured_buckets AS (
   SELECT buckets.bucket_date
   FROM report_buckets AS buckets
   CROSS JOIN activity_coverage AS coverage
@@ -63,11 +69,12 @@ function buildReviewEventsByPersonSql(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
 ): string {
   return `SELECT breakdown.*, actor_email.email AS series_email
 FROM (
-${buildReviewEventsBreakdownSql("review.actor_id", dateRange, period, eventPlatforms, appVersions, personReportLabel)}
+${buildReviewEventsBreakdownSql("review.actor_id", dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, personReportLabel)}
 ) AS breakdown
 LEFT JOIN (
   SELECT pg_catalog.lower(settings.user_id) AS actor_id, MIN(NULLIF(btrim(settings.email), '')) AS email
@@ -97,10 +104,11 @@ export async function loadReviewEventsByPersonReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  const response = await runAdminQuery(config, buildReviewEventsByPersonSql(dateRange, period, eventPlatforms, appVersions), signal);
+  const response = await runAdminQuery(config, buildReviewEventsByPersonSql(dateRange, period, eventPlatforms, eventDeviceTypes, appVersions), signal);
   return {
     ...parseBreakdownReport(response, period, personReportLabel, liveSourceBarFreshness),
     valueLabels: parsePersonLabels(response),
@@ -112,12 +120,13 @@ export function loadReviewEventsByPlatformReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
   return loadBreakdownReport(
     config,
-    buildReviewEventsBreakdownSql("review.platform", dateRange, period, eventPlatforms, appVersions, platformReportLabel),
+    buildReviewEventsBreakdownSql("review.platform", dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, platformReportLabel),
     period,
     platformReportLabel,
     liveSourceBarFreshness,

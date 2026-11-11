@@ -62,8 +62,8 @@ export function DailyNewReturningSection(
 ): JSX.Element {
   const { source } = props;
   const loadReport = useCallback<DailyNewReturningReportLoader<DailyNewReturningReport>>(
-    (config, dateRange, period, eventPlatforms, appVersions, reportLabel, signal) =>
-      loadDailyNewReturningReport(config, source, dateRange, period, eventPlatforms, appVersions, reportLabel, signal),
+    (config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, reportLabel, signal) =>
+      loadDailyNewReturningReport(config, source, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, reportLabel, signal),
     [source],
   );
   const { state, retry } = useDailyNewReturningReport(props, props.title, loadReport);

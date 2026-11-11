@@ -1,8 +1,9 @@
-import type { ReviewEventPlatform } from "../../adminApi";
+import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
   buildAppVersionsFilterSql,
   buildAppVersionsNarrowingSql,
+  buildEventDeviceTypesNarrowingSql,
   buildEventPlatformsNarrowingSql,
   buildExcludedActorSqlLines,
   buildTrustedActorRowsFilterSql,
@@ -67,16 +68,19 @@ export function buildAppOpenFirstUsePlatformCteSql(range: AnalyticsDateRange): s
 
 /**
  * The `app_open_last_opens` CTE, composed after `buildAppOpenActivityCtesSql`: one row per bucket of
- * the range and person `app_open_activity` counts in it on `eventPlatforms` and `appVersions` (`[]` for
- * every version), carrying that person's last `app_opened` there in the bucket (latest `occurred_at`,
- * then `event_id`), so a breakdown places each person once per bar.
+ * the range and person `app_open_activity` counts in it on `eventPlatforms`, `eventDeviceTypes` and
+ * `appVersions` (`[]` for every version), carrying that person's last `app_opened` there in the bucket
+ * (latest `occurred_at`, then `event_id`), so a breakdown places each person once per bar.
  */
 export function buildAppOpenLastOpensCteSql(
   period: ReportPeriod,
   range: AnalyticsDateRange,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
 ): string {
+  const deviceTypesNarrowingSql = buildEventDeviceTypesNarrowingSql("events.device_type", eventDeviceTypes);
+  const deviceTypesNarrowingLineSql = deviceTypesNarrowingSql === "" ? "" : `\n      ${deviceTypesNarrowingSql}`;
   const appVersionsNarrowingSql = appVersions.length === 0
     ? ""
     : `\n      ${buildAppVersionsNarrowingSql("events.app_version", appVersions)}`;
@@ -90,7 +94,7 @@ export function buildAppOpenLastOpensCteSql(
     ${appOpenRowsFromSql}
       AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
       AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
-      ${buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms)}${appVersionsNarrowingSql}
+      ${buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms)}${deviceTypesNarrowingLineSql}${appVersionsNarrowingSql}
   ) AS range_opens
   JOIN app_open_activity USING (actor_id, activity_date)
   ORDER BY range_opens.bucket_date, range_opens.actor_id, range_opens.occurred_at DESC, range_opens.event_id DESC
@@ -99,17 +103,19 @@ export function buildAppOpenLastOpensCteSql(
 
 /**
  * The CTEs, ending in `app_version_people`, by which a chart whose own rows carry no app version keeps
- * a person in a bar only when their last app open there on `eventPlatforms`, as `app_open_last_opens`
- * reads it, carries one of `appVersions`: one `(bucket_date, actor_id)` row per bar and person kept.
+ * a person in a bar only when their last app open there on `eventPlatforms` and `eventDeviceTypes`, as
+ * `app_open_last_opens` reads it, carries one of `appVersions`: one `(bucket_date, actor_id)` row per
+ * bar and person kept.
  * Their CTE names do not collide with `buildMeaningfulActivityCtesSql`'s.
  */
 export function buildLastAppOpenVersionPeopleCtesSql(
   period: ReportPeriod,
   range: AnalyticsDateRange,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
 ): string {
-  return `${buildAppOpenActivityCtesSql()}, ${buildAppOpenLastOpensCteSql(period, range, eventPlatforms, [])}, app_version_people AS MATERIALIZED (
+  return `${buildAppOpenActivityCtesSql()}, ${buildAppOpenLastOpensCteSql(period, range, eventPlatforms, eventDeviceTypes, [])}, app_version_people AS MATERIALIZED (
   SELECT last_open.bucket_date, last_open.actor_id
   FROM app_open_last_opens AS last_open
   WHERE ${buildAppVersionsFilterSql("last_open.app_version", appVersions)}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
-import type { ReviewEventPlatform } from "../../adminApi";
+import { productEventDeviceTypes, type ProductEventDeviceType, type ReviewEventPlatform } from "../../adminApi";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
@@ -209,6 +209,7 @@ const allSeriesExplanation = <>
         <li key={key}><strong>{whoSawUsSeriesLabels[key]}:</strong> {whoSawUsSeriesDescriptions[key]}</li>
       ))}
       <li><strong>Platform filter:</strong> draws only the series of the selected platforms: Web engaged for web, App Store for iOS and Google Play for Android; Agent API and Unresolved have none</li>
+      <li><strong>Device filter:</strong> not applied, because site and store visitors carry no device class</li>
       <li><strong>App version filter:</strong> not applied, because site and store visitors carry no app version</li>
       <li><strong>Weeks and months:</strong> an identified Web engaged visitor counts once per bar, engaged on any of its days; cookieless engaged visitors and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
     </ul>
@@ -286,6 +287,8 @@ export function WhoSawUsSection(
     dateRange: AnalyticsDateRange;
     period: ReportPeriod;
     series: WhoSawUsChartSeries;
+    /** Never narrows the chart; a narrowed selection only shows that it does not. */
+    eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
     /** Never narrows the chart; a non-empty selection only shows that it does not. */
     appVersions: ReadonlyArray<string>;
     /** Narrows the `web` series alone; a chart that draws a store series passes the default. */
@@ -378,6 +381,12 @@ export function WhoSawUsSection(
         </div>
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
+
+      {props.eventDeviceTypes.length !== productEventDeviceTypes.length ? (
+        <p className="activity-coverage-note" data-testid="who-saw-us-device-note">
+          Not filtered by device: site and store visitors carry no device class.
+        </p>
+      ) : null}
 
       {props.appVersions.length > 0 ? (
         <p className="activity-coverage-note" data-testid="who-saw-us-app-version-note">
