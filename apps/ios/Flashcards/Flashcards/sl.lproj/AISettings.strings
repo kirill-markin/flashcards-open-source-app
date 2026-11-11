@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Število uvoženih kartic: %d, oznaka: %@.";
 "settings.workspace.import.success" = "Število uvoženih kartic: %d.";
-"settings.workspace.import.section.package" = "Paket";
+"settings.workspace.import.format.nibomo" = "Oblika Nibomo";
+"settings.workspace.import.format.anki" = "Oblika Anki";
+"settings.workspace.import.anki.choose" = "Izberi datoteke .apkg";
+"settings.workspace.import.anki.remove" = "Odstrani datoteko";
+"settings.workspace.import.anki.start" = "Začni uvoz";
+"settings.workspace.import.anki.waiting" = "Čakanje na začetek uvoza iz Ankija…";
+"settings.workspace.import.anki.request" = "Uvozi vse priložene komplete kartic Anki v ta delovni prostor.";
+"ai.composer.ankiImport.unconfirmed" = "Uvoza iz Ankija ni bilo mogoče potrditi. Preden začneš nov uvoz, preveri ta klepet in svojo knjižnico.";
+"settings.workspace.import.anki.workspaceChanged" = "Delovni prostor ali račun se je spremenil. Vrni se v knjižnico in znova zaženi uvoz.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "V klepetu z umetno inteligenco pripenjanje datotek ni na voljo. Znova poskusi, ko bodo priloge na voljo.";
 "settings.workspace.import.choosePackage" = "Izberi paket ZIP";
 "settings.workspace.import.previewing" = "Priprava predogleda ...";
 "settings.workspace.import.importing" = "Uvažanje ...";

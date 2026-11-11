@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Імпортовано картки (%d) з міткою %@.";
 "settings.workspace.import.success" = "Імпортовано карток: %d.";
-"settings.workspace.import.section.package" = "Пакет";
+"settings.workspace.import.format.nibomo" = "Формат Nibomo";
+"settings.workspace.import.format.anki" = "Формат Anki";
+"settings.workspace.import.anki.choose" = "Вибрати файли .apkg";
+"settings.workspace.import.anki.remove" = "Прибрати файл";
+"settings.workspace.import.anki.start" = "Почати імпорт";
+"settings.workspace.import.anki.waiting" = "Очікування початку імпорту з Anki…";
+"settings.workspace.import.anki.request" = "Імпортуй усі прикріплені колоди Anki в цей робочий простір.";
+"ai.composer.ankiImport.unconfirmed" = "Не вдалося підтвердити імпорт з Anki. Перш ніж почати новий імпорт, перевірте цей чат і свою бібліотеку.";
+"settings.workspace.import.anki.workspaceChanged" = "Робочий простір або обліковий запис змінився. Поверніться до бібліотеки й почніть імпорт знову.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "У чаті зі ШІ не можна прикріпити файли. Спробуйте імпортувати знову, коли вкладення стануть доступними.";
 "settings.workspace.import.choosePackage" = "Вибрати ZIP-пакет";
 "settings.workspace.import.previewing" = "Попередній перегляд...";
 "settings.workspace.import.importing" = "Імпорт...";

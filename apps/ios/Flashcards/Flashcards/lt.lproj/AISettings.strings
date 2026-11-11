@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Importuotų kortelių: %d; žyma: %@.";
 "settings.workspace.import.success" = "Importuotų kortelių: %d.";
-"settings.workspace.import.section.package" = "Paketas";
+"settings.workspace.import.format.nibomo" = "„Nibomo“ formatas";
+"settings.workspace.import.format.anki" = "„Anki“ formatas";
+"settings.workspace.import.anki.choose" = "Pasirinkti .apkg failus";
+"settings.workspace.import.anki.remove" = "Pašalinti failą";
+"settings.workspace.import.anki.start" = "Pradėti importuoti";
+"settings.workspace.import.anki.waiting" = "Laukiama, kol prasidės importavimas iš „Anki“…";
+"settings.workspace.import.anki.request" = "Importuok visas pridėtas „Anki“ kortelių kalades į šią darbo sritį.";
+"ai.composer.ankiImport.unconfirmed" = "Nepavyko patvirtinti importavimo iš „Anki“. Prieš pradėdamas importuoti iš naujo, patikrink šį pokalbį ir savo biblioteką.";
+"settings.workspace.import.anki.workspaceChanged" = "Pasikeitė darbo sritis arba paskyra. Grįžkite į biblioteką ir pradėkite importuoti iš naujo.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "DI pokalbyje failų pridėti negalima. Bandykite importuoti dar kartą, kai vėl galėsite pridėti failų.";
 "settings.workspace.import.choosePackage" = "Pasirinkti ZIP paketą";
 "settings.workspace.import.previewing" = "Ruošiama peržiūra...";
 "settings.workspace.import.importing" = "Importuojama...";
