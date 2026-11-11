@@ -180,8 +180,8 @@ Source changes require the bounded comparisons and affected gates in
 ## First-release API 30 walkthrough
 
 Complete this walkthrough for the first API-30-compatible release. For later
-releases, repeat only steps affected by OS-specific behavior changes; unchanged
-behavior does not require recurring manual scrolling, reset or offline checks.
+releases, repeat steps 1–3 together whenever an OS-specific behavior change
+affects any of them. Repeat step 4 or 5 only if the change affects that step.
 Reuse the completed first-release evidence, recording its source/build/device,
 results and why the current changes leave the exercised behavior applicable.
 Use the shared source-comparison rules when the artifact source differs.
@@ -190,13 +190,12 @@ When applicable, use an Android 11 / API 30 device with the release candidate
 for the same SHA, record the build identity and device, and retain
 screenshots/logs for failures.
 
-1. Open the intended linked test workspace, go offline, create a card with a
-   question on the front and answer on the back, reveal/rate it and verify it
-   in Cards.
+1. Start the [independent-client sync check](evidence.md#independent-client-sync-check)
+   and record its baseline before going offline. Create and rate the check card
+   offline and verify it in Cards.
 2. Close and relaunch the app while still offline. Confirm the card and review
    state remain intact and the local workspace still opens.
-3. Reconnect and verify the card and rating using the
-   [independent-client sync check](evidence.md#independent-client-sync-check).
+3. Reconnect and complete the sync check with the same card and rating.
 4. Attach an image using the existing system media picker, return to the editor,
    save, and verify the attachment opens. Confirm there is no broad storage
    permission requirement.

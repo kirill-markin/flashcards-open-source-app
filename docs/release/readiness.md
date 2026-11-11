@@ -23,16 +23,14 @@ correctness, security, artifact authenticity, operator completion, or public
 availability. Inspect native diagnostics, signing, store processing, uploaded
 binary localizations, metadata, release settings, submission and publication
 under the existing procedures. All gates required by the platform's recorded
-contract remain mandatory for a CLI pass. The [standing policy](README.md#standing-best-effort-release-policy) governs the separate operator publication decision for unavailable testing; signing and store guards remain mandatory. New Android
-records use schema 2's cloud-first gates; new iOS records use schema 4's full local acceptance and Cloud archive. Historical schema-1/3 records retain their original gates and failed history; do not relabel them to remove a requirement.
-Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
-without reconstructing evidence merely to turn this report green.
+contract remain mandatory for a CLI pass. Use the [input contract](#input-contract)
+for new and retained manifests. Already-published artifacts follow the
+[historical reuse rule](evidence.md#reuse-existing-artifacts).
 
 ## Standing-policy publication boundary
 
 The [standing best-effort policy](README.md#standing-best-effort-release-policy)
 does not change this CLI, its schemas, required inventories or exit codes.
-Android's four physical Device Run sessions remain mandatory.
 Preserve failed/skipped/missing native evidence and the resulting blocked report;
 never manufacture a passing gate or relabel historical records. Publication
 with unavailable testing requires the separately retained operator readiness decision and remaining platform gates under that policy.
@@ -71,18 +69,27 @@ node scripts/release/check-mobile-readiness.mjs "$record/mobile-manifest.json" >
 
 In `review.json`, supply string fields `sourceSha`, `version`, `versionCode`,
 `runId`, `attempt`, `aabSha256`, and `reviewedBy`. Set `devices` to the
-verified catalog IDs keyed by API (`30`, `31`, `33`, `37`). Under `reviews`,
-give both `cloud-release` and `firebase-tests` their own `inventoryRef`,
+verified configured catalog IDs keyed by API: `37` and `30` for the current
+selection, and `37`, `30`, `31`, `33` for the pinned historical selection.
+Under `reviews`, give `cloud-release` and `firebase-tests` their own `inventoryRef`,
 `evidenceRef`, `warningReview`, `warningReviewRef` and `warnings`. Use the
 [warning fields](#results-and-warning-review) below. Set review complete
 only after inspecting the logs and adjudicating notices. An empty warnings
 array records a completed inspection only with that explicit decision.
 References resolve within the private release record.
 
-The generator reads the pinned source's version and compatibility selection
-from local Git, checks the exact GitHub run and attempt, publisher, AAB and
-named native results, and records the original failure separately when CI
-retried a destination.
+The generator reads the release version and test selection from the pinned Git
+source. Current Device Run selection/evidence version 2 requires API 37
+(`latest`, five cases), then API 30 (`compat-api30`, one case). In
+`summary.json`, `configured_device` must match the API's pin in
+`review.json.devices`. The effective `device` may differ only with valid
+retry evidence. Retain `initial_failure` with the original report and hash,
+classification reason, APK hashes and alternate catalog reference and hash
+when applicable. Follow the [Device Run evidence procedure](../android-ci-cd.md#device-run-results-and-release-correlation).
+The pinned historical selection still requires the full latest inventory
+and all four selected methods on each of API 30, 31 and 33. Both selections
+generate readiness schema 2 with the same gate IDs.
+
 Keep source and artifact provenance, the retained native attempts and review
 records alongside the output. For a failed/missing gate or
 [exact-bundle upload recovery](android.md#exact-bundle-upload-recovery), build
@@ -104,10 +111,13 @@ records use their original native evidence paths and schemas.
    [source snapshot](evidence.md#source-snapshots)). Save the scheme/test plan or
    Gradle/instrumentation selection, source test declarations, selected devices,
    configurations and any exclusions in the release record. Include all selected
-   cases and destinations, including failing, manually excluded and platform-guarded cases. For
-   new iOS records, include the complete `LocalFull` non-UI and eligible UI inventory, the three `LocalIPad` flows and three `IOS18Compatibility` flows on their actual selected destinations. Retained schema-3 records additionally require their three `CloudSmoke` flows. Use the [native plan inventory](../ios-local-setup.md#local-native-acceptance). Retained schema-1 iOS records include their original local smoke and full selected Cloud UI suite. Android
-   Device Run includes its entire configured selection. Retained schema-1
-   Android records also include their selected local CI and smoke cases.
+   cases and destinations, including failing, manually excluded and
+   platform-guarded cases when the schema permits them. Follow the recorded
+   [iOS plan contract](#ios-critical-release-schema-5) or
+   [Android selection](#generate-the-android-manifest). Retained schema-1 iOS
+   records include the original local smoke and full selected Cloud UI suite.
+   Retained schema-1 Android records also include the selected local CI and
+   smoke cases.
    Account for inherited/parameterized tests and filters. A source grep
    alone is insufficient when configuration changes discovery.
 3. Review that inventory and set `inventoryComplete: true` only when complete.
@@ -121,19 +131,17 @@ records use their original native evidence paths and schemas.
    every destination/configuration distinct in `id`. For Apple, use actual
    `ciTestResults` per-destination statuses and/or named native `.xcresult`
    results; map `SUCCESS` to `passed`, `FAILURE` to `failed`, `SKIPPED` to
-   `skipped`. For Device Run use all four exact sessions' full reports and GCS JUnit case
-   exports, including every configured device and execution; use native reports for local tests. Map
-   unfinished cases to `pending`; do not map unknown/inconclusive/cancelled
-   states to passed. Preserve exact skip reasons. Reconcile case exports with
+   `skipped`. For Device Run use the full reports and GCS JUnit case exports
+   for all sessions required by the pinned selection. Use native reports for
+   local tests. Map unfinished cases to `pending` and preserve exact skip
+   reasons. Unknown, inconclusive and cancelled states cannot pass. Reconcile case exports with
    native counts and all pages. A green workflow summary cannot override a
    failed case or a failed action: record the actual gate/action status.
 5. Record each attempt as its own native attempt with its actual results.
    Preserve earlier failures and their resolution in the record; never collapse a
    failed destination into a passing one or mix unrelated runs. An iOS local
-   gate recovered from several attempts keeps the latest full-plan attempt whose
-   app inputs remain valid as its `results` entry with its real status and
-   source; its report stays blocked, and it lists the reruns in the
-   [recovery record](evidence.md#targeted-recovery). Record evidence
+   gate recovered from several attempts follows the [recovery record and blocked
+   report rules](evidence.md#targeted-recovery). Record evidence
    references that resolve to retained native exports, action status, full
    logs, artifact metadata, configuration and source comparisons. Inspect logs
    and adjudicate every notice under the [warning policy](README.md#release-warning-policy).
@@ -145,11 +153,14 @@ records use their original native evidence paths and schemas.
 
 The runtime-validated contract and checks live in
 [`mobile-readiness.ts`](../../scripts/release/mobile-readiness.ts). Supply one
-JSON object per platform. Use schema 4 for new iOS and schema 2 for new Android records. Schema 1 remains supported with its original gates for retained historical iOS/Android records; schema 3 retains the original six iOS gates, including Cloud smoke. Do not relabel retained evidence to change its contract. Schema 2 is Android-only. Schemas 3/4 are iOS-only and require explicit native plan/destination provenance and per-case target identity; schema 4 has no Cloud test gate. Identity, diagnostic and warning checks remain mandatory. Keep supplementary Android local diagnostic results in the ledger, outside schema 2's mandatory gate arrays.
+JSON object per platform. Use schema 5 for new iOS and schema 2 for new Android
+records. Retained records keep the schema, gates and source selection under
+which they ran, including all original failures. Keep Android local diagnostic
+results in the ledger outside schema 2's gate arrays.
 
 | Field | Required value |
 | --- | --- |
-| `schemaVersion` | Integer `4` (new iOS), `2` (new Android), `3` (historical iOS), or `1` (historical iOS/Android) |
+| `schemaVersion` | Integer `5` (iOS), `2` (Android), `3` or `4` (historical iOS), or `1` (historical iOS/Android) |
 | `platform` | `ios` or `android` |
 | `target` | `{sourceSha, version, build, artifactId}` for the intended release |
 | `gates` | Exactly the platform's mandatory gate definitions below |
@@ -168,24 +179,34 @@ and retain a reference to it. The checker does not fetch or resolve references.
 
 | Platform / schema | Mandatory gate IDs | Gate inventories that must contain required cases |
 | --- | --- | --- |
-| iOS / 4 | `local-archive`, `local-full`, `local-ipad`, `local-ios18`, `cloud-archive` | `local-full`, `local-ipad`, `local-ios18` |
+| iOS / 5 | `local-archive`, `local-iphone-critical`, `local-ipad-critical`, `local-ios18-critical`, `cloud-archive` | `local-iphone-critical`, `local-ipad-critical`, `local-ios18-critical` |
+| Historical iOS / 4 | `local-archive`, `local-full`, `local-ipad`, `local-ios18`, `cloud-archive` | `local-full`, `local-ipad`, `local-ios18` |
 | Historical iOS / 3 | `local-archive`, `local-full`, `local-ipad`, `local-ios18`, `cloud-archive`, `cloud-smoke` | `local-full`, `local-ipad`, `local-ios18`, `cloud-smoke` |
 | Historical iOS / 1 | `local-archive`, `local-smoke`, `cloud-archive`, `cloud-tests` | `local-smoke`, `cloud-tests` |
 | Android / 2 | `cloud-release`, `firebase-tests` | `firebase-tests` |
 | Historical Android / 1 | `local-ci`, `local-release`, `local-smoke`, `cloud-release`, `firebase-tests` | `local-ci`, `local-smoke`, `firebase-tests` |
 
-<a id="ios-local-acceptance-schema-3"></a>
+## iOS Critical Release Schema 5
 
-### iOS local acceptance (schema 4)
+Use the exact [critical plan selections](../ios-local-setup.md#local-native-acceptance).
+`LocalIPhoneCritical` requires its four UI and two non-UI methods.
+`LocalIPadCritical` and `IOS18Critical` each require their one UI method.
+The two latest destinations must share an iOS major above 18, with a latest
+iPhone and a latest iPad respectively. The compatibility gate requires an
+actual iPhone or iPad on 18.x. Establish latest-OS eligibility from the native
+destination inventory. The CLI checks the recorded major and kind.
 
-Each test gate requires `selection` with scheme `Flashcards Native Acceptance`, the gate's exact `testPlan` (`LocalFull`, `LocalIPad` or `IOS18Compatibility`), configuration `Acceptance`, and exactly one actual destination. Build gates omit `selection` and have empty `cases`. The plan configuration is separate from the scheme's Debug build configuration; retain both in native evidence.
-
-For example, add this selection to `local-full`, substituting actual collected values:
+For schemas 3 through 5, record the `Flashcards Native Acceptance` scheme,
+the exact `testPlan`, `Acceptance` test configuration and one actual
+destination in each test gate's `selection`. Record the Debug build
+configuration in native evidence. Build gates omit `selection` and have empty
+`cases`. Substitute the recorded destination in this `local-iphone-critical`
+example:
 
 ```json
 {
   "scheme": "Flashcards Native Acceptance",
-  "testPlan": "LocalFull",
+  "testPlan": "LocalIPhoneCritical",
   "configuration": "Acceptance",
   "destination": {
     "id": "actual-simulator-uuid",
@@ -196,25 +217,47 @@ For example, add this selection to `local-full`, substituting actual collected v
 }
 ```
 
-The destination ID is the actual simulator/device/Cloud destination identity, not a label invented to reconcile results. Use the same value as the suffix of every `Class/method()@destination-id` case ID in that gate. Every inventory case also requires `target`, exactly `Flashcards Open Source App Tests` or `Flashcards Open Source App UI Tests`; only `local-full` accepts the non-UI target. For example:
+Use the actual simulator, device or Cloud destination ID as the suffix of
+every `Class/method()@destination-id` case ID in its gate. Every selected
+case is `required` and carries its exact `target`
+(`Flashcards Open Source App Tests` for non-UI or
+`Flashcards Open Source App UI Tests` for UI). Keep any
+plan exclusions in inventory provenance. A schema-5 case has this shape:
 
 ```json
 {
   "target": "Flashcards Open Source App UI Tests",
-  "id": "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()@actual-simulator-uuid",
+  "id": "LiveSmokeCardsTests/testLiveSmokeCreateAndReviewCardAcrossRelaunch()@actual-simulator-uuid",
   "disposition": "required"
 }
 ```
 
-Every selected case is `required`; schemas 3/4 accept neither manual nor destination exclusions. Keep configured plan exclusions in inventory provenance, outside the selected case array. Every selected required result must execute and pass; missing, skipped, failed, pending or unexpected cases block readiness. Preserve original failed attempts and failure artifacts separately rather than converting them into exclusions.
+A CLI pass requires a result for every selected case, with all cases executed
+and passed. Preserve original attempts and failure artifacts in the ledger.
 
-`local-full` requires one latest iPhone, the complete existing non-UI bundle and all eligible UI methods; the CLI requires the three base smoke methods and a nonempty non-UI inventory, but cannot prove that the remaining full inventory was included. `local-ipad` requires one latest iPad and exactly its three eligible methods. `local-ios18` requires one actual 18.x iPhone or iPad and exactly the three compatibility methods. Only retained schema 3 additionally requires `cloud-smoke` on one latest iPhone with exactly the three Cloud methods; new schema 4 rejects that gate. The disabled workflow and `CloudSmoke` plan remain intact for history. The [canonical plan table](../ios-local-setup.md#local-native-acceptance) names all focused methods and the full-plan exclusions. Independently freeze the entire discovered inventory at the recorded source/configuration before inspecting pass results; never reduce it to the CLI's minimum required names.
+<a id="ios-local-acceptance-schema-3"></a>
+<a id="ios-local-acceptance-schema-4"></a>
 
-Schema 4 requires local-full and local-ipad OS majors to match and be greater than 18; local-ios18 must report major 18. Historical schema 3 additionally requires cloud-smoke to share that latest major. It does not discover which OS is currently latest or verify device/runtime truth. The operator must establish actual latest-OS eligibility from actual native destinations (and the recorded Cloud catalog for historical schema 3), retain scheme/plan/source/discovery evidence, and attest `inventoryComplete` only after reconciling every selected case and native count. One gate selection cannot represent a second destination or an all-plans run.
+### Historical iOS local acceptance (schemas 3 and 4)
+
+Retain the pinned full `LocalFull` inventory (eligible UI and the existing
+non-UI bundle) on one latest iPhone, the three `LocalIPad` methods on one
+latest iPad, and the three `IOS18Compatibility` methods on one iOS 18.x
+iPhone or iPad. Only `local-full` accepts non-UI cases. The iPhone and iPad
+latest major must match and exceed 18. Schema 3 also requires the exact three
+`CloudSmoke` cases on one actual Cloud iPhone on that major, with the recorded
+Cloud catalog. Schema 4 has no Cloud test gate.
+
+The CLI enforces the three base `LocalFull` UI methods and a nonempty non-UI
+inventory. Establish its complete historical selection independently at the
+pinned source and configuration before reading passing results. Reconcile
+every case and native count before attesting `inventoryComplete`.
 
 ### Common gate fields and historical schema-1 example
 
-Build-only gate inventories are empty. Every gate retains the fields illustrated below. This schema-1 `cloud-tests` excerpt demonstrates historical manual exclusions; schema-3/4 test gates additionally require the selection and per-case target fields above and contain required selected cases only:
+Every gate retains the fields below. This schema-1 `cloud-tests` excerpt
+shows a historical manual exclusion. Schemas 3 through 5 require the selection
+and per-case target fields above and contain only required cases.
 
 ```json
 {
@@ -253,26 +296,18 @@ the target. `cloud-archive` on iOS or `cloud-release` on Android must match the
 target distribution `build` and `artifactId`. Local artifacts and iOS test builds
 have their own build/artifact/run identities; they need not equal the archive.
 
-For Android, the checker retains the stable gate ID `firebase-tests`; it records
-all four Device Run sessions under the [Android procedure](android.md). It and `cloud-release` must share source SHA, version, release
-version code (`build`), and GitHub run/attempt (`runId`). The test gate's
-`artifactId` identifies the tested debug APK; `cloud-release.artifactId` identifies
-the signed production AAB. Put all four exact session IDs, job/execution identities,
-labels, full reports and GCS named-case evidence in the record referenced by
-`evidenceRef`, and retain proof that its debug APK and test APK came from that
-GitHub run. Include the latest full inventory and all four smoke methods on
-API 30, 31 and 33 in this one gate, keeping device/session identities distinct
-in case IDs. The build field is the assigned release version code used for
-correlation; retain actual APK metadata separately. Sessions from a different
-run cannot be approved with source equivalence. For
-[exact-bundle upload recovery](android.md#exact-bundle-upload-recovery), keep the
-original signed-build/native run identity on both gates. The `cloud-release`
-evidence reference must include the original passing build/R8 evidence and
-separate successful exact-hash publisher recovery, preserving the original
-failed workflow conclusion. Only the recovered compound artifact gate can be
-marked passed; the failed original publisher remains recorded separately.
-Submission acceptance is not a
-passing gate; normalize terminal reports and actual executed, non-skipped cases.
+Android's `firebase-tests` and `cloud-release` share source SHA, version,
+release version code (`build`) and GitHub run/attempt (`runId`). Use the debug
+APK identity for `firebase-tests.artifactId` and the signed AAB identity for
+`cloud-release.artifactId`. Record all sessions and executed named results
+from the pinned selection in `firebase-tests`. Distinguish effective devices
+in case IDs and reference the [complete native evidence](../android-ci-cd.md#device-run-results-and-release-correlation)
+with proof that both APKs came from that run. Retain actual APK metadata
+separately from the release version code. Sessions from a different run cannot
+be approved with source equivalence. For [exact-bundle upload recovery](android.md#exact-bundle-upload-recovery),
+retain the original gate identities and failed workflow, original passing
+build/R8 and native evidence, and the separate successful publisher bound to
+the same AAB hash and code.
 
 Each result has `gateId`, the same five-field `identity`, `status`,
 `evidenceRef`, `warningReview`, `warningReviewRef`, `warnings`, and `cases`:
@@ -367,7 +402,8 @@ two iPad-only methods have phone destination exclusions, one phone-only method
 has an iPad destination exclusion, and each remains required on its eligible
 destination. The two manual marketing methods remain separate manual exclusions
 on each destination. Keep every native status and count, including any failures.
-This historical disposition cannot satisfy schema-3/4 gates, the local smoke, iOS 18 compatibility or Android gates, or excuse a required latest-OS smoke that did not execute on its eligible destination.
+This historical disposition is exclusive to the schema-1 iOS `cloud-tests`
+gate. Every eligible counterpart must execute and pass.
 
 ## Bounded source equivalence
 
@@ -429,8 +465,8 @@ missing native cases and invalid destination relationships; each must block
 readiness or reject malformed input. Native evidence remains unchanged; boundary
 mutations are made only to copies.
 
-For an operator's complete real manifest, perform these focused manual checks
-on copies in the private release record:
+When changing the checker or diagnosing a manifest issue, use these focused
+checks on copies in the private release record:
 
 1. Run the command on complete passing evidence. Expect exit `0`, all gates
    ready and exact intended identities; retained schema-1 exclusions must report manual/destination skips distinctly.
@@ -448,17 +484,24 @@ on copies in the private release record:
    a precise identity-field mismatch. Change a gate source and inventory source
    together away from target: expect `1` without valid bounded equivalence.
 5. For new Android evidence, use schema 2 with exactly `cloud-release` and
-   `firebase-tests`; expect no missing local-gate errors. Keep all four exact
-   Device Run sessions and full named inventories. On a copy, change only the
-   schema to 1: expect `2` for missing gate definitions. A retained complete
-   schema-1 Android record still requires all five original gate definitions
-   and results; removing a local result returns `1`. Schema 2 with `platform`
-   set to `ios` returns `2`.
+   `firebase-tests`; expect no missing local-gate errors. Keep the exact
+   sessions and named inventories from the pinned source selection. Changing
+   only the schema to 1 returns `2` for missing gate definitions. Removing a
+   local result from a complete schema-1 Android record returns `1`.
+   Schema 2 with `platform` set to `ios` returns `2`.
 6. Mark inspection pending or a warning blocking/unreviewed: expect `1`.
    Remove a warning's policy/owner/version/reason/evidence: expect `2`. Remove
    a gate definition or empty a test inventory: expect `2`; remove a gate
    result: expect `1`.
-7. For new iOS evidence, use schema 4 with all five gates and all three exact local plan selections, actual single-destination provenance and the full named inventories. Missing complete-plan evidence must block readiness even if a diagnostic filtered run passed. On copies, use the wrong plan/configuration, omit the non-UI bundle, change a focused plan inventory, use the wrong device family or a non-18 compatibility OS: expect invalid input (`2`). A required skipped case, identity mismatch or latest-major disagreement must block readiness (`1`). The checker cannot detect an omitted full-plan method beyond its minimum-name checks if inventory and results are both cherry-picked; independent complete inventory review remains mandatory. On a schema-4 copy, add a Cloud test gate or set `platform` to `android`: expect `2`. Retained schema 3 still requires all six gates and its Cloud plan/destination; removing that gate or changing only the schema on a five-gate record to 3 returns `2`. Never edit a retained manifest to bypass its original requirements.
+7. For schema 5, change a plan, configuration or inventory case, switch a
+   latest gate to the other device family, or use a major other than 18 on the
+   compatibility gate. Each returns `2`, as does adding a Cloud test gate or
+   setting `platform` to `android`. A required skip, identity mismatch or
+   disagreement between otherwise valid latest OS majors returns `1`.
+   Retained schema 4 also rejects a Cloud test gate or the Android platform.
+   Schema 3 requires its Cloud plan and destination:
+   removing that gate or changing only the schema on a five-gate record to 3
+   returns `2`.
 8. After any passing report, still follow the platform's manual/native/store
    verification and authorized submission/publication sequence. Never use a
    report to claim a submitted artifact is publicly live.

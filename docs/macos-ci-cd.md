@@ -329,9 +329,10 @@ relaunch using `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`.
 Verify `automation_run_decided` reports `isAutomation=true` before interacting
 with each process.
 
-Open a disposable workspace. Disconnect networking, create a card, reveal
-and rate it, then relaunch offline and confirm that the card and rating persist.
-Reconnect and follow the [independent-client check](release/evidence.md#independent-client-sync-check).
+Start the [independent-client sync check](release/evidence.md#independent-client-sync-check)
+and record its baseline before going offline. Create and rate the check card
+offline, then relaunch offline and confirm that the card and rating persist.
+Reconnect and complete the sync check with the same card and rating.
 Record anything unavailable under the [release policy](release/README.md#standing-best-effort-release-policy).
 
 Exercise additional checks on the signed artifact when a change affects them:

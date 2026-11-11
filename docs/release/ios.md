@@ -82,13 +82,14 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    build's `minOsVersion` and app bundle's `minimumOsVersion` to report 18.0
    (Apple's [build metadata fields](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-builds)).
    Do not infer binary compatibility from source settings or another build.
-   On that exact signed Release/TestFlight artifact, use a disposable workspace.
-   Disconnect networking, create a card, reveal and rate it, then relaunch
-   offline and verify that the card and rating persist. Use the
-   [automation marker](../ios-ci-cd.md#automation-marker) on both launches.
-   Record artifact/version/build, actual OS and outcome. Reconnect for the
+   On that exact signed Release/TestFlight artifact, start the
    [independent-client sync check](evidence.md#independent-client-sync-check)
-   and complete applicable [iOS 18 checks](../ios-local-setup.md#ios-18-compatibility-smoke).
+   and record its baseline before going offline. Create and rate the check card
+   offline, then relaunch offline and verify that the card and rating persist.
+   Use the [automation marker](../ios-ci-cd.md#automation-marker) on both launches.
+   Record artifact/version/build, actual OS and outcome. Reconnect and complete
+   the sync check with the same card and rating, then complete applicable
+   [iOS 18 checks](../ios-local-setup.md#ios-18-compatibility-smoke).
    Require all available exact-artifact checks to pass and resolve any observed
    blocking failure before withdrawing an older submission or attaching the
    verified build. For unavailable coverage only, record the unexecuted checks
