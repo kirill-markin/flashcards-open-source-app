@@ -29,6 +29,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryResult
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
@@ -57,6 +58,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -109,7 +111,7 @@ class ReviewViewModel(
         value = makeWorkspaceScopedDraftState(reviewFilter = ReviewFilter.AllCards)
     )
     private val reviewDataRebuild = MutableStateFlow(
-        value = ReviewDataRebuild(reason = ReviewDataRebuildReason.INITIAL_LOAD, generation = 0L)
+        value = ReviewDataRebuild(reason = ReviewDataRebuildReason.INITIAL_LOAD, generation = 0L, workspaceId = null)
     )
     /** The queue's "now"; it moves only on a rebuild or at the next due time, never on a rating. */
     private val reviewSessionNowMillis = MutableStateFlow(value = System.currentTimeMillis())
@@ -122,28 +124,33 @@ class ReviewViewModel(
             pendingReviewedCards = state.pendingReviewedCards,
             presentedCardId = state.presentedCard?.cardId,
             preparedNextCardId = state.preparedNextCardId,
-            nowMillis = nowMillis
+            nowMillis = nowMillis,
+            ratingRevision = state.ratingRevision
         )
     }.distinctUntilChanged()
 
     // Every requested-filter change goes through [rebuildReviewSession], which restarts this flow.
-    private val reviewSessionState = reviewDataRebuild.flatMapLatest {
+    private val reviewSessionState = reviewDataRebuild.flatMapLatest { rebuild ->
         val requestedFilter = draftState.value.requestedFilter
-        reviewRepository.observeReviewSession(
+        reviewRepository.observeReviewSessionWithInputs(
             selectedFilter = requestedFilter,
             queryInputs = reviewSessionQueryInputs
-        ).map { sessionSnapshot ->
-            ObservedReviewSessionState(
-                requestedFilter = requestedFilter,
-                sessionSnapshot = sessionSnapshot
-            )
+        ).filter { result ->
+            result.workspaceId == rebuild.workspaceId
+        }.map { result ->
+            ObservedReviewSessionState(requestedFilter = requestedFilter, result = result)
         }
     }.flowOn(Dispatchers.Default).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = ObservedReviewSessionState(
             requestedFilter = ReviewFilter.AllCards,
-            sessionSnapshot = loadingReviewSessionSnapshot(textProvider = textProvider)
+            result = ReviewSessionQueryResult(
+                workspaceId = null,
+                queryInputs = null,
+                snapshot = loadingReviewSessionSnapshot(textProvider = textProvider),
+                countedCardVersions = emptySet()
+            )
         )
     )
     // Eagerly, because the auto-sync handlers only ever read this through [StateFlow.value]: a
@@ -228,10 +235,10 @@ class ReviewViewModel(
         appMetadataState,
         progressBadgeInputsState,
         reviewPresentationInputs
-    ) { reviewSessionState, state, appMetadata, progressBadgeInputs, presentationInputs ->
+    ) { _, state, appMetadata, progressBadgeInputs, presentationInputs ->
         mapToReviewUiState(
-            sessionSnapshot = reviewSessionState.sessionSnapshot,
-            sessionRequestedFilter = reviewSessionState.requestedFilter,
+            // A draft can already have retired commits observed by a newer session emission.
+            observedSession = reviewSessionState.value,
             state = state,
             appMetadata = appMetadata,
             progressSummarySnapshot = progressBadgeInputs.first,
@@ -593,7 +600,11 @@ class ReviewViewModel(
     private fun rebuildReviewSession(reason: ReviewDataRebuildReason) {
         reviewSessionNowMillis.value = System.currentTimeMillis()
         reviewDataRebuild.update { rebuild ->
-            ReviewDataRebuild(reason = reason, generation = rebuild.generation + 1L)
+            ReviewDataRebuild(
+                reason = reason,
+                generation = rebuild.generation + 1L,
+                workspaceId = activeWorkspaceId
+            )
         }
     }
 
@@ -673,14 +684,28 @@ class ReviewViewModel(
     }
 
     fun rateCard(rating: ReviewRating, reactionPlayed: Boolean) {
-        val currentCard = uiState.value.preparedCurrentCard?.card ?: return
+        val displayedState = uiState.value
+        val currentCard = displayedState.preparedCurrentCard?.card ?: return
+        val observedSession = reviewSessionState.value
+        val draft = draftState.value
+        if (
+            observedSession.result.workspaceId != activeWorkspaceId ||
+            displayedState.sessionWorkspaceId != activeWorkspaceId ||
+            observedSession.requestedFilter != draft.requestedFilter ||
+            displayedState.requestedFilter != observedSession.requestedFilter ||
+            displayedState.isRequestedFilterSessionPending
+        ) {
+            return
+        }
+        val observedRatingRevision = observedSession.result.queryInputs?.ratingRevision ?: return
         val cardId = currentCard.cardId
         val pendingReviewedCard = PendingReviewedCard(
             cardId = cardId,
             updatedAtMillis = currentCard.updatedAtMillis
         )
+        val pendingReviewedCardIds = draft.pendingReviewedCards.mapTo(mutableSetOf(), PendingReviewedCard::cardId)
         // uiState is mapped off Main, so a fast second tap can still see the card this rating replaced.
-        if (draftState.value.pendingReviewedCards.contains(pendingReviewedCard)) {
+        if (cardId in pendingReviewedCardIds) {
             return
         }
         // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
@@ -689,12 +714,16 @@ class ReviewViewModel(
             ratedCardId = cardId,
             reactionPlayed = reactionPlayed
         )
-        val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
+        val optimisticPreparedCurrentCard = displayedState.preparedNextCard
         val nextPresentedCard = optimisticPreparedCurrentCard?.card
         val nextPreparedNextCardId = chooseNextCardIdAfterRating(
-            sessionCards = reviewSessionState.value.sessionSnapshot.cards,
+            sessionCards = observedSession.sessionSnapshot.cards,
             nextPresentedCard = nextPresentedCard,
-            pendingReviewedCards = draftState.value.pendingReviewedCards + pendingReviewedCard
+            excludedCardIds = pendingReviewedCardIds + cardId,
+            excludedRatings = unreflectedReviewRatings(
+                state = draft,
+                observedRevision = observedRatingRevision
+            )
         )
         val operationWorkspaceGeneration = workspaceGeneration
         val submittedSessionContext = captureReviewSubmissionSessionContext()
@@ -749,11 +778,15 @@ class ReviewViewModel(
                     currentContext = currentSessionContext
                 )
                 draftState.update { state ->
+                    val commitRevision = state.ratingRevision + 1L
                     applySuccessfulReviewSubmission(
                         state = state,
                         submittedContext = submittedSessionContext,
                         currentContext = currentSessionContext,
                         pendingReviewedCard = pendingReviewedCard
+                    ).copy(
+                        ratingRevision = commitRevision,
+                        committedCountRatings = state.committedCountRatings + (pendingReviewedCard to commitRevision)
                     )
                 }
                 ownedReviewSubmissions = if (isCurrentSubmissionContext) {
@@ -1083,7 +1116,7 @@ class ReviewViewModel(
                 reviewSessionState to workspace?.workspaceId
             }.collect { (reviewSessionState, workspaceId) ->
                 val sessionSnapshot = reviewSessionState.sessionSnapshot
-                if (workspaceId == null || sessionSnapshot.isLoading) {
+                if (workspaceId == null || reviewSessionState.result.workspaceId != workspaceId || sessionSnapshot.isLoading) {
                     return@collect
                 }
 
@@ -1119,13 +1152,25 @@ class ReviewViewModel(
         viewModelScope.launch {
             reviewSessionState.collect { observedState ->
                 val sessionSnapshot = observedState.sessionSnapshot
-                if (sessionSnapshot.isLoading) {
+                if (sessionSnapshot.isLoading || observedState.result.workspaceId != activeWorkspaceId) {
                     return@collect
                 }
                 settleReviewAfterRatingWorkOnSessionEmission()
                 scheduleNextDueRefresh(nextDueAtMillis = sessionSnapshot.nextDueAtMillis)
+                val queryInputs = observedState.result.queryInputs ?: return@collect
+                if (observedState.requestedFilter != draftState.value.requestedFilter) {
+                    return@collect
+                }
+
+                draftState.update { state ->
+                    state.copy(
+                        committedCountRatings = state.committedCountRatings.filterValues { revision ->
+                            revision > queryInputs.ratingRevision
+                        }
+                    )
+                }
                 val currentState = draftState.value
-                if (observedState.requestedFilter != currentState.requestedFilter) {
+                if (!queryInputs.matchesPresentation(state = currentState)) {
                     return@collect
                 }
 
@@ -1149,10 +1194,6 @@ class ReviewViewModel(
                 lastObservedReviewSessionSignature = nextObservedSignature
 
                 draftState.update { state ->
-                    if (observedState.requestedFilter != state.requestedFilter) {
-                        return@update state
-                    }
-
                     val nextPresentedCard = sessionSnapshot.presentedCard
                     // Pins the session's next card so later background refreshes keep it next.
                     val nextPreparedNextCardId = sessionSnapshot.preparedNextCard?.cardId
