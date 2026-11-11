@@ -2,11 +2,13 @@ package com.flashcardsopensourceapp.feature.settings.workspace.tags
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Button
@@ -29,15 +31,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.OverviewRow
 import com.flashcardsopensourceapp.feature.settings.R
+import com.flashcardsopensourceapp.feature.settings.deck.DeckCardRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkspaceTagDetailRoute(
     tag: String,
-    stats: WorkspaceTagDetailStats?,
+    uiState: WorkspaceTagDetailUiState?,
     onOpenReview: () -> Unit,
     onResetProgress: () -> Unit,
     onRemoveTag: () -> Unit,
+    onOpenCard: (String) -> Unit,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -55,52 +59,83 @@ fun WorkspaceTagDetailRoute(
             )
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .consumeWindowInsets(innerPadding)
         ) {
-            if (stats == null) {
-                CircularProgressIndicator()
-                return@Column
+            if (uiState == null) {
+                item { CircularProgressIndicator() }
+                return@LazyColumn
             }
-            if (stats.totalCards == 0) {
-                Text(stringResource(R.string.settings_tag_detail_unavailable))
-                return@Column
+            if (uiState.cards.isEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(R.string.settings_tag_detail_unavailable),
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+                return@LazyColumn
             }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(text = tag, style = MaterialTheme.typography.headlineSmall)
-                    OverviewRow(title = stringResource(R.string.settings_tag_detail_total), value = stats.totalCards)
-                    OverviewRow(title = stringResource(R.string.settings_workspace_new_title), value = stats.newCards)
-                    OverviewRow(title = stringResource(R.string.settings_workspace_to_study_title), value = stats.dueCards)
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        OverviewRow(title = stringResource(R.string.settings_tag_detail_total), value = uiState.cards.size)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_to_study_title), value = uiState.dueCards)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_new_title), value = uiState.newCards)
+                    }
                 }
             }
-            Button(
-                onClick = onOpenReview,
-                modifier = Modifier.fillMaxWidth().testTag("workspace_tag_detail_review")
-            ) {
-                Text(stringResource(R.string.settings_tag_detail_open_review))
+
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val destructiveButtonColors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                    Button(
+                        onClick = onOpenReview,
+                        modifier = Modifier.fillMaxWidth().testTag("workspace_tag_detail_review")
+                    ) {
+                        Text(stringResource(R.string.settings_tag_detail_open_review))
+                    }
+                    OutlinedButton(
+                        onClick = onResetProgress,
+                        colors = destructiveButtonColors,
+                        modifier = Modifier.fillMaxWidth().testTag("workspace_tag_detail_reset_progress")
+                    ) {
+                        Text(stringResource(R.string.settings_reset_study_progress_title))
+                    }
+                    OutlinedButton(
+                        onClick = onRemoveTag,
+                        colors = destructiveButtonColors,
+                        modifier = Modifier.fillMaxWidth().testTag("workspace_tag_detail_remove")
+                    ) {
+                        Text(stringResource(R.string.settings_tag_detail_remove_tag))
+                    }
+                }
             }
-            OutlinedButton(
-                onClick = onResetProgress,
-                modifier = Modifier.fillMaxWidth().testTag("workspace_tag_detail_reset_progress")
-            ) {
-                Text(stringResource(R.string.settings_reset_study_progress_title))
+
+            item {
+                Text(
+                    text = stringResource(R.string.settings_deck_matching_cards_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
-            OutlinedButton(
-                onClick = onRemoveTag,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                modifier = Modifier.fillMaxWidth().testTag("workspace_tag_detail_remove")
-            ) {
-                Text(stringResource(R.string.settings_tag_detail_remove_tag))
+
+            items(uiState.cards, key = { card -> card.cardId }) { card ->
+                DeckCardRow(card = card, onOpenCard = onOpenCard)
             }
         }
     }

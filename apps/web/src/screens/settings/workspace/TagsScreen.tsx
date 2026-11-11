@@ -156,7 +156,7 @@ export function TagsScreen(): ReactElement {
   }
 
   return (
-    <main className="container tags-page">
+    <main className="container">
       <section className="panel tags-screen-panel">
         <div className="screen-head">
           <div>
@@ -178,7 +178,7 @@ export function TagsScreen(): ReactElement {
               to={workspacePath(buildLibraryTagDetailRoute(tagSummary.tag))}
             >
               <div className="tags-summary-card-head">
-                <strong className="panel-subtitle">{tagSummary.tag}</strong>
+                <strong className="panel-subtitle"><bdi>{tagSummary.tag}</bdi></strong>
                 <span className="badge">{formatCount(tagSummary.cardsCount, messages.common.countLabels.card)}</span>
               </div>
             </Link>
