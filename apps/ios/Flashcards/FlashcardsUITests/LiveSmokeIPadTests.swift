@@ -22,10 +22,13 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         let composer = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.focusElementForTextInput(composer, identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        composer.typeText("Keep this unsent companion draft")
         #if targetEnvironment(macCatalyst)
+        let draft = "1"
+        self.app.typeKey(draft, modifierFlags: [])
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         #else
+        let draft = "Keep this unsent companion draft"
+        composer.typeText(draft)
         try self.tapButton(identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         #endif
 
@@ -37,7 +40,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         for destination in [libraryDestination, .progress, .review] {
             try self.tapTabBarItem(identifier: destination.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: destination.screen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.waitForAiComposerValue("Keep this unsent companion draft", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerValue(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
         try self.waitForReviewAnswerReveal()
@@ -47,7 +50,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.waitForReviewAnswerReveal()
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.waitForAiComposerValue("Keep this unsent companion draft", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForAiComposerValue(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 #if !targetEnvironment(macCatalyst)
         try self.assertReviewFilterLifetimeAcrossCompanionLayouts()
 #endif
