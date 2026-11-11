@@ -68,14 +68,7 @@ extension FlashcardsStore {
         self.applyStoredProductAnalyticsPreference()
         self.clearProductAnalyticsPushFailureReportsForCloudIdentityReset()
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
-        try context.database.clearCloudSyncState(workspaceId: context.workspaceId)
-        try context.database.updateCloudSettings(
-            cloudState: .disconnected,
-            linkedUserId: nil,
-            linkedWorkspaceId: nil,
-            activeWorkspaceId: context.workspaceId,
-            linkedEmail: nil
-        )
+        try context.database.disconnectCloudServerKeepingLocalWorkspace(workspaceId: context.workspaceId)
 
         if let override {
             try saveCloudServerOverride(

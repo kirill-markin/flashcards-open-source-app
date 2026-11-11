@@ -245,24 +245,47 @@ extension FlashcardsStore {
         let isGuestSession = activeSession.authorization.isGuest
         let failureStateCloudState = self.cloudSettings?.cloudState
 
+        let syncGeneration = self.cloudRuntime.syncGeneration
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
         self.syncStatus = .syncing
         do {
+            var refreshToken: String?
             let syncResult: CloudSyncResult
             if isGuestSession {
                 syncResult = try await self.runLinkedSync(linkedSession: activeSession)
             } else {
-                syncResult = try await self.withAuthenticatedCloudSession { session in
-                    try await self.runLinkedSync(linkedSession: session)
+                syncResult = try await self.withCurrentCloudSession(
+                    linkedSession: activeSession,
+                    syncGeneration: syncGeneration
+                ) { session in
+                    refreshToken = try await self.cardMaintenanceRefreshTokenAfterReconciliation(linkedSession: session)
+                    try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+                    try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: session)
+                    if refreshToken != nil {
+                        return try await self.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: session)
+                    }
+                    return try await self.runLinkedSync(linkedSession: session)
                 }
             }
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             try self.throwIfCloudCredentialRecoveryRequired()
             let now = Date()
-            try await self.applySyncResultWithoutBlockingReset(
+            try await self.applyCurrentLinkedSyncResult(
                 syncResult: syncResult,
+                linkedSession: activeSession,
+                syncGeneration: syncGeneration,
                 now: now,
                 trigger: trigger
             )
-            await self.processMediaUploadTransfersAfterCloudSync(linkedSession: activeSession)
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+            try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: activeSession)
+            try self.finishCardMaintenanceRefresh(linkedSession: activeSession, token: refreshToken)
+            await self.processMediaUploadTransfersAfterCloudSync(
+                linkedSession: activeSession,
+                syncGeneration: syncGeneration
+            )
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+            try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: activeSession)
             // Re-arms the failure gate: this attempt is the same unit of work the catch below reports,
             // so a sync that got through is what ends the episode it opened.
             Analytics.recordSyncSucceeded()
@@ -278,6 +301,9 @@ extension FlashcardsStore {
                 error: nil
             )
         } catch {
+            guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration) else {
+                throw CancellationError()
+            }
             if isRequestCancellationError(error: error) {
                 self.syncStatus = .idle
                 throw error
@@ -295,9 +321,11 @@ extension FlashcardsStore {
             do {
                 failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                     error: error,
-                    now: Date()
+                    now: Date(),
+                    syncGeneration: syncGeneration
                 )
             } catch {
+                try self.cloudRuntime.checkSyncGeneration(syncGeneration)
                 self.syncStatus = self.syncStatusForCloudFailure(
                     error: error,
                     fallbackCloudState: failureStateCloudState,
@@ -315,6 +343,7 @@ extension FlashcardsStore {
                 }
                 throw didCapture ? markTechnicalErrorObserved(error: error) : error
             }
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             self.syncStatus = self.syncStatusForCloudFailure(
                 error: failureError,
                 fallbackCloudState: failureStateCloudState,
@@ -706,6 +735,8 @@ extension FlashcardsStore {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        let syncGeneration = self.cloudRuntime.syncGeneration
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
         try self.cloudRuntime.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
@@ -716,22 +747,32 @@ extension FlashcardsStore {
             } else {
                 syncResult = try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
             }
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             self.markUnrebuiltSyncWritesIfNeeded(syncResult: syncResult)
             self.applyPulledCloudEntitlement(syncResult: syncResult, linkedSession: linkedSession)
             return syncResult
         } catch {
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+            if let activeSession = self.cloudRuntime.activeCloudSession(),
+               cloudLinkedSessionsMatchStableContext(activeSession, linkedSession) == false {
+                throw CancellationError()
+            }
             self.hasUnrebuiltSyncWrites = true
             let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
-                now: Date()
+                now: Date(),
+                syncGeneration: syncGeneration
             )
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             if try await self.enterLinkedWorkspaceUnavailableRecoveryIfNeeded(
                 error: failureError,
                 linkedSession: linkedSession,
-                detectedAt: Date()
+                detectedAt: Date(),
+                syncGeneration: syncGeneration
             ) {
                 try self.throwIfCloudCredentialRecoveryRequired()
             }
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             if try self.enterCustomGuestWorkspacePauseIfNeeded(
                 error: failureError,
                 linkedSession: linkedSession,
@@ -757,6 +798,8 @@ extension FlashcardsStore {
     }
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        let syncGeneration = self.cloudRuntime.syncGeneration
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
         try self.cloudRuntime.throwIfWorkspaceDeletionBlocksSync(linkedSession: linkedSession)
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
         try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
@@ -771,22 +814,30 @@ extension FlashcardsStore {
                     linkedSession: linkedSession
                 )
             }
+            try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             self.markUnrebuiltSyncWritesIfNeeded(syncResult: syncResult)
             self.applyPulledCloudEntitlement(syncResult: syncResult, linkedSession: linkedSession)
             return syncResult
         } catch {
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+            try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
             self.hasUnrebuiltSyncWrites = true
             let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
-                now: Date()
+                now: Date(),
+                syncGeneration: syncGeneration
             )
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             if try await self.enterLinkedWorkspaceUnavailableRecoveryIfNeeded(
                 error: failureError,
                 linkedSession: linkedSession,
-                detectedAt: Date()
+                detectedAt: Date(),
+                syncGeneration: syncGeneration
             ) {
                 try self.throwIfCloudCredentialRecoveryRequired()
             }
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             if try self.enterCustomGuestWorkspacePauseIfNeeded(
                 error: failureError,
                 linkedSession: linkedSession,
@@ -834,7 +885,10 @@ extension FlashcardsStore {
         return false
     }
 
-    private func processMediaUploadTransfersAfterCloudSync(linkedSession: CloudLinkedSession) async {
+    private func processMediaUploadTransfersAfterCloudSync(
+        linkedSession: CloudLinkedSession,
+        syncGeneration: UUID
+    ) async {
         guard let database = self.database,
               let cloudSyncService = self.dependencies.cloudSyncService,
               self.workspace?.workspaceId == linkedSession.workspaceId else {
@@ -842,14 +896,22 @@ extension FlashcardsStore {
         }
 
         do {
-            try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.withCurrentCloudSession(
+                linkedSession: linkedSession,
+                syncGeneration: syncGeneration
+            ) { refreshedSession in
                 try await MediaUploadTransferRunner(
                     database: database,
-                    cloudSyncService: cloudSyncService
+                    cloudSyncService: cloudSyncService,
+                    validateContext: {
+                        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+                        try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+                    }
                 ).processDueUploads(linkedSession: refreshedSession, now: Date())
             }
         } catch {
-            if isRequestCancellationError(error: error) {
+            guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration),
+                  isRequestCancellationError(error: error) == false else {
                 return
             }
             self.captureMediaUploadTransferProcessingFailure(error: error, linkedSession: linkedSession)

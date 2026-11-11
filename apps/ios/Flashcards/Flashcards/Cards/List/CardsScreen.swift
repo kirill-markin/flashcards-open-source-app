@@ -105,6 +105,7 @@ struct CardsScreen: View {
         backTextSelection: nil,
         observedFrontText: nil,
         observedBackText: nil,
+        observedTags: [],
         tags: [],
         mediaAssetIdsReadyForUpload: []
     )
@@ -510,6 +511,7 @@ struct CardsScreen: View {
             backTextSelection: nil,
             observedFrontText: nil,
             observedBackText: nil,
+            observedTags: [],
             tags: [],
             mediaAssetIdsReadyForUpload: []
         )
@@ -528,6 +530,7 @@ struct CardsScreen: View {
             backTextSelection: nil,
             observedFrontText: card.frontText,
             observedBackText: card.backText,
+            observedTags: card.tags,
             tags: card.tags,
             mediaAssetIdsReadyForUpload: []
         )
@@ -565,7 +568,7 @@ struct CardsScreen: View {
             return
         }
 
-        self.cardFormState = cardFormStateByReconcilingMediaLifecycle(
+        self.cardFormState = cardFormStateByReconcilingSyncedCard(
             formState: self.cardFormState,
             refreshedCard: refreshedCard
         )
@@ -594,9 +597,10 @@ struct CardsScreen: View {
         let normalizedInput = self.normalizedCardEditorInput()
 
         do {
-            try store.saveCard(
+            let savedCard = try store.saveCard(
                 input: normalizedInput,
                 editingCardId: editingCardId,
+                observedTags: self.cardFormState.observedTags,
                 mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
@@ -608,7 +612,7 @@ struct CardsScreen: View {
                 cardId: editingCardId,
                 frontText: normalizedInput.frontText,
                 backText: normalizedInput.backText,
-                tags: normalizedInput.tags
+                tags: savedCard.tags
             )
         } catch {
             if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
@@ -690,6 +694,7 @@ struct CardsScreen: View {
             try store.saveCard(
                 input: self.normalizedCardEditorInput(),
                 editingCardId: self.editorPresentation?.editingCardId,
+                observedTags: self.cardFormState.observedTags,
                 mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
@@ -838,11 +843,8 @@ private struct CardFiltersSheetView: View {
             Section {
                 NavigationLink {
                     TagPickerView(
-                        selectedTags: draftTags,
-                        suggestions: suggestions,
-                        onSave: { nextTags in
-                            updateDraftFilter(tags: nextTags)
-                        }
+                        selectedTags: Binding(get: { self.draftTags }, set: self.updateDraftFilter),
+                        suggestions: suggestions
                     )
                 } label: {
                     TagsFieldRow(summary: localizedTagSelectionSummary(tags: draftTags))

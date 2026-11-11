@@ -457,15 +457,22 @@ extension FlashcardsStore {
      non-blocking restore path; otherwise it falls back to the full relink flow.
      */
     private func performRestoreCloudLinkFromStoredCredentials(trigger: CloudSyncTrigger) async throws {
+        var syncGeneration = self.cloudRuntime.syncGeneration
+        let validateContext: @MainActor () throws -> Void = {
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+        }
         do {
-            try await self.withStoredAuthenticatedCredentials { credentials, configuration in
+            try await self.withStoredAuthenticatedCredentials(validateContext: validateContext) { credentials, configuration in
                 try await self.restoreLinkedSessionFromCredentials(
                     credentials: credentials,
                     configuration: configuration,
-                    trigger: trigger
+                    trigger: trigger,
+                    validateContext: validateContext,
+                    didChangeSyncGeneration: { syncGeneration = $0 }
                 )
             }
         } catch {
+            try validateContext()
             // Unwrapped here rather than inside `isCloudAccountDeletedError`: the restore this
             // branch guards fails through `performSameWorkspaceCloudRestore`, which captures the
             // failure and rethrows it boxed in `ObservedTechnicalError`, so the classifier's own
@@ -515,16 +522,46 @@ extension FlashcardsStore {
         }
     }
 
+    func withCurrentCloudSession<Result>(
+        linkedSession: CloudLinkedSession,
+        syncGeneration: UUID,
+        operation: @MainActor (CloudLinkedSession) async throws -> Result
+    ) async throws -> Result {
+        try await self.withCloudSessionPreservingStableContext(
+            linkedSession: linkedSession,
+            validateContext: {
+                try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+                try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+            },
+            operation: operation
+        )
+    }
+
     func withCloudSessionPreservingStableContext<Result>(
         linkedSession: CloudLinkedSession,
         operation: @MainActor (CloudLinkedSession) async throws -> Result
     ) async throws -> Result {
-        switch linkedSession.authorization {
-        case .guest:
-            return try await operation(linkedSession)
-        case .bearer:
-            do {
-                return try await self.withStoredAuthenticatedCredentials { credentials, _ in
+        try await self.withCloudSessionPreservingStableContext(
+            linkedSession: linkedSession,
+            validateContext: {},
+            operation: operation
+        )
+    }
+
+    private func withCloudSessionPreservingStableContext<Result>(
+        linkedSession: CloudLinkedSession,
+        validateContext: @MainActor () throws -> Void,
+        operation: @MainActor (CloudLinkedSession) async throws -> Result
+    ) async throws -> Result {
+        do {
+            try validateContext()
+            switch linkedSession.authorization {
+            case .guest:
+                let result = try await operation(linkedSession)
+                try validateContext()
+                return result
+            case .bearer:
+                return try await self.withStoredAuthenticatedCredentials(validateContext: validateContext) { credentials, _ in
                     let refreshedSession = CloudLinkedSession(
                         userId: linkedSession.userId,
                         workspaceId: linkedSession.workspaceId,
@@ -535,7 +572,10 @@ extension FlashcardsStore {
                     )
                     return try await operation(refreshedSession)
                 }
-            } catch {
+            }
+        } catch {
+            try validateContext()
+            if linkedSession.authorization.isGuest == false {
                 if self.isCloudAccountDeletedError(error) {
                     self.handleRemoteAccountDeletedCleanup()
                 }
@@ -543,9 +583,9 @@ extension FlashcardsStore {
                 if self.isCloudAuthorizationError(error) {
                     try self.logoutCloudAccount()
                 }
-
-                throw error
             }
+
+            throw error
         }
     }
 

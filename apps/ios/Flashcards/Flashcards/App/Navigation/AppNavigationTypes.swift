@@ -13,6 +13,7 @@ struct ProgressPresentationRequest: Hashable, Sendable {
 enum LibraryNavigationDestination: Hashable, Sendable {
     case cards
     case tags
+    case tagDetail(tag: String, workspaceId: String)
     case decks
     case deckDetail(DeckScreenDestination)
     case deckCatalog

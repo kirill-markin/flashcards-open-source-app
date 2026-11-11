@@ -392,7 +392,8 @@ extension FlashcardsStore {
     func enterLinkedWorkspaceUnavailableRecoveryIfNeeded(
         error: Error,
         linkedSession: CloudLinkedSession,
-        detectedAt: Date
+        detectedAt: Date,
+        syncGeneration: UUID
     ) async throws -> Bool {
         guard isLinkedWorkspaceUnavailableCloudSyncResponse(
             error: error,
@@ -403,6 +404,7 @@ extension FlashcardsStore {
         }
 
         await self.cloudRuntime.waitForActiveCloudSyncToSettle()
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
 
         if let recoveryState = self.cloudCredentialRecoveryState {
             guard recoveryState.reason == .linkedWorkspaceUnavailable else {

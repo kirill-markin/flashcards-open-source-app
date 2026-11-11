@@ -1045,6 +1045,8 @@ struct RootTabView: View {
             CardsScreen()
         case .tags:
             TagsScreen()
+        case .tagDetail(let tag, let workspaceId):
+            TagDetailScreen(tag: tag, workspaceId: workspaceId)
         case .decks:
             DecksScreen()
         case .deckDetail(let deck):

@@ -108,6 +108,19 @@ func normalizeTags(values: [String], referenceTags: [String]) -> [String] {
     }
 }
 
+func reconcileDraftTags(draftTags: [String], observedTags: [String], refreshedTags: [String]) -> [String] {
+    guard observedTags != refreshedTags else {
+        return draftTags
+    }
+
+    let observedKeys = Set(observedTags.map(normalizeTagKey))
+    let draftKeys = Set(draftTags.map(normalizeTagKey))
+    let removedKeys = observedKeys.subtracting(draftKeys)
+    let retainedTags = refreshedTags.filter { removedKeys.contains(normalizeTagKey(tag: $0)) == false }
+    let addedTags = draftTags.filter { observedKeys.contains(normalizeTagKey(tag: $0)) == false }
+    return normalizeTags(values: retainedTags + addedTags, referenceTags: retainedTags)
+}
+
 func legacyEffortTag(effortLevel: String) throws -> String? {
     switch effortLevel.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
     case "fast":
@@ -291,22 +304,6 @@ func creatableTagValue(searchText: String, selectedTags: [String], suggestions: 
     }
 
     return normalizedSearchText
-}
-
-func toggleTagSelection(selectedTags: [String], tag: String, suggestions: [TagSuggestion]) -> [String] {
-    let tagKey = normalizeTagKey(tag: tag)
-    if selectedTags.contains(where: { selectedTag in
-        normalizeTagKey(tag: selectedTag) == tagKey
-    }) {
-        return selectedTags.filter { selectedTag in
-            normalizeTagKey(tag: selectedTag) != tagKey
-        }
-    }
-
-    return normalizeTags(
-        values: selectedTags + [tag],
-        referenceTags: tagSuggestionReferenceTags(suggestions: suggestions)
-    )
 }
 
 func formatTagSelectionSummary(tags: [String]) -> String {

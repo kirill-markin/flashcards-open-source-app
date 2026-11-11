@@ -25,17 +25,53 @@ extension FlashcardsStore {
         now: Date,
         trigger: CloudSyncTrigger
     ) async throws {
+        try await self.applySyncResultWithoutBlockingReset(
+            syncResult: syncResult,
+            now: now,
+            trigger: trigger,
+            syncGeneration: nil,
+            validateContext: {}
+        )
+    }
+
+    func applyCurrentLinkedSyncResult(
+        syncResult: CloudSyncResult,
+        linkedSession: CloudLinkedSession,
+        syncGeneration: UUID,
+        now: Date,
+        trigger: CloudSyncTrigger
+    ) async throws {
+        try await self.applySyncResultWithoutBlockingReset(
+            syncResult: syncResult,
+            now: now,
+            trigger: trigger,
+            syncGeneration: syncGeneration,
+            validateContext: {
+                try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+                try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+            }
+        )
+    }
+
+    private func applySyncResultWithoutBlockingReset(
+        syncResult: CloudSyncResult,
+        now: Date,
+        trigger: CloudSyncTrigger,
+        syncGeneration: UUID?,
+        validateContext: () throws -> Void
+    ) async throws {
+        try validateContext()
         if self.hasUnrebuiltSyncWrites || syncAppliedRemoteChanges(result: syncResult) {
             try await self.rebuildReviewDataAfterSyncAppliedRemoteChanges(
                 syncResult: syncResult,
                 now: now,
-                allowsVisibleChangeBanner: trigger.allowsVisibleChangeBanner
+                allowsVisibleChangeBanner: trigger.allowsVisibleChangeBanner,
+                validateContext: validateContext
             )
+            try validateContext()
         }
-        await self.handleProgressSyncCompletion(
-            now: now,
-            syncResult: syncResult
-        )
+        await self.handleProgressSyncCompletion(now: now, syncResult: syncResult, syncGeneration: syncGeneration)
+        try validateContext()
         self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
         self.syncStatus = .idle
         self.globalErrorMessage = ""
@@ -50,16 +86,19 @@ extension FlashcardsStore {
     private func rebuildReviewDataAfterSyncAppliedRemoteChanges(
         syncResult: CloudSyncResult,
         now: Date,
-        allowsVisibleChangeBanner: Bool
+        allowsVisibleChangeBanner: Bool,
+        validateContext: () throws -> Void
     ) async throws {
         self.hasUnrebuiltSyncWrites = false
         do {
             try await self.rebuildReviewDataForSyncResult(
                 syncResult: syncResult,
                 now: now,
-                allowsVisibleChangeBanner: allowsVisibleChangeBanner
+                allowsVisibleChangeBanner: allowsVisibleChangeBanner,
+                validateContext: validateContext
             )
         } catch {
+            try validateContext()
             self.hasUnrebuiltSyncWrites = true
             throw error
         }
@@ -68,10 +107,15 @@ extension FlashcardsStore {
     private func rebuildReviewDataForSyncResult(
         syncResult: CloudSyncResult,
         now: Date,
-        allowsVisibleChangeBanner: Bool
+        allowsVisibleChangeBanner: Bool,
+        validateContext: () throws -> Void
     ) async throws {
         self.addReviewDataRebuildBreadcrumb(reason: .syncAppliedRemoteChanges)
-        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(
+            now: now,
+            validateContext: validateContext
+        )
+        try validateContext()
         let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
             syncResult: syncResult,
             now: now
@@ -85,8 +129,10 @@ extension FlashcardsStore {
             }
             _ = try await self.refreshReviewState(
                 now: now,
-                mode: reviewRefreshMode
+                mode: reviewRefreshMode,
+                validateContext: validateContext
             )
+            try validateContext()
         }
         self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
         if allowsVisibleChangeBanner {
@@ -100,7 +146,8 @@ extension FlashcardsStore {
 
     func failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
         error: Error,
-        now: Date
+        now: Date,
+        syncGeneration: UUID
     ) async throws -> Error {
         guard let localIdRepairFailure = error as? CloudSyncLocalIdRepairFailure else {
             return error
@@ -108,16 +155,21 @@ extension FlashcardsStore {
 
         try await self.applyLocalIdRepairSideEffectsAfterSyncFailure(
             syncResult: localIdRepairFailure.syncResult,
-            now: now
+            now: now,
+            syncGeneration: syncGeneration
         )
         return localIdRepairFailure.underlyingError
     }
 
     private func applyLocalIdRepairSideEffectsAfterSyncFailure(
         syncResult: CloudSyncResult,
-        now: Date
+        now: Date,
+        syncGeneration: UUID
     ) async throws {
-        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now) {
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+        }
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
         let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
             syncResult: syncResult,
             now: now

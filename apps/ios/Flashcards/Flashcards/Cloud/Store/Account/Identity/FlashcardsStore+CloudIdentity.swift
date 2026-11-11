@@ -427,7 +427,8 @@ extension FlashcardsStore {
     @discardableResult
     private func resetLocalStateIfStoredCredentialsBelongToDifferentUser(
         credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration
+        configuration: CloudServiceConfiguration,
+        validateContext: @MainActor () throws -> Void
     ) async throws -> Bool {
         guard self.cloudSettings?.cloudState == .linked else {
             return false
@@ -437,6 +438,7 @@ extension FlashcardsStore {
             credentials: credentials,
             configuration: configuration
         )
+        try validateContext()
         guard let linkedUserId = self.cloudSettings?.linkedUserId, linkedUserId.isEmpty == false else {
             return false
         }
@@ -481,6 +483,14 @@ extension FlashcardsStore {
     func withStoredAuthenticatedCredentials<Result>(
         operation: @MainActor (StoredCloudCredentials, CloudServiceConfiguration) async throws -> Result
     ) async throws -> Result {
+        try await self.withStoredAuthenticatedCredentials(validateContext: {}, operation: operation)
+    }
+
+    func withStoredAuthenticatedCredentials<Result>(
+        validateContext: @MainActor () throws -> Void,
+        operation: @MainActor (StoredCloudCredentials, CloudServiceConfiguration) async throws -> Result
+    ) async throws -> Result {
+        try validateContext()
         try self.throwIfCloudCredentialRecoveryRequired()
         if try self.markLinkedCredentialRecoveryForMissingCredentialsIfNeeded(detectedAt: Date()) {
             try self.throwIfCloudCredentialRecoveryRequired()
@@ -488,12 +498,18 @@ extension FlashcardsStore {
         let configuration = try self.currentCloudServiceConfiguration()
 
         do {
-            let credentials = try await self.refreshCloudCredentials(
+            let credentials = try await self.cloudRuntime.refreshCloudCredentials(
                 forceRefresh: false,
-                configuration: configuration
+                configuration: configuration,
+                now: Date(),
+                validateContext: validateContext
             )
-            return try await operation(credentials, configuration)
+            try validateContext()
+            let result = try await operation(credentials, configuration)
+            try validateContext()
+            return result
         } catch {
+            try validateContext()
             // The operation above captures its own failure and rethrows it boxed in
             // `ObservedTechnicalError`, so the forced-refresh retry only sees a rejected token
             // through the box.
@@ -502,35 +518,50 @@ extension FlashcardsStore {
             }
         }
 
-        let refreshedCredentials = try await self.refreshCloudCredentials(
+        let refreshedCredentials = try await self.cloudRuntime.refreshCloudCredentials(
             forceRefresh: true,
-            configuration: configuration
+            configuration: configuration,
+            now: Date(),
+            validateContext: validateContext
         )
-        return try await operation(refreshedCredentials, configuration)
+        try validateContext()
+        let result = try await operation(refreshedCredentials, configuration)
+        try validateContext()
+        return result
     }
 
     func restoreLinkedSessionFromCredentials(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration,
-        trigger: CloudSyncTrigger
+        trigger: CloudSyncTrigger,
+        validateContext: @MainActor () throws -> Void,
+        didChangeSyncGeneration: @MainActor (UUID) -> Void
     ) async throws {
         if try await self.resetLocalStateIfStoredCredentialsBelongToDifferentUser(
             credentials: credentials,
-            configuration: configuration
+            configuration: configuration,
+            validateContext: validateContext
         ) {
             return
         }
 
+        try validateContext()
         let linkedSession = try self.cloudRuntime.storedLinkedSession(
             cloudSettings: self.cloudSettings,
             configuration: configuration,
             bearerToken: credentials.idToken
         )
+        didChangeSyncGeneration(self.cloudRuntime.syncGeneration)
         if self.workspace?.workspaceId == linkedSession.workspaceId {
             try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
         } else {
-            try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
+            try await self.performActiveWorkspaceCloudRestore(
+                linkedSession: linkedSession,
+                trigger: trigger,
+                didChangeSyncGeneration: didChangeSyncGeneration
+            )
         }
+        try validateContext()
         // The other silent restore into a linked session, for the same reason: whatever ran at startup
         // saw the state before this. Started, never awaited, and a no-op unless a claim is owed.
         self.resumeAnalyticsGuestIdentityLinkIfNeeded()
