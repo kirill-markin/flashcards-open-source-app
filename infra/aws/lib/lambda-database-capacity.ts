@@ -3,7 +3,7 @@
 // retained Lambda environments also draw from the database.
 //
 // The db.t4g.small instance has 181 connections, with 3 reserved for superusers: 178 usable.
-// Main-pool allocation: (12 + 6 + 16 + 16 + 3 + 2 + 2 + 1) x 3 = 174, leaving 4 for additional draw.
+// Main-pool allocation: (18 + 6 + 16 + 10 + 3 + 2 + 2 + 1) x 3 = 174, leaving 4 for additional draw.
 // Every budgeted function receives DB_POOL_MAX_CONNECTIONS from here; the backend and auth pool
 // constructors enforce it in apps/backend/src/database/core.ts and apps/auth/src/db.ts.
 //
@@ -32,13 +32,13 @@ const minimumDatabasePoolMaxConnectionsPerContainer = 3;
 const usableDatabaseConnections = 178;
 export const databasePoolMaxConnectionsEnvName = "DB_POOL_MAX_CONNECTIONS";
 export const databasePoolMaxConnectionsEnvValue = String(databasePoolMaxConnectionsPerContainer);
-export const backendHandlerReservedConcurrency = 12;
+export const backendHandlerReservedConcurrency = 18;
 export const authHandlerReservedConcurrency = 6;
 export const nativeProofChallengeReservedConcurrency = 2;
 export const nativeProofGateReservedConcurrency = 1;
 export const mcpHandlerReservedConcurrency = 16;
 // SSE holds a container for the whole stream, so concurrency depends on session duration.
-export const chatLiveHandlerReservedConcurrency = 16;
+export const chatLiveHandlerReservedConcurrency = 10;
 export const chatRunWorkerHandlerReservedConcurrency = 3;
 export const directImageIngestionHandlerReservedConcurrency = 2;
 
