@@ -289,8 +289,8 @@
     <string name="settings_account_status_sync_blocked_body">ପୁଣି ସଂଯୋଗ କରିବା ଆଗରୁ «ଲଗ୍ ଆଉଟ୍ କରନ୍ତୁ» ବାଛି ଏହି ଡିଭାଇସ୍‌ରୁ କ୍ଲାଉଡ୍ ପରିଚୟ ହଟାନ୍ତୁ।</string>
     <string name="settings_account_status_sign_in_button">ସାଇନ୍ ଇନ୍ କରନ୍ତୁ ବା ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ</string>
     <string name="settings_account_status_sync_now_button">ଏବେ ସିଙ୍କ୍ କରନ୍ତୁ</string>
-    <string name="settings_account_status_logout_dialog_title">ଲଗ୍ ଆଉଟ୍ କରିବେ କି?</string>
-    <string name="settings_account_status_logout_dialog_body">ଏହା ଏହି ଡିଭାଇସ୍‌ରୁ କ୍ଲାଉଡ୍ ପରିଚୟ ହଟାଇବ। ଡିଭାଇସ୍‌ରେ ଥିବା କାର୍ଡ ଡାଟା ରହିବ।</string>
+    <string name="settings_account_status_logout_dialog_title">ଲଗ୍ ଆଉଟ୍ କରି ଏହି ଡିଭାଇସ୍‌ରୁ Nibomo ଡାଟା ଲିଭାଇବେ କି?</string>
+    <string name="settings_account_status_logout_dialog_body">ଲଗ୍ ଆଉଟ୍ କଲେ ଏହି ଡିଭାଇସ୍‌ରୁ ୱର୍କସ୍ପେସ୍ ଓ କାର୍ଡ ହଟିଯିବ। ସିଙ୍କ୍ ହୋଇଥିବା ଡାଟା କ୍ଲାଉଡ୍‌ରେ ରହିବ। ସିଙ୍କ୍ ହୋଇନଥିବା ପରିବର୍ତ୍ତନ ହଜିଯାଇପାରେ।</string>
     <string name="settings_account_status_logout_failed">ଲଗ୍ ଆଉଟ୍ ହୋଇପାରିଲା ନାହିଁ।</string>
     <string name="settings_account_status_sync_failed">କ୍ଲାଉଡ୍ ସିଙ୍କ୍ ବିଫଳ ହେଲା।</string>
     <string name="settings_account_status_logged_out_message">ଲଗ୍ ଆଉଟ୍ ହୋଇଛି। ଏହି ଡିଭାଇସ୍‌ର ସଂଯୋଗ ବିଚ୍ଛିନ୍ନ ହୋଇଛି।</string>

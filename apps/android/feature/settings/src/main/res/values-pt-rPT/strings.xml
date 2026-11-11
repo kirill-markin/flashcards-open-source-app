@@ -283,8 +283,8 @@
     <string name="settings_account_status_sync_blocked_body">Use Terminar sessão para apagar a identidade local na nuvem neste dispositivo antes de voltar a ligar-se.</string>
     <string name="settings_account_status_sign_in_button">Iniciar sessão ou criar conta</string>
     <string name="settings_account_status_sync_now_button">Sincronizar agora</string>
-    <string name="settings_account_status_logout_dialog_title">Terminar sessão?</string>
-    <string name="settings_account_status_logout_dialog_body">Isto apaga a identidade na nuvem deste dispositivo e mantém os dados dos cartões locais.</string>
+    <string name="settings_account_status_logout_dialog_title">Terminar sessão e apagar os dados do Nibomo deste dispositivo?</string>
+    <string name="settings_account_status_logout_dialog_body">Ao terminar sessão, os espaços de trabalho e os cartões são removidos deste dispositivo. Os dados sincronizados ficam na nuvem. As alterações ainda não sincronizadas podem perder-se.</string>
     <string name="settings_account_status_logout_failed">Não foi possível terminar sessão.</string>
     <string name="settings_account_status_sync_failed">A sincronização na nuvem falhou.</string>
     <string name="settings_account_status_logged_out_message">A sessão terminou. Este dispositivo já não está ligado.</string>

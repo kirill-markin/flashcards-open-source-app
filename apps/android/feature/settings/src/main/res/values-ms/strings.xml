@@ -288,8 +288,8 @@
     <string name="settings_account_status_sync_blocked_body">Pilih Log keluar untuk mengosongkan identiti awan setempat pada peranti ini sebelum menyambung semula.</string>
     <string name="settings_account_status_sign_in_button">Log masuk atau daftar</string>
     <string name="settings_account_status_sync_now_button">Segerakkan sekarang</string>
-    <string name="settings_account_status_logout_dialog_title">Log keluar?</string>
-    <string name="settings_account_status_logout_dialog_body">Tindakan ini mengosongkan identiti awan daripada peranti ini dan mengekalkan data kad setempat.</string>
+    <string name="settings_account_status_logout_dialog_title">Log keluar dan padam data Nibomo daripada peranti ini?</string>
+    <string name="settings_account_status_logout_dialog_body">Apabila anda log keluar, ruang kerja dan kad akan dipadamkan daripada peranti ini. Data yang telah disegerakkan kekal dalam awan. Perubahan yang belum disegerakkan mungkin hilang.</string>
     <string name="settings_account_status_logout_failed">Log keluar gagal.</string>
     <string name="settings_account_status_sync_failed">Penyegerakan awan gagal.</string>
     <string name="settings_account_status_logged_out_message">Anda telah log keluar. Peranti ini tidak lagi bersambung.</string>
