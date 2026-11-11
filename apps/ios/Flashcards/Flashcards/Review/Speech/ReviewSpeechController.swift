@@ -28,7 +28,8 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
     ) {
         let segments = makeReviewSpeechSegments(
             text: makeReviewSpeakableText(text: sourceText),
-            fallbackLanguageTag: fallbackLanguageTag
+            fallbackLanguageTag: fallbackLanguageTag,
+            appUILanguageTag: currentAppUILocaleIdentifier()
         )
         if segments.isEmpty {
             return
