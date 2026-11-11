@@ -1,0 +1,67 @@
+{
+  "localePrefix": "pt-PT",
+  "appLocaleTag": "pt-PT",
+  "uiText": {
+    "emptyCardsMessage": "Ainda não há cartões. Toque no botão de adição para criar o primeiro.",
+    "cardsTabTitle": "Cartões",
+    "reviewTabTitle": "Rever",
+    "aiTabTitle": "IA",
+    "searchCardsPlaceholder": "Pesquisar cartões",
+    "addCardContentDescription": "Adicionar cartão",
+    "frontFieldTitle": "Frente",
+    "backFieldTitle": "Verso",
+    "tagsFieldTitle": "Etiquetas",
+    "addTagFieldTitle": "Adicionar uma etiqueta",
+    "addTagButtonTitle": "Adicionar etiqueta",
+    "saveButtonTitle": "Guardar",
+    "ratingAgainTitle": "De novo",
+    "ratingHardTitle": "Difícil",
+    "ratingGoodTitle": "Bom",
+    "ratingEasyTitle": "Fácil"
+  },
+  "reviewCard": {
+    "frontText": "Em economia, o que é o custo de oportunidade?",
+    "backText": "O custo de oportunidade é o valor da melhor alternativa a que renuncia quando escolhe uma opção.\n\nExemplo de exame: se passar o sábado a estudar para um exame de microeconomia em vez de fazer um turno remunerado, o salário que deixa de receber faz parte do custo de oportunidade.",
+    "tags": [
+      "economia"
+    ]
+  },
+  "reviewAiDraftMessage": "Cria 6 cartões novos sobre o mesmo tema de economia, com conceitos relacionados que ainda não temos.",
+  "cards": [
+    {
+      "frontText": "Em economia, o que é o custo de oportunidade?",
+      "backText": "O valor da melhor alternativa a que renuncia ao escolher outra opção.",
+      "subjectTag": "economia"
+    },
+    {
+      "frontText": "Em biologia, o que é osmose?",
+      "backText": "O movimento da água através de uma membrana, de uma concentração menor de soluto para uma concentração maior.",
+      "subjectTag": "biologia"
+    },
+    {
+      "frontText": "Em estatística, o que é desvio padrão?",
+      "backText": "Uma medida da dispersão dos valores em torno da média.",
+      "subjectTag": "estatística"
+    },
+    {
+      "frontText": "Em química, o que é um catalisador?",
+      "backText": "Uma substância que acelera uma reação química sem ser consumida por ela.",
+      "subjectTag": "química"
+    },
+    {
+      "frontText": "Em psicologia, o que é um enviesamento cognitivo?",
+      "backText": "Um padrão sistemático de pensamento que pode distorcer o julgamento e a tomada de decisão.",
+      "subjectTag": "psicologia"
+    },
+    {
+      "frontText": "Em física, o que é a velocidade?",
+      "backText": "Uma grandeza vetorial que indica a rapidez, a direção e o sentido do movimento de um objeto.",
+      "subjectTag": "física"
+    },
+    {
+      "frontText": "Em informática, o que é a recursividade?",
+      "backText": "Um método em que uma função resolve um problema chamando-se a si própria para resolver versões mais pequenas do mesmo problema.",
+      "subjectTag": "informática"
+    }
+  ]
+}

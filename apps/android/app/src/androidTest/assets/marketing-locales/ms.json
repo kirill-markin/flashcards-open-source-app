@@ -1,0 +1,67 @@
+{
+  "localePrefix": "ms",
+  "appLocaleTag": "ms",
+  "uiText": {
+    "emptyCardsMessage": "Belum ada kad. Ketik butang tambah untuk membuat kad pertama.",
+    "cardsTabTitle": "Kad",
+    "reviewTabTitle": "Ulang kaji",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Cari kad",
+    "addCardContentDescription": "Tambah kad",
+    "frontFieldTitle": "Depan",
+    "backFieldTitle": "Belakang",
+    "tagsFieldTitle": "Tag",
+    "addTagFieldTitle": "Tambah tag",
+    "addTagButtonTitle": "Tambah tag",
+    "saveButtonTitle": "Simpan",
+    "ratingAgainTitle": "Ulang",
+    "ratingHardTitle": "Sukar",
+    "ratingGoodTitle": "Baik",
+    "ratingEasyTitle": "Mudah"
+  },
+  "reviewCard": {
+    "frontText": "Dalam ekonomi, apakah kos lepas?",
+    "backText": "Kos lepas ialah nilai alternatif terbaik yang dilepaskan apabila kita membuat pilihan.\n\nContoh: Jika anda belajar untuk peperiksaan mikroekonomi pada hari Sabtu dan melepaskan syif berbayar, upah yang tidak diterima ialah sebahagian daripada kos lepas.",
+    "tags": [
+      "ekonomi"
+    ]
+  },
+  "reviewAiDraftMessage": "Cipta 6 kad imbas baharu tentang topik ekonomi yang sama, dengan konsep berkait rapat yang belum ada dalam kad kita.",
+  "cards": [
+    {
+      "frontText": "Dalam ekonomi, apakah kos lepas?",
+      "backText": "Nilai alternatif terbaik yang dilepaskan apabila kita memilih pilihan lain.",
+      "subjectTag": "ekonomi"
+    },
+    {
+      "frontText": "Dalam biologi, apakah osmosis?",
+      "backText": "Pergerakan air melalui membran separa telap dari bahagian yang berkepekatan zat terlarut lebih rendah ke bahagian yang berkepekatan lebih tinggi.",
+      "subjectTag": "biologi"
+    },
+    {
+      "frontText": "Dalam statistik, apakah sisihan piawai?",
+      "backText": "Ukuran sejauh mana nilai tersebar di sekitar min.",
+      "subjectTag": "statistik"
+    },
+    {
+      "frontText": "Dalam kimia, apakah mangkin?",
+      "backText": "Bahan yang mempercepat tindak balas kimia tanpa habis digunakan dalam tindak balas itu.",
+      "subjectTag": "kimia"
+    },
+    {
+      "frontText": "Dalam psikologi, apakah bias kognitif?",
+      "backText": "Corak pemikiran sistematik yang boleh memesongkan pertimbangan dan keputusan.",
+      "subjectTag": "psikologi"
+    },
+    {
+      "frontText": "Dalam fizik, apakah halaju?",
+      "backText": "Laju objek berserta arah gerakannya.",
+      "subjectTag": "fizik"
+    },
+    {
+      "frontText": "Dalam sains komputer, apakah rekursi?",
+      "backText": "Dalam kaedah ini, fungsi memanggil dirinya sendiri untuk menyelesaikan versi yang lebih kecil bagi masalah yang sama.",
+      "subjectTag": "sains komputer"
+    }
+  ]
+}

@@ -59,7 +59,10 @@ for (const locale of locales.filter(locale => manifest.results.some(file => file
     { input: labelSvg, left: 0, top: 0 }, ...inputs.map((input, index) => ({ input, left: gap + index * (previewWidth + gap), top: 60 })),
   ]).png().toFile(join(root, preview));
   const variant = tag.startsWith("es-") ? ` · ${tag === "es-ES" ? "España" : tag === "es-US" ? "Estados Unidos" : "Latinoamérica"}` : "";
-  gallery.push({ tag, label: `${getLocaleNativeName(language)}${variant} (${getLocaleEnglishName(language)})`, preview, consoleAvailability: locale.consoleAvailability,
+  const englishName = !variant && locales.some(other => other !== locale && other.copyTag === locale.copyTag)
+    ? locale.name
+    : getLocaleEnglishName(language);
+  gallery.push({ tag, label: `${getLocaleNativeName(language)}${variant} (${englishName})`, preview, consoleAvailability: locale.consoleAvailability,
     files: files.map(file => ({ path: file.path, heading: file.heading, caption: file.caption })) });
 }
 await writeFile(join(root, "gallery-data.json"), JSON.stringify(gallery, null, 2) + "\n");

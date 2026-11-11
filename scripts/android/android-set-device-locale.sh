@@ -24,6 +24,12 @@ case "$locale_prefix" in
     zh-CN)
         device_locale="zh-Hans-CN"
         ;;
+    zh-TW)
+        device_locale="zh-Hant-TW"
+        ;;
+    zh-HK)
+        device_locale="zh-Hant-HK"
+        ;;
     es-419)
         device_locale="es-MX"
         ;;
@@ -56,6 +62,9 @@ case "$locale_prefix" in
         ;;
     lv)
         device_locale="lv-LV"
+        ;;
+    ms)
+        device_locale="ms-MY"
         ;;
     no-NO)
         device_locale="nb-NO"

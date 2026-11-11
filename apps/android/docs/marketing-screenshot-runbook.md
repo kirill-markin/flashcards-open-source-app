@@ -41,27 +41,32 @@ Run this command from the repository root:
 bash scripts/android/capture-android-marketing-screenshots.sh
 ```
 
-To target a configured locale prefix other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
+The capture wrapper defaults to `en`. For captures intended for the store-card
+processor, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` to the listing's
+`capturePrefix` in the
+[Google Play locale map](../../../scripts/store-screenshots/assets/google-play/store-locales.json).
+The wrapper passes the requested prefix to instrumentation for fixture selection
+and uses it verbatim in the output PNG names. To render a specific listing, pass
+its `storeLocale` to `--locales`. For example, capture `zh-TW` for the `zh-HK`
+listing.
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/android/capture-android-marketing-screenshots.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=zh-TW bash scripts/android/capture-android-marketing-screenshots.sh
+npm run render --prefix scripts/store-screenshots -- --platform android --locales zh-HK
 ```
-
-The wrapper passes that prefix into the manual AndroidTest entrypoint, which resolves the matching screenshot locale configuration before preparing the app state and file names.
 
 Built-in locale prefixes and the required JSON pack format are listed in
 [the screenshot inventory](marketing-screenshots.md#json-locale-packs).
-For a new locale, add its fixture and screenshot-only resource overlay before
-running the wrapper with the exact Play code, for example
-`FLASHCARDS_MARKETING_LOCALE_PREFIX=bn-BD`. Missing or malformed fixtures fail
-explicitly. The default remains `en`.
+For a new capture prefix, configure its fixture and ensure the capture variant
+has translated resources before running the wrapper. Missing or malformed
+fixtures fail explicitly.
 
 The [device locale helper](../../../scripts/android/android-set-device-locale.sh)
 maps Play codes to Android device tags where needed, such as `bg` to `bg-BG`
 and `iw-IL` to `he-IL`. These device-only mappings do not change fixture or output
 prefixes, or the pack's `appLocaleTag`.
 
-After the wrapper scripts run, the expected generated output files are:
+With the default `en` capture prefix, the expected output files are:
 
 - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
 - `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
@@ -100,7 +105,7 @@ For marketing screenshot generation, the visible emulator UI is unnecessary and 
 
    Avoid forcing the deprecated `-gpu swiftshader_indirect` mode for this local screenshot flow.
 5. Wait for full device readiness, not just `adb` visibility.
-6. Set the target Play locale before rebooting the owned emulator. For example, for Finnish (replace `<serial>` with that emulator's serial):
+6. Set the device locale using the capture prefix before rebooting the owned emulator. For example, for Finnish (replace `<serial>` with that emulator's serial):
 
    ```bash
    export FLASHCARDS_MARKETING_LOCALE_PREFIX=fi-FI

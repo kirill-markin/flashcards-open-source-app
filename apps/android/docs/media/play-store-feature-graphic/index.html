@@ -435,6 +435,31 @@
                     "--copy-max-width": "432px"
                 }
             },
+            "zh-TW": {
+                dir: "ltr",
+                eyebrow: "AI 閃卡",
+                headlineHtml: "<span class=\"accent\">AI</span> 閃卡<br />陪你每天<br />專心學習",
+                summary: "依照排程複習卡片，用 AI 改善內容，並在需要時同步。",
+                chips: ["複習", "AI", "牌組", "標籤", "同步"],
+                badgeTitle: "用 AI 輔助學習",
+                badgeCopyLines: ["探索卡片、改善內容，", "規劃學習進度"],
+                style: {
+                    "--body-font": "\"PingFang TC\", \"Microsoft JhengHei\", \"Noto Sans CJK TC\", sans-serif",
+                    "--headline-font": "\"PingFang TC\", \"Microsoft JhengHei\", \"Noto Sans CJK TC\", sans-serif",
+                    "--headline-size": "58px",
+                    "--headline-line-height": "1.04",
+                    "--headline-letter-spacing": "-0.02em",
+                    "--summary-size": "19px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--eyebrow-transform": "none",
+                    "--badge-title-size": "12px",
+                    "--badge-letter-spacing": "0.02em",
+                    "--badge-transform": "none",
+                    "--badge-width": "236px",
+                    "--copy-max-width": "432px"
+                }
+            },
             "fr-FR": {
                 dir: "ltr",
                 eyebrow: "Flashcards avec IA",
@@ -549,6 +574,28 @@
                     "--badge-title-size": "12px",
                     "--badge-copy-size": "14px",
                     "--badge-width": "252px",
+                    "--copy-max-width": "474px"
+                }
+            },
+            "pt-PT": {
+                dir: "ltr",
+                eyebrow: "Flashcards com IA",
+                headlineHtml: "Flashcards com <span class=\"accent\">IA</span><br />para estudar<br />todos os dias",
+                summary: "Reveja os cartões por rever, melhore o conteúdo com IA e sincronize quando precisar.",
+                chips: ["Rever", "IA", "Baralhos", "Etiquetas", "Sincronizar"],
+                badgeTitle: "A IA no seu estudo",
+                badgeCopyLines: ["Explore e melhore os seus cartões,", "planeie o seu estudo"],
+                style: {
+                    "--headline-size": "46px",
+                    "--headline-line-height": "1.01",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "268px",
                     "--copy-max-width": "474px"
                 }
             },
@@ -852,6 +899,28 @@
                 badgeCopyLines: ["കാർഡുകൾ മനസ്സിലാക്കി മെച്ചപ്പെടുത്തുക. പഠനം ആസൂത്രണം ചെയ്യുക."],
                 style: { ...additionalLocaleStyle, "--body-font": "\"Malayalam Sangam MN\", \"Noto Sans Malayalam\", sans-serif", "--headline-font": "\"Malayalam Sangam MN\", \"Noto Sans Malayalam\", sans-serif", "--headline-size": "38px", "--headline-line-height": "1.22" }
             },
+            "ms": {
+                dir: "ltr",
+                eyebrow: "Kad imbas dengan AI",
+                headlineHtml: "Kad imbas <span class=\"accent\">AI</span><br />untuk belajar<br />setiap hari",
+                summary: "Ulang kaji kad mengikut jadual, tambah baik kandungan dengan AI dan segerakkan apabila perlu.",
+                chips: ["Ulang kaji", "AI", "Dek", "Tag", "Segerak"],
+                badgeTitle: "AI untuk pembelajaran",
+                badgeCopyLines: ["Terokai dan tambah baik kad,", "rancang pembelajaran anda"],
+                style: {
+                    "--headline-size": "52px",
+                    "--headline-line-height": "1.01",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "268px",
+                    "--copy-max-width": "474px"
+                }
+            },
             "mr-IN": {
                 dir: "ltr",
                 eyebrow: "AI फ्लॅशकार्ड",
@@ -1054,8 +1123,17 @@
             });
         };
 
+        const localeAliases = {
+            "en-AU": "en-US",
+            "en-CA": "en-US",
+            "en-GB": "en-US",
+            "fr-CA": "fr-FR",
+            "ms-MY": "ms",
+            "zh-HK": "zh-TW"
+        };
+
         const applyLocale = (locale) => {
-            const config = localeConfigs[locale];
+            const config = localeConfigs[localeAliases[locale] ?? locale];
 
             if (!config) {
                 throw new Error(`Unsupported locale: ${locale}`);

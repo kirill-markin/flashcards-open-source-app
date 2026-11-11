@@ -69,9 +69,9 @@ for release authorization and publication.
 | Artifact | Source and required output |
 | --- | --- |
 | Listing text | One exact-code section in [canonical metadata](../../../docs/google-play-store-metadata.md): app name, short description, full description. |
-| Feature graphic source | Locale content in [`localeConfigs` in the HTML template](media/play-store-feature-graphic/index.html); matching supported code in both the [single exporter](../../../scripts/android/export-android-feature-graphic.sh) and [batch exporter](../../../scripts/android/export-android-feature-graphics.sh). |
-| Screenshot content | Existing catalog entry, or an accepted loader mapping plus [`marketing-locales/<Play-code>.json`](../app/src/androidTest/assets/marketing-locales) fixture. Follow the [fixture contract](marketing-screenshots.md#json-locale-packs). |
-| Screenshot UI | Matching `strings.xml` under [`src/marketingScreenshot/res`](../app/src/marketingScreenshot/res), retained by the screenshot build's locale filters; confirm the device helper mapping. |
+| Feature graphic source | Locale config or explicit alias in the [HTML template](media/play-store-feature-graphic/index.html); matching supported code in both the [single exporter](../../../scripts/android/export-android-feature-graphic.sh) and [batch exporter](../../../scripts/android/export-android-feature-graphics.sh). |
+| Screenshot content | Existing catalog entry or an accepted loader mapping to a [JSON fixture](../app/src/androidTest/assets/marketing-locales). Follow the [fixture contract](marketing-screenshots.md#json-locale-packs). |
+| Screenshot UI | Bundled translations or a matching overlay under [`src/marketingScreenshot/res`](../app/src/marketingScreenshot/res), retained by the screenshot build's locale filters. Confirm the device helper mapping. |
 | Exported banner | [`media/play-store-feature-graphic/<Play-code>-feature-graphic.png`](media/play-store-feature-graphic), 1024 × 500. |
 | Native phone screenshots | Five PNGs under [`media/play-store-screenshots`](media/play-store-screenshots), with the chosen locale prefix and the ordered filenames in the [inventory](marketing-screenshots.md#current-inventory). |
 
