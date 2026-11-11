@@ -104,6 +104,8 @@ data class CardDraft private constructor(
     }
 }
 
+data class CardImportText(val frontText: String, val backText: String)
+
 data class CardFilter(
     val tags: List<String>
 )

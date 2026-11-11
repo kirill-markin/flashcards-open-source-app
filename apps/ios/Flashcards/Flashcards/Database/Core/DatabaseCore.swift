@@ -40,6 +40,11 @@ final class DatabaseCore {
         self.createdDefaultWorkspaceId = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
     }
 
+    convenience init(existingWritableDatabaseURL: URL) throws {
+        try self.init(databaseURL: existingWritableDatabaseURL, flags: SQLITE_OPEN_READWRITE)
+        try self.enableForeignKeys()
+    }
+
     convenience init(readOnlyDatabaseURL: URL) throws {
         try self.init(databaseURL: readOnlyDatabaseURL, flags: SQLITE_OPEN_READONLY)
     }

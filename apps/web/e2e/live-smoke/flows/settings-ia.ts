@@ -116,7 +116,7 @@ const rootRowTestIds: ReadonlyArray<string> = [
 const libraryDetailTargets: ReadonlyArray<LibraryDetailTarget> = [
   { rowTestId: "library-row-tags", route: libraryTagsRoute, screenSelector: ".tags-screen-panel" },
   { rowTestId: "library-row-decks", route: libraryDecksRoute, screenSelector: "[data-testid='decks-screen']" },
-  { rowTestId: "library-row-import", route: libraryImportRoute, screenSelector: ".settings-panel" },
+  { rowTestId: "library-row-import", route: libraryImportRoute, screenSelector: "[data-testid='library-import-formats']" },
   { rowTestId: "library-row-export", route: libraryExportRoute, screenSelector: "[data-testid='library-export-formats']" },
 ];
 

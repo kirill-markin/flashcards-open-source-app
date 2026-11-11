@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.feature.ai.input.makeAnkiPackageAttachmentFro
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -112,10 +113,20 @@ class AnkiImportViewModel(
         }
 
         uiStateMutable.value = state.copy(isPickerOpen = false)
+        stageFiles(uris = uris)
+    }
+
+    internal fun onFilesDropped(uris: List<Uri>): Job? {
+        return stageFiles(uris = uris)
+    }
+
+    private fun stageFiles(uris: List<Uri>): Job? {
+        val state = uiStateMutable.value
+        if (state.origin == null || state.isBusy) return null
         val existingUris = state.files.map { file -> file.uri }.toSet()
         val newUris = uris.distinct().filterNot(existingUris::contains)
         if (newUris.isEmpty()) {
-            return
+            return null
         }
 
         if (state.files.size + newUris.size > aiChatMaximumUploadedAttachmentsPerMessage) {
@@ -125,11 +136,11 @@ class AnkiImportViewModel(
                     aiChatMaximumUploadedAttachmentsPerMessage
                 )
             )
-            return
+            return null
         }
 
-        uiStateMutable.value = state.copy(isPickerOpen = false, isCheckingFiles = true)
-        viewModelScope.launch {
+        uiStateMutable.value = state.copy(isCheckingFiles = true, errorMessage = null)
+        return viewModelScope.launch {
             val stagedFiles = mutableListOf<AnkiImportFile>()
             try {
                 val textProvider = aiTextProvider(context = applicationContext)

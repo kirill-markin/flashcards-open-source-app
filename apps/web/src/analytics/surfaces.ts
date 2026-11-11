@@ -6,11 +6,14 @@ import {
   friendInviteRoutePrefix,
   legacySettingsLibraryRoutes,
   libraryAnkiExportRoute,
+  libraryAnkiImportRoute,
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
   libraryNibomoExportRoute,
+  libraryNibomoImportRoute,
   libraryRoute,
+  librarySpreadsheetImportRoute,
   libraryTagDetailRoute,
   libraryTagsRoute,
   normalizeRoutePath,
@@ -136,6 +139,9 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
   if (
     pathname === libraryRoute
     || pathname === libraryImportRoute
+    || pathname === libraryNibomoImportRoute
+    || pathname === libraryAnkiImportRoute
+    || pathname === librarySpreadsheetImportRoute
     || pathname === libraryExportRoute
     || pathname === libraryNibomoExportRoute
     || pathname === libraryAnkiExportRoute

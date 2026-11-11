@@ -49,7 +49,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             ] {
                 try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
-            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabLibraryExportItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabLibraryImportItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             #else
             try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .library)
             try self.assertScreenVisible(screen: .library, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -60,6 +60,28 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             ] {
                 try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             }
+            try self.tapButtonScrollingIntoView(
+                identifier: LiveSmokeIdentifier.libraryImportRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            #endif
+
+            let importRoutes = [
+                (LiveSmokeIdentifier.libraryNibomoImportRow, LiveSmokeIdentifier.workspaceImportChooseFileButton),
+                (LiveSmokeIdentifier.libraryAnkiImportRow, LiveSmokeIdentifier.workspaceImportChooseAnkiFilesButton),
+                (LiveSmokeIdentifier.librarySpreadsheetImportRow, LiveSmokeIdentifier.workspaceSpreadsheetImportSource)
+            ]
+            for (rowIdentifier, formIdentifier) in importRoutes {
+                try self.tapButton(identifier: rowIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertElementExists(identifier: formIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapFirstNavigationBackButton()
+                try self.assertElementExists(identifier: rowIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+
+            #if targetEnvironment(macCatalyst)
+            try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabLibraryExportItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #else
+            try self.tapFirstNavigationBackButton()
             try self.tapButtonScrollingIntoView(
                 identifier: LiveSmokeIdentifier.libraryExportRow,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds

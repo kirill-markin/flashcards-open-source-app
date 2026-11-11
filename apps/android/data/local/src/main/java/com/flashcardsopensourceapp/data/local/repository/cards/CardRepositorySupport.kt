@@ -55,11 +55,25 @@ internal suspend fun replaceCardTags(
         return
     }
 
+    val resolvedTags = resolveOrCreateCardTags(database = database, workspaceId = workspaceId, names = normalizedTags)
+    database.tagDao().insertCardTags(
+        cardTags = resolvedTags.map { tag ->
+            CardTagEntity(cardId = cardId, tagId = tag.tagId)
+        }
+    )
+    database.tagDao().deleteUnusedTags(workspaceId = workspaceId)
+}
+
+internal suspend fun resolveOrCreateCardTags(
+    database: AppDatabase,
+    workspaceId: String,
+    names: List<String>
+): List<TagEntity> {
     val existingTags: List<TagEntity> = database.tagDao().loadTagsByNames(
         workspaceId = workspaceId,
-        names = normalizedTags
+        names = names
     )
-    val missingNames: List<String> = normalizedTags.filter { normalizedTag ->
+    val missingNames: List<String> = names.filter { normalizedTag ->
         existingTags.none { existingTag ->
             existingTag.name == normalizedTag
         }
@@ -76,15 +90,8 @@ internal suspend fun replaceCardTags(
         database.tagDao().insertTags(tags = createdTags)
     }
 
-    val resolvedTags: List<TagEntity> = database.tagDao().loadTagsByNames(
+    return database.tagDao().loadTagsByNames(
         workspaceId = workspaceId,
-        names = normalizedTags
+        names = names
     )
-
-    database.tagDao().insertCardTags(
-        cardTags = resolvedTags.map { tag ->
-            CardTagEntity(cardId = cardId, tagId = tag.tagId)
-        }
-    )
-    database.tagDao().deleteUnusedTags(workspaceId = workspaceId)
 }

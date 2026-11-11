@@ -1143,9 +1143,13 @@ struct RootTabView: View {
         case .catalogDeck(let deck):
             CatalogDeckScreen(deck: deck)
         case .importData:
+            LibraryImportScreen()
+        case .importFormat(.nibomo):
             WorkspaceImportView()
-        case .importAnki:
+        case .importFormat(.anki):
             WorkspaceAnkiImportView()
+        case .importFormat(.spreadsheet):
+            WorkspaceSpreadsheetImportView()
         case .exportData:
             LibraryExportScreen()
         case .exportFormat(let format):

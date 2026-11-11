@@ -195,9 +195,12 @@ extension CloudSyncRunner {
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         try self.database.prepareReferencedMediaAssetUploadsForHotBootstrap(workspaceId: workspaceId)
-        let bootstrapEntries = try self.database.loadHotBootstrapEntries(workspaceId: workspaceId)
-        let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
-        let pendingOutboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
+        let (pendingOutboxEntries, bootstrapEntries, reviewEvents) = try self.database.core.inReadTransaction {
+            let pendingOutboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
+            let bootstrapEntries = try self.database.loadHotBootstrapEntries(workspaceId: workspaceId)
+            let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
+            return (pendingOutboxEntries, bootstrapEntries, reviewEvents)
+        }
         let pendingOutboxCount = pendingOutboxEntries.count
         let pendingReviewEventOutboxCount = pendingOutboxEntries.filter { entry in
             entry.operation.entityType == .reviewEvent
@@ -240,12 +243,14 @@ extension CloudSyncRunner {
             bootstrapHotChangeId = responseHotChangeId
         }
 
-        try self.database.deleteAllOutboxEntries(workspaceId: workspaceId)
-        try self.database.setLastAppliedHotChangeId(
-            workspaceId: workspaceId,
-            changeId: bootstrapHotChangeId
-        )
-        try self.database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try self.database.core.inTransaction {
+            try self.database.deleteOutboxEntries(operationIds: pendingOutboxEntries.map(\.operationId))
+            try self.database.setLastAppliedHotChangeId(
+                workspaceId: workspaceId,
+                changeId: bootstrapHotChangeId
+            )
+            try self.database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        }
 
         var changedEntityTypes = Set<SyncEntityType>()
         if bootstrapEntries.isEmpty == false {
