@@ -1,12 +1,13 @@
 # Home Screen Widgets
 
-Cross-client contract for the widget set on the iOS/iPadOS and Android Home Screens and the iOS Lock Screen. The web client has no widgets.
+Cross-client contract for the widget set on the iOS/iPadOS and Android Home Screens and the iOS Lock Screen. See [platform scope](#platform-scope) for Mac. The web client has no widgets.
 
 ## Product decisions
 
 - Both platforms offer the same Home Screen widgets, and iOS adds a Lock Screen widget. All are free for everyone, guests included. No Premium gating, no configuration, and no buttons inside a widget.
-- Due counts are the Review tab badge count, and the next card is the card Review shows next, both under the saved Review filter of the workspace selected in the app. Progress facts (reviews per day, streaks, the review schedule) are the ones the Progress tab shows; widgets never compute them.
-- A widget shows a card's question as plain text and never its answer.
+- Due counts, the next due time, and the Coming up forecast cover the whole workspace selected in the app. Due counts use the same [card eligibility as Review](fsrs-scheduling-logic.md#review-counts).
+- Card previews show the next question from the workspace's saved Review filter as plain text. There can be cards due in the workspace even when the saved filter has no card to preview. A widget never shows the answer.
+- Progress facts (reviews per day, streaks, the review schedule) are the ones the Progress tab shows; widgets never compute them.
 
 | Widget | Shows | Sizes | Tap opens |
 | --- | --- | --- | --- |
@@ -21,7 +22,7 @@ Cross-client contract for the widget set on the iOS/iPadOS and Android Home Scre
 | Coming up | Cards due today and over the next days | Medium, Large | Progress |
 | Dashboard | Today's progress, cards due, the streak, the next question, recent activity | Large | Review, with the shown card |
 
-The Review widget's sizes:
+The Review widget's sizes by workspace count:
 
 | Size | Cards due | No cards due |
 | --- | --- | --- |
@@ -38,7 +39,7 @@ Before the app has provided any data, for example on a fresh install, every widg
 
 ## Tap
 
-A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if it is still in review (due or new, in the filter, not deleted, not awaiting its rating) in the same workspace and is not already on screen, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). Otherwise Review opens as it is.
+A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if the card is still in the selected workspace, eligible under its saved Review filter, and neither on screen nor awaiting its rating, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). Otherwise Review opens as it is.
 
 - iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
 - Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)), and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
