@@ -14,9 +14,14 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 class CloudWorkspacePackageRemoteApiTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     @Test
     fun buildWorkspacePackageExportRequestBodyEncodesTagFiltersAndMetadata() {
         val request = WorkspacePackageExportRequest(
@@ -133,10 +138,11 @@ class CloudWorkspacePackageRemoteApiTest {
 
         val export = parseWorkspacePackageExportDownloadResponse(
             response = response,
-            fieldPath = "workspacePackageExport"
+            fieldPath = "workspacePackageExport",
+            destination = temporaryFolder.newFile()
         )
 
-        assertArrayEquals(bytes, export.packageBytes)
+        assertArrayEquals(bytes, export.archiveFile.readBytes())
         assertEquals("flashcards.zip", export.fileName)
         assertEquals("application/zip", export.contentType)
     }

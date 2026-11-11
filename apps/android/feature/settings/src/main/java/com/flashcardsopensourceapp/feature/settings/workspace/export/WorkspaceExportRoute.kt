@@ -7,6 +7,7 @@ import android.net.Uri
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,10 +31,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
 import com.flashcardsopensourceapp.feature.settings.R
@@ -66,6 +64,7 @@ import com.flashcardsopensourceapp.feature.settings.workspacePackageExportPrevie
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportSaveButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportShareButtonTag
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,49 +79,54 @@ fun WorkspaceExportRoute(
     val context = LocalContext.current
     val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
-    var pendingPackageExport by remember {
-        mutableStateOf<WorkspacePackageExportDownloadResponse?>(value = null)
-    }
+    val isAnkiExport = viewModel.format == WorkspacePackageExportFormat.ANKI
+    val shareTitle = stringResource(
+        if (isAnkiExport) R.string.settings_export_anki_share else R.string.settings_export_package_share_title
+    )
     val createPackageDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip")
+        contract = ActivityResultContracts.CreateDocument(viewModel.format.contentType)
     ) { uri ->
-        val packageExport = pendingPackageExport
-        if (uri == null || packageExport == null) {
+        if (uri == null) {
             viewModel.finishPackageExport()
-            pendingPackageExport = null
             return@rememberLauncherForActivityResult
         }
 
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val packageExport = viewModel.consumePendingPackageExport()
+            if (packageExport == null) {
+                viewModel.showExportError(message = resources.getString(R.string.settings_export_package_write_failed))
+                return@launch
+            }
             try {
-                withContext(Dispatchers.IO) {
-                    writeWorkspacePackageExportZip(
-                        contentResolver = context.contentResolver,
-                        uri = uri,
-                        packageBytes = packageExport.packageBytes
-                    )
+                packageExport.use { save ->
+                    withContext(Dispatchers.IO) {
+                        writeWorkspacePackageExport(
+                            contentResolver = context.contentResolver,
+                            uri = uri,
+                            archiveInput = save.archiveInput
+                        )
+                    }
                 }
                 viewModel.finishPackageExport()
             } catch (error: CancellationException) {
+                viewModel.finishPackageExport()
                 throw error
             } catch (error: Exception) {
-                val errorMessage = resources.getString(R.string.settings_export_package_write_failed)
-                viewModel.showExportError(message = errorMessage)
-                technicalErrorController.showTechnicalError(
-                    error = makeAppTechnicalError(
-                        title = resources.getString(R.string.settings_technical_error_title),
-                        message = errorMessage,
-                        throwable = error
-                    ),
-                    throwable = error
+                showWorkspaceExportFileError(
+                    viewModel = viewModel,
+                    technicalErrorController = technicalErrorController,
+                    title = resources.getString(R.string.settings_technical_error_title),
+                    message = resources.getString(R.string.settings_export_package_write_failed),
+                    error = error
                 )
             }
-            pendingPackageExport = null
         }
     }
 
     SettingsScreenScaffold(
-        title = stringResource(R.string.settings_export_title),
+        title = stringResource(
+            if (isAnkiExport) R.string.settings_export_anki_title else R.string.settings_export_title
+        ),
         onBack = onBack,
         isBackEnabled = uiState.isBusy.not()
     ) { innerPadding ->
@@ -146,6 +150,16 @@ fun WorkspaceExportRoute(
             item {
                 WorkspacePackageExportCard(
                     uiState = uiState,
+                    sectionTitle = if (isAnkiExport) {
+                        R.string.settings_export_anki_section
+                    } else {
+                        R.string.settings_export_package_section
+                    },
+                    bodyText = if (isAnkiExport) {
+                        R.string.settings_export_anki_body
+                    } else {
+                        R.string.settings_export_package_body
+                    },
                     onPreviewPackageExport = viewModel::previewPackageExport
                 )
             }
@@ -156,15 +170,27 @@ fun WorkspaceExportRoute(
                     WorkspacePackageExportContentsCard(preview = packagePreview)
                 }
                 item {
-                    WorkspacePackageExportMetadataCard(
-                        metadataDraft = uiState.packageMetadataDraft,
-                        isBusy = uiState.isBusy,
-                        onLabelChange = viewModel::updatePackageLabel,
-                        onAuthorChange = viewModel::updatePackageAuthor,
-                        onCreatedAtChange = viewModel::updatePackageCreatedAt,
-                        onSourceUrlChange = viewModel::updatePackageSourceUrl,
-                        onCommentChange = viewModel::updatePackageComment
-                    )
+                    if (isAnkiExport) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            WorkspacePackageExportLabelField(
+                                label = uiState.packageMetadataDraft.label,
+                                fieldTitle = R.string.settings_export_anki_deck_name,
+                                isBusy = uiState.isBusy,
+                                onLabelChange = viewModel::updatePackageLabel,
+                                modifier = Modifier.padding(20.dp)
+                            )
+                        }
+                    } else {
+                        WorkspacePackageExportMetadataCard(
+                            metadataDraft = uiState.packageMetadataDraft,
+                            isBusy = uiState.isBusy,
+                            onLabelChange = viewModel::updatePackageLabel,
+                            onAuthorChange = viewModel::updatePackageAuthor,
+                            onCreatedAtChange = viewModel::updatePackageCreatedAt,
+                            onSourceUrlChange = viewModel::updatePackageSourceUrl,
+                            onCommentChange = viewModel::updatePackageComment
+                        )
+                    }
                 }
                 item {
                     WorkspacePackageExportCardSelectionCard(
@@ -184,19 +210,39 @@ fun WorkspaceExportRoute(
                         onToggleIncludedTag = viewModel::togglePackageIncludedTag
                     )
                 }
+                if (uiState.isAnkiSelectionEmpty) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.settings_export_anki_empty),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 item {
                     WorkspacePackageExportSaveButton(
                         uiState = uiState,
+                        buttonText = stringResource(
+                            if (isAnkiExport) R.string.settings_export_anki_save else R.string.settings_export_package_save
+                        ),
                         onSavePackageExport = {
                             coroutineScope.launch {
                                 viewModel.clearErrorMessage()
-                                val packageExport = viewModel.preparePackageExportDownload()
-                                if (packageExport == null) {
-                                    return@launch
+                                try {
+                                    val fileName = viewModel.preparePackageExportSave(cacheDirectory = context.cacheDir)
+                                        ?: return@launch
+                                    createPackageDocumentLauncher.launch(fileName)
+                                } catch (error: CancellationException) {
+                                    viewModel.finishPackageExport()
+                                    throw error
+                                } catch (error: Exception) {
+                                    showWorkspaceExportFileError(
+                                        viewModel = viewModel,
+                                        technicalErrorController = technicalErrorController,
+                                        title = resources.getString(R.string.settings_technical_error_title),
+                                        message = resources.getString(R.string.settings_export_package_write_failed),
+                                        error = error
+                                    )
                                 }
-
-                                pendingPackageExport = packageExport
-                                createPackageDocumentLauncher.launch(packageExport.fileName)
                             }
                         }
                     )
@@ -204,41 +250,52 @@ fun WorkspaceExportRoute(
                 item {
                     WorkspacePackageExportShareButton(
                         uiState = uiState,
+                        buttonText = stringResource(
+                            if (isAnkiExport) R.string.settings_export_anki_share else R.string.settings_export_package_share
+                        ),
                         onSharePackageExport = {
                             coroutineScope.launch {
                                 viewModel.clearErrorMessage()
-                                val packageExport = viewModel.preparePackageExportDownload()
+                                val packageExport = viewModel.preparePackageExportDownload(
+                                    destinationDirectory = context.cacheDir
+                                )
                                 if (packageExport == null) {
                                     return@launch
                                 }
 
+                                var share: WorkspacePackageExportShare? = null
+                                var didLaunchShare = false
                                 try {
-                                    val shareUri: Uri = withContext(Dispatchers.IO) {
-                                        prepareWorkspacePackageExportShareUri(
+                                    withContext(Dispatchers.IO) {
+                                        share = prepareWorkspacePackageExportShare(
                                             context = context,
                                             packageExport = packageExport
                                         )
                                     }
-                                    shareWorkspacePackageExportZip(
+                                    shareWorkspacePackageExport(
                                         context = context,
-                                        shareUri = shareUri,
+                                        shareUri = checkNotNull(share).uri,
                                         contentType = packageExport.contentType,
-                                        title = resources.getString(R.string.settings_export_package_share_title)
+                                        title = shareTitle
                                     )
+                                    didLaunchShare = true
                                     viewModel.finishPackageExport()
                                 } catch (error: CancellationException) {
+                                    viewModel.finishPackageExport()
                                     throw error
                                 } catch (error: Exception) {
-                                    val errorMessage = resources.getString(R.string.settings_export_package_share_failed)
-                                    viewModel.showExportError(message = errorMessage)
-                                    technicalErrorController.showTechnicalError(
-                                        error = makeAppTechnicalError(
-                                            title = resources.getString(R.string.settings_technical_error_title),
-                                            message = errorMessage,
-                                            throwable = error
-                                        ),
-                                        throwable = error
+                                    showWorkspaceExportFileError(
+                                        viewModel = viewModel,
+                                        technicalErrorController = technicalErrorController,
+                                        title = resources.getString(R.string.settings_technical_error_title),
+                                        message = resources.getString(R.string.settings_export_package_share_failed),
+                                        error = error
                                     )
+                                } finally {
+                                    if (didLaunchShare.not()) {
+                                        share?.let { deleteWorkspacePackageExportEntry(entry = it.directory) }
+                                    }
+                                    deleteWorkspacePackageExportEntry(entry = packageExport.archiveFile)
                                 }
                             }
                         }
@@ -261,7 +318,21 @@ fun WorkspaceExportRoute(
     }
 }
 
-private fun shareWorkspacePackageExportZip(
+private fun showWorkspaceExportFileError(
+    viewModel: WorkspaceExportViewModel,
+    technicalErrorController: AppTechnicalErrorController,
+    title: String,
+    message: String,
+    error: Exception
+) {
+    viewModel.showExportError(message = message)
+    technicalErrorController.showTechnicalError(
+        error = makeAppTechnicalError(title = title, message = message, throwable = error),
+        throwable = error
+    )
+}
+
+private fun shareWorkspacePackageExport(
     context: Context,
     shareUri: Uri,
     contentType: String,
@@ -297,6 +368,8 @@ private fun MessageCard(
 @Composable
 private fun WorkspacePackageExportCard(
     uiState: WorkspaceExportUiState,
+    @StringRes sectionTitle: Int,
+    @StringRes bodyText: Int,
     onPreviewPackageExport: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -305,11 +378,11 @@ private fun WorkspacePackageExportCard(
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                text = stringResource(R.string.settings_export_package_section),
+                text = stringResource(sectionTitle),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = stringResource(R.string.settings_export_package_body),
+                text = stringResource(bodyText),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (uiState.packageAvailabilityMessage.isNotEmpty()) {
@@ -394,17 +467,12 @@ private fun WorkspacePackageExportMetadataCard(
                 text = stringResource(R.string.settings_export_package_metadata_section),
                 style = MaterialTheme.typography.titleMedium
             )
-            OutlinedTextField(
-                value = metadataDraft.label,
-                onValueChange = onLabelChange,
-                enabled = isBusy.not(),
-                singleLine = true,
-                label = {
-                    Text(stringResource(R.string.settings_export_package_metadata_label))
-                },
+            WorkspacePackageExportLabelField(
+                label = metadataDraft.label,
+                fieldTitle = R.string.settings_export_package_metadata_label,
+                isBusy = isBusy,
+                onLabelChange = onLabelChange,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(tag = workspacePackageExportMetadataLabelFieldTag)
             )
             OutlinedTextField(
                 value = metadataDraft.author,
@@ -456,6 +524,28 @@ private fun WorkspacePackageExportMetadataCard(
             )
         }
     }
+}
+
+@Composable
+private fun WorkspacePackageExportLabelField(
+    label: String,
+    @StringRes fieldTitle: Int,
+    isBusy: Boolean,
+    onLabelChange: (String) -> Unit,
+    modifier: Modifier
+) {
+    OutlinedTextField(
+        value = label,
+        onValueChange = onLabelChange,
+        enabled = isBusy.not(),
+        singleLine = true,
+        label = {
+            Text(stringResource(fieldTitle))
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(tag = workspacePackageExportMetadataLabelFieldTag)
+    )
 }
 
 @Composable
@@ -564,6 +654,7 @@ private fun WorkspacePackageExportIncludedTagsCard(
 @Composable
 private fun WorkspacePackageExportSaveButton(
     uiState: WorkspaceExportUiState,
+    buttonText: String,
     onSavePackageExport: () -> Unit
 ) {
     Button(
@@ -587,7 +678,7 @@ private fun WorkspacePackageExportSaveButton(
                 if (uiState.isPackageExporting) {
                     stringResource(R.string.settings_export_package_exporting)
                 } else {
-                    stringResource(R.string.settings_export_package_save)
+                    buttonText
                 }
             )
         }
@@ -597,6 +688,7 @@ private fun WorkspacePackageExportSaveButton(
 @Composable
 private fun WorkspacePackageExportShareButton(
     uiState: WorkspaceExportUiState,
+    buttonText: String,
     onSharePackageExport: () -> Unit
 ) {
     OutlinedButton(
@@ -620,7 +712,7 @@ private fun WorkspacePackageExportShareButton(
                 if (uiState.isPackageExporting) {
                     stringResource(R.string.settings_export_package_exporting)
                 } else {
-                    stringResource(R.string.settings_export_package_share)
+                    buttonText
                 }
             )
         }

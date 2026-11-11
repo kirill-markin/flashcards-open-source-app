@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct WorkspaceExportView: View {
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+
+    let format: WorkspacePackageExportFormat
+
+    @State private var exportTask: Task<Void, Never>?
+
     @State private var exportShareItem: WorkspacePackageExportShareItem?
     @State private var exportCleanupFileURL: URL?
     @State private var exportCleanupErrorMessage: String = ""
@@ -8,13 +14,23 @@ struct WorkspaceExportView: View {
     var body: some View {
         List {
             WorkspacePackageExportSection(
+                format: self.format,
+                exportTask: self.$exportTask,
                 exportCleanupErrorMessage: self.exportCleanupErrorMessage,
                 cleanupExportedFile: self.cleanupExportedFile,
                 presentExportedFile: self.presentExportedFile
             )
+            .id(self.store.workspace?.workspaceId)
+        }
+        .onChange(of: self.store.workspace?.workspaceId) { _, _ in
+            self.exportTask?.cancel()
+            self.cleanupExportedFile()
+        }
+        .onDisappear {
+            self.exportTask?.cancel()
         }
         .listStyle(.insetGrouped)
-        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.export", "Export"))
+        .nativeNavigationTitle(self.format.localizedTitle)
         #if !targetEnvironment(macCatalyst)
         .toolbar {
             AICompanionToolbarItem()
@@ -41,8 +57,9 @@ struct WorkspaceExportView: View {
         self.exportShareItem = nil
 
         do {
-            if FileManager.default.fileExists(atPath: exportedFileURL.path) {
-                try FileManager.default.removeItem(at: exportedFileURL)
+            let exportDirectory = exportedFileURL.deletingLastPathComponent()
+            if FileManager.default.fileExists(atPath: exportDirectory.path) {
+                try FileManager.default.removeItem(at: exportDirectory)
             }
         } catch {
             self.exportCleanupErrorMessage = Flashcards.errorMessage(error: error)
@@ -64,7 +81,7 @@ struct WorkspaceExportView: View {
 
 #Preview {
     NavigationStack {
-        WorkspaceExportView()
+        WorkspaceExportView(format: .nibomo)
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
     }

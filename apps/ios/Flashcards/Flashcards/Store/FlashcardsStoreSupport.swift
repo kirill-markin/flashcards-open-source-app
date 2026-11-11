@@ -186,6 +186,7 @@ protocol CloudSyncServing {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
+        format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse
     func previewWorkspacePackageImport(
@@ -335,11 +336,13 @@ extension CloudSyncServing {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
+        format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse {
         _ = apiBaseUrl
         _ = authorizationHeader
         _ = workspaceId
+        _ = format
         _ = request
         throw LocalStoreError.validation("Workspace package export is unavailable")
     }

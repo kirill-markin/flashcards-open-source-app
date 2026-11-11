@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionAction
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionResponse
+import java.io.File
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.ClientDeviceType
@@ -92,6 +93,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -498,13 +500,17 @@ class CloudRemoteService private constructor(
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
-        request: WorkspacePackageExportRequest
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
         return workspacePackageApi.exportWorkspacePackage(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader,
             workspaceId = workspaceId,
-            request = request
+            format = format,
+            request = request,
+            destination = destination
         )
     }
 
