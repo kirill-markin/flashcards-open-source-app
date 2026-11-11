@@ -782,6 +782,15 @@ const zuCatalog: TranslationCatalog = {
       addCards: "Engeza amakhadi",
       transfer: "Ukudlulisa idatha",
     },
+    cards: {
+      description: "Wonke amakhadi akule ndawo yokusebenza.",
+    },
+    tags: {
+      description: "Amathegi asetshenziswa emakhadini akho.",
+    },
+    decks: {
+      description: "Amaqoqo amakhadi asekelwe kumathegi owakhethayo.",
+    },
     deckCatalog: {
       title: "Ikhathalogi yezinqwaba",
       description: "Izinqwaba zamahhala ezilungele ukufundwa.",

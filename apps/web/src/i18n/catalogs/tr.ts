@@ -782,6 +782,15 @@ const trCatalog: TranslationCatalog = {
       addCards: "Kart ekle",
       transfer: "Veri aktarımı",
     },
+    cards: {
+      description: "Bu çalışma alanındaki tüm kartlar.",
+    },
+    tags: {
+      description: "Kartlarınızda kullanılan etiketler.",
+    },
+    decks: {
+      description: "Seçtiğiniz etiketlere göre oluşturulan kart grupları.",
+    },
     deckCatalog: {
       title: "Deste kataloğu",
       description: "Çalışmak için ücretsiz hazır desteler.",

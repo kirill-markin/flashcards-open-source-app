@@ -789,6 +789,15 @@ const roCatalog: TranslationCatalog = {
       addCards: "Adaugă fișe",
       transfer: "Transfer de date",
     },
+    cards: {
+      description: "Toate fișele din acest spațiu de lucru.",
+    },
+    tags: {
+      description: "Etichetele folosite pe fișele tale.",
+    },
+    decks: {
+      description: "Grupuri de fișe bazate pe etichetele pe care le alegi.",
+    },
     deckCatalog: {
       title: "Catalog de pachete",
       description: "Pachete gratuite, gata de studiat.",

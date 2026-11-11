@@ -782,6 +782,15 @@ const swCatalog: TranslationCatalog = {
       addCards: "Ongeza kadi",
       transfer: "Uhamishaji wa data",
     },
+    cards: {
+      description: "Kadi zote katika nafasi hii ya kazi.",
+    },
+    tags: {
+      description: "Lebo zinazotumika kwenye kadi zako.",
+    },
+    decks: {
+      description: "Mafungu ya kadi kulingana na lebo unazochagua.",
+    },
     deckCatalog: {
       title: "Katalogi ya mafungu",
       description: "Mafungu ya bure yaliyo tayari kwa kujifunza.",

@@ -782,6 +782,15 @@ const esEsCatalog: TranslationCatalog = {
       addCards: "Añadir tarjetas",
       transfer: "Transferencia de datos",
     },
+    cards: {
+      description: "Todas las tarjetas de este espacio de trabajo.",
+    },
+    tags: {
+      description: "Etiquetas que usas en tus tarjetas.",
+    },
+    decks: {
+      description: "Grupos de tarjetas según las etiquetas que elijas.",
+    },
     deckCatalog: {
       title: "Catálogo de mazos",
       description: "Mazos gratuitos y listos para estudiar.",

@@ -782,6 +782,15 @@ const daCatalog: TranslationCatalog = {
       addCards: "Tilføj kort",
       transfer: "Dataoverførsel",
     },
+    cards: {
+      description: "Alle kort i dette arbejdsområde.",
+    },
+    tags: {
+      description: "Tags, der bruges på dine kort.",
+    },
+    decks: {
+      description: "Grupper af kort baseret på de tags, du vælger.",
+    },
     deckCatalog: {
       title: "Bunkekatalog",
       description: "Gratis færdige bunker at studere.",

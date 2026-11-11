@@ -782,6 +782,15 @@ const svCatalog: TranslationCatalog = {
       addCards: "Lägg till kort",
       transfer: "Dataöverföring",
     },
+    cards: {
+      description: "Alla kort i den här arbetsytan.",
+    },
+    tags: {
+      description: "Taggar som används på dina kort.",
+    },
+    decks: {
+      description: "Grupper av kort baserade på de taggar du väljer.",
+    },
     deckCatalog: {
       title: "Kortlekskatalog",
       description: "Gratis färdiga kortlekar att studera.",

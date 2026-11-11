@@ -782,6 +782,15 @@ const urCatalog: TranslationCatalog = {
       addCards: "کارڈز شامل کریں",
       transfer: "ڈیٹا کی منتقلی",
     },
+    cards: {
+      description: "اس ورک اسپیس کے تمام کارڈز۔",
+    },
+    tags: {
+      description: "آپ کے کارڈز پر استعمال ہونے والے ٹیگز۔",
+    },
+    decks: {
+      description: "آپ کے منتخب کردہ ٹیگز کی بنیاد پر کارڈز کے گروپ۔",
+    },
     deckCatalog: {
       title: "ڈیک کیٹلاگ",
       description: "مطالعے کے لیے مفت تیار ڈیکس۔",

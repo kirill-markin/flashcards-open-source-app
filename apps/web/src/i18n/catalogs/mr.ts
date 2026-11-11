@@ -782,6 +782,15 @@ const mrCatalog: TranslationCatalog = {
       addCards: "कार्डे जोडा",
       transfer: "डेटा हस्तांतरण",
     },
+    cards: {
+      description: "या कार्यक्षेत्रातील सर्व कार्डे.",
+    },
+    tags: {
+      description: "तुमच्या कार्डांवर वापरलेले टॅग.",
+    },
+    decks: {
+      description: "तुम्ही निवडलेल्या टॅगवर आधारित कार्डांचे गट.",
+    },
     deckCatalog: {
       title: "संच कॅटलॉग",
       description: "अभ्यासासाठी मोफत तयार संच.",

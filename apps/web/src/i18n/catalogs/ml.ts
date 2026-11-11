@@ -782,6 +782,15 @@ const mlCatalog: TranslationCatalog = {
       addCards: "കാർഡുകൾ ചേർക്കുക",
       transfer: "ഡാറ്റ കൈമാറ്റം",
     },
+    cards: {
+      description: "ഈ വർക്ക്‌സ്‌പേസിലെ എല്ലാ കാർഡുകളും.",
+    },
+    tags: {
+      description: "നിങ്ങളുടെ കാർഡുകളിൽ ഉപയോഗിച്ച ടാഗുകൾ.",
+    },
+    decks: {
+      description: "നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ടാഗുകൾ അടിസ്ഥാനമാക്കിയുള്ള കാർഡ് കൂട്ടങ്ങൾ.",
+    },
     deckCatalog: {
       title: "ഡെക്ക് കാറ്റലോഗ്",
       description: "പഠിക്കാൻ സൗജന്യമായ തയ്യാറായ ഡെക്കുകൾ.",

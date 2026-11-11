@@ -782,6 +782,15 @@ const bgCatalog: TranslationCatalog = {
       addCards: "Добавяне на карти",
       transfer: "Прехвърляне на данни",
     },
+    cards: {
+      description: "Всички карти в това работно пространство.",
+    },
+    tags: {
+      description: "Етикетите, използвани във вашите карти.",
+    },
+    decks: {
+      description: "Групи от карти според избраните от вас етикети.",
+    },
     deckCatalog: {
       title: "Каталог с тестета",
       description: "Безплатни готови тестета за учене.",

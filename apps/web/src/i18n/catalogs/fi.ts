@@ -782,6 +782,15 @@ const fiCatalog: TranslationCatalog = {
       addCards: "Lisää kortteja",
       transfer: "Tiedonsiirto",
     },
+    cards: {
+      description: "Kaikki tämän työtilan kortit.",
+    },
+    tags: {
+      description: "Korteissasi käytetyt tunnisteet.",
+    },
+    decks: {
+      description: "Korttiryhmät valitsemiesi tunnisteiden mukaan.",
+    },
     deckCatalog: {
       title: "Pakkakatalogi",
       description: "Ilmaisia valmiita pakkoja opiskeluun.",

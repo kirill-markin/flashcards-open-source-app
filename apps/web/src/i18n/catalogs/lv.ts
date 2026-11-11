@@ -782,6 +782,15 @@ const lvCatalog: TranslationCatalog = {
       addCards: "Pievienot kartītes",
       transfer: "Datu pārsūtīšana",
     },
+    cards: {
+      description: "Visas šīs darbvietas kartītes.",
+    },
+    tags: {
+      description: "Jūsu kartītēm pievienotās birkas.",
+    },
+    decks: {
+      description: "Kartīšu grupas pēc jūsu izvēlētajām birkām.",
+    },
     deckCatalog: {
       title: "Kavu katalogs",
       description: "Bezmaksas gatavas kavas mācībām.",

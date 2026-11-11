@@ -782,6 +782,15 @@ const koCatalog: TranslationCatalog = {
       addCards: "카드 추가",
       transfer: "데이터 이전",
     },
+    cards: {
+      description: "이 워크스페이스의 모든 카드입니다.",
+    },
+    tags: {
+      description: "내 카드에 사용된 태그입니다.",
+    },
+    decks: {
+      description: "선택한 태그를 기준으로 묶은 카드 그룹입니다.",
+    },
     deckCatalog: {
       title: "덱 카탈로그",
       description: "바로 학습할 수 있는 무료 덱입니다.",

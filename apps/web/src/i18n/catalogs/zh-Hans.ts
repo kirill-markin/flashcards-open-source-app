@@ -782,6 +782,15 @@ export const zhHansCatalog = {
       addCards: "添加卡片",
       transfer: "数据迁移",
     },
+    cards: {
+      description: "此工作区中的所有卡片。",
+    },
+    tags: {
+      description: "你的卡片上使用的标签。",
+    },
+    decks: {
+      description: "根据你选择的标签组成的卡片组。",
+    },
     deckCatalog: {
       title: "牌组目录",
       description: "可直接学习的免费现成牌组。",

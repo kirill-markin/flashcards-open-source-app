@@ -782,6 +782,15 @@ const teCatalog: TranslationCatalog = {
       addCards: "కార్డులను జోడించండి",
       transfer: "డేటా బదిలీ",
     },
+    cards: {
+      description: "ఈ వర్క్‌స్పేస్‌లోని అన్ని కార్డులు.",
+    },
+    tags: {
+      description: "మీ కార్డులకు ఉపయోగించిన ట్యాగ్‌లు.",
+    },
+    decks: {
+      description: "మీరు ఎంచుకున్న ట్యాగ్‌ల ఆధారంగా ఏర్పడిన కార్డుల సమూహాలు.",
+    },
     deckCatalog: {
       title: "డెక్ కేటలాగ్",
       description: "చదువుకోవడానికి ఉచిత, సిద్ధంగా ఉన్న డెక్‌లు.",

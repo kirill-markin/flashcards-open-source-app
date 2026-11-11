@@ -782,6 +782,15 @@ const idCatalog: TranslationCatalog = {
       addCards: "Tambahkan kartu",
       transfer: "Transfer data",
     },
+    cards: {
+      description: "Semua kartu di ruang kerja ini.",
+    },
+    tags: {
+      description: "Tag yang digunakan pada kartu Anda.",
+    },
+    decks: {
+      description: "Kelompok kartu berdasarkan tag yang Anda pilih.",
+    },
     deckCatalog: {
       title: "Katalog dek",
       description: "Dek siap pakai gratis untuk dipelajari.",

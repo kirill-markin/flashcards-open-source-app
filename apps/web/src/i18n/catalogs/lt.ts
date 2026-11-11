@@ -789,6 +789,15 @@ const ltCatalog: TranslationCatalog = {
       addCards: "Pridėti korteles",
       transfer: "Duomenų perkėlimas",
     },
+    cards: {
+      description: "Visos šios darbo srities kortelės.",
+    },
+    tags: {
+      description: "Jūsų kortelėse naudojamos žymos.",
+    },
+    decks: {
+      description: "Kortelių grupės pagal jūsų pasirinktas žymas.",
+    },
     deckCatalog: {
       title: "Kaladžių katalogas",
       description: "Nemokamos paruoštos kaladės mokytis.",

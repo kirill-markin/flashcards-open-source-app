@@ -789,6 +789,15 @@ const skCatalog: TranslationCatalog = {
       addCards: "Pridať karty",
       transfer: "Prenos údajov",
     },
+    cards: {
+      description: "Všetky karty v tomto pracovnom priestore.",
+    },
+    tags: {
+      description: "Značky použité na vašich kartách.",
+    },
+    decks: {
+      description: "Skupiny kariet podľa značiek, ktoré si vyberiete.",
+    },
     deckCatalog: {
       title: "Katalóg balíčkov",
       description: "Bezplatné hotové balíčky na štúdium.",

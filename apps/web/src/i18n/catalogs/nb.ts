@@ -782,6 +782,15 @@ const nbCatalog: TranslationCatalog = {
       addCards: "Legg til kort",
       transfer: "Dataoverføring",
     },
+    cards: {
+      description: "Alle kort i dette arbeidsområdet.",
+    },
+    tags: {
+      description: "Tagger som brukes på kortene dine.",
+    },
+    decks: {
+      description: "Grupper av kort basert på taggene du velger.",
+    },
     deckCatalog: {
       title: "Katalog med kortstokker",
       description: "Gratis ferdige kortstokker å studere.",

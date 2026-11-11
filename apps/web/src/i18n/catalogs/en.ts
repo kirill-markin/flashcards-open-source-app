@@ -781,6 +781,15 @@ const enCatalog = {
       addCards: "Add cards",
       transfer: "Transfer",
     },
+    cards: {
+      description: "All cards in this workspace.",
+    },
+    tags: {
+      description: "Tags used on your cards.",
+    },
+    decks: {
+      description: "Card groups based on tags you choose.",
+    },
     deckCatalog: {
       title: "Deck catalog",
       description: "Free ready-made decks to study.",

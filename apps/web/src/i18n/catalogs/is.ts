@@ -782,6 +782,15 @@ const isCatalog: TranslationCatalog = {
       addCards: "Bæta við spjöldum",
       transfer: "Gagnaflutningur",
     },
+    cards: {
+      description: "Öll spjöld á þessu vinnusvæði.",
+    },
+    tags: {
+      description: "Merki sem eru notuð á spjöldunum þínum.",
+    },
+    decks: {
+      description: "Hópar spjalda byggðir á merkjunum sem þú velur.",
+    },
     deckCatalog: {
       title: "Stokkasafn",
       description: "Ókeypis tilbúnir stokkar til að læra.",

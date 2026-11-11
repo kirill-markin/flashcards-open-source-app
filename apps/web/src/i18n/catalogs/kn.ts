@@ -782,6 +782,15 @@ const knCatalog: TranslationCatalog = {
       addCards: "ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
       transfer: "ಡೇಟಾ ವರ್ಗಾವಣೆ",
     },
+    cards: {
+      description: "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿರುವ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು.",
+    },
+    tags: {
+      description: "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳಲ್ಲಿ ಬಳಸಿರುವ ಟ್ಯಾಗ್‌ಗಳು.",
+    },
+    decks: {
+      description: "ನೀವು ಆಯ್ಕೆ ಮಾಡುವ ಟ್ಯಾಗ್‌ಗಳನ್ನು ಆಧರಿಸಿದ ಕಾರ್ಡ್‌ಗಳ ಗುಂಪುಗಳು.",
+    },
     deckCatalog: {
       title: "ಡೆಕ್ ಕ್ಯಾಟಲಾಗ್",
       description: "ಅಧ್ಯಯನಕ್ಕಾಗಿ ಉಚಿತ ಸಿದ್ಧ ಡೆಕ್‌ಗಳು.",

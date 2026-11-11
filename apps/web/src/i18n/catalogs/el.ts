@@ -782,6 +782,15 @@ const elCatalog: TranslationCatalog = {
       addCards: "Προσθήκη καρτών",
       transfer: "Μεταφορά δεδομένων",
     },
+    cards: {
+      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
+    },
+    tags: {
+      description: "Ετικέτες που χρησιμοποιούνται στις κάρτες σας.",
+    },
+    decks: {
+      description: "Ομάδες καρτών με βάση τις ετικέτες που επιλέγετε.",
+    },
     deckCatalog: {
       title: "Κατάλογος δεσμών",
       description: "Δωρεάν έτοιμες δέσμες για μελέτη.",
