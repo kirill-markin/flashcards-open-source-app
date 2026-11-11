@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../appData";
+import { buildTagEdit } from "../../../appData/domain/cardTags";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../../appError/AppErrorContext";
 import { useAiCardHandoff } from "../../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../../i18n";
+import { CardMaintenanceAction } from "../../settings/workspace/CardMaintenanceAction";
 import {
   cancelCardFormTextareaSelectionRestore,
   captureCardFormTextareaSelection,
@@ -380,10 +382,13 @@ export function CardFormScreen(): ReactElement {
 
   function buildUpdatePayload(): UpdateCardInput {
     const currentFormState = formStateRef.current;
+    const baseline = reconciliationBaselineCardRef.current;
+    if (baseline === null) throw new Error("Cannot edit a card before it is loaded.");
+    const tagEdit = buildTagEdit(baseline.tags, currentFormState.tags);
     return {
       frontText: currentFormState.frontText,
       backText: currentFormState.backText,
-      tags: currentFormState.tags,
+      ...(tagEdit === undefined ? {} : { tagEdit }),
     };
   }
 
@@ -847,6 +852,13 @@ export function CardFormScreen(): ReactElement {
           ref={cardFormFieldsRef}
           tagSuggestions={tagSuggestions}
           currentCard={currentCard}
+          metadataAction={isCreateMode || currentCard === null ? undefined : (
+            <CardMaintenanceAction
+              kind="resetCard"
+              target={currentCard.cardId}
+              disabled={isSaving || isDeleting || isAuthoringMedia}
+            />
+          )}
           formState={formState}
           formIdPrefix="card-form-screen"
           isSaving={isSaving}

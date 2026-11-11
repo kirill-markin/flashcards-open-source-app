@@ -8,6 +8,7 @@ import {
   useState,
   type ChangeEvent,
   type ReactElement,
+  type ReactNode,
   type RefObject,
 } from "react";
 import {
@@ -68,6 +69,7 @@ export type CardFormManagedMediaState = Readonly<Record<CardFormManagedMediaFiel
 type Props = Readonly<{
   tagSuggestions: ReadonlyArray<TagSuggestion>;
   currentCard: Card | null;
+  metadataAction?: ReactNode;
   formState: CardFormState;
   formIdPrefix: string;
   isSaving: boolean;
@@ -628,6 +630,7 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
   const {
     tagSuggestions,
     currentCard,
+    metadataAction,
     formState,
     formIdPrefix,
     isSaving,
@@ -960,6 +963,7 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
             <dd className="meta-value-mono">{formatNullableDateTime(currentCard?.updatedAt ?? null, formatDateTime, t)}</dd>
           </div>
         </dl>
+        {metadataAction}
       </aside>
     </div>
   );

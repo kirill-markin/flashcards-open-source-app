@@ -1451,6 +1451,19 @@ const lvCatalog: TranslationCatalog = {
       new: "Jauna kava",
     },
   },
+  cardMaintenance: {
+    removeTag: "Noņemt birku no kartītēm",
+    linkedWorkspaceRequired: "Šai darbībai vajadzīga piesaistīta mākoņa darbvieta.",
+    noChanges: "Nevienai kartītei šī izmaiņa nav vajadzīga.",
+    overlap: "Tiks atiestatīts progress arī citās kavās un birkās, kas ietver šīs kartītes.",
+    outcomeUnknown: "Neizdevās apstiprināt, vai izmaiņas darbvietā ir piemērotas.",
+    previewChanged: "Skartās kartītes ir mainījušās. Pārskatiet atjaunināto priekšskatījumu un apstipriniet vēlreiz.",
+    removePreview: "Birku noņems no šīm kartītēm ({{cards}}). Kartītes paliks. Kavas, kuru noteikumos ir šī birka: {{decks}}.",
+    resetComplete: "Mācību progress ir atiestatīts.",
+    saveDeckRules: "Pirms mācību progresa atiestatīšanas saglabājiet kavas noteikumus.",
+    syncFailed: "Pārbaudiet savienojumu un mēģiniet sinhronizēt vēlreiz.",
+    targetMissing: "Atlasītā kartīte, kava vai birka vairs nepastāv.",
+  },
   tagsScreen: {
     counts: {
       total: "Kopā: {{count}}",

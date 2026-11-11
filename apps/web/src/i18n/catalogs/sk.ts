@@ -1461,6 +1461,19 @@ const skCatalog: TranslationCatalog = {
       new: "Nový balíček",
     },
   },
+  cardMaintenance: {
+    removeTag: "Odstrániť štítok z kariet",
+    linkedWorkspaceRequired: "Táto akcia vyžaduje prepojený cloudový pracovný priestor.",
+    noChanges: "Žiadna karta nepotrebuje túto zmenu.",
+    overlap: "Tým sa vynuluje pokrok aj v ďalších balíčkoch a štítkoch, ktoré zahŕňajú tieto karty.",
+    outcomeUnknown: "Nepodarilo sa overiť, či sa zmena v pracovnom priestore vykonala.",
+    previewChanged: "Dotknuté karty sa zmenili. Skontrolujte aktualizovaný náhľad a potvrďte znova.",
+    removePreview: "Štítok sa odstráni z dotknutých kariet ({{cards}}). Karty zostanú zachované. Balíčky s týmto štítkom v pravidlách: {{decks}}.",
+    resetComplete: "Pokrok v štúdiu bol vynulovaný.",
+    saveDeckRules: "Pred vynulovaním pokroku v štúdiu uložte pravidlá balíčka.",
+    syncFailed: "Skontrolujte pripojenie a skúste znova synchronizovať.",
+    targetMissing: "Vybraná karta, balíček alebo štítok už neexistuje.",
+  },
   tagsScreen: {
     counts: {
       total: "Celkom: {{count}}",

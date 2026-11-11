@@ -71,6 +71,7 @@ export type AppDataContextValue = Readonly<{
   drainGuestWorkspace: () => Promise<void>;
   runMediaUploadTransfers: () => void;
   refreshLocalData: () => Promise<void>;
+  runWithCardMaintenanceSync: <T>(workspaceId: string, action: (sync: () => Promise<void>) => Promise<T>) => Promise<T>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;

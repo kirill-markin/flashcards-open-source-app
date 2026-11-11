@@ -9,6 +9,7 @@ import {
   libraryExportRoute,
   libraryImportRoute,
   libraryRoute,
+  libraryTagDetailRoute,
   libraryTagsRoute,
   normalizeRoutePath,
   progressRoute,
@@ -146,7 +147,7 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
     return "deck_detail";
   }
 
-  if (pathname === libraryTagsRoute) {
+  if (pathname === libraryTagsRoute || pathname === libraryTagDetailRoute) {
     return "tags";
   }
 

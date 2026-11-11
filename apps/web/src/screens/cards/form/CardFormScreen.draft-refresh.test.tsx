@@ -342,7 +342,7 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: "Remotely edited question",
       backText: "Answer",
-      tags: ["grammar", "remote", "local-draft"],
+      tagEdit: { baseline: ["grammar", "remote"], draft: ["grammar", "remote", "local-draft"] },
     });
   });
 
@@ -397,7 +397,7 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: "Remotely edited question",
       backText: "Answer",
-      tags: ["grammar", "remote", "exact raw draft"],
+      tagEdit: { baseline: ["grammar", "remote"], draft: ["grammar", "remote", "exact raw draft"] },
     });
   });
 
@@ -473,7 +473,7 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: "Remotely edited question",
       backText: "Answer",
-      tags: ["keep", "remote", "local", "exact remaining draft"],
+      tagEdit: { baseline: ["grammar", "keep", "remote"], draft: ["keep", "remote", "local", "exact remaining draft"] },
     });
   });
 
@@ -740,7 +740,7 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
     const failedBackText = 'Answer\n\n![Example](<fcasset:back-image?variant=large&state=failed#back> "Generated")';
     const readyFrontText = 'Question\n\n![Diagram](<fcasset:front-image?variant=large#front> "Generated")';
     const readyBackText = 'Answer\n\n![Example](<fcasset:back-image?variant=large#back> "Generated")';
-    const initialCard = makeCard(pendingFrontText, failedBackText, ["grammar"]);
+    const initialCard = makeCard(pendingFrontText, failedBackText, ["grammar", "removed-tag"]);
     const refreshedCard = {
       ...makeCard(
         readyFrontText.replace("Question", "Remotely edited question"),
@@ -819,7 +819,8 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
       expect(refreshedFrontTextField.value).toBe(reconciledFrontText);
       expect(refreshedBackTextField.value).toBe(reconciledBackText);
       expect(refreshedTagsTrigger.textContent).toContain("local");
-      expect(refreshedTagsTrigger.textContent).not.toContain("remote");
+      expect(refreshedTagsTrigger.textContent).toContain("remote");
+      expect(refreshedTagsTrigger.textContent).not.toContain("removed-tag");
       const reconciledSelectionStart = reconciledFrontText.indexOf(selectedText);
       expect(document.activeElement).toBe(refreshedFrontTextField);
       expect(refreshedFrontTextField.selectionStart).toBe(reconciledSelectionStart);
@@ -845,7 +846,7 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: reconciledFrontText,
       backText: reconciledBackText,
-      tags: ["grammar", "local"],
+      tagEdit: { baseline: ["grammar", "remote"], draft: ["grammar", "remote", "local"] },
     });
   });
 
@@ -895,7 +896,6 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
       expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
         frontText: "Saved question",
         backText: "Answer",
-        tags: ["grammar"],
       });
       expect(mocks.handoffCardToAiMock).toHaveBeenCalledWith(savedCard);
       expect(frontTextField.value).toBe("Saved question");

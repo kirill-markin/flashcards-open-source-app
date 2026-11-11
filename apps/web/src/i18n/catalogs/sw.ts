@@ -1451,6 +1451,19 @@ const swCatalog: TranslationCatalog = {
       new: "Fungu jipya",
     },
   },
+  cardMaintenance: {
+    removeTag: "Ondoa lebo kwenye kadi",
+    linkedWorkspaceRequired: "Kitendo hiki kinahitaji nafasi ya kazi iliyounganishwa na wingu.",
+    noChanges: "Hakuna kadi inayohitaji mabadiliko haya.",
+    overlap: "Hii pia huweka upya maendeleo ya masomo katika deki na lebo nyingine zinazojumuisha kadi hizi.",
+    outcomeUnknown: "Hatukuweza kuthibitisha ikiwa mabadiliko katika nafasi ya kazi yalitekelezwa.",
+    previewChanged: "Kadi zinazoathirika zimebadilika. Kagua onyesho la awali lililosasishwa na uthibitishe tena.",
+    removePreview: "Lebo hii itaondolewa kwenye {{cards}}. Kadi zitahifadhiwa. Deki zenye lebo hii kwenye kanuni zake: {{decks}}.",
+    resetComplete: "Maendeleo ya masomo yamewekwa upya.",
+    saveDeckRules: "Hifadhi kanuni za deki kabla ya kuweka upya maendeleo ya masomo.",
+    syncFailed: "Angalia muunganisho wako kisha ujaribu kusawazisha tena.",
+    targetMissing: "Kadi, deki au lebo iliyochaguliwa haipo tena.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} jumla",

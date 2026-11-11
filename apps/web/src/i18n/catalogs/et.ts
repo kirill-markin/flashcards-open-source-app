@@ -1451,6 +1451,19 @@ const etCatalog: TranslationCatalog = {
       new: "Uus pakk",
     },
   },
+  cardMaintenance: {
+    removeTag: "Eemalda silt kaartidelt",
+    linkedWorkspaceRequired: "Selleks toiminguks on vaja lingitud pilvetööruumi.",
+    noChanges: "Ükski kaart ei vaja seda muudatust.",
+    overlap: "See lähtestab edenemise ka teistes kaardipakkides ja siltides, mis hõlmavad neid kaarte.",
+    outcomeUnknown: "Me ei saanud kinnitada, kas muudatus tööruumis rakendus.",
+    previewChanged: "Mõjutatud kaardid on muutunud. Vaata uuendatud eelvaade üle ja kinnita uuesti.",
+    removePreview: "Silt eemaldatakse järgmistelt kaartidelt: {{cards}}. Kaardid jäävad alles. Seda silti reeglites kasutavaid kaardipakke: {{decks}}.",
+    resetComplete: "Õppimise edenemine on lähtestatud.",
+    saveDeckRules: "Enne õppimise edenemise lähtestamist salvesta kaardipaki reeglid.",
+    syncFailed: "Kontrolli ühendust ja proovi uuesti sünkroonida.",
+    targetMissing: "Valitud kaarti, kaardipakki või silti pole enam olemas.",
+  },
   tagsScreen: {
     counts: {
       total: "Kokku: {{count}}",

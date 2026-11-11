@@ -1461,6 +1461,19 @@ const plCatalog: TranslationCatalog = {
       new: "Nowa talia",
     },
   },
+  cardMaintenance: {
+    removeTag: "Usuń tag z kart",
+    linkedWorkspaceRequired: "Ta czynność wymaga połączonego obszaru roboczego w chmurze.",
+    noChanges: "Żadna karta nie wymaga tej zmiany.",
+    overlap: "Spowoduje to również wyzerowanie postępów w innych taliach i tagach obejmujących te karty.",
+    outcomeUnknown: "Nie udało się potwierdzić, czy zmiana w obszarze roboczym została zastosowana.",
+    previewChanged: "Karty objęte zmianą uległy zmianie. Sprawdź zaktualizowany podgląd i potwierdź ponownie.",
+    removePreview: "Tag zostanie usunięty z kart ({{cards}}). Karty zostaną zachowane. Talie z tym tagiem w regułach: {{decks}}.",
+    resetComplete: "Postępy w nauce zostały wyzerowane.",
+    saveDeckRules: "Zapisz reguły talii przed wyzerowaniem postępów w nauce.",
+    syncFailed: "Sprawdź połączenie i ponów synchronizację.",
+    targetMissing: "Wybrana karta, talia lub tag już nie istnieje.",
+  },
   tagsScreen: {
     counts: {
       total: "łącznie: {{count}}",

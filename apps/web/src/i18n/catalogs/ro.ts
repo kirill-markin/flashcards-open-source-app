@@ -1461,6 +1461,19 @@ const roCatalog: TranslationCatalog = {
       new: "Pachet nou",
     },
   },
+  cardMaintenance: {
+    removeTag: "Elimină eticheta de pe carduri",
+    linkedWorkspaceRequired: "Această acțiune necesită un spațiu de lucru conectat la cloud.",
+    noChanges: "Niciun card nu are nevoie de această modificare.",
+    overlap: "Aceasta resetează progresul și în alte pachete și etichete care includ aceste carduri.",
+    outcomeUnknown: "Nu am putut confirma dacă modificarea a fost aplicată în spațiul de lucru.",
+    previewChanged: "Cardurile afectate s-au schimbat. Verifică previzualizarea actualizată și confirmă din nou.",
+    removePreview: "Eticheta va fi eliminată de pe cardurile vizate ({{cards}}). Cardurile vor fi păstrate. Pachete care folosesc această etichetă în reguli: {{decks}}.",
+    resetComplete: "Progresul de studiu a fost resetat.",
+    saveDeckRules: "Salvează regulile pachetului înainte de a reseta progresul de studiu.",
+    syncFailed: "Verifică conexiunea și reîncearcă sincronizarea.",
+    targetMissing: "Cardul, pachetul sau eticheta selectată nu mai există.",
+  },
   tagsScreen: {
     counts: {
       total: "Total: {{count}}",

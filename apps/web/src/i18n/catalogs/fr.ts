@@ -1451,6 +1451,19 @@ const frCatalog: TranslationCatalog = {
       new: "Nouveau paquet",
     },
   },
+  cardMaintenance: {
+    removeTag: "Retirer l’étiquette des cartes",
+    linkedWorkspaceRequired: "Cette action nécessite un espace de travail cloud associé.",
+    noChanges: "Aucune carte ne nécessite cette modification.",
+    overlap: "Cela réinitialise aussi la progression dans les autres paquets et étiquettes qui incluent ces cartes.",
+    outcomeUnknown: "Nous n’avons pas pu vérifier si la modification a été appliquée à l’espace de travail.",
+    previewChanged: "Les cartes concernées ont changé. Vérifiez le nouvel aperçu et confirmez à nouveau.",
+    removePreview: "L’étiquette sera retirée des cartes concernées ({{cards}}). Les cartes seront conservées. Paquets dont les règles utilisent cette étiquette : {{decks}}.",
+    resetComplete: "Progression d’étude réinitialisée.",
+    saveDeckRules: "Enregistrez les règles du paquet avant de réinitialiser la progression d’étude.",
+    syncFailed: "Vérifiez votre connexion et relancez la synchronisation.",
+    targetMissing: "La carte, le paquet ou l’étiquette sélectionnée n’existe plus.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} au total",

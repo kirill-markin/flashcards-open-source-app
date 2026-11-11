@@ -10,6 +10,7 @@ import {
   type ReactElement,
 } from "react";
 import { deriveActiveCards } from "../../appData/domain";
+import { areSameTags } from "../../appData/domain/cardTags";
 import { useI18n } from "../../i18n";
 import type { Card, TagSuggestion } from "../../types";
 
@@ -170,14 +171,6 @@ export function getTagSuggestionsFromCards(cards: ReadonlyArray<Card>): Readonly
       cardsCount,
     } satisfies TagSuggestion))
     .sort(compareTagSuggestions);
-}
-
-export function areSameTags(left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  return left.every((tag, index) => tag === right[index]);
 }
 
 export function CardTagsValue(props: CardTagsValueProps): ReactElement {

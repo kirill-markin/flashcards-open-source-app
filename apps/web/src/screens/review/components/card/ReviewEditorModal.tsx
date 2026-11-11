@@ -9,6 +9,7 @@ import {
   type CardFormState,
 } from "../../../cards/form/CardForm";
 import type { Card, TagSuggestion } from "../../../../types";
+import { CardMaintenanceAction } from "../../../settings/workspace/CardMaintenanceAction";
 
 export type ReviewEditorModalProps = Readonly<{
   editingCard: Card | null;
@@ -119,6 +120,13 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
         <CardFormFields
           tagSuggestions={tagSuggestions}
           currentCard={editingCard}
+          metadataAction={(
+            <CardMaintenanceAction
+              kind="resetCard"
+              target={editingCard.cardId}
+              disabled={isEditorSaving || isAuthoringMedia}
+            />
+          )}
           formState={formState}
           formIdPrefix="review-card-editor"
           isSaving={isEditorSaving}

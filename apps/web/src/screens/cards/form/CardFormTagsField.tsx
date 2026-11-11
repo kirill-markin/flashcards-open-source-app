@@ -10,7 +10,8 @@ import {
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import type { TagSuggestion } from "../../../types";
-import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "../CardTagsInput";
+import { areSameTags, rebaseTagDraft } from "../../../appData/domain/cardTags";
+import { CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "../CardTagsInput";
 
 type CardFormTagsFieldProps = Readonly<{
   value: ReadonlyArray<string>;
@@ -31,47 +32,6 @@ const tagsOverlayOffsetPx = 8;
 const tagsOverlayMinimumWidthPx = 320;
 const tagsOverlayMaximumWidthPx = 420;
 const tagsOverlayMaximumHeightPx = 320;
-
-function rebaseOpenTagsDraft(
-  previousValue: ReadonlyArray<string>,
-  nextValue: ReadonlyArray<string>,
-  draftTags: ReadonlyArray<string>,
-): ReadonlyArray<string> {
-  if (areSameTags(draftTags, previousValue)) {
-    return nextValue;
-  }
-
-  const previousTags = new Set(previousValue);
-  const nextTags = new Set(nextValue);
-  const draftTagSet = new Set(draftTags);
-  const removedTags = new Set(
-    previousValue.filter((tag) => draftTagSet.has(tag) === false),
-  );
-  const localAdditions = draftTags.filter((tag) => previousTags.has(tag) === false);
-  const previousSurvivingOrder = previousValue.filter((tag) => draftTagSet.has(tag));
-  const draftPreviousOrder = draftTags.filter((tag) => previousTags.has(tag));
-
-  if (areSameTags(previousSurvivingOrder, draftPreviousOrder)) {
-    const rebasedTags = nextValue.filter((tag) => removedTags.has(tag) === false);
-    const rebasedTagSet = new Set(rebasedTags);
-    return [
-      ...rebasedTags,
-      ...localAdditions.filter((tag) => rebasedTagSet.has(tag) === false),
-    ];
-  }
-
-  const rebasedLocalTags = draftTags.filter((tag) => (
-    nextTags.has(tag) || previousTags.has(tag) === false
-  ));
-  const rebasedLocalTagSet = new Set(rebasedLocalTags);
-  return [
-    ...rebasedLocalTags,
-    ...nextValue.filter((tag) => (
-      rebasedLocalTagSet.has(tag) === false
-      && removedTags.has(tag) === false
-    )),
-  ];
-}
 
 export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTagsFieldProps>(function CardFormTagsField(
   props,
@@ -140,7 +100,7 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
     if (isOpen) {
       if (areSameTags(previousValue, value) === false) {
         setDraftTags((currentDraftTags) => (
-          rebaseOpenTagsDraft(previousValue, value, currentDraftTags)
+          rebaseTagDraft(previousValue, value, currentDraftTags)
         ));
       }
       return;

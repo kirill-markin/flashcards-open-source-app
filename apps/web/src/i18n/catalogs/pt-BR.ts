@@ -1451,6 +1451,19 @@ const ptBrCatalog: TranslationCatalog = {
       new: "Novo baralho",
     },
   },
+  cardMaintenance: {
+    removeTag: "Remover etiqueta dos cartões",
+    linkedWorkspaceRequired: "Esta ação exige um espaço de trabalho vinculado à nuvem.",
+    noChanges: "Nenhum cartão precisa desta alteração.",
+    overlap: "Isso também zera o progresso em outros baralhos e etiquetas que incluem estes cartões.",
+    outcomeUnknown: "Não foi possível confirmar se a alteração foi aplicada ao espaço de trabalho.",
+    previewChanged: "Os cartões afetados mudaram. Confira a prévia atualizada e confirme novamente.",
+    removePreview: "A etiqueta será removida dos cartões afetados ({{cards}}). Os cartões serão mantidos. Baralhos com essa etiqueta nas regras: {{decks}}.",
+    resetComplete: "Progresso de estudo zerado.",
+    saveDeckRules: "Salve as regras do baralho antes de zerar o progresso de estudo.",
+    syncFailed: "Verifique a conexão e tente sincronizar novamente.",
+    targetMissing: "O cartão, o baralho ou a etiqueta selecionada não existe mais.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} no total",

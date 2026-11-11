@@ -196,7 +196,7 @@ export type CreateCardInput = Readonly<{
 export type UpdateCardInput = Readonly<{
   frontText?: string;
   backText?: string;
-  tags?: ReadonlyArray<string>;
+  tagEdit?: Readonly<{ baseline: ReadonlyArray<string>; draft: ReadonlyArray<string> }>;
 }>;
 
 export type Deck = Readonly<{

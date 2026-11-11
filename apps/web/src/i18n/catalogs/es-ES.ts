@@ -1451,6 +1451,19 @@ const esEsCatalog: TranslationCatalog = {
       new: "Nuevo mazo",
     },
   },
+  cardMaintenance: {
+    removeTag: "Quitar etiqueta de las tarjetas",
+    linkedWorkspaceRequired: "Esta acción requiere un espacio de trabajo vinculado a la nube.",
+    noChanges: "Ninguna tarjeta necesita este cambio.",
+    overlap: "Esto también reinicia el progreso en otros mazos y etiquetas que incluyan estas tarjetas.",
+    outcomeUnknown: "No hemos podido confirmar si se aplicó el cambio en el espacio de trabajo.",
+    previewChanged: "Las tarjetas afectadas han cambiado. Revisa la vista previa actualizada y vuelve a confirmar.",
+    removePreview: "Se quitará la etiqueta de {{cards}}. Las tarjetas se conservarán. Mazos con esta etiqueta en sus reglas: {{decks}}.",
+    resetComplete: "Se ha reiniciado el progreso de estudio.",
+    saveDeckRules: "Guarda las reglas del mazo antes de reiniciar el progreso de estudio.",
+    syncFailed: "Comprueba tu conexión y vuelve a intentar sincronizar.",
+    targetMissing: "La tarjeta, el mazo o la etiqueta seleccionada ya no existe.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} total",

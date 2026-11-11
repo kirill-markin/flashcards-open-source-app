@@ -1451,6 +1451,19 @@ const koCatalog: TranslationCatalog = {
       new: "새 덱",
     },
   },
+  cardMaintenance: {
+    removeTag: "카드에서 태그 제거",
+    linkedWorkspaceRequired: "이 작업에는 연결된 클라우드 작업 공간이 필요합니다.",
+    noChanges: "이 변경이 필요한 카드가 없습니다.",
+    overlap: "이 카드가 포함된 다른 덱과 태그의 학습 진행 상황도 초기화됩니다.",
+    outcomeUnknown: "작업 공간 변경 사항이 적용되었는지 확인할 수 없습니다.",
+    previewChanged: "영향을 받는 카드가 변경되었습니다. 업데이트된 미리보기를 검토하고 다시 확인하세요.",
+    removePreview: "{{cards}}에서 이 태그가 제거됩니다. 카드는 그대로 유지됩니다. 규칙에 이 태그가 있는 덱 수: {{decks}}.",
+    resetComplete: "학습 진행 상황을 초기화했습니다.",
+    saveDeckRules: "학습 진행 상황을 초기화하기 전에 덱 규칙을 저장하세요.",
+    syncFailed: "연결을 확인하고 동기화를 다시 시도하세요.",
+    targetMissing: "선택한 카드, 덱 또는 태그가 더 이상 존재하지 않습니다.",
+  },
   tagsScreen: {
     counts: {
       total: "전체 {{count}}",

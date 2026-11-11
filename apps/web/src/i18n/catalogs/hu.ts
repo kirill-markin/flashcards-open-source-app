@@ -1451,6 +1451,19 @@ const huCatalog: TranslationCatalog = {
       new: "Új pakli",
     },
   },
+  cardMaintenance: {
+    removeTag: "Címke eltávolítása a kártyákról",
+    linkedWorkspaceRequired: "Ehhez a művelethez összekapcsolt felhőalapú munkaterület szükséges.",
+    noChanges: "Egyik kártyán sem kell elvégezni ezt a módosítást.",
+    overlap: "Ez a művelet a kártyákat tartalmazó többi pakliban és címkénél is visszaállítja a tanulási előrehaladást.",
+    outcomeUnknown: "Nem sikerült ellenőrizni, hogy megtörtént-e a módosítás a munkaterületen.",
+    previewChanged: "Az érintett kártyák megváltoztak. Nézd át a frissített előnézetet, majd erősítsd meg újra.",
+    removePreview: "A címke ennyi kártyáról lesz eltávolítva: {{cards}}. A kártyák megmaradnak. Ezt a címkét a szabályaikban használó paklik: {{decks}}.",
+    resetComplete: "A tanulási előrehaladás visszaállítva.",
+    saveDeckRules: "A tanulási előrehaladás visszaállítása előtt mentsd a pakli szabályait.",
+    syncFailed: "Ellenőrizd a kapcsolatot, majd próbáld újra a szinkronizálást.",
+    targetMissing: "A kiválasztott kártya, pakli vagy címke már nem létezik.",
+  },
   tagsScreen: {
     counts: {
       total: "összesen {{count}}",
