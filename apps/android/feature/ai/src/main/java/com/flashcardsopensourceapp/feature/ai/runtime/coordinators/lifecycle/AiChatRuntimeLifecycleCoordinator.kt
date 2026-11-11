@@ -25,6 +25,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarnin
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
@@ -32,6 +33,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 internal class AiChatRuntimeLifecycleCoordinator(
@@ -44,9 +46,15 @@ internal class AiChatRuntimeLifecycleCoordinator(
     private var accessContextLoadGeneration: Long = 0L
 
     fun updateAccessContext(accessContext: AiAccessContext) {
-        val previousAccessContext = context.activeAccessContext
+        val previousKey = context.activeAccessContext?.runtimeKey()
+        val currentKey = accessContext.runtimeKey()
         context.activeAccessContext = accessContext
-        if (previousAccessContext?.runtimeKey() == accessContext.runtimeKey()) {
+        if (previousKey?.matchesCurrentAccess(current = currentKey) == true) {
+            if (previousKey != currentKey) {
+                context.runtimeStateMutable.update { state ->
+                    if (state.loadedAccessKey == previousKey) state.copy(loadedAccessKey = currentKey) else state
+                }
+            }
             retryBootstrapIfLoadingWithoutOwner(accessContext = accessContext)
             return
         }
@@ -113,6 +121,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
             ).copy(
+                loadedAccessKey = context.activeAccessContext?.runtimeKey(),
                 draftMessage = draftState.draftMessage,
                 pendingAttachments = draftState.pendingAttachments,
                 conversationBootstrapState = if (accessContext.workspaceId == null) {
@@ -218,14 +227,15 @@ internal class AiChatRuntimeLifecycleCoordinator(
             return
         }
 
+        val needsGuestAccess = shouldPrepareGuestAccess(
+            accessContext = accessContext,
+            hasConsent = context.hasConsent()
+        )
         lateinit var warmUpJob: Job
         warmUpJob = context.scope.launch(start = CoroutineStart.LAZY) {
             try {
-                if (shouldPrepareGuestAccess(
-                        accessContext = accessContext,
-                        hasConsent = context.hasConsent()
-                    )
-                ) {
+                if (needsGuestAccess) {
+                    context.runtimeStateMutable.update { state -> state.copy(guestAccessPreparationError = null) }
                     prepareGuestAccessWithRetry(accessContext = accessContext)
                 } else if (shouldBootstrapConversation(
                         accessContext = accessContext,
@@ -246,6 +256,16 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 )
                 throw error
             } catch (error: Exception) {
+                if (needsGuestAccess && context.activeAccessContext?.runtimeKey() == accessContext.runtimeKey()) {
+                    val presentation = makeAiBootstrapErrorPresentation(
+                        error = error,
+                        configuration = context.currentServerConfiguration(),
+                        textProvider = context.textProvider
+                    )
+                    context.runtimeStateMutable.update { state ->
+                        state.copy(guestAccessPreparationError = presentation)
+                    }
+                }
                 val remoteError = error as? AiChatRemoteException
                 when (aiChatFailureIssueDisposition(error = error)) {
                     AiChatFailureIssueDisposition.NONE -> Unit

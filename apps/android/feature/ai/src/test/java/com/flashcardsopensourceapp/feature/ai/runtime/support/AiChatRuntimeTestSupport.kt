@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRunLive
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
@@ -38,6 +39,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedAnkiImport
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
@@ -644,6 +646,13 @@ internal class FakeAiChatRepository : AiChatRepository {
         return transcribeAudioResponse
     }
 
+    override suspend fun prepareAnkiImportSession(target: AiAnkiImportTarget): AiChatPreparedAnkiImport {
+        return AiChatPreparedAnkiImport(
+            target = target,
+            remoteSession = prepareSessionForAi(workspaceId = target.workspaceId)
+        )
+    }
+
     override suspend fun warmUpLinkedSession() {}
 
     override suspend fun startRun(
@@ -651,7 +660,8 @@ internal class FakeAiChatRepository : AiChatRepository {
         state: AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
-        uiLocale: String?
+        uiLocale: String?,
+        preparedAnkiImport: AiChatPreparedAnkiImport?
     ): AiChatStartRunResponse {
         startRunCalls += 1
         remoteCallEvents += "startRun:${state.chatSessionId}"

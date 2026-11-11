@@ -1,7 +1,20 @@
 package com.flashcardsopensourceapp.data.local.model.ai
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import java.util.UUID
+
+data class AiAnkiImportTarget(
+    val workspaceId: String,
+    val cloudState: CloudAccountState,
+    val linkedUserId: String?,
+    val installationId: String,
+    val configuration: CloudServiceConfiguration
+)
+
+class AiAnkiImportTargetChangedException :
+    IllegalStateException("The authorized workspace, account, or server changed before the Anki import started.")
 
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 // Upload limits of one chat turn, the ones apps/backend/src/chatFiles/uploads.ts enforces.
@@ -623,7 +636,7 @@ fun makeAiChatAttachment(
     mediaType: String,
     localFilePath: String,
     sizeBytes: Long
-): AiChatAttachment {
+): AiChatAttachment.Binary {
     return AiChatAttachment.Binary(
         id = UUID.randomUUID().toString().lowercase(),
         fileName = fileName,

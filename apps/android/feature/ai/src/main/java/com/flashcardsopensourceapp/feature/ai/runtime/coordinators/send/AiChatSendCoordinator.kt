@@ -7,6 +7,8 @@ import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeR
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatSessionNotCurrentRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiLimitReachedRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunRequestSize
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTargetChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
@@ -64,7 +66,7 @@ internal class AiChatSendCoordinator(
     private val sessionCoordinator: AiChatSessionCoordinator,
     private val applyActiveBootstrap: suspend (AiChatBootstrapResponse, String) -> Unit
 ) {
-    fun sendMessage() {
+    fun sendMessage(ankiImportTarget: AiAnkiImportTarget?) {
         val currentState = context.runtimeStateMutable.value
         if (canSendMessage(state = currentState).not()) {
             if (hasConsent().not()) {
@@ -151,17 +153,22 @@ internal class AiChatSendCoordinator(
             var rollbackPersistedState = initialPersistedState
             try {
                 var preparedSession: AiChatPreparedRemoteSession? = null
-                if (currentCloudState() == CloudAccountState.DISCONNECTED) {
+                if (ankiImportTarget == null && currentCloudState() == CloudAccountState.DISCONNECTED) {
                     preparedSession = context.aiChatRepository.prepareSessionForAi(
                         workspaceId = context.runtimeStateMutable.value.workspaceId
                     )
                 }
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
-                context.aiChatRepository.ensureReadyForSend(workspaceId = context.runtimeStateMutable.value.workspaceId)
+                context.aiChatRepository.ensureReadyForSend(
+                    workspaceId = ankiImportTarget?.workspaceId ?: context.runtimeStateMutable.value.workspaceId
+                )
+                val preparedAnkiImport = ankiImportTarget?.let { target ->
+                    context.aiChatRepository.prepareAnkiImportSession(target = target)
+                }
                 val ensuredSession = sessionCoordinator.ensureSessionIdIfNeededPreservingDraft(
                     draftState = durableDraftState,
-                    preparedSession = preparedSession
+                    preparedSession = preparedAnkiImport?.remoteSession ?: preparedSession
                 )
                 requestSessionId = ensuredSession.sessionId
                 rollbackPersistedState = context.runtimeStateMutable.value.persistedState
@@ -194,7 +201,8 @@ internal class AiChatSendCoordinator(
                     state = nextPersistedState,
                     draftMessage = draftMessageBackup,
                     pendingAttachments = pendingAttachmentsBackup,
-                    uiLocale = context.currentUiLocaleTag()
+                    uiLocale = context.currentUiLocaleTag(),
+                    preparedAnkiImport = preparedAnkiImport
                 )
                 didAcceptRun = true
                 deleteAiChatAttachmentStagedFiles(attachments = pendingAttachmentsBackup)
@@ -204,6 +212,23 @@ internal class AiChatSendCoordinator(
                 )
             } catch (error: CancellationException) {
                 throw error
+            } catch (_: AiAnkiImportTargetChangedException) {
+                deleteAiChatAttachmentStagedFiles(attachments = pendingAttachmentsBackup)
+                if (sessionCoordinator.canApplySessionScopedResult(targetSessionId = requestSessionId)) {
+                    restorePreAcceptFailureState(
+                        didAppendOptimisticMessages = didAppendOptimisticMessages,
+                        rollbackPersistedState = rollbackPersistedState,
+                        draftMessage = "",
+                        pendingAttachments = emptyList()
+                    )
+                    context.runtimeStateMutable.update { state ->
+                        state.copy(
+                            activeAlert = context.textProvider.generalError(
+                                message = context.textProvider.ankiImportWorkspaceChanged
+                            )
+                        )
+                    }
+                }
             } catch (error: AiChatRemoteException) {
                 handleSendFailure(
                     error = error,

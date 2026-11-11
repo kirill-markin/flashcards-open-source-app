@@ -1,4 +1,23 @@
 <resources>
+    <string name="ai_anki_import_title">Import from Anki</string>
+    <string name="ai_anki_import_description">Choose up to %1$d Anki deck packages (.apkg), each up to %2$d MB. AI chat will import them into your current workspace.</string>
+    <string name="ai_anki_import_choose_files">Choose Anki files</string>
+    <string name="ai_anki_import_preparing">Preparing Anki import…</string>
+    <string name="ai_anki_import_choose_files_again">Choose your Anki files again to continue.</string>
+    <string name="ai_anki_import_checking_files">Checking files…</string>
+    <string name="ai_anki_import_start">Start import</string>
+    <string name="ai_anki_import_remove_file">Remove %1$s</string>
+    <string name="ai_anki_import_file_error">%1$s\n%2$s</string>
+    <string name="ai_anki_import_consent_disclosure">Continuing will automatically send the selected files to AI in a new chat.</string>
+    <string name="ai_anki_import_pending">Anki import pending</string>
+    <string name="ai_anki_import_cancel">Cancel Anki import</string>
+    <string name="ai_anki_import_wrong_file">%1$s is not an Anki deck package. Choose .apkg files.</string>
+    <string name="ai_anki_import_too_many_files">Choose up to %1$d Anki files per import.</string>
+    <string name="ai_anki_import_picker_unavailable">No file picker is available on this device.</string>
+    <string name="ai_anki_import_prompt">Import the attached Anki deck packages into my current workspace.</string>
+    <string name="ai_anki_import_workspace_unavailable">Open a workspace, then start Anki import again from Library.</string>
+    <string name="ai_anki_import_workspace_changed">The workspace, account, or server changed. Open Library and start the import again.</string>
+    <string name="ai_anki_import_attachments_unavailable">File attachments are unavailable in AI chat. Try importing again when attachments are available.</string>
     <string name="ai_title">AI</string>
     <string name="ai_new_chat_content_description">New chat</string>
     <string name="ai_loading_chat_title">Loading chat</string>

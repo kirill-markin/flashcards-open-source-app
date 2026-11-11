@@ -67,7 +67,8 @@ internal class AiChatBootstrapCoordinator(
         if (expectedJob == null || context.activeBootstrapJob !== expectedJob) {
             return false
         }
-        return context.activeAccessContext?.runtimeKey() == expectedContext.runtimeKey()
+        val currentKey = context.activeAccessContext?.runtimeKey() ?: return false
+        return expectedContext.runtimeKey().matchesCurrentAccess(current = currentKey)
     }
 
     private fun canApplyBootstrapResult(

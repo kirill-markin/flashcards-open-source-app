@@ -54,7 +54,9 @@ import com.flashcardsopensourceapp.feature.cards.libraryExportAnkiRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryExportNibomoRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryExportRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryExportScreenTag
+import com.flashcardsopensourceapp.feature.cards.libraryImportNibomoRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportRowTag
+import com.flashcardsopensourceapp.feature.cards.libraryImportScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryTagsRowTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
@@ -502,7 +504,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     fun workspaceImportShowsCloudRequiredStateFromEmptyState() {
         waitForCardsEmptyState()
 
-        openLibraryRow(rowTag = libraryImportRowTag, destinationTag = workspaceImportScreenTag)
+        openLibraryRow(rowTag = libraryImportRowTag, destinationTag = libraryImportScreenTag)
+        composeRule.onNodeWithTag(libraryImportNibomoRowTag).performClick()
+        waitForTagToExist(tag = workspaceImportScreenTag)
         waitForTagToExist(tag = workspaceImportChooseFileButtonTag)
         composeRule.onNodeWithTag(workspaceImportChooseFileButtonTag).assertIsNotEnabled()
         waitForTextToExist(text = settingsString(SettingsR.string.settings_import_cloud_required))
