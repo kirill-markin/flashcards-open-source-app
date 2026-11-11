@@ -79,6 +79,12 @@ internal data object LibraryAnkiImportDestination {
     const val route: String = "${LibraryImportDestination.route}/anki"
 }
 
+internal data object LibrarySpreadsheetImportGraph {
+    const val route: String = "${LibraryImportDestination.route}/spreadsheet"
+    const val editorRoute: String = "$route/editor"
+    const val tagsRoute: String = "$route/tags"
+}
+
 data object LibraryExportDestination {
     const val route: String = "library/export"
 }

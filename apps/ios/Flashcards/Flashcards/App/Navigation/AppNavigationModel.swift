@@ -39,8 +39,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
-    case .importAnki:
-        return LibraryLocation(section: .importData, pages: [.importAnki])
+    case .importFormat:
+        return LibraryLocation(section: .importData, pages: [destination])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
     case .exportFormat:
@@ -66,8 +66,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
-    case .importAnki:
-        return [.importData, .importAnki]
+    case .importFormat:
+        return [.importData, destination]
     case .exportData:
         return [.exportData]
     case .exportFormat:

@@ -56,7 +56,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.importData) {
                     LibraryRow(
                         title: LibrarySection.importData.localizedTitle,
-                        subtitle: [workspaceImportNibomoFormatTitle(), workspaceImportAnkiFormatTitle()].joined(separator: "\n"),
+                        subtitle: WorkspaceImportFormat.allCases.map(\.localizedFormatName).joined(separator: "\n"),
                         systemImage: LibrarySection.importData.systemImage,
                         count: nil
                     )
