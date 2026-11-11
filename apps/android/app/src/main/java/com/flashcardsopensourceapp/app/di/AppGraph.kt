@@ -78,7 +78,6 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.repository.billing.GooglePlayBillingRepository
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetPlacementStore
-import com.flashcardsopensourceapp.app.widget.observeWidgetContent
 import com.flashcardsopensourceapp.app.widget.reportReviewWidgetPlacementIfChanged
 import com.flashcardsopensourceapp.app.widget.updateWidgetsOnContentChange
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
@@ -1067,7 +1066,7 @@ class AppGraph(
         reviewWidgetUpdatesJob = appScope.launch {
             updateWidgetsOnContentChange(
                 context = applicationContext,
-                content = observeWidgetContent(appGraph = this@AppGraph)
+                appGraph = this@AppGraph
             )
         }
     }

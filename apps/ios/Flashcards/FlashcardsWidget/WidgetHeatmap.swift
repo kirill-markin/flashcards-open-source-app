@@ -14,8 +14,9 @@ private let widgetHeatmapFrozenMonochromeBorderOpacity: Double = 0.6
 private let widgetHeatmapEmptyOpacity: Double = 0.1
 /// A tinted light Home Screen washes out the full-colour empty opacity.
 private let widgetHeatmapMonochromeEmptyOpacity: Double = 0.18
-/// Accent, or on tinted and clear Home Screens primary, opacity of reviewed levels 1 through 4.
-private let widgetHeatmapReviewedOpacities: [Double] = [0.3, 0.5, 0.75, 1]
+private let widgetHeatmapMonochromeReviewedOpacities: [Double] = [0.3, 0.5, 0.75, 1]
+// A custom accent may only just contrast with the background, so keep level one distinct from an empty cell.
+private let widgetHeatmapReviewedOpacities: [Double] = [0.45, 0.6, 0.8, 1]
 /// Frozen border and today outline width; the fraction thins it on small Year cells, where 1.5 pt would fill most of
 /// the cell and read as a solid reviewed day.
 private let widgetHeatmapStrokeMaxWidth: CGFloat = 1.5
@@ -149,6 +150,7 @@ func widgetHeatmapActiveDayCount(days: [WidgetSnapshotProgressDay]) -> Int {
 /// accentable content opaque, so there the levels are a non-accentable primary ramp and today's fill sits inside its
 /// outline, which would otherwise vanish against a top-level fill.
 struct WidgetHeatmapCellView: View {
+    @Environment(\.widgetAccent) private var accent
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.widgetRenderingMode) private var renderingMode
     let cell: WidgetHeatmapCell
@@ -157,7 +159,7 @@ struct WidgetHeatmapCellView: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: self.side * 0.22, style: .continuous)
         let strokeWidth = min(widgetHeatmapStrokeMaxWidth, self.side * widgetHeatmapStrokeSideFraction)
-        let fillInset = self.cell.isToday && self.renderingMode == .accented ? strokeWidth * 2 : 0
+        let fillInset = self.needsTodayFillInset ? strokeWidth * 2 : 0
         Group {
             switch self.cell.fill {
             case .empty:
@@ -187,9 +189,24 @@ struct WidgetHeatmapCellView: View {
         )
     }
 
+    private var needsTodayFillInset: Bool {
+        guard self.cell.isToday else { return false }
+        if self.renderingMode == .accented { return true }
+        if case .reviewed = self.cell.fill {
+            return self.renderingMode == .fullColor
+        }
+        return false
+    }
+
     private func reviewedFillColor(level: Int) -> Color {
-        let opacity = widgetHeatmapReviewedOpacities[level - 1]
-        return self.renderingMode == .accented ? Color.primary.opacity(opacity) : Color.accentColor.opacity(opacity)
+        switch self.renderingMode {
+        case .fullColor:
+            return self.accent.color.opacity(widgetHeatmapReviewedOpacities[level - 1])
+        case .accented:
+            return Color.primary.opacity(widgetHeatmapMonochromeReviewedOpacities[level - 1])
+        default:
+            return self.accent.color.opacity(widgetHeatmapMonochromeReviewedOpacities[level - 1])
+        }
     }
 
     private var frozenFillColor: Color {

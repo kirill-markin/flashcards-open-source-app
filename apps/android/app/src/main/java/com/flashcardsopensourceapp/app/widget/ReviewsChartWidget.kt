@@ -8,8 +8,6 @@ import android.graphics.Typeface
 import android.text.format.DateFormat
 import android.util.DisplayMetrics
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
@@ -25,7 +23,6 @@ import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -34,7 +31,6 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.feature.progress.R as ProgressR
 import java.time.LocalDate
@@ -44,7 +40,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.first
 
 private const val reviewsChartMediumDayCount: Int = 14
 private const val reviewsChartLargeDayCount: Int = 30
@@ -62,16 +57,8 @@ class ReviewsChartWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = chartWidgetSizeMode
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetProgressContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val progress by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = chartWidgetColors) {
-                ReviewsChartWidgetBody(progress = progress, widgetSize = LocalSize.current)
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetProgressContent) { progress ->
+            ReviewsChartWidgetBody(progress = progress, widgetSize = LocalSize.current)
         }
     }
 }
@@ -128,7 +115,7 @@ private fun ReviewsChartWidgetBody(progress: WidgetProgressContent?, widgetSize:
 private fun ColumnScope.ReviewsChartMedium(progress: WidgetProgressContent, widgetSize: DpSize) {
     val fontScale: Float = LocalContext.current.resources.configuration.fontScale
     val summary = makeReviewsChartSummary(progress = progress, dayCount = reviewsChartMediumDayCount)
-    val primaryArgb: Int = chartWidgetPrimaryArgb
+    val primaryArgb: Int = widgetAccentColor().toArgb()
     // A large font can leave the bars no room under the trend line; the chart then takes its place.
     val showsTrend: Boolean = summary.trendPercent != null && chartWidgetBitmapSize(
         widgetSize = widgetSize,

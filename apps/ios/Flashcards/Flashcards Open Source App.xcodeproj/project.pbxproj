@@ -247,6 +247,13 @@
 			);
 			target = A10000000000000000000064 /* Flashcards Widget */;
 		};
+		A10000000000000000000086 /* Exceptions for "Flashcards" folder in "Flashcards Widget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Cloud/Types/AccountAccentColor.swift,
+			);
+			target = A10000000000000000000064 /* Flashcards Widget */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -254,6 +261,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				A10000000000000000000073 /* Exceptions for "Flashcards" folder in "Flashcards Watch" target */,
+				A10000000000000000000086 /* Exceptions for "Flashcards" folder in "Flashcards Widget" target */,
 			);
 			path = Flashcards;
 			sourceTree = "<group>";
