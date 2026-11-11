@@ -782,6 +782,15 @@ const faCatalog: TranslationCatalog = {
       addCards: "افزودن کارت",
       transfer: "انتقال داده‌ها",
     },
+    cards: {
+      description: "همهٔ کارت‌های این فضای کاری.",
+    },
+    tags: {
+      description: "برچسب‌هایی که روی کارت‌هایتان استفاده شده‌اند.",
+    },
+    decks: {
+      description: "گروه‌هایی از کارت‌ها بر اساس برچسب‌هایی که انتخاب می‌کنید.",
+    },
     deckCatalog: {
       title: "فهرست دسته‌ها",
       description: "دسته‌های آمادهٔ رایگان برای مطالعه.",

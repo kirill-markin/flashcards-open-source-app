@@ -782,6 +782,15 @@ const frCatalog: TranslationCatalog = {
       addCards: "Ajouter des cartes",
       transfer: "Transfert de données",
     },
+    cards: {
+      description: "Toutes les cartes de cet espace de travail.",
+    },
+    tags: {
+      description: "Étiquettes utilisées sur vos cartes.",
+    },
+    decks: {
+      description: "Groupes de cartes basés sur les étiquettes que vous choisissez.",
+    },
     deckCatalog: {
       title: "Catalogue de paquets",
       description: "Paquets gratuits prêts à réviser.",

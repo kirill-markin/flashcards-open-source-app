@@ -789,6 +789,15 @@ const ukCatalog: TranslationCatalog = {
       addCards: "Додати картки",
       transfer: "Перенесення даних",
     },
+    cards: {
+      description: "Усі картки в цьому робочому просторі.",
+    },
+    tags: {
+      description: "Теги, які використовуються у ваших картках.",
+    },
+    decks: {
+      description: "Групи карток за вибраними вами тегами.",
+    },
     deckCatalog: {
       title: "Каталог колод",
       description: "Безкоштовні готові колоди для вивчення.",

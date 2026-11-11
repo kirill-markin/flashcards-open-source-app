@@ -782,6 +782,15 @@ const nlCatalog: TranslationCatalog = {
       addCards: "Kaarten toevoegen",
       transfer: "Gegevensoverdracht",
     },
+    cards: {
+      description: "Alle kaarten in deze werkruimte.",
+    },
+    tags: {
+      description: "Tags die je op je kaarten gebruikt.",
+    },
+    decks: {
+      description: "Groepen kaarten op basis van de tags die je kiest.",
+    },
     deckCatalog: {
       title: "Deckcatalogus",
       description: "Gratis kant-en-klare decks om te leren.",
