@@ -17,6 +17,10 @@
     <string name="ai_anki_import_prompt">Import the attached Anki deck packages into my current workspace.</string>
     <string name="ai_anki_import_workspace_unavailable">Open a workspace, then start Anki import again from Library.</string>
     <string name="ai_anki_import_workspace_changed">The workspace, account, or server changed. Open Library and start the import again.</string>
+    <string name="ai_anki_import_chat_replaced">A newer chat replaced this one before the import could start. Open Library and start the import again.</string>
+    <string name="ai_anki_import_retry_unavailable">This draft can no longer be retried safely. Check whether the decks were imported before starting again from Library.</string>
+    <string name="ai_anki_import_persistence_failed">Could not save the import’s progress on this device. Try sending the same draft again.</string>
+    <string name="ai_anki_import_draft_changed">This Anki import changed while it was sending. Close and reopen the app to load the latest draft.</string>
     <string name="ai_anki_import_attachments_unavailable">File attachments are unavailable in AI chat. Try importing again when attachments are available.</string>
     <string name="ai_title">AI</string>
     <string name="ai_new_chat_content_description">New chat</string>
@@ -100,6 +104,9 @@
     <string name="ai_card_handoff_requires_new_chat">Start a new chat before handing off a card to AI.</string>
     <string name="ai_response_in_progress">A response is already in progress. Wait for it to finish or stop it before sending another message.</string>
     <string name="ai_chat_not_current_notice">This chat was replaced by a newer one. Your message is still in the box — send it again.</string>
+    <string name="ai_chat_not_current_anki_import_notice">The current chat has a pending Anki import. Finish it or start a new chat before sending your message.</string>
+    <string name="ai_chat_not_current_unsent_message_notice">Your message was not sent. It could not be moved to the current chat.</string>
+    <string name="ai_copy_unsent_message">Copy message</string>
     <string name="ai_chat_failed">AI chat failed.</string>
     <string name="ai_live_stream_ended_before_completion">AI live stream ended before message completion.</string>
     <string name="ai_consent_required_message">Review AI data use and accept it on this device before using AI features.</string>

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportPersistenceException
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
@@ -27,7 +29,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import java.util.UUID
 
@@ -46,28 +50,28 @@ fun makeAiChatHistoryScopedWorkspaceId(
 ): String {
     val normalizedWorkspaceId = workspaceId?.trim()?.takeIf { value ->
         value.isNotEmpty()
-    } ?: "default"
+    }
 
     return when (cloudSettings.cloudState) {
         CloudAccountState.LINKED -> {
             val normalizedUserId = cloudSettings.linkedUserId?.trim()?.takeIf { value ->
                 value.isNotEmpty()
             } ?: "linked-user"
-            val normalizedActiveWorkspaceId = cloudSettings.activeWorkspaceId?.trim()?.takeIf { value ->
+            val scopedWorkspaceId = normalizedWorkspaceId ?: cloudSettings.activeWorkspaceId?.trim()?.takeIf { value ->
                 value.isNotEmpty()
-            } ?: normalizedWorkspaceId
-            "linked::$normalizedUserId::$normalizedActiveWorkspaceId"
+            } ?: "default"
+            "linked::$normalizedUserId::$scopedWorkspaceId"
         }
 
         CloudAccountState.GUEST -> {
             val normalizedUserId = cloudSettings.linkedUserId?.trim()?.takeIf { value ->
                 value.isNotEmpty()
             } ?: "guest-user"
-            "guest::$normalizedUserId::$normalizedWorkspaceId"
+            "guest::$normalizedUserId::${normalizedWorkspaceId ?: "default"}"
         }
 
         CloudAccountState.DISCONNECTED,
-        CloudAccountState.LINKING_READY -> "local::$normalizedWorkspaceId"
+        CloudAccountState.LINKING_READY -> "local::${normalizedWorkspaceId ?: "default"}"
     }
 }
 
@@ -98,16 +102,89 @@ class AiChatHistoryStore(
         }
     }
 
-    suspend fun saveState(workspaceId: String?, state: AiChatPersistedState) = withContext(Dispatchers.IO) {
-        val trimmedState = state.copy(messages = state.messages.takeLast(aiChatMaxMessages))
-        preferences.edit(commit = true) {
-            putString(storageKey(workspaceId = workspaceId), encodeState(state = trimmedState).toString())
+    suspend fun saveState(
+        workspaceId: String?,
+        state: AiChatPersistedState,
+        ankiImportRequest: AiChatAnkiImportRequest?
+    ) = withContext(Dispatchers.IO) {
+        val sessionId = normalizeSessionId(sessionId = state.chatSessionId)
+        synchronized(preferences) {
+            val storedRequestId = sessionId?.let { id ->
+                ankiImportRequestId(rawDraft = preferences.getString(draftStorageKey(workspaceId, id), null))
+            }
+            if (storedRequestId != ankiImportRequest?.clientRequestId) {
+                return@synchronized
+            }
+            // Only the checked write can establish or move the pointer for a pending import.
+            if (
+                ankiImportRequest != null &&
+                (sessionId != ankiImportRequest.sessionId || currentState(workspaceId).chatSessionId != sessionId)
+            ) {
+                return@synchronized
+            }
+            preferences.edit(commit = true) {
+                putString(storageKey(workspaceId = workspaceId), encodeStoredState(state = state))
+            }
+        }
+    }
+
+    suspend fun saveAnkiImportState(
+        workspaceId: String,
+        state: AiChatPersistedState,
+        draftState: AiChatDraftState
+    ) = withContext(Dispatchers.IO) {
+        val request = requireNotNull(draftState.ankiImportRequest)
+        require(state.chatSessionId == request.sessionId) { "Anki draft does not match the requested session." }
+        val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = request.sessionId)
+        synchronized(preferences) {
+            val storedRequestId = ankiImportRequestId(rawDraft = preferences.getString(draftKey, null))
+            check(storedRequestId == null || storedRequestId == request.clientRequestId) {
+                "Anki import session already has a different pending request."
+            }
+            val committed = preferences.edit()
+                .putString(storageKey(workspaceId = workspaceId), encodeStoredState(state = state))
+                .putString(draftKey, encodeDraftState(draftState = draftState).toString())
+                .commit()
+            if (committed.not()) {
+                throw AiAnkiImportPersistenceException("Could not save the pending Anki import for chat ${request.sessionId}.")
+            }
+        }
+    }
+
+    suspend fun finishAnkiImport(
+        workspaceId: String,
+        request: AiChatAnkiImportRequest,
+        state: AiChatPersistedState?
+    ): Boolean = withContext(Dispatchers.IO) {
+        val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = request.sessionId)
+        val historyKey = storageKey(workspaceId = workspaceId)
+        synchronized(preferences) {
+            val previousDraft = preferences.getString(draftKey, null)
+            if (ankiImportRequestId(rawDraft = previousDraft) != request.clientRequestId) {
+                return@synchronized false
+            }
+            val previousHistory = preferences.getString(historyKey, null)
+            val editor = preferences.edit().remove(draftKey)
+            if (state != null && currentState(workspaceId = workspaceId).chatSessionId == request.sessionId) {
+                editor.putString(historyKey, encodeStoredState(state = state))
+            }
+            if (editor.commit().not()) {
+                // SharedPreferences changes the in-memory values even if the disk write fails.
+                preferences.edit {
+                    putString(draftKey, previousDraft)
+                    putString(historyKey, previousHistory)
+                }
+                throw AiAnkiImportPersistenceException("Could not clear the completed Anki import for chat ${request.sessionId}.")
+            }
+            true
         }
     }
 
     suspend fun clearState(workspaceId: String?) = withContext(Dispatchers.IO) {
-        preferences.edit(commit = true) {
-            remove(storageKey(workspaceId = workspaceId))
+        synchronized(preferences) {
+            preferences.edit(commit = true) {
+                remove(storageKey(workspaceId = workspaceId))
+            }
         }
     }
 
@@ -130,40 +207,54 @@ class AiChatHistoryStore(
                     ),
                     throwable = error
                 )
-                clearDraftStorageKey(workspaceId = workspaceId, sessionId = resolvedSessionId)
+                synchronized(preferences) {
+                    if (preferences.getString(draftKey, null) == rawValue) {
+                        clearDraftStorageKey(workspaceId = workspaceId, sessionId = resolvedSessionId)
+                    }
+                }
                 makeDefaultAiChatDraftState()
             }
         }
         return@withContext makeDefaultAiChatDraftState()
     }
 
-    suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState) = withContext(Dispatchers.IO) {
+    suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState): Boolean = withContext(Dispatchers.IO) {
         val normalizedSessionId = normalizeSessionId(sessionId = sessionId)
             ?: throw IllegalArgumentException("AI chat draft state requires a sessionId.")
-        val storageKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
-        if (state.isEmpty()) {
-            preferences.edit(commit = true) {
-                remove(storageKey)
-            }
-            return@withContext
+        val request = state.ankiImportRequest
+        require(request == null || request.sessionId == normalizedSessionId) {
+            "Anki draft does not match the requested session."
         }
-
-        preferences.edit(commit = true) {
-            putString(storageKey, encodeDraftState(draftState = state).toString())
+        val storageKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
+        synchronized(preferences) {
+            if (ankiImportRequestId(rawDraft = preferences.getString(storageKey, null)) != request?.clientRequestId) {
+                return@synchronized false
+            }
+            val editor = preferences.edit()
+            if (state.isEmpty()) {
+                editor.remove(storageKey)
+            } else {
+                editor.putString(storageKey, encodeDraftState(draftState = state).toString())
+            }
+            editor.commit()
         }
     }
 
     suspend fun clearDraftState(workspaceId: String?, sessionId: String?) = withContext(Dispatchers.IO) {
         val normalizedSessionId = normalizeSessionId(sessionId = sessionId) ?: return@withContext
-        clearDraftStorageKey(
-            workspaceId = workspaceId,
-            sessionId = normalizedSessionId
-        )
+        val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
+        synchronized(preferences) {
+            if (ankiImportRequestId(rawDraft = preferences.getString(draftKey, null)) == null) {
+                clearDraftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
+            }
+        }
     }
 
     suspend fun clearAllState() = withContext(Dispatchers.IO) {
-        preferences.edit(commit = true) {
-            clear()
+        synchronized(preferences) {
+            preferences.edit(commit = true) {
+                clear()
+            }
         }
     }
 
@@ -201,6 +292,21 @@ class AiChatHistoryStore(
 
     private fun normalizeSessionId(sessionId: String?): String? {
         return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() }
+    }
+
+    private fun ankiImportRequestId(rawDraft: String?): String? {
+        if (rawDraft == null) {
+            return null
+        }
+        return try {
+            JSONObject(rawDraft).optJSONObject("ankiImportRequest")?.optString("clientRequestId")
+        } catch (_: JSONException) {
+            null
+        }
+    }
+
+    private fun encodeStoredState(state: AiChatPersistedState): String {
+        return encodeState(state = state.copy(messages = state.messages.takeLast(aiChatMaxMessages))).toString()
     }
 
     private fun encodeState(state: AiChatPersistedState): JSONObject {
@@ -484,6 +590,9 @@ class AiChatHistoryStore(
         return JSONObject()
             .put("draftMessage", draftState.draftMessage)
             .put("pendingAttachments", JSONArray(draftState.pendingAttachments.map(::encodeAttachment)))
+            .put("ankiImportRequest", draftState.ankiImportRequest?.let { request ->
+                JSONObject(Json.encodeToString(request))
+            })
     }
 
     private fun decodeDraftState(rawValue: String): AiChatDraftState {
@@ -495,7 +604,12 @@ class AiChatHistoryStore(
 
         return AiChatDraftState(
             draftMessage = draftMessage,
-            pendingAttachments = pendingAttachments
+            pendingAttachments = pendingAttachments,
+            ankiImportRequest = if (jsonObject.has("ankiImportRequest")) {
+                Json.decodeFromString<AiChatAnkiImportRequest>(jsonObject.getJSONObject("ankiImportRequest").toString())
+            } else {
+                null
+            }
         )
     }
 

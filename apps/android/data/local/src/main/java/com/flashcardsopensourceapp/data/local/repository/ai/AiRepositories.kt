@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTargetChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
@@ -147,11 +148,12 @@ class LocalAiChatRepository(
         )
     }
 
-    override suspend fun prepareAnkiImportSession(target: AiAnkiImportTarget): AiChatPreparedAnkiImport {
+    override suspend fun prepareAnkiImportSession(request: AiChatAnkiImportRequest): AiChatPreparedAnkiImport {
+        val target = request.target
         val session = authorizedSession(workspaceId = target.workspaceId, ankiImportTarget = target)
         verifyAnkiImportAuthorization(target = target, session = session)
         return AiChatPreparedAnkiImport(
-            target = target,
+            request = request,
             remoteSession = AiChatPreparedRemoteSession(
                 workspaceId = target.workspaceId,
                 apiBaseUrl = session.apiBaseUrl,
@@ -176,8 +178,16 @@ class LocalAiChatRepository(
         return historyStore.loadState(workspaceId = historyScopeId(workspaceId = workspaceId))
     }
 
-    override suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState) {
-        historyStore.saveState(workspaceId = historyScopeId(workspaceId = workspaceId), state = state)
+    override suspend fun savePersistedState(
+        workspaceId: String?,
+        state: AiChatPersistedState,
+        ankiImportRequest: AiChatAnkiImportRequest?
+    ) {
+        historyStore.saveState(
+            workspaceId = historyScopeId(workspaceId = workspaceId, ankiImportTarget = ankiImportRequest?.target),
+            state = state,
+            ankiImportRequest = ankiImportRequest
+        )
     }
 
     override suspend fun clearPersistedState(workspaceId: String?) {
@@ -191,9 +201,13 @@ class LocalAiChatRepository(
         )
     }
 
-    override suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState) {
-        historyStore.saveDraftState(
-            workspaceId = historyScopeId(workspaceId = workspaceId),
+    override suspend fun saveDraftState(
+        workspaceId: String?,
+        sessionId: String?,
+        state: AiChatDraftState
+    ): Boolean {
+        return historyStore.saveDraftState(
+            workspaceId = historyScopeId(workspaceId = workspaceId, ankiImportTarget = state.ankiImportRequest?.target),
             sessionId = sessionId,
             state = state
         )
@@ -203,6 +217,24 @@ class LocalAiChatRepository(
         historyStore.clearDraftState(
             workspaceId = historyScopeId(workspaceId = workspaceId),
             sessionId = sessionId
+        )
+    }
+
+    override suspend fun saveAnkiImportState(state: AiChatPersistedState, draftState: AiChatDraftState) {
+        val target = requireNotNull(draftState.ankiImportRequest).target
+        historyStore.saveAnkiImportState(
+            workspaceId = historyScopeId(workspaceId = target.workspaceId, ankiImportTarget = target),
+            state = state,
+            draftState = draftState
+        )
+    }
+
+    override suspend fun finishAnkiImport(request: AiChatAnkiImportRequest, state: AiChatPersistedState?): Boolean {
+        val target = request.target
+        return historyStore.finishAnkiImport(
+            workspaceId = historyScopeId(workspaceId = target.workspaceId, ankiImportTarget = target),
+            request = request,
+            state = state
         )
     }
 
@@ -398,9 +430,18 @@ class LocalAiChatRepository(
         uiLocale: String?,
         preparedAnkiImport: AiChatPreparedAnkiImport?
     ): AiChatStartRunResponse {
-        val ankiImportTarget = preparedAnkiImport?.target
-        val remoteWorkspaceId = ankiImportTarget?.workspaceId ?: requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val ankiImportRequest = preparedAnkiImport?.request
+        val ankiImportTarget = ankiImportRequest?.target
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
         val resolvedSessionId = requireExplicitAiChatSessionIdForRun(state = state)
+        if (
+            ankiImportRequest != null &&
+            (ankiImportRequest.sessionId != resolvedSessionId ||
+                ankiImportRequest.target.workspaceId != remoteWorkspaceId ||
+                ankiImportRequest.matchesDraft(message = draftMessage, attachments = pendingAttachments).not())
+        ) {
+            throw AiAnkiImportTargetChangedException()
+        }
         val uploadSession = if (preparedAnkiImport == null) {
             authorizedSession(workspaceId = remoteWorkspaceId)
         } else {
@@ -417,7 +458,7 @@ class LocalAiChatRepository(
         val request = AiChatStartRunRequest(
             sessionId = resolvedSessionId,
             workspaceId = remoteWorkspaceId,
-            clientRequestId = java.util.UUID.randomUUID().toString().lowercase(),
+            clientRequestId = ankiImportRequest?.clientRequestId ?: UUID.randomUUID().toString().lowercase(),
             content = buildAiChatRequestContent(
                 draftMessage = draftMessage,
                 pendingAttachments = pendingAttachments,
@@ -444,7 +485,11 @@ class LocalAiChatRepository(
         )
 
         return try {
-            startRunRetryingTimeout(session = session, request = request, ankiImportTarget = ankiImportTarget)
+            val response = startRunRetryingTimeout(session = session, request = request, ankiImportTarget = ankiImportTarget)
+            if (ankiImportRequest != null && response.sessionId != ankiImportRequest.sessionId) {
+                throw AiAnkiImportTargetChangedException()
+            }
+            response
         } catch (error: AiChatRemoteException) {
             AiChatDiagnosticsLogger.error(
                 event = "start_run_failed",
@@ -773,9 +818,23 @@ class LocalAiChatRepository(
     }
 
     private fun historyScopeId(workspaceId: String?): String {
+        return historyScopeId(workspaceId = workspaceId, ankiImportTarget = null)
+    }
+
+    private fun historyScopeId(workspaceId: String?, ankiImportTarget: AiAnkiImportTarget?): String {
+        val currentSettings = preferencesStore.currentCloudSettings()
         return makeAiChatHistoryScopedWorkspaceId(
             workspaceId = workspaceId,
-            cloudSettings = preferencesStore.currentCloudSettings()
+            cloudSettings = if (ankiImportTarget == null) {
+                currentSettings
+            } else {
+                require(workspaceId == ankiImportTarget.workspaceId) { "Anki draft does not match the requested workspace." }
+                currentSettings.copy(
+                    cloudState = ankiImportTarget.cloudState,
+                    linkedUserId = ankiImportTarget.linkedUserId,
+                    activeWorkspaceId = ankiImportTarget.workspaceId
+                )
+            }
         )
     }
 
