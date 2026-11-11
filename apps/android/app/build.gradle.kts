@@ -395,6 +395,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
     implementation(libs.google.play.review)
     implementation(libs.google.play.billing.ktx)
+    implementation(libs.google.play.services.wearable)
     implementation(libs.okhttp)
     implementation(libs.sentry.android)
     implementation(libs.sentry.okhttp)

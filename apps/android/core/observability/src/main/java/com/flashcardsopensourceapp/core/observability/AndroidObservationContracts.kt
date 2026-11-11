@@ -52,7 +52,9 @@ enum class AndroidObservationAction(
     FEEDBACK_PROMPT_EXCEPTION(tagValue = "feedback_prompt_exception"),
     NOTIFICATION_SCHEDULING_BREADCRUMB(tagValue = "notification_scheduling_breadcrumb"),
     NOTIFICATION_SCHEDULING_WARNING(tagValue = "notification_scheduling_warning"),
-    ANALYTICS_PIPELINE_WARNING(tagValue = "analytics_pipeline_warning")
+    ANALYTICS_PIPELINE_WARNING(tagValue = "analytics_pipeline_warning"),
+    WATCH_HANDOFF_REPLY(tagValue = "watch_handoff_reply"),
+    WATCH_HANDOFF_FAILURE(tagValue = "watch_handoff_failure")
 }
 
 enum class AndroidAiObservationName(
@@ -455,6 +457,49 @@ sealed interface AndroidBreadcrumbEvent : AndroidObservationEvent {
             requestId = diagnostic.requestId,
             statusCode = null,
             code = diagnostic.stage,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class WatchHandoffReplied(
+        val reason: String,
+        val workspaceId: String?,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidBreadcrumbEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.CLOUD
+        override val action: AndroidObservationAction = AndroidObservationAction.WATCH_HANDOFF_REPLY
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = workspaceId,
+            requestId = null,
+            statusCode = null,
+            code = reason,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class WatchHandoffFailed(
+        val stage: String,
+        val errorClass: String,
+        val errorMessage: String?,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidBreadcrumbEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.CLOUD
+        override val action: AndroidObservationAction = AndroidObservationAction.WATCH_HANDOFF_FAILURE
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = stage,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
@@ -1023,6 +1068,27 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
             requestId = null,
             statusCode = null,
             code = repositoryAction,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class WatchHandoffException(
+        override val throwable: Throwable,
+        val stage: String,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidExceptionIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.CLOUD
+        override val action: AndroidObservationAction = AndroidObservationAction.WATCH_HANDOFF_FAILURE
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = stage,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
