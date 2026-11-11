@@ -147,13 +147,26 @@ struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
     let transcript: String
 }
 
+enum AIChatComposerDraftOrigin: String, Codable, Hashable, Sendable {
+    case ankiImport
+}
+
 struct AIChatComposerDraft: Codable, Hashable, Sendable {
-    let inputText: String
-    let pendingAttachments: [AIChatAttachment]
+    var inputText: String
+    var pendingAttachments: [AIChatAttachment]
+    var origin: AIChatComposerDraftOrigin?
+    var ankiImportRequestId: String?
 
     var isEmpty: Bool {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && self.pendingAttachments.isEmpty
+    }
+
+    mutating func clearOriginIfEmpty() {
+        if self.isEmpty {
+            self.origin = nil
+            self.ankiImportRequestId = nil
+        }
     }
 }
 
@@ -208,8 +221,7 @@ struct AIChatConversationState {
 }
 
 struct AIChatComposerState {
-    var inputText: String
-    var pendingAttachments: [AIChatAttachment]
+    var draft: AIChatComposerDraft
     var serverSuggestions: [AIChatComposerSuggestion]
     var dictationState: AIChatDictationState
     var completedDictationTranscript: AIChatCompletedDictationTranscript?

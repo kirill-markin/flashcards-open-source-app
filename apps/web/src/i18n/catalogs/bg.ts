@@ -786,9 +786,6 @@ const bgCatalog: TranslationCatalog = {
       title: "Каталог с тестета",
       description: "Безплатни готови тестета за учене.",
     },
-    import: {
-      description: "Добавете карти от файл.",
-    },
     export: {
       description: "Изтеглете всичките си карти като файл.",
     },
@@ -898,7 +895,17 @@ const bgCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Импортиране",
-    subtitle: "Добавете карти, като поставите текст или изберете пакет на Nibomo.",
+    nibomoFormat: "Формат на Nibomo",
+    anki: {
+      format: "Формат на Anki",
+      description: "Чатът с ИИ импортира карти от избраните файлове на Anki.",
+      chooseFiles: "Изберете .apkg файлове",
+      start: "Започнете импортирането",
+      invalidFile: "„{{file}}“ не е използваем файл за експорт от Anki. Изберете непразен .apkg файл.",
+      fileTooLarge: "Размерът на „{{file}}“ надхвърля {{limit}} MiB. Изберете по-малък файл от Anki.",
+      request: "Импортирай картите от Anki в това работно пространство.",
+      chatChanged: "Активният чат се промени. Върнете се в библиотеката и започнете импортирането от Anki отново.",
+    },
     workspaceUnavailable: "Работното пространство е недостъпно",
     textTitle: "Поставяне на текст",
     textDescription: "Копирайте термини и определения от Quizlet, електронна таблица или документ. Прегледайте всяка карта преди импортирането.",

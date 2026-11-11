@@ -793,9 +793,6 @@ const ltCatalog: TranslationCatalog = {
       title: "Kaladžių katalogas",
       description: "Nemokamos paruoštos kaladės mokytis.",
     },
-    import: {
-      description: "Pridėkite korteles iš failo.",
-    },
     export: {
       description: "Atsisiųskite visas savo korteles kaip failą.",
     },
@@ -906,7 +903,17 @@ const ltCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importuoti",
-    subtitle: "Pridėkite korteles įklijuodami tekstą arba pasirinkdami Nibomo paketą.",
+    nibomoFormat: "„Nibomo“ formatas",
+    anki: {
+      format: "„Anki“ formatas",
+      description: "DI pokalbis importuoja korteles iš pasirinktų „Anki“ eksporto failų.",
+      chooseFiles: "Pasirinkite .apkg failus",
+      start: "Pradėti importuoti",
+      invalidFile: "„{{file}}“ nėra tinkamas „Anki“ eksporto failas. Pasirinkite netuščią .apkg failą.",
+      fileTooLarge: "„{{file}}“ viršija {{limit}} MiB. Pasirinkite mažesnį „Anki“ eksporto failą.",
+      request: "Importuok korteles iš „Anki“ į šią darbo sritį.",
+      chatChanged: "Aktyvus pokalbis pasikeitė. Grįžkite į biblioteką ir iš naujo pradėkite importuoti iš „Anki“.",
+    },
     workspaceUnavailable: "Darbo sritis nepasiekiama",
     textTitle: "Įklijuoti tekstą",
     textDescription: "Nukopijuokite terminus ir apibrėžimus iš Quizlet, skaičiuoklės arba dokumento. Prieš importuodami peržiūrėkite kiekvieną kortelę.",

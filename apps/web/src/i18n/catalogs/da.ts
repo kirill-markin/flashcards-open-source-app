@@ -786,9 +786,6 @@ const daCatalog: TranslationCatalog = {
       title: "Bunkekatalog",
       description: "Gratis færdige bunker at studere.",
     },
-    import: {
-      description: "Tilføj kort fra en fil.",
-    },
     export: {
       description: "Download alle dine kort som en fil.",
     },
@@ -898,7 +895,17 @@ const daCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Tilføj kort ved at indsætte tekst eller vælge en Nibomo-pakke.",
+    nibomoFormat: "Nibomo-format",
+    anki: {
+      format: "Anki-format",
+      description: "AI-chatten importerer kort fra de valgte Anki-eksportfiler.",
+      chooseFiles: "Vælg .apkg-filer",
+      start: "Start import",
+      invalidFile: "”{{file}}” er ikke en brugbar Anki-eksportfil. Vælg en .apkg-fil, der ikke er tom.",
+      fileTooLarge: "”{{file}}” overskrider {{limit}} MiB. Vælg en mindre Anki-eksportfil.",
+      request: "Importér kort fra Anki til dette arbejdsområde.",
+      chatChanged: "Den aktive chat er ændret. Gå tilbage til biblioteket, og start Anki-importen igen.",
+    },
     workspaceUnavailable: "Arbejdsområdet er ikke tilgængeligt",
     textTitle: "Indsæt tekst",
     textDescription: "Kopiér begreber og definitioner fra Quizlet, et regneark eller et dokument. Gennemgå hvert kort før importen.",

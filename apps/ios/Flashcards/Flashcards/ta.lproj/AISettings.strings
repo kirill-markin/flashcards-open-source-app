@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "இறக்குமதி செய்த அட்டைகளின் எண்ணிக்கை: %d, குறிச்சொல்: %@.";
 "settings.workspace.import.success" = "இறக்குமதி செய்த அட்டைகளின் எண்ணிக்கை: %d.";
-"settings.workspace.import.section.package" = "தொகுப்பு";
+"settings.workspace.import.format.nibomo" = "Nibomo வடிவம்";
+"settings.workspace.import.format.anki" = "Anki வடிவம்";
+"settings.workspace.import.anki.choose" = ".apkg கோப்புகளைத் தேர்ந்தெடுக்கவும்";
+"settings.workspace.import.anki.remove" = "கோப்பை நீக்கவும்";
+"settings.workspace.import.anki.start" = "இறக்குமதியைத் தொடங்கவும்";
+"settings.workspace.import.anki.waiting" = "Anki இறக்குமதி தொடங்கக் காத்திருக்கிறது…";
+"settings.workspace.import.anki.request" = "இணைக்கப்பட்ட Anki அட்டைத் தொகுப்புகள் அனைத்தையும் இந்தப் பணியிடத்தில் இறக்குமதி செய்.";
+"ai.composer.ankiImport.unconfirmed" = "Anki இறக்குமதியை உறுதிப்படுத்த முடியவில்லை. மீண்டும் இறக்குமதி செய்வதற்கு முன் இந்த உரையாடலையும் உங்கள் நூலகத்தையும் சரிபாருங்கள்.";
+"settings.workspace.import.anki.workspaceChanged" = "பணியிடம் அல்லது கணக்கு மாறிவிட்டது. நூலகத்திற்குத் திரும்பி மீண்டும் இறக்குமதியைத் தொடங்கவும்.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AI அரட்டையில் கோப்புகளை இணைக்க முடியவில்லை. கோப்புகளை இணைக்க முடிந்ததும் மீண்டும் இறக்குமதி செய்யவும்.";
 "settings.workspace.import.choosePackage" = "ZIP தொகுப்பைத் தேர்ந்தெடு";
 "settings.workspace.import.previewing" = "முன்னோட்டத்தைத் தயாரிக்கிறது...";
 "settings.workspace.import.importing" = "இறக்குமதி செய்கிறது...";

@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumImageAttachm
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSupportedFileExtensions
 import com.flashcardsopensourceapp.data.local.model.ai.canonicalAiChatAttachmentMediaTypeForExtension
 import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatAttachment
+import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiDictationNoSpeechException
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.ByteArrayOutputStream
@@ -263,11 +264,7 @@ suspend fun makeAiChatDocumentAttachmentFromUri(
     uri: Uri,
     textProvider: AiTextProvider
 ): AiChatAttachment {
-    val displayName = queryDisplayName(context = context, uri = uri)
-        ?: throw AiAttachmentImportUserException(
-            message = textProvider.selectedFileNameUnavailable,
-            cause = null
-        )
+    val displayName = requireAiChatDocumentDisplayName(context = context, uri = uri, textProvider = textProvider)
     val mediaType = resolveMimeType(context = context, uri = uri)
     val fileExtension = resolveFileExtension(
         fileName = displayName,
@@ -278,6 +275,63 @@ suspend fun makeAiChatDocumentAttachmentFromUri(
         fileExtension = fileExtension,
         textProvider = textProvider
     )
+    return makeStagedAiChatDocumentAttachment(
+        context = context,
+        uri = uri,
+        displayName = displayName,
+        fileExtension = fileExtension,
+        textProvider = textProvider
+    )
+}
+
+internal suspend fun makeAnkiPackageAttachmentFromUri(
+    context: Context,
+    uri: Uri,
+    textProvider: AiTextProvider
+): AiChatAttachment.Binary {
+    val displayName = requireAiChatDocumentDisplayName(context = context, uri = uri, textProvider = textProvider)
+    if (displayName.endsWith(suffix = ".apkg", ignoreCase = true).not()) {
+        throw AiAttachmentImportUserException(
+            message = context.getString(R.string.ai_anki_import_wrong_file, displayName),
+            cause = null
+        )
+    }
+    return try {
+        makeStagedAiChatDocumentAttachment(
+            context = context,
+            uri = uri,
+            displayName = displayName,
+            fileExtension = "apkg",
+            textProvider = textProvider
+        )
+    } catch (error: AiAttachmentImportUserException) {
+        throw AiAttachmentImportUserException(
+            message = context.getString(R.string.ai_anki_import_file_error, displayName, error.message),
+            cause = error
+        )
+    } catch (error: SecurityException) {
+        throw AiAttachmentImportUserException(
+            message = context.getString(R.string.ai_anki_import_file_error, displayName, textProvider.selectedFileReadFailed),
+            cause = error
+        )
+    }
+}
+
+private fun requireAiChatDocumentDisplayName(context: Context, uri: Uri, textProvider: AiTextProvider): String {
+    return queryDisplayName(context = context, uri = uri)
+        ?: throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileNameUnavailable,
+            cause = null
+        )
+}
+
+private suspend fun makeStagedAiChatDocumentAttachment(
+    context: Context,
+    uri: Uri,
+    displayName: String,
+    fileExtension: String,
+    textProvider: AiTextProvider
+): AiChatAttachment.Binary {
     val canonicalMediaType = canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = fileExtension)
     val stagedFile = stageAiChatDocumentAttachmentFile(
         context = context,

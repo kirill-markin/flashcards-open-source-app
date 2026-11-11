@@ -22,6 +22,7 @@ import type {
 } from "../../../../types";
 import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
 import { SettingsShell } from "../../SettingsShared";
+import { WorkspaceAnkiImport } from "./WorkspaceAnkiImport";
 import { WorkspaceImportPresentation } from "./WorkspaceImportPresentation";
 import { WorkspaceTextImportEditor } from "./WorkspaceTextImportEditor";
 import { createTextImportPackageFile, type TextImportCard } from "./textImport";
@@ -585,7 +586,7 @@ export function WorkspaceImportScreen(): ReactElement {
   return (
     <SettingsShell
       title={t("workspaceImport.title")}
-      subtitle={t("workspaceImport.subtitle")}
+      subtitle={null}
       activeTab="workspace"
     >
       <section className="settings-group">
@@ -650,6 +651,7 @@ export function WorkspaceImportScreen(): ReactElement {
           }}
           onConfirm={(options) => void confirmPackageImport(options)}
         />
+        <WorkspaceAnkiImport isDisabled={!isSessionVerified || isAnyImportBusy || indexedDbOpenRecoveryState.hasFailed()} />
       </section>
     </SettingsShell>
   );

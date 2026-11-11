@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Import dokončen. Počet kartiček: %d. Štítek: %@.";
 "settings.workspace.import.success" = "Import dokončen. Počet kartiček: %d.";
-"settings.workspace.import.section.package" = "Balíček";
+"settings.workspace.import.format.nibomo" = "Formát Nibomo";
+"settings.workspace.import.format.anki" = "Formát Anki";
+"settings.workspace.import.anki.choose" = "Vybrat soubory .apkg";
+"settings.workspace.import.anki.remove" = "Odebrat soubor";
+"settings.workspace.import.anki.start" = "Spustit import";
+"settings.workspace.import.anki.waiting" = "Čeká se na zahájení importu z Anki…";
+"settings.workspace.import.anki.request" = "Importuj do tohoto pracovního prostoru všechny přiložené balíčky Anki.";
+"ai.composer.ankiImport.unconfirmed" = "Import z Anki se nepodařilo potvrdit. Než zahájíš další import, zkontroluj tento chat a svou knihovnu.";
+"settings.workspace.import.anki.workspaceChanged" = "Pracovní prostor nebo účet se změnil. Vraťte se do knihovny a spusťte import znovu.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "V chatu s AI teď nelze přikládat soubory. Zkuste import znovu, až budou přílohy k dispozici.";
 "settings.workspace.import.choosePackage" = "Vybrat balíček ZIP";
 "settings.workspace.import.previewing" = "Načítání náhledu…";
 "settings.workspace.import.importing" = "Importování…";

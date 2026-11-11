@@ -786,9 +786,6 @@ const swCatalog: TranslationCatalog = {
       title: "Katalogi ya mafungu",
       description: "Mafungu ya bure yaliyo tayari kwa kujifunza.",
     },
-    import: {
-      description: "Ongeza kadi kutoka kwenye faili.",
-    },
     export: {
       description: "Pakua kadi zako zote kama faili.",
     },
@@ -898,7 +895,17 @@ const swCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Ingiza",
-    subtitle: "Ongeza kadi kwa kubandika maandishi au kwa kuchagua kifurushi cha Nibomo.",
+    nibomoFormat: "Umbizo la Nibomo",
+    anki: {
+      format: "Umbizo la Anki",
+      description: "Gumzo la AI huingiza kadi kutoka kwenye faili ulizochagua za Anki.",
+      chooseFiles: "Chagua faili za .apkg",
+      start: "Anza kuingiza",
+      invalidFile: "“{{file}}” si faili ya Anki inayoweza kutumika. Chagua faili ya .apkg isiyo tupu.",
+      fileTooLarge: "“{{file}}” inazidi {{limit}} MiB. Chagua faili ndogo zaidi ya Anki.",
+      request: "Ingiza kadi kutoka Anki katika eneo hili la kazi.",
+      chatChanged: "Gumzo linalotumika limebadilika. Rudi kwenye maktaba uanze kuingiza faili za Anki tena.",
+    },
     workspaceUnavailable: "Nafasi ya kazi haipatikani",
     textTitle: "Bandika maandishi",
     textDescription: "Nakili istilahi na fasili kutoka Quizlet, lahajedwali au hati. Kagua kila kadi kabla ya kuingiza.",

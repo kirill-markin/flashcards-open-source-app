@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Fjöldi innfluttra spjalda: %d. Merki: %@.";
 "settings.workspace.import.success" = "Fjöldi innfluttra spjalda: %d.";
-"settings.workspace.import.section.package" = "Pakki";
+"settings.workspace.import.format.nibomo" = "Nibomo-snið";
+"settings.workspace.import.format.anki" = "Anki-snið";
+"settings.workspace.import.anki.choose" = "Velja .apkg-skrár";
+"settings.workspace.import.anki.remove" = "Fjarlægja skrá";
+"settings.workspace.import.anki.start" = "Hefja innflutning";
+"settings.workspace.import.anki.waiting" = "Bíð eftir að innflutningur úr Anki hefjist…";
+"settings.workspace.import.anki.request" = "Flyttu alla viðhengda Anki-bunka inn í þetta vinnusvæði.";
+"ai.composer.ankiImport.unconfirmed" = "Ekki tókst að staðfesta innflutninginn úr Anki. Athugaðu þetta spjall og safnið þitt áður en þú byrjar nýjan innflutning.";
+"settings.workspace.import.anki.workspaceChanged" = "Vinnusvæðið eða reikningurinn hefur breyst. Farðu aftur í safnið og byrjaðu innflutninginn upp á nýtt.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Ekki er hægt að hengja skrár við í gervigreindarspjallinu. Reyndu aftur þegar hægt er að hengja skrár við.";
 "settings.workspace.import.choosePackage" = "Velja ZIP-pakka";
 "settings.workspace.import.previewing" = "Undirbý forskoðun...";
 "settings.workspace.import.importing" = "Flyt inn...";

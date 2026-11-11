@@ -28,11 +28,14 @@ type UseChatComposerSendParams = Readonly<{
   activeWorkspaceId: string | null;
   attachmentLimitMessages: ChatAttachmentLimitMessages;
   clearDraftForSession: (sessionId: string | null) => void;
+  clearSessionBoundDraftIfUnchanged: (sessionId: string | null, expectedUpdatedAt: number | null) => void;
   clearTrackedDraftSelection: () => void;
   composerAction: ChatComposerAction;
   currentSessionId: string | null;
   dictationState: ChatDictationState;
   draftInputText: string;
+  isDraftSessionBound: boolean;
+  getSessionBoundRequestIdForSend: (content: ChatDraftContent) => string | null;
   draftPendingAttachments: ReadonlyArray<PendingAttachment>;
   draftUpdatedAt: number | null;
   isSessionVerified: boolean;
@@ -41,7 +44,7 @@ type UseChatComposerSendParams = Readonly<{
   moveDraftToSession: (sourceSessionId: string | null, sourceDraftUpdatedAt: number | null, targetSessionId: string, nextDraft: ChatDraftContent) => number | null;
   onCapturedTechnicalError: (error: unknown) => void;
   onTechnicalError: (error: unknown) => boolean;
-  replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => void;
+  replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => boolean;
   requestComposerFocusRestore: () => void;
   runSync: () => Promise<void>;
   sendChatMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
@@ -58,8 +61,8 @@ export type ChatComposerSend = Readonly<{
   inputText: string;
   pendingAttachments: ReadonlyArray<PendingAttachment>;
   pendingAttachmentsRef: MutableRefObject<ReadonlyArray<PendingAttachment>>;
-  sendPendingMessage: () => Promise<void>;
-  setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => void;
+  sendPendingMessage: (requiredSessionId: string | null) => Promise<void>;
+  setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => boolean;
   startNewConversationComposerReset: (sourceSessionId: string | null) => void;
 }>;
 
@@ -68,11 +71,14 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     activeWorkspaceId,
     attachmentLimitMessages,
     clearDraftForSession,
+    clearSessionBoundDraftIfUnchanged,
     clearTrackedDraftSelection,
     composerAction,
     currentSessionId,
     dictationState,
     draftInputText,
+    isDraftSessionBound,
+    getSessionBoundRequestIdForSend,
     draftPendingAttachments,
     draftUpdatedAt,
     isSessionVerified,
@@ -128,9 +134,13 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     setSendPhase("idle");
   }, [activeWorkspaceId, draftPendingAttachments, indexedDbOpenRecoveryState, setSendPhase]);
 
-  function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): void {
+  function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): boolean {
+    if (!replacePendingAttachments(nextAttachments)) {
+      return false;
+    }
+
     pendingAttachmentsRef.current = nextAttachments;
-    replacePendingAttachments(nextAttachments);
+    return true;
   }
 
   function invalidateSendLifecycleRequests(): number {
@@ -234,7 +244,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     requestComposerFocusRestore();
   }
 
-  async function sendPendingMessage(): Promise<void> {
+  async function sendPendingMessage(requiredSessionId: string | null): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -333,6 +343,14 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
 
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
+      const clientRequestId = isDraftSessionBound
+        ? getSessionBoundRequestIdForSend(createChatDraftContent(nextText, nextAttachments))
+        : crypto.randomUUID().toLowerCase();
+      if (clientRequestId === null) {
+        restoreComposerAfterPendingSend(draftPendingAttachmentsRef.current);
+        return;
+      }
+
       let pendingDraftSessionId: string | null = sourceSessionId;
       let resultDraftUpdatedAt: number | null = sourceDraftUpdatedAt;
       const handleSessionDraftTargetReady = (targetSessionId: string): number | null => {
@@ -361,14 +379,17 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         return resultDraftUpdatedAt;
       };
       const result = await sendChatMessage({
-        clientRequestId: crypto.randomUUID().toLowerCase(),
+        clientRequestId,
         text: nextText,
         attachments: nextAttachments,
+        requiredSessionId: requiredSessionId ?? (isDraftSessionBound ? sourceSessionId : null),
         isDraftTargetCurrent: () => isSendLifecycleRequestCurrent(requestSequence) && isComposerMountedRef.current,
         onSessionDraftTargetReady: handleSessionDraftTargetReady,
       });
       indexedDbOpenRecoveryState.throwIfFailed();
-      if (result.accepted) {
+      if (result.accepted && isDraftSessionBound) {
+        clearSessionBoundDraftIfUnchanged(sourceSessionId, sourceDraftUpdatedAt);
+      } else if (result.accepted) {
         clearAcceptedSendStoredDrafts(
           sourceSessionId,
           result.sessionId,
@@ -393,6 +414,8 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
 
       if (result.accepted) {
         finalizeAcceptedSend(sourceDraftUpdatedAt);
+      } else if (isDraftSessionBound) {
+        restoreComposerAfterPendingSend(draftPendingAttachmentsRef.current);
       } else {
         restoreRejectedSend(
           nextText,

@@ -786,9 +786,6 @@ const nbCatalog: TranslationCatalog = {
       title: "Katalog med kortstokker",
       description: "Gratis ferdige kortstokker å studere.",
     },
-    import: {
-      description: "Legg til kort fra en fil.",
-    },
     export: {
       description: "Last ned alle kortene dine som en fil.",
     },
@@ -898,7 +895,17 @@ const nbCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Legg til kort ved å lime inn tekst eller velge en Nibomo-pakke.",
+    nibomoFormat: "Nibomo-format",
+    anki: {
+      format: "Anki-format",
+      description: "KI-chatten importerer kort fra de valgte Anki-eksportfilene.",
+      chooseFiles: "Velg .apkg-filer",
+      start: "Start import",
+      invalidFile: "«{{file}}» er ikke en brukbar Anki-eksportfil. Velg en .apkg-fil som ikke er tom.",
+      fileTooLarge: "«{{file}}» er større enn {{limit}} MiB. Velg en mindre Anki-eksportfil.",
+      request: "Importer kort fra Anki til dette arbeidsområdet.",
+      chatChanged: "Den aktive chatten er endret. Gå tilbake til biblioteket og start Anki-importen på nytt.",
+    },
     workspaceUnavailable: "Arbeidsområdet er utilgjengelig",
     textTitle: "Lim inn tekst",
     textDescription: "Kopier termer og definisjoner fra Quizlet, et regneark eller et dokument. Se gjennom hvert kort før du importerer.",

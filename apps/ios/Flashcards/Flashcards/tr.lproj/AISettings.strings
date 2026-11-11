@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%d kart %@ etiketiyle içe aktarıldı.";
 "settings.workspace.import.success" = "%d kart içe aktarıldı.";
-"settings.workspace.import.section.package" = "Paket";
+"settings.workspace.import.format.nibomo" = "Nibomo biçimi";
+"settings.workspace.import.format.anki" = "Anki biçimi";
+"settings.workspace.import.anki.choose" = ".apkg dosyalarını seç";
+"settings.workspace.import.anki.remove" = "Dosyayı kaldır";
+"settings.workspace.import.anki.start" = "İçe aktarmayı başlat";
+"settings.workspace.import.anki.waiting" = "Anki içe aktarmasının başlaması bekleniyor…";
+"settings.workspace.import.anki.request" = "Ekli tüm Anki destelerini bu çalışma alanına aktar.";
+"ai.composer.ankiImport.unconfirmed" = "Anki içe aktarımı doğrulanamadı. Yeniden içe aktarmadan önce bu sohbeti ve kitaplığını kontrol et.";
+"settings.workspace.import.anki.workspaceChanged" = "Çalışma alanı veya hesap değişti. Kitaplığa dönüp içe aktarmayı yeniden başlat.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Yapay zekâ sohbetinde dosya eklenemiyor. Dosya eklemek mümkün olduğunda tekrar içe aktarmayı dene.";
 "settings.workspace.import.choosePackage" = "ZIP Paketi Seç";
 "settings.workspace.import.previewing" = "Önizleniyor...";
 "settings.workspace.import.importing" = "İçe aktarılıyor...";
