@@ -182,6 +182,9 @@ enum LiveSmokeLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
     case guestAIReviewCard = "guest_ai_review_card"
+    #if targetEnvironment(macCatalyst)
+    case guestRichReviewCard = "guest_rich_review_card"
+    #endif
     case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 }

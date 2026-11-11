@@ -724,6 +724,34 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         }
     }
 
+    @MainActor
+    func testMacReviewTableWithImagesStaysResponsiveWhenOpeningCompanion() throws {
+        try self.launchApplication(launchScenario: .guestRichReviewCard, selectedTab: .review)
+        try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        let tableCell = self.app.descendants(matching: .any).matching(NSPredicate(format: "value == %@", "Public icon")).firstMatch
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+
+        let companion = LiveSmokeIdentifier.aiCompanionToggle
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].exists {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerAfterConsent()
+        }
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let wideWidth = self.app.windows.firstMatch.frame.width
+        try self.applyMacWindowLayout("Return to Previous Size")
+        XCTAssertLessThan(self.app.windows.firstMatch.frame.width, wideWidth)
+
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        self.attachMacScreenshot(name: "mac-review-table-companion")
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+    }
+
     // XCTest synthesizes .enter as HID 52 in this Catalyst runner; cover physical keypad Enter manually.
     @MainActor
     func testMacPointerRatingRestoresSpaceAndAllRatingKeys() throws {

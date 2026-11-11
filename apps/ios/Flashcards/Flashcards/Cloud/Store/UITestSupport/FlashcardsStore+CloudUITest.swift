@@ -6,6 +6,9 @@ enum FlashcardsUITestLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
     case guestAIReviewCard = "guest_ai_review_card"
+    #if targetEnvironment(macCatalyst)
+    case guestRichReviewCard = "guest_rich_review_card"
+    #endif
     case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 
@@ -13,6 +16,10 @@ enum FlashcardsUITestLaunchScenario: String {
         switch self {
         case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
+        #if targetEnvironment(macCatalyst)
+        case .guestRichReviewCard:
+            return false
+        #endif
         case .marketingScreenshots:
             return true
         case .marketingGuestSessionCleanup:
@@ -26,6 +33,10 @@ enum FlashcardsUITestLaunchScenario: String {
             return true
         case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
+        #if targetEnvironment(macCatalyst)
+        case .guestRichReviewCard:
+            return false
+        #endif
         }
     }
 }
@@ -72,6 +83,21 @@ private struct FlashcardsUITestMarketingReviewHistorySeed {
 }
 
 private enum FlashcardsUITestLaunchScenarioData {
+    #if targetEnvironment(macCatalyst)
+    static let richReviewCard = FlashcardsUITestFixtureCard(
+        frontText: "Mac rich review smoke",
+        backText: """
+        The answer is three quarters.
+
+        ![Public icon](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/cecb4a5448ec7eb889aa0c0770dcf3ac064e1b9b/apps/ios/Flashcards/Flashcards/Assets.xcassets/GoogleSignInG.imageset/google-g@3x.png?release-check=652-standalone)
+
+        | Term | Image |
+        | --- | --- |
+        | Public icon | ![Icon](https://raw.githubusercontent.com/kirill-markin/flashcards-open-source-app/cecb4a5448ec7eb889aa0c0770dcf3ac064e1b9b/apps/ios/Flashcards/Flashcards/Assets.xcassets/GoogleSignInG.imageset/google-g@3x.png?release-check=652-table) |
+        """,
+        tags: []
+    )
+    #endif
     static let manualReviewCard: FlashcardsUITestFixtureCard = FlashcardsUITestFixtureCard(
         frontText: "Smoke guest manual review question",
         backText: "Smoke guest manual review answer",
@@ -2768,6 +2794,10 @@ extension FlashcardsStore {
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
         case .guestAIReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
+        #if targetEnvironment(macCatalyst)
+        case .guestRichReviewCard:
+            try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.richReviewCard, context: context)
+        #endif
         case .marketingScreenshots:
             let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
             try self.createUITestMarketingScreenshotsData(localeFixture: localeFixture, context: context)
