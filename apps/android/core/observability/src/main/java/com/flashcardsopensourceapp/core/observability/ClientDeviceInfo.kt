@@ -21,7 +21,8 @@ enum class ClientDeviceType(
     PHONE(wireValue = "phone"),
     TABLET(wireValue = "tablet"),
     DESKTOP(wireValue = "desktop"),
-    TV(wireValue = "tv")
+    TV(wireValue = "tv"),
+    WATCH(wireValue = "watch")
 }
 
 private const val tabletSmallestScreenWidthDp: Int = 600
@@ -31,8 +32,9 @@ fun currentClientDeviceType(context: Context): ClientDeviceType {
     val uiModeManager: UiModeManager = requireNotNull(context.getSystemService(UiModeManager::class.java)) {
         "UiModeManager system service is unavailable; cannot resolve the client device type."
     }
-    if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
-        return ClientDeviceType.TV
+    when (uiModeManager.currentModeType) {
+        Configuration.UI_MODE_TYPE_TELEVISION -> return ClientDeviceType.TV
+        Configuration.UI_MODE_TYPE_WATCH -> return ClientDeviceType.WATCH
     }
     if (context.packageManager.hasSystemFeature(PackageManager.FEATURE_PC)) {
         return ClientDeviceType.DESKTOP

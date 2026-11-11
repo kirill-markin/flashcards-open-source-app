@@ -10,7 +10,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.app.MainHostActivity
-import com.flashcardsopensourceapp.app.automation.resolveAutomationEnvironment
+import com.flashcardsopensourceapp.core.observability.resolveAutomationEnvironment
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist

@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryResult
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
@@ -103,6 +104,17 @@ class LocalReviewRepository(
         selectedFilter: ReviewFilter,
         queryInputs: Flow<ReviewSessionQueryInputs>
     ): Flow<ReviewSessionSnapshot> {
+        return observeReviewSessionWithInputs(
+            selectedFilter = selectedFilter,
+            queryInputs = queryInputs
+        ).map { result -> result.snapshot }
+    }
+
+    /** [observeReviewSession] with each snapshot's inputs beside it, so the watch can drop one its newer inputs outdated. */
+    fun observeReviewSessionWithInputs(
+        selectedFilter: ReviewFilter,
+        queryInputs: Flow<ReviewSessionQueryInputs>
+    ): Flow<ReviewSessionQueryResult> {
         return combine(
             observeCurrentWorkspace(
                 database = database,
@@ -114,8 +126,11 @@ class LocalReviewRepository(
         }.flatMapLatest { (workspace, decks) ->
             if (workspace == null) {
                 return@flatMapLatest flowOf(
-                    makeEmptyReviewSessionSnapshot(
-                        nowMillis = System.currentTimeMillis()
+                    ReviewSessionQueryResult(
+                        queryInputs = null,
+                        snapshot = makeEmptyReviewSessionSnapshot(
+                            nowMillis = System.currentTimeMillis()
+                        )
                     )
                 )
             }
@@ -175,7 +190,7 @@ class LocalReviewRepository(
     private fun observeBoundedReviewSession(
         queryBase: ReviewSessionQueryBase,
         inputs: ReviewSessionQueryInputs
-    ): Flow<ReviewSessionSnapshot> {
+    ): Flow<ReviewSessionQueryResult> {
         val pendingReviewedCards: Set<PendingReviewedCard> = inputs.pendingReviewedCards
         val nowMillis: Long = inputs.nowMillis
         val queueLoadLimit: Int = reviewSessionCanonicalQueueSize +
@@ -255,7 +270,7 @@ class LocalReviewRepository(
                 preparedNextCardStillInReview = preparedNextCardStillInReview
             )
 
-            buildBoundedReviewSessionSnapshot(
+            val snapshot: ReviewSessionSnapshot = buildBoundedReviewSessionSnapshot(
                 selectedFilter = queryBase.resolvedFilter,
                 decks = queryBase.decksForResolution,
                 canonicalCards = canonicalCards,
@@ -275,6 +290,7 @@ class LocalReviewRepository(
                 settings = queryBase.settings,
                 reviewedAtMillis = nowMillis
             )
+            ReviewSessionQueryResult(queryInputs = inputs, snapshot = snapshot)
         }
     }
 

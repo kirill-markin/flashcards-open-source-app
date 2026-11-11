@@ -12,7 +12,7 @@ Use the existing release procedure for any later device run or Play draft; this 
 not authorize dispatch or publication.
 For instrumentation, declare `isAutomation=true` and verify
 `automation_environment_resolved isAutomation=true` before interacting, using the existing
-[Android automation detector](../app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt).
+[Android automation detector](../core/observability/src/main/java/com/flashcardsopensourceapp/core/observability/AutomationEnvironment.kt).
 Automation suppresses client product facts and cannot establish their positive delivery; use a
 separately authorized real collection-enabled session for those observations.
 

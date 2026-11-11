@@ -281,6 +281,11 @@ private fun addBreadcrumbData(
                 )
             )
         }
+        is AndroidBreadcrumbEvent.WatchHandoffReplied -> Unit
+        is AndroidBreadcrumbEvent.WatchHandoffFailed -> {
+            addOptionalBreadcrumbData(breadcrumb = breadcrumb, name = "errorClass", value = event.errorClass)
+            addOptionalBreadcrumbData(breadcrumb = breadcrumb, name = "errorMessage", value = event.errorMessage)
+        }
     }
 }
 
@@ -580,7 +585,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
         is AndroidExceptionIssueEvent.ReviewReactionFailure,
         is AndroidExceptionIssueEvent.ReviewPromptException,
         is AndroidExceptionIssueEvent.ReviewPromptRemoteConfigException,
-        is AndroidExceptionIssueEvent.AppScopeUncaughtException -> SentryAndroidObservationContext(
+        is AndroidExceptionIssueEvent.AppScopeUncaughtException,
+        is AndroidExceptionIssueEvent.WatchHandoffException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
             action = event.action.tagValue,
             http = null,
@@ -1031,6 +1037,14 @@ internal fun exceptionIssueFingerprint(event: AndroidExceptionIssueEvent): List<
             sanitizeSentryTagValue(fieldName = "source", value = event.source) ?: "no_source",
             sanitizeSentryTagValue(fieldName = "code", value = cloudRemoteErrorCode(throwable = event.throwable))
                 ?: "no_code"
+        )
+        // One stage fails for unrelated causes; the default grouping keeps each cause in its own issue.
+        is AndroidExceptionIssueEvent.WatchHandoffException -> listOf(
+            "{{ default }}",
+            "android",
+            event.feature.tagValue,
+            event.action.tagValue,
+            sanitizeSentryTagValue(fieldName = "stage", value = event.stage) ?: "no_stage"
         )
         else -> null
     }
