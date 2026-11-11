@@ -385,6 +385,9 @@ extension FlashcardsStore {
             errorSummary: nil
         )
         do {
+            guard self.isCurrentProgressPostSyncContext else {
+                return
+            }
             let scopeKey = try self.prepareProgressSnapshot(now: now)
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
@@ -456,6 +459,9 @@ extension FlashcardsStore {
                 return
             }
 
+            guard self.isCurrentProgressPostSyncContext else {
+                return
+            }
             if shouldRefreshSummary || shouldRefreshSeries {
                 if shouldRefreshSummary && shouldRefreshSeries {
                     async let refreshSummary: Void = self.refreshProgressSummaryServerBase(
@@ -480,6 +486,9 @@ extension FlashcardsStore {
                 }
             }
 
+            guard self.isCurrentProgressPostSyncContext else {
+                return
+            }
             async let refreshReviewSchedule: Void = self.refreshProgressReviewScheduleServerBaseIfNeeded(
                 scopeKey: scheduleScopeKey,
                 linkedSession: activeSession
@@ -496,6 +505,9 @@ extension FlashcardsStore {
             )
             _ = await (refreshReviewSchedule, refreshLeaderboard, refreshStreakLeaderboard)
 
+            guard self.isCurrentProgressPostSyncContext else {
+                return
+            }
             if self.progressObservedScopeKey == scopeKey {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
                 self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
@@ -514,7 +526,7 @@ extension FlashcardsStore {
                 errorSummary: nil
             )
         } catch {
-            if isRequestCancellationError(error: error) {
+            if isRequestCancellationError(error: error) || self.isCurrentProgressPostSyncContext == false {
                 return
             }
 
@@ -940,7 +952,18 @@ extension FlashcardsStore {
         now: Date,
         syncResult: CloudSyncResult
     ) async {
+        await self.handleProgressSyncCompletion(now: now, syncResult: syncResult, syncGeneration: nil)
+    }
+
+    func handleProgressSyncCompletion(
+        now: Date,
+        syncResult: CloudSyncResult,
+        syncGeneration: UUID?
+    ) async {
         do {
+            if let syncGeneration {
+                try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+            }
             let isProgressVisible = self.currentVisibleTab == .progress
             let scopeKey: ProgressScopeKey
             if isProgressVisible {
@@ -1009,7 +1032,9 @@ extension FlashcardsStore {
                 return
             }
 
-            await self.refreshVisibleProgressIfNeeded(now: now)
+            await ProgressPostSyncContext.$generation.withValue(syncGeneration) {
+                await self.refreshProgressIfNeeded(now: now)
+            }
         } catch {
             if isRequestCancellationError(error: error) {
                 return

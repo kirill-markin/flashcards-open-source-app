@@ -13,6 +13,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationC
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
@@ -361,6 +365,22 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
 
     override suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult {
         throw UnsupportedOperationException()
+    }
+
+    override suspend fun previewCardMaintenance(target: CloudCardMaintenanceTarget): CloudCardMaintenancePreview =
+        error("Card maintenance preview is unavailable in this fake.")
+
+    override suspend fun executeCardMaintenance(confirmation: CloudCardMaintenanceConfirmation): Int =
+        error("Card maintenance execution is unavailable in this fake.")
+
+    override fun loadCardMaintenanceAttempt(workspaceId: String, attemptId: String): CloudCardMaintenanceAttempt? =
+        error("Card maintenance attempts are unavailable in this fake.")
+
+    override fun observeCardMaintenanceAttempt(workspaceId: String, attemptId: String): Flow<CloudCardMaintenanceAttempt?> =
+        error("Card maintenance attempts are unavailable in this fake.")
+
+    override suspend fun refreshCardMaintenanceWorkspace(workspaceId: String, attemptId: String) {
+        error("Card maintenance sync is unavailable in this fake.")
     }
 
     override suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview {

@@ -34,6 +34,7 @@ export type CardMetadata = Readonly<{
   version: 1;
   source: CardSourceMetadata | null;
   onboardingDemo?: OnboardingDemoMetadata;
+  maintenanceRevision?: number;
 }>;
 
 export type CardRow = Readonly<{
@@ -59,6 +60,13 @@ export type CardRow = Readonly<{
   last_operation_id: string;
   updated_at: TimestampValue;
   deleted_at: TimestampValue | null;
+}>;
+
+export type CardMaintenanceRow = CardRow & Readonly<{
+  maintenance_revision: string | number;
+  maintenance_reset_at: TimestampValue | null;
+  maintenance_tag_removals: Readonly<Record<string, number>>;
+  maintenance_snapshot_lww_at: TimestampValue | null;
 }>;
 
 export type ReviewableCardRow = Readonly<{

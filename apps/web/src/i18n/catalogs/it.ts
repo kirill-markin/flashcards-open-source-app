@@ -1453,6 +1453,19 @@ const itCatalog: TranslationCatalog = {
       new: "Nuovo mazzo",
     },
   },
+  cardMaintenance: {
+    removeTag: "Rimuovi il tag dalle carte",
+    linkedWorkspaceRequired: "Questa azione richiede uno spazio di lavoro cloud collegato.",
+    noChanges: "Nessuna carta richiede questa modifica.",
+    overlap: "Questo azzera anche i progressi negli altri mazzi e tag che includono queste carte.",
+    outcomeUnknown: "Non è stato possibile verificare se la modifica è stata applicata allo spazio di lavoro.",
+    previewChanged: "Le carte interessate sono cambiate. Controlla l’anteprima aggiornata e conferma di nuovo.",
+    removePreview: "Il tag verrà rimosso dalle carte interessate ({{cards}}). Le carte saranno conservate. Mazzi con questo tag nelle regole: {{decks}}.",
+    resetComplete: "Progressi di studio azzerati.",
+    saveDeckRules: "Salva le regole del mazzo prima di azzerare i progressi di studio.",
+    syncFailed: "Controlla la connessione e riprova a sincronizzare.",
+    targetMissing: "La carta, il mazzo o il tag selezionato non esiste più.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} in totale",

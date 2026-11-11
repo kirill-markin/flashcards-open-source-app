@@ -20,6 +20,7 @@ import type {
   WorkspacePackageImportConfirmResponse,
   WorkspacePackageImportPreviewResponse,
 } from "../../../../types";
+import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
 import { SettingsShell } from "../../SettingsShared";
 import { WorkspaceImportPresentation } from "./WorkspaceImportPresentation";
 import { WorkspaceTextImportEditor } from "./WorkspaceTextImportEditor";
@@ -36,6 +37,10 @@ type PackageImportPreviewIdentity = Readonly<{
 }>;
 
 type WorkspaceImportStatusOwner = "package" | "text";
+
+type TextImportSyncState =
+  | Readonly<{ workspaceId: string; stage: "syncing" }>
+  | Readonly<{ workspaceId: string; stage: "failed"; message: string }>;
 
 function getWorkspacePackageValidationErrorMessage(
   error: unknown,
@@ -185,6 +190,7 @@ export function WorkspaceImportScreen(): ReactElement {
   const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const packageImportInputRef = useRef<HTMLInputElement | null>(null);
   const [isTextImporting, setIsTextImporting] = useState<boolean>(false);
+  const [textImportSyncState, setTextImportSyncState] = useState<TextImportSyncState | null>(null);
   const [isPackagePreviewing, setIsPackagePreviewing] = useState<boolean>(false);
   const [isPackageImporting, setIsPackageImporting] = useState<boolean>(false);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -201,8 +207,10 @@ export function WorkspaceImportScreen(): ReactElement {
   const [successMessage, setSuccessMessage] = useState<string>("");
   const technicalErrorMessage = t("appError.technicalError.message");
   const isPackageImportBusy = isPackagePreviewing || isPackageImporting;
-  const isAnyImportBusy = isTextImporting || isPackageImportBusy;
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  const currentTextImportSync = textImportSyncState?.workspaceId === activeWorkspaceId ? textImportSyncState : null;
+  const isTextImportSyncing = currentTextImportSync?.stage === "syncing";
+  const isAnyImportBusy = isTextImporting || isTextImportSyncing || isPackageImportBusy;
   const currentInstallationId = cloudSettings?.cloudState === "linked" && cloudSettings.installationId.trim() !== ""
     ? cloudSettings.installationId
     : null;
@@ -283,12 +291,11 @@ export function WorkspaceImportScreen(): ReactElement {
     });
   }
 
-  async function executeWorkspacePackageImport(
+  async function confirmWorkspaceImport(
     workspaceId: string,
     installationId: string,
     file: File,
     importOptions: WorkspaceImportOptions,
-    onConfirmed: () => void,
   ): Promise<WorkspacePackageImportConfirmResponse> {
     await refreshLocalData();
     indexedDbOpenRecoveryState.throwIfFailed();
@@ -306,12 +313,7 @@ export function WorkspaceImportScreen(): ReactElement {
       lastModifiedByReplicaId: replicaId,
       operationIdPrefix: importId,
     };
-    const result = await confirmWorkspacePackageImport(workspaceId, file, options);
-    indexedDbOpenRecoveryState.throwIfFailed();
-    onConfirmed();
-    await refreshLocalData();
-    indexedDbOpenRecoveryState.throwIfFailed();
-    return result;
+    return confirmWorkspacePackageImport(workspaceId, file, options);
   }
 
   function showWorkspaceImportSuccess(result: WorkspacePackageImportConfirmResponse): void {
@@ -431,7 +433,7 @@ export function WorkspaceImportScreen(): ReactElement {
       indexedDbOpenRecoveryState.throwIfFailed();
       const workspaceId = activeWorkspace.workspaceId;
       const installationId = requireCloudInstallationId(cloudSettings);
-      const result = await executeWorkspacePackageImport(
+      const result = await confirmWorkspaceImport(
         workspaceId,
         installationId,
         packageImportFile,
@@ -439,9 +441,11 @@ export function WorkspaceImportScreen(): ReactElement {
           ...importOptions,
           importTag: confirmedPackageImportTag,
         },
-        resetPackageImportPreview,
       );
-
+      indexedDbOpenRecoveryState.throwIfFailed();
+      resetPackageImportPreview();
+      await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
       showWorkspaceImportSuccess(result);
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
@@ -467,6 +471,36 @@ export function WorkspaceImportScreen(): ReactElement {
     }
   }
 
+  async function syncImportedTextCards(workspaceId: string): Promise<void> {
+    const pendingSync: TextImportSyncState = { workspaceId, stage: "syncing" };
+    setTextImportSyncState(pendingSync);
+    try {
+      await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
+      setTextImportSyncState((current) => current === pendingSync ? null : current);
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      handleRefreshLocalDataError({
+        error,
+        context: {
+          feature: "sync",
+          operation: "refresh_local_metadata",
+          userId: session?.userId ?? null,
+          workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: workspaceId,
+        },
+        setErrorMessage: (message) => setTextImportSyncState((current) => current === pendingSync
+          ? { workspaceId, stage: "failed", message }
+          : current),
+        showCapturedTechnicalError,
+        technicalErrorMessage,
+      });
+    }
+  }
+
   async function importTextCards(
     cards: ReadonlyArray<TextImportCard>,
     tags: ReadonlyArray<string>,
@@ -487,10 +521,12 @@ export function WorkspaceImportScreen(): ReactElement {
     setSuccessMessage("");
     resetPackageImportPreview();
 
+    const workspaceId = activeWorkspace.workspaceId;
+    let result: WorkspacePackageImportConfirmResponse;
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
       const file = createTextImportPackageFile(cards, tags);
-      const preview = await previewWorkspacePackageImport(activeWorkspace.workspaceId, file);
+      const preview = await previewWorkspacePackageImport(workspaceId, file);
       indexedDbOpenRecoveryState.throwIfFailed();
       if (preview.cardCount !== cards.length) {
         throw new Error(
@@ -498,16 +534,13 @@ export function WorkspaceImportScreen(): ReactElement {
         );
       }
 
-      const workspaceId = activeWorkspace.workspaceId;
       const installationId = requireCloudInstallationId(cloudSettings);
       const usesAutomaticImportTag = tags.length === 0;
-      const result = await executeWorkspacePackageImport(workspaceId, installationId, file, {
+      result = await confirmWorkspaceImport(workspaceId, installationId, file, {
         addImportTag: usesAutomaticImportTag,
         importTag: usesAutomaticImportTag ? preview.defaultOptions.suggestedImportTag : "",
         removeTags: [],
-      }, () => undefined);
-      showWorkspaceImportSuccess(result);
-      return true;
+      });
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return false;
@@ -530,6 +563,10 @@ export function WorkspaceImportScreen(): ReactElement {
         setIsTextImporting(false);
       }
     }
+
+    showWorkspaceImportSuccess(result);
+    void syncImportedTextCards(workspaceId);
+    return true;
   }
 
   function handlePackageImportInputChange(): void {
@@ -555,6 +592,13 @@ export function WorkspaceImportScreen(): ReactElement {
         <WorkspaceTextImportEditor
           isDisabled={isPackageImportControlDisabled}
           isImporting={isTextImporting}
+          isSyncing={isTextImportSyncing}
+          syncErrorMessage={currentTextImportSync?.stage === "failed" ? currentTextImportSync.message : null}
+          onRetrySync={() => {
+            if (currentTextImportSync?.stage === "failed" && !isPackageImportControlDisabled) {
+              void syncImportedTextCards(currentTextImportSync.workspaceId);
+            }
+          }}
           errorMessage={statusOwner === "text" ? errorMessage : ""}
           successMessage={statusOwner === "text" ? successMessage : ""}
           tagSuggestions={tagSuggestions}

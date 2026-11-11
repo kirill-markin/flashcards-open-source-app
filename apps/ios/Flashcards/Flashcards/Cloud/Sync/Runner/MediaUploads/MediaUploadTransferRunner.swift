@@ -6,13 +6,24 @@ struct MediaUploadTransferRunner {
 
     let database: LocalDatabase
     let cloudSyncService: any CloudSyncServing
+    private let validateContext: @MainActor () throws -> Void
 
     init(database: LocalDatabase, cloudSyncService: any CloudSyncServing) {
+        self.init(database: database, cloudSyncService: cloudSyncService, validateContext: {})
+    }
+
+    init(
+        database: LocalDatabase,
+        cloudSyncService: any CloudSyncServing,
+        validateContext: @escaping @MainActor () throws -> Void
+    ) {
         self.database = database
         self.cloudSyncService = cloudSyncService
+        self.validateContext = validateContext
     }
 
     func processDueUploads(linkedSession: CloudLinkedSession, now: Date) async throws {
+        try self.validateContext()
         guard Self.activeWorkspaceIds.insert(linkedSession.workspaceId).inserted else {
             return
         }
@@ -28,6 +39,7 @@ struct MediaUploadTransferRunner {
                 throw CancellationError()
             }
 
+            try self.validateContext()
             let claimedEntries = try self.database.mediaTransferStore.claimDueTransfers(
                 workspaceId: linkedSession.workspaceId,
                 kind: .upload,
@@ -70,6 +82,7 @@ struct MediaUploadTransferRunner {
                 installationId: installationId,
                 claim: &claim
             )
+            try self.validateContext()
             do {
                 try self.persistSucceededUpload(
                     entry: entry,
@@ -87,6 +100,7 @@ struct MediaUploadTransferRunner {
                 throw error
             }
         } catch {
+            try self.validateContext()
             if let terminalError = error as? MediaUploadCompletionTerminalError {
                 try self.recordCompletionTerminalUpload(
                     entry: entry,
@@ -209,6 +223,7 @@ struct MediaUploadTransferRunner {
                 }
             )
         } catch {
+            try self.validateContext()
             if error is MediaUploadCompletionTerminalError == false,
                isRequestCancellationError(error: error) {
                 throw error
@@ -340,6 +355,7 @@ struct MediaUploadTransferRunner {
     }
 
     private func renewUploadClaim(claim: inout MediaUploadTransferClaim) throws {
+        try self.validateContext()
         let renewedAt = nowIsoTimestamp()
         let renewedEntry = try self.database.mediaTransferStore.renewTransferClaim(
             transferId: claim.transferId,

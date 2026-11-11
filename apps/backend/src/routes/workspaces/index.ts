@@ -62,6 +62,7 @@ import {
 } from "../../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
 import type { AppEnv } from "../../server/app";
+import { createCardMaintenanceRoutes } from "./cardMaintenance";
 import { parseConnectionId, requireHumanManagedConnectionAccess } from "./connectionAccess";
 import { parseCursorQueryParams } from "./cursor";
 import { createWorkspaceRouteScope, getRequestContextUserId } from "./observation";
@@ -108,6 +109,8 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   const createWorkspaceForUserWithObservationScopeFn = options.createWorkspaceForUserWithObservationScopeFn
     ?? createWorkspaceForUserWithObservationScope;
   const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
+
+  app.route("/", createCardMaintenanceRoutes(options.allowedOrigins, loadRequestContextFromRequestFn));
 
   app.get("/workspaces", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);

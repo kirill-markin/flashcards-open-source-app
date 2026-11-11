@@ -44,15 +44,40 @@ extension LocalDatabase {
     }
 
     func updateDeck(workspaceId: String, deckId: String, input: DeckEditorInput) throws -> Deck {
+        try self.updateDeck(workspaceId: workspaceId, deckId: deckId, input: input, observedTags: nil)
+    }
+
+    func updateDeck(
+        workspaceId: String,
+        deckId: String,
+        input: DeckEditorInput,
+        observedTags: [String]?
+    ) throws -> Deck {
         try self.deckStore.validateDeckInput(input: input)
 
         return try self.core.inTransaction {
+            let reconciledInput: DeckEditorInput
+            if let observedTags {
+                let currentDeck = try self.deckStore.loadDeck(workspaceId: workspaceId, deckId: deckId)
+                let tags = reconcileDraftTags(
+                    draftTags: input.filterDefinition.tags,
+                    observedTags: observedTags,
+                    refreshedTags: currentDeck.filterDefinition.tags
+                )
+                guard tags.isEmpty == false else {
+                    throw LocalStoreError.validation(deckEditorEmptyRulesValidationMessage())
+                }
+                reconciledInput = DeckEditorInput(name: input.name, filterDefinition: buildDeckFilterDefinition(tags: tags))
+            } else {
+                reconciledInput = input
+            }
+
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let now = nowIsoTimestamp()
             return try self.persistDeckUpdate(
                 workspaceId: workspaceId,
                 deckId: deckId,
-                input: input,
+                input: reconciledInput,
                 cloudSettings: cloudSettings,
                 now: now
             )

@@ -117,6 +117,19 @@ protocol CloudSyncServing {
         workspaceId: String,
         confirmationText: String
     ) async throws -> CloudWorkspaceResetProgressResult
+    func loadCardMaintenancePreview(
+        session: CloudLinkedSession,
+        scope: CardMaintenanceScope
+    ) async throws -> CardMaintenancePreviewResponse
+    func executeCardMaintenance(
+        session: CloudLinkedSession,
+        preview: CardMaintenancePreview,
+        confirmationText: String
+    ) async throws -> CardMaintenanceExecuteResponse
+    func reconcileCardMaintenance(
+        session: CloudLinkedSession,
+        previewFingerprint: String
+    ) async throws -> CardMaintenanceReconcileResponse
     func selectWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
@@ -206,6 +219,28 @@ protocol CloudSyncServing {
 
 @MainActor
 extension CloudSyncServing {
+    func loadCardMaintenancePreview(
+        session: CloudLinkedSession,
+        scope: CardMaintenanceScope
+    ) async throws -> CardMaintenancePreviewResponse {
+        throw LocalStoreError.validation("Card maintenance preview is unavailable")
+    }
+
+    func executeCardMaintenance(
+        session: CloudLinkedSession,
+        preview: CardMaintenancePreview,
+        confirmationText: String
+    ) async throws -> CardMaintenanceExecuteResponse {
+        throw LocalStoreError.validation("Card maintenance execution is unavailable")
+    }
+
+    func reconcileCardMaintenance(
+        session: CloudLinkedSession,
+        previewFingerprint: String
+    ) async throws -> CardMaintenanceReconcileResponse {
+        throw LocalStoreError.validation("Card maintenance reconciliation is unavailable")
+    }
+
     func fetchCloudAccountContext(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountContext {
         let account = try await self.fetchCloudAccount(
             apiBaseUrl: apiBaseUrl,

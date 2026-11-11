@@ -118,11 +118,11 @@ describe("workspace package import API contracts", () => {
     )).toEqual(previewFixture);
   });
 
-  it("parses ZIP import confirm responses with cards and media assets", () => {
-    expect(parseWorkspacePackageImportConfirmResponse(
-      confirmFixture,
-      "POST /workspaces/workspace-1/packages/import",
-    )).toEqual(confirmFixture);
+  it("parses ZIP import cards and media without carrying over a maintenance revision", () => {
+    expect(parseWorkspacePackageImportConfirmResponse({
+      ...confirmFixture,
+      cards: [{ ...cardFixture, metadata: { ...cardFixture.metadata, maintenanceRevision: 7 } }],
+    }, "POST /workspaces/workspace-1/packages/import")).toEqual(confirmFixture);
   });
 
   it("rejects malformed required preview count fields", () => {

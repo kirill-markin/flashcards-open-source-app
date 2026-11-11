@@ -58,6 +58,7 @@ import {
   libraryImportRoute,
   libraryNibomoExportRoute,
   libraryRoute,
+  libraryTagDetailRoute,
   libraryTagsRoute,
   normalizeRoutePath,
   progressRoute,
@@ -245,6 +246,9 @@ const TestLocalSyncDiagnosticsScreen = lazy(async () => import("./screens/settin
 })));
 const TestSettingsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
   default: module.TestSettingsScreen,
+})));
+const TagDetailScreen = lazy(async () => import("./screens/settings/workspace/TagDetailScreen").then((module) => ({
+  default: module.TagDetailScreen,
 })));
 const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScreen").then((module) => ({
   default: module.TagsScreen,
@@ -1100,6 +1104,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
           <Route path={`${workspaceRoutePattern}${libraryTagsRoute}`} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
+          <Route path={`${workspaceRoutePattern}${libraryTagDetailRoute}`} element={renderDeferredRoute(<TagDetailScreen />, "loading.tags")} />
           {renderLegacyLibraryRedirects(legacyCardsRoute, cardsRoute, ["", "/new", "/:cardId"])}
           {renderLegacyLibraryRedirects(legacySettingsDecksRoute, libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
           {renderLegacyLibraryRedirects(legacySettingsTagsRoute, libraryTagsRoute, [""])}

@@ -841,6 +841,19 @@
 "settings.workspace.decks.section.name" = "名称";
 "settings.workspace.decks.deckName" = "牌组名称";
 
+"settings.workspace.cardMaintenance.applied" = "更改已保存到服务器。同步此设备即可在这里看到更改。";
+"settings.workspace.cardMaintenance.previewChanged" = "范围已变更。请查看更新后的预览并重新确认。";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "卡组规则已更改。请关闭此页面并查看规则。";
+"settings.workspace.cardMaintenance.refreshRequired" = "请先同步此工作区，再编辑或学习。";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "使用此标签的牌组规则";
+"settings.workspace.cardMaintenance.cardsRemain" = "你的卡片会保留。";
+"settings.workspace.cardMaintenance.overlap" = "这些卡片也可能出现在其他牌组或其他标签下。";
+"settings.workspace.cardMaintenance.noCards" = "没有需要更改的卡片。";
+"settings.workspace.cardMaintenance.signIn" = "请登录并关联此工作区以继续。";
+"settings.workspace.cardMaintenance.workspaceChanged" = "工作区已变更。请关闭此页面并重新打开此操作。";
+"settings.workspace.cardMaintenance.targetMissing" = "此项目在工作区中已不可用。";
+"settings.workspace.cardMaintenance.removeTag" = "从卡片移除标签";
+"settings.workspace.cardMaintenance.saveDeckRules" = "重置学习进度前，请先保存牌组规则。";
 "settings.workspace.tags.description" = "标签可在整个工作区中对卡片进行分组。当一张卡片有多个标签时，各标签的计数可能会重叠。";
 "settings.workspace.tags.loading" = "正在加载标签...";
 "settings.workspace.tags.empty" = "尚未使用任何标签。";

@@ -333,11 +333,11 @@
     <string name="settings_account_status_sync_status_label">Sync status</string>
     <string name="settings_account_status_last_successful_sync_label">Last successful sync</string>
     <string name="settings_account_status_sync_blocked_title">Sync is blocked on this device</string>
-    <string name="settings_account_status_sync_blocked_body">Use Log out to clear local cloud identity on this device before reconnecting.</string>
+    <string name="settings_account_status_sync_blocked_body">To reconnect, log out and sign in again. Logging out removes local data from this device, including changes that haven’t synced.</string>
     <string name="settings_account_status_sign_in_button">Sign in or sign up</string>
     <string name="settings_account_status_sync_now_button">Sync now</string>
     <string name="settings_account_status_logout_dialog_title">Log out?</string>
-    <string name="settings_account_status_logout_dialog_body">This clears cloud identity from the current device and keeps local card data intact.</string>
+    <string name="settings_account_status_logout_dialog_body">Logging out removes local data from this device. Synced data will return when you sign in again. Unsynced changes will be lost.</string>
     <string name="settings_account_status_logout_failed">Logout failed.</string>
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>
@@ -518,6 +518,7 @@
     <string name="settings_deck_editor_delete_confirmation_body">Your cards will remain. This removes only the saved deck filter.</string>
     <string name="settings_deck_editor_delete_failed">Could not delete the deck.</string>
     <string name="settings_deck_editor_name_required">Deck name is required.</string>
+    <string name="settings_deck_editor_filter_conflict">The deck’s tags changed during sync. Choose at least one current tag and save again.</string>
     <string name="settings_deck_editor_filter_required">Choose at least one tag, or use All cards in Review.</string>
     <string name="settings_deck_editor_save_failed">Could not save the deck.</string>
     <string name="settings_deck_filter_tags_any">tags any of %1$s</string>
@@ -952,4 +953,9 @@
     <string name="settings_first_review_onboarding_save_failed">Your review was saved, but the guide setting could not be saved on this device.</string>
     <string name="settings_first_review_onboarding_local_save_failed">The guide setting could not be saved on this device. Please try again.</string>
     <string name="settings_first_review_onboarding_update_failed">Could not update the guide setting. An offline change stays saved on this device and will sync when connected.</string>
+    <string name="settings_deck_editor_save_rules_before_reset">Save the filter changes before resetting study progress.</string>
+    <string name="settings_tag_detail_total">Total</string>
+    <string name="settings_tag_detail_open_review">Open Review</string>
+    <string name="settings_tag_detail_remove_tag">Remove tag from cards</string>
+    <string name="settings_tag_detail_unavailable">This tag is no longer available in the current workspace.</string>
 </resources>

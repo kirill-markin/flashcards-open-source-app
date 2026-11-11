@@ -1453,6 +1453,19 @@ const daCatalog: TranslationCatalog = {
       new: "Ny bunke",
     },
   },
+  cardMaintenance: {
+    removeTag: "Fjern tag fra kort",
+    linkedWorkspaceRequired: "Denne handling kræver et tilknyttet arbejdsområde i skyen.",
+    noChanges: "Ingen kort har brug for denne ændring.",
+    overlap: "Dette nulstiller også fremskridtet i andre kortsæt og tags, som omfatter disse kort.",
+    outcomeUnknown: "Vi kunne ikke bekræfte, om ændringen i arbejdsområdet blev gennemført.",
+    previewChanged: "De berørte kort har ændret sig. Gennemgå den opdaterede forhåndsvisning, og bekræft igen.",
+    removePreview: "Tagget fjernes fra {{cards}}. Kortene beholdes. Kortsæt med dette tag i deres regler: {{decks}}.",
+    resetComplete: "Studiefremskridtet er nulstillet.",
+    saveDeckRules: "Gem kortsættets regler, før du nulstiller studiefremskridtet.",
+    syncFailed: "Tjek din forbindelse, og prøv at synkronisere igen.",
+    targetMissing: "Det valgte kort, kortsæt eller tag findes ikke længere.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} i alt",

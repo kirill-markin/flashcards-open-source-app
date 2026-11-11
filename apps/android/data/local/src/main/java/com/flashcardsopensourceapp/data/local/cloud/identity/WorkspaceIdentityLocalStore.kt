@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangePubl
 import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEvent
 import com.flashcardsopensourceapp.data.local.cloud.sync.emptySyncStateEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.toRemoteValue
+import com.flashcardsopensourceapp.data.local.model.cards.cardMaintenanceRevisionKey
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.media.rewriteManagedMediaAssetReferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
@@ -27,8 +28,14 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loa
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import java.util.UUID
+import org.json.JSONObject
 
 private const val cloudMigrationLogTag: String = "FlashcardsCloudMigration"
+
+private fun metadataWithoutMaintenanceRevision(metadataJson: String): String {
+    val metadata = JSONObject(metadataJson)
+    return if (metadata.remove(cardMaintenanceRevisionKey) == null) metadataJson else metadata.toString()
+}
 
 private data class WorkspaceForkSnapshot(
     val cards: List<CardEntity>,
@@ -355,6 +362,11 @@ internal class WorkspaceIdentityLocalStore(
                 card.copy(
                     cardId = rewrittenCardId,
                     workspaceId = destinationWorkspace.workspaceId,
+                    metadataJson = if (rewrittenCardId != card.cardId) {
+                        metadataWithoutMaintenanceRevision(metadataJson = card.metadataJson)
+                    } else {
+                        card.metadataJson
+                    },
                     frontText = rewriteManagedMediaAssetReferences(
                         markdown = card.frontText,
                         mediaAssetIdsBySourceId = forkMappings.mediaAssetIdsBySourceId
@@ -561,7 +573,12 @@ internal class WorkspaceIdentityLocalStore(
         }
 
         val newCardId = generateFreshCardIdInTransaction()
-        database.cardDao().insertCard(card = card.copy(cardId = newCardId))
+        database.cardDao().insertCard(
+            card = card.copy(
+                cardId = newCardId,
+                metadataJson = metadataWithoutMaintenanceRevision(metadataJson = card.metadataJson)
+            )
+        )
         database.tagDao().reassignCardTagsToCard(oldCardId = cardId, newCardId = newCardId)
         database.reviewLogDao().reassignReviewLogsToCard(
             workspaceId = workspaceId,

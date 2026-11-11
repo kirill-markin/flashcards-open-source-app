@@ -1,4 +1,4 @@
-import type { CardRow } from "../../cards/types";
+import type { CardMaintenanceRow, CardRow } from "../../cards/types";
 import { CARD_COLUMNS, mapCard } from "../../cards/shared";
 import type { Card } from "../../cards";
 import {
@@ -125,17 +125,23 @@ async function loadCardsByIdsInExecutor(
     return new Map();
   }
 
-  const result = await executor.query<CardRow>(
+  const result = await executor.query<CardRow & Pick<CardMaintenanceRow, "maintenance_revision">>(
     [
       "SELECT",
-      CARD_COLUMNS,
+      CARD_COLUMNS, ", maintenance_revision",
       "FROM content.cards",
       "WHERE workspace_id = $1 AND card_id = ANY($2::uuid[])",
     ].join(" "),
     [workspaceId, [...cardIds]],
   );
 
-  return new Map(result.rows.map((row) => [row.card_id, mapCard(row)]));
+  return new Map(result.rows.map((row) => {
+    const card = mapCard(row);
+    const revision = Number(row.maintenance_revision);
+    return [row.card_id, revision > 0
+      ? { ...card, metadata: { ...card.metadata, maintenanceRevision: revision } }
+      : card];
+  }));
 }
 
 async function loadDecksByIdsInExecutor(

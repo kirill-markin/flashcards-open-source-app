@@ -648,9 +648,10 @@ class LocalReviewRepository(
             )
         }
         val tagsSummary: WorkspaceTagsSummary = if (currentWorkspaceId == null) {
-            makeWorkspaceTagsSummary(cards = cardSummaries)
+            makeWorkspaceTagsSummary(cards = cardSummaries, workspaceId = null)
         } else {
             makeWorkspaceTagsSummaryFromStoredTagNames(
+                workspaceId = currentWorkspaceId,
                 tagNames = database.tagDao().loadReviewTagNames(workspaceId = currentWorkspaceId),
                 totalCards = cardSummaries.size
             )

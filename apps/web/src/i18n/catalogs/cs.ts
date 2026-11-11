@@ -1463,6 +1463,19 @@ const csCatalog: TranslationCatalog = {
       new: "Nový balíček",
     },
   },
+  cardMaintenance: {
+    removeTag: "Odebrat štítek z karet",
+    linkedWorkspaceRequired: "Tato akce vyžaduje propojený cloudový pracovní prostor.",
+    noChanges: "Tuto změnu nepotřebuje žádná karta.",
+    overlap: "Tím se také vynuluje pokrok v dalších balíčcích a u štítků, které zahrnují tyto karty.",
+    outcomeUnknown: "Nepodařilo se ověřit, zda se změna v pracovním prostoru provedla.",
+    previewChanged: "Dotčené karty se změnily. Zkontrolujte aktualizovaný náhled a potvrďte jej znovu.",
+    removePreview: "Štítek bude odebrán z tohoto počtu karet: {{cards}}. Karty zůstanou zachovány. Balíčky s tímto štítkem v pravidlech: {{decks}}.",
+    resetComplete: "Pokrok ve studiu byl vynulován.",
+    saveDeckRules: "Před vynulováním pokroku uložte pravidla balíčku.",
+    syncFailed: "Zkontrolujte připojení a zkuste synchronizaci znovu.",
+    targetMissing: "Vybraná karta, balíček nebo štítek už neexistuje.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} celkem",

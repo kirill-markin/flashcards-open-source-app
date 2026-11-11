@@ -1453,6 +1453,19 @@ const fiCatalog: TranslationCatalog = {
       new: "Uusi pakka",
     },
   },
+  cardMaintenance: {
+    removeTag: "Poista tunniste korteista",
+    linkedWorkspaceRequired: "Tämä toiminto edellyttää linkitettyä pilvityötilaa.",
+    noChanges: "Yksikään kortti ei tarvitse tätä muutosta.",
+    overlap: "Tämä nollaa edistymisen myös muissa pakoissa ja tunnisteissa, joihin nämä kortit kuuluvat.",
+    outcomeUnknown: "Emme voineet varmistaa, tuliko työtilan muutos voimaan.",
+    previewChanged: "Toiminnon kohteena olevat kortit ovat vaihtuneet. Tarkista päivitetty esikatselu ja vahvista uudelleen.",
+    removePreview: "Tunniste poistetaan korteista ({{cards}}). Kortit säilyvät. Pakat, joiden säännöissä on tämä tunniste: {{decks}}.",
+    resetComplete: "Opiskelun edistyminen on nollattu.",
+    saveDeckRules: "Tallenna pakan säännöt ennen opiskelun edistymisen nollaamista.",
+    syncFailed: "Tarkista yhteys ja yritä synkronointia uudelleen.",
+    targetMissing: "Valittua korttia, pakkaa tai tunnistetta ei enää ole.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} yhteensä",

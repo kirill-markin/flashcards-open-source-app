@@ -26,6 +26,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
@@ -164,6 +168,7 @@ class LocalCloudAccountRepository(
             syncLocalStore = syncLocalStore,
             operationCoordinator = operationCoordinator,
             sessionProvider = sessionProvider,
+            resetCoordinator = resetCoordinator,
             transitionCoordinator = transitionCoordinator,
             appVersion = appVersion
         )
@@ -606,6 +611,26 @@ class LocalCloudAccountRepository(
         confirmationText: String
     ): CloudWorkspaceResetProgressResult {
         return workspaceOperationsCoordinator.resetCurrentWorkspaceProgress(confirmationText = confirmationText)
+    }
+
+    override suspend fun previewCardMaintenance(target: CloudCardMaintenanceTarget): CloudCardMaintenancePreview {
+        return workspaceOperationsCoordinator.previewCardMaintenance(target = target)
+    }
+
+    override suspend fun executeCardMaintenance(confirmation: CloudCardMaintenanceConfirmation): Int {
+        return workspaceOperationsCoordinator.executeCardMaintenance(confirmation = confirmation)
+    }
+
+    override fun loadCardMaintenanceAttempt(workspaceId: String, attemptId: String): CloudCardMaintenanceAttempt? {
+        return workspaceOperationsCoordinator.loadCardMaintenanceAttempt(workspaceId = workspaceId, attemptId = attemptId)
+    }
+
+    override fun observeCardMaintenanceAttempt(workspaceId: String, attemptId: String): Flow<CloudCardMaintenanceAttempt?> {
+        return workspaceOperationsCoordinator.observeCardMaintenanceAttempt(workspaceId = workspaceId, attemptId = attemptId)
+    }
+
+    override suspend fun refreshCardMaintenanceWorkspace(workspaceId: String, attemptId: String) {
+        workspaceOperationsCoordinator.refreshCardMaintenanceWorkspace(workspaceId = workspaceId, attemptId = attemptId)
     }
 
     override suspend fun previewCurrentWorkspacePackageExport(

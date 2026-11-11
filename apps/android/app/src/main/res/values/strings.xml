@@ -281,4 +281,52 @@
         <item quantity="one">%1$d AI chat message per month</item>
         <item quantity="other">%1$d AI chat messages per month</item>
     </plurals>
+
+    <string name="card_maintenance_back">Back</string>
+    <string name="card_maintenance_reset_title">Reset study progress</string>
+    <string name="card_maintenance_remove_title">Remove tag from cards</string>
+    <string name="card_maintenance_loading">Checking the affected cards…</string>
+    <string name="card_maintenance_applying">Applying changes and syncing…</string>
+    <string name="card_maintenance_sign_in">Sign in to a linked cloud workspace in Settings, then reopen this action.</string>
+    <string name="card_maintenance_workspace_changed">The active workspace changed. Return to the original workspace and reopen this action.</string>
+    <string name="card_maintenance_target_unavailable">The item is no longer available. Go back to refresh the list.</string>
+    <string name="card_maintenance_access_denied">Your account cannot change this workspace. Check your workspace access in Settings.</string>
+    <string name="card_maintenance_preview_failed">Couldn’t load the preview. Check your connection and try again.</string>
+    <string name="card_maintenance_execute_pending">The server may still be applying this change. Wait up to two minutes from when you opened the preview, then retry sync.</string>
+    <string name="card_maintenance_execute_unverified">Couldn’t verify the result. Load a fresh preview to check what still needs changing.</string>
+    <string name="card_maintenance_preview_changed">The affected cards or deck rules changed. Review this new preview before confirming.</string>
+    <string name="card_maintenance_confirmation_invalid">The confirmation phrase changed. Type the phrase shown in the new preview.</string>
+    <string name="card_maintenance_refresh_failed">Your changes were saved. Retry syncing to update this device.</string>
+    <string name="card_maintenance_retry_preview">Load preview</string>
+    <string name="card_maintenance_retry_sync">Retry sync</string>
+    <string name="card_maintenance_entire_workspace">This deck includes all cards in the workspace.</string>
+    <string name="card_maintenance_empty_remove">No cards have this tag.</string>
+    <string name="card_maintenance_empty_reset">No cards in this scope have study progress to reset.</string>
+    <string name="card_maintenance_keep_cards">All cards will be kept.</string>
+    <string name="card_maintenance_no_decks">No deck rules use this tag.</string>
+    <string name="card_maintenance_overlapping_scope">This also resets progress for these cards in any other decks or tags they belong to.</string>
+    <string name="card_maintenance_type_phrase">Type this phrase exactly to confirm.</string>
+    <string name="card_maintenance_confirmation_label">Confirmation phrase</string>
+    <string name="card_maintenance_confirm_reset">Reset progress</string>
+    <string name="card_maintenance_confirm_remove">Remove tag</string>
+    <plurals name="card_maintenance_reset_preview">
+        <item quantity="one">Reset study progress for %1$d card.</item>
+        <item quantity="other">Reset study progress for %1$d cards.</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_preview">
+        <item quantity="one">Remove this tag from %1$d card.</item>
+        <item quantity="other">Remove this tag from %1$d cards.</item>
+    </plurals>
+    <plurals name="card_maintenance_keep_deck_rules">
+        <item quantity="one">%1$d deck uses this tag. Its rules will stay in place.</item>
+        <item quantity="other">%1$d decks use this tag. Their rules will stay in place.</item>
+    </plurals>
+    <plurals name="card_maintenance_reset_success">
+        <item quantity="one">Reset progress for %1$d card.</item>
+        <item quantity="other">Reset progress for %1$d cards.</item>
+    </plurals>
+    <plurals name="card_maintenance_remove_success">
+        <item quantity="one">Removed the tag from %1$d card.</item>
+        <item quantity="other">Removed the tag from %1$d cards.</item>
+    </plurals>
 </resources>

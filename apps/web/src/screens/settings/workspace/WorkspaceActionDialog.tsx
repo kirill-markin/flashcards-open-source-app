@@ -14,9 +14,10 @@ type WorkspaceActionDialogProps = Readonly<{
   titleId: string;
   title: string;
   descriptionId: string;
-  description: string;
+  description: string | null;
   testId: string;
   initialFocusRef: RefObject<HTMLElement | null>;
+  dismissalFocusRef?: RefObject<HTMLElement | null>;
   operationReturnFocusRef: RefObject<HTMLElement | null>;
   isOperationSubmitting: boolean;
   onDismiss: () => void;
@@ -91,6 +92,7 @@ export function WorkspaceActionDialog(props: WorkspaceActionDialogProps): ReactE
     description,
     testId,
     initialFocusRef,
+    dismissalFocusRef,
     operationReturnFocusRef,
     isOperationSubmitting,
     onDismiss,
@@ -175,13 +177,13 @@ export function WorkspaceActionDialog(props: WorkspaceActionDialogProps): ReactE
     window.addEventListener("keydown", handleKeyDown);
     return (): void => {
       window.removeEventListener("keydown", handleKeyDown);
-      const previousFocus = previousFocusRef.current;
+      const previousFocus = dismissalFocusRef?.current ?? previousFocusRef.current;
       if (previousFocus !== null && previousFocus.isConnected) {
         previousFocus.focus();
       }
       previousFocusRef.current = null;
     };
-  }, [initialFocusRef, isOpen]);
+  }, [dismissalFocusRef, initialFocusRef, isOpen]);
 
   if (isOpen === false || typeof document === "undefined") {
     return null;
@@ -203,7 +205,7 @@ export function WorkspaceActionDialog(props: WorkspaceActionDialogProps): ReactE
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={descriptionId}
+        aria-describedby={description === null ? undefined : descriptionId}
         aria-busy={isOperationSubmitting}
         tabIndex={-1}
         data-testid={testId}
@@ -211,7 +213,7 @@ export function WorkspaceActionDialog(props: WorkspaceActionDialogProps): ReactE
       >
         <div className="cell-stack">
           <h2 id={titleId} className="panel-subtitle">{title}</h2>
-          <p id={descriptionId} className="subtitle">{description}</p>
+          {description === null ? null : <p id={descriptionId} className="subtitle">{description}</p>}
         </div>
         {children}
       </section>

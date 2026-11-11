@@ -1,3 +1,4 @@
+import { rebaseTagDraft } from "../../../appData/domain/cardTags";
 import { decodeString } from "micromark-util-decode-string";
 import {
   parseManagedImageMarkdownReferences,
@@ -778,14 +779,6 @@ function reconcileTextField(
   };
 }
 
-function areStringArraysEqual(
-  left: ReadonlyArray<string>,
-  right: ReadonlyArray<string>,
-): boolean {
-  return left.length === right.length
-    && left.every((value, index) => value === right[index]);
-}
-
 export function reconcileGeneratedMediaLifecycleChanges(
   previousCard: Card,
   nextCard: Card,
@@ -809,9 +802,7 @@ export function reconcileGeneratedMediaLifecycleChanges(
     ...currentFormState,
     frontText: frontApplication.text,
     backText: backApplication.text,
-    tags: areStringArraysEqual(currentFormState.tags, previousCard.tags)
-      ? nextCard.tags
-      : currentFormState.tags,
+    tags: rebaseTagDraft(previousCard.tags, nextCard.tags, currentFormState.tags),
   };
   const candidateReferences = mergeConflictReferences(
     frontApplication.candidateReferences,
