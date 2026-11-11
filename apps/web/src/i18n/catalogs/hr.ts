@@ -793,9 +793,6 @@ const hrCatalog: TranslationCatalog = {
       title: "Katalog špilova",
       description: "Besplatni gotovi špilovi za učenje.",
     },
-    import: {
-      description: "Dodajte kartice iz datoteke.",
-    },
     export: {
       description: "Preuzmite sve svoje kartice kao datoteku.",
     },
@@ -906,7 +903,17 @@ const hrCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Uvoz",
-    subtitle: "Dodajte kartice lijepljenjem teksta ili odabirom Nibomo paketa.",
+    nibomoFormat: "Nibomo format",
+    anki: {
+      format: "Anki format",
+      description: "AI razgovor uvozi kartice iz odabranih datoteka izvezenih iz Ankija.",
+      chooseFiles: "Odaberite .apkg datoteke",
+      start: "Pokrenite uvoz",
+      invalidFile: "„{{file}}” nije upotrebljiva datoteka izvezena iz Ankija. Odaberite .apkg datoteku koja nije prazna.",
+      fileTooLarge: "„{{file}}” premašuje {{limit}} MiB. Odaberite manju datoteku iz Ankija.",
+      request: "Uvezi kartice iz Ankija u ovaj radni prostor.",
+      chatChanged: "Aktivni se razgovor promijenio. Vratite se u biblioteku i ponovno pokrenite uvoz iz Ankija.",
+    },
     workspaceUnavailable: "Radni prostor nije dostupan",
     textTitle: "Zalijepi tekst",
     textDescription: "Kopirajte pojmove i definicije iz Quizleta, proračunske tablice ili dokumenta. Pregledajte svaku karticu prije uvoza.",

@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "S’han importat %d targetes amb l’etiqueta %@.";
 "settings.workspace.import.success" = "S'han importat %d targetes.";
-"settings.workspace.import.section.package" = "Paquet";
+"settings.workspace.import.format.nibomo" = "Format de Nibomo";
+"settings.workspace.import.format.anki" = "Format d’Anki";
+"settings.workspace.import.anki.choose" = "Tria fitxers .apkg";
+"settings.workspace.import.anki.remove" = "Treu el fitxer";
+"settings.workspace.import.anki.start" = "Inicia la importació";
+"settings.workspace.import.anki.waiting" = "Esperant per iniciar la importació d’Anki…";
+"settings.workspace.import.anki.request" = "Importa tots els malls d’Anki adjunts en aquest espai de treball.";
+"ai.composer.ankiImport.unconfirmed" = "No s’ha pogut confirmar la importació d’Anki. Revisa aquest xat i la biblioteca abans de tornar a importar.";
+"settings.workspace.import.anki.workspaceChanged" = "L’espai de treball o el compte ha canviat. Torna a la biblioteca i inicia la importació de nou.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "El xat amb IA no permet adjuntar fitxers ara mateix. Torna a provar la importació quan es puguin adjuntar.";
 "settings.workspace.import.choosePackage" = "Trieu el paquet ZIP";
 "settings.workspace.import.previewing" = "S'està previsualitzant...";
 "settings.workspace.import.importing" = "S'està important...";

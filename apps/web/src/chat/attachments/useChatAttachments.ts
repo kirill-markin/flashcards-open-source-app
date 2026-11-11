@@ -67,7 +67,7 @@ type UseChatAttachmentsParams = Readonly<{
   onTechnicalError: (error: unknown) => void;
   pastedFileIconOnlyMessage: string;
   pendingAttachmentsRef: MutableRefObject<ReadonlyArray<PendingAttachment>>;
-  setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => void;
+  setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => boolean;
 }>;
 
 export type ChatAttachmentControls = Readonly<{
@@ -204,8 +204,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return { kind: "failed", reason: "too_large" };
     }
 
-    setPendingAttachmentsState(candidateAttachments);
-    return { kind: "attached" };
+    return setPendingAttachmentsState(candidateAttachments) ? { kind: "attached" } : { kind: "abandoned" };
   }
 
   async function ingestFiles(

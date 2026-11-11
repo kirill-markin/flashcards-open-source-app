@@ -69,7 +69,8 @@ internal fun freshSessionDraftToPreserveOnBootstrapFailure(
     }
     return AiChatDraftState(
         draftMessage = preBootstrapState.draftMessage,
-        pendingAttachments = preBootstrapState.pendingAttachments
+        pendingAttachments = preBootstrapState.pendingAttachments,
+        ankiImportRequest = preBootstrapState.ankiImportRequest
     )
 }
 

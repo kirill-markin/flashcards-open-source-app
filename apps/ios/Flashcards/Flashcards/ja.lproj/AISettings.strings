@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%d 枚のカードをタグ %@ 付きでインポートしました。";
 "settings.workspace.import.success" = "%d 枚のカードをインポートしました。";
-"settings.workspace.import.section.package" = "パッケージ";
+"settings.workspace.import.format.nibomo" = "Nibomo形式";
+"settings.workspace.import.format.anki" = "Anki形式";
+"settings.workspace.import.anki.choose" = ".apkgファイルを選択";
+"settings.workspace.import.anki.remove" = "ファイルを削除";
+"settings.workspace.import.anki.start" = "インポートを開始";
+"settings.workspace.import.anki.waiting" = "Ankiのインポートを開始するまでお待ちください…";
+"settings.workspace.import.anki.request" = "添付したAnkiデッキをすべてこのワークスペースにインポートしてください。";
+"ai.composer.ankiImport.unconfirmed" = "Ankiからのインポートを確認できませんでした。再度インポートする前に、このチャットとライブラリを確認してください。";
+"settings.workspace.import.anki.workspaceChanged" = "ワークスペースまたはアカウントが変わりました。ライブラリに戻り、インポートをやり直してください。";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AIチャットでは現在ファイルを添付できません。ファイルを添付できるようになってから、再度インポートしてください。";
 "settings.workspace.import.choosePackage" = "ZIP パッケージを選択";
 "settings.workspace.import.previewing" = "プレビュー中...";
 "settings.workspace.import.importing" = "インポート中...";

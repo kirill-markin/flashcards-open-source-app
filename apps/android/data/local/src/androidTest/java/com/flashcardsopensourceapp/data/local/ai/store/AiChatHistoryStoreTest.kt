@@ -210,7 +210,7 @@ class AiChatHistoryStoreTest {
             requiresRemoteSessionProvisioning = true
         )
 
-        store.saveState(workspaceId = "workspace-1", state = state)
+        store.saveState(workspaceId = "workspace-1", state = state, ankiImportRequest = null)
 
         val loadedState = store.loadState(workspaceId = "workspace-1")
         assertEquals(state, loadedState)
@@ -227,7 +227,7 @@ class AiChatHistoryStoreTest {
             requiresRemoteSessionProvisioning = false
         )
 
-        store.saveState(workspaceId = "workspace-1", state = state)
+        store.saveState(workspaceId = "workspace-1", state = state, ankiImportRequest = null)
 
         val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
         val savedState = JSONObject(requireNotNull(preferences.getString(historyKey(workspaceId = "workspace-1"), null)))

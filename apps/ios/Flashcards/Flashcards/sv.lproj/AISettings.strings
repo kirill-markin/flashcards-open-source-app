@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Importerade kort: %d med taggen %@.";
 "settings.workspace.import.success" = "Importerade kort: %d.";
-"settings.workspace.import.section.package" = "Paket";
+"settings.workspace.import.format.nibomo" = "Nibomo-format";
+"settings.workspace.import.format.anki" = "Anki-format";
+"settings.workspace.import.anki.choose" = "Välj .apkg-filer";
+"settings.workspace.import.anki.remove" = "Ta bort fil";
+"settings.workspace.import.anki.start" = "Starta import";
+"settings.workspace.import.anki.waiting" = "Väntar på att importen från Anki ska starta…";
+"settings.workspace.import.anki.request" = "Importera alla bifogade Anki-kortlekar till den här arbetsytan.";
+"ai.composer.ankiImport.unconfirmed" = "Det gick inte att bekräfta importen från Anki. Kontrollera den här chatten och ditt bibliotek innan du startar en ny import.";
+"settings.workspace.import.anki.workspaceChanged" = "Arbetsytan eller kontot har ändrats. Gå tillbaka till biblioteket och starta importen på nytt.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Det går inte att bifoga filer i AI-chatten. Försök importera igen när det går att bifoga filer.";
 "settings.workspace.import.choosePackage" = "Välj ZIP-paket";
 "settings.workspace.import.previewing" = "Förhandsvisar...";
 "settings.workspace.import.importing" = "Importerar...";

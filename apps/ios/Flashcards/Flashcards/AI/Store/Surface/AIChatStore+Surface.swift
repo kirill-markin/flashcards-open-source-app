@@ -65,15 +65,13 @@ extension AIChatStore {
         )
         if self.chatSessionId.isEmpty && self.messages.isEmpty && draft.isEmpty && self.activeRunId == nil {
             self.startFreshLocalDraftSession(
-                inputText: "",
-                pendingAttachments: [attachment]
+                draft: AIChatComposerDraft(inputText: "", pendingAttachments: [attachment])
             )
             return true
         }
         if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {
             self.startFreshLocalDraftSession(
-                inputText: "",
-                pendingAttachments: [attachment]
+                draft: AIChatComposerDraft(inputText: "", pendingAttachments: [attachment])
             )
             return true
         }
@@ -85,8 +83,7 @@ extension AIChatStore {
             currentSessionId: self.chatSessionId
         ) == false {
             self.startFreshLocalDraftSession(
-                inputText: "",
-                pendingAttachments: [attachment]
+                draft: AIChatComposerDraft(inputText: "", pendingAttachments: [attachment])
             )
             return true
         }
@@ -98,16 +95,12 @@ extension AIChatStore {
         return true
     }
 
-    func startFreshLocalDraftSession(
-        inputText: String,
-        pendingAttachments: [AIChatAttachment]
-    ) {
+    func startFreshLocalDraftSession(draft: AIChatComposerDraft) {
         self.bootstrapPhase = .ready
         self.invalidatePendingNewSessionRequest()
         self.resetConversationForNewSession(
             sessionId: makeAIChatSessionId(),
-            inputText: inputText,
-            pendingAttachments: pendingAttachments
+            draft: draft
         )
         self.persistStateSynchronously(state: self.currentPersistedState())
     }
@@ -116,11 +109,16 @@ extension AIChatStore {
         inputText: String,
         pendingAttachments: [AIChatAttachment]
     ) {
+        self.startFreshLocalSession(
+            draft: AIChatComposerDraft(inputText: inputText, pendingAttachments: pendingAttachments)
+        )
+    }
+
+    func startFreshLocalSession(draft: AIChatComposerDraft) {
         self.bootstrapPhase = .ready
         self.startNewSession(
             sessionId: makeAIChatSessionId(),
-            inputText: inputText,
-            pendingAttachments: pendingAttachments
+            draft: draft
         )
         self.persistStateSynchronously(state: self.currentPersistedState())
     }
@@ -357,11 +355,7 @@ extension AIChatStore {
         let restoredDraft = shouldSuppressDraftRestore
             ? AIChatComposerDraft(inputText: "", pendingAttachments: [])
             : persistedDraft
-        self.applyComposerDraft(
-            inputText: restoredDraft.inputText,
-            pendingAttachments: restoredDraft.pendingAttachments,
-            operation: .restore
-        )
+        self.applyComposerDraft(restoredDraft, operation: .restore)
         self.applyComposerSuggestions(persistedState.composerSuggestions)
         self.suppressDraftRestore = false
         if shouldSuppressDraftRestore {
@@ -419,7 +413,7 @@ extension AIChatStore {
     }
 
     func shouldAutoStartFreshLocalSession(persistedState: AIChatPersistedState) -> Bool {
-        guard self.canAutoStartFreshLocalSession() else {
+        guard self.canAutoStartFreshLocalSession(), self.currentComposerDraft().origin != .ankiImport else {
             return false
         }
 
@@ -577,6 +571,13 @@ extension AIChatStore {
         inputText: String,
         pendingAttachments: [AIChatAttachment]
     ) {
+        self.resetConversationForNewSession(
+            sessionId: sessionId,
+            draft: AIChatComposerDraft(inputText: inputText, pendingAttachments: pendingAttachments)
+        )
+    }
+
+    private func resetConversationForNewSession(sessionId: String, draft: AIChatComposerDraft) {
         self.invalidateActiveBootstrapTask()
         self.invalidateActivePassiveSnapshotRefreshTask()
         self.activeWarmUpTask?.cancel()
@@ -590,11 +591,7 @@ extension AIChatStore {
         self.cancelDictation()
         self.chatSessionId = sessionId
         self.conversationScopeId = sessionId
-        self.applyComposerDraft(
-            inputText: inputText,
-            pendingAttachments: pendingAttachments,
-            operation: .reset
-        )
+        self.applyComposerDraft(draft, operation: .reset)
         self.schedulePersistCurrentDraftState()
         self.messages = []
         self.applyComposerSuggestions([])
@@ -623,24 +620,26 @@ extension AIChatStore {
             || self.composerPhase != .idle
     }
 
-    func startNewSession(
-        sessionId: String,
-        inputText: String,
-        pendingAttachments: [AIChatAttachment]
-    ) {
+    private func startNewSession(sessionId: String, draft: AIChatComposerDraft) {
         let requestSequence = self.beginNewSessionRequestSequence()
         let requestedAccessContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
         let previousSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
+        let previousWorkspaceId = self.historyWorkspaceId()
         let previousDraft = self.currentComposerDraft()
-        self.schedulePersistDraftState(
-            workspaceId: self.historyWorkspaceId(),
-            sessionId: previousSessionId,
-            draft: previousDraft
-        )
+        // An unconfirmed Anki send can have an empty composer while its retry draft remains on disk.
+        if previousDraft.isEmpty == false || self.historyStore.loadDraft(
+            workspaceId: previousWorkspaceId,
+            sessionId: previousSessionId
+        ).ankiImportRequestId == nil {
+            self.schedulePersistDraftState(
+                workspaceId: previousWorkspaceId,
+                sessionId: previousSessionId,
+                draft: previousDraft
+            )
+        }
         self.resetConversationForNewSession(
             sessionId: sessionId,
-            inputText: inputText,
-            pendingAttachments: pendingAttachments
+            draft: draft
         )
 
         let task = Task {

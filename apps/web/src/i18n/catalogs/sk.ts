@@ -793,9 +793,6 @@ const skCatalog: TranslationCatalog = {
       title: "Katalóg balíčkov",
       description: "Bezplatné hotové balíčky na štúdium.",
     },
-    import: {
-      description: "Pridajte karty zo súboru.",
-    },
     export: {
       description: "Stiahnite všetky svoje karty ako súbor.",
     },
@@ -906,7 +903,17 @@ const skCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Pridajte karty prilepením textu alebo výberom balíka Nibomo.",
+    nibomoFormat: "Formát Nibomo",
+    anki: {
+      format: "Formát Anki",
+      description: "Čet s AI importuje karty z vybraných súborov exportovaných z Anki.",
+      chooseFiles: "Vyberte súbory .apkg",
+      start: "Spustiť import",
+      invalidFile: "„{{file}}“ nie je použiteľný export z Anki. Vyberte neprázdny súbor .apkg.",
+      fileTooLarge: "„{{file}}“ prekračuje {{limit}} MiB. Vyberte menší export z Anki.",
+      request: "Importuj karty z Anki do tohto pracovného priestoru.",
+      chatChanged: "Aktívny čet sa zmenil. Vráťte sa do knižnice a znova spustite import z Anki.",
+    },
     workspaceUnavailable: "Pracovný priestor nie je dostupný",
     textTitle: "Prilepiť text",
     textDescription: "Skopírujte pojmy a definície z Quizletu, tabuľky alebo dokumentu. Pred importom skontrolujte každú kartu.",

@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Geïmporteerde kaarten: %d. Tag: %@.";
 "settings.workspace.import.success" = "Geïmporteerde kaarten: %d.";
-"settings.workspace.import.section.package" = "Pakket";
+"settings.workspace.import.format.nibomo" = "Nibomo-indeling";
+"settings.workspace.import.format.anki" = "Anki-indeling";
+"settings.workspace.import.anki.choose" = "Kies .apkg-bestanden";
+"settings.workspace.import.anki.remove" = "Verwijder bestand";
+"settings.workspace.import.anki.start" = "Import starten";
+"settings.workspace.import.anki.waiting" = "Wachten tot de import uit Anki begint…";
+"settings.workspace.import.anki.request" = "Importeer alle bijgevoegde Anki-stapels in deze werkruimte.";
+"ai.composer.ankiImport.unconfirmed" = "De import uit Anki kon niet worden bevestigd. Controleer dit gesprek en je bibliotheek voordat je opnieuw importeert.";
+"settings.workspace.import.anki.workspaceChanged" = "De werkruimte of het account is gewijzigd. Ga terug naar de bibliotheek en start de import opnieuw.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Bijlagen zijn niet beschikbaar in de AI-chat. Probeer het opnieuw zodra je bestanden kunt toevoegen.";
 "settings.workspace.import.choosePackage" = "ZIP-pakket kiezen";
 "settings.workspace.import.previewing" = "Voorbeeld maken...";
 "settings.workspace.import.importing" = "Importeren...";

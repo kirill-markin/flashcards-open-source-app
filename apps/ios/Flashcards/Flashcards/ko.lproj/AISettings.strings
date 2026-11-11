@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "카드 %d개를 %@ 태그로 가져왔습니다.";
 "settings.workspace.import.success" = "카드 %d개를 가져왔습니다.";
-"settings.workspace.import.section.package" = "패키지";
+"settings.workspace.import.format.nibomo" = "Nibomo 형식";
+"settings.workspace.import.format.anki" = "Anki 형식";
+"settings.workspace.import.anki.choose" = ".apkg 파일 선택";
+"settings.workspace.import.anki.remove" = "파일 제거";
+"settings.workspace.import.anki.start" = "가져오기 시작";
+"settings.workspace.import.anki.waiting" = "Anki 가져오기를 시작하는 중…";
+"settings.workspace.import.anki.request" = "첨부한 Anki 덱을 모두 이 작업 공간으로 가져와 주세요.";
+"ai.composer.ankiImport.unconfirmed" = "Anki 가져오기를 확인할 수 없습니다. 다시 가져오기를 시작하기 전에 이 채팅과 라이브러리를 확인하세요.";
+"settings.workspace.import.anki.workspaceChanged" = "작업 공간이나 계정이 바뀌었습니다. 라이브러리로 돌아가 가져오기를 다시 시작하세요.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AI 채팅에서 파일을 첨부할 수 없습니다. 파일 첨부가 가능해지면 다시 가져오세요.";
 "settings.workspace.import.choosePackage" = "ZIP 패키지 선택";
 "settings.workspace.import.previewing" = "미리보기 준비 중...";
 "settings.workspace.import.importing" = "가져오는 중...";
