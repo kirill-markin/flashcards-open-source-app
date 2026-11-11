@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%dଟି କାର୍ଡ %@ ଟ୍ୟାଗ୍ ସହ ଆମଦାନି ହୋଇଛି।";
 "settings.workspace.import.success" = "%dଟି କାର୍ଡ ଆମଦାନି ହୋଇଛି।";
-"settings.workspace.import.section.package" = "ପ୍ୟାକେଜ୍";
+"settings.workspace.import.format.nibomo" = "Nibomo ଫର୍ମାଟ୍";
+"settings.workspace.import.format.anki" = "Anki ଫର୍ମାଟ୍";
+"settings.workspace.import.anki.choose" = ".apkg ଫାଇଲ୍ ବାଛନ୍ତୁ";
+"settings.workspace.import.anki.remove" = "ଫାଇଲ୍ ହଟାନ୍ତୁ";
+"settings.workspace.import.anki.start" = "ଆମଦାନି ଆରମ୍ଭ କରନ୍ତୁ";
+"settings.workspace.import.anki.waiting" = "Anki ଆମଦାନି ଆରମ୍ଭ ହେବାକୁ ଅପେକ୍ଷା କରାଯାଉଛି…";
+"settings.workspace.import.anki.request" = "ସଂଲଗ୍ନ ହୋଇଥିବା ସମସ୍ତ Anki ଡେକ୍ ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ରକୁ ଆମଦାନି କରନ୍ତୁ।";
+"ai.composer.ankiImport.unconfirmed" = "Anki ଆମଦାନି ନିଶ୍ଚିତ କରିହେଲା ନାହିଁ। ପୁଣି ଆମଦାନି କରିବା ପୂର୍ବରୁ ଏହି ଚାଟ୍ ଓ ଲାଇବ୍ରେରି ଯାଞ୍ଚ କରନ୍ତୁ।";
+"settings.workspace.import.anki.workspaceChanged" = "କାର୍ଯ୍ୟକ୍ଷେତ୍ର କିମ୍ବା ଆକାଉଣ୍ଟ ବଦଳିଛି। ଲାଇବ୍ରେରିକୁ ଫେରି ଆମଦାନି ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ।";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AI ଚାଟ୍‌ରେ ଫାଇଲ୍ ସଂଲଗ୍ନକ ଉପଲବ୍ଧ ନାହିଁ। ସଂଲଗ୍ନକ ଉପଲବ୍ଧ ହେଲେ ପୁଣି ଆମଦାନି କରନ୍ତୁ।";
 "settings.workspace.import.choosePackage" = "ZIP ପ୍ୟାକେଜ୍ ବାଛନ୍ତୁ";
 "settings.workspace.import.previewing" = "ପୂର୍ବାବଲୋକନ ଲୋଡ୍ ହେଉଛି...";
 "settings.workspace.import.importing" = "ଆମଦାନି ହେଉଛି...";

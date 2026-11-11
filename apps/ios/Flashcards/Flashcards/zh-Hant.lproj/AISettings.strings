@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "已匯入 %d 張卡片並新增標籤 %@。";
 "settings.workspace.import.success" = "已匯入 %d 張卡片。";
-"settings.workspace.import.section.package" = "套件";
+"settings.workspace.import.format.nibomo" = "Nibomo 格式";
+"settings.workspace.import.format.anki" = "Anki 格式";
+"settings.workspace.import.anki.choose" = "選擇 .apkg 檔案";
+"settings.workspace.import.anki.remove" = "移除檔案";
+"settings.workspace.import.anki.start" = "開始匯入";
+"settings.workspace.import.anki.waiting" = "等待開始匯入 Anki…";
+"settings.workspace.import.anki.request" = "請將所有附加的 Anki 牌組匯入這個工作區。";
+"ai.composer.ankiImport.unconfirmed" = "無法確認是否已從 Anki 匯入。若要再次匯入，請先查看這段對話和資料庫。";
+"settings.workspace.import.anki.workspaceChanged" = "工作區或帳號已變更。請返回資料庫並重新開始匯入。";
+"settings.workspace.import.anki.attachmentsUnavailable" = "AI 聊天目前無法使用檔案附件。請在附件可用後再試一次。";
 "settings.workspace.import.choosePackage" = "選擇 ZIP 套件";
 "settings.workspace.import.previewing" = "正在預覽…";
 "settings.workspace.import.importing" = "正在匯入…";

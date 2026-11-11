@@ -781,7 +781,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Cartões importados: %d, com a etiqueta %@.";
 "settings.workspace.import.success" = "Cartões importados: %d.";
-"settings.workspace.import.section.package" = "Pacote";
+"settings.workspace.import.format.nibomo" = "Formato Nibomo";
+"settings.workspace.import.format.anki" = "Formato Anki";
+"settings.workspace.import.anki.choose" = "Escolher ficheiros .apkg";
+"settings.workspace.import.anki.remove" = "Remover ficheiro";
+"settings.workspace.import.anki.start" = "Iniciar importação";
+"settings.workspace.import.anki.waiting" = "A aguardar o início da importação do Anki…";
+"settings.workspace.import.anki.request" = "Importa todos os baralhos do Anki anexados para este espaço de trabalho.";
+"ai.composer.ankiImport.unconfirmed" = "Não foi possível confirmar a importação do Anki. Verifique esta conversa e a Biblioteca antes de iniciar uma nova importação.";
+"settings.workspace.import.anki.workspaceChanged" = "O espaço de trabalho ou a conta mudou. Volte à Biblioteca e reinicie a importação.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Os anexos de ficheiros não estão disponíveis no chat com IA. Tente importar novamente quando os anexos estiverem disponíveis.";
 "settings.workspace.import.choosePackage" = "Escolher pacote ZIP";
 "settings.workspace.import.previewing" = "A preparar a pré-visualização...";
 "settings.workspace.import.importing" = "A importar...";

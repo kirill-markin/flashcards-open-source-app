@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%d kad telah diimport dengan tag %@.";
 "settings.workspace.import.success" = "%d kad telah diimport.";
-"settings.workspace.import.section.package" = "Pakej";
+"settings.workspace.import.format.nibomo" = "Format Nibomo";
+"settings.workspace.import.format.anki" = "Format Anki";
+"settings.workspace.import.anki.choose" = "Pilih fail .apkg";
+"settings.workspace.import.anki.remove" = "Alih keluar fail";
+"settings.workspace.import.anki.start" = "Mulakan import";
+"settings.workspace.import.anki.waiting" = "Menunggu import Anki bermula…";
+"settings.workspace.import.anki.request" = "Import semua dek Anki yang dilampirkan ke dalam ruang kerja ini.";
+"ai.composer.ankiImport.unconfirmed" = "Import daripada Anki tidak dapat disahkan. Semak perbualan ini dan Pustaka sebelum memulakan import baharu.";
+"settings.workspace.import.anki.workspaceChanged" = "Ruang kerja atau akaun telah berubah. Kembali ke Pustaka dan mulakan semula import.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Lampiran fail tidak tersedia dalam sembang AI. Cuba import semula apabila lampiran tersedia.";
 "settings.workspace.import.choosePackage" = "Pilih pakej ZIP";
 "settings.workspace.import.previewing" = "Memuatkan pratonton...";
 "settings.workspace.import.importing" = "Mengimport...";
