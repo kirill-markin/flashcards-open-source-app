@@ -261,7 +261,7 @@ jobs:
         continue-on-error: true
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
-          version: '592.0.0'
+          version: '593.0.0'
           install_components: beta
 
       - name: Require configured Device Run destinations in the current catalog

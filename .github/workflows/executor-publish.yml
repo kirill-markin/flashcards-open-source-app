@@ -29,9 +29,9 @@ jobs:
           persist-credentials: false
       - name: Clone public companion source without credentials
         run: git -c credential.helper= clone https://github.com/kirill-markin/nibomo-plugins.git "$RUNNER_TEMP/nibomo-plugins"
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: '3.15'
       - name: Publish reviewed release to the existing Executor app
         env:
           PLUGIN_SOURCE_DIR: ${{ runner.temp }}/nibomo-plugins

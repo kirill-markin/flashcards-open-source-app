@@ -70,7 +70,7 @@ function verifyPackage(name, parentRequire, parentReferenceRequire) {
   for (const dependency of Object.keys(manifest.dependencies ?? {})) verifyPackage(dependency, packageRequire, packageReferenceRequire);
 }
 verifyPackage('@sentry/server-runtime-injection', assetRequire, referenceRequire);
-assert.equal(packages.find(item => item.name === '@sentry/server-runtime-injection').version, '11.10.0');
+assert.equal(packages.find(item => item.name === '@sentry/server-runtime-injection').version, '11.12.0');
 const hookPath = fs.realpathSync(assetRequire.resolve('@sentry/server-runtime-injection/register'));
 assert.ok(insideAsset(hookPath), `Hook escaped final asset: ${hookPath}`);
 const warnings = [];
