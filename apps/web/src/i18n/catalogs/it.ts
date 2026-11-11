@@ -873,8 +873,8 @@ const itCatalog: TranslationCatalog = {
     note: "Queste impostazioni influiscono solo sulla pianificazione futura. Lo stato attuale delle carte resta prevalente.",
   },
   workspaceExport: {
-    title: "Esporta pacchetto Nibomo",
-    ankiTitle: "Esporta mazzo Anki",
+    title: "Esporta come pacchetto Nibomo",
+    ankiTitle: "Esporta come mazzo Anki",
     subtitle: "Scarica un pacchetto portabile per quest’area di lavoro.",
     workspaceUnavailable: "Area di lavoro non disponibile",
     ankiDeckNameLabel: "Nome del mazzo",

@@ -873,8 +873,8 @@ const hiCatalog: TranslationCatalog = {
     note: "ये सेटिंग्स केवल भविष्य की शेड्यूलिंग को प्रभावित करती हैं। मौजूदा कार्ड स्थिति ही आधिकारिक बनी रहती है।",
   },
   workspaceExport: {
-    title: "Nibomo पैकेज निर्यात करें",
-    ankiTitle: "Anki डेक निर्यात करें",
+    title: "Nibomo पैकेज के रूप में निर्यात करें",
+    ankiTitle: "Anki डेक के रूप में निर्यात करें",
     subtitle: "इस वर्कस्पेस के लिए पोर्टेबल पैकेज डाउनलोड करें।",
     workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
     ankiDeckNameLabel: "डेक का नाम",

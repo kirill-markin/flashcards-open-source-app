@@ -873,8 +873,8 @@ const teCatalog: TranslationCatalog = {
     note: "ఈ సెట్టింగ్‌లు భవిష్యత్ షెడ్యూలింగ్‌పై మాత్రమే ప్రభావం చూపుతాయి. ఉన్న కార్డుల స్థితి అలాగే ప్రామాణికంగా ఉంటుంది.",
   },
   workspaceExport: {
-    title: "Nibomo ప్యాకేజీని ఎగుమతి చేయండి",
-    ankiTitle: "Anki డెక్‌ను ఎగుమతి చేయండి",
+    title: "Nibomo ప్యాకేజీగా ఎగుమతి చేయండి",
+    ankiTitle: "Anki డెక్‌గా ఎగుమతి చేయండి",
     subtitle: "ఈ వర్క్‌స్పేస్ కోసం పోర్టబుల్ ప్యాకేజీని డౌన్‌లోడ్ చేయండి.",
     workspaceUnavailable: "వర్క్‌స్పేస్ అందుబాటులో లేదు",
     ankiDeckNameLabel: "డెక్ పేరు",

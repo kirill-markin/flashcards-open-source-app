@@ -873,8 +873,8 @@ const paCatalog: TranslationCatalog = {
     note: "ਇਹ ਸੈਟਿੰਗਾਂ ਸਿਰਫ਼ ਭਵਿੱਖ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਉੱਤੇ ਅਸਰ ਕਰਦੀਆਂ ਹਨ. ਕਾਰਡ ਦੀ ਮੌਜੂਦਾ ਸਥਿਤੀ ਹੀ ਪ੍ਰਮਾਣਿਕ ਰਹਿੰਦੀ ਹੈ.",
   },
   workspaceExport: {
-    title: "Nibomo ਪੈਕੇਜ ਐਕਸਪੋਰਟ ਕਰੋ",
-    ankiTitle: "Anki ਡੈੱਕ ਐਕਸਪੋਰਟ ਕਰੋ",
+    title: "Nibomo ਪੈਕੇਜ ਵਜੋਂ ਐਕਸਪੋਰਟ ਕਰੋ",
+    ankiTitle: "Anki ਡੈੱਕ ਵਜੋਂ ਐਕਸਪੋਰਟ ਕਰੋ",
     subtitle: "ਇਸ ਵਰਕਸਪੇਸ ਲਈ ਪੋਰਟੇਬਲ ਪੈਕੇਜ ਡਾਊਨਲੋਡ ਕਰੋ.",
     workspaceUnavailable: "ਵਰਕਸਪੇਸ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
     ankiDeckNameLabel: "ਡੈੱਕ ਦਾ ਨਾਮ",

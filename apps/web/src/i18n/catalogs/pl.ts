@@ -881,8 +881,8 @@ const plCatalog: TranslationCatalog = {
     note: "Te ustawienia wpływają tylko na przyszłe planowanie. Obecny stan kart pozostaje nadrzędny.",
   },
   workspaceExport: {
-    title: "Eksportuj pakiet Nibomo",
-    ankiTitle: "Eksportuj talię Anki",
+    title: "Eksportuj jako pakiet Nibomo",
+    ankiTitle: "Eksportuj jako talię Anki",
     subtitle: "Pobierz przenośny pakiet tej przestrzeni roboczej.",
     workspaceUnavailable: "Przestrzeń robocza jest niedostępna",
     ankiDeckNameLabel: "Nazwa talii",

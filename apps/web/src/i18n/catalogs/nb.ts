@@ -873,8 +873,8 @@ const nbCatalog: TranslationCatalog = {
     note: "Disse innstillingene påvirker bare fremtidig planlegging. Tilstanden kortene har i dag, gjelder fortsatt.",
   },
   workspaceExport: {
-    title: "Eksporter Nibomo-pakke",
-    ankiTitle: "Eksporter Anki-kortstokk",
+    title: "Eksporter som Nibomo-pakke",
+    ankiTitle: "Eksporter som Anki-kortstokk",
     subtitle: "Last ned en flyttbar pakke for dette arbeidsområdet.",
     workspaceUnavailable: "Arbeidsområdet er utilgjengelig",
     ankiDeckNameLabel: "Navn på kortstokken",

@@ -873,8 +873,8 @@ const isCatalog: TranslationCatalog = {
     note: "Þessar stillingar hafa aðeins áhrif á komandi tímasetningar. Núverandi staða spjalda gildir áfram.",
   },
   workspaceExport: {
-    title: "Flytja út Nibomo-pakka",
-    ankiTitle: "Flytja út Anki-stokk",
+    title: "Flytja út sem Nibomo-pakka",
+    ankiTitle: "Flytja út sem Anki-stokk",
     subtitle: "Sæktu flytjanlegan pakka fyrir þetta vinnusvæði.",
     workspaceUnavailable: "Vinnusvæði er ekki tiltækt",
     ankiDeckNameLabel: "Heiti stokks",

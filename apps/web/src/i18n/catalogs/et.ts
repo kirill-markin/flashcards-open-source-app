@@ -873,8 +873,8 @@ const etCatalog: TranslationCatalog = {
     note: "Need seaded mõjutavad ainult edaspidist ajastamist. Kaartide olemasolev olek jääb määravaks.",
   },
   workspaceExport: {
-    title: "Ekspordi Nibomo pakett",
-    ankiTitle: "Ekspordi Anki kaardipakk",
+    title: "Ekspordi Nibomo paketina",
+    ankiTitle: "Ekspordi Anki kaardipakina",
     subtitle: "Laadi selle tööruumi teisaldatav pakett alla.",
     workspaceUnavailable: "Tööruum pole saadaval",
     ankiDeckNameLabel: "Kaardipaki nimi",

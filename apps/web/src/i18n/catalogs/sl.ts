@@ -889,8 +889,8 @@ const slCatalog: TranslationCatalog = {
     note: "Te nastavitve vplivajo le na prihodnje razporejanje. Obstoječe stanje kartic ostane merodajno.",
   },
   workspaceExport: {
-    title: "Izvozi paket Nibomo",
-    ankiTitle: "Izvozi komplet kartic za Anki",
+    title: "Izvozi kot paket Nibomo",
+    ankiTitle: "Izvozi kot komplet kartic za Anki",
     subtitle: "Prenesite prenosni paket za ta delovni prostor.",
     workspaceUnavailable: "Delovni prostor ni na voljo",
     ankiDeckNameLabel: "Ime kompleta kartic",

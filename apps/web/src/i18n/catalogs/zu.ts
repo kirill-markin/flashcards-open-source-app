@@ -873,8 +873,8 @@ const zuCatalog: TranslationCatalog = {
     note: "Lezi zilungiselelo zithinta kuphela ukuhlelwa kwesikhathi okuzayo. Isimo samakhadi esikhona sihlala siyigunya.",
   },
   workspaceExport: {
-    title: "Khipha iphakheji ye-Nibomo",
-    ankiTitle: "Khipha iqoqo lamakhadi le-Anki",
+    title: "Khipha njengephakheji ye-Nibomo",
+    ankiTitle: "Khipha njengeqoqo lamakhadi le-Anki",
     subtitle: "Dawuniloda iphakheji ephathekayo yale ndawo yokusebenza.",
     workspaceUnavailable: "Indawo yokusebenza ayitholakali",
     ankiDeckNameLabel: "Igama leqoqo lamakhadi",

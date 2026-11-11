@@ -881,8 +881,8 @@ const roCatalog: TranslationCatalog = {
     note: "Aceste setări afectează doar programarea viitoare. Starea existentă a fișelor rămâne neschimbată.",
   },
   workspaceExport: {
-    title: "Exportă pachetul Nibomo",
-    ankiTitle: "Exportă pachetul de cărți Anki",
+    title: "Exportă ca pachet Nibomo",
+    ankiTitle: "Exportă ca pachet de cărți Anki",
     subtitle: "Descarcă un pachet portabil pentru acest spațiu de lucru.",
     workspaceUnavailable: "Spațiul de lucru nu este disponibil",
     ankiDeckNameLabel: "Numele pachetului de cărți",

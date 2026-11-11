@@ -873,8 +873,8 @@ const knCatalog: TranslationCatalog = {
     note: "ಈ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಮುಂದಿನ ವೇಳಾಪಟ್ಟಿಗೆ ಮಾತ್ರ ಪರಿಣಾಮ ಬೀರುತ್ತವೆ. ಅಸ್ತಿತ್ವದಲ್ಲಿರುವ ಕಾರ್ಡ್ ಸ್ಥಿತಿಯೇ ಅಧಿಕೃತವಾಗಿ ಉಳಿಯುತ್ತದೆ.",
   },
   workspaceExport: {
-    title: "Nibomo ಪ್ಯಾಕೇಜ್ ರಫ್ತು ಮಾಡಿ",
-    ankiTitle: "Anki ಡೆಕ್ ರಫ್ತು ಮಾಡಿ",
+    title: "Nibomo ಪ್ಯಾಕೇಜ್ ಆಗಿ ರಫ್ತು ಮಾಡಿ",
+    ankiTitle: "Anki ಡೆಕ್ ಆಗಿ ರಫ್ತು ಮಾಡಿ",
     subtitle: "ಈ ಕಾರ್ಯಸ್ಥಳಕ್ಕಾಗಿ ಪೋರ್ಟಬಲ್ ಪ್ಯಾಕೇಜ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
     workspaceUnavailable: "ಕಾರ್ಯಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ",
     ankiDeckNameLabel: "ಡೆಕ್‌ನ ಹೆಸರು",

@@ -881,8 +881,8 @@ const ltCatalog: TranslationCatalog = {
     note: "Šie nustatymai veikia tik būsimą planavimą. Esama kortelių būsena lieka lemiama.",
   },
   workspaceExport: {
-    title: "Eksportuoti „Nibomo“ paketą",
-    ankiTitle: "Eksportuoti „Anki“ kortelių rinkinį",
+    title: "Eksportuoti kaip „Nibomo“ paketą",
+    ankiTitle: "Eksportuoti kaip „Anki“ kortelių rinkinį",
     subtitle: "Atsisiųskite perkeliamą šios darbo srities paketą.",
     workspaceUnavailable: "Darbo sritis nepasiekiama",
     ankiDeckNameLabel: "Kortelių rinkinio pavadinimas",

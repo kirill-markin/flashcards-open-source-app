@@ -873,8 +873,8 @@ const svCatalog: TranslationCatalog = {
     note: "Inställningarna påverkar bara framtida schemaläggning. Kortens befintliga tillstånd gäller fortfarande.",
   },
   workspaceExport: {
-    title: "Exportera Nibomo-paket",
-    ankiTitle: "Exportera Anki-kortlek",
+    title: "Exportera som Nibomo-paket",
+    ankiTitle: "Exportera som Anki-kortlek",
     subtitle: "Ladda ner ett flyttbart paket för arbetsytan.",
     workspaceUnavailable: "Arbetsytan är inte tillgänglig",
     ankiDeckNameLabel: "Kortlekens namn",

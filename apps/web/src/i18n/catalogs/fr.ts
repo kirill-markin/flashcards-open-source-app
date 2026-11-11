@@ -873,8 +873,8 @@ const frCatalog: TranslationCatalog = {
     note: "Ces paramètres n'affectent que la planification future. L'état actuel des cartes fait toujours foi.",
   },
   workspaceExport: {
-    title: "Exporter un paquet Nibomo",
-    ankiTitle: "Exporter un paquet Anki",
+    title: "Exporter en tant que paquet Nibomo",
+    ankiTitle: "Exporter en tant que paquet Anki",
     subtitle: "Téléchargez un paquet portable pour cet espace de travail.",
     workspaceUnavailable: "L'espace de travail est indisponible",
     ankiDeckNameLabel: "Nom du paquet",

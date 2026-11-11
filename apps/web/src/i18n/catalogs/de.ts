@@ -873,8 +873,8 @@ const deCatalog: TranslationCatalog = {
     note: "Diese Einstellungen betreffen nur zukünftige Planungen. Der bestehende Kartenstatus bleibt maßgeblich.",
   },
   workspaceExport: {
-    title: "Nibomo-Paket exportieren",
-    ankiTitle: "Anki-Stapel exportieren",
+    title: "Als Nibomo-Paket exportieren",
+    ankiTitle: "Als Anki-Stapel exportieren",
     subtitle: "Lade ein portables Paket für diesen Arbeitsbereich herunter.",
     workspaceUnavailable: "Arbeitsbereich ist nicht verfügbar",
     ankiDeckNameLabel: "Stapelname",

@@ -873,8 +873,8 @@ const idCatalog: TranslationCatalog = {
     note: "Pengaturan ini hanya memengaruhi penjadwalan mendatang. Status kartu yang sudah ada tetap menjadi acuan.",
   },
   workspaceExport: {
-    title: "Ekspor paket Nibomo",
-    ankiTitle: "Ekspor dek Anki",
+    title: "Ekspor sebagai paket Nibomo",
+    ankiTitle: "Ekspor sebagai dek Anki",
     subtitle: "Unduh paket portabel untuk ruang kerja ini.",
     workspaceUnavailable: "Ruang kerja tidak tersedia",
     ankiDeckNameLabel: "Nama dek",

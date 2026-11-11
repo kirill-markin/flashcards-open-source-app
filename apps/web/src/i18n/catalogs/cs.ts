@@ -881,8 +881,8 @@ const csCatalog: TranslationCatalog = {
     note: "Tato nastavení ovlivňují pouze budoucí plánování. Stávající stav kartiček zůstává rozhodující.",
   },
   workspaceExport: {
-    title: "Exportovat balíček Nibomo",
-    ankiTitle: "Exportovat balíček pro Anki",
+    title: "Exportovat jako balíček Nibomo",
+    ankiTitle: "Exportovat jako balíček pro Anki",
     subtitle: "Stáhněte přenosný balíček pro tento pracovní prostor.",
     workspaceUnavailable: "Pracovní prostor není dostupný",
     ankiDeckNameLabel: "Název balíčku",

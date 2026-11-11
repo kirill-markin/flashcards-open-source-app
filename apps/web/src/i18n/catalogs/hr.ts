@@ -881,8 +881,8 @@ const hrCatalog: TranslationCatalog = {
     note: "Ove postavke utječu samo na buduće raspoređivanje. Postojeće stanje kartica ostaje mjerodavno.",
   },
   workspaceExport: {
-    title: "Izvezi paket Nibomo",
-    ankiTitle: "Izvezi špil za Anki",
+    title: "Izvezi kao paket Nibomo",
+    ankiTitle: "Izvezi kao špil za Anki",
     subtitle: "Preuzmite prenosivi paket za ovaj radni prostor.",
     workspaceUnavailable: "Radni prostor nije dostupan",
     ankiDeckNameLabel: "Naziv špila",

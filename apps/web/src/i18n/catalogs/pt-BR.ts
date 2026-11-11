@@ -873,8 +873,8 @@ const ptBrCatalog: TranslationCatalog = {
     note: "Estas configurações afetam apenas o agendamento futuro. O estado atual dos cartões continua valendo.",
   },
   workspaceExport: {
-    title: "Exportar pacote do Nibomo",
-    ankiTitle: "Exportar baralho do Anki",
+    title: "Exportar como pacote do Nibomo",
+    ankiTitle: "Exportar como baralho do Anki",
     subtitle: "Baixe um pacote portátil deste espaço de trabalho.",
     workspaceUnavailable: "O espaço de trabalho está indisponível",
     ankiDeckNameLabel: "Nome do baralho",

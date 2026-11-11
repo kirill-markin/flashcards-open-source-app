@@ -873,8 +873,8 @@ const lvCatalog: TranslationCatalog = {
     note: "Šie iestatījumi ietekmē tikai turpmāko plānošanu. Esošais kartīšu stāvoklis paliek noteicošais.",
   },
   workspaceExport: {
-    title: "Eksportēt Nibomo pakotni",
-    ankiTitle: "Eksportēt Anki kavu",
+    title: "Eksportēt kā Nibomo pakotni",
+    ankiTitle: "Eksportēt kā Anki kavu",
     subtitle: "Lejupielādējiet šīs darbvietas pārnēsājamu pakotni.",
     workspaceUnavailable: "Darbvieta nav pieejama",
     ankiDeckNameLabel: "Kavas nosaukums",

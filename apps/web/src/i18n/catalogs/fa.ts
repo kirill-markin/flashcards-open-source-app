@@ -873,8 +873,8 @@ const faCatalog: TranslationCatalog = {
     note: "این تنظیمات فقط بر زمان‌بندی آینده اثر دارند. وضعیت فعلی کارت‌ها همچنان معتبر است.",
   },
   workspaceExport: {
-    title: "صادر کردن بستهٔ Nibomo",
-    ankiTitle: "صادر کردن دستهٔ Anki",
+    title: "صادر کردن به‌صورت بستهٔ Nibomo",
+    ankiTitle: "صادر کردن به‌صورت دستهٔ Anki",
     subtitle: "بسته‌ای قابل‌حمل برای این فضای کاری دریافت کنید.",
     workspaceUnavailable: "فضای کاری در دسترس نیست",
     ankiDeckNameLabel: "نام دسته",

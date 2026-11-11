@@ -873,8 +873,8 @@ const trCatalog: TranslationCatalog = {
     note: "Bu ayarlar yalnızca gelecekteki planlamayı etkiler. Mevcut kart durumu geçerliliğini korur.",
   },
   workspaceExport: {
-    title: "Nibomo paketini dışa aktar",
-    ankiTitle: "Anki destesini dışa aktar",
+    title: "Nibomo paketi olarak dışa aktar",
+    ankiTitle: "Anki destesi olarak dışa aktar",
     subtitle: "Bu çalışma alanı için taşınabilir bir paket indirin.",
     workspaceUnavailable: "Çalışma alanı kullanılamıyor",
     ankiDeckNameLabel: "Deste adı",

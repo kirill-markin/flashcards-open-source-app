@@ -873,8 +873,8 @@ const arCatalog: TranslationCatalog = {
     note: "تؤثر هذه الإعدادات على الجدولة المستقبلية فقط. تظل حالة البطاقات الحالية هي المرجع المعتمد.",
   },
   workspaceExport: {
-    title: "تصدير حزمة Nibomo",
-    ankiTitle: "تصدير مجموعة Anki",
+    title: "تصدير كحزمة Nibomo",
+    ankiTitle: "تصدير كمجموعة Anki",
     subtitle: "نزّل حزمة محمولة لمساحة العمل هذه.",
     workspaceUnavailable: "مساحة العمل غير متاحة",
     ankiDeckNameLabel: "اسم المجموعة",

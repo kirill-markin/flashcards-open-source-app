@@ -873,8 +873,8 @@ const viCatalog: TranslationCatalog = {
     note: "Các cài đặt này chỉ ảnh hưởng đến lịch trong tương lai. Trạng thái hiện tại của thẻ vẫn được giữ nguyên.",
   },
   workspaceExport: {
-    title: "Xuất gói Nibomo",
-    ankiTitle: "Xuất bộ thẻ Anki",
+    title: "Xuất dưới dạng gói Nibomo",
+    ankiTitle: "Xuất dưới dạng bộ thẻ Anki",
     subtitle: "Tải gói di động cho không gian làm việc này.",
     workspaceUnavailable: "Không gian làm việc không khả dụng",
     ankiDeckNameLabel: "Tên bộ thẻ",

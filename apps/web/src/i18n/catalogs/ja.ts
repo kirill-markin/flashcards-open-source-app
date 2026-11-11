@@ -873,8 +873,8 @@ export const jaCatalog = {
     note: "これらの設定が影響するのは今後のスケジューリングのみです。既存のカード状態が引き続き基準となります。",
   },
   workspaceExport: {
-    title: "Nibomo パッケージをエクスポート",
-    ankiTitle: "Anki デッキをエクスポート",
+    title: "Nibomo パッケージとしてエクスポート",
+    ankiTitle: "Anki デッキとしてエクスポート",
     subtitle: "このワークスペース用のポータブルパッケージをダウンロードします。",
     workspaceUnavailable: "ワークスペースを利用できません",
     ankiDeckNameLabel: "デッキ名",

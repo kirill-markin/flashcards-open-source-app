@@ -873,8 +873,8 @@ const fiCatalog: TranslationCatalog = {
     note: "Nämä asetukset vaikuttavat vain tulevaan ajastukseen. Korttien nykyinen tila säilyy määräävänä.",
   },
   workspaceExport: {
-    title: "Vie Nibomo-paketti",
-    ankiTitle: "Vie Anki-pakka",
+    title: "Vie Nibomo-pakettina",
+    ankiTitle: "Vie Anki-pakkana",
     subtitle: "Lataa siirrettävä paketti tästä työtilasta.",
     workspaceUnavailable: "Työtila ei käytettävissä",
     ankiDeckNameLabel: "Pakan nimi",
