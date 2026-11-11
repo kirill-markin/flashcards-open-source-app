@@ -5,10 +5,9 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../../../appError/AppErrorContext";
-import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
-import { CardPreviewText } from "../../../../components/CardPreviewText";
 import { buildLibraryDeckEditRoute, libraryDecksRoute, reviewRoute } from "../../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
@@ -16,7 +15,8 @@ import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/d
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
 import type { Card, DeckFilterDefinition, ReviewFilter } from "../../../../types";
-import { formatDeckFilterSummary, formatTagSummary } from "../../../shared/featureFormatting";
+import { formatDeckFilterSummary } from "../../../shared/featureFormatting";
+import { DeckDetailStats, MatchingCardPreview, MatchingCardsSection } from "./DeckDetailContent";
 
 type DeckDetailState = Readonly<{
   title: string;
@@ -42,7 +42,7 @@ export function DeckDetailScreen(): ReactElement {
   const navigate = useNavigate();
   const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
+  const { t } = useI18n();
   const {
     activeWorkspace,
     cloudSettings,
@@ -63,7 +63,6 @@ export function DeckDetailScreen(): ReactElement {
   });
 
   const currentDeckId = deckId ?? "";
-  const nowTimestamp = Date.now();
   const technicalErrorMessage = t("appError.technicalError.message");
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
@@ -268,20 +267,7 @@ export function DeckDetailScreen(): ReactElement {
           <div className="deck-detail-layout">
             <section className="deck-detail-panel">
               <h2 className="panel-subtitle">{t("deckDetail.rules.title")}</h2>
-              <div className="deck-detail-stats">
-                <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">{t("deckDetail.rules.cards")}</span>
-                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.length)}</span>
-                </div>
-                <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">{t("deckDetail.rules.toStudy")}</span>
-                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => isCardDue(card, nowTimestamp)).length)}</span>
-                </div>
-                <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">{t("deckDetail.rules.new")}</span>
-                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => card.reps === 0 && card.lapses === 0).length)}</span>
-                </div>
-              </div>
+              <DeckDetailStats cards={detailState.cards} />
               <div className="content-card deck-detail-summary-card">
                 <span className="deck-detail-stat-label">{t("deckDetail.rules.summary")}</span>
                 <p className="deck-card-summary">{detailState.filterSummary}</p>
@@ -289,41 +275,11 @@ export function DeckDetailScreen(): ReactElement {
               {detailState.isPersistedDeck && detailState.hasRules === false ? (
                 <p className="error-banner">{t("deckDetail.warnings.emptyRules")}</p>
               ) : null}
-
             </section>
 
-            <section className="deck-detail-panel">
-              <div className="deck-detail-cards-head">
-                <h2 className="panel-subtitle">{t("deckDetail.matchingCards.title")}</h2>
-                <span className="badge">{formatCount(detailState.cards.length, messages.common.countLabels.card)}</span>
-              </div>
-              {detailState.cards.length === 0 ? (
-                <section className="content-card deck-detail-empty">
-                  <p className="subtitle">{detailState.emptyMessage}</p>
-                </section>
-              ) : (
-                <div className="deck-detail-cards">
-                  {detailState.cards.map((card) => (
-                    <article key={card.cardId} className="content-card deck-detail-card">
-                      <div className="deck-detail-card-head">
-                        {card.tags.length === 0 ? (
-                          <span className="tag-value-empty">{t("common.noTags")}</span>
-                        ) : (
-                          <span className="badge">{formatTagSummary(card.tags, t)}</span>
-                        )}
-                      </div>
-                      <h3 className="panel-subtitle"><CardPreviewText text={card.frontText} /></h3>
-                      <p className="subtitle"><CardPreviewText text={card.backText === "" ? t("common.noBackText") : card.backText} /></p>
-                      <div className="review-meta">
-                        <span>{card.dueAt === null ? t("reviewScreen.repetitionBadgeNew") : t("deckDetail.meta.due", { value: formatDateTime(card.dueAt) })}</span>
-                        <span>{t("deckDetail.meta.reps", { count: formatNumber(card.reps) })}</span>
-                        <span>{t("deckDetail.meta.lapses", { count: formatNumber(card.lapses) })}</span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
+            <MatchingCardsSection cardCount={detailState.cards.length} emptyMessage={detailState.emptyMessage}>
+              {detailState.cards.map((card) => <MatchingCardPreview key={card.cardId} card={card} />)}
+            </MatchingCardsSection>
           </div>
         )}
       </section>
