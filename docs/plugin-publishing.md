@@ -4,13 +4,13 @@ Use this guide during an authorized release. The [release runbook](release/READM
 owns authorization and completion; [versioning](release/versioning.md) owns target
 selection and source alignment. Documentation edits do not authorize publication.
 
-The main app repository owns credential-reading publisher workflows, scripts and
-operator instructions so release credential handling stays outside the plugin
-source Anthropic scans. The companion [nibomo-plugins](https://github.com/kirill-markin/nibomo-plugins)
-keeps shared skills, manifests, package validation/packaging and the Executor
-runtime. Preserve Anthropic's repository root, tracked main, listing and connector
-pairing. A clean source scan does not approve publication: complete the applicable
-manual reviewer/publication action separately.
+The main app repository owns [package tooling](../scripts/plugins/), the
+[Executor runtime](../apps/executor/), publisher workflows and operator
+instructions. The companion [nibomo-plugins](https://github.com/kirill-markin/nibomo-plugins)
+owns shared skills, manifests and the CI that validates the companion checkout.
+Release credentials stay outside the source Anthropic scans. Preserve Anthropic's
+repository root, tracked main, listing and connector pairing. Complete the
+applicable manual reviewer/publication action after the source scan passes.
 
 ## Shared source and package formats
 
@@ -39,6 +39,12 @@ approval, account connection or real workflows.
 Complete [release preparation](release/versioning.md#release-preparation) and pin
 both repositories' SHAs. Development retains the last coordinated version; a
 version string alone does not identify source.
+
+The companion's `core-source.json` contains one `commit` field with the full
+lowercase SHA of a core `main` commit. Companion CI runs the package and registry
+tools and type-checks the Executor app from that pin. Update it through companion
+main CI when those inputs change. Historical companion tags retain their original
+files and CI evidence.
 
 1. Require successful exact-source companion main-push **Plugin packages**,
    including **packages** and **Executor typecheck**, plus applicable PR checks.
@@ -134,8 +140,9 @@ Missing publisher secrets fail before provider access.
 
 ## MCP Registry
 
-The companion owns [server.json](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
-and schema validation. Core owns manual [MCP Registry Publish](../.github/workflows/mcp-registry-publish.yml).
+The companion owns [server.json](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json).
+Core owns [schema validation](../scripts/plugins/validate_mcp_registry.py) and
+manual [MCP Registry Publish](../.github/workflows/mcp-registry-publish.yml).
 The manifest's repository.url points to core, where the backend lives. The entry
 is com.nibomo/flashcards, a hosted streamable-http remote at
 https://mcp.nibomo.com/mcp; the [tool contract](connector-directory-submission.md)
@@ -159,9 +166,9 @@ gh workflow run mcp-registry-publish.yml \
   --ref main -f release_tag=vX.Y.Z
 ~~~
 
-The workflow uses the reviewed core publisher and selected companion release's
-exact manifest, never core HEAD as plugin data. It validates and reuses an existing
-exact version as a successful no-op when its manifest matches; a conflicting
+The workflow checks out the selected companion release and validates its exact
+manifest with core's validator and requirements. It reuses an existing
+exact version as a successful no-op when its manifest matches. A conflicting
 immutable manifest fails. For an unpublished version, it authenticates with core's
 MCP_PRIVATE_KEY, publishes and verifies the exact registry endpoint.
 Check source/version and successful run evidence;
@@ -299,9 +306,11 @@ Releases do not trigger Executor.
 Core's [Executor Publish](../.github/workflows/executor-publish.yml) runs for a
 published stable coordinated core vX.Y.Z Release. Publish the matching companion
 Release and pass exact-source main **Plugin packages**, including **Executor
-typecheck**, **before** the core Release. It uploads that immutable companion
-tag's Executor files, never core HEAD. Development pushes, OpenAI-only companion
-Releases and macos-v... core Releases do not publish Executor.
+typecheck**, **before** the core Release. The publisher resolves Executor source
+from the immutable companion tag. A tag with `core-source.json` selects
+`apps/executor/` at the pinned core commit on `main`. A tag without the marker
+selects `executor/` at the companion tag. Development pushes, OpenAI-only
+companion Releases and macos-v... core Releases do not publish Executor.
 
 For failed/skipped runs or a companion remediation Release, dispatch core main
 with the intended immutable companion tag:
@@ -316,11 +325,11 @@ gh run watch <run-id> --repo kirill-markin/flashcards-open-source-app --exit-sta
 
 Manual dispatch also accepts vX.Y.Z; an older tag intentionally republishes that
 source. Keep coordinated tags/assets immutable, including v1.29.0 at
-41cd84f6f8b947131dbbca36b6f8a577db1f1993. For a scope repair, merge corrected
-companion runtime with versions unchanged, pass exact-source CI, and create an
-annotated executor-vX.Y.Z-scope-migration tag plus stable supplemental companion
-Release with make_latest=false. Preserve Gemini Latest/coordinated assets;
-remediation publication uses manual core dispatch.
+41cd84f6f8b947131dbbca36b6f8a577db1f1993. For a scope repair, merge the corrected
+runtime and update the companion pin with versions unchanged. Pass exact-source
+CI and create an annotated executor-vX.Y.Z-scope-migration tag plus stable
+supplemental companion Release with make_latest=false. Preserve Gemini
+Latest/coordinated assets. Remediation publication uses manual core dispatch.
 
 Preserve organization nibomo, scope nibomo.executor.community, existing app
 app_741c52b8-681c-4e8c-8536-9b278e02d671, public
@@ -330,14 +339,15 @@ has no legacy-scope alias; registry reads use the current scope even if retained
 source has the old package name.
 
 The [core publisher](../scripts/plugins/publish_executor.py) reads Git objects for
-the five companion executor files LICENSE, README.md, index.ts, package.json and
+the five Executor files LICENSE, README.md, index.ts, package.json and
 provider.ts. Credentials, dependencies and scratch files stay excluded; unexpected
 paths stop publication. Review SOURCE_PATHS with any upload-set change. Before
 writes it reads private/deployed/public source, ownership, permissions, app-level
 /accounts/app and the publisher's /accounts/user links. It compares ordered account
 IDs after deployment; other users' links, labels, health and sign-in state are
-outside this check. Remote working drift must match deployed/public source and a
-complete reviewed companion-main ancestor snapshot; otherwise reconcile it first.
+outside this check. Before replacing remote source, the working, deployed and
+public revisions must agree. The deployed files must match a complete reviewed
+main snapshot in core or the companion, including when crossing between layouts.
 
 The [management API](https://github.com/UsefulSoftwareCo/executor/blob/v2/packages/app-management/src/contracts/api.ts)
 saves complete files with the observed working commit as expected, deploys the
@@ -348,13 +358,14 @@ apps or changes account selections. Use the [deployment model](https://v2.execut
 for diagnosis. Publication is serialized without cancelling an active run; a newer
 queued run may replace an older pending run, requiring manual dispatch later.
 
-Retain release/tag and publisher SHAs, exact-source CI, Executor source commit,
-deployment ID/commit, accepted publication and immediate anonymous listing/source
+Retain the companion release SHA, core publisher SHA, selected Executor Git
+source SHA and path, exact-source CI, Executor source commit, deployment
+ID/commit, accepted publication and immediate anonymous listing/source
 observation in the ledger. Matching working/deployed/public source yields **no
 update needed**. Accepted publication after required checks completes operator
 work; propagation remains pending if needed. Installed copies require separate
 user review/update; record unexecuted runtime checks. Consumer installation and
-connection stay in the [Executor README](https://github.com/kirill-markin/nibomo-plugins/blob/main/executor/README.md).
+connection stay in the [Executor README](../apps/executor/README.md).
 
 ## Google
 

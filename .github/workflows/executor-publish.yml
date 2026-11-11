@@ -26,6 +26,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: main
+          fetch-depth: 0
           persist-credentials: false
       - name: Clone public companion source without credentials
         run: git -c credential.helper= clone https://github.com/kirill-markin/nibomo-plugins.git "$RUNNER_TEMP/nibomo-plugins"
