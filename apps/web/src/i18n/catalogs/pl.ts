@@ -787,6 +787,7 @@ const plCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Twoje karty",
       addCards: "Dodaj karty",
+      transfer: "Przenoszenie danych",
     },
     deckCatalog: {
       title: "Katalog talii",

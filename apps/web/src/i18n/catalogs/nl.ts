@@ -780,6 +780,7 @@ const nlCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Jouw kaarten",
       addCards: "Kaarten toevoegen",
+      transfer: "Gegevensoverdracht",
     },
     deckCatalog: {
       title: "Deckcatalogus",

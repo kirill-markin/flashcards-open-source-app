@@ -780,6 +780,7 @@ const mlCatalog: TranslationCatalog = {
     groups: {
       yourCards: "നിങ്ങളുടെ കാർഡുകൾ",
       addCards: "കാർഡുകൾ ചേർക്കുക",
+      transfer: "ഡാറ്റ കൈമാറ്റം",
     },
     deckCatalog: {
       title: "ഡെക്ക് കാറ്റലോഗ്",

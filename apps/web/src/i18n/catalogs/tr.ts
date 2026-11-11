@@ -780,6 +780,7 @@ const trCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kartlarınız",
       addCards: "Kart ekle",
+      transfer: "Veri aktarımı",
     },
     deckCatalog: {
       title: "Deste kataloğu",

@@ -780,6 +780,7 @@ const viCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Thẻ của bạn",
       addCards: "Thêm thẻ",
+      transfer: "Chuyển dữ liệu",
     },
     deckCatalog: {
       title: "Danh mục bộ thẻ",

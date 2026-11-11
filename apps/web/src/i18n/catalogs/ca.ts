@@ -780,6 +780,7 @@ const caCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Les teves targetes",
       addCards: "Afegeix targetes",
+      transfer: "Transferència de dades",
     },
     deckCatalog: {
       title: "Catàleg de baralles",

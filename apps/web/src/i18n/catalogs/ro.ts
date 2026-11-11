@@ -787,6 +787,7 @@ const roCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Fișele tale",
       addCards: "Adaugă fișe",
+      transfer: "Transfer de date",
     },
     deckCatalog: {
       title: "Catalog de pachete",
