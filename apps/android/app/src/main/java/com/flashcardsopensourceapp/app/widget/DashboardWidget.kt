@@ -3,8 +3,6 @@ package com.flashcardsopensourceapp.app.widget
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -24,7 +22,6 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -38,18 +35,14 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import java.time.LocalDate
-import kotlinx.coroutines.flow.first
 
-private val dashboardWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 /** The Scaffold's horizontal padding and the body's vertical padding. */
 private val dashboardWidgetPadding = 12.dp
 /** `dashboard_widget_info.xml`'s minimum resize size; smaller launcher-reported sizes use it. */
@@ -75,16 +68,8 @@ class DashboardWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = dashboardWidgetColors) {
-                DashboardWidgetBody(content = content, layoutSize = LocalSize.current)
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetContent) { content ->
+            DashboardWidgetBody(content = content, layoutSize = LocalSize.current)
         }
     }
 }
@@ -94,10 +79,10 @@ class DashboardWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun DashboardWidgetBody(content: WidgetContent, layoutSize: DpSize) {
+private fun DashboardWidgetBody(content: WidgetContent?, layoutSize: DpSize) {
     val context = LocalContext.current
-    val queue: ReviewWidgetContent? = content.queue
-    val progress: WidgetProgressContent? = content.progress
+    val queue: ReviewWidgetContent? = content?.queue
+    val progress: WidgetProgressContent? = content?.progress
     // The card the widget shows, which a tap opens Review on, as on the large Review widget.
     val shownCard: ReviewWidgetCard? = if (queue == null || progress == null) {
         null
@@ -149,7 +134,13 @@ private fun DashboardWidgetTopRow(queue: ReviewWidgetContent, progress: WidgetPr
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = GlanceModifier.size(dashboardWidgetRingSize), contentAlignment = Alignment.Center) {
             Image(
-                provider = ImageProvider(bitmap = makeDashboardWidgetRingBitmap(context = context, fraction = fraction)),
+                provider = ImageProvider(
+                    bitmap = makeDashboardWidgetRingBitmap(
+                        context = context,
+                        fraction = fraction,
+                        accentArgb = widgetAccentColor().toArgb()
+                    )
+                ),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = GlanceModifier.fillMaxSize()
@@ -245,6 +236,7 @@ private fun DashboardWidgetActivity(progress: WidgetProgressContent, layoutSize:
         provider = ImageProvider(
             bitmap = drawActivityHeatmapBitmap(
                 progress = progress,
+                accentColor = widgetAccentColor(),
                 dates = dates,
                 weekCount = weekCount,
                 areaSize = gridSize,
@@ -312,7 +304,7 @@ private fun DashboardWidgetStreakFlame(streakDays: Int, reviewedToday: Boolean, 
 }
 
 /** Drawn at the ring's shown size. */
-private fun makeDashboardWidgetRingBitmap(context: Context, fraction: Float): Bitmap {
+private fun makeDashboardWidgetRingBitmap(context: Context, fraction: Float, accentArgb: Int): Bitmap {
     return drawWidgetBitmap(
         size = DpSize(width = dashboardWidgetRingSize, height = dashboardWidgetRingSize),
         density = context.resources.displayMetrics.density
@@ -322,7 +314,7 @@ private fun makeDashboardWidgetRingBitmap(context: Context, fraction: Float): Bi
             fraction = fraction,
             strokeWidthPx = canvas.width * DASHBOARD_WIDGET_RING_STROKE_FRACTION,
             trackColor = FlashcardsDarkColorScheme.surfaceVariant.toArgb(),
-            progressColor = FlashcardsDarkColorScheme.primary.toArgb()
+            progressColor = accentArgb
         )
     }
 }

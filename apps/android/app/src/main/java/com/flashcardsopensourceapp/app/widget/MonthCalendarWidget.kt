@@ -4,8 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
@@ -24,7 +23,6 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.ContentScale
@@ -33,39 +31,26 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlinx.coroutines.flow.first
 
 /** The smallest widget that shows the large layout; anything smaller shows the small one. */
 private val monthCalendarWidgetLargeMinSize = DpSize(width = 220.dp, height = 220.dp)
 private val monthCalendarWidgetSmallTitleFontSize: TextUnit = 13.sp
 private val monthCalendarWidgetLargeTitleFontSize: TextUnit = 16.sp
 private val monthCalendarWidgetTitleSpacing: Dp = 4.dp
-private val monthCalendarWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 
 class MonthCalendarWidget : GlanceAppWidget() {
     /** Exact, so [LocalSize] is the real widget size and the grid bitmap is drawn at it, never upscaled. */
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetProgressContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = monthCalendarWidgetColors) {
-                MonthCalendarWidgetBody(content = content, widgetSize = LocalSize.current)
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetProgressContent) { content ->
+            MonthCalendarWidgetBody(content = content, widgetSize = LocalSize.current)
         }
     }
 }
@@ -142,6 +127,7 @@ private fun ColumnScope.MonthCalendarWidgetSmall(content: WidgetProgressContent,
         bitmap = drawMonthCalendarDotsBitmap(
             context = context,
             weeks = weeks,
+            accentArgb = widgetAccentColor().toArgb(),
             size = widgetImageSize(
                 context = context,
                 widgetSize = widgetSize,
@@ -171,6 +157,7 @@ private fun ColumnScope.MonthCalendarWidgetLarge(content: WidgetProgressContent,
         bitmap = drawMonthCalendarDaysBitmap(
             context = context,
             weeks = weeks,
+            accentArgb = widgetAccentColor().toArgb(),
             firstDayOfWeek = content.firstDayOfWeek,
             size = widgetImageSize(
                 context = context,

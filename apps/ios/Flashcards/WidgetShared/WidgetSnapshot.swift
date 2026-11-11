@@ -75,4 +75,5 @@ struct WidgetSnapshot: Codable, Sendable, Equatable {
     let upcomingDueDays: [WidgetSnapshotDueDay]?
     /// The Progress review schedule buckets in their stable order; nil until the app has loaded them.
     let reviewSchedule: [WidgetSnapshotScheduleBucket]?
+    let accentColor: AccountAccentColor?
 }

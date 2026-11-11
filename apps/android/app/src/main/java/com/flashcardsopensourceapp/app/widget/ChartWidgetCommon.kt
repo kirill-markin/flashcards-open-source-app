@@ -35,7 +35,6 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -61,9 +60,7 @@ internal val chartWidgetMinimumChartHeight: Dp = 48.dp
  * at the size they are shown instead of being scaled up from a bucket.
  */
 internal val chartWidgetSizeMode: SizeMode = SizeMode.Exact
-internal val chartWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 
-internal val chartWidgetPrimaryArgb: Int = FlashcardsDarkColorScheme.primary.toArgb()
 internal val chartWidgetLabelArgb: Int = FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
 internal val chartWidgetTrackArgb: Int = FlashcardsDarkColorScheme.outlineVariant.toArgb()
 

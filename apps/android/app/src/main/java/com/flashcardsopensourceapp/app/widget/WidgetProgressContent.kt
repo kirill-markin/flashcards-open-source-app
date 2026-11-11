@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.app.widget
 
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
@@ -12,12 +11,9 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
 
 /** Today is the first forecast day, from the queue's due count; these are the days after it. */
 private const val widgetUpcomingDueDayCount: Int = 6
@@ -54,17 +50,6 @@ data class WidgetProgressContent(
     /** Null until the review schedule has loaded. */
     val reviewSchedule: List<CloudProgressReviewScheduleBucket>?
 )
-
-/** Follows graph replacement (sign-out, reset) and waits while no graph is published. */
-@OptIn(ExperimentalCoroutinesApi::class)
-fun <T> observeWithCurrentAppGraph(
-    application: FlashcardsApplication,
-    observe: (AppGraph) -> Flow<T>
-): Flow<T> {
-    return application.appGraphState.flatMapLatest { appGraph ->
-        if (appGraph == null) emptyFlow() else observe(appGraph)
-    }
-}
 
 fun observeWidgetContent(appGraph: AppGraph): Flow<WidgetContent> {
     return combine(
