@@ -64,7 +64,10 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    [readiness manifest and report](readiness.md#generate-the-android-manifest).
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code, and the Wear OS
-   `wear:production` draft by its wear name and version code from the run summary.
+   internal testing (`wear:qa`) release by its wear name and version code from
+   the run summary; it is already available to internal testers. After the
+   first such release, complete the
+   [Wear OS opt-in](../android-ci-cd.md#one-time-play-console-setup).
    Confirm both belong to the same SHA/run/attempt as the passing Device Run sessions. Confirm the uploaded
    phone AAB manifest advertises minimum API 30 and target API 37; source declarations
    alone do not prove the distributed minimum. Device Run exercises the
@@ -81,7 +84,7 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
 7. Compare the uploaded localized notes with the retained input, or fill them
    from the chat when the dispatch input was empty. Review the draft and required
    translations, and complete the production publication controls for that
-   exact bundle and its `wear:production` draft. Keep its identity pinned; do not select a newer unrelated
+   exact bundle. Keep its identity pinned; do not select a newer unrelated
    upload. After required release gates pass and any other unavailable testing is recorded under the standing policy, inspect the complete app-wide
    change set and submit the intended changes when a manual submission is
    required. Verify the actual review status; complete any publication action
@@ -180,8 +183,8 @@ Source changes require the bounded comparisons and affected gates in
    state, delivered translations, processing and publication controls; upload
    recovery alone does not establish readiness or public availability.
    Recovery re-uploads only the phone bundle, so a recovered release has no
-   `wear:production` draft: publish the phone draft alone; the Wear OS bundle
-   ships with the next normal release.
+   Wear OS internal testing release: publish the phone draft alone; the Wear OS
+   bundle reaches internal testing with the next normal release.
 
 ## First-release API 30 walkthrough
 
