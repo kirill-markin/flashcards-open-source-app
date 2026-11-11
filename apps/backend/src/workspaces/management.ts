@@ -17,7 +17,7 @@ import {
   lockWorkspaceAccessLifecycleInExecutor,
   lockWorkspaceMembershipLifecyclesInExecutor,
 } from "./accessLocks";
-import { ensureCardMaintenanceReplicaInExecutor, resetCardProgressInExecutor } from "./cardMaintenanceWrites";
+import { ensureCardMaintenanceReplicaInExecutor, resetCardsProgressInExecutor } from "./cardMaintenanceWrites";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
   listUserWorkspaceIdsInExecutor,
@@ -425,15 +425,7 @@ async function resetWorkspaceProgressInExecutor(
     stage = "reset_workspace_cards";
     const resetReplicaId = await ensureCardMaintenanceReplicaInExecutor(executor, userId, workspaceId, "reset-progress");
 
-    for (const resettableCard of resettableCards) {
-      await resetCardProgressInExecutor(
-        executor,
-        workspaceId,
-        hotChangeWriteLock,
-        resetReplicaId,
-        resettableCard.card_id,
-      );
-    }
+    await resetCardsProgressInExecutor(executor, hotChangeWriteLock, resetReplicaId, resettableCards, null);
 
     return {
       ok: true,

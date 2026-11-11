@@ -67,6 +67,10 @@ export const CARD_SELECT = [
   "FROM content.cards",
 ].join(" ");
 
+// Server writers that publish their own card version invalidate an earlier pull correction.
+export const ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL =
+  "CASE WHEN maintenance_snapshot_published_at = client_updated_at THEN maintenance_snapshot_lww_at END";
+
 export async function loadCardRowForMutation(
   executor: DatabaseExecutor,
   workspaceId: string,

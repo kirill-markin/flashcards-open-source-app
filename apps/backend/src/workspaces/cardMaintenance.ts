@@ -16,7 +16,7 @@ import {
 import {
   ensureCardMaintenanceReplicaInExecutor,
   removeCardTagsInExecutor,
-  resetCardProgressInExecutor,
+  resetCardsProgressInExecutor,
 } from "./cardMaintenanceWrites";
 import {
   assertUserHasWorkspaceMembershipInExecutor,
@@ -66,7 +66,7 @@ type MaintenanceScope = Readonly<{
   includesAllCards: boolean;
   decks: ReadonlyArray<Deck>;
 }> & (
-  | Readonly<{ kind: "reset"; cards: ReadonlyArray<CardIdRow> }>
+  | Readonly<{ kind: "reset"; cards: ReadonlyArray<CardIdRow>; newCardIds: ReadonlyArray<string> | null }>
   | Readonly<{ kind: "removeTag"; cards: ReadonlyArray<TagRemovalRow> }>
 );
 
@@ -182,6 +182,7 @@ async function resolveMaintenanceScopeInExecutor(
       targetName: card.front_text,
       includesAllCards: false,
       cards: card.needs_reset ? [card] : [],
+      newCardIds: [],
       decks: [],
     };
   }
@@ -193,7 +194,8 @@ async function resolveMaintenanceScopeInExecutor(
     }
     const tags = deck.filterDefinition.tags;
     const includesAllCards = tags.length === 0;
-    const cards = includesAllCards
+    const matchingCards = includesAllCards ? null : await loadMatchingTaggedCardsInExecutor(executor, workspaceId, tags);
+    const cards = matchingCards === null
       ? (await executor.query<CardIdRow>(
         [
           "SELECT card_id FROM content.cards WHERE workspace_id = $1 AND deleted_at IS NULL AND",
@@ -202,13 +204,14 @@ async function resolveMaintenanceScopeInExecutor(
         ].join(" "),
         [workspaceId],
       )).rows
-      : (await loadMatchingTaggedCardsInExecutor(executor, workspaceId, tags)).filter((card) => card.needs_reset);
+      : matchingCards.filter((card) => card.needs_reset);
 
     return {
       kind: "reset",
       targetName: deck.name,
       includesAllCards,
       cards,
+      newCardIds: matchingCards === null ? null : matchingCards.filter((card) => !card.needs_reset).map((card) => card.card_id),
       decks: [deck],
     };
   }
@@ -225,6 +228,7 @@ async function resolveMaintenanceScopeInExecutor(
     targetName: input.target,
     includesAllCards: false,
     cards: cards.filter((card) => card.needs_reset),
+    newCardIds: cards.filter((card) => !card.needs_reset).map((card) => card.card_id),
     decks: [],
   };
 }
@@ -309,12 +313,12 @@ export async function executeCardMaintenanceForUser(
     const replicaId = await ensureCardMaintenanceReplicaInExecutor(executor, userId, workspaceId, actorKey);
     if (scope.kind === "removeTag") {
       for (const card of scope.cards) {
-        await removeCardTagsInExecutor(executor, workspaceId, lock, replicaId, card.card_id, card.removed_tags);
+        await removeCardTagsInExecutor(
+          executor, workspaceId, lock, replicaId, card.card_id, card.removed_tags, normalizeTagKey(input.target),
+        );
       }
     } else {
-      for (const card of scope.cards) {
-        await resetCardProgressInExecutor(executor, workspaceId, lock, replicaId, card.card_id);
-      }
+      await resetCardsProgressInExecutor(executor, lock, replicaId, scope.cards, scope.newCardIds);
     }
     return { affectedCardsCount: scope.cards.length };
   });

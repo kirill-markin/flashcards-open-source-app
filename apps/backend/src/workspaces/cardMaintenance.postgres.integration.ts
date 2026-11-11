@@ -269,6 +269,7 @@ test("card maintenance confirms the exact persisted scope and syncs only the sel
             targetName: card.frontText,
             includesAllCards: false,
             cards: [{ card_id: card.cardId }],
+            newCardIds: [],
             decks: [],
           }, shortExpiryMs),
         };
