@@ -60,6 +60,7 @@ struct RootTabView: View {
     @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
     @State private var isKeyboardDocked: Bool = false
+    @State private var loadedTagsCount: (workspaceId: String, count: Int)?
     #if targetEnvironment(macCatalyst)
     @State private var macSidebarVisibility: NavigationSplitViewVisibility = .all
     @Environment(\.macSidebarCommandTarget) private var macSidebarCommandTarget
@@ -95,6 +96,70 @@ struct RootTabView: View {
         makeSettingsAttentionSummary(
             issues: makeSettingsAttentionIssues(cloudState: store.cloudSettings?.cloudState)
         )
+    }
+
+    private var tagsCount: Int? {
+        guard let workspaceId = self.store.workspace?.workspaceId, self.store.database != nil else {
+            return 0
+        }
+
+        guard let loadedTagsCount = self.loadedTagsCount, loadedTagsCount.workspaceId == workspaceId else {
+            return nil
+        }
+
+        return loadedTagsCount.count
+    }
+
+    private var tagsSourceKey: String {
+        "\(self.store.workspace?.workspaceId ?? "")|\(self.store.localReadVersion)"
+    }
+
+    @MainActor
+    private func reloadTagsCount() async {
+        guard let database = self.store.database, let workspaceId = self.store.workspace?.workspaceId else {
+            self.loadedTagsCount = nil
+            return
+        }
+
+        let sourceKey = self.tagsSourceKey
+        do {
+            let count = try await loadWorkspaceTagCountInBackground(
+                databaseURL: database.databaseURL,
+                workspaceId: workspaceId
+            )
+            guard Task.isCancelled == false, self.tagsSourceKey == sourceKey else {
+                return
+            }
+            self.loadedTagsCount = (workspaceId, count)
+        } catch {
+            guard Task.isCancelled == false, self.tagsSourceKey == sourceKey else {
+                return
+            }
+            #if targetEnvironment(macCatalyst)
+            self.loadedTagsCount = nil
+            FlashcardsObservability.captureSilentFailure(
+                error: error,
+                scope: IOSObservationScope(
+                    feature: .localData,
+                    userId: self.store.cloudSettings?.linkedUserId,
+                    workspaceId: workspaceId,
+                    requestId: nil,
+                    clientRequestId: nil,
+                    sessionId: nil,
+                    runId: nil,
+                    cloudState: self.store.cloudSettings?.cloudState,
+                    configurationMode: try? self.store.currentCloudServiceConfiguration().mode
+                ),
+                action: "library_sidebar_tag_count",
+                stage: "local_read",
+                statusCode: nil,
+                backendCode: nil,
+                requestId: nil
+            )
+            #else
+            self.store.presentTechnicalError(error)
+            #endif
+        }
     }
 
     private var reviewDueBadgeTaskID: ReviewDueBadgeTaskID {
@@ -559,12 +624,26 @@ struct RootTabView: View {
         .scrollContentBackground(.hidden)
         .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
         .toolbar(.hidden, for: .navigationBar)
+        .task(id: self.tagsSourceKey) {
+            await self.reloadTagsCount()
+        }
     }
 
     private func macLibrarySidebarRow(_ section: LibrarySection) -> some View {
-        let row = Label(section.localizedTitle, systemImage: section.systemImage)
-            .accessibilityIdentifier(librarySidebarItemIdentifier(section))
-            .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
+        let count: Int? = switch section {
+        case .cards: self.store.cards.count
+        case .tags: self.tagsCount
+        case .decks: self.store.decks.count
+        case .deckCatalog, .importData, .exportData: nil
+        }
+        let row = LibraryRowLabel(
+            title: section.localizedTitle,
+            subtitle: section.localizedWorkspaceSubtitle,
+            systemImage: section.systemImage
+        )
+        .badge(count.map { Text($0.formatted()) })
+        .accessibilityIdentifier(librarySidebarItemIdentifier(section))
+        .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
         return Group {
             if section == .cards {
                 row.macSidebarShortcutHelp(title: section.localizedTitle, key: MacNavigationShortcut.cards.key)
@@ -1039,7 +1118,10 @@ struct RootTabView: View {
             self.libraryDestinationView(destination: section.destination)
         }
         #else
-        LibraryScreen()
+        LibraryScreen(tagsCount: self.tagsCount)
+            .task(id: self.tagsSourceKey) {
+                await self.reloadTagsCount()
+            }
         #endif
     }
 

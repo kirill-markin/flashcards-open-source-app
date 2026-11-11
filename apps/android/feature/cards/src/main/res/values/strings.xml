@@ -2,8 +2,11 @@
     <string name="library_title">Library</string>
     <string name="library_your_cards_section_title">Your cards</string>
     <string name="library_cards_title">Cards</string>
+    <string name="library_cards_summary">All cards in this workspace.</string>
     <string name="library_tags_title">Tags</string>
+    <string name="library_tags_summary">Tags used on your cards.</string>
     <string name="library_decks_title">Decks</string>
+    <string name="library_decks_summary">Card groups based on tags you choose.</string>
     <string name="library_add_cards_section_title">Add cards</string>
     <string name="library_deck_catalog_title">Deck catalog</string>
     <string name="library_deck_catalog_summary">Free ready-made decks to study.</string>

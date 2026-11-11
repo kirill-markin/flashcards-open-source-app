@@ -782,6 +782,15 @@ const arCatalog: TranslationCatalog = {
       addCards: "إضافة بطاقات",
       transfer: "نقل البيانات",
     },
+    cards: {
+      description: "كل البطاقات في مساحة العمل هذه.",
+    },
+    tags: {
+      description: "الوسوم المستخدمة على بطاقاتك.",
+    },
+    decks: {
+      description: "مجموعات بطاقات تُبنى على الوسوم التي تختارها.",
+    },
     deckCatalog: {
       title: "كتالوج المجموعات",
       description: "مجموعات جاهزة مجانية للدراسة.",

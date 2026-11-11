@@ -789,6 +789,15 @@ const plCatalog: TranslationCatalog = {
       addCards: "Dodaj karty",
       transfer: "Przenoszenie danych",
     },
+    cards: {
+      description: "Wszystkie karty w tej przestrzeni roboczej.",
+    },
+    tags: {
+      description: "Tagi używane na Twoich kartach.",
+    },
+    decks: {
+      description: "Grupy kart na podstawie wybranych przez Ciebie tagów.",
+    },
     deckCatalog: {
       title: "Katalog talii",
       description: "Darmowe gotowe talie do nauki.",

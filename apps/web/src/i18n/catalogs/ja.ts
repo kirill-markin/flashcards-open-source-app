@@ -782,6 +782,15 @@ export const jaCatalog = {
       addCards: "カードを追加",
       transfer: "データ移行",
     },
+    cards: {
+      description: "このワークスペースのすべてのカード。",
+    },
+    tags: {
+      description: "カードに付けられているタグ。",
+    },
+    decks: {
+      description: "選んだタグに基づくカードのグループ。",
+    },
     deckCatalog: {
       title: "デッキカタログ",
       description: "すぐに学習できる無料のデッキ。",
