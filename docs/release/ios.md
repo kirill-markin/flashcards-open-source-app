@@ -51,9 +51,9 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
 4. While both tracks run, prepare [What's New for every iOS locale](release-notes.md)
    locally and record the released version used as the baseline. Update the
    App Store draft in step 6.
-5. Reconcile all five [schema-4 gates](readiness.md#ios-local-acceptance-schema-4):
-   unsigned `local-archive`, `local-full`, `local-ipad`, `local-ios18` and signed
-   `cloud-archive`. Inspect every named result, warning and failure artifact.
+5. Reconcile all five [schema 5 gates](readiness.md#ios-critical-release-schema-5)
+   for the unsigned local archive, three critical native plans and signed
+   Cloud archive. Inspect every named result, warning and failure artifact.
    Require every available selected case to pass, with
    [targeted recovery](evidence.md#targeted-recovery) for affected cases. Record
    any unavailable coverage for the decision in step 6. Apply the
@@ -82,7 +82,13 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    build's `minOsVersion` and app bundle's `minimumOsVersion` to report 18.0
    (Apple's [build metadata fields](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-builds)).
    Do not infer binary compatibility from source settings or another build.
-   Before attachment, run short checks on that exact signed Release/TestFlight artifact: launch with `FLASHCARDS_AUTOMATION_RUN=1` in the app process, verify `automation_run_decided` reports `isAutomation=true`, then navigate, create/reveal/rate a disposable card, and confirm offline relaunch persistence. Record artifact/version/build, actual OS, steps and outcomes, and complete applicable [iOS 18 manual checks](../ios-local-setup.md#ios-18-compatibility-smoke).
+   On that exact signed Release/TestFlight artifact, use a disposable workspace.
+   Disconnect networking, create a card, reveal and rate it, then relaunch
+   offline and verify that the card and rating persist. Use the
+   [automation marker](../ios-ci-cd.md#automation-marker) on both launches.
+   Record artifact/version/build, actual OS and outcome. Reconnect for the
+   [independent-client sync check](evidence.md#independent-client-sync-check)
+   and complete applicable [iOS 18 checks](../ios-local-setup.md#ios-18-compatibility-smoke).
    Require all available exact-artifact checks to pass and resolve any observed
    blocking failure before withdrawing an older submission or attaching the
    verified build. For unavailable coverage only, record the unexecuted checks

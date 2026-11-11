@@ -5,7 +5,11 @@ final class LiveSmokeAiTests: LiveSmokeTestCase {
     func testLiveSmokeGuestAiCardCreationFlow() throws {
         try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .ai)
 
-        try self.step("create one guest AI card and confirm the insert completed") {
+        try self.step("grant guest consent and confirm a live AI card insert") {
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+            )
             try self.createAiCardWithConfirmation()
         }
     }

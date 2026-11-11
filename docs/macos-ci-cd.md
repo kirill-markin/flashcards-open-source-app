@@ -101,7 +101,11 @@ and the unrun fixture cases explicitly. Release keeps the production
 identity. External marketing-capture signing configuration retains its explicit
 capture-only bundle override. Do not override ordinary Debug tests to production.
 
-Build shared scheme **Flashcards Native Acceptance**, plan **LocalMac**, test-plan configuration **Acceptance**, Debug. The plan includes the entire existing **Flashcards Open Source App Tests** non-UI bundle and all Mac-eligible **Flashcards Open Source App UI Tests** flows, excluding only marketing capture and the phone-only class. Independently discover the complete selected inventory from the pinned source, plan and actual Xcode destination before reviewing results; do not freeze a historical count or use the original archive scheme's UI-only selection.
+Use **Flashcards Native Acceptance**, [LocalMacCritical](../apps/ios/Flashcards/LocalMacCritical.xctestplan),
+**Acceptance**, Debug. Keep the full existing non-UI bundle and three foreground
+journeys. Discover the complete selected inventory from the pinned plan, source
+and actual Xcode destination before reviewing results. Run the Cloud archive in
+parallel on the release track.
 
 Use the original generated `.xctestrun` under `tmp/macos-derived-data/Build/Products` for the same built products:
 
@@ -110,7 +114,7 @@ set -o pipefail
 mkdir -p tmp
 xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
   -scheme "Flashcards Native Acceptance" -configuration Debug \
-  -testPlan LocalMac -only-test-configuration Acceptance \
+  -testPlan LocalMacCritical -only-test-configuration Acceptance \
   -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
   -derivedDataPath "tmp/macos-derived-data" -xcconfig '<external-signing-xcconfig>' \
   DEVELOPMENT_TEAM='<team-id>' CODE_SIGN_IDENTITY='Apple Development' build-for-testing \
@@ -128,7 +132,7 @@ the suite below.
 
 ```bash
 TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL='<configured-review-email>' \
-xcodebuild -xctestrun '<generated-LocalMac-xctestrun>' \
+xcodebuild -xctestrun '<generated-LocalMacCritical-xctestrun>' \
   -only-test-configuration Acceptance \
   -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
   -parallel-testing-enabled NO \
@@ -146,8 +150,8 @@ and save actual evidence in the [release ledger](release/evidence.md#release-led
 
 #### Desktop launch preflight
 
-Reserve the same idle, logged-in Mac desktop for this check and `LocalMac`.
-Quit other development app instances. Confirm the desktop observation tool can
+Reserve a dedicated, idle, logged-in Mac desktop for this preflight and the
+foreground suite. Quit other development app instances. Confirm the desktop observation tool can
 show system dialogs outside Nibomo's window and check the full desktop.
 If clear, start `log stream --predicate 'category == "automation_run"'` in a
 separate terminal and launch the verified signed Debug app from the build above
@@ -241,52 +245,36 @@ simulator checks can run independently. Report actual runtime and SDK separately
 
 ### Existing native flows
 
-The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligible UI flow without heavy GitHub PR jobs. Mac reuses real guest card creation/review, guest AI, Settings/Progress, notification routing, own-key persistence and linked account/workspace sync flows. The plan excludes the phone-only class and marketing capture; existing iPad keyboard, companion and wide consent flows apply. These exclusions are not skipped/passed results. The notification foreground-return smoke uses Command-H instead of the unavailable Home button.
+[LocalMacCritical](../apps/ios/Flashcards/LocalMacCritical.xctestplan) selects
+these foreground journeys alongside the non-UI bundle:
 
-`LiveSmokeMacCatalystTests` compiles only for Catalyst and adds:
+- Sign in to the configured review account, link an isolated workspace and
+  confirm the Keychain-backed session survives process relaunch.
+- Reveal with Space and rate Good with the pointer. Reveal and rate Easy with
+  the keyboard without clicking to regain focus. Verify both saved ratings in
+  local Progress.
+- Keep an AI companion draft and typing focus through hide/reactivate. Inspect
+  the retained `mac-ai-companion-focus` screenshots.
 
-- native toolbar containment and sizing, settled screenshots of every main
-  section and the ready companion, and window tiling/restoration of an unsent
-  draft and revealed answer;
-- seven cards created through the real editor, with inline/display math; Space
-  reveals, a pointer click rates, then Space reveals the next card without a
-  focus click; keys 1–4 rate only a revealed answer; Space and Return reveal and
-  1 rates while the sidebar holds focus;
-- a wide AI companion with an attached review card; after hovering a rating,
-  Space/1–4 must enter the focused composer and the unsent draft must survive
-  Cards/Progress/Review navigation;
-- nondestructive current-workspace checks without a fixture launch scenario,
-  never rating, saving or sending personal content: sidebar focus and
-  wide→narrow→wide restoration, toolbar backdrop over recreated Review/chat
-  scroll views, toolbar search text, and Settings after AI history;
-- Library's sidebar sections opened from another section: Review's Edit decks
-  selects Decks before and after another section was shown, and Command-4
-  opens Cards; after switching Cards, Tags and Decks, Back from a pushed
-  deck returns to the still-selected Decks list.
-
-The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
-Catalyst runs on a real Mac, so simulator detection alone is insufficient.
-Verify `automation_run_decided` reports `isAutomation=true` before interaction. Keep the existing non-production Sentry override for these tests.
+Use `LocalMac` or an explicit `-only-testing` filter for affected behavior.
+Examples include toolbar and window changes, localized hover hints and all
+rating keys, rich review content and formula rendering, or shared Settings,
+notifications, own-key, consent and iPad companion changes. Inspect the
+relevant screenshots, including `mac-review-formulas` when changing math.
+Pointer synthesis covers pointer events. Use hardware for physical touch or
+Sidecar changes. Report actual runtime and SDK separately.
 
 For app-bound computer use, bind the absolute installed development `.app` path.
-Build products and retained backups share its bundle identifier, so bundle-ID
-lookup can be ambiguous. Prefer background app-bound controls and screenshots;
-serialize any foreground interval with other agents on the same desktop, and
-never run desktop-driving XCTest concurrently. Retain fresh tool errors and
-verification limits rather than counting an unavailable interaction as passed.
+Build products and retained backups can share a bundle ID. Serialize foreground
+interaction with XCTest on the dedicated desktop.
 
-Successful Mac smokes retain `mac-review-formulas` and
-`mac-ai-companion-focus` window/screen image attachments. Inspect rendered
-formulas and actual layout; control assertions alone do not prove visual
-correctness. Record the result bundle and attachment names. For repeatable localized store originals, use the separate
+For localized store originals, use
 [native Mac marketing capture](../apps/ios/docs/marketing-screenshots.md#native-mac-catalyst-capture)
-with its genuine capture-only bundle/profile, separate runtime file and
+with its capture-only bundle/profile, runtime file and
 `tmp/macos-marketing-derived-data`. That route checks isolation before guest
-cleanup and preserves the installed production container. Inspect pixels before
-reuse: Apple accepts 2880×1800, 2560×1600, 1440×900 or 1280×800. The Mac display
-and window determine capture dimensions; an attachment is not automatically
-store-ready. If size/content is unsuitable, capture the verified Mac artifact
-at an accepted size before submission. Never substitute an iPad screenshot.
+cleanup. Inspect pixels before reuse. Apple accepts 2880×1800, 2560×1600,
+1440×900 or 1280×800 Mac images. Capture the verified Mac artifact at an accepted
+size when the native attachment is unsuitable.
 
 ## Development analytics verification
 
@@ -330,45 +318,36 @@ Static CI does not establish these outcomes.
    compare its `org.user_settings.product_analytics_enabled` before/after and require
    no change. Do not count unrelated server producers as a marker failure; see
    [automation coverage](analytics-audience.md#automation-installations).
-4. Run the complete signed `LocalMac` selection above and retain every named non-UI/UI result, logs and attachments. All manual/automated checks use `FLASHCARDS_AUTOMATION_RUN=1` and verified `isAutomation=true`; do not generate real product analytics for test activity.
+4. Retain the signed native results and the automation marker as described in
+   [signed local acceptance](#signed-local-native-acceptance).
 
 ## Manual checklist on the verified Mac artifact
 
-Record version/build, SHA, OS, steps and results alongside native smoke evidence
-before App Review. Use the actual correlated signed release/TestFlight artifact, preserving its archive/export provenance; a Debug acceptance app does not satisfy these checks. Launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"` and verify `automation_run_decided` reports `isAutomation=true` before interaction. Reapply the flag and verify every new process, including relaunch/notification checks; stop if marking cannot be established. These short checks exercise the signed app and actual services.
+Use the exact correlated, signed TestFlight app on the dedicated Mac desktop.
+Record source, artifact, version/build, actual macOS and outcome. Launch and
+relaunch using `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`.
+Verify `automation_run_decided` reports `isAutomation=true` before interacting
+with each process.
 
-1. Confirm the installed bundle is `Nibomo.app`, its `CFBundleName` and
-   `CFBundleDisplayName` are `Nibomo`, and its `CFBundleExecutable` is `Nibomo`.
-   Verify Finder and Dock show Nibomo. With English selected, search Spotlight
-   for `Nibomo`, `flashcards`, `flash cards`, `study cards`, and `revision cards`
-   separately and launch the installed app from each result. Repeat with another
-   supported system language using its study/revision terms from `MDItemKeywords`;
-   record the language and exact queries. Upgrade an existing installation and
-   confirm local workspaces and cards remain available.
-2. Resize between narrow and wide landscape layouts. Open/close AI beside
-   Review, Progress, Cards and Settings; preserve the draft and revealed answer.
-   Verify dark appearance and scrolling.
-3. Reveal with Space and rate with 1–4. Click a rating, then press Space on the
-   next card without clicking elsewhere. Inspect localized reveal/rating hover
-   hints in English and another supported locale. Type Space/1–4 in AI and card
-   editors while hovering review controls; focus and reviews must stay intact.
-4. Create/edit a card; verify save and cancel. Inspect inline and display math,
-   including fractions, in cards. Play/stop review speech. Inspect native
-   screenshots for rendered formulas in card lists, previews and AI transcripts.
-   Check selection/copy preserves formula source and technical disclosures stay literal.
-5. Disconnect networking, create/edit/review locally, quit and relaunch. Confirm
-   persistence. Reconnect, sign in, sync and verify changes on another client.
-   Inspect failed sync errors.
-6. Send AI text, dictate with microphone access allowed/denied, attach a photo
-   and user-selected file, then send. Exercise camera when UIKit offers it;
-   otherwise verify the localized unavailable error and photo/file selection.
-   Confirm cancelling does not upload anything.
-7. Allow/deny notifications, schedule a review reminder and open its delivered
-   notification with the app running and after quitting. Review must open once;
-   foregrounding again must preserve the current section.
-8. Using an Apple sandbox account, load Premium, purchase, restore and manage
-   subscriptions. Verify backend entitlement and offline cosmetics follow the
-   [paid-access contract](premium-entitlements.md).
+Open a disposable workspace. Disconnect networking, create a card, reveal
+and rate it, then relaunch offline and confirm that the card and rating persist.
+Reconnect and follow the [independent-client check](release/evidence.md#independent-client-sync-check).
+Record anything unavailable under the [release policy](release/README.md#standing-best-effort-release-policy).
+
+Exercise additional checks on the signed artifact when a change affects them:
+
+- Installation, naming, Spotlight or upgrade. Check Finder/Dock names and
+  localized search terms, then verify an upgrade preserves workspaces and cards.
+- Window layout, appearance, pointer targets or keyboard focus. Use the
+  [input and window checklist](#input-and-window-conventions).
+- Card editing, speech or formulas. Exercise save/cancel, speech and selection
+  or copying of inline/display math in cards and AI transcripts.
+- AI media/dictation. Check permission grant/denial, supported capture or file
+  selection, sending and cancel before upload.
+- Reminders. Allow or deny permission and open a delivered reminder in warm
+  and cold app states. Review opens once.
+- Billing. Use the Apple sandbox to load, purchase, restore and manage a
+  subscription and verify the [paid-access contract](premium-entitlements.md).
 
 ## Mac App Review procedure
 
