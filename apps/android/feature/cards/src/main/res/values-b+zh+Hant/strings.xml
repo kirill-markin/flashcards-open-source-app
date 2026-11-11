@@ -8,7 +8,10 @@
     <string name="library_deck_catalog_title">牌組目錄</string>
     <string name="library_deck_catalog_summary">免費牌組，選好就能開始學習。</string>
     <string name="library_import_title">匯入</string>
-    <string name="library_import_summary">從檔案加入卡片。</string>
+    <string name="library_import_formats_summary">%1$s、%2$s</string>
+    <string name="library_import_nibomo_format">Nibomo 格式</string>
+    <string name="library_import_anki_format">Anki 格式</string>
+    <string name="library_import_back_content_description">返回</string>
     <string name="library_transfer_section_title">資料傳輸</string>
     <string name="library_export_title">匯出</string>
     <string name="library_export_summary">將卡片儲存到檔案。</string>

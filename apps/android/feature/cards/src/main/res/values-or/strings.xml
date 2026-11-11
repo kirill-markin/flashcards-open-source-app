@@ -8,7 +8,10 @@
     <string name="library_deck_catalog_title">ଡେକ୍ କ୍ୟାଟାଲଗ୍</string>
     <string name="library_deck_catalog_summary">ପଢ଼ିବା ପାଇଁ ପୂର୍ବରୁ ତିଆରି ମାଗଣା ଡେକ୍।</string>
     <string name="library_import_title">ଇମ୍ପୋର୍ଟ</string>
-    <string name="library_import_summary">ଫାଇଲ୍‌ରୁ କାର୍ଡ ଯୋଡ଼ନ୍ତୁ।</string>
+    <string name="library_import_formats_summary">%1$s, %2$s</string>
+    <string name="library_import_nibomo_format">Nibomo ଫର୍ମାଟ୍</string>
+    <string name="library_import_anki_format">Anki ଫର୍ମାଟ୍</string>
+    <string name="library_import_back_content_description">ପଛକୁ</string>
     <string name="library_transfer_section_title">ଡାଟା ସ୍ଥାନାନ୍ତର</string>
     <string name="library_export_title">ଏକ୍ସପୋର୍ଟ</string>
     <string name="library_export_summary">କାର୍ଡଗୁଡ଼ିକୁ ଏକ ଫାଇଲ୍‌ରେ ସେଭ୍ କରନ୍ତୁ।</string>

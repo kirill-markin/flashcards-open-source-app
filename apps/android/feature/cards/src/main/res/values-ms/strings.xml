@@ -8,7 +8,10 @@
     <string name="library_deck_catalog_title">Katalog dek</string>
     <string name="library_deck_catalog_summary">Dek percuma yang sedia untuk dipelajari.</string>
     <string name="library_import_title">Import</string>
-    <string name="library_import_summary">Tambah kad daripada fail.</string>
+    <string name="library_import_formats_summary">%1$s, %2$s</string>
+    <string name="library_import_nibomo_format">Format Nibomo</string>
+    <string name="library_import_anki_format">Format Anki</string>
+    <string name="library_import_back_content_description">Kembali</string>
     <string name="library_transfer_section_title">Pemindahan data</string>
     <string name="library_export_title">Eksport</string>
     <string name="library_export_summary">Simpan kad ke dalam fail.</string>

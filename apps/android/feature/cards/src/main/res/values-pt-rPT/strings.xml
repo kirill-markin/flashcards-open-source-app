@@ -8,7 +8,10 @@
     <string name="library_deck_catalog_title">Catálogo de baralhos</string>
     <string name="library_deck_catalog_summary">Baralhos gratuitos prontos a estudar.</string>
     <string name="library_import_title">Importar</string>
-    <string name="library_import_summary">Adicione cartões a partir de um ficheiro.</string>
+    <string name="library_import_formats_summary">%1$s, %2$s</string>
+    <string name="library_import_nibomo_format">Formato Nibomo</string>
+    <string name="library_import_anki_format">Formato Anki</string>
+    <string name="library_import_back_content_description">Voltar</string>
     <string name="library_transfer_section_title">Transferência</string>
     <string name="library_export_title">Exportar</string>
     <string name="library_export_summary">Guarde os cartões num ficheiro.</string>
