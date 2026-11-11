@@ -33,6 +33,7 @@
     "hono": "^4.13.17",
     "just-bash": "3.6.0",
     "mammoth": "^1.13.0",
+    "markdown-it": "15.0.3",
     "maxmind": "^5.0.8",
     "openai": "^7.55.0",
     "papaparse": "^5.7.0",

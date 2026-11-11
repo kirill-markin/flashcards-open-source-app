@@ -39,6 +39,7 @@ internal fun isTransientCloudHttpRetryEligible(
         pathOnly.endsWith(suffix = "/sync/bootstrap") -> body?.optString("mode") == "pull"
         pathOnly.endsWith(suffix = "/packages/export/preview") -> true
         pathOnly.endsWith(suffix = "/packages/export") -> true
+        pathOnly.endsWith(suffix = "/packages/export/anki") -> true
         else -> false
     }
 }

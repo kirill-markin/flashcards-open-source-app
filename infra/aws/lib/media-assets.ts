@@ -2,6 +2,8 @@ import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
+export const workspaceExportsPrefix = "workspace-exports/";
+
 export interface MediaAssetsProps {
   baseDomain: string;
   // Second host for the web bundle, owned by the CloudFront distribution and
@@ -32,6 +34,10 @@ export function mediaAssets(scope: Construct, props: MediaAssetsProps): MediaAss
       {
         // Chat attachments a client staged; see apps/backend/src/chatFiles/uploads.ts.
         prefix: "chat-files/uploads/",
+        expiration: cdk.Duration.days(1),
+      },
+      {
+        prefix: workspaceExportsPrefix,
         expiration: cdk.Duration.days(1),
       },
     ],

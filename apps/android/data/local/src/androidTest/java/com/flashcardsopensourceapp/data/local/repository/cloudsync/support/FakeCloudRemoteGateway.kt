@@ -49,6 +49,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -56,6 +57,7 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageIm
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
+import java.io.File
 
 private data class FakeCloudRemoteGatewayConfig(
     val deleteFailuresRemaining: Int,
@@ -620,7 +622,9 @@ internal class FakeCloudRemoteGateway private constructor(
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
-        request: WorkspacePackageExportRequest
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
         throw UnsupportedOperationException()
     }

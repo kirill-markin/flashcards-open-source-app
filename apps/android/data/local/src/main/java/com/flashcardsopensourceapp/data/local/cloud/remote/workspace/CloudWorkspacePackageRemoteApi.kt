@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorksp
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageExportPreviewCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageImportCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageImportPreviewCloudPath
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.downloadSignedArchive
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
@@ -20,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudStringList
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDefaultPackageMetadata
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportMetadataInput
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
@@ -35,11 +37,17 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageIm
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportSourceKind
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportTagCount
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportWarning
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
+import java.io.File
 import java.util.Locale
 
-private const val workspacePackageExportContentType: String = "application/zip"
+private const val ankiExportFileName: String = "flashcards.apkg"
+private const val ankiExportFieldPath: String = "workspaceAnkiExport"
 private const val workspacePackageExportFilenameFieldPath: String = "workspacePackageExport.fileName"
 private const val workspacePackageImportFileFieldName: String = "file"
 private const val workspacePackageImportOptionsFieldName: String = "options"
@@ -69,18 +77,96 @@ internal class CloudWorkspacePackageRemoteApi(
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
-        request: WorkspacePackageExportRequest
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
+        val exportPath = buildWorkspacePackageExportCloudPath(workspaceId = workspaceId)
         val response = httpClient.postJsonForBytes(
             baseUrl = apiBaseUrl,
-            path = buildWorkspacePackageExportCloudPath(workspaceId = workspaceId),
+            path = when (format) {
+                WorkspacePackageExportFormat.NIBOMO -> exportPath
+                WorkspacePackageExportFormat.ANKI -> "$exportPath/anki"
+            },
             authorizationHeader = authorizationHeader,
             body = buildWorkspacePackageExportRequestBody(request = request),
-            acceptHeader = workspacePackageExportContentType
+            acceptHeader = when (format) {
+                WorkspacePackageExportFormat.NIBOMO -> format.contentType
+                WorkspacePackageExportFormat.ANKI -> "${format.contentType}, application/json"
+            }
         )
-        return parseWorkspacePackageExportDownloadResponse(
-            response = response,
-            fieldPath = "workspacePackageExport"
+        return when (format) {
+            WorkspacePackageExportFormat.NIBOMO -> withContext(Dispatchers.IO) {
+                parseWorkspacePackageExportDownloadResponse(
+                    response = response,
+                    fieldPath = "workspacePackageExport",
+                    destination = destination
+                )
+            }
+            WorkspacePackageExportFormat.ANKI -> readAnkiExportDownload(
+                response = response,
+                destination = destination
+            )
+        }
+    }
+
+    private suspend fun readAnkiExportDownload(
+        response: CloudBinaryHttpResponse,
+        destination: File
+    ): WorkspacePackageExportDownloadResponse {
+        val contentType = WorkspacePackageExportFormat.ANKI.contentType
+        if (normalizeWorkspacePackageExportContentType(response.contentType) == "application/json") {
+            val download = try {
+                JSONObject(response.bodyBytes.decodeToString())
+            } catch (_: JSONException) {
+                throw CloudContractMismatchException(
+                    "Cloud contract mismatch for $ankiExportFieldPath: expected a JSON download descriptor"
+                )
+            }
+            if (download.opt("fileName") != ankiExportFileName) {
+                throw CloudContractMismatchException(
+                    "Cloud contract mismatch for $ankiExportFieldPath.fileName: expected $ankiExportFileName"
+                )
+            }
+            if (normalizeWorkspacePackageExportContentType(download.opt("contentType") as? String) != contentType) {
+                throw CloudContractMismatchException(
+                    "Cloud contract mismatch for $ankiExportFieldPath.contentType: expected $contentType"
+                )
+            }
+            val url = (download.opt("downloadUrl") as? String)?.toHttpUrlOrNull()
+            if (url == null || url.isHttps.not() || url.username.isNotEmpty() ||
+                url.password.isNotEmpty() || url.fragment != null
+            ) {
+                throw CloudContractMismatchException(
+                    "Cloud contract mismatch for $ankiExportFieldPath.downloadUrl: expected a valid HTTPS URL"
+                )
+            }
+            downloadSignedArchive(url = url, destination = destination, expectedContentType = contentType)
+        } else {
+            requireAnkiExportFileName(
+                fileName = parseWorkspacePackageExportContentDispositionFileName(
+                    contentDisposition = response.contentDisposition,
+                    fieldPath = "$ankiExportFieldPath.fileName"
+                )
+            )
+            requireWorkspacePackageExportContentType(
+                contentType = response.contentType,
+                expectedContentType = contentType,
+                fieldPath = "$ankiExportFieldPath.contentType"
+            )
+            if (response.bodyBytes.isEmpty()) {
+                throw CloudContractMismatchException(
+                    "Cloud contract mismatch for $ankiExportFieldPath: expected archive bytes"
+                )
+            }
+            withContext(Dispatchers.IO) {
+                destination.writeBytes(response.bodyBytes)
+            }
+        }
+        return WorkspacePackageExportDownloadResponse(
+            archiveFile = destination,
+            fileName = ankiExportFileName,
+            contentType = contentType
         )
     }
 
@@ -228,21 +314,23 @@ internal fun parseWorkspacePackageExportPreviewResponse(
 
 internal fun parseWorkspacePackageExportDownloadResponse(
     response: CloudBinaryHttpResponse,
-    fieldPath: String
+    fieldPath: String,
+    destination: File
 ): WorkspacePackageExportDownloadResponse {
-    requireWorkspacePackageExportZipContentType(
+    requireWorkspacePackageExportContentType(
         contentType = response.contentType,
+        expectedContentType = WorkspacePackageExportFormat.NIBOMO.contentType,
         fieldPath = "$fieldPath.contentType"
     )
+    val fileName = parseWorkspacePackageExportContentDispositionFileName(
+        contentDisposition = response.contentDisposition,
+        fieldPath = workspacePackageExportFilenameFieldPath
+    )
+    destination.writeBytes(response.bodyBytes)
     return WorkspacePackageExportDownloadResponse(
-        packageBytes = response.bodyBytes,
-        fileName = parseWorkspacePackageExportContentDispositionFileName(
-            contentDisposition = response.contentDisposition,
-            fieldPath = workspacePackageExportFilenameFieldPath
-        ),
-        contentType = response.contentType ?: throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath.contentType: expected application/zip, got missing header"
-        )
+        archiveFile = destination,
+        fileName = fileName,
+        contentType = checkNotNull(response.contentType)
     )
 }
 
@@ -292,17 +380,26 @@ private fun JSONObject.requireWorkspacePackageExportNonNegativeLong(
     return value
 }
 
-private fun requireWorkspacePackageExportZipContentType(
+private fun requireWorkspacePackageExportContentType(
     contentType: String?,
+    expectedContentType: String,
     fieldPath: String
 ) {
-    val normalizedContentType = contentType
-        ?.substringBefore(delimiter = ";")
-        ?.trim()
-        ?.lowercase(Locale.US)
-    if (normalizedContentType != workspacePackageExportContentType) {
+    if (normalizeWorkspacePackageExportContentType(contentType) != expectedContentType) {
         throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: expected application/zip, got ${contentType ?: "missing header"}"
+            "Cloud contract mismatch for $fieldPath: expected $expectedContentType, got ${contentType ?: "missing header"}"
+        )
+    }
+}
+
+private fun normalizeWorkspacePackageExportContentType(contentType: String?): String? {
+    return contentType?.substringBefore(delimiter = ";")?.trim()?.lowercase(Locale.US)
+}
+
+private fun requireAnkiExportFileName(fileName: String) {
+    if (fileName != ankiExportFileName) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $ankiExportFieldPath.fileName: expected $ankiExportFileName, got $fileName"
         )
     }
 }

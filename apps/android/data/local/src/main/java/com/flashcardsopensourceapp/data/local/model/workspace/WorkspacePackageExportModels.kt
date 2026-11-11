@@ -1,6 +1,14 @@
 package com.flashcardsopensourceapp.data.local.model.workspace
 
+import java.io.File
+
+const val workspacePackageExportAnkiEmptyErrorCode: String = "WORKSPACE_PACKAGE_EXPORT_ANKI_EMPTY"
 const val workspacePackageExportGeneratedImportTagPrefix: String = "import:"
+
+enum class WorkspacePackageExportFormat(val contentType: String) {
+    NIBOMO(contentType = "application/zip"),
+    ANKI(contentType = "application/apkg")
+}
 
 sealed interface WorkspacePackageExportSelection {
     data object AllActiveCards : WorkspacePackageExportSelection
@@ -56,7 +64,7 @@ data class WorkspacePackageExportPreview(
 )
 
 data class WorkspacePackageExportDownloadResponse(
-    val packageBytes: ByteArray,
+    val archiveFile: File,
     val fileName: String,
     val contentType: String
 )
