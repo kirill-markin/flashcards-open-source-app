@@ -22,7 +22,7 @@ type LoginPageCopy = Readonly<{
   verifyCodeTransportErrorMessage: string;
 }>;
 
-const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
+const BASE_LOGIN_PAGE_COPY = {
   bg: {
     pageTitle: "Вход",
     backToWebsite: "Назад към сайта",
@@ -844,6 +844,78 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
       "No pudimos confirmar si la solicitud del código terminó. Revisa tu correo para encontrar un código y vuelve a intentarlo si hace falta.",
     verifyCodeTransportErrorMessage:
       "No pudimos confirmar si el inicio de sesión terminó. Intenta usar el código otra vez o recarga la página para comprobar si ya has iniciado sesión.",
+  },
+
+  "zh-Hant": {
+    pageTitle: "登入",
+    backToWebsite: "返回網站",
+    checkingSession: "正在檢查登入狀態...",
+    emailLabel: "電子郵件",
+    sendCode: "傳送驗證碼",
+    sendingCode: "正在傳送...",
+    checkEmailForCode: "請查看電子郵件中的 8 位數驗證碼。如果找不到，請檢查垃圾郵件資料夾。",
+    verificationCodeLabel: "驗證碼",
+    verify: "驗證",
+    verifying: "正在驗證...",
+    technicalDetails: "技術詳細資料",
+    genericErrorPrefix: "錯誤",
+    sendCodeTransportErrorMessage: "無法確認是否已送出驗證碼。請先查看電子郵件，必要時再試一次。",
+    verifyCodeTransportErrorMessage: "無法確認是否已成功登入。請重新輸入驗證碼，或重新整理頁面確認是否已登入。",
+  },
+  ms: {
+    pageTitle: "Log masuk",
+    backToWebsite: "Kembali ke laman web",
+    checkingSession: "Sedang menyemak sesi...",
+    emailLabel: "E-mel",
+    sendCode: "Hantar kod",
+    sendingCode: "Sedang menghantar...",
+    checkEmailForCode: "Cari kod 8 digit dalam e-mel anda. Jika kod tidak ditemui, semak folder spam.",
+    verificationCodeLabel: "Kod pengesahan",
+    verify: "Sahkan",
+    verifying: "Sedang mengesahkan...",
+    technicalDetails: "Butiran teknikal",
+    genericErrorPrefix: "Ralat",
+    sendCodeTransportErrorMessage: "Kami tidak dapat mengesahkan sama ada permintaan kod telah selesai. Cari kod dalam e-mel anda dan cuba lagi jika perlu.",
+    verifyCodeTransportErrorMessage: "Kami tidak dapat mengesahkan sama ada anda berjaya log masuk. Cuba kod itu sekali lagi atau muat semula halaman untuk menyemak sama ada anda sudah log masuk.",
+  },
+  or: {
+    pageTitle: "ସାଇନ୍ ଇନ୍ କରନ୍ତୁ",
+    backToWebsite: "ୱେବସାଇଟ୍‌କୁ ଫେରନ୍ତୁ",
+    checkingSession: "ସେସନ୍ ଯାଞ୍ଚ ଚାଲିଛି...",
+    emailLabel: "ଇମେଲ୍",
+    sendCode: "କୋଡ୍ ପଠାନ୍ତୁ",
+    sendingCode: "ପଠାଯାଉଛି...",
+    checkEmailForCode: "8 ଅଙ୍କର କୋଡ୍ ପାଇଁ ଆପଣଙ୍କ ଇମେଲ୍ ଦେଖନ୍ତୁ। ନ ମିଳିଲେ ସ୍ପାମ୍ ଫୋଲ୍ଡର୍ ଦେଖନ୍ତୁ।",
+    verificationCodeLabel: "ଯାଞ୍ଚ କୋଡ୍",
+    verify: "ଯାଞ୍ଚ କରନ୍ତୁ",
+    verifying: "ଯାଞ୍ଚ ଚାଲିଛି...",
+    technicalDetails: "ବୈଷୟିକ ବିବରଣୀ",
+    genericErrorPrefix: "ତ୍ରୁଟି",
+    sendCodeTransportErrorMessage: "କୋଡ୍ ପାଇଁ ଅନୁରୋଧଟି ସମ୍ପୂର୍ଣ୍ଣ ହୋଇଛି କି ନାହିଁ ଆମେ ଜାଣିପାରିଲୁ ନାହିଁ। ଇମେଲ୍‌ରେ କୋଡ୍ ଖୋଜନ୍ତୁ, ଦରକାର ହେଲେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
+    verifyCodeTransportErrorMessage: "ଆପଣ ସାଇନ୍ ଇନ୍ କରିଛନ୍ତି କି ନାହିଁ ଆମେ ଜାଣିପାରିଲୁ ନାହିଁ। କୋଡ୍‌ଟି ପୁଣି ଦିଅନ୍ତୁ କିମ୍ବା ପୃଷ୍ଠାଟି ପୁଣି ଲୋଡ୍ କରି ଦେଖନ୍ତୁ।",
+  },
+} satisfies Partial<Record<LoginPageLocale, LoginPageCopy>>;
+
+const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
+  ...BASE_LOGIN_PAGE_COPY,
+  "en-AU": BASE_LOGIN_PAGE_COPY.en,
+  "en-CA": BASE_LOGIN_PAGE_COPY.en,
+  "en-GB": BASE_LOGIN_PAGE_COPY.en,
+  "fr-CA": {
+    ...BASE_LOGIN_PAGE_COPY.fr,
+    emailLabel: "Courriel",
+    checkEmailForCode: "Cherchez un code à 8 chiffres dans vos courriels. Si vous ne le trouvez pas, vérifiez votre dossier de courrier indésirable.",
+    sendCodeTransportErrorMessage: "Nous n’avons pas pu confirmer si la demande de code a abouti. Cherchez le code dans vos courriels, puis réessayez au besoin.",
+  },
+  "pt-PT": {
+    ...BASE_LOGIN_PAGE_COPY["pt-BR"],
+    checkingSession: "A verificar a sessão...",
+    emailLabel: "Email",
+    sendingCode: "A enviar...",
+    checkEmailForCode: "Verifique se recebeu por email um código de 8 dígitos. Se não o encontrar, consulte a pasta de spam.",
+    verifying: "A verificar...",
+    sendCodeTransportErrorMessage: "Não foi possível confirmar se o pedido do código foi concluído. Procure o código no seu email e tente novamente, se necessário.",
+    verifyCodeTransportErrorMessage: "Não foi possível confirmar se a sessão foi iniciada. Volte a introduzir o código ou atualize a página para verificar se já tem sessão iniciada.",
   },
 };
 
