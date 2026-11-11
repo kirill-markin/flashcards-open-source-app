@@ -706,7 +706,9 @@ struct RootTabView: View {
                     .accessibilityHidden(true)
                 hostContent
                     #if targetEnvironment(macCatalyst)
-                    .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+                    // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
+                    .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
+                    .frame(maxHeight: .infinity)
                     #else
                     .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
                     #endif

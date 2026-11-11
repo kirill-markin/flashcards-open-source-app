@@ -730,7 +730,6 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds)
         try self.waitForReviewAnswerReveal()
         let tableCell = self.app.descendants(matching: .any).matching(NSPredicate(format: "value == %@", "Public icon")).firstMatch
-        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
 
         let companion = LiveSmokeIdentifier.aiCompanionToggle
         try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -747,6 +746,13 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.waitForReviewAnswerReveal()
         XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         self.attachMacScreenshot(name: "mac-review-table-companion")
+        let narrowWidth = self.app.windows.firstMatch.frame.width
+        try self.applyMacWindowLayout("Fill")
+        XCTAssertGreaterThan(self.app.windows.firstMatch.frame.width, narrowWidth)
+        try self.waitForReviewAnswerReveal()
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        _ = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.attachMacScreenshot(name: "mac-review-table-companion-after-resize")
         try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.waitForReviewAnswerReveal()
         XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
