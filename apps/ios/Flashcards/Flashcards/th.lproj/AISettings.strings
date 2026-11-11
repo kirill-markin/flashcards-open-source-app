@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "นำเข้าการ์ด %d ใบพร้อมแท็ก %@ แล้ว";
 "settings.workspace.import.success" = "นำเข้าการ์ด %d ใบแล้ว";
-"settings.workspace.import.section.package" = "แพ็กเกจ";
+"settings.workspace.import.format.nibomo" = "รูปแบบ Nibomo";
+"settings.workspace.import.format.anki" = "รูปแบบ Anki";
+"settings.workspace.import.anki.choose" = "เลือกไฟล์ .apkg";
+"settings.workspace.import.anki.remove" = "นำไฟล์ออก";
+"settings.workspace.import.anki.start" = "เริ่มนำเข้า";
+"settings.workspace.import.anki.waiting" = "กำลังรอเริ่มนำเข้าจาก Anki…";
+"settings.workspace.import.anki.request" = "นำเข้าสำรับ Anki ทั้งหมดที่แนบมาในพื้นที่ทำงานนี้";
+"ai.composer.ankiImport.unconfirmed" = "ไม่สามารถยืนยันการนำเข้าจาก Anki ได้ โปรดตรวจสอบแชตนี้และคลังของคุณก่อนเริ่มนำเข้าอีกครั้ง";
+"settings.workspace.import.anki.workspaceChanged" = "พื้นที่ทำงานหรือบัญชีเปลี่ยนไปแล้ว กลับไปที่คลังแล้วเริ่มนำเข้าอีกครั้ง";
+"settings.workspace.import.anki.attachmentsUnavailable" = "ไม่สามารถแนบไฟล์ในแชท AI ได้ ลองนำเข้าอีกครั้งเมื่อแนบไฟล์ได้";
 "settings.workspace.import.choosePackage" = "เลือกแพ็กเกจ ZIP";
 "settings.workspace.import.previewing" = "กำลังแสดงตัวอย่าง...";
 "settings.workspace.import.importing" = "กำลังนำเข้า...";

@@ -795,9 +795,6 @@ const arCatalog: TranslationCatalog = {
       title: "كتالوج المجموعات",
       description: "مجموعات جاهزة مجانية للدراسة.",
     },
-    import: {
-      description: "أضف بطاقات من ملف.",
-    },
     export: {
       description: "نزّل كل بطاقاتك كملف.",
     },
@@ -907,7 +904,17 @@ const arCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "استيراد",
-    subtitle: "أضف بطاقات بلصق نص أو باختيار حزمة Nibomo.",
+    nibomoFormat: "تنسيق Nibomo",
+    anki: {
+      format: "تنسيق Anki",
+      description: "تستورد دردشة الذكاء الاصطناعي البطاقات من ملفات Anki المحددة.",
+      chooseFiles: "اختر ملفات ‎.apkg",
+      start: "ابدأ الاستيراد",
+      invalidFile: "الملف «{{file}}» ليس ملف Anki صالحًا. اختر ملف ‎.apkg غير فارغ.",
+      fileTooLarge: "يتجاوز حجم «{{file}}» حد {{limit}} MiB. اختر ملف Anki أصغر.",
+      request: "استورد بطاقات Anki إلى مساحة العمل هذه.",
+      chatChanged: "تغيّرت الدردشة النشطة. ارجع إلى المكتبة وابدأ استيراد Anki من جديد.",
+    },
     workspaceUnavailable: "مساحة العمل غير متاحة",
     textTitle: "لصق نص",
     textDescription: "انسخ المصطلحات والتعريفات من Quizlet أو من جدول بيانات أو مستند. راجع كل بطاقة قبل الاستيراد.",

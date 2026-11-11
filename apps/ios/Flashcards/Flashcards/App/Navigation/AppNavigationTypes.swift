@@ -19,6 +19,7 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case deckCatalog
     case catalogDeck(CatalogBrowseIndexDeck)
     case importData
+    case importAnki
     case exportData
     case exportFormat(WorkspacePackageExportFormat)
 }

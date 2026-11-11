@@ -795,9 +795,6 @@ export const zhHansCatalog = {
       title: "牌组目录",
       description: "可直接学习的免费现成牌组。",
     },
-    import: {
-      description: "从文件添加卡片。",
-    },
     export: {
       description: "将你的所有卡片下载为一个文件。",
     },
@@ -907,7 +904,17 @@ export const zhHansCatalog = {
   },
   workspaceImport: {
     title: "导入",
-    subtitle: "粘贴文本或选择 Nibomo 包来添加卡片。",
+    nibomoFormat: "Nibomo 格式",
+    anki: {
+      format: "Anki 格式",
+      description: "AI 聊天会从选中的 Anki 导出文件导入卡片。",
+      chooseFiles: "选择 .apkg 文件",
+      start: "开始导入",
+      invalidFile: "“{{file}}”不是可用的 Anki 导出文件。请选择非空的 .apkg 文件。",
+      fileTooLarge: "“{{file}}”超过 {{limit}} MiB。请选择较小的 Anki 导出文件。",
+      request: "请将 Anki 卡片导入此工作区。",
+      chatChanged: "当前聊天已更改。请返回资料库并重新开始导入 Anki。",
+    },
     workspaceUnavailable: "工作区不可用",
     textTitle: "粘贴文本",
     textDescription: "从 Quizlet、电子表格或文档中复制词条和释义。导入前请检查每张卡片。",

@@ -795,9 +795,6 @@ const etCatalog: TranslationCatalog = {
       title: "Pakkide kataloog",
       description: "Tasuta valmis pakid õppimiseks.",
     },
-    import: {
-      description: "Lisa kaardid failist.",
-    },
     export: {
       description: "Laadi kõik oma kaardid failina alla.",
     },
@@ -907,7 +904,17 @@ const etCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importimine",
-    subtitle: "Lisa kaardid teksti kleepides või Nibomo paketti valides.",
+    nibomoFormat: "Nibomo vorming",
+    anki: {
+      format: "Anki vorming",
+      description: "Tehisaru vestlus impordib kaardid valitud Anki ekspordifailidest.",
+      chooseFiles: "Vali .apkg-failid",
+      start: "Alusta importi",
+      invalidFile: "„{{file}}” ei ole kasutatav Anki ekspordifail. Vali .apkg-fail, mis pole tühi.",
+      fileTooLarge: "„{{file}}” on suurem kui {{limit}} MiB. Vali väiksem Anki ekspordifail.",
+      request: "Impordi Anki kaardid siia tööruumi.",
+      chatChanged: "Aktiivne vestlus muutus. Mine tagasi teeki ja alusta Anki importi uuesti.",
+    },
     workspaceUnavailable: "Tööruum pole saadaval",
     textTitle: "Kleebi tekst",
     textDescription: "Kopeeri terminid ja määratlused Quizletist, arvutustabelist või dokumendist. Vaata iga kaart enne importimist üle.",

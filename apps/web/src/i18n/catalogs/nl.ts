@@ -795,9 +795,6 @@ const nlCatalog: TranslationCatalog = {
       title: "Deckcatalogus",
       description: "Gratis kant-en-klare decks om te leren.",
     },
-    import: {
-      description: "Voeg kaarten toe uit een bestand.",
-    },
     export: {
       description: "Download al je kaarten als bestand.",
     },
@@ -907,7 +904,17 @@ const nlCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importeren",
-    subtitle: "Voeg kaarten toe door tekst te plakken of een Nibomo-pakket te kiezen.",
+    nibomoFormat: "Nibomo-indeling",
+    anki: {
+      format: "Anki-indeling",
+      description: "De AI-chat importeert kaarten uit de gekozen Anki-exportbestanden.",
+      chooseFiles: ".apkg-bestanden kiezen",
+      start: "Import starten",
+      invalidFile: "‘{{file}}’ is geen bruikbaar Anki-exportbestand. Kies een niet-leeg .apkg-bestand.",
+      fileTooLarge: "‘{{file}}’ is groter dan {{limit}} MiB. Kies een kleiner Anki-exportbestand.",
+      request: "Importeer kaarten uit Anki in deze werkruimte.",
+      chatChanged: "De actieve chat is gewijzigd. Ga terug naar de bibliotheek en start de Anki-import opnieuw.",
+    },
     workspaceUnavailable: "Werkruimte is niet beschikbaar",
     textTitle: "Tekst plakken",
     textDescription: "Kopieer termen en definities uit Quizlet, een spreadsheet of een document. Controleer elke kaart voordat je importeert.",

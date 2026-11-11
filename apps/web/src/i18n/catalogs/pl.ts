@@ -802,9 +802,6 @@ const plCatalog: TranslationCatalog = {
       title: "Katalog talii",
       description: "Darmowe gotowe talie do nauki.",
     },
-    import: {
-      description: "Dodaj karty z pliku.",
-    },
     export: {
       description: "Pobierz wszystkie swoje karty jako plik.",
     },
@@ -915,7 +912,17 @@ const plCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Dodaj karty, wklejając tekst lub wybierając pakiet Nibomo.",
+    nibomoFormat: "Format Nibomo",
+    anki: {
+      format: "Format Anki",
+      description: "Czat AI importuje karty z wybranych plików wyeksportowanych z Anki.",
+      chooseFiles: "Wybierz pliki .apkg",
+      start: "Rozpocznij import",
+      invalidFile: "„{{file}}” nie jest prawidłowym plikiem eksportu Anki. Wybierz niepusty plik .apkg.",
+      fileTooLarge: "„{{file}}” przekracza {{limit}} MiB. Wybierz mniejszy plik eksportu Anki.",
+      request: "Zaimportuj karty z Anki do tego obszaru roboczego.",
+      chatChanged: "Aktywny czat się zmienił. Wróć do biblioteki i rozpocznij import Anki ponownie.",
+    },
     workspaceUnavailable: "Przestrzeń robocza jest niedostępna",
     textTitle: "Wklej tekst",
     textDescription: "Skopiuj terminy i definicje z Quizletu, arkusza kalkulacyjnego lub dokumentu. Sprawdź każdą kartę przed importem.",

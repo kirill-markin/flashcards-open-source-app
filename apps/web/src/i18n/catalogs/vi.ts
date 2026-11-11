@@ -795,9 +795,6 @@ const viCatalog: TranslationCatalog = {
       title: "Danh mục bộ thẻ",
       description: "Bộ thẻ miễn phí, có sẵn để học.",
     },
-    import: {
-      description: "Thêm thẻ từ tệp.",
-    },
     export: {
       description: "Tải tất cả thẻ của bạn về dưới dạng tệp.",
     },
@@ -907,7 +904,17 @@ const viCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Nhập",
-    subtitle: "Thêm thẻ bằng cách dán văn bản hoặc chọn một gói Nibomo.",
+    nibomoFormat: "Định dạng Nibomo",
+    anki: {
+      format: "Định dạng Anki",
+      description: "Trò chuyện AI nhập thẻ từ các tệp xuất Anki đã chọn.",
+      chooseFiles: "Chọn tệp .apkg",
+      start: "Bắt đầu nhập",
+      invalidFile: "“{{file}}” không phải là tệp xuất Anki dùng được. Hãy chọn tệp .apkg không rỗng.",
+      fileTooLarge: "“{{file}}” vượt quá {{limit}} MiB. Hãy chọn tệp xuất Anki nhỏ hơn.",
+      request: "Hãy nhập thẻ từ Anki vào không gian làm việc này.",
+      chatChanged: "Cuộc trò chuyện đang mở đã thay đổi. Hãy quay lại thư viện và bắt đầu nhập Anki lại.",
+    },
     workspaceUnavailable: "Không gian làm việc không khả dụng",
     textTitle: "Dán văn bản",
     textDescription: "Sao chép thuật ngữ và định nghĩa từ Quizlet, bảng tính hoặc tài liệu. Hãy xem lại từng thẻ trước khi nhập.",

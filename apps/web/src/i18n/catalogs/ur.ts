@@ -795,9 +795,6 @@ const urCatalog: TranslationCatalog = {
       title: "ڈیک کیٹلاگ",
       description: "مطالعے کے لیے مفت تیار ڈیکس۔",
     },
-    import: {
-      description: "فائل سے کارڈز شامل کریں۔",
-    },
     export: {
       description: "اپنے تمام کارڈز ایک فائل کے طور پر ڈاؤن لوڈ کریں۔",
     },
@@ -907,7 +904,17 @@ const urCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "درآمد",
-    subtitle: "متن چسپاں کر کے یا Nibomo پیکیج چن کر کارڈز شامل کریں۔",
+    nibomoFormat: "Nibomo فارمیٹ",
+    anki: {
+      format: "Anki فارمیٹ",
+      description: "AI چیٹ منتخب Anki ایکسپورٹ فائلوں سے کارڈز درآمد کرتی ہے۔",
+      chooseFiles: "‎.apkg فائلیں چنیں",
+      start: "درآمد شروع کریں",
+      invalidFile: "”{{file}}“ قابل استعمال Anki ایکسپورٹ فائل نہیں ہے۔ ایسی ‎.apkg فائل چنیں جو خالی نہ ہو۔",
+      fileTooLarge: "”{{file}}“ کا سائز {{limit}} MiB سے زیادہ ہے۔ چھوٹی Anki ایکسپورٹ فائل چنیں۔",
+      request: "Anki سے کارڈز اس ورک اسپیس میں درآمد کریں۔",
+      chatChanged: "فعال چیٹ بدل گئی ہے۔ لائبریری پر واپس جائیں اور Anki کی درآمد دوبارہ شروع کریں۔",
+    },
     workspaceUnavailable: "ورک اسپیس دستیاب نہیں ہے",
     textTitle: "متن چسپاں کریں",
     textDescription: "Quizlet، اسپریڈشیٹ یا کسی دستاویز سے اصطلاحات اور تعریفیں کاپی کریں۔ درآمد سے پہلے ہر کارڈ کا جائزہ لیں۔",

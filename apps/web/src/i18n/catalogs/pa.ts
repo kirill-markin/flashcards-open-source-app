@@ -795,9 +795,6 @@ const paCatalog: TranslationCatalog = {
       title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",
       description: "ਪੜ੍ਹਨ ਲਈ ਮੁਫ਼ਤ ਤਿਆਰ ਡੈੱਕ.",
     },
-    import: {
-      description: "ਫਾਈਲ ਤੋਂ ਕਾਰਡ ਜੋੜੋ.",
-    },
     export: {
       description: "ਆਪਣੇ ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਫਾਈਲ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ.",
     },
@@ -907,7 +904,17 @@ const paCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "ਆਯਾਤ",
-    subtitle: "ਲਿਖਤ ਚੇਪ ਕੇ ਜਾਂ Nibomo ਪੈਕੇਜ ਚੁਣ ਕੇ ਕਾਰਡ ਸ਼ਾਮਲ ਕਰੋ.",
+    nibomoFormat: "Nibomo ਫਾਰਮੈਟ",
+    anki: {
+      format: "Anki ਫਾਰਮੈਟ",
+      description: "AI ਚੈਟ ਚੁਣੀਆਂ ਹੋਈਆਂ Anki ਨਿਰਯਾਤ ਫ਼ਾਈਲਾਂ ਤੋਂ ਕਾਰਡ ਆਯਾਤ ਕਰਦੀ ਹੈ।",
+      chooseFiles: ".apkg ਫ਼ਾਈਲਾਂ ਚੁਣੋ",
+      start: "ਆਯਾਤ ਸ਼ੁਰੂ ਕਰੋ",
+      invalidFile: "“{{file}}” ਵਰਤੋਂਯੋਗ Anki ਨਿਰਯਾਤ ਫ਼ਾਈਲ ਨਹੀਂ ਹੈ। ਅਜਿਹੀ .apkg ਫ਼ਾਈਲ ਚੁਣੋ ਜੋ ਖਾਲੀ ਨਾ ਹੋਵੇ।",
+      fileTooLarge: "“{{file}}” ਦਾ ਆਕਾਰ {{limit}} MiB ਤੋਂ ਵੱਧ ਹੈ। ਛੋਟੀ Anki ਨਿਰਯਾਤ ਫ਼ਾਈਲ ਚੁਣੋ।",
+      request: "Anki ਤੋਂ ਕਾਰਡ ਇਸ ਵਰਕਸਪੇਸ ਵਿੱਚ ਆਯਾਤ ਕਰੋ।",
+      chatChanged: "ਸਰਗਰਮ ਚੈਟ ਬਦਲ ਗਈ ਹੈ। ਲਾਇਬ੍ਰੇਰੀ ਵਿੱਚ ਵਾਪਸ ਜਾ ਕੇ Anki ਆਯਾਤ ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ।",
+    },
     workspaceUnavailable: "ਵਰਕਸਪੇਸ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
     textTitle: "ਲਿਖਤ ਚੇਪੋ",
     textDescription: "Quizlet, ਸਪਰੈੱਡਸ਼ੀਟ ਜਾਂ ਦਸਤਾਵੇਜ਼ ਤੋਂ ਸ਼ਬਦ ਅਤੇ ਪਰਿਭਾਸ਼ਾਵਾਂ ਕਾਪੀ ਕਰੋ. ਆਯਾਤ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਹਰ ਕਾਰਡ ਵੇਖ ਲਵੋ.",

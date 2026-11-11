@@ -1,7 +1,39 @@
 package com.flashcardsopensourceapp.data.local.model.ai
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import java.util.UUID
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class AiAnkiImportTarget(
+    val workspaceId: String,
+    val cloudState: CloudAccountState,
+    val linkedUserId: String?,
+    val installationId: String,
+    val configuration: CloudServiceConfiguration
+)
+
+@Serializable
+data class AiChatAnkiImportRequest(
+    val target: AiAnkiImportTarget,
+    val sessionId: String,
+    val clientRequestId: String,
+    val draftMessage: String,
+    val attachmentIds: List<String>
+) {
+    fun matchesDraft(message: String, attachments: List<AiChatAttachment>): Boolean {
+        return message == draftMessage &&
+            attachments.all { attachment -> attachment is AiChatAttachment.Binary } &&
+            attachments.map { attachment -> attachment.id } == attachmentIds
+    }
+}
+
+class AiAnkiImportTargetChangedException :
+    IllegalStateException("The authorized workspace, account, or server changed before the Anki import started.")
+
+class AiAnkiImportPersistenceException(message: String) : IllegalStateException(message)
 
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 // Upload limits of one chat turn, the ones apps/backend/src/chatFiles/uploads.ts enforces.
@@ -314,8 +346,12 @@ data class AiChatSessionProvisioningResult(
 
 data class AiChatDraftState(
     val draftMessage: String,
-    val pendingAttachments: List<AiChatAttachment>
-)
+    val pendingAttachments: List<AiChatAttachment>,
+    val ankiImportRequest: AiChatAnkiImportRequest?
+) {
+    constructor(draftMessage: String, pendingAttachments: List<AiChatAttachment>) :
+        this(draftMessage = draftMessage, pendingAttachments = pendingAttachments, ankiImportRequest = null)
+}
 
 sealed interface AiChatWireContentPart {
     data class Text(
@@ -442,7 +478,7 @@ fun makeDefaultAiChatDraftState(): AiChatDraftState {
 }
 
 fun AiChatDraftState.isEmpty(): Boolean {
-    return draftMessage.isBlank() && pendingAttachments.isEmpty()
+    return draftMessage.isBlank() && pendingAttachments.isEmpty() && ankiImportRequest == null
 }
 
 data class AiChatAttachmentReference(
@@ -623,7 +659,7 @@ fun makeAiChatAttachment(
     mediaType: String,
     localFilePath: String,
     sizeBytes: Long
-): AiChatAttachment {
+): AiChatAttachment.Binary {
     return AiChatAttachment.Binary(
         id = UUID.randomUUID().toString().lowercase(),
         fileName = fileName,

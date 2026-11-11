@@ -809,9 +809,6 @@ const slCatalog: TranslationCatalog = {
       title: "Katalog kompletov",
       description: "Brezplačni pripravljeni kompleti za učenje.",
     },
-    import: {
-      description: "Dodajte kartice iz datoteke.",
-    },
     export: {
       description: "Prenesite vse svoje kartice kot datoteko.",
     },
@@ -923,7 +920,17 @@ const slCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Uvoz",
-    subtitle: "Dodajte kartice tako, da prilepite besedilo ali izberete paket Nibomo.",
+    nibomoFormat: "Oblika Nibomo",
+    anki: {
+      format: "Oblika Anki",
+      description: "Klepet z UI uvozi kartice iz izbranih izvoznih datotek Anki.",
+      chooseFiles: "Izberite datoteke .apkg",
+      start: "Začni uvoz",
+      invalidFile: "»{{file}}« ni uporabna izvozna datoteka Anki. Izberite datoteko .apkg, ki ni prazna.",
+      fileTooLarge: "»{{file}}« presega {{limit}} MiB. Izberite manjšo izvozno datoteko Anki.",
+      request: "Uvozi kartice iz Ankija v ta delovni prostor.",
+      chatChanged: "Aktivni klepet se je spremenil. Vrnite se v knjižnico in znova začnite uvoz iz Ankija.",
+    },
     workspaceUnavailable: "Delovni prostor ni na voljo",
     textTitle: "Prilepi besedilo",
     textDescription: "Kopirajte pojme in definicije iz Quizleta, preglednice ali dokumenta. Pred uvozom preglejte vsako kartico.",

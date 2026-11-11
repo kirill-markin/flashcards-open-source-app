@@ -39,6 +39,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
+    case .importAnki:
+        return LibraryLocation(section: .importData, pages: [.importAnki])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
     case .exportFormat:
@@ -64,6 +66,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
+    case .importAnki:
+        return [.importData, .importAnki]
     case .exportData:
         return [.exportData]
     case .exportFormat:
@@ -155,6 +159,7 @@ final class AppNavigationModel {
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
+    private(set) var ankiImportRequest: AnkiImportPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
     private(set) var canPresentAICompanion: Bool = false
@@ -278,6 +283,7 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
+        self.cancelAnkiImport()
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
@@ -286,12 +292,41 @@ final class AppNavigationModel {
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
+        self.cancelAnkiImport()
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
         self.popAIToLiveChat()
+    }
+
+    func openAIAnkiImport(request: AnkiImportPresentationRequest) -> Bool {
+        guard self.ankiImportRequest == nil else {
+            return false
+        }
+
+        self.aiChatPresentationRequest = nil
+        self.ankiImportRequest = request
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
+        self.popAIToLiveChat()
+        return true
+    }
+
+    func takeAnkiImportRequest() -> AnkiImportPresentationRequest? {
+        guard let request = self.ankiImportRequest else {
+            return nil
+        }
+        self.ankiImportRequest = nil
+        return request
+    }
+
+    func cancelAnkiImport() {
+        if let request = self.takeAnkiImportRequest() {
+            aiChatRemoveAttachmentFiles(attachments: request.attachments)
+        }
     }
 
     func popAIToLiveChat() {

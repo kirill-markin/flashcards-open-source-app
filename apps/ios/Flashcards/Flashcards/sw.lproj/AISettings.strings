@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Kadi zilizoingizwa: %d, zenye lebo %@.";
 "settings.workspace.import.success" = "Kadi zilizoingizwa: %d.";
-"settings.workspace.import.section.package" = "Kifurushi";
+"settings.workspace.import.format.nibomo" = "Umbizo la Nibomo";
+"settings.workspace.import.format.anki" = "Umbizo la Anki";
+"settings.workspace.import.anki.choose" = "Chagua faili za .apkg";
+"settings.workspace.import.anki.remove" = "Ondoa faili";
+"settings.workspace.import.anki.start" = "Anza kuleta";
+"settings.workspace.import.anki.waiting" = "Inasubiri kuanza kuleta kutoka Anki…";
+"settings.workspace.import.anki.request" = "Leta mafungu yote ya kadi za Anki yaliyoambatishwa kwenye nafasi hii ya kazi.";
+"ai.composer.ankiImport.unconfirmed" = "Haikuwezekana kuthibitisha uingizaji kutoka Anki. Kagua mazungumzo haya na maktaba yako kabla ya kuingiza tena.";
+"settings.workspace.import.anki.workspaceChanged" = "Nafasi ya kazi au akaunti imebadilika. Rudi kwenye maktaba na uanze kuleta tena.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "Kuambatisha faili hakupatikani kwenye gumzo la AI. Jaribu kuleta tena wakati viambatisho vitakapopatikana.";
 "settings.workspace.import.choosePackage" = "Chagua Kifurushi cha ZIP";
 "settings.workspace.import.previewing" = "Inaandaa onyesho la awali...";
 "settings.workspace.import.importing" = "Inaingiza...";

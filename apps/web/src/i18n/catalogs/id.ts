@@ -795,9 +795,6 @@ const idCatalog: TranslationCatalog = {
       title: "Katalog dek",
       description: "Dek siap pakai gratis untuk dipelajari.",
     },
-    import: {
-      description: "Tambahkan kartu dari berkas.",
-    },
     export: {
       description: "Unduh semua kartu Anda sebagai berkas.",
     },
@@ -907,7 +904,17 @@ const idCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Impor",
-    subtitle: "Tambahkan kartu dengan menempel teks atau memilih paket Nibomo.",
+    nibomoFormat: "Format Nibomo",
+    anki: {
+      format: "Format Anki",
+      description: "Chat AI mengimpor kartu dari file ekspor Anki yang dipilih.",
+      chooseFiles: "Pilih file .apkg",
+      start: "Mulai impor",
+      invalidFile: "“{{file}}” bukan file ekspor Anki yang dapat digunakan. Pilih file .apkg yang tidak kosong.",
+      fileTooLarge: "“{{file}}” melebihi {{limit}} MiB. Pilih file ekspor Anki yang lebih kecil.",
+      request: "Impor kartu dari Anki ke ruang kerja ini.",
+      chatChanged: "Chat aktif berubah. Kembali ke pustaka dan mulai lagi impor Anki.",
+    },
     workspaceUnavailable: "Ruang kerja tidak tersedia",
     textTitle: "Tempel teks",
     textDescription: "Salin istilah dan definisi dari Quizlet, spreadsheet, atau dokumen. Periksa setiap kartu sebelum mengimpor.",

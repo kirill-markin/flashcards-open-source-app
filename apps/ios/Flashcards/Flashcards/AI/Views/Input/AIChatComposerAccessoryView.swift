@@ -117,6 +117,17 @@ extension AIChatView {
                     }
                 }
 
+                if self.chatStore.isAnkiImportDraftBlocked {
+                    Text(
+                        aiSettingsLocalized(
+                            "ai.composer.ankiImport.unconfirmed",
+                            "Couldn’t confirm the Anki import. Check this chat and your Library before starting another import."
+                        )
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
                 if self.chatStore.visibleComposerSuggestions.isEmpty == false {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {

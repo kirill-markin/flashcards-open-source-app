@@ -795,9 +795,6 @@ const hiCatalog: TranslationCatalog = {
       title: "डेक कैटलॉग",
       description: "पढ़ाई के लिए मुफ़्त तैयार डेक।",
     },
-    import: {
-      description: "फ़ाइल से कार्ड जोड़ें।",
-    },
     export: {
       description: "अपने सभी कार्ड एक फ़ाइल के रूप में डाउनलोड करें।",
     },
@@ -907,7 +904,17 @@ const hiCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "इम्पोर्ट",
-    subtitle: "टेक्स्ट पेस्ट करके या Nibomo पैकेज चुनकर कार्ड जोड़ें।",
+    nibomoFormat: "Nibomo फ़ॉर्मैट",
+    anki: {
+      format: "Anki फ़ॉर्मैट",
+      description: "AI चैट चुनी गई Anki एक्सपोर्ट फ़ाइलों से कार्ड इम्पोर्ट करती है।",
+      chooseFiles: ".apkg फ़ाइलें चुनें",
+      start: "इम्पोर्ट शुरू करें",
+      invalidFile: "“{{file}}” इस्तेमाल करने लायक Anki एक्सपोर्ट नहीं है। ऐसी .apkg फ़ाइल चुनें जो खाली न हो।",
+      fileTooLarge: "“{{file}}” का आकार {{limit}} MiB से ज़्यादा है। छोटी Anki एक्सपोर्ट फ़ाइल चुनें।",
+      request: "Anki से कार्ड इस वर्कस्पेस में इम्पोर्ट करें।",
+      chatChanged: "सक्रिय चैट बदल गई है। लाइब्रेरी में लौटकर Anki इम्पोर्ट फिर शुरू करें।",
+    },
     workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
     textTitle: "टेक्स्ट पेस्ट करें",
     textDescription: "Quizlet, स्प्रेडशीट या किसी डॉक्युमेंट से शब्द और परिभाषाएँ कॉपी करें। इम्पोर्ट करने से पहले हर कार्ड जाँच लें।",

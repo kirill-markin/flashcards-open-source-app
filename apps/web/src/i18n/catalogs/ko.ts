@@ -795,9 +795,6 @@ const koCatalog: TranslationCatalog = {
       title: "덱 카탈로그",
       description: "바로 학습할 수 있는 무료 덱입니다.",
     },
-    import: {
-      description: "파일에서 카드를 추가합니다.",
-    },
     export: {
       description: "모든 카드를 파일로 내려받습니다.",
     },
@@ -907,7 +904,17 @@ const koCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "가져오기",
-    subtitle: "텍스트를 붙여넣거나 Nibomo 패키지를 골라 카드를 추가합니다.",
+    nibomoFormat: "Nibomo 형식",
+    anki: {
+      format: "Anki 형식",
+      description: "AI 채팅에서 선택한 Anki 내보내기 파일의 카드를 가져옵니다.",
+      chooseFiles: ".apkg 파일 선택",
+      start: "가져오기 시작",
+      invalidFile: "‘{{file}}’은 사용할 수 있는 Anki 내보내기 파일이 아닙니다. 비어 있지 않은 .apkg 파일을 선택하세요.",
+      fileTooLarge: "‘{{file}}’의 크기가 {{limit}} MiB를 초과합니다. 더 작은 Anki 내보내기 파일을 선택하세요.",
+      request: "Anki 카드를 이 작업 공간으로 가져와 주세요.",
+      chatChanged: "활성 채팅이 바뀌었습니다. 라이브러리로 돌아가 Anki 가져오기를 다시 시작하세요.",
+    },
     workspaceUnavailable: "워크스페이스를 사용할 수 없음",
     textTitle: "텍스트 붙여넣기",
     textDescription: "Quizlet, 스프레드시트 또는 문서에서 용어와 정의를 복사하세요. 가져오기 전에 모든 카드를 확인하세요.",

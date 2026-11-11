@@ -802,9 +802,6 @@ const roCatalog: TranslationCatalog = {
       title: "Catalog de pachete",
       description: "Pachete gratuite, gata de studiat.",
     },
-    import: {
-      description: "Adaugă fișe dintr-un fișier.",
-    },
     export: {
       description: "Descarcă toate fișele tale într-un fișier.",
     },
@@ -915,7 +912,17 @@ const roCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Import",
-    subtitle: "Adaugă fișe lipind text sau alegând un pachet Nibomo.",
+    nibomoFormat: "Format Nibomo",
+    anki: {
+      format: "Format Anki",
+      description: "Chatul AI importă fișe din fișierele de export Anki selectate.",
+      chooseFiles: "Alege fișiere .apkg",
+      start: "Pornește importul",
+      invalidFile: "„{{file}}” nu este un export Anki utilizabil. Alege un fișier .apkg care nu este gol.",
+      fileTooLarge: "„{{file}}” depășește {{limit}} MiB. Alege un export Anki mai mic.",
+      request: "Importă fișele din Anki în acest spațiu de lucru.",
+      chatChanged: "Chatul activ s-a schimbat. Revino în bibliotecă și pornește din nou importul Anki.",
+    },
     workspaceUnavailable: "Spațiul de lucru nu este disponibil",
     textTitle: "Lipește text",
     textDescription: "Copiază termeni și definiții din Quizlet, dintr-o foaie de calcul sau dintr-un document. Verifică fiecare fișă înainte de import.",

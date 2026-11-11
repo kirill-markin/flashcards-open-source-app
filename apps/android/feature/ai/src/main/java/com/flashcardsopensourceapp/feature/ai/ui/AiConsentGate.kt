@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Lock
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.feature.ai.AiPendingAnkiImport
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
@@ -33,6 +36,7 @@ import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 @Composable
 internal fun ConsentGate(
     currentWorkspaceName: String,
+    pendingAnkiImport: AiPendingAnkiImport?,
     onAcceptConsent: () -> Unit,
     modifier: Modifier
 ) {
@@ -45,7 +49,7 @@ internal fun ConsentGate(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
     ) {
         Card(
             modifier = Modifier
@@ -77,6 +81,10 @@ internal fun ConsentGate(
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (pendingAnkiImport != null) {
+                    Text(stringResource(id = R.string.ai_anki_import_consent_disclosure))
+                    Text(pendingAnkiImport.fileNames.joinToString(separator = "\n"))
+                }
                 Button(
                     onClick = onAcceptConsent,
                     modifier = Modifier.fillMaxWidth()
@@ -84,6 +92,11 @@ internal fun ConsentGate(
                     Text(stringResource(id = R.string.ai_consent_accept))
                 }
 
+                if (pendingAnkiImport != null) {
+                    TextButton(onClick = pendingAnkiImport.onCancel, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(id = R.string.ai_anki_import_cancel))
+                    }
+                }
                 HorizontalDivider()
 
                 TextButton(

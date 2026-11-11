@@ -795,9 +795,6 @@ const thCatalog: TranslationCatalog = {
       title: "แคตตาล็อกเด็ค",
       description: "เด็คสำเร็จรูปฟรีสำหรับเรียน",
     },
-    import: {
-      description: "เพิ่มการ์ดจากไฟล์",
-    },
     export: {
       description: "ดาวน์โหลดการ์ดทั้งหมดของคุณเป็นไฟล์",
     },
@@ -907,7 +904,17 @@ const thCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "นำเข้า",
-    subtitle: "เพิ่มการ์ดด้วยการวางข้อความหรือเลือกแพ็กเกจ Nibomo",
+    nibomoFormat: "รูปแบบ Nibomo",
+    anki: {
+      format: "รูปแบบ Anki",
+      description: "แชต AI จะนำเข้าการ์ดจากไฟล์ที่ส่งออกจาก Anki ที่เลือก",
+      chooseFiles: "เลือกไฟล์ .apkg",
+      start: "เริ่มนำเข้า",
+      invalidFile: "“{{file}}” ไม่ใช่ไฟล์ที่ส่งออกจาก Anki ที่ใช้ได้ โปรดเลือกไฟล์ .apkg ที่ไม่ว่างเปล่า",
+      fileTooLarge: "“{{file}}” มีขนาดเกิน {{limit}} MiB โปรดเลือกไฟล์ Anki ที่เล็กกว่า",
+      request: "โปรดนำเข้าการ์ดจาก Anki มายังพื้นที่ทำงานนี้",
+      chatChanged: "แชตที่ใช้งานอยู่เปลี่ยนไป โปรดกลับไปที่คลังและเริ่มนำเข้า Anki อีกครั้ง",
+    },
     workspaceUnavailable: "พื้นที่ทำงานไม่พร้อมใช้งาน",
     textTitle: "วางข้อความ",
     textDescription: "คัดลอกคำศัพท์และคำนิยามจาก Quizlet สเปรดชีต หรือเอกสาร ตรวจทานการ์ดทุกใบก่อนนำเข้า",

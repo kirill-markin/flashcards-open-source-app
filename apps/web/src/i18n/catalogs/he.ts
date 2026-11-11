@@ -795,9 +795,6 @@ const heCatalog: TranslationCatalog = {
       title: "קטלוג חפיסות",
       description: "חפיסות מוכנות בחינם ללמידה.",
     },
-    import: {
-      description: "הוסף כרטיסים מקובץ.",
-    },
     export: {
       description: "הורד את כל הכרטיסים שלך כקובץ.",
     },
@@ -907,7 +904,17 @@ const heCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "ייבוא",
-    subtitle: "הוסף כרטיסים על ידי הדבקת טקסט או בחירת חבילת Nibomo.",
+    nibomoFormat: "פורמט Nibomo",
+    anki: {
+      format: "פורמט Anki",
+      description: "צ׳אט ה‑AI מייבא כרטיסים מקובצי Anki שנבחרו.",
+      chooseFiles: "בחירת קובצי .apkg",
+      start: "התחלת ייבוא",
+      invalidFile: "״{{file}}״ אינו קובץ ייצוא שמיש של Anki. יש לבחור קובץ .apkg שאינו ריק.",
+      fileTooLarge: "הגודל של ״{{file}}״ עולה על {{limit}} MiB. יש לבחור קובץ Anki קטן יותר.",
+      request: "ייבא כרטיסים מ‑Anki לסביבת העבודה הזאת.",
+      chatChanged: "הצ׳אט הפעיל השתנה. יש לחזור לספרייה ולהתחיל מחדש את הייבוא מ‑Anki.",
+    },
     workspaceUnavailable: "סביבת העבודה אינה זמינה",
     textTitle: "הדבקת טקסט",
     textDescription: "העתק מונחים והגדרות מ-Quizlet, מגיליון אלקטרוני או ממסמך. בדוק כל כרטיס לפני הייבוא.",
