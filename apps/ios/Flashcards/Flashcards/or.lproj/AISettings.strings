@@ -841,6 +841,19 @@
 "settings.workspace.decks.section.name" = "ନାମ";
 "settings.workspace.decks.deckName" = "ଡେକ୍ ନାମ";
 
+"settings.workspace.cardMaintenance.applied" = "ପରିବର୍ତ୍ତନଗୁଡ଼ିକ ସର୍ଭରରେ ସେଭ୍ ହୋଇଛି। ସେଗୁଡ଼ିକୁ ଏଠାରେ ଦେଖିବା ପାଇଁ ଏହି ଡିଭାଇସ୍ ସିଙ୍କ୍ କରନ୍ତୁ।";
+"settings.workspace.cardMaintenance.previewChanged" = "ଏହି କାମର ପରିସର ବଦଳିଛି। ଅଦ୍ୟତନ ପୂର୍ବାବଲୋକନ ଦେଖି ପୁଣି ନିଶ୍ଚିତ କରନ୍ତୁ।";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "ଡେକ୍‌ର ନିୟମ ବଦଳିଛି। ଏହି ପରଦା ବନ୍ଦ କରି ନିୟମଗୁଡ଼ିକ ଯାଞ୍ଚ କରନ୍ତୁ।";
+"settings.workspace.cardMaintenance.refreshRequired" = "କାର୍ଡ ସମ୍ପାଦନ କିମ୍ବା ଅଭ୍ୟାସ କରିବା ପୂର୍ବରୁ ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ର ସିଙ୍କ୍ କରନ୍ତୁ।";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "ଏହି ଟ୍ୟାଗ୍ ବ୍ୟବହାର କରୁଥିବା ଡେକ୍‌ର ନିୟମ";
+"settings.workspace.cardMaintenance.cardsRemain" = "ଆପଣଙ୍କ କାର୍ଡ ସବୁ ରହିବ।";
+"settings.workspace.cardMaintenance.overlap" = "ଏହି କାର୍ଡଗୁଡ଼ିକ ଅନ୍ୟ ଡେକ୍‌ରେ ମଧ୍ୟ ଥାଇପାରେ କିମ୍ବା ସେଗୁଡ଼ିକରେ ଅନ୍ୟ ଟ୍ୟାଗ୍ ଥାଇପାରେ।";
+"settings.workspace.cardMaintenance.noCards" = "ବଦଳାଇବାକୁ କୌଣସି କାର୍ଡ ନାହିଁ।";
+"settings.workspace.cardMaintenance.signIn" = "ଆଗକୁ ବଢ଼ିବା ପାଇଁ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ ଓ ଏହି କାର୍ଯ୍ୟକ୍ଷେତ୍ର ଯୋଡ଼ନ୍ତୁ।";
+"settings.workspace.cardMaintenance.workspaceChanged" = "କାର୍ଯ୍ୟକ୍ଷେତ୍ର ବଦଳିଛି। ଏହି ପରଦା ବନ୍ଦ କରି କାମଟି ପୁଣି ଖୋଲନ୍ତୁ।";
+"settings.workspace.cardMaintenance.targetMissing" = "ଏହି ଆଇଟମ୍ ଆଉ କାର୍ଯ୍ୟକ୍ଷେତ୍ର‌ରେ ଉପଲବ୍ଧ ନାହିଁ।";
+"settings.workspace.cardMaintenance.removeTag" = "କାର୍ଡରୁ ଟ୍ୟାଗ୍ ହଟାନ୍ତୁ";
+"settings.workspace.cardMaintenance.saveDeckRules" = "ଅଭ୍ୟାସ ପ୍ରଗତି ରିସେଟ୍ କରିବା ପୂର୍ବରୁ ଡେକ୍‌ର ନିୟମ ସେଭ୍ କରନ୍ତୁ।";
 "settings.workspace.tags.description" = "ଟ୍ୟାଗ୍ କାର୍ଯ୍ୟକ୍ଷେତ୍ର ସାରା କାର୍ଡଗୁଡ଼ିକୁ ଗୋଷ୍ଠୀରେ ରଖେ। ଗୋଟିଏ କାର୍ଡରେ ଏକାଧିକ ଟ୍ୟାଗ୍ ଥିଲେ ତାହା ଏକାଧିକ ଟ୍ୟାଗ୍‌ର ଗଣନାରେ ଆସିପାରେ।";
 "settings.workspace.tags.loading" = "ଟ୍ୟାଗ୍ ଲୋଡ୍ ହେଉଛି…";
 "settings.workspace.tags.empty" = "ଏଯାଏଁ କୌଣସି ଟ୍ୟାଗ୍ ବ୍ୟବହାର ହୋଇନାହିଁ।";

@@ -841,6 +841,19 @@
 "settings.workspace.decks.section.name" = "名稱";
 "settings.workspace.decks.deckName" = "牌組名稱";
 
+"settings.workspace.cardMaintenance.applied" = "變更已儲存到伺服器。請同步這部裝置，即可在這裡看到變更。";
+"settings.workspace.cardMaintenance.previewChanged" = "受影響的範圍已變更。請查看更新後的預覽，再確認一次。";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "牌組規則已變更。請關閉此畫面並查看規則。";
+"settings.workspace.cardMaintenance.refreshRequired" = "請先同步此工作區，再編輯或學習卡片。";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "使用此標籤的牌組規則";
+"settings.workspace.cardMaintenance.cardsRemain" = "你的卡片會保留。";
+"settings.workspace.cardMaintenance.overlap" = "這些卡片也可能出現在其他牌組中，或帶有其他標籤。";
+"settings.workspace.cardMaintenance.noCards" = "沒有需要變更的卡片。";
+"settings.workspace.cardMaintenance.signIn" = "請登入並連結此工作區以繼續。";
+"settings.workspace.cardMaintenance.workspaceChanged" = "工作區已變更。請關閉此畫面，再重新開啟這項操作。";
+"settings.workspace.cardMaintenance.targetMissing" = "此項目在工作區中已無法使用。";
+"settings.workspace.cardMaintenance.removeTag" = "從卡片移除標籤";
+"settings.workspace.cardMaintenance.saveDeckRules" = "重置學習進度前，請先儲存牌組規則。";
 "settings.workspace.tags.description" = "標籤可在整個工作區中對卡片進行分組。當一張卡片有多個標籤時，各標籤的計數可能會重疊。";
 "settings.workspace.tags.loading" = "正在載入標籤…";
 "settings.workspace.tags.empty" = "尚未使用任何標籤。";
