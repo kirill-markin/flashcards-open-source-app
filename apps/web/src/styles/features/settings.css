@@ -214,6 +214,20 @@
   }
 }
 
+.library-count-list > .settings-nav-card {
+  flex-direction: row;
+  align-items: center;
+}
+
+.library-count-list .settings-nav-card-copy {
+  overflow-wrap: anywhere;
+}
+
+.library-count-list .badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .settings-temporary-banner {
   margin: 0 0 4px;
   padding: 13px 16px;

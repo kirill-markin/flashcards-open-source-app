@@ -782,6 +782,15 @@ const viCatalog: TranslationCatalog = {
       addCards: "Thêm thẻ",
       transfer: "Chuyển dữ liệu",
     },
+    cards: {
+      description: "Tất cả thẻ trong không gian làm việc này.",
+    },
+    tags: {
+      description: "Các nhãn được dùng trên thẻ của bạn.",
+    },
+    decks: {
+      description: "Các nhóm thẻ dựa trên nhãn bạn chọn.",
+    },
     deckCatalog: {
       title: "Danh mục bộ thẻ",
       description: "Bộ thẻ miễn phí, có sẵn để học.",
