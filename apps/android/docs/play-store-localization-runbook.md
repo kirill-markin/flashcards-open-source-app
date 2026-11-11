@@ -18,9 +18,8 @@ Compare the requested languages with the current
 [app locale config](../app/src/main/res/xml/locales_config.xml), existing listing
 sections in [canonical metadata](../../../docs/google-play-store-metadata.md),
 and the exact language names/codes offered in Play Console. Preserve existing
-listings. The current tree has 49 app languages and 51 authored Play listings:
-the single app language `es` has three listings, `es-ES`, `es-419`, and `es-US`.
-Recount from these sources when changing the set.
+listings. Use the canonical metadata for the authored listing count and
+reconcile it with the app locale config when changing either set.
 
 Resolve each surface's spelling before authoring; do not copy the app tag into
 every filename or Android qualifier. Use these existing maps:

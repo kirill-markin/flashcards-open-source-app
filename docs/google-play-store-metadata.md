@@ -9,11 +9,26 @@ For locale mapping, assets, repository delivery, and Play publication, use the
 
 ## Which languages live in this file
 
-This file holds authored Play listing copy for 51 locales, including regional Spanish listings. Each section owns its app name, short description, and full description. Play locale codes can differ from app locale codes: for example, `es-419` maps to `es-MX`, and `iw-IL` maps to `he`. The `es-US` listing has no matching product locale.
+This file holds authored Play listing copy for 60 locales, including regional listings. Each section owns its app name, short description, and full description. Play locale codes can differ from app locale codes: for example, `es-419` maps to `es-MX`, and `iw-IL` maps to `he`. The `es-US` listing has no matching product locale.
 
 So a section here is not evidence that a shipped build carries that language. Before publishing a listing, check the client locale lists in `apps/web/src/i18n/types.ts`, `apps/android/app/src/main/res/xml/locales_config.xml`, and the iOS `knownRegions` in `apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/project.pbxproj`.
 
 Google Play may auto-translate listings for other languages. That generated copy is absent here because it has no repository source of truth. Publishing authored copy replaces auto-translated text for that locale.
+
+### App and listing locale mappings
+
+| App locale | Google Play listing and release-note codes |
+| --- | --- |
+| `zh-Hant` | `zh-TW`, `zh-HK` |
+| `en-AU` | `en-AU` |
+| `en-CA` | `en-CA` |
+| `en-GB` | `en-GB` |
+| `fr-CA` | `fr-CA` |
+| `pt-PT` | `pt-PT` |
+| `ms` | `ms`, `ms-MY` |
+| `or` | Unavailable |
+
+Google Play's [published listing language list](https://support.google.com/googleplay/android-developer/answer/9844778?hl=en#zippy=%2Cview-list-of-available-languages) omits Odia.
 
 ## Default - English (United States) - en-US
 
@@ -1493,3 +1508,210 @@ Izici ze-AI zidinga i-inthanethi futhi zinemikhawulo yokusetshenziswa. I-Premium
 - Bhalisela i-Premium futhi wenze imibala yokugqamisa ibe ngeyakho.
 - Sebenzisa ukhiye wakho we-API ye-OpenAI futhi ubuke ukusetshenziswa kwe-AI.
 - Qinisekisa ukususa amaqoqo amakhadi futhi uzulazule kalula ezilungiselelweni ezithuthukisiwe.
+
+## Chinese (Traditional) - zh-TW
+
+### App Name
+
+Nibomo：AI 閃卡
+
+### Short Description
+
+用 AI 把筆記和照片做成閃卡，準備考試、練習字彙
+
+### Full Description
+
+用自己的學習資料製作閃卡，準備考試、練習字彙。你可以用 AI 把筆記和照片轉成問答，也可以自己編寫閃卡。
+
+練習主動回想：先試著回答，再翻到閃卡背面看答案。Nibomo 採用間隔複習法，依照你記得多少來安排複習時間。
+
+- 請 AI 解釋答案、補充範例，幫你改進閃卡。
+- 離線複習閃卡。
+- 用卡組和標籤整理各科內容，再用搜尋和篩選功能找出需要的閃卡。
+- 使用電子郵件登入，在有網路連線時同步不同裝置上的學習資料。
+
+AI 功能需要網路連線，且有用量限制。Premium 提供更高的使用額度。
+
+## Chinese (Hong Kong) - zh-HK
+
+### App Name
+
+Nibomo：AI 閃卡
+
+### Short Description
+
+用 AI 將筆記和相片製成閃卡，溫習考試、練習詞彙
+
+### Full Description
+
+用自己的學習材料製作閃卡，準備考試、練習詞彙。你可以用 AI 將筆記和相片轉成問答，也可以自己編寫閃卡。
+
+練習主動回想：先嘗試作答，再翻看閃卡背面的答案。Nibomo 採用間隔重溫法，按你的記憶程度安排溫習時間。
+
+- 請 AI 解釋答案、補充例子，幫你改進閃卡。
+- 離線溫習閃卡。
+- 用卡組和標籤整理各科內容，再用搜尋和篩選功能找出需要的閃卡。
+- 使用電郵登入，在連接互聯網時同步不同裝置上的學習材料。
+
+AI 功能需要連接互聯網，並設有使用上限。Premium 提供更高的使用上限。
+
+## English (Australia) - en-AU
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+AI flashcards from notes and photos for exam prep and vocabulary practice
+
+### Full Description
+
+Prepare for exams and practise vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+
+Practise active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+
+- Ask AI to clarify answers, add examples, and improve your cards.
+- Review your cards offline.
+- Organise subjects with decks and tags, then find cards with search and filters.
+- Sign in with email to sync your study material across devices when online.
+
+AI features require internet and have usage limits. Premium offers higher limits.
+
+## English (Canada) - en-CA
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+AI flashcards from notes and photos for exam prep and vocabulary practice
+
+### Full Description
+
+Prepare for exams and practice vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+
+Practice active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+
+- Ask AI to clarify answers, add examples, and improve your cards.
+- Review your cards offline.
+- Organize subjects with decks and tags, then find cards with search and filters.
+- Sign in with email to sync your study material across devices when online.
+
+AI features require internet and have usage limits. Premium offers higher limits.
+
+## English (United Kingdom) - en-GB
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+AI flashcards from notes and photos for exam prep and vocabulary practice
+
+### Full Description
+
+Prepare for exams and practise vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+
+Practise active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+
+- Ask AI to clarify answers, add examples, and improve your cards.
+- Review your cards offline.
+- Organise subjects with decks and tags, then find cards with search and filters.
+- Sign in with email to sync your study material across devices when online.
+
+AI features require internet and have usage limits. Premium offers higher limits.
+
+## French (Canada) - fr-CA
+
+### App Name
+
+Nibomo : Flashcards IA
+
+### Short Description
+
+L’IA transforme notes et photos en fiches pour les examens et le vocabulaire
+
+### Full Description
+
+Préparez vos examens et travaillez votre vocabulaire avec des fiches créées à partir de votre propre matériel d’étude. Transformez vos notes et photos en questions et réponses avec l’IA, ou rédigez vos fiches vous-même.
+
+Pratiquez le rappel actif : essayez de répondre avant d’afficher le verso de chaque fiche. Nibomo utilise la répétition espacée pour planifier les révisions selon ce que vous retenez.
+
+- Demandez à l’IA de clarifier les réponses, d’ajouter des exemples et d’améliorer vos fiches.
+- Révisez vos fiches hors ligne.
+- Classez vos matières par paquets et étiquettes, et retrouvez vos fiches avec la recherche et les filtres.
+- Connectez-vous avec votre adresse courriel pour synchroniser votre matériel d’étude entre vos appareils lorsque vous êtes en ligne.
+
+Les fonctions d’IA nécessitent Internet et sont soumises à des limites d’utilisation. Premium offre des limites plus élevées.
+
+## Portuguese (Portugal) - pt-PT
+
+### App Name
+
+Nibomo: Flashcards com IA
+
+### Short Description
+
+Flashcards com IA a partir de apontamentos e fotos para exames e vocabulário
+
+### Full Description
+
+Prepare-se para exames e pratique vocabulário com flashcards criados a partir do seu próprio material de estudo. Use a IA para transformar apontamentos e fotografias em perguntas e respostas ou escreva os seus próprios cartões.
+
+Pratique a recordação ativa: tente responder antes de revelar o verso de cada cartão. O Nibomo usa a repetição espaçada para programar as revisões em função do que consegue recordar.
+
+- Peça à IA para explicar respostas, acrescentar exemplos e melhorar os seus cartões.
+- Reveja os seus cartões offline.
+- Organize as matérias com baralhos e etiquetas e encontre cartões com a pesquisa e os filtros.
+- Inicie sessão com o seu e-mail para sincronizar o seu material de estudo entre dispositivos quando estiver online.
+
+As funcionalidades de IA precisam de uma ligação à internet e têm limites de utilização. O Premium oferece limites mais elevados.
+
+## Malay - ms
+
+### App Name
+
+Nibomo: Kad Imbas AI
+
+### Short Description
+
+Kad imbas AI daripada nota dan foto untuk peperiksaan dan latihan kosa kata
+
+### Full Description
+
+Buat kad imbas daripada bahan pembelajaran anda sendiri untuk bersedia menghadapi peperiksaan dan berlatih menggunakan kosa kata. Gunakan AI untuk menukar nota dan foto kepada soalan dan jawapan, atau tulis kad anda sendiri.
+
+Latih daya ingatan secara aktif: cuba jawab sebelum melihat bahagian belakang setiap kad. Nibomo menggunakan pengulangan berjarak untuk menjadualkan ulang kaji mengikut sejauh mana anda mengingati jawapan.
+
+- Minta AI menjelaskan jawapan, menambah contoh dan menambah baik kad anda.
+- Ulang kaji kad anda di luar talian.
+- Susun mata pelajaran dengan dek dan teg. Gunakan carian dan penapis untuk mencari kad.
+- Log masuk dengan e-mel untuk menyegerakkan bahan pembelajaran antara peranti apabila dalam talian.
+
+Ciri AI memerlukan sambungan internet dan mempunyai had penggunaan. Premium menawarkan had yang lebih tinggi.
+
+## Malay (Malaysia) - ms-MY
+
+### App Name
+
+Nibomo: Kad Imbas AI
+
+### Short Description
+
+Kad imbas AI daripada nota dan foto untuk peperiksaan dan latihan kosa kata
+
+### Full Description
+
+Buat kad imbas daripada bahan pembelajaran anda sendiri untuk bersedia menghadapi peperiksaan dan berlatih menggunakan kosa kata. Gunakan AI untuk menukar nota dan foto kepada soalan dan jawapan, atau tulis kad anda sendiri.
+
+Latih daya ingatan secara aktif: cuba jawab sebelum melihat bahagian belakang setiap kad. Nibomo menggunakan pengulangan berjarak untuk menjadualkan ulang kaji mengikut sejauh mana anda mengingati jawapan.
+
+- Minta AI menjelaskan jawapan, menambah contoh dan menambah baik kad anda.
+- Ulang kaji kad anda di luar talian.
+- Susun mata pelajaran dengan dek dan teg. Gunakan carian dan penapis untuk mencari kad.
+- Log masuk dengan e-mel untuk menyegerakkan bahan pembelajaran antara peranti apabila dalam talian.
+
+Ciri AI memerlukan sambungan internet dan mempunyai had penggunaan. Premium menawarkan had yang lebih tinggi.
