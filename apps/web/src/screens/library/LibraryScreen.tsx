@@ -11,13 +11,12 @@ import { captureAppOperationError } from "../../observability/appOperationObserv
 import { getPublicSiteCatalogUrl } from "../../publicSiteUrl";
 import {
   cardsRoute,
-  libraryAnkiExportRoute,
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
+  libraryRoute,
   libraryTagsRoute,
 } from "../../routes";
-import { workspaceAnkiExportFilename, workspacePackageExportFilename } from "../../types";
 import { useWorkspacePath } from "../../useWorkspacePath";
 import { SettingsExternalLinkCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../settings/SettingsShared";
 
@@ -175,21 +174,15 @@ export function LibraryScreen(): ReactElement {
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title={t("settingsWorkspace.export.title")}>
+      <SettingsGroup>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title={t("workspaceExport.title")}
-            description={workspacePackageExportFilename}
+            title={t("settingsWorkspace.export.title")}
+            description={t("libraryScreen.export.description")}
             value={null}
             to={workspacePath(libraryExportRoute)}
+            parentPath={workspacePath(libraryRoute)}
             testId="library-row-export"
-          />
-          <SettingsNavigationCard
-            title={t("workspaceExport.ankiTitle")}
-            description={workspaceAnkiExportFilename}
-            value={null}
-            to={workspacePath(libraryAnkiExportRoute)}
-            testId="library-row-export-anki"
           />
         </div>
       </SettingsGroup>

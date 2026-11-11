@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import ReactDOM from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../../../appData";
 import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
@@ -260,7 +261,9 @@ function setupWorkspaceExportScreen(): WorkspaceExportScreenHarness {
       currentRoot.render(
         <I18nProvider>
           <AppErrorDialogProvider>
-            <WorkspaceExportScreen />
+            <MemoryRouter>
+              <WorkspaceExportScreen />
+            </MemoryRouter>
           </AppErrorDialogProvider>
         </I18nProvider>,
       );
