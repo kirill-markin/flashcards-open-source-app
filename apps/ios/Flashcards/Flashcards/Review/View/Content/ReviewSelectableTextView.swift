@@ -314,7 +314,14 @@ final class ReviewContentAttachment: NSTextAttachment {
         return contentType
     }()
 
-    let content: AnyView
+    enum Content {
+        case hosted(AnyView)
+        #if targetEnvironment(macCatalyst)
+        case table([[NSAttributedString]])
+        #endif
+    }
+
+    let content: Content
     let copyText: String
     let accessibility: ReviewContentAttachmentAccessibility
     let layout: ReviewContentAttachmentLayout
@@ -324,7 +331,7 @@ final class ReviewContentAttachment: NSTextAttachment {
     @MainActor private let hostedViews = NSHashTable<UIView>.weakObjects()
 
     @MainActor
-    init(content: AnyView, copyText: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout) {
+    init(content: Content, copyText: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout) {
         self.content = content
         self.copyText = copyText
         self.accessibility = accessibility
@@ -359,27 +366,7 @@ final class ReviewContentAttachment: NSTextAttachment {
     }
 
     @MainActor
-    fileprivate func makeHostedController(onSizeChange: @escaping () -> Void) -> UIHostingController<AnyView> {
-        let content: AnyView
-        switch self.layout {
-        case .inline:
-            content = self.content
-        case .block:
-            content = AnyView(self.content.frame(maxWidth: .infinity, alignment: .leading))
-        }
-        let controller = UIHostingController(rootView: AnyView(content
-            .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGSize.self) { proxy in
-                proxy.size
-            } action: { _ in
-                onSizeChange()
-            }))
-        return controller
-    }
-
-    @MainActor
-    fileprivate func measuredBounds(width: CGFloat, controller: UIHostingController<AnyView>) -> CGRect {
-        let size = controller.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
+    fileprivate func measuredBounds(width: CGFloat, size: CGSize) -> CGRect {
         let scale = max(self.selectionTextView?.traitCollection.displayScale ?? 1, 1)
         let measuredWidth: CGFloat
         switch self.layout {
@@ -397,18 +384,61 @@ final class ReviewContentAttachment: NSTextAttachment {
 
 private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvider {
     @MainActor private var hostingController: UIHostingController<AnyView>?
+    #if targetEnvironment(macCatalyst)
+    @MainActor private var tableView: ReviewSelectableTableView?
+    #endif
     @MainActor private var lastMeasurementWidth: CGFloat?
     @MainActor private var notifiedBoundsByWidth: [CGFloat: CGRect] = [:]
     @MainActor private var isSizeNotificationScheduled = false
 
     @MainActor
-    private func hostedController(for attachment: ReviewContentAttachment) -> UIHostingController<AnyView> {
+    private func hostedController(content: AnyView, layout: ReviewContentAttachmentLayout) -> UIHostingController<AnyView> {
         if let controller = self.hostingController { return controller }
-        let controller = attachment.makeHostedController { [weak self] in self?.scheduleSizeNotification() }
+        let hostedContent = layout == .block ? AnyView(content.frame(maxWidth: .infinity, alignment: .leading)) : content
+        let controller = UIHostingController(rootView: AnyView(hostedContent
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { [weak self] _ in
+                self?.scheduleSizeNotification()
+            }))
         self.hostingController = controller
         controller.view.backgroundColor = .clear
         controller.view.isAccessibilityElement = false
         return controller
+    }
+
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    private func nativeTable(rows: [[NSAttributedString]]) -> ReviewSelectableTableView {
+        if let table = self.tableView { return table }
+        // TextKit sizes the table directly, without running a nested SwiftUI layout around its text cells.
+        let table = ReviewSelectableTableView(rows: rows)
+        self.tableView = table
+        table.onJoinHierarchy = { [weak self] in self?.scheduleSizeNotification() }
+        for cell in table.cells.joined() {
+            cell.onAttachmentSizeChange = { [weak self, weak table] in
+                table?.setNeedsLayout()
+                self?.scheduleSizeNotification()
+            }
+        }
+        return table
+    }
+    #endif
+
+    @MainActor
+    private func measuredBounds(width: CGFloat, attachment: ReviewContentAttachment) -> CGRect {
+        let proposal = CGSize(width: width, height: .greatestFiniteMagnitude)
+        let size: CGSize
+        switch attachment.content {
+        case .hosted(let content):
+            size = self.hostedController(content: content, layout: attachment.layout).sizeThatFits(in: proposal)
+        #if targetEnvironment(macCatalyst)
+        case .table(let rows):
+            size = self.nativeTable(rows: rows).sizeThatFits(proposal)
+        #endif
+        }
+        return attachment.measuredBounds(width: width, size: size)
     }
 
     nonisolated override func loadView() {
@@ -416,7 +446,15 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
         nonisolated(unsafe) let provider: ReviewContentAttachmentProvider = self
         MainActor.assumeIsolated {
             guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return }
-            let view = ReviewContentAttachmentHostView(hostingController: provider.hostedController(for: attachment))
+            let view: UIView
+            switch attachment.content {
+            case .hosted(let content):
+                view = ReviewContentAttachmentHostView(hostingController: provider.hostedController(content: content, layout: attachment.layout))
+            #if targetEnvironment(macCatalyst)
+            case .table(let rows):
+                view = provider.nativeTable(rows: rows)
+            #endif
+            }
             provider.view = view
             attachment.registerHostedView(view)
             attachment.selectionTextView?.rebuildAccessibilityContent()
@@ -428,7 +466,7 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
         return MainActor.assumeIsolated {
             guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return .zero }
             let width = max(proposedLineFragment.width, 1)
-            let bounds = attachment.measuredBounds(width: width, controller: provider.hostedController(for: attachment))
+            let bounds = provider.measuredBounds(width: width, attachment: attachment)
             // Minimum-width probes must not become the baseline for the displayed fragment's size.
             if provider.notifiedBoundsByWidth[width] == nil { provider.notifiedBoundsByWidth[width] = bounds }
             provider.lastMeasurementWidth = width
@@ -447,7 +485,7 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
                   let textView = attachment.selectionTextView,
                   let width = self.lastMeasurementWidth else { return }
             textView.rebuildAccessibilityContent()
-            let bounds = attachment.measuredBounds(width: width, controller: self.hostedController(for: attachment))
+            let bounds = self.measuredBounds(width: width, attachment: attachment)
             guard self.notifiedBoundsByWidth[width] != bounds else { return }
             self.notifiedBoundsByWidth[width] = bounds
             if let manager = self.textLayoutManager, let range = manager.textContentManager?.documentRange {

@@ -756,6 +756,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.waitForReviewAnswerReveal()
         XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        self.attachMacScreenshot(name: "mac-review-table-after-closing-companion")
     }
 
     // XCTest synthesizes .enter as HID 52 in this Catalyst runner; cover physical keypad Enter manually.
