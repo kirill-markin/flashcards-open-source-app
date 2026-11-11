@@ -6,7 +6,6 @@ text and images. For a new shipping Android UI language, use the separate
 
 ## 1. Confirm the surface and locale set
 
-- Google Play App strings/Gemini owns shipping translated Android UI copy.
 - The repository owns authored listing text and media source inputs. Feature
   graphics and native marketing screenshots are public release assets; see
   [Media assets](../../../docs/media-assets.md).

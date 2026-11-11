@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Mirrors the languages enabled for Google Play App strings translation. -->
-    <!-- The build mirrors this list into androidResources.localeFilters, so a tag here -->
-    <!-- must match the locale Play actually delivers. -->
-    <!-- Generic fr and pt are also the only reason the marketingScreenshot values-fr and -->
-    <!-- values-pt overlays survive localeFilters; remove them and those Play screenshots -->
-    <!-- silently render English. -->
-    <!-- English is the base unqualified resource locale. -->
     <locale android:name="en" />
+
+    <!-- Google Play App strings. -->
     <locale android:name="ar" />
     <locale android:name="bg" />
     <locale android:name="bn" />
@@ -56,4 +51,14 @@
     <locale android:name="vi" />
     <locale android:name="zh-CN" />
     <locale android:name="zu" />
+
+    <!-- Bundled app strings. -->
+    <locale android:name="en-AU" />
+    <locale android:name="en-CA" />
+    <locale android:name="en-GB" />
+    <locale android:name="fr-CA" />
+    <locale android:name="ms" />
+    <locale android:name="or" />
+    <locale android:name="pt-PT" />
+    <locale android:name="zh-Hant" />
 </locale-config>

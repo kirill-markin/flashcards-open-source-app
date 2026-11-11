@@ -264,11 +264,9 @@ Binding for all three clients:
 - each string carries translator context explaining that it is the front or back side of an
   onboarding flashcard, wherever the platform's localization format has a comment channel (Android
   `strings.xml`, iOS `.xcstrings`);
-- Android translations come from Google Play App translations and are not committed to the
-  repository (see [apps/android/README.md](../apps/android/README.md)); iOS and web translations are
-  repository-owned and land in every required locale in the same change
-  ([iOS](ios-localization.md#supported-app-locales), [web](web-localization.md)). Wording therefore
-  differs slightly per platform, and that is accepted.
+- Android follows the [translation owner for each locale](../apps/android/README.md#localization-rule).
+  iOS and web translations are repository-owned and land in every required locale in the same change
+  ([iOS](ios-localization.md#supported-app-locales), [web](web-localization.md)). Wording can differ by platform.
 
 The four strings are named `demo_card_front` and `demo_card_back_1` … `demo_card_back_3`, verbatim
 wherever the platform's localization format takes a free-form key, so the same paragraph is findable
