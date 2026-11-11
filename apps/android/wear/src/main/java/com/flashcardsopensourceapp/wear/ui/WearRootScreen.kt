@@ -270,7 +270,11 @@ private fun TransformingLazyColumnItemScope.WearRetryButton(
     onRetry: () -> Unit
 ) {
     if (isRequestingHandoff) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(
+            modifier = Modifier
+                .transformedListItem(itemScope = this, transformationSpec = transformationSpec)
+                .minimumVerticalContentPadding(ButtonDefaults.minimumVerticalListContentPadding)
+        )
     } else {
         Button(
             onClick = onRetry,

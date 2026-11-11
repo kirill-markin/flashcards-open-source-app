@@ -68,12 +68,13 @@ jobs:
 
           base_epoch_seconds=1767225600
           current_epoch_seconds="$(date -u +%s)"
-          version_code=$(( current_epoch_seconds - base_epoch_seconds ))
+          # Even phone and odd Wear OS codes keep the form factors disjoint, and doubling
+          # keeps every code above the earlier phone codes, which were plain seconds.
+          version_code=$(( (current_epoch_seconds - base_epoch_seconds) * 2 ))
           version_name="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/p' apps/android/app/build.gradle.kts | head -n 1)"
           target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
           release_id="vc${version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
           play_release_name="main-draft-${release_id}"
-          # Phone codes are seconds, so the next code is unique to this release.
           wear_version_code=$(( version_code + 1 ))
           wear_play_release_name="main-draft-vc${wear_version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
 

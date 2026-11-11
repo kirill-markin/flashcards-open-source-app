@@ -183,8 +183,8 @@ Build the signed release bundle with the same inputs that the release workflow u
 
 ```bash
 bash scripts/android/run-android-release.sh \
-  --version-code "12345" \
-  --wear-version-code "12346"
+  --version-code "12346" \
+  --wear-version-code "12347"
 ```
 
 Run one app instrumentation class on a local emulator for ad hoc debugging (requires a running emulator via `adb devices`). `connectedDebugAndroidTest` does not support the `--tests` flag, so filter by class:
