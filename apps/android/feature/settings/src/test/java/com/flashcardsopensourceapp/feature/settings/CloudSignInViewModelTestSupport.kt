@@ -37,6 +37,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -44,6 +45,7 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageIm
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import java.io.File
 import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -370,6 +372,7 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun previewCurrentWorkspacePackageExport(
+        expectedWorkspaceId: String,
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview {
         previewedWorkspacePackageExportRequests += request
@@ -384,12 +387,17 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun exportCurrentWorkspacePackage(
-        request: WorkspacePackageExportRequest
+        expectedWorkspaceId: String,
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
         exportedWorkspacePackageRequests += request
-        return requireNotNull(nextWorkspacePackageExportDownloadResponse) {
+        val result = requireNotNull(nextWorkspacePackageExportDownloadResponse) {
             "Missing workspace package export download test result."
         }
+        result.archiveFile.copyTo(destination, overwrite = true)
+        return result.copy(archiveFile = destination)
     }
 
     override suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview {
@@ -550,7 +558,7 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             R.string.settings_import_preview_required -> "Preview a package before importing."
             R.string.settings_import_missing_import_tag -> "Enter an import tag."
             R.string.settings_export_package_cloud_required -> {
-                "Media ZIP export requires a linked cloud workspace in this version."
+                "Export requires a linked cloud workspace."
             }
 
             R.string.settings_export_package_workspace_unavailable -> {
@@ -558,6 +566,7 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             }
 
             R.string.settings_export_package_preview_failed -> "Package export preview failed."
+            R.string.settings_export_anki_empty -> "No cards to export."
             R.string.settings_export_package_download_failed -> "Package export failed."
             R.string.settings_export_package_preview_required -> "Preview this package export before saving."
             R.string.settings_export_package_summary -> "Export a Nibomo ZIP package"

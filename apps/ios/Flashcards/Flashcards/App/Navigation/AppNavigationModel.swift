@@ -41,6 +41,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .importData, pages: [.importAnki])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
+    case .exportAnkiDeck:
+        return LibraryLocation(section: .exportAnkiDeck, pages: [])
     }
 }
 #else
@@ -62,8 +64,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.importData]
     case .importAnki:
         return [.importData, .importAnki]
-    case .exportData:
-        return [.exportData]
+    case .exportData, .exportAnkiDeck:
+        return [destination]
     }
 }
 #endif

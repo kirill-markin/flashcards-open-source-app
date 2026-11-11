@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.workspace.workspacePackageExportAnkiEmptyErrorCode
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -118,6 +119,7 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "WORKSPACE_ID_REQUIRED",
     "WORKSPACE_NOT_FOUND",
     "WORKSPACE_OWNER_REQUIRED",
+    workspacePackageExportAnkiEmptyErrorCode,
     "WORKSPACE_PACKAGE_EXPORT_PACKAGE_CARD_NOT_FOUND",
     "WORKSPACE_PACKAGE_EXPORT_PACKAGE_INPUT_INVALID",
     "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_ASSET_ID_INVALID",

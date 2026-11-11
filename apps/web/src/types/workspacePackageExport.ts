@@ -1,3 +1,7 @@
+export const workspacePackageExportFilename = "flashcards.zip";
+export const workspaceAnkiExportFilename = "flashcards.apkg";
+export const workspaceAnkiExportContentType = "application/apkg";
+
 export type WorkspacePackageExportAllActiveCardsSelection = Readonly<{
   kind: "allActiveCards";
 }>;
@@ -61,6 +65,10 @@ export type WorkspacePackageExportPreviewResponse = Readonly<{
 export type WorkspacePackageExportDownloadMetadata = Readonly<{
   filename: string;
   contentType: string;
+}>;
+
+export type WorkspaceAnkiExportDownload = WorkspacePackageExportDownloadMetadata & Readonly<{
+  downloadUrl: string;
 }>;
 
 export type WorkspacePackageExportDownloadResult = WorkspacePackageExportDownloadMetadata & Readonly<{

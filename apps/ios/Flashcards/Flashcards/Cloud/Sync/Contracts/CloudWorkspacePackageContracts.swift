@@ -7,6 +7,26 @@
 
 import Foundation
 
+let workspaceAnkiExportFileName: String = "flashcards.apkg"
+
+enum WorkspacePackageExportFormat: Hashable, Sendable {
+    case nibomo
+    case anki
+
+    var contentType: String {
+        switch self {
+        case .nibomo: "application/zip"
+        case .anki: "application/apkg"
+        }
+    }
+}
+
+struct WorkspacePackageExportSignedDownload: Decodable, Sendable {
+    let downloadUrl: URL
+    let fileName: String
+    let contentType: String
+}
+
 enum WorkspacePackageExportSelection: Codable, Hashable, Sendable {
     case allActiveCards
     case tagFilters(includeTags: [String], excludeTags: [String])
@@ -176,10 +196,9 @@ struct WorkspacePackageExportPreviewResponse: Codable, Hashable, Sendable {
     }
 }
 
-struct WorkspacePackageExportDownloadResponse: Hashable, Sendable {
-    let packageBytes: Data
-    let fileName: String
-    let contentType: String
+enum WorkspacePackageExportDownloadResponse: Hashable, Sendable {
+    case inline(Data, fileName: String)
+    case file(URL)
 }
 
 enum WorkspacePackageImportSourceKind: String, Codable, Hashable, Sendable {

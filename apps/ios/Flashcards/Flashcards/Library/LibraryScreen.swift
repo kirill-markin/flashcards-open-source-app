@@ -73,12 +73,22 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.exportData) {
                     LibraryRow(
                         title: LibrarySection.exportData.localizedTitle,
-                        subtitle: String(localized: "library.row.export.subtitle", table: libraryStringsTableName),
+                        subtitle: nil,
                         systemImage: LibrarySection.exportData.systemImage,
                         count: nil
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.libraryExportRow)
+
+                NavigationLink(value: LibraryNavigationDestination.exportAnkiDeck) {
+                    LibraryRow(
+                        title: LibrarySection.exportAnkiDeck.localizedTitle,
+                        subtitle: nil,
+                        systemImage: LibrarySection.exportAnkiDeck.systemImage,
+                        count: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.libraryAnkiExportRow)
             }
         }
         .listStyle(.insetGrouped)

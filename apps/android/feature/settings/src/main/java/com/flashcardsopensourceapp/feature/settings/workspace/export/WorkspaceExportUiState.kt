@@ -1,9 +1,11 @@
 package com.flashcardsopensourceapp.feature.settings.workspace.export
 
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
 
 data class WorkspaceExportUiState(
+    val format: WorkspacePackageExportFormat,
     val packagePreview: WorkspacePackageExportPreview?,
     val packageMetadataDraft: WorkspacePackageExportMetadataDraft,
     val packageCardSelectionTags: Set<String>,
@@ -20,6 +22,13 @@ data class WorkspaceExportUiState(
     val canPreviewPackageExport: Boolean
         get() = packageAvailabilityMessage.isEmpty() && isBusy.not()
 
+    val isAnkiSelectionEmpty: Boolean
+        get() = packagePreview?.isAnkiSelectionEmpty(format = format) == true
+
     val canExportPackage: Boolean
-        get() = packageAvailabilityMessage.isEmpty() && packagePreview != null && isBusy.not()
+        get() = canPreviewPackageExport && packagePreview != null && isAnkiSelectionEmpty.not()
+}
+
+internal fun WorkspacePackageExportPreview.isAnkiSelectionEmpty(format: WorkspacePackageExportFormat): Boolean {
+    return format == WorkspacePackageExportFormat.ANKI && selectedCardCount == 0
 }

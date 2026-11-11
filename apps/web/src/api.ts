@@ -93,6 +93,7 @@ export {
   loadMediaAssetDownloadUrl,
 } from "./api/endpoints/mediaAssets";
 export {
+  downloadWorkspaceAnkiExport,
   downloadWorkspacePackageExport,
   previewWorkspacePackageExport,
 } from "./api/endpoints/workspacePackageExport";

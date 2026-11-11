@@ -31,6 +31,7 @@ private func librarySidebarItemIdentifier(_ section: LibrarySection) -> String {
     case .deckCatalog: UITestIdentifier.rootTabLibraryDeckCatalogItem
     case .importData: UITestIdentifier.rootTabLibraryImportItem
     case .exportData: UITestIdentifier.rootTabLibraryExportItem
+    case .exportAnkiDeck: UITestIdentifier.rootTabLibraryAnkiExportItem
     }
 }
 #endif
@@ -1057,7 +1058,9 @@ struct RootTabView: View {
         case .importAnki:
             WorkspaceAnkiImportView()
         case .exportData:
-            WorkspaceExportView()
+            WorkspaceExportView(format: .nibomo)
+        case .exportAnkiDeck:
+            WorkspaceExportView(format: .anki)
         }
     }
 

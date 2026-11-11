@@ -553,7 +553,14 @@
     <string name="settings_scheduler_steps_invalid_empty">%1$s must not be empty.</string>
     <string name="settings_scheduler_steps_invalid_positive">%1$s must contain positive integers.</string>
 
-    <string name="settings_export_title">Export</string>
+    <string name="settings_export_title">Export Nibomo package</string>
+    <string name="settings_export_anki_title">Export Anki deck</string>
+    <string name="settings_export_anki_section">flashcards.apkg deck</string>
+    <string name="settings_export_anki_body">Export active cards, included tags, and referenced media as new Anki cards.</string>
+    <string name="settings_export_anki_empty">No cards to export. Add a card or change which cards are selected, then preview again.</string>
+    <string name="settings_export_anki_deck_name">Deck name</string>
+    <string name="settings_export_anki_save">Save flashcards.apkg</string>
+    <string name="settings_export_anki_share">Share flashcards.apkg</string>
     <string name="settings_export_package_summary">Export a Nibomo ZIP package</string>
     <string name="settings_export_dismiss_error">Dismiss error</string>
     <string name="settings_export_package_section">flashcards.zip package</string>
@@ -564,7 +571,7 @@
     <string name="settings_export_package_save">Save flashcards.zip</string>
     <string name="settings_export_package_share">Share flashcards.zip</string>
     <string name="settings_export_package_share_title">Share flashcards.zip</string>
-    <string name="settings_export_package_cloud_required">Media ZIP export requires a linked cloud workspace in this version.</string>
+    <string name="settings_export_package_cloud_required">Export requires a linked cloud workspace.</string>
     <string name="settings_export_package_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
     <string name="settings_export_package_preview_failed">Package export preview failed.</string>
     <string name="settings_export_package_download_failed">Package export failed.</string>
