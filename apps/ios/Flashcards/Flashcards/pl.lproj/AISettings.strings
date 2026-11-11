@@ -757,7 +757,16 @@
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Liczba zaimportowanych fiszek: %d. Tag: %@.";
 "settings.workspace.import.success" = "Liczba zaimportowanych fiszek: %d.";
-"settings.workspace.import.section.package" = "Pakiet";
+"settings.workspace.import.format.nibomo" = "Format Nibomo";
+"settings.workspace.import.format.anki" = "Format Anki";
+"settings.workspace.import.anki.choose" = "Wybierz pliki .apkg";
+"settings.workspace.import.anki.remove" = "Usuń plik";
+"settings.workspace.import.anki.start" = "Rozpocznij import";
+"settings.workspace.import.anki.waiting" = "Oczekiwanie na rozpoczęcie importu z Anki…";
+"settings.workspace.import.anki.request" = "Zaimportuj wszystkie załączone talie Anki do tego obszaru roboczego.";
+"ai.composer.ankiImport.unconfirmed" = "Nie udało się potwierdzić importu z Anki. Sprawdź ten czat i swoją bibliotekę, zanim rozpoczniesz kolejny import.";
+"settings.workspace.import.anki.workspaceChanged" = "Obszar roboczy lub konto uległy zmianie. Wróć do biblioteki i rozpocznij import ponownie.";
+"settings.workspace.import.anki.attachmentsUnavailable" = "W czacie z AI nie można dodawać załączników. Spróbuj ponownie, gdy dodawanie plików będzie dostępne.";
 "settings.workspace.import.choosePackage" = "Wybierz pakiet ZIP";
 "settings.workspace.import.previewing" = "Przygotowywanie podglądu...";
 "settings.workspace.import.importing" = "Importowanie...";

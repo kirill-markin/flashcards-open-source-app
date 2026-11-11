@@ -786,9 +786,6 @@ const svCatalog: TranslationCatalog = {
       title: "Kortlekskatalog",
       description: "Gratis färdiga kortlekar att studera.",
     },
-    import: {
-      description: "Lägg till kort från en fil.",
-    },
     export: {
       description: "Ladda ner alla dina kort som en fil.",
     },
@@ -898,7 +895,17 @@ const svCatalog: TranslationCatalog = {
   },
   workspaceImport: {
     title: "Importera",
-    subtitle: "Lägg till kort genom att klistra in text eller välja ett Nibomo-paket.",
+    nibomoFormat: "Nibomo-format",
+    anki: {
+      format: "Anki-format",
+      description: "AI-chatten importerar kort från de valda Anki-exportfilerna.",
+      chooseFiles: "Välj .apkg-filer",
+      start: "Starta import",
+      invalidFile: "”{{file}}” är inte en användbar Anki-exportfil. Välj en .apkg-fil som inte är tom.",
+      fileTooLarge: "”{{file}}” är större än {{limit}} MiB. Välj en mindre Anki-exportfil.",
+      request: "Importera kort från Anki till den här arbetsytan.",
+      chatChanged: "Den aktiva chatten har ändrats. Gå tillbaka till biblioteket och starta Anki-importen igen.",
+    },
     workspaceUnavailable: "Arbetsytan är inte tillgänglig",
     textTitle: "Klistra in text",
     textDescription: "Kopiera termer och definitioner från Quizlet, ett kalkylblad eller ett dokument. Granska varje kort innan du importerar.",

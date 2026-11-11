@@ -180,7 +180,7 @@ def main() -> None:
         'Android CI / Android emulator data:local instrumentation', 'Device Run app instrumentation',
         'Android release summary', publish_name,
     }
-    wear_publish_name = 'Upload Wear OS bundle to Google Play wear production draft release'
+    wear_publish_name = 'Upload Wear OS bundle to Google Play Wear OS internal testing release'
     split_jobs = combined_jobs | {signed_build_name}
     wear_jobs = split_jobs | {wear_publish_name}
     jobs_by_name = {str(job.get('name')): job for job in jobs}

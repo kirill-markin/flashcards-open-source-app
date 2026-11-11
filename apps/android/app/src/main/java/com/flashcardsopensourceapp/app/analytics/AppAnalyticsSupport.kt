@@ -356,7 +356,7 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
         normalizedRoute == LibraryTagsDestination.route -> AnalyticsSurface.TAGS
         normalizedRoute == LibraryCardsDestination.route -> AnalyticsSurface.CARDS
         normalizedRoute == LibraryDestination.route ||
-            normalizedRoute == LibraryImportDestination.route ||
+            normalizedRoute.isWithinRoutePrefix(routePrefix = LibraryImportDestination.route) ||
             normalizedRoute.isWithinRoutePrefix(routePrefix = LibraryExportDestination.route) ->
             AnalyticsSurface.LIBRARY
         normalizedRoute.isWithinRoutePrefix(routePrefix = SettingsAccountSignInEmailDestination.routePrefix) ->

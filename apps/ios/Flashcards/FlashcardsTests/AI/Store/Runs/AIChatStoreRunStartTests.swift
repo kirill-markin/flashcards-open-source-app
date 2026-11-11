@@ -675,8 +675,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
             didAcceptRun: false,
             didAppendOptimisticMessages: true,
             preSendSnapshot: preSendSnapshot,
-            draftText: expectedDraft.inputText,
-            draftAttachments: expectedDraft.pendingAttachments
+            draft: expectedDraft
         )
 
         await store.waitForPendingStatePersistence()
@@ -794,8 +793,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
             didAcceptRun: false,
             didAppendOptimisticMessages: true,
             preSendSnapshot: preSendSnapshot,
-            draftText: expectedDraft.inputText,
-            draftAttachments: expectedDraft.pendingAttachments
+            draft: expectedDraft
         )
 
         await store.waitForPendingStatePersistence()
@@ -859,6 +857,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
                 session: session,
                 sessionId: "session-guest",
                 afterCursor: nil,
+                ankiImportRequestId: nil,
                 outgoingContent: [.text("Help me review this card.")],
                 eventHandler: { event in
                     await recorder.record(event)

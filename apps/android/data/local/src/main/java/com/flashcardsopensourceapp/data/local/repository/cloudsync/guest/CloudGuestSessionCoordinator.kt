@@ -48,6 +48,12 @@ data class EnsuredGuestCloudSession(
     val workspaceId: String
 )
 
+data class LocalGuestWorkspaceMigration(
+    val sourceWorkspaceId: String,
+    val guestWorkspaceId: String,
+    val guestUserId: String
+)
+
 private typealias GuestCloudLinkFinisher = suspend (StoredGuestAiSession, String?) -> Boolean
 private typealias GuestBootstrapProbeLoader = suspend (StoredGuestAiSession, String) -> RemoteBootstrapPullResponse
 
@@ -63,6 +69,10 @@ class CloudGuestSessionCoordinator(
     private val loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile,
     private val appVersion: String
 ) {
+    @Volatile
+    var lastLocalGuestWorkspaceMigration: LocalGuestWorkspaceMigration? = null
+        private set
+
     private val analyticsGuestIdentityLinkCoordinator = AnalyticsGuestIdentityLinkCoordinator(
         preferencesStore = preferencesStore,
         remoteService = remoteService,
@@ -532,16 +542,28 @@ class CloudGuestSessionCoordinator(
                 "Guest workspace restore produced an unexpected local workspace. " +
                     "Expected='${session.workspaceId}' Actual='${resultingWorkspace.workspaceId}'."
             }
-            if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
-                withContext(Dispatchers.IO) {
-                    guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
-                }
+            if (
+                currentCloudSettings.cloudState == CloudAccountState.DISCONNECTED &&
+                currentCloudSettings.linkedUserId == null &&
+                bootstrapProbe.remoteIsEmpty && sourceWorkspace != null &&
+                sourceWorkspace.workspaceId != resultingWorkspace.workspaceId
+            ) {
+                lastLocalGuestWorkspaceMigration = LocalGuestWorkspaceMigration(
+                    sourceWorkspaceId = sourceWorkspace.workspaceId,
+                    guestWorkspaceId = resultingWorkspace.workspaceId,
+                    guestUserId = session.userId
+                )
             }
             withContext(Dispatchers.IO) {
                 guestSessionStore.saveSession(
                     localWorkspaceId = cloudOwnedSession.workspaceId,
                     session = cloudOwnedSession
                 )
+            }
+            if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
+                withContext(Dispatchers.IO) {
+                    guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
+                }
             }
             markGuestCloudState(session = cloudOwnedSession)
             bootstrapProbe.remoteIsEmpty.not()

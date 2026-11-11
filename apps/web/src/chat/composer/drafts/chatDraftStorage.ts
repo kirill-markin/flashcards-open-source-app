@@ -527,12 +527,16 @@ export function replaceChatDraftForSession(
     return nextDraftsBySessionId;
   }
 
-  nextDraftsBySessionId[sessionKey] = {
+  nextDraftsBySessionId[sessionKey] = createUpdatedChatDraft(draft);
+  return nextDraftsBySessionId;
+}
+
+export function createUpdatedChatDraft(draft: ChatDraftContent): StoredChatDraft {
+  return {
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments,
     updatedAt: createNextDraftUpdatedAt(),
   };
-  return nextDraftsBySessionId;
 }
 
 export function readChatDraftForSession(

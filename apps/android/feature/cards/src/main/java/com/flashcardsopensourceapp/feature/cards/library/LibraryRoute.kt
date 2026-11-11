@@ -101,7 +101,11 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_import_title),
-                    summary = stringResource(id = R.string.library_import_summary),
+                    summary = stringResource(
+                        R.string.library_import_formats_summary,
+                        stringResource(id = R.string.library_import_nibomo_format),
+                        stringResource(id = R.string.library_import_anki_format)
+                    ),
                     count = null,
                     testTag = libraryImportRowTag,
                     onClick = onOpenImport

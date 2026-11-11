@@ -36,6 +36,8 @@ data class AiUiState(
     val isConversationLoading: Boolean,
     val isCardHandoffReady: Boolean,
     val conversationErrorPresentation: AiBootstrapErrorPresentation,
+    val needsGuestAccessPreparation: Boolean,
+    val guestAccessPreparationError: AiBootstrapErrorPresentation?,
     val canRetryConversationLoad: Boolean,
     val showOpenAccountStatusForConversationError: Boolean,
     val isComposerBusy: Boolean,
