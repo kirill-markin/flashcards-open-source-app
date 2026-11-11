@@ -9,6 +9,7 @@ struct MacToolbarAction {
     var symbolColor: UIColor? = nil
     var title: String? = nil
     var value: String? = nil
+    var badgeCount: Int? = nil
     /// Nil shows the label.
     var toolTip: String? = nil
     var isEnabled: Bool = true
@@ -65,6 +66,7 @@ struct MacToolbarPresentation: Equatable {
         let symbolColor: UIColor?
         let title: String?
         let value: String?
+        let badgeCount: Int?
         let toolTip: String?
         let isEnabled: Bool
         let isSelected: Bool
@@ -88,7 +90,7 @@ struct MacToolbarPresentation: Equatable {
         func group(_ group: MacToolbarGroup) -> Group {
             Group(identifier: group.identifier, usesSharedBezel: group.usesSharedBezel, actions: group.actions.map {
                 Action(identifier: $0.identifier, symbol: $0.symbol, label: $0.label, symbolColor: $0.symbolColor,
-                       title: $0.title, value: $0.value, toolTip: $0.toolTip, isEnabled: $0.isEnabled, isSelected: $0.isSelected)
+                       title: $0.title, value: $0.value, badgeCount: $0.badgeCount, toolTip: $0.toolTip, isEnabled: $0.isEnabled, isSelected: $0.isSelected)
             })
         }
         self.tab = configuration.tab

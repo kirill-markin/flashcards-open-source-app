@@ -110,16 +110,12 @@ extension LocalDatabase {
         )
     }
 
-    func loadReviewDueBadgeSnapshot(
-        workspaceId: String,
-        reviewQueryDefinition: ReviewQueryDefinition,
-        now: Date
-    ) throws -> ReviewDueBadgeSnapshot {
-        try self.cardStore.loadReviewDueBadgeSnapshot(
-            workspaceId: workspaceId,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now
-        )
+    func loadWorkspaceReviewDueBadgeSnapshot(workspaceId: String, now: Date) throws -> ReviewDueBadgeSnapshot {
+        try self.cardStore.loadWorkspaceReviewDueBadgeSnapshot(workspaceId: workspaceId, now: now)
+    }
+
+    func loadWorkspaceReviewDueAdvance(workspaceId: String, countedThrough: Date, now: Date) throws -> Int {
+        try self.cardStore.loadWorkspaceReviewDueAdvance(workspaceId: workspaceId, countedThrough: countedThrough, now: now)
     }
 
     func loadReviewUpcomingDueDates(

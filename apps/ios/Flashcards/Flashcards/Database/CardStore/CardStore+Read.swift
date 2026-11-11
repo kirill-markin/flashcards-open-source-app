@@ -395,35 +395,20 @@ extension CardStore {
         return reviewCounts
     }
 
-    func loadReviewDueBadgeSnapshot(
-        workspaceId: String,
-        reviewQueryDefinition: ReviewQueryDefinition,
-        now: Date
-    ) throws -> ReviewDueBadgeSnapshot {
-        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+    func loadWorkspaceReviewDueBadgeSnapshot(workspaceId: String, now: Date) throws -> ReviewDueBadgeSnapshot {
         let nowMillis = epochMillis(date: now)
-
         let snapshots = try self.core.query(
             sql: """
             SELECT
-                COALESCE(
-                    SUM(
-                        CASE
-                            WHEN \(cardStoreActiveReviewDueEligibilitySQL) THEN 1
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS due_count,
-                MIN(
-                    CASE
-                        WHEN due_at IS NOT NULL AND due_at_millis > ? THEN due_at_millis
-                    END
-                ) AS next_due_at_millis
-            FROM cards
-            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
+                (SELECT COUNT(*) FROM cards INDEXED BY idx_cards_workspace_new_due_active
+                 WHERE workspace_id = ? AND deleted_at IS NULL AND \(cardStoreActiveReviewNewEligibilitySQL))
+                +
+                (SELECT COUNT(*) FROM cards INDEXED BY idx_cards_workspace_due_millis_active
+                 WHERE workspace_id = ? AND deleted_at IS NULL AND \(cardStoreActiveReviewScheduledDueEligibilitySQL)),
+                (SELECT MIN(due_at_millis) FROM cards INDEXED BY idx_cards_workspace_due_millis_active
+                 WHERE workspace_id = ? AND deleted_at IS NULL AND due_at IS NOT NULL AND due_at_millis > ?)
             """,
-            values: [.integer(nowMillis), .integer(nowMillis), .text(workspaceId)] + querySQL.values
+            values: [.text(workspaceId), .text(workspaceId), .integer(nowMillis), .text(workspaceId), .integer(nowMillis)]
         ) { statement in
             ReviewDueBadgeSnapshot(
                 dueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
@@ -438,6 +423,27 @@ extension CardStore {
         }
 
         return snapshot
+    }
+
+    func loadWorkspaceReviewDueAdvance(
+        workspaceId: String,
+        countedThrough: Date,
+        now: Date
+    ) throws -> Int {
+        let counts = try self.core.query(
+            sql: """
+            SELECT COUNT(*) FROM cards INDEXED BY idx_cards_workspace_due_millis_active
+            WHERE workspace_id = ? AND deleted_at IS NULL AND due_at IS NOT NULL
+                AND due_at_millis > ? AND due_at_millis <= ?
+            """,
+            values: [.text(workspaceId), .integer(epochMillis(date: countedThrough)), .integer(epochMillis(date: now))]
+        ) { statement in
+            Int(DatabaseCore.columnInt64(statement: statement, index: 0))
+        }
+        guard let count = counts.first else {
+            throw LocalStoreError.database("Expected workspace review due advance query to return one row")
+        }
+        return count
     }
 
     /// Due times strictly after `now`, ascending, with one entry per card so equal times keep their count.

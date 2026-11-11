@@ -146,33 +146,63 @@ func defaultReviewCountsLoader(
     }.value
 }
 
-func loadReviewDueBadgeSnapshotInBackground(
+func loadNextReviewDueAtInBackground(
     databaseURL: URL,
     workspaceId: String,
     reviewQueryDefinition: ReviewQueryDefinition,
+    now: Date
+) async throws -> Date? {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadReviewUpcomingDueDates(
+                workspaceId: workspaceId,
+                reviewQueryDefinition: reviewQueryDefinition,
+                now: now,
+                limit: 1
+            ).first
+        }
+    }.value
+}
+
+func loadWorkspaceReviewDueInBackground(
+    databaseURL: URL,
+    workspaceId: String,
+    previous: WorkspaceReviewDueState?,
     now: Date
 ) async throws -> ReviewDueBadgeSnapshot {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
         return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
-            try database.loadReviewDueBadgeSnapshot(
-                workspaceId: workspaceId,
-                reviewQueryDefinition: reviewQueryDefinition,
-                now: now
-            )
+            guard let previous else {
+                return try database.loadWorkspaceReviewDueBadgeSnapshot(workspaceId: workspaceId, now: now)
+            }
+            return try database.core.inReadTransaction {
+                let newlyDueCount = try database.loadWorkspaceReviewDueAdvance(
+                    workspaceId: workspaceId,
+                    countedThrough: previous.countedThrough,
+                    now: now
+                )
+                let nextDueAt = try database.loadReviewUpcomingDueDates(
+                    workspaceId: workspaceId,
+                    reviewQueryDefinition: .allCards,
+                    now: now,
+                    limit: 1
+                ).first
+                return ReviewDueBadgeSnapshot(dueCount: previous.count + newlyDueCount, nextDueAt: nextDueAt)
+            }
         }
     }.value
 }
 
 #if !targetEnvironment(macCatalyst)
 struct WidgetSnapshotDatabaseRead: Sendable {
+    let dueCount: Int
     let upcomingDueAt: [Date]
-    /// One count per interval between consecutive `upcomingDueDayBoundaries`.
     let upcomingDueDayCounts: [Int]
     let reviewHeadCard: Card?
 }
 
-/// Reads the head card only when Review shows no card, since the widget prefers the card on screen.
 func loadWidgetSnapshotDatabaseReadInBackground(
     databaseURL: URL,
     workspaceId: String,
@@ -185,36 +215,40 @@ func loadWidgetSnapshotDatabaseReadInBackground(
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
         return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
-            let resolvedReviewQuery = try database.loadResolvedReviewQuery(
-                workspaceId: workspaceId,
-                reviewFilter: reviewFilter
-            )
-            let reviewHeadCard: Card?
-            if isReviewCardPresented {
-                reviewHeadCard = nil
-            } else {
-                reviewHeadCard = try database.loadReviewHead(
-                    workspaceId: workspaceId,
-                    resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
-                    reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
-                    now: now,
-                    limit: 1
-                ).seedReviewQueue.first
+            // The ready count and the future due times must partition the same read snapshot.
+            try database.core.inReadTransaction {
+                let reviewHeadCard: Card?
+                if isReviewCardPresented {
+                    reviewHeadCard = nil
+                } else {
+                    let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+                        workspaceId: workspaceId,
+                        reviewFilter: reviewFilter
+                    )
+                    reviewHeadCard = try database.loadReviewHead(
+                        workspaceId: workspaceId,
+                        resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+                        reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+                        now: now,
+                        limit: 1
+                    ).seedReviewQueue.first
+                }
+                return WidgetSnapshotDatabaseRead(
+                    dueCount: try database.loadWorkspaceReviewDueBadgeSnapshot(workspaceId: workspaceId, now: now).dueCount,
+                    upcomingDueAt: try database.loadReviewUpcomingDueDates(
+                        workspaceId: workspaceId,
+                        reviewQueryDefinition: .allCards,
+                        now: now,
+                        limit: upcomingDueLimit
+                    ),
+                    upcomingDueDayCounts: try database.loadReviewDueCounts(
+                        workspaceId: workspaceId,
+                        reviewQueryDefinition: .allCards,
+                        intervalBoundaries: upcomingDueDayBoundaries
+                    ),
+                    reviewHeadCard: reviewHeadCard
+                )
             }
-            return WidgetSnapshotDatabaseRead(
-                upcomingDueAt: try database.loadReviewUpcomingDueDates(
-                    workspaceId: workspaceId,
-                    reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
-                    now: now,
-                    limit: upcomingDueLimit
-                ),
-                upcomingDueDayCounts: try database.loadReviewDueCounts(
-                    workspaceId: workspaceId,
-                    reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
-                    intervalBoundaries: upcomingDueDayBoundaries
-                ),
-                reviewHeadCard: reviewHeadCard
-            )
         }
     }.value
 }

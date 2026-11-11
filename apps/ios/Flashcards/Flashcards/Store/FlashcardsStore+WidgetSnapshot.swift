@@ -11,16 +11,17 @@ private let widgetSnapshotFrontTextCharacterLimit: Int = 300
 
 @MainActor
 extension FlashcardsStore {
-    /// Hands the Home Screen widgets the Review tab badge count, the card Review shows next, the streak, the
-    /// Progress history and review schedule as last published, and the coming days' due counts, then reloads every
-    /// widget timeline. A snapshot that differs from the last one only in `generatedAt` is not written.
     func refreshWidgetSnapshot() async {
         guard let database = self.database, let workspaceId = self.workspace?.workspaceId else {
             return
         }
 
+        self.widgetSnapshotRequestSequence += 1
+        let requestSequence = self.widgetSnapshotRequestSequence
         let now = Date()
-        let dueCount = self.reviewDueBadgeCount
+        let reviewFilter = self.selectedReviewFilter
+        let localReadVersion = self.localReadVersion
+        let reviewScheduleVersion = self.reviewScheduleVersion
         let presentedReviewCard = self.presentedReviewCard
         let streakDays = makeWidgetSnapshotStreakDays(badgeState: self.reviewProgressBadgeState)
         let widgetProgressSnapshot = makeStreakConsistentWidgetProgressSnapshot(
@@ -42,7 +43,7 @@ extension FlashcardsStore {
             let databaseRead = try await loadWidgetSnapshotDatabaseReadInBackground(
                 databaseURL: database.databaseURL,
                 workspaceId: workspaceId,
-                reviewFilter: self.selectedReviewFilter,
+                reviewFilter: reviewFilter,
                 isReviewCardPresented: presentedReviewCard != nil,
                 upcomingDueLimit: widgetSnapshotUpcomingDueLimit,
                 upcomingDueDayBoundaries: upcomingDueDayBoundaries,
@@ -51,14 +52,18 @@ extension FlashcardsStore {
             // The detached read ignores cancellation, and an identity reset may have replaced the workspace
             // meanwhile, so a superseded run must not write.
             try Task.checkCancellation()
-            guard self.workspace?.workspaceId == workspaceId else {
+            guard self.widgetSnapshotRequestSequence == requestSequence,
+                  self.workspace?.workspaceId == workspaceId,
+                  self.selectedReviewFilter == reviewFilter,
+                  self.localReadVersion == localReadVersion,
+                  self.reviewScheduleVersion == reviewScheduleVersion else {
                 return
             }
 
             let snapshot = WidgetSnapshot(
                 generatedAt: now,
                 workspaceId: workspaceId,
-                dueCount: dueCount,
+                dueCount: databaseRead.dueCount,
                 upcomingDueAt: databaseRead.upcomingDueAt,
                 streakDays: streakDays,
                 nextCard: makeWidgetSnapshotCard(
@@ -75,6 +80,7 @@ extension FlashcardsStore {
                 accentColor: self.effectiveAccountAccentColor
             )
             if let lastWrittenWidgetSnapshot = self.lastWrittenWidgetSnapshot,
+               lastWrittenWidgetSnapshot.generatedAt <= now,
                hasSameWidgetSnapshotContent(lhs: lastWrittenWidgetSnapshot, rhs: snapshot) {
                 return
             }
@@ -92,6 +98,7 @@ extension FlashcardsStore {
     /// The departing identity's review data must not stay on the Home Screen.
     func deleteWidgetSnapshotForCloudIdentityReset() {
         let workspaceId = self.workspace?.workspaceId
+        self.widgetSnapshotRequestSequence += 1
         self.lastWrittenWidgetSnapshot = nil
         self.widgetProgressSnapshot = nil
         self.reviewScheduleSnapshotPublishedLocalRevision = nil
