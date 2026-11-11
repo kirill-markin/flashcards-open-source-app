@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.CardImportText
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
@@ -96,10 +97,13 @@ import java.time.ZoneId
 
 class CardUnavailableException(cardId: String) : IllegalStateException("Card '$cardId' is unavailable.")
 
+class CardImportWorkspaceChangedException : IllegalStateException("The active workspace changed before importing cards.")
+
 interface CardsRepository {
     fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>>
     fun observeCard(cardId: String): Flow<CardSummary?>
     suspend fun createCard(cardDraft: CardDraft)
+    suspend fun importSpreadsheetCards(workspaceId: String, rows: List<CardImportText>, tags: List<String>)
     suspend fun updateCard(cardId: String, cardDraft: CardDraft, savedTags: List<String>): CardDraft
 
     /** Soft-deletes a card. Missing and already deleted cards are successful no-ops. */

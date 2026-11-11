@@ -23,6 +23,7 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,14 +41,17 @@ private data class WorkspaceImportDraftState(
     val selectedFile: WorkspaceImportSelectedFile?,
     val preview: WorkspacePackageImportPreview?,
     val previewIdentity: WorkspaceImportPreviewIdentity?,
-    val addImportTag: Boolean,
+    val addImportTagOverride: Boolean?,
     val importTag: String,
     val removedTags: Set<String>,
     val isPreviewing: Boolean,
     val isImporting: Boolean,
     val errorMessage: String,
     val successMessage: String
-)
+) {
+    val addImportTag: Boolean
+        get() = addImportTagOverride ?: preview?.defaultOptions?.addImportTag ?: true
+}
 
 class WorkspaceImportViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
@@ -74,7 +78,7 @@ class WorkspaceImportViewModel(
             selectedFile = null,
             preview = null,
             previewIdentity = null,
-            addImportTag = true,
+            addImportTagOverride = null,
             importTag = "",
             removedTags = emptySet(),
             isPreviewing = false,
@@ -95,8 +99,8 @@ class WorkspaceImportViewModel(
             draft.selectedFile != null &&
             draft.previewIdentity == currentIdentity
         WorkspaceImportUiState(
-            selectedFileName = if (isPreviewCurrent || draft.isPreviewing) {
-                draft.selectedFile?.fileName
+            selectedFileName = if (isPreviewCurrent) {
+                draft.selectedFile.fileName
             } else {
                 null
             },
@@ -130,18 +134,32 @@ class WorkspaceImportViewModel(
         )
     )
 
+    internal fun selectFile(readFile: suspend () -> WorkspaceImportSelectedFile): Job? {
+        val state = draftState.value
+        if (state.isPreviewing || state.isImporting) return null
+        val previewRequestId = beginPreviewRequest()
+        return viewModelScope.launch {
+            try {
+                val file = readFile()
+                previewSelectedFile(previewRequestId = previewRequestId, selectedFile = file)
+            } catch (error: WorkspaceImportUserException) {
+                showSelectedFileError(
+                    previewRequestId = previewRequestId,
+                    message = requireNotNull(error.message)
+                )
+            }
+        }
+    }
+
+    internal fun reportFileSelectionError(message: String) {
+        draftState.update { state -> state.copy(errorMessage = message, successMessage = "") }
+    }
+
     fun beginPreviewRequest(): Long {
         val previewRequestId: Long = latestPreviewRequestId.incrementAndGet()
         draftState.update { state ->
             state.copy(
-                selectedFile = null,
-                preview = null,
-                previewIdentity = null,
-                addImportTag = true,
-                importTag = "",
-                removedTags = emptySet(),
                 isPreviewing = true,
-                isImporting = false,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -178,37 +196,14 @@ class WorkspaceImportViewModel(
             return
         }
         if (previewIdentity == null) {
-            updateDraftStateForPreviewRequest(previewRequestId = previewRequestId) { state ->
-                state.copy(
-                    selectedFile = null,
-                    preview = null,
-                    previewIdentity = null,
-                    importTag = "",
-                    isPreviewing = false,
-                    isImporting = false,
-                    errorMessage = workspaceImportAvailabilityMessage(
-                        cloudSettings = cloudSettingsState.value,
-                        strings = strings
-                    ),
-                    successMessage = ""
+            showSelectedFileError(
+                previewRequestId = previewRequestId,
+                message = workspaceImportAvailabilityMessage(
+                    cloudSettings = cloudSettingsState.value,
+                    strings = strings
                 )
-            }
-            return
-        }
-
-        updateDraftStateForPreviewRequest(previewRequestId = previewRequestId) { state ->
-            state.copy(
-                selectedFile = selectedFile,
-                preview = null,
-                previewIdentity = previewIdentity,
-                addImportTag = true,
-                importTag = "",
-                removedTags = emptySet(),
-                isPreviewing = true,
-                isImporting = false,
-                errorMessage = "",
-                successMessage = ""
             )
+            return
         }
 
         try {
@@ -220,7 +215,6 @@ class WorkspaceImportViewModel(
                     selectedFile = selectedFile,
                     preview = preview,
                     previewIdentity = previewIdentity,
-                    addImportTag = preview.defaultOptions.addImportTag,
                     importTag = preview.defaultOptions.suggestedImportTag,
                     removedTags = preview.defaultOptions.removedTags.toSet(),
                     isPreviewing = false,
@@ -231,17 +225,10 @@ class WorkspaceImportViewModel(
         } catch (error: CancellationException) {
             throw error
         } catch (error: SyncBlockedException) {
-            updateDraftStateForPreviewRequest(previewRequestId = previewRequestId) { state ->
-                state.copy(
-                    selectedFile = null,
-                    preview = null,
-                    previewIdentity = null,
-                    importTag = "",
-                    isPreviewing = false,
-                    errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body),
-                    successMessage = ""
-                )
-            }
+            showSelectedFileError(
+                previewRequestId = previewRequestId,
+                message = strings.get(R.string.settings_account_status_sync_blocked_body)
+            )
         } catch (error: Exception) {
             handlePreviewImportFailure(
                 error = error,
@@ -257,12 +244,7 @@ class WorkspaceImportViewModel(
     ) {
         updateDraftStateForPreviewRequest(previewRequestId = previewRequestId) { state ->
             state.copy(
-                selectedFile = null,
-                preview = null,
-                previewIdentity = null,
-                importTag = "",
                 isPreviewing = false,
-                isImporting = false,
                 errorMessage = message,
                 successMessage = ""
             )
@@ -272,7 +254,7 @@ class WorkspaceImportViewModel(
     fun updateAddImportTag(isEnabled: Boolean) {
         draftState.update { state ->
             state.copy(
-                addImportTag = isEnabled,
+                addImportTagOverride = isEnabled,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -326,6 +308,7 @@ class WorkspaceImportViewModel(
     private suspend fun confirmImportAsync() {
         val currentCloudSettings: CloudSettings = cloudSettingsState.value
         val currentDraftState: WorkspaceImportDraftState = draftState.value
+        if (currentDraftState.isPreviewing) return
         val currentIdentity: WorkspaceImportPreviewIdentity? = makePreviewIdentity(cloudSettings = currentCloudSettings)
         val isPreviewCurrent: Boolean = currentDraftState.preview != null &&
             currentDraftState.selectedFile != null &&
@@ -406,7 +389,7 @@ class WorkspaceImportViewModel(
                     selectedFile = null,
                     preview = null,
                     previewIdentity = null,
-                    addImportTag = true,
+                    addImportTagOverride = null,
                     importTag = "",
                     removedTags = emptySet(),
                     isImporting = false,
@@ -455,12 +438,7 @@ class WorkspaceImportViewModel(
         updateDraftStateForPreviewRequest(previewRequestId = previewRequestId) { state ->
             didHandleCurrentRequest = true
             state.copy(
-                selectedFile = null,
-                preview = null,
-                previewIdentity = null,
-                importTag = "",
                 isPreviewing = false,
-                isImporting = false,
                 errorMessage = expectedErrorMessage ?: fallbackMessage,
                 successMessage = ""
             )
