@@ -1130,10 +1130,6 @@ const idCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Buka sisi {{side}} kartu di obrolan AI",
     repetitionBadgeAriaLabel: "Pengulangan: {{value}}",
     repetitionBadgeNew: "Baru",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Tag lainnya: {{count}}",
-    },
     empty: {
       noCardsBody: "Anda belum membuat kartu apa pun. Tambahkan kartu pertama untuk mulai belajar.",
       noCardsTitle: "Belum Ada Kartu",

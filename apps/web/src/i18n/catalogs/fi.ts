@@ -1130,10 +1130,6 @@ const fiCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Avaa kortin puoli ({{side}}) tekoälykeskustelussa",
     repetitionBadgeAriaLabel: "Toistot: {{value}}",
     repetitionBadgeNew: "Uusi",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Lisää tunnisteita: {{count}}",
-    },
     empty: {
       noCardsBody: "Et ole vielä luonut kortteja. Aloita opiskelu lisäämällä ensimmäinen korttisi.",
       noCardsTitle: "Ei vielä kortteja",

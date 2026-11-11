@@ -1130,10 +1130,6 @@ const zuCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Vula ikhadi engxoxweni ye-AI ({{side}})",
     repetitionBadgeAriaLabel: "Ukuphindwa: {{value}}",
     repetitionBadgeNew: "Elisha",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Amathegi engeziwe: {{count}}",
-    },
     empty: {
       noCardsBody: "Awukadali amakhadi. Engeza ikhadi lakho lokuqala ukuze uqale ukufunda.",
       noCardsTitle: "Awekho amakhadi okwamanje",

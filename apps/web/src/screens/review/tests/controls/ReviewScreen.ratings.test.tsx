@@ -153,7 +153,7 @@ describe("ReviewScreen rating controls", () => {
     await dispatchDocumentKeydown("Enter");
     await act(async () => { document.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true })); });
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     const navigationLink = getContainer().querySelector("a[href]");
     if (!(editButton instanceof HTMLButtonElement) || !(navigationLink instanceof HTMLAnchorElement)) {
       throw new Error("Review native keyboard controls were not found");
@@ -447,7 +447,7 @@ describe("ReviewScreen rating controls", () => {
 
     await clickElementAsync(trigger);
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -474,7 +474,7 @@ describe("ReviewScreen rating controls", () => {
 
     await renderReviewScreen();
 
-    expect(getContainer().querySelector(".review-pane-head-actions .review-card-ai-btn")).toBeNull();
+    expect(getContainer().querySelector(".review-pane-head .review-card-ai-btn")).toBeNull();
     expect(getContainer().querySelector(".review-card-surface-front .review-card-ai-btn")).toBeNull();
     expect(getContainer().querySelector(".review-card-surface-front .review-card-actions")).toBeTruthy();
 
@@ -487,7 +487,7 @@ describe("ReviewScreen rating controls", () => {
 
     expect(backAiButton.textContent).toBe("AI");
     expect(backAiButton.getAttribute("aria-label")).toBe("Open back card in AI chat");
-    expect(getContainer().querySelector(".review-pane-head-actions .review-card-ai-btn")).toBeNull();
+    expect(getContainer().querySelector(".review-pane-head .review-card-ai-btn")).toBeNull();
     expect(getContainer().querySelector(".review-card-answer .review-card-speech-btn")).not.toBeNull();
   });
 

@@ -1130,10 +1130,6 @@ const bgCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Отваряне на картата в ИИ чата ({{side}})",
     repetitionBadgeAriaLabel: "Повторения: {{value}}",
     repetitionBadgeNew: "Нова",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Още етикети: {{count}}",
-    },
     empty: {
       noCardsBody: "Все още не сте създали никакви карти. Добавете първата си карта, за да започнете да учите.",
       noCardsTitle: "Все още няма карти",

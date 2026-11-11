@@ -1130,10 +1130,6 @@ const guCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ચૅટમાં કાર્ડ ખોલો: {{side}}",
     repetitionBadgeAriaLabel: "પુનરાવર્તનો: {{value}}",
     repetitionBadgeNew: "નવું",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "વધુ ટૅગ: {{count}}",
-    },
     empty: {
       noCardsBody: "તમે હજી કોઈ કાર્ડ બનાવ્યું નથી. અભ્યાસ શરૂ કરવા તમારું પહેલું કાર્ડ ઉમેરો.",
       noCardsTitle: "હજુ કોઈ કાર્ડ નથી",

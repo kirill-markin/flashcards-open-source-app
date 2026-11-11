@@ -1130,10 +1130,6 @@ const nbCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Åpne kortsiden ({{side}}) i AI-chatten",
     repetitionBadgeAriaLabel: "Repetisjoner: {{value}}",
     repetitionBadgeNew: "Nytt",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Flere tagger: {{count}}",
-    },
     empty: {
       noCardsBody: "Du har ikke laget noen kort ennå. Legg til det første kortet for å komme i gang.",
       noCardsTitle: "Ingen kort ennå",

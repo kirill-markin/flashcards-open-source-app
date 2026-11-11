@@ -1130,10 +1130,6 @@ const isCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Opna spjald í gervigreindarspjalli: {{side}}",
     repetitionBadgeAriaLabel: "Endurtekningar: {{value}}",
     repetitionBadgeNew: "Nýtt",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Fleiri merki: {{count}}",
-    },
     empty: {
       noCardsBody: "Þú hefur ekki búið til nein spjöld enn. Bættu við fyrsta spjaldinu til að byrja að læra.",
       noCardsTitle: "Engin spjöld enn",

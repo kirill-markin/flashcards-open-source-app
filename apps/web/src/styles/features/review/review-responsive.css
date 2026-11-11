@@ -72,15 +72,6 @@
     padding-inline: 0;
   }
 
-  .review-pane-head-actions {
-    width: auto;
-  }
-
-  .review-pane-head-actions > .ghost-btn,
-  .review-pane-head-actions > .primary-btn {
-    width: auto;
-  }
-
   .review-card-surface {
     min-height: 150px;
     padding: 12px;

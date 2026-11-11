@@ -1130,10 +1130,6 @@ const bnCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "এআই চ্যাটে কার্ডের {{side}} খুলুন",
     repetitionBadgeAriaLabel: "পুনরাবৃত্তি: {{value}}",
     repetitionBadgeNew: "নতুন",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "আরও ট্যাগ: {{count}}",
-    },
     empty: {
       noCardsBody: "আপনি এখনও কোনো কার্ড তৈরি করেননি। পড়াশোনা শুরু করতে আপনার প্রথম কার্ড যোগ করুন।",
       noCardsTitle: "এখনো কোনো কার্ড নেই",

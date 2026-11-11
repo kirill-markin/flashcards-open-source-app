@@ -1130,10 +1130,6 @@ export const zhHansCatalog = {
     aiOpenAriaLabel: "在 AI 聊天中打开{{side}}卡片",
     repetitionBadgeAriaLabel: "复习次数：{{value}}",
     repetitionBadgeNew: "新卡",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "更多标签：{{count}}",
-    },
     empty: {
       noCardsBody: "您还没有创建任何卡片。添加第一张卡片即可开始学习。",
       noCardsTitle: "还没有卡片",

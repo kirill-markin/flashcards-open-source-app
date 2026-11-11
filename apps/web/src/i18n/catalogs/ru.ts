@@ -1139,10 +1139,6 @@ export const ruCatalog = {
     aiOpenAriaLabel: "Открыть {{side}} карточки в AI-чате",
     repetitionBadgeAriaLabel: "Повторы: {{value}}",
     repetitionBadgeNew: "Новая",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Ещё теги: {{count}}",
-    },
     empty: {
       noCardsBody: "Вы еще не создали ни одной карточки. Добавьте первую карточку, чтобы начать учиться.",
       noCardsTitle: "Карточек пока нет",

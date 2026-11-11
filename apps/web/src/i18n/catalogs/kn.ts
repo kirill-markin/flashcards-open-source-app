@@ -1130,10 +1130,6 @@ const knCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ಚಾಟ್‌ನಲ್ಲಿ ಕಾರ್ಡ್ ತೆರೆಯಿರಿ: {{side}}",
     repetitionBadgeAriaLabel: "ಪುನರಾವರ್ತನೆಗಳು: {{value}}",
     repetitionBadgeNew: "ಹೊಸದು",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "ಇನ್ನಷ್ಟು ಟ್ಯಾಗ್‌ಗಳು: {{count}}",
-    },
     empty: {
       noCardsBody: "ನೀವು ಇನ್ನೂ ಯಾವುದೇ ಕಾರ್ಡ್ ರಚಿಸಿಲ್ಲ. ಅಧ್ಯಯನ ಪ್ರಾರಂಭಿಸಲು ಮೊದಲ ಕಾರ್ಡ್ ಸೇರಿಸಿ.",
       noCardsTitle: "ಇನ್ನೂ ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ",

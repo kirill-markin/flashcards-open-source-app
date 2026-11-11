@@ -1130,10 +1130,6 @@ const swCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Fungua kadi kwenye gumzo la AI: {{side}}",
     repetitionBadgeAriaLabel: "Mara: {{value}}",
     repetitionBadgeNew: "Mpya",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Lebo zaidi: {{count}}",
-    },
     empty: {
       noCardsBody: "Bado hujaunda kadi zozote. Ongeza kadi yako ya kwanza ili uanze kujifunza.",
       noCardsTitle: "Hakuna Kadi Bado",

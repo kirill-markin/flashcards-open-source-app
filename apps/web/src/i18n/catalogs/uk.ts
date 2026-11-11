@@ -1139,10 +1139,6 @@ const ukCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Відкрити картку в AI-чаті: {{side}}",
     repetitionBadgeAriaLabel: "Повторів: {{value}}",
     repetitionBadgeNew: "Нова",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Ще теги: {{count}}",
-    },
     empty: {
       noCardsBody: "Ви ще не створили жодної картки. Додайте першу картку, щоб почати навчання.",
       noCardsTitle: "Ще немає карток",

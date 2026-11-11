@@ -1130,10 +1130,6 @@ const paCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ਚੈਟ ਵਿੱਚ ਕਾਰਡ ਖੋਲ੍ਹੋ: {{side}}",
     repetitionBadgeAriaLabel: "ਦੁਹਰਾਈਆਂ: {{value}}",
     repetitionBadgeNew: "ਨਵਾਂ",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "ਹੋਰ ਟੈਗ: {{count}}",
-    },
     empty: {
       noCardsBody: "ਤੁਸੀਂ ਹਾਲੇ ਕੋਈ ਕਾਰਡ ਨਹੀਂ ਬਣਾਇਆ. ਪੜ੍ਹਾਈ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਆਪਣਾ ਪਹਿਲਾ ਕਾਰਡ ਸ਼ਾਮਲ ਕਰੋ.",
       noCardsTitle: "ਹਾਲੇ ਕੋਈ ਕਾਰਡ ਨਹੀਂ",

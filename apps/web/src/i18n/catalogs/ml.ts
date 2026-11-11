@@ -1130,10 +1130,6 @@ const mlCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ചാറ്റിൽ കാർഡ് തുറക്കുക: {{side}}",
     repetitionBadgeAriaLabel: "ആവർത്തനങ്ങൾ: {{value}}",
     repetitionBadgeNew: "പുതിയത്",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "കൂടുതൽ ടാഗുകൾ: {{count}}",
-    },
     empty: {
       noCardsBody: "നിങ്ങൾ ഇതുവരെ കാർഡുകളൊന്നും സൃഷ്ടിച്ചിട്ടില്ല. പഠനം തുടങ്ങാൻ ആദ്യ കാർഡ് ചേർക്കുക.",
       noCardsTitle: "ഇതുവരെ കാർഡുകളില്ല",

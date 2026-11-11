@@ -1130,10 +1130,6 @@ const caCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Obre la cara de la targeta ({{side}}) al xat d'IA",
     repetitionBadgeAriaLabel: "Repeticions: {{value}}",
     repetitionBadgeNew: "Nova",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Més etiquetes: {{count}}",
-    },
     empty: {
       noCardsBody: "Encara no has creat cap targeta. Afegeix la teva primera targeta per començar a estudiar.",
       noCardsTitle: "Encara no hi ha targetes",

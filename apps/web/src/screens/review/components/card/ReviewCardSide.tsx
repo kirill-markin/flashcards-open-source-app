@@ -27,6 +27,7 @@ import reviewMathBlocks, {
 import { ReviewMathBlock } from "./ReviewMathBlock";
 import { ReviewCardCopyButton, type ReviewCardCopyButtonHandle } from "./ReviewCardCopyButton";
 import { useI18n } from "../../../../i18n";
+import { ReviewRepetitionBadgeIcon } from "../../../shared/ReviewProgressBadgeIcon";
 import { reviewSpeechShortcutKey } from "../../input/reviewShortcutKeys";
 import { ReviewShortcutHint } from "../ReviewShortcutHint";
 
@@ -49,11 +50,15 @@ export type ReviewCardSideProps = Readonly<{
   aiButtonAriaLabel: string | null;
   contentClassName: string;
   copySource: Readonly<{ cardId: string; side: "front" | "back"; sourceText: string }> | null;
+  editButtonDisabled: boolean;
   isSpeaking: boolean;
   label: string;
+  onEdit: (() => void) | null;
   onOpenAi: (() => void) | null;
   onOpenTextSelection?: () => void;
   onToggleSpeech: () => void;
+  /** Shown at the end of the side label line; null hides it. */
+  repetitionCount: number | null;
   /** Set only on the side the speech and copy shortcuts act on. */
   shortcutTarget: ReviewCardShortcutTarget | null;
   showAiButton: boolean;
@@ -75,6 +80,11 @@ export type ReviewCardSpeechButtonProps = Readonly<{
   isShortcutTarget: boolean;
   isSpeaking: boolean;
   onToggleSpeech: () => void;
+}>;
+
+export type ReviewCardEditButtonProps = Readonly<{
+  disabled: boolean;
+  onEdit: () => void;
 }>;
 
 function reviewMarkdownClassName(tagName: string): string {
@@ -323,9 +333,9 @@ export function ReviewCardMarkdown(props: Readonly<{
   );
 }
 
-export function ReviewEditIcon(): ReactElement {
+function ReviewEditIcon(): ReactElement {
   return (
-    <svg className="review-pane-edit-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M4 20H8.5L19 9.5L14.5 5L4 15.5V20Z"
         stroke="currentColor"
@@ -381,16 +391,55 @@ export function ReviewCardSpeechButton(props: ReviewCardSpeechButtonProps): Reac
   );
 }
 
+export function ReviewCardEditButton(props: ReviewCardEditButtonProps): ReactElement {
+  const { disabled, onEdit } = props;
+  const { t } = useI18n();
+  const label = t("reviewScreen.actions.edit");
+
+  return (
+    <button
+      type="button"
+      className="review-card-edit-btn"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onEdit}
+    >
+      <ReviewEditIcon />
+    </button>
+  );
+}
+
+/** Quiet caption metadata on the label line, not a chip, so the line keeps its height. */
+function ReviewCardRepetitionCount(props: Readonly<{ repetitionCount: number }>): ReactElement {
+  const { repetitionCount } = props;
+  const { t, formatNumber } = useI18n();
+  const value = repetitionCount === 0 ? t("reviewScreen.repetitionBadgeNew") : formatNumber(repetitionCount);
+
+  return (
+    <span className="review-card-repetitions">
+      <ReviewRepetitionBadgeIcon />
+      <span aria-hidden="true">{value}</span>
+      <span className="review-metadata-chip-accessible-label">
+        {t("reviewScreen.repetitionBadgeAriaLabel", { value })}
+      </span>
+    </span>
+  );
+}
+
 export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
   const {
     aiButtonAriaLabel,
     contentClassName,
     copySource,
+    editButtonDisabled,
     isSpeaking,
     label,
+    onEdit,
     onOpenAi,
     onOpenTextSelection,
     onToggleSpeech,
+    repetitionCount,
     shortcutTarget,
     showAiButton,
     showSpeechButton,
@@ -416,24 +465,27 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
       data-card-id={surfaceCardId}
       data-card-front-text={surfaceFrontText}
     >
-      {onOpenTextSelection === undefined ? (
-        <div className="review-label">{label}</div>
-      ) : (
-        <button
-          type="button"
-          className="review-label review-label-button"
-          aria-label={t("reviewScreen.selectTextAriaLabel", { side: label })}
-          aria-haspopup="dialog"
-          title={t("reviewScreen.selectTextAriaLabel", { side: label })}
-          onClick={(event) => {
-            event.currentTarget.focus();
-            onOpenTextSelection();
-          }}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          {label}
-        </button>
-      )}
+      <div className="review-card-side-head">
+        {onOpenTextSelection === undefined ? (
+          <div className="review-label">{label}</div>
+        ) : (
+          <button
+            type="button"
+            className="review-label review-label-button"
+            aria-label={t("reviewScreen.selectTextAriaLabel", { side: label })}
+            aria-haspopup="dialog"
+            title={t("reviewScreen.selectTextAriaLabel", { side: label })}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              onOpenTextSelection();
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            {label}
+          </button>
+        )}
+        {repetitionCount === null ? null : <ReviewCardRepetitionCount repetitionCount={repetitionCount} />}
+      </div>
       <div className="review-card-body">
         <div className="review-card-content-wrap">
           <div
@@ -450,7 +502,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
           </div>
         </div>
 
-        {copySource !== null || showSpeechButton || showAiButton ? (
+        {copySource !== null || showSpeechButton || onEdit !== null || showAiButton ? (
           <div className="review-card-actions">
             {copySource !== null ? (
               <ReviewCardCopyButton
@@ -470,6 +522,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
                 onToggleSpeech={onToggleSpeech}
               />
             ) : null}
+            {onEdit !== null ? <ReviewCardEditButton disabled={editButtonDisabled} onEdit={onEdit} /> : null}
             {showAiButton && onOpenAi !== null ? (
               <button
                 type="button"

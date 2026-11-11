@@ -92,7 +92,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -136,7 +136,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -201,7 +201,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -276,7 +276,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -394,7 +394,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -494,7 +494,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -584,7 +584,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -699,7 +699,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -804,7 +804,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -906,7 +906,7 @@ describe("ReviewScreen editor lifecycle controls", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const editButton = getContainer().querySelector(".review-card-edit-btn");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
