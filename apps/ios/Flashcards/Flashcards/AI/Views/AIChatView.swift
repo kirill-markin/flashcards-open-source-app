@@ -34,6 +34,7 @@ struct AIChatView: View {
     @State var isComposerFocused: Bool
     #if targetEnvironment(macCatalyst)
     @State var macComposerReturnKeyOwner = MacComposerReturnKeyOwner()
+    @State private var restoresMacComposerFocus = false
     #endif
     @State var refocusesComposerAfterSend: Bool
 
@@ -121,6 +122,11 @@ struct AIChatView: View {
             .onChange(of: self.scenePhase) { _, nextPhase in
                 self.handleScenePhaseChange(nextPhase: nextPhase)
             }
+            #if targetEnvironment(macCatalyst)
+            .onChange(of: self.composerTextFieldDisabled) { _, _ in
+                self.restoreMacComposerFocusIfReady()
+            }
+            #endif
             .onChange(of: self.flashcardsStore.workspace?.workspaceId) { _, _ in
                 self.handleSurfaceInputsChange()
             }
@@ -690,6 +696,9 @@ struct AIChatView: View {
     }
 
     func dismissComposerFocus() {
+        #if targetEnvironment(macCatalyst)
+        self.restoresMacComposerFocus = false
+        #endif
         self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
         self.chatStore.recordComposerEditing(operation: .focus, phase: .before, beforeUTF16Count: self.chatStore.inputText.utf16.count, afterUTF16Count: self.chatStore.inputText.utf16.count)
         self.isComposerFocused = false
@@ -812,16 +821,35 @@ struct AIChatView: View {
     func handleScenePhaseChange(nextPhase: ScenePhase) {
         self.recordComposerPresentation(operation: .scene, isVisible: self.isPresentationActive)
         guard nextPhase == .active else {
+            #if targetEnvironment(macCatalyst)
+            if self.isPresentationActive && self.isComposerFocused {
+                self.restoresMacComposerFocus = true
+            }
+            #endif
             self.syncChatSurface(refreshConsent: false)
             return
         }
 
         self.syncChatSurface(refreshConsent: true)
+        #if targetEnvironment(macCatalyst)
+        self.restoreMacComposerFocusIfReady()
+        #endif
         self.handleAIChatPresentationRequest(
             request: self.presentationRequestCoordinator.deferredPresentationRequest,
             source: .sceneActive
         )
     }
+
+    #if targetEnvironment(macCatalyst)
+    private func restoreMacComposerFocusIfReady() {
+        guard self.restoresMacComposerFocus,
+              self.scenePhase == .active,
+              self.isPresentationActive,
+              self.composerTextFieldDisabled == false else { return }
+        self.restoresMacComposerFocus = false
+        self.isComposerFocused = true
+    }
+    #endif
 
     func handleSurfaceInputsChange() {
         self.syncChatSurface(refreshConsent: false)
@@ -834,6 +862,9 @@ struct AIChatView: View {
     func handleChatVisibilityChange(isVisible: Bool) {
         self.recordComposerPresentation(operation: .presentation, isVisible: isVisible)
         guard isVisible else {
+            #if targetEnvironment(macCatalyst)
+            self.restoresMacComposerFocus = false
+            #endif
             self.syncChatSurface(refreshConsent: false)
             return
         }
