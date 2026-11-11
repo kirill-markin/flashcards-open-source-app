@@ -6,7 +6,7 @@ import {
   type CardMetadata,
   type CardSnapshotInput,
 } from "../../cards";
-import type { CardRow } from "../../cards/types";
+import type { CardMaintenanceRow, CardRow } from "../../cards/types";
 import type { DatabaseExecutor, SqlValue } from "../../database";
 import {
   parseDeckFilterDefinition,
@@ -141,7 +141,7 @@ function createDeckSyncPushInputWithPayload(payload: DeckSyncPushPayload): DeckS
 function createLegacyCardUpdateExecutor(
   existingMetadata: CardMetadata,
 ): DatabaseExecutor {
-  const existingRow: CardRow = {
+  const existingRow: CardMaintenanceRow = {
     card_id: "card-1",
     front_text: "Original question",
     back_text: "Original answer",
@@ -164,6 +164,10 @@ function createLegacyCardUpdateExecutor(
     last_operation_id: "operation-old",
     updated_at: "2026-02-28T09:00:00.000Z",
     deleted_at: null,
+    maintenance_revision: 0,
+    maintenance_reset_at: null,
+    maintenance_tag_removals: {},
+    maintenance_snapshot_lww_at: null,
   };
 
   return {

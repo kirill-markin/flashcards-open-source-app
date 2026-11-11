@@ -1453,6 +1453,19 @@ const trCatalog: TranslationCatalog = {
       new: "Yeni deste",
     },
   },
+  cardMaintenance: {
+    removeTag: "Etiketi kartlardan kaldır",
+    linkedWorkspaceRequired: "Bu işlem için bağlı bir bulut çalışma alanı gerekir.",
+    noChanges: "Hiçbir kartta bu değişikliğe gerek yok.",
+    overlap: "Bu işlem, bu kartları içeren diğer destelerde ve etiketlerde de ilerlemeyi sıfırlar.",
+    outcomeUnknown: "Çalışma alanındaki değişikliğin uygulanıp uygulanmadığını doğrulayamadık.",
+    previewChanged: "Etkilenen kartlar değişti. Güncellenen önizlemeyi inceleyip yeniden onayla.",
+    removePreview: "Etiket şu kartlardan kaldırılacak: {{cards}}. Kartlar korunacak. Kurallarında bu etiketi kullanan deste sayısı: {{decks}}.",
+    resetComplete: "Çalışma ilerlemesi sıfırlandı.",
+    saveDeckRules: "Çalışma ilerlemesini sıfırlamadan önce deste kurallarını kaydet.",
+    syncFailed: "Bağlantını kontrol edip eşitlemeyi tekrar dene.",
+    targetMissing: "Seçilen kart, deste veya etiket artık yok.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} toplam",

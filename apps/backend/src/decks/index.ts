@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   queryWithWorkspaceScopeReadOnly,
+  transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -508,9 +509,12 @@ export async function listDecksInExecutor(
   return result.rows.map(mapDeck);
 }
 
-export async function getDeck(userId: string, workspaceId: string, deckId: string): Promise<Deck> {
-  const result = await queryWithWorkspaceScopeReadOnly<DeckRow>(
-    { userId, workspaceId },
+export async function loadActiveDeckInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  deckId: string,
+): Promise<Deck | null> {
+  const result = await executor.query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
@@ -521,11 +525,19 @@ export async function getDeck(userId: string, workspaceId: string, deckId: strin
   );
 
   const row = result.rows[0];
-  if (row === undefined) {
+  return row === undefined ? null : mapDeck(row);
+}
+
+export async function getDeck(userId: string, workspaceId: string, deckId: string): Promise<Deck> {
+  const deck = await transactionWithWorkspaceScopeReadOnly(
+    { userId, workspaceId },
+    (executor) => loadActiveDeckInExecutor(executor, workspaceId, deckId),
+  );
+  if (deck === null) {
     throw new HttpError(404, "Deck not found");
   }
 
-  return mapDeck(row);
+  return deck;
 }
 
 export async function getDecks(

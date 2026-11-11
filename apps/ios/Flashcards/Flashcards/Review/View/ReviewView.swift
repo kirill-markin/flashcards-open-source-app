@@ -56,6 +56,7 @@ struct ReviewView: View {
         backTextSelection: nil,
         observedFrontText: nil,
         observedBackText: nil,
+        observedTags: [],
         tags: [],
         mediaAssetIdsReadyForUpload: []
     )

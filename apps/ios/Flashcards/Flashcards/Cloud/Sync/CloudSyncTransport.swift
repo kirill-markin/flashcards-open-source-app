@@ -971,6 +971,10 @@ struct CloudSyncTransport {
         if method == "POST", requestPath == "/billing/apple/transactions" {
             return true
         }
+        if method == "POST",
+           requestPath.hasSuffix("/card-maintenance/preview") || requestPath.hasSuffix("/card-maintenance/reconcile") {
+            return true
+        }
         if requestPath.hasSuffix("/sync/push") {
             return true
         }

@@ -10,6 +10,8 @@ import { storeActiveReviewDayForReviewEventInExecutor } from "../../progress/act
 import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
+  type ReviewRating,
+  type ReviewSchedule,
 } from "../../scheduling";
 import {
   createSyncConflictHttpError,
@@ -23,8 +25,10 @@ import {
   runTransactionReportingReviewAnswers,
   type ReviewAnsweredServerAnchor,
 } from "../../productAnalytics/serverFacts/reviewAnswers";
+import { nextCardCorrectionTimestamp } from "../maintenanceSync";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
+  ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL,
   CARD_COLUMNS,
   REVIEWABLE_CARD_COLUMNS,
   mapCard,
@@ -32,8 +36,10 @@ import {
   normalizeCardMutationMetadata,
   recordCardSyncChange,
   toDate,
+  toIsoString,
 } from "../shared";
 import type {
+  CardMaintenanceRow,
   CardMutationMetadata,
   CardRow,
   ReviewEvent,
@@ -42,7 +48,16 @@ import type {
   ReviewResult,
   ReviewableCardRow,
   SubmitReviewInput,
+  TimestampValue,
 } from "../types";
+
+type ReviewableCardForUpdateRow = ReviewableCardRow & Pick<
+  CardMaintenanceRow, "client_updated_at" | "maintenance_snapshot_lww_at"
+>;
+
+type SyncedReviewCardRow = ReviewableCardForUpdateRow & Pick<CardMaintenanceRow,
+  "maintenance_reset_at" | "deleted_at" | "last_modified_by_replica_id" | "last_operation_id"
+>;
 
 type ProgressTimeZoneRow = Readonly<{
   progress_time_zone: string | null;
@@ -71,11 +86,12 @@ async function loadReviewableCardForUpdate(
   executor: DatabaseExecutor,
   workspaceId: string,
   cardId: string,
-): Promise<ReviewableCardRow> {
-  const cardResult = await executor.query<ReviewableCardRow>(
+): Promise<ReviewableCardForUpdateRow> {
+  const cardResult = await executor.query<ReviewableCardForUpdateRow>(
     [
       "SELECT",
-      REVIEWABLE_CARD_COLUMNS,
+      REVIEWABLE_CARD_COLUMNS, ", client_updated_at,",
+      `${ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL} AS maintenance_snapshot_lww_at`,
       "FROM content.cards",
       "WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL",
       "FOR UPDATE",
@@ -328,12 +344,88 @@ export async function submitReviewInExecutor(
     throw new HttpError(409, "Review event already exists", "REVIEW_EVENT_CONFLICT");
   }
 
+  const currentClientUpdatedAt = toIsoString(existingCard.client_updated_at);
+  const clientUpdatedAt = existingCard.maintenance_snapshot_lww_at !== null
+    && normalizedMetadata.clientUpdatedAt <= currentClientUpdatedAt
+    ? nextCardCorrectionTimestamp(currentClientUpdatedAt, normalizedMetadata.clientUpdatedAt)
+    : normalizedMetadata.clientUpdatedAt;
+  const updated = await writeReviewScheduleInExecutor(
+    executor, workspaceId, hotChangeWriteLock, input.cardId, schedule,
+    { ...normalizedMetadata, clientUpdatedAt }, null,
+  );
+  return { card: updated.card, nextDueAt: schedule.dueAt.toISOString() };
+}
+
+export async function loadSyncedReviewCardInExecutor(
+  executor: DatabaseExecutor,
+  hotChangeWriteLock: HotChangeWriteLock,
+  cardId: string,
+): Promise<SyncedReviewCardRow | undefined> {
+  const result = await executor.query<SyncedReviewCardRow>(
+    [
+      "SELECT", REVIEWABLE_CARD_COLUMNS,
+      ", deleted_at, client_updated_at, last_modified_by_replica_id, last_operation_id, maintenance_reset_at,",
+      `${ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL} AS maintenance_snapshot_lww_at`,
+      "FROM content.cards WHERE workspace_id = $1 AND card_id = $2",
+    ].join(" "),
+    [hotChangeWriteLock.workspaceId, cardId],
+  );
+  return result.rows[0];
+}
+
+export async function applySyncedReviewAfterResetInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  hotChangeWriteLock: HotChangeWriteLock,
+  card: SyncedReviewCardRow,
+  review: Readonly<{ rating: ReviewRating; reviewedAtClient: string }>,
+): Promise<number | null> {
+  if (card.maintenance_reset_at === null || card.deleted_at !== null) {
+    return null;
+  }
+
+  // Older clients supply only device time. Count forward from the latest reset and review,
+  // regardless of when the companion snapshot arrives. Older ratings remain in history.
+  if (review.reviewedAtClient <= toIsoString(card.maintenance_reset_at)
+    || (card.fsrs_last_reviewed_at !== null && review.reviewedAtClient <= toIsoString(card.fsrs_last_reviewed_at))) {
+    return null;
+  }
+
+  assertConsistentFsrsState(card);
+  const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
+  const schedule = computeReviewSchedule(
+    toReviewableCardScheduleState(card), schedulerConfig, review.rating, new Date(review.reviewedAtClient),
+  );
+  const publishedAt = toIsoString(card.client_updated_at);
+  const updated = await writeReviewScheduleInExecutor(
+    executor, workspaceId, hotChangeWriteLock, card.card_id, schedule,
+    {
+      clientUpdatedAt: nextCardCorrectionTimestamp(publishedAt, review.reviewedAtClient),
+      lastModifiedByReplicaId: card.last_modified_by_replica_id,
+      lastOperationId: card.last_operation_id,
+    },
+    card.maintenance_snapshot_lww_at ?? card.client_updated_at,
+  );
+  return updated.changeId;
+}
+
+async function writeReviewScheduleInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  hotChangeWriteLock: HotChangeWriteLock,
+  cardId: string,
+  schedule: ReviewSchedule,
+  metadata: CardMutationMetadata,
+  snapshotLwwAt: TimestampValue | null,
+): Promise<Readonly<{ card: ReviewResult["card"]; changeId: number }>> {
   const updatedCardResult = await executor.query<CardRow>(
     [
       "UPDATE content.cards",
       "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
       "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
-      "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now()",
+      "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now(),",
+      "maintenance_snapshot_lww_at = $15,",
+      "maintenance_snapshot_published_at = CASE WHEN $15::timestamptz IS NULL THEN NULL ELSE $10::timestamptz END",
       "WHERE workspace_id = $13 AND card_id = $14",
       "RETURNING",
       CARD_COLUMNS,
@@ -348,11 +440,12 @@ export async function submitReviewInExecutor(
       schedule.fsrsDifficulty,
       schedule.fsrsLastReviewedAt,
       schedule.fsrsScheduledDays,
-      normalizedMetadata.clientUpdatedAt,
-      normalizedMetadata.lastModifiedByReplicaId,
-      normalizedMetadata.lastOperationId,
+      metadata.clientUpdatedAt,
+      metadata.lastModifiedByReplicaId,
+      metadata.lastOperationId,
       workspaceId,
-      input.cardId,
+      cardId,
+      snapshotLwwAt,
     ],
   );
 
@@ -361,11 +454,7 @@ export async function submitReviewInExecutor(
     throw new Error("Card review update did not return a row");
   }
 
-  const mappedCard = mapCard(updatedCard);
-  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, mappedCard);
-
-  return {
-    card: mappedCard,
-    nextDueAt: schedule.dueAt.toISOString(),
-  };
+  const card = mapCard(updatedCard);
+  const changeId = await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
+  return { card, changeId };
 }

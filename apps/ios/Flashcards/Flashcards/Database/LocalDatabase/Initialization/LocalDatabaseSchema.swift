@@ -165,6 +165,13 @@ enum LocalDatabaseSchema {
             updated_at TEXT NOT NULL -- last time the local pull cursor state changed
         );
 
+        CREATE TABLE IF NOT EXISTS pending_card_maintenance_refresh (
+            workspace_id TEXT PRIMARY KEY REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+            refresh_token TEXT NOT NULL,
+            preview_fingerprint TEXT NOT NULL,
+            is_acknowledged INTEGER NOT NULL CHECK (is_acknowledged IN (0, 1))
+        );
+
         CREATE TABLE IF NOT EXISTS first_review_onboarding (
             settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
             owner_user_id TEXT,
@@ -258,6 +265,7 @@ enum LocalDatabaseSchema {
     DROP TABLE IF EXISTS media_transfer_queue;
     DROP TABLE IF EXISTS media_blob_cache;
     DROP TABLE IF EXISTS sync_state;
+    DROP TABLE IF EXISTS pending_card_maintenance_refresh;
     DROP TABLE IF EXISTS review_events;
     DROP TABLE IF EXISTS media_assets;
     DROP TABLE IF EXISTS decks;

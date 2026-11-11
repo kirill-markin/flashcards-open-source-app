@@ -562,7 +562,6 @@ describe("CardFormScreen lifecycle selection mapping", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: readyFrontText,
       backText: "Answer",
-      tags: ["grammar"],
     });
   });
 
@@ -639,7 +638,6 @@ describe("CardFormScreen lifecycle selection mapping", () => {
     expect(mocks.updateCardItemMock).toHaveBeenCalledWith("card-media-lifecycle", {
       frontText: readyFrontText,
       backText: readyBackText,
-      tags: ["grammar"],
     });
   });
 

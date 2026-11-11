@@ -64,6 +64,7 @@ fun DeckEditorRoute(
     onNameChange: (String) -> Unit,
     onToggleTag: (String) -> Unit,
     onSave: () -> Unit,
+    onResetProgress: (() -> Unit)?,
     onDelete: ((String) -> Unit)?,
     onBack: () -> Unit
 ) {
@@ -301,6 +302,25 @@ fun DeckEditorRoute(
                 }
             }
 
+            if (onResetProgress != null) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = onResetProgress,
+                            enabled = isEditorEnabled && !uiState.hasUnsavedRules,
+                            modifier = Modifier.fillMaxWidth().testTag("deck_editor_reset_progress")
+                        ) {
+                            Text(stringResource(R.string.settings_reset_study_progress_title))
+                        }
+                        if (uiState.hasUnsavedRules) {
+                            Text(
+                                text = stringResource(R.string.settings_deck_editor_save_rules_before_reset),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

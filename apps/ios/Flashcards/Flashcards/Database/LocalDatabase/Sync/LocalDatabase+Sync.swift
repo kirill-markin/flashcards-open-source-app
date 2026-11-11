@@ -22,10 +22,22 @@ extension LocalDatabase {
         try self.outboxStore.deleteAllOutboxEntries(workspaceId: workspaceId)
     }
 
-    func clearCloudSyncState(workspaceId: String) throws {
+    func disconnectCloudServerKeepingLocalWorkspace(workspaceId: String) throws {
         try self.core.inTransaction {
             try self.outboxStore.deleteAllOutboxEntries(workspaceId: workspaceId)
+            #if !os(watchOS)
+            if let pending = try self.outboxStore.pendingCardMaintenanceRefresh(workspaceId: workspaceId) {
+                try self.outboxStore.finishCardMaintenanceRefresh(workspaceId: workspaceId, token: pending.token)
+            }
+            #endif
 
+            try self.workspaceSettingsStore.updateCloudSettings(
+                cloudState: .disconnected,
+                linkedUserId: nil,
+                linkedWorkspaceId: nil,
+                activeWorkspaceId: workspaceId,
+                linkedEmail: nil
+            )
             let updatedRows = try self.core.execute(
                 sql: """
                 UPDATE sync_state

@@ -25,9 +25,11 @@ import {
   mergeManagedImageReferencesIntoCardSnapshot,
   type ManagedImageRestoreLedger,
 } from "./managedMedia/managedImageSnapshotMerge";
+import { mergeMaintenanceIntoCardSnapshot, nextCardCorrectionTimestamp } from "./maintenanceSync";
 import { establishOnboardingDemoMetadata, mergeOnboardingDemoMetadata } from "./onboardingDemo";
 import { assertConsistentFsrsState } from "./review/fsrs";
 import {
+  ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL,
   authoredTagsChanged,
   CARD_COLUMNS,
   createDefaultCardMetadata,
@@ -38,6 +40,7 @@ import {
   normalizeCardType,
   recordCardSyncChange,
   toCardLwwMetadata,
+  toIsoString,
 } from "./shared";
 import type {
   BulkCreateCardItem,
@@ -45,6 +48,7 @@ import type {
   BulkDeleteCardsResult,
   BulkUpdateCardItem,
   Card,
+  CardMaintenanceRow,
   CardMutationMetadata,
   CardMutationResult,
   CardRow,
@@ -281,11 +285,28 @@ async function insertCardRowForSnapshotInExecutor(
   return result.rows[0] ?? null;
 }
 
+async function loadCardSnapshotRowForMutation(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  cardId: string,
+): Promise<CardMaintenanceRow | undefined> {
+  const result = await executor.query<CardMaintenanceRow>(
+    [
+      "SELECT", CARD_COLUMNS,
+      ", maintenance_revision, maintenance_reset_at, maintenance_tag_removals,",
+      `${ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL} AS maintenance_snapshot_lww_at`,
+      "FROM content.cards WHERE workspace_id = $1 AND card_id = $2 FOR UPDATE",
+    ].join(" "),
+    [workspaceId, cardId],
+  );
+  return result.rows[0];
+}
+
 async function resolveCardSnapshotInsertConflictInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   cardId: string,
-): Promise<CardRow> {
+): Promise<CardMaintenanceRow> {
   const conflictingWorkspaceId = await findSyncConflictWorkspaceIdInExecutor(executor, {
     entityType: "card",
     entityId: cardId,
@@ -307,7 +328,7 @@ async function resolveCardSnapshotInsertConflictInExecutor(
     });
   }
 
-  const existingRow = await loadCardRowForMutation(executor, workspaceId, cardId);
+  const existingRow = await loadCardSnapshotRowForMutation(executor, workspaceId, cardId);
   if (existingRow === undefined) {
     throw new Error(`Card insert was skipped but the current workspace row was not found for ${cardId}`);
   }
@@ -337,7 +358,7 @@ export async function upsertCardSnapshotInExecutor(
   const normalizedInput = normalizeCardSnapshotInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
-  let existingRow = await loadCardRowForMutation(executor, workspaceId, normalizedInput.cardId);
+  let existingRow = await loadCardSnapshotRowForMutation(executor, workspaceId, normalizedInput.cardId);
 
   if (existingRow === undefined) {
     const insertedRow = await insertCardRowForSnapshotInExecutor(
@@ -390,7 +411,13 @@ export async function upsertCardSnapshotInExecutor(
   }
 
   const existingCard = mapCard(existingRow);
-  if (incomingLwwMetadataWins(normalizedMetadata, toCardLwwMetadata(existingCard)) === false) {
+  const publishedMetadata = toCardLwwMetadata(existingCard);
+  // A correction must win on pull without advancing the authored snapshot's LWW position.
+  const snapshotLwwAt = existingRow.maintenance_snapshot_lww_at;
+  const snapshotMetadata = snapshotLwwAt === null
+    ? publishedMetadata
+    : { ...publishedMetadata, clientUpdatedAt: toIsoString(snapshotLwwAt) };
+  if (incomingLwwMetadataWins(normalizedMetadata, snapshotMetadata) === false) {
     return {
       card: existingCard,
       applied: false,
@@ -420,13 +447,27 @@ export async function upsertCardSnapshotInExecutor(
     options?.managedImageRestoreLedger,
   );
 
+  const { tags, schedule, needsCorrection } = mergeMaintenanceIntoCardSnapshot(
+    existingRow, existingCard, normalizedInput, input.metadata?.maintenanceRevision ?? 0,
+  );
+  const needsNewStamp = needsCorrection
+    || (snapshotLwwAt !== null && mergedCardWrite.clientUpdatedAt <= existingCard.clientUpdatedAt);
+  const clientUpdatedAt = needsNewStamp
+    ? nextCardCorrectionTimestamp(existingCard.clientUpdatedAt, normalizedMetadata.clientUpdatedAt)
+    : mergedCardWrite.clientUpdatedAt;
+  const maintenanceSnapshotLwwAt = needsNewStamp || (
+    snapshotLwwAt !== null && clientUpdatedAt !== normalizedMetadata.clientUpdatedAt
+  ) ? normalizedMetadata.clientUpdatedAt : null;
+
   const updateResult = await executor.query<CardRow>(
     [
       "UPDATE content.cards",
       "SET front_text = $1, back_text = $2, card_type = $3, metadata = $4::jsonb, tags = $5, effort_level = 'fast', due_at = $6, reps = $7, lapses = $8,",
       "fsrs_card_state = $9, fsrs_step_index = $10, fsrs_stability = $11, fsrs_difficulty = $12,",
       "fsrs_last_reviewed_at = $13, fsrs_scheduled_days = $14, deleted_at = $15, client_updated_at = $16,",
-      "last_modified_by_replica_id = $17, last_operation_id = $18, updated_at = now()",
+      "last_modified_by_replica_id = $17, last_operation_id = $18, updated_at = now(),",
+      "maintenance_snapshot_lww_at = $21,",
+      "maintenance_snapshot_published_at = CASE WHEN $21::timestamptz IS NULL THEN NULL ELSE $16::timestamptz END",
       "WHERE workspace_id = $19 AND card_id = $20",
       "RETURNING",
       CARD_COLUMNS,
@@ -441,25 +482,26 @@ export async function upsertCardSnapshotInExecutor(
         {
           ...mergedCardWrite,
           cardType: normalizedInput.cardType ?? existingCard.cardType,
-          tags: normalizedInput.tags,
+          tags,
         },
       )),
-      normalizedInput.tags,
-      normalizedInput.dueAt,
-      normalizedInput.reps,
-      normalizedInput.lapses,
-      normalizedInput.fsrsCardState,
-      normalizedInput.fsrsStepIndex,
-      normalizedInput.fsrsStability,
-      normalizedInput.fsrsDifficulty,
-      normalizedInput.fsrsLastReviewedAt,
-      normalizedInput.fsrsScheduledDays,
+      tags,
+      schedule.dueAt,
+      schedule.reps,
+      schedule.lapses,
+      schedule.fsrsCardState,
+      schedule.fsrsStepIndex,
+      schedule.fsrsStability,
+      schedule.fsrsDifficulty,
+      schedule.fsrsLastReviewedAt,
+      schedule.fsrsScheduledDays,
       normalizedInput.deletedAt,
-      mergedCardWrite.clientUpdatedAt,
+      clientUpdatedAt,
       normalizedMetadata.lastModifiedByReplicaId,
       normalizedMetadata.lastOperationId,
       workspaceId,
       normalizedInput.cardId,
+      maintenanceSnapshotLwwAt,
     ],
   );
 
@@ -694,7 +736,9 @@ export async function updateCardInExecutor(
       `WHERE workspace_id = ${workspaceIdParam} AND card_id = ${cardIdParam} AND deleted_at IS NULL`,
       ")",
       "UPDATE content.cards",
-      `SET ${updateParts.assignments.join(", ")}, client_updated_at = $${params.length - 4},`,
+      `SET ${updateParts.assignments.join(", ")}, maintenance_snapshot_lww_at = NULL, maintenance_snapshot_published_at = NULL,`,
+      `client_updated_at = CASE WHEN (${ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL}) IS NULL THEN $${params.length - 4}::timestamptz`,
+      `ELSE GREATEST($${params.length - 4}::timestamptz, date_trunc('milliseconds', client_updated_at) + interval '1 millisecond') END,`,
       `last_modified_by_replica_id = $${params.length - 3}, last_operation_id = $${params.length - 2}, updated_at = now()`,
       "FROM previous",
       `WHERE workspace_id = ${workspaceIdParam} AND card_id = ${cardIdParam} AND deleted_at IS NULL`,
@@ -790,7 +834,10 @@ export async function deleteCardInExecutor(
   const result = await executor.query<CardRow>(
     [
       "UPDATE content.cards",
-      "SET deleted_at = $1, client_updated_at = $2, last_modified_by_replica_id = $3, last_operation_id = $4, updated_at = now()",
+      "SET deleted_at = $1, maintenance_snapshot_lww_at = NULL, maintenance_snapshot_published_at = NULL,",
+      `client_updated_at = CASE WHEN (${ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL}) IS NULL THEN $2::timestamptz`,
+      "ELSE GREATEST($2::timestamptz, date_trunc('milliseconds', client_updated_at) + interval '1 millisecond') END,",
+      "last_modified_by_replica_id = $3, last_operation_id = $4, updated_at = now()",
       "WHERE workspace_id = $5 AND card_id = $6 AND deleted_at IS NULL",
       "RETURNING",
       CARD_COLUMNS,

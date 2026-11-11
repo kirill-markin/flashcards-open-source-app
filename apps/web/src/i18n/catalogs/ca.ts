@@ -1453,6 +1453,19 @@ const caCatalog: TranslationCatalog = {
       new: "Baralla nova",
     },
   },
+  cardMaintenance: {
+    removeTag: "Treu l’etiqueta de les targetes",
+    linkedWorkspaceRequired: "Aquesta acció requereix un espai de treball al núvol vinculat.",
+    noChanges: "Cap targeta no necessita aquest canvi.",
+    overlap: "Això també reinicia el progrés en altres baralles i etiquetes que inclouen aquestes targetes.",
+    outcomeUnknown: "No s’ha pogut confirmar si s’ha aplicat el canvi a l’espai de treball.",
+    previewChanged: "Les targetes afectades han canviat. Revisa la previsualització actualitzada i torna a confirmar.",
+    removePreview: "Es traurà l’etiqueta de {{cards}}. Les targetes es conservaran. Baralles que tenen aquesta etiqueta a les seves regles: {{decks}}.",
+    resetComplete: "S’ha reiniciat el progrés d’estudi.",
+    saveDeckRules: "Desa les regles de la baralla abans de reiniciar el progrés d’estudi.",
+    syncFailed: "Comprova la connexió i torna a provar de sincronitzar.",
+    targetMissing: "La targeta, la baralla o l’etiqueta seleccionada ja no existeix.",
+  },
   tagsScreen: {
     counts: {
       total: "{{count}} en total",

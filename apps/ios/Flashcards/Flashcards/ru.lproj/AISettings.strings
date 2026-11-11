@@ -841,6 +841,19 @@
 "settings.workspace.decks.section.name" = "Название";
 "settings.workspace.decks.deckName" = "Название колоды";
 
+"settings.workspace.cardMaintenance.applied" = "Изменения сохранены на сервере. Синхронизируйте устройство, чтобы увидеть их здесь.";
+"settings.workspace.cardMaintenance.previewChanged" = "Область действия изменилась. Проверьте обновлённый предварительный просмотр и подтвердите действие заново.";
+"settings.workspace.cardMaintenance.deckRulesChanged" = "Правила колоды изменились. Закройте этот экран и проверьте их.";
+"settings.workspace.cardMaintenance.refreshRequired" = "Синхронизируйте это рабочее пространство перед редактированием или учёбой.";
+"settings.workspace.cardMaintenance.deckRulesWithTag" = "Правила колод с этим тегом";
+"settings.workspace.cardMaintenance.cardsRemain" = "Ваши карточки сохранятся.";
+"settings.workspace.cardMaintenance.overlap" = "Эти карточки могут также отображаться в других колодах или под другими тегами.";
+"settings.workspace.cardMaintenance.noCards" = "Нет карточек для изменения.";
+"settings.workspace.cardMaintenance.signIn" = "Чтобы продолжить, войдите в аккаунт и привяжите это рабочее пространство.";
+"settings.workspace.cardMaintenance.workspaceChanged" = "Рабочее пространство изменилось. Закройте этот экран и откройте действие снова.";
+"settings.workspace.cardMaintenance.targetMissing" = "Этот элемент больше недоступен в рабочем пространстве.";
+"settings.workspace.cardMaintenance.removeTag" = "Удалить тег с карточек";
+"settings.workspace.cardMaintenance.saveDeckRules" = "Сохраните правила колоды, прежде чем сбрасывать прогресс обучения.";
 "settings.workspace.tags.description" = "Теги группируют карточки по всему рабочему пространству. Количество карточек по тегам может пересекаться, если у одной карточки несколько тегов.";
 "settings.workspace.tags.loading" = "Загрузка тегов...";
 "settings.workspace.tags.empty" = "Ни один тег еще не использовался.";

@@ -137,6 +137,7 @@ internal class SyncOutboxLocalStore(
         affectsReviewSchedule: Boolean
     ) {
         preferencesStore.runWithLocalOutboxWritesAllowed {
+            preferencesStore.requireCardMaintenanceRefreshComplete(workspaceId = workspaceId)
             database.outboxDao().insertOutboxEntry(
                 OutboxEntryEntity(
                     outboxEntryId = UUID.randomUUID().toString(),

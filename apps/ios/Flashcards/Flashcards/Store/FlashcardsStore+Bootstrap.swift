@@ -73,6 +73,12 @@ extension FlashcardsStore {
         self.resetReviewRuntimeForWorkspace(nextWorkspaceId: nextWorkspaceId)
     }
 
+    func prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: String, transition: UUID) async throws {
+        await self.cachedAIChatStore?.prepareForWorkspaceChange()
+        try self.cloudRuntime.checkWorkspaceSyncTransition(transition)
+        self.resetReviewRuntimeForWorkspace(nextWorkspaceId: nextWorkspaceId)
+    }
+
     /// Identity and workspace transitions reload the whole workspace as a workspace change.
     func reload() throws {
         try self.rebuildReviewData(reason: .workspaceChanged, now: Date())
@@ -244,14 +250,26 @@ extension FlashcardsStore {
 
     @discardableResult
     func refreshBootstrapSnapshotWithoutReset(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
-        let outcome = try await self.refreshBootstrapSnapshotContentWithoutReset(now: now)
+        try await self.refreshBootstrapSnapshotWithoutReset(now: now, validateContext: {})
+    }
+
+    @discardableResult
+    func refreshBootstrapSnapshotWithoutReset(
+        now: Date,
+        validateContext: () throws -> Void
+    ) async throws -> BootstrapSnapshotRefreshOutcome {
+        let outcome = try await self.refreshBootstrapSnapshotContentWithoutReset(
+            now: now,
+            validateContext: validateContext
+        )
+        try validateContext()
         self.handleProgressContextDidChange(now: now)
         return outcome
     }
 
     @discardableResult
     func refreshBootstrapSnapshotWithoutProgressContextRefresh(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
-        try await self.refreshBootstrapSnapshotContentWithoutReset(now: now)
+        try await self.refreshBootstrapSnapshotContentWithoutReset(now: now, validateContext: {})
     }
 
     /**
@@ -260,12 +278,16 @@ extension FlashcardsStore {
      caller's writes, and its caller owns the publish side effects. A load that overlapped a review
      submission reloads.
      */
-    private func refreshBootstrapSnapshotContentWithoutReset(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
+    private func refreshBootstrapSnapshotContentWithoutReset(
+        now: Date,
+        validateContext: () throws -> Void
+    ) async throws -> BootstrapSnapshotRefreshOutcome {
         while true {
             let expectation = try self.beginBootstrapRead()
             let loadedSnapshot = try await defaultBootstrapSnapshotLoader(
                 databaseURL: expectation.databaseURL
             )
+            try validateContext()
             if self.publishedBootstrapLoadSequence > expectation.loadStartSequence {
                 return BootstrapSnapshotRefreshOutcome(
                     didChange: false,

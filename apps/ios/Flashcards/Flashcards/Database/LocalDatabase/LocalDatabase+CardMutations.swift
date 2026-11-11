@@ -7,14 +7,46 @@ extension LocalDatabase {
         cardId: String?,
         mediaAssetIdsReadyForUpload: Set<String>
     ) throws -> Card {
+        try self.saveCard(
+            workspaceId: workspaceId,
+            input: input,
+            cardId: cardId,
+            observedTags: nil,
+            mediaAssetIdsReadyForUpload: mediaAssetIdsReadyForUpload
+        )
+    }
+
+    func saveCard(
+        workspaceId: String,
+        input: CardEditorInput,
+        cardId: String?,
+        observedTags: [String]?,
+        mediaAssetIdsReadyForUpload: Set<String>
+    ) throws -> Card {
         try self.cardStore.validateCardInput(input: input)
 
         return try self.core.inTransaction {
+            let reconciledInput: CardEditorInput
+            if let cardId, let observedTags {
+                let currentCard = try self.cardStore.loadCard(workspaceId: workspaceId, cardId: cardId)
+                reconciledInput = CardEditorInput(
+                    frontText: input.frontText,
+                    backText: input.backText,
+                    tags: reconcileDraftTags(
+                        draftTags: input.tags,
+                        observedTags: observedTags,
+                        refreshedTags: currentCard.tags
+                    )
+                )
+            } else {
+                reconciledInput = input
+            }
+
             let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let persistedCard = try self.persistCardMutation(
                 workspaceId: workspaceId,
-                input: input,
+                input: reconciledInput,
                 initialMetadata: nil,
                 cardId: cardId,
                 cloudSettings: cloudSettings,
@@ -22,7 +54,7 @@ extension LocalDatabase {
             )
             try self.prepareCardMediaUploadsAfterSave(
                 workspaceId: workspaceId,
-                input: input,
+                input: reconciledInput,
                 mediaAssetIdsReadyForUpload: mediaAssetIdsReadyForUpload,
                 createdAt: now
             )
