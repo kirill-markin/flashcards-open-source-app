@@ -4,12 +4,15 @@ import json
 import os
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from play_release_notes import parse_notes, read_notes
 
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
+
+PLAY_TRACKS = frozenset({'production', 'wear:production'})
 
 
 def object_value(value: Json) -> dict[str, Json]:
@@ -31,6 +34,9 @@ def main() -> None:
     package = os.environ['ANDROID_PLAY_PACKAGE_NAME']
     code = os.environ['ANDROID_VERSION_CODE']
     name = os.environ['ANDROID_PLAY_RELEASE_NAME']
+    track_name = os.environ['ANDROID_PLAY_TRACK']
+    if track_name not in PLAY_TRACKS:
+        raise ValueError(f'Unsupported ANDROID_PLAY_TRACK {track_name!r}; expected one of {sorted(PLAY_TRACKS)}')
     source = os.environ['ARTIFACT_SOURCE_SHA']
     if re.fullmatch(r'[a-f0-9]{40}', source) is None:
         raise ValueError('Signed artifact source must be a full Git SHA')
@@ -64,6 +70,7 @@ def main() -> None:
         'publisherRunId': os.environ['GITHUB_RUN_ID'], 'publisherRunAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
         'workflowSha': os.environ['GITHUB_SHA'], 'changesInReviewBehavior': 'ERROR_IF_IN_REVIEW',
         'commitStatus': 'not-attempted', 'releaseNotesSha256': notes_digest or None,
+        'playTrack': track_name,
     }
     record_path = Path(os.environ['PLAY_PROVENANCE_PATH'])
     record_path.write_text(json.dumps(record, indent=2) + '\n')
@@ -85,10 +92,11 @@ def main() -> None:
     release: dict[str, Json] = {'name': name, 'versionCodes': [code], 'status': 'draft'}
     if notes:
         release['releaseNotes'] = notes
-    track: dict[str, Json] = {'track': 'production', 'releases': [release]}
-    updated = request('PUT', f'{edit_base}/tracks/production', json.dumps(track).encode(), 'application/json')
+    track: dict[str, Json] = {'track': track_name, 'releases': [release]}
+    # Percent-encode so the form factor colon cannot read as a custom method suffix.
+    updated = request('PUT', f'{edit_base}/tracks/{urllib.parse.quote(track_name, safe="")}', json.dumps(track).encode(), 'application/json')
     releases = updated.get('releases')
-    if updated.get('track') != 'production' or not isinstance(releases, list) or len(releases) != 1 or any(object_value(releases[0]).get(key) != release[key] for key in ('name', 'versionCodes', 'status')):
+    if updated.get('track') != track_name or not isinstance(releases, list) or len(releases) != 1 or any(object_value(releases[0]).get(key) != release[key] for key in ('name', 'versionCodes', 'status')):
         raise ValueError(f'Play draft track readback differs from the single intended release: {updated}')
     if notes:
         returned_notes = parse_notes(json.dumps(object_value(releases[0]).get('releaseNotes')))

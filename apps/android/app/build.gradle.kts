@@ -113,6 +113,8 @@ if (Locale.forLanguageTag(baseAndroidLocale).language.isBlank()) {
 val supportedAndroidLocales: List<String> = readSupportedAndroidLocales()
 val supportedAndroidLocaleFilters: List<String> =
     supportedAndroidLocales.flatMap(::toAndroidLocaleFilters).distinct()
+// `:wear` reads it, so the watch ships the phone's language list.
+extra["supportedAndroidLocaleFilters"] = supportedAndroidLocaleFilters
 val marketingScreenshotLocales: List<String> = listOf(
     "en-US",
     "ar",
@@ -395,6 +397,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
     implementation(libs.google.play.review)
     implementation(libs.google.play.billing.ktx)
+    implementation(libs.google.play.services.wearable)
     implementation(libs.okhttp)
     implementation(libs.sentry.android)
     implementation(libs.sentry.okhttp)

@@ -87,7 +87,7 @@ that installation's replica-resolving facts stay suppressed permanently.
 
 Declarations:
 
-- [Android](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt),
+- [Android](../apps/android/core/observability/src/main/java/com/flashcardsopensourceapp/core/observability/AutomationEnvironment.kt),
   sent on every sync body and analytics batch; Device Run sessions receive the argument from
   [the submission script](../scripts/android/run-android-device-run.sh).
 - [Apple](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift), decided once per process and

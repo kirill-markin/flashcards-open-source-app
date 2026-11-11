@@ -202,5 +202,18 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/dashboard_widget_info" />
         </receiver>
+        <!-- Google Play services binds it; WearableListenerService rejects every other caller. -->
+        <service
+            android:name=".watch.WatchHandoffListenerService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.REQUEST_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/nibomo/watch-handoff"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

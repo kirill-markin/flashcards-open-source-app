@@ -26,6 +26,7 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - macOS app: macOS 15+ on Apple silicon via Mac Catalyst. Before making any Catalyst change, read [apps/ios/README.md](apps/ios/README.md) and [docs/macos-ci-cd.md](docs/macos-ci-cd.md).
 - Apple Watch app: watchOS 26+ companion embedded in the iOS app. Before making any watch change, read [docs/apple-watch.md](docs/apple-watch.md).
 - Android app: Kotlin + Jetpack Compose; Android 11, 12, 12L, 13, 14, 15, 16, and 17. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
+- Wear OS app: Wear OS 5+ companion of the Android app. Before making any watch change, read [docs/wear-os.md](docs/wear-os.md).
 - Before Google Cloud or Google Play operations, read [Google Cloud access](docs/android-ci-cd.md#google-cloud-access-and-device-preflight).
 - AI assistants via MCP: supported at `https://mcp.nibomo.com/mcp`.
 - Terminal / AI-agent API client: supported via the canonical machine API entrypoint `GET https://api.flashcards-open-source-app.com/v1/` (the same discovery payload is also available at `GET https://api.flashcards-open-source-app.com/v1/agent`)

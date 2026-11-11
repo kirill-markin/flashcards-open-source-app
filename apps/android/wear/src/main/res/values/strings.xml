@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="wear_retry">Retry</string>
+    <string name="wear_session_open_phone_app">Open Nibomo on your phone</string>
+    <string name="wear_session_not_connected_message">Sign in there to review your cards on your watch.</string>
+    <string name="wear_session_connecting">Connecting to phone…</string>
+    <string name="wear_session_syncing">Syncing cards…</string>
+    <string name="wear_session_update_required">Update Nibomo on your phone and watch</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="one">%d rating can\'t sync yet</item>
+        <item quantity="other">%d ratings can\'t sync yet</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">Your phone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now.</string>
+    <string name="wear_session_switch_blocked_discard">Discard and switch</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="one">Discard %d rating?</item>
+        <item quantity="other">Discard %d ratings?</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">They will be lost. This can\'t be undone.</string>
+    <string name="wear_review_show_answer">Show answer</string>
+    <string name="wear_review_again">Again</string>
+    <string name="wear_review_hard">Hard</string>
+    <string name="wear_review_good">Good</string>
+    <string name="wear_review_easy">Easy</string>
+    <string name="wear_review_open_on_phone">Open on your phone to see the image or formula</string>
+    <string name="wear_review_all_done">All done</string>
+    <!-- %1$s is when the next card is due, for example "in 5 minutes" or "tomorrow". -->
+    <string name="wear_review_next_card_due">Next card %1$s</string>
+</resources>

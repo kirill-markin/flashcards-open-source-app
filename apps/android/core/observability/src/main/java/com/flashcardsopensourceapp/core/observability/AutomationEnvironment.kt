@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.automation
+package com.flashcardsopensourceapp.core.observability
 
 import android.app.ActivityManager
 import android.content.ContentResolver
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicReference
  * Gradle-driven instrumentation run, and for Firebase Test Lab `gcloud firebase test android run
  * --environment-variables isAutomation=true` is mirrored into `am instrument -e isAutomation true`.
  */
-internal const val automationDeclarationArgumentKey: String = "isAutomation"
+const val automationDeclarationArgumentKey: String = "isAutomation"
 
 private const val automationLogTag: String = "AutomationEnvironment"
 private const val firebaseTestLabSettingName: String = "firebase.test.lab"
@@ -26,7 +26,7 @@ private val resolvedAutomationEnvironment = AtomicReference<AutomationEnvironmen
  * The decision and each signal behind it, kept apart so a run that should have been marked is
  * diagnosable and so a Test Lab logcat shows whether the instrumentation argument actually arrived.
  */
-internal data class AutomationEnvironment(
+data class AutomationEnvironment(
     val isAutomation: Boolean,
     val isEmulator: Boolean,
     val hasArgumentSignal: Boolean,
@@ -38,11 +38,11 @@ internal data class AutomationEnvironment(
  * Records the instrumentation argument signal. Called by the instrumentation runner before the
  * application exists, so the first sync of the first graph already carries the declaration.
  */
-internal fun markProcessAsAutomationEnvironment() {
+fun markProcessAsAutomationEnvironment() {
     hasAutomationArgumentSignal.set(true)
 }
 
-internal fun isFirebaseTestLabDevice(contentResolver: ContentResolver): Boolean {
+fun isFirebaseTestLabDevice(contentResolver: ContentResolver): Boolean {
     return Settings.System.getString(contentResolver, firebaseTestLabSettingName) == "true"
 }
 
@@ -56,7 +56,7 @@ internal fun isFirebaseTestLabDevice(contentResolver: ContentResolver): Boolean 
  * necessary for physical-device runs outside a device farm. Each signal is logged on its own,
  * because a device-farm signal would otherwise hide a dropped argument.
  */
-internal fun resolveAutomationEnvironment(contentResolver: ContentResolver): AutomationEnvironment {
+fun resolveAutomationEnvironment(contentResolver: ContentResolver): AutomationEnvironment {
     resolvedAutomationEnvironment.get()?.let { alreadyResolved -> return alreadyResolved }
 
     val isEmulator = isEmulatorBuild()

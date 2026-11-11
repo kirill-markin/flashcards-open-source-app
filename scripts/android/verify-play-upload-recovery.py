@@ -180,11 +180,14 @@ def main() -> None:
         'Android CI / Android emulator data:local instrumentation', 'Device Run app instrumentation',
         'Android release summary', publish_name,
     }
+    wear_publish_name = 'Upload Wear OS bundle to Google Play wear production draft release'
     split_jobs = combined_jobs | {signed_build_name}
+    wear_jobs = split_jobs | {wear_publish_name}
     jobs_by_name = {str(job.get('name')): job for job in jobs}
-    require(len(jobs_by_name) == len(jobs) and jobs_by_name.keys() in (combined_jobs, split_jobs), 'Original release job inventory differs')
+    require(len(jobs_by_name) == len(jobs) and jobs_by_name.keys() in (combined_jobs, split_jobs, wear_jobs), 'Original release job inventory differs')
     publish = jobs_by_name[publish_name]
-    require(publish.get('conclusion') == 'failure' and all(job.get('conclusion') == 'success' for name, job in jobs_by_name.items() if name != publish_name), 'Original release has a failure outside the publisher gate')
+    # The Wear OS publisher runs only after a successful phone publisher, so it is skipped here.
+    require(publish.get('conclusion') == 'failure' and all(job.get('conclusion') == ('skipped' if name == wear_publish_name else 'success') for name, job in jobs_by_name.items() if name != publish_name), 'Original release has a failure outside the publisher gate')
     build_steps = ('Build signed Android App Bundle', 'Upload signed Android App Bundle artifact', 'Report and gate R8 optimization coverage')
     is_split_release = signed_build_name in jobs_by_name
     if is_split_release:
