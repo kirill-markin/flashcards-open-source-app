@@ -787,6 +787,7 @@ const hrCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Vaše kartice",
       addCards: "Dodavanje kartica",
+      transfer: "Prijenos podataka",
     },
     deckCatalog: {
       title: "Katalog špilova",

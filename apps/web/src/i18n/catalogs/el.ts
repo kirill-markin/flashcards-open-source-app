@@ -780,6 +780,7 @@ const elCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Οι κάρτες σας",
       addCards: "Προσθήκη καρτών",
+      transfer: "Μεταφορά δεδομένων",
     },
     deckCatalog: {
       title: "Κατάλογος δεσμών",

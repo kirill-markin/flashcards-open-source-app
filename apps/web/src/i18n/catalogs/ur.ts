@@ -780,6 +780,7 @@ const urCatalog: TranslationCatalog = {
     groups: {
       yourCards: "آپ کے کارڈز",
       addCards: "کارڈز شامل کریں",
+      transfer: "ڈیٹا کی منتقلی",
     },
     deckCatalog: {
       title: "ڈیک کیٹلاگ",

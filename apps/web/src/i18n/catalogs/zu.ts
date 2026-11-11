@@ -780,6 +780,7 @@ const zuCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Amakhadi akho",
       addCards: "Engeza amakhadi",
+      transfer: "Ukudlulisa idatha",
     },
     deckCatalog: {
       title: "Ikhathalogi yezinqwaba",

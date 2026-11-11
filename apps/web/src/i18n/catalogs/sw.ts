@@ -780,6 +780,7 @@ const swCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kadi zako",
       addCards: "Ongeza kadi",
+      transfer: "Uhamishaji wa data",
     },
     deckCatalog: {
       title: "Katalogi ya mafungu",

@@ -780,6 +780,7 @@ const esMxCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Tus tarjetas",
       addCards: "Agregar tarjetas",
+      transfer: "Transferencia de datos",
     },
     deckCatalog: {
       title: "Catálogo de mazos",

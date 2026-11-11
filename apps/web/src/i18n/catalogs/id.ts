@@ -780,6 +780,7 @@ const idCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kartu Anda",
       addCards: "Tambahkan kartu",
+      transfer: "Transfer data",
     },
     deckCatalog: {
       title: "Katalog dek",

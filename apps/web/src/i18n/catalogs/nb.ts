@@ -780,6 +780,7 @@ const nbCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Kortene dine",
       addCards: "Legg til kort",
+      transfer: "Dataoverføring",
     },
     deckCatalog: {
       title: "Katalog med kortstokker",

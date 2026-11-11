@@ -780,6 +780,7 @@ const ptBrCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Seus cartões",
       addCards: "Adicionar cartões",
+      transfer: "Transferência de dados",
     },
     deckCatalog: {
       title: "Catálogo de baralhos",

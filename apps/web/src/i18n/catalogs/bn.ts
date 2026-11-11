@@ -780,6 +780,7 @@ const bnCatalog: TranslationCatalog = {
     groups: {
       yourCards: "আপনার কার্ড",
       addCards: "কার্ড যোগ করুন",
+      transfer: "ডেটা স্থানান্তর",
     },
     deckCatalog: {
       title: "ডেক ক্যাটালগ",

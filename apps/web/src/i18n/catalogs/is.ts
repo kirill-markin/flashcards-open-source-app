@@ -780,6 +780,7 @@ const isCatalog: TranslationCatalog = {
     groups: {
       yourCards: "Spjöldin þín",
       addCards: "Bæta við spjöldum",
+      transfer: "Gagnaflutningur",
     },
     deckCatalog: {
       title: "Stokkasafn",
