@@ -11,18 +11,30 @@ extension FlashcardsStore {
         linkedSession: CloudLinkedSession,
         trigger: CloudSyncTrigger
     ) async throws {
+        try self.cloudRuntime.checkSyncGeneration(self.cloudRuntime.syncGeneration)
+        self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
+        let syncGeneration = self.cloudRuntime.syncGeneration
         self.syncStatus = .syncing
 
         do {
-            self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
+            let refreshToken = try await self.cardMaintenanceRefreshTokenAfterReconciliation(linkedSession: linkedSession)
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
             let syncResult = try await self.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
-            try await self.applySyncResultWithoutBlockingReset(
+            try await self.applyCurrentLinkedSyncResult(
                 syncResult: syncResult,
+                linkedSession: linkedSession,
+                syncGeneration: syncGeneration,
                 now: Date(),
                 trigger: trigger
             )
+            try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+            try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: linkedSession)
+            try self.finishCardMaintenanceRefresh(linkedSession: linkedSession, token: refreshToken)
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
         } catch {
+            guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration) else {
+                throw CancellationError()
+            }
             if isRequestCancellationError(error: error) {
                 self.syncStatus = .idle
                 throw error
@@ -54,6 +66,18 @@ extension FlashcardsStore {
         linkedSession: CloudLinkedSession,
         trigger: CloudSyncTrigger
     ) async throws {
+        try await self.performActiveWorkspaceCloudRestore(
+            linkedSession: linkedSession,
+            trigger: trigger,
+            didChangeSyncGeneration: { _ in }
+        )
+    }
+
+    func performActiveWorkspaceCloudRestore(
+        linkedSession: CloudLinkedSession,
+        trigger: CloudSyncTrigger,
+        didChangeSyncGeneration: @MainActor (UUID) -> Void
+    ) async throws {
         let database = try requireLocalDatabase(database: self.database)
         let cachedWorkspace = try database.loadCachedWorkspaces().first { workspace in
             workspace.workspaceId == linkedSession.workspaceId
@@ -65,22 +89,20 @@ extension FlashcardsStore {
             isSelected: true
         )
 
-        self.cloudRuntime.cancelForWorkspaceSwitch()
-        await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: linkedSession.workspaceId)
-        // The wait above suspends, and the write below relinks this install: it recreates the
-        // workspace shell and stores `linked` against this user. Landing after an erase would point
-        // the freshly reset install back at the abandoned account whose credentials are already
-        // gone, leaving it in `linkedCredentialsMissing` recovery.
-        //
-        // Reading the cancel here is unambiguous only because of who can reach it. The line above
-        // leaves the link transition task alone, so an ordinary workspace switch never sets this.
-        // And the silent-restore caller cannot arrive with a cancel pending: it returns before this
-        // function when its own different-user reset self-cancels, and after any other reset it
-        // cannot get past `storedLinkedSession`, which needs the `linked` state that reset clears.
-        try Task.checkCancellation()
-        try database.switchActiveWorkspace(workspace: workspaceSummary, linkedSession: linkedSession)
-        self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
-        try self.reload()
+        let transition = self.cloudRuntime.beginWorkspaceSyncTransition()
+        didChangeSyncGeneration(transition)
+        do {
+            defer { self.cloudRuntime.endWorkspaceSyncTransition(transition) }
+            try await self.prepareWorkspaceScopedStateForSwitch(
+                nextWorkspaceId: linkedSession.workspaceId,
+                transition: transition
+            )
+            try self.cloudRuntime.checkWorkspaceSyncTransition(transition)
+            try database.switchActiveWorkspace(workspace: workspaceSummary, linkedSession: linkedSession)
+            self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
+            didChangeSyncGeneration(self.cloudRuntime.syncGeneration)
+            try self.reload()
+        }
         try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
     }
 }

@@ -39,7 +39,7 @@ extension ReviewView {
             return
         }
 
-        self.cardFormState = cardFormStateByReconcilingMediaLifecycle(
+        self.cardFormState = cardFormStateByReconcilingSyncedCard(
             formState: self.cardFormState,
             refreshedCard: refreshedCard
         )
@@ -54,9 +54,10 @@ extension ReviewView {
         let normalizedInput = self.normalizedEditedCardInput()
 
         do {
-            try store.saveCard(
+            let savedCard = try store.saveCard(
                 input: normalizedInput,
                 editingCardId: editingCardId,
+                observedTags: self.cardFormState.observedTags,
                 mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
@@ -65,7 +66,7 @@ extension ReviewView {
                 cardId: editingCardId,
                 frontText: normalizedInput.frontText,
                 backText: normalizedInput.backText,
-                tags: normalizedInput.tags
+                tags: savedCard.tags
             )
         } catch {
             if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
@@ -89,6 +90,7 @@ extension ReviewView {
             backTextSelection: nil,
             observedFrontText: card.frontText,
             observedBackText: card.backText,
+            observedTags: card.tags,
             tags: card.tags,
             mediaAssetIdsReadyForUpload: []
         )
@@ -106,6 +108,7 @@ extension ReviewView {
             try store.saveCard(
                 input: self.normalizedEditedCardInput(),
                 editingCardId: editingCardId,
+                observedTags: self.cardFormState.observedTags,
                 mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""

@@ -353,6 +353,14 @@ extension FlashcardsStore {
     }
 
     func refreshReviewState(now: Date, mode: ReviewRefreshMode) async throws -> Bool {
+        try await self.refreshReviewState(now: now, mode: mode, validateContext: {})
+    }
+
+    func refreshReviewState(
+        now: Date,
+        mode: ReviewRefreshMode,
+        validateContext: () throws -> Void
+    ) async throws -> Bool {
         let startedAt = Date()
         let startState = self.currentReviewPublishedState()
         addReviewForegroundOperationBreadcrumb(
@@ -392,12 +400,14 @@ extension FlashcardsStore {
             case .backgroundReconcileSilently:
                 didRefresh = try await self.reconcileReviewState(
                     now: now,
-                    trigger: .cloudSyncSilently
+                    trigger: .cloudSyncSilently,
+                    validateContext: validateContext
                 )
             case .backgroundReconcileWithVisibleChangeBanner:
                 didRefresh = try await self.reconcileReviewState(
                     now: now,
-                    trigger: .cloudSyncWithVisibleChangeBanner
+                    trigger: .cloudSyncWithVisibleChangeBanner,
+                    validateContext: validateContext
                 )
             }
             addReviewForegroundOperationBreadcrumb(
@@ -939,6 +949,14 @@ extension FlashcardsStore {
         now: Date,
         trigger: ReviewStateReconcileTrigger
     ) async throws -> Bool {
+        try await self.reconcileReviewState(now: now, trigger: trigger, validateContext: {})
+    }
+
+    private func reconcileReviewState(
+        now: Date,
+        trigger: ReviewStateReconcileTrigger,
+        validateContext: () throws -> Void
+    ) async throws -> Bool {
         guard self.isReviewHeadLoading == false else {
             return false
         }
@@ -999,6 +1017,7 @@ extension FlashcardsStore {
 
         let reviewCounts = try await reviewCountsTask
         let reviewQueueWindowState = try await reviewQueueWindowTask
+        try validateContext()
 
         guard workspaceId == self.workspace?.workspaceId else {
             return false

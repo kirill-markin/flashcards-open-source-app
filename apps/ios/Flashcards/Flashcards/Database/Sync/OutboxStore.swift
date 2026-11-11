@@ -480,6 +480,61 @@ struct OutboxStore {
         }
     }
 
+    #if !os(watchOS)
+    func pendingCardMaintenanceRefresh(workspaceId: String) throws -> PendingCardMaintenanceRefresh? {
+        try self.core.query(
+            sql: """
+            SELECT refresh_token, preview_fingerprint, is_acknowledged
+            FROM pending_card_maintenance_refresh
+            WHERE workspace_id = ?
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            PendingCardMaintenanceRefresh(
+                token: DatabaseCore.columnText(statement: statement, index: 0),
+                previewFingerprint: DatabaseCore.columnText(statement: statement, index: 1),
+                status: DatabaseCore.columnInt64(statement: statement, index: 2) == 1 ? .acknowledged : .unresolved
+            )
+        }.first
+    }
+
+    func beginCardMaintenanceRefresh(workspaceId: String, token: String, previewFingerprint: String) throws {
+        try self.core.inTransaction {
+            let insertedRows = try self.core.execute(
+                sql: """
+                INSERT INTO pending_card_maintenance_refresh (workspace_id, refresh_token, preview_fingerprint, is_acknowledged)
+                VALUES (?, ?, ?, 0)
+                ON CONFLICT(workspace_id) DO NOTHING
+                """,
+                values: [.text(workspaceId), .text(token), .text(previewFingerprint)]
+            )
+            guard insertedRows == 1 else {
+                throw CardMaintenanceError.refreshRequired
+            }
+        }
+    }
+
+    func acknowledgeCardMaintenanceRefresh(workspaceId: String, token: String) throws {
+        try self.core.execute(
+            sql: "UPDATE pending_card_maintenance_refresh SET is_acknowledged = 1 WHERE workspace_id = ? AND refresh_token = ?",
+            values: [.text(workspaceId), .text(token)]
+        )
+    }
+
+    func finishCardMaintenanceRefresh(workspaceId: String, token: String) throws {
+        try self.core.execute(
+            sql: "DELETE FROM pending_card_maintenance_refresh WHERE workspace_id = ? AND refresh_token = ?",
+            values: [.text(workspaceId), .text(token)]
+        )
+    }
+
+    func assertCardMaintenanceAllowsSnapshotWrites(workspaceId: String) throws {
+        guard try self.pendingCardMaintenanceRefresh(workspaceId: workspaceId) == nil else {
+            throw LocalStoreError.validation(CardMaintenanceError.refreshRequiredMessage)
+        }
+    }
+    #endif
+
     // `isInitialCreate` is the explicit "this is the very first local upsert for
     // this card" bit consumed by loadPendingReviewScheduleCardTotalDelta. Callers
     // pass true exactly once per card (the create path) and false for every later
@@ -496,6 +551,9 @@ struct OutboxStore {
         isInitialCreate: Bool,
         reviewScheduleImpact: Bool
     ) throws {
+        #if !os(watchOS)
+        try self.assertCardMaintenanceAllowsSnapshotWrites(workspaceId: workspaceId)
+        #endif
         let payloadJson = try self.core.encodeJsonString(
             value: CardOutboxPayload(
                 cardId: card.cardId,
@@ -538,6 +596,9 @@ struct OutboxStore {
         clientUpdatedAt: String,
         deck: Deck
     ) throws {
+        #if !os(watchOS)
+        try self.assertCardMaintenanceAllowsSnapshotWrites(workspaceId: workspaceId)
+        #endif
         let payloadJson = try self.core.encodeJsonString(
             value: DeckOutboxPayload(
                 deckId: deck.deckId,

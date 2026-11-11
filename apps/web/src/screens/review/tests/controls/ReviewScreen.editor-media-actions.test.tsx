@@ -150,7 +150,7 @@ describe("ReviewScreen editor media and actions", () => {
     expect(state.appData.updateCardItem).toHaveBeenCalledWith("card-media-lifecycle-sync", {
       frontText: reconciledFrontText,
       backText: reconciledBackText,
-      tags: ["grammar", "custom"],
+      tagEdit: { baseline: ["grammar", "remote"], draft: ["grammar", "remote", "custom"] },
     });
   });
 

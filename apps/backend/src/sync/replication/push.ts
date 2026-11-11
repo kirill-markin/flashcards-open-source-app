@@ -8,6 +8,7 @@ import {
   createCurrentUserPublicProfileResolver,
   type CurrentUserPublicProfileResolver,
 } from "../../community/reviewActivityFacts";
+import { applySyncedReviewAfterResetInExecutor, loadSyncedReviewCardInExecutor } from "../../cards/review/reviews";
 import type { DatabaseExecutor } from "../../database";
 import { transactionWithWorkspaceScopeReportingContentWrites } from "../../productAnalytics/serverFacts/contentWrites";
 import { createPostCommitAnalyticsBudget } from "../../productAnalytics/serverFacts/postCommitBudget";
@@ -15,7 +16,7 @@ import { runTransactionReportingReviewAnswers } from "../../productAnalytics/ser
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
-import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
+import { lockWorkspaceSyncMetadataForHotChangesInExecutor, type HotChangeWriteLock } from "./changes";
 import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../../scheduling/workspaceSettings";
 import type {
   SyncPushInput,
@@ -102,7 +103,7 @@ export async function processOperationInExecutor(
   replicaId: string,
   operation: SyncPushOperation,
   resolveReviewedBy: CurrentUserPublicProfileResolver,
-  managedImageRestoreLedger?: ManagedImageRestoreLedger,
+  batch?: Readonly<{ managedImageRestoreLedger: ManagedImageRestoreLedger; hotChangeWriteLock: HotChangeWriteLock }>,
 ): Promise<SyncPushOperationResult> {
   let resultingHotChangeId: number | null = null;
   let status: SyncPushOperationResult["status"] = "applied";
@@ -128,7 +129,7 @@ export async function processOperationInExecutor(
         lastModifiedByReplicaId: replicaId,
         lastOperationId: operation.operationId,
       }),
-      { managedImageRestoreLedger },
+      { managedImageRestoreLedger: batch?.managedImageRestoreLedger },
     );
     status = mutation.applied ? "applied" : "ignored";
     resultingHotChangeId = mutation.changeId;
@@ -236,16 +237,10 @@ export async function processOperationInExecutor(
       };
     }
 
-    const cardExistsResult = await executor.query<Readonly<{ card_id: string }>>(
-      [
-        "SELECT card_id",
-        "FROM content.cards",
-        "WHERE workspace_id = $1 AND card_id = $2",
-        "LIMIT 1",
-      ].join(" "),
-      [workspaceId, operation.payload.cardId],
-    );
-    if (cardExistsResult.rows[0] === undefined) {
+    const hotChangeWriteLock = batch?.hotChangeWriteLock
+      ?? await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
+    const card = await loadSyncedReviewCardInExecutor(executor, hotChangeWriteLock, operation.payload.cardId);
+    if (card === undefined) {
       return {
         operationId: operation.operationId,
         entityType: operation.entityType,
@@ -280,7 +275,12 @@ export async function processOperationInExecutor(
       "server_stamped",
     );
     status = mutation.applied ? "applied" : "ignored";
-    resultingHotChangeId = null;
+    if (mutation.applied) {
+      resultingHotChangeId = await applySyncedReviewAfterResetInExecutor(
+        executor, workspaceId, hotChangeWriteLock, card,
+        { rating: operation.payload.rating, reviewedAtClient: normalizedReviewedAtClient },
+      );
+    }
   }
 
   await recordAppliedOperation(executor, workspaceId, replicaId, operation, resultingHotChangeId);
@@ -301,7 +301,7 @@ export async function processSyncPushOperationsInExecutor(
   replicaId: string,
   operations: ReadonlyArray<SyncPushOperation>,
 ): Promise<ReadonlyArray<SyncPushOperationResult>> {
-  await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const existingAppliedOperations = await loadExistingAppliedOperations(
     executor,
     workspaceId,
@@ -337,7 +337,7 @@ export async function processSyncPushOperationsInExecutor(
       replicaId,
       operation,
       resolveReviewedBy,
-      managedImageRestoreLedger,
+      { managedImageRestoreLedger, hotChangeWriteLock },
     ));
   }
 

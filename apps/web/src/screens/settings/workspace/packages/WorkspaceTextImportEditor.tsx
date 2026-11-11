@@ -13,6 +13,9 @@ type CardSeparatorChoice = "newline" | "semicolon" | "custom";
 type WorkspaceTextImportEditorProps = Readonly<{
   isDisabled: boolean;
   isImporting: boolean;
+  isSyncing: boolean;
+  syncErrorMessage: string | null;
+  onRetrySync: () => void;
   errorMessage: string;
   successMessage: string;
   tagSuggestions: ReadonlyArray<TagSuggestion>;
@@ -67,6 +70,9 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
   const {
     isDisabled,
     isImporting,
+    isSyncing,
+    syncErrorMessage,
+    onRetrySync,
     errorMessage,
     successMessage,
     tagSuggestions,
@@ -435,6 +441,21 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
       )}
       {successMessage === "" ? null : (
         <p className="subtitle" data-testid="workspace-import-success">{successMessage}</p>
+      )}
+      {isSyncing ? <p className="subtitle" role="status">{t("catalogImport.syncing")}</p> : null}
+      {syncErrorMessage === null ? null : (
+        <div className="cell-stack">
+          <p className="error-banner" role="alert">{syncErrorMessage}</p>
+          <button
+            className="ghost-btn"
+            type="button"
+            disabled={isDisabled}
+            onClick={onRetrySync}
+            data-testid="workspace-text-import-retry-sync"
+          >
+            {t("catalogImport.retrySync")}
+          </button>
+        </div>
       )}
     </article>
   );

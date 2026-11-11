@@ -5,6 +5,7 @@ enum CardsPresentationRequest: Hashable, Sendable {
 }
 
 struct CardEditorReadOnlyMetadata: Hashable, Sendable {
+    let maintenanceScope: CardMaintenanceScope
     let dueAt: String?
     let reps: Int
     let lapses: Int
@@ -12,6 +13,12 @@ struct CardEditorReadOnlyMetadata: Hashable, Sendable {
 
 func cardEditorReadOnlyMetadata(card: Card) -> CardEditorReadOnlyMetadata {
     CardEditorReadOnlyMetadata(
+        maintenanceScope: CardMaintenanceScope(
+            workspaceId: card.workspaceId,
+            kind: .resetCard,
+            target: card.cardId,
+            expectedDeckFilter: nil
+        ),
         dueAt: card.dueAt,
         reps: card.reps,
         lapses: card.lapses

@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
@@ -61,7 +62,9 @@ class SyncLocalStoreForkReidentificationContractTest {
             frontText = "Front",
             backText = "Back",
             cardType = defaultCardType,
-            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(1L)),
+            metadataJson = JSONObject(encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(1L)))
+                .put("maintenanceRevision", 17L)
+                .toString(),
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,
@@ -135,6 +138,10 @@ class SyncLocalStoreForkReidentificationContractTest {
         assertTrue(reidentifiedCardId != originalCard.cardId)
         assertNull(database.cardDao().loadCard(originalCard.cardId))
         assertEquals(originalCard.frontText, reidentifiedCard.frontText)
+        assertNull(decodeCardMetadataJson(metadataJson = reidentifiedCard.metadataJson).maintenanceRevision)
+        assertNull(
+            cardOutboxPayload.metadata.maintenanceRevision
+        )
         assertEquals(reidentifiedCardId, reidentifiedReviewLog.cardId)
         assertEquals(originalReviewLog.reviewLogId, reidentifiedReviewLog.reviewLogId)
         assertEquals(listOf("android"), reidentifiedCardWithRelations.tags.map(TagEntity::name))

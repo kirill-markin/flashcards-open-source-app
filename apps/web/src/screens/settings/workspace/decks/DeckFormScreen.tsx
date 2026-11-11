@@ -10,11 +10,12 @@ import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition } from "../../../../deck
 import { useI18n } from "../../../../i18n";
 import { buildLibraryDeckDetailRoute, libraryDecksRoute } from "../../../../routes";
 import { useWorkspacePath } from "../../../../useWorkspacePath";
-import { CardFormTagsField } from "../../../cards/form/CardFormTagsField";
+import { CardFormTagsField, type CardFormTagsFieldHandle } from "../../../cards/form/CardFormTagsField";
 import { loadWorkspaceTagsSummary } from "../../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { TagSuggestion, UpdateDeckInput } from "../../../../types";
 import { formatDeckFilterSummary } from "../../../shared/featureFormatting";
+import { CardMaintenanceAction } from "../CardMaintenanceAction";
 
 type FormState = Readonly<{
   name: string;
@@ -136,6 +137,7 @@ export function DeckFormScreen(): ReactElement {
   const [refreshErrorMessage, setRefreshErrorMessage] = useState<string>("");
   const [formErrorMessage, setFormErrorMessage] = useState<string>("");
   const formStateRef = useRef<FormState>(formState);
+  const tagsFieldRef = useRef<CardFormTagsFieldHandle | null>(null);
   const authoritativeFormStateRef = useRef<FormState>(formState);
   const isMountedRef = useRef<boolean>(true);
   const isDeletingRef = useRef<boolean>(false);
@@ -152,6 +154,7 @@ export function DeckFormScreen(): ReactElement {
     installationId: null,
   });
   const filterDefinition = buildDeckFilterDefinition(formState.tags);
+  const hasUnsavedRules = !areTagsEqual(formState.tags, authoritativeFormStateRef.current.tags);
   const nameFieldId = "deck-name";
   const tagsFieldId = "deck-tags-input";
   const isCreateMode = deckId === undefined;
@@ -494,11 +497,17 @@ export function DeckFormScreen(): ReactElement {
     }
   }
 
+  function canResetDeck(): boolean {
+    tagsFieldRef.current?.commitDraft();
+    return areTagsEqual(formStateRef.current.tags, authoritativeFormStateRef.current.tags);
+  }
+
   async function handleSubmit(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed() || isSavingRef.current || isDeletingRef.current) {
       return;
     }
 
+    tagsFieldRef.current?.commitDraft();
     isSavingRef.current = true;
     setIsSaving(true);
     setErrorMessage("");
@@ -654,6 +663,7 @@ export function DeckFormScreen(): ReactElement {
                 <span>{t("deckForm.fields.tags")}</span>
               </label>
               <CardFormTagsField
+                ref={tagsFieldRef}
                 value={formState.tags}
                 suggestions={tagSuggestions}
                 inputId={tagsFieldId}
@@ -673,6 +683,15 @@ export function DeckFormScreen(): ReactElement {
                 <dd>{formatDeckFilterSummary(filterDefinition, t)}</dd>
               </div>
             </dl>
+            {deckId !== undefined && deckId !== ALL_CARDS_DECK_SLUG ? (
+              <CardMaintenanceAction
+                kind="resetDeck"
+                target={deckId}
+                disabled={isSaving || isDeleting || hasUnsavedRules || refreshErrorMessage !== ""}
+                disabledReason={hasUnsavedRules ? t("cardMaintenance.saveDeckRules") : undefined}
+                canStart={canResetDeck}
+              />
+            ) : null}
           </aside>
         </div>
       </section>

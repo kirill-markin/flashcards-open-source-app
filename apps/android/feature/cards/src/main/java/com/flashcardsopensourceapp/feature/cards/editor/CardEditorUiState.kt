@@ -52,6 +52,7 @@ data class CardEditorUiState(
     val isCardUnavailable: Boolean,
     val title: String,
     val isEditing: Boolean,
+    val editingWorkspaceId: String?,
     val frontText: String,
     val backText: String,
     val frontTextSelection: CardEditorTextSelection,

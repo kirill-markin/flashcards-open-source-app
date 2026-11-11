@@ -10,6 +10,7 @@ import {
   type ReactElement,
 } from "react";
 import { deriveActiveCards } from "../../appData/domain";
+import { areSameTags } from "../../appData/domain/cardTags";
 import { useI18n } from "../../i18n";
 import type { Card, TagSuggestion } from "../../types";
 
@@ -172,14 +173,6 @@ export function getTagSuggestionsFromCards(cards: ReadonlyArray<Card>): Readonly
     .sort(compareTagSuggestions);
 }
 
-export function areSameTags(left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  return left.every((tag, index) => tag === right[index]);
-}
-
 export function CardTagsValue(props: CardTagsValueProps): ReactElement {
   const { tags, emptyLabel } = props;
 
@@ -223,9 +216,8 @@ function isTagInputComposing(event: KeyboardEvent<HTMLInputElement>): boolean {
 }
 
 export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>(function CardTagsInput(props, ref) {
-  const { value, suggestions, placeholder, inputId, inputName, onChange, onEscape } = props;
+  const { value: selectedTags, suggestions, placeholder, inputId, inputName, onChange, onEscape } = props;
   const { t } = useI18n();
-  const [selectedTags, setSelectedTags] = useState<ReadonlyArray<string>>(value);
   const [draftValue, setDraftValue] = useState<string>("");
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
   const [isFocused, setIsFocused] = useState<boolean>(false);
@@ -246,14 +238,6 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
     }
   }, [highlightIndex, options.length]);
 
-  useEffect(() => {
-    if (areSameTags(selectedTags, value)) {
-      return;
-    }
-
-    setSelectedTags(value);
-  }, [selectedTags, value]);
-
   function focusInput(): void {
     if (inputRef.current !== null) {
       inputRef.current.focus();
@@ -262,8 +246,7 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
 
   function flushDraft(): ReadonlyArray<string> {
     const nextTags = appendTags(selectedTags, splitTagDraft(draftValue));
-    setSelectedTags(nextTags);
-    if (!areSameTags(nextTags, value)) {
+    if (!areSameTags(nextTags, selectedTags)) {
       onChange(nextTags);
     }
 
@@ -275,12 +258,11 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
   useImperativeHandle(ref, () => ({
     focusInput,
     flushDraft,
-  }), [draftValue, onChange, selectedTags, value]);
+  }), [draftValue, onChange, selectedTags]);
 
   function handleSelect(nextTag: string): void {
     const nextTags = appendTag(selectedTags, nextTag);
-    setSelectedTags(nextTags);
-    if (!areSameTags(nextTags, value)) {
+    if (!areSameTags(nextTags, selectedTags)) {
       onChange(nextTags);
     }
 
@@ -291,8 +273,7 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
 
   function handleRemove(nextTag: string): void {
     const nextTags = removeTag(selectedTags, nextTag);
-    setSelectedTags(nextTags);
-    if (!areSameTags(nextTags, value)) {
+    if (!areSameTags(nextTags, selectedTags)) {
       onChange(nextTags);
     }
 
@@ -373,8 +354,7 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
 
     event.preventDefault();
     const nextTags = appendTags(selectedTags, splitTagDraft(pastedText));
-    setSelectedTags(nextTags);
-    if (!areSameTags(nextTags, value)) {
+    if (!areSameTags(nextTags, selectedTags)) {
       onChange(nextTags);
     }
 

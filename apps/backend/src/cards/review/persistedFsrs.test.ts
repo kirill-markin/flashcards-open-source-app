@@ -257,6 +257,7 @@ test("submitReview fails invalid persisted fsrs state without repairing the card
       [
         "SELECT",
         "card_id, front_text, back_text, due_at, reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days",
+        ", client_updated_at, CASE WHEN maintenance_snapshot_published_at = client_updated_at THEN maintenance_snapshot_lww_at END AS maintenance_snapshot_lww_at",
         "FROM content.cards",
         "WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL",
         "FOR UPDATE",

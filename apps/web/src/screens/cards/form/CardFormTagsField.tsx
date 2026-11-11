@@ -3,14 +3,18 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactElement,
 } from "react";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
-import type { TagSuggestion } from "../../../types";
-import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "../CardTagsInput";
+import type { TagSuggestion, UpdateCardInput } from "../../../types";
+import { areSameTags, buildTagEdit, rebaseTagDraft } from "../../../appData/domain/cardTags";
+import { CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "../CardTagsInput";
+
+export type CardFormTagEdit = NonNullable<UpdateCardInput["tagEdit"]>;
 
 type CardFormTagsFieldProps = Readonly<{
   value: ReadonlyArray<string>;
@@ -18,7 +22,7 @@ type CardFormTagsFieldProps = Readonly<{
   inputId?: string;
   inputName?: string;
   triggerTestId?: string;
-  onChange: (nextValue: ReadonlyArray<string>) => void;
+  onChange: (nextValue: ReadonlyArray<string>, edit: CardFormTagEdit) => void;
   disabled: boolean;
 }>;
 
@@ -31,47 +35,6 @@ const tagsOverlayOffsetPx = 8;
 const tagsOverlayMinimumWidthPx = 320;
 const tagsOverlayMaximumWidthPx = 420;
 const tagsOverlayMaximumHeightPx = 320;
-
-function rebaseOpenTagsDraft(
-  previousValue: ReadonlyArray<string>,
-  nextValue: ReadonlyArray<string>,
-  draftTags: ReadonlyArray<string>,
-): ReadonlyArray<string> {
-  if (areSameTags(draftTags, previousValue)) {
-    return nextValue;
-  }
-
-  const previousTags = new Set(previousValue);
-  const nextTags = new Set(nextValue);
-  const draftTagSet = new Set(draftTags);
-  const removedTags = new Set(
-    previousValue.filter((tag) => draftTagSet.has(tag) === false),
-  );
-  const localAdditions = draftTags.filter((tag) => previousTags.has(tag) === false);
-  const previousSurvivingOrder = previousValue.filter((tag) => draftTagSet.has(tag));
-  const draftPreviousOrder = draftTags.filter((tag) => previousTags.has(tag));
-
-  if (areSameTags(previousSurvivingOrder, draftPreviousOrder)) {
-    const rebasedTags = nextValue.filter((tag) => removedTags.has(tag) === false);
-    const rebasedTagSet = new Set(rebasedTags);
-    return [
-      ...rebasedTags,
-      ...localAdditions.filter((tag) => rebasedTagSet.has(tag) === false),
-    ];
-  }
-
-  const rebasedLocalTags = draftTags.filter((tag) => (
-    nextTags.has(tag) || previousTags.has(tag) === false
-  ));
-  const rebasedLocalTagSet = new Set(rebasedLocalTags);
-  return [
-    ...rebasedLocalTags,
-    ...nextValue.filter((tag) => (
-      rebasedLocalTagSet.has(tag) === false
-      && removedTags.has(tag) === false
-    )),
-  ];
-}
 
 export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTagsFieldProps>(function CardFormTagsField(
   props,
@@ -87,37 +50,42 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
     disabled,
   } = props;
   const { t } = useI18n();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
+  const [tagEdit, setTagEdit] = useState<CardFormTagEdit | null>(null);
+  const isOpen = tagEdit !== null;
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<CardTagsInputHandle | null>(null);
-  const previousValueRef = useRef<ReadonlyArray<string>>(value);
+  const commitDraftRef = useRef<(() => void) | null>(null);
+
+  if (tagEdit !== null && areSameTags(tagEdit.baseline, value) === false) {
+    setTagEdit({ baseline: value, draft: rebaseTagDraft(tagEdit.baseline, value, tagEdit.draft) });
+  }
+
+  const closeDraft = useCallback((): void => {
+    commitDraftRef.current = null;
+    setTagEdit(null);
+  }, []);
+
+  useLayoutEffect(() => {
+    // The document listener can run before React flushes passive effects.
+    commitDraftRef.current = tagEdit === null ? null : (): void => {
+      const draft = editorRef.current?.flushDraft() ?? tagEdit.draft;
+      closeDraft();
+      const edit = buildTagEdit(tagEdit.baseline, draft);
+      if (edit !== undefined) {
+        onChange(draft, edit);
+      }
+    };
+    return () => {
+      commitDraftRef.current = null;
+    };
+  }, [closeDraft, onChange, tagEdit]);
 
   const handleCommit = useCallback((): void => {
-    const nextTags = editorRef.current === null ? draftTags : editorRef.current.flushDraft();
-    setIsOpen(false);
+    commitDraftRef.current?.();
+  }, []);
 
-    if (areSameTags(nextTags, value)) {
-      setDraftTags(value);
-      return;
-    }
-
-    onChange(nextTags);
-  }, [draftTags, onChange, value]);
-
-  const handleCancel = useCallback((): void => {
-    setIsOpen(false);
-    setDraftTags(value);
-  }, [value]);
-
-  useImperativeHandle(ref, () => ({
-    commitDraft: (): void => {
-      if (isOpen) {
-        handleCommit();
-      }
-    },
-  }), [handleCommit, isOpen]);
+  useImperativeHandle(ref, () => ({ commitDraft: handleCommit }), [handleCommit]);
 
   useAnchoredFloatingOutsidePointerDismiss({
     triggerRef,
@@ -127,27 +95,10 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
   });
 
   useEffect(() => {
-    if (!isOpen || editorRef.current === null) {
-      return;
-    }
-
-    editorRef.current.focusInput();
-  }, [isOpen]);
-
-  useEffect(() => {
-    const previousValue = previousValueRef.current;
-    previousValueRef.current = value;
     if (isOpen) {
-      if (areSameTags(previousValue, value) === false) {
-        setDraftTags((currentDraftTags) => (
-          rebaseOpenTagsDraft(previousValue, value, currentDraftTags)
-        ));
-      }
-      return;
+      editorRef.current?.focusInput();
     }
-
-    setDraftTags(value);
-  }, [isOpen, value]);
+  }, [isOpen]);
 
   function handleTriggerClick(): void {
     if (disabled || triggerRef.current === null) {
@@ -159,8 +110,7 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
       return;
     }
 
-    setDraftTags(value);
-    setIsOpen(true);
+    setTagEdit({ baseline: value, draft: value });
   }
 
   const triggerClassName = "settings-input card-form-tags-trigger";
@@ -196,13 +146,17 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
       >
         <CardTagsInput
           ref={editorRef}
-          value={draftTags}
+          value={tagEdit?.draft ?? value}
           suggestions={suggestions}
           placeholder={t("cardTags.inputPlaceholder")}
           inputId={inputId}
           inputName={inputName}
-          onChange={setDraftTags}
-          onEscape={handleCancel}
+          onChange={(draft) => {
+            if (tagEdit !== null) {
+              setTagEdit({ baseline: tagEdit.baseline, draft });
+            }
+          }}
+          onEscape={closeDraft}
         />
       </AnchoredFloatingOverlay>
     </>

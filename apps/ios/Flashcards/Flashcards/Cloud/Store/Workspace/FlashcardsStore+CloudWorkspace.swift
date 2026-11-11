@@ -94,8 +94,15 @@ extension FlashcardsStore {
             try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
+        guard let originalSession = self.cloudRuntime.activeCloudSession() else {
+            throw LocalStoreError.uninitialized("Cloud session is unavailable")
+        }
         let currentWorkspaceId = self.workspace?.workspaceId
-        let selectedWorkspace = try await self.withAuthenticatedCloudSession { session in
+        let originalSyncGeneration = self.cloudRuntime.syncGeneration
+        let selectedWorkspace = try await self.withCurrentCloudSession(
+            linkedSession: originalSession,
+            syncGeneration: originalSyncGeneration
+        ) { session in
             let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
             switch selection {
             case .existing(let workspaceId):
@@ -115,11 +122,16 @@ extension FlashcardsStore {
             }
         }
 
+        try self.cloudRuntime.checkSyncGeneration(originalSyncGeneration)
+        try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: originalSession)
         if currentWorkspaceId == selectedWorkspace.workspaceId {
             return
         }
 
-        let activeSession = try await self.withAuthenticatedCloudSession { session in
+        let activeSession = try await self.withCurrentCloudSession(
+            linkedSession: originalSession,
+            syncGeneration: originalSyncGeneration
+        ) { session in
             CloudLinkedSession(
                 userId: session.userId,
                 workspaceId: selectedWorkspace.workspaceId,
@@ -130,26 +142,41 @@ extension FlashcardsStore {
             )
         }
 
-        self.cloudRuntime.cancelForWorkspaceSwitch()
-        await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: selectedWorkspace.workspaceId)
-        let database = try requireLocalDatabase(database: self.database)
-        try database.switchActiveWorkspace(
-            workspace: selectedWorkspace,
-            linkedSession: activeSession
-        )
-        self.reviewPresentationResetRevision += 1
-        self.cloudRuntime.setActiveCloudSession(linkedSession: activeSession)
-        try self.reload()
-        self.syncStatus = .syncing
+        try self.cloudRuntime.checkSyncGeneration(originalSyncGeneration)
+        try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: originalSession)
+        let transition = self.cloudRuntime.beginWorkspaceSyncTransition()
+        do {
+            defer { self.cloudRuntime.endWorkspaceSyncTransition(transition) }
+            try await self.prepareWorkspaceScopedStateForSwitch(
+                nextWorkspaceId: selectedWorkspace.workspaceId,
+                transition: transition
+            )
+            try self.cloudRuntime.checkWorkspaceSyncTransition(transition)
+            let database = try requireLocalDatabase(database: self.database)
+            try database.switchActiveWorkspace(
+                workspace: selectedWorkspace,
+                linkedSession: activeSession
+            )
+            self.reviewPresentationResetRevision += 1
+            self.cloudRuntime.setActiveCloudSession(linkedSession: activeSession)
+            try self.reload()
+        }
 
+        let syncGeneration = self.cloudRuntime.syncGeneration
+        self.syncStatus = .syncing
         do {
             let syncResult = try await self.runLinkedSync(linkedSession: activeSession)
-            try await self.applySyncResultWithoutBlockingReset(
+            try await self.applyCurrentLinkedSyncResult(
                 syncResult: syncResult,
+                linkedSession: activeSession,
+                syncGeneration: syncGeneration,
                 now: Date(),
                 trigger: trigger
             )
         } catch {
+            guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration) else {
+                throw CancellationError()
+            }
             let didCapture = self.captureWorkspaceCloudSyncFailureIfNeeded(
                 error: error,
                 trigger: trigger,
