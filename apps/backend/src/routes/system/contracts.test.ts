@@ -24,6 +24,7 @@ import {
   workspacePackageImportConfirmRouteMaxZipBytes,
   workspacePackageImportPreviewRouteMaxZipBytes,
 } from "../workspacePackages";
+import { parseWorkspacePackageExportRouteInput } from "../workspacePackages/export";
 import {
   isValidWorkspacePackageImportOperationIdPrefix,
   workspacePackageImportOperationIdPrefixMaximumLength,
@@ -41,6 +42,7 @@ const expectedAgentDiscoverySurfaceTemplates = {
   mediaAssetDownloadUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
   workspacePackageExportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/export/preview",
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
+  workspacePackageExportAnkiUrlTemplate: "/workspaces/{workspaceId}/packages/export/anki",
   workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
   workspacePackageImportUrlTemplate: "/workspaces/{workspaceId}/packages/import",
   catalogSnapshotUrl: "/catalog",
@@ -376,6 +378,11 @@ test("agent discovery advertises the published media, package, and catalog surfa
   assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
   assert.match(discoveryEnvelope.instructions, /packages\/export\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
+  assert.match(discoveryEnvelope.instructions, /packages\/export\/anki/);
+  const exportRequestExample = discoveryEnvelope.data.workspacePackageExportRequestExample;
+  assert.deepEqual(parseWorkspacePackageExportRouteInput(exportRequestExample), exportRequestExample);
+  assert.match(discoveryEnvelope.instructions, /flashcards\.apkg bytes with Content-Type application\/apkg/);
+  assert.match(discoveryEnvelope.instructions, /application\/json with downloadUrl, fileName, and contentType/);
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/import/);
   assert.match(discoveryEnvelope.instructions, /catalog for the complete normalized snapshot/);

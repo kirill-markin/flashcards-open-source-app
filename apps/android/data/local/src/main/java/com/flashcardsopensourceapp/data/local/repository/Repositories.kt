@@ -76,6 +76,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -85,6 +86,7 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import java.time.ZoneId
 
 interface CardsRepository {
@@ -309,10 +311,14 @@ interface CloudAccountRepository {
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
     suspend fun previewCurrentWorkspacePackageExport(
+        expectedWorkspaceId: String,
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview
     suspend fun exportCurrentWorkspacePackage(
-        request: WorkspacePackageExportRequest
+        expectedWorkspaceId: String,
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse
     suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview
     suspend fun confirmCurrentWorkspacePackageImport(

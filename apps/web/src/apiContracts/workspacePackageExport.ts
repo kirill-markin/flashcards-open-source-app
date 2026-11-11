@@ -1,11 +1,17 @@
-import type {
-  WorkspacePackageExportDefaultPackageMetadata,
-  WorkspacePackageExportDownloadMetadata,
-  WorkspacePackageExportPreviewResponse,
-  WorkspacePackageExportTagCount,
+import {
+  workspaceAnkiExportContentType,
+  workspaceAnkiExportFilename,
+  workspacePackageExportFilename,
+  type WorkspaceAnkiExportDownload,
+  type WorkspacePackageExportDefaultPackageMetadata,
+  type WorkspacePackageExportDownloadMetadata,
+  type WorkspacePackageExportPreviewResponse,
+  type WorkspacePackageExportTagCount,
 } from "../types";
 import {
+  ApiContractError,
   parseArray,
+  parseLiteral,
   parseNonNegativeInteger,
   parseObject,
   parseOptionalField,
@@ -13,7 +19,6 @@ import {
   parseString,
 } from "./core";
 
-const defaultWorkspacePackageExportFilename = "flashcards.zip";
 const defaultWorkspacePackageExportContentType = "application/octet-stream";
 const unsafeFilenamePattern = /[/\\\u0000-\u001f\u007f]/u;
 
@@ -51,7 +56,7 @@ function parseWorkspacePackageExportDefaultPackageMetadata(
 function sanitizeDownloadFilename(filename: string): string {
   const trimmedFilename = filename.trim();
   if (trimmedFilename === "" || unsafeFilenamePattern.test(trimmedFilename)) {
-    return defaultWorkspacePackageExportFilename;
+    return workspacePackageExportFilename;
   }
 
   return trimmedFilename;
@@ -68,7 +73,7 @@ function unquoteContentDispositionValue(value: string): string {
 
 function parseContentDispositionFilename(contentDisposition: string | null): string {
   if (contentDisposition === null) {
-    return defaultWorkspacePackageExportFilename;
+    return workspacePackageExportFilename;
   }
 
   const parameters = contentDisposition.split(";").slice(1);
@@ -77,12 +82,12 @@ function parseContentDispositionFilename(contentDisposition: string | null): str
     return key?.trim().toLowerCase() === "filename";
   });
   if (filenameParameter === undefined) {
-    return defaultWorkspacePackageExportFilename;
+    return workspacePackageExportFilename;
   }
 
   const valueStartIndex = filenameParameter.indexOf("=");
   if (valueStartIndex < 0) {
-    return defaultWorkspacePackageExportFilename;
+    return workspacePackageExportFilename;
   }
 
   return sanitizeDownloadFilename(unquoteContentDispositionValue(filenameParameter.slice(valueStartIndex + 1)));
@@ -150,5 +155,30 @@ export function parseWorkspacePackageExportDownloadMetadata(headers: Headers): W
   return {
     filename: parseContentDispositionFilename(headers.get("Content-Disposition")),
     contentType: parseResponseContentType(headers),
+  };
+}
+
+function parseAnkiExportDownloadUrl(value: unknown, endpoint: string, path: string): string {
+  const downloadUrl = parseString(value, endpoint, path);
+  let url: URL;
+  try {
+    url = new URL(downloadUrl);
+  } catch {
+    throw new ApiContractError(endpoint, path, "an absolute URL");
+  }
+
+  if (url.protocol !== "https:" || url.username !== "" || url.password !== "") {
+    throw new ApiContractError(endpoint, path, "an HTTPS URL without embedded credentials");
+  }
+
+  return downloadUrl;
+}
+
+export function parseWorkspaceAnkiExportDownload(value: unknown, endpoint: string): WorkspaceAnkiExportDownload {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    downloadUrl: parseRequiredField(objectValue, "downloadUrl", endpoint, "", parseAnkiExportDownloadUrl),
+    filename: parseLiteral(objectValue.fileName, endpoint, "fileName", workspaceAnkiExportFilename),
+    contentType: parseLiteral(objectValue.contentType, endpoint, "contentType", workspaceAnkiExportContentType),
   };
 }
