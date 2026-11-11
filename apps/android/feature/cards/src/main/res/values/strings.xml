@@ -9,6 +9,7 @@
     <string name="library_deck_catalog_summary">Free ready-made decks to study.</string>
     <string name="library_import_title">Import</string>
     <string name="library_import_summary">Add cards from a file.</string>
+    <string name="library_transfer_section_title">Transfer</string>
     <string name="library_export_title">Export</string>
     <string name="library_export_summary">Save cards to a file.</string>
     <string name="library_export_nibomo_title">Nibomo package (.zip)</string>
