@@ -20,6 +20,15 @@ const bgCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Този браузър не успя да декодира звука от микрофона ({{format}}).",
     recovery: "Достъпът като гост не е потвърден. Кешираните карти са само за четене. Възстановете първоначалната сесия или връзката и опитайте отново.",
     cleanupFailed: "Влизането е успешно, но демонстрационната карта не може да бъде изтрита.",
+    browserCheck: {
+      title: "Проверяваме браузъра ви",
+      description: "Преди да се отвори гостуващото работно пространство, Cloudflare потвърждава, че това е обикновен браузър. Обикновено отнема няколко секунди.",
+      loading: "Зареждане на проверката...",
+      verifying: "Отваряме работното ви пространство...",
+      loadFailed: "Проверката не можа да се зареди. Проверете връзката си, разрешете challenges.cloudflare.com в блокера на съдържание и опитайте отново.",
+      failed: "Проверката не беше премината. Опитайте отново или влезте в профила си.",
+      rejected: "Проверката не беше приета. Преминете я още веднъж.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const bgCatalog: TranslationCatalog = {
     loading: "Зареждане...",
     never: "Никога",
     newItem: "нова",
+    image: "Изображение",
     noBackText: "Няма текст на гърба",
     noTags: "Няма етикети",
     notRevoked: "Не е отменено",
@@ -427,8 +437,12 @@ const bgCatalog: TranslationCatalog = {
       offlineEmpty: "Класацията по поредица не е достъпна офлайн. Свържете се отново, за да видите класирането.",
       unavailable: "Класацията по поредица не е достъпна в момента. Проверете отново по-късно.",
       dayLabels: {
-        one: "ден",
-        other: "дни",
+        zero: "{{count}} дни",
+        one: "{{count}} ден",
+        two: "{{count}} дни",
+        few: "{{count}} дни",
+        many: "{{count}} дни",
+        other: "{{count}} дни",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const bgCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Сесията се възстановява. Опитайте отново след малко.",
     sessionUnavailable: "Сесията е недостъпна",
     syncing: "Синхронизиране...",
+    syncFailed: "Синхронизирането е неуспешно",
     workspaceUnavailable: "Работното пространство е недостъпно",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const bgCatalog: TranslationCatalog = {
       yourCards: "Вашите карти",
       addCards: "Добавяне на карти",
     },
-    cards: {
-      description: "Всички карти в това работно пространство.",
-    },
-    tags: {
-      description: "Всички етикети, използвани в поне една карта.",
-    },
-    decks: {
-      description: "Запазени филтри на карти за фокусиран преговор.",
-    },
     deckCatalog: {
       title: "Каталог с тестета",
       description: "Безплатни готови тестета за учене.",
@@ -860,16 +866,18 @@ const bgCatalog: TranslationCatalog = {
     note: "Тези настройки засягат само бъдещото планиране. Текущото състояние на картите остава определящо.",
   },
   workspaceExport: {
-    title: "Експортиране",
+    title: "Експортиране на пакет на Nibomo",
+    ankiTitle: "Експортиране на тесте за Anki",
     subtitle: "Изтеглете преносим пакет за това работно пространство.",
     workspaceUnavailable: "Работното пространство е недостъпно",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Име на тестето",
+    ankiEmptySelection: "Няма карти за експортиране. Изберете други етикети или добавете карти.",
     packageDescription: "Прегледайте активните карти, метаданните, етикетите и посочената мултимедия преди изтегляне.",
-    packageExportSuccess: "Изтеглянето на flashcards.zip започна.",
+    packageExportSuccess: "Изтеглянето на {{filename}} започна.",
     packageExporting: "Изтегля се...",
     packagePreviewing: "Подготвя се преглед...",
     packageExportPreviewButton: "Преглед на експорта",
-    packageExportConfirmButton: "Изтегляне на flashcards.zip",
+    packageExportConfirmButton: "Изтегляне на {{filename}}",
     packageExportPreviewRequired: "Прегледайте този експорт преди изтегляне.",
     previewCardsLabel: "Карти",
     previewReferencedMediaLabel: "Посочена мултимедия",
@@ -1124,6 +1132,10 @@ const bgCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Отваряне на картата в ИИ чата ({{side}})",
     repetitionBadgeAriaLabel: "Повторения: {{value}}",
     repetitionBadgeNew: "Нова",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Още етикети: {{count}}",
+    },
     empty: {
       noCardsBody: "Все още не сте създали никакви карти. Добавете първата си карта, за да започнете да учите.",
       noCardsTitle: "Все още няма карти",
@@ -1135,16 +1147,25 @@ const bgCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Формулата не можа да бъде изобразена.",
       schedulerUnavailable: "Настройките на планировчика за работното пространство не са заредени",
+      storageFull: "Освободете място за съхранение на това устройство и оценете картата отново.",
     },
     leaderboardShortcut: {
       ariaLabel: "Отваряне на класацията",
     },
     progressBadge: {
-      ariaLabel: "Поредица от преговори (дни): {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Поредица от преговори (дни): {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Поредица от преговори: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Поредица от преговори: {{streak}}. {{todayStatus}}.",
       freezeBank: "Налични замразявания: {{available}} от {{capacity}}",
       notReviewedToday: "Днес няма преговор",
       reviewedToday: "Днес има преговор",
+      streakDayCount: {
+        zero: "{{count}} дни",
+        one: "{{count}} ден",
+        two: "{{count}} дни",
+        few: "{{count}} дни",
+        many: "{{count}} дни",
+        other: "{{count}} дни",
+      },
       title: "Поредица",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const bgCatalog: TranslationCatalog = {
       snapshot: "Показва се скорошна локална моментна снимка...",
     },
     media: {
-      privateImage: "Лично изображение",
-      privateAttachment: "Личен прикачен файл",
       attachmentLabel: "Прикачен файл",
       audioLabel: "Аудио прикачен файл",
       imageAlt: "Управлявано изображение",
@@ -1348,23 +1367,14 @@ const bgCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "За преговор: {{count}}",
+      toStudy: "{{count}} за учене",
       total: "Общо: {{count}}",
     },
-    emptyStatsAriaLabel: "Статистика за {{deckName}}",
     newDeck: "Ново тесте",
     statLabels: {
       cards: {
         one: "карта",
         other: "карти",
-      },
-      new: {
-        one: "нова",
-        other: "нови",
-      },
-      reviewed: {
-        one: "преговорена",
-        other: "преговорени",
       },
     },
     subtitle: "Тестетата са умни филтри, а не контейнери. Те съпоставят картите по етикети.",
@@ -1400,10 +1410,10 @@ const bgCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Карти",
-      due: "За преговор",
       new: "Нови",
       summary: "Обобщение",
       title: "Правила на тестето",
+      toStudy: "За учене",
     },
     subtitle: "Прегледайте правилата на тестето, съответстващите карти и входната точка за преговор.",
     subtitles: {

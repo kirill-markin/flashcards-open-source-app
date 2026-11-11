@@ -21,7 +21,12 @@ import {
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
 } from "../aiTools/toolContract/sqlToolContract";
 import { MAX_SQL_RECORD_LIMIT } from "../aiTools/toolContract/sqlToolLimits";
-import { maximumBashCommandSeconds, maximumSqlCallsPerCommand } from "../chatSandbox/contract";
+import {
+  maximumBashCommandSeconds,
+  maximumMediaPutsPerCommand,
+  maximumSqlCallsPerCommand,
+} from "../chatSandbox/contract";
+import { maximumImageIngestionOriginalBytes } from "../mediaAssets/validators";
 import type {
   ProductAnalyticsClientReportablePlatform,
   ProductAnalyticsDeviceType,
@@ -33,7 +38,8 @@ export type ChatClientApp = "iPhone" | "iPad" | "Mac" | "Android" | "web";
 
 /**
  * The Apple build reports platform `ios` on iPhone, iPad and Mac alike, so its osName, or without
- * one its deviceType, tells them apart. Null when the run's headers do not say.
+ * one its deviceType, tells them apart. Null when the run's headers do not say, and for the Apple
+ * Watch, which has no chat.
  */
 export function resolveChatClientApp(
   platform: ProductAnalyticsClientReportablePlatform | null,
@@ -182,7 +188,8 @@ function buildReviewSection(): string {
 
 /**
  * How to work in the bash tool's sandbox without flooding the turn: every tool result is re-sent on
- * each later model call. The 8 MB limit is just-bash's fixed Python file bridge.
+ * each later model call. The 8 MB limit is just-bash's fixed Python file bridge, which mounts the shell's
+ * files at /host and leaves them off sys.path.
  */
 function buildChatFilesSection(): string {
   return joinLines([
@@ -191,8 +198,32 @@ function buildChatFilesSection(): string {
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
+    "- Always write /work paths; python3 errors show /work/x as /host/work/x. python3 cannot import a module saved in /work: keep a program in one file or load shared code with exec(open('/work/lib.py').read()).",
     "- magick edits images with an ImageMagick subset, such as magick a.jpg b.jpg -resize x400 +append out.jpg: -resize WxH|W|xH|N%, -crop WxH+X+Y, -rotate DEG, -flip, -flop, +append, -append, -background COLOR, -gravity center, -extent WxH, -quality N; the output's .jpg, .png or .webp picks its format; magick identify FILE prints format and size.",
+    "- zstd -d -o OUT FILE or zstd -dc FILE decompresses one zstd file. There is no unzip: open a ZIP with python3's zipfile, and one over 8 MB on stdin as zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())).",
     `- A command runs for at most ${maximumBashCommandSeconds} seconds.`,
+  ]);
+}
+
+/**
+ * Anki's own package layout: the derived files carry the newest format's collection, but no media.
+ * A Nibomo deck is a flat saved filter matching cards with any of its tags, so a parent deck lists its
+ * subdecks' tags to keep the cards Anki shows under it. File names and deck ids copied by hand from
+ * printed output go wrong on a large deck, so the mapping is done in code.
+ */
+function buildAnkiImportSection(): string {
+  return joinLines([
+    "Anki .apkg imports:",
+    "- Keep the notes' own Anki tags, and recreate each Anki deck that holds cards directly or in its subdecks: add to its own cards one tag, its full name as a lowercase hyphenated slug with :: between levels (Spanish Basics::Home becomes spanish-basics::home), and create a deck named with its full Anki name whose tags are its own tag and every subdeck's, such as INSERT INTO decks (name, tags) VALUES ('Spanish Basics', ('spanish-basics', 'spanish-basics::home')).",
+    "- Name the decks you created in your reply.",
+    "- The collection is <file>.d/collection.sqlite; its decks table, where there is one, separates a deck name's levels with the 0x1F character, which Anki shows as ::. The media files are the package's numbered entries (0, 1, ...), named in entry order by its media list: <file>.d/media.json for older packages.",
+    "- In the newest format the package's media entry (protobuf: each entry's field 1 is the file name) and every media file are zstd-compressed: zstd -d them.",
+    "- Map in code, never by retyping printed names or ids: export notes, cards, decks and note types with sqlite3 -json into /work, parse the media list in python3 (json, or the protobuf's varint-keyed fields), and build each card's images and deck tag from those lookups, reading an export over 8 MB on stdin.",
+    "- Build each card's front and back by rendering its note type's template for the card's ord with the note's fields by name, never by field position: the fields, templates (config protobuf: field 1 the front format, field 2 the back) and notetypes tables, or the models JSON in col in older collections; the back drops {{FrontSide}} and everything up to and including <hr id=answer>, keeping only what the answer adds; a reversed card is its reverse template.",
+    "- A cloze note type has one template and makes one card per cloze number, the card's ord + 1; as in Anki, {{cloze:Field}} on its front shows each deletion of that number as [...], or as its hint ([city] for {{c1::Lima::city}}), and the other deletions as their text, and on its back the full text.",
+    "- Compute each image's alt in code from its own note: every image on a front gets an empty alt, ![](fcasset:<id>), even when its <img> has one; on a back, the <img>'s alt only when it is real text that is not already on that side, which the app shows and reads beside the image, and is not a file name or just Image, otherwise an empty alt; never a keyword list or default written for one deck.",
+    "- Unpack, convert and upload media in one command, keeping the media bytes in /tmp; keep only those lookups and a small progress file in /work.",
+    `- Upload each image with fc-media-put, at most ${maximumMediaPutsPerCommand} per command: loop across commands and keep progress in /work. Upload a JPEG, PNG or WebP of at most ${maximumImageIngestionOriginalBytes / 1_000_000} MB with its original bytes; convert with magick only other formats or larger files.`,
   ]);
 }
 
@@ -213,7 +244,7 @@ function buildSandboxSqlSection(): string {
     `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
     "- Writes from code follow the rules above, like sql_execute calls.",
     "- Imported cards start as new cards: review history and scheduling cannot be imported.",
-    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image of the open workspace and prints its id, which an SQL write that omits workspaceId then puts on a card as ![alt](fcasset:<id>).",
+    "- In shell, fc-media-get ID /work/PATH copies the open workspace's image with that fcasset: id into /work, and fc-media-put /work/PATH uploads a JPEG, PNG or WebP file as a new image of the open workspace and prints only its id and a newline, not JSON, which an SQL write that omits workspaceId then puts on a card as ![alt](fcasset:<id>).",
     "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);
 }
@@ -280,6 +311,7 @@ export function buildSystemInstructions(
     buildSqlRoutingSection(),
     buildReviewSection(),
     buildChatFilesSection(),
+    buildAnkiImportSection(),
     buildSandboxSqlSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),

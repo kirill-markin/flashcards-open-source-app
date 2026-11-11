@@ -103,6 +103,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     uiState = ReviewUiState(
                         isLoading = false,
                         requestedFilter = ReviewFilter.AllCards,
+                        isRequestedFilterSessionPending = false,
                         selectedFilter = ReviewFilter.AllCards,
                         selectedFilterTitle = "All cards",
                         remainingCount = 4,
@@ -257,8 +258,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).performClick()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).assertIsOn()
         composeRule.runOnIdle {
             assertTrue(filterSelections.isEmpty())
         }
@@ -275,7 +277,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ReviewFilterSelection(
                         workspaceId = reviewRouteWorkspaceId,
                         openingFilter = ReviewFilter.AllCards,
-                        selectedFilter = ReviewFilter.Tags(tags = emptyList())
+                        selectedFilter = ReviewFilter.Tags(tags = listOf(reviewRouteFirstTag))
                     )
                 ),
                 filterSelections
@@ -321,7 +323,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ReviewFilterSelection(
                         workspaceId = reviewRouteWorkspaceId,
                         openingFilter = ReviewFilter.AllCards,
-                        selectedFilter = ReviewFilter.Tags(tags = listOf(reviewRouteSecondTag))
+                        selectedFilter = ReviewFilter.Tags(tags = listOf(reviewRouteFirstTag))
                     )
                 ),
                 filterSelections
@@ -357,14 +359,14 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).performClick()
         composeRule.runOnIdle {
             workspaceId = "replacement-workspace"
         }
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertDoesNotExist()
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteSecondTag)).performClick()
         composeRule.runOnIdle {
             uiState = reviewRouteUiState(
                 isLoading = false,
@@ -425,8 +427,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         stateRestorationTester.emulateSavedInstanceStateRestore()
 
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).assertIsOff()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteSecondTag)).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteFirstTag)).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = reviewRouteSecondTag)).assertIsOff()
         composeRule.runOnIdle {
             assertTrue(filterSelections.isEmpty())
         }
@@ -459,7 +462,7 @@ private fun ReviewRouteTestContent(
     FlashcardsTheme {
         val reviewReactionLottieConfigurationStore =
             rememberReviewReactionLottieConfigurationStore(
-                loadLottieCompositions = true,
+                loadLottieCompositions = false,
                 isPowerSaveMode = false,
                 source = AndroidReviewReactionSource.REVIEW,
                 observability = remember { NoopAppObservability() }
@@ -517,6 +520,7 @@ private fun reviewRouteUiState(
     return ReviewUiState(
         isLoading = isLoading,
         requestedFilter = requestedFilter,
+        isRequestedFilterSessionPending = false,
         selectedFilter = requestedFilter,
         selectedFilterTitle = "Review filter",
         remainingCount = 0,

@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "حفظ الاسم";
 "settings.workspace.overview.workspace" = "مساحة العمل";
 "settings.workspace.overview.cards" = "البطاقات";
-"settings.workspace.overview.due" = "مستحقة";
 "settings.workspace.overview.new" = "جديد";
 "settings.workspace.overview.deleteDescription" = "احذف مساحة العمل هذه نهائيًا وكل البطاقات والمجموعات والمراجعات ومحفوظات المزامنة التي تحتوي عليها.";
 "settings.workspace.overview.deleteWorkspace" = "حذف مساحة العمل";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "لا توجد تشكيلات مطابقة";
 "settings.workspace.decks.searchPrompt" = "مجموعات البحث";
 "settings.workspace.decks.newDeck" = "تشكيلة جديدة";
-"settings.workspace.decks.dueCount" = "%d مستحقة";
-"settings.workspace.decks.totalCards" = "بطاقات %d";
-"settings.workspace.decks.newCount" = "%d جديد";
-"settings.workspace.decks.reviewedCount" = "تمت مراجعة %d";
+"settings.workspace.decks.toStudyCount" = "%d للدراسة";
+"settings.workspace.decks.toStudy" = "للدراسة";
 "settings.workspace.decks.emptyAllCards" = "لم تقم بإنشاء أية بطاقات بعد.";
 "settings.workspace.decks.emptyDeck" = "لا تحتوي هذه المجموعة على بطاقات مطابقة بعد.";
 "settings.workspace.decks.section.deckRules" = "قواعد المجموعة";

@@ -20,6 +20,15 @@ export const jaCatalog = {
     aiRecordingDecodeFailed: "このブラウザーではマイクの音声（{{format}}）をデコードできませんでした。",
     recovery: "ゲストアクセスは未確認です。キャッシュされたカードは読み取り専用です。元のセッションまたは接続を復元して再試行してください。",
     cleanupFailed: "サインインしましたが、デモカードを削除できませんでした。",
+    browserCheck: {
+      title: "ブラウザを確認しています",
+      description: "ゲスト用ワークスペースを開く前に、Cloudflare が通常のブラウザであることを確認します。通常は数秒で終わります。",
+      loading: "確認を読み込み中...",
+      verifying: "ワークスペースを開いています...",
+      loadFailed: "確認を読み込めませんでした。接続を確認し、コンテンツブロッカーで challenges.cloudflare.com を許可してから、もう一度お試しください。",
+      failed: "確認に合格しませんでした。もう一度お試しいただくか、サインインしてください。",
+      rejected: "確認が受け付けられませんでした。もう一度完了してください。",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ export const jaCatalog = {
     loading: "読み込み中...",
     never: "なし",
     newItem: "新規",
+    image: "画像",
     noBackText: "裏面テキストなし",
     noTags: "タグなし",
     notRevoked: "取り消されていません",
@@ -427,8 +437,12 @@ export const jaCatalog = {
       offlineEmpty: "オフラインではストリークリーダーボードを利用できません。接続するとランキングが表示されます。",
       unavailable: "ストリークリーダーボードは現在利用できません。しばらくしてからもう一度ご確認ください。",
       dayLabels: {
-        one: "日",
-        other: "日",
+        zero: "{{count}}日",
+        one: "{{count}}日",
+        two: "{{count}}日",
+        few: "{{count}}日",
+        many: "{{count}}日",
+        other: "{{count}}日",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ export const jaCatalog = {
     sessionRestoringActionLocked: "セッションを復元しています。少し待ってからもう一度お試しください。",
     sessionUnavailable: "セッションを利用できません",
     syncing: "同期中...",
+    syncFailed: "同期に失敗しました",
     workspaceUnavailable: "ワークスペースを利用できません",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ export const jaCatalog = {
       yourCards: "自分のカード",
       addCards: "カードを追加",
     },
-    cards: {
-      description: "このワークスペースのすべてのカード。",
-    },
-    tags: {
-      description: "1枚以上のカードで使われているすべてのタグ。",
-    },
-    decks: {
-      description: "集中して復習するための保存済みカードフィルター。",
-    },
     deckCatalog: {
       title: "デッキカタログ",
       description: "すぐに学習できる無料のデッキ。",
@@ -860,16 +866,18 @@ export const jaCatalog = {
     note: "これらの設定が影響するのは今後のスケジューリングのみです。既存のカード状態が引き続き基準となります。",
   },
   workspaceExport: {
-    title: "エクスポート",
+    title: "Nibomo パッケージをエクスポート",
+    ankiTitle: "Anki デッキをエクスポート",
     subtitle: "このワークスペース用のポータブルパッケージをダウンロードします。",
     workspaceUnavailable: "ワークスペースを利用できません",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "デッキ名",
+    ankiEmptySelection: "エクスポートするカードがありません。選択したタグを変更するか、カードを追加してください。",
     packageDescription: "ダウンロード前に有効なカード、メタデータ、タグ、参照メディアをプレビューします。",
-    packageExportSuccess: "flashcards.zip のダウンロードを開始しました。",
+    packageExportSuccess: "{{filename}} のダウンロードを開始しました。",
     packageExporting: "ダウンロードしています...",
     packagePreviewing: "プレビューしています...",
     packageExportPreviewButton: "エクスポートをプレビュー",
-    packageExportConfirmButton: "flashcards.zip をダウンロード",
+    packageExportConfirmButton: "{{filename}} をダウンロード",
     packageExportPreviewRequired: "ダウンロードする前にこのエクスポートをプレビューしてください。",
     previewCardsLabel: "カード",
     previewReferencedMediaLabel: "参照メディア",
@@ -1124,6 +1132,10 @@ export const jaCatalog = {
     aiOpenAriaLabel: "{{side}} のカードを AI チャットで開く",
     repetitionBadgeAriaLabel: "復習回数: {{value}}",
     repetitionBadgeNew: "新規",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "その他のタグ: {{count}}",
+    },
     empty: {
       noCardsBody: "まだカードを作成していません。最初のカードを追加して学習を始めましょう。",
       noCardsTitle: "カードがまだありません",
@@ -1135,16 +1147,25 @@ export const jaCatalog = {
     errors: {
       mathRenderFailed: "数式を表示できませんでした。",
       schedulerUnavailable: "ワークスペースのスケジューラー設定が読み込まれていません",
+      storageFull: "この端末のストレージの空き容量を増やしてから、もう一度カードを評価してください。",
     },
     leaderboardShortcut: {
       ariaLabel: "リーダーボードを開く",
     },
     progressBadge: {
-      ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。{{freezeBank}}。",
-      reviewAriaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。",
+      ariaLabel: "復習連続 {{streak}}。{{todayStatus}}。{{freezeBank}}。",
+      reviewAriaLabel: "復習連続 {{streak}}。{{todayStatus}}。",
       freezeBank: "フリーズ残数 {{available}} / {{capacity}}",
       notReviewedToday: "今日はまだ復習していません",
       reviewedToday: "今日は復習済み",
+      streakDayCount: {
+        zero: "{{count}}日",
+        one: "{{count}}日",
+        two: "{{count}}日",
+        few: "{{count}}日",
+        many: "{{count}}日",
+        other: "{{count}}日",
+      },
       title: "連続",
     },
     interval: {
@@ -1158,8 +1179,6 @@ export const jaCatalog = {
       snapshot: "最近のローカルスナップショットを表示しています...",
     },
     media: {
-      privateImage: "非公開の画像",
-      privateAttachment: "非公開の添付ファイル",
       attachmentLabel: "添付ファイル",
       audioLabel: "音声添付",
       imageAlt: "管理対象画像",
@@ -1348,23 +1367,14 @@ export const jaCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} 件期限あり",
+      toStudy: "学習対象 {{count}} 件",
       total: "合計 {{count}} 件",
     },
-    emptyStatsAriaLabel: "{{deckName}} の統計",
     newDeck: "新しいデッキ",
     statLabels: {
       cards: {
         one: "カード",
         other: "カード",
-      },
-      new: {
-        one: "新規",
-        other: "新規",
-      },
-      reviewed: {
-        one: "復習済み",
-        other: "復習済み",
       },
     },
     subtitle: "デッキはコンテナではなくスマートフィルターです。タグでカードに一致します。",
@@ -1400,10 +1410,10 @@ export const jaCatalog = {
     },
     rules: {
       cards: "カード",
-      due: "期限あり",
       new: "新規",
       summary: "概要",
       title: "デッキルール",
+      toStudy: "学習対象",
     },
     subtitle: "デッキルール、一致するカード、復習開始ポイントを確認します。",
     subtitles: {

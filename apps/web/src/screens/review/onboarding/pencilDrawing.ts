@@ -102,6 +102,7 @@ export type PencilGuideBounds = Readonly<{
 
 const strokeInset = 14;
 const compactStrokeInset = 8.5;
+const ringStrokeWidth = 6.5;
 
 function centerLoop(outline: ReadonlyArray<Point>, bounds: PencilGuideBounds): ReadonlyArray<Point> {
   const minX = Math.min(...outline.map((point) => point[0]));
@@ -116,6 +117,14 @@ function centerLoop(outline: ReadonlyArray<Point>, bounds: PencilGuideBounds): R
     centerX + x - outlineCenterX,
     centerY + y - outlineCenterY,
   ]);
+}
+
+// The ring stroke covers every point within half its width of the outline, so its top edge above x
+// is the lowest of those circles' tops.
+function ringOuterTop(outline: ReadonlyArray<Point>, x: number): number {
+  const reach = ringStrokeWidth / 2;
+  return Math.min(...outline.filter((point) => Math.abs(point[0] - x) <= reach)
+    .map((point) => point[1] - Math.sqrt(reach ** 2 - (point[0] - x) ** 2)));
 }
 
 type ArrowRoute = Readonly<{
@@ -156,9 +165,9 @@ function chooseArrowRoute(bounds: PencilGuideBounds, outline: ReadonlyArray<Poin
   for (const scale of [1, .8, .6, .45, .3]) {
     for (const fraction of [.63, .28, .78]) {
       const tipX = bounds.left + bounds.width * fraction + wobble;
-      const topOfRing = Math.min(...outline.filter((point) => Math.abs(point[0] - tipX) < 10).map((point) => point[1]));
+      const apex: Point = [tipX, ringOuterTop(outline, tipX)];
       for (const direction of [1, -1]) {
-        const route = standardArrow([tipX, topOfRing - 17.5], direction, scale, tailOffset, wobble);
+        const route = standardArrow(apex, direction, scale, tailOffset, wobble);
         if (arrowFits(route, bounds)) return route;
       }
     }
@@ -175,8 +184,7 @@ function chooseArrowRoute(bounds: PencilGuideBounds, outline: ReadonlyArray<Poin
     const headReach = 13 * Math.sin(.18);
     if (laneRight - laneLeft < (compactStrokeInset + headReach) * 2) continue;
     const tipX = (laneLeft + laneRight) / 2;
-    const ringTop = Math.min(...outline.filter((point) => Math.abs(point[0] - tipX) < 3).map((point) => point[1]));
-    const apex: Point = [tipX, ringTop - 17.5];
+    const apex: Point = [tipX, ringOuterTop(outline, tipX)];
     for (const length of [64, 48, 36]) {
       const route: ArrowRoute = {
         apex,
@@ -206,7 +214,7 @@ export function drawPencilGuide(
   context.fillStyle = accent;
   context.strokeStyle = accent;
   const outline = centerLoop(oblongOutline(left - padding, top - padding, width + padding * 2, height + padding * 2, radius + padding, frame), bounds);
-  pencilStroke(context, outline, random, 6.5, () => 1);
+  pencilStroke(context, outline, random, ringStrokeWidth, () => 1);
   const tailOffset = width > height * 2 ? 53 : 96;
   const route = chooseArrowRoute(bounds, outline, tailOffset, wobble);
   if (route === null) return;

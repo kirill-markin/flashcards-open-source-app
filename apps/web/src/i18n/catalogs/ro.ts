@@ -20,6 +20,15 @@ const roCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Acest browser nu a putut decoda sunetul microfonului ({{format}}).",
     recovery: "Accesul de oaspete nu este verificat. Cardurile din cache pot fi doar citite. Restabilește sesiunea inițială sau conexiunea și încearcă din nou.",
     cleanupFailed: "Autentificarea a reușit, dar cardul demonstrativ nu a putut fi șters.",
+    browserCheck: {
+      title: "Îți verificăm browserul",
+      description: "Înainte să se deschidă spațiul de lucru pentru invitați, Cloudflare confirmă că acesta este un browser obișnuit. De obicei durează câteva secunde.",
+      loading: "Se încarcă verificarea...",
+      verifying: "Se deschide spațiul tău de lucru...",
+      loadFailed: "Verificarea nu s-a putut încărca. Verifică conexiunea, permite challenges.cloudflare.com în blocantul de conținut și încearcă din nou.",
+      failed: "Verificarea nu a reușit. Încearcă din nou sau conectează-te.",
+      rejected: "Verificarea nu a fost acceptată. Finalizeaz-o încă o dată.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ const roCatalog: TranslationCatalog = {
     loading: "Se încarcă...",
     never: "Niciodată",
     newItem: "nouă",
+    image: "Imagine",
     noBackText: "Niciun text pe verso",
     noTags: "Nicio etichetă",
     notRevoked: "Nerevocat",
@@ -434,9 +444,12 @@ const roCatalog: TranslationCatalog = {
       offlineEmpty: "Clasamentul seriilor nu este disponibil offline. Reconectează-te ca să vezi pozițiile.",
       unavailable: "Clasamentul seriilor nu este disponibil momentan. Revino mai târziu.",
       dayLabels: {
-        one: "zi",
-        few: "zile",
-        other: "de zile",
+        zero: "{{count}} de zile",
+        one: "{{count}} zi",
+        two: "{{count}} de zile",
+        few: "{{count}} zile",
+        many: "{{count}} de zile",
+        other: "{{count}} de zile",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ const roCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Se restabilește sesiunea. Încearcă din nou într-un moment.",
     sessionUnavailable: "Sesiunea nu este disponibilă",
     syncing: "Se sincronizează...",
+    syncFailed: "Sincronizarea a eșuat",
     workspaceUnavailable: "Spațiul de lucru nu este disponibil",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ const roCatalog: TranslationCatalog = {
       yourCards: "Fișele tale",
       addCards: "Adaugă fișe",
     },
-    cards: {
-      description: "Toate fișele din acest spațiu de lucru.",
-    },
-    tags: {
-      description: "Toate etichetele folosite pe cel puțin o fișă.",
-    },
-    decks: {
-      description: "Filtre de fișe salvate pentru o recapitulare concentrată.",
-    },
     deckCatalog: {
       title: "Catalog de pachete",
       description: "Pachete gratuite, gata de studiat.",
@@ -869,16 +874,18 @@ const roCatalog: TranslationCatalog = {
     note: "Aceste setări afectează doar programarea viitoare. Starea existentă a fișelor rămâne neschimbată.",
   },
   workspaceExport: {
-    title: "Export",
+    title: "Exportă pachetul Nibomo",
+    ankiTitle: "Exportă pachetul de cărți Anki",
     subtitle: "Descarcă un pachet portabil pentru acest spațiu de lucru.",
     workspaceUnavailable: "Spațiul de lucru nu este disponibil",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Numele pachetului de cărți",
+    ankiEmptySelection: "Nu există fișe de exportat. Schimbă etichetele selectate sau adaugă fișe.",
     packageDescription: "Previzualizează fișele active, metadatele, etichetele și fișierele media referite înainte de descărcare.",
-    packageExportSuccess: "Descărcarea flashcards.zip a început.",
+    packageExportSuccess: "Descărcarea {{filename}} a început.",
     packageExporting: "Se descarcă...",
     packagePreviewing: "Se previzualizează...",
     packageExportPreviewButton: "Previzualizează exportul",
-    packageExportConfirmButton: "Descarcă flashcards.zip",
+    packageExportConfirmButton: "Descarcă {{filename}}",
     packageExportPreviewRequired: "Previzualizează acest export înainte de descărcare.",
     previewCardsLabel: "Fișe",
     previewReferencedMediaLabel: "Fișiere media referite",
@@ -1134,6 +1141,10 @@ const roCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Deschide fișa în chatul AI ({{side}})",
     repetitionBadgeAriaLabel: "Repetări: {{value}}",
     repetitionBadgeNew: "Nouă",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Mai multe etichete: {{count}}",
+    },
     empty: {
       noCardsBody: "Încă nu ai creat nicio fișă. Adaugă prima fișă pentru a începe să studiezi.",
       noCardsTitle: "Încă nu există fișe",
@@ -1145,16 +1156,25 @@ const roCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formula nu a putut fi afișată.",
       schedulerUnavailable: "Setările programării pentru spațiul de lucru nu sunt încărcate",
+      storageFull: "Eliberează spațiu de stocare pe acest dispozitiv, apoi evaluează din nou cardul.",
     },
     leaderboardShortcut: {
       ariaLabel: "Deschide clasamentul",
     },
     progressBadge: {
-      ariaLabel: "Serie de recapitulări, zile: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Serie de recapitulări, zile: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Serie de recapitulări: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Serie de recapitulări: {{streak}}. {{todayStatus}}.",
       freezeBank: "Rezerva de înghețări: {{available}} din {{capacity}}",
       notReviewedToday: "Nerecapitulat astăzi",
       reviewedToday: "Recapitulat astăzi",
+      streakDayCount: {
+        zero: "{{count}} de zile",
+        one: "{{count}} zi",
+        two: "{{count}} de zile",
+        few: "{{count}} zile",
+        many: "{{count}} de zile",
+        other: "{{count}} de zile",
+      },
       title: "Serie",
     },
     interval: {
@@ -1168,8 +1188,6 @@ const roCatalog: TranslationCatalog = {
       snapshot: "Se afișează o copie locală recentă...",
     },
     media: {
-      privateImage: "Imagine privată",
-      privateAttachment: "Atașament privat",
       attachmentLabel: "Atașament",
       audioLabel: "Atașament audio",
       imageAlt: "Imagine gestionată",
@@ -1358,26 +1376,15 @@ const roCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Scadente: {{count}}",
+      toStudy: "{{count}} de studiat",
       total: "Total: {{count}}",
     },
-    emptyStatsAriaLabel: "Statistici pentru {{deckName}}",
     newDeck: "Pachet nou",
     statLabels: {
       cards: {
         one: "fișă",
         few: "fișe",
         other: "de fișe",
-      },
-      new: {
-        one: "nouă",
-        few: "noi",
-        other: "noi",
-      },
-      reviewed: {
-        one: "recapitulată",
-        few: "recapitulate",
-        other: "recapitulate",
       },
     },
     subtitle: "Pachetele sunt filtre inteligente, nu containere. Ele includ fișele după etichete.",
@@ -1413,10 +1420,10 @@ const roCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Fișe",
-      due: "Scadente",
       new: "Noi",
       summary: "Rezumat",
       title: "Regulile pachetului",
+      toStudy: "De studiat",
     },
     subtitle: "Vezi regulile pachetului, fișele corespunzătoare și punctul de intrare în recapitulare.",
     subtitles: {

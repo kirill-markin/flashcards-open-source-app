@@ -17,6 +17,7 @@ On iOS, the UI and interaction design should stay maximally native to iOS.
 - Language and UI stack: Swift + SwiftUI
 - Current deployment target: iOS/iPadOS 18.0; build with the current Xcode/SDK and pinned packages
 - Dedicated Mac app: Mac Catalyst on macOS 15.0+, Scale Interface to Match iPad; shared Apple target, bundle ID, version, offline data and product flows. See [Mac Catalyst CI/CD and release](../../docs/macos-ci-cd.md).
+- Apple Watch app: watchOS 26.0+ companion embedded in the iOS app, Review only. See [Apple Watch app](../../docs/apple-watch.md).
 - Default visual direction: dark appearance with the existing orange accent color
 - Primary local storage: SQLite on device
 - Product scope should stay aligned with the supported top-level flows: Review, Progress, AI, Library, Settings
@@ -69,7 +70,11 @@ Do not mix destination-based `NavigationLink { ... }` pushes with value-based or
 
 ## Testing Rule
 
-Follow the [local native acceptance procedure](../../docs/ios-local-setup.md#local-native-acceptance): full latest-iPhone UI and existing non-UI tests, focused latest-iPad tests, and the minimum iOS 18 compatibility selection. Mac releases require the full signed [LocalMac acceptance](../../docs/macos-ci-cd.md#signed-local-native-acceptance) or its [targeted recovery](../../docs/release/evidence.md#targeted-recovery). Xcode Cloud provides [release archives](../../docs/ios-ci-cd.md#native-release-gate); its test workflows remain disabled. Apple testing stays in Xcode Cloud or local Xcode; local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
+Use the [critical iPhone, iPad and iOS 18 plans](../../docs/ios-local-setup.md#local-native-acceptance)
+and [signed Mac plan](../../docs/macos-ci-cd.md#signed-local-native-acceptance)
+for release acceptance. Run broader cases for affected behavior. Xcode Cloud
+provides [signed release archives](../../docs/ios-ci-cd.md#native-release-gate).
+Local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
 
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
@@ -100,14 +105,9 @@ The iOS app uses native Apple test tooling only:
 
 An accessibility identifier reaches XCUITest only on an accessibility element, usually a leaf such as `Text`, `Button`, or `TextField`, or a plain container whose descendants inherit it. A system container such as `ContentUnavailableView` can merge its subtree and drop the identifier, even from a `Text` inside it, so the smoke query silently finds nothing. `.accessibilityElement(children: .contain)` is the container pattern, used in `apps/ios/Flashcards/Flashcards/AI/Views/Transcript/AIChatMessageViews.swift`, but on some surfaces it fails to expose the identifier or crashes the app outright, so confirm a new identifier on a simulator before a live smoke flow uses it.
 
-The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. The linked workspace and AI consent-transfer flows sign into the configured review account; retain the complete plan inventory, including guest/local flows.
-
-Guest AI availability is part of the iOS release contract. The guest AI smoke must pass without login, and a guest-AI-disabled or guest-quota-exhausted response is a real release-gate failure.
-
-The grouped smoke suite still maps to the same top-level live-smoke contract as the other clients:
-
-- Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
-- Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
+The [release-gate inventory](../../docs/ios-local-setup.md#local-native-acceptance)
+selects named flows across Cards, Review, Settings and AI. Broader cases include
+consent withdrawal and transfer, hardware shortcuts, and presentation behavior.
 
 ## App Icon
 
@@ -128,7 +128,7 @@ for explicit downloads. Normal app builds need no media download.
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
 Native sign-in acceptance is documented in [Native Apple sign-in](../../docs/native-apple-sign-in.md).
 Release notes and release authorization are documented in [Release All Platforms](../../docs/release/README.md).
-Follow the [iOS release procedure](../../docs/release/ios.md#ios) for full local acceptance, the Xcode Cloud release archive and App Review submission.
+Follow the [iOS release procedure](../../docs/release/ios.md#ios) for critical local acceptance, the Xcode Cloud release archive and App Review submission.
 
 ## Respect Existing Code
 

@@ -648,26 +648,20 @@ struct AIChatMessageRow: View {
         }
     }
 
+    /// The work block and its rows are their own accessible elements, so the reply is read as its answer alone.
     private func messageRowAccessibilityLabel(message: AIChatMessage) -> String {
-        let text = aiChatDisplayedMessageContent(message: message).reduce(into: "") { partialResult, part in
+        let displayedContent = aiChatDisplayedMessageContent(message: message)
+        let answerContent = aiChatWorkContentSplit(content: displayedContent)?.answerParts ?? displayedContent
+        let text = answerContent.reduce(into: "") { partialResult, part in
             switch part {
             case .text(let text):
                 partialResult.append(text)
-            case .reasoningSummary(let reasoningSummary):
-                if partialResult.isEmpty == false {
-                    partialResult.append("\n")
-                }
-                partialResult.append(
-                    reasoningSummary.summary.isEmpty
-                        ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
-                        : reasoningSummary.summary
-                )
             case .unknown(let unknownContent):
                 if partialResult.isEmpty == false {
                     partialResult.append("\n")
                 }
                 partialResult.append(unknownContent.summaryText)
-            case .toolCall, .image, .file, .card, .accountUpgradePrompt:
+            case .reasoningSummary, .toolCall, .image, .file, .card, .accountUpgradePrompt:
                 break
             }
         }

@@ -73,9 +73,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
         XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId])
 
         context.chatService.loadBootstrapHandler = { sessionId in
-            guard sessionId == explicitSessionId else {
-                throw LocalStoreError.validation("Expected failed bootstrap to reuse the active session id.")
-            }
+            XCTAssertNil(sessionId)
 
             throw URLError(.networkConnectionLost)
         }
@@ -83,12 +81,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
         store.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
         await AIChatStoreTestSupport.waitForBootstrapToSettle(store: store)
 
-        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
-            explicitSessionId,
-            explicitSessionId,
-            explicitSessionId,
-            explicitSessionId
-        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId, nil, nil, nil])
         guard case .failed = store.bootstrapPhase else {
             XCTFail("Expected retryable bootstrap failure before visible-surface recovery.")
             return
@@ -96,9 +89,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
 
         store.updateSurface(activity: hiddenActivity)
         context.chatService.loadBootstrapHandler = { sessionId in
-            guard sessionId == explicitSessionId else {
-                throw LocalStoreError.validation("Expected bootstrap recovery to reuse the failed session id.")
-            }
+            XCTAssertNil(sessionId)
 
             return AIChatStoreTestSupport.makeConversationEnvelope(
                 sessionId: explicitSessionId,
@@ -110,13 +101,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
         store.updateSurface(activity: visibleActivity)
         await AIChatStoreTestSupport.waitForBootstrapToSettle(store: store)
 
-        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
-            explicitSessionId,
-            explicitSessionId,
-            explicitSessionId,
-            explicitSessionId,
-            explicitSessionId
-        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId, nil, nil, nil, nil])
         XCTAssertEqual(store.bootstrapPhase, .ready)
         XCTAssertFalse(store.lastBootstrapFailureWasRetryable)
     }
@@ -166,10 +151,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
         store.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
         await AIChatStoreTestSupport.waitForBootstrapToSettle(store: store)
 
-        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
-            explicitSessionId,
-            explicitSessionId
-        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId, nil])
         guard case .failed = store.bootstrapPhase else {
             XCTFail("Expected permanent bootstrap failure before visible-surface sync.")
             return
@@ -188,10 +170,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
         store.updateSurface(activity: visibleActivity)
 
         XCTAssertNil(store.activeBootstrapTask)
-        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [
-            explicitSessionId,
-            explicitSessionId
-        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId, nil])
         guard case .failed = store.bootstrapPhase else {
             XCTFail("Expected permanent bootstrap failure to remain visible.")
             return

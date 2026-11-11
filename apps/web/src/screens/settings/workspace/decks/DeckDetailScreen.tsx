@@ -8,7 +8,7 @@ import {
 import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
-import { MathText } from "../../../../components/MathText";
+import { CardPreviewText } from "../../../../components/CardPreviewText";
 import { buildLibraryDeckEditRoute, libraryDecksRoute, reviewRoute } from "../../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
@@ -274,7 +274,7 @@ export function DeckDetailScreen(): ReactElement {
                   <span className="deck-detail-stat-value">{formatNumber(detailState.cards.length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">{t("deckDetail.rules.due")}</span>
+                  <span className="deck-detail-stat-label">{t("deckDetail.rules.toStudy")}</span>
                   <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => isCardDue(card, nowTimestamp)).length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
@@ -312,8 +312,8 @@ export function DeckDetailScreen(): ReactElement {
                           <span className="badge">{formatTagSummary(card.tags, t)}</span>
                         )}
                       </div>
-                      <h3 className="panel-subtitle"><MathText text={card.frontText} /></h3>
-                      <p className="subtitle"><MathText text={card.backText === "" ? t("common.noBackText") : card.backText} /></p>
+                      <h3 className="panel-subtitle"><CardPreviewText text={card.frontText} /></h3>
+                      <p className="subtitle"><CardPreviewText text={card.backText === "" ? t("common.noBackText") : card.backText} /></p>
                       <div className="review-meta">
                         <span>{card.dueAt === null ? t("reviewScreen.repetitionBadgeNew") : t("deckDetail.meta.due", { value: formatDateTime(card.dueAt) })}</span>
                         <span>{t("deckDetail.meta.reps", { count: formatNumber(card.reps) })}</span>

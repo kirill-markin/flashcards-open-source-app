@@ -28,9 +28,9 @@ export async function probeBrowserGuestSession(): Promise<BrowserGuestProbe> {
   return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/session", { method: "GET", cache: "no-store" }, skipAuthRecoveryWithTransientNetworkRetry), "GET /guest-auth/browser/session", parseBrowserGuestProbe);
 }
 
-export async function createBrowserGuestSession(idempotencyKey: string): Promise<BrowserGuestProbe> {
+export async function createBrowserGuestSession(idempotencyKey: string, turnstileToken: string | null): Promise<BrowserGuestProbe> {
   return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/session", {
-    method: "POST", body: JSON.stringify({ idempotencyKey, hasLocalOwnership: false }),
+    method: "POST", body: JSON.stringify({ idempotencyKey, hasLocalOwnership: false, ...(turnstileToken === null ? {} : { turnstileToken }) }),
   }, skipAuthRecoveryWithTransientNetworkRetry), "POST /guest-auth/browser/session", parseBrowserGuestProbe);
 }
 

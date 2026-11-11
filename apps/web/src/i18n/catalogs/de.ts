@@ -20,6 +20,15 @@ const deCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Dieser Browser konnte die Mikrofonaufnahme nicht dekodieren ({{format}}).",
     recovery: "Der Gastzugriff ist nicht bestätigt. Zwischengespeicherte Karten sind schreibgeschützt. Stelle die ursprüngliche Sitzung oder Verbindung wieder her und versuche es erneut.",
     cleanupFailed: "Die Anmeldung war erfolgreich, aber die Demokarte konnte nicht gelöscht werden.",
+    browserCheck: {
+      title: "Dein Browser wird geprüft",
+      description: "Bevor dein Gast-Arbeitsbereich öffnet, bestätigt Cloudflare, dass dies ein normaler Browser ist. Das dauert meist nur wenige Sekunden.",
+      loading: "Prüfung wird geladen...",
+      verifying: "Dein Arbeitsbereich wird geöffnet...",
+      loadFailed: "Die Prüfung konnte nicht geladen werden. Prüfe deine Verbindung, erlaube challenges.cloudflare.com in Inhaltsblockern und versuche es erneut.",
+      failed: "Die Prüfung wurde nicht bestanden. Versuche es erneut oder melde dich stattdessen an.",
+      rejected: "Die Prüfung wurde nicht akzeptiert. Schließe sie noch einmal ab.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const deCatalog: TranslationCatalog = {
     loading: "Lädt...",
     never: "Nie",
     newItem: "neu",
+    image: "Bild",
     noBackText: "Kein Rückseitentext",
     noTags: "Keine Tags",
     notRevoked: "Nicht widerrufen",
@@ -427,8 +437,12 @@ const deCatalog: TranslationCatalog = {
       offlineEmpty: "Die Streak-Bestenliste ist offline nicht verfügbar. Stelle eine Verbindung her, um Platzierungen zu sehen.",
       unavailable: "Die Streak-Bestenliste ist gerade nicht verfügbar. Schau später wieder vorbei.",
       dayLabels: {
-        one: "Tag",
-        other: "Tage",
+        zero: "{{count}} Tage",
+        one: "{{count}} Tag",
+        two: "{{count}} Tage",
+        few: "{{count}} Tage",
+        many: "{{count}} Tage",
+        other: "{{count}} Tage",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const deCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Sitzung wird wiederhergestellt. Versuche es gleich noch einmal.",
     sessionUnavailable: "Sitzung ist nicht verfügbar",
     syncing: "Synchronisierung läuft...",
+    syncFailed: "Synchronisierung fehlgeschlagen",
     workspaceUnavailable: "Arbeitsbereich nicht verfügbar",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const deCatalog: TranslationCatalog = {
       yourCards: "Deine Karten",
       addCards: "Karten hinzufügen",
     },
-    cards: {
-      description: "Alle Karten in diesem Arbeitsbereich.",
-    },
-    tags: {
-      description: "Alle Tags, die auf mindestens einer Karte verwendet werden.",
-    },
-    decks: {
-      description: "Gespeicherte Kartenfilter für gezieltes Wiederholen.",
-    },
     deckCatalog: {
       title: "Deck-Katalog",
       description: "Kostenlose fertige Decks zum Lernen.",
@@ -860,16 +866,18 @@ const deCatalog: TranslationCatalog = {
     note: "Diese Einstellungen betreffen nur zukünftige Planungen. Der bestehende Kartenstatus bleibt maßgeblich.",
   },
   workspaceExport: {
-    title: "Export",
+    title: "Nibomo-Paket exportieren",
+    ankiTitle: "Anki-Stapel exportieren",
     subtitle: "Lade ein portables Paket für diesen Arbeitsbereich herunter.",
     workspaceUnavailable: "Arbeitsbereich ist nicht verfügbar",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Stapelname",
+    ankiEmptySelection: "Es gibt keine Karten zum Exportieren. Ändere die Tag-Auswahl oder füge Karten hinzu.",
     packageDescription: "Prüfe aktive Karten, Metadaten, Tags und referenzierte Medien vor dem Download.",
-    packageExportSuccess: "Der Download von flashcards.zip wurde gestartet.",
+    packageExportSuccess: "Der Download von {{filename}} wurde gestartet.",
     packageExporting: "Download läuft...",
     packagePreviewing: "Vorschau wird geladen...",
     packageExportPreviewButton: "Exportvorschau anzeigen",
-    packageExportConfirmButton: "flashcards.zip herunterladen",
+    packageExportConfirmButton: "{{filename}} herunterladen",
     packageExportPreviewRequired: "Zeige zuerst die Exportvorschau an.",
     previewCardsLabel: "Karten",
     previewReferencedMediaLabel: "Referenzierte Medien",
@@ -1124,6 +1132,10 @@ const deCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}}-Seite der Karte im AI-Chat öffnen",
     repetitionBadgeAriaLabel: "Wiederholungen: {{value}}",
     repetitionBadgeNew: "Neu",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Weitere Tags: {{count}}",
+    },
     empty: {
       noCardsBody: "Du hast noch keine Karten erstellt. Füge deine erste Karte hinzu, um mit dem Lernen zu beginnen.",
       noCardsTitle: "Noch keine Karten",
@@ -1135,16 +1147,25 @@ const deCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Die Formel konnte nicht dargestellt werden.",
       schedulerUnavailable: "Die Planer-Einstellungen des Arbeitsbereichs sind nicht geladen",
+      storageFull: "Gib Speicherplatz auf diesem Gerät frei und bewerte die Karte erneut.",
     },
     leaderboardShortcut: {
       ariaLabel: "Bestenliste öffnen",
     },
     progressBadge: {
-      ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}.",
+      ariaLabel: "Lernserie {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Lernserie {{streak}}. {{todayStatus}}.",
       freezeBank: "Frostbank {{available}} von {{capacity}}",
       notReviewedToday: "Heute noch nicht wiederholt",
       reviewedToday: "Heute wiederholt",
+      streakDayCount: {
+        zero: "{{count}} Tage",
+        one: "{{count}} Tag",
+        two: "{{count}} Tage",
+        few: "{{count}} Tage",
+        many: "{{count}} Tage",
+        other: "{{count}} Tage",
+      },
       title: "Serie",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const deCatalog: TranslationCatalog = {
       snapshot: "Ein aktueller lokaler Schnappschuss wird angezeigt...",
     },
     media: {
-      privateImage: "Privates Bild",
-      privateAttachment: "Privater Anhang",
       attachmentLabel: "Anhang",
       audioLabel: "Audioanhang",
       imageAlt: "Verwaltetes Bild",
@@ -1348,23 +1367,14 @@ const deCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} fällig",
+      toStudy: "{{count}} zum Lernen",
       total: "{{count}} insgesamt",
     },
-    emptyStatsAriaLabel: "{{deckName}}-Statistik",
     newDeck: "Neues Deck",
     statLabels: {
       cards: {
         one: "Karte",
         other: "Karten",
-      },
-      new: {
-        one: "neu",
-        other: "neu",
-      },
-      reviewed: {
-        one: "wiederholt",
-        other: "wiederholt",
       },
     },
     subtitle: "Decks sind intelligente Filter, keine Container, und finden Karten nach Tags.",
@@ -1400,10 +1410,10 @@ const deCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karten",
-      due: "Fällig",
       new: "Neu",
       summary: "Zusammenfassung",
       title: "Deck-Regeln",
+      toStudy: "Zum Lernen",
     },
     subtitle: "Prüfe Deck-Regeln, passende Karten und den Einstiegspunkt zur Wiederholung.",
     subtitles: {

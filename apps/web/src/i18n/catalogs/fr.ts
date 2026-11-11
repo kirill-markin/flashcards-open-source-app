@@ -20,6 +20,15 @@ const frCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ce navigateur n'a pas pu décoder l'audio du microphone ({{format}}).",
     recovery: "L’accès invité n’est pas vérifié. Les cartes en cache sont en lecture seule. Rétablissez la session d’origine ou la connexion, puis réessayez.",
     cleanupFailed: "La connexion a réussi, mais la carte de démonstration n’a pas pu être supprimée.",
+    browserCheck: {
+      title: "Vérification de votre navigateur",
+      description: "Avant d’ouvrir votre espace de travail invité, Cloudflare confirme qu’il s’agit d’un navigateur classique. Cela prend généralement quelques secondes.",
+      loading: "Chargement de la vérification...",
+      verifying: "Ouverture de votre espace de travail...",
+      loadFailed: "La vérification n’a pas pu se charger. Vérifiez votre connexion, autorisez challenges.cloudflare.com dans votre bloqueur de contenu, puis réessayez.",
+      failed: "La vérification a échoué. Réessayez ou connectez-vous.",
+      rejected: "La vérification n’a pas été acceptée. Effectuez-la une nouvelle fois.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const frCatalog: TranslationCatalog = {
     loading: "Chargement...",
     never: "Jamais",
     newItem: "nouvelle",
+    image: "Image",
     noBackText: "Aucun texte au verso",
     noTags: "Aucune étiquette",
     notRevoked: "Non révoquée",
@@ -427,8 +437,12 @@ const frCatalog: TranslationCatalog = {
       offlineEmpty: "Le classement par séries n'est pas disponible hors ligne. Reconnectez-vous pour voir les rangs.",
       unavailable: "Le classement par séries n'est pas disponible pour le moment. Revenez plus tard.",
       dayLabels: {
-        one: "jour",
-        other: "jours",
+        zero: "{{count}} jours",
+        one: "{{count}} jour",
+        two: "{{count}} jours",
+        few: "{{count}} jours",
+        many: "{{count}} jours",
+        other: "{{count}} jours",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const frCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Restauration de la session. Réessayez dans un instant.",
     sessionUnavailable: "Session indisponible",
     syncing: "Synchronisation...",
+    syncFailed: "Échec de la synchronisation",
     workspaceUnavailable: "Espace de travail indisponible",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const frCatalog: TranslationCatalog = {
       yourCards: "Vos cartes",
       addCards: "Ajouter des cartes",
     },
-    cards: {
-      description: "Toutes les cartes de cet espace de travail.",
-    },
-    tags: {
-      description: "Toutes les étiquettes utilisées sur au moins une carte.",
-    },
-    decks: {
-      description: "Filtres de cartes enregistrés pour une révision ciblée.",
-    },
     deckCatalog: {
       title: "Catalogue de paquets",
       description: "Paquets gratuits prêts à réviser.",
@@ -860,16 +866,18 @@ const frCatalog: TranslationCatalog = {
     note: "Ces paramètres n'affectent que la planification future. L'état actuel des cartes fait toujours foi.",
   },
   workspaceExport: {
-    title: "Exporter",
+    title: "Exporter un paquet Nibomo",
+    ankiTitle: "Exporter un paquet Anki",
     subtitle: "Téléchargez un paquet portable pour cet espace de travail.",
     workspaceUnavailable: "L'espace de travail est indisponible",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Nom du paquet",
+    ankiEmptySelection: "Aucune carte à exporter. Modifiez les étiquettes sélectionnées ou ajoutez des cartes.",
     packageDescription: "Prévisualisez les cartes actives, les métadonnées, les étiquettes et les médias référencés avant de télécharger.",
-    packageExportSuccess: "Téléchargement de flashcards.zip démarré.",
+    packageExportSuccess: "Téléchargement de {{filename}} démarré.",
     packageExporting: "Téléchargement...",
     packagePreviewing: "Aperçu en cours...",
     packageExportPreviewButton: "Prévisualiser l'export",
-    packageExportConfirmButton: "Télécharger flashcards.zip",
+    packageExportConfirmButton: "Télécharger {{filename}}",
     packageExportPreviewRequired: "Prévisualisez cet export avant de le télécharger.",
     previewCardsLabel: "Cartes",
     previewReferencedMediaLabel: "Médias référencés",
@@ -1124,6 +1132,10 @@ const frCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Ouvrir le {{side}} de la carte dans le chat IA",
     repetitionBadgeAriaLabel: "Répétitions : {{value}}",
     repetitionBadgeNew: "Nouvelle",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Autres étiquettes : {{count}}",
+    },
     empty: {
       noCardsBody: "Vous n'avez encore créé aucune carte. Ajoutez votre première carte pour commencer à apprendre.",
       noCardsTitle: "Aucune carte pour l'instant",
@@ -1135,16 +1147,25 @@ const frCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "La formule n'a pas pu être affichée.",
       schedulerUnavailable: "Les paramètres du planificateur de l'espace de travail ne sont pas chargés",
+      storageFull: "Libérez de l’espace de stockage sur cet appareil, puis évaluez de nouveau la carte.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ouvrir le classement",
     },
     progressBadge: {
-      ariaLabel: "Série de révisions de {{streak}} jours. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Série de révisions de {{streak}} jours. {{todayStatus}}.",
+      ariaLabel: "Série de révisions de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Série de révisions de {{streak}}. {{todayStatus}}.",
       freezeBank: "Réserve de gels {{available}} sur {{capacity}}",
       notReviewedToday: "Pas de révision aujourd'hui",
       reviewedToday: "Révisé aujourd'hui",
+      streakDayCount: {
+        zero: "{{count}} jours",
+        one: "{{count}} jour",
+        two: "{{count}} jours",
+        few: "{{count}} jours",
+        many: "{{count}} jours",
+        other: "{{count}} jours",
+      },
       title: "Série",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const frCatalog: TranslationCatalog = {
       snapshot: "Affichage d'un instantané local récent...",
     },
     media: {
-      privateImage: "Image privée",
-      privateAttachment: "Pièce jointe privée",
       attachmentLabel: "Pièce jointe",
       audioLabel: "Pièce jointe audio",
       imageAlt: "Image gérée",
@@ -1348,23 +1367,14 @@ const frCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} à réviser",
+      toStudy: "{{count}} à étudier",
       total: "{{count}} au total",
     },
-    emptyStatsAriaLabel: "Statistiques de {{deckName}}",
     newDeck: "Nouveau paquet",
     statLabels: {
       cards: {
         one: "carte",
         other: "cartes",
-      },
-      new: {
-        one: "nouvelle",
-        other: "nouvelles",
-      },
-      reviewed: {
-        one: "révisée",
-        other: "révisées",
       },
     },
     subtitle: "Les paquets sont des filtres intelligents, pas des conteneurs. Ils sélectionnent les cartes par étiquette.",
@@ -1400,10 +1410,10 @@ const frCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Cartes",
-      due: "À réviser",
       new: "Nouvelles",
       summary: "Résumé",
       title: "Règles du paquet",
+      toStudy: "À étudier",
     },
     subtitle: "Consultez les règles du paquet, les cartes correspondantes et le point d'entrée de la révision.",
     subtitles: {

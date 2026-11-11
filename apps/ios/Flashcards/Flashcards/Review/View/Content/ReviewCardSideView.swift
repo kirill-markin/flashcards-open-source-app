@@ -88,7 +88,7 @@ struct ReviewCardSideView: View {
             )
             .accessibilityHint(String(
                 localized: "review.text_selection.hint",
-                defaultValue: "Opens the complete source text for selection and copying.",
+                defaultValue: "Opens the complete text for selection and copying.",
                 table: reviewCardsStringsTableName,
                 comment: "Accessibility hint for opening a card side in the native text selection sheet"
             ))

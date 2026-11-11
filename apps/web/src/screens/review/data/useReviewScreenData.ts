@@ -14,6 +14,7 @@ import {
 } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { loadDecksListSnapshot } from "../../../localDb/cards/decks";
+import { IndexedDbStorageFullError } from "../../../localDb/core/indexedDbStorageFull";
 import {
   loadReviewQueueChunk,
   loadReviewQueueSnapshot,
@@ -173,6 +174,7 @@ export type UseReviewScreenDataResult = Readonly<{
   reviewCounts: ReviewCounts;
   reviewLoadErrorMessage: string;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
+  reviewRatingErrorMessage: string;
   reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>;
   selectedReviewFilterTitle: string;
   tagSuggestions: ReadonlyArray<TagSuggestion>;
@@ -207,6 +209,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [localHotStateStatus, setLocalHotStateStatus] = useState<LocalHotStateStatus>("loading");
   const [localWorkspaceCardCount, setLocalWorkspaceCardCount] = useState<number>(0);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
+  const [isReviewRatingStorageFull, setIsReviewRatingStorageFull] = useState<boolean>(false);
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
   const [loadedReviewDataContextKey, setLoadedReviewDataContextKey] = useState<string | null>(null);
   const [presentedCard, setPresentedCard] = useState<Card | null>(null);
@@ -255,25 +258,20 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
   const isCurrentReviewDataContextLoaded = loadedReviewDataContextKey === reviewDataContextKey;
   const isCurrentWorkspaceLoaded = loadedWorkspaceIdRef.current === activeWorkspaceId;
-  const isExplicitEmptyTagsFilter = selectedReviewFilter.kind === "tags" && selectedReviewFilter.tags.length === 0;
   const visibleLocalWorkspaceCardCount = isCurrentWorkspaceLoaded ? localWorkspaceCardCount : 0;
   const hasColdEmptyLocalHotState = localHotStateStatus !== "hydrated" && visibleLocalWorkspaceCardCount === 0;
   const hasColdEmptyRestoreFailure = hasColdEmptyLocalHotState && isSyncing === false && appErrorMessage !== "";
-  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure
-    ? false
-    : isCurrentReviewDataContextLoaded
-      ? hasLoadedReviewData
-      : isExplicitEmptyTagsFilter;
+  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure === false
+    && isCurrentReviewDataContextLoaded
+    && hasLoadedReviewData;
   const visibleReviewLoadErrorMessage = reviewLoadErrorMessage !== ""
     ? reviewLoadErrorMessage
     : hasColdEmptyRestoreFailure
       ? t("appError.technicalError.message")
       : "";
   const isLocalEmptyHotStateRestoring = hasColdEmptyLocalHotState && hasColdEmptyRestoreFailure === false;
-  const isInitialReviewLoad = isExplicitEmptyTagsFilter
-    ? false
-    : isCurrentReviewDataContextLoaded === false
-      || isLocalEmptyHotStateRestoring;
+  const isInitialReviewLoad = isCurrentReviewDataContextLoaded === false
+    || isLocalEmptyHotStateRestoring;
   const activeReviewQueue = isCurrentReviewDataContextLoaded
     ? buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard)
     : [];
@@ -318,6 +316,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   }
 
   function setPresentedCardState(nextPresentedCard: Card | null): void {
+    if (presentedCardRef.current?.cardId !== nextPresentedCard?.cardId) {
+      setIsReviewRatingStorageFull(false);
+    }
     presentedCardRef.current = nextPresentedCard;
     setPresentedCard(nextPresentedCard);
   }
@@ -705,6 +706,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     observedLocalReadVersionRef.current = localReadVersion;
     observedSyncAppliedRemoteChangesVersionRef.current = syncAppliedRemoteChangesVersion;
     const isNewReviewSessionReason = startsNewReviewSession(rebuildReason);
+    if (isNewReviewSessionReason) {
+      setIsReviewRatingStorageFull(false);
+    }
     const previousResolvedReviewFilter = resolvedReviewFilterRef.current;
     reviewDataLoadGenerationRef.current += 1;
     const ratingSequenceAtStart = ratingSequenceRef.current;
@@ -877,6 +881,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           reviewSessionSignatureRef.current = nextReviewSessionSignature;
         }
 
+        if (isNewReviewSession) {
+          setIsReviewRatingStorageFull(false);
+        }
         setResolvedReviewFilterState(nextResolvedReviewFilter);
         setSelectedReviewFilterTitle(nextSelectedReviewFilterTitle);
         setCanonicalReviewQueueState(nextCanonicalReviewQueue);
@@ -999,6 +1006,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       workspaceId: activeWorkspaceIdRef.current,
     };
 
+    setIsReviewRatingStorageFull(false);
     setErrorMessage("");
     pendingReviewSnapshotsRef.current = addPendingReviewSnapshot(pendingReviewSnapshotsRef.current, card);
 
@@ -1049,9 +1057,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         return "stale";
       }
 
-      let freshRollbackCard: Card | null = null;
+      const isStorageFull = error instanceof IndexedDbStorageFullError;
+      let rollbackCard: Card | null = null;
       try {
-        freshRollbackCard = await waitForRecoveryGuardedReviewPhase(
+        rollbackCard = await waitForRecoveryGuardedReviewPhase(
           loadPresentedCardForPreservation(submissionContext.cardId, getCardById),
           indexedDbOpenRecoveryState,
         );
@@ -1062,7 +1071,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, rollbackError)) {
           return "cancelled";
         }
-        // The submit failure owns the visible technical report; rollback lookup is only UI preservation.
+        if (isStorageFull) {
+          rollbackCard = canonicalReviewQueueRef.current.find((queuedCard) => queuedCard.cardId === card.cardId) ?? card;
+        }
       }
       const currentResolvedReviewFilter = resolvedReviewFilterRef.current;
       const currentDeckSummaries = deckSummariesRef.current;
@@ -1081,11 +1092,8 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
       const expectedSubmitErrorMessage = error instanceof BrowserGuestSessionInvalidatedError
         ? t("app.sessionRestoringActionLocked")
-        : getExpectedCardMutationInlineErrorMessage(
-          error,
-          t("reviewEditor.errors.cardNotFound"),
-        );
-      if (expectedSubmitErrorMessage === null) {
+        : getExpectedCardMutationInlineErrorMessage(error, t("reviewEditor.errors.cardNotFound"));
+      if (!isStorageFull && expectedSubmitErrorMessage === null) {
         captureAppOperationError(error, {
           feature: "review",
           operation: "review_submit",
@@ -1096,14 +1104,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         });
       }
 
-      const isFreshRollbackCardPreservable = freshRollbackCard !== null
-        && isPreservablePresentedCard(freshRollbackCard, currentResolvedReviewFilter, currentDeckSummaries, Date.now());
+      const isRollbackCardPreservable = rollbackCard !== null
+        && isPreservablePresentedCard(rollbackCard, currentResolvedReviewFilter, currentDeckSummaries, Date.now());
       const rollbackCanonicalReviewQueue = removeCardFromReviewQueue(
         canonicalReviewQueueRef.current,
         submissionContext.cardId,
       );
-      const rollbackPresentedCard = isFreshRollbackCardPreservable
-        ? freshRollbackCard
+      const rollbackPresentedCard = isRollbackCardPreservable
+        ? rollbackCard
         : resolveCanonicalPresentedCard(rollbackCanonicalReviewQueue, null);
       const rollbackActiveReviewQueue = buildDisplayedReviewQueue(rollbackCanonicalReviewQueue, rollbackPresentedCard);
       const rollbackQueueCards = buildDisplayedReviewTimeline(
@@ -1115,7 +1123,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       setPresentedCardState(rollbackPresentedCard);
       setQueueCardsState(rollbackQueueCards);
       setCurrentReviewSessionSignature(rollbackActiveReviewQueue, rollbackQueueCards);
-      if (expectedSubmitErrorMessage !== null) {
+      if (isStorageFull) {
+        setIsReviewRatingStorageFull(isRollbackCardPreservable);
+      } else if (expectedSubmitErrorMessage !== null) {
         setErrorMessage(expectedSubmitErrorMessage);
       } else {
         showCapturedTechnicalError(error);
@@ -1267,13 +1277,16 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     handleReview,
     hasLoadedReviewData: visibleHasLoadedReviewData,
     isInitialReviewLoad,
-    isReviewLoading: isExplicitEmptyTagsFilter === false && isCurrentReviewDataContextLoaded === false,
+    isReviewLoading: isCurrentReviewDataContextLoaded === false,
     localWorkspaceCardCount: visibleLocalWorkspaceCardCount,
     queueCards: isCurrentReviewDataContextLoaded ? queueCards : [],
     resolvedReviewFilter: isCurrentReviewDataContextLoaded ? resolvedReviewFilter : selectedReviewFilter,
     reviewCounts: isCurrentReviewDataContextLoaded ? reviewCounts : createEmptyReviewCounts(),
     reviewLoadErrorMessage: visibleReviewLoadErrorMessage,
     reviewLoadingSnapshot,
+    reviewRatingErrorMessage: isReviewRatingStorageFull && isCurrentReviewDataContextLoaded
+      ? t("reviewScreen.errors.storageFull")
+      : "",
     reviewTagSummaries: isCurrentWorkspaceLoaded ? reviewTagSummaries : [],
     selectedReviewFilterTitle: visibleSelectedReviewFilterTitle,
     tagSuggestions: isCurrentWorkspaceLoaded ? tagSuggestions : [],

@@ -20,6 +20,15 @@ const arCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "تعذّر على هذا المتصفح فك ترميز صوت الميكروفون ({{format}}).",
     recovery: "لم يتم التحقق من وصول الضيف. البطاقات المخزنة مؤقتًا للقراءة فقط. استعد الجلسة الأصلية أو الاتصال ثم أعد المحاولة.",
     cleanupFailed: "تم تسجيل الدخول، لكن تعذّر حذف البطاقة التجريبية.",
+    browserCheck: {
+      title: "جارٍ التحقق من متصفحك",
+      description: "قبل فتح مساحة عمل الضيف، يتأكد Cloudflare من أن هذا متصفح عادي. يستغرق ذلك عادةً بضع ثوانٍ.",
+      loading: "جارٍ تحميل التحقق...",
+      verifying: "جارٍ فتح مساحة عملك...",
+      loadFailed: "تعذّر تحميل التحقق. تحقّق من اتصالك واسمح بـ challenges.cloudflare.com في أي أداة لحظر المحتوى، ثم أعد المحاولة.",
+      failed: "لم يتم اجتياز التحقق. أعد المحاولة أو سجّل الدخول بدلاً من ذلك.",
+      rejected: "لم يُقبل التحقق. أكمله مرة أخرى.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const arCatalog: TranslationCatalog = {
     loading: "جارٍ التحميل...",
     never: "أبدًا",
     newItem: "جديدة",
+    image: "صورة",
     noBackText: "لا يوجد نص خلفي",
     noTags: "لا توجد وسوم",
     notRevoked: "غير ملغى",
@@ -427,8 +437,12 @@ const arCatalog: TranslationCatalog = {
       offlineEmpty: "لوحة صدارة السلسلة غير متاحة دون اتصال. اتصل بالإنترنت لرؤية الترتيب.",
       unavailable: "لوحة صدارة السلسلة غير متاحة الآن. عُد لاحقًا.",
       dayLabels: {
-        one: "يوم",
-        other: "أيام",
+        zero: "{{count}} يوم",
+        one: "{{count}} يوم",
+        two: "يومان",
+        few: "{{count}} أيام",
+        many: "{{count}} يومًا",
+        other: "{{count}} يوم",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const arCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "جارٍ استعادة الجلسة. حاول مرة أخرى بعد قليل.",
     sessionUnavailable: "الجلسة غير متاحة",
     syncing: "جارٍ المزامنة...",
+    syncFailed: "فشل المزامنة",
     workspaceUnavailable: "مساحة العمل غير متاحة",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const arCatalog: TranslationCatalog = {
       yourCards: "بطاقاتك",
       addCards: "إضافة بطاقات",
     },
-    cards: {
-      description: "كل البطاقات في مساحة العمل هذه.",
-    },
-    tags: {
-      description: "كل الوسوم المستخدمة في بطاقة واحدة على الأقل.",
-    },
-    decks: {
-      description: "فلاتر بطاقات محفوظة لمراجعة مركّزة.",
-    },
     deckCatalog: {
       title: "كتالوج المجموعات",
       description: "مجموعات جاهزة مجانية للدراسة.",
@@ -860,16 +866,18 @@ const arCatalog: TranslationCatalog = {
     note: "تؤثر هذه الإعدادات على الجدولة المستقبلية فقط. تظل حالة البطاقات الحالية هي المرجع المعتمد.",
   },
   workspaceExport: {
-    title: "تصدير",
+    title: "تصدير حزمة Nibomo",
+    ankiTitle: "تصدير مجموعة Anki",
     subtitle: "نزّل حزمة محمولة لمساحة العمل هذه.",
     workspaceUnavailable: "مساحة العمل غير متاحة",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "اسم المجموعة",
+    ankiEmptySelection: "لا توجد بطاقات للتصدير. غيّر الوسوم المحددة أو أضف بطاقات.",
     packageDescription: "عاين البطاقات النشطة والبيانات الوصفية والوسوم والوسائط المشار إليها قبل التنزيل.",
-    packageExportSuccess: "بدأ تنزيل flashcards.zip.",
+    packageExportSuccess: "بدأ تنزيل {{filename}}.",
     packageExporting: "جارٍ التنزيل...",
     packagePreviewing: "جارٍ المعاينة...",
     packageExportPreviewButton: "معاينة التصدير",
-    packageExportConfirmButton: "تنزيل flashcards.zip",
+    packageExportConfirmButton: "تنزيل {{filename}}",
     packageExportPreviewRequired: "عاين هذا التصدير قبل تنزيله.",
     previewCardsLabel: "البطاقات",
     previewReferencedMediaLabel: "الوسائط المشار إليها",
@@ -1124,6 +1132,10 @@ const arCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "افتح جانب {{side}} من البطاقة في دردشة الذكاء الاصطناعي",
     repetitionBadgeAriaLabel: "المراجعات: {{value}}",
     repetitionBadgeNew: "جديدة",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "وسوم أخرى: {{count}}",
+    },
     empty: {
       noCardsBody: "لم تنشئ أي بطاقات بعد. أضف بطاقتك الأولى لبدء الدراسة.",
       noCardsTitle: "لا توجد بطاقات بعد",
@@ -1135,16 +1147,25 @@ const arCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "تعذر عرض الصيغة.",
       schedulerUnavailable: "لم يتم تحميل إعدادات جدولة مساحة العمل",
+      storageFull: "حرّر بعض مساحة التخزين على هذا الجهاز، ثم قيّم البطاقة مرة أخرى.",
     },
     leaderboardShortcut: {
       ariaLabel: "فتح لوحة المتصدرين",
     },
     progressBadge: {
-      ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}.",
+      ariaLabel: "سلسلة المراجعة {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "سلسلة المراجعة {{streak}}. {{todayStatus}}.",
       freezeBank: "رصيد التجميد {{available}} من {{capacity}}",
       notReviewedToday: "لم تُراجع اليوم",
       reviewedToday: "راجعت اليوم",
+      streakDayCount: {
+        zero: "{{count}} يوم",
+        one: "{{count}} يوم",
+        two: "يومان",
+        few: "{{count}} أيام",
+        many: "{{count}} يومًا",
+        other: "{{count}} يوم",
+      },
       title: "السلسلة",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const arCatalog: TranslationCatalog = {
       snapshot: "جارٍ عرض لقطة محلية حديثة...",
     },
     media: {
-      privateImage: "صورة خاصة",
-      privateAttachment: "مرفق خاص",
       attachmentLabel: "مرفق",
       audioLabel: "مرفق صوتي",
       imageAlt: "صورة مُدارة",
@@ -1348,23 +1367,14 @@ const arCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} مستحقة",
+      toStudy: "{{count}} للدراسة",
       total: "{{count}} إجمالًا",
     },
-    emptyStatsAriaLabel: "إحصاءات {{deckName}}",
     newDeck: "مجموعة جديدة",
     statLabels: {
       cards: {
         one: "بطاقة",
         other: "بطاقات",
-      },
-      new: {
-        one: "جديدة",
-        other: "جديدة",
-      },
-      reviewed: {
-        one: "تمت مراجعتها",
-        other: "تمت مراجعتها",
       },
     },
     subtitle: "المجموعات فلاتر ذكية وليست حاويات. تطابق البطاقات حسب الوسوم.",
@@ -1400,10 +1410,10 @@ const arCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "البطاقات",
-      due: "مستحق",
       new: "جديد",
       summary: "ملخص",
       title: "قواعد المجموعة",
+      toStudy: "للدراسة",
     },
     subtitle: "افحص قواعد المجموعة والبطاقات المطابقة ونقطة الدخول إلى المراجعة.",
     subtitles: {

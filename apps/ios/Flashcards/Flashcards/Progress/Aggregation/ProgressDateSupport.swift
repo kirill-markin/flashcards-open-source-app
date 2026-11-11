@@ -25,7 +25,7 @@ private let progressAsciiZero: UInt8 = 48
 private let progressAsciiNine: UInt8 = 57
 private let progressAsciiHyphen: UInt8 = 45
 
-let recentProgressHistoryDayCount: Int = 140
+let recentProgressHistoryDayCount: Int = 364
 let progressStreakFreezePolicy = ProgressStreakFreezePolicy(
     startCapacity: 2,
     maxCapacity: 2,

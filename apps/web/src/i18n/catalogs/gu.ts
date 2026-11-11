@@ -20,6 +20,15 @@ const guCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "આ બ્રાઉઝર માઇક્રોફોનનો ઑડિયો ડીકોડ કરી શક્યું નથી ({{format}}).",
     recovery: "મહેમાન ઍક્સેસ ચકાસાયેલ નથી. કૅશ કરેલા કાર્ડ ફક્ત વાંચી શકાય છે. મૂળ સત્ર અથવા કનેક્શન પુનઃસ્થાપિત કરીને ફરી પ્રયાસ કરો.",
     cleanupFailed: "સાઇન ઇન સફળ થયું, પરંતુ ડેમો કાર્ડ દૂર કરી શકાયું નહીં.",
+    browserCheck: {
+      title: "તમારું બ્રાઉઝર તપાસી રહ્યા છીએ",
+      description: "મહેમાન કાર્યસ્થળ ખૂલે તે પહેલાં Cloudflare ખાતરી કરે છે કે આ સામાન્ય બ્રાઉઝર છે. સામાન્ય રીતે થોડી સેકન્ડ લાગે છે.",
+      loading: "તપાસ લોડ થઈ રહી છે...",
+      verifying: "તમારું કાર્યસ્થળ ખૂલી રહ્યું છે...",
+      loadFailed: "તપાસ લોડ થઈ શકી નહીં. તમારું કનેક્શન તપાસો, કન્ટેન્ટ બ્લોકરમાં challenges.cloudflare.com ને મંજૂરી આપો અને ફરી પ્રયાસ કરો.",
+      failed: "તપાસ પસાર થઈ નહીં. ફરી પ્રયાસ કરો અથવા સાઇન ઇન કરો.",
+      rejected: "તપાસ સ્વીકારાઈ નહીં. તેને ફરી એકવાર પૂર્ણ કરો.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const guCatalog: TranslationCatalog = {
     loading: "લોડ થઈ રહ્યું છે...",
     never: "ક્યારેય નહીં",
     newItem: "નવું",
+    image: "છબી",
     noBackText: "પાછળ લખાણ નથી",
     noTags: "ટૅગ નથી",
     notRevoked: "રદ કરેલું નથી",
@@ -427,8 +437,12 @@ const guCatalog: TranslationCatalog = {
       offlineEmpty: "ઑફલાઇનમાં સ્ટ્રીક ક્રમાંક યાદી ઉપલબ્ધ નથી. ક્રમાંક જોવા ફરી જોડાઓ.",
       unavailable: "સ્ટ્રીક ક્રમાંક યાદી અત્યારે ઉપલબ્ધ નથી. પછી ફરી જુઓ.",
       dayLabels: {
-        one: "દિવસ",
-        other: "દિવસ",
+        zero: "{{count}} દિવસ",
+        one: "{{count}} દિવસ",
+        two: "{{count}} દિવસ",
+        few: "{{count}} દિવસ",
+        many: "{{count}} દિવસ",
+        other: "{{count}} દિવસ",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const guCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "સત્ર પુનઃસ્થાપિત થઈ રહ્યું છે. થોડી વારમાં ફરી પ્રયાસ કરો.",
     sessionUnavailable: "સત્ર ઉપલબ્ધ નથી",
     syncing: "સિંક થઈ રહ્યું છે...",
+    syncFailed: "સિંક નિષ્ફળ થયું",
     workspaceUnavailable: "કાર્યક્ષેત્ર ઉપલબ્ધ નથી",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const guCatalog: TranslationCatalog = {
       yourCards: "તમારાં કાર્ડ",
       addCards: "કાર્ડ ઉમેરો",
     },
-    cards: {
-      description: "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ.",
-    },
-    tags: {
-      description: "ઓછામાં ઓછા એક કાર્ડ પર વપરાયેલા બધા ટૅગ.",
-    },
-    decks: {
-      description: "કેન્દ્રિત પુનરાવર્તન માટે સાચવેલાં કાર્ડ ફિલ્ટર.",
-    },
     deckCatalog: {
       title: "ડેક કૅટલૉગ",
       description: "અભ્યાસ માટે મફત તૈયાર ડેક.",
@@ -860,16 +866,18 @@ const guCatalog: TranslationCatalog = {
     note: "આ સેટિંગ્સ ફક્ત ભવિષ્યના સમયનિયોજનને અસર કરે છે. કાર્ડની હાલની સ્થિતિ જ અધિકૃત રહે છે.",
   },
   workspaceExport: {
-    title: "નિકાસ",
+    title: "Nibomo પૅકેજ નિકાસ કરો",
+    ankiTitle: "Anki ડેક નિકાસ કરો",
     subtitle: "આ કાર્યક્ષેત્ર માટે પોર્ટેબલ પૅકેજ ડાઉનલોડ કરો.",
     workspaceUnavailable: "કાર્યક્ષેત્ર ઉપલબ્ધ નથી",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "ડેકનું નામ",
+    ankiEmptySelection: "નિકાસ કરવા માટે કોઈ કાર્ડ નથી. પસંદ કરેલા ટૅગ બદલો અથવા કાર્ડ ઉમેરો.",
     packageDescription: "ડાઉનલોડ કરતાં પહેલાં સક્રિય કાર્ડ, મેટાડેટા, ટૅગ અને સંદર્ભિત મીડિયા જુઓ.",
-    packageExportSuccess: "flashcards.zip નું ડાઉનલોડ શરૂ થયું.",
+    packageExportSuccess: "{{filename}} નું ડાઉનલોડ શરૂ થયું.",
     packageExporting: "ડાઉનલોડ થઈ રહ્યું છે...",
     packagePreviewing: "પૂર્વાવલોકન થઈ રહ્યું છે...",
     packageExportPreviewButton: "નિકાસનું પૂર્વાવલોકન કરો",
-    packageExportConfirmButton: "flashcards.zip ડાઉનલોડ કરો",
+    packageExportConfirmButton: "{{filename}} ડાઉનલોડ કરો",
     packageExportPreviewRequired: "ડાઉનલોડ કરતાં પહેલાં આ નિકાસનું પૂર્વાવલોકન કરો.",
     previewCardsLabel: "કાર્ડ",
     previewReferencedMediaLabel: "સંદર્ભિત મીડિયા",
@@ -1124,6 +1132,10 @@ const guCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ચૅટમાં કાર્ડ ખોલો: {{side}}",
     repetitionBadgeAriaLabel: "પુનરાવર્તનો: {{value}}",
     repetitionBadgeNew: "નવું",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "વધુ ટૅગ: {{count}}",
+    },
     empty: {
       noCardsBody: "તમે હજી કોઈ કાર્ડ બનાવ્યું નથી. અભ્યાસ શરૂ કરવા તમારું પહેલું કાર્ડ ઉમેરો.",
       noCardsTitle: "હજુ કોઈ કાર્ડ નથી",
@@ -1135,16 +1147,25 @@ const guCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "સૂત્ર દર્શાવી શકાયું નહીં.",
       schedulerUnavailable: "કાર્યક્ષેત્રની સમયનિયોજન સેટિંગ્સ લોડ થઈ નથી",
+      storageFull: "આ ડિવાઇસમાં થોડી સ્ટોરેજ જગ્યા ખાલી કરો, પછી કાર્ડને ફરી રેટિંગ આપો.",
     },
     leaderboardShortcut: {
       ariaLabel: "ક્રમાંક યાદી ખોલો",
     },
     progressBadge: {
-      ariaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}} દિવસ. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}} દિવસ. {{todayStatus}}.",
+      ariaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "પુનરાવર્તનની સ્ટ્રીક {{streak}}. {{todayStatus}}.",
       freezeBank: "ફ્રીઝ બૅન્ક {{capacity}} માંથી {{available}}",
       notReviewedToday: "આજે પુનરાવર્તન થયું નથી",
       reviewedToday: "આજે પુનરાવર્તન થયું",
+      streakDayCount: {
+        zero: "{{count}} દિવસ",
+        one: "{{count}} દિવસ",
+        two: "{{count}} દિવસ",
+        few: "{{count}} દિવસ",
+        many: "{{count}} દિવસ",
+        other: "{{count}} દિવસ",
+      },
       title: "સ્ટ્રીક",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const guCatalog: TranslationCatalog = {
       snapshot: "તાજેતરનો સ્થાનિક સ્નૅપશૉટ બતાવાઈ રહ્યો છે...",
     },
     media: {
-      privateImage: "ખાનગી છબી",
-      privateAttachment: "ખાનગી જોડાણ",
       attachmentLabel: "જોડાણ",
       audioLabel: "ઑડિયો જોડાણ",
       imageAlt: "સંચાલિત છબી",
@@ -1348,23 +1367,14 @@ const guCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} બાકી",
+      toStudy: "{{count}} અભ્યાસ માટે",
       total: "કુલ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ના આંકડા",
     newDeck: "નવું ડેક",
     statLabels: {
       cards: {
         one: "કાર્ડ",
         other: "કાર્ડ",
-      },
-      new: {
-        one: "નવાં",
-        other: "નવાં",
-      },
-      reviewed: {
-        one: "પુનરાવર્તન થયું",
-        other: "પુનરાવર્તન થયું",
       },
     },
     subtitle: "ડેક સ્માર્ટ ફિલ્ટર છે, કન્ટેનર નહીં. તે ટૅગ પ્રમાણે કાર્ડ મેળવે છે.",
@@ -1400,10 +1410,10 @@ const guCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "કાર્ડ",
-      due: "બાકી",
       new: "નવાં",
       summary: "સારાંશ",
       title: "ડેકના નિયમો",
+      toStudy: "અભ્યાસ માટે",
     },
     subtitle: "ડેકના નિયમો, મેળ ખાતાં કાર્ડ અને પુનરાવર્તનનું પ્રવેશસ્થાન જુઓ.",
     subtitles: {

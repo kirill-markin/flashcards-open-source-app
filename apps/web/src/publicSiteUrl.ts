@@ -30,3 +30,10 @@ export function getPublicSiteCatalogUrl(locale: Locale): string {
     ? `${publicSiteBaseUrl}/catalog/?language=en`
     : `${publicSiteBaseUrl}/${language}/catalog/?language=${language}`;
 }
+
+// The UTM parameters record the header click: the site stores them on its page view.
+export function getPublicSiteMcpUrl(locale: Locale): string {
+  const language = getPublicSiteLanguage(locale);
+  const path: string = language === null ? "/mcp/" : `/${language}/mcp/`;
+  return `${publicSiteBaseUrl}${path}?utm_source=web_app&utm_medium=referral&utm_campaign=web_app_header`;
+}

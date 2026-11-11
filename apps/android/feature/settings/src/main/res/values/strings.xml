@@ -464,7 +464,7 @@
     <string name="settings_workspace_save_name_button">Save name</string>
     <string name="settings_workspace_rename_guidance">Workspace rename is available only for linked cloud workspaces.</string>
     <string name="settings_cards_title">Cards</string>
-    <string name="settings_workspace_due_title">Due</string>
+    <string name="settings_workspace_to_study_title">To study</string>
     <string name="settings_workspace_new_title">New</string>
     <string name="settings_workspace_reviewed_title">Reviewed</string>
     <string name="settings_workspace_delete_body">Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.</string>
@@ -493,6 +493,7 @@
     <string name="settings_decks_search_label">Search decks</string>
     <string name="settings_decks_empty">No decks yet. Create the first filtered deck for this workspace.</string>
     <string name="settings_decks_empty_search">No decks match this search.</string>
+    <string name="settings_decks_explainer_body">Each deck shows the cards that match its tags. Pick a deck from the Review filter to study it.</string>
     <string name="settings_deck_title">Deck</string>
     <string name="settings_deck_not_found">Deck not found.</string>
     <string name="settings_deck_matching_cards_title">Matching cards</string>
@@ -552,7 +553,14 @@
     <string name="settings_scheduler_steps_invalid_empty">%1$s must not be empty.</string>
     <string name="settings_scheduler_steps_invalid_positive">%1$s must contain positive integers.</string>
 
-    <string name="settings_export_title">Export</string>
+    <string name="settings_export_title">Export Nibomo package</string>
+    <string name="settings_export_anki_title">Export Anki deck</string>
+    <string name="settings_export_anki_section">flashcards.apkg deck</string>
+    <string name="settings_export_anki_body">Export active cards, included tags, and referenced media as new Anki cards.</string>
+    <string name="settings_export_anki_empty">No cards to export. Add a card or change which cards are selected, then preview again.</string>
+    <string name="settings_export_anki_deck_name">Deck name</string>
+    <string name="settings_export_anki_save">Save flashcards.apkg</string>
+    <string name="settings_export_anki_share">Share flashcards.apkg</string>
     <string name="settings_export_package_summary">Export a Nibomo ZIP package</string>
     <string name="settings_export_dismiss_error">Dismiss error</string>
     <string name="settings_export_package_section">flashcards.zip package</string>
@@ -563,7 +571,7 @@
     <string name="settings_export_package_save">Save flashcards.zip</string>
     <string name="settings_export_package_share">Share flashcards.zip</string>
     <string name="settings_export_package_share_title">Share flashcards.zip</string>
-    <string name="settings_export_package_cloud_required">Media ZIP export requires a linked cloud workspace in this version.</string>
+    <string name="settings_export_package_cloud_required">Export requires a linked cloud workspace.</string>
     <string name="settings_export_package_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
     <string name="settings_export_package_preview_failed">Package export preview failed.</string>
     <string name="settings_export_package_download_failed">Package export failed.</string>
@@ -843,14 +851,11 @@
         <item quantity="one">%1$d card</item>
         <item quantity="other">%1$d cards</item>
     </plurals>
-    <plurals name="settings_workspace_deck_new_summary">
-        <item quantity="one">%1$d new</item>
-        <item quantity="other">%1$d new</item>
+    <plurals name="settings_workspace_deck_to_study_summary">
+        <item quantity="one">%1$d to study</item>
+        <item quantity="other">%1$d to study</item>
     </plurals>
-    <plurals name="settings_workspace_deck_reviewed_summary">
-        <item quantity="one">%1$d reviewed</item>
-        <item quantity="other">%1$d reviewed</item>
-    </plurals>
+    <string name="settings_workspace_deck_counts_summary">%1$s · %2$s</string>
     <plurals name="settings_workspace_deck_due_summary">
         <item quantity="one">%1$d due</item>
         <item quantity="other">%1$d due</item>

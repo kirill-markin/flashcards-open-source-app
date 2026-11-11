@@ -569,6 +569,7 @@ function ManagedMediaReferenceStrip(props: Readonly<{
               <div className="card-form-managed-media-preview">
                 <ManagedMediaReference
                   altText={reference.altText}
+                  emptyImageAltText={t("reviewScreen.media.imageAlt")}
                   localReadVersion={localReadVersion}
                   mediaAssetId={reference.mediaAssetId}
                   referencePresentation="image"

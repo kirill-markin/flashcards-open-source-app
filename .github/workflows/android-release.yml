@@ -159,143 +159,75 @@ jobs:
       - android_ci
     if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 210
+    timeout-minutes: 240
     concurrency:
       group: android-release-device-run-shared-account
       cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
-    outputs:
-      submission_state: ${{ steps.collect.outputs.submission_state }}
-      session_id: ${{ steps.collect.outputs.session_id }}
-      results_path: ${{ steps.collect.outputs.results_path }}
-      device_descriptor: ${{ steps.collect.outputs.device_descriptor }}
-      session_link: ${{ steps.collect.outputs.session_link }}
-      compat_submission_state: ${{ steps.collect.outputs.compat_submission_state }}
-      compat_sessions: ${{ steps.collect.outputs.compat_sessions }}
-      compat_device_descriptors: ${{ steps.collect.outputs.compat_device_descriptors }}
-      compat_test_targets: ${{ steps.collect.outputs.compat_test_targets }}
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+      ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
+      ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
+      ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
+      RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+      TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
 
     steps:
       - name: Validate Device Run configuration
-        id: validate-config
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
-          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
-          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
-          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
         run: |
           set -euo pipefail
-          missing_values=()
-          for variable_name in \
-            GCP_PROJECT_ID \
-            GCP_WORKLOAD_IDENTITY_PROVIDER \
-            GCP_SERVICE_ACCOUNT_EMAIL \
-            ANDROID_DEVICE_RUN_DEVICE \
-            ANDROID_DEVICE_RUN_COMPAT_DEVICES \
-            ANDROID_DEVICE_RUN_RESULTS_BUCKET; do
+          for variable_name in GCP_PROJECT_ID GCP_WORKLOAD_IDENTITY_PROVIDER GCP_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_DEVICE_RUN_DEVICE ANDROID_DEVICE_RUN_COMPAT_DEVICES ANDROID_DEVICE_RUN_RESULTS_BUCKET; do
             if [[ -z "${!variable_name}" ]]; then
-              missing_values+=("${variable_name}")
+              echo "Missing GitHub Actions variable ${variable_name}; see scripts/android/setup-github-android.sh." >&2
+              exit 1
             fi
           done
-
-          configuration_invalid="false"
-          if [[ ! "${ANDROID_DEVICE_RUN_DEVICE}" =~ ^[A-Za-z0-9_-]+$ ]]; then
-            echo "ANDROID_DEVICE_RUN_DEVICE must be a Device Run catalog ID for API 37." >&2
-            configuration_invalid="true"
-          fi
           if [[ ! "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" =~ ^[a-z0-9][a-z0-9._-]+$ ]]; then
             echo "ANDROID_DEVICE_RUN_RESULTS_BUCKET must be a bucket name without gs:// or a path." >&2
-            configuration_invalid="true"
+            exit 1
           fi
-          compat_device_descriptors=""
-          if ! jq -e '
-            type == "array" and length == 3 and
-            all(.[]; type == "string" and test("^[A-Za-z0-9_-]+$")) and
-            (unique | length == 3)
-          ' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}" >/dev/null; then
-            echo "ANDROID_DEVICE_RUN_COMPAT_DEVICES must be three distinct catalog IDs, ordered by API 30, 31, 33." >&2
-            configuration_invalid="true"
-          else
-            compat_device_descriptors="$(jq -r 'join("; ")' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")"
-            jq -c '
-              to_entries | map({
-                device: .value, api: (["30", "31", "33"][.key]),
-                session_id: "", results_path: "", session_link: "", outcome: "not_executed"
-              })
-            ' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}" > "${RUNNER_TEMP}/device-run-compat-sessions.json"
-          fi
-
-          if [[ "${#missing_values[@]}" -gt 0 || "${configuration_invalid}" == "true" ]]; then
-            printf 'Missing required GitHub Actions variables for Android app instrumentation: %s\n' "${missing_values[*]}" >&2
-            echo "Configure them with bash scripts/android/setup-github-android.sh or in the GitHub repository settings." >&2
-            echo "submission_state=configuration_invalid" >> "${GITHUB_OUTPUT}"
-          else
-            echo "submission_state=ready" >> "${GITHUB_OUTPUT}"
-          fi
-          {
-            echo "device_descriptor=${ANDROID_DEVICE_RUN_DEVICE}"
-            echo "compat_device_descriptors=${compat_device_descriptors}"
-          } >> "${GITHUB_OUTPUT}"
 
       - uses: actions/checkout@v7
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' }}
         with:
           ref: ${{ needs.preflight.outputs.target_sha }}
 
       - uses: google-github-actions/auth@v3
-        id: auth
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' }}
-        continue-on-error: true
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - uses: google-github-actions/setup-gcloud@v3
-        id: setup-gcloud
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' }}
-        continue-on-error: true
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
-          version: '592.0.0'
+          version: '593.0.0'
           install_components: beta
 
+      - name: Check out Device Run evidence tooling from the workflow source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/android/collect-device-run-evidence.py
+            scripts/android/run-android-device-run.sh
+          sparse-checkout-cone-mode: false
+
       - name: Require configured Device Run destinations in the current catalog
-        id: device-catalog
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' }}
-        continue-on-error: true
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
-          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
         run: |
           set -euo pipefail
-          catalog_path="${RUNNER_TEMP}/device-run-catalog.json"
-          gcloud beta device-run devices list --project "${GCP_PROJECT_ID}" --location global --format=json > "${catalog_path}"
-          destinations="$(jq -c --arg latest "${ANDROID_DEVICE_RUN_DEVICE}" '
-            [{device: $latest, api: "37"}, {device: .[0], api: "30"}, {device: .[1], api: "31"}, {device: .[2], api: "33"}]
-          ' <<< "${ANDROID_DEVICE_RUN_COMPAT_DEVICES}")"
-          while IFS=$'\t' read -r device api; do
-            if ! jq -e --arg device "${device}" --arg api "${api}" '
-              any(.[];
-                (.name | split("/") | last) == $device and .osVersion == $api and
-                .platform == "ANDROID" and .lifecycle.state == "ACTIVE" and
-                ((.accessDeniedReasons // []) | length == 0) and
-                any(.supportedProducts[]; .automation != null))
-            ' "${catalog_path}" >/dev/null; then
-              echo "Device Run destination ${device} must be an active, accessible Android automation device on API ${api}. Inspect gcloud beta device-run devices list --location global; all API 30/31/33/37 destinations are required." >&2
-              exit 1
-            fi
-          done < <(jq -r '.[] | [.device, .api] | @tsv' <<< "${destinations}")
+          gcloud beta device-run devices list --project "${GCP_PROJECT_ID}" --location global --format=json \
+            > "${RUNNER_TEMP}/device-run-catalog.json"
+          python3 .release-tools/scripts/android/collect-device-run-evidence.py --prepare-destinations \
+            > "${RUNNER_TEMP}/device-run-destinations.json"
 
       - name: Download debug APKs
-        id: download-debug-apks
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.device-catalog.outcome == 'success' }}
-        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: android-debug-apks
@@ -303,21 +235,12 @@ jobs:
 
       - name: Resolve debug APK paths
         id: resolve-debug-apks
-        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.device-catalog.outcome == 'success' && steps.download-debug-apks.outcome == 'success' }}
-        continue-on-error: true
         run: |
+          set -euo pipefail
           app_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug.apk' | head -n 1)"
           test_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug-androidTest.apk' | head -n 1)"
-
-          if [[ -z "${app_apk_path}" ]]; then
-            echo "App APK not found in downloaded artifact." >&2
-            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
-            exit 1
-          fi
-
-          if [[ -z "${test_apk_path}" ]]; then
-            echo "Android test APK not found in downloaded artifact." >&2
-            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
+          if [[ -z "${app_apk_path}" || -z "${test_apk_path}" ]]; then
+            echo "Expected app-debug.apk and app-debug-androidTest.apk in the run's Android CI artifact." >&2
             exit 1
           fi
 
@@ -330,243 +253,74 @@ jobs:
             printf 'TEST_APK_SHA256=%s\n' "${test_apk_hash%% *}"
           } >> "${GITHUB_ENV}"
 
-      - name: Check out Device Run evidence tooling from the workflow source
-        id: checkout-evidence
-        if: ${{ steps.resolve-debug-apks.outcome == 'success' }}
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          path: .release-tools
-          persist-credentials: false
-          sparse-checkout: |
-            scripts/android/collect-device-run-evidence.py
-            scripts/android/run-android-device-run.sh
-          sparse-checkout-cone-mode: false
-
-      - name: Run API 31 smoke, API 37 full suite, then API 30 and 33 smoke
-        id: submit
-        if: ${{ steps.checkout-evidence.outcome == 'success' }}
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
-          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
-          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
-          RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
-          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
+      - name: Run the pinned physical Device Run selections sequentially
         run: |
           set -euo pipefail
-
-          sessions_file="${RUNNER_TEMP}/device-run-compat-sessions.json"
-          selection=scripts/android/device-run-test-selection.json
           evidence_tool=.release-tools/scripts/android/collect-device-run-evidence.py
-          destinations="$(jq -r --arg latest "${ANDROID_DEVICE_RUN_DEVICE}" '
-            [.[1], {device: $latest, api: "37"}, .[0], .[2]][] | [.device, .api] | @tsv
-          ' "${sessions_file}")"
-          echo "compat_test_targets=$(jq -r '.compat | join(" ")' "${selection}")" >> "${GITHUB_OUTPUT}"
 
           submit_session() {
-            local device="$1" suite="$2" session_output="$3"
-            shift 3
+            local device="$1" session_output="$2"
             bash .release-tools/scripts/android/run-android-device-run.sh \
               --project-id "${GCP_PROJECT_ID}" \
               --device "${device}" \
               --app-path "${APP_APK_PATH}" \
               --test-path "${TEST_APK_PATH}" \
-              --timeout "30m" \
-              --max-session-duration "35m" \
-              "$@" \
+              --timeout "${test_timeout}" \
+              --max-session-duration "${max_session_duration}" \
+              "${test_target_args[@]}" \
               --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
               --labels "release_id=${RELEASE_ID},target_sha=${TARGET_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=${suite}" \
               --session-output "${session_output}"
           }
 
+          selection_schema="$(jq -r '.schemaVersion // 1' scripts/android/device-run-test-selection.json)"
           retry_used=false
-          while IFS=$'\t' read -r device api; do
+          while IFS= read -r destination; do
+            device="$(jq -r '.device' <<< "${destination}")"
+            api="$(jq -r '.api' <<< "${destination}")"
+            suite="$(jq -r '.suite' <<< "${destination}")"
+            suffix="$(jq -r '.selection' <<< "${destination}")"
+            log_prefix="${RUNNER_TEMP}/device-run-${suffix}"
+            test_timeout=10m
+            max_session_duration=35m
             if [[ "${api}" == "37" ]]; then
-              suite=latest
-              suffix=latest
-            else
-              suite=compat
-              suffix="compat-api${api}"
-              jq -c --arg api "${api}" 'map(if .api == $api then .outcome = "running" else . end)' \
-                "${sessions_file}" > "${sessions_file}.tmp"
-              mv "${sessions_file}.tmp" "${sessions_file}"
+              test_timeout=15m
+              max_session_duration=55m
             fi
-            command_output_file="${RUNNER_TEMP}/device-run-${suffix}-submit.log"
-            session_output="${RUNNER_TEMP}/device-run-${suffix}-session.json"
-            targets="$(jq -r --arg suite "${suite}" '.[$suite][]' "${selection}")"
+            if [[ "${selection_schema}" == "1" ]]; then
+              test_timeout=30m
+            fi
+            targets="$(jq -r '.targets[]' <<< "${destination}")"
             test_target_args=()
             while IFS= read -r target; do
               test_target_args+=(--test-targets "${target}")
             done <<< "${targets}"
 
             command_exit_code=0
-            submit_session "${device}" "${suite}" "${session_output}" "${test_target_args[@]}" \
-              > "${command_output_file}" 2>&1 || command_exit_code=$?
+            submit_session "${device}" "${log_prefix}-session.json" \
+              > "${log_prefix}-submit.log" 2>&1 || command_exit_code=$?
             if [[ "${command_exit_code}" -ne 0 && "${retry_used}" == "false" ]] &&
-              grep -q '^DEVICE_RUN_TERMINAL_TEST_FAILURE=' "${command_output_file}" &&
-              timeout --kill-after=10s 3m python3 "${evidence_tool}" --classify-lab-dns "${suffix}"; then
+              grep -Eq '^DEVICE_RUN_(TERMINAL_FAILURE|CANCELLED_AFTER_WAIT_TIMEOUT)=' "${log_prefix}-submit.log" &&
+              timeout --kill-after=10s 3m python3 "${evidence_tool}" --classify-retry "${suffix}"; then
               retry_used=true
-              echo "::warning::API ${api}: confirmed lab DNS failure before the auth request. Retrying this destination once."
-              command_output_file="${RUNNER_TEMP}/device-run-${suffix}-retry-submit.log"
-              session_output="${RUNNER_TEMP}/device-run-${suffix}-retry-session.json"
+              retry_evidence="${RUNNER_TEMP}/device-run-retry-evidence.json"
+              retry_device="$(jq -er '.effective_device' "${retry_evidence}")"
+              reason="$(jq -er '.reason' "${retry_evidence}")"
+              echo "::warning::API ${api}: ${reason}. Retrying once from ${device} on ${retry_device}."
+              device="${retry_device}"
               command_exit_code=0
-              submit_session "${device}" "${suite}" "${session_output}" "${test_target_args[@]}" \
-                > "${command_output_file}" 2>&1 || command_exit_code=$?
+              submit_session "${device}" "${log_prefix}-retry-session.json" \
+                > "${log_prefix}-retry-submit.log" 2>&1 || command_exit_code=$?
             fi
 
-            session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${command_output_file}")"
-            results_path=""
-            session_link=""
-            if [[ -n "${session_id}" ]]; then
-              results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
-              session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
-            fi
-            outcome=failed
-            if [[ "${command_exit_code}" -eq 0 ]]; then
-              outcome=passed
-            fi
-            if [[ "${api}" == "37" ]]; then
-              {
-                echo "submission_state=${outcome}"
-                echo "session_id=${session_id}"
-                echo "session_link=${session_link}"
-                echo "results_path=${results_path}"
-              } >> "${GITHUB_OUTPUT}"
-            else
-              jq -c --arg api "${api}" --arg session_id "${session_id}" \
-                --arg results_path "${results_path}" --arg session_link "${session_link}" --arg outcome "${outcome}" '
-                map(if .api == $api then
-                  . + {session_id: $session_id, results_path: $results_path, session_link: $session_link, outcome: $outcome}
-                else . end)
-              ' "${sessions_file}" > "${sessions_file}.tmp"
-              mv "${sessions_file}.tmp" "${sessions_file}"
-            fi
             if [[ "${command_exit_code}" -ne 0 ]]; then
-              echo "Device Run failed. Device=${device} API=${api} Session=${session_id:-not_created} Exit=${command_exit_code}. Inspect private evidence." >&2
+              echo "Device Run failed. Device=${device} API=${api} Exit=${command_exit_code}. Inspect the native evidence." >&2
               exit "${command_exit_code}"
             fi
-          done <<< "${destinations}"
-
-      - name: Collect Device Run outcome
-        if: always()
-        id: collect
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
-          VALIDATION_STATE: ${{ steps.validate-config.outputs.submission_state }}
-          AUTH_STEP_OUTCOME: ${{ steps.auth.outcome }}
-          GCLOUD_STEP_OUTCOME: ${{ steps.setup-gcloud.outcome }}
-          CATALOG_STEP_OUTCOME: ${{ steps.device-catalog.outcome }}
-          DOWNLOAD_STEP_OUTCOME: ${{ steps.download-debug-apks.outcome }}
-          RESOLVE_STEP_OUTCOME: ${{ steps.resolve-debug-apks.outcome }}
-          SUBMIT_STATE: ${{ steps.submit.outputs.submission_state }}
-          SUBMIT_SESSION_ID: ${{ steps.submit.outputs.session_id }}
-          SUBMIT_SESSION_LINK: ${{ steps.submit.outputs.session_link }}
-          COMPAT_TEST_TARGETS: ${{ steps.submit.outputs.compat_test_targets }}
-          COMPAT_DEVICE_DESCRIPTORS: ${{ steps.validate-config.outputs.compat_device_descriptors }}
-          RESULTS_PATH: ${{ steps.submit.outputs.results_path }}
-          DEVICE_DESCRIPTOR: ${{ steps.validate-config.outputs.device_descriptor }}
-        run: |
-          set -euo pipefail
-
-          submission_state="${VALIDATION_STATE}"
-          session_id="${SUBMIT_SESSION_ID}"
-          results_path="${RESULTS_PATH}"
-          session_link="${SUBMIT_SESSION_LINK}"
-          log_path="${RUNNER_TEMP}/device-run-latest-submit.log"
-          if [[ -f "${RUNNER_TEMP}/device-run-latest-retry-submit.log" ]]; then
-            log_path="${RUNNER_TEMP}/device-run-latest-retry-submit.log"
-          fi
-          if [[ -z "${session_id}" && -f "${log_path}" ]]; then
-            session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${log_path}")"
-            if [[ -n "${session_id}" ]]; then
-              results_path="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${session_id}/"
-              session_link="https://console.cloud.google.com/storage/browser/${results_path#gs://}?project=${GCP_PROJECT_ID}"
-            fi
-          fi
-
-          if [[ "${VALIDATION_STATE}" == "ready" ]]; then
-            if [[ "${AUTH_STEP_OUTCOME}" != "success" ]]; then
-              submission_state="auth_failed"
-            elif [[ "${GCLOUD_STEP_OUTCOME}" != "success" ]]; then
-              submission_state="setup_failed"
-            elif [[ "${CATALOG_STEP_OUTCOME}" != "success" ]]; then
-              submission_state="device_catalog_invalid"
-            elif [[ "${DOWNLOAD_STEP_OUTCOME}" != "success" ]]; then
-              submission_state="artifact_download_failed"
-            elif [[ "${RESOLVE_STEP_OUTCOME}" != "success" ]]; then
-              submission_state="artifact_resolution_failed"
-            elif [[ -n "${SUBMIT_STATE}" ]]; then
-              submission_state="${SUBMIT_STATE}"
-            elif [[ -f "${RUNNER_TEMP}/device-run-compat-api31-submit.log" &&
-                    ! -f "${RUNNER_TEMP}/device-run-latest-submit.log" ]]; then
-              submission_state="not_executed"
-            else
-              submission_state="submission_failed"
-            fi
-          fi
-
-          if [[ "${submission_state}" == "passed" && -z "${session_id}" ]]; then
-            submission_state="failed"
-          fi
-          compat_sessions="[]"
-          compat_submission_state="not_executed"
-          if [[ -f "${RUNNER_TEMP}/device-run-compat-sessions.json" ]]; then
-            sessions_file="${RUNNER_TEMP}/device-run-compat-sessions.json"
-            while IFS=$'\t' read -r device api; do
-              log_path="${RUNNER_TEMP}/device-run-compat-api${api}-submit.log"
-              if [[ -f "${RUNNER_TEMP}/device-run-compat-api${api}-retry-submit.log" ]]; then
-                log_path="${RUNNER_TEMP}/device-run-compat-api${api}-retry-submit.log"
-              fi
-              interrupted_session_id=""
-              if [[ -f "${log_path}" ]]; then
-                interrupted_session_id="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${log_path}")"
-              fi
-              interrupted_results=""
-              interrupted_link=""
-              if [[ -n "${interrupted_session_id}" ]]; then
-                interrupted_results="gs://${ANDROID_DEVICE_RUN_RESULTS_BUCKET}/automation/sessions/${interrupted_session_id}/"
-                interrupted_link="https://console.cloud.google.com/storage/browser/${interrupted_results#gs://}?project=${GCP_PROJECT_ID}"
-              fi
-              jq -c --arg device "${device}" --arg session_id "${interrupted_session_id}" \
-                --arg results_path "${interrupted_results}" --arg session_link "${interrupted_link}" '
-                map(if .device == $device then
-                  . + {session_id: $session_id, results_path: $results_path, session_link: $session_link, outcome: "interrupted"}
-                else . end)
-              ' "${sessions_file}" > "${sessions_file}.tmp"
-              mv "${sessions_file}.tmp" "${sessions_file}"
-            done < <(jq -r '.[] | select(.outcome == "running") | [.device, .api] | @tsv' "${sessions_file}")
-            compat_sessions="$(cat "${sessions_file}")"
-            if jq -e 'length == 3 and all(.[]; .outcome == "passed" and (.session_id | length > 0))' <<< "${compat_sessions}" >/dev/null; then
-              compat_submission_state="passed"
-            elif jq -e 'any(.[]; .outcome != "not_executed")' <<< "${compat_sessions}" >/dev/null; then
-              compat_submission_state="failed"
-            fi
-          fi
-
-          {
-            echo "submission_state=${submission_state}"
-            echo "session_id=${session_id}"
-            echo "session_link=${session_link}"
-            echo "compat_submission_state=${compat_submission_state}"
-            echo "compat_test_targets=${COMPAT_TEST_TARGETS}"
-            echo "compat_sessions=${compat_sessions}"
-            echo "compat_device_descriptors=${COMPAT_DEVICE_DESCRIPTORS}"
-            echo "results_path=${results_path}"
-            echo "device_descriptor=${DEVICE_DESCRIPTOR}"
-          } >> "${GITHUB_OUTPUT}"
+          done < <(jq -c '.[]' "${RUNNER_TEMP}/device-run-destinations.json")
 
       - name: Collect private native evidence and gate named results
-        id: native-evidence
         if: ${{ always() && steps.resolve-debug-apks.outcome == 'success' }}
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
-          ANDROID_DEVICE_RUN_DEVICE: ${{ vars.ANDROID_DEVICE_RUN_DEVICE }}
-          ANDROID_DEVICE_RUN_COMPAT_DEVICES: ${{ vars.ANDROID_DEVICE_RUN_COMPAT_DEVICES }}
-          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
-          RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
         run: python3 .release-tools/scripts/android/collect-device-run-evidence.py
 
       - name: Preserve public-safe Device Run named results
@@ -579,52 +333,21 @@ jobs:
 
       - name: Summarize Device Run terminal results
         if: always()
-        env:
-          SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
-          SESSION_ID: ${{ steps.collect.outputs.session_id }}
-          SESSION_LINK: ${{ steps.collect.outputs.session_link }}
-          COMPAT_SUBMISSION_STATE: ${{ steps.collect.outputs.compat_submission_state }}
-          COMPAT_TEST_TARGETS: ${{ steps.collect.outputs.compat_test_targets }}
-          COMPAT_SESSIONS: ${{ steps.collect.outputs.compat_sessions }}
-          COMPAT_DEVICE_DESCRIPTORS: ${{ steps.collect.outputs.compat_device_descriptors }}
-          RESULTS_PATH: ${{ steps.collect.outputs.results_path }}
-          DEVICE_DESCRIPTOR: ${{ steps.collect.outputs.device_descriptor }}
-          RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
         run: |
+          summary="${RUNNER_TEMP}/device-run-public/summary.json"
           {
             echo "## Device Run terminal results"
             echo ""
-            echo "- Latest outcome: \`${SUBMISSION_STATE}\`"
             echo "- Release ID: \`${RELEASE_ID}\`"
-            echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
-            echo "- Session ID: \`${SESSION_ID:-n/a}\`"
-            echo "- Results path: \`${RESULTS_PATH:-n/a}\`"
-            echo "- Device: \`${DEVICE_DESCRIPTOR:-n/a}\`"
-            echo "- Latest session lookup: ${SESSION_LINK:-n/a}"
-            echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` with notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
-            echo "- Compatibility outcome: \`${COMPAT_SUBMISSION_STATE:-n/a}\`"
-            echo ""
-            echo "| API | Device | Outcome | Session / results | Results path |"
-            echo "| --- | --- | --- | --- | --- |"
-            jq -r '.[] | "| \(.api) | \(.device) | \(.outcome) | [\(.session_id)](\(.session_link)) | \(.results_path) |"' <<< "${COMPAT_SESSIONS}"
-            echo ""
-            echo "- Compatibility devices: \`${COMPAT_DEVICE_DESCRIPTORS:-n/a}\`"
-            echo "- Compatibility targets: \`${COMPAT_TEST_TARGETS:-n/a}\`"
-            echo "- Play draft upload requires four terminal PASSED sessions and complete reconciled native named results. Inspect the safe summary artifact; raw warning and diagnostic review remains operator-owned."
+            echo "- Target SHA: \`${TARGET_SHA}\`"
+            echo "- Named results and private evidence references: \`android-device-run-submissions\`"
+            if [[ -f "${summary}" ]]; then
+              echo ""
+              echo "| API | Configured device | Effective device | Session | Outcome | Passed cases | Initial failed session |"
+              echo "| --- | --- | --- | --- | --- | --- | --- |"
+              jq -r '.sessions[] | "| \(.api) | \(.configured_device // .device) | \(.device) | \(.session_id // "n/a") | \(if .passed then "passed" else "failed" end) | \(.counts.passed // 0)/\(.expected_count // "?") | \(.initial_failure.session_id // "n/a") |"' "${summary}"
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
-
-      - name: Require all four terminal Device Run successes
-        if: always()
-        env:
-          SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
-          COMPAT_SUBMISSION_STATE: ${{ steps.collect.outputs.compat_submission_state }}
-        run: |
-          set -euo pipefail
-
-          if [[ "${SUBMISSION_STATE}" != "passed" || "${COMPAT_SUBMISSION_STATE}" != "passed" ]]; then
-            echo "All four Device Run sessions must reach terminal success before the Play draft upload. Latest: ${SUBMISSION_STATE:-unknown}. Compatibility: ${COMPAT_SUBMISSION_STATE:-unknown}." >&2
-            exit 1
-          fi
 
   build_signed_android:
     name: Build and verify signed Android App Bundle
@@ -959,8 +682,6 @@ jobs:
 
     steps:
       - name: Summarize Android release outcome
-        env:
-          COMPAT_SESSIONS: ${{ needs.device_run_submission.outputs.compat_sessions }}
         run: |
           {
             echo "## Android release summary"
@@ -974,21 +695,7 @@ jobs:
             echo "- Signed bundle and R8 gate result: \`${{ needs.build_signed_android.result }}\`"
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
-            echo "- Latest Device Run outcome: \`${{ needs.device_run_submission.outputs.submission_state || 'n/a' }}\`"
-            echo "- Device Run session ID: \`${{ needs.device_run_submission.outputs.session_id || 'n/a' }}\`"
-            echo "- Device Run results path: \`${{ needs.device_run_submission.outputs.results_path || 'n/a' }}\`"
-            echo "- Device Run device: \`${{ needs.device_run_submission.outputs.device_descriptor || 'n/a' }}\`"
-            echo "- Latest session lookup: ${{ needs.device_run_submission.outputs.session_link || 'n/a' }}"
-            echo "- Latest targets: \`package com.flashcardsopensourceapp.app\` with notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
-            echo "- Compatibility outcome: \`${{ needs.device_run_submission.outputs.compat_submission_state || 'n/a' }}\`"
-            echo ""
-            echo "| API | Device | Outcome | Session / results | Results path |"
-            echo "| --- | --- | --- | --- | --- |"
-            jq -r '.[] | "| \(.api) | \(.device) | \(.outcome) | [\(.session_id)](\(.session_link)) | \(.results_path) |"' <<< "${COMPAT_SESSIONS:-[]}"
-            echo ""
-            echo "- Compatibility devices: \`${{ needs.device_run_submission.outputs.compat_device_descriptors || 'n/a' }}\`"
-            echo "- Compatibility targets: \`${{ needs.device_run_submission.outputs.compat_test_targets || 'n/a' }}\`"
-            echo "- Play draft upload requires four terminal PASSED sessions and complete reconciled native named results."
+            echo "- Device Run named results and private evidence references: \`android-device-run-submissions\`"
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"

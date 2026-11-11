@@ -16,11 +16,6 @@ enum AppNotificationTapType: String, Codable, Hashable, Sendable {
     case strictReminder
 }
 
-enum AppNotificationTapSource: String, Codable, Hashable, Sendable {
-    case notificationResponse = "notification_response"
-    case uiTestEnvironment = "ui_test_environment"
-}
-
 struct AppNotificationTapFallback: Codable, Hashable, Sendable {
     let stage: String
     let reason: String

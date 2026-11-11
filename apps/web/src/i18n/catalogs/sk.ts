@@ -20,6 +20,15 @@ const skCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Tento prehliadač nedokázal dekódovať zvuk mikrofónu ({{format}}).",
     recovery: "Prístup hosťa nie je overený. Kartičky vo vyrovnávacej pamäti sú len na čítanie. Obnovte pôvodnú reláciu alebo pripojenie a skúste to znova.",
     cleanupFailed: "Prihlásenie bolo úspešné, ale ukážkovú kartičku sa nepodarilo odstrániť.",
+    browserCheck: {
+      title: "Kontrolujeme váš prehliadač",
+      description: "Pred otvorením pracovného priestoru hosťa Cloudflare overí, že ide o bežný prehliadač. Zvyčajne to trvá niekoľko sekúnd.",
+      loading: "Načítava sa kontrola...",
+      verifying: "Otvára sa váš pracovný priestor...",
+      loadFailed: "Kontrolu sa nepodarilo načítať. Skontrolujte pripojenie, povoľte challenges.cloudflare.com v blokovači obsahu a skúste to znova.",
+      failed: "Kontrola neprešla. Skúste to znova alebo sa prihláste.",
+      rejected: "Kontrola nebola prijatá. Dokončite ju ešte raz.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ const skCatalog: TranslationCatalog = {
     loading: "Načítava sa...",
     never: "Nikdy",
     newItem: "nová",
+    image: "Obrázok",
     noBackText: "Bez textu na zadnej strane",
     noTags: "Žiadne značky",
     notRevoked: "Nezrušené",
@@ -434,9 +444,12 @@ const skCatalog: TranslationCatalog = {
       offlineEmpty: "Rebríček sérií nie je dostupný offline. Pripojte sa znova, aby ste videli poradie.",
       unavailable: "Rebríček sérií momentálne nie je dostupný. Skúste to neskôr.",
       dayLabels: {
-        one: "deň",
-        few: "dni",
-        other: "dní",
+        zero: "{{count}} dní",
+        one: "{{count}} deň",
+        two: "{{count}} dní",
+        few: "{{count}} dni",
+        many: "{{count}} dní",
+        other: "{{count}} dní",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ const skCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Obnovuje sa relácia. Skúste to znova o chvíľu.",
     sessionUnavailable: "Relácia nie je dostupná",
     syncing: "Synchronizuje sa...",
+    syncFailed: "Synchronizácia zlyhala",
     workspaceUnavailable: "Pracovný priestor nie je dostupný",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ const skCatalog: TranslationCatalog = {
       yourCards: "Vaše karty",
       addCards: "Pridať karty",
     },
-    cards: {
-      description: "Všetky karty v tomto pracovnom priestore.",
-    },
-    tags: {
-      description: "Všetky značky použité aspoň na jednej karte.",
-    },
-    decks: {
-      description: "Uložené filtre kariet na sústredené opakovanie.",
-    },
     deckCatalog: {
       title: "Katalóg balíčkov",
       description: "Bezplatné hotové balíčky na štúdium.",
@@ -869,16 +874,18 @@ const skCatalog: TranslationCatalog = {
     note: "Tieto nastavenia ovplyvňujú iba budúce plánovanie. Existujúci stav kariet zostáva rozhodujúci.",
   },
   workspaceExport: {
-    title: "Export",
+    title: "Exportovať balík Nibomo",
+    ankiTitle: "Exportovať balíček pre Anki",
     subtitle: "Stiahnite prenosný balík pre tento pracovný priestor.",
     workspaceUnavailable: "Pracovný priestor nie je dostupný",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Názov balíčka",
+    ankiEmptySelection: "Nie sú žiadne karty na export. Zmeňte výber značiek alebo pridajte karty.",
     packageDescription: "Pred stiahnutím si pozrite ukážku aktívnych kariet, metadát, značiek a odkazovaných médií.",
-    packageExportSuccess: "Sťahovanie flashcards.zip sa začalo.",
+    packageExportSuccess: "Sťahovanie {{filename}} sa začalo.",
     packageExporting: "Sťahuje sa...",
     packagePreviewing: "Pripravuje sa ukážka...",
     packageExportPreviewButton: "Ukážka exportu",
-    packageExportConfirmButton: "Stiahnuť flashcards.zip",
+    packageExportConfirmButton: "Stiahnuť {{filename}}",
     packageExportPreviewRequired: "Pred stiahnutím si pozrite ukážku tohto exportu.",
     previewCardsLabel: "Karty",
     previewReferencedMediaLabel: "Odkazované médiá",
@@ -1134,6 +1141,10 @@ const skCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otvoriť kartu ({{side}}) v AI chate",
     repetitionBadgeAriaLabel: "Opakovania: {{value}}",
     repetitionBadgeNew: "Nová",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Ďalšie značky: {{count}}",
+    },
     empty: {
       noCardsBody: "Zatiaľ ste nevytvorili žiadne karty. Pridajte prvú kartu a začnite sa učiť.",
       noCardsTitle: "Zatiaľ žiadne karty",
@@ -1145,16 +1156,25 @@ const skCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Vzorec sa nepodarilo zobraziť.",
       schedulerUnavailable: "Nastavenia plánovača pracovného priestoru nie sú načítané",
+      storageFull: "Uvoľnite miesto v úložisku tohto zariadenia a znova ohodnoťte kartičku.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otvoriť rebríček",
     },
     progressBadge: {
-      ariaLabel: "Dni v sérii opakovania: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Dni v sérii opakovania: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Séria opakovania: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Séria opakovania: {{streak}}. {{todayStatus}}.",
       freezeBank: "Dostupné ochrany série: {{available}} z {{capacity}}",
       notReviewedToday: "Dnes ešte bez opakovania",
       reviewedToday: "Dnes zopakované",
+      streakDayCount: {
+        zero: "{{count}} dní",
+        one: "{{count}} deň",
+        two: "{{count}} dní",
+        few: "{{count}} dni",
+        many: "{{count}} dní",
+        other: "{{count}} dní",
+      },
       title: "Séria",
     },
     interval: {
@@ -1168,8 +1188,6 @@ const skCatalog: TranslationCatalog = {
       snapshot: "Zobrazuje sa nedávny miestny stav...",
     },
     media: {
-      privateImage: "Súkromný obrázok",
-      privateAttachment: "Súkromná príloha",
       attachmentLabel: "Príloha",
       audioLabel: "Zvuková príloha",
       imageAlt: "Spravovaný obrázok",
@@ -1358,26 +1376,15 @@ const skCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Na opakovanie: {{count}}",
+      toStudy: "{{count}} na učenie",
       total: "Celkom: {{count}}",
     },
-    emptyStatsAriaLabel: "Štatistiky balíčka {{deckName}}",
     newDeck: "Nový balíček",
     statLabels: {
       cards: {
         one: "karta",
         few: "karty",
         other: "kariet",
-      },
-      new: {
-        one: "nová",
-        few: "nové",
-        other: "nových",
-      },
-      reviewed: {
-        one: "zopakovaná",
-        few: "zopakované",
-        other: "zopakovaných",
       },
     },
     subtitle: "Balíčky sú inteligentné filtre, nie kontajnery. Vyberajú karty podľa značiek.",
@@ -1413,10 +1420,10 @@ const skCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karty",
-      due: "Na opakovanie",
       new: "Nové",
       summary: "Súhrn",
       title: "Pravidlá balíčka",
+      toStudy: "Na učenie",
     },
     subtitle: "Pozrite si pravidlá balíčka, zodpovedajúce karty a vstup do opakovania.",
     subtitles: {

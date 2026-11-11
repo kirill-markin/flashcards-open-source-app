@@ -1,26 +1,10 @@
 import Foundation
 
-let flashcardsUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
-let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
 private let flashcardsUITestAppNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
 private let flashcardsUITestAIHandoffCardEnvironmentKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
 private let flashcardsUITestMarketingAIDraftEnvironmentKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_AI_DRAFT"
 @MainActor
 private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = false
-
-/**
- * True when the process was launched by the XCUITest harness — the grouped live smoke suite, which
- * signs into a real review account, or a marketing screenshot run. Both harnesses always set the
- * selected-tab key and set the scenario key for a prepared launch.
- *
- * Product analytics stays off for those launches: `product_events` is append-only, and synthetic app
- * opens, screen views and card-create intents written into it would corrupt the exact dataset the
- * analytics module exists to produce.
- */
-func isFlashcardsUITestLaunch(processInfo: ProcessInfo) -> Bool {
-    processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey] != nil
-        || processInfo.environment[flashcardsUITestLaunchScenarioEnvironmentKey] != nil
-}
 
 enum FlashcardsUITestSelectedTab: String {
     case review

@@ -20,6 +20,15 @@ const nlCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Deze browser kon de microfoonaudio niet decoderen ({{format}}).",
     recovery: "Gasttoegang is niet geverifieerd. Kaarten in de cache zijn alleen-lezen. Herstel de oorspronkelijke sessie of verbinding en probeer opnieuw.",
     cleanupFailed: "Aanmelden is gelukt, maar de demokaart kon niet worden verwijderd.",
+    browserCheck: {
+      title: "Je browser wordt gecontroleerd",
+      description: "Voordat je gastwerkruimte opent, bevestigt Cloudflare dat dit een gewone browser is. Dit duurt meestal een paar seconden.",
+      loading: "Controle laden...",
+      verifying: "Je werkruimte wordt geopend...",
+      loadFailed: "De controle kon niet worden geladen. Controleer je verbinding, sta challenges.cloudflare.com toe in je contentblokker en probeer het opnieuw.",
+      failed: "De controle is niet geslaagd. Probeer het opnieuw of log in.",
+      rejected: "De controle is niet geaccepteerd. Voltooi hem nog een keer.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const nlCatalog: TranslationCatalog = {
     loading: "Laden...",
     never: "Nooit",
     newItem: "nieuw",
+    image: "Afbeelding",
     noBackText: "Geen tekst op de achterkant",
     noTags: "Geen tags",
     notRevoked: "Niet ingetrokken",
@@ -427,8 +437,12 @@ const nlCatalog: TranslationCatalog = {
       offlineEmpty: "De reeksranglijst is offline niet beschikbaar. Maak opnieuw verbinding om de stand te zien.",
       unavailable: "De reeksranglijst is nu niet beschikbaar. Probeer het later opnieuw.",
       dayLabels: {
-        one: "dag",
-        other: "dagen",
+        zero: "{{count}} dagen",
+        one: "{{count}} dag",
+        two: "{{count}} dagen",
+        few: "{{count}} dagen",
+        many: "{{count}} dagen",
+        other: "{{count}} dagen",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const nlCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Sessie wordt hersteld. Probeer het zo meteen opnieuw.",
     sessionUnavailable: "Sessie is niet beschikbaar",
     syncing: "Synchroniseren...",
+    syncFailed: "Synchronisatie mislukt",
     workspaceUnavailable: "Werkruimte niet beschikbaar",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const nlCatalog: TranslationCatalog = {
       yourCards: "Jouw kaarten",
       addCards: "Kaarten toevoegen",
     },
-    cards: {
-      description: "Alle kaarten in deze werkruimte.",
-    },
-    tags: {
-      description: "Alle tags die op minstens één kaart worden gebruikt.",
-    },
-    decks: {
-      description: "Opgeslagen kaartfilters om gericht te herhalen.",
-    },
     deckCatalog: {
       title: "Deckcatalogus",
       description: "Gratis kant-en-klare decks om te leren.",
@@ -860,16 +866,18 @@ const nlCatalog: TranslationCatalog = {
     note: "Deze instellingen gelden alleen voor toekomstige planning. De bestaande status van een kaart blijft leidend.",
   },
   workspaceExport: {
-    title: "Exporteren",
+    title: "Nibomo-pakket exporteren",
+    ankiTitle: "Anki-kaartenset exporteren",
     subtitle: "Download een overdraagbaar pakket voor deze werkruimte.",
     workspaceUnavailable: "Werkruimte is niet beschikbaar",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Naam van de kaartenset",
+    ankiEmptySelection: "Geen kaarten om te exporteren. Pas je tagselectie aan of voeg kaarten toe.",
     packageDescription: "Bekijk de actieve kaarten, metadata, tags en gebruikte media voordat je downloadt.",
-    packageExportSuccess: "Download van flashcards.zip gestart.",
+    packageExportSuccess: "Download van {{filename}} gestart.",
     packageExporting: "Downloaden...",
     packagePreviewing: "Voorbeeld maken...",
     packageExportPreviewButton: "Voorbeeld van export",
-    packageExportConfirmButton: "flashcards.zip downloaden",
+    packageExportConfirmButton: "{{filename}} downloaden",
     packageExportPreviewRequired: "Bekijk eerst een voorbeeld van deze export voordat je downloadt.",
     previewCardsLabel: "Kaarten",
     previewReferencedMediaLabel: "Gebruikte media",
@@ -1124,6 +1132,10 @@ const nlCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}} van de kaart openen in de AI-chat",
     repetitionBadgeAriaLabel: "Herhalingen: {{value}}",
     repetitionBadgeNew: "Nieuw",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Meer tags: {{count}}",
+    },
     empty: {
       noCardsBody: "Je hebt nog geen kaarten gemaakt. Voeg je eerste kaart toe om te beginnen met leren.",
       noCardsTitle: "Nog geen kaarten",
@@ -1135,16 +1147,25 @@ const nlCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "De formule kon niet worden weergegeven.",
       schedulerUnavailable: "Plannerinstellingen van de werkruimte zijn niet geladen",
+      storageFull: "Maak opslagruimte vrij op dit apparaat en beoordeel de kaart opnieuw.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ranglijst openen",
     },
     progressBadge: {
-      ariaLabel: "Herhalingsreeks {{streak}} dagen. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Herhalingsreeks {{streak}} dagen. {{todayStatus}}.",
+      ariaLabel: "Herhalingsreeks {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Herhalingsreeks {{streak}}. {{todayStatus}}.",
       freezeBank: "Vriesvoorraad {{available}} van {{capacity}}",
       notReviewedToday: "Vandaag niet herhaald",
       reviewedToday: "Vandaag herhaald",
+      streakDayCount: {
+        zero: "{{count}} dagen",
+        one: "{{count}} dag",
+        two: "{{count}} dagen",
+        few: "{{count}} dagen",
+        many: "{{count}} dagen",
+        other: "{{count}} dagen",
+      },
       title: "Reeks",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const nlCatalog: TranslationCatalog = {
       snapshot: "Een recente lokale momentopname wordt getoond...",
     },
     media: {
-      privateImage: "Privéafbeelding",
-      privateAttachment: "Privébijlage",
       attachmentLabel: "Bijlage",
       audioLabel: "Audiobijlage",
       imageAlt: "Beheerde afbeelding",
@@ -1348,23 +1367,14 @@ const nlCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} te doen",
+      toStudy: "{{count}} te leren",
       total: "{{count}} totaal",
     },
-    emptyStatsAriaLabel: "Statistieken van {{deckName}}",
     newDeck: "Nieuw deck",
     statLabels: {
       cards: {
         one: "kaart",
         other: "kaarten",
-      },
-      new: {
-        one: "nieuw",
-        other: "nieuw",
-      },
-      reviewed: {
-        one: "herhaald",
-        other: "herhaald",
       },
     },
     subtitle: "Decks zijn slimme filters, geen mappen. Ze koppelen kaarten op basis van tags.",
@@ -1400,10 +1410,10 @@ const nlCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kaarten",
-      due: "Te doen",
       new: "Nieuw",
       summary: "Samenvatting",
       title: "Deckregels",
+      toStudy: "Te leren",
     },
     subtitle: "Bekijk de deckregels, de passende kaarten en het startpunt om te herhalen.",
     subtitles: {

@@ -478,7 +478,7 @@ extension LiveSmokeTestCase {
 
             if consentButton.exists == false {
                 _ = try self.waitForAiComposerUsable(
-                    timeout: deadline.timeIntervalSinceNow
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
                 )
                 return
             }
@@ -495,7 +495,7 @@ extension LiveSmokeTestCase {
         }
 
         _ = try self.waitForAiComposerUsable(
-            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
     }
 

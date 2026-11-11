@@ -128,15 +128,17 @@ const geoLiteCountryMetricNamespace: string = "FlashcardsOpenSourceApp/GeoLiteCo
 const geoLiteCountryLookupFailureMetricName: string = "LookupFailures";
 const geoLiteCountryDatabasePublishedAgeMetricName: string = "DatabasePublishedAgeHours";
 // Every route that records a lookup that threw, on one metric, because the cause and the runbook
-// are the same unusable database: the consent route (apps/backend/src/routes/analyticsVisitor.ts)
-// and the credential-free collector (apps/backend/src/routes/anonymousAnalytics.ts), which refuses
-// the event rather than storing a null country. Deliberately not a count of unresolved addresses:
+// are the same unusable database: the consent route (apps/backend/src/routes/analyticsVisitor.ts),
+// the credential-free collector (apps/backend/src/routes/anonymousAnalytics.ts) and the
+// authenticated batch route (apps/backend/src/routes/productAnalytics.ts), the two ingests refusing
+// rather than storing a null country. Deliberately not a count of unresolved addresses:
 // apps/backend/src/geolocation/country.ts returns null for an address the database has no country
 // for - a private range, an unallocated block - and throws only when the database itself is
 // unusable, so ordinary traffic cannot reach this metric at all.
 const geoLiteCountryLookupFailureActions: ReadonlyArray<string> = [
   "analytics_visitor_country_lookup_failed",
   "anonymous_analytics_country_lookup_failed",
+  "analytics_events_country_lookup_failed",
 ];
 const geoLiteCountryDatabaseLoadedAction: string = "geolite_country_database_loaded";
 // Fifteen minutes is long enough for the three retries inside one download
@@ -1186,8 +1188,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       `${geoLiteCountryLookupFailureEvaluationPeriods} consecutive ` +
       `${geoLiteCountryLookupFailurePeriodMinutes}-minute periods, so the database is missing, ` +
       "unreadable, the wrong type, or past its 30-day limit: every visitor worldwide is being " +
-      "treated as consent-required and every credential-free analytics event that carries a " +
-      "country is being refused with a 500 rather than stored without one, while the events " +
+      "treated as consent-required, and every credential-free analytics event that carries a " +
+      "country and every app analytics batch that accepted an event are being refused with a 500 " +
+      "rather than stored without one, while the credential-free events " +
       "exempt from carrying one (docs/anonymous-client-analytics.md) keep landing with a 200. " +
       "An address the database simply has no country for returns null and never reaches this " +
       "metric. Check the private GeoLite bucket " +

@@ -19,6 +19,15 @@ const enCatalog = {
     aiRecordingDecodeFailed: "This browser could not decode the microphone audio ({{format}}).",
     recovery: "Guest access is unverified. Cached cards are read-only. Restore the original session or reconnect, then retry.",
     cleanupFailed: "Sign-in succeeded, but the demo card could not be removed.",
+    browserCheck: {
+      title: "Checking your browser",
+      description: "Before your guest workspace opens, Cloudflare confirms that this is a regular browser. This usually takes a few seconds.",
+      loading: "Loading the check...",
+      verifying: "Opening your workspace...",
+      loadFailed: "The check could not load. Check your connection, allow challenges.cloudflare.com in any content blocker, then retry.",
+      failed: "The check did not pass. Retry, or sign in instead.",
+      rejected: "The check was not accepted. Complete it once more.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -127,6 +136,7 @@ const enCatalog = {
     loading: "Loading...",
     never: "Never",
     newItem: "new",
+    image: "Image",
     noBackText: "No back text",
     noTags: "No tags",
     notRevoked: "Not revoked",
@@ -426,8 +436,12 @@ const enCatalog = {
       offlineEmpty: "The streak leaderboard is not available offline. Reconnect to see rankings.",
       unavailable: "The streak leaderboard is not available right now. Check back later.",
       dayLabels: {
-        one: "day",
-        other: "days",
+        zero: "{{count}} days",
+        one: "{{count}} day",
+        two: "{{count}} days",
+        few: "{{count}} days",
+        many: "{{count}} days",
+        other: "{{count}} days",
       },
     },
     labels: {
@@ -508,6 +522,7 @@ const enCatalog = {
     sessionRestoringActionLocked: "Restoring session. Try again in a moment.",
     sessionUnavailable: "Session is unavailable",
     syncing: "Syncing...",
+    syncFailed: "Sync failed",
     workspaceUnavailable: "Workspace unavailable",
   },
   accountMenu: {
@@ -765,15 +780,6 @@ const enCatalog = {
       yourCards: "Your cards",
       addCards: "Add cards",
     },
-    cards: {
-      description: "Every card in this workspace.",
-    },
-    tags: {
-      description: "Every tag used on at least one card.",
-    },
-    decks: {
-      description: "Saved card filters for focused review.",
-    },
     deckCatalog: {
       title: "Deck catalog",
       description: "Free ready-made decks to study.",
@@ -859,16 +865,18 @@ const enCatalog = {
     note: "These settings affect future scheduling only. Existing card state remains authoritative.",
   },
   workspaceExport: {
-    title: "Export",
+    title: "Export Nibomo package",
+    ankiTitle: "Export Anki deck",
     subtitle: "Download a portable package for this workspace.",
     workspaceUnavailable: "Workspace is unavailable",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Deck name",
+    ankiEmptySelection: "No cards to export. Change your tag selection or add cards.",
     packageDescription: "Preview active cards, metadata, tags, and referenced media before downloading.",
-    packageExportSuccess: "flashcards.zip download started.",
+    packageExportSuccess: "{{filename}} download started.",
     packageExporting: "Downloading...",
     packagePreviewing: "Previewing...",
     packageExportPreviewButton: "Preview export",
-    packageExportConfirmButton: "Download flashcards.zip",
+    packageExportConfirmButton: "Download {{filename}}",
     packageExportPreviewRequired: "Preview this export before downloading.",
     previewCardsLabel: "Cards",
     previewReferencedMediaLabel: "Referenced media",
@@ -1123,6 +1131,10 @@ const enCatalog = {
     aiOpenAriaLabel: "Open {{side}} card in AI chat",
     repetitionBadgeAriaLabel: "Repetitions: {{value}}",
     repetitionBadgeNew: "New",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "More tags: {{count}}",
+    },
     empty: {
       noCardsBody: "You have not created any cards yet. Add your first card to start studying.",
       noCardsTitle: "No Cards Yet",
@@ -1134,16 +1146,25 @@ const enCatalog = {
     errors: {
       mathRenderFailed: "The formula could not be rendered.",
       schedulerUnavailable: "Workspace scheduler settings are not loaded",
+      storageFull: "Free up storage space on this device, then rate the card again.",
     },
     leaderboardShortcut: {
       ariaLabel: "Open leaderboard",
     },
     progressBadge: {
-      ariaLabel: "Review streak {{streak}} days. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Review streak {{streak}} days. {{todayStatus}}.",
+      ariaLabel: "Review streak {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Review streak {{streak}}. {{todayStatus}}.",
       freezeBank: "Freeze bank {{available}} of {{capacity}}",
       notReviewedToday: "Not reviewed today",
       reviewedToday: "Reviewed today",
+      streakDayCount: {
+        zero: "{{count}} days",
+        one: "{{count}} day",
+        two: "{{count}} days",
+        few: "{{count}} days",
+        many: "{{count}} days",
+        other: "{{count}} days",
+      },
       title: "Streak",
     },
     interval: {
@@ -1157,8 +1178,6 @@ const enCatalog = {
       snapshot: "Showing a recent local snapshot...",
     },
     media: {
-      privateImage: "Private image",
-      privateAttachment: "Private attachment",
       attachmentLabel: "Attachment",
       audioLabel: "Audio attachment",
       imageAlt: "Managed image",
@@ -1347,23 +1366,14 @@ const enCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} due",
+      toStudy: "{{count}} to study",
       total: "{{count}} total",
     },
-    emptyStatsAriaLabel: "{{deckName}} stats",
     newDeck: "New deck",
     statLabels: {
       cards: {
         one: "card",
         other: "cards",
-      },
-      new: {
-        one: "new",
-        other: "new",
-      },
-      reviewed: {
-        one: "reviewed",
-        other: "reviewed",
       },
     },
     subtitle: "Decks are smart filters, not containers. They match cards by tags.",
@@ -1399,10 +1409,10 @@ const enCatalog = {
     },
     rules: {
       cards: "Cards",
-      due: "Due",
       new: "New",
       summary: "Summary",
       title: "Deck rules",
+      toStudy: "To study",
     },
     subtitle: "Inspect the deck rules, matching cards, and review entry point.",
     subtitles: {

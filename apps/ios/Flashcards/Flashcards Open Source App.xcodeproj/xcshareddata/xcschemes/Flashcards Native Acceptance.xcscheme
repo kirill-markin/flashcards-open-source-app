@@ -82,6 +82,14 @@
          </TestPlanReference>
          <TestPlanReference reference = "container:CloudSmoke.xctestplan">
          </TestPlanReference>
+         <TestPlanReference reference = "container:LocalIPhoneCritical.xctestplan">
+         </TestPlanReference>
+         <TestPlanReference reference = "container:LocalIPadCritical.xctestplan">
+         </TestPlanReference>
+         <TestPlanReference reference = "container:IOS18Critical.xctestplan">
+         </TestPlanReference>
+         <TestPlanReference reference = "container:LocalMacCritical.xctestplan">
+         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction

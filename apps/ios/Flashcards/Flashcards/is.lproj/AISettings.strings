@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Vista heiti";
 "settings.workspace.overview.workspace" = "Vinnusvæði";
 "settings.workspace.overview.cards" = "Spjöld";
-"settings.workspace.overview.due" = "Á dagskrá";
 "settings.workspace.overview.new" = "Nýtt";
 "settings.workspace.overview.deleteDescription" = "Eyða þessu vinnusvæði ásamt öllum spjöldum, stokkum, upprifjunum og samstillingarsögu þess varanlega.";
 "settings.workspace.overview.deleteWorkspace" = "Eyða vinnusvæði";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Engir samsvarandi stokkar";
 "settings.workspace.decks.searchPrompt" = "Leita að stokkum";
 "settings.workspace.decks.newDeck" = "Nýr stokkur";
-"settings.workspace.decks.dueCount" = "%d á dagskrá";
-"settings.workspace.decks.totalCards" = "Fjöldi spjalda: %d";
-"settings.workspace.decks.newCount" = "Ný spjöld: %d";
-"settings.workspace.decks.reviewedCount" = "Upprifjuð spjöld: %d";
+"settings.workspace.decks.toStudyCount" = "%d til að læra";
+"settings.workspace.decks.toStudy" = "Til að læra";
 "settings.workspace.decks.emptyAllCards" = "Þú hefur ekki búið til nein spjöld enn.";
 "settings.workspace.decks.emptyDeck" = "Þessi stokkur hefur engin samsvarandi spjöld enn.";
 "settings.workspace.decks.section.deckRules" = "Reglur stokks";

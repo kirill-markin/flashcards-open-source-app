@@ -146,7 +146,7 @@ def handler(event, context):
             "body": base64.b64encode(body.encode()).decode(), "isBase64Encoded": True}
 """
     resources["Worker"] = {"Type": "AWS::Lambda::Function", "DependsOn": "WorkerLogs", "Properties": {
-        "FunctionName": f"{name}-Worker", "Runtime": "python3.12", "Handler": "index.handler", "Timeout": 5,
+        "FunctionName": f"{name}-Worker", "Runtime": "python3.14", "Handler": "index.handler", "Timeout": 5,
         "Role": {"Fn::GetAtt": ["WorkerRole", "Arn"]}, "Code": {"ZipFile": worker_code},
         "ReservedConcurrentExecutions": {"Ref": "WorkerConcurrency"},
     }}

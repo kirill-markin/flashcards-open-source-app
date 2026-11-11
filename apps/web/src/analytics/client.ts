@@ -1,8 +1,10 @@
+import { readAnalyticsBrowserSignals } from "./browserSignals";
 import { createAnalyticsDeliveryRuntime } from "./deliveryRuntime";
 import {
   analyticsCatalogSlugPattern,
   analyticsUuidPattern,
   type AnalyticsEvent,
+  type AnalyticsLaunchType,
   type AnalyticsSurface,
   type IdentityFreeAnalyticsEventName,
 } from "./events";
@@ -138,6 +140,26 @@ export function track(event: AnalyticsEvent): void {
     deliveryRuntime.enqueue(event, currentSurface);
   } catch {
     // A failure inside analytics is swallowed on purpose; the queue reporting path covers the rest.
+  }
+}
+
+/**
+ * `track` for `app_opened`, with the browser signals read inside the same guard: a throwing navigator
+ * getter or WebGL driver drops this event like any other analytics failure. Nothing is read while
+ * the analytics switch is off, since `enqueue` would discard the event anyway.
+ */
+export function trackAppOpened(launchType: AnalyticsLaunchType): void {
+  try {
+    if (deliveryRuntime.isProductAnalyticsCollecting() === false) {
+      return;
+    }
+
+    deliveryRuntime.enqueue(
+      { name: "app_opened", launchType, browserSignals: readAnalyticsBrowserSignals() },
+      currentSurface,
+    );
+  } catch {
+    // A failure inside analytics is swallowed on purpose, exactly as in `track`.
   }
 }
 

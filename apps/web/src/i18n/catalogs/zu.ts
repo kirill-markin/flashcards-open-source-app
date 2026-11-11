@@ -20,6 +20,15 @@ const zuCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Lesi siphequluli asikwazanga ukuhumusha umsindo wemakrofoni ({{format}}).",
     recovery: "Ukufinyelela kwesivakashi akuqinisekisiwe. Amakhadi agcinwe kunqolobane angafundwa kuphela. Buyisela iseshini yokuqala noma uxhumano bese uzama futhi.",
     cleanupFailed: "Ukungena ngemvume kuphumelele, kodwa ikhadi lesibonelo alikwazanga ukususwa.",
+    browserCheck: {
+      title: "Sihlola isiphequluli sakho",
+      description: "Ngaphambi kokuthi kuvuleke indawo yokusebenza yesivakashi, i-Cloudflare iqinisekisa ukuthi lesi yisiphequluli esijwayelekile. Ngokuvamile kuthatha imizuzwana embalwa.",
+      loading: "Kulayishwa ukuhlola...",
+      verifying: "Kuvulwa indawo yakho yokusebenza...",
+      loadFailed: "Ukuhlola akukwazanga ukulayishwa. Hlola uxhumano lwakho, vumela i-challenges.cloudflare.com kusivimbi sokuqukethwe, bese uzama futhi.",
+      failed: "Ukuhlola akuphumelelanga. Zama futhi, noma ungene esikhundleni salokho.",
+      rejected: "Ukuhlola akwamukelwanga. Kuqedele futhi kanye.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const zuCatalog: TranslationCatalog = {
     loading: "Kuyalayishwa...",
     never: "Akukaze",
     newItem: "elisha",
+    image: "Isithombe",
     noBackText: "Awukho umbhalo ngemuva",
     noTags: "Awekho amathegi",
     notRevoked: "Akuhoxisiwe",
@@ -427,8 +437,12 @@ const zuCatalog: TranslationCatalog = {
       offlineEmpty: "Ibhodi labahamba phambili ngochungechunge alitholakali ungaxhunyiwe ku-inthanethi. Xhuma futhi ukuze ubone amazinga.",
       unavailable: "Ibhodi labahamba phambili ngochungechunge alitholakali okwamanje. Buya uzohlola kamuva.",
       dayLabels: {
-        one: "usuku",
-        other: "izinsuku",
+        zero: "{{count}} izinsuku",
+        one: "{{count}} usuku",
+        two: "{{count}} izinsuku",
+        few: "{{count}} izinsuku",
+        many: "{{count}} izinsuku",
+        other: "{{count}} izinsuku",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const zuCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Kubuyiselwa iseshini. Zama futhi kungekudala.",
     sessionUnavailable: "Iseshini ayitholakali",
     syncing: "Kuyavumelaniswa...",
+    syncFailed: "Ukuvumelanisa kuhlulekile",
     workspaceUnavailable: "Indawo yokusebenza ayitholakali",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const zuCatalog: TranslationCatalog = {
       yourCards: "Amakhadi akho",
       addCards: "Engeza amakhadi",
     },
-    cards: {
-      description: "Wonke amakhadi akule ndawo yokusebenza.",
-    },
-    tags: {
-      description: "Wonke amathegi asetshenziswe okungenani ekhadini elilodwa.",
-    },
-    decks: {
-      description: "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile.",
-    },
     deckCatalog: {
       title: "Ikhathalogi yezinqwaba",
       description: "Izinqwaba zamahhala ezilungele ukufundwa.",
@@ -860,16 +866,18 @@ const zuCatalog: TranslationCatalog = {
     note: "Lezi zilungiselelo zithinta kuphela ukuhlelwa kwesikhathi okuzayo. Isimo samakhadi esikhona sihlala siyigunya.",
   },
   workspaceExport: {
-    title: "Khipha",
+    title: "Khipha iphakheji ye-Nibomo",
+    ankiTitle: "Khipha iqoqo lamakhadi le-Anki",
     subtitle: "Dawuniloda iphakheji ephathekayo yale ndawo yokusebenza.",
     workspaceUnavailable: "Indawo yokusebenza ayitholakali",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Igama leqoqo lamakhadi",
+    ankiEmptySelection: "Awekho amakhadi okuthekelisa. Shintsha amathegi owakhethile noma wengeze amakhadi.",
     packageDescription: "Buka kuqala amakhadi asebenzayo, imethadatha, amathegi, nemidiya ekhonjiwe ngaphambi kokudawuniloda.",
-    packageExportSuccess: "Ukudawuniloda i-flashcards.zip kuqalile.",
+    packageExportSuccess: "Ukudawuniloda i-{{filename}} kuqalile.",
     packageExporting: "Kuyadawunilodwa...",
     packagePreviewing: "Kubukwa kuqala...",
     packageExportPreviewButton: "Buka kuqala okuzokhishwa",
-    packageExportConfirmButton: "Dawuniloda i-flashcards.zip",
+    packageExportConfirmButton: "Dawuniloda i-{{filename}}",
     packageExportPreviewRequired: "Buka kuqala lokhu okuzokhishwa ngaphambi kokudawuniloda.",
     previewCardsLabel: "Amakhadi",
     previewReferencedMediaLabel: "Imidiya ekhonjiwe",
@@ -1124,6 +1132,10 @@ const zuCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Vula ikhadi engxoxweni ye-AI ({{side}})",
     repetitionBadgeAriaLabel: "Ukuphindwa: {{value}}",
     repetitionBadgeNew: "Elisha",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Amathegi engeziwe: {{count}}",
+    },
     empty: {
       noCardsBody: "Awukadali amakhadi. Engeza ikhadi lakho lokuqala ukuze uqale ukufunda.",
       noCardsTitle: "Awekho amakhadi okwamanje",
@@ -1135,16 +1147,25 @@ const zuCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Ifomula ayiboniswanga.",
       schedulerUnavailable: "Izilungiselelo zesihleli sendawo yokusebenza azilayishiwe",
+      storageFull: "Khulula isikhala sokulondoloza kule divayisi, bese ulinganisa ikhadi futhi.",
     },
     leaderboardShortcut: {
       ariaLabel: "Vula ibhodi labahamba phambili",
     },
     progressBadge: {
-      ariaLabel: "Uchungechunge lokubukeza, izinsuku: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Uchungechunge lokubukeza, izinsuku: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Uchungechunge lokubukeza: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Uchungechunge lokubukeza: {{streak}}. {{todayStatus}}.",
       freezeBank: "Isilondolozi sochungechunge: {{available}}/{{capacity}}",
       notReviewedToday: "Akubukezwanga namuhla",
       reviewedToday: "Kubukeziwe namuhla",
+      streakDayCount: {
+        zero: "{{count}} izinsuku",
+        one: "{{count}} usuku",
+        two: "{{count}} izinsuku",
+        few: "{{count}} izinsuku",
+        many: "{{count}} izinsuku",
+        other: "{{count}} izinsuku",
+      },
       title: "Uchungechunge",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const zuCatalog: TranslationCatalog = {
       snapshot: "Kuboniswa isithombe sasendaweni sakamuva...",
     },
     media: {
-      privateImage: "Isithombe sangasese",
-      privateAttachment: "Okunamathiselwe kwangasese",
       attachmentLabel: "Okunamathiselwe",
       audioLabel: "Umsindo onamathiselwe",
       imageAlt: "Isithombe esiphethwe uhlelo",
@@ -1348,23 +1367,14 @@ const zuCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Sekuyisikhathi: {{count}}",
+      toStudy: "Okokufunda: {{count}}",
       total: "Sekukonke: {{count}}",
     },
-    emptyStatsAriaLabel: "Izibalo zenqwaba ethi {{deckName}}",
     newDeck: "Inqwaba entsha",
     statLabels: {
       cards: {
         one: "ikhadi",
         other: "amakhadi",
-      },
-      new: {
-        one: "okusha",
-        other: "okusha",
-      },
-      reviewed: {
-        one: "kubukeziwe",
-        other: "kubukeziwe",
       },
     },
     subtitle: "Izinqwaba ziyizihlungi ezihlakaniphile, hhayi iziqukathi. Zithola amakhadi ngamathegi.",
@@ -1400,10 +1410,10 @@ const zuCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Amakhadi",
-      due: "Sekuyisikhathi",
       new: "Okusha",
       summary: "Isifinyezo",
       title: "Imithetho yenqwaba",
+      toStudy: "Okokufunda",
     },
     subtitle: "Hlola imithetho yenqwaba, amakhadi afanayo, nendawo yokuqala ukubukeza.",
     subtitles: {

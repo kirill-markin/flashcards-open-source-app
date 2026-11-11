@@ -26,6 +26,9 @@ struct AIChatComposerTextView: UIViewRepresentable {
     func makeUIView(context: Context) -> AIChatComposerUITextView {
         let textView = AIChatComposerUITextView(usingTextLayoutManager: true)
         textView.configureComposer()
+        #if targetEnvironment(macCatalyst)
+        textView.isComposerDisabled = self.isDisabled
+        #endif
         textView.delegate = context.coordinator
         textView.textDropDelegate = context.coordinator
         textView.accessibilityIdentifier = UITestIdentifier.aiComposerTextField
@@ -44,11 +47,12 @@ struct AIChatComposerTextView: UIViewRepresentable {
 
         textView.placeholderLabel.text = self.placeholder
         textView.accessibilityLabel = self.placeholder
-        textView.isComposerDisabled = self.isDisabled
         textView.canAttachToDraft = self.canAttachToDraft
         textView.onAttachmentItemProviders = self.onAttachmentItemProviders
         #if targetEnvironment(macCatalyst)
         textView.macReturnKeyOwner = self.macReturnKeyOwner
+        #else
+        textView.isComposerDisabled = self.isDisabled
         #endif
         // Replacing text or selection while an input method composes would cancel the composition.
         if textView.markedTextRange == nil {
@@ -100,9 +104,14 @@ struct AIChatComposerTextView: UIViewRepresentable {
 
         /// Runs on the next main-queue turn, outside the SwiftUI update, and reads the binding again.
         func scheduleFocusSync(textView: AIChatComposerUITextView) {
-            guard self.isFocusSettled(textView: textView) == false else { return }
+            guard textView.isComposerDisabled != self.parent.isDisabled
+                    || self.isFocusSettled(textView: textView) == false else { return }
             DispatchQueue.main.async { [weak self, weak textView] in
-                guard let self, let textView else { return }
+                guard let self, let textView, textView.delegate === self else { return }
+                #if targetEnvironment(macCatalyst)
+                // Disabling a focused Catalyst text view synchronously re-enters SwiftUI's responder graph.
+                textView.isComposerDisabled = self.parent.isDisabled
+                #endif
                 self.syncFocus(textView: textView)
             }
         }

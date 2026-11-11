@@ -72,12 +72,14 @@ import com.flashcardsopensourceapp.data.local.appicon.effectiveAppIcon
 import com.flashcardsopensourceapp.data.local.ai.remote.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.repository.billing.GooglePlayBillingRepository
 import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionConnector
-import com.flashcardsopensourceapp.app.widget.observeReviewWidgetContent
-import com.flashcardsopensourceapp.app.widget.updateReviewWidgetsOnContentChange
+import com.flashcardsopensourceapp.app.widget.ReviewWidgetPlacementStore
+import com.flashcardsopensourceapp.app.widget.reportReviewWidgetPlacementIfChanged
+import com.flashcardsopensourceapp.app.widget.updateWidgetsOnContentChange
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
@@ -160,6 +162,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.time.ZoneId
@@ -181,6 +185,11 @@ private class AppTechnicalErrorDetailsException(
 
 data class AppGuestCloudSession(
     val workspaceId: String
+)
+
+private data class PremiumAiUsageCacheEntry(
+    val workspaceId: String,
+    val usage: AiUsageStatus
 )
 
 private data class NotificationsWorkspaceObservation(
@@ -339,6 +348,9 @@ class AppGraph(
     )
     internal val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
+    private val reviewWidgetPlacementStore = ReviewWidgetPlacementStore(context = context)
+    // Serializes reports so two quick foregrounds cannot both see the same last report.
+    private val reviewWidgetPlacementReportMutex = Mutex()
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
     val notificationDeliveryGate = NotificationDeliveryGate()
@@ -442,6 +454,7 @@ class AppGraph(
             //   off this hook, where the `anonymous_id` has to carry through for
             //   `analytics.identity_links` to join the guest and the account at all.
             paywallStateStore.clearForIdentityReset()
+            reviewWidgetPlacementStore.clearForIdentityReset()
             analytics.reset()
             // Released here rather than at the control that set it. By the time this hook runs,
             // `CloudIdentityResetCoordinator` has already cleared the stored credentials — before
@@ -595,6 +608,7 @@ class AppGraph(
         )
     }
     private var isGooglePlayLifecycleBound = false
+    private val premiumAiUsageCache = MutableStateFlow<PremiumAiUsageCacheEntry?>(null)
     val googlePlaySubscriptionConnector: GooglePlaySubscriptionConnector by googlePlaySubscriptionConnectorDelegate
     val autoSyncEventRepository: AutoSyncEventRepository = localSyncRepository
     val autoSyncController = AutoSyncController(
@@ -981,11 +995,13 @@ class AppGraph(
                     if (!isGooglePlayLifecycleBound) {
                         ProcessLifecycleOwner.get().lifecycle.addObserver(googlePlaySubscriptionConnector)
                         isGooglePlayLifecycleBound = true
+                        googlePlaySubscriptionConnector.prefetchOffer()
                     }
                 }
                 // Last, like every other background account call: its request must not hold the
                 // splash, and reconciliation above may still replace the identity it would save for.
                 startAppLocaleSaveObserver()
+                prefetchPremiumAiUsage()
                 startupStateMutable.value = AppStartupState.Ready
             } catch (error: CancellationException) {
                 throw error
@@ -1048,9 +1064,9 @@ class AppGraph(
     private fun startReviewWidgetUpdates() {
         reviewWidgetUpdatesJob?.cancel()
         reviewWidgetUpdatesJob = appScope.launch {
-            updateReviewWidgetsOnContentChange(
+            updateWidgetsOnContentChange(
                 context = applicationContext,
-                content = observeReviewWidgetContent(appGraph = this@AppGraph)
+                appGraph = this@AppGraph
             )
         }
     }
@@ -1178,6 +1194,41 @@ class AppGraph(
         return AppGuestCloudSession(
             workspaceId = guestSession.workspaceId
         )
+    }
+
+    /** The AI usage last loaded for [workspaceId] in this process, so a paywall opens with its allowance. */
+    internal fun cachedPremiumAiUsage(workspaceId: String?): AiUsageStatus? {
+        return premiumAiUsageCache.value?.takeIf { entry -> entry.workspaceId == workspaceId }?.usage
+    }
+
+    internal suspend fun loadPremiumAiUsage(workspaceId: String?): AiUsageStatus {
+        val usage = aiChatRepository.loadAiUsage(workspaceId = workspaceId)
+        if (workspaceId != null) {
+            premiumAiUsageCache.value = PremiumAiUsageCacheEntry(workspaceId = workspaceId, usage = usage)
+        }
+        return usage
+    }
+
+    // Only for an existing cloud session: loading usage without one would create a guest session.
+    private fun prefetchPremiumAiUsage() {
+        val settings = cloudPreferencesStore.currentCloudSettings()
+        val workspaceId = settings.activeWorkspaceId ?: return
+        if (settings.cloudState != CloudAccountState.GUEST && settings.cloudState != CloudAccountState.LINKED) return
+        appScope.launch {
+            try {
+                loadPremiumAiUsage(workspaceId = workspaceId)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AiChatDiagnosticsLogger.warn(
+                    event = "premium_ai_usage_prefetch_failed",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "errorType" to error::class.java.name
+                    )
+                )
+            }
+        }
     }
 
     internal suspend fun loadPremiumPreviewAiUsage(): AiUsageStatus = cloudOperationCoordinator.runExclusive {
@@ -1323,6 +1374,18 @@ class AppGraph(
         )
         appScope.launch {
             syncLauncherAppIcon(context = applicationContext, appIcon = appIcon)
+        }
+    }
+
+    fun reportReviewWidgetPlacementInBackground() {
+        appScope.launch {
+            reviewWidgetPlacementReportMutex.withLock {
+                reportReviewWidgetPlacementIfChanged(
+                    context = applicationContext,
+                    store = reviewWidgetPlacementStore,
+                    analytics = analytics
+                )
+            }
         }
     }
 

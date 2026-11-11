@@ -20,6 +20,15 @@ const taCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "இந்த உலாவியால் மைக்ரோஃபோன் ஒலியை டிகோட் செய்ய முடியவில்லை ({{format}}).",
     recovery: "விருந்தினர் அணுகல் சரிபார்க்கப்படவில்லை. தற்காலிகச் சேமிப்பிலுள்ள அட்டைகளைப் படிக்க மட்டுமே முடியும். அசல் அமர்வை அல்லது இணைப்பை மீட்டமைத்து மீண்டும் முயலவும்.",
     cleanupFailed: "உள்நுழைவு வெற்றியடைந்தது, ஆனால் மாதிரி அட்டையை நீக்க முடியவில்லை.",
+    browserCheck: {
+      title: "உங்கள் உலாவி சரிபார்க்கப்படுகிறது",
+      description: "விருந்தினர் பணியிடம் திறப்பதற்கு முன், இது வழக்கமான உலாவி என்பதை Cloudflare உறுதிசெய்கிறது. பொதுவாக இதற்குச் சில விநாடிகள் ஆகும்.",
+      loading: "சரிபார்ப்பு ஏற்றப்படுகிறது...",
+      verifying: "உங்கள் பணியிடம் திறக்கப்படுகிறது...",
+      loadFailed: "சரிபார்ப்பை ஏற்ற முடியவில்லை. இணைப்பைச் சரிபார்த்து, உள்ளடக்கத் தடுப்பானில் challenges.cloudflare.com ஐ அனுமதித்து, மீண்டும் முயலவும்.",
+      failed: "சரிபார்ப்பில் தேர்ச்சி பெறவில்லை. மீண்டும் முயலவும் அல்லது உள்நுழையவும்.",
+      rejected: "சரிபார்ப்பு ஏற்கப்படவில்லை. அதை இன்னொரு முறை முடிக்கவும்.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const taCatalog: TranslationCatalog = {
     loading: "ஏற்றுகிறது...",
     never: "ஒருபோதும் இல்லை",
     newItem: "புதியது",
+    image: "படம்",
     noBackText: "பின்புற உரை இல்லை",
     noTags: "குறிச்சொற்கள் இல்லை",
     notRevoked: "ரத்துசெய்யப்படவில்லை",
@@ -427,8 +437,12 @@ const taCatalog: TranslationCatalog = {
       offlineEmpty: "ஆஃப்லைனில் தொடர்ச்சித் தரவரிசை கிடைக்காது. தரநிலைகளைப் பார்க்க மீண்டும் இணையவும்.",
       unavailable: "தொடர்ச்சித் தரவரிசை இப்போது கிடைக்கவில்லை. பின்னர் பார்க்கவும்.",
       dayLabels: {
-        one: "நாள்",
-        other: "நாட்கள்",
+        zero: "{{count}} நாட்கள்",
+        one: "{{count}} நாள்",
+        two: "{{count}} நாட்கள்",
+        few: "{{count}} நாட்கள்",
+        many: "{{count}} நாட்கள்",
+        other: "{{count}} நாட்கள்",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const taCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "அமர்வை மீட்டெடுக்கிறது. சிறிது நேரத்தில் மீண்டும் முயலவும்.",
     sessionUnavailable: "அமர்வு கிடைக்கவில்லை",
     syncing: "ஒத்திசைக்கிறது...",
+    syncFailed: "ஒத்திசைவு தோல்வியடைந்தது",
     workspaceUnavailable: "பணியிடம் கிடைக்கவில்லை",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const taCatalog: TranslationCatalog = {
       yourCards: "உங்கள் அட்டைகள்",
       addCards: "அட்டைகளைச் சேர்க்கவும்",
     },
-    cards: {
-      description: "இந்தப் பணியிடத்தில் உள்ள எல்லா அட்டைகளும்.",
-    },
-    tags: {
-      description: "குறைந்தது ஒரு அட்டையில் பயன்படுத்தப்பட்ட எல்லா குறிச்சொற்களும்.",
-    },
-    decks: {
-      description: "கவனம் செலுத்திய மீள்பயிற்சிக்காகச் சேமித்த அட்டை வடிகட்டிகள்.",
-    },
     deckCatalog: {
       title: "தொகுப்புப் பட்டியல்",
       description: "படிப்பதற்கான இலவச, தயாரான தொகுப்புகள்.",
@@ -860,16 +866,18 @@ const taCatalog: TranslationCatalog = {
     note: "இந்த அமைப்புகள் எதிர்கால அட்டவணையிடலை மட்டுமே பாதிக்கும். தற்போதைய அட்டை நிலையே அதிகாரப்பூர்வமாக இருக்கும்.",
   },
   workspaceExport: {
-    title: "ஏற்றுமதி",
+    title: "Nibomo தொகுப்பை ஏற்றுமதி செய்",
+    ankiTitle: "Anki அட்டைத் தொகுப்பை ஏற்றுமதி செய்",
     subtitle: "இந்தப் பணியிடத்திற்கான எடுத்துச் செல்லக்கூடிய தொகுப்பைப் பதிவிறக்கவும்.",
     workspaceUnavailable: "பணியிடம் கிடைக்கவில்லை",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "அட்டைத் தொகுப்பின் பெயர்",
+    ankiEmptySelection: "ஏற்றுமதி செய்ய அட்டைகள் இல்லை. தேர்ந்தெடுத்த குறிச்சொற்களை மாற்றவும் அல்லது அட்டைகளைச் சேர்க்கவும்.",
     packageDescription: "பதிவிறக்கும் முன் செயலில் உள்ள அட்டைகள், மேல்தரவு, குறிச்சொற்கள் மற்றும் குறிப்பிடப்பட்ட ஊடகத்தை முன்னோட்டமிடவும்.",
-    packageExportSuccess: "flashcards.zip பதிவிறக்கம் தொடங்கியது.",
+    packageExportSuccess: "{{filename}} பதிவிறக்கம் தொடங்கியது.",
     packageExporting: "பதிவிறக்குகிறது...",
     packagePreviewing: "முன்னோட்டமிடுகிறது...",
     packageExportPreviewButton: "ஏற்றுமதியை முன்னோட்டமிடு",
-    packageExportConfirmButton: "flashcards.zip பதிவிறக்கு",
+    packageExportConfirmButton: "{{filename}} பதிவிறக்கு",
     packageExportPreviewRequired: "பதிவிறக்கும் முன் இந்த ஏற்றுமதியை முன்னோட்டமிடவும்.",
     previewCardsLabel: "அட்டைகள்",
     previewReferencedMediaLabel: "குறிப்பிடப்பட்ட ஊடகம்",
@@ -1124,6 +1132,10 @@ const taCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI அரட்டையில் அட்டையைத் திற: {{side}}",
     repetitionBadgeAriaLabel: "பயிற்சி முறைகள்: {{value}}",
     repetitionBadgeNew: "புதியது",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "மேலும் குறிச்சொற்கள்: {{count}}",
+    },
     empty: {
       noCardsBody: "நீங்கள் இன்னும் அட்டைகளை உருவாக்கவில்லை. படிக்கத் தொடங்க முதல் அட்டையைச் சேர்க்கவும்.",
       noCardsTitle: "இன்னும் அட்டைகள் இல்லை",
@@ -1135,16 +1147,25 @@ const taCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "சூத்திரத்தைக் காட்ட முடியவில்லை.",
       schedulerUnavailable: "பணியிட அட்டவணையாளர் அமைப்புகள் ஏற்றப்படவில்லை",
+      storageFull: "இந்தச் சாதனத்தில் சிறிது சேமிப்பிடத்தைக் காலி செய்த பின், அட்டையை மீண்டும் மதிப்பிடுங்கள்.",
     },
     leaderboardShortcut: {
       ariaLabel: "தரவரிசையைத் திற",
     },
     progressBadge: {
-      ariaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}} நாட்கள். {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}} நாட்கள். {{todayStatus}}.",
+      ariaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "மீள்பயிற்சித் தொடர்ச்சி {{streak}}. {{todayStatus}}.",
       freezeBank: "உறைவுச் சேமிப்பு {{capacity}} இல் {{available}}",
       notReviewedToday: "இன்று மீள்பயிற்சி செய்யவில்லை",
       reviewedToday: "இன்று மீள்பயிற்சி செய்யப்பட்டது",
+      streakDayCount: {
+        zero: "{{count}} நாட்கள்",
+        one: "{{count}} நாள்",
+        two: "{{count}} நாட்கள்",
+        few: "{{count}} நாட்கள்",
+        many: "{{count}} நாட்கள்",
+        other: "{{count}} நாட்கள்",
+      },
       title: "தொடர்ச்சி",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const taCatalog: TranslationCatalog = {
       snapshot: "சமீபத்திய உள்ளூர் ஸ்னாப்ஷாட்டைக் காட்டுகிறது...",
     },
     media: {
-      privateImage: "தனிப்பட்ட படம்",
-      privateAttachment: "தனிப்பட்ட இணைப்பு",
       attachmentLabel: "இணைப்பு",
       audioLabel: "ஒலி இணைப்பு",
       imageAlt: "நிர்வகிக்கப்படும் படம்",
@@ -1348,23 +1367,14 @@ const taCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} உரியவை",
+      toStudy: "{{count}} படிக்க",
       total: "மொத்தம் {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} புள்ளிவிவரங்கள்",
     newDeck: "புதிய தொகுப்பு",
     statLabels: {
       cards: {
         one: "அட்டை",
         other: "அட்டைகள்",
-      },
-      new: {
-        one: "புதியது",
-        other: "புதியவை",
-      },
-      reviewed: {
-        one: "மீள்பயிற்சி செய்தது",
-        other: "மீள்பயிற்சி செய்தவை",
       },
     },
     subtitle: "தொகுப்புகள் திறமையான வடிகட்டிகள்; கொள்கலன்கள் அல்ல. அவை குறிச்சொற்களின்படி அட்டைகளைப் பொருத்துகின்றன.",
@@ -1400,10 +1410,10 @@ const taCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "அட்டைகள்",
-      due: "உரியவை",
       new: "புதியவை",
       summary: "சுருக்கம்",
       title: "தொகுப்பு விதிகள்",
+      toStudy: "படிக்க",
     },
     subtitle: "தொகுப்பு விதிகள், பொருந்தும் அட்டைகள் மற்றும் மீள்பயிற்சி நுழைவிடத்தைப் பரிசோதிக்கவும்.",
     subtitles: {

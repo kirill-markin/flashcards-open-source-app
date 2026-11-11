@@ -318,8 +318,10 @@
   font-size: 16px;
 }
 
+/* minmax(0, …) lets the column shrink below the cards' text width, so long names and filters wrap instead of widening the list. */
 .deck-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -346,18 +348,27 @@
 
 .deck-card-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  gap: 4px 12px;
+  align-items: center;
 }
 
+/* The 40% basis is the narrowest name kept beside the counts; below it the counts wrap under the name. */
 .deck-card-title {
+  flex: 1 1 40%;
+  min-width: 0;
   margin: 0;
   font-size: 30px;
-  line-height: 1;
+  line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.05em;
+  overflow-wrap: anywhere;
+}
+
+.deck-card-counts {
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .deck-card-summary {
@@ -367,31 +378,9 @@
   line-height: 1.6;
 }
 
-.deck-card-stats {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-
-.deck-card-stat {
-  display: inline-flex;
-  gap: 6px;
-  align-items: baseline;
-}
-
-.deck-card-stat-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  color: var(--text);
-}
-
-.deck-card-stat-label {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+.deck-card .deck-card-summary {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
 }
 
 .deck-card-empty {

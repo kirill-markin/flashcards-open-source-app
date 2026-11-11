@@ -44,7 +44,6 @@ import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeade
 import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardResolvedContentTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardSectionTag
 import java.text.NumberFormat
-import java.util.Locale
 
 @Composable
 internal fun StreakLeaderboardSectionCard(
@@ -210,11 +209,7 @@ private fun ProgressStreakLeaderboardReadyContent(
     onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit
 ) {
     val configuration = LocalConfiguration.current
-    val locale = if (configuration.locales.isEmpty) {
-        Locale.getDefault()
-    } else {
-        configuration.locales[0]
-    }
+    val locale = configuration.locales[0]
     val countFormatter = remember(locale) {
         NumberFormat.getIntegerInstance(locale)
     }

@@ -230,7 +230,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
 }
 
 export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): ReactElement {
-  const { locale, t, formatNumber } = useI18n();
+  const { messages, t, formatPluralMessage } = useI18n();
   const {
     sourceState,
     canRenderServerBase,
@@ -249,8 +249,8 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
     : t("progressScreen.leaderboard.updatedAt", {
       duration: formatProgressLeaderboardElapsedDuration(
         getProgressLeaderboardElapsedDuration(leaderboardWindow.snapshotGeneratedAt, new Date()),
-        locale,
-        formatNumber,
+        messages,
+        formatPluralMessage,
         t,
       ),
     });

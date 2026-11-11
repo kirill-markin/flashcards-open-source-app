@@ -150,6 +150,7 @@ type QueuedWorkDiscardOptions = Readonly<{
 
 type AnalyticsDeliveryRuntime = Readonly<{
   isAnalyticsEnabledForCurrentRuntime: () => boolean;
+  isProductAnalyticsCollecting: () => boolean;
   enqueue: (event: AnalyticsEvent, surface: AnalyticsSurface | null) => void;
   reportIdentityFreeEvent: (eventName: IdentityFreeAnalyticsEventName) => void;
   applyAnalyticsConsentGrant: () => Promise<boolean>;
@@ -2548,6 +2549,7 @@ export function createAnalyticsDeliveryRuntime(
 
   return {
     isAnalyticsEnabledForCurrentRuntime,
+    isProductAnalyticsCollecting,
     enqueue,
     reportIdentityFreeEvent,
     applyAnalyticsConsentGrant,

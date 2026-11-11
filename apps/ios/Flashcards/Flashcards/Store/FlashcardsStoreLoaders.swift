@@ -167,6 +167,8 @@ func loadReviewDueBadgeSnapshotInBackground(
 #if !targetEnvironment(macCatalyst)
 struct WidgetSnapshotDatabaseRead: Sendable {
     let upcomingDueAt: [Date]
+    /// One count per interval between consecutive `upcomingDueDayBoundaries`.
+    let upcomingDueDayCounts: [Int]
     let reviewHeadCard: Card?
 }
 
@@ -177,6 +179,7 @@ func loadWidgetSnapshotDatabaseReadInBackground(
     reviewFilter: ReviewFilter,
     isReviewCardPresented: Bool,
     upcomingDueLimit: Int,
+    upcomingDueDayBoundaries: [Date],
     now: Date
 ) async throws -> WidgetSnapshotDatabaseRead {
     try await Task.detached(priority: .utility) {
@@ -204,6 +207,11 @@ func loadWidgetSnapshotDatabaseReadInBackground(
                     reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
                     now: now,
                     limit: upcomingDueLimit
+                ),
+                upcomingDueDayCounts: try database.loadReviewDueCounts(
+                    workspaceId: workspaceId,
+                    reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+                    intervalBoundaries: upcomingDueDayBoundaries
                 ),
                 reviewHeadCard: reviewHeadCard
             )

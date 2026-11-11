@@ -1,6 +1,5 @@
 import SwiftUI
 
-private let progressReviewCardsStringsTableName: String = "ReviewCards"
 private let progressStreakBadgeSize: CGFloat = 34
 private let progressStreakBadgeHorizontalPadding: CGFloat = 8
 private let progressStreakCalendarColumnSpacing: CGFloat = 10
@@ -184,28 +183,7 @@ private struct ProgressStreakSummaryBadge: View {
     }
 
     private var accessibilityLabel: String {
-        let localizedFormat: String
-        if self.badgeState.hasReviewedToday {
-            localizedFormat = String(
-                localized: "review.progress_badge.accessibility.reviewed_today",
-                defaultValue: "Review streak %@ days. Reviewed today.",
-                table: progressReviewCardsStringsTableName,
-                comment: "Accessibility label for the review progress badge when the user has reviewed today"
-            )
-        } else {
-            localizedFormat = String(
-                localized: "review.progress_badge.accessibility.not_reviewed_today",
-                defaultValue: "Review streak %@ days. Not reviewed today.",
-                table: progressReviewCardsStringsTableName,
-                comment: "Accessibility label for the review progress badge when the user has not reviewed today"
-            )
-        }
-
-        return String(
-            format: localizedFormat,
-            locale: Locale.current,
-            self.badgeState.streakDays.formatted()
-        )
+        formatReviewProgressBadgeAccessibilityLabel(badgeState: self.badgeState)
     }
 }
 

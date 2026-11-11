@@ -20,6 +20,15 @@ const fiCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Tämä selain ei voinut purkaa mikrofonin ääntä ({{format}}).",
     recovery: "Vieraskäyttöä ei ole vahvistettu. Välimuistin kortit ovat vain luettavissa. Palauta alkuperäinen istunto tai yhteys ja yritä uudelleen.",
     cleanupFailed: "Kirjautuminen onnistui, mutta esittelykorttia ei voitu poistaa.",
+    browserCheck: {
+      title: "Selaintasi tarkistetaan",
+      description: "Ennen vierastyötilan avaamista Cloudflare varmistaa, että kyseessä on tavallinen selain. Tämä kestää yleensä muutaman sekunnin.",
+      loading: "Ladataan tarkistusta...",
+      verifying: "Avataan työtilaasi...",
+      loadFailed: "Tarkistusta ei voitu ladata. Tarkista yhteys, salli challenges.cloudflare.com sisällönestossa ja yritä uudelleen.",
+      failed: "Tarkistus ei mennyt läpi. Yritä uudelleen tai kirjaudu sisään.",
+      rejected: "Tarkistusta ei hyväksytty. Suorita se vielä kerran.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const fiCatalog: TranslationCatalog = {
     loading: "Ladataan...",
     never: "Ei koskaan",
     newItem: "uusi",
+    image: "Kuva",
     noBackText: "Ei kääntöpuolen tekstiä",
     noTags: "Ei tunnisteita",
     notRevoked: "Ei mitätöity",
@@ -427,8 +437,12 @@ const fiCatalog: TranslationCatalog = {
       offlineEmpty: "Päiväputkien tulostaulukko ei ole käytettävissä offline-tilassa. Yhdistä verkkoon, niin näet sijoitukset.",
       unavailable: "Päiväputkien tulostaulukko ei ole juuri nyt käytettävissä. Tarkista myöhemmin uudelleen.",
       dayLabels: {
-        one: "päivä",
-        other: "päivää",
+        zero: "{{count}} päivää",
+        one: "{{count}} päivä",
+        two: "{{count}} päivää",
+        few: "{{count}} päivää",
+        many: "{{count}} päivää",
+        other: "{{count}} päivää",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const fiCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Palautetaan istuntoa. Yritä hetken kuluttua uudelleen.",
     sessionUnavailable: "Istunto ei ole käytettävissä",
     syncing: "Synkronoidaan...",
+    syncFailed: "Synkronointi epäonnistui",
     workspaceUnavailable: "Työtila ei käytettävissä",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const fiCatalog: TranslationCatalog = {
       yourCards: "Korttisi",
       addCards: "Lisää kortteja",
     },
-    cards: {
-      description: "Kaikki tämän työtilan kortit.",
-    },
-    tags: {
-      description: "Kaikki tunnisteet, joita on käytetty vähintään yhdessä kortissa.",
-    },
-    decks: {
-      description: "Tallennetut korttisuodattimet keskittyneeseen kertaukseen.",
-    },
     deckCatalog: {
       title: "Pakkakatalogi",
       description: "Ilmaisia valmiita pakkoja opiskeluun.",
@@ -860,16 +866,18 @@ const fiCatalog: TranslationCatalog = {
     note: "Nämä asetukset vaikuttavat vain tulevaan ajastukseen. Korttien nykyinen tila säilyy määräävänä.",
   },
   workspaceExport: {
-    title: "Vienti",
+    title: "Vie Nibomo-paketti",
+    ankiTitle: "Vie Anki-pakka",
     subtitle: "Lataa siirrettävä paketti tästä työtilasta.",
     workspaceUnavailable: "Työtila ei käytettävissä",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Pakan nimi",
+    ankiEmptySelection: "Ei vietäviä kortteja. Muuta tunnistevalintaa tai lisää kortteja.",
     packageDescription: "Esikatsele aktiiviset kortit, metatiedot, tunnisteet ja viitattu media ennen lataamista.",
-    packageExportSuccess: "flashcards.zip-tiedoston lataus alkoi.",
+    packageExportSuccess: "{{filename}}-tiedoston lataus alkoi.",
     packageExporting: "Ladataan...",
     packagePreviewing: "Esikatsellaan...",
     packageExportPreviewButton: "Esikatsele vienti",
-    packageExportConfirmButton: "Lataa flashcards.zip",
+    packageExportConfirmButton: "Lataa {{filename}}",
     packageExportPreviewRequired: "Esikatsele tämä vienti ennen lataamista.",
     previewCardsLabel: "Kortit",
     previewReferencedMediaLabel: "Viitattu media",
@@ -1124,6 +1132,10 @@ const fiCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Avaa kortin puoli ({{side}}) tekoälykeskustelussa",
     repetitionBadgeAriaLabel: "Toistot: {{value}}",
     repetitionBadgeNew: "Uusi",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Lisää tunnisteita: {{count}}",
+    },
     empty: {
       noCardsBody: "Et ole vielä luonut kortteja. Aloita opiskelu lisäämällä ensimmäinen korttisi.",
       noCardsTitle: "Ei vielä kortteja",
@@ -1135,16 +1147,25 @@ const fiCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Kaavaa ei voitu näyttää.",
       schedulerUnavailable: "Työtilan ajastimen asetuksia ei ole ladattu",
+      storageFull: "Vapauta tallennustilaa tällä laitteella ja arvioi kortti uudelleen.",
     },
     leaderboardShortcut: {
       ariaLabel: "Avaa tulostaulukko",
     },
     progressBadge: {
-      ariaLabel: "Päiväputki {{streak}} päivää. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Päiväputki {{streak}} päivää. {{todayStatus}}.",
+      ariaLabel: "Päiväputki {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Päiväputki {{streak}}. {{todayStatus}}.",
       freezeBank: "Suojia käytettävissä {{available}}/{{capacity}}",
       notReviewedToday: "Ei kerrattu tänään",
       reviewedToday: "Kerrattu tänään",
+      streakDayCount: {
+        zero: "{{count}} päivää",
+        one: "{{count}} päivä",
+        two: "{{count}} päivää",
+        few: "{{count}} päivää",
+        many: "{{count}} päivää",
+        other: "{{count}} päivää",
+      },
       title: "Päiväputki",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const fiCatalog: TranslationCatalog = {
       snapshot: "Näytetään tuore paikallinen tilannekuva...",
     },
     media: {
-      privateImage: "Yksityinen kuva",
-      privateAttachment: "Yksityinen liite",
       attachmentLabel: "Liite",
       audioLabel: "Ääniliite",
       imageAlt: "Hallittu kuva",
@@ -1348,23 +1367,14 @@ const fiCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} erääntynyttä",
+      toStudy: "{{count}} opiskeltavaa",
       total: "{{count}} yhteensä",
     },
-    emptyStatsAriaLabel: "Pakan {{deckName}} tilastot",
     newDeck: "Uusi pakka",
     statLabels: {
       cards: {
         one: "kortti",
         other: "korttia",
-      },
-      new: {
-        one: "uusi",
-        other: "uutta",
-      },
-      reviewed: {
-        one: "kerrattu",
-        other: "kerrattua",
       },
     },
     subtitle: "Pakat ovat älysuodattimia, eivät säiliöitä. Ne poimivat kortit tunnisteiden perusteella.",
@@ -1400,10 +1410,10 @@ const fiCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kortit",
-      due: "Erääntyneet",
       new: "Uudet",
       summary: "Yhteenveto",
       title: "Pakan säännöt",
+      toStudy: "Opiskeltavaa",
     },
     subtitle: "Tarkastele pakan säännöt, vastaavat kortit ja kertauksen aloituskohta.",
     subtitles: {

@@ -95,6 +95,10 @@ struct CloudCredentialRecoveryGateView: View {
         .onAppear {
             // The gate replaces the whole app root, so it is a screen of its own rather than
             // something over a tab, and while it is up the tab root does not exist to report one.
+            // A gate up at launch is reported by the first scene presentation, after the cold open.
+            guard Analytics.isColdOpenRecorded() else {
+                return
+            }
             Analytics.trackScreenViewed(.credentialRecovery)
         }
         .onDisappear {

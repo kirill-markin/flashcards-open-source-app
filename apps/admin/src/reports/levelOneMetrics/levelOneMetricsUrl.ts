@@ -1,14 +1,22 @@
-import type { ReviewEventPlatform } from "../../adminApi";
-import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
+import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
+import type {
+  AnalyticsDateRange,
+  AppStoreProductPageFilterState,
+  SiteVisitorFilterState,
+} from "../../filters/analyticsFilters";
 import {
+  parseAppStoreProductPageFilterState,
   parseAppVersions,
   parseDateRange,
+  parseEventDeviceTypes,
   parseEventPlatforms,
   parseProvisionalDateRange,
   parseSiteVisitorFilterState,
   readSingleParam,
+  setAppStoreProductPageFilterParams,
   setAppVersionsParam,
   setDateRangeParams,
+  setEventDeviceTypesParam,
   setEventPlatformsParam,
   setSiteVisitorFilterParams,
 } from "../../filters/analyticsFiltersUrl";
@@ -23,13 +31,20 @@ export type LevelOneMetricsSelection = Readonly<{
   period: ReportPeriod;
   /** Applied on the main page and the charted Details pages, and carried by the Who saw us dataset pages. */
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  /** Applied on the Who opened the app and Who studied charts and Details pages, and carried like `eventPlatforms`. */
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   /** Exact versions, `[]` for every version; carried and applied like `eventPlatforms`. */
   appVersions: ReadonlyArray<string>;
   /** Applied on the Web engaged page only, and carried by every Level 1 page so a move keeps them. */
   siteFilters: SiteVisitorFilterState;
+  /** Carried by every Level 1 page like `siteFilters`. */
+  appStoreFilters: AppStoreProductPageFilterState;
+  /** Apple's `page_title` picked on the Product pages page, `null` for its default; carried like `siteFilters`. */
+  appStoreListing: string | null;
 }>;
 
 const periodParamName = "period";
+const appStoreListingParamName = "app-store-listing";
 
 const defaultLevelOneMetricsPeriod: ReportPeriod = "day";
 
@@ -37,6 +52,11 @@ function parsePeriod(searchParams: URLSearchParams): ReportPeriod {
   const periodParam = readSingleParam(searchParams, periodParamName);
   const period = periodParam === undefined ? undefined : findReportPeriod(periodParam);
   return period ?? defaultLevelOneMetricsPeriod;
+}
+
+function parseAppStoreListing(searchParams: URLSearchParams): string | null {
+  const listing = readSingleParam(searchParams, appStoreListingParamName);
+  return listing === undefined || listing === "" ? null : listing;
 }
 
 export function parseLevelOneMetricsSelection(
@@ -48,8 +68,11 @@ export function parseLevelOneMetricsSelection(
     dateRange: parseDateRange(searchParams, availableRange, defaultRange),
     period: parsePeriod(searchParams),
     eventPlatforms: parseEventPlatforms(searchParams),
+    eventDeviceTypes: parseEventDeviceTypes(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
+    appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
+    appStoreListing: parseAppStoreListing(searchParams),
   };
 }
 
@@ -63,8 +86,11 @@ export function parseProvisionalLevelOneMetricsSelection(
     dateRange: parseProvisionalDateRange(searchParams, todayUtc) ?? provisionalDefaultRange,
     period: parsePeriod(searchParams),
     eventPlatforms: parseEventPlatforms(searchParams),
+    eventDeviceTypes: parseEventDeviceTypes(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
+    appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
+    appStoreListing: parseAppStoreListing(searchParams),
   };
 }
 
@@ -76,10 +102,15 @@ export function buildLevelOneMetricsSearch(
   const searchParams = new URLSearchParams();
   setDateRangeParams(searchParams, selection.dateRange, defaultRange);
   setEventPlatformsParam(searchParams, selection.eventPlatforms);
+  setEventDeviceTypesParam(searchParams, selection.eventDeviceTypes);
   setAppVersionsParam(searchParams, selection.appVersions);
   setSiteVisitorFilterParams(searchParams, selection.siteFilters);
+  setAppStoreProductPageFilterParams(searchParams, selection.appStoreFilters);
   if (selection.period !== defaultLevelOneMetricsPeriod) {
     searchParams.set(periodParamName, selection.period);
+  }
+  if (selection.appStoreListing !== null) {
+    searchParams.set(appStoreListingParamName, selection.appStoreListing);
   }
   const serializedParams = searchParams.toString();
   return serializedParams === "" ? "" : `?${serializedParams}`;

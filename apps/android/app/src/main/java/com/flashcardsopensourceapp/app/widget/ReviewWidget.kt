@@ -3,8 +3,6 @@ package com.flashcardsopensourceapp.app.widget
 import android.content.Context
 import android.text.format.DateUtils
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,47 +17,29 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
 import java.util.Calendar
 
 private val reviewWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
 private val reviewWidgetMediumSize = DpSize(width = 220.dp, height = 100.dp)
 private val reviewWidgetLargeSize = DpSize(width = 220.dp, height = 220.dp)
-private val reviewWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
+internal val reviewWidgetSizes: Set<DpSize> = setOf(reviewWidgetSmallSize, reviewWidgetMediumSize, reviewWidgetLargeSize)
 
 class ReviewWidget : GlanceAppWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(
-        sizes = setOf(reviewWidgetSmallSize, reviewWidgetMediumSize, reviewWidgetLargeSize)
-    )
+    override val sizeMode: SizeMode = SizeMode.Responsive(sizes = reviewWidgetSizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeCurrentGraphReviewWidgetContent(
-            application = context.applicationContext as FlashcardsApplication
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = reviewWidgetColors) {
-                ReviewWidgetBody(content = content, size = reviewWidgetSize(size = LocalSize.current))
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeReviewWidgetContent) { content ->
+            ReviewWidgetBody(content = content, size = reviewWidgetSize(size = LocalSize.current))
         }
     }
 }
@@ -68,17 +48,7 @@ class ReviewWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ReviewWidget()
 }
 
-/** Follows graph replacement (sign-out, reset) and waits while no graph is published. */
-@OptIn(ExperimentalCoroutinesApi::class)
-private fun observeCurrentGraphReviewWidgetContent(
-    application: FlashcardsApplication
-): Flow<ReviewWidgetContent?> {
-    return application.appGraphState.flatMapLatest { appGraph ->
-        if (appGraph == null) emptyFlow() else observeReviewWidgetContent(appGraph = appGraph)
-    }
-}
-
-private fun reviewWidgetSize(size: DpSize): ReviewWidgetSize {
+internal fun reviewWidgetSize(size: DpSize): ReviewWidgetSize {
     return when (size) {
         reviewWidgetLargeSize -> ReviewWidgetSize.LARGE
         reviewWidgetMediumSize -> ReviewWidgetSize.MEDIUM
@@ -97,10 +67,11 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
         backgroundColor = GlanceTheme.colors.surface,
         modifier = GlanceModifier.clickable(
             onClick = actionStartActivity(
-                intent = ReviewWidgetTapContract.makeIntent(
+                intent = ReviewWidgetTapContract.makeOpenReviewIntent(
                     context = context,
                     workspaceId = content?.workspaceId,
                     size = size,
+                    kind = WidgetKind.REVIEW,
                     cardId = shownCard?.cardId
                 )
             )
@@ -122,7 +93,7 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
 }
 
 @Composable
-private fun ColumnScope.ReviewWidgetOpenApp() {
+internal fun ColumnScope.ReviewWidgetOpenApp() {
     val context = LocalContext.current
     Text(
         text = context.getString(R.string.app_name),
@@ -216,7 +187,7 @@ private fun secondaryStyle(): TextStyle {
 }
 
 /** Time in the user's 12/24-hour setting, with the date when not today and the year when not this year. */
-private fun formatReviewWidgetDueTime(context: Context, dueAtMillis: Long): String {
+internal fun formatReviewWidgetDueTime(context: Context, dueAtMillis: Long): String {
     if (DateUtils.isToday(dueAtMillis)) {
         return DateUtils.formatDateTime(context, dueAtMillis, DateUtils.FORMAT_SHOW_TIME)
     }

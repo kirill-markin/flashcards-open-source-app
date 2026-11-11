@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.content.MarkdownPreviewText
 import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
@@ -398,8 +399,8 @@ private fun CardContextContentCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    MathText(
-                        text = frontText,
+                    MarkdownPreviewText(
+                        markdown = frontText,
                         formatText = cardAttachmentTextFormatter(),
                         maxLines = 2,
                         style = MaterialTheme.typography.titleSmall,

@@ -20,6 +20,15 @@ const heCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "הדפדפן הזה לא הצליח לפענח את השמע מהמיקרופון ({{format}}).",
     recovery: "גישת האורח לא אומתה. הכרטיסיות שבמטמון זמינות לקריאה בלבד. יש לשחזר את ההפעלה המקורית או את החיבור ולנסות שוב.",
     cleanupFailed: "ההתחברות הצליחה, אך לא ניתן היה להסיר את כרטיסיית ההדגמה.",
+    browserCheck: {
+      title: "בודקים את הדפדפן שלך",
+      description: "לפני שסביבת העבודה לאורחים נפתחת, Cloudflare מוודא שזה דפדפן רגיל. בדרך כלל זה לוקח כמה שניות.",
+      loading: "טוען את הבדיקה...",
+      verifying: "פותח את סביבת העבודה שלך...",
+      loadFailed: "לא ניתן היה לטעון את הבדיקה. כדאי לבדוק את החיבור, לאפשר את challenges.cloudflare.com בחוסם התוכן ולנסות שוב.",
+      failed: "הבדיקה לא עברה. אפשר לנסות שוב או להתחבר במקום זאת.",
+      rejected: "הבדיקה לא התקבלה. יש להשלים אותה פעם נוספת.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const heCatalog: TranslationCatalog = {
     loading: "טוען...",
     never: "אף פעם",
     newItem: "חדש",
+    image: "תמונה",
     noBackText: "אין טקסט בצד האחורי",
     noTags: "אין תגיות",
     notRevoked: "לא בוטל",
@@ -427,8 +437,12 @@ const heCatalog: TranslationCatalog = {
       offlineEmpty: "טבלת המובילים לפי רצף אינה זמינה במצב לא מקוון. התחבר מחדש כדי לראות דירוגים.",
       unavailable: "טבלת המובילים לפי רצף אינה זמינה כרגע. נסה שוב מאוחר יותר.",
       dayLabels: {
-        one: "יום",
-        other: "ימים",
+        zero: "{{count}} ימים",
+        one: "{{count}} יום",
+        two: "יומיים",
+        few: "{{count}} ימים",
+        many: "{{count}} ימים",
+        other: "{{count}} ימים",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const heCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "משחזר הפעלה. נסה שוב בעוד רגע.",
     sessionUnavailable: "ההפעלה אינה זמינה",
     syncing: "מסנכרן...",
+    syncFailed: "הסנכרון נכשל",
     workspaceUnavailable: "סביבת העבודה אינה זמינה",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const heCatalog: TranslationCatalog = {
       yourCards: "הכרטיסים שלך",
       addCards: "הוספת כרטיסים",
     },
-    cards: {
-      description: "כל הכרטיסים בסביבת העבודה הזו.",
-    },
-    tags: {
-      description: "כל התגיות שמשמשות לפחות בכרטיס אחד.",
-    },
-    decks: {
-      description: "מסנני כרטיסים שמורים לחזרה ממוקדת.",
-    },
     deckCatalog: {
       title: "קטלוג חפיסות",
       description: "חפיסות מוכנות בחינם ללמידה.",
@@ -860,16 +866,18 @@ const heCatalog: TranslationCatalog = {
     note: "ההגדרות האלה משפיעות רק על תזמון עתידי. מצב הכרטיסים הקיים נשאר המקור הקובע.",
   },
   workspaceExport: {
-    title: "ייצוא",
+    title: "ייצוא חבילת Nibomo",
+    ankiTitle: "ייצוא חפיסת Anki",
     subtitle: "הורד חבילה ניידת של סביבת העבודה הזו.",
     workspaceUnavailable: "סביבת העבודה אינה זמינה",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "שם החפיסה",
+    ankiEmptySelection: "אין כרטיסים לייצוא. אפשר לשנות את התגיות שנבחרו או להוסיף כרטיסים.",
     packageDescription: "צפה בכרטיסים הפעילים, במטא-נתונים, בתגיות ובמדיה המקושרת לפני ההורדה.",
-    packageExportSuccess: "ההורדה של flashcards.zip החלה.",
+    packageExportSuccess: "ההורדה של {{filename}} החלה.",
     packageExporting: "מוריד...",
     packagePreviewing: "מכין תצוגה מקדימה...",
     packageExportPreviewButton: "תצוגה מקדימה של הייצוא",
-    packageExportConfirmButton: "הורדת flashcards.zip",
+    packageExportConfirmButton: "הורדת {{filename}}",
     packageExportPreviewRequired: "צפה בתצוגה מקדימה של הייצוא לפני ההורדה.",
     previewCardsLabel: "כרטיסים",
     previewReferencedMediaLabel: "מדיה מקושרת",
@@ -1124,6 +1132,10 @@ const heCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "פתח את {{side}} של הכרטיס בצ'אט AI",
     repetitionBadgeAriaLabel: "חזרות: {{value}}",
     repetitionBadgeNew: "חדש",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "תגיות נוספות: {{count}}",
+    },
     empty: {
       noCardsBody: "עדיין לא יצרת כרטיסים. הוסף את הכרטיס הראשון שלך כדי להתחיל ללמוד.",
       noCardsTitle: "אין עדיין כרטיסים",
@@ -1135,16 +1147,25 @@ const heCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "לא ניתן היה להציג את הנוסחה.",
       schedulerUnavailable: "הגדרות המתזמן של סביבת העבודה לא נטענו",
+      storageFull: "פנו שטח אחסון במכשיר הזה, ואז דרגו שוב את הכרטיס.",
     },
     leaderboardShortcut: {
       ariaLabel: "פתיחת טבלת המובילים",
     },
     progressBadge: {
-      ariaLabel: "רצף חזרות {{streak}} ימים. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "רצף חזרות {{streak}} ימים. {{todayStatus}}.",
+      ariaLabel: "רצף חזרות {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "רצף חזרות {{streak}}. {{todayStatus}}.",
       freezeBank: "בנק ההקפאות {{available}} מתוך {{capacity}}",
       notReviewedToday: "לא בוצעה חזרה היום",
       reviewedToday: "בוצעה חזרה היום",
+      streakDayCount: {
+        zero: "{{count}} ימים",
+        one: "{{count}} יום",
+        two: "יומיים",
+        few: "{{count}} ימים",
+        many: "{{count}} ימים",
+        other: "{{count}} ימים",
+      },
       title: "רצף",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const heCatalog: TranslationCatalog = {
       snapshot: "מציג תמונת מצב מקומית אחרונה...",
     },
     media: {
-      privateImage: "תמונה פרטית",
-      privateAttachment: "קובץ מצורף פרטי",
       attachmentLabel: "קובץ מצורף",
       audioLabel: "קובץ אודיו מצורף",
       imageAlt: "תמונה מנוהלת",
@@ -1348,23 +1367,14 @@ const heCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} לחזרה",
+      toStudy: "{{count}} ללמידה",
       total: "{{count}} בסך הכול",
     },
-    emptyStatsAriaLabel: "נתוני {{deckName}}",
     newDeck: "חפיסה חדשה",
     statLabels: {
       cards: {
         one: "כרטיס",
         other: "כרטיסים",
-      },
-      new: {
-        one: "חדש",
-        other: "חדשים",
-      },
-      reviewed: {
-        one: "נלמד",
-        other: "נלמדו",
       },
     },
     subtitle: "חפיסות הן מסננים חכמים, לא מכלים. הן מתאימות כרטיסים לפי תגיות.",
@@ -1400,10 +1410,10 @@ const heCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "כרטיסים",
-      due: "לחזרה",
       new: "חדשים",
       summary: "סיכום",
       title: "כללי החפיסה",
+      toStudy: "ללמידה",
     },
     subtitle: "עיין בכללי החפיסה, בכרטיסים התואמים ובנקודת הכניסה לחזרה.",
     subtitles: {

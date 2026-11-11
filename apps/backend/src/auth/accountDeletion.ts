@@ -21,6 +21,7 @@ import {
   lockAccountLifecyclesInExecutor,
 } from "./userIdentities";
 import { isConfiguredDemoEmail } from "./demoEmailAccess";
+import { productAnalyticsBrowserRawSignalPropertyNames } from "../productAnalytics/catalog";
 import { recordAccountDeletedAnalytics } from "../productAnalytics/serverFacts/decisionFacts";
 import { HttpError } from "../shared/errors";
 import {
@@ -174,8 +175,23 @@ async function anonymizeProductAnalyticsInExecutor(
       "network_asn = NULL,",
       "user_agent_chrome_major = NULL,",
       "client_hint_chromium_major = NULL,",
+      // The raw browser values describe one device closely; the coarse automation and screen
+      // width bucket stay, like the other coarse facts.
+      "event_properties = event_properties - $3::text[],",
       "identity_state = 'anonymized'",
       "WHERE user_id = ANY($2::uuid[])",
+    ].join(" "),
+    [anonymizedUserId, personUserIds, productAnalyticsBrowserRawSignalPropertyNames],
+  );
+  await executor.query(
+    [
+      "UPDATE analytics.guest_browser_checks SET",
+      "guest_user_id = $1::uuid,",
+      "network_asn = NULL,",
+      "user_agent_chrome_major = NULL,",
+      "client_hint_chromium_major = NULL,",
+      "user_agent_browser_major = NULL",
+      "WHERE guest_user_id = ANY($2::uuid[])",
     ].join(" "),
     [anonymizedUserId, personUserIds],
   );

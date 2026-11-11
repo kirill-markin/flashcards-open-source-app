@@ -210,6 +210,8 @@ function GeneratedImagePlaceholder(props: Readonly<{
 export function ManagedMediaReference(props: Readonly<{
   altText: string;
   children: ReactNode;
+  /** The ready image's alt when `altText` is blank; empty marks the image decorative. */
+  emptyImageAltText: string;
   localReadVersion: number;
   mediaAssetId: string;
   referencePresentation: ManagedMediaReferencePresentation;
@@ -219,6 +221,7 @@ export function ManagedMediaReference(props: Readonly<{
   const {
     altText,
     children,
+    emptyImageAltText,
     localReadVersion,
     mediaAssetId,
     referencePresentation,
@@ -529,7 +532,7 @@ export function ManagedMediaReference(props: Readonly<{
       <img
         className="review-markdown-media-image"
         src={loadState.url}
-        alt={altText.trim() === "" ? t("reviewScreen.media.imageAlt") : altText}
+        alt={altText.trim() === "" ? emptyImageAltText : altText}
         loading="eager"
         decoding="sync"
         style={createManagedImageStyle(loadState.imageDimensions)}

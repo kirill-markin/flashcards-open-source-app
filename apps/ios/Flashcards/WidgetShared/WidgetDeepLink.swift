@@ -4,33 +4,60 @@ enum WidgetDeepLinkSize: String, Sendable, Equatable, CaseIterable {
     case small
     case medium
     case large
+    case accessoryCircular = "accessory_circular"
+    case accessoryRectangular = "accessory_rectangular"
+    case accessoryInline = "accessory_inline"
 }
 
-/// Tap target of the Review widget:
-/// `nibomo-widget://review?workspaceId=<id>&size=<small|medium|large>[&cardId=<id>]`.
-/// `workspaceId` is absent only when the widget had no snapshot; `cardId` requires `workspaceId`.
+/// Raw values are the analytics `widget_kind` values.
+enum WidgetDeepLinkKind: String, Sendable, Equatable, CaseIterable {
+    case review
+    case activity
+    case year
+    case today
+    case lockScreen = "lock_screen"
+    case reviewsChart = "reviews_chart"
+    case streaks
+    case monthCalendar = "month_calendar"
+    case comingUp = "coming_up"
+    case dashboard
+}
+
+/// The tab a widget tap opens; the raw value is the URL host.
+enum WidgetDeepLinkDestination: String, Sendable, Equatable, CaseIterable {
+    case review
+    case progress
+}
+
+/// Tap target of every widget:
+/// `nibomo-widget://<review|progress>?[workspaceId=<id>&]size=<size>[&kind=<kind>][&cardId=<id>]`.
+/// `workspaceId` is absent only when the widget had no snapshot; `cardId` requires `workspaceId` and the
+/// `review` host. A URL without `kind` comes from a Review widget placed before kinds existed.
 struct WidgetDeepLink: Sendable, Equatable {
+    let destination: WidgetDeepLinkDestination
+    let kind: WidgetDeepLinkKind
     let workspaceId: String?
     let size: WidgetDeepLinkSize
     let cardId: String?
 }
 
 let widgetDeepLinkScheme: String = "nibomo-widget"
-let widgetDeepLinkHost: String = "review"
 
 private let widgetDeepLinkWorkspaceIdQueryName: String = "workspaceId"
 private let widgetDeepLinkSizeQueryName: String = "size"
+private let widgetDeepLinkKindQueryName: String = "kind"
 private let widgetDeepLinkCardIdQueryName: String = "cardId"
 
 func makeWidgetDeepLinkURL(deepLink: WidgetDeepLink) -> URL {
     var components = URLComponents()
     components.scheme = widgetDeepLinkScheme
-    components.host = widgetDeepLinkHost
+    components.host = deepLink.destination.rawValue
     var queryItems: [URLQueryItem] = []
     if let workspaceId = deepLink.workspaceId {
         queryItems.append(URLQueryItem(name: widgetDeepLinkWorkspaceIdQueryName, value: workspaceId))
     }
     queryItems.append(URLQueryItem(name: widgetDeepLinkSizeQueryName, value: deepLink.size.rawValue))
+    queryItems.append(URLQueryItem(name: widgetDeepLinkKindQueryName, value: deepLink.kind.rawValue))
     if let cardId = deepLink.cardId {
         queryItems.append(URLQueryItem(name: widgetDeepLinkCardIdQueryName, value: cardId))
     }
@@ -46,7 +73,8 @@ func parseWidgetDeepLinkURL(url: URL) -> WidgetDeepLink? {
     guard
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
         components.scheme == widgetDeepLinkScheme,
-        components.host == widgetDeepLinkHost,
+        let host = components.host,
+        let destination = WidgetDeepLinkDestination(rawValue: host),
         components.user == nil,
         components.password == nil,
         components.port == nil,
@@ -60,6 +88,7 @@ func parseWidgetDeepLinkURL(url: URL) -> WidgetDeepLink? {
     let allowedNames: Set<String> = [
         widgetDeepLinkWorkspaceIdQueryName,
         widgetDeepLinkSizeQueryName,
+        widgetDeepLinkKindQueryName,
         widgetDeepLinkCardIdQueryName,
     ]
     var valuesByName: [String: String] = [:]
@@ -81,10 +110,25 @@ func parseWidgetDeepLinkURL(url: URL) -> WidgetDeepLink? {
     else {
         return nil
     }
+    let kind: WidgetDeepLinkKind
+    if let kindValue = valuesByName[widgetDeepLinkKindQueryName] {
+        guard let parsedKind = WidgetDeepLinkKind(rawValue: kindValue) else {
+            return nil
+        }
+        kind = parsedKind
+    } else {
+        kind = .review
+    }
     let workspaceId = valuesByName[widgetDeepLinkWorkspaceIdQueryName]
     let cardId = valuesByName[widgetDeepLinkCardIdQueryName]
-    if cardId != nil && workspaceId == nil {
+    if cardId != nil && (workspaceId == nil || destination != .review) {
         return nil
     }
-    return WidgetDeepLink(workspaceId: workspaceId, size: size, cardId: cardId)
+    return WidgetDeepLink(
+        destination: destination,
+        kind: kind,
+        workspaceId: workspaceId,
+        size: size,
+        cardId: cardId
+    )
 }

@@ -25,6 +25,7 @@ import com.flashcardsopensourceapp.app.navigation.settings.SettingsCurrentWorksp
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeleteCurrentDestination
 import com.flashcardsopensourceapp.app.navigation.settings.registerSettingsNavGraph
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
+import com.flashcardsopensourceapp.app.widget.WidgetTapDestination
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 
@@ -92,14 +93,25 @@ internal fun AppNavHost(
 
     LaunchedEffect(reviewWidgetTapRequest?.requestId) {
         val request = reviewWidgetTapRequest ?: return@LaunchedEffect
-        navigateToTopLevelDestination(
-            navController = navController,
-            destination = ReviewDestination
-        )
-        val workspaceId = request.request.workspaceId
-        val cardId = request.request.cardId
-        if (workspaceId != null && cardId != null) {
-            appGraph.appHandoffCoordinator.requestReviewWidgetCard(workspaceId = workspaceId, cardId = cardId)
+        when (request.request.destination) {
+            WidgetTapDestination.REVIEW -> {
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = ReviewDestination
+                )
+                val workspaceId = request.request.workspaceId
+                val cardId = request.request.cardId
+                if (workspaceId != null && cardId != null) {
+                    appGraph.appHandoffCoordinator.requestReviewWidgetCard(workspaceId = workspaceId, cardId = cardId)
+                }
+            }
+
+            WidgetTapDestination.PROGRESS -> {
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = ProgressDestination
+                )
+            }
         }
         consumeReviewWidgetTap(request.requestId)
     }

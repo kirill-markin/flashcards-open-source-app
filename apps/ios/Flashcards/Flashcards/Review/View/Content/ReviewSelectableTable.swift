@@ -59,6 +59,9 @@ struct ReviewSelectableTable: UIViewRepresentable {
 
 final class ReviewSelectableTableView: UIView {
     let cells: [[ReviewSelectionTextView]]
+    #if targetEnvironment(macCatalyst)
+    var onJoinHierarchy: (() -> Void)?
+    #endif
 
     init(rows: [[NSAttributedString]]) {
         self.cells = rows.map { row in
@@ -74,16 +77,12 @@ final class ReviewSelectableTableView: UIView {
                 cell.textContainer.lineFragmentPadding = 0
                 cell.adjustsFontForContentSizeCategory = true
                 cell.font = UIFont.preferredFont(forTextStyle: .body)
-                #if targetEnvironment(macCatalyst)
                 let cellContent = NSMutableAttributedString(attributedString: content)
                 content.enumerateAttribute(.attachment, in: NSRange(location: 0, length: content.length)) { value, range, _ in
                     guard let attachment = value as? ReviewContentAttachment else { return }
                     cellContent.addAttribute(.attachment, value: attachment.copyForTableCell(), range: range)
                 }
                 cell.applyReviewContent(cellContent)
-                #else
-                cell.applyReviewContent(content)
-                #endif
                 cell.rebuildAccessibilityContent()
                 cell.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
                 cell.layer.borderWidth = 0.5
@@ -103,6 +102,13 @@ final class ReviewSelectableTableView: UIView {
     }
 
     required init?(coder: NSCoder) { nil }
+
+    #if targetEnvironment(macCatalyst)
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        if self.superview != nil { self.onJoinHierarchy?() }
+    }
+    #endif
 
     private func updateBorderColors() {
         for row in self.cells {

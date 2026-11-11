@@ -186,6 +186,7 @@ protocol CloudSyncServing {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
+        format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse
     func previewWorkspacePackageImport(
@@ -335,11 +336,13 @@ extension CloudSyncServing {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
+        format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse {
         _ = apiBaseUrl
         _ = authorizationHeader
         _ = workspaceId
+        _ = format
         _ = request
         throw LocalStoreError.validation("Workspace package export is unavailable")
     }
@@ -473,28 +476,6 @@ extension GuestCloudCredentialStore: GuestCredentialStoring {}
 @MainActor
 extension GuestCloudAuthService: GuestCloudAuthServing {}
 extension CloudServiceConfigurationValidator: CloudServiceConfigurationValidating {}
-
-struct ReviewSubmissionContext: Hashable, Sendable {
-    let selectedReviewFilter: ReviewFilter
-    let reviewQueryDefinition: ReviewQueryDefinition
-}
-
-struct ReviewSubmissionRequest: Hashable, Sendable {
-    let id: String
-    let workspaceId: String
-    let cardId: String
-    let reviewContext: ReviewSubmissionContext
-    let reviewSessionSignature: ReviewSessionSignature
-    let cardSnapshot: Card
-    let rating: ReviewRating
-    let reviewedAtClient: String
-    let reviewedTimeZone: String
-}
-
-struct ReviewSubmissionFailure: Identifiable, Hashable, Sendable {
-    let id: String
-    let message: String
-}
 
 struct AIChatSessionPreparationState {
     let id: String

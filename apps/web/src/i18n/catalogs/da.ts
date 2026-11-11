@@ -20,6 +20,15 @@ const daCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Denne browser kunne ikke afkode mikrofonlyden ({{format}}).",
     recovery: "Gæsteadgangen er ikke bekræftet. Cachede kort er skrivebeskyttede. Gendan den oprindelige session eller forbindelsen, og prøv igen.",
     cleanupFailed: "Du er logget ind, men demokortet kunne ikke fjernes.",
+    browserCheck: {
+      title: "Kontrollerer din browser",
+      description: "Før dit gæstearbejdsområde åbner, bekræfter Cloudflare, at dette er en almindelig browser. Det tager normalt et par sekunder.",
+      loading: "Indlæser kontrollen...",
+      verifying: "Åbner dit arbejdsområde...",
+      loadFailed: "Kontrollen kunne ikke indlæses. Tjek din forbindelse, tillad challenges.cloudflare.com i en eventuel indholdsblokering, og prøv igen.",
+      failed: "Kontrollen blev ikke bestået. Prøv igen, eller log ind i stedet.",
+      rejected: "Kontrollen blev ikke godkendt. Gennemfør den en gang til.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const daCatalog: TranslationCatalog = {
     loading: "Indlæser...",
     never: "Aldrig",
     newItem: "nyt",
+    image: "Billede",
     noBackText: "Ingen tekst på bagsiden",
     noTags: "Ingen tags",
     notRevoked: "Ikke tilbagekaldt",
@@ -427,8 +437,12 @@ const daCatalog: TranslationCatalog = {
       offlineEmpty: "Ranglisten for stimer er ikke tilgængelig offline. Opret forbindelse igen for at se placeringer.",
       unavailable: "Ranglisten for stimer er ikke tilgængelig lige nu. Kig forbi senere.",
       dayLabels: {
-        one: "dag",
-        other: "dage",
+        zero: "{{count}} dage",
+        one: "{{count}} dag",
+        two: "{{count}} dage",
+        few: "{{count}} dage",
+        many: "{{count}} dage",
+        other: "{{count}} dage",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const daCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Gendanner session. Prøv igen om et øjeblik.",
     sessionUnavailable: "Sessionen er ikke tilgængelig",
     syncing: "Synkroniserer...",
+    syncFailed: "Synkronisering mislykkedes",
     workspaceUnavailable: "Arbejdsområdet er ikke tilgængeligt",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const daCatalog: TranslationCatalog = {
       yourCards: "Dine kort",
       addCards: "Tilføj kort",
     },
-    cards: {
-      description: "Alle kort i dette arbejdsområde.",
-    },
-    tags: {
-      description: "Alle tags, der bruges på mindst ét kort.",
-    },
-    decks: {
-      description: "Gemte kortfiltre til fokuseret repetition.",
-    },
     deckCatalog: {
       title: "Bunkekatalog",
       description: "Gratis færdige bunker at studere.",
@@ -860,16 +866,18 @@ const daCatalog: TranslationCatalog = {
     note: "Indstillingerne gælder kun fremtidig planlægning. Kortenes nuværende tilstand er stadig den gældende.",
   },
   workspaceExport: {
-    title: "Eksport",
+    title: "Eksportér Nibomo-pakke",
+    ankiTitle: "Eksportér Anki-kortsæt",
     subtitle: "Download en flytbar pakke med dette arbejdsområde.",
     workspaceUnavailable: "Arbejdsområdet er ikke tilgængeligt",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Kortsættets navn",
+    ankiEmptySelection: "Der er ingen kort at eksportere. Vælg andre tags, eller tilføj kort.",
     packageDescription: "Se aktive kort, metadata, tags og refererede medier, før du downloader.",
-    packageExportSuccess: "Download af flashcards.zip er gået i gang.",
+    packageExportSuccess: "Download af {{filename}} er gået i gang.",
     packageExporting: "Downloader...",
     packagePreviewing: "Forhåndsviser...",
     packageExportPreviewButton: "Forhåndsvis eksporten",
-    packageExportConfirmButton: "Download flashcards.zip",
+    packageExportConfirmButton: "Download {{filename}}",
     packageExportPreviewRequired: "Forhåndsvis eksporten, før du downloader.",
     previewCardsLabel: "Kort",
     previewReferencedMediaLabel: "Refererede medier",
@@ -1124,6 +1132,10 @@ const daCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Åbn kortets side ({{side}}) i AI-chatten",
     repetitionBadgeAriaLabel: "Gentagelser: {{value}}",
     repetitionBadgeNew: "Nyt",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Flere tags: {{count}}",
+    },
     empty: {
       noCardsBody: "Du har ikke oprettet nogen kort endnu. Tilføj dit første kort for at komme i gang.",
       noCardsTitle: "Ingen kort endnu",
@@ -1135,16 +1147,25 @@ const daCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formlen kunne ikke vises.",
       schedulerUnavailable: "Arbejdsområdets planlæggerindstillinger er ikke indlæst",
+      storageFull: "Frigør lagerplads på denne enhed, og bedøm kortet igen.",
     },
     leaderboardShortcut: {
       ariaLabel: "Åbn ranglisten",
     },
     progressBadge: {
-      ariaLabel: "Stime på {{streak}} dage. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Stime på {{streak}} dage. {{todayStatus}}.",
+      ariaLabel: "Stime på {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Stime på {{streak}}. {{todayStatus}}.",
       freezeBank: "Frysebank {{available}} af {{capacity}}",
       notReviewedToday: "Ikke repeteret i dag",
       reviewedToday: "Repeteret i dag",
+      streakDayCount: {
+        zero: "{{count}} dage",
+        one: "{{count}} dag",
+        two: "{{count}} dage",
+        few: "{{count}} dage",
+        many: "{{count}} dage",
+        other: "{{count}} dage",
+      },
       title: "Stime",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const daCatalog: TranslationCatalog = {
       snapshot: "Viser et nyligt lokalt øjebliksbillede...",
     },
     media: {
-      privateImage: "Privat billede",
-      privateAttachment: "Privat vedhæftning",
       attachmentLabel: "Vedhæftning",
       audioLabel: "Lydvedhæftning",
       imageAlt: "Administreret billede",
@@ -1348,23 +1367,14 @@ const daCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} forfaldne",
+      toStudy: "{{count}} at lære",
       total: "{{count}} i alt",
     },
-    emptyStatsAriaLabel: "Statistik for {{deckName}}",
     newDeck: "Ny bunke",
     statLabels: {
       cards: {
         one: "kort",
         other: "kort",
-      },
-      new: {
-        one: "nyt",
-        other: "nye",
-      },
-      reviewed: {
-        one: "repeteret",
-        other: "repeteret",
       },
     },
     subtitle: "Bunker er smarte filtre, ikke beholdere. De matcher kort ud fra tags.",
@@ -1400,10 +1410,10 @@ const daCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kort",
-      due: "Forfalder",
       new: "Nye",
       summary: "Oversigt",
       title: "Regler for bunken",
+      toStudy: "At lære",
     },
     subtitle: "Se bunkens regler, de kort der matcher, og indgangen til repetition.",
     subtitles: {

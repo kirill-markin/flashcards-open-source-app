@@ -384,16 +384,15 @@ struct ReviewMathFormulaView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 18
-    #if targetEnvironment(macCatalyst)
-    @State private var rendering: MacReviewFormulaState
+    @State private var rendering: ReviewFormulaState
 
     init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle, textFontSize: CGFloat? = nil, textColor: Color? = nil) {
-        self.init(formula: formula, surfaceStyle: surfaceStyle, rendering: MacReviewFormulaState())
+        self.init(formula: formula, surfaceStyle: surfaceStyle, rendering: ReviewFormulaState())
         self.textFontSize = textFontSize
         self.textColor = textColor
     }
 
-    init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle, rendering: MacReviewFormulaState) {
+    init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle, rendering: ReviewFormulaState) {
         self.formula = formula
         self.surfaceStyle = surfaceStyle
         self._rendering = State(initialValue: rendering)
@@ -403,9 +402,6 @@ struct ReviewMathFormulaView: View {
         get { self.rendering.renderFailed }
         nonmutating set { self.rendering.renderFailed = newValue }
     }
-    #else
-    @State private var renderFailed: Bool = false
-    #endif
 
     private var localizedRenderError: String {
         String(
@@ -455,9 +451,7 @@ struct ReviewMathFormulaView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(self.formula.latex)
                 }
-                #if targetEnvironment(macCatalyst)
                 .scrollPosition(self.$rendering.scrollPosition)
-                #endif
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }

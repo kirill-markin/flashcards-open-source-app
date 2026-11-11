@@ -4,15 +4,20 @@ import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.account.AccountStatusRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountStatusUiState
+import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenTag
+import com.flashcardsopensourceapp.feature.settings.account.accountStatusSyncNowButtonTag
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,7 +64,12 @@ class AccountStatusRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithText(
             settingsString(SettingsR.string.settings_account_status_sync_blocked_body)
         ).assertIsDisplayed()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_sync_now_button)).assertIsNotEnabled()
+        composeRule.onNodeWithTag(accountStatusScreenTag)
+            .performScrollToNode(hasTestTag(accountStatusSyncNowButtonTag))
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_sync_now_button))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_logout)).performScrollTo()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_logout)).assertIsDisplayed()
     }

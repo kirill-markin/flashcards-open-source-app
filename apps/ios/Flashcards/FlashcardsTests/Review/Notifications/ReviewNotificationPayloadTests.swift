@@ -119,7 +119,7 @@ final class ReviewNotificationPayloadTests: ReviewNotificationsTestCase {
         XCTAssertEqual(result.payloads.count, 3)
     }
 
-    func testLoadScheduledReviewNotificationPayloadsSuppressesOnlyExplicitEmptyTagSelection() async throws {
+    func testLoadScheduledReviewNotificationPayloadsTreatsEmptyTagSelectionAsAllCards() async throws {
         let (database, databaseURL) = try makeTemporaryLocalDatabase()
         defer {
             try? database.close()
@@ -170,7 +170,10 @@ final class ReviewNotificationPayloadTests: ReviewNotificationsTestCase {
 
         XCTAssertEqual(allCardsResult.payloads.count, 3)
         XCTAssertTrue(allCardsResult.payloads.allSatisfy { $0.content == .fallback })
-        XCTAssertEqual(emptyTagsResult.payloads, [])
+        XCTAssertEqual(emptyTagsResult.payloads.count, allCardsResult.payloads.count)
+        XCTAssertEqual(emptyTagsResult.payloads.map(\.content), allCardsResult.payloads.map(\.content))
+        XCTAssertEqual(emptyTagsResult.payloads.map(\.scheduledAtMillis), allCardsResult.payloads.map(\.scheduledAtMillis))
+        XCTAssertEqual(emptyTagsResult.payloads.map(\.requestId), allCardsResult.payloads.map(\.requestId))
     }
 
     func testRepeatedPayloadsUseReplacementCurrentCardAndUniqueIdentifiers() throws {

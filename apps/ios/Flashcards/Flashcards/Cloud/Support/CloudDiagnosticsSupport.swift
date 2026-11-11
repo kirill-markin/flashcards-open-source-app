@@ -19,6 +19,7 @@ enum CloudFlowPhase: String, Sendable, Hashable {
     case initialPush = "initial_push"
     case initialPull = "initial_pull"
     case linkedSync = "linked_sync"
+    case watchHandoff = "watch_handoff"
 }
 
 func logCloudFlowPhase(
@@ -102,7 +103,8 @@ func cloudObservationFeature(phase: CloudFlowPhase) -> IOSObservationFeature {
             .guestUpgradePrepare,
             .guestUpgradeComplete,
             .guestIdentityLink,
-            .guestAuthRequest:
+            .guestAuthRequest,
+            .watchHandoff:
         return .cloudAuth
     case .workspaceList,
             .workspaceCreate,

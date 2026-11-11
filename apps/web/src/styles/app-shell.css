@@ -72,9 +72,9 @@
   white-space: nowrap;
 }
 
-/* The logo and the four device pills need about 430px on one line. Narrower, the pills move to
+/* The logo and the five header pills need about 500px on one line. Narrower, the pills move to
    their own line, which keeps the sync status beside the logo and the pills out of the nav. */
-@container topbar-brand (max-width: 520px) {
+@container topbar-brand (max-width: 600px) {
   .topbar-brand-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);

@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Zapisz nazwę";
 "settings.workspace.overview.workspace" = "Obszar roboczy";
 "settings.workspace.overview.cards" = "Fiszki";
-"settings.workspace.overview.due" = "Do powtórki";
 "settings.workspace.overview.new" = "Nowe";
 "settings.workspace.overview.deleteDescription" = "Trwale usuń ten obszar roboczy i wszystkie jego fiszki, talie, powtórki oraz historię synchronizacji.";
 "settings.workspace.overview.deleteWorkspace" = "Usuń obszar roboczy";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Brak pasujących talii";
 "settings.workspace.decks.searchPrompt" = "Szukaj talii";
 "settings.workspace.decks.newDeck" = "Nowa talia";
-"settings.workspace.decks.dueCount" = "Do powtórki: %d";
-"settings.workspace.decks.totalCards" = "Liczba fiszek: %d";
-"settings.workspace.decks.newCount" = "Nowe: %d";
-"settings.workspace.decks.reviewedCount" = "Powtórzono: %d";
+"settings.workspace.decks.toStudyCount" = "%d do nauki";
+"settings.workspace.decks.toStudy" = "Do nauki";
 "settings.workspace.decks.emptyAllCards" = "Nie masz jeszcze utworzonych fiszek.";
 "settings.workspace.decks.emptyDeck" = "Ta talia nie ma jeszcze pasujących fiszek.";
 "settings.workspace.decks.section.deckRules" = "Reguły talii";

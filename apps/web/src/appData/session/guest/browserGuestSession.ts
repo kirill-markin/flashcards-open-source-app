@@ -1,4 +1,5 @@
 import { createBrowserGuestSession, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
+import { ApiError } from "../../../api/transport/errors";
 import { BrowserGuestSessionInvalidatedError, getOptionalSession, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/database";
@@ -7,7 +8,8 @@ import { isCatalogImportPath } from "../../../routes";
 import type { CloudSettings, SessionInfo } from "../../../types";
 import { hasLoggedInCookie } from "../activation/warmStart";
 import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
-import { readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
+import { endGuestBrowserChallenge, waitForGuestBrowserChallengeToken } from "./guestBrowserChallenge";
+import { clearBrowserGuestCreatingMarker, readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
 
 export class GuestConversionRequiredError extends Error {
   readonly pending: PendingGuestConversion | null;
@@ -45,6 +47,35 @@ function requireMatchingOwner(probe: BrowserGuestProbe, localUserId: string | nu
   if ((localUserId !== null && localUserId !== guest.userId)
     || (state?.status === "owned" && (state.owner.userId !== guest.userId || state.owner.workspaceId !== guest.workspaceId))) {
     throw new Error("Browser guest cookie does not own the saved local workspace. Local data has been preserved.");
+  }
+}
+
+/**
+ * The backend answers both check codes before it commits anything, so the creation marker is
+ * cleared while the user takes the check (a reload then starts a fresh creation) and the same key is
+ * retried with each token. Only a token from a check the user passes creates a guest; the screen
+ * stays up until this creation settles.
+ */
+async function createBrowserGuestSessionPassingCheck(idempotencyKey: string): Promise<BrowserGuestProbe> {
+  let siteKey: string | null = null;
+  let turnstileToken: string | null = null;
+  try {
+    for (;;) {
+      try {
+        return await createBrowserGuestSession(idempotencyKey, turnstileToken);
+      } catch (error) {
+        if (error instanceof ApiError === false) throw error;
+        const challengeSiteKey: string | null = error.code === "GUEST_BROWSER_CHALLENGE_REQUIRED" ? error.guestBrowserChallengeSiteKey
+          : error.code === "GUEST_BROWSER_CHALLENGE_FAILED" ? siteKey : null;
+        if (challengeSiteKey === null) throw error;
+        siteKey = challengeSiteKey;
+        clearBrowserGuestCreatingMarker();
+        turnstileToken = await waitForGuestBrowserChallengeToken(challengeSiteKey, turnstileToken !== null);
+        writeBrowserGuestState({ status: "creating" });
+      }
+    }
+  } finally {
+    endGuestBrowserChallenge();
   }
 }
 
@@ -102,7 +133,7 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
         // This marker survives a lost response without persisting the per-attempt bearer key.
         writeBrowserGuestState({ status: "creating" });
         const key = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-        const created = await createBrowserGuestSession(key);
+        const created = await createBrowserGuestSessionPassingCheck(key);
         probe = await probeBrowserGuestSession();
         requireMatchingOwner(probe, null);
         if (created.guestSession.status !== "active" || probe.guestSession.status !== "active"

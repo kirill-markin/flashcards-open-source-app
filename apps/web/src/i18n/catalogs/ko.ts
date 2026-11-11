@@ -20,6 +20,15 @@ const koCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "이 브라우저에서 마이크 오디오({{format}})를 디코딩할 수 없어요.",
     recovery: "게스트 접근이 확인되지 않았습니다. 캐시된 카드는 읽기 전용입니다. 원래 세션이나 연결을 복원한 후 다시 시도하세요.",
     cleanupFailed: "로그인했지만 데모 카드를 삭제하지 못했습니다.",
+    browserCheck: {
+      title: "브라우저를 확인하는 중",
+      description: "게스트 작업 공간을 열기 전에 Cloudflare가 일반 브라우저인지 확인합니다. 보통 몇 초면 끝납니다.",
+      loading: "확인을 불러오는 중...",
+      verifying: "작업 공간을 여는 중...",
+      loadFailed: "확인을 불러오지 못했습니다. 연결을 확인하고 콘텐츠 차단기에서 challenges.cloudflare.com을 허용한 뒤 다시 시도하세요.",
+      failed: "확인을 통과하지 못했습니다. 다시 시도하거나 로그인하세요.",
+      rejected: "확인이 승인되지 않았습니다. 한 번 더 완료하세요.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const koCatalog: TranslationCatalog = {
     loading: "불러오는 중...",
     never: "없음",
     newItem: "신규",
+    image: "이미지",
     noBackText: "뒷면 내용 없음",
     noTags: "태그 없음",
     notRevoked: "해지되지 않음",
@@ -427,8 +437,12 @@ const koCatalog: TranslationCatalog = {
       offlineEmpty: "오프라인에서는 연속 학습 리더보드를 사용할 수 없습니다. 다시 연결하면 순위를 볼 수 있습니다.",
       unavailable: "지금은 연속 학습 리더보드를 사용할 수 없습니다. 나중에 다시 확인해 주세요.",
       dayLabels: {
-        one: "일",
-        other: "일",
+        zero: "{{count}}일",
+        one: "{{count}}일",
+        two: "{{count}}일",
+        few: "{{count}}일",
+        many: "{{count}}일",
+        other: "{{count}}일",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const koCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "세션을 복원하는 중입니다. 잠시 후 다시 시도해 주세요.",
     sessionUnavailable: "세션을 사용할 수 없음",
     syncing: "동기화하는 중...",
+    syncFailed: "동기화 실패",
     workspaceUnavailable: "워크스페이스를 사용할 수 없음",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const koCatalog: TranslationCatalog = {
       yourCards: "내 카드",
       addCards: "카드 추가",
     },
-    cards: {
-      description: "이 워크스페이스의 모든 카드입니다.",
-    },
-    tags: {
-      description: "카드 한 장 이상에 사용된 모든 태그입니다.",
-    },
-    decks: {
-      description: "집중 복습을 위해 저장한 카드 필터입니다.",
-    },
     deckCatalog: {
       title: "덱 카탈로그",
       description: "바로 학습할 수 있는 무료 덱입니다.",
@@ -860,16 +866,18 @@ const koCatalog: TranslationCatalog = {
     note: "이 설정은 앞으로의 일정에만 영향을 줍니다. 기존 카드 상태는 그대로 유지됩니다.",
   },
   workspaceExport: {
-    title: "내보내기",
+    title: "Nibomo 패키지 내보내기",
+    ankiTitle: "Anki 덱 내보내기",
     subtitle: "이 워크스페이스의 패키지를 내려받습니다.",
     workspaceUnavailable: "워크스페이스를 사용할 수 없음",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "덱 이름",
+    ankiEmptySelection: "내보낼 카드가 없습니다. 선택한 태그를 변경하거나 카드를 추가하세요.",
     packageDescription: "내려받기 전에 활성 카드, 메타데이터, 태그, 참조된 미디어를 미리 봅니다.",
-    packageExportSuccess: "flashcards.zip 다운로드를 시작했습니다.",
+    packageExportSuccess: "{{filename}} 다운로드를 시작했습니다.",
     packageExporting: "다운로드하는 중...",
     packagePreviewing: "미리 보는 중...",
     packageExportPreviewButton: "내보내기 미리 보기",
-    packageExportConfirmButton: "flashcards.zip 내려받기",
+    packageExportConfirmButton: "{{filename}} 내려받기",
     packageExportPreviewRequired: "내려받기 전에 내보낼 내용을 미리 보세요.",
     previewCardsLabel: "카드",
     previewReferencedMediaLabel: "참조된 미디어",
@@ -1124,6 +1132,10 @@ const koCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}} 카드를 AI 채팅에서 열기",
     repetitionBadgeAriaLabel: "반복 횟수: {{value}}",
     repetitionBadgeNew: "신규",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "태그 더 보기: {{count}}",
+    },
     empty: {
       noCardsBody: "아직 만든 카드가 없습니다. 첫 카드를 추가하고 학습을 시작해 보세요.",
       noCardsTitle: "카드가 없습니다",
@@ -1135,16 +1147,25 @@ const koCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "수식을 표시하지 못했습니다.",
       schedulerUnavailable: "워크스페이스 스케줄러 설정을 불러오지 못했습니다",
+      storageFull: "이 기기의 저장 공간을 확보한 뒤 카드를 다시 평가하세요.",
     },
     leaderboardShortcut: {
       ariaLabel: "리더보드 열기",
     },
     progressBadge: {
-      ariaLabel: "연속 학습 {{streak}}일. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "연속 학습 {{streak}}일. {{todayStatus}}.",
+      ariaLabel: "연속 학습 {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "연속 학습 {{streak}}. {{todayStatus}}.",
       freezeBank: "보호 횟수 {{capacity}} 중 {{available}}",
       notReviewedToday: "오늘 복습하지 않음",
       reviewedToday: "오늘 복습함",
+      streakDayCount: {
+        zero: "{{count}}일",
+        one: "{{count}}일",
+        two: "{{count}}일",
+        few: "{{count}}일",
+        many: "{{count}}일",
+        other: "{{count}}일",
+      },
       title: "연속 학습",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const koCatalog: TranslationCatalog = {
       snapshot: "최근 로컬 스냅샷을 표시하는 중...",
     },
     media: {
-      privateImage: "비공개 이미지",
-      privateAttachment: "비공개 첨부 파일",
       attachmentLabel: "첨부 파일",
       audioLabel: "오디오 첨부 파일",
       imageAlt: "관리 이미지",
@@ -1348,23 +1367,14 @@ const koCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "복습 예정 {{count}}",
+      toStudy: "학습 예정 {{count}}",
       total: "전체 {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} 통계",
     newDeck: "새 덱",
     statLabels: {
       cards: {
         one: "카드",
         other: "카드",
-      },
-      new: {
-        one: "신규",
-        other: "신규",
-      },
-      reviewed: {
-        one: "복습함",
-        other: "복습함",
       },
     },
     subtitle: "덱은 저장 공간이 아니라 스마트 필터입니다. 태그로 카드를 찾아냅니다.",
@@ -1400,10 +1410,10 @@ const koCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "카드",
-      due: "복습 예정",
       new: "신규",
       summary: "요약",
       title: "덱 규칙",
+      toStudy: "학습 예정",
     },
     subtitle: "덱 규칙과 해당하는 카드, 복습 시작점을 확인하세요.",
     subtitles: {

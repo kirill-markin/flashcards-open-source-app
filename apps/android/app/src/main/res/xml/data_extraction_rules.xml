@@ -5,6 +5,9 @@
             domain="sharedpref"
             path="flashcards-analytics-identity.xml" />
         <exclude
+            domain="sharedpref"
+            path="review_widget_placement.xml" />
+        <exclude
             domain="database"
             path="flashcards-analytics-queue.db" />
         <exclude
@@ -54,6 +57,9 @@
         <exclude
             domain="sharedpref"
             path="flashcards-analytics-identity.xml" />
+        <exclude
+            domain="sharedpref"
+            path="review_widget_placement.xml" />
         <exclude
             domain="database"
             path="flashcards-analytics-queue.db" />

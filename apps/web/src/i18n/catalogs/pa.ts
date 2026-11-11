@@ -20,6 +20,15 @@ const paCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "ਇਹ ਬ੍ਰਾਊਜ਼ਰ ਮਾਈਕ੍ਰੋਫੋਨ ਆਡੀਓ ਨੂੰ ਡੀਕੋਡ ਨਹੀਂ ਕਰ ਸਕਿਆ ({{format}})।",
     recovery: "ਮਹਿਮਾਨ ਪਹੁੰਚ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋਈ। ਕੈਸ਼ ਕੀਤੇ ਕਾਰਡ ਸਿਰਫ਼ ਪੜ੍ਹੇ ਜਾ ਸਕਦੇ ਹਨ। ਮੂਲ ਸੈਸ਼ਨ ਜਾਂ ਕਨੈਕਸ਼ਨ ਬਹਾਲ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
     cleanupFailed: "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ, ਪਰ ਡੈਮੋ ਕਾਰਡ ਹਟਾਇਆ ਨਹੀਂ ਜਾ ਸਕਿਆ।",
+    browserCheck: {
+      title: "ਤੁਹਾਡੇ ਬ੍ਰਾਊਜ਼ਰ ਦੀ ਜਾਂਚ ਹੋ ਰਹੀ ਹੈ",
+      description: "ਮਹਿਮਾਨ ਵਰਕਸਪੇਸ ਖੁੱਲ੍ਹਣ ਤੋਂ ਪਹਿਲਾਂ Cloudflare ਪੁਸ਼ਟੀ ਕਰਦਾ ਹੈ ਕਿ ਇਹ ਇੱਕ ਆਮ ਬ੍ਰਾਊਜ਼ਰ ਹੈ। ਆਮ ਤੌਰ 'ਤੇ ਕੁਝ ਸਕਿੰਟ ਲੱਗਦੇ ਹਨ।",
+      loading: "ਜਾਂਚ ਲੋਡ ਹੋ ਰਹੀ ਹੈ...",
+      verifying: "ਤੁਹਾਡਾ ਵਰਕਸਪੇਸ ਖੁੱਲ੍ਹ ਰਿਹਾ ਹੈ...",
+      loadFailed: "ਜਾਂਚ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਦੇਖੋ, ਸਮੱਗਰੀ ਬਲੌਕਰ ਵਿੱਚ challenges.cloudflare.com ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ, ਫਿਰ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+      failed: "ਜਾਂਚ ਪਾਸ ਨਹੀਂ ਹੋਈ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਸਾਈਨ ਇਨ ਕਰੋ।",
+      rejected: "ਜਾਂਚ ਸਵੀਕਾਰ ਨਹੀਂ ਹੋਈ। ਇਸਨੂੰ ਇੱਕ ਵਾਰ ਹੋਰ ਪੂਰਾ ਕਰੋ।",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const paCatalog: TranslationCatalog = {
     loading: "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
     never: "ਕਦੇ ਨਹੀਂ",
     newItem: "ਨਵਾਂ",
+    image: "ਤਸਵੀਰ",
     noBackText: "ਪਿਛਲੇ ਪਾਸੇ ਕੋਈ ਲਿਖਤ ਨਹੀਂ",
     noTags: "ਕੋਈ ਟੈਗ ਨਹੀਂ",
     notRevoked: "ਰੱਦ ਨਹੀਂ ਕੀਤਾ",
@@ -427,8 +437,12 @@ const paCatalog: TranslationCatalog = {
       offlineEmpty: "ਔਫਲਾਈਨ ਲੜੀ ਦਰਜਾਬੰਦੀ ਉਪਲਬਧ ਨਹੀਂ ਹੈ. ਦਰਜੇ ਵੇਖਣ ਲਈ ਮੁੜ ਜੁੜੋ.",
       unavailable: "ਲੜੀ ਦਰਜਾਬੰਦੀ ਇਸ ਵੇਲੇ ਉਪਲਬਧ ਨਹੀਂ ਹੈ. ਬਾਅਦ ਵਿੱਚ ਵੇਖੋ.",
       dayLabels: {
-        one: "ਦਿਨ",
-        other: "ਦਿਨ",
+        zero: "{{count}} ਦਿਨ",
+        one: "{{count}} ਦਿਨ",
+        two: "{{count}} ਦਿਨ",
+        few: "{{count}} ਦਿਨ",
+        many: "{{count}} ਦਿਨ",
+        other: "{{count}} ਦਿਨ",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const paCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "ਸੈਸ਼ਨ ਬਹਾਲ ਹੋ ਰਿਹਾ ਹੈ. ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ.",
     sessionUnavailable: "ਸੈਸ਼ਨ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
     syncing: "ਸਿੰਕ ਹੋ ਰਿਹਾ ਹੈ...",
+    syncFailed: "ਸਿੰਕ ਅਸਫਲ ਰਿਹਾ",
     workspaceUnavailable: "ਵਰਕਸਪੇਸ ਉਪਲਬਧ ਨਹੀਂ",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const paCatalog: TranslationCatalog = {
       yourCards: "ਤੁਹਾਡੇ ਕਾਰਡ",
       addCards: "ਕਾਰਡ ਜੋੜੋ",
     },
-    cards: {
-      description: "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ.",
-    },
-    tags: {
-      description: "ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ 'ਤੇ ਵਰਤੇ ਗਏ ਸਾਰੇ ਟੈਗ.",
-    },
-    decks: {
-      description: "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ.",
-    },
     deckCatalog: {
       title: "ਡੈੱਕ ਕੈਟਾਲਾਗ",
       description: "ਪੜ੍ਹਨ ਲਈ ਮੁਫ਼ਤ ਤਿਆਰ ਡੈੱਕ.",
@@ -860,16 +866,18 @@ const paCatalog: TranslationCatalog = {
     note: "ਇਹ ਸੈਟਿੰਗਾਂ ਸਿਰਫ਼ ਭਵਿੱਖ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਉੱਤੇ ਅਸਰ ਕਰਦੀਆਂ ਹਨ. ਕਾਰਡ ਦੀ ਮੌਜੂਦਾ ਸਥਿਤੀ ਹੀ ਪ੍ਰਮਾਣਿਕ ਰਹਿੰਦੀ ਹੈ.",
   },
   workspaceExport: {
-    title: "ਨਿਰਯਾਤ",
+    title: "Nibomo ਪੈਕੇਜ ਐਕਸਪੋਰਟ ਕਰੋ",
+    ankiTitle: "Anki ਡੈੱਕ ਐਕਸਪੋਰਟ ਕਰੋ",
     subtitle: "ਇਸ ਵਰਕਸਪੇਸ ਲਈ ਪੋਰਟੇਬਲ ਪੈਕੇਜ ਡਾਊਨਲੋਡ ਕਰੋ.",
     workspaceUnavailable: "ਵਰਕਸਪੇਸ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "ਡੈੱਕ ਦਾ ਨਾਮ",
+    ankiEmptySelection: "ਨਿਰਯਾਤ ਕਰਨ ਲਈ ਕੋਈ ਕਾਰਡ ਨਹੀਂ ਹੈ। ਚੁਣੇ ਹੋਏ ਟੈਗ ਬਦਲੋ ਜਾਂ ਕਾਰਡ ਸ਼ਾਮਲ ਕਰੋ।",
     packageDescription: "ਡਾਊਨਲੋਡ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਸਰਗਰਮ ਕਾਰਡ, ਮੈਟਾਡਾਟਾ, ਟੈਗ ਅਤੇ ਹਵਾਲੇ ਵਾਲਾ ਮੀਡੀਆ ਵੇਖੋ.",
-    packageExportSuccess: "flashcards.zip ਦਾ ਡਾਊਨਲੋਡ ਸ਼ੁਰੂ ਹੋ ਗਿਆ.",
+    packageExportSuccess: "{{filename}} ਦਾ ਡਾਊਨਲੋਡ ਸ਼ੁਰੂ ਹੋ ਗਿਆ.",
     packageExporting: "ਡਾਊਨਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
     packagePreviewing: "ਝਲਕ ਤਿਆਰ ਹੋ ਰਹੀ ਹੈ...",
     packageExportPreviewButton: "ਨਿਰਯਾਤ ਦੀ ਝਲਕ",
-    packageExportConfirmButton: "flashcards.zip ਡਾਊਨਲੋਡ ਕਰੋ",
+    packageExportConfirmButton: "{{filename}} ਡਾਊਨਲੋਡ ਕਰੋ",
     packageExportPreviewRequired: "ਡਾਊਨਲੋਡ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਇਸ ਨਿਰਯਾਤ ਦੀ ਝਲਕ ਵੇਖੋ.",
     previewCardsLabel: "ਕਾਰਡ",
     previewReferencedMediaLabel: "ਹਵਾਲੇ ਵਾਲਾ ਮੀਡੀਆ",
@@ -1124,6 +1132,10 @@ const paCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ਚੈਟ ਵਿੱਚ ਕਾਰਡ ਖੋਲ੍ਹੋ: {{side}}",
     repetitionBadgeAriaLabel: "ਦੁਹਰਾਈਆਂ: {{value}}",
     repetitionBadgeNew: "ਨਵਾਂ",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "ਹੋਰ ਟੈਗ: {{count}}",
+    },
     empty: {
       noCardsBody: "ਤੁਸੀਂ ਹਾਲੇ ਕੋਈ ਕਾਰਡ ਨਹੀਂ ਬਣਾਇਆ. ਪੜ੍ਹਾਈ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਆਪਣਾ ਪਹਿਲਾ ਕਾਰਡ ਸ਼ਾਮਲ ਕਰੋ.",
       noCardsTitle: "ਹਾਲੇ ਕੋਈ ਕਾਰਡ ਨਹੀਂ",
@@ -1135,16 +1147,25 @@ const paCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "ਫਾਰਮੂਲਾ ਦਿਖਾਇਆ ਨਹੀਂ ਜਾ ਸਕਿਆ.",
       schedulerUnavailable: "ਵਰਕਸਪੇਸ ਦੀਆਂ ਸਮਾਂ-ਸਾਰਣੀ ਸੈਟਿੰਗਾਂ ਲੋਡ ਨਹੀਂ ਹੋਈਆਂ",
+      storageFull: "ਇਸ ਡਿਵਾਈਸ ’ਤੇ ਕੁਝ ਸਟੋਰੇਜ ਖਾਲੀ ਕਰੋ, ਫਿਰ ਕਾਰਡ ਨੂੰ ਦੁਬਾਰਾ ਰੇਟ ਕਰੋ।",
     },
     leaderboardShortcut: {
       ariaLabel: "ਦਰਜਾਬੰਦੀ ਖੋਲ੍ਹੋ",
     },
     progressBadge: {
-      ariaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}} ਦਿਨ. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}} ਦਿਨ. {{todayStatus}}.",
+      ariaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "ਦੁਹਰਾਈ ਦੀ ਲੜੀ {{streak}}. {{todayStatus}}.",
       freezeBank: "ਫ੍ਰੀਜ਼ ਬੈਂਕ {{capacity}} ਵਿੱਚੋਂ {{available}}",
       notReviewedToday: "ਅੱਜ ਦੁਹਰਾਈ ਨਹੀਂ ਕੀਤੀ",
       reviewedToday: "ਅੱਜ ਦੁਹਰਾਈ ਕੀਤੀ",
+      streakDayCount: {
+        zero: "{{count}} ਦਿਨ",
+        one: "{{count}} ਦਿਨ",
+        two: "{{count}} ਦਿਨ",
+        few: "{{count}} ਦਿਨ",
+        many: "{{count}} ਦਿਨ",
+        other: "{{count}} ਦਿਨ",
+      },
       title: "ਲੜੀ",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const paCatalog: TranslationCatalog = {
       snapshot: "ਹਾਲੀਆ ਸਥਾਨਕ ਸਨੈਪਸ਼ਾਟ ਵਿਖਾਇਆ ਜਾ ਰਿਹਾ ਹੈ...",
     },
     media: {
-      privateImage: "ਨਿੱਜੀ ਤਸਵੀਰ",
-      privateAttachment: "ਨਿੱਜੀ ਅਟੈਚਮੈਂਟ",
       attachmentLabel: "ਅਟੈਚਮੈਂਟ",
       audioLabel: "ਆਡੀਓ ਅਟੈਚਮੈਂਟ",
       imageAlt: "ਪ੍ਰਬੰਧਿਤ ਚਿੱਤਰ",
@@ -1348,23 +1367,14 @@ const paCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} ਬਕਾਇਆ",
+      toStudy: "{{count}} ਪੜ੍ਹਨ ਲਈ",
       total: "ਕੁੱਲ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ਦੇ ਅੰਕੜੇ",
     newDeck: "ਨਵਾਂ ਡੈੱਕ",
     statLabels: {
       cards: {
         one: "ਕਾਰਡ",
         other: "ਕਾਰਡ",
-      },
-      new: {
-        one: "ਨਵੇਂ",
-        other: "ਨਵੇਂ",
-      },
-      reviewed: {
-        one: "ਦੁਹਰਾਏ",
-        other: "ਦੁਹਰਾਏ",
       },
     },
     subtitle: "ਡੈੱਕ ਸਮਾਰਟ ਫਿਲਟਰ ਹਨ, ਡੱਬੇ ਨਹੀਂ. ਇਹ ਟੈਗਾਂ ਨਾਲ ਕਾਰਡ ਮਿਲਾਉਂਦੇ ਹਨ.",
@@ -1400,10 +1410,10 @@ const paCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "ਕਾਰਡ",
-      due: "ਬਕਾਇਆ",
       new: "ਨਵੇਂ",
       summary: "ਸਾਰ",
       title: "ਡੈੱਕ ਦੇ ਨਿਯਮ",
+      toStudy: "ਪੜ੍ਹਨ ਲਈ",
     },
     subtitle: "ਡੈੱਕ ਦੇ ਨਿਯਮ, ਮੇਲ ਖਾਂਦੇ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦਾ ਰਾਹ ਵੇਖੋ.",
     subtitles: {

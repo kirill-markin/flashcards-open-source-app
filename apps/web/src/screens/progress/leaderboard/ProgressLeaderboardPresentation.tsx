@@ -1,33 +1,10 @@
 import { type ReactElement } from "react";
-import { type Locale, type TranslationKey, useI18n } from "../../../i18n";
+import { type TranslationMessages, useI18n } from "../../../i18n";
 
 const millisecondsPerMinute = 60_000;
 const minutesPerHour = 60;
 
 type ProgressLeaderboardDisplayParticipantRowKind = "top" | "neighbor" | "viewer";
-type ProgressLeaderboardDurationUnit = "hours" | "minutes";
-type ProgressLeaderboardDurationPluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
-
-type ProgressLeaderboardDurationUnitTranslationKeys = Readonly<Record<ProgressLeaderboardDurationPluralCategory, TranslationKey>>;
-
-const progressLeaderboardDurationUnitTranslationKeys: Readonly<Record<ProgressLeaderboardDurationUnit, ProgressLeaderboardDurationUnitTranslationKeys>> = {
-  hours: {
-    zero: "progressScreen.leaderboard.updatedAtDuration.hours.zero",
-    one: "progressScreen.leaderboard.updatedAtDuration.hours.one",
-    two: "progressScreen.leaderboard.updatedAtDuration.hours.two",
-    few: "progressScreen.leaderboard.updatedAtDuration.hours.few",
-    many: "progressScreen.leaderboard.updatedAtDuration.hours.many",
-    other: "progressScreen.leaderboard.updatedAtDuration.hours.other",
-  },
-  minutes: {
-    zero: "progressScreen.leaderboard.updatedAtDuration.minutes.zero",
-    one: "progressScreen.leaderboard.updatedAtDuration.minutes.one",
-    two: "progressScreen.leaderboard.updatedAtDuration.minutes.two",
-    few: "progressScreen.leaderboard.updatedAtDuration.minutes.few",
-    many: "progressScreen.leaderboard.updatedAtDuration.minutes.many",
-    other: "progressScreen.leaderboard.updatedAtDuration.minutes.other",
-  },
-};
 
 export type ProgressLeaderboardDisplayGapRow = Readonly<{
   kind: "gap";
@@ -62,25 +39,6 @@ export type ProgressLeaderboardElapsedDuration = Readonly<{
   minutes: number;
 }>;
 
-function getProgressLeaderboardDurationPluralCategory(value: number, locale: Locale): ProgressLeaderboardDurationPluralCategory {
-  return new Intl.PluralRules(locale).select(value);
-}
-
-function formatProgressLeaderboardDurationUnit(
-  value: number,
-  unit: ProgressLeaderboardDurationUnit,
-  locale: Locale,
-  formatNumber: ReturnType<typeof useI18n>["formatNumber"],
-  t: ReturnType<typeof useI18n>["t"],
-): string {
-  const pluralCategory = getProgressLeaderboardDurationPluralCategory(value, locale);
-  const translationKey = progressLeaderboardDurationUnitTranslationKeys[unit][pluralCategory];
-
-  return t(translationKey, {
-    count: formatNumber(value),
-  });
-}
-
 export function getProgressLeaderboardElapsedDuration(snapshotGeneratedAt: string, now: Date): ProgressLeaderboardElapsedDuration {
   const snapshotTime = new Date(snapshotGeneratedAt).getTime();
   if (Number.isNaN(snapshotTime)) {
@@ -97,20 +55,21 @@ export function getProgressLeaderboardElapsedDuration(snapshotGeneratedAt: strin
 
 export function formatProgressLeaderboardElapsedDuration(
   duration: ProgressLeaderboardElapsedDuration,
-  locale: Locale,
-  formatNumber: ReturnType<typeof useI18n>["formatNumber"],
+  messages: TranslationMessages,
+  formatPluralMessage: ReturnType<typeof useI18n>["formatPluralMessage"],
   t: ReturnType<typeof useI18n>["t"],
 ): string {
+  const durationMessages = messages.progressScreen.leaderboard.updatedAtDuration;
   if (duration.hours === 0) {
-    return formatProgressLeaderboardDurationUnit(duration.minutes, "minutes", locale, formatNumber, t);
+    return formatPluralMessage(duration.minutes, durationMessages.minutes);
   }
 
-  const hoursText = formatProgressLeaderboardDurationUnit(duration.hours, "hours", locale, formatNumber, t);
+  const hoursText = formatPluralMessage(duration.hours, durationMessages.hours);
   if (duration.minutes === 0) {
     return hoursText;
   }
 
-  const minutesText = formatProgressLeaderboardDurationUnit(duration.minutes, "minutes", locale, formatNumber, t);
+  const minutesText = formatPluralMessage(duration.minutes, durationMessages.minutes);
 
   return t("progressScreen.leaderboard.updatedAtDuration.hoursAndMinutes", {
     hours: hoursText,

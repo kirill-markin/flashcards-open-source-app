@@ -53,6 +53,13 @@ const DEFAULT_CHAT_COMPOSER_SUGGESTIONS_DEPENDENCIES: ChatComposerSuggestionsDep
 
 const MAX_CHAT_COMPOSER_SUGGESTIONS = 2;
 
+/**
+ * A chat run ends only after its follow-up suggestions, and a provider call that never answers otherwise
+ * holds the run for fetch's 300-second headers timeout before its retry. A normal call answers within
+ * a few seconds, so a hung attempt is cut and retried instead.
+ */
+const FOLLOW_UP_SUGGESTIONS_ATTEMPT_TIMEOUT_MS = 20_000;
+
 const INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE = {
   en: [
     "Help me create a card",
@@ -698,7 +705,12 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
   for (let attempt = 1; ; attempt += 1) {
     await assertAiConsentReceiptActive(userId, aiConsentId ?? null);
     try {
-      response = await client.responses.create(request, aiConsentId == null ? undefined : { maxRetries: 0 });
+      response = await client.responses.create(
+        request,
+        aiConsentId == null
+          ? { timeout: FOLLOW_UP_SUGGESTIONS_ATTEMPT_TIMEOUT_MS }
+          : { maxRetries: 0, timeout: FOLLOW_UP_SUGGESTIONS_ATTEMPT_TIMEOUT_MS },
+      );
       break;
     } catch (error) {
       const retryDelayMs = aiConsentId == null ? null : getReceiptProviderRetryDelayMs(error, attempt);

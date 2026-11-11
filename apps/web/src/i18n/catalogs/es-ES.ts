@@ -20,6 +20,15 @@ const esEsCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Este navegador no ha podido decodificar el audio del micrófono ({{format}}).",
     recovery: "El acceso de invitado no está verificado. Las tarjetas en caché son de solo lectura. Restaura la sesión original o la conexión y vuelve a intentarlo.",
     cleanupFailed: "Has iniciado sesión, pero no se ha podido eliminar la tarjeta de demostración.",
+    browserCheck: {
+      title: "Comprobando tu navegador",
+      description: "Antes de abrir tu espacio de trabajo de invitado, Cloudflare confirma que se trata de un navegador normal. Suele tardar unos segundos.",
+      loading: "Cargando la comprobación...",
+      verifying: "Abriendo tu espacio de trabajo...",
+      loadFailed: "No se pudo cargar la comprobación. Revisa tu conexión, permite challenges.cloudflare.com en tu bloqueador de contenido y vuelve a intentarlo.",
+      failed: "La comprobación no se superó. Vuelve a intentarlo o inicia sesión.",
+      rejected: "La comprobación no se aceptó. Complétala una vez más.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const esEsCatalog: TranslationCatalog = {
     loading: "Cargando...",
     never: "Nunca",
     newItem: "nueva",
+    image: "Imagen",
     noBackText: "Sin texto en el reverso",
     noTags: "Sin etiquetas",
     notRevoked: "Sin revocar",
@@ -427,8 +437,12 @@ const esEsCatalog: TranslationCatalog = {
       offlineEmpty: "La clasificación por racha no está disponible sin conexión. Conéctate para ver los puestos.",
       unavailable: "La clasificación por racha no está disponible ahora mismo. Vuelve más tarde.",
       dayLabels: {
-        one: "día",
-        other: "días",
+        zero: "{{count}} días",
+        one: "{{count}} día",
+        two: "{{count}} días",
+        few: "{{count}} días",
+        many: "{{count}} días",
+        other: "{{count}} días",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const esEsCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Restaurando la sesión. Vuelve a intentarlo en un momento.",
     sessionUnavailable: "La sesión no está disponible",
     syncing: "Sincronizando...",
+    syncFailed: "Fallo de sincronización",
     workspaceUnavailable: "Espacio de trabajo no disponible",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const esEsCatalog: TranslationCatalog = {
       yourCards: "Tus tarjetas",
       addCards: "Añadir tarjetas",
     },
-    cards: {
-      description: "Todas las tarjetas de este espacio de trabajo.",
-    },
-    tags: {
-      description: "Todas las etiquetas usadas en al menos una tarjeta.",
-    },
-    decks: {
-      description: "Filtros de tarjetas guardados para un repaso centrado.",
-    },
     deckCatalog: {
       title: "Catálogo de mazos",
       description: "Mazos gratuitos y listos para estudiar.",
@@ -860,16 +866,18 @@ const esEsCatalog: TranslationCatalog = {
     note: "Estos ajustes solo afectan a la programación futura. El estado actual de las tarjetas sigue siendo la referencia.",
   },
   workspaceExport: {
-    title: "Exportar",
+    title: "Exportar paquete de Nibomo",
+    ankiTitle: "Exportar mazo de Anki",
     subtitle: "Descarga un paquete portátil para este espacio de trabajo.",
     workspaceUnavailable: "El espacio de trabajo no está disponible",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Nombre del mazo",
+    ankiEmptySelection: "No hay tarjetas para exportar. Cambia las etiquetas seleccionadas o añade tarjetas.",
     packageDescription: "Previsualiza tarjetas activas, metadatos, etiquetas y multimedia referenciada antes de descargar.",
-    packageExportSuccess: "La descarga de flashcards.zip ha comenzado.",
+    packageExportSuccess: "La descarga de {{filename}} ha comenzado.",
     packageExporting: "Descargando...",
     packagePreviewing: "Previsualizando...",
     packageExportPreviewButton: "Previsualizar exportación",
-    packageExportConfirmButton: "Descargar flashcards.zip",
+    packageExportConfirmButton: "Descargar {{filename}}",
     packageExportPreviewRequired: "Previsualiza esta exportación antes de descargarla.",
     previewCardsLabel: "Tarjetas",
     previewReferencedMediaLabel: "Multimedia referenciada",
@@ -1124,6 +1132,10 @@ const esEsCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Abrir la tarjeta del {{side}} en el chat con IA",
     repetitionBadgeAriaLabel: "Repasos: {{value}}",
     repetitionBadgeNew: "Nueva",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Más etiquetas: {{count}}",
+    },
     empty: {
       noCardsBody: "Aún no has creado ninguna tarjeta. Añade tu primera tarjeta para empezar a estudiar.",
       noCardsTitle: "Aún no hay tarjetas",
@@ -1135,16 +1147,25 @@ const esEsCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "No se pudo mostrar la fórmula.",
       schedulerUnavailable: "Los ajustes del programador del espacio de trabajo no están cargados",
+      storageFull: "Libera espacio de almacenamiento en este dispositivo y vuelve a calificar la tarjeta.",
     },
     leaderboardShortcut: {
       ariaLabel: "Abrir clasificación",
     },
     progressBadge: {
-      ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
+      ariaLabel: "Racha de repaso de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Racha de repaso de {{streak}}. {{todayStatus}}.",
       freezeBank: "Banco de congelaciones {{available}} de {{capacity}}",
       notReviewedToday: "Sin repaso hoy",
       reviewedToday: "Repasado hoy",
+      streakDayCount: {
+        zero: "{{count}} días",
+        one: "{{count}} día",
+        two: "{{count}} días",
+        few: "{{count}} días",
+        many: "{{count}} días",
+        other: "{{count}} días",
+      },
       title: "Racha",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const esEsCatalog: TranslationCatalog = {
       snapshot: "Mostrando una instantánea local reciente...",
     },
     media: {
-      privateImage: "Imagen privada",
-      privateAttachment: "Archivo adjunto privado",
       attachmentLabel: "Adjunto",
       audioLabel: "Adjunto de audio",
       imageAlt: "Imagen gestionada",
@@ -1348,23 +1367,14 @@ const esEsCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} pendientes",
+      toStudy: "{{count}} por estudiar",
       total: "{{count}} total",
     },
-    emptyStatsAriaLabel: "estadísticas de {{deckName}}",
     newDeck: "Nuevo mazo",
     statLabels: {
       cards: {
         one: "tarjeta",
         other: "tarjetas",
-      },
-      new: {
-        one: "nueva",
-        other: "nuevas",
-      },
-      reviewed: {
-        one: "repasada",
-        other: "repasadas",
       },
     },
     subtitle: "Los mazos son filtros inteligentes, no contenedores. Coinciden con tarjetas por etiquetas.",
@@ -1400,10 +1410,10 @@ const esEsCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Tarjetas",
-      due: "Pendientes",
       new: "Nuevas",
       summary: "Resumen",
       title: "Reglas del mazo",
+      toStudy: "Por estudiar",
     },
     subtitle: "Consulta las reglas del mazo, las tarjetas coincidentes y el punto de entrada al repaso.",
     subtitles: {

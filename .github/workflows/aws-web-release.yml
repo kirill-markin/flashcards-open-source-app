@@ -458,6 +458,7 @@ jobs:
           CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN: ${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}
           CDK_CONTEXT_DOMAIN_NAME: ${{ vars.CDK_DOMAIN_NAME }}
           CDK_CONTEXT_GITHUB_REPO: ${{ vars.CDK_GITHUB_REPO }}
+          CDK_CONTEXT_GUEST_CHALLENGE_SECRET_NAME: ${{ vars.CDK_GUEST_CHALLENGE_SECRET_NAME }}
           CDK_CONTEXT_GLOBAL_METRICS_VISIBLE: ${{ vars.CDK_GLOBAL_METRICS_VISIBLE }}
           CDK_CONTEXT_OPENAI_API_KEY_SECRET_ARN: ${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}
           CDK_CONTEXT_REGION: ${{ vars.AWS_REGION }}
@@ -762,7 +763,7 @@ jobs:
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.aws_deploy.result == 'success' && (needs.changes.outputs.deploy_web == 'true' || needs.changes.outputs.deploy_platform == 'true') }}
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --init --ipc=host
     timeout-minutes: 45
 
@@ -797,6 +798,7 @@ jobs:
           FLASHCARDS_E2E_APP_BASE_URL: https://app.nibomo.com
           FLASHCARDS_E2E_AUTH_BASE_URL: https://auth.nibomo.com
           FLASHCARDS_LIVE_REVIEW_EMAIL: google-review@example.com
+          E2E_GUEST_CHALLENGE_BYPASS_TOKEN: ${{ secrets.E2E_GUEST_CHALLENGE_BYPASS_TOKEN }}
         run: |
           set -euo pipefail
 

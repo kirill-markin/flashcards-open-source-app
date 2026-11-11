@@ -1,6 +1,6 @@
 {
   "name": "flashcards-open-source-app-backend",
-  "version": "1.41.0",
+  "version": "1.42.0",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/entrypoints/index.ts",
@@ -15,26 +15,27 @@
   },
   "dependencies": {
     "@apple/app-store-server-library": "3.1.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.1161.0",
-    "@aws-sdk/client-cognito-identity-provider": "^3.1161.0",
-    "@aws-sdk/client-dynamodb": "^3.1161.0",
-    "@aws-sdk/client-lambda": "^3.1161.0",
-    "@aws-sdk/client-s3": "^3.1161.0",
-    "@aws-sdk/client-secrets-manager": "^3.1161.0",
-    "@aws-sdk/s3-request-presigner": "^3.1161.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1166.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1166.0",
+    "@aws-sdk/client-dynamodb": "^3.1166.0",
+    "@aws-sdk/client-lambda": "^3.1166.0",
+    "@aws-sdk/client-s3": "^3.1166.0",
+    "@aws-sdk/client-secrets-manager": "^3.1166.0",
+    "@aws-sdk/s3-request-presigner": "^3.1166.0",
     "@hono/node-server": "^2.1.6",
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@opentelemetry/instrumentation": "^0.300.0",
-    "@sentry/aws-serverless": "^11.10.0",
-    "@sentry/server-runtime-injection": "11.10.0",
+    "@opentelemetry/instrumentation": "^0.301.1",
+    "@sentry/aws-serverless": "^11.12.0",
+    "@sentry/server-runtime-injection": "11.12.0",
     "aws-jwt-verify": "^5.2.1",
     "fflate": "^0.8.3",
-    "google-auth-library": "11.3.3",
-    "hono": "^4.13.16",
+    "google-auth-library": "11.3.4",
+    "hono": "^4.13.17",
     "just-bash": "3.6.0",
     "mammoth": "^1.13.0",
+    "markdown-it": "15.0.3",
     "maxmind": "^5.0.8",
-    "openai": "^7.50.0",
+    "openai": "^7.55.0",
     "papaparse": "^5.7.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "6.4.299",
@@ -61,7 +62,7 @@
     "protobufjs": "^8.8.1",
     "undici": "6.29.1",
     "guarded-fetch": {
-      "undici": "7.30.1"
+      "undici": "7.30.2"
     },
     "@sentry/bundler-plugins": {
       "glob": "14.0.3"

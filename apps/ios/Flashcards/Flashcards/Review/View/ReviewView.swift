@@ -81,7 +81,19 @@ struct ReviewView: View {
     }
 
     private var selectedReviewFilterTitle: String {
-        switch store.selectedReviewFilter {
+        self.reviewFilterTitle(reviewFilter: store.selectedReviewFilter)
+    }
+
+    /// The open filter's tag rows apply on close, so the button names that draft at once, as a deck choice does.
+    private var reviewFilterButtonTitle: String {
+        guard self.isReviewFilterPopoverPresented, self.reviewFilterPresentationContext != nil else {
+            return self.selectedReviewFilterTitle
+        }
+        return self.reviewFilterTitle(reviewFilter: self.reviewFilterDraft)
+    }
+
+    private func reviewFilterTitle(reviewFilter: ReviewFilter) -> String {
+        switch reviewFilter {
         case .allCards:
             return localizedAllCardsLabel()
         case .deck(let deckId):
@@ -302,7 +314,8 @@ struct ReviewView: View {
                             reviewFilter: self.$reviewFilterDraft,
                             decks: store.decks,
                             tagSummaries: self.reviewTagSummaries,
-                            onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+                            onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
+                            onSingleChoice: self.dismissReviewFilterPopover
                         )
                         .presentationCompactAdaptation(.popover)
                     }
@@ -401,7 +414,7 @@ struct ReviewView: View {
         ))
         actions.append(MacToolbarAction(
             identifier: UITestIdentifier.reviewProgressBadge, symbol: badge.iconSystemName,
-            label: self.reviewProgressBadgeAccessibilityLabel(badgeState: streak),
+            label: formatReviewProgressBadgeAccessibilityLabel(badgeState: streak),
             symbolColor: streak.hasReviewedToday ? UIColor(self.store.displayedAccountAccentColor.color) : nil,
             title: formatReviewProgressBadgeValue(badgeState: streak),
             value: self.reviewProgressBadgeAccessibilityValue(badgeState: streak),
@@ -409,12 +422,12 @@ struct ReviewView: View {
             perform: { _ in self.openProgressWithPresentationBreadcrumb(target: .streak) }
         ))
         let filter = MacToolbarAction(
-            identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.selectedReviewFilterTitle,
-            title: self.selectedReviewFilterTitle,
+            identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.reviewFilterButtonTitle,
+            title: self.reviewFilterButtonTitle,
             toolTip: String(
                 format: String(localized: "Filter: %@ (F)", table: reviewCardsStringsTableName),
                 locale: Locale.current,
-                self.selectedReviewFilterTitle
+                self.reviewFilterButtonTitle
             ),
             activationRequest: self.macReviewFilterOpenRequest.map { id in
                 MacToolbarActivationRequest(id: id, onHandled: {
@@ -429,7 +442,8 @@ struct ReviewView: View {
                     ReviewFilterPopover(
                         reviewFilter: self.$reviewFilterDraft, decks: self.store.decks,
                         tagSummaries: self.reviewTagSummaries,
-                        onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+                        onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
+                        onSingleChoice: self.dismissReviewFilterPopover
                     )
                     .environment(\.locale, self.locale)
                     .tint(self.store.displayedAccountAccentColor.color)
@@ -724,7 +738,7 @@ struct ReviewView: View {
                         .foregroundStyle(Color.primary)
                 } else {
                     HStack(spacing: 4) {
-                        Text(self.selectedReviewFilterTitle)
+                        Text(self.reviewFilterButtonTitle)
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
@@ -743,8 +757,8 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
         .accessibilityLabel(self.usesCompactCompanionToolbar
             ? String(localized: "Filters", table: reviewCardsStringsTableName)
-            : self.selectedReviewFilterTitle)
-        .accessibilityValue(self.usesCompactCompanionToolbar ? self.selectedReviewFilterTitle : "")
+            : self.reviewFilterButtonTitle)
+        .accessibilityValue(self.usesCompactCompanionToolbar ? self.reviewFilterButtonTitle : "")
         }
         #if !targetEnvironment(macCatalyst)
         .onGeometryChange(for: CGRect.self) { geometry in
@@ -782,6 +796,11 @@ struct ReviewView: View {
         // snapshot and is discarded instead of applied; reopening the menu re-seeds it. Clearing the
         // context first also keeps the finalize on popover dismissal a no-op.
         self.reviewFilterPresentationContext = nil
+        self.isReviewFilterPopoverPresented = false
+    }
+
+    /// Closing commits the draft through the presentation change, on both the popover and the Mac toolbar path.
+    private func dismissReviewFilterPopover() {
         self.isReviewFilterPopoverPresented = false
     }
 
@@ -869,7 +888,7 @@ struct ReviewView: View {
                     )
                     reviewRepetitionBadge(reps: card.reps)
                 }
-                // Without priority the trailing Spacer takes an equal share and the chips scroll early.
+                // Without priority the trailing Spacer takes an equal share and the chips overflow early.
                 .layoutPriority(1)
 
                 Spacer(minLength: 12)
@@ -1056,7 +1075,7 @@ struct ReviewView: View {
         .disabled(badgeState.isInteractive == false)
         .labelStyle(.titleAndIcon)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
-        .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
+        .accessibilityLabel(formatReviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
         .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
     }
 
@@ -1135,32 +1154,6 @@ struct ReviewView: View {
         ].joined(separator: ";")
     }
 
-    private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
-        let localizedFormat: String
-        if badgeState.hasReviewedToday {
-            localizedFormat = String(
-                localized: "review.progress_badge.accessibility.reviewed_today",
-                defaultValue: "Review streak %@ days. Reviewed today.",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility label for the review progress badge when the user has reviewed today"
-            )
-        } else {
-            localizedFormat = String(
-                localized: "review.progress_badge.accessibility.not_reviewed_today",
-                defaultValue: "Review streak %@ days. Not reviewed today.",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility label for the review progress badge when the user has not reviewed today"
-            )
-        }
-
-        let streakLabel = String(
-            format: localizedFormat,
-            locale: Locale.current,
-            badgeState.streakDays.formatted()
-        )
-        return streakLabel
-    }
-
     private func reviewProgressBadgeAccessibilityValue(badgeState: ReviewProgressBadgeState) -> String {
         guard AutomationRun.current.isUITestLaunch else { return "" }
         let components: [String] = [
@@ -1190,13 +1183,14 @@ struct ReviewView: View {
     private func openReviewTextSelection(card: Card, side: ReviewCardSurfaceStyle) {
         guard self.currentCard?.cardId == card.cardId else { return }
         guard side == .front || self.reviewScreen.isAnswerVisible else { return }
+        let sourceText = side == .front ? card.frontText : card.backText
         self.textSelection = ReviewCardTextSelection(
             id: UUID(),
             cardId: card.cardId,
             title: side == .front
                 ? String(localized: "Front", table: reviewCardsStringsTableName)
                 : String(localized: "Back", table: reviewCardsStringsTableName),
-            sourceText: side == .front ? card.frontText : card.backText
+            text: Result { try reviewCardSideCopyText(sourceText: sourceText) }
         )
     }
 

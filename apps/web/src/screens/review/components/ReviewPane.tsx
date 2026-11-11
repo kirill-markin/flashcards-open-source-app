@@ -15,7 +15,7 @@ import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { ReviewRepetitionBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import type { ReviewCardCopyButtonHandle } from "./card/ReviewCardCopyButton";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon, type ReviewCardShortcutTarget } from "./card/ReviewCardSide";
-import { ReviewCardTags } from "./ReviewCardTags";
+import { ReviewCardHeadTags } from "./ReviewCardHeadTags";
 import { ReviewShortcutHint } from "./ReviewShortcutHint";
 import { ReviewEyeIcon, ReviewRatingIcon } from "./ReviewIcons";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
@@ -47,6 +47,7 @@ export type ReviewPaneProps = Readonly<{
   isAnswerVisible: boolean;
   isInitialReviewLoad: boolean;
   isSubmitting: boolean;
+  isTagOverflowMenuOpen: boolean;
   lastSubmittedReview: LastSubmittedReview | null;
   localReadVersion: number;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
@@ -58,10 +59,12 @@ export type ReviewPaneProps = Readonly<{
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   onSwitchToAllCards: () => void;
+  onTagOverflowMenuOpenChange: (isOpen: boolean) => void;
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
   reviewButtonOptions: ReadonlyArray<ReviewButtonOption>;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
+  reviewRatingErrorMessage: string;
   reviewSubmitState: ReviewSubmitState;
   selectedBackSpeakableText: string;
   selectedCard: Card | null;
@@ -71,10 +74,12 @@ export type ReviewPaneProps = Readonly<{
 }>;
 
 type ReviewLoadingPaneProps = Readonly<{
+  isTagOverflowMenuOpen: boolean;
   localReadVersion: number;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   onRequestTagFilter: (tag: string) => void;
   onRequestTextSelection: (side: ReviewSpeechSide) => void;
+  onTagOverflowMenuOpenChange: (isOpen: boolean) => void;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
   workspaceId: string | null;
 }>;
@@ -92,6 +97,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   activeSpeechSide: ReviewSpeechSide | null;
   isAnswerVisible: boolean;
   isSubmitting: boolean;
+  isTagOverflowMenuOpen: boolean;
   localReadVersion: number;
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
@@ -100,9 +106,11 @@ type ReviewActiveCardPaneProps = Readonly<{
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
+  onTagOverflowMenuOpenChange: (isOpen: boolean) => void;
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
   reviewButtonOptions: ReadonlyArray<ReviewButtonOption>;
+  reviewRatingErrorMessage: string;
   selectedBackSpeakableText: string;
   selectedCard: Card;
   selectedFrontSpeakableText: string;
@@ -122,10 +130,12 @@ function handleDisabledSpeechToggle(): void {
 
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
   const {
+    isTagOverflowMenuOpen,
     localReadVersion,
     loadingReviewCurrentCard,
     onRequestTagFilter,
     onRequestTextSelection,
+    onTagOverflowMenuOpenChange,
     reviewLoadingSnapshot,
     workspaceId,
   } = props;
@@ -140,7 +150,13 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
           {loadingReviewCurrentCard !== null ? (
-            <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={loadingReviewCurrentCard.tags} />
+            <ReviewCardHeadTags
+              key={loadingReviewCurrentCard.cardId}
+              isOverflowMenuOpen={isTagOverflowMenuOpen}
+              onOverflowMenuOpenChange={onTagOverflowMenuOpenChange}
+              onRequestTagFilter={onRequestTagFilter}
+              tags={loadingReviewCurrentCard.tags}
+            />
           ) : (
             <>
               <span className="badge review-loading-badge">{t("reviewScreen.loading.queue")}</span>
@@ -305,6 +321,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     activeSpeechSide,
     isAnswerVisible,
     isSubmitting,
+    isTagOverflowMenuOpen,
     localReadVersion,
     onAiHandoff,
     onEditCard,
@@ -313,9 +330,11 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     onRevealAnswer,
     onReview,
     onShortcutButtonPointerEnter,
+    onTagOverflowMenuOpenChange,
     onToggleSpeech,
     reviewButtonErrorMessage,
     reviewButtonOptions,
+    reviewRatingErrorMessage,
     selectedBackSpeakableText,
     selectedCard,
     selectedFrontSpeakableText,
@@ -359,7 +378,13 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head" ref={headerRef}>
         <div className="review-pane-head-meta">
-          <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={selectedCard.tags} />
+          <ReviewCardHeadTags
+            key={selectedCard.cardId}
+            isOverflowMenuOpen={isTagOverflowMenuOpen}
+            onOverflowMenuOpenChange={onTagOverflowMenuOpenChange}
+            onRequestTagFilter={onRequestTagFilter}
+            tags={selectedCard.tags}
+          />
         </div>
         <span className="badge review-metadata-chip">
           <ReviewRepetitionBadgeIcon />
@@ -438,6 +463,9 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
       </div>
 
       <div className="review-actions-dock" ref={controlsRef}>
+        {reviewRatingErrorMessage === "" ? null : (
+          <p className="error-banner" role="alert">{reviewRatingErrorMessage}</p>
+        )}
         {isAnswerVisible ? (
           reviewButtonErrorMessage !== "" ? (
             <p className="error-banner">{reviewButtonErrorMessage}</p>
@@ -481,7 +509,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           </button>
         )}
       </div>
-      {showFirstReviewOnboarding && !isSubmitting && reviewButtonErrorMessage === "" ? (
+      {showFirstReviewOnboarding && !isSubmitting && reviewButtonErrorMessage === "" && reviewRatingErrorMessage === "" ? (
         <FirstReviewOnboardingOverlay
           target={isAnswerVisible ? againButton : revealButton}
           surfaceRef={surfaceRef}
@@ -505,6 +533,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     isAnswerVisible,
     isInitialReviewLoad,
     isSubmitting,
+    isTagOverflowMenuOpen,
     lastSubmittedReview,
     localReadVersion,
     loadingReviewCurrentCard,
@@ -516,10 +545,12 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     onReview,
     onShortcutButtonPointerEnter,
     onSwitchToAllCards,
+    onTagOverflowMenuOpenChange,
     onToggleSpeech,
     reviewButtonErrorMessage,
     reviewButtonOptions,
     reviewLoadingSnapshot,
+    reviewRatingErrorMessage,
     reviewSubmitState,
     selectedBackSpeakableText,
     selectedCard,
@@ -554,10 +585,12 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     >
       {reviewPaneState === "loading" ? (
         <ReviewLoadingPane
+          isTagOverflowMenuOpen={isTagOverflowMenuOpen}
           localReadVersion={localReadVersion}
           loadingReviewCurrentCard={loadingReviewCurrentCard}
           onRequestTagFilter={onRequestTagFilter}
           onRequestTextSelection={onRequestTextSelection}
+          onTagOverflowMenuOpenChange={onTagOverflowMenuOpenChange}
           reviewLoadingSnapshot={reviewLoadingSnapshot}
           workspaceId={workspaceId}
         />
@@ -577,6 +610,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           activeSpeechSide={activeSpeechSide}
           isAnswerVisible={isAnswerVisible}
           isSubmitting={isSubmitting}
+          isTagOverflowMenuOpen={isTagOverflowMenuOpen}
           localReadVersion={localReadVersion}
           onAiHandoff={onAiHandoff}
           onEditCard={onEditCard}
@@ -585,9 +619,11 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           onRevealAnswer={onRevealAnswer}
           onReview={onReview}
           onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
+          onTagOverflowMenuOpenChange={onTagOverflowMenuOpenChange}
           onToggleSpeech={onToggleSpeech}
           reviewButtonErrorMessage={reviewButtonErrorMessage}
           reviewButtonOptions={reviewButtonOptions}
+          reviewRatingErrorMessage={reviewRatingErrorMessage}
           selectedBackSpeakableText={selectedBackSpeakableText}
           selectedCard={selectedCard}
           selectedFrontSpeakableText={selectedFrontSpeakableText}

@@ -15,7 +15,7 @@ import { ReviewTagFilterDialog } from "./tagFilter/ReviewTagFilterDialog";
 import { GuestSignInAfterReviewPrompt } from "./guest/GuestSignInAfterReviewPrompt";
 import { useReviewScreenController } from "./useReviewScreenController";
 
-export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide";
+export { normalizeReviewMarkdownForWeb } from "./components/card/reviewMarkdownNormalization";
 
 export function ReviewScreen(): ReactElement {
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();

@@ -92,6 +92,7 @@ type ProductAnalyticsRequestFacts = Readonly<{
 }>;
 
 // One reporter per lookup site; the shape and the reason are in ../geolocation/countryLookupFailure.ts.
+const reportCountryLookupFailure = createCountryLookupFailureReporter();
 const reportNetworkAsnLookupFailure = createCountryLookupFailureReporter();
 
 function createProductAnalyticsScope(
@@ -247,7 +248,8 @@ function createIngestIdentityLink(
 }
 
 // The same request facts the credential-free collector stores, derived once per batch and stamped
-// on every row of it; what each column means is in db/migrations/0228_app_event_bot_evidence.sql.
+// on every row of it; what each column means is in db/migrations/0228_app_event_bot_evidence.sql
+// and, for country, db/migrations/0240_app_event_request_country.sql.
 async function addProductAnalyticsRequestBotEvidence(
   rows: ReadonlyArray<ProductAnalyticsEventRow>,
   platform: ProductAnalyticsClientReportablePlatform | null,
@@ -255,6 +257,15 @@ async function addProductAnalyticsRequestBotEvidence(
   clientHintUserAgent: string | null,
   scope: BackendObservationScope,
 ): Promise<ReadonlyArray<ClientProductAnalyticsEventRow>> {
+  const countryLookup = getDirectRequestCountryLookup();
+  const country = countryLookup === null
+    ? null
+    : await runAnalyticsIngestLookup(countryLookup, (errorMessage) => reportCountryLookupFailure({
+      action: "analytics_events_country_lookup_failed",
+      message: "Analytics batch country lookup failed; the batch is refused so its client retries it.",
+      scope,
+      details: { errorMessage },
+    }));
   const networkAsnLookup = getDirectRequestNetworkAsnLookup();
   const networkAsn = networkAsnLookup === null
     ? null
@@ -272,6 +283,7 @@ async function addProductAnalyticsRequestBotEvidence(
   const clientHintChromiumMajor = parseClientHintChromiumMajor(clientHintUserAgent);
   return rows.map((row) => ({
     ...row,
+    country,
     automatedClient,
     networkAsn,
     userAgentChromeMajor,

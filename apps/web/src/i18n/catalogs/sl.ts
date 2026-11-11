@@ -20,6 +20,15 @@ const slCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ta brskalnik ni mogel dekodirati zvoka mikrofona ({{format}}).",
     recovery: "Gostujoči dostop ni preverjen. Predpomnjene kartice so samo za branje. Obnovite prvotno sejo ali povezavo in poskusite znova.",
     cleanupFailed: "Prijava je uspela, vendar predstavitvene kartice ni bilo mogoče odstraniti.",
+    browserCheck: {
+      title: "Preverjamo vaš brskalnik",
+      description: "Preden se odpre delovni prostor za goste, Cloudflare potrdi, da gre za običajen brskalnik. Običajno traja nekaj sekund.",
+      loading: "Nalaganje preverjanja ...",
+      verifying: "Odpiranje vašega delovnega prostora ...",
+      loadFailed: "Preverjanja ni bilo mogoče naložiti. Preverite povezavo, v zaviralcu vsebine dovolite challenges.cloudflare.com in poskusite znova.",
+      failed: "Preverjanje ni uspelo. Poskusite znova ali se prijavite.",
+      rejected: "Preverjanje ni bilo sprejeto. Opravite ga še enkrat.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -140,6 +149,7 @@ const slCatalog: TranslationCatalog = {
     loading: "Nalaganje ...",
     never: "Nikoli",
     newItem: "nova",
+    image: "Slika",
     noBackText: "Brez besedila na zadnji strani",
     noTags: "Brez oznak",
     notRevoked: "Ni preklicano",
@@ -441,10 +451,12 @@ const slCatalog: TranslationCatalog = {
       offlineEmpty: "Lestvica nizov brez povezave ni na voljo. Znova se povežite, da vidite uvrstitve.",
       unavailable: "Lestvica nizov trenutno ni na voljo. Preverite znova pozneje.",
       dayLabels: {
-        one: "dan",
-        two: "dneva",
-        few: "dnevi",
-        other: "dni",
+        zero: "{{count}} dni",
+        one: "{{count}} dan",
+        two: "{{count}} dneva",
+        few: "{{count}} dnevi",
+        many: "{{count}} dni",
+        other: "{{count}} dni",
       },
     },
     labels: {
@@ -525,6 +537,7 @@ const slCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Obnavljanje seje. Poskusite znova čez trenutek.",
     sessionUnavailable: "Seja ni na voljo",
     syncing: "Sinhronizacija ...",
+    syncFailed: "Sinhronizacija ni uspela",
     workspaceUnavailable: "Delovni prostor ni na voljo",
   },
   accountMenu: {
@@ -782,15 +795,6 @@ const slCatalog: TranslationCatalog = {
       yourCards: "Vaše kartice",
       addCards: "Dodajanje kartic",
     },
-    cards: {
-      description: "Vse kartice v tem delovnem prostoru.",
-    },
-    tags: {
-      description: "Vse oznake, uporabljene na vsaj eni kartici.",
-    },
-    decks: {
-      description: "Shranjeni filtri kartic za osredotočeno ponavljanje.",
-    },
     deckCatalog: {
       title: "Katalog kompletov",
       description: "Brezplačni pripravljeni kompleti za učenje.",
@@ -878,16 +882,18 @@ const slCatalog: TranslationCatalog = {
     note: "Te nastavitve vplivajo le na prihodnje razporejanje. Obstoječe stanje kartic ostane merodajno.",
   },
   workspaceExport: {
-    title: "Izvoz",
+    title: "Izvozi paket Nibomo",
+    ankiTitle: "Izvozi komplet kartic za Anki",
     subtitle: "Prenesite prenosni paket za ta delovni prostor.",
     workspaceUnavailable: "Delovni prostor ni na voljo",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Ime kompleta kartic",
+    ankiEmptySelection: "Ni kartic za izvoz. Spremenite izbrane oznake ali dodajte kartice.",
     packageDescription: "Pred prenosom si oglejte aktivne kartice, metapodatke, oznake in predstavnost, na katero se sklicujejo.",
-    packageExportSuccess: "Prenos datoteke flashcards.zip se je začel.",
+    packageExportSuccess: "Prenos datoteke {{filename}} se je začel.",
     packageExporting: "Prenašanje ...",
     packagePreviewing: "Pripravljanje predogleda ...",
     packageExportPreviewButton: "Predogled izvoza",
-    packageExportConfirmButton: "Prenesi flashcards.zip",
+    packageExportConfirmButton: "Prenesi {{filename}}",
     packageExportPreviewRequired: "Pred prenosom si oglejte predogled izvoza.",
     previewCardsLabel: "Kartice",
     previewReferencedMediaLabel: "Predstavnost v sklicih",
@@ -1144,6 +1150,10 @@ const slCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Odpri kartico v klepetu z UI: {{side}}",
     repetitionBadgeAriaLabel: "Ponovitve: {{value}}",
     repetitionBadgeNew: "Nova",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Več oznak: {{count}}",
+    },
     empty: {
       noCardsBody: "Ustvarili niste še nobene kartice. Dodajte prvo kartico in začnite z učenjem.",
       noCardsTitle: "Še ni kartic",
@@ -1155,16 +1165,25 @@ const slCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formule ni bilo mogoče prikazati.",
       schedulerUnavailable: "Nastavitve razporejanja delovnega prostora niso naložene",
+      storageFull: "Sprostite prostor za shranjevanje v tej napravi in nato znova ocenite kartico.",
     },
     leaderboardShortcut: {
       ariaLabel: "Odpri lestvico",
     },
     progressBadge: {
-      ariaLabel: "Niz ponavljanja, število dni: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Niz ponavljanja, število dni: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}.",
       freezeBank: "Zaščite niza: {{available}} od {{capacity}}",
       notReviewedToday: "Danes še ni ponovljeno",
       reviewedToday: "Danes ponovljeno",
+      streakDayCount: {
+        zero: "{{count}} dni",
+        one: "{{count}} dan",
+        two: "{{count}} dneva",
+        few: "{{count}} dnevi",
+        many: "{{count}} dni",
+        other: "{{count}} dni",
+      },
       title: "Niz",
     },
     interval: {
@@ -1178,8 +1197,6 @@ const slCatalog: TranslationCatalog = {
       snapshot: "Prikaz nedavnega lokalnega posnetka ...",
     },
     media: {
-      privateImage: "Zasebna slika",
-      privateAttachment: "Zasebna priloga",
       attachmentLabel: "Priloga",
       audioLabel: "Zvočna priloga",
       imageAlt: "Upravljana slika",
@@ -1368,10 +1385,9 @@ const slCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Za ponovitev: {{count}}",
+      toStudy: "{{count}} za učenje",
       total: "Skupaj: {{count}}",
     },
-    emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Nov komplet",
     statLabels: {
       cards: {
@@ -1379,18 +1395,6 @@ const slCatalog: TranslationCatalog = {
         two: "kartici",
         few: "kartice",
         other: "kartic",
-      },
-      new: {
-        one: "nova",
-        two: "novi",
-        few: "nove",
-        other: "novih",
-      },
-      reviewed: {
-        one: "ponovljena",
-        two: "ponovljeni",
-        few: "ponovljene",
-        other: "ponovljenih",
       },
     },
     subtitle: "Kompleti so pametni filtri, ne vsebniki. Kartice izbirajo po oznakah.",
@@ -1426,10 +1430,10 @@ const slCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartice",
-      due: "Za ponovitev",
       new: "Novo",
       summary: "Povzetek",
       title: "Pravila kompleta",
+      toStudy: "Za učenje",
     },
     subtitle: "Preglejte pravila kompleta, ustrezne kartice in vstopno točko za ponavljanje.",
     subtitles: {

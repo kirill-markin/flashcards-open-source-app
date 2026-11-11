@@ -281,6 +281,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
       firstReviewOnboardingCompleted: true,
     })),
     runSync: vi.fn(async (): Promise<void> => undefined),
+    requireActiveWorkspaceSync: vi.fn(async (): Promise<void> => undefined),
     runMediaUploadTransfers: vi.fn(),
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),

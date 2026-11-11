@@ -294,6 +294,7 @@ async function loadWorkspaceDeletePreviewInExecutorWithObservationScope(
     const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
     assertWorkspaceOwner(managedWorkspace.role);
     assertWorkspaceIsSoleMember(managedWorkspace.member_count);
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
     const activeCardCount = await loadActiveCardCountInExecutor(executor, workspaceId);
     const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
 
@@ -585,6 +586,8 @@ async function deleteWorkspaceInExecutorWithObservationScope(
     selectedWorkspaceIdAfterPreparation = selectionPreparation.selectedWorkspaceIdAfterPreparation;
 
     stage = "count_active_cards";
+    // The session is user-scoped here, and selection preparation can re-apply user scope, so scope to the workspace after it.
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
     deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
     stage = "delete_workspace";
     const deleteResult = await executor.query<DeletedWorkspaceRow>(

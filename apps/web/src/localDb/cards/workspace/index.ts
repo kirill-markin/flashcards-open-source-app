@@ -297,10 +297,10 @@ export async function applyHotSyncPage(
       ? undefined
       : await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
 
-    await runReadwrite(database, createHotSyncStoreNames(syncStateUpdate), (transaction) => {
+    await runReadwrite(database, createHotSyncStoreNames(syncStateUpdate), (transaction, continueRequest) => {
       for (const entry of entries) {
         if (entry.entityType === "card") {
-          putCardInTransaction(transaction, workspaceId, entry.payload);
+          putCardInTransaction(transaction, workspaceId, entry.payload, continueRequest);
           continue;
         }
 

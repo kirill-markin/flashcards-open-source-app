@@ -106,6 +106,21 @@ enum Analytics {
         self.foregroundState.recordBackgrounded()
     }
 
+    /// The cold `app_opened`, once per process, when a person first sees the app. Process start is not
+    /// that moment: a watch message or prewarming can launch the process in the background, and nobody
+    /// may open it at all.
+    static func trackAppColdOpened() {
+        guard self.foregroundState.recordColdOpen() else {
+            return
+        }
+
+        self.track(.appOpened(launchType: .cold))
+    }
+
+    static func isColdOpenRecorded() -> Bool {
+        self.foregroundState.isColdOpenRecorded()
+    }
+
     /**
      * The warm `app_opened`, emitted on a real background → foreground transition and nothing else.
      *
@@ -115,12 +130,9 @@ enum Analytics {
      * open, permanently inflating an append-only table and making iOS incomparable with the web and
      * Android clients.
      *
-     * A foreground transition is only a *return* if the process was in the background first, which is
-     * what the recorded flag establishes. That is also what keeps a launch that begins in the
-     * background — where `FlashcardsApp.init` emits the cold open — from having its first foreground
-     * transition counted a second time. Whether iOS prewarming produces exactly that shape, and
-     * whether it posts a background notification of its own along the way, is not established from
-     * this repository and belongs in a device-level check.
+     * A foreground transition is only a *return* if the process was in the background after its cold
+     * open, which is what the recorded flags establish. A process that starts in the background has
+     * its first foreground counted by the cold open instead, whichever of the two is observed first.
      */
     static func trackAppForegrounded() {
         guard self.foregroundState.consumeBackgroundedReturn() else {
@@ -388,7 +400,7 @@ final class AnalyticsEnabledState: @unchecked Sendable {
 }
 
 /**
- * Whether the process has been in the background since the last warm open was recorded.
+ * Whether the process has had its cold open, and has been in the background since the last open.
  *
  * One instance per process, read and written from the app lifecycle notifications, which is why it is
  * a lock rather than actor state: the notification arrives synchronously and must not schedule work to
@@ -397,11 +409,36 @@ final class AnalyticsEnabledState: @unchecked Sendable {
  */
 final class AnalyticsForegroundState: @unchecked Sendable {
     private let lock: NSLock
+    private var hasRecordedColdOpen: Bool
     private var hasEnteredBackground: Bool
 
     init() {
         self.lock = NSLock()
+        self.hasRecordedColdOpen = false
         self.hasEnteredBackground = false
+    }
+
+    /// True once per process. A background stretch before the cold open belongs to the launch, not to a return.
+    func recordColdOpen() -> Bool {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        guard self.hasRecordedColdOpen == false else {
+            return false
+        }
+
+        self.hasRecordedColdOpen = true
+        self.hasEnteredBackground = false
+        return true
+    }
+
+    func isColdOpenRecorded() -> Bool {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        return self.hasRecordedColdOpen
     }
 
     func recordBackgrounded() {
@@ -422,7 +459,7 @@ final class AnalyticsForegroundState: @unchecked Sendable {
         }
 
         self.hasEnteredBackground = false
-        return true
+        return self.hasRecordedColdOpen
     }
 }
 

@@ -2,9 +2,7 @@ package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -381,114 +379,50 @@ class ReviewFilterAndSessionGenerationTest {
     }
 
     @Test
-    fun checklistMaterializesDeckPresetSupportsEmptySelectionAndCanonicalizesAllTags() {
-        val deckFilters = listOf(
-            ReviewDeckFilterOption(
-                deckId = "deck-1",
-                title = "Deck 1",
-                totalCount = 2,
-                tags = listOf("Alpha", "Beta")
-            ),
-            ReviewDeckFilterOption(
-                deckId = "all-cards-deck",
-                title = "All cards deck",
-                totalCount = 3,
-                tags = emptyList()
-            )
-        )
-        val tagFilters = listOf("Alpha", "Beta", "Gamma").map { tagName ->
-            ReviewTagFilterOption(tag = tagName, totalCount = 1)
-        }
-
+    fun tagChecklistTicksOnlyTagSelectionsStartsNewSelectionFromAllCardsOrDeckAndNeverEmpties() {
+        assertEquals(emptySet<String>(), selectedReviewTagKeys(selectedFilter = ReviewFilter.AllCards))
         assertEquals(
-            listOf("Alpha", "Beta", "Gamma"),
-            selectedReviewTagNames(
-                selectedFilter = ReviewFilter.AllCards,
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
+            emptySet<String>(),
+            selectedReviewTagKeys(selectedFilter = ReviewFilter.Deck(deckId = "deck-1"))
+        )
+        assertEquals(
+            setOf("alpha", "missing"),
+            selectedReviewTagKeys(selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")))
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("Beta")),
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.Deck(deckId = "deck-1"),
+                toggledTagName = "Beta"
             )
         )
         assertEquals(
             ReviewFilter.Tags(tags = listOf("Alpha")),
             toggleReviewTagFilter(
-                selectedFilter = ReviewFilter.Deck(deckId = "deck-1"),
-                toggledTagName = "Beta",
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
-            )
-        )
-        assertEquals(
-            listOf("Alpha", "Beta", "Gamma"),
-            selectedReviewTagNames(
-                selectedFilter = ReviewFilter.Deck(deckId = "all-cards-deck"),
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
-            )
-        )
-        assertEquals(
-            ReviewFilter.Tags(tags = listOf("Beta", "Gamma")),
-            toggleReviewTagFilter(
-                selectedFilter = ReviewFilter.Deck(deckId = "all-cards-deck"),
-                toggledTagName = "Alpha",
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
-            )
-        )
-        val allCardsMinusAlpha = toggleReviewTagFilter(
-            selectedFilter = ReviewFilter.AllCards,
-            toggledTagName = "Alpha",
-            availableDeckFilters = deckFilters,
-            availableTagFilters = tagFilters
-        )
-        assertEquals(ReviewFilter.Tags(tags = listOf("Beta", "Gamma")), allCardsMinusAlpha)
-        assertEquals(
-            ReviewFilter.AllCards,
-            toggleReviewTagFilter(
-                selectedFilter = allCardsMinusAlpha,
-                toggledTagName = "Alpha",
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
-            )
-        )
-        assertEquals(
-            ReviewFilter.Tags(tags = emptyList()),
-            toggleReviewTagFilter(
                 selectedFilter = ReviewFilter.AllCards,
-                toggledTagName = "Alpha",
-                availableDeckFilters = emptyList(),
-                availableTagFilters = listOf(ReviewTagFilterOption(tag = "Alpha", totalCount = 1))
+                toggledTagName = "Alpha"
             )
         )
         assertEquals(
             ReviewFilter.Tags(tags = listOf("Alpha", "Beta", "missing")),
             toggleReviewTagFilter(
                 selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")),
-                toggledTagName = "Beta",
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
+                toggledTagName = "Beta"
             )
         )
         assertEquals(
             ReviewFilter.Tags(tags = listOf("missing")),
             toggleReviewTagFilter(
                 selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")),
-                toggledTagName = "Alpha",
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
+                toggledTagName = "alpha"
             )
         )
-        var immediateSelection: ReviewFilter = ReviewFilter.AllCards
-        listOf("Alpha", "Beta").forEach { tagName ->
-            immediateSelection = toggleReviewTagFilter(
-                selectedFilter = immediateSelection,
-                toggledTagName = tagName,
-                availableDeckFilters = deckFilters,
-                availableTagFilters = tagFilters
-            )
-        }
         assertEquals(
-            ReviewFilter.Tags(tags = listOf("Gamma")),
-            immediateSelection
+            ReviewFilter.AllCards,
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha")),
+                toggledTagName = "Alpha"
+            )
         )
     }
 }

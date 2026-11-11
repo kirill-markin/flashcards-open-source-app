@@ -1,43 +1,5 @@
 import Foundation
 
-/**
- Keep workspace navigation aligned with web and Android:
- the primary destinations are Review, Progress, AI, Library, and Settings,
- with shared first-level Library and Settings rows across supported clients.
- Android keeps the same product destinations
- in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt`,
- with nested settings destinations in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/SettingsDestinations.kt`.
- */
-enum AppTab: Hashable, CaseIterable, Sendable {
-    case review
-    case progress
-    case ai
-    case library
-    case settings
-
-    var localizedTitle: String {
-        let key: String
-        switch self {
-        case .review: key = "root_tab.review.title"
-        case .progress: key = "root_tab.progress.title"
-        case .ai: key = "root_tab.ai.title"
-        case .library: key = "root_tab.library.title"
-        case .settings: key = "root_tab.settings.title"
-        }
-        return String(localized: String.LocalizationValue(key), table: "Foundation")
-    }
-
-    var systemImage: String {
-        switch self {
-        case .review: "rectangle.on.rectangle"
-        case .progress: "chart.bar.xaxis"
-        case .ai: "sparkles.rectangle.stack"
-        case .library: "books.vertical"
-        case .settings: "gearshape"
-        }
-    }
-}
-
 enum ProgressPresentationTarget: Hashable, Sendable {
     case streak
     case leaderboard
@@ -57,6 +19,7 @@ enum LibraryNavigationDestination: Hashable, Sendable {
     case catalogDeck(CatalogBrowseIndexDeck)
     case importData
     case exportData
+    case exportAnkiDeck
 }
 
 /// A first-level Library page: a hub row, and on the Mac sidebar a row under Library.
@@ -67,6 +30,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
     case deckCatalog
     case importData
     case exportData
+    case exportAnkiDeck
 
     var destination: LibraryNavigationDestination {
         switch self {
@@ -76,6 +40,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .deckCatalog: .deckCatalog
         case .importData: .importData
         case .exportData: .exportData
+        case .exportAnkiDeck: .exportAnkiDeck
         }
     }
 
@@ -86,7 +51,8 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .decks: aiSettingsLocalized("settings.workspace.row.decks", "Decks")
         case .deckCatalog: String(localized: "library.row.deck_catalog.title", table: "Foundation")
         case .importData: aiSettingsLocalized("settings.workspace.import.title", "Import")
-        case .exportData: aiSettingsLocalized("settings.workspace.row.export", "Export")
+        case .exportData: WorkspacePackageExportFormat.nibomo.localizedTitle
+        case .exportAnkiDeck: WorkspacePackageExportFormat.anki.localizedTitle
         }
     }
 
@@ -97,7 +63,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .decks: "square.stack.3d.up"
         case .deckCatalog: "rectangle.stack.badge.plus"
         case .importData: "square.and.arrow.down"
-        case .exportData: "square.and.arrow.up"
+        case .exportData, .exportAnkiDeck: "square.and.arrow.up"
         }
     }
 }

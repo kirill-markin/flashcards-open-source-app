@@ -142,10 +142,12 @@ func buildRepeatedReviewNotificationPayloads(
     calendar: Calendar,
     mode: ReviewNotificationMode
 ) -> [ScheduledReviewNotificationPayload] {
+    // Like the widget, a card without readable question text falls back to the generic reminder.
+    let frontPlainText = makeReviewSpeakableText(text: currentCard.frontText)
     return buildRepeatedReviewNotificationPayloads(
         workspaceId: workspaceId,
         reviewFilter: currentCard.reviewFilter,
-        content: .card(cardId: currentCard.cardId, frontText: currentCard.frontText),
+        content: frontPlainText.isEmpty ? .fallback : .card(cardId: currentCard.cardId, frontText: frontPlainText),
         scheduledDates: scheduledDates,
         calendar: calendar,
         mode: mode
@@ -198,10 +200,6 @@ private func buildRepeatedReviewNotificationPayloads(
 func loadScheduledReviewNotificationPayloads(
     snapshot: ReviewNotificationSchedulingSnapshot
 ) async throws -> ScheduledReviewNotificationLoadResult {
-    if case .tags(let tags) = snapshot.reviewFilter, tags.isEmpty {
-        return ScheduledReviewNotificationLoadResult(payloads: [])
-    }
-
     guard let databaseURL = snapshot.databaseURL else {
         return ScheduledReviewNotificationLoadResult(payloads: [])
     }

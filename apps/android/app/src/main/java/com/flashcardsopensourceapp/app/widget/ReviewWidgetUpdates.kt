@@ -1,21 +1,38 @@
 package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.updateAll
+import com.flashcardsopensourceapp.app.di.AppGraph
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 
-private const val reviewWidgetUpdateDebounceMillis: Long = 1_000L
+private const val widgetUpdateDebounceMillis: Long = 1_000L
 
-/**
- * Re-renders every placed widget when its content changes: reviews, syncs, Review filter and
- * workspace changes, and cards falling due. `updateAll` does nothing while no widget is placed.
- */
+/** One instance of every widget class the manifest declares. */
+private fun makeAllWidgets(): List<GlanceAppWidget> {
+    return listOf(
+        ReviewWidget(),
+        ReviewsChartWidget(),
+        ComingUpWidget(),
+        TodayWidget(),
+        ActivityWidget(),
+        YearWidget(),
+        StreaksWidget(),
+        MonthCalendarWidget(),
+        DashboardWidget()
+    )
+}
+
 @OptIn(FlowPreview::class)
-suspend fun updateReviewWidgetsOnContentChange(context: Context, content: Flow<ReviewWidgetContent?>) {
-    content.debounce(timeoutMillis = reviewWidgetUpdateDebounceMillis).collectLatest {
-        ReviewWidget().updateAll(context = context)
-    }
+internal suspend fun updateWidgetsOnContentChange(context: Context, appGraph: AppGraph) {
+    val widgets: List<GlanceAppWidget> = makeAllWidgets()
+    observeStyledWidgetContent(appGraph = appGraph, content = observeWidgetContent(appGraph = appGraph))
+        .debounce(timeoutMillis = widgetUpdateDebounceMillis)
+        .collectLatest {
+            widgets.forEach { widget ->
+                widget.updateAll(context = context)
+            }
+        }
 }

@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Запазете име";
 "settings.workspace.overview.workspace" = "Работно пространство";
 "settings.workspace.overview.cards" = "Карти";
-"settings.workspace.overview.due" = "За преговор";
 "settings.workspace.overview.new" = "Нов";
 "settings.workspace.overview.deleteDescription" = "Изтрийте за постоянно това работно пространство и всички карти, тестета, преговори и хронология на синхронизирането в него.";
 "settings.workspace.overview.deleteWorkspace" = "Изтриване на работното пространство";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Няма съответстващи тестета";
 "settings.workspace.decks.searchPrompt" = "Търсене на тестета";
 "settings.workspace.decks.newDeck" = "Ново тесте";
-"settings.workspace.decks.dueCount" = "%d за преговор";
-"settings.workspace.decks.totalCards" = "%d карти";
-"settings.workspace.decks.newCount" = "%d нови";
-"settings.workspace.decks.reviewedCount" = "%d преговорени";
+"settings.workspace.decks.toStudyCount" = "%d за учене";
+"settings.workspace.decks.toStudy" = "За учене";
 "settings.workspace.decks.emptyAllCards" = "Все още не сте създали никакви карти.";
 "settings.workspace.decks.emptyDeck" = "Това тесте все още няма съответстващи карти.";
 "settings.workspace.decks.section.deckRules" = "Правила на тестето";

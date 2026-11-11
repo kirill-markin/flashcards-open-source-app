@@ -76,10 +76,7 @@ private func makeFirstReviewOnboardingImage(
     key: FirstReviewOnboardingDrawingKey, frame: Int, drawingBleed: CGFloat
 ) -> FirstReviewOnboardingDrawing {
     let marks = makeFirstReviewOnboardingDrawing(target: key.target, size: key.size, frame: frame)
-    let bounds = marks.reduce(CGRect.null) { bounds, mark in
-        let strokeInset = (mark.lineWidth ?? 0) / 2
-        return bounds.union(mark.path.boundingRect.insetBy(dx: -strokeInset, dy: -strokeInset))
-    }.insetBy(dx: -drawingBleed, dy: -drawingBleed).integral
+    let bounds = firstReviewPencilMarksBounds(marks).insetBy(dx: -drawingBleed, dy: -drawingBleed).integral
     let format = UIGraphicsImageRendererFormat.preferred()
     format.opaque = false
     format.scale = key.displayScale

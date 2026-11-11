@@ -7,26 +7,46 @@ struct ReviewWidgetView: View {
 
     var body: some View {
         Group {
-            if let size = reviewWidgetDeepLinkSize(family: self.family) {
+            if let size = reviewWidgetSize(family: self.family) {
                 ReviewWidgetContentView(size: size, entryDate: self.entry.date, content: self.entry.content)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .widgetURL(
                         makeWidgetDeepLinkURL(
                             deepLink: WidgetDeepLink(
+                                destination: .review,
+                                kind: .review,
                                 workspaceId: self.entry.workspaceId,
-                                size: size,
+                                size: size.deepLinkSize,
                                 cardId: reviewWidgetShownCardId(size: size, content: self.entry.content)
                             )
                         )
                     )
             }
         }
-        .containerBackground(.fill.tertiary, for: .widget)
+        .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
+    }
+}
+
+/// The Home Screen families the Review widget supports.
+private enum ReviewWidgetSize {
+    case small
+    case medium
+    case large
+
+    var deepLinkSize: WidgetDeepLinkSize {
+        switch self {
+        case .small:
+            return .small
+        case .medium:
+            return .medium
+        case .large:
+            return .large
+        }
     }
 }
 
 /// Nil only for families the widget does not declare as supported.
-private func reviewWidgetDeepLinkSize(family: WidgetFamily) -> WidgetDeepLinkSize? {
+private func reviewWidgetSize(family: WidgetFamily) -> ReviewWidgetSize? {
     switch family {
     case .systemSmall:
         return .small
@@ -40,7 +60,7 @@ private func reviewWidgetDeepLinkSize(family: WidgetFamily) -> WidgetDeepLinkSiz
 }
 
 /// The small family never shows a card, so its tap opens Review normally.
-private func reviewWidgetShownCardId(size: WidgetDeepLinkSize, content: ReviewWidgetContent) -> String? {
+private func reviewWidgetShownCardId(size: ReviewWidgetSize, content: ReviewWidgetContent) -> String? {
     guard size != .small, case .due(_, let nextCard?, _) = content else {
         return nil
     }
@@ -48,14 +68,14 @@ private func reviewWidgetShownCardId(size: WidgetDeepLinkSize, content: ReviewWi
 }
 
 private struct ReviewWidgetContentView: View {
-    let size: WidgetDeepLinkSize
+    let size: ReviewWidgetSize
     let entryDate: Date
     let content: ReviewWidgetContent
 
     var body: some View {
         switch self.content {
         case .noSnapshot:
-            ReviewWidgetNoSnapshotView()
+            WidgetNoSnapshotView()
         case .due(let count, let nextCard, let streakDays):
             switch self.size {
             case .small:
@@ -96,14 +116,15 @@ private struct ReviewWidgetContentView: View {
     }
 }
 
-private struct ReviewWidgetDueCountView: View {
+struct ReviewWidgetDueCountView: View {
+    @Environment(\.widgetAccent) private var accent
     let count: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(self.count, format: .number)
                 .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(self.accent.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .widgetAccentable()
@@ -116,7 +137,7 @@ private struct ReviewWidgetDueCountView: View {
     }
 }
 
-private struct ReviewWidgetNextCardView: View {
+struct ReviewWidgetNextCardView: View {
     let nextCard: WidgetSnapshotCard?
     let font: Font
     let lineLimit: Int
@@ -139,12 +160,13 @@ private struct ReviewWidgetNextCardView: View {
 }
 
 private struct ReviewWidgetStreakView: View {
+    @Environment(\.widgetAccent) private var accent
     let streakDays: Int
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(self.accent.color)
                 .widgetAccentable()
             Text("widget.streak_days \(self.streakDays)", tableName: widgetStringsTableName)
                 .foregroundStyle(.secondary)
@@ -155,7 +177,8 @@ private struct ReviewWidgetStreakView: View {
     }
 }
 
-private struct ReviewWidgetAllDoneView: View {
+struct ReviewWidgetAllDoneView: View {
+    @Environment(\.widgetAccent) private var accent
     let entryDate: Date
     let nextDueAt: Date?
     let streakDays: Int?
@@ -164,7 +187,7 @@ private struct ReviewWidgetAllDoneView: View {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(self.accent.color)
                 .widgetAccentable()
             Text("widget.all_done.title", tableName: widgetStringsTableName)
                 .font(.headline)
@@ -198,20 +221,4 @@ private func reviewWidgetNextDueText(nextDueAt: Date, entryDate: Date) -> Text {
         return Text(nextDueAt, format: laterDayFormat)
     }
     return Text(nextDueAt, format: laterDayFormat.year())
-}
-
-private struct ReviewWidgetNoSnapshotView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: "rectangle.stack.fill")
-                .font(.title2)
-                .foregroundStyle(Color.accentColor)
-                .widgetAccentable()
-            Text("widget.no_snapshot", tableName: widgetStringsTableName)
-                .font(.headline)
-                .lineLimit(4)
-                .minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
-        }
-    }
 }

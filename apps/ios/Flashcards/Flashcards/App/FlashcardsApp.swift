@@ -47,6 +47,37 @@ private func analyticsWidgetSize(size: WidgetDeepLinkSize) -> AnalyticsWidgetSiz
         return .medium
     case .large:
         return .large
+    case .accessoryCircular:
+        return .accessoryCircular
+    case .accessoryRectangular:
+        return .accessoryRectangular
+    case .accessoryInline:
+        return .accessoryInline
+    }
+}
+
+private func analyticsWidgetKind(kind: WidgetDeepLinkKind) -> AnalyticsWidgetKind {
+    switch kind {
+    case .review:
+        return .review
+    case .activity:
+        return .activity
+    case .year:
+        return .year
+    case .today:
+        return .today
+    case .lockScreen:
+        return .lockScreen
+    case .reviewsChart:
+        return .reviewsChart
+    case .streaks:
+        return .streaks
+    case .monthCalendar:
+        return .monthCalendar
+    case .comingUp:
+        return .comingUp
+    case .dashboard:
+        return .dashboard
     }
 }
 
@@ -66,10 +97,14 @@ struct FlashcardsApp: App {
     @State private var uiTestLaunchScenario: FlashcardsUITestLaunchScenario?
     @State private var uiTestAIHandoffCard: FlashcardsUITestAIHandoffCard?
     @State private var hasRunInitialStartup: Bool
+    @State private var hasPresentedFirstScene: Bool
     @State private var isStartupReadyForBackgroundWork: Bool
     @State private var isLowPowerModeEnabled: Bool
     /// The latest widget tap, held until the app can open Review; a newer tap replaces it.
     @State private var pendingWidgetDeepLink: WidgetDeepLink?
+    #if os(iOS) && !targetEnvironment(macCatalyst)
+    @State private var watchHandoffResponder: WatchHandoffResponder
+    #endif
 
     @MainActor
     init() {
@@ -102,9 +137,6 @@ struct FlashcardsApp: App {
                     return await store.mintAnalyticsGuestCredential()
                 }
             )
-            // Process start is the cold launch. Emitting it here rather than at startup-ready keeps
-            // it ahead of the first screen_viewed instead of landing after it.
-            Analytics.track(.appOpened(launchType: .cold))
         }
         let uiTestSelectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
@@ -181,39 +213,6 @@ struct FlashcardsApp: App {
             }
         }
 
-        if store.cloudCredentialRecoveryState == nil {
-            logAppLifecycleBreadcrumb(
-                action: .visibleTabPrepareStart,
-                store: store,
-                stage: "visible_tab_prepare",
-                scenePhase: nil,
-                selectedTab: selectedTab,
-                isStartupReady: false,
-                isRecoveryGateActive: false,
-                messageSummary: nil
-            )
-            prepareVisibleTabForPresentationWithBreadcrumb(
-                store: store,
-                selectedTab: selectedTab,
-                librarySurface: initialNavigation.visibleLibraryAnalyticsSurface,
-                previousTab: nil,
-                scenePhase: nil,
-                isStartupReady: false,
-                isRecoveryGateActive: false,
-                now: Date()
-            )
-            logAppLifecycleBreadcrumb(
-                action: .visibleTabPrepareSuccess,
-                store: store,
-                stage: "visible_tab_prepare",
-                scenePhase: nil,
-                selectedTab: selectedTab,
-                isStartupReady: false,
-                isRecoveryGateActive: false,
-                messageSummary: nil
-            )
-        }
-
         _store = State(initialValue: store)
         _appleSubscriptions = State(initialValue: AppleSubscriptionService(store: store, session: .shared))
         _navigation = State(initialValue: initialNavigation)
@@ -226,9 +225,16 @@ struct FlashcardsApp: App {
         _uiTestLaunchScenario = State(initialValue: launchScenario)
         _uiTestAIHandoffCard = State(initialValue: aiHandoffCard)
         _hasRunInitialStartup = State(initialValue: false)
+        _hasPresentedFirstScene = State(initialValue: false)
         _isStartupReadyForBackgroundWork = State(initialValue: false)
         _isLowPowerModeEnabled = State(initialValue: processInfo.isLowPowerModeEnabled)
         _pendingWidgetDeepLink = State(initialValue: nil)
+        #if os(iOS) && !targetEnvironment(macCatalyst)
+        // A watch message can launch the app in the background, before any scene exists.
+        let watchHandoffResponder = WatchHandoffResponder(store: store)
+        watchHandoffResponder.activate()
+        _watchHandoffResponder = State(initialValue: watchHandoffResponder)
+        #endif
     }
 
     var body: some Scene {
@@ -264,11 +270,19 @@ struct FlashcardsApp: App {
                 .environment(self.progressScreenState)
                 .environment(self.catalogIndexStore)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
+                .onAppear {
+                    // A scene can also be connected while the app stays in the background.
+                    guard UIApplication.shared.applicationState != .background else {
+                        return
+                    }
+                    self.presentFirstSceneIfNeeded()
+                }
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
                     await self.runInitialAppStartupIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
+                        self.presentFirstSceneIfNeeded()
                         self.refreshLowPowerModeState()
                         self.store.applyEffectiveAppIcon()
                     }
@@ -317,6 +331,17 @@ struct FlashcardsApp: App {
                         store.recordReviewDataLeftForeground(now: now)
                         runAppBackgroundTask(name: "AppBackgroundNotificationReconcile") {
                             await store.reconcileAppBackgroundNotifications(now: now)
+                        }
+                        // A rating patches only the streak badge, so until its debounced refresh lands the widgets
+                        // drop the history that no longer matches; a suspended app must not keep them that way.
+                        // Only a pending refresh runs, and once, though every window's handler sees this change.
+                        if store.takePendingDeferredProgressRefresh() {
+                            runAppBackgroundTask(name: "AppBackgroundDeferredProgressRefresh") {
+                                await store.runDeferredProgressRefresh(now: Date())
+                                #if !targetEnvironment(macCatalyst)
+                                await store.refreshWidgetSnapshot()
+                                #endif
+                            }
                         }
                     }
                 }
@@ -451,6 +476,56 @@ struct FlashcardsApp: App {
     @MainActor
     private func refreshLowPowerModeState() {
         self.isLowPowerModeEnabled = ProcessInfo.processInfo.isLowPowerModeEnabled
+    }
+
+    /// Once per process, when a person first sees the app. A watch message or prewarming can start the
+    /// process in the background, so the cold open and the launch tab's preparation wait for this instead
+    /// of process start; `.onAppear` still runs it before the first frame of a user launch.
+    @MainActor
+    private func presentFirstSceneIfNeeded() {
+        guard self.hasPresentedFirstScene == false else {
+            return
+        }
+        self.hasPresentedFirstScene = true
+
+        // Ahead of the launch screen's screen_viewed.
+        Analytics.trackAppColdOpened()
+        guard self.isCloudCredentialRecoveryGateActive == false else {
+            Analytics.trackScreenViewed(.credentialRecovery)
+            return
+        }
+
+        let selectedTab = self.navigation.selectedTab
+        logAppLifecycleBreadcrumb(
+            action: .visibleTabPrepareStart,
+            store: self.store,
+            stage: "visible_tab_prepare",
+            scenePhase: self.scenePhase,
+            selectedTab: selectedTab,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: false,
+            messageSummary: nil
+        )
+        prepareVisibleTabForPresentationWithBreadcrumb(
+            store: self.store,
+            selectedTab: selectedTab,
+            librarySurface: self.navigation.visibleLibraryAnalyticsSurface,
+            previousTab: nil,
+            scenePhase: self.scenePhase,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: false,
+            now: Date()
+        )
+        logAppLifecycleBreadcrumb(
+            action: .visibleTabPrepareSuccess,
+            store: self.store,
+            stage: "visible_tab_prepare",
+            scenePhase: self.scenePhase,
+            selectedTab: selectedTab,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: false,
+            messageSummary: nil
+        )
     }
 
     @MainActor
@@ -805,8 +880,18 @@ struct FlashcardsApp: App {
         }
 
         self.pendingWidgetDeepLink = nil
-        self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
-        Analytics.track(.widgetOpened(widgetSize: analyticsWidgetSize(size: deepLink.size)))
+        switch deepLink.destination {
+        case .review:
+            self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
+        case .progress:
+            self.navigation.selectTab(.progress)
+        }
+        Analytics.track(
+            .widgetOpened(
+                widgetSize: analyticsWidgetSize(size: deepLink.size),
+                widgetKind: analyticsWidgetKind(kind: deepLink.kind)
+            )
+        )
     }
 
     @MainActor

@@ -28,7 +28,9 @@ import {
 } from "../../accountDeletion";
 import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { WorkspaceSummary } from "../../types";
+import { attachSyncFailureObservation } from "../sync/observation/syncErrorObservation";
 import { WARM_START_SNAPSHOT_STORAGE_KEY } from "./activation/warmStart";
+import { resumeRetryDelayMs } from "./lifecycle/workspaceLifecycleHelpers";
 
 const observabilityMocks = getObservabilityMocks();
 
@@ -122,7 +124,10 @@ describe("useWorkspaceSession reauth resume", () => {
     expect(isBrowserReauthRequired()).toBe(false);
   });
 
-  it("catches rejecting focus resume tasks after surfacing the sync error", async () => {
+  it.each([
+    { presentedByCaller: false, message: "retries a focus sync with no presenter and surfaces the final error" },
+    { presentedByCaller: true, message: "stops focus resume after the first sync failure owned by the card" },
+  ])("$message", async ({ presentedByCaller }) => {
     seedBrowserStorage();
     await seedIndexedDbState();
 
@@ -134,9 +139,7 @@ describe("useWorkspaceSession reauth resume", () => {
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume-2"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const resumeSyncError = Object.assign(new Error("Resume sync failed"), {
-      syncFailureWasCaptured: false,
-    });
+    const resumeSyncError = attachSyncFailureObservation(new Error("Resume sync failed"), true, presentedByCaller);
     const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {
       throw resumeSyncError;
     });
@@ -172,18 +175,27 @@ describe("useWorkspaceSession reauth resume", () => {
     await flushEffects();
     await waitForBrowserSignInMethodConsumption(1);
 
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     await act(async () => {
       window.dispatchEvent(new Event("focus"));
     });
-
     await vi.waitFor(() => {
-      expect(runSyncSilentlyMock).toHaveBeenCalledTimes(2);
-      expect(latestState?.errorMessage).toBe("Resume sync failed");
-    }, {
-      timeout: 2_000,
+      expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
     });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(resumeRetryDelayMs);
+    });
+    vi.useRealTimers();
 
-    expect(latestState?.technicalError).toBeNull();
+    const expectedAttempts = presentedByCaller ? 1 : 2;
+    await vi.waitFor(() => {
+      expect(runSyncSilentlyMock).toHaveBeenCalledTimes(expectedAttempts);
+    });
+    await flushEffects();
+
+    expect(fetchMock).toHaveBeenCalledTimes(3 + expectedAttempts);
+    expect(latestState?.errorMessage).toBe(presentedByCaller ? "" : "Resume sync failed");
+    expect(latestState?.technicalError).toBe(presentedByCaller ? null : resumeSyncError);
   });
 
   it("clears local data when resume confirms a different user", async () => {

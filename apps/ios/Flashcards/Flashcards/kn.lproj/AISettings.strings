@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "ಹೆಸರು ಉಳಿಸಿ";
 "settings.workspace.overview.workspace" = "ಕಾರ್ಯಸ್ಥಳ";
 "settings.workspace.overview.cards" = "ಕಾರ್ಡ್‌ಗಳು";
-"settings.workspace.overview.due" = "ಪುನರಾವರ್ತನೆಗೆ ಬಾಕಿ";
 "settings.workspace.overview.new" = "ಹೊಸದು";
 "settings.workspace.overview.deleteDescription" = "ಈ ಕಾರ್ಯಸ್ಥಳ ಮತ್ತು ಅದರಲ್ಲಿನ ಎಲ್ಲ ಕಾರ್ಡ್‌ಗಳು, ಡೆಕ್‌ಗಳು, ಪುನರಾವರ್ತನೆಗಳು ಮತ್ತು ಸಿಂಕ್ ಇತಿಹಾಸವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಿ.";
 "settings.workspace.overview.deleteWorkspace" = "ಕಾರ್ಯಸ್ಥಳ ಅಳಿಸಿ";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "ಹೊಂದುವ ಡೆಕ್‌ಗಳಿಲ್ಲ";
 "settings.workspace.decks.searchPrompt" = "ಡೆಕ್‌ಗಳನ್ನು ಹುಡುಕಿ";
 "settings.workspace.decks.newDeck" = "ಹೊಸ ಡೆಕ್";
-"settings.workspace.decks.dueCount" = "%d ಪುನರಾವರ್ತನೆಗೆ ಬಾಕಿ";
-"settings.workspace.decks.totalCards" = "%d ಕಾರ್ಡ್‌ಗಳು";
-"settings.workspace.decks.newCount" = "%d ಹೊಸದು";
-"settings.workspace.decks.reviewedCount" = "%d ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ";
+"settings.workspace.decks.toStudyCount" = "%d ಅಧ್ಯಯನಕ್ಕೆ";
+"settings.workspace.decks.toStudy" = "ಅಧ್ಯಯನಕ್ಕೆ";
 "settings.workspace.decks.emptyAllCards" = "ನೀವು ಇನ್ನೂ ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿಲ್ಲ.";
 "settings.workspace.decks.emptyDeck" = "ಈ ಡೆಕ್‌ಗೆ ಹೊಂದುವ ಕಾರ್ಡ್‌ಗಳು ಇನ್ನೂ ಇಲ್ಲ.";
 "settings.workspace.decks.section.deckRules" = "ಡೆಕ್ ನಿಯಮಗಳು";

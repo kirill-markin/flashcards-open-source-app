@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.formatCardsCount
+import com.flashcardsopensourceapp.feature.cards.libraryAnkiExportRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryCardsRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryDeckCatalogRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryDecksRowTag
@@ -39,7 +40,8 @@ fun LibraryRoute(
     onOpenDecks: () -> Unit,
     onOpenDeckCatalog: () -> Unit,
     onOpenImport: () -> Unit,
-    onOpenExport: () -> Unit
+    onOpenExport: () -> Unit,
+    onOpenAnkiExport: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -63,7 +65,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_cards_title),
-                    summary = stringResource(id = R.string.library_cards_summary),
+                    summary = null,
                     count = uiState.cardsCount,
                     testTag = libraryCardsRowTag,
                     onClick = onOpenCards
@@ -72,7 +74,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_tags_title),
-                    summary = stringResource(id = R.string.library_tags_summary),
+                    summary = null,
                     count = uiState.tagsCount,
                     testTag = libraryTagsRowTag,
                     onClick = onOpenTags
@@ -81,7 +83,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_decks_title),
-                    summary = stringResource(id = R.string.library_decks_summary),
+                    summary = null,
                     count = uiState.decksCount,
                     testTag = libraryDecksRowTag,
                     onClick = onOpenDecks
@@ -120,6 +122,15 @@ fun LibraryRoute(
                     onClick = onOpenExport
                 )
             }
+            item {
+                LibraryRow(
+                    title = stringResource(id = R.string.library_anki_export_title),
+                    summary = stringResource(id = R.string.library_anki_export_summary),
+                    count = null,
+                    testTag = libraryAnkiExportRowTag,
+                    onClick = onOpenAnkiExport
+                )
+            }
         }
     }
 }
@@ -139,7 +150,7 @@ private fun LibrarySectionTitle(title: String) {
 @Composable
 private fun LibraryRow(
     title: String,
-    summary: String,
+    summary: String?,
     count: Int?,
     testTag: String,
     onClick: () -> Unit
@@ -154,13 +165,17 @@ private fun LibraryRow(
         }
     }
 
+    val supportingContent: (@Composable () -> Unit)? = summary?.let { rowSummary ->
+        {
+            Text(rowSummary)
+        }
+    }
+
     ListItem(
         headlineContent = {
             Text(title)
         },
-        supportingContent = {
-            Text(summary)
-        },
+        supportingContent = supportingContent,
         trailingContent = trailingContent,
         modifier = Modifier
             .testTag(testTag)

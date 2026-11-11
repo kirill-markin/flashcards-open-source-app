@@ -43,9 +43,9 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: '3.15'
 
       - name: Clone public companion source without credentials
         working-directory: ${{ github.workspace }}
@@ -55,16 +55,18 @@ jobs:
         id: source
         working-directory: ${{ github.workspace }}
         run: |
-          python - <<'PY'
-          from scripts.plugins.publish_executor import prepare_registry_source
+          PYTHONPATH="$PWD/scripts/plugins" python -BP - <<'PY'
+          from publish_executor import prepare_registry_source
           prepare_registry_source()
           PY
 
       - name: Install schema validation dependencies
-        run: python -m pip install -r requirements-ci.txt
+        working-directory: ${{ github.workspace }}
+        run: python -m pip install -r scripts/plugins/requirements-ci.txt
 
       - name: Validate MCP Registry manifest
-        run: python scripts/validate_mcp_registry.py
+        working-directory: ${{ github.workspace }}
+        run: python scripts/plugins/validate_mcp_registry.py "$PLUGIN_SOURCE_DIR"
 
       - name: Check immutable registry version
         id: manifest

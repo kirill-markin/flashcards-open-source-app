@@ -1,6 +1,8 @@
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -16,6 +18,7 @@ import type { AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
+  defaultAppStoreProductPageFilterState,
   defaultSiteVisitorFilterState,
   isAcceptedMinimumCount,
   parseAcceptedMinimumCount,
@@ -24,6 +27,7 @@ import {
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
+  type AppStoreProductPageFilterState,
   type AnalyticsThresholdEventType,
   type SiteDeviceCategory,
   type SiteSource,
@@ -57,6 +61,7 @@ const comparisonDateRangeToParamName = "compare-to";
 const usersParamName = "users";
 const userCohortsParamName = "cohorts";
 const eventPlatformsParamName = "platforms";
+const eventDeviceTypesParamName = "device-types";
 const appVersionsParamName = "app-versions";
 const minimumEventCountsParamName = "min-events";
 const connectionCountriesParamName = "countries";
@@ -71,6 +76,9 @@ const siteSourcesParamName = "site-sources";
 const siteCountriesParamName = "site-countries";
 const siteBrowserLanguagesParamName = "site-languages";
 const sitePageKindsParamName = "site-page-types";
+const appStoreTerritoriesParamName = "app-store-territories";
+const appStoreDevicesParamName = "app-store-devices";
+const appStoreSourceTypesParamName = "app-store-source-types";
 
 const listSeparator = ",";
 const minimumEventCountSeparator = ":";
@@ -258,6 +266,7 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
     eventPlatforms: normalizeEventPlatforms(state.eventPlatforms),
+    eventDeviceTypes: normalizeEventDeviceTypes(state.eventDeviceTypes),
     appVersions: normalizeAppVersions(state.appVersions),
     minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
     connectionCountries: normalizeOpaqueList(state.connectionCountries),
@@ -268,6 +277,7 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     catalogDeviceCategories: normalizeEnumList(state.catalogDeviceCategories, siteDeviceCategories),
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
     ...normalizeSiteVisitorFilterState(state),
+    ...normalizeAppStoreProductPageFilterState(state),
   };
 }
 
@@ -289,6 +299,27 @@ export function setEventPlatformsParam(
     eventPlatforms,
     reviewEventPlatforms,
     reviewEventPlatforms,
+  );
+}
+
+/** The device class field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeEventDeviceTypes(
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+): ReadonlyArray<ProductEventDeviceType> {
+  return normalizeEnumList(eventDeviceTypes, productEventDeviceTypes);
+}
+
+/** Writes the device class field unless every class is selected; `parseEventDeviceTypes` reads it back. */
+export function setEventDeviceTypesParam(
+  searchParams: URLSearchParams,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+): void {
+  setEnumListParam(
+    searchParams,
+    eventDeviceTypesParamName,
+    eventDeviceTypes,
+    productEventDeviceTypes,
+    productEventDeviceTypes,
   );
 }
 
@@ -355,6 +386,42 @@ export function setSiteVisitorFilterParams(
   );
 }
 
+/** The App Store fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
+export function normalizeAppStoreProductPageFilterState(
+  state: AppStoreProductPageFilterState,
+): AppStoreProductPageFilterState {
+  return {
+    appStoreTerritories: normalizeOpaqueList(state.appStoreTerritories),
+    appStoreDevices: normalizeOpaqueList(state.appStoreDevices),
+    appStoreSourceTypes: normalizeOpaqueList(state.appStoreSourceTypes),
+  };
+}
+
+/** Writes the App Store fields that differ from their default; `parseAppStoreProductPageFilterState` reads them back. */
+export function setAppStoreProductPageFilterParams(
+  searchParams: URLSearchParams,
+  state: AppStoreProductPageFilterState,
+): void {
+  setOpaqueListParam(
+    searchParams,
+    appStoreTerritoriesParamName,
+    state.appStoreTerritories,
+    defaultAppStoreProductPageFilterState.appStoreTerritories,
+  );
+  setOpaqueListParam(
+    searchParams,
+    appStoreDevicesParamName,
+    state.appStoreDevices,
+    defaultAppStoreProductPageFilterState.appStoreDevices,
+  );
+  setOpaqueListParam(
+    searchParams,
+    appStoreSourceTypesParamName,
+    state.appStoreSourceTypes,
+    defaultAppStoreProductPageFilterState.appStoreSourceTypes,
+  );
+}
+
 /** Writes both ends only when the range differs from `defaultDateRange`; `parseDateRange` reads them back. */
 export function setDateRangeParams(
   searchParams: URLSearchParams,
@@ -390,6 +457,7 @@ export function toAnalyticsFilterSearchParams(
     reviewEventCohorts,
   );
   setEventPlatformsParam(searchParams, state.eventPlatforms);
+  setEventDeviceTypesParam(searchParams, state.eventDeviceTypes);
   setAppVersionsParam(searchParams, state.appVersions);
 
   const minimumEventCounts = normalizeMinimumEventCounts(state.minimumEventCounts);
@@ -451,6 +519,7 @@ export function toAnalyticsFilterSearchParams(
     defaults.catalogClickBrowserLanguages,
   );
   setSiteVisitorFilterParams(searchParams, state);
+  setAppStoreProductPageFilterParams(searchParams, state);
 
   return searchParams;
 }
@@ -703,6 +772,16 @@ export function parseEventPlatforms(searchParams: URLSearchParams): ReadonlyArra
   );
 }
 
+/** The device class field a query string carries, every class when absent or malformed. */
+export function parseEventDeviceTypes(searchParams: URLSearchParams): ReadonlyArray<ProductEventDeviceType> {
+  return parseEnumList<ProductEventDeviceType>(
+    searchParams,
+    eventDeviceTypesParamName,
+    productEventDeviceTypes,
+    productEventDeviceTypes,
+  );
+}
+
 /** The app version field a query string carries, every version when absent or malformed. */
 export function parseAppVersions(searchParams: URLSearchParams): ReadonlyArray<string> {
   return parseOpaqueList(searchParams, appVersionsParamName, []);
@@ -741,6 +820,27 @@ export function parseSiteVisitorFilterState(searchParams: URLSearchParams): Site
   };
 }
 
+/** The App Store fields a query string carries, each at its default when absent or malformed. */
+export function parseAppStoreProductPageFilterState(searchParams: URLSearchParams): AppStoreProductPageFilterState {
+  return {
+    appStoreTerritories: parseOpaqueList(
+      searchParams,
+      appStoreTerritoriesParamName,
+      defaultAppStoreProductPageFilterState.appStoreTerritories,
+    ),
+    appStoreDevices: parseOpaqueList(
+      searchParams,
+      appStoreDevicesParamName,
+      defaultAppStoreProductPageFilterState.appStoreDevices,
+    ),
+    appStoreSourceTypes: parseOpaqueList(
+      searchParams,
+      appStoreSourceTypesParamName,
+      defaultAppStoreProductPageFilterState.appStoreSourceTypes,
+    ),
+  };
+}
+
 // Every field but the two ranges reads the same whether or not the available range is known.
 function parseAnalyticsFilterStateOnDateRanges(
   searchParams: URLSearchParams,
@@ -760,6 +860,7 @@ function parseAnalyticsFilterStateOnDateRanges(
       defaults.userCohorts,
     ),
     eventPlatforms: parseEventPlatforms(searchParams),
+    eventDeviceTypes: parseEventDeviceTypes(searchParams),
     appVersions: parseAppVersions(searchParams),
     minimumEventCounts: parseMinimumEventCounts(searchParams, defaults.minimumEventCounts),
     connectionCountries: parseOpaqueList(
@@ -793,5 +894,6 @@ function parseAnalyticsFilterStateOnDateRanges(
       defaults.catalogClickBrowserLanguages,
     ),
     ...parseSiteVisitorFilterState(searchParams),
+    ...parseAppStoreProductPageFilterState(searchParams),
   };
 }

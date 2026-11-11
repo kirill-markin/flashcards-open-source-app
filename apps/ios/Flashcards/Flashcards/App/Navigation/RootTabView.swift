@@ -31,6 +31,7 @@ private func librarySidebarItemIdentifier(_ section: LibrarySection) -> String {
     case .deckCatalog: UITestIdentifier.rootTabLibraryDeckCatalogItem
     case .importData: UITestIdentifier.rootTabLibraryImportItem
     case .exportData: UITestIdentifier.rootTabLibraryExportItem
+    case .exportAnkiDeck: UITestIdentifier.rootTabLibraryAnkiExportItem
     }
 }
 #endif
@@ -42,6 +43,9 @@ private struct WidgetSnapshotTaskID: Hashable {
     let dueCount: Int
     let presentedReviewCardId: String?
     let progressBadgeState: ReviewProgressBadgeState
+    let progressSnapshot: ProgressSnapshot?
+    let reviewScheduleSnapshot: ReviewScheduleSnapshot?
+    let accentColor: AccountAccentColor
     let scenePhase: ScenePhase
 }
 #endif
@@ -112,6 +116,9 @@ struct RootTabView: View {
             dueCount: store.reviewDueBadgeCount,
             presentedReviewCardId: store.presentedReviewCard?.cardId,
             progressBadgeState: store.reviewProgressBadgeState,
+            progressSnapshot: store.widgetProgressSnapshot,
+            reviewScheduleSnapshot: store.reviewScheduleSnapshot,
+            accentColor: store.effectiveAccountAccentColor,
             scenePhase: self.scenePhase
         )
     }
@@ -530,21 +537,28 @@ struct RootTabView: View {
                 }
             }
         )) {
-            self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
+            self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem, shortcutKey: MacNavigationShortcut.review.key)
                 .badge(self.reviewDueBadgeLabel)
                 .tag(MacSidebarSelection.tab(.review))
-            self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
-            self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
+            self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem, shortcutKey: MacNavigationShortcut.progress.key)
+            self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem, shortcutKey: MacNavigationShortcut.ai.key)
             Section(AppTab.library.localizedTitle) {
                 ForEach(LibrarySection.allCases, id: \.self) { section in
-                    Label(section.localizedTitle, systemImage: section.systemImage)
+                    let row = Label(section.localizedTitle, systemImage: section.systemImage)
                         .accessibilityIdentifier(librarySidebarItemIdentifier(section))
                         .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
-                        .tag(MacSidebarSelection.librarySection(section))
+                    Group {
+                        if section == .cards {
+                            row.macSidebarShortcutHelp(title: section.localizedTitle, key: MacNavigationShortcut.cards.key)
+                        } else {
+                            row
+                        }
+                    }
+                    .tag(MacSidebarSelection.librarySection(section))
                 }
             }
             Section(String(localized: "mac.sidebar.app_section.title", table: "Foundation")) {
-                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
+                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem, shortcutKey: macAppSettingsShortcutKey)
                     .badge(self.settingsAttentionSummary.settingsTabCount)
                     .tag(MacSidebarSelection.tab(.settings))
             }
@@ -556,9 +570,10 @@ struct RootTabView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private func macSidebarRow(_ tab: AppTab, identifier: String) -> some View {
+    private func macSidebarRow(_ tab: AppTab, identifier: String, shortcutKey: KeyEquivalent) -> some View {
         Label(tab.localizedTitle, systemImage: tab.systemImage)
             .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
+            .macSidebarShortcutHelp(title: tab.localizedTitle, key: shortcutKey)
             .tag(MacSidebarSelection.tab(tab))
             .accessibilityIdentifier(identifier)
     }
@@ -694,7 +709,9 @@ struct RootTabView: View {
                     .accessibilityHidden(true)
                 hostContent
                     #if targetEnvironment(macCatalyst)
-                    .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+                    // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
+                    .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
+                    .frame(maxHeight: .infinity)
                     #else
                     .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
                     #endif
@@ -788,6 +805,13 @@ struct RootTabView: View {
                 }
             }
             await self.store.refreshWidgetSnapshot()
+        }
+        .task(id: self.scenePhase) {
+            // Runs on cold and warm foregrounds alike; widgets are added and removed outside the app.
+            guard self.scenePhase == .active else {
+                return
+            }
+            await self.store.reportWidgetPlacementIfChanged()
         }
         #endif
         .overlay {
@@ -1032,7 +1056,9 @@ struct RootTabView: View {
         case .importData:
             WorkspaceImportView()
         case .exportData:
-            WorkspaceExportView()
+            WorkspaceExportView(format: .nibomo)
+        case .exportAnkiDeck:
+            WorkspaceExportView(format: .anki)
         }
     }
 

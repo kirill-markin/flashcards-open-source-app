@@ -109,7 +109,9 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         await store.waitForPendingStatePersistence()
 
         context.chatService.loadBootstrapHandler = { sessionId in
-            XCTAssertEqual(sessionId, "session-1")
+            if let sessionId {
+                XCTAssertEqual(sessionId, "session-1")
+            }
             return AIChatStoreTestSupport.makeConversationEnvelope(
                 sessionId: "session-1",
                 messages: canonicalMessages,

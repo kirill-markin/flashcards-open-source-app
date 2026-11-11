@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "নাম সংরক্ষণ করুন";
 "settings.workspace.overview.workspace" = "কর্মক্ষেত্র";
 "settings.workspace.overview.cards" = "কার্ড";
-"settings.workspace.overview.due" = "পুনরালোচনার সময় হয়েছে";
 "settings.workspace.overview.new" = "নতুন";
 "settings.workspace.overview.deleteDescription" = "এই কর্মক্ষেত্র এবং এর ভিতরে থাকা সমস্ত কার্ড, ডেক, পুনরালোচনা এবং সিঙ্ক ইতিহাস স্থায়ীভাবে মুছুন।";
 "settings.workspace.overview.deleteWorkspace" = "কর্মক্ষেত্র মুছুন";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "মিলে যাওয়া কোনো ডেক নেই";
 "settings.workspace.decks.searchPrompt" = "ডেক খুঁজুন";
 "settings.workspace.decks.newDeck" = "নতুন ডেক";
-"settings.workspace.decks.dueCount" = "%dটি পুনরালোচনার জন্য প্রস্তুত";
-"settings.workspace.decks.totalCards" = "%d কার্ড";
-"settings.workspace.decks.newCount" = "%dটি নতুন";
-"settings.workspace.decks.reviewedCount" = "%dটির পুনরালোচনা হয়েছে";
+"settings.workspace.decks.toStudyCount" = "%dটি অধ্যয়নের জন্য";
+"settings.workspace.decks.toStudy" = "অধ্যয়নের জন্য";
 "settings.workspace.decks.emptyAllCards" = "আপনি এখনও কোনো কার্ড তৈরি করেননি।";
 "settings.workspace.decks.emptyDeck" = "এই ডেকের সঙ্গে মেলে এমন কোনো কার্ড এখনও নেই।";
 "settings.workspace.decks.section.deckRules" = "ডেকের নিয়ম";

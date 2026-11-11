@@ -1,5 +1,6 @@
 /**
  * Keep web primary, Library and settings navigation aligned with:
+ * - apps/ios/Flashcards/Flashcards/App/Navigation/AppTab.swift
  * - apps/ios/Flashcards/Flashcards/App/Navigation/AppNavigationTypes.swift
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/settings/SettingsDestinations.kt
@@ -33,6 +34,7 @@ export const libraryDeckNewRoute: string = `${libraryDecksRoute}/new`;
 export const libraryTagsRoute: string = `${libraryRoute}/tags`;
 export const libraryImportRoute: string = `${libraryRoute}/import`;
 export const libraryExportRoute: string = `${libraryRoute}/export`;
+export const libraryAnkiExportRoute: string = `${libraryExportRoute}/anki`;
 /** Addresses the Library screens had before the Library tab; `App.tsx` redirects each to its Library equivalent. */
 export const legacyCardsRoute: string = "/cards";
 export const legacySettingsDecksRoute: string = "/settings/decks";

@@ -52,11 +52,13 @@ private struct ProgressStreakCard: View {
     private let summary: ProgressSummary
     private let streakWeeks: [ProgressCalendarWeek]
     private let presentationCalendar: Calendar
+    private let accessibilityValue: String
 
     init(progressSnapshot: ProgressSnapshot) {
         self.summary = progressSnapshot.summary
         self.streakWeeks = progressSnapshot.streakWeeks
         self.presentationCalendar = progressSnapshot.presentationCalendar
+        self.accessibilityValue = progressSummaryUITestValue(snapshot: progressSnapshot)
     }
 
     var body: some View {
@@ -81,7 +83,7 @@ private struct ProgressStreakCard: View {
         .id(ProgressScreenSectionID.streak)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(UITestIdentifier.progressStreakSection)
-        .accessibilityValue(progressSummaryUITestValue(summary: self.summary))
+        .accessibilityValue(self.accessibilityValue)
         .modifier(ProgressCardModifier())
     }
 }
@@ -183,8 +185,9 @@ private struct ProgressReviewScheduleCard: View {
     }
 }
 
-private func progressSummaryUITestValue(summary: ProgressSummary) -> String {
-    let components: [String] = [
+private func progressSummaryUITestValue(snapshot: ProgressSnapshot) -> String {
+    let summary = snapshot.summary
+    var components: [String] = [
         "currentStreakDays=\(summary.currentStreakDays)",
         "longestStreakDays=\(summary.longestStreakDays)",
         "hasReviewedToday=\(summary.hasReviewedToday ? "true" : "false")",
@@ -192,5 +195,12 @@ private func progressSummaryUITestValue(summary: ProgressSummary) -> String {
         "streakFreezeAvailableCredits=\(summary.streakFreeze.availableCredits)",
         "streakFreezeCapacity=\(summary.streakFreeze.capacity)"
     ]
+    if AutomationRun.current.isUITestLaunch, snapshot.seriesSourceState == .localOnly {
+        let totals = snapshot.chartData.chartDays.reduce(into: (good: 0, easy: 0)) { totals, day in
+            totals.good += day.goodCount
+            totals.easy += day.easyCount
+        }
+        components.insert(contentsOf: ["localGoodReviews=\(totals.good)", "localEasyReviews=\(totals.easy)"], at: 0)
+    }
     return components.joined(separator: ";")
 }

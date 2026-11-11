@@ -15,7 +15,9 @@ import {
   closeDatabaseAfterWrite,
   describeIndexedDbError,
   getFromStore,
+  runReadonly,
   runReadwrite,
+  type ContinueReadwriteRequest,
   type StoredCard,
 } from "../../core/database";
 import { encodeCursor, decodeCursor } from "../../core/queryShared";
@@ -864,14 +866,27 @@ export async function queryLocalCardsPage(workspaceId: string, input: QueryCards
   });
 }
 
-export async function loadCardById(workspaceId: string, cardId: string): Promise<Card | null> {
-  const card = await closeDatabaseAfter((database) => getFromStore<StoredCard>(database, "cards", [workspaceId, cardId]));
+export function requestStoredCard(
+  store: IDBObjectStore,
+  workspaceId: string,
+  cardId: string,
+): IDBRequest<StoredCard | undefined> {
+  return store.get([workspaceId, cardId]) as IDBRequest<StoredCard | undefined>;
+}
 
+export function readActiveStoredCard(card: StoredCard | undefined): Card | null {
   if (card === undefined || card.deletedAt !== null) {
     return null;
   }
 
   return toCard(card);
+}
+
+export async function loadCardById(workspaceId: string, cardId: string): Promise<Card | null> {
+  const card = await closeDatabaseAfter((database) => (
+    runReadonly(database, "cards", (store) => requestStoredCard(store, workspaceId, cardId))
+  ));
+  return readActiveStoredCard(card);
 }
 
 export async function loadCardsByIds(
@@ -970,15 +985,20 @@ export async function replaceCards(workspaceId: string, cards: ReadonlyArray<Car
   });
 }
 
-export function putCardInTransaction(transaction: IDBTransaction, workspaceId: string, card: Card): void {
+export function putCardInTransaction(
+  transaction: IDBTransaction,
+  workspaceId: string,
+  card: Card,
+  continueRequest: ContinueReadwriteRequest,
+): void {
   transaction.objectStore("cards").put(toStoredCard(workspaceId, card));
-  writeCardTagRecords(transaction, workspaceId, card);
+  writeCardTagRecords(transaction, workspaceId, card, continueRequest);
 }
 
 export async function putCard(workspaceId: string, card: Card): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
-    await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
-      putCardInTransaction(transaction, workspaceId, card);
+    await runReadwrite(database, ["cards", "cardTags"], (transaction, continueRequest) => {
+      putCardInTransaction(transaction, workspaceId, card, continueRequest);
       return null;
     });
   });

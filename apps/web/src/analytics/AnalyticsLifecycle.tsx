@@ -4,7 +4,7 @@ import {
   endAnalyticsScreenVisit,
   setCurrentAnalyticsSurface,
   startAnalytics,
-  track,
+  trackAppOpened,
   trackScreenViewed,
 } from "./client";
 import { readAnalyticsRootGate, subscribeToAnalyticsRootGate } from "./rootGate";
@@ -30,7 +30,7 @@ export function AnalyticsLifecycle(): null {
 
     if (hasTrackedColdOpenRef.current === false) {
       hasTrackedColdOpenRef.current = true;
-      track({ name: "app_opened", launchType: "cold" });
+      trackAppOpened("cold");
     }
   }, [location.pathname]);
 
@@ -102,7 +102,7 @@ export function AnalyticsLifecycle(): null {
       }
 
       hasLeftForegroundRef.current = false;
-      track({ name: "app_opened", launchType: "warm" });
+      trackAppOpened("warm");
     }
 
     function handleVisibilityChange(): void {

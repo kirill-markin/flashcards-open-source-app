@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "ذخیرهٔ نام";
 "settings.workspace.overview.workspace" = "فضای کاری";
 "settings.workspace.overview.cards" = "کارت‌ها";
-"settings.workspace.overview.due" = "موعد مرور";
 "settings.workspace.overview.new" = "جدید";
 "settings.workspace.overview.deleteDescription" = "این فضای کاری و همهٔ کارت‌ها، دسته‌ها، مرورها و تاریخچهٔ همگام‌سازی درون آن را برای همیشه حذف کنید.";
 "settings.workspace.overview.deleteWorkspace" = "حذف فضای کاری";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "دستهٔ مطابقی وجود ندارد";
 "settings.workspace.decks.searchPrompt" = "جست‌وجوی دسته‌ها";
 "settings.workspace.decks.newDeck" = "دستهٔ جدید";
-"settings.workspace.decks.dueCount" = "%d سررسیدشده";
-"settings.workspace.decks.totalCards" = "%d کارت";
-"settings.workspace.decks.newCount" = "%d جدید";
-"settings.workspace.decks.reviewedCount" = "%d مرورشده";
+"settings.workspace.decks.toStudyCount" = "%d برای مطالعه";
+"settings.workspace.decks.toStudy" = "برای مطالعه";
 "settings.workspace.decks.emptyAllCards" = "هنوز هیچ کارتی نساخته‌اید.";
 "settings.workspace.decks.emptyDeck" = "این دسته هنوز هیچ کارت مطابقی ندارد.";
 "settings.workspace.decks.section.deckRules" = "قواعد دسته";

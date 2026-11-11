@@ -57,18 +57,6 @@ struct ReviewInlineMathReference {
     let formula: ReviewFormulaContent
 }
 
-struct ReviewFormulaContent {
-    let originalSource: String
-    let latex: String
-    let continuesParagraph: Bool
-
-    init(originalSource: String, latex: String, continuesParagraph: Bool) {
-        self.originalSource = originalSource
-        self.latex = latex
-        self.continuesParagraph = continuesParagraph
-    }
-}
-
 struct ReviewManagedMediaReference: Hashable {
     let mediaAssetId: String
     let state: ManagedMediaAssetReferenceState
@@ -88,6 +76,7 @@ struct ReviewManagedMediaReference: Hashable {
     }
 }
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
 private let reviewShortPlainWordLimit: Int = 4
 private let reviewShortPlainVisibleCharacterLimit: Int = 48
 private let reviewContentMarkdownExpressions: [NSRegularExpression] = [
@@ -245,17 +234,283 @@ private func makeReviewSpeakableTextWithoutMath(
     text: String,
     preservesOpeningBlockPrefix: Bool
 ) -> String {
+    normalizeReviewSpeakableLines(lines: makeReviewTextLinesWithoutMath(
+        text: text,
+        preservesOpeningBlockPrefix: preservesOpeningBlockPrefix,
+        normalizeInlineText: normalizeReviewSpeakableInlineText(text:),
+        normalizeFencedCodeLine: { _ in "" }
+    ))
+}
+
+/// Card text for one-line previews. `mathBlocks` are the segments of `text`; every accepted formula keeps
+/// its delimiters and continues the line, so `MathContentText(parsedBlocks:)` renders it inline.
+struct ReviewPreviewText {
+    let text: String
+    let mathBlocks: [ReviewMathBlock]
+}
+
+/// Readable one-line card text: Markdown gives way to the text it shows, and an image to its alt text;
+/// images without alt text show the localized image label once, only on a side with no other text.
+func makeReviewPreviewText(text: String) -> ReviewPreviewText {
+    var parts: [ReviewMathBlock] = []
+
+    switch extractReviewMathBlocks(text: text) {
+    case .segmented(let mathBlocks):
+        var preservesNextOpeningBlockPrefix = false
+        for block in mathBlocks {
+            switch block {
+            case .markdown(let source):
+                parts.append(.markdown(makeReviewPreviewMarkdownText(
+                    text: source,
+                    preservesOpeningBlockPrefix: preservesNextOpeningBlockPrefix
+                )))
+                preservesNextOpeningBlockPrefix = false
+            case .formula(let formula):
+                parts.append(.formula(ReviewFormulaContent(
+                    originalSource: formula.continuesParagraph
+                        ? formula.originalSource
+                        : formula.originalSource.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression),
+                    latex: formula.latex,
+                    continuesParagraph: true
+                )))
+                preservesNextOpeningBlockPrefix = formula.continuesParagraph
+            }
+        }
+    case .literalMarkdown:
+        parts.append(.markdown(makeReviewPreviewMarkdownText(text: text, preservesOpeningBlockPrefix: false)))
+    case .none:
+        if classifyReviewContentPresentation(text: text) == .markdown {
+            parts.append(.markdown(makeReviewPreviewMarkdownText(text: text, preservesOpeningBlockPrefix: false)))
+        } else {
+            parts.append(.markdown(normalizeReviewPlainTextEscapedDollars(text: text)))
+        }
+    }
+
+    return makeReviewPreviewText(parts: parts)
+}
+
+private func makeReviewPreviewMarkdownText(text: String, preservesOpeningBlockPrefix: Bool) -> String {
+    let previewText = makeReviewTextLinesWithoutMath(
+        text: replacingReviewTableRowPipes(text: text),
+        preservesOpeningBlockPrefix: preservesOpeningBlockPrefix,
+        normalizeInlineText: normalizeReviewPreviewInlineMarkdown(text:),
+        normalizeFencedCodeLine: { line in line.trimmingCharacters(in: .whitespaces) }
+    ).joined(separator: " ")
+    // Keeps the space that separates this segment from an adjacent inline formula.
+    let leadingSpace = text.first?.isWhitespace == true ? " " : ""
+    let trailingSpace = text.last?.isWhitespace == true ? " " : ""
+    return leadingSpace + previewText + trailingSpace
+}
+
+/// Joins adjacent text, collapses whitespace to single spaces, and trims the line's ends.
+private func makeReviewPreviewText(parts: [ReviewMathBlock]) -> ReviewPreviewText {
+    var mergedParts: [ReviewMathBlock] = []
+    for part in parts {
+        if case .markdown(let value) = part, case .markdown(let previousValue) = mergedParts.last {
+            mergedParts[mergedParts.count - 1] = .markdown(previousValue + value)
+        } else {
+            mergedParts.append(part)
+        }
+    }
+
+    let resolvedParts: [ReviewMathBlock] = mergedParts.map { part in
+        guard case .markdown(let value) = part else {
+            return part
+        }
+        return .markdown(resolvingReviewPreviewImageAltTexts(text: value))
+    }
+    let hasText = resolvedParts.contains { part in
+        guard case .markdown(let value) = part else {
+            return true
+        }
+        return value.contains { character in
+            character != reviewPreviewEmptyImageAltText && character.isWhitespace == false
+        }
+    }
+    let emptyImageAltText = hasText ? " " : String(localized: "cards.preview.image", table: reviewCardsStringsTableName)
+
+    let mathBlocks: [ReviewMathBlock] = resolvedParts.enumerated().compactMap { index, part in
+        guard case .markdown(let value) = part else {
+            return part
+        }
+
+        var previewValue = value
+            .replacingOccurrences(of: reviewPreviewEmptyImageAltTextAtPunctuationPattern, with: "", options: .regularExpression)
+            .replacingOccurrences(
+                of: reviewPreviewEmptyImageAltTextRunPattern,
+                with: NSRegularExpression.escapedTemplate(for: emptyImageAltText),
+                options: .regularExpression
+            )
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        if index == 0 {
+            previewValue = String(previewValue.drop(while: \.isWhitespace))
+        }
+        if index == mergedParts.count - 1 {
+            previewValue = String(previewValue.reversed().drop(while: \.isWhitespace).reversed())
+        }
+        return previewValue.isEmpty ? nil : .markdown(previewValue)
+    }
+
+    return ReviewPreviewText(text: mathBlocks.map(\.source).joined(), mathBlocks: mathBlocks)
+}
+
+/// Marks an image's alt text in a preview line until `resolvingReviewPreviewImageAltTexts` compares it with its neighbours.
+private let reviewPreviewImageAltTextStart: Character = "\u{E004}"
+private let reviewPreviewImageAltTextEnd: Character = "\u{E005}"
+/// Stands in for an image's empty alt text in a preview line until the whole side is known.
+private let reviewPreviewEmptyImageAltText: Character = "\u{E006}"
+/// An empty alt text keeps the words around it apart but adds no space against punctuation.
+private let reviewPreviewEmptyImageAltTextAtPunctuationPattern =
+    #"\#(reviewPreviewEmptyImageAltText)+(?=[\p{Pe}\p{Pf}\p{Po}])|(?<=[\p{Ps}\p{Pi}])\#(reviewPreviewEmptyImageAltText)+"#
+/// Adjacent empty alt texts stand in once, so a side of images alone reads the image label once.
+private let reviewPreviewEmptyImageAltTextRunPattern =
+    #"\#(reviewPreviewEmptyImageAltText)(?:\s*\#(reviewPreviewEmptyImageAltText))*"#
+
+/// An alt text gives way when it repeats the text right before or after it, up to the neighbouring
+/// image, formula, or side end, so a prompt followed by its own image reads once.
+private func resolvingReviewPreviewImageAltTexts(text: String) -> String {
+    var pieces: [String] = []
+    var remainingText = Substring(text)
+    while let altTextStart = remainingText.firstIndex(of: reviewPreviewImageAltTextStart),
+          let altTextEnd = remainingText[altTextStart...].firstIndex(of: reviewPreviewImageAltTextEnd) {
+        pieces.append(String(remainingText[..<altTextStart]))
+        pieces.append(String(remainingText[remainingText.index(after: altTextStart)..<altTextEnd]))
+        remainingText = remainingText[remainingText.index(after: altTextEnd)...]
+    }
+    pieces.append(String(remainingText))
+
+    let normalizedPiece: (Int) -> String = { index in
+        pieces[index]
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+    }
+    // Pieces alternate text and alt text, so every alt text sits at an odd index between two texts.
+    return pieces.indices.map { index in
+        guard index.isMultiple(of: 2) == false else {
+            return pieces[index]
+        }
+        let altText = normalizedPiece(index)
+        return altText == normalizedPiece(index - 1) || altText == normalizedPiece(index + 1) ? "" : pieces[index]
+    }.joined()
+}
+
+/// Swaps the cell pipes of Markdown table rows for spaces; a pipe anywhere else is card text.
+/// A table row is the header line above a table separator, a line below it before the next blank line,
+/// or a line that starts and ends with a pipe.
+private func replacingReviewTableRowPipes(text: String) -> String {
+    let lines = text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)
+    var fencedLineIndexes = Set<Int>()
+    var activeFence: ReviewMathFence? = nil
+    for (lineIndex, line) in lines.enumerated() {
+        if let openingFence = activeFence {
+            fencedLineIndexes.insert(lineIndex)
+            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
+                activeFence = nil
+            }
+        } else if let openingFence = reviewMathFence(line: line) {
+            fencedLineIndexes.insert(lineIndex)
+            activeFence = openingFence
+        }
+    }
+
+    let isTableSeparator: (Int) -> Bool = { lineIndex in
+        reviewContentTableSeparatorExpression.matches(lines[lineIndex])
+    }
+    let isTextLine: (Int) -> Bool = { lineIndex in
+        fencedLineIndexes.contains(lineIndex) == false
+            && lines[lineIndex].trimmingCharacters(in: .whitespaces).isEmpty == false
+            && isTableSeparator(lineIndex) == false
+    }
+
+    var tableRowIndexes = Set<Int>()
+    for lineIndex in lines.indices where fencedLineIndexes.contains(lineIndex) == false {
+        let trimmedLine = lines[lineIndex].trimmingCharacters(in: .whitespaces)
+        if isTableSeparator(lineIndex) {
+            if lineIndex > 0 && isTextLine(lineIndex - 1) {
+                tableRowIndexes.insert(lineIndex - 1)
+            }
+            var rowIndex = lineIndex + 1
+            while rowIndex < lines.count && isTextLine(rowIndex) {
+                tableRowIndexes.insert(rowIndex)
+                rowIndex += 1
+            }
+        } else if trimmedLine.count > 1 && trimmedLine.hasPrefix("|") && trimmedLine.hasSuffix("|") {
+            tableRowIndexes.insert(lineIndex)
+        }
+    }
+
+    if tableRowIndexes.isEmpty {
+        return text
+    }
+
+    return lines.enumerated().map { lineIndex, line in
+        tableRowIndexes.contains(lineIndex) ? line.replacingOccurrences(of: "|", with: " ") : line
+    }.joined(separator: "\n")
+}
+
+private let reviewPreviewEmptyImageAltTextExpression = makeReviewContentRegularExpression(pattern: #"!\[[ \t]*\]\("#)
+
+private func normalizeReviewPreviewInlineMarkdown(text: String) -> String {
+    let labeledText = reviewPreviewEmptyImageAltTextExpression.replacingMatches(
+        in: text,
+        with: NSRegularExpression.escapedTemplate(for: "![\(reviewPreviewEmptyImageAltText)](")
+    )
+
+    let markdown: AttributedString
+    do {
+        markdown = try AttributedString(
+            markdown: labeledText,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )
+    } catch {
+        // Card text must never break a list row, so this line keeps its Markdown source.
+        reviewContentPresentationLogger.error(
+            "Review preview Markdown parse failed. error=\(error.localizedDescription, privacy: .public)"
+        )
+        return normalizeReviewPreviewInlineText(text: labeledText)
+    }
+
+    let markedText = markdown.runs[\.imageURL].map { imageURL, range in
+        let runText = String(markdown[range].characters)
+        return imageURL == nil
+            ? runText
+            : String(reviewPreviewImageAltTextStart) + runText + String(reviewPreviewImageAltTextEnd)
+    }.joined()
+    return normalizeReviewPreviewInlineText(text: markedText)
+}
+
+private func normalizeReviewPreviewInlineText(text: String) -> String {
+    reviewSpeakableTextReplacingManagedMediaReferences(text: text)
+        .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+/// Non-empty text lines without fence or block-level Markdown markers; code inside a fence goes through
+/// `normalizeFencedCodeLine`, every other line through `normalizeInlineText`.
+private func makeReviewTextLinesWithoutMath(
+    text: String,
+    preservesOpeningBlockPrefix: Bool,
+    normalizeInlineText: (String) -> String,
+    normalizeFencedCodeLine: (String) -> String
+) -> [String] {
     if classifyReviewContentPresentation(text: text) != .markdown {
-        return normalizeReviewSpeakableLines(lines: text.components(separatedBy: .newlines))
+        return text.components(separatedBy: .newlines).map(normalizeInlineText).filter { line in
+            line.isEmpty == false
+        }
     }
 
     var activeFence: ReviewMathFence? = nil
-    var speakableLines: [String] = []
+    var normalizedLines: [String] = []
 
     for (lineIndex, line) in text.components(separatedBy: .newlines).enumerated() {
         if let openingFence = activeFence {
             if reviewMathFenceCloses(line: line, openingFence: openingFence) {
                 activeFence = nil
+            } else {
+                let codeLine = normalizeFencedCodeLine(line)
+                if codeLine.isEmpty == false {
+                    normalizedLines.append(codeLine)
+                }
             }
 
             continue
@@ -267,14 +522,14 @@ private func makeReviewSpeakableTextWithoutMath(
         }
 
         let normalizedLine = preservesOpeningBlockPrefix && lineIndex == 0
-            ? normalizeReviewSpeakableInlineText(text: line)
-            : normalizeReviewSpeakableMarkdownLine(line: line)
+            ? normalizeInlineText(line)
+            : normalizeInlineText(removingReviewMarkdownBlockPrefix(line: line))
         if normalizedLine.isEmpty == false {
-            speakableLines.append(normalizedLine)
+            normalizedLines.append(normalizedLine)
         }
     }
 
-    return normalizeReviewSpeakableLines(lines: speakableLines)
+    return normalizedLines
 }
 
 /// Private scheme for accepted inline formulas routed through the Markdown inline image path.
@@ -401,7 +656,7 @@ private func hasInlineMarkdownFormatting(text: String) -> Bool {
     return html.contains("<em>") || html.contains("<strong>") || html.contains("<del>")
 }
 
-private func normalizeReviewSpeakableMarkdownLine(line: String) -> String {
+private func removingReviewMarkdownBlockPrefix(line: String) -> String {
     let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmedLine.isEmpty {
         return ""
@@ -414,9 +669,7 @@ private func normalizeReviewSpeakableMarkdownLine(line: String) -> String {
     let withoutHeading = reviewContentHeadingExpression.replacingMatches(in: trimmedLine, with: "")
     let withoutQuote = reviewContentBlockquoteExpression.replacingMatches(in: withoutHeading, with: "")
     let withoutUnorderedList = reviewContentUnorderedListExpression.replacingMatches(in: withoutQuote, with: "")
-    let withoutOrderedList = reviewContentOrderedListExpression.replacingMatches(in: withoutUnorderedList, with: "")
-
-    return normalizeReviewSpeakableInlineText(text: withoutOrderedList)
+    return reviewContentOrderedListExpression.replacingMatches(in: withoutUnorderedList, with: "")
 }
 
 private func normalizeReviewSpeakableLines(lines: [String]) -> String {
@@ -570,10 +823,9 @@ func reviewMarkdownGalleryParagraphs(markdown: AttributedString) -> [ReviewMarkd
         let text = String(markdown[run.range].characters)
         let inlineIntent = run.inlinePresentationIntent ?? []
         if let url = run.imageURL, run.link == nil, inlineIntent.isEmpty, url.scheme != reviewInlineMathImageScheme {
-            let label = text.trimmingCharacters(in: .whitespacesAndNewlines)
             currentImages.append(ReviewMarkdownGalleryImage(
                 url: url,
-                label: label.isEmpty || label == reviewMarkdownEmptyImageAltText ? nil : label,
+                label: reviewMarkdownImageLabel(altText: text),
                 sourceLines: run.markdownSourcePosition.map { position in position.startLine...position.endLine }
             ))
         } else if run.imageURL != nil || run.link != nil || (inlineIntent.isEmpty == false && inlineIntent != .softBreak)
@@ -593,6 +845,12 @@ private let reviewContentPresentationLogger: Logger = Logger(
 
 /// Foundation renders an image without alt text as this character and reports no source position for it.
 private let reviewMarkdownEmptyImageAltText = "\u{FFFC}"
+
+/// The description of a rendered Markdown image, nil for an image without alt text.
+func reviewMarkdownImageLabel(altText: String) -> String? {
+    let label = altText.trimmingCharacters(in: .whitespacesAndNewlines)
+    return label.isEmpty || label == reviewMarkdownEmptyImageAltText ? nil : label
+}
 
 private struct ReviewManagedMarkdownGallery {
     let endLine: Int
@@ -784,27 +1042,4 @@ private func reviewSpeakableTextReplacingManagedMediaReferences(text: String) ->
     }
 
     return output
-}
-
-func makeReviewContentRegularExpression(pattern: String) -> NSRegularExpression {
-    do {
-        return try NSRegularExpression(
-            pattern: pattern,
-            options: [.anchorsMatchLines]
-        )
-    } catch {
-        fatalError("Invalid review content regex pattern: \(pattern)")
-    }
-}
-
-extension NSRegularExpression {
-    func matches(_ text: String) -> Bool {
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        return self.firstMatch(in: text, options: [], range: range) != nil
-    }
-
-    func replacingMatches(in text: String, with replacement: String) -> String {
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        return self.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: replacement)
-    }
 }

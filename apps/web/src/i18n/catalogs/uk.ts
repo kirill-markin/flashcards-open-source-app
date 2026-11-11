@@ -20,6 +20,15 @@ const ukCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Браузер не зміг декодувати звук мікрофона ({{format}}).",
     recovery: "Гостьовий доступ не підтверджено. Збережені картки доступні лише для читання. Відновіть початковий сеанс або з’єднання та повторіть спробу.",
     cleanupFailed: "Вхід виконано, але видалити демонстраційну картку не вдалося.",
+    browserCheck: {
+      title: "Перевіряємо ваш браузер",
+      description: "Перед відкриттям гостьового робочого простору Cloudflare підтверджує, що це звичайний браузер. Зазвичай це займає кілька секунд.",
+      loading: "Завантаження перевірки...",
+      verifying: "Відкриваємо ваш робочий простір...",
+      loadFailed: "Не вдалося завантажити перевірку. Перевірте з’єднання, дозвольте challenges.cloudflare.com у блокувальнику вмісту та спробуйте ще раз.",
+      failed: "Перевірку не пройдено. Спробуйте ще раз або увійдіть в обліковий запис.",
+      rejected: "Перевірку не прийнято. Пройдіть її ще раз.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ const ukCatalog: TranslationCatalog = {
     loading: "Завантаження...",
     never: "Ніколи",
     newItem: "нова",
+    image: "Зображення",
     noBackText: "Немає тексту зворотної сторони",
     noTags: "Немає тегів",
     notRevoked: "Не відкликано",
@@ -434,9 +444,12 @@ const ukCatalog: TranslationCatalog = {
       offlineEmpty: "Таблиця лідерів за серіями недоступна офлайн. Відновіть з'єднання, щоб побачити рейтинг.",
       unavailable: "Таблиця лідерів за серіями зараз недоступна. Загляньте пізніше.",
       dayLabels: {
-        one: "день",
-        few: "дні",
-        other: "днів",
+        zero: "{{count}} днів",
+        one: "{{count}} день",
+        two: "{{count}} днів",
+        few: "{{count}} дні",
+        many: "{{count}} днів",
+        other: "{{count}} днів",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ const ukCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Відновлення сесії. Спробуйте за мить.",
     sessionUnavailable: "Сесія недоступна",
     syncing: "Синхронізація...",
+    syncFailed: "Помилка синхронізації",
     workspaceUnavailable: "Робочий простір недоступний",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ const ukCatalog: TranslationCatalog = {
       yourCards: "Ваші картки",
       addCards: "Додати картки",
     },
-    cards: {
-      description: "Усі картки в цьому робочому просторі.",
-    },
-    tags: {
-      description: "Усі теги, використані хоча б на одній картці.",
-    },
-    decks: {
-      description: "Збережені фільтри карток для цілеспрямованого повторення.",
-    },
     deckCatalog: {
       title: "Каталог колод",
       description: "Безкоштовні готові колоди для вивчення.",
@@ -869,16 +874,18 @@ const ukCatalog: TranslationCatalog = {
     note: "Ці налаштування впливають лише на майбутнє планування. Поточний стан карток залишається основним.",
   },
   workspaceExport: {
-    title: "Експорт",
+    title: "Експортувати пакунок Nibomo",
+    ankiTitle: "Експортувати колоду Anki",
     subtitle: "Завантажте переносний пакунок для цього робочого простору.",
     workspaceUnavailable: "Робочий простір недоступний",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Назва колоди",
+    ankiEmptySelection: "Немає карток для експорту. Змініть вибрані теги або додайте картки.",
     packageDescription: "Перегляньте активні картки, метадані, теги та пов'язані медіа перед завантаженням.",
-    packageExportSuccess: "Завантаження flashcards.zip розпочато.",
+    packageExportSuccess: "Завантаження {{filename}} розпочато.",
     packageExporting: "Завантаження...",
     packagePreviewing: "Формування перегляду...",
     packageExportPreviewButton: "Переглянути експорт",
-    packageExportConfirmButton: "Завантажити flashcards.zip",
+    packageExportConfirmButton: "Завантажити {{filename}}",
     packageExportPreviewRequired: "Перегляньте цей експорт перед завантаженням.",
     previewCardsLabel: "Картки",
     previewReferencedMediaLabel: "Пов'язані медіа",
@@ -1134,6 +1141,10 @@ const ukCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Відкрити картку в AI-чаті: {{side}}",
     repetitionBadgeAriaLabel: "Повторів: {{value}}",
     repetitionBadgeNew: "Нова",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Ще теги: {{count}}",
+    },
     empty: {
       noCardsBody: "Ви ще не створили жодної картки. Додайте першу картку, щоб почати навчання.",
       noCardsTitle: "Ще немає карток",
@@ -1145,16 +1156,25 @@ const ukCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Не вдалося відобразити формулу.",
       schedulerUnavailable: "Налаштування планувальника робочого простору не завантажено",
+      storageFull: "Звільніть місце на цьому пристрої, а потім знову оцініть картку.",
     },
     leaderboardShortcut: {
       ariaLabel: "Відкрити таблицю лідерів",
     },
     progressBadge: {
-      ariaLabel: "Серія повторень: {{streak}} днів. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Серія повторень: {{streak}} днів. {{todayStatus}}.",
+      ariaLabel: "Серія повторень: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Серія повторень: {{streak}}. {{todayStatus}}.",
       freezeBank: "Запас заморозок {{available}} з {{capacity}}",
       notReviewedToday: "Сьогодні не повторювали",
       reviewedToday: "Сьогодні повторено",
+      streakDayCount: {
+        zero: "{{count}} днів",
+        one: "{{count}} день",
+        two: "{{count}} днів",
+        few: "{{count}} дні",
+        many: "{{count}} днів",
+        other: "{{count}} днів",
+      },
       title: "Серія",
     },
     interval: {
@@ -1168,8 +1188,6 @@ const ukCatalog: TranslationCatalog = {
       snapshot: "Показуємо останній локальний знімок...",
     },
     media: {
-      privateImage: "Приватне зображення",
-      privateAttachment: "Приватне вкладення",
       attachmentLabel: "Вкладення",
       audioLabel: "Аудіовкладення",
       imageAlt: "Кероване зображення",
@@ -1358,26 +1376,15 @@ const ukCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} до повторення",
+      toStudy: "{{count}} до вивчення",
       total: "{{count}} усього",
     },
-    emptyStatsAriaLabel: "Статистика колоди {{deckName}}",
     newDeck: "Нова колода",
     statLabels: {
       cards: {
         one: "картка",
         few: "картки",
         other: "карток",
-      },
-      new: {
-        one: "нова",
-        few: "нові",
-        other: "нових",
-      },
-      reviewed: {
-        one: "повторена",
-        few: "повторені",
-        other: "повторених",
       },
     },
     subtitle: "Колоди — це розумні фільтри, а не контейнери. Вони добирають картки за тегами.",
@@ -1413,10 +1420,10 @@ const ukCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Картки",
-      due: "Термін",
       new: "Нові",
       summary: "Підсумок",
       title: "Правила колоди",
+      toStudy: "До вивчення",
     },
     subtitle: "Перегляньте правила колоди, відповідні картки та вхід у повторення.",
     subtitles: {

@@ -20,6 +20,15 @@ const mrCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "हा ब्राउझर मायक्रोफोनचा ऑडिओ डिकोड करू शकला नाही ({{format}}).",
     recovery: "अतिथी प्रवेश सत्यापित नाही. कॅशेतील कार्डे केवळ वाचता येतील. मूळ सत्र किंवा जोडणी पुनर्स्थापित करून पुन्हा प्रयत्न करा.",
     cleanupFailed: "साइन इन यशस्वी झाले, पण डेमो कार्ड काढता आले नाही.",
+    browserCheck: {
+      title: "तुमचा ब्राउझर तपासत आहोत",
+      description: "अतिथी कार्यक्षेत्र उघडण्यापूर्वी Cloudflare खात्री करते की हा सामान्य ब्राउझर आहे. साधारणपणे काही सेकंद लागतात.",
+      loading: "तपासणी लोड करत आहे...",
+      verifying: "तुमचे कार्यक्षेत्र उघडत आहे...",
+      loadFailed: "तपासणी लोड होऊ शकली नाही. तुमचे कनेक्शन तपासा, कंटेंट ब्लॉकरमध्ये challenges.cloudflare.com ला परवानगी द्या आणि पुन्हा प्रयत्न करा.",
+      failed: "तपासणी यशस्वी झाली नाही. पुन्हा प्रयत्न करा किंवा साइन इन करा.",
+      rejected: "तपासणी स्वीकारली गेली नाही. ती पुन्हा एकदा पूर्ण करा.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const mrCatalog: TranslationCatalog = {
     loading: "लोड करत आहे...",
     never: "कधीच नाही",
     newItem: "नवीन",
+    image: "प्रतिमा",
     noBackText: "मागील बाजूचा मजकूर नाही",
     noTags: "टॅग नाहीत",
     notRevoked: "रद्द केलेले नाही",
@@ -427,8 +437,12 @@ const mrCatalog: TranslationCatalog = {
       offlineEmpty: "ऑफलाइन असताना सलग दिवसांची क्रमवारी उपलब्ध नाही. क्रमवारी पाहण्यासाठी पुन्हा जोडणी करा.",
       unavailable: "सलग दिवसांची क्रमवारी सध्या उपलब्ध नाही. नंतर पुन्हा पाहा.",
       dayLabels: {
-        one: "दिवस",
-        other: "दिवस",
+        zero: "{{count}} दिवस",
+        one: "{{count}} दिवस",
+        two: "{{count}} दिवस",
+        few: "{{count}} दिवस",
+        many: "{{count}} दिवस",
+        other: "{{count}} दिवस",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const mrCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "सत्र पूर्ववत करत आहे. थोड्या वेळाने पुन्हा प्रयत्न करा.",
     sessionUnavailable: "सत्र उपलब्ध नाही",
     syncing: "समक्रमण सुरू आहे...",
+    syncFailed: "समक्रमण अयशस्वी",
     workspaceUnavailable: "कार्यक्षेत्र उपलब्ध नाही",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const mrCatalog: TranslationCatalog = {
       yourCards: "तुमची कार्डे",
       addCards: "कार्डे जोडा",
     },
-    cards: {
-      description: "या कार्यक्षेत्रातील सर्व कार्डे.",
-    },
-    tags: {
-      description: "किमान एका कार्डवर वापरलेले सर्व टॅग.",
-    },
-    decks: {
-      description: "एकाग्र उजळणीसाठी जतन केलेले कार्ड फिल्टर.",
-    },
     deckCatalog: {
       title: "संच कॅटलॉग",
       description: "अभ्यासासाठी मोफत तयार संच.",
@@ -860,16 +866,18 @@ const mrCatalog: TranslationCatalog = {
     note: "या सेटिंग्जचा परिणाम फक्त पुढील वेळापत्रकावर होतो. कार्डांची सध्याची स्थिती तशीच अधिकृत राहते.",
   },
   workspaceExport: {
-    title: "निर्यात",
+    title: "Nibomo पॅकेज निर्यात करा",
+    ankiTitle: "Anki डेक निर्यात करा",
     subtitle: "या कार्यक्षेत्रासाठी पोर्टेबल पॅकेज डाउनलोड करा.",
     workspaceUnavailable: "कार्यक्षेत्र उपलब्ध नाही",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "डेकचे नाव",
+    ankiEmptySelection: "निर्यात करण्यासाठी कोणतीही कार्डे नाहीत. निवडलेले टॅग बदला किंवा कार्डे जोडा.",
     packageDescription: "डाउनलोड करण्यापूर्वी सक्रिय कार्डे, मेटाडेटा, टॅग आणि संदर्भित माध्यमे पाहा.",
-    packageExportSuccess: "flashcards.zip चे डाउनलोड सुरू झाले.",
+    packageExportSuccess: "{{filename}} चे डाउनलोड सुरू झाले.",
     packageExporting: "डाउनलोड करत आहे...",
     packagePreviewing: "पूर्वावलोकन तयार करत आहे...",
     packageExportPreviewButton: "निर्यातीचे पूर्वावलोकन",
-    packageExportConfirmButton: "flashcards.zip डाउनलोड करा",
+    packageExportConfirmButton: "{{filename}} डाउनलोड करा",
     packageExportPreviewRequired: "डाउनलोड करण्यापूर्वी या निर्यातीचे पूर्वावलोकन पाहा.",
     previewCardsLabel: "कार्डे",
     previewReferencedMediaLabel: "संदर्भित माध्यमे",
@@ -1124,6 +1132,10 @@ const mrCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI चॅटमध्ये कार्ड उघडा: {{side}}",
     repetitionBadgeAriaLabel: "पुनरावृत्ती: {{value}}",
     repetitionBadgeNew: "नवीन",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "आणखी टॅग: {{count}}",
+    },
     empty: {
       noCardsBody: "तुम्ही अद्याप कोणतीही कार्डे तयार केलेली नाहीत. अभ्यास सुरू करण्यासाठी पहिले कार्ड जोडा.",
       noCardsTitle: "अजून कार्डे नाहीत",
@@ -1135,16 +1147,25 @@ const mrCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "सूत्र दाखवता आले नाही.",
       schedulerUnavailable: "कार्यक्षेत्राची वेळापत्रक सेटिंग्ज लोड झालेली नाहीत",
+      storageFull: "या डिव्हाइसवरील काही स्टोरेज मोकळे करा आणि नंतर कार्डला पुन्हा रेटिंग द्या.",
     },
     leaderboardShortcut: {
       ariaLabel: "क्रमवारी उघडा",
     },
     progressBadge: {
-      ariaLabel: "सलग {{streak}} दिवस उजळणी. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "सलग {{streak}} दिवस उजळणी. {{todayStatus}}.",
+      ariaLabel: "सलग {{streak}} उजळणी. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "सलग {{streak}} उजळणी. {{todayStatus}}.",
       freezeBank: "फ्रीझ शिल्लक {{capacity}} पैकी {{available}}",
       notReviewedToday: "आज उजळणी केलेली नाही",
       reviewedToday: "आज उजळणी केली",
+      streakDayCount: {
+        zero: "{{count}} दिवस",
+        one: "{{count}} दिवस",
+        two: "{{count}} दिवस",
+        few: "{{count}} दिवस",
+        many: "{{count}} दिवस",
+        other: "{{count}} दिवस",
+      },
       title: "सलग दिवस",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const mrCatalog: TranslationCatalog = {
       snapshot: "अलीकडील स्थानिक स्नॅपशॉट दाखवत आहे...",
     },
     media: {
-      privateImage: "खाजगी प्रतिमा",
-      privateAttachment: "खाजगी संलग्नक",
       attachmentLabel: "जोडलेली फाइल",
       audioLabel: "जोडलेला ऑडिओ",
       imageAlt: "व्यवस्थापित प्रतिमा",
@@ -1348,23 +1367,14 @@ const mrCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} बाकी",
+      toStudy: "{{count}} अभ्यासासाठी",
       total: "एकूण {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ची आकडेवारी",
     newDeck: "नवीन संच",
     statLabels: {
       cards: {
         one: "कार्ड",
         other: "कार्डे",
-      },
-      new: {
-        one: "नवीन",
-        other: "नवीन",
-      },
-      reviewed: {
-        one: "उजळणी केलेली",
-        other: "उजळणी केलेली",
       },
     },
     subtitle: "संच हे स्मार्ट फिल्टर आहेत, कप्पे नाहीत. ते टॅगनुसार कार्डे जुळवतात.",
@@ -1400,10 +1410,10 @@ const mrCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "कार्डे",
-      due: "बाकी",
       new: "नवीन",
       summary: "सारांश",
       title: "संचाचे नियम",
+      toStudy: "अभ्यासासाठी",
     },
     subtitle: "संचाचे नियम, जुळणारी कार्डे आणि उजळणीचा प्रवेशबिंदू तपासा.",
     subtitles: {

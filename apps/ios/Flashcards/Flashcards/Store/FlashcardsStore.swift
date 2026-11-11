@@ -84,6 +84,14 @@ final class FlashcardsStore {
     var isReviewCountsLoading: Bool
     var isReviewQueueChunkLoading: Bool
     var progressSnapshot: ProgressSnapshot?
+    #if !targetEnvironment(macCatalyst)
+    /// The Progress history the Home Screen widgets show: the Progress screen's snapshot when it publishes, otherwise
+    /// one built from the Review streak badge's render, which `progressSnapshot` deliberately skips.
+    var widgetProgressSnapshot: ProgressSnapshot? = nil
+    /// The `progressReviewScheduleLocalRevision` `reviewScheduleSnapshot` was published at; a rating or sync on
+    /// another tab moves past it without republishing.
+    @ObservationIgnored var reviewScheduleSnapshotPublishedLocalRevision: Int? = nil
+    #endif
     var reviewScheduleSnapshot: ReviewScheduleSnapshot?
     var progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?
     var progressStreakLeaderboardSnapshot: ProgressStreakLeaderboardSnapshot?
@@ -246,6 +254,7 @@ final class FlashcardsStore {
     @ObservationIgnored var progressStreakLeaderboardServerBaseCache: PersistedProgressStreakLeaderboardServerBase?
     @ObservationIgnored var visibleProgressRefreshTasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored var deferredProgressRefreshTask: Task<Void, Never>?
+    @ObservationIgnored var isDeferredProgressRefreshPending: Bool = false
     @ObservationIgnored var reviewProgressBadgeSource: ReviewProgressBadgeSource?
     /// What the app last handed the Home Screen widget in this process; see `FlashcardsStore+WidgetSnapshot`.
     @ObservationIgnored var lastWrittenWidgetSnapshot: WidgetSnapshot? = nil

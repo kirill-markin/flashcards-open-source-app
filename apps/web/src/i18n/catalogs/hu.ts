@@ -20,6 +20,15 @@ const huCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ez a böngésző nem tudta dekódolni a mikrofon hangját ({{format}}).",
     recovery: "A vendéghozzáférés nincs ellenőrizve. A gyorsítótárazott kártyák csak olvashatók. Állítsd vissza az eredeti munkamenetet vagy kapcsolatot, majd próbáld újra.",
     cleanupFailed: "A bejelentkezés sikerült, de a bemutatókártyát nem lehetett törölni.",
+    browserCheck: {
+      title: "A böngésződ ellenőrzése",
+      description: "A vendég munkaterület megnyitása előtt a Cloudflare megerősíti, hogy ez egy szokásos böngésző. Ez általában néhány másodpercig tart.",
+      loading: "Az ellenőrzés betöltése...",
+      verifying: "A munkaterületed megnyitása...",
+      loadFailed: "Az ellenőrzés nem töltődött be. Nézd meg a kapcsolatot, engedélyezd a challenges.cloudflare.com címet a tartalomblokkolóban, majd próbáld újra.",
+      failed: "Az ellenőrzés nem sikerült. Próbáld újra, vagy jelentkezz be helyette.",
+      rejected: "Az ellenőrzést nem fogadtuk el. Végezd el még egyszer.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const huCatalog: TranslationCatalog = {
     loading: "Betöltés...",
     never: "Soha",
     newItem: "új",
+    image: "Kép",
     noBackText: "Nincs hátlapszöveg",
     noTags: "Nincs címke",
     notRevoked: "Nincs visszavonva",
@@ -427,8 +437,12 @@ const huCatalog: TranslationCatalog = {
       offlineEmpty: "A sorozatranglista offline nem érhető el. Csatlakozz újra a helyezések megtekintéséhez.",
       unavailable: "A sorozatranglista most nem érhető el. Nézz vissza később.",
       dayLabels: {
-        one: "nap",
-        other: "nap",
+        zero: "{{count}} nap",
+        one: "{{count}} nap",
+        two: "{{count}} nap",
+        few: "{{count}} nap",
+        many: "{{count}} nap",
+        other: "{{count}} nap",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const huCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Munkamenet visszaállítása. Próbáld újra egy pillanat múlva.",
     sessionUnavailable: "A munkamenet nem érhető el",
     syncing: "Szinkronizálás...",
+    syncFailed: "Sikertelen szinkronizálás",
     workspaceUnavailable: "A munkaterület nem érhető el",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const huCatalog: TranslationCatalog = {
       yourCards: "Kártyáid",
       addCards: "Kártyák hozzáadása",
     },
-    cards: {
-      description: "A munkaterület összes kártyája.",
-    },
-    tags: {
-      description: "Minden címke, amely legalább egy kártyán szerepel.",
-    },
-    decks: {
-      description: "Mentett kártyaszűrők a célzott ismétléshez.",
-    },
     deckCatalog: {
       title: "Paklikatalógus",
       description: "Ingyenes, kész paklik tanuláshoz.",
@@ -860,16 +866,18 @@ const huCatalog: TranslationCatalog = {
     note: "Ezek a beállítások csak a jövőbeli ütemezésre hatnak. A kártyák meglévő állapota marad a mérvadó.",
   },
   workspaceExport: {
-    title: "Exportálás",
+    title: "Nibomo-csomag exportálása",
+    ankiTitle: "Anki-pakli exportálása",
     subtitle: "Tölts le hordozható csomagot ehhez a munkaterülethez.",
     workspaceUnavailable: "A munkaterület nem érhető el",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Pakli neve",
+    ankiEmptySelection: "Nincs exportálható kártya. Válassz más címkéket, vagy adj hozzá kártyákat.",
     packageDescription: "Nézd meg az aktív kártyákat, a metaadatokat, a címkéket és a hivatkozott médiát letöltés előtt.",
-    packageExportSuccess: "Elindult a flashcards.zip letöltése.",
+    packageExportSuccess: "Elindult a {{filename}} letöltése.",
     packageExporting: "Letöltés...",
     packagePreviewing: "Előnézet készítése...",
     packageExportPreviewButton: "Export előnézete",
-    packageExportConfirmButton: "flashcards.zip letöltése",
+    packageExportConfirmButton: "{{filename}} letöltése",
     packageExportPreviewRequired: "Nézd meg az export előnézetét a letöltés előtt.",
     previewCardsLabel: "Kártyák",
     previewReferencedMediaLabel: "Hivatkozott média",
@@ -1124,6 +1132,10 @@ const huCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Kártyaoldal megnyitása AI-csevegésben ({{side}})",
     repetitionBadgeAriaLabel: "Ismétlések: {{value}}",
     repetitionBadgeNew: "Új",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "További címkék: {{count}}",
+    },
     empty: {
       noCardsBody: "Még nem hoztál létre kártyát. Adj hozzá egyet a tanulás elkezdéséhez.",
       noCardsTitle: "Még nincs kártya",
@@ -1135,16 +1147,25 @@ const huCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nem sikerült megjeleníteni a képletet.",
       schedulerUnavailable: "A munkaterület ütemezési beállításai nincsenek betöltve",
+      storageFull: "Szabadíts fel tárhelyet ezen az eszközön, majd értékeld újra a kártyát.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ranglista megnyitása",
     },
     progressBadge: {
-      ariaLabel: "Ismétlési sorozat: {{streak}} nap. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Ismétlési sorozat: {{streak}} nap. {{todayStatus}}.",
+      ariaLabel: "Ismétlési sorozat: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Ismétlési sorozat: {{streak}}. {{todayStatus}}.",
       freezeBank: "Sorozatvédők: {{available}} / {{capacity}}",
       notReviewedToday: "Ma még nem ismételtél",
       reviewedToday: "Ma már ismételtél",
+      streakDayCount: {
+        zero: "{{count}} nap",
+        one: "{{count}} nap",
+        two: "{{count}} nap",
+        few: "{{count}} nap",
+        many: "{{count}} nap",
+        other: "{{count}} nap",
+      },
       title: "Sorozat",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const huCatalog: TranslationCatalog = {
       snapshot: "Friss helyi pillanatképet mutatunk...",
     },
     media: {
-      privateImage: "Privát kép",
-      privateAttachment: "Privát melléklet",
       attachmentLabel: "Melléklet",
       audioLabel: "Hangmelléklet",
       imageAlt: "Kezelt kép",
@@ -1348,23 +1367,14 @@ const huCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} esedékes",
+      toStudy: "{{count}} tanulandó",
       total: "összesen {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} statisztikái",
     newDeck: "Új pakli",
     statLabels: {
       cards: {
         one: "kártya",
         other: "kártya",
-      },
-      new: {
-        one: "új",
-        other: "új",
-      },
-      reviewed: {
-        one: "ismételve",
-        other: "ismételve",
       },
     },
     subtitle: "A paklik okos szűrők, nem tárolók. Címkék alapján találják meg a kártyákat.",
@@ -1400,10 +1410,10 @@ const huCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kártyák",
-      due: "Esedékes",
       new: "Új",
       summary: "Összegzés",
       title: "A pakli szabályai",
+      toStudy: "Tanulandó",
     },
     subtitle: "Nézd meg a pakli szabályait, a megfelelő kártyákat és az ismétlés belépési pontját.",
     subtitles: {

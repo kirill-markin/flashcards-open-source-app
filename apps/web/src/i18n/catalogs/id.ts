@@ -20,6 +20,15 @@ const idCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Browser ini tidak dapat mendekode audio mikrofon ({{format}}).",
     recovery: "Akses tamu belum terverifikasi. Kartu dalam cache hanya dapat dibaca. Pulihkan sesi asli atau koneksi, lalu coba lagi.",
     cleanupFailed: "Berhasil masuk, tetapi kartu demo tidak dapat dihapus.",
+    browserCheck: {
+      title: "Memeriksa browser Anda",
+      description: "Sebelum ruang kerja tamu dibuka, Cloudflare memastikan bahwa ini browser biasa. Biasanya hanya butuh beberapa detik.",
+      loading: "Memuat pemeriksaan...",
+      verifying: "Membuka ruang kerja Anda...",
+      loadFailed: "Pemeriksaan tidak dapat dimuat. Periksa koneksi Anda, izinkan challenges.cloudflare.com di pemblokir konten, lalu coba lagi.",
+      failed: "Pemeriksaan tidak lolos. Coba lagi, atau masuk saja.",
+      rejected: "Pemeriksaan tidak diterima. Selesaikan sekali lagi.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const idCatalog: TranslationCatalog = {
     loading: "Memuat...",
     never: "Tidak pernah",
     newItem: "baru",
+    image: "Gambar",
     noBackText: "Tidak ada teks belakang",
     noTags: "Tidak ada tag",
     notRevoked: "Tidak dicabut",
@@ -427,8 +437,12 @@ const idCatalog: TranslationCatalog = {
       offlineEmpty: "Papan peringkat rentetan tidak tersedia saat offline. Sambungkan kembali untuk melihat peringkat.",
       unavailable: "Papan peringkat rentetan sedang tidak tersedia. Coba lagi nanti.",
       dayLabels: {
-        one: "hari",
-        other: "hari",
+        zero: "{{count}} hari",
+        one: "{{count}} hari",
+        two: "{{count}} hari",
+        few: "{{count}} hari",
+        many: "{{count}} hari",
+        other: "{{count}} hari",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const idCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Sedang memulihkan sesi. Coba lagi sebentar.",
     sessionUnavailable: "Sesi tidak tersedia",
     syncing: "Menyinkronkan...",
+    syncFailed: "Sinkronisasi gagal",
     workspaceUnavailable: "Ruang kerja tidak tersedia",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const idCatalog: TranslationCatalog = {
       yourCards: "Kartu Anda",
       addCards: "Tambahkan kartu",
     },
-    cards: {
-      description: "Semua kartu di ruang kerja ini.",
-    },
-    tags: {
-      description: "Semua tag yang dipakai di setidaknya satu kartu.",
-    },
-    decks: {
-      description: "Filter kartu tersimpan untuk tinjauan yang terfokus.",
-    },
     deckCatalog: {
       title: "Katalog dek",
       description: "Dek siap pakai gratis untuk dipelajari.",
@@ -860,16 +866,18 @@ const idCatalog: TranslationCatalog = {
     note: "Pengaturan ini hanya memengaruhi penjadwalan mendatang. Status kartu yang sudah ada tetap menjadi acuan.",
   },
   workspaceExport: {
-    title: "Ekspor",
+    title: "Ekspor paket Nibomo",
+    ankiTitle: "Ekspor dek Anki",
     subtitle: "Unduh paket portabel untuk ruang kerja ini.",
     workspaceUnavailable: "Ruang kerja tidak tersedia",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Nama dek",
+    ankiEmptySelection: "Tidak ada kartu untuk diekspor. Ubah tag yang dipilih atau tambahkan kartu.",
     packageDescription: "Pratinjau kartu aktif, metadata, tag, dan media yang dirujuk sebelum mengunduh.",
-    packageExportSuccess: "Unduhan flashcards.zip dimulai.",
+    packageExportSuccess: "Unduhan {{filename}} dimulai.",
     packageExporting: "Mengunduh...",
     packagePreviewing: "Menyiapkan pratinjau...",
     packageExportPreviewButton: "Pratinjau ekspor",
-    packageExportConfirmButton: "Unduh flashcards.zip",
+    packageExportConfirmButton: "Unduh {{filename}}",
     packageExportPreviewRequired: "Pratinjau ekspor ini sebelum mengunduh.",
     previewCardsLabel: "Kartu",
     previewReferencedMediaLabel: "Media yang dirujuk",
@@ -1124,6 +1132,10 @@ const idCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Buka sisi {{side}} kartu di obrolan AI",
     repetitionBadgeAriaLabel: "Pengulangan: {{value}}",
     repetitionBadgeNew: "Baru",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Tag lainnya: {{count}}",
+    },
     empty: {
       noCardsBody: "Anda belum membuat kartu apa pun. Tambahkan kartu pertama untuk mulai belajar.",
       noCardsTitle: "Belum Ada Kartu",
@@ -1135,16 +1147,25 @@ const idCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Rumus tidak dapat ditampilkan.",
       schedulerUnavailable: "Pengaturan penjadwal ruang kerja belum termuat",
+      storageFull: "Kosongkan ruang penyimpanan di perangkat ini, lalu beri nilai pada kartu lagi.",
     },
     leaderboardShortcut: {
       ariaLabel: "Buka papan peringkat",
     },
     progressBadge: {
-      ariaLabel: "Rentetan tinjauan {{streak}} hari. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Rentetan tinjauan {{streak}} hari. {{todayStatus}}.",
+      ariaLabel: "Rentetan tinjauan {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Rentetan tinjauan {{streak}}. {{todayStatus}}.",
       freezeBank: "Bank pembekuan {{available}} dari {{capacity}}",
       notReviewedToday: "Belum ditinjau hari ini",
       reviewedToday: "Sudah ditinjau hari ini",
+      streakDayCount: {
+        zero: "{{count}} hari",
+        one: "{{count}} hari",
+        two: "{{count}} hari",
+        few: "{{count}} hari",
+        many: "{{count}} hari",
+        other: "{{count}} hari",
+      },
       title: "Rentetan",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const idCatalog: TranslationCatalog = {
       snapshot: "Menampilkan snapshot lokal terbaru...",
     },
     media: {
-      privateImage: "Gambar pribadi",
-      privateAttachment: "Lampiran pribadi",
       attachmentLabel: "Lampiran",
       audioLabel: "Lampiran audio",
       imageAlt: "Gambar terkelola",
@@ -1348,23 +1367,14 @@ const idCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} jatuh tempo",
+      toStudy: "{{count}} untuk dipelajari",
       total: "{{count}} total",
     },
-    emptyStatsAriaLabel: "Statistik {{deckName}}",
     newDeck: "Dek baru",
     statLabels: {
       cards: {
         one: "kartu",
         other: "kartu",
-      },
-      new: {
-        one: "baru",
-        other: "baru",
-      },
-      reviewed: {
-        one: "ditinjau",
-        other: "ditinjau",
       },
     },
     subtitle: "Dek adalah filter pintar, bukan wadah. Dek mencocokkan kartu berdasarkan tag.",
@@ -1400,10 +1410,10 @@ const idCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartu",
-      due: "Jatuh tempo",
       new: "Baru",
       summary: "Ringkasan",
       title: "Aturan dek",
+      toStudy: "Untuk dipelajari",
     },
     subtitle: "Periksa aturan dek, kartu yang cocok, dan titik masuk tinjauan.",
     subtitles: {

@@ -9,6 +9,25 @@ enum ReviewMathBlockExtraction {
 enum ReviewMathBlock {
     case markdown(String)
     case formula(ReviewFormulaContent)
+
+    var source: String {
+        switch self {
+        case .markdown(let value): value
+        case .formula(let formula): formula.originalSource
+        }
+    }
+}
+
+struct ReviewFormulaContent {
+    let originalSource: String
+    let latex: String
+    let continuesParagraph: Bool
+
+    init(originalSource: String, latex: String, continuesParagraph: Bool) {
+        self.originalSource = originalSource
+        self.latex = latex
+        self.continuesParagraph = continuesParagraph
+    }
 }
 
 func containsReviewMathDelimiter(text: String) -> Bool {
@@ -23,12 +42,7 @@ func reviewMathTextPrefix(text: String, characterLimit: Int) -> String {
     if containsReviewMathDelimiter(text: text), case .segmented(let blocks) = extractReviewMathBlocks(text: text) {
         var start = text.startIndex
         for block in blocks {
-            let source: String
-            switch block {
-            case .markdown(let value): source = value
-            case .formula(let formula): source = formula.originalSource
-            }
-            let blockEnd = text.index(start, offsetBy: source.count)
+            let blockEnd = text.index(start, offsetBy: block.source.count)
             if case .formula = block, start < end, end < blockEnd {
                 end = start
                 break

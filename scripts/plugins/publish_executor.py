@@ -6,45 +6,39 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import TypeAlias
+from typing import NamedTuple
 
-Json: TypeAlias = None | bool | int | float | str | list["Json"] | dict[str, "Json"]
-REPOSITORY = "kirill-markin/flashcards-open-source-app"
-SOURCE_REPOSITORY = "kirill-markin/nibomo-plugins"
-PUBLISHER_DIRECTORY = Path(__file__).resolve().parents[2]
+from executor_source import (
+    CORE_DIRECTORY,
+    CORE_PIN as CORE_PIN,
+    MAIN,
+    REPOSITORY,
+    SOURCE_PATHS,
+    SOURCE_REPOSITORY,
+    Json,
+    commit,
+    git,
+    record,
+    require,
+    reviewed_executor_source,
+    selected_executor_source,
+    string,
+)
+
 APP = "app_741c52b8-681c-4e8c-8536-9b278e02d671"
 PACKAGE = "@nibomo.executor.community/nibomo"
 HOST = "https://v2.executor.sh"
-SOURCE_PATHS = ["LICENSE", "README.md", "index.ts", "package.json", "provider.ts"]
 
 
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise ValueError(message)
-
-
-def record(value: Json) -> dict[str, Json]:
-    if not isinstance(value, dict):
-        raise ValueError("Expected a JSON object")
-    return value
+class RemoteRevision(NamedTuple):
+    commit: str
+    files: dict[str, str]
 
 
 def items(value: Json) -> list[Json]:
     if not isinstance(value, list):
         raise ValueError("Expected a JSON array")
     return value
-
-
-def string(value: Json) -> str:
-    if not isinstance(value, str) or not value:
-        raise ValueError("Expected a nonempty JSON string")
-    return value
-
-
-def commit(value: Json) -> str:
-    result = string(value)
-    require(re.fullmatch(r"[a-f0-9]{40}", result) is not None, "Expected a full immutable Git commit")
-    return result
 
 
 def environment(name: str) -> str:
@@ -95,33 +89,41 @@ def executor(path: str, method: str, body: Json) -> Json:
     return request(f"{HOST}{path}", environment("EXECUTOR_API_TOKEN"), method, body)
 
 
-def git(*arguments: str) -> str:
-    return subprocess.check_output(["git", "-C", environment("PLUGIN_SOURCE_DIR"), *arguments], timeout=60).decode("utf-8")
-
-
-def ancestor(older: str, newer: str) -> None:
-    subprocess.run(["git", "-C", environment("PLUGIN_SOURCE_DIR"), "merge-base", "--is-ancestor", older, newer],
+def ancestor(directory: Path, older: str, newer: str) -> None:
+    subprocess.run(["git", "-C", str(directory), "merge-base", "--is-ancestor", older, newer],
                    check=True, timeout=60)
 
 
 def publisher_sha() -> str:
-    return subprocess.check_output(["git", "-C", str(PUBLISHER_DIRECTORY), "rev-parse", "HEAD"], timeout=60).decode().strip()
+    return git(CORE_DIRECTORY, "rev-parse", "HEAD").strip()
 
 
-def source_repository() -> None:
-    require(git("remote", "get-url", "origin").strip() == f"https://github.com/{SOURCE_REPOSITORY}.git",
+def companion_directory() -> Path:
+    directory = Path(environment("PLUGIN_SOURCE_DIR"))
+    require(git(directory, "remote", "get-url", "origin").strip() == f"https://github.com/{SOURCE_REPOSITORY}.git",
             "PLUGIN_SOURCE_DIR must be a public clone of kirill-markin/nibomo-plugins")
+    return directory
 
 
-def source(sha: str) -> dict[str, str]:
-    entries = git("ls-tree", "-r", sha, "--", "executor/").splitlines()
-    paths = []
-    for entry in entries:
-        metadata, path = entry.split("\t", 1)
-        require(metadata.startswith("100644 blob "), f"Unexpected source file mode: {path}")
-        paths.append(path.removeprefix("executor/"))
-    require(sorted(paths) == SOURCE_PATHS, f"Unexpected executor source set at {sha}: {paths}; reconcile SOURCE_PATHS explicitly")
-    return {path: git("show", f"{sha}:executor/{path}") for path in SOURCE_PATHS}
+def verify_remote_revisions(
+    companion: Path, intended: dict[str, str], working: RemoteRevision, deployed: RemoteRevision, public: RemoteRevision,
+) -> None:
+    if working.commit == deployed.commit:
+        require(working.files == deployed.files,
+                "Working and deployed files disagree for the same Executor commit; reconcile before retrying")
+    else:
+        require(working.files == intended and deployed.commit == public.commit,
+                "Remote revisions do not match an interrupted Executor save; reconcile before retrying")
+    if deployed.commit == public.commit:
+        require(deployed.files == public.files,
+                "Deployed and public files disagree for the same Executor commit; reconcile before retrying")
+    else:
+        require(deployed.files == intended,
+                "Deployed source does not match the selected release; reconcile before retrying publication")
+        require(reviewed_executor_source(companion, public.files),
+                "Remote public source does not match reviewed main ancestry; reconcile before retrying")
+    require(deployed.files == intended or reviewed_executor_source(companion, deployed.files),
+            "Remote deployed source does not match reviewed main ancestry; reconcile before retrying")
 
 
 def files(value: Json) -> dict[str, str]:
@@ -162,7 +164,7 @@ def release_version(tag: str) -> str:
     return match.group("coordinated") or match.group("remediation")
 
 
-def release_sha(tag: str) -> str:
+def release_sha(companion: Path, tag: str) -> str:
     version = release_version(tag)
     release = record(github(f"releases/tags/{tag}"))
     require(release["tag_name"] == tag and release["draft"] is False and release["prerelease"] is False,
@@ -172,17 +174,17 @@ def release_sha(tag: str) -> str:
         ref = record(record(github(f"git/tags/{commit(ref['sha'])}"))["object"])
     require(ref["type"] == "commit", "Release tag must resolve to a commit")
     sha = commit(ref["sha"])
-    require(git("rev-parse", f"refs/tags/{tag}^{{commit}}").strip() == sha, "Release tag changed since checkout")
+    require(git(companion, "rev-parse", f"refs/tags/{tag}^{{commit}}").strip() == sha, "Release tag changed since checkout")
     if tag == "v1.29.0":
         require(sha == "41cd84f6f8b947131dbbca36b6f8a577db1f1993", "Immutable v1.29.0 tag moved")
-    ancestor(sha, "refs/remotes/origin/main")
+    ancestor(companion, sha, MAIN)
     for path in ["plugin.json", ".claude-plugin/plugin.json", "gemini-extension.json"]:
-        manifest = record(json.loads(git("show", f"{sha}:{path}")))
+        manifest = record(json.loads(git(companion, "show", f"{sha}:{path}")))
         require(manifest["name"] == "nibomo" and manifest["version"] == version, f"Release/manifest mismatch: {path}")
     if tag.startswith("executor-"):
         coordinated_tag = f"v{version}"
-        coordinated_sha = release_sha(coordinated_tag)
-        ancestor(coordinated_sha, sha)
+        coordinated_sha = release_sha(companion, coordinated_tag)
+        ancestor(companion, coordinated_sha, sha)
         latest = record(github("releases/latest"))
         require(latest["tag_name"] == coordinated_tag, "Executor remediation must preserve the coordinated Latest release")
     return sha
@@ -234,9 +236,9 @@ def prepare_registry_source() -> None:
             "Dispatch MCP Registry publication from core main")
     tag = environment("RELEASE_TAG")
     require(tag.startswith("v"), "MCP Registry publication requires a stable companion vX.Y.Z release")
-    source_repository()
-    sha = release_sha(tag)
-    manifest = record(json.loads(git("show", f"{sha}:server.json")))
+    companion = companion_directory()
+    sha = release_sha(companion, tag)
+    manifest = record(json.loads(git(companion, "show", f"{sha}:server.json")))
     require(manifest["name"] == "com.nibomo/flashcards" and manifest["version"] == release_version(tag),
             "Unexpected immutable registry identity or release version")
     require(manifest["remotes"] == [{"type": "streamable-http", "url": "https://mcp.nibomo.com/mcp"}],
@@ -246,8 +248,8 @@ def prepare_registry_source() -> None:
     note("Companion release", f"[{tag}](https://github.com/{SOURCE_REPOSITORY}/releases/tag/{tag}) — {sha}")
     note("Core publisher SHA", publisher_sha())
     note("Plugin packages", cloud_run(sha))
-    require(release_sha(tag) == sha, "Release tag changed before selecting registry source")
-    git("checkout", "--detach", sha)
+    require(release_sha(companion, tag) == sha, "Release tag changed before selecting registry source")
+    git(companion, "checkout", "--detach", sha)
     with Path(environment("GITHUB_OUTPUT")).open("a") as output:
         output.write(f"sha={sha}\nversion={manifest['version']}\n")
 
@@ -266,15 +268,18 @@ def main() -> None:
     else:
         require(environment("GITHUB_REF") == "refs/heads/main", "Run manual retries from main")
         tag = environment("RELEASE_TAG")
-    source_repository()
+    companion = companion_directory()
     if event_name == "release":
         require(re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", tag) is not None,
                 "Automatic publication requires a stable core vX.Y.Z release")
-    sha = release_sha(tag)
+    sha = release_sha(companion, tag)
     note("Companion release", f"[{tag}](https://github.com/{SOURCE_REPOSITORY}/releases/tag/{tag}) — {sha}")
     note("Core publisher SHA", publisher_sha())
     note("Plugin packages", cloud_run(sha))
-    intended = source(sha)
+    selected = selected_executor_source(companion, sha)
+    selected_url = f"https://github.com/{selected.repository}/tree/{selected.sha}/{selected.path}"
+    note("Executor Git source", f"[{selected.repository}/{selected.path}]({selected_url}) — {selected.sha}")
+    intended = selected.files
     require(record(json.loads(intended["package.json"]))["name"] == PACKAGE, "Wrong Executor package name")
     context = record(executor("/api/context?organization=nibomo", "GET", None))
     require(context["slug"] == "nibomo" and context["role"] in ["owner", "admin"], "Nibomo owner/admin access required")
@@ -305,21 +310,21 @@ def main() -> None:
     require(publication(public) == published_commit, "Owned and public listings disagree before publication")
     snapshot = record(request(f"{HOST}/api/registry/source?name={package_query}&commit={published_commit}", "", "GET", None))
     require(publication(snapshot["publication"]) == published_commit, "Unexpected public source identity")
-    files(snapshot["files"])
+    deployed_commit = commit(deployed["sourceCommit"])
+    deployed_files = files(deployed["files"])
+    public_files = files(snapshot["files"])
     before_app_accounts = account_selections(f"{app_path}/accounts/app")
     before_user_accounts = account_selections(f"{app_path}/accounts/user")
+    verify_remote_revisions(
+        companion, intended, RemoteRevision(working_commit, current),
+        RemoteRevision(deployed_commit, deployed_files), RemoteRevision(published_commit, public_files),
+    )
+    require(release_sha(companion, tag) == sha, "Release tag changed before publication")
     if current != intended:
-        require(working_commit == deployed["sourceCommit"] == published_commit
-                and current == files(deployed["files"]) == files(snapshot["files"]),
-                "Remote working/deployed/public source drift; reconcile explicitly before retrying")
-        history = git("log", "--first-parent", "--format=%H", "refs/remotes/origin/main", "--", "executor/").splitlines()
-        require(any(source(previous) == current for previous in history),
-                "Remote source does not match reviewed main ancestry; reconcile explicitly before retrying")
-        require(release_sha(tag) == sha, "Release tag changed before publication")
         saved = record(executor(f"{app_path}/commits", "POST", {
             "expected": working_commit,
             "files": [{"path": path, "content": content} for path, content in intended.items()],
-            "message": f"Publish Nibomo {tag} from {sha}",
+            "message": f"Publish Nibomo {tag} from {selected.repository}@{selected.sha} (companion release {sha})",
         }))
         saved_revision = record(saved["revision"])
         require(saved_revision["code"] == revision["code"], "Saved revision code mismatch")
@@ -328,11 +333,9 @@ def main() -> None:
         saved_working_revision = record(saved_working["revision"])
         require(saved_working_revision["code"] == revision["code"] and saved_working_revision["commit"] == working_commit
                 and files(saved_working["files"]) == intended, "Saved source verification failed")
-    else:
-        require(release_sha(tag) == sha, "Release tag changed before publication")
     note("Executor source commit", working_commit)
-    unchanged = deployed["sourceCommit"] == working_commit and published_commit == working_commit
-    if deployed["sourceCommit"] != working_commit:
+    unchanged = deployed_commit == working_commit and published_commit == working_commit
+    if deployed_commit != working_commit:
         result = record(executor(f"{app_path}/deploy", "POST", {"commit": working_commit}))
         deployed = record(result["deployment"])
         returned_app = record(result["app"])

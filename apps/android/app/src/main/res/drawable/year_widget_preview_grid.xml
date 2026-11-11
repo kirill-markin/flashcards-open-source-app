@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sample month rows for the Year widget preview in the launcher's widget picker. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="186dp"
+    android:height="144dp"
+    android:viewportWidth="217"
+    android:viewportHeight="168">
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M0.5,4h6v6h-6zM7.5,4h6v6h-6zM14.5,4h6v6h-6zM28.5,4h6v6h-6zM63.5,4h6v6h-6zM70.5,4h6v6h-6zM77.5,4h6v6h-6zM84.5,4h6v6h-6zM98.5,4h6v6h-6zM105.5,4h6v6h-6zM126.5,4h6v6h-6zM140.5,4h6v6h-6zM175.5,4h6v6h-6zM189.5,4h6v6h-6zM0.5,18h6v6h-6zM7.5,18h6v6h-6zM56.5,18h6v6h-6zM77.5,18h6v6h-6zM84.5,18h6v6h-6zM91.5,18h6v6h-6zM98.5,18h6v6h-6zM154.5,18h6v6h-6zM161.5,18h6v6h-6zM168.5,18h6v6h-6zM175.5,18h6v6h-6zM14.5,32h6v6h-6zM56.5,32h6v6h-6zM70.5,32h6v6h-6zM119.5,32h6v6h-6zM126.5,32h6v6h-6zM133.5,32h6v6h-6zM154.5,32h6v6h-6zM196.5,32h6v6h-6zM203.5,32h6v6h-6zM42.5,46h6v6h-6zM49.5,46h6v6h-6zM56.5,46h6v6h-6z" />
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M63.5,46h6v6h-6zM77.5,46h6v6h-6zM91.5,46h6v6h-6zM168.5,46h6v6h-6zM182.5,46h6v6h-6zM189.5,46h6v6h-6zM203.5,46h6v6h-6zM14.5,60h6v6h-6zM42.5,60h6v6h-6zM56.5,60h6v6h-6zM63.5,60h6v6h-6zM189.5,60h6v6h-6zM21.5,74h6v6h-6zM28.5,74h6v6h-6zM42.5,74h6v6h-6zM49.5,74h6v6h-6zM56.5,74h6v6h-6zM84.5,74h6v6h-6zM105.5,74h6v6h-6zM126.5,74h6v6h-6zM168.5,74h6v6h-6zM189.5,74h6v6h-6zM196.5,74h6v6h-6zM203.5,74h6v6h-6zM0.5,88h6v6h-6zM21.5,88h6v6h-6zM28.5,88h6v6h-6zM49.5,88h6v6h-6zM77.5,88h6v6h-6zM84.5,88h6v6h-6zM91.5,88h6v6h-6zM105.5,88h6v6h-6zM112.5,88h6v6h-6zM140.5,88h6v6h-6zM147.5,88h6v6h-6zM175.5,88h6v6h-6z" />
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M182.5,88h6v6h-6zM203.5,88h6v6h-6zM21.5,102h6v6h-6zM35.5,102h6v6h-6zM56.5,102h6v6h-6zM77.5,102h6v6h-6zM84.5,102h6v6h-6zM98.5,102h6v6h-6zM105.5,102h6v6h-6zM112.5,102h6v6h-6zM119.5,102h6v6h-6zM126.5,102h6v6h-6zM133.5,102h6v6h-6zM140.5,102h6v6h-6zM154.5,102h6v6h-6zM168.5,102h6v6h-6zM175.5,102h6v6h-6zM182.5,102h6v6h-6zM189.5,102h6v6h-6zM196.5,102h6v6h-6zM0.5,116h6v6h-6zM21.5,116h6v6h-6zM84.5,116h6v6h-6zM119.5,116h6v6h-6zM126.5,116h6v6h-6zM133.5,116h6v6h-6zM140.5,116h6v6h-6zM154.5,116h6v6h-6zM161.5,116h6v6h-6zM168.5,116h6v6h-6zM196.5,116h6v6h-6zM203.5,116h6v6h-6zM0.5,130h6v6h-6zM14.5,130h6v6h-6z" />
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="@color/review_widget_on_surface"
+        android:pathData="M28.5,130h6v6h-6zM56.5,130h6v6h-6zM70.5,130h6v6h-6zM84.5,130h6v6h-6zM112.5,130h6v6h-6zM126.5,130h6v6h-6zM133.5,130h6v6h-6zM140.5,130h6v6h-6zM154.5,130h6v6h-6zM161.5,130h6v6h-6zM168.5,130h6v6h-6zM175.5,130h6v6h-6zM14.5,144h6v6h-6zM28.5,144h6v6h-6zM49.5,144h6v6h-6zM91.5,144h6v6h-6zM161.5,144h6v6h-6zM168.5,144h6v6h-6zM175.5,144h6v6h-6zM189.5,144h6v6h-6zM21.5,158h6v6h-6z" />
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M21.5,4h6v6h-6zM49.5,4h6v6h-6zM56.5,4h6v6h-6zM119.5,4h6v6h-6zM133.5,4h6v6h-6zM147.5,4h6v6h-6zM182.5,4h6v6h-6zM203.5,4h6v6h-6zM63.5,18h6v6h-6zM70.5,18h6v6h-6zM119.5,18h6v6h-6zM147.5,18h6v6h-6zM203.5,18h6v6h-6zM49.5,32h6v6h-6zM91.5,32h6v6h-6zM98.5,32h6v6h-6zM182.5,32h6v6h-6zM189.5,32h6v6h-6zM7.5,46h6v6h-6zM21.5,46h6v6h-6zM84.5,46h6v6h-6zM105.5,46h6v6h-6zM112.5,46h6v6h-6zM133.5,46h6v6h-6zM147.5,46h6v6h-6zM154.5,46h6v6h-6zM161.5,46h6v6h-6zM175.5,46h6v6h-6zM210.5,46h6v6h-6zM21.5,60h6v6h-6zM77.5,60h6v6h-6zM105.5,60h6v6h-6zM119.5,60h6v6h-6zM126.5,60h6v6h-6zM140.5,60h6v6h-6zM147.5,60h6v6h-6z" />
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M154.5,60h6v6h-6zM35.5,74h6v6h-6zM140.5,74h6v6h-6zM147.5,74h6v6h-6zM175.5,74h6v6h-6zM182.5,74h6v6h-6zM14.5,88h6v6h-6zM42.5,88h6v6h-6zM119.5,88h6v6h-6zM196.5,88h6v6h-6zM49.5,102h6v6h-6zM91.5,102h6v6h-6zM161.5,102h6v6h-6zM7.5,116h6v6h-6zM35.5,116h6v6h-6zM42.5,116h6v6h-6zM56.5,116h6v6h-6zM63.5,116h6v6h-6zM112.5,116h6v6h-6zM7.5,130h6v6h-6zM21.5,130h6v6h-6zM49.5,130h6v6h-6zM77.5,130h6v6h-6zM91.5,130h6v6h-6zM98.5,130h6v6h-6zM105.5,130h6v6h-6zM119.5,130h6v6h-6zM147.5,130h6v6h-6zM189.5,130h6v6h-6zM7.5,144h6v6h-6zM98.5,144h6v6h-6zM105.5,144h6v6h-6zM182.5,144h6v6h-6zM14.5,158h6v6h-6zM42.5,158h6v6h-6z" />
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M49.5,158h6v6h-6z" />
+    <path
+        android:fillAlpha="0.5"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M168.5,4h6v6h-6zM105.5,18h6v6h-6zM182.5,18h6v6h-6zM0.5,32h6v6h-6zM21.5,32h6v6h-6zM175.5,32h6v6h-6zM0.5,46h6v6h-6zM70.5,46h6v6h-6zM119.5,46h6v6h-6zM7.5,60h6v6h-6zM28.5,60h6v6h-6zM49.5,60h6v6h-6zM84.5,60h6v6h-6zM112.5,60h6v6h-6zM133.5,60h6v6h-6zM168.5,60h6v6h-6zM0.5,74h6v6h-6zM63.5,74h6v6h-6zM91.5,74h6v6h-6zM98.5,74h6v6h-6zM7.5,88h6v6h-6zM35.5,88h6v6h-6zM161.5,88h6v6h-6zM168.5,88h6v6h-6zM189.5,88h6v6h-6zM7.5,102h6v6h-6zM63.5,102h6v6h-6zM210.5,102h6v6h-6zM70.5,116h6v6h-6zM98.5,116h6v6h-6zM105.5,116h6v6h-6zM189.5,116h6v6h-6zM182.5,130h6v6h-6zM203.5,130h6v6h-6zM210.5,130h6v6h-6zM42.5,144h6v6h-6z" />
+    <path
+        android:fillAlpha="0.5"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M70.5,144h6v6h-6zM133.5,144h6v6h-6zM147.5,144h6v6h-6zM154.5,144h6v6h-6zM203.5,144h6v6h-6zM210.5,144h6v6h-6zM0.5,158h6v6h-6zM7.5,158h6v6h-6z" />
+    <path
+        android:fillAlpha="0.75"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M35.5,4h6v6h-6zM91.5,4h6v6h-6zM161.5,4h6v6h-6zM196.5,4h6v6h-6zM210.5,4h6v6h-6zM14.5,18h6v6h-6zM28.5,18h6v6h-6zM35.5,18h6v6h-6zM42.5,18h6v6h-6zM49.5,18h6v6h-6zM196.5,18h6v6h-6zM7.5,32h6v6h-6zM35.5,32h6v6h-6zM42.5,32h6v6h-6zM63.5,32h6v6h-6zM77.5,32h6v6h-6zM112.5,32h6v6h-6zM147.5,32h6v6h-6zM161.5,32h6v6h-6zM35.5,46h6v6h-6zM196.5,46h6v6h-6zM0.5,60h6v6h-6zM35.5,60h6v6h-6zM70.5,60h6v6h-6zM91.5,60h6v6h-6zM14.5,74h6v6h-6zM70.5,74h6v6h-6zM161.5,74h6v6h-6zM210.5,74h6v6h-6zM63.5,88h6v6h-6zM98.5,88h6v6h-6zM133.5,88h6v6h-6zM14.5,102h6v6h-6zM28.5,102h6v6h-6zM42.5,102h6v6h-6zM147.5,102h6v6h-6z" />
+    <path
+        android:fillAlpha="0.75"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M203.5,102h6v6h-6zM28.5,116h6v6h-6zM49.5,116h6v6h-6zM91.5,116h6v6h-6zM147.5,116h6v6h-6zM175.5,116h6v6h-6zM196.5,130h6v6h-6zM35.5,144h6v6h-6zM56.5,144h6v6h-6zM77.5,144h6v6h-6zM84.5,144h6v6h-6zM112.5,144h6v6h-6zM119.5,144h6v6h-6zM126.5,144h6v6h-6zM196.5,144h6v6h-6zM28.5,158h6v6h-6zM35.5,158h6v6h-6z" />
+    <path
+        android:fillAlpha="1"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M42.5,4h6v6h-6zM112.5,4h6v6h-6zM154.5,4h6v6h-6zM21.5,18h6v6h-6zM112.5,18h6v6h-6zM126.5,18h6v6h-6zM133.5,18h6v6h-6zM140.5,18h6v6h-6zM189.5,18h6v6h-6zM28.5,32h6v6h-6zM84.5,32h6v6h-6zM105.5,32h6v6h-6zM140.5,32h6v6h-6zM168.5,32h6v6h-6zM210.5,32h6v6h-6zM14.5,46h6v6h-6zM28.5,46h6v6h-6zM98.5,46h6v6h-6zM126.5,46h6v6h-6zM140.5,46h6v6h-6zM98.5,60h6v6h-6zM161.5,60h6v6h-6zM175.5,60h6v6h-6zM182.5,60h6v6h-6zM7.5,74h6v6h-6zM77.5,74h6v6h-6zM112.5,74h6v6h-6zM119.5,74h6v6h-6zM133.5,74h6v6h-6zM154.5,74h6v6h-6zM56.5,88h6v6h-6zM70.5,88h6v6h-6zM126.5,88h6v6h-6zM154.5,88h6v6h-6zM0.5,102h6v6h-6zM70.5,102h6v6h-6z" />
+    <path
+        android:fillAlpha="1"
+        android:fillColor="@color/review_widget_primary"
+        android:pathData="M14.5,116h6v6h-6zM77.5,116h6v6h-6zM182.5,116h6v6h-6zM35.5,130h6v6h-6zM42.5,130h6v6h-6zM63.5,130h6v6h-6zM0.5,144h6v6h-6zM21.5,144h6v6h-6zM63.5,144h6v6h-6zM140.5,144h6v6h-6z" />
+</vector>

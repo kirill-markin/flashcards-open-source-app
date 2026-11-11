@@ -12,8 +12,10 @@ import {
 } from "../../../backend/src/reviewMetricsSql";
 export { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -24,6 +26,7 @@ import {
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
+  type AppStoreProductPageFilterState,
 } from "./analyticsFilters";
 
 // The SQL half of `AnalyticsFilterState`: one predicate builder per filter field, so every report
@@ -74,14 +77,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-three entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-two in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-four entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-three in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (14).
+ * APPLIED (15).
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
  *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
  *     the Who studied breakdowns and the Level 1 available range.
@@ -89,6 +92,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
  *     of an already-counted actor, over every event name.
  *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
+ *   - `reports/homeScreenWidgets/query.ts`, every read: the client-reportable `widget_placement_changed`,
+ *     `widget_opened` and `app_opened` rows that put a person in a chart, a return cohort or a side.
  *   - `reports/firstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
  *     decides whether a person's first-ever event is an app launch (`app_opened` or `screen_viewed`)
  *     on iOS, Android or web. It reads every event name with no lower bound and lets through only a
@@ -319,6 +324,30 @@ export function buildEventPlatformsNarrowingSql(
   return isEventPlatformsNarrowed(eventPlatforms)
     ? `AND ${buildEventPlatformsFilterSql(platformSqlExpression, eventPlatforms)}`
     : "";
+}
+
+/**
+ * `AND` and the device class predicate on the raw `device_type` column, or `""` when every class is
+ * selected, as `buildEventPlatformsNarrowingSql`: an empty selection matches nothing. `unknown` becomes
+ * `IS NULL` rather than a `COALESCE`, which the planner cannot estimate: stacked on the platform
+ * predicate it estimated one `app_opened` row and turned every join above into a nested loop.
+ */
+export function buildEventDeviceTypesNarrowingSql(
+  deviceTypeColumnSql: string,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+): string {
+  if (eventDeviceTypes.length === productEventDeviceTypes.length) {
+    return "";
+  }
+
+  const knownDeviceTypes = eventDeviceTypes.filter((deviceType) => deviceType !== "unknown");
+  if (!eventDeviceTypes.includes("unknown")) {
+    return `AND ${buildInPredicateSql(deviceTypeColumnSql, knownDeviceTypes)}`;
+  }
+
+  return knownDeviceTypes.length === 0
+    ? `AND ${deviceTypeColumnSql} IS NULL`
+    : `AND (${buildInPredicateSql(deviceTypeColumnSql, knownDeviceTypes)} OR ${deviceTypeColumnSql} IS NULL)`;
 }
 
 /** Picking no app version keeps every version, an unknown one included, so an empty selection is no filter. */
@@ -883,4 +912,32 @@ export function isEveryUserCohortSelected(filters: AnalyticsFilterState): boolea
 export function isCohortOrPlatformNarrowed(filters: AnalyticsFilterState): boolean {
   return isEveryUserCohortSelected(filters) === false
     || isEventPlatformsNarrowed(filters.eventPlatforms);
+}
+
+/**
+ * The column each App Store field compares, the same in `apple_discovery_engagement` and
+ * `apple_downloads`.
+ */
+export const appStoreProductPageFilterColumnSqlNames: Readonly<
+  Record<keyof AppStoreProductPageFilterState, string>
+> = {
+  appStoreTerritories: "territory",
+  appStoreDevices: "device",
+  appStoreSourceTypes: "source_type",
+};
+
+/**
+ * One `AND` line per narrowed App Store field on an Apple row, `[]` when none is narrowed. Picking
+ * nothing keeps every value, and a picked value matches Apple's stored value exactly.
+ */
+export function buildAppStoreProductPageFilterSqlLines(
+  rowAlias: string,
+  filters: AppStoreProductPageFilterState,
+): ReadonlyArray<string> {
+  return (Object.keys(appStoreProductPageFilterColumnSqlNames) as ReadonlyArray<keyof AppStoreProductPageFilterState>)
+    .filter((field) => filters[field].length > 0)
+    .map((field) => buildInPredicateSql(
+      `${rowAlias}.${appStoreProductPageFilterColumnSqlNames[field]}`,
+      filters[field],
+    ));
 }

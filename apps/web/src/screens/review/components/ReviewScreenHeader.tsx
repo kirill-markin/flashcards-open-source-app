@@ -48,7 +48,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     reviewProgressBadge,
     reviewSpeechMessage,
   } = props;
-  const { messages, t, formatCount, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatNumber, formatPluralMessage } = useI18n();
   const workspacePath = useWorkspacePath();
   const reviewQueueCountLabel = formatCount(reviewQueueTotalCount, messages.common.countLabels.card);
   const reviewQueueAriaLabel = `${t("reviewScreen.queue.title")}: ${reviewQueueCountLabel}`;
@@ -56,7 +56,7 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.reviewAriaLabel", {
-    streak: formatNumber(reviewProgressBadge.streakDays),
+    streak: formatPluralMessage(reviewProgressBadge.streakDays, messages.reviewScreen.progressBadge.streakDayCount),
     todayStatus: reviewProgressBadgeTodayStatus,
   });
   const leaderboardShortcutRankLabel = reviewLeaderboardBadge.rank === null

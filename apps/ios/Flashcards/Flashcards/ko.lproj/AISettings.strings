@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "이름 저장";
 "settings.workspace.overview.workspace" = "작업 공간";
 "settings.workspace.overview.cards" = "카드";
-"settings.workspace.overview.due" = "복습 예정";
 "settings.workspace.overview.new" = "새 카드";
 "settings.workspace.overview.deleteDescription" = "이 작업 공간과 안에 있는 모든 카드, 덱, 복습 및 동기화 기록을 영구적으로 삭제합니다.";
 "settings.workspace.overview.deleteWorkspace" = "작업 공간 삭제";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "일치하는 덱 없음";
 "settings.workspace.decks.searchPrompt" = "덱 검색";
 "settings.workspace.decks.newDeck" = "새 덱";
-"settings.workspace.decks.dueCount" = "복습 예정 %d개";
-"settings.workspace.decks.totalCards" = "카드 %d개";
-"settings.workspace.decks.newCount" = "새 카드 %d개";
-"settings.workspace.decks.reviewedCount" = "복습한 카드 %d개";
+"settings.workspace.decks.toStudyCount" = "학습 대상 %d장";
+"settings.workspace.decks.toStudy" = "학습 대상";
 "settings.workspace.decks.emptyAllCards" = "아직 만든 카드가 없습니다.";
 "settings.workspace.decks.emptyDeck" = "이 덱에 일치하는 카드가 아직 없습니다.";
 "settings.workspace.decks.section.deckRules" = "덱 규칙";

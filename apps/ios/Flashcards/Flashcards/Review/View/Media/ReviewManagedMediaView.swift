@@ -7,7 +7,8 @@ private let reviewManagedMediaStringsTableName: String = "ReviewCards"
 private let reviewManagedMediaCornerRadius: CGFloat = reviewContentSurfaceCornerRadius / 2
 private let reviewManagedImagePresentationMaxWidth: CGFloat = 520
 private let reviewManagedImagePlaceholderAspectRatio: CGFloat = 4.0 / 3.0
-private let reviewManagedAudioHeight: CGFloat = 76
+/// The smallest height at which AVKit shows its full inline controls for audio: measured, not documented.
+private let reviewManagedAudioHeight: CGFloat = 177
 private let reviewManagedVideoMinHeight: CGFloat = 190
 
 enum ReviewManagedMediaCategory {
@@ -58,15 +59,14 @@ struct ReviewManagedMediaView: View {
     let reference: ReviewManagedMediaReference
     let surfaceStyle: ReviewCardSurfaceStyle
 
-    #if targetEnvironment(macCatalyst)
-    @State private var retainedState: MacReviewManagedMediaState
+    @State private var retainedState: ReviewManagedMediaState
     @State private var presentationID: UUID?
 
     init(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle) {
-        self.init(reference: reference, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState())
+        self.init(reference: reference, surfaceStyle: surfaceStyle, retainedState: ReviewManagedMediaState())
     }
 
-    init(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle, retainedState: MacReviewManagedMediaState) {
+    init(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle, retainedState: ReviewManagedMediaState) {
         self.reference = reference
         self.surfaceStyle = surfaceStyle
         self._retainedState = State(initialValue: retainedState)
@@ -79,11 +79,6 @@ struct ReviewManagedMediaView: View {
               self.retainedState.activePresentationID == presentationID else { return nil }
         return self.retainedState.player
     }
-    #else
-    @State private var loadResult: ReviewManagedMediaLoadResult?
-    @State private var isLoading: Bool = true
-    @State private var localRefreshTask: Task<Void, Never>?
-    #endif
 
     var body: some View {
         Group {
@@ -100,18 +95,14 @@ struct ReviewManagedMediaView: View {
                 }
             }
         }
-        #if targetEnvironment(macCatalyst)
         .background {
-            MacReviewMediaPresentation { id, isPresented in
+            ReviewMediaPresentation { id, isPresented in
                 if isPresented {
                     self.presentationID = id
-                } else if self.presentationID == id {
-                    self.presentationID = nil
                 }
                 self.retainedState.setPresented(isPresented, id: id, store: self.store)
             }
         }
-        #endif
     }
 
     /// Loads only when no prepared image exists, so a prepared card renders without a lookup.
@@ -127,28 +118,11 @@ struct ReviewManagedMediaView: View {
                 unavailableView(unavailableReason: loadResult?.unavailableReason)
             }
         }
-        #if targetEnvironment(macCatalyst)
         .task(id: taskID) { self.retainedState.load(request: self.taskID, store: self.store) }
         .onChange(of: unavailableMediaRefreshVersion) { previousVersion, version in
             guard previousVersion != nil, version != nil else { return }
             self.retainedState.load(request: self.taskID, store: self.store)
         }
-        #else
-        .task(id: taskID) { [taskID] in
-            self.localRefreshTask?.cancel()
-            await self.loadManagedMedia(taskID: taskID, showsLoadingIndicator: true)
-        }
-        .onChange(of: unavailableMediaRefreshVersion) { previousVersion, version in
-            guard previousVersion != nil, version != nil else {
-                return
-            }
-            self.startLocalRefresh(taskID: self.taskID)
-        }
-        .onDisappear {
-            self.localRefreshTask?.cancel()
-            self.localRefreshTask = nil
-        }
-        #endif
     }
 
     /// A missing registry row or cache file can arrive with any local read; available media never reloads per rating.
@@ -163,7 +137,7 @@ struct ReviewManagedMediaView: View {
     private func preparedImageView(preparedImage: ReviewPreparedImage) -> some View {
         reviewManagedImageView(
             image: Image(uiImage: preparedImage.image),
-            accessibilityLabel: displayLabel(mediaAsset: preparedImage.mediaAsset, category: .image),
+            accessibilityLabel: mediaDescription(mediaAsset: preparedImage.mediaAsset),
             aspectRatio: reviewManagedImageAspectRatio(size: preparedImage.image.size)
         )
     }
@@ -289,25 +263,15 @@ struct ReviewManagedMediaView: View {
             case .image:
                 imageView(mediaAsset: mediaAsset, mediaURL: mediaURL)
             case .audio:
-                #if targetEnvironment(macCatalyst)
-                VideoPlayer(player: self.presentedPlayer)
+                ReviewManagedMediaPlayer(player: self.presentedPlayer, delegate: self.retainedState.fullScreenDelegate)
                     .frame(maxWidth: .infinity, minHeight: reviewManagedAudioHeight)
                     .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .audio))
-                #else
-                ReviewManagedMediaPlayerView(url: mediaURL, height: reviewManagedAudioHeight)
-                    .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .audio))
-                #endif
             case .video:
-                #if targetEnvironment(macCatalyst)
-                VideoPlayer(player: self.presentedPlayer)
+                ReviewManagedMediaPlayer(player: self.presentedPlayer, delegate: self.retainedState.fullScreenDelegate)
                     .frame(maxWidth: .infinity, minHeight: reviewManagedVideoMinHeight)
                     .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .video))
-                #else
-                ReviewManagedMediaPlayerView(url: mediaURL, height: reviewManagedVideoMinHeight)
-                    .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .video))
-                #endif
             case .attachment:
                 Link(destination: mediaURL) {
                     Label(displayLabel(mediaAsset: mediaAsset, category: .attachment), systemImage: "paperclip")
@@ -322,9 +286,8 @@ struct ReviewManagedMediaView: View {
 
     @ViewBuilder
     private func imageView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
-        let accessibilityLabel = displayLabel(mediaAsset: mediaAsset, category: .image)
+        let accessibilityLabel = mediaDescription(mediaAsset: mediaAsset)
 
-        #if targetEnvironment(macCatalyst)
         if mediaURL.isFileURL {
             Group {
                 if let image = self.retainedState.decodedImage, self.retainedState.decodedImageURL == mediaURL {
@@ -336,7 +299,7 @@ struct ReviewManagedMediaView: View {
                 }
             }
             .task(id: mediaURL) {
-                self.retainedState.loadFileImage(mediaURL: mediaURL)
+                await self.retainedState.loadFileImage(mediaURL: mediaURL)
             }
         } else if let image = self.retainedState.remoteImage {
             reviewManagedImageView(image: image, accessibilityLabel: accessibilityLabel, aspectRatio: nil)
@@ -361,47 +324,16 @@ struct ReviewManagedMediaView: View {
                 }
             }
         }
-        #else
-        if mediaURL.isFileURL {
-            ReviewManagedFileImageView(mediaURL: mediaURL) { image in
-                self.reviewManagedImageView(
-                    image: Image(uiImage: image),
-                    accessibilityLabel: accessibilityLabel,
-                    aspectRatio: reviewManagedImageAspectRatio(size: image.size)
-                )
-            } loading: { placeholderAspectRatio in
-                imageLoadingView(aspectRatio: placeholderAspectRatio ?? reviewManagedImagePlaceholderAspectRatio)
-            } failure: {
-                unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
-            }
-        } else {
-            AsyncImage(url: mediaURL) { phase in
-                switch phase {
-                case .empty:
-                    imageLoadingView(aspectRatio: reviewManagedImagePlaceholderAspectRatio)
-                case .success(let image):
-                    reviewManagedImageView(
-                        image: image,
-                        accessibilityLabel: accessibilityLabel,
-                        aspectRatio: nil
-                    )
-                case .failure:
-                    unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
-                @unknown default:
-                    unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
-                }
-            }
-        }
-        #endif
     }
 
+    /// An image without a description gets no label, so VoiceOver announces it as an image.
     @ViewBuilder
     private func reviewManagedImageView(
         image: Image,
-        accessibilityLabel: String,
+        accessibilityLabel: String?,
         aspectRatio: CGFloat?
     ) -> some View {
-        Group {
+        let presentedImage = Group {
             if let aspectRatio {
                 image
                     .resizable()
@@ -416,7 +348,12 @@ struct ReviewManagedMediaView: View {
         .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
         .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
         .frame(maxWidth: .infinity, alignment: .center)
-        .accessibilityLabel(accessibilityLabel)
+
+        if let accessibilityLabel {
+            presentedImage.accessibilityLabel(accessibilityLabel)
+        } else {
+            presentedImage
+        }
     }
 
     private func unavailableView(unavailableReason: ReviewManagedMediaUnavailableReason?) -> some View {
@@ -437,48 +374,17 @@ struct ReviewManagedMediaView: View {
         }
     }
 
-    #if !targetEnvironment(macCatalyst)
-    private func startLocalRefresh(taskID: ReviewManagedMediaTaskID) {
-        self.localRefreshTask?.cancel()
-        self.localRefreshTask = Task { @MainActor in
-            await self.loadManagedMedia(taskID: taskID, showsLoadingIndicator: false)
-        }
-    }
-
-    private func loadManagedMedia(taskID: ReviewManagedMediaTaskID, showsLoadingIndicator: Bool) async {
-        guard taskID.state == .ready, taskID == self.taskID else {
-            return
-        }
-
-        if showsLoadingIndicator {
-            self.isLoading = true
-        }
-
-        while true {
-            let localReadVersion = store.localReadVersion
-            let nextLoadResult = await store.loadReviewManagedMedia(mediaAssetId: taskID.mediaAssetId)
-            guard Task.isCancelled == false, taskID == self.taskID else {
-                return
-            }
-            guard localReadVersion == store.localReadVersion else {
-                continue
-            }
-
-            self.loadResult = nextLoadResult
-            self.isLoading = false
-            return
-        }
-    }
-    #endif
-
-    private func displayLabel(mediaAsset: MediaAsset, category: ReviewManagedMediaCategory) -> String {
+    private func mediaDescription(mediaAsset: MediaAsset) -> String? {
         if let label = reference.label, label.isEmpty == false {
             return label
         }
 
-        if let sourceUrl = mediaAsset.sourceUrl,
-           let fileName = reviewManagedMediaFileName(sourceUrl: sourceUrl) {
-            return fileName
+        return mediaAsset.sourceUrl.flatMap(reviewManagedMediaFileName(sourceUrl:))
+    }
+
+    private func displayLabel(mediaAsset: MediaAsset, category: ReviewManagedMediaCategory) -> String {
+        if let description = mediaDescription(mediaAsset: mediaAsset) {
+            return description
         }
 
         switch category {
@@ -500,80 +406,6 @@ struct ReviewManagedMediaView: View {
         case .some(.cacheOrDownloadUnavailable), nil:
             return String(localized: "Media unavailable", table: reviewManagedMediaStringsTableName)
         }
-    }
-}
-
-private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure: View>: View {
-    let mediaURL: URL
-    let content: (UIImage) -> Content
-    let loading: (CGFloat?) -> Loading
-    let failure: () -> Failure
-
-    @State private var decodedImage: UIImage?
-    @State private var decodedImageURL: URL?
-    @State private var failedImageURL: URL?
-    @State private var placeholderAspectRatio: CGFloat?
-    @State private var placeholderAspectRatioURL: URL?
-
-    init(
-        mediaURL: URL,
-        @ViewBuilder content: @escaping (UIImage) -> Content,
-        @ViewBuilder loading: @escaping (CGFloat?) -> Loading,
-        @ViewBuilder failure: @escaping () -> Failure
-    ) {
-        self.mediaURL = mediaURL
-        self.content = content
-        self.loading = loading
-        self.failure = failure
-    }
-
-    var body: some View {
-        Group {
-            if let decodedImage,
-               self.decodedImageURL == self.mediaURL {
-                self.content(decodedImage)
-            } else if self.failedImageURL == self.mediaURL {
-                self.failure()
-            } else {
-                self.loading(self.placeholderAspectRatioURL == self.mediaURL ? self.placeholderAspectRatio : nil)
-            }
-        }
-        .task(id: self.mediaURL) { [mediaURL] in
-            await self.loadImage(mediaURL: mediaURL)
-        }
-    }
-
-    private func loadImage(mediaURL: URL) async {
-        guard self.decodedImageURL != mediaURL else {
-            return
-        }
-
-        self.failedImageURL = nil
-        if self.placeholderAspectRatioURL != mediaURL {
-            let pixelSize = await readReviewManagedImagePixelSize(mediaURL: mediaURL)
-            guard Task.isCancelled == false else {
-                return
-            }
-            self.placeholderAspectRatio = pixelSize.flatMap(reviewManagedImageAspectRatio(size:))
-            self.placeholderAspectRatioURL = mediaURL
-        }
-        let nextImage = await decodeReviewManagedFileImage(mediaURL: mediaURL)
-        guard Task.isCancelled == false else {
-            return
-        }
-
-        guard let nextImage else {
-            if self.decodedImageURL != mediaURL {
-                self.decodedImage = nil
-                self.decodedImageURL = nil
-            }
-            self.failedImageURL = mediaURL
-            return
-        }
-
-        self.decodedImage = nextImage
-        self.decodedImageURL = mediaURL
-        self.failedImageURL = nil
     }
 }
 
@@ -638,29 +470,21 @@ func decodeReviewManagedFileImage(mediaURL: URL) async -> UIImage? {
     }
 }
 
-private struct ReviewManagedMediaPlayerView: View {
-    let url: URL
-    let height: CGFloat
+private struct ReviewManagedMediaPlayer: UIViewControllerRepresentable {
+    let player: AVPlayer?
+    let delegate: ReviewManagedMediaFullScreenDelegate
 
-    @State private var player: AVPlayer
-
-    init(url: URL, height: CGFloat) {
-        self.url = url
-        self.height = height
-        self._player = State(initialValue: AVPlayer(url: url))
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.delegate = self.delegate
+        controller.player = self.player
+        return controller
     }
 
-    var body: some View {
-        VideoPlayer(player: player)
-            .frame(maxWidth: .infinity, minHeight: height)
-            .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
-            .onChange(of: url) { _, newURL in
-                self.player.pause()
-                self.player = AVPlayer(url: newURL)
-            }
-            .onDisappear {
-                self.player.pause()
-            }
+    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
+        if controller.player !== self.player {
+            controller.player = self.player
+        }
     }
 }
 

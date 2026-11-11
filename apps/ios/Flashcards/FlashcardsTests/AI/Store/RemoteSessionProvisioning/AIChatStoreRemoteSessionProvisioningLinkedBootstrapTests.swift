@@ -72,15 +72,13 @@ final class AIChatStoreRemoteSessionProvisioningLinkedBootstrapTests: XCTestCase
         }
         var servedBootstrapResponseCount: Int = 0
         context.chatService.loadBootstrapHandler = { sessionId in
-            guard let sessionId, sessionId.isEmpty == false else {
-                throw LocalStoreError.validation("Expected an explicit AI chat session id during linked bootstrap load.")
-            }
+            let resolvedSessionId = try XCTUnwrap(sessionId ?? context.chatService.createNewSessionSessionIds.first ?? nil)
             servedBootstrapResponseCount += 1
             let messageText = servedBootstrapResponseCount == 1
                 ? "Fresh bootstrap response"
                 : "Stale bootstrap response"
             return AIChatStoreTestSupport.makeConversationEnvelope(
-                sessionId: sessionId,
+                sessionId: resolvedSessionId,
                 messages: [
                     AIChatStoreTestSupport.makeAssistantTextMessage(
                         id: "message-\(servedBootstrapResponseCount)",

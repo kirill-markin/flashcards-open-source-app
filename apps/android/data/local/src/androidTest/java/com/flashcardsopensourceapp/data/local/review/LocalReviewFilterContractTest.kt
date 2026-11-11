@@ -245,7 +245,7 @@ class LocalReviewFilterContractTest {
     }
 
     @Test
-    fun reviewRepositoryMatchesAnySelectedTagAndTreatsEmptySelectionAsMatchNone(): Unit = runBlocking {
+    fun reviewRepositoryMatchesAnySelectedTagAndTreatsEmptySelectionAsAllCards(): Unit = runBlocking {
         val nowMillis = 12 * 60 * 60 * 1_000L
         val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = nowMillis)
         val reviewRepository = createTestReviewRepository(runtime = runtime)
@@ -318,10 +318,8 @@ class LocalReviewFilterContractTest {
         assertEquals(setOf("alpha-card", "beta-card", "both-card"), orSnapshot.cards.map { it.cardId }.toSet())
         assertEquals(3, orSnapshot.dueCount)
         assertEquals(3, orSnapshot.totalCount)
-        assertEquals(ReviewFilter.Tags(tags = emptyList()), emptySnapshot.selectedFilter)
-        assertTrue(emptySnapshot.cards.isEmpty())
-        assertEquals(0, emptySnapshot.dueCount)
-        assertEquals(0, emptySnapshot.totalCount)
+        assertEquals(ReviewFilter.AllCards, emptySnapshot.selectedFilter)
+        assertEquals(cardsById.keys, emptySnapshot.cards.map { it.cardId }.toSet())
         assertEquals(ReviewFilter.AllCards, allTagsSnapshot.selectedFilter)
         assertEquals(cardsById.keys, allTagsSnapshot.cards.map { it.cardId }.toSet())
     }

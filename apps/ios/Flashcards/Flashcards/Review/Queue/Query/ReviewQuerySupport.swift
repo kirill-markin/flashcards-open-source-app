@@ -351,11 +351,12 @@ func resolveTagsReviewQuery(requestedTags: [String], storedTagNames: [String]) -
     let currentTagKeys = Set(normalizedReviewTagNames(tags: storedTagNames).map(normalizeTagKey))
     let selectedTagKeys = Set(selectedTagNames.map(normalizeTagKey))
     let exactTagKeys = Set(exactTagNames.map(normalizeTagKey))
-    if
-        currentTagKeys.isEmpty == false,
-        selectedTagKeys == exactTagKeys,
-        exactTagKeys == currentTagKeys
-    {
+    // An empty selection, including one persisted by an older build, is never a scope of its own.
+    if selectedTagKeys.isEmpty || (
+        currentTagKeys.isEmpty == false
+            && selectedTagKeys == exactTagKeys
+            && exactTagKeys == currentTagKeys
+    ) {
         return ResolvedReviewQuery(
             reviewFilter: .allCards,
             queryDefinition: .allCards
@@ -429,82 +430,39 @@ func resolveReviewQuery(
     }
 }
 
-func selectedReviewTagNames(
-    reviewFilter: ReviewFilter,
-    decks: [Deck],
-    storedTagNames: [String]
-) -> [String] {
-    switch reviewFilter {
-    case .allCards:
-        return normalizedReviewTagNames(tags: storedTagNames)
-    case .deck(let deckId):
-        guard let deck = decks.first(where: { deck in
-            deck.deckId == deckId
-        }) else {
-            return []
-        }
-
-        return selectedReviewDeckTagNames(
-            deckFilterTagNames: deck.filterDefinition.tags,
-            storedTagNames: storedTagNames
-        )
-    case .tags(let tags):
-        return resolveReviewTagNamesPreservingUnmatched(
-            requestedTagNames: tags,
-            storedTagNames: storedTagNames
-        )
-    }
-}
-
-func selectedReviewDeckTagNames(
-    deckFilterTagNames: [String],
-    storedTagNames: [String]
-) -> [String] {
-    if deckFilterTagNames.isEmpty {
-        return normalizedReviewTagNames(tags: storedTagNames)
-    }
-
-    return resolveReviewTagNamesPreservingUnmatched(
-        requestedTagNames: deckFilterTagNames,
-        storedTagNames: storedTagNames
-    )
-}
-
-func reviewFilterByTogglingTag(
-    reviewFilter: ReviewFilter,
-    tag: String,
-    decks: [Deck],
-    storedTagNames: [String]
-) -> ReviewFilter {
+/// Toggles a tag inside a tag selection; removing the last tag selects All cards. A selection of every tag stays
+/// tags, and the store resolves it to All cards when the filter is committed.
+func reviewTagsFilterByTogglingTag(tags: [String], tag: String, storedTagNames: [String]) -> ReviewFilter {
     let canonicalStoredTags = normalizedReviewTagNames(tags: storedTagNames)
     guard let canonicalTag = resolveExactStoredTagNames(
         requestedTagNames: [tag],
         storedTagNames: canonicalStoredTags
     ).first else {
-        return reviewFilter
+        return .tags(tags: tags)
     }
 
-    let selectedTags = selectedReviewTagNames(
-        reviewFilter: reviewFilter,
-        decks: decks,
+    let selectedTags = resolveReviewTagNamesPreservingUnmatched(
+        requestedTagNames: tags,
         storedTagNames: canonicalStoredTags
     )
+    let toggledTags = reviewTagNamesByTogglingStoredTag(selectedTags: selectedTags, canonicalTag: canonicalTag)
+    if toggledTags.isEmpty {
+        return .allCards
+    }
+    return makeReviewTagsFilter(tags: toggledTags)
+}
+
+private func reviewTagNamesByTogglingStoredTag(selectedTags: [String], canonicalTag: String) -> [String] {
     let toggledTagKey = normalizeTagKey(tag: canonicalTag)
-    let nextTags: [String]
     if selectedTags.contains(where: { selectedTag in
         normalizeTagKey(tag: selectedTag) == toggledTagKey
     }) {
-        nextTags = selectedTags.filter { selectedTag in
+        return selectedTags.filter { selectedTag in
             normalizeTagKey(tag: selectedTag) != toggledTagKey
         }
-    } else {
-        nextTags = normalizedReviewTagNames(tags: selectedTags + [canonicalTag])
     }
 
-    return resolveTagsReviewQuery(
-        requestedTags: nextTags,
-        storedTagNames: canonicalStoredTags
-    ).reviewFilter
+    return normalizedReviewTagNames(tags: selectedTags + [canonicalTag])
 }
 
 func makeReviewSubmissionContext(

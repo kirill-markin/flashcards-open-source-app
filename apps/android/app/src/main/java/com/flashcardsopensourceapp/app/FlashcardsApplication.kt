@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.app.notifications.analyticsNotificationKind
 import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
+import com.flashcardsopensourceapp.app.widget.analyticsWidgetKind
 import com.flashcardsopensourceapp.app.widget.analyticsWidgetSize
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
@@ -197,6 +198,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
                             appGraph.analytics.track(
                                 event = AnalyticsEvent.AppOpened(launchType = launchType)
                             )
+                            appGraph.reportReviewWidgetPlacementInBackground()
                         }
                     }
 
@@ -267,7 +269,10 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     /** The single point every widget tap passes through, for the reasons [requestAppNotificationTap] gives. */
     fun requestReviewWidgetTap(request: ReviewWidgetTapRequest) {
         appGraphOrNull?.analytics?.track(
-            event = AnalyticsEvent.WidgetOpened(widgetSize = analyticsWidgetSize(size = request.size))
+            event = AnalyticsEvent.WidgetOpened(
+                widgetSize = analyticsWidgetSize(size = request.size),
+                widgetKind = analyticsWidgetKind(kind = request.kind)
+            )
         )
         reviewWidgetTapStateMutable.value = ReviewWidgetTapHandoffRequest(
             requestId = nextReviewWidgetTapRequestId.incrementAndGet(),

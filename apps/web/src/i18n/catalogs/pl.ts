@@ -20,6 +20,15 @@ const plCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ta przeglądarka nie mogła zdekodować dźwięku z mikrofonu ({{format}}).",
     recovery: "Dostęp gościa nie jest zweryfikowany. Fiszki w pamięci podręcznej są tylko do odczytu. Przywróć pierwotną sesję lub połączenie i spróbuj ponownie.",
     cleanupFailed: "Logowanie powiodło się, ale nie udało się usunąć fiszki demonstracyjnej.",
+    browserCheck: {
+      title: "Sprawdzamy Twoją przeglądarkę",
+      description: "Zanim otworzy się obszar roboczy gościa, Cloudflare potwierdza, że to zwykła przeglądarka. Zwykle trwa to kilka sekund.",
+      loading: "Ładowanie weryfikacji...",
+      verifying: "Otwieranie Twojego obszaru roboczego...",
+      loadFailed: "Nie udało się załadować weryfikacji. Sprawdź połączenie, zezwól na challenges.cloudflare.com w blokerze treści i spróbuj ponownie.",
+      failed: "Weryfikacja nie powiodła się. Spróbuj ponownie lub zaloguj się.",
+      rejected: "Weryfikacja nie została zaakceptowana. Wykonaj ją jeszcze raz.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ const plCatalog: TranslationCatalog = {
     loading: "Ładowanie...",
     never: "Nigdy",
     newItem: "nowa",
+    image: "Obraz",
     noBackText: "Brak tekstu na tyle",
     noTags: "Brak tagów",
     notRevoked: "Nieodwołane",
@@ -434,9 +444,12 @@ const plCatalog: TranslationCatalog = {
       offlineEmpty: "Ranking serii nie jest dostępny offline. Połącz się z siecią, aby zobaczyć wyniki.",
       unavailable: "Ranking serii jest teraz niedostępny. Zajrzyj później.",
       dayLabels: {
-        one: "dzień",
-        few: "dni",
-        other: "dni",
+        zero: "{{count}} dni",
+        one: "{{count}} dzień",
+        two: "{{count}} dni",
+        few: "{{count}} dni",
+        many: "{{count}} dni",
+        other: "{{count}} dni",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ const plCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Przywracanie sesji. Spróbuj ponownie za chwilę.",
     sessionUnavailable: "Sesja jest niedostępna",
     syncing: "Synchronizacja...",
+    syncFailed: "Synchronizacja nie powiodła się",
     workspaceUnavailable: "Przestrzeń robocza niedostępna",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ const plCatalog: TranslationCatalog = {
       yourCards: "Twoje karty",
       addCards: "Dodaj karty",
     },
-    cards: {
-      description: "Wszystkie karty w tej przestrzeni roboczej.",
-    },
-    tags: {
-      description: "Wszystkie tagi użyte na co najmniej jednej karcie.",
-    },
-    decks: {
-      description: "Zapisane filtry kart do ukierunkowanych powtórek.",
-    },
     deckCatalog: {
       title: "Katalog talii",
       description: "Darmowe gotowe talie do nauki.",
@@ -869,16 +874,18 @@ const plCatalog: TranslationCatalog = {
     note: "Te ustawienia wpływają tylko na przyszłe planowanie. Obecny stan kart pozostaje nadrzędny.",
   },
   workspaceExport: {
-    title: "Eksport",
+    title: "Eksportuj pakiet Nibomo",
+    ankiTitle: "Eksportuj talię Anki",
     subtitle: "Pobierz przenośny pakiet tej przestrzeni roboczej.",
     workspaceUnavailable: "Przestrzeń robocza jest niedostępna",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Nazwa talii",
+    ankiEmptySelection: "Brak kart do wyeksportowania. Zmień wybrane tagi lub dodaj karty.",
     packageDescription: "Zobacz aktywne karty, metadane, tagi i powiązane media przed pobraniem.",
-    packageExportSuccess: "Rozpoczęto pobieranie flashcards.zip.",
+    packageExportSuccess: "Rozpoczęto pobieranie {{filename}}.",
     packageExporting: "Pobieranie...",
     packagePreviewing: "Przygotowywanie podglądu...",
     packageExportPreviewButton: "Podgląd eksportu",
-    packageExportConfirmButton: "Pobierz flashcards.zip",
+    packageExportConfirmButton: "Pobierz {{filename}}",
     packageExportPreviewRequired: "Zobacz podgląd eksportu przed pobraniem.",
     previewCardsLabel: "Karty",
     previewReferencedMediaLabel: "Powiązane media",
@@ -1134,6 +1141,10 @@ const plCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otwórz stronę karty ({{side}}) w czacie AI",
     repetitionBadgeAriaLabel: "Powtórzenia: {{value}}",
     repetitionBadgeNew: "Nowa",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Więcej tagów: {{count}}",
+    },
     empty: {
       noCardsBody: "Nie masz jeszcze żadnych kart. Dodaj pierwszą kartę, aby zacząć naukę.",
       noCardsTitle: "Brak kart",
@@ -1145,16 +1156,25 @@ const plCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nie udało się wyświetlić wzoru.",
       schedulerUnavailable: "Ustawienia harmonogramu przestrzeni roboczej nie są wczytane",
+      storageFull: "Zwolnij miejsce na tym urządzeniu, a następnie oceń fiszkę ponownie.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otwórz ranking",
     },
     progressBadge: {
-      ariaLabel: "Seria powtórek: {{streak}} dni. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Seria powtórek: {{streak}} dni. {{todayStatus}}.",
+      ariaLabel: "Seria powtórek: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Seria powtórek: {{streak}}. {{todayStatus}}.",
       freezeBank: "Zapas zamrożeń {{available}} z {{capacity}}",
       notReviewedToday: "Dziś bez powtórki",
       reviewedToday: "Dziś powtórzone",
+      streakDayCount: {
+        zero: "{{count}} dni",
+        one: "{{count}} dzień",
+        two: "{{count}} dni",
+        few: "{{count}} dni",
+        many: "{{count}} dni",
+        other: "{{count}} dni",
+      },
       title: "Seria",
     },
     interval: {
@@ -1168,8 +1188,6 @@ const plCatalog: TranslationCatalog = {
       snapshot: "Pokazujemy ostatnią lokalną migawkę...",
     },
     media: {
-      privateImage: "Prywatny obraz",
-      privateAttachment: "Prywatny załącznik",
       attachmentLabel: "Załącznik",
       audioLabel: "Załącznik audio",
       imageAlt: "Obraz zarządzany",
@@ -1358,26 +1376,15 @@ const plCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} do powtórki",
+      toStudy: "{{count}} do nauki",
       total: "łącznie: {{count}}",
     },
-    emptyStatsAriaLabel: "Statystyki: {{deckName}}",
     newDeck: "Nowa talia",
     statLabels: {
       cards: {
         one: "karta",
         few: "karty",
         other: "kart",
-      },
-      new: {
-        one: "nowa",
-        few: "nowe",
-        other: "nowych",
-      },
-      reviewed: {
-        one: "powtórzona",
-        few: "powtórzone",
-        other: "powtórzonych",
       },
     },
     subtitle: "Talie to inteligentne filtry, a nie pojemniki. Dopasowują karty po tagach.",
@@ -1413,10 +1420,10 @@ const plCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Karty",
-      due: "Do powtórki",
       new: "Nowe",
       summary: "Podsumowanie",
       title: "Reguły talii",
+      toStudy: "Do nauki",
     },
     subtitle: "Sprawdź reguły talii, pasujące karty i wejście do powtórek.",
     subtitles: {

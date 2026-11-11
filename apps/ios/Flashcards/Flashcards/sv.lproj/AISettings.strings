@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Spara namn";
 "settings.workspace.overview.workspace" = "Arbetsyta";
 "settings.workspace.overview.cards" = "Kort";
-"settings.workspace.overview.due" = "Att repetera";
 "settings.workspace.overview.new" = "Nya";
 "settings.workspace.overview.deleteDescription" = "Radera arbetsytan och alla dess kort, kortlekar, repetitioner och synkroniseringshistorik permanent.";
 "settings.workspace.overview.deleteWorkspace" = "Radera arbetsyta";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Inga matchande kortlekar";
 "settings.workspace.decks.searchPrompt" = "Sök kortlekar";
 "settings.workspace.decks.newDeck" = "Ny kortlek";
-"settings.workspace.decks.dueCount" = "Att repetera: %d";
-"settings.workspace.decks.totalCards" = "%d kort";
-"settings.workspace.decks.newCount" = "Nya: %d";
-"settings.workspace.decks.reviewedCount" = "Repeterade: %d";
+"settings.workspace.decks.toStudyCount" = "%d att studera";
+"settings.workspace.decks.toStudy" = "Att studera";
 "settings.workspace.decks.emptyAllCards" = "Du har inte skapat några kort än.";
 "settings.workspace.decks.emptyDeck" = "Kortleken har inga matchande kort än.";
 "settings.workspace.decks.section.deckRules" = "Kortlekens regler";

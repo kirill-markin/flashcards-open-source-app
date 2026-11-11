@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "Name speichern";
 "settings.workspace.overview.workspace" = "Arbeitsbereich";
 "settings.workspace.overview.cards" = "Karten";
-"settings.workspace.overview.due" = "Fällig";
 "settings.workspace.overview.new" = "Neu";
 "settings.workspace.overview.deleteDescription" = "Lösche diesen Arbeitsbereich und alle darin enthaltenen Karten, Decks, Wiederholungen und den Synchronisierungsverlauf dauerhaft.";
 "settings.workspace.overview.deleteWorkspace" = "Arbeitsbereich löschen";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "Keine passenden Decks";
 "settings.workspace.decks.searchPrompt" = "Decks durchsuchen";
 "settings.workspace.decks.newDeck" = "Neues Deck";
-"settings.workspace.decks.dueCount" = "%d fällig";
-"settings.workspace.decks.totalCards" = "Karten: %d";
-"settings.workspace.decks.newCount" = "%d neu";
-"settings.workspace.decks.reviewedCount" = "%d wiederholt";
+"settings.workspace.decks.toStudyCount" = "%d zum Lernen";
+"settings.workspace.decks.toStudy" = "Zum Lernen";
 "settings.workspace.decks.emptyAllCards" = "Du hast noch keine Karten erstellt.";
 "settings.workspace.decks.emptyDeck" = "Zu diesem Deck gibt es noch keine passenden Karten.";
 "settings.workspace.decks.section.deckRules" = "Deckregeln";

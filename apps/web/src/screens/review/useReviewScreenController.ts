@@ -19,11 +19,12 @@ import {
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import { completeCatalogImmediateStudy } from "../catalog/catalogImmediateAttempt";
-import type { Card } from "../../types";
+import type { Card, ReviewFilter } from "../../types";
 import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewCardCopyButtonHandle } from "./components/card/ReviewCardCopyButton";
 import type { ReviewEditorModalProps } from "./components/card/ReviewEditorModal";
+import { reviewSideMarkdownForClipboard } from "./components/card/reviewClipboardMarkdown";
 import type { ReviewTextSelectionDialogProps, ReviewTextSelectionRequest } from "./components/card/ReviewTextSelectionDialog";
 import type { ReviewPaneProps } from "./components/ReviewPane";
 import type { ReviewQueuePanelProps } from "./components/ReviewQueuePanel";
@@ -132,6 +133,7 @@ export function useReviewScreenController(
     reviewCounts,
     reviewLoadErrorMessage,
     reviewLoadingSnapshot,
+    reviewRatingErrorMessage,
     reviewTagSummaries,
     selectedReviewFilterTitle,
     tagSuggestions,
@@ -186,6 +188,7 @@ export function useReviewScreenController(
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
+    menuReviewFilter,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
     reviewFilterListboxId,
@@ -207,6 +210,7 @@ export function useReviewScreenController(
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
   const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
+  const [isReviewTagOverflowMenuOpen, setIsReviewTagOverflowMenuOpen] = useState<boolean>(false);
   const {
     captureEditorPresentationToken,
     editorErrorMessage,
@@ -258,6 +262,7 @@ export function useReviewScreenController(
     isGuest: session?.browserGuestCapabilities?.isGuest === true,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isSessionVerified,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -273,21 +278,28 @@ export function useReviewScreenController(
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
   const hasCards = localWorkspaceCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
-  const requestedReviewFilterTitle = resolveReviewFilterTitle(
-    selectedReviewFilter,
-    deckSummaries,
-    t("filters.allCards"),
-    t("reviewFilterMenu.noTags"),
-    formatCount(
-      selectedReviewFilter.kind === "tags" ? selectedReviewFilter.tags.length : 0,
-      messages.common.countLabels.tag,
-    ),
-  );
+  function resolveLocalizedReviewFilterTitle(reviewFilter: ReviewFilter): string {
+    return resolveReviewFilterTitle(
+      reviewFilter,
+      deckSummaries,
+      t("filters.allCards"),
+      t("reviewFilterMenu.noTags"),
+      formatCount(
+        reviewFilter.kind === "tags" ? reviewFilter.tags.length : 0,
+        messages.common.countLabels.tag,
+      ),
+    );
+  }
+  const requestedReviewFilterTitle = resolveLocalizedReviewFilterTitle(selectedReviewFilter);
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.resolvedReviewFilterTitle
     : isReviewLoading
       ? requestedReviewFilterTitle
       : selectedReviewFilterTitle;
+  // An open menu's tag rows apply on close, so the trigger names that selection at once, as a deck choice does.
+  const reviewFilterTriggerTitle = isReviewFilterEqual(menuReviewFilter, selectedReviewFilter)
+    ? visibleSelectedReviewFilterTitle
+    : resolveLocalizedReviewFilterTitle(menuReviewFilter);
   const visibleQueueCardsCount = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.queuePreview.length
     : queueCards.length;
@@ -505,7 +517,7 @@ export function useReviewScreenController(
     setTextSelectionRequest({
       cardId: visibleCard.cardId,
       side,
-      text: sourceText,
+      text: reviewSideMarkdownForClipboard(sourceText),
       workspaceId: activeWorkspace?.workspaceId ?? null,
     });
   }
@@ -557,6 +569,7 @@ export function useReviewScreenController(
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isReviewTagOverflowMenuOpen,
     isSubmitting: isSubmitting || reviewPaywall?.isPresented === true,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -671,7 +684,7 @@ export function useReviewScreenController(
         reviewFilterMenuRef,
         reviewFilterMenuItems,
         reviewFilterTriggerRef,
-        selectedReviewFilterTitle: visibleSelectedReviewFilterTitle,
+        selectedReviewFilterTitle: reviewFilterTriggerTitle,
         setReviewDeckSearchText,
         shouldShowReviewDeckSearch,
         visibleReviewDeckFilterMenuItems,
@@ -698,7 +711,7 @@ export function useReviewScreenController(
         && (session?.browserGuestCapabilities?.isGuest !== true || isSessionVerified)
         && !isEditorPresented && !isFeedbackDialogOpen && !isHardReminderVisible
         && !isGuestSignInPromptVisible && !isMobileAppPromotionDialogOpen
-        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
+        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isReviewTagOverflowMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
         && !isReviewQueuePanelOpen && reviewPaywall?.isPresented !== true
         && !indexedDbOpenRecoveryState.isFailed,
       activeSideCopyButtonRef,
@@ -707,6 +720,7 @@ export function useReviewScreenController(
       isAnswerVisible,
       isInitialReviewLoad,
       isSubmitting,
+      isTagOverflowMenuOpen: isReviewTagOverflowMenuOpen,
       lastSubmittedReview,
       localReadVersion,
       loadingReviewCurrentCard,
@@ -718,10 +732,12 @@ export function useReviewScreenController(
       onReview: handleReview,
       onShortcutButtonPointerEnter: handleShortcutButtonPointerEnter,
       onSwitchToAllCards: handleSwitchToAllCards,
+      onTagOverflowMenuOpenChange: setIsReviewTagOverflowMenuOpen,
       onToggleSpeech: toggleSpeech,
       reviewButtonErrorMessage,
       reviewButtonOptions,
       reviewLoadingSnapshot,
+      reviewRatingErrorMessage,
       reviewSubmitState,
       selectedBackSpeakableText,
       selectedCard,

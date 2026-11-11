@@ -20,6 +20,15 @@ const ptBrCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Este navegador não conseguiu decodificar o áudio do microfone ({{format}}).",
     recovery: "O acesso de visitante não foi verificado. Os cartões em cache são somente leitura. Restaure a sessão original ou a conexão e tente novamente.",
     cleanupFailed: "Você entrou, mas não foi possível remover o cartão de demonstração.",
+    browserCheck: {
+      title: "Verificando seu navegador",
+      description: "Antes de abrir seu espaço de trabalho de convidado, a Cloudflare confirma que este é um navegador comum. Isso costuma levar alguns segundos.",
+      loading: "Carregando a verificação...",
+      verifying: "Abrindo seu espaço de trabalho...",
+      loadFailed: "Não foi possível carregar a verificação. Confira sua conexão, permita challenges.cloudflare.com no bloqueador de conteúdo e tente novamente.",
+      failed: "A verificação não foi aprovada. Tente novamente ou entre na sua conta.",
+      rejected: "A verificação não foi aceita. Conclua-a mais uma vez.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const ptBrCatalog: TranslationCatalog = {
     loading: "Carregando...",
     never: "Nunca",
     newItem: "novo",
+    image: "Imagem",
     noBackText: "Sem texto no verso",
     noTags: "Sem etiquetas",
     notRevoked: "Não revogada",
@@ -427,8 +437,12 @@ const ptBrCatalog: TranslationCatalog = {
       offlineEmpty: "O ranking de sequências não está disponível offline. Reconecte para ver as posições.",
       unavailable: "O ranking de sequências não está disponível agora. Volte mais tarde.",
       dayLabels: {
-        one: "dia",
-        other: "dias",
+        zero: "{{count}} dias",
+        one: "{{count}} dia",
+        two: "{{count}} dias",
+        few: "{{count}} dias",
+        many: "{{count}} dias",
+        other: "{{count}} dias",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const ptBrCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Restaurando sessão. Tente novamente em instantes.",
     sessionUnavailable: "A sessão está indisponível",
     syncing: "Sincronizando...",
+    syncFailed: "Falha na sincronização",
     workspaceUnavailable: "Espaço de trabalho indisponível",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const ptBrCatalog: TranslationCatalog = {
       yourCards: "Seus cartões",
       addCards: "Adicionar cartões",
     },
-    cards: {
-      description: "Todos os cartões deste espaço de trabalho.",
-    },
-    tags: {
-      description: "Todas as etiquetas usadas em pelo menos um cartão.",
-    },
-    decks: {
-      description: "Filtros de cartões salvos para uma revisão focada.",
-    },
     deckCatalog: {
       title: "Catálogo de baralhos",
       description: "Baralhos prontos e gratuitos para estudar.",
@@ -860,16 +866,18 @@ const ptBrCatalog: TranslationCatalog = {
     note: "Estas configurações afetam apenas o agendamento futuro. O estado atual dos cartões continua valendo.",
   },
   workspaceExport: {
-    title: "Exportar",
+    title: "Exportar pacote do Nibomo",
+    ankiTitle: "Exportar baralho do Anki",
     subtitle: "Baixe um pacote portátil deste espaço de trabalho.",
     workspaceUnavailable: "O espaço de trabalho está indisponível",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Nome do baralho",
+    ankiEmptySelection: "Nenhum cartão para exportar. Altere as etiquetas selecionadas ou adicione cartões.",
     packageDescription: "Veja uma prévia dos cartões ativos, metadados, etiquetas e mídia referenciada antes de baixar.",
-    packageExportSuccess: "O download do flashcards.zip começou.",
+    packageExportSuccess: "O download do {{filename}} começou.",
     packageExporting: "Baixando...",
     packagePreviewing: "Gerando prévia...",
     packageExportPreviewButton: "Ver prévia da exportação",
-    packageExportConfirmButton: "Baixar flashcards.zip",
+    packageExportConfirmButton: "Baixar {{filename}}",
     packageExportPreviewRequired: "Veja a prévia desta exportação antes de baixar.",
     previewCardsLabel: "Cartões",
     previewReferencedMediaLabel: "Mídia referenciada",
@@ -1124,6 +1132,10 @@ const ptBrCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Abrir o {{side}} do cartão no chat com IA",
     repetitionBadgeAriaLabel: "Repetições: {{value}}",
     repetitionBadgeNew: "Novo",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Mais etiquetas: {{count}}",
+    },
     empty: {
       noCardsBody: "Você ainda não criou nenhum cartão. Adicione seu primeiro cartão para começar a estudar.",
       noCardsTitle: "Nenhum cartão ainda",
@@ -1135,16 +1147,25 @@ const ptBrCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Não foi possível renderizar a fórmula.",
       schedulerUnavailable: "As configurações do agendador do espaço de trabalho não foram carregadas",
+      storageFull: "Libere espaço de armazenamento neste dispositivo e avalie o cartão novamente.",
     },
     leaderboardShortcut: {
       ariaLabel: "Abrir ranking",
     },
     progressBadge: {
-      ariaLabel: "Sequência de revisões de {{streak}} dias. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Sequência de revisões de {{streak}} dias. {{todayStatus}}.",
+      ariaLabel: "Sequência de revisões de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Sequência de revisões de {{streak}}. {{todayStatus}}.",
       freezeBank: "Reserva de congelamentos {{available}} de {{capacity}}",
       notReviewedToday: "Não revisado hoje",
       reviewedToday: "Revisado hoje",
+      streakDayCount: {
+        zero: "{{count}} dias",
+        one: "{{count}} dia",
+        two: "{{count}} dias",
+        few: "{{count}} dias",
+        many: "{{count}} dias",
+        other: "{{count}} dias",
+      },
       title: "Sequência",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const ptBrCatalog: TranslationCatalog = {
       snapshot: "Mostrando um retrato local recente...",
     },
     media: {
-      privateImage: "Imagem privada",
-      privateAttachment: "Anexo privado",
       attachmentLabel: "Anexo",
       audioLabel: "Anexo de áudio",
       imageAlt: "Imagem gerenciada",
@@ -1348,23 +1367,14 @@ const ptBrCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} pendentes",
+      toStudy: "{{count}} para estudar",
       total: "{{count}} no total",
     },
-    emptyStatsAriaLabel: "Estatísticas de {{deckName}}",
     newDeck: "Novo baralho",
     statLabels: {
       cards: {
         one: "cartão",
         other: "cartões",
-      },
-      new: {
-        one: "novo",
-        other: "novos",
-      },
-      reviewed: {
-        one: "revisado",
-        other: "revisados",
       },
     },
     subtitle: "Baralhos são filtros inteligentes, não pastas. Eles selecionam cartões por etiquetas.",
@@ -1400,10 +1410,10 @@ const ptBrCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Cartões",
-      due: "Pendentes",
       new: "Novos",
       summary: "Resumo",
       title: "Regras do baralho",
+      toStudy: "Para estudar",
     },
     subtitle: "Consulte as regras do baralho, os cartões correspondentes e o ponto de entrada da revisão.",
     subtitles: {

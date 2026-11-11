@@ -12,7 +12,7 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -82,7 +82,7 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
@@ -176,7 +176,7 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let mismatchedServerSeries = makeProgressSeries(
             timeZone: requestRange.timeZone,
@@ -247,7 +247,7 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: TimeZone.current,
-            dayCount: 140
+            dayCount: recentProgressHistoryDayCount
         )
         let invalidServerSeries = makeProgressSeries(
             timeZone: requestRange.timeZone,

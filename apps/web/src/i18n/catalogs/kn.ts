@@ -20,6 +20,15 @@ const knCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "ಈ ಬ್ರೌಸರ್ ಮೈಕ್ರೊಫೋನ್ ಆಡಿಯೊವನ್ನು ಡಿಕೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ ({{format}}).",
     recovery: "ಅತಿಥಿ ಪ್ರವೇಶ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ. ಸಂಗ್ರಹಿತ ಕಾರ್ಡ್‌ಗಳು ಓದಲು ಮಾತ್ರ ಲಭ್ಯ. ಮೂಲ ಸೆಷನ್ ಅಥವಾ ಸಂಪರ್ಕ ಮರುಸ್ಥಾಪಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     cleanupFailed: "ಸೈನ್ ಇನ್ ಯಶಸ್ವಿಯಾಗಿದೆ, ಆದರೆ ಮಾದರಿ ಕಾರ್ಡ್ ತೆಗೆದುಹಾಕಲಾಗಲಿಲ್ಲ.",
+    browserCheck: {
+      title: "ನಿಮ್ಮ ಬ್ರೌಸರ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ",
+      description: "ಅತಿಥಿ ಕಾರ್ಯಸ್ಥಳ ತೆರೆಯುವ ಮೊದಲು, ಇದು ಸಾಮಾನ್ಯ ಬ್ರೌಸರ್ ಎಂದು Cloudflare ಖಚಿತಪಡಿಸುತ್ತದೆ. ಸಾಮಾನ್ಯವಾಗಿ ಕೆಲವು ಸೆಕೆಂಡುಗಳು ಬೇಕಾಗುತ್ತವೆ.",
+      loading: "ಪರಿಶೀಲನೆ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+      verifying: "ನಿಮ್ಮ ಕಾರ್ಯಸ್ಥಳ ತೆರೆಯಲಾಗುತ್ತಿದೆ...",
+      loadFailed: "ಪರಿಶೀಲನೆ ಲೋಡ್ ಆಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ, ವಿಷಯ ತಡೆಗಾರದಲ್ಲಿ challenges.cloudflare.com ಅನುಮತಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      failed: "ಪರಿಶೀಲನೆ ಯಶಸ್ವಿಯಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+      rejected: "ಪರಿಶೀಲನೆ ಸ್ವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಇನ್ನೊಮ್ಮೆ ಪೂರ್ಣಗೊಳಿಸಿ.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const knCatalog: TranslationCatalog = {
     loading: "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     never: "ಎಂದಿಗೂ ಇಲ್ಲ",
     newItem: "ಹೊಸದು",
+    image: "ಚಿತ್ರ",
     noBackText: "ಹಿಂಭಾಗದ ಪಠ್ಯವಿಲ್ಲ",
     noTags: "ಟ್ಯಾಗ್‌ಗಳಿಲ್ಲ",
     notRevoked: "ರದ್ದುಪಡಿಸಿಲ್ಲ",
@@ -427,8 +437,12 @@ const knCatalog: TranslationCatalog = {
       offlineEmpty: "ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ನಿರಂತರತೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಲಭ್ಯವಿಲ್ಲ. ಶ್ರೇಯಾಂಕಗಳನ್ನು ನೋಡಲು ಮತ್ತೆ ಸಂಪರ್ಕಿಸಿ.",
       unavailable: "ನಿರಂತರತೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಸದ್ಯಕ್ಕೆ ಲಭ್ಯವಿಲ್ಲ. ನಂತರ ಮತ್ತೆ ನೋಡಿ.",
       dayLabels: {
-        one: "ದಿನ",
-        other: "ದಿನಗಳು",
+        zero: "{{count}} ದಿನಗಳು",
+        one: "{{count}} ದಿನ",
+        two: "{{count}} ದಿನಗಳು",
+        few: "{{count}} ದಿನಗಳು",
+        many: "{{count}} ದಿನಗಳು",
+        other: "{{count}} ದಿನಗಳು",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const knCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "ಸೆಷನ್ ಮರುಸ್ಥಾಪಿಸಲಾಗುತ್ತಿದೆ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     sessionUnavailable: "ಸೆಷನ್ ಲಭ್ಯವಿಲ್ಲ",
     syncing: "ಸಿಂಕ್ ಆಗುತ್ತಿದೆ...",
+    syncFailed: "ಸಿಂಕ್ ವಿಫಲವಾಗಿದೆ",
     workspaceUnavailable: "ಕಾರ್ಯಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const knCatalog: TranslationCatalog = {
       yourCards: "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳು",
       addCards: "ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
     },
-    cards: {
-      description: "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿನ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು.",
-    },
-    tags: {
-      description: "ಕನಿಷ್ಠ ಒಂದು ಕಾರ್ಡ್‌ನಲ್ಲಿ ಬಳಸಲಾದ ಎಲ್ಲಾ ಟ್ಯಾಗ್‌ಗಳು.",
-    },
-    decks: {
-      description: "ಕೇಂದ್ರೀಕೃತ ಪುನರಾವರ್ತನೆಗಾಗಿ ಉಳಿಸಿದ ಕಾರ್ಡ್ ಫಿಲ್ಟರ್‌ಗಳು.",
-    },
     deckCatalog: {
       title: "ಡೆಕ್ ಕ್ಯಾಟಲಾಗ್",
       description: "ಅಧ್ಯಯನಕ್ಕಾಗಿ ಉಚಿತ ಸಿದ್ಧ ಡೆಕ್‌ಗಳು.",
@@ -860,16 +866,18 @@ const knCatalog: TranslationCatalog = {
     note: "ಈ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಮುಂದಿನ ವೇಳಾಪಟ್ಟಿಗೆ ಮಾತ್ರ ಪರಿಣಾಮ ಬೀರುತ್ತವೆ. ಅಸ್ತಿತ್ವದಲ್ಲಿರುವ ಕಾರ್ಡ್ ಸ್ಥಿತಿಯೇ ಅಧಿಕೃತವಾಗಿ ಉಳಿಯುತ್ತದೆ.",
   },
   workspaceExport: {
-    title: "ರಫ್ತು",
+    title: "Nibomo ಪ್ಯಾಕೇಜ್ ರಫ್ತು ಮಾಡಿ",
+    ankiTitle: "Anki ಡೆಕ್ ರಫ್ತು ಮಾಡಿ",
     subtitle: "ಈ ಕಾರ್ಯಸ್ಥಳಕ್ಕಾಗಿ ಪೋರ್ಟಬಲ್ ಪ್ಯಾಕೇಜ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.",
     workspaceUnavailable: "ಕಾರ್ಯಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "ಡೆಕ್‌ನ ಹೆಸರು",
+    ankiEmptySelection: "ರಫ್ತು ಮಾಡಲು ಯಾವುದೇ ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ. ಆಯ್ಕೆ ಮಾಡಿದ ಟ್ಯಾಗ್‌ಗಳನ್ನು ಬದಲಾಯಿಸಿ ಅಥವಾ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ.",
     packageDescription: "ಡೌನ್‌ಲೋಡ್ ಮಾಡುವ ಮೊದಲು ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳು, ಮೆಟಾಡೇಟಾ, ಟ್ಯಾಗ್‌ಗಳು ಮತ್ತು ಉಲ್ಲೇಖಿತ ಮಾಧ್ಯಮ ನೋಡಿ.",
-    packageExportSuccess: "flashcards.zip ಡೌನ್‌ಲೋಡ್ ಪ್ರಾರಂಭವಾಗಿದೆ.",
+    packageExportSuccess: "{{filename}} ಡೌನ್‌ಲೋಡ್ ಪ್ರಾರಂಭವಾಗಿದೆ.",
     packageExporting: "ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     packagePreviewing: "ಮುನ್ನೋಟ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...",
     packageExportPreviewButton: "ರಫ್ತಿನ ಮುನ್ನೋಟ ನೋಡಿ",
-    packageExportConfirmButton: "flashcards.zip ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+    packageExportConfirmButton: "{{filename}} ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
     packageExportPreviewRequired: "ಡೌನ್‌ಲೋಡ್ ಮಾಡುವ ಮೊದಲು ಈ ರಫ್ತಿನ ಮುನ್ನೋಟ ನೋಡಿ.",
     previewCardsLabel: "ಕಾರ್ಡ್‌ಗಳು",
     previewReferencedMediaLabel: "ಉಲ್ಲೇಖಿತ ಮಾಧ್ಯಮ",
@@ -1124,6 +1132,10 @@ const knCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ಚಾಟ್‌ನಲ್ಲಿ ಕಾರ್ಡ್ ತೆರೆಯಿರಿ: {{side}}",
     repetitionBadgeAriaLabel: "ಪುನರಾವರ್ತನೆಗಳು: {{value}}",
     repetitionBadgeNew: "ಹೊಸದು",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "ಇನ್ನಷ್ಟು ಟ್ಯಾಗ್‌ಗಳು: {{count}}",
+    },
     empty: {
       noCardsBody: "ನೀವು ಇನ್ನೂ ಯಾವುದೇ ಕಾರ್ಡ್ ರಚಿಸಿಲ್ಲ. ಅಧ್ಯಯನ ಪ್ರಾರಂಭಿಸಲು ಮೊದಲ ಕಾರ್ಡ್ ಸೇರಿಸಿ.",
       noCardsTitle: "ಇನ್ನೂ ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ",
@@ -1135,16 +1147,25 @@ const knCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "ಸೂತ್ರ ತೋರಿಸಲಾಗಲಿಲ್ಲ.",
       schedulerUnavailable: "ಕಾರ್ಯಸ್ಥಳದ ವೇಳಾಪಟ್ಟಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಲೋಡ್ ಆಗಿಲ್ಲ",
+      storageFull: "ಈ ಸಾಧನದಲ್ಲಿ ಸ್ವಲ್ಪ ಸಂಗ್ರಹಣಾ ಸ್ಥಳವನ್ನು ಖಾಲಿ ಮಾಡಿ, ನಂತರ ಕಾರ್ಡ್‌ಗೆ ಮತ್ತೆ ರೇಟಿಂಗ್ ನೀಡಿ.",
     },
     leaderboardShortcut: {
       ariaLabel: "ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ತೆರೆಯಿರಿ",
     },
     progressBadge: {
-      ariaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}} ದಿನಗಳು. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}} ದಿನಗಳು. {{todayStatus}}.",
+      ariaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "ಪುನರಾವರ್ತನೆ ನಿರಂತರತೆ {{streak}}. {{todayStatus}}.",
       freezeBank: "ಫ್ರೀಜ್ ಬ್ಯಾಂಕ್ {{capacity}} ರಲ್ಲಿ {{available}}",
       notReviewedToday: "ಇಂದು ಪುನರಾವರ್ತನೆ ಆಗಿಲ್ಲ",
       reviewedToday: "ಇಂದು ಪುನರಾವರ್ತನೆ ಆಗಿದೆ",
+      streakDayCount: {
+        zero: "{{count}} ದಿನಗಳು",
+        one: "{{count}} ದಿನ",
+        two: "{{count}} ದಿನಗಳು",
+        few: "{{count}} ದಿನಗಳು",
+        many: "{{count}} ದಿನಗಳು",
+        other: "{{count}} ದಿನಗಳು",
+      },
       title: "ನಿರಂತರತೆ",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const knCatalog: TranslationCatalog = {
       snapshot: "ಇತ್ತೀಚಿನ ಸ್ಥಳೀಯ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ತೋರಿಸಲಾಗುತ್ತಿದೆ...",
     },
     media: {
-      privateImage: "ಖಾಸಗಿ ಚಿತ್ರ",
-      privateAttachment: "ಖಾಸಗಿ ಲಗತ್ತು",
       attachmentLabel: "ಲಗತ್ತು",
       audioLabel: "ಆಡಿಯೊ ಲಗತ್ತು",
       imageAlt: "ನಿರ್ವಹಿತ ಚಿತ್ರ",
@@ -1348,23 +1367,14 @@ const knCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} ಬಾಕಿ",
+      toStudy: "{{count}} ಅಧ್ಯಯನಕ್ಕೆ",
       total: "ಒಟ್ಟು {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} ಅಂಕಿಅಂಶಗಳು",
     newDeck: "ಹೊಸ ಡೆಕ್",
     statLabels: {
       cards: {
         one: "ಕಾರ್ಡ್",
         other: "ಕಾರ್ಡ್‌ಗಳು",
-      },
-      new: {
-        one: "ಹೊಸದು",
-        other: "ಹೊಸದು",
-      },
-      reviewed: {
-        one: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
-        other: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
       },
     },
     subtitle: "ಡೆಕ್‌ಗಳು ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರ್‌ಗಳು, ಕಂಟೇನರ್‌ಗಳಲ್ಲ. ಅವು ಟ್ಯಾಗ್‌ಗಳ ಪ್ರಕಾರ ಕಾರ್ಡ್‌ಗಳನ್ನು ಹೊಂದಿಸುತ್ತವೆ.",
@@ -1400,10 +1410,10 @@ const knCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "ಕಾರ್ಡ್‌ಗಳು",
-      due: "ಬಾಕಿ",
       new: "ಹೊಸದು",
       summary: "ಸಾರಾಂಶ",
       title: "ಡೆಕ್ ನಿಯಮಗಳು",
+      toStudy: "ಅಧ್ಯಯನಕ್ಕೆ",
     },
     subtitle: "ಡೆಕ್ ನಿಯಮಗಳು, ಹೊಂದುವ ಕಾರ್ಡ್‌ಗಳು ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ಪ್ರವೇಶ ಸ್ಥಾನವನ್ನು ಪರಿಶೀಲಿಸಿ.",
     subtitles: {

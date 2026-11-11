@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent }
 import {
   ALL_CARDS_REVIEW_FILTER,
   isReviewFilterEqual,
-  makeTagsReviewFilter,
+  normalizeReviewFilter,
   normalizeReviewFilterTags,
   normalizeTagKey,
 } from "../../../appData/domain";
@@ -60,6 +60,8 @@ export type UseReviewFilterMenuResult = Readonly<{
   handleReviewFilterSelect: (optionKey: string, reviewFilter: ReviewFilter) => void;
   hasVisibleReviewFilterChoices: boolean;
   isReviewFilterMenuOpen: boolean;
+  /** The open menu's selection, applied on close; the committed filter while the menu is closed. */
+  menuReviewFilter: ReviewFilter;
   reviewDeckSearchInputRef: React.RefObject<HTMLInputElement | null>;
   reviewDeckSearchText: string;
   reviewFilterListboxId: string;
@@ -101,16 +103,14 @@ function buildReviewDeckFilterMenuItems(
     {
       key: toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
       label: allCardsLabel,
-      reviewFilter: selectedReviewFilter.kind === "allCards"
-        ? makeTagsReviewFilter([])
-        : ALL_CARDS_REVIEW_FILTER,
+      reviewFilter: ALL_CARDS_REVIEW_FILTER,
       subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
     },
     ...(selectedReviewFilter.kind === "catalogImport" ? [{
       key: toReviewFilterMenuItemKey(selectedReviewFilter),
       label: selectedReviewFilter.title,
-      reviewFilter: makeTagsReviewFilter([]),
+      reviewFilter: ALL_CARDS_REVIEW_FILTER,
       subtitle: null,
       isSelected: true,
     }] : []),
@@ -124,7 +124,7 @@ function buildReviewDeckFilterMenuItems(
       return {
         key: toReviewFilterMenuItemKey(deckReviewFilter),
         label: deck.name,
-        reviewFilter: isSelected ? makeTagsReviewFilter([]) : deckReviewFilter,
+        reviewFilter: isSelected ? ALL_CARDS_REVIEW_FILTER : deckReviewFilter,
         subtitle: deckSubtitle,
         isSelected,
       };
@@ -132,68 +132,31 @@ function buildReviewDeckFilterMenuItems(
   ];
 }
 
+// Tag rows reflect only a tag selection: from All cards, a deck or an import, a tag starts a new selection.
 function buildReviewTagFilterMenuItems(
-  deckSummaries: ReadonlyArray<DeckSummary>,
   reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
   selectedReviewFilter: ReviewFilter,
 ): Array<ReviewFilterChoiceMenuItem> {
-  const availableTags = reviewTagSummaries.map((tagSummary) => tagSummary.tag);
-  const materializedTags = resolveMaterializedTags(selectedReviewFilter, deckSummaries, availableTags);
-  const selectedTagKeys = new Set(materializedTags.map((tag) => normalizeTagKey(tag)));
-  const availableTagKeys = new Set(availableTags.map((tag) => normalizeTagKey(tag)));
+  const selectedTags = selectedReviewFilter.kind === "tags"
+    ? normalizeReviewFilterTags(selectedReviewFilter.tags)
+    : [];
+  const selectedTagKeys = new Set(selectedTags.map((tag) => normalizeTagKey(tag)));
 
   return reviewTagSummaries.map((tagSummary) => {
     const tagKey = normalizeTagKey(tagSummary.tag);
     const nextSelectedTags = selectedTagKeys.has(tagKey)
-      ? materializedTags.filter((tag) => normalizeTagKey(tag) !== tagKey)
-      : [...materializedTags, tagSummary.tag];
-    const normalizedNextSelectedTags = normalizeReviewFilterTags(nextSelectedTags);
-    const hasMissingSelectedTag = normalizedNextSelectedTags.some(
-      (tag) => availableTagKeys.has(normalizeTagKey(tag)) === false,
-    );
-    const isEveryAvailableTagSelected = normalizedNextSelectedTags.length === availableTagKeys.size
-      && normalizedNextSelectedTags.every((tag) => availableTagKeys.has(normalizeTagKey(tag)));
-    const reviewFilter = isEveryAvailableTagSelected && hasMissingSelectedTag === false
-      ? ALL_CARDS_REVIEW_FILTER
-      : makeTagsReviewFilter(normalizedNextSelectedTags);
+      ? selectedTags.filter((tag) => normalizeTagKey(tag) !== tagKey)
+      : [...selectedTags, tagSummary.tag];
 
     return {
       key: `${REVIEW_FILTER_TAG_PREFIX}${tagKey}`,
       label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
-      reviewFilter,
+      // Selecting every tag stays a tag selection here; loading the queue canonicalizes it to All cards.
+      reviewFilter: normalizeReviewFilter({ kind: "tags", tags: nextSelectedTags }),
       subtitle: null,
       isSelected: selectedTagKeys.has(tagKey),
     };
   });
-}
-
-function resolveMaterializedTags(
-  selectedReviewFilter: ReviewFilter,
-  deckSummaries: ReadonlyArray<DeckSummary>,
-  availableTags: ReadonlyArray<string>,
-): ReadonlyArray<string> {
-  if (selectedReviewFilter.kind === "allCards") {
-    return normalizeReviewFilterTags(availableTags);
-  }
-
-  if (selectedReviewFilter.kind === "tags") {
-    return normalizeReviewFilterTags(selectedReviewFilter.tags);
-  }
-
-  if (selectedReviewFilter.kind === "catalogImport") {
-    return [];
-  }
-
-  const selectedDeck = deckSummaries.find(
-    (deck) => deck.deckId === selectedReviewFilter.deckId,
-  );
-  if (selectedDeck === undefined) {
-    return [];
-  }
-
-  return selectedDeck.filterDefinition.tags.length === 0
-    ? normalizeReviewFilterTags(availableTags)
-    : normalizeReviewFilterTags(selectedDeck.filterDefinition.tags);
 }
 
 function buildReviewFilterMenuItems(
@@ -323,7 +286,6 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     t("reviewFilterMenu.deckSmartFilterLabel"),
   );
   const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(
-    deckSummaries,
     reviewTagSummaries,
     displayedReviewFilter,
   );
@@ -496,9 +458,15 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
       : "moreActionsTrigger");
   }
 
+  // All cards, an import and decks are a single choice that applies at once; tag rows stay a multi-select draft applied on close.
   function handleReviewFilterSelect(optionKey: string, reviewFilter: ReviewFilter): void {
-    setActiveReviewFilterOptionKey(optionKey);
     reviewFilterDraftRef.current = reviewFilter;
+    if (reviewDeckFilterMenuItems.some((item) => item.key === optionKey)) {
+      closeReviewFilterMenuAndFocusTrigger();
+      return;
+    }
+
+    setActiveReviewFilterOptionKey(optionKey);
     setReviewFilterDraft(reviewFilter);
   }
 
@@ -610,6 +578,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
+    menuReviewFilter: displayedReviewFilter,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
     reviewFilterListboxId: REVIEW_FILTER_LISTBOX_ID,

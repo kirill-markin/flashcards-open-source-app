@@ -68,7 +68,6 @@ import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionRatingT
 import com.flashcardsopensourceapp.feature.review.reaction.stopReviewReactionSlots
 import com.flashcardsopensourceapp.feature.review.onboarding.FirstReviewOnboardingOverlay
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionMotionMode
-import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 
@@ -124,6 +123,9 @@ fun ReviewRoute(
             )
         )
     }
+    var appliedFilterTitle by remember {
+        mutableStateOf<AppliedReviewFilterTitle?>(value = null)
+    }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
     var tagFilterRequest by remember {
         mutableStateOf<ReviewTagFilterRequest?>(value = null)
@@ -168,13 +170,13 @@ fun ReviewRoute(
             null
         }
     }
-    val reviewSpeechFallbackLanguageTag =
-        (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
+    val reviewSpeechFallbackLanguageTag = configuration.locales[0].toLanguageTag()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
+    val reviewSpeechUnavailableMessage = stringResource(R.string.review_speech_unavailable)
     val reviewSpeechController = remember(context, observability) {
         ReviewSpeechController(
             context = context,
-            unavailableMessage = context.getString(R.string.review_speech_unavailable),
+            unavailableMessage = reviewSpeechUnavailableMessage,
             observability = observability
         )
     }
@@ -242,6 +244,31 @@ fun ReviewRoute(
         }
         return true
     }
+    // The loaded session names the previous filter until Room emits the next one, so the title names the choice.
+    fun selectFilterFromSheet(
+        openingWorkspaceId: String,
+        openingSelection: ReviewFilter,
+        selection: ReviewFilter
+    ): Unit {
+        val deckTitle: String? = when (selection) {
+            is ReviewFilter.Deck -> uiState.availableDeckFilters.firstOrNull { deck ->
+                deck.deckId == selection.deckId
+            }?.title
+            else -> ""
+        }
+        appliedFilterTitle = deckTitle?.let { title ->
+            AppliedReviewFilterTitle(
+                uiStateAtSelection = uiState,
+                filter = selection,
+                title = reviewTextProvider(context = context).filterTitle(
+                    selectedFilter = selection,
+                    deckTitle = title
+                )
+            )
+        }
+        onSelectFilter(openingWorkspaceId, openingSelection, selection)
+    }
+
     fun finalizeFilterSheetSelection(): Unit {
         val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
         if (transaction.isVisible.not()) {
@@ -254,10 +281,27 @@ fun ReviewRoute(
         )
         val openingWorkspaceId: String = transaction.workspaceId ?: return
         if (transaction.draftSelection != transaction.openingSelection) {
-            onSelectFilter(
-                openingWorkspaceId,
-                transaction.openingSelection,
-                transaction.draftSelection
+            selectFilterFromSheet(
+                openingWorkspaceId = openingWorkspaceId,
+                openingSelection = transaction.openingSelection,
+                selection = transaction.draftSelection
+            )
+        }
+    }
+
+    // Applies while the sheet is still hiding, so the filter title updates at once.
+    fun applyFilterSheetSelection(selection: ReviewFilter): Unit {
+        val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
+        val openingWorkspaceId: String = transaction.workspaceId ?: return
+        filterSheetTransaction = transaction.copy(
+            openingSelection = selection,
+            draftSelection = selection
+        )
+        if (selection != transaction.openingSelection) {
+            selectFilterFromSheet(
+                openingWorkspaceId = openingWorkspaceId,
+                openingSelection = transaction.openingSelection,
+                selection = selection
             )
         }
     }
@@ -419,6 +463,30 @@ fun ReviewRoute(
         }
     }
 
+    // The sheet's tag rows apply on close, so the title names that draft at once, as a deck choice does.
+    val filterSheetDraft: ReviewFilter = filterSheetTransaction.draftSelection
+    val topBarFilterTitle: String = if (
+        filterSheetTransaction.isVisible
+        && filterSheetTransaction.workspaceId == workspaceId
+        && filterSheetDraft != filterSheetTransaction.openingSelection
+    ) {
+        // A deck choice applies at once, so a draft that differs from the opening selection is never a deck.
+        reviewTextProvider(context = context).filterTitle(
+            selectedFilter = filterSheetDraft,
+            deckTitle = uiState.selectedFilterTitle
+        )
+    } else {
+        appliedFilterTitle?.takeIf { applied ->
+            isAppliedReviewFilterTitleCurrent(applied = applied, uiState = uiState)
+        }?.title ?: uiState.selectedFilterTitle
+    }
+    LaunchedEffect(uiState, appliedFilterTitle) {
+        val applied: AppliedReviewFilterTitle = appliedFilterTitle ?: return@LaunchedEffect
+        if (isAppliedReviewFilterTitleCurrent(applied = applied, uiState = uiState).not()) {
+            appliedFilterTitle = null
+        }
+    }
+
     Scaffold(
         topBar = {
             ReviewTopBar(
@@ -426,7 +494,7 @@ fun ReviewRoute(
                 totalCount = uiState.totalCount,
                 reviewLeaderboardBadge = uiState.reviewLeaderboardBadge,
                 reviewProgressBadge = uiState.reviewProgressBadge,
-                selectedFilterTitle = uiState.selectedFilterTitle,
+                selectedFilterTitle = topBarFilterTitle,
                 onOpenFilter = {
                     if (workspaceId != null && uiState.isLoading.not()) {
                         filterSheetTransaction = openReviewFilterSheetTransaction(
@@ -599,17 +667,11 @@ fun ReviewRoute(
             availableTagFilters = uiState.availableTagFilters,
             areFilterOptionsLoaded = uiState.areFilterOptionsLoaded,
             onDismiss = ::finalizeFilterSheetSelection,
-            onSelectFilter = { nextFilter ->
-                filterSheetTransaction = filterSheetTransaction.copy(
-                    draftSelection = nextFilter
-                )
-            },
+            onApplyFilter = ::applyFilterSheetSelection,
             onToggleTag = { tagName ->
                 val nextFilter = toggleReviewTagFilter(
                     selectedFilter = filterSheetTransaction.draftSelection,
-                    toggledTagName = tagName,
-                    availableDeckFilters = uiState.availableDeckFilters,
-                    availableTagFilters = uiState.availableTagFilters
+                    toggledTagName = tagName
                 )
                 filterSheetTransaction = filterSheetTransaction.copy(
                     draftSelection = nextFilter
@@ -718,4 +780,23 @@ private fun ReviewTagFilterDialog(
             }
         }
     )
+}
+
+private data class AppliedReviewFilterTitle(
+    val uiStateAtSelection: ReviewUiState,
+    val filter: ReviewFilter,
+    val title: String
+)
+
+/**
+ * The title stays while the view model has not emitted since the selection, and then while the requested
+ * filter's session is loading. It is keyed on that load, not on the filters differing, because a resolved
+ * filter may never equal the requested one.
+ */
+private fun isAppliedReviewFilterTitleCurrent(
+    applied: AppliedReviewFilterTitle,
+    uiState: ReviewUiState
+): Boolean {
+    return uiState === applied.uiStateAtSelection
+        || (uiState.requestedFilter == applied.filter && uiState.isRequestedFilterSessionPending)
 }

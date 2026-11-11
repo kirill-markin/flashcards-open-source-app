@@ -555,6 +555,9 @@
 }
 
 .guest-sign-in-control { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Holds the Turnstile iframe (300x65 in managed mode) without a jump while the check loads. */
+.guest-browser-check-widget { display: flex; justify-content: center; min-block-size: 65px; }
+.guest-browser-check-widget[hidden] { display: none; }
 .guest-account-attention-target,
 .review-due-badge-target {
   position: relative;

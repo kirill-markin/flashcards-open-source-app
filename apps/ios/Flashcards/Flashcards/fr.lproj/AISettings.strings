@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "Enregistrer le nom";
 "settings.workspace.overview.workspace" = "Espace de travail";
 "settings.workspace.overview.cards" = "Cartes";
-"settings.workspace.overview.due" = "À réviser";
 "settings.workspace.overview.new" = "Nouvelles";
 "settings.workspace.overview.deleteDescription" = "Supprimez définitivement cet espace de travail ainsi que toutes les cartes, paquets, révisions et l’historique de synchronisation qu’il contient.";
 "settings.workspace.overview.deleteWorkspace" = "Supprimer l’espace de travail";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "Aucun paquet correspondant";
 "settings.workspace.decks.searchPrompt" = "Rechercher des paquets";
 "settings.workspace.decks.newDeck" = "Nouveau paquet";
-"settings.workspace.decks.dueCount" = "%d à réviser";
-"settings.workspace.decks.totalCards" = "%d cartes";
-"settings.workspace.decks.newCount" = "%d nouvelles";
-"settings.workspace.decks.reviewedCount" = "%d révisées";
+"settings.workspace.decks.toStudyCount" = "%d à étudier";
+"settings.workspace.decks.toStudy" = "À étudier";
 "settings.workspace.decks.emptyAllCards" = "Vous n’avez pas encore créé de cartes.";
 "settings.workspace.decks.emptyDeck" = "Ce paquet n’a pas encore de cartes correspondantes.";
 "settings.workspace.decks.section.deckRules" = "Règles du paquet";

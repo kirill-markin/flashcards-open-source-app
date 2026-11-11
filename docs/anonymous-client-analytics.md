@@ -20,7 +20,8 @@ at all. Authenticated clients keep batching through `POST /v1/analytics/events`.
   with their [parser](../apps/backend/src/productAnalytics/browserVersion.ts), and the
   [automated client marker](../db/migrations/0145_anonymous_client_automated_marker.sql) with its
   [code](../apps/backend/src/productAnalytics/automatedClient.ts); the authenticated ingest
-  [stores these four facts too](../db/migrations/0228_app_event_bot_evidence.sql)
+  [stores these four facts too](../db/migrations/0228_app_event_bot_evidence.sql), and
+  [the country](../db/migrations/0240_app_event_request_country.sql)
 - [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
 - The identity a producer sends: [analytics visitor identity](analytics-visitor-identity.md)
 - The facts the catalog install flow reports: [catalog install facts](catalog-install-funnel.md)

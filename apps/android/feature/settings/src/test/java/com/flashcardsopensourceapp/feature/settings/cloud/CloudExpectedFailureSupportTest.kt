@@ -122,7 +122,8 @@ class CloudExpectedFailureSupportTest {
                 errorCode = "WORKSPACE_PACKAGE_EXPORT_PACKAGE_TOTAL_MEDIA_TOO_LARGE",
                 syncConflict = null
             ),
-            fallbackMessage = "Package export failed"
+            fallbackMessage = "Package export failed",
+            ankiEmptyMessage = "No cards to export"
         )
 
         assertEquals("Package export failed", message)

@@ -29,6 +29,7 @@ import { createChatSandboxFunction } from "./chat-sandbox";
 import { createSentrySourceMapInjectionCommand, getDockerSentryCliPath } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
+import { workspaceExportsPrefix } from "../media-assets";
 
 export interface ApiGatewayProps {
   vpc: ec2.Vpc;
@@ -69,6 +70,8 @@ export interface ApiGatewayProps {
   googlePlayBillingConfig: string | undefined;
   stripeBillingSecretArn: string | undefined;
   stripeCheckoutLiveEnabled: boolean;
+  // Undefined keeps the new-browser-guest Turnstile challenge off.
+  guestChallengeSecretName: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
@@ -1070,6 +1073,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     stripeBillingSecret.grantRead(backendFn);
     backendFn.addEnvironment("STRIPE_BILLING_SECRET_ARN", stripeBillingSecret.secretArn);
   }
+  if (hasConfiguredValue(props.guestChallengeSecretName)) {
+    cdk.aws_secretsmanager.Secret.fromSecretNameV2(
+      scope, "GuestChallengeSecret", props.guestChallengeSecretName,
+    ).grantRead(backendFn);
+    // The Lambda environment is capped at 4 KB and this function measured ~3.9 KB without this
+    // value: put new configuration into a secret, not another env var.
+    backendFn.addEnvironment("GUEST_CHALLENGE_SECRET", props.guestChallengeSecretName);
+  }
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
     publicApiOrigin,
@@ -1182,6 +1193,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // configuration. The worker resolves execution settings from the stable
   // ai_cost_mode role, so it can claim runs prepared by the previous API build.
   backendFn.addToRolePolicy(createChatFilesObjectPolicyStatement(props.mediaAssetsBucket));
+  backendFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["s3:GetObject", "s3:PutObject"],
+    resources: [props.mediaAssetsBucket.arnForObjects(workspaceExportsPrefix + "*")],
+  }));
   chatWorkerFn.addToRolePolicy(createChatFilesObjectPolicyStatement(props.mediaAssetsBucket));
   backendFn.node.addDependency(chatWorkerFn);
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);

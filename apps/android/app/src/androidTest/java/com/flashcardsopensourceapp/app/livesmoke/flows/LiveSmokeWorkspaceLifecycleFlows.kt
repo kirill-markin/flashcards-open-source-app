@@ -12,8 +12,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.platform.app.InstrumentationRegistry
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissExternalSystemDialogIfPresent
@@ -107,17 +108,29 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         timeoutMillis = internalUiTimeoutMillis,
         context = "while opening the new workspace name step"
     )
-    composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextInput("$workspaceName new")
+    val expectedNewName = "$workspaceName new"
+    fun enteredNewName(): String? = composeRule.onAllNodesWithTag(currentWorkspaceNewNameFieldTag)
+        .fetchSemanticsNodes()
+        .singleOrNull()
+        ?.config
+        ?.getOrNull(SemanticsProperties.EditableText)
+        ?.text
+
+    clickTag(tag = currentWorkspaceNewNameFieldTag, label = "Workspace name")
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.sendStringSync(expectedNewName)
+    composeRule.waitForIdle()
+    if (enteredNewName() != expectedNewName) {
+        // The modal can drop the first key while its input connection starts.
+        composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextClearance()
+        composeRule.waitForIdle()
+        instrumentation.sendStringSync(expectedNewName)
+    }
     waitUntilWithMitigation(
         timeoutMillis = internalUiTimeoutMillis,
         context = "while verifying the new workspace name before creating it"
     ) {
-        composeRule.onAllNodesWithTag(currentWorkspaceNewNameFieldTag)
-            .fetchSemanticsNodes()
-            .singleOrNull()
-            ?.config
-            ?.getOrNull(SemanticsProperties.EditableText)
-            ?.text == "$workspaceName new"
+        enteredNewName() == expectedNewName
     }
     composeRule.onNodeWithTag(currentWorkspaceChangeSheetListTag).performScrollToNode(
         matcher = hasTestTag(currentWorkspaceNewNameCreateButtonTag)

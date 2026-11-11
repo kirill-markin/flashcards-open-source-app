@@ -104,14 +104,43 @@ private func firstReviewPencilMarks(
     return marks
 }
 
+func firstReviewPencilMarkBounds(_ mark: FirstReviewPencilMark) -> CGRect {
+    let strokeInset = (mark.lineWidth ?? 0) / 2
+    return mark.path.boundingRect.insetBy(dx: -strokeInset, dy: -strokeInset)
+}
+
+func firstReviewPencilMarksBounds(_ marks: [FirstReviewPencilMark]) -> CGRect {
+    marks.reduce(CGRect.null) { bounds, mark in bounds.union(firstReviewPencilMarkBounds(mark)) }
+}
+
 private func firstReviewOutlineTransform(
     marks: [FirstReviewPencilMark], target: CGRect
 ) -> CGAffineTransform {
-    let bounds = marks.reduce(CGRect.null) { bounds, mark in
-        let strokeInset = (mark.lineWidth ?? 0) / 2
-        return bounds.union(mark.path.boundingRect.insetBy(dx: -strokeInset, dy: -strokeInset))
-    }
+    let bounds = firstReviewPencilMarksBounds(marks)
     return CGAffineTransform(translationX: target.midX - bounds.midX, y: target.midY - bounds.midY)
+}
+
+// Ten points contain the widest pencil dab and its contrast rim.
+private let firstReviewArrowInset: CGFloat = 10
+
+private func firstReviewArrowMarks(
+    apex: CGPoint, size: CGSize, wide: Bool, wobble: CGFloat, random: inout FirstReviewPencilRandom
+) -> [FirstReviewPencilMark] {
+    let tailY = max(firstReviewArrowInset + 7, apex.y - 94)
+    let tailX = min(size.width - 25, apex.x + (wide ? 53 : 96))
+    let bendX = max(15, apex.x - (wide ? 28 : 16))
+    let arrow = sampleFirstReviewCubic(
+        CGPoint(x: tailX, y: tailY+wobble), CGPoint(x: bendX+wobble, y: max(firstReviewArrowInset, tailY-7)),
+        CGPoint(x: apex.x, y: max(firstReviewArrowInset, apex.y-33)), apex
+    )
+    var marks = firstReviewPencilMarks(points: arrow, apex: apex, random: &random)
+    for side in [CGFloat(-1), CGFloat(1)] {
+        let angle: CGFloat = side == -1 ? 0.61 : 0.635
+        let length: CGFloat = side == -1 ? 26 : 26-wobble*0.4
+        let leg = CGPoint(x: apex.x+side*length*sin(angle), y: apex.y-length*cos(angle))
+        marks += firstReviewPencilMarks(points: sampleFirstReviewCubic(leg, leg, apex, apex), apex: apex, random: &random)
+    }
+    return marks
 }
 
 func makeFirstReviewOnboardingDrawing(
@@ -124,31 +153,25 @@ func makeFirstReviewOnboardingDrawing(
     let originalOutline = firstReviewOblong(target: target, frame: frame)
     let originalMarks = firstReviewPencilMarks(points: originalOutline, apex: nil, random: &random)
     let transform = firstReviewOutlineTransform(marks: originalMarks, target: target)
-    let outline = originalOutline.map { $0.applying(transform) }
     var marks = originalMarks.map { mark in
         FirstReviewPencilMark(
             path: mark.path.applying(transform), opacity: mark.opacity,
             lineWidth: mark.lineWidth
         )
     }
-    guard let ringTop = outline.filter({ abs($0.x-tipX) < 10 }).map(\.y).min() else { return marks }
-    let apex = CGPoint(x: tipX, y: ringTop - 17.5)
-    // Ten points contain the widest pencil dab and its contrast rim.
-    let arrowInset: CGFloat = 10
-    guard apex.y > arrowInset + 26 else { return marks }
-    let tailY = max(arrowInset + 7, apex.y - 94)
-    let tailX = min(size.width - 25, tipX + (wide ? 53 : 96))
-    let bendX = max(15, tipX - (wide ? 28 : 16))
-    let arrow = sampleFirstReviewCubic(
-        CGPoint(x: tailX, y: tailY+wobble), CGPoint(x: bendX+wobble, y: max(arrowInset, tailY-7)),
-        CGPoint(x: apex.x, y: max(arrowInset, apex.y-33)), apex
+    // The ring's visible outer edge above the tip: its highest dab spanning tipX, plus its contrast rim.
+    let ringDabs = marks.map(firstReviewPencilMarkBounds).filter { $0.minX <= tipX && $0.maxX >= tipX }
+    guard let ringDabTop = ringDabs.map(\.minY).min() else { return marks }
+    let ringEdge = ringDabTop - firstReviewPencilContrastWidth / 2
+    // The tip's dabs and contrast rim reach below the apex; a probe on a copy of the random
+    // stream measures that reach so the final tip's visible edge meets the ring's edge.
+    var probeRandom = random
+    let probe = firstReviewArrowMarks(
+        apex: CGPoint(x: tipX, y: ringEdge), size: size, wide: wide, wobble: wobble, random: &probeRandom
     )
-    marks += firstReviewPencilMarks(points: arrow, apex: apex, random: &random)
-    for side in [CGFloat(-1), CGFloat(1)] {
-        let angle: CGFloat = side == -1 ? 0.61 : 0.635
-        let length: CGFloat = side == -1 ? 26 : 26-wobble*0.4
-        let leg = CGPoint(x: apex.x+side*length*sin(angle), y: apex.y-length*cos(angle))
-        marks += firstReviewPencilMarks(points: sampleFirstReviewCubic(leg, leg, apex, apex), apex: apex, random: &random)
-    }
+    let tipReach = firstReviewPencilMarksBounds(probe).maxY + firstReviewPencilContrastWidth / 2 - ringEdge
+    let apex = CGPoint(x: tipX, y: ringEdge - tipReach)
+    guard apex.y > firstReviewArrowInset + 26 else { return marks }
+    marks += firstReviewArrowMarks(apex: apex, size: size, wide: wide, wobble: wobble, random: &random)
     return marks
 }

@@ -20,6 +20,15 @@ export const zhHansCatalog = {
     aiRecordingDecodeFailed: "此浏览器无法解码麦克风音频（{{format}}）。",
     recovery: "访客访问尚未验证。缓存的卡片仅供阅读。请恢复原会话或重新连接后重试。",
     cleanupFailed: "登录成功，但无法删除演示卡片。",
+    browserCheck: {
+      title: "正在检查你的浏览器",
+      description: "在打开访客工作区之前，Cloudflare 会确认这是一个普通浏览器。通常只需几秒钟。",
+      loading: "正在加载检查...",
+      verifying: "正在打开你的工作区...",
+      loadFailed: "无法加载检查。请检查网络连接，在内容拦截器中允许 challenges.cloudflare.com，然后重试。",
+      failed: "检查未通过。请重试，或改为登录。",
+      rejected: "检查未被接受。请再完成一次。",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ export const zhHansCatalog = {
     loading: "正在加载...",
     never: "从不",
     newItem: "新建",
+    image: "图片",
     noBackText: "无背面文本",
     noTags: "无标签",
     notRevoked: "未撤销",
@@ -427,8 +437,12 @@ export const zhHansCatalog = {
       offlineEmpty: "离线时连续学习排行榜不可用。联网后即可查看排名。",
       unavailable: "连续学习排行榜暂时不可用。请稍后再来看看。",
       dayLabels: {
-        one: "天",
-        other: "天",
+        zero: "{{count}}天",
+        one: "{{count}}天",
+        two: "{{count}}天",
+        few: "{{count}}天",
+        many: "{{count}}天",
+        other: "{{count}}天",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ export const zhHansCatalog = {
     sessionRestoringActionLocked: "正在恢复会话。请稍后再试。",
     sessionUnavailable: "会话不可用",
     syncing: "正在同步...",
+    syncFailed: "同步失败",
     workspaceUnavailable: "工作区不可用",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ export const zhHansCatalog = {
       yourCards: "你的卡片",
       addCards: "添加卡片",
     },
-    cards: {
-      description: "此工作区中的所有卡片。",
-    },
-    tags: {
-      description: "至少用于一张卡片的所有标签。",
-    },
-    decks: {
-      description: "为专注复习保存的卡片筛选条件。",
-    },
     deckCatalog: {
       title: "牌组目录",
       description: "可直接学习的免费现成牌组。",
@@ -860,16 +866,18 @@ export const zhHansCatalog = {
     note: "这些设置只会影响未来的调度。现有卡片状态仍然是权威来源。",
   },
   workspaceExport: {
-    title: "导出",
+    title: "导出 Nibomo 包",
+    ankiTitle: "导出 Anki 牌组",
     subtitle: "下载此工作区的可移植包。",
     workspaceUnavailable: "工作区不可用",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "牌组名称",
+    ankiEmptySelection: "没有可导出的卡片。请更改所选标签或添加卡片。",
     packageDescription: "下载前预览活动卡片、元数据、标签和引用的媒体。",
-    packageExportSuccess: "已开始下载 flashcards.zip。",
+    packageExportSuccess: "已开始下载 {{filename}}。",
     packageExporting: "正在下载...",
     packagePreviewing: "正在预览...",
     packageExportPreviewButton: "预览导出",
-    packageExportConfirmButton: "下载 flashcards.zip",
+    packageExportConfirmButton: "下载 {{filename}}",
     packageExportPreviewRequired: "下载前请先预览此导出。",
     previewCardsLabel: "卡片",
     previewReferencedMediaLabel: "引用的媒体",
@@ -1124,6 +1132,10 @@ export const zhHansCatalog = {
     aiOpenAriaLabel: "在 AI 聊天中打开{{side}}卡片",
     repetitionBadgeAriaLabel: "复习次数：{{value}}",
     repetitionBadgeNew: "新卡",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "更多标签：{{count}}",
+    },
     empty: {
       noCardsBody: "您还没有创建任何卡片。添加第一张卡片即可开始学习。",
       noCardsTitle: "还没有卡片",
@@ -1135,16 +1147,25 @@ export const zhHansCatalog = {
     errors: {
       mathRenderFailed: "无法呈现公式。",
       schedulerUnavailable: "工作区调度器设置尚未加载",
+      storageFull: "请释放此设备上的存储空间，然后重新给卡片评分。",
     },
     leaderboardShortcut: {
       ariaLabel: "打开排行榜",
     },
     progressBadge: {
-      ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。{{freezeBank}}。",
-      reviewAriaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。",
+      ariaLabel: "复习连续 {{streak}}。{{todayStatus}}。{{freezeBank}}。",
+      reviewAriaLabel: "复习连续 {{streak}}。{{todayStatus}}。",
       freezeBank: "冻结额度 {{available}} / {{capacity}}",
       notReviewedToday: "今天还没复习",
       reviewedToday: "今天已复习",
+      streakDayCount: {
+        zero: "{{count}}天",
+        one: "{{count}}天",
+        two: "{{count}}天",
+        few: "{{count}}天",
+        many: "{{count}}天",
+        other: "{{count}}天",
+      },
       title: "连续",
     },
     interval: {
@@ -1158,8 +1179,6 @@ export const zhHansCatalog = {
       snapshot: "正在显示最近的本地快照...",
     },
     media: {
-      privateImage: "私密图片",
-      privateAttachment: "私密附件",
       attachmentLabel: "附件",
       audioLabel: "音频附件",
       imageAlt: "托管图片",
@@ -1348,23 +1367,14 @@ export const zhHansCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} 到期",
+      toStudy: "{{count}} 待学习",
       total: "共 {{count}} 条",
     },
-    emptyStatsAriaLabel: "{{deckName}} 统计",
     newDeck: "新建牌组",
     statLabels: {
       cards: {
         one: "卡片",
         other: "卡片",
-      },
-      new: {
-        one: "新建",
-        other: "新建",
-      },
-      reviewed: {
-        one: "已复习",
-        other: "已复习",
       },
     },
     subtitle: "牌组是智能筛选器，不是容器。它们会按标签匹配卡片。",
@@ -1400,10 +1410,10 @@ export const zhHansCatalog = {
     },
     rules: {
       cards: "卡片",
-      due: "到期",
       new: "新建",
       summary: "摘要",
       title: "牌组规则",
+      toStudy: "待学习",
     },
     subtitle: "查看牌组规则、匹配的卡片以及复习入口。",
     subtitles: {

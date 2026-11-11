@@ -6,6 +6,7 @@ import {
   normalizeError,
 } from "../live-smoke.diagnostics";
 import { liveSmokeBrowserLocale, liveSmokeEnvironment, reviewEmail } from "./config";
+import { addGuestChallengeBypass } from "./guestChallengeBypass";
 import { buildScenario, runIdFromClock } from "./scenario";
 import { enableTestSeedBridge } from "./seedBridge";
 import type { LiveSmokeSession } from "./types";
@@ -47,6 +48,7 @@ export const test = base.extend<LiveSmokeTestFixtures, LiveSmokeWorkerFixtures>(
     });
     await enableTestSeedBridge(context);
     await grantAnalyticsConsentForSmoke(context);
+    await addGuestChallengeBypass(context);
     const page = await context.newPage();
     const diagnostics = createLiveSmokeDiagnostics(page);
     const liveSmokeSession: LiveSmokeSession = {

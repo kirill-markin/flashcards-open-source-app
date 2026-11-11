@@ -20,6 +20,15 @@ const ltCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ši naršyklė negalėjo iškoduoti mikrofono garso ({{format}}).",
     recovery: "Svečio prieiga nepatvirtinta. Podėlyje esančias korteles galima tik skaityti. Atkurkite pradinį seansą arba ryšį ir bandykite dar kartą.",
     cleanupFailed: "Prisijungta, bet nepavyko pašalinti demonstracinės kortelės.",
+    browserCheck: {
+      title: "Tikrinama jūsų naršyklė",
+      description: "Prieš atidarant svečio darbo sritį, Cloudflare patvirtina, kad tai įprasta naršyklė. Paprastai tai trunka kelias sekundes.",
+      loading: "Įkeliamas patikrinimas...",
+      verifying: "Atidaroma jūsų darbo sritis...",
+      loadFailed: "Nepavyko įkelti patikrinimo. Patikrinkite ryšį, turinio blokavimo priemonėje leiskite challenges.cloudflare.com ir bandykite dar kartą.",
+      failed: "Patikrinimas nepavyko. Bandykite dar kartą arba prisijunkite.",
+      rejected: "Patikrinimas nepriimtas. Atlikite jį dar kartą.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ const ltCatalog: TranslationCatalog = {
     loading: "Įkeliama...",
     never: "Niekada",
     newItem: "nauja",
+    image: "Vaizdas",
     noBackText: "Kitoje pusėje teksto nėra",
     noTags: "Žymų nėra",
     notRevoked: "Neatšaukta",
@@ -434,9 +444,12 @@ const ltCatalog: TranslationCatalog = {
       offlineEmpty: "Serijų lyderių lentelė nepasiekiama neprisijungus. Vėl prisijunkite, kad matytumėte vietas.",
       unavailable: "Serijų lyderių lentelė šiuo metu nepasiekiama. Patikrinkite vėliau.",
       dayLabels: {
-        one: "d.",
-        few: "d.",
-        other: "d.",
+        zero: "{{count}} dienų",
+        one: "{{count}} diena",
+        two: "{{count}} dienų",
+        few: "{{count}} dienos",
+        many: "{{count}} dienų",
+        other: "{{count}} dienų",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ const ltCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Atkuriama sesija. Netrukus bandykite dar kartą.",
     sessionUnavailable: "Sesija nepasiekiama",
     syncing: "Sinchronizuojama...",
+    syncFailed: "Sinchronizavimas nepavyko",
     workspaceUnavailable: "Darbo sritis nepasiekiama",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ const ltCatalog: TranslationCatalog = {
       yourCards: "Jūsų kortelės",
       addCards: "Pridėti korteles",
     },
-    cards: {
-      description: "Visos šios darbo srities kortelės.",
-    },
-    tags: {
-      description: "Visos žymos, naudojamos bent vienoje kortelėje.",
-    },
-    decks: {
-      description: "Išsaugoti kortelių filtrai susitelkusiam kartojimui.",
-    },
     deckCatalog: {
       title: "Kaladžių katalogas",
       description: "Nemokamos paruoštos kaladės mokytis.",
@@ -869,16 +874,18 @@ const ltCatalog: TranslationCatalog = {
     note: "Šie nustatymai veikia tik būsimą planavimą. Esama kortelių būsena lieka lemiama.",
   },
   workspaceExport: {
-    title: "Eksportuoti",
+    title: "Eksportuoti „Nibomo“ paketą",
+    ankiTitle: "Eksportuoti „Anki“ kortelių rinkinį",
     subtitle: "Atsisiųskite perkeliamą šios darbo srities paketą.",
     workspaceUnavailable: "Darbo sritis nepasiekiama",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Kortelių rinkinio pavadinimas",
+    ankiEmptySelection: "Nėra kortelių, kurias galima eksportuoti. Pakeiskite pasirinktas žymas arba pridėkite kortelių.",
     packageDescription: "Prieš atsisiųsdami peržiūrėkite aktyvias korteles, metaduomenis, žymas ir nurodytą mediją.",
-    packageExportSuccess: "flashcards.zip atsisiuntimas pradėtas.",
+    packageExportSuccess: "{{filename}} atsisiuntimas pradėtas.",
     packageExporting: "Atsisiunčiama...",
     packagePreviewing: "Ruošiama peržiūra...",
     packageExportPreviewButton: "Peržiūrėti eksportą",
-    packageExportConfirmButton: "Atsisiųsti flashcards.zip",
+    packageExportConfirmButton: "Atsisiųsti {{filename}}",
     packageExportPreviewRequired: "Prieš atsisiųsdami peržiūrėkite šį eksportą.",
     previewCardsLabel: "Kortelės",
     previewReferencedMediaLabel: "Nurodyta medija",
@@ -1134,6 +1141,10 @@ const ltCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Atidaryti kortelę DI pokalbyje: {{side}}",
     repetitionBadgeAriaLabel: "Pakartojimai: {{value}}",
     repetitionBadgeNew: "Nauja",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Daugiau žymų: {{count}}",
+    },
     empty: {
       noCardsBody: "Dar nesukūrėte nė vienos kortelės. Pridėkite pirmąją, kad pradėtumėte mokytis.",
       noCardsTitle: "Kortelių dar nėra",
@@ -1145,16 +1156,25 @@ const ltCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nepavyko atvaizduoti formulės.",
       schedulerUnavailable: "Darbo srities planuoklio nustatymai neįkelti",
+      storageFull: "Atlaisvinkite vietos šio įrenginio saugykloje ir įvertinkite kortelę dar kartą.",
     },
     leaderboardShortcut: {
       ariaLabel: "Atidaryti lyderių lentelę",
     },
     progressBadge: {
-      ariaLabel: "Kartojimo serija, dienų: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Kartojimo serija, dienų: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Kartojimo serija: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Kartojimo serija: {{streak}}. {{todayStatus}}.",
       freezeBank: "Serijos apsaugų atsargoje: {{available}} iš {{capacity}}",
       notReviewedToday: "Šiandien nekartota",
       reviewedToday: "Šiandien pakartota",
+      streakDayCount: {
+        zero: "{{count}} dienų",
+        one: "{{count}} diena",
+        two: "{{count}} dienų",
+        few: "{{count}} dienos",
+        many: "{{count}} dienų",
+        other: "{{count}} dienų",
+      },
       title: "Serija",
     },
     interval: {
@@ -1168,8 +1188,6 @@ const ltCatalog: TranslationCatalog = {
       snapshot: "Rodoma naujausia vietinė momentinė kopija...",
     },
     media: {
-      privateImage: "Privatus vaizdas",
-      privateAttachment: "Privatus priedas",
       attachmentLabel: "Priedas",
       audioLabel: "Garso priedas",
       imageAlt: "Tvarkomas paveikslėlis",
@@ -1358,26 +1376,15 @@ const ltCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Kartoti: {{count}}",
+      toStudy: "Mokytis: {{count}}",
       total: "Iš viso: {{count}}",
     },
-    emptyStatsAriaLabel: "Kaladės {{deckName}} statistika",
     newDeck: "Nauja kaladė",
     statLabels: {
       cards: {
         one: "kortelė",
         few: "kortelės",
         other: "kortelių",
-      },
-      new: {
-        one: "nauja",
-        few: "naujos",
-        other: "naujų",
-      },
-      reviewed: {
-        one: "pakartota",
-        few: "pakartotos",
-        other: "pakartotų",
       },
     },
     subtitle: "Kaladės yra išmanieji filtrai, o ne talpyklos. Jos atrenka korteles pagal žymas.",
@@ -1413,10 +1420,10 @@ const ltCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kortelės",
-      due: "Laikas kartoti",
       new: "Naujos",
       summary: "Santrauka",
       title: "Kaladės taisyklės",
+      toStudy: "Mokytis",
     },
     subtitle: "Peržiūrėkite kaladės taisykles, atitinkančias korteles ir kartojimo pradžios tašką.",
     subtitles: {

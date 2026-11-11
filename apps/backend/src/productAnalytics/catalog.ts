@@ -3,7 +3,7 @@ import { validateIanaTimeZone } from "../progress/timeZone";
 
 // The product analytics contract. Every client mirrors this file by hand and the server
 // rejects anything that is not declared here, which is what keeps event_properties free of
-// personal data, outside the two exceptions below, and therefore safe to keep after an account is
+// personal data, outside the exceptions below, and therefore safe to keep after an account is
 // anonymized. A string property must
 // declare a bounded format and not merely a length cap: a length-capped free-text property would be
 // a client-controlled channel into a column that is retained indefinitely and that account
@@ -22,6 +22,12 @@ import { validateIanaTimeZone } from "../progress/timeZone";
 // the owner: they are free text bounded only by length, so whatever a link carries is stored, a
 // personal detail an email tool wrote into a tag included. See
 // `productAnalyticsSiteCampaignTextPattern` below.
+//
+// The raw browser values on web `app_opened` and `site_page_viewed` are the third, taken knowingly
+// by the owner: `webgl_renderer` is bounded only to printable ASCII and a length, and together they
+// describe one device closely. Account deletion removes them from event_properties on the rows of
+// the account and the guests linked to it (../auth/accountDeletion.ts). A credential-free site row
+// carries no account, so it keeps its raw values, the way it keeps its country.
 //
 // schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
 // across the revision that retired the session and onboarding events and added the fact-shaped
@@ -115,6 +121,16 @@ const productAnalyticsSiteCampaignTextPattern = /^(?!\s)[^\p{Cc}\p{Cs}]*(?<!\s)$
 // one that way refuses the whole event rather than just the property.
 const productAnalyticsSiteLanguageTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2}$/u;
 
+// The browser signals both the web app and the marketing site report, described beside
+// `site_page_viewed` below. The renderer is the string the browser reports for its GPU, which runs
+// past `productAnalyticsPropertyStringMaxLength` on some GPUs, so it carries its own length bound.
+// The language list is `navigator.languages` joined by commas, in the browser's own spelling.
+export const productAnalyticsBrowserWebglRendererMaxLength = 256;
+export const productAnalyticsBrowserWebglRendererPattern = /^[\x20-\x7E]+$/u;
+export const productAnalyticsBrowserLanguagesPattern = /^[A-Za-z0-9-]+(?:,[A-Za-z0-9-]+)*$/u;
+const productAnalyticsBrowserAutomationValues = ["webdriver", "none"] as const;
+const productAnalyticsScreenWidthBuckets = ["xs", "sm", "md", "lg", "xl", "xxl"] as const;
+
 // The normalized public-catalog search text, the exception named at the top of this file. Bounded to
 // lowercase letters, caseless letters, modifier letters, non-spacing and spacing marks, digits,
 // spaces and hyphens within 64 characters, and with neither end a space nor a hyphen. Marks and
@@ -173,6 +189,20 @@ const productAnalyticsSiteAppEntryProperties = {
 // nudge, `strict_reminder` the streak reminder; the web app schedules neither and reports no
 // notification fact at all.
 const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"] as const;
+
+// The Home Screen and Lock Screen widget kinds, shared by `widget_opened` and `widget_placement_changed`.
+const productAnalyticsWidgetKinds = [
+  "review",
+  "activity",
+  "year",
+  "today",
+  "lock_screen",
+  "reviews_chart",
+  "streaks",
+  "month_calendar",
+  "coming_up",
+  "dashboard",
+] as const;
 
 // The vocabularies the server-derived billing facts report. Each mirrors whatever owns it: the tier
 // catalogue in apps/backend/src/billing/tiers.ts, the resolved status and source in
@@ -452,12 +482,13 @@ export const productAnalyticsPlatforms = [
 ] as const;
 
 // The device a client runs on, reported beside `platform` rather than folded into it: `platform`
-// names the client build, so the Apple client reports `ios` on an iPhone, an iPad and a Mac alike, and
-// these two facts are what tell them apart. The web client reports neither.
+// names the client build, so the Apple client reports `ios` on an iPhone, an iPad, a Mac and an Apple
+// Watch alike, and these two facts are what tell them apart. The web client reports neither.
 export const productAnalyticsOsNames = [
   "ios",
   "ipados",
   "macos",
+  "watchos",
   "android",
 ] as const;
 
@@ -466,6 +497,7 @@ export const productAnalyticsDeviceTypes = [
   "tablet",
   "desktop",
   "tv",
+  "watch",
 ] as const;
 
 export type ProductAnalyticsSurface = (typeof productAnalyticsSurfaces)[number];
@@ -554,7 +586,8 @@ type ProductAnalyticsPropertySpec =
   (
     | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
     // pattern is required, so a string property that would accept unbounded free text cannot compile.
-    | Readonly<{ kind: "string"; pattern: RegExp }>
+    // maxLength replaces `productAnalyticsPropertyStringMaxLength` for a value that is longer.
+    | Readonly<{ kind: "string"; pattern: RegExp; maxLength?: number }>
     // The exact link a button or QR code carried at the moment of the event, query string included,
     // so the fact stays true after the link changes in code.
     | Readonly<{ kind: "url"; hosts: ReadonlyArray<string> }>
@@ -625,6 +658,33 @@ type ProductAnalyticsEventSpec = ProductAnalyticsEventSpecIdentity &
     | Readonly<{ serverOnly: false; requiresScreen: boolean }>
   );
 
+const productAnalyticsBrowserRawSignalProperties = {
+  webgl_renderer: {
+    kind: "string",
+    pattern: productAnalyticsBrowserWebglRendererPattern,
+    maxLength: productAnalyticsBrowserWebglRendererMaxLength,
+    optional: true,
+  },
+  hardware_concurrency: { kind: "nonNegativeInteger", optional: true },
+  browser_languages: { kind: "string", pattern: productAnalyticsBrowserLanguagesPattern, optional: true },
+  window_inner_width: { kind: "nonNegativeInteger", optional: true },
+  window_inner_height: { kind: "nonNegativeInteger", optional: true },
+  window_outer_width: { kind: "nonNegativeInteger", optional: true },
+  window_outer_height: { kind: "nonNegativeInteger", optional: true },
+  plugin_count: { kind: "nonNegativeInteger", optional: true },
+} as const satisfies Readonly<Record<string, ProductAnalyticsPropertySpec>>;
+
+const productAnalyticsBrowserSignalProperties = {
+  automation: { kind: "enum", values: productAnalyticsBrowserAutomationValues, optional: true },
+  screen_width_bucket: { kind: "enum", values: productAnalyticsScreenWidthBuckets, optional: true },
+  ...productAnalyticsBrowserRawSignalProperties,
+} as const satisfies Readonly<Record<string, ProductAnalyticsPropertySpec>>;
+
+// The raw browser values account deletion removes from event_properties.
+export const productAnalyticsBrowserRawSignalPropertyNames = Object.keys(
+  productAnalyticsBrowserRawSignalProperties,
+) as ReadonlyArray<keyof typeof productAnalyticsBrowserRawSignalProperties>;
+
 export const productAnalyticsEventCatalog = {
   app_opened: {
     serverOnly: false,
@@ -636,6 +696,10 @@ export const productAnalyticsEventCatalog = {
       // required so "we do not know" is a stored fact rather than an absent key that a reader
       // cannot tell apart from a client that failed to send one.
       launch_type: { kind: "enum", values: ["cold", "warm", "unknown"] },
+      // The browser signals described beside `site_page_viewed`. Only the web app sends them, and
+      // they are optional because the iOS and Android apps send none and a browser omits any value
+      // it cannot read; the zone is the row's `timezone` column here.
+      ...productAnalyticsBrowserSignalProperties,
     },
   },
   screen_viewed: {
@@ -1127,12 +1191,39 @@ export const productAnalyticsEventCatalog = {
       notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
     },
   },
-  // A launch from the Home Screen widget, its own name for the reason given for `notification_opened`.
+  // A launch from a Home Screen or Lock Screen widget, its own name for the reason given for
+  // `notification_opened`. Clients released before `widget_kind` existed omit it, and every tap they
+  // send came from the Review widget.
   widget_opened: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      widget_size: { kind: "enum", values: ["small", "medium", "large"] },
+      widget_kind: { kind: "enum", values: productAnalyticsWidgetKinds, optional: true },
+      widget_size: {
+        kind: "enum",
+        values: ["small", "medium", "large", "accessory_circular", "accessory_rectangular", "accessory_inline"],
+      },
+    },
+  },
+  // A stock reported on change: the widgets of one kind placed on this installation, by size, sent
+  // on a foreground only when that kind's counts differ from its last report. The Review kind's
+  // first report, and the first after a cloud identity reset, is its current state, zeros included;
+  // a kind never reported counts as all zeros, and all zeros means every widget of it was removed.
+  // Clients released before `widget_kind` existed omit it and counted Review widgets only. The
+  // accessory counts come with `lock_screen` alone, whose small, medium and large are 0. Whether a
+  // person has a widget on a day is read from the latest row at or before that day's end for each
+  // kind on each of their anonymous_ids.
+  widget_placement_changed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      widget_kind: { kind: "enum", values: productAnalyticsWidgetKinds, optional: true },
+      small_count: { kind: "nonNegativeInteger" },
+      medium_count: { kind: "nonNegativeInteger" },
+      large_count: { kind: "nonNegativeInteger" },
+      accessory_circular_count: { kind: "nonNegativeInteger", optional: true },
+      accessory_rectangular_count: { kind: "nonNegativeInteger", optional: true },
+      accessory_inline_count: { kind: "nonNegativeInteger", optional: true },
     },
   },
   card_create_started: {
@@ -1912,6 +2003,14 @@ export const productAnalyticsEventCatalog = {
   // xs <480, sm 480-767, md 768-1023, lg 1024-1439, xl 1440-1919, xxl >=1920. They are optional
   // because the site bundles already released send none of them, and the zone stays here rather than
   // in the row's `timezone` column, which the collector leaves NULL.
+  //
+  // The raw values in `productAnalyticsBrowserRawSignalProperties` help the same way and are
+  // optional for the same reason: the unmasked WebGL renderer (`UNMASKED_RENDERER_WEBGL` from
+  // `WEBGL_debug_renderer_info`), `navigator.hardwareConcurrency`, `navigator.languages`,
+  // `window.innerWidth`/`innerHeight`/`outerWidth`/`outerHeight` rounded to integers, and
+  // `navigator.plugins.length`. A browser leaves out any value it cannot read or that does not fit.
+  // Headless signs such as a software renderer, no plugins, or a zero or equal inner and outer window
+  // are read from these values at query time and are not stored apart from them.
   site_page_viewed: {
     serverOnly: false,
     requiresScreen: false,
@@ -1928,8 +2027,7 @@ export const productAnalyticsEventCatalog = {
       utm_content: { kind: "campaignText", optional: true },
       utm_term: { kind: "campaignText", optional: true },
       time_zone: { kind: "timeZone", optional: true },
-      automation: { kind: "enum", values: ["webdriver", "none"], optional: true },
-      screen_width_bucket: { kind: "enum", values: ["xs", "sm", "md", "lg", "xl", "xxl"], optional: true },
+      ...productAnalyticsBrowserSignalProperties,
     },
   },
   // A marketing site page was read rather than only loaded: it was visible for at least 10 seconds in
@@ -2017,14 +2115,13 @@ export const productAnalyticsEventCatalog = {
   // `device_category` with the app-entry click value for value, so the two clicks compare directly on
   // those, while `target` names a different destination space and the two are disjoint on it by
   // design. It does not hold the app-entry map either: that map is shared only by the app-entry
-  // click and its impression half, and this event has no impression half. `target` is an enum of one
-  // because the site has exactly one such destination today, and naming it keeps the property set
-  // from changing shape the day a second internal destination appears.
+  // click and its impression half, and this event has no impression half. `target` names the
+  // internal destination: the localized home page (`home`) or the MCP page (`mcp`).
   site_internal_cta_clicked: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      target: { kind: "enum", values: ["home"] },
+      target: { kind: "enum", values: ["home", "mcp"] },
       page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
       placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
       source: { kind: "enum", values: productAnalyticsSiteSources },
@@ -2437,7 +2534,7 @@ function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
       .regex(productAnalyticsSiteCampaignTextPattern);
   }
 
-  return z.string().min(1).max(productAnalyticsPropertyStringMaxLength).regex(spec.pattern);
+  return z.string().min(1).max(spec.maxLength ?? productAnalyticsPropertyStringMaxLength).regex(spec.pattern);
 }
 
 function createPropertySchema(spec: ProductAnalyticsPropertySpec) {

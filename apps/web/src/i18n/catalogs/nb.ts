@@ -20,6 +20,15 @@ const nbCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Denne nettleseren kunne ikke dekode mikrofonlyden ({{format}}).",
     recovery: "Gjestetilgangen er ikke bekreftet. Bufrede kort er skrivebeskyttet. Gjenopprett den opprinnelige økten eller tilkoblingen og prøv igjen.",
     cleanupFailed: "Innloggingen lyktes, men demokortet kunne ikke fjernes.",
+    browserCheck: {
+      title: "Sjekker nettleseren din",
+      description: "Før gjestearbeidsområdet åpnes, bekrefter Cloudflare at dette er en vanlig nettleser. Det tar vanligvis noen sekunder.",
+      loading: "Laster inn sjekken...",
+      verifying: "Åpner arbeidsområdet ditt...",
+      loadFailed: "Sjekken kunne ikke lastes inn. Sjekk tilkoblingen, tillat challenges.cloudflare.com i eventuell innholdsblokkering, og prøv igjen.",
+      failed: "Sjekken ble ikke bestått. Prøv igjen, eller logg på i stedet.",
+      rejected: "Sjekken ble ikke godtatt. Fullfør den én gang til.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const nbCatalog: TranslationCatalog = {
     loading: "Laster inn...",
     never: "Aldri",
     newItem: "nytt",
+    image: "Bilde",
     noBackText: "Ingen baksidetekst",
     noTags: "Ingen tagger",
     notRevoked: "Ikke tilbakekalt",
@@ -427,8 +437,12 @@ const nbCatalog: TranslationCatalog = {
       offlineEmpty: "Ledertavlen for rekker er ikke tilgjengelig uten nett. Koble til igjen for å se plasseringene.",
       unavailable: "Ledertavlen for rekker er ikke tilgjengelig akkurat nå. Prøv igjen senere.",
       dayLabels: {
-        one: "dag",
-        other: "dager",
+        zero: "{{count}} dager",
+        one: "{{count}} dag",
+        two: "{{count}} dager",
+        few: "{{count}} dager",
+        many: "{{count}} dager",
+        other: "{{count}} dager",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const nbCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Gjenoppretter økten. Prøv igjen om et øyeblikk.",
     sessionUnavailable: "Økten er utilgjengelig",
     syncing: "Synkroniserer...",
+    syncFailed: "Synkronisering mislyktes",
     workspaceUnavailable: "Arbeidsområdet er utilgjengelig",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const nbCatalog: TranslationCatalog = {
       yourCards: "Kortene dine",
       addCards: "Legg til kort",
     },
-    cards: {
-      description: "Alle kort i dette arbeidsområdet.",
-    },
-    tags: {
-      description: "Alle tagger som brukes på minst ett kort.",
-    },
-    decks: {
-      description: "Lagrede kortfiltre for fokusert repetisjon.",
-    },
     deckCatalog: {
       title: "Katalog med kortstokker",
       description: "Gratis ferdige kortstokker å studere.",
@@ -860,16 +866,18 @@ const nbCatalog: TranslationCatalog = {
     note: "Disse innstillingene påvirker bare fremtidig planlegging. Tilstanden kortene har i dag, gjelder fortsatt.",
   },
   workspaceExport: {
-    title: "Eksport",
+    title: "Eksporter Nibomo-pakke",
+    ankiTitle: "Eksporter Anki-kortstokk",
     subtitle: "Last ned en flyttbar pakke for dette arbeidsområdet.",
     workspaceUnavailable: "Arbeidsområdet er utilgjengelig",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Navn på kortstokken",
+    ankiEmptySelection: "Ingen kort å eksportere. Velg andre tagger eller legg til kort.",
     packageDescription: "Forhåndsvis aktive kort, metadata, tagger og medier det vises til, før du laster ned.",
-    packageExportSuccess: "Nedlastingen av flashcards.zip er startet.",
+    packageExportSuccess: "Nedlastingen av {{filename}} er startet.",
     packageExporting: "Laster ned...",
     packagePreviewing: "Forhåndsviser...",
     packageExportPreviewButton: "Forhåndsvis eksporten",
-    packageExportConfirmButton: "Last ned flashcards.zip",
+    packageExportConfirmButton: "Last ned {{filename}}",
     packageExportPreviewRequired: "Forhåndsvis denne eksporten før du laster ned.",
     previewCardsLabel: "Kort",
     previewReferencedMediaLabel: "Medier det vises til",
@@ -1124,6 +1132,10 @@ const nbCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Åpne kortsiden ({{side}}) i AI-chatten",
     repetitionBadgeAriaLabel: "Repetisjoner: {{value}}",
     repetitionBadgeNew: "Nytt",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Flere tagger: {{count}}",
+    },
     empty: {
       noCardsBody: "Du har ikke laget noen kort ennå. Legg til det første kortet for å komme i gang.",
       noCardsTitle: "Ingen kort ennå",
@@ -1135,16 +1147,25 @@ const nbCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formelen kunne ikke vises.",
       schedulerUnavailable: "Planleggerinnstillingene for arbeidsområdet er ikke lastet inn",
+      storageFull: "Frigjør lagringsplass på denne enheten, og vurder kortet på nytt.",
     },
     leaderboardShortcut: {
       ariaLabel: "Åpne ledertavlen",
     },
     progressBadge: {
-      ariaLabel: "Repetisjonsrekke {{streak}} dager. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Repetisjonsrekke {{streak}} dager. {{todayStatus}}.",
+      ariaLabel: "Repetisjonsrekke {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Repetisjonsrekke {{streak}}. {{todayStatus}}.",
       freezeBank: "Frysebank {{available}} av {{capacity}}",
       notReviewedToday: "Ikke repetert i dag",
       reviewedToday: "Repetert i dag",
+      streakDayCount: {
+        zero: "{{count}} dager",
+        one: "{{count}} dag",
+        two: "{{count}} dager",
+        few: "{{count}} dager",
+        many: "{{count}} dager",
+        other: "{{count}} dager",
+      },
       title: "Rekke",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const nbCatalog: TranslationCatalog = {
       snapshot: "Viser et nylig lokalt øyeblikksbilde...",
     },
     media: {
-      privateImage: "Privat bilde",
-      privateAttachment: "Privat vedlegg",
       attachmentLabel: "Vedlegg",
       audioLabel: "Lydvedlegg",
       imageAlt: "Administrert bilde",
@@ -1348,23 +1367,14 @@ const nbCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} forfalt",
+      toStudy: "{{count}} å lære",
       total: "{{count}} totalt",
     },
-    emptyStatsAriaLabel: "Statistikk for {{deckName}}",
     newDeck: "Ny kortstokk",
     statLabels: {
       cards: {
         one: "kort",
         other: "kort",
-      },
-      new: {
-        one: "nytt",
-        other: "nye",
-      },
-      reviewed: {
-        one: "repetert",
-        other: "repetert",
       },
     },
     subtitle: "Kortstokker er smartfiltre, ikke mapper. De henter kort etter tagger.",
@@ -1400,10 +1410,10 @@ const nbCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kort",
-      due: "Forfaller",
       new: "Nye",
       summary: "Sammendrag",
       title: "Regler for kortstokken",
+      toStudy: "Å lære",
     },
     subtitle: "Se reglene for kortstokken, kortene som passer, og inngangen til repetisjon.",
     subtitles: {

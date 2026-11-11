@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "नाव जतन करा";
 "settings.workspace.overview.workspace" = "कार्यक्षेत्र";
 "settings.workspace.overview.cards" = "कार्डे";
-"settings.workspace.overview.due" = "उजळणीची वेळ झाली";
 "settings.workspace.overview.new" = "नवीन";
 "settings.workspace.overview.deleteDescription" = "हे कार्यक्षेत्र आणि त्यातील सर्व कार्डे, संच, उजळण्या आणि समक्रमण इतिहास कायमचा हटवा.";
 "settings.workspace.overview.deleteWorkspace" = "कार्यक्षेत्र हटवा";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "जुळणारे संच नाहीत";
 "settings.workspace.decks.searchPrompt" = "संच शोधा";
 "settings.workspace.decks.newDeck" = "नवीन संच";
-"settings.workspace.decks.dueCount" = "उजळणी बाकी: %d";
-"settings.workspace.decks.totalCards" = "कार्डे: %d";
-"settings.workspace.decks.newCount" = "नवीन: %d";
-"settings.workspace.decks.reviewedCount" = "उजळणी केलेली: %d";
+"settings.workspace.decks.toStudyCount" = "अभ्यासासाठी %d";
+"settings.workspace.decks.toStudy" = "अभ्यासासाठी";
 "settings.workspace.decks.emptyAllCards" = "तुम्ही अद्याप कोणतीही कार्डे तयार केलेली नाहीत.";
 "settings.workspace.decks.emptyDeck" = "या संचात अद्याप जुळणारी कार्डे नाहीत.";
 "settings.workspace.decks.section.deckRules" = "संचाचे नियम";

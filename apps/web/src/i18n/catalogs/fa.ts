@@ -20,6 +20,15 @@ const faCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "این مرورگر نتوانست صدای میکروفون را رمزگشایی کند ({{format}}).",
     recovery: "دسترسی مهمان تأیید نشده است. کارت‌های ذخیره‌شده فقط خواندنی هستند. نشست اصلی یا اتصال را بازیابی کنید و دوباره تلاش کنید.",
     cleanupFailed: "ورود موفق بود، اما حذف کارت نمونه ممکن نشد.",
+    browserCheck: {
+      title: "در حال بررسی مرورگر شما",
+      description: "پیش از باز شدن فضای کاری مهمان، Cloudflare تأیید می‌کند که این یک مرورگر معمولی است. معمولاً چند ثانیه طول می‌کشد.",
+      loading: "در حال بارگیری بررسی...",
+      verifying: "در حال باز کردن فضای کاری شما...",
+      loadFailed: "بررسی بارگیری نشد. اتصال خود را بررسی کنید، challenges.cloudflare.com را در مسدودکننده محتوا مجاز کنید و دوباره امتحان کنید.",
+      failed: "بررسی با موفقیت انجام نشد. دوباره امتحان کنید یا وارد حساب شوید.",
+      rejected: "بررسی پذیرفته نشد. یک بار دیگر آن را کامل کنید.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const faCatalog: TranslationCatalog = {
     loading: "در حال بارگیری...",
     never: "هرگز",
     newItem: "جدید",
+    image: "تصویر",
     noBackText: "متن پشت کارت وجود ندارد",
     noTags: "برچسبی وجود ندارد",
     notRevoked: "لغو نشده",
@@ -427,8 +437,12 @@ const faCatalog: TranslationCatalog = {
       offlineEmpty: "جدول رتبه‌بندی روزهای پیاپی به‌صورت آفلاین در دسترس نیست. برای دیدن رتبه‌ها دوباره متصل شوید.",
       unavailable: "جدول رتبه‌بندی روزهای پیاپی اکنون در دسترس نیست. بعداً دوباره سر بزنید.",
       dayLabels: {
-        one: "روز",
-        other: "روز",
+        zero: "{{count}} روز",
+        one: "{{count}} روز",
+        two: "{{count}} روز",
+        few: "{{count}} روز",
+        many: "{{count}} روز",
+        other: "{{count}} روز",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const faCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "در حال بازیابی نشست. کمی بعد دوباره امتحان کنید.",
     sessionUnavailable: "نشست در دسترس نیست",
     syncing: "در حال همگام‌سازی...",
+    syncFailed: "همگام‌سازی ناموفق بود",
     workspaceUnavailable: "فضای کاری در دسترس نیست",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const faCatalog: TranslationCatalog = {
       yourCards: "کارت‌های شما",
       addCards: "افزودن کارت",
     },
-    cards: {
-      description: "همهٔ کارت‌های این فضای کاری.",
-    },
-    tags: {
-      description: "همهٔ برچسب‌هایی که دست‌کم روی یک کارت استفاده شده‌اند.",
-    },
-    decks: {
-      description: "فیلترهای ذخیره‌شدهٔ کارت برای مرور متمرکز.",
-    },
     deckCatalog: {
       title: "فهرست دسته‌ها",
       description: "دسته‌های آمادهٔ رایگان برای مطالعه.",
@@ -860,16 +866,18 @@ const faCatalog: TranslationCatalog = {
     note: "این تنظیمات فقط بر زمان‌بندی آینده اثر دارند. وضعیت فعلی کارت‌ها همچنان معتبر است.",
   },
   workspaceExport: {
-    title: "برون‌بری",
+    title: "صادر کردن بستهٔ Nibomo",
+    ankiTitle: "صادر کردن دستهٔ Anki",
     subtitle: "بسته‌ای قابل‌حمل برای این فضای کاری دریافت کنید.",
     workspaceUnavailable: "فضای کاری در دسترس نیست",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "نام دسته",
+    ankiEmptySelection: "کارتی برای صادر کردن وجود ندارد. برچسب‌های انتخاب‌شده را تغییر دهید یا کارت اضافه کنید.",
     packageDescription: "پیش از دریافت، کارت‌های فعال، فراداده، برچسب‌ها و رسانهٔ ارجاع‌شده را ببینید.",
-    packageExportSuccess: "دریافت flashcards.zip شروع شد.",
+    packageExportSuccess: "دریافت {{filename}} شروع شد.",
     packageExporting: "در حال دریافت...",
     packagePreviewing: "در حال پیش‌نمایش...",
     packageExportPreviewButton: "پیش‌نمایش برون‌بری",
-    packageExportConfirmButton: "دریافت flashcards.zip",
+    packageExportConfirmButton: "دریافت {{filename}}",
     packageExportPreviewRequired: "پیش از دریافت، این برون‌بری را پیش‌نمایش کنید.",
     previewCardsLabel: "کارت‌ها",
     previewReferencedMediaLabel: "رسانهٔ ارجاع‌شده",
@@ -1124,6 +1132,10 @@ const faCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "باز کردن {{side}} در گفت‌وگوی هوش مصنوعی",
     repetitionBadgeAriaLabel: "تکرارها: {{value}}",
     repetitionBadgeNew: "جدید",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "برچسب‌های بیشتر: {{count}}",
+    },
     empty: {
       noCardsBody: "هنوز هیچ کارتی نساخته‌اید. برای شروع مطالعه، اولین کارت خود را اضافه کنید.",
       noCardsTitle: "هنوز کارتی وجود ندارد",
@@ -1135,16 +1147,25 @@ const faCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "نمایش فرمول ممکن نشد.",
       schedulerUnavailable: "تنظیمات زمان‌بند فضای کاری بارگذاری نشده است",
+      storageFull: "در این دستگاه فضای ذخیره‌سازی آزاد کنید و سپس دوباره به کارت امتیاز دهید.",
     },
     leaderboardShortcut: {
       ariaLabel: "باز کردن جدول رتبه‌بندی",
     },
     progressBadge: {
-      ariaLabel: "{{streak}} روز پیاپی مرور. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "{{streak}} روز پیاپی مرور. {{todayStatus}}.",
+      ariaLabel: "{{streak}} پیاپی مرور. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "{{streak}} پیاپی مرور. {{todayStatus}}.",
       freezeBank: "ذخیرهٔ محافظت {{available}} از {{capacity}}",
       notReviewedToday: "امروز مرور نشده",
       reviewedToday: "امروز مرور شده",
+      streakDayCount: {
+        zero: "{{count}} روز",
+        one: "{{count}} روز",
+        two: "{{count}} روز",
+        few: "{{count}} روز",
+        many: "{{count}} روز",
+        other: "{{count}} روز",
+      },
       title: "روزهای پیاپی",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const faCatalog: TranslationCatalog = {
       snapshot: "نمایش یک تصویر محلی اخیر...",
     },
     media: {
-      privateImage: "تصویر خصوصی",
-      privateAttachment: "پیوست خصوصی",
       attachmentLabel: "پیوست",
       audioLabel: "پیوست صوتی",
       imageAlt: "تصویر مدیریت‌شده",
@@ -1348,23 +1367,14 @@ const faCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} سررسیدشده",
+      toStudy: "{{count}} برای مطالعه",
       total: "{{count}} در کل",
     },
-    emptyStatsAriaLabel: "آمار {{deckName}}",
     newDeck: "دستهٔ جدید",
     statLabels: {
       cards: {
         one: "کارت",
         other: "کارت",
-      },
-      new: {
-        one: "جدید",
-        other: "جدید",
-      },
-      reviewed: {
-        one: "مرورشده",
-        other: "مرورشده",
       },
     },
     subtitle: "دسته‌ها فیلترهای هوشمندند، نه ظرف. کارت‌ها را بر اساس برچسب مطابقت می‌دهند.",
@@ -1400,10 +1410,10 @@ const faCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "کارت‌ها",
-      due: "موعد مرور",
       new: "جدید",
       summary: "خلاصه",
       title: "قواعد دسته",
+      toStudy: "برای مطالعه",
     },
     subtitle: "قواعد دسته، کارت‌های مطابق و نقطهٔ ورود به مرور را ببینید.",
     subtitles: {

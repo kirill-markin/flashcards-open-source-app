@@ -68,6 +68,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
@@ -75,6 +76,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -84,6 +86,7 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import java.time.ZoneId
 
 interface CardsRepository {
@@ -137,6 +140,9 @@ interface ReviewRepository {
 
     /** [observeReviewDueBadgeCount] with the card Review shows first; null without a current workspace. */
     fun observeReviewQueueHead(): Flow<ReviewQueueHead?>
+
+    /** The [dayCount] local days after today, oldest first, under the same filter; null without a current workspace. */
+    fun observeUpcomingReviewDueDays(dayCount: Int): Flow<List<ReviewDueDay>?>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 
@@ -305,10 +311,14 @@ interface CloudAccountRepository {
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
     suspend fun previewCurrentWorkspacePackageExport(
+        expectedWorkspaceId: String,
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview
     suspend fun exportCurrentWorkspacePackage(
-        request: WorkspacePackageExportRequest
+        expectedWorkspaceId: String,
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse
     suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview
     suspend fun confirmCurrentWorkspacePackageImport(

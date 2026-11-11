@@ -29,10 +29,11 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    func testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates() throws {
+    func testLiveSmokeReviewFilterMenuNeverEmptiesAndClosesOnAllCards() throws {
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
         let tagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-guest-ai-review"
         let lowerTagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-overflow-12"
+        let secondLowerTagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-overflow-11"
 
         try self.step("keep a lower review filter row visible after changing its draft selection") {
             try self.assertElementExists(
@@ -43,10 +44,20 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            try self.assertReviewFilterToggleValue(
+                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: tagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
             try self.tapReviewFilterButtonScrollingIntoView(identifier: lowerTagToggleIdentifier)
             try self.assertReviewFilterToggleValue(
                 identifier: lowerTagToggleIdentifier,
-                expectedValue: .off,
+                expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
@@ -63,72 +74,69 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            lowerTagToggle.clickOrTap()
+            try self.tapReviewFilterButtonScrollingIntoView(identifier: secondLowerTagToggleIdentifier)
+            try self.assertReviewFilterToggleValue(
+                identifier: secondLowerTagToggleIdentifier,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
             try self.assertReviewFilterToggleValue(
                 identifier: lowerTagToggleIdentifier,
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-            try self.scrollReviewFilterToTop()
+
+            lowerTagToggle.clickOrTap()
+            try self.assertReviewFilterToggleValue(
+                identifier: lowerTagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: secondLowerTagToggleIdentifier,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
         }
 
-        try self.step("clear all review filters without dismissing the menu") {
+        try self.step("select all cards when the last selected tag is removed, without dismissing the menu") {
+            try self.tapReviewFilterButtonScrollingIntoView(identifier: secondLowerTagToggleIdentifier)
+            try self.assertReviewFilterToggleValue(
+                identifier: secondLowerTagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.scrollReviewFilterToTop()
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-            try self.assertReviewFilterToggleValue(
-                identifier: tagToggleIdentifier,
-                expectedValue: .on,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
+        }
 
+        try self.step("keep all cards and close the menu when the selected all cards row is tapped") {
             self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
                 .firstMatch
                 .clickOrTap()
-
-            try self.assertReviewFilterToggleValue(
+            try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                expectedValue: .off,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertReviewFilterToggleValue(
-                identifier: tagToggleIdentifier,
-                expectedValue: .off,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertElementExists(
-                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-        }
-
-        try self.step("dismiss the empty review filter menu with an outside tap") {
-            try self.dismissReviewFilterPopoverWithOutsideTap()
-            try self.assertElementDoesNotExist(
-                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertElementDoesNotExist(
-                identifier: tagToggleIdentifier,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
             )
         }
 
-        try self.step("select one review tag from empty without dismissing the menu") {
+        try self.step("select one review tag without dismissing the menu") {
             try self.tapButton(
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                expectedValue: .off,
+                expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertReviewFilterToggleValue(
@@ -163,19 +171,9 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
         }
 
-        try self.step("restore all cards without dismissing the menu") {
+        try self.step("apply all cards and close the menu at once") {
             try self.tapButton(
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
-                .firstMatch
-                .clickOrTap()
-
-            try self.assertReviewFilterToggleValue(
-                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
-                expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.assertReviewFilterToggleValue(
@@ -183,10 +181,11 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 expectedValue: .on,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-        }
+            self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
+                .firstMatch
+                .clickOrTap()
 
-        try self.step("verify the all cards review returns after dismissing the menu") {
-            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -194,6 +193,28 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+            )
+        }
+
+        try self.step("verify all cards is selected after reopening the menu") {
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewFilterMenu,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertReviewFilterToggleValue(
+                identifier: tagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.dismissReviewFilterPopoverWithOutsideTap()
+            try self.assertElementDoesNotExist(
+                identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
         }
     }
@@ -231,6 +252,10 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
 
+        #if targetEnvironment(macCatalyst)
+        try self.scrollMacReviewFilter(scrollSurface, to: identifier, deltaY: -240)
+        self.app.buttons[identifier].firstMatch.click()
+        #else
         let button = self.app.buttons[identifier].firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
@@ -239,11 +264,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
-            #if targetEnvironment(macCatalyst)
-            scrollSurface.scrollTowardLaterContent()
-            #else
             try self.dragReviewFilterScrollSurface(scrollSurface, from: 0.75, to: 0.25)
-            #endif
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -253,11 +274,15 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+        #endif
     }
 
     @MainActor
     private func scrollReviewFilterToTop() throws {
         let scrollSurface = self.app.scrollViews[LiveSmokeIdentifier.reviewFilterScrollSurface].firstMatch
+        #if targetEnvironment(macCatalyst)
+        try self.scrollMacReviewFilter(scrollSurface, to: LiveSmokeIdentifier.reviewFilterAllCardsToggle, deltaY: 240)
+        #else
         let allCardsButton = self.app.buttons[LiveSmokeIdentifier.reviewFilterAllCardsToggle].firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
@@ -265,11 +290,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
-            #if targetEnvironment(macCatalyst)
-            scrollSurface.scrollTowardEarlierContent()
-            #else
             try self.dragReviewFilterScrollSurface(scrollSurface, from: 0.25, to: 0.75)
-            #endif
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -279,9 +300,38 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+        #endif
     }
 
-    #if !targetEnvironment(macCatalyst)
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    private func scrollMacReviewFilter(_ scrollSurface: XCUIElement, to identifier: String, deltaY: CGFloat) throws {
+        let row = self.app.buttons[identifier].firstMatch
+        let timeout = LiveSmokeConfiguration.longUiTimeoutSeconds
+        let deadline = Date().addingTimeInterval(timeout)
+        let pointer = scrollSurface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        while scrollSurface.exists {
+            if row.exists {
+                let frame = row.frame
+                if scrollSurface.frame.contains(CGPoint(x: frame.midX, y: frame.midY)), row.isHittable {
+                    return
+                }
+            }
+            guard Date() < deadline else { break }
+
+            // The toolbar popover owns a separate window. Move the pointer into it before scrolling.
+            pointer.hover()
+            pointer.scroll(byDeltaX: 0, deltaY: deltaY)
+        }
+
+        throw LiveSmokeFailure.missingElement(
+            identifier: identifier,
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+    #else
     @MainActor
     private func dragReviewFilterScrollSurface(
         _ scrollSurface: XCUIElement,

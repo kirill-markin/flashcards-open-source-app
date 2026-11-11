@@ -260,8 +260,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
     }
 
     /// Review's Edit decks selects the Decks sidebar section whether Library was never shown or
-    /// showed another section, and Command-4 returns to the section Library last showed. Switching
-    /// sections and returning from a pushed deck keeps Decks selected.
+    /// showed another section, and Command-4 opens Cards. Switching sections and returning from a
+    /// pushed deck keeps Decks selected.
     @MainActor
     func testMacEditDecksLandsOnDecksFromReview() throws {
         self.addMacWindowRestorationTeardown()
@@ -271,7 +271,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             self.app.typeKey("4", modifierFlags: .command)
-            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryDecksItem)
+            self.waitForMacLibrarySection(identifier: LiveSmokeIdentifier.rootTabLibraryCardsItem)
         }
         try self.step("open Decks after Library showed another section") {
             try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -721,6 +721,82 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             for (left, right) in zip(ordered, ordered.dropFirst()) {
                 XCTAssertLessThanOrEqual(left.maxX, right.minX + 0.5, "Toolbar hit regions must not overlap: \(geometry)")
             }
+        }
+    }
+
+    @MainActor
+    func testMacReviewTableWithImagesStaysResponsiveWhenOpeningCompanion() throws {
+        try self.launchApplication(launchScenario: .guestRichReviewCard, selectedTab: .review)
+        try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        let tableCell = self.app.descendants(matching: .any).matching(NSPredicate(format: "value == %@", "Public icon")).firstMatch
+
+        let companion = LiveSmokeIdentifier.aiCompanionToggle
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].exists {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerAfterConsent()
+        }
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let wideWidth = self.app.windows.firstMatch.frame.width
+        try self.applyMacWindowLayout("Return to Previous Size")
+        XCTAssertLessThan(self.app.windows.firstMatch.frame.width, wideWidth)
+
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        self.attachMacScreenshot(name: "mac-review-table-companion")
+        let narrowWidth = self.app.windows.firstMatch.frame.width
+        try self.applyMacWindowLayout("Fill")
+        XCTAssertGreaterThan(self.app.windows.firstMatch.frame.width, narrowWidth)
+        try self.waitForReviewAnswerReveal()
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        _ = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.attachMacScreenshot(name: "mac-review-table-companion-after-resize")
+        try self.tapButton(identifier: companion, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForReviewAnswerReveal()
+        XCTAssertTrue(tableCell.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        self.attachMacScreenshot(name: "mac-review-table-after-closing-companion")
+    }
+
+    @MainActor
+    func testMacReviewWithKeyboardAndPointer() throws {
+        let context = self.makeRunContext()
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .cards)
+        try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
+        try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+            timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+        )
+        self.app.activate()
+
+        try self.step("reveal with Space and rate with the pointer") {
+            self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
+            try self.waitForReviewAnswerReveal()
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+        }
+
+        try self.step("reveal the next card and rate it Easy by keyboard without a focus click") {
+            self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
+            try self.waitForReviewAnswerReveal()
+            self.app.typeKey("4", modifierFlags: [])
+            try self.assertElementDoesNotExist(
+                identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+        }
+
+        try self.step("confirm that the pointer's Good and keyboard's Easy were both saved") {
+            try self.tapTabBarItem(selectedTab: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForSavedLocalReviewRatings(goodCount: 1, easyCount: 1)
         }
     }
 

@@ -72,6 +72,13 @@ export function writeBrowserGuestState(state: BrowserGuestStoredState): void {
   window.dispatchEvent(new Event(browserGuestStorageKey));
 }
 
+/** Only for a creation the backend refused before committing anything: no guest exists to recover. */
+export function clearBrowserGuestCreatingMarker(): void {
+  if (readBrowserGuestState()?.status !== "creating") throw new Error("Only the browser guest creation marker can be cleared.");
+  window.localStorage.removeItem(browserGuestStorageKey);
+  window.dispatchEvent(new Event(browserGuestStorageKey));
+}
+
 export function readBrowserGuestOwnershipGeneration(): string | null {
   return window.localStorage.getItem(browserGuestOwnershipGenerationKey);
 }

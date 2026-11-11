@@ -20,6 +20,15 @@ const etCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "See brauser ei suutnud mikrofoni heli dekodeerida ({{format}}).",
     recovery: "Külalise juurdepääs on kinnitamata. Vahemällu salvestatud kaardid on kirjutuskaitstud. Taasta algne seanss või ühendus ja proovi uuesti.",
     cleanupFailed: "Sisselogimine õnnestus, kuid näidiskaarti ei saanud eemaldada.",
+    browserCheck: {
+      title: "Kontrollime sinu brauserit",
+      description: "Enne külalise tööruumi avamist kinnitab Cloudflare, et tegu on tavalise brauseriga. Tavaliselt võtab see mõne sekundi.",
+      loading: "Kontrolli laadimine...",
+      verifying: "Sinu tööruumi avamine...",
+      loadFailed: "Kontrolli ei õnnestunud laadida. Kontrolli ühendust, luba sisublokeerijas challenges.cloudflare.com ja proovi uuesti.",
+      failed: "Kontroll ei läinud läbi. Proovi uuesti või logi hoopis sisse.",
+      rejected: "Kontrolli ei aktsepteeritud. Läbi see veel kord.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const etCatalog: TranslationCatalog = {
     loading: "Laadimine...",
     never: "Mitte kunagi",
     newItem: "uus",
+    image: "Pilt",
     noBackText: "Tagakülje tekst puudub",
     noTags: "Silte pole",
     notRevoked: "Tühistamata",
@@ -427,8 +437,12 @@ const etCatalog: TranslationCatalog = {
       offlineEmpty: "Järjestikuste päevade edetabel pole võrguühenduseta saadaval. Kohtade nägemiseks loo uuesti ühendus.",
       unavailable: "Järjestikuste päevade edetabel pole praegu saadaval. Vaata hiljem uuesti.",
       dayLabels: {
-        one: "päev",
-        other: "päeva",
+        zero: "{{count}} päeva",
+        one: "{{count}} päev",
+        two: "{{count}} päeva",
+        few: "{{count}} päeva",
+        many: "{{count}} päeva",
+        other: "{{count}} päeva",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const etCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Seansi taastamine. Proovi hetke pärast uuesti.",
     sessionUnavailable: "Seanss pole saadaval",
     syncing: "Sünkroonimine...",
+    syncFailed: "Sünkroonimine ebaõnnestus",
     workspaceUnavailable: "Tööruum pole saadaval",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const etCatalog: TranslationCatalog = {
       yourCards: "Sinu kaardid",
       addCards: "Lisa kaarte",
     },
-    cards: {
-      description: "Kõik selle tööruumi kaardid.",
-    },
-    tags: {
-      description: "Kõik sildid, mida on kasutatud vähemalt ühel kaardil.",
-    },
-    decks: {
-      description: "Salvestatud kaardifiltrid keskendunud kordamiseks.",
-    },
     deckCatalog: {
       title: "Pakkide kataloog",
       description: "Tasuta valmis pakid õppimiseks.",
@@ -860,16 +866,18 @@ const etCatalog: TranslationCatalog = {
     note: "Need seaded mõjutavad ainult edaspidist ajastamist. Kaartide olemasolev olek jääb määravaks.",
   },
   workspaceExport: {
-    title: "Eksportimine",
+    title: "Ekspordi Nibomo pakett",
+    ankiTitle: "Ekspordi Anki kaardipakk",
     subtitle: "Laadi selle tööruumi teisaldatav pakett alla.",
     workspaceUnavailable: "Tööruum pole saadaval",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Kaardipaki nimi",
+    ankiEmptySelection: "Eksportimiseks pole kaarte. Muuda siltide valikut või lisa kaarte.",
     packageDescription: "Vaata enne allalaadimist aktiivseid kaarte, metaandmeid, silte ja viidatud meediat.",
-    packageExportSuccess: "flashcards.zip allalaadimine algas.",
+    packageExportSuccess: "{{filename}} allalaadimine algas.",
     packageExporting: "Allalaadimine...",
     packagePreviewing: "Eelvaate koostamine...",
     packageExportPreviewButton: "Ekspordi eelvaade",
-    packageExportConfirmButton: "Laadi alla flashcards.zip",
+    packageExportConfirmButton: "Laadi alla {{filename}}",
     packageExportPreviewRequired: "Vaata enne allalaadimist selle ekspordi eelvaadet.",
     previewCardsLabel: "Kaardid",
     previewReferencedMediaLabel: "Viidatud meedia",
@@ -1124,6 +1132,10 @@ const etCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Ava kaart tehisintellekti vestluses ({{side}})",
     repetitionBadgeAriaLabel: "Kordamiskorrad: {{value}}",
     repetitionBadgeNew: "Uus",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Veel silte: {{count}}",
+    },
     empty: {
       noCardsBody: "Sa pole veel ühtegi kaarti loonud. Õppimise alustamiseks lisa oma esimene kaart.",
       noCardsTitle: "Kaarte veel pole",
@@ -1135,16 +1147,25 @@ const etCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Valemit ei saanud kuvada.",
       schedulerUnavailable: "Tööruumi ajastaja seaded pole laaditud",
+      storageFull: "Vabasta selles seadmes salvestusruumi ja hinda kaarti uuesti.",
     },
     leaderboardShortcut: {
       ariaLabel: "Ava edetabel",
     },
     progressBadge: {
-      ariaLabel: "Kordamiste päevade jada: {{streak}} päeva. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Kordamiste päevade jada: {{streak}} päeva. {{todayStatus}}.",
+      ariaLabel: "Kordamiste päevade jada: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Kordamiste päevade jada: {{streak}}. {{todayStatus}}.",
       freezeBank: "Külmutusi saadaval: {{available}}/{{capacity}}",
       notReviewedToday: "Täna pole korratud",
       reviewedToday: "Täna korratud",
+      streakDayCount: {
+        zero: "{{count}} päeva",
+        one: "{{count}} päev",
+        two: "{{count}} päeva",
+        few: "{{count}} päeva",
+        many: "{{count}} päeva",
+        other: "{{count}} päeva",
+      },
       title: "Päevade jada",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const etCatalog: TranslationCatalog = {
       snapshot: "Kuvatakse hiljutist kohalikku hetktõmmist...",
     },
     media: {
-      privateImage: "Privaatne pilt",
-      privateAttachment: "Privaatne manus",
       attachmentLabel: "Manus",
       audioLabel: "Helimanus",
       imageAlt: "Hallatav pilt",
@@ -1348,23 +1367,14 @@ const etCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Korrata: {{count}}",
+      toStudy: "{{count}} õppimiseks",
       total: "Kokku: {{count}}",
     },
-    emptyStatsAriaLabel: "Paki statistika: {{deckName}}",
     newDeck: "Uus pakk",
     statLabels: {
       cards: {
         one: "kaart",
         other: "kaarti",
-      },
-      new: {
-        one: "uus",
-        other: "uut",
-      },
-      reviewed: {
-        one: "korratud",
-        other: "korratut",
       },
     },
     subtitle: "Pakid on nutikad filtrid, mitte konteinerid. Need valivad kaarte siltide järgi.",
@@ -1400,10 +1410,10 @@ const etCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kaardid",
-      due: "Korrata",
       new: "Uued",
       summary: "Kokkuvõte",
       title: "Paki reeglid",
+      toStudy: "Õppimiseks",
     },
     subtitle: "Vaata paki reegleid, sobivaid kaarte ja kordamise alguspunkti.",
     subtitles: {

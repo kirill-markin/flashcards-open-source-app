@@ -31,7 +31,7 @@ Translate every key, including nested keys, plural objects, support copy, loadin
 
 - Terminology follows the shipped iOS strings in [ReviewCards.xcstrings](../apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings) and [Foundation.xcstrings](../apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings).
 - The four rating labels in `reviewScreen.ratings` are copied byte for byte from iOS, and the same words are reused wherever prose names a rating.
-- Fill plural objects as `PluralCountLabels` in [types.ts](../apps/web/src/i18n/types.ts) states; `progressScreen.leaderboard.updatedAtDuration` selects all six CLDR categories directly, so fill each one for the language.
+- Fill plural objects as `PluralCountLabels` or `PluralMessages` in [types.ts](../apps/web/src/i18n/types.ts) state; a `PluralMessages` object lists all six CLDR categories, so fill each one for the language as a whole phrase that places `{{count}}` itself.
 - Do not localize user data or technical values: workspace, card, and tag text; email addresses; IDs; URLs and route paths; raw SQL or JSON shown for diagnostics; error payloads the client does not own. Localize the labels around them.
 
 ### 3. Audit direction-sensitive and support layers

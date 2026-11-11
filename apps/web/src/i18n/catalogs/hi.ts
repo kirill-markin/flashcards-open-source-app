@@ -20,6 +20,15 @@ const hiCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "यह ब्राउज़र माइक्रोफ़ोन ऑडियो को डिकोड नहीं कर सका ({{format}})।",
     recovery: "अतिथि पहुँच सत्यापित नहीं है। कैश किए गए कार्ड केवल पढ़े जा सकते हैं। मूल सत्र या कनेक्शन बहाल करें, फिर दोबारा कोशिश करें।",
     cleanupFailed: "साइन इन हो गया, लेकिन डेमो कार्ड हटाया नहीं जा सका।",
+    browserCheck: {
+      title: "आपका ब्राउज़र जाँचा जा रहा है",
+      description: "अतिथि कार्यस्थान खुलने से पहले Cloudflare पुष्टि करता है कि यह एक सामान्य ब्राउज़र है। आमतौर पर इसमें कुछ सेकंड लगते हैं।",
+      loading: "जाँच लोड हो रही है...",
+      verifying: "आपका कार्यस्थान खुल रहा है...",
+      loadFailed: "जाँच लोड नहीं हो सकी। अपना कनेक्शन देखें, कंटेंट ब्लॉकर में challenges.cloudflare.com को अनुमति दें, फिर दोबारा कोशिश करें।",
+      failed: "जाँच पास नहीं हुई। दोबारा कोशिश करें या साइन इन करें।",
+      rejected: "जाँच स्वीकार नहीं हुई। इसे एक बार फिर पूरा करें।",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const hiCatalog: TranslationCatalog = {
     loading: "लोड हो रहा है...",
     never: "कभी नहीं",
     newItem: "नया",
+    image: "चित्र",
     noBackText: "कोई बैक टेक्स्ट नहीं",
     noTags: "कोई टैग नहीं",
     notRevoked: "निरस्त नहीं",
@@ -427,8 +437,12 @@ const hiCatalog: TranslationCatalog = {
       offlineEmpty: "ऑफ़लाइन में स्ट्रीक लीडरबोर्ड उपलब्ध नहीं है। रैंकिंग देखने के लिए इंटरनेट से जुड़ें।",
       unavailable: "स्ट्रीक लीडरबोर्ड अभी उपलब्ध नहीं है। बाद में फिर देखें।",
       dayLabels: {
-        one: "दिन",
-        other: "दिन",
+        zero: "{{count}} दिन",
+        one: "{{count}} दिन",
+        two: "{{count}} दिन",
+        few: "{{count}} दिन",
+        many: "{{count}} दिन",
+        other: "{{count}} दिन",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const hiCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "सेशन बहाल किया जा रहा है। थोड़ी देर में फिर से कोशिश करें।",
     sessionUnavailable: "सेशन उपलब्ध नहीं है",
     syncing: "सिंक हो रहा है...",
+    syncFailed: "सिंक विफल रहा",
     workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const hiCatalog: TranslationCatalog = {
       yourCards: "आपके कार्ड",
       addCards: "कार्ड जोड़ें",
     },
-    cards: {
-      description: "इस वर्कस्पेस के सभी कार्ड।",
-    },
-    tags: {
-      description: "कम से कम एक कार्ड पर इस्तेमाल हुए सभी टैग।",
-    },
-    decks: {
-      description: "केंद्रित रिव्यू के लिए सहेजे गए कार्ड फ़िल्टर।",
-    },
     deckCatalog: {
       title: "डेक कैटलॉग",
       description: "पढ़ाई के लिए मुफ़्त तैयार डेक।",
@@ -860,16 +866,18 @@ const hiCatalog: TranslationCatalog = {
     note: "ये सेटिंग्स केवल भविष्य की शेड्यूलिंग को प्रभावित करती हैं। मौजूदा कार्ड स्थिति ही आधिकारिक बनी रहती है।",
   },
   workspaceExport: {
-    title: "एक्सपोर्ट",
+    title: "Nibomo पैकेज निर्यात करें",
+    ankiTitle: "Anki डेक निर्यात करें",
     subtitle: "इस वर्कस्पेस के लिए पोर्टेबल पैकेज डाउनलोड करें।",
     workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "डेक का नाम",
+    ankiEmptySelection: "निर्यात करने के लिए कोई कार्ड नहीं है। चुने गए टैग बदलें या कार्ड जोड़ें।",
     packageDescription: "डाउनलोड से पहले सक्रिय कार्ड, मेटाडेटा, टैग और संदर्भित मीडिया का प्रीव्यू करें।",
-    packageExportSuccess: "flashcards.zip डाउनलोड शुरू हो गया है।",
+    packageExportSuccess: "{{filename}} डाउनलोड शुरू हो गया है।",
     packageExporting: "डाउनलोड हो रहा है...",
     packagePreviewing: "प्रीव्यू हो रहा है...",
     packageExportPreviewButton: "एक्सपोर्ट प्रीव्यू करें",
-    packageExportConfirmButton: "flashcards.zip डाउनलोड करें",
+    packageExportConfirmButton: "{{filename}} डाउनलोड करें",
     packageExportPreviewRequired: "डाउनलोड करने से पहले इस एक्सपोर्ट का प्रीव्यू करें।",
     previewCardsLabel: "कार्ड",
     previewReferencedMediaLabel: "संदर्भित मीडिया",
@@ -1124,6 +1132,10 @@ const hiCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI चैट में कार्ड खोलें: {{side}}",
     repetitionBadgeAriaLabel: "रिव्यू: {{value}}",
     repetitionBadgeNew: "नया",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "और टैग: {{count}}",
+    },
     empty: {
       noCardsBody: "आपने अभी तक कोई कार्ड नहीं बनाया है। पढ़ाई शुरू करने के लिए अपना पहला कार्ड जोड़ें।",
       noCardsTitle: "अभी तक कोई कार्ड नहीं",
@@ -1135,16 +1147,25 @@ const hiCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "फ़ॉर्मूला रेंडर नहीं किया जा सका।",
       schedulerUnavailable: "वर्कस्पेस शेड्यूलर सेटिंग्स लोड नहीं हुई हैं",
+      storageFull: "इस डिवाइस पर कुछ स्टोरेज खाली करें, फिर कार्ड को दोबारा रेट करें।",
     },
     leaderboardShortcut: {
       ariaLabel: "लीडरबोर्ड खोलें",
     },
     progressBadge: {
-      ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}। {{freezeBank}}।",
-      reviewAriaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}।",
+      ariaLabel: "रिव्यू स्ट्रीक {{streak}}। {{todayStatus}}। {{freezeBank}}।",
+      reviewAriaLabel: "रिव्यू स्ट्रीक {{streak}}। {{todayStatus}}।",
       freezeBank: "फ़्रीज़ बैंक {{available}} में से {{capacity}}",
       notReviewedToday: "आज रिव्यू नहीं किया",
       reviewedToday: "आज रिव्यू किया",
+      streakDayCount: {
+        zero: "{{count}} दिन",
+        one: "{{count}} दिन",
+        two: "{{count}} दिन",
+        few: "{{count}} दिन",
+        many: "{{count}} दिन",
+        other: "{{count}} दिन",
+      },
       title: "स्ट्रीक",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const hiCatalog: TranslationCatalog = {
       snapshot: "हाल का स्थानीय स्नैपशॉट दिखाया जा रहा है...",
     },
     media: {
-      privateImage: "निजी चित्र",
-      privateAttachment: "निजी अटैचमेंट",
       attachmentLabel: "अटैचमेंट",
       audioLabel: "ऑडियो अटैचमेंट",
       imageAlt: "प्रबंधित छवि",
@@ -1348,25 +1367,14 @@ const hiCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} बाकी",
+      toStudy: "{{count}} अध्ययन के लिए",
       total: "{{count}} कुल",
     },
-    emptyStatsAriaLabel: "{{deckName}} आँकड़े",
     newDeck: "नया डेक",
     statLabels: {
       cards: {
         one: "कार्ड",
         other: "कार्ड",
-      },
-      new: {
-        zero: "नए",
-        one: "नया",
-        other: "नए",
-      },
-      reviewed: {
-        zero: "रिव्यू किए गए",
-        one: "रिव्यू किया गया",
-        other: "रिव्यू किए गए",
       },
     },
     subtitle: "डेक स्मार्ट फ़िल्टर हैं, कंटेनर नहीं। वे टैग से कार्ड मिलाते हैं।",
@@ -1402,10 +1410,10 @@ const hiCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "कार्ड",
-      due: "बाकी",
       new: "नए",
       summary: "सारांश",
       title: "डेक नियम",
+      toStudy: "अध्ययन के लिए",
     },
     subtitle: "डेक नियम, मिलते-जुलते कार्ड और रिव्यू एंट्री पॉइंट देखें।",
     subtitles: {

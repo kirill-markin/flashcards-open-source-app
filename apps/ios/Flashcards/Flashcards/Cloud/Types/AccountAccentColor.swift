@@ -35,41 +35,36 @@ struct AccountAccentColor: Codable, Hashable, Sendable {
         return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
     }
 
-    private var contrastAgainstWhite: Double {
-        1.05 / (self.relativeLuminance + 0.05)
+    private func contrastRatio(against backgroundLuminance: Double) -> Double {
+        let luminance = self.relativeLuminance
+        return (max(luminance, backgroundLuminance) + 0.05) / (min(luminance, backgroundLuminance) + 0.05)
     }
 
-    /// The shade painted in a theme; the saved color itself never changes.
-    func displayed(theme: AccountTheme) -> AccountAccentColor {
-        switch theme {
-        case .dark:
-            return self
-        case .light:
-            return self.darkenedForLightTheme()
-        }
-    }
+    func adjustedForContrast(against background: AccountAccentColor, minimumRatio: Double) -> AccountAccentColor {
+        let backgroundLuminance = background.relativeLuminance
+        guard self.contrastRatio(against: backgroundLuminance) < minimumRatio else { return self }
 
-    /// Darkened only as far as 3:1 contrast against white; a passing color is returned unchanged.
-    private func darkenedForLightTheme() -> AccountAccentColor {
-        let minimumContrast = 3.0
-        guard self.contrastAgainstWhite < minimumContrast else { return self }
-        var passingFactor = 0.0
-        var failingFactor = 1.0
+        let towardWhite = backgroundLuminance <= 0.179
+        var passingWeight = 0.0
+        var failingWeight = 1.0
         for _ in 0..<24 {
-            let factor = (passingFactor + failingFactor) / 2
-            if self.scaled(factor: factor).contrastAgainstWhite >= minimumContrast {
-                passingFactor = factor
+            let weight = (passingWeight + failingWeight) / 2
+            let candidate = self.shaded(originalWeight: weight, towardWhite: towardWhite)
+            if candidate.contrastRatio(against: backgroundLuminance) >= minimumRatio {
+                passingWeight = weight
             } else {
-                failingFactor = factor
+                failingWeight = weight
             }
         }
-        return self.scaled(factor: passingFactor)
+        return self.shaded(originalWeight: passingWeight, towardWhite: towardWhite)
     }
 
-    // Scaling every channel by one factor moves the color toward black and keeps its hue.
-    private func scaled(factor: Double) -> AccountAccentColor {
+    private func shaded(originalWeight: Double, towardWhite: Bool) -> AccountAccentColor {
         let channels: [UInt32] = [16, 8, 0].map { shift in
-            UInt32((Double((self.rgb >> shift) & 0xFF) * factor).rounded(.down))
+            let channel = Double((self.rgb >> shift) & 0xFF)
+            return towardWhite
+                ? UInt32((255 - (255 - channel) * originalWeight).rounded(.up))
+                : UInt32((channel * originalWeight).rounded(.down))
         }
         return AccountAccentColor(rgb: channels[0] << 16 | channels[1] << 8 | channels[2])
     }
@@ -114,26 +109,4 @@ struct PendingAccountAccentColor {
     let identityKey: String
     let identityGeneration: Int
     let color: AccountAccentColor
-}
-
-@MainActor
-extension FlashcardsStore {
-    // Gates every Style setting; a confirmed free plan gets the defaults while saved values wait for Premium.
-    // An omitted snapshot is unknown; cached local cosmetics never expire by the device clock.
-    var canCustomizeStyle: Bool {
-        self.cloudEntitlement.map { $0.tierRank >= premiumTierRank } ?? true
-    }
-
-    var effectiveAccountAccentColor: AccountAccentColor {
-        guard self.canCustomizeStyle else { return .defaultColor }
-        if let pending = self.pendingAccentColor, pending.identityKey == self.accountPreferencesIdentityKey {
-            return pending.color
-        }
-        return self.accountPreferences.accentColor
-    }
-
-    /// The accent to paint with; selecting and saving compare `effectiveAccountAccentColor`.
-    var displayedAccountAccentColor: AccountAccentColor {
-        self.effectiveAccountAccentColor.displayed(theme: self.effectiveAccountTheme)
-    }
 }

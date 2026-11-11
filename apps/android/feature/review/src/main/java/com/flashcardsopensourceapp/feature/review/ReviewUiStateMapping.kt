@@ -28,6 +28,7 @@ internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiSta
     return ReviewUiState(
         isLoading = true,
         requestedFilter = ReviewFilter.AllCards,
+        isRequestedFilterSessionPending = false,
         selectedFilter = ReviewFilter.AllCards,
         selectedFilterTitle = textProvider.allCardsTitle(),
         remainingCount = 0,
@@ -75,6 +76,7 @@ internal fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): Rev
 
 internal fun mapToReviewUiState(
     sessionSnapshot: ReviewSessionSnapshot,
+    sessionRequestedFilter: ReviewFilter,
     state: ReviewDraftState,
     appMetadata: AppMetadataSummary,
     progressSummarySnapshot: ProgressSummarySnapshot?,
@@ -131,6 +133,7 @@ internal fun mapToReviewUiState(
     return ReviewUiState(
         isLoading = sessionSnapshot.isLoading,
         requestedFilter = state.requestedFilter,
+        isRequestedFilterSessionPending = sessionRequestedFilter != state.requestedFilter,
         selectedFilter = sessionSnapshot.selectedFilter,
         selectedFilterTitle = textProvider.filterTitle(
             selectedFilter = sessionSnapshot.selectedFilter,

@@ -1,6 +1,8 @@
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -100,9 +102,9 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
 /**
  * The complete filter selection of one analytics area.
  *
- * An empty list on an option field means "every value", except on `userCohorts` and
- * `eventPlatforms`, whose default is every value selected and where an empty list therefore means
- * "none" and matches nothing.
+ * An empty list on an option field means "every value", except on `userCohorts`, `eventPlatforms`
+ * and `eventDeviceTypes`, whose default is every value selected and where an empty list therefore
+ * means "none" and matches nothing.
  */
 export type AnalyticsFilterState = Readonly<{
   dateRange: AnalyticsDateRange;
@@ -111,6 +113,7 @@ export type AnalyticsFilterState = Readonly<{
   users: ReadonlyArray<string>;
   userCohorts: ReadonlyArray<ReviewEventCohort>;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   appVersions: ReadonlyArray<string>;
   minimumEventCounts: ReadonlyArray<AnalyticsMinimumEventCount>;
   connectionCountries: ReadonlyArray<string>;
@@ -125,6 +128,9 @@ export type AnalyticsFilterState = Readonly<{
   siteCountries: ReadonlyArray<string>;
   siteBrowserLanguages: ReadonlyArray<string>;
   sitePageKinds: ReadonlyArray<string>;
+  appStoreTerritories: ReadonlyArray<string>;
+  appStoreDevices: ReadonlyArray<string>;
+  appStoreSourceTypes: ReadonlyArray<string>;
 }>;
 
 /** The fields that narrow marketing-site visitors by a value of their first page view. */
@@ -139,6 +145,18 @@ export const defaultSiteVisitorFilterState: SiteVisitorFilterState = {
   siteCountries: [],
   siteBrowserLanguages: [],
   sitePageKinds: [],
+};
+
+/** The fields that narrow Apple's detailed App Store product page rows by a value Apple reports on them. */
+export type AppStoreProductPageFilterState = Pick<
+  AnalyticsFilterState,
+  "appStoreTerritories" | "appStoreDevices" | "appStoreSourceTypes"
+>;
+
+export const defaultAppStoreProductPageFilterState: AppStoreProductPageFilterState = {
+  appStoreTerritories: [],
+  appStoreDevices: [],
+  appStoreSourceTypes: [],
 };
 
 /**
@@ -157,6 +175,7 @@ const analyticsFilterFieldOrder = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  eventDeviceTypes: true,
   appVersions: true,
   minimumEventCounts: true,
   connectionCountries: true,
@@ -171,6 +190,9 @@ const analyticsFilterFieldOrder = {
   siteCountries: true,
   siteBrowserLanguages: true,
   sitePageKinds: true,
+  appStoreTerritories: true,
+  appStoreDevices: true,
+  appStoreSourceTypes: true,
 } as const satisfies Readonly<Record<AnalyticsFilterField, true>>;
 
 /** Every field, in the order the filter bar offers them. */
@@ -188,6 +210,7 @@ const funnelsAnalyticsFilterFieldApplicability = {
   users: false,
   userCohorts: false,
   eventPlatforms: true,
+  eventDeviceTypes: false,
   appVersions: false,
   minimumEventCounts: false,
   connectionCountries: true,
@@ -202,6 +225,9 @@ const funnelsAnalyticsFilterFieldApplicability = {
   siteCountries: false,
   siteBrowserLanguages: false,
   sitePageKinds: false,
+  appStoreTerritories: false,
+  appStoreDevices: false,
+  appStoreSourceTypes: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
@@ -247,6 +273,14 @@ export const webEngagedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField
   "sitePageKinds",
 ];
 
+// The App Store Product pages page narrows Apple's detailed product page rows by what Apple reports on them.
+export const appStoreProductPagesAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "appStoreTerritories",
+  "appStoreDevices",
+  "appStoreSourceTypes",
+];
+
 // General and Audience draw no second series a comparison range could fill, and count people rather
 // than marketing-site visitors. Every field takes a side here for the same reason as on Journeys.
 const userScopedAnalyticsFilterFieldApplicability = {
@@ -255,6 +289,7 @@ const userScopedAnalyticsFilterFieldApplicability = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  eventDeviceTypes: false,
   appVersions: false,
   minimumEventCounts: true,
   connectionCountries: true,
@@ -269,6 +304,9 @@ const userScopedAnalyticsFilterFieldApplicability = {
   siteCountries: false,
   siteBrowserLanguages: false,
   sitePageKinds: false,
+  appStoreTerritories: false,
+  appStoreDevices: false,
+  appStoreSourceTypes: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
 const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
@@ -284,11 +322,11 @@ const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ana
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
 // `level-1-metrics` offers the date range and the platform, which every chart there can answer, and
-// the app version, which only the app open and study charts can; how each one reads them is the
-// explanation below. The Who saw us dataset pages draw one source that is a platform already, so they
+// the device class and app version, which only the app open and study charts can; how each one reads
+// them is the explanation below. The Who saw us dataset pages draw one source that is a platform already, so they
 // offer `whoSawUsDatasetAnalyticsFilterFields` instead, and the Web engaged page
 // `webEngagedAnalyticsFilterFields`.
-const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms", "appVersions"];
+const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms", "eventDeviceTypes", "appVersions"];
 
 export const whoSawUsDatasetAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
@@ -313,6 +351,7 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   users: "Specific users",
   userCohorts: "New vs returning users",
   eventPlatforms: "Client platform of events",
+  eventDeviceTypes: "Device class of events",
   appVersions: "App version",
   minimumEventCounts: "Users with at least N events",
   connectionCountries: "Connection country of the user",
@@ -327,6 +366,9 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   siteCountries: "Country",
   siteBrowserLanguages: "Browser language",
   sitePageKinds: "Landing page type",
+  appStoreTerritories: "Territory",
+  appStoreDevices: "Device",
+  appStoreSourceTypes: "App Store source type",
 };
 
 // What the four click-based catalog fields all have to say, because the evidence behind them is one
@@ -339,6 +381,10 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
 // value somewhere in their history.
 const catalogClickAttributionExplanationTail =
   "Attribution covers completed installs only, so a click that never became an install can never match here, and an install whose click was never recorded carries no click values at all.";
+
+// What the three App Store fields all have to say, because they read the same rows.
+const appStoreDetailedRowsExplanationTail =
+  "This page reads Apple's detailed weekly and monthly reports, which omit every row below 5, so a small segment is missing rather than zero.";
 
 // Shown next to each filter, so it has to be readable by someone who never opens this code. These are
 // the wordings of the user-scoped areas, where a row is a person or an event of a person; `journeys`
@@ -374,6 +420,10 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // data because its events are judged by the platform their own row carries.
   eventPlatforms:
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform empties the Catalog deck installs section.",
+  // Offered on Level 1 metrics only. Cut from the on-screen text: with an app version picked too, Who
+  // studied places a person by their last app open in the bar on a picked platform and device class.
+  eventDeviceTypes:
+    "Who opened the app and Who studied count a person on a day only for an app open or answered review recorded on a device class you pick, read from the event row itself, so a tablet is an iPad or an Android tablet alike, Desktop is the Mac app and Android on Chromebooks or PCs, TV is Android in TV mode, and Unknown is an event that names none: web, the agent API and events stored before clients reported a device. New vs returning still reads their first use on any device. Who paid us and Who saw us carry no device class and are not narrowed by it.",
   // Level 1 metrics' wording; Review prompts overrides it.
   appVersions:
     "Who opened the app counts a person on a day only for an app open on a version you pick, and Who studied counts a person in a bar only when their last app open there, on a selected platform, is on a version you pick, so someone with no app open in the bar, such as an agent-only learner, drops out. New vs returning still reads their first use on any version. Who paid us and Who saw us carry no app version and are not narrowed by it; picking nothing keeps every version.",
@@ -440,6 +490,15 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, reported a browser language you pick: the language part of the browser's locale, such as en from en-US, not the language of the page they opened. A view without a reported locale is Unknown. Picking nothing keeps every language.",
   sitePageKinds:
     "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, was on a page type you pick, as the site reports it, such as home or blog_article. Picking nothing keeps every page type.",
+  appStoreTerritories:
+    "Keeps only the App Store product page rows Apple reported for the territories you pick, by Apple's two-letter territory code. Picking nothing keeps every territory."
+    + ` ${appStoreDetailedRowsExplanationTail}`,
+  appStoreDevices:
+    "Keeps only the App Store product page rows Apple reported for the devices you pick, such as iPhone, iPad or Desktop. Picking nothing keeps every device."
+    + ` ${appStoreDetailedRowsExplanationTail}`,
+  appStoreSourceTypes:
+    "Keeps only the App Store product page rows Apple attributed to the source types you pick. These are Apple's own categories: App Store search includes taps on Apple Ads, so it is not organic search, and Apple gives no exact breakdown by organic keyword. Picking nothing keeps every source type."
+    + ` ${appStoreDetailedRowsExplanationTail}`,
 };
 
 // The date range changes meaning on most funnels: it places an entry by the event that anchors it and
@@ -570,6 +629,7 @@ const levelOneMetricsAnalyticsFilterFieldLabels: Readonly<
 > = {
   dateRange: "Date range of the days shown",
   eventPlatforms: "Platform",
+  eventDeviceTypes: "Device",
 };
 
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
@@ -604,6 +664,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     users: [],
     userCohorts: [...reviewEventCohorts],
     eventPlatforms: [...reviewEventPlatforms],
+    eventDeviceTypes: [...productEventDeviceTypes],
     appVersions: [],
     minimumEventCounts: [],
     connectionCountries: [],
@@ -614,6 +675,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     catalogDeviceCategories: [],
     catalogClickBrowserLanguages: [],
     ...defaultSiteVisitorFilterState,
+    ...defaultAppStoreProductPageFilterState,
   };
 }
 

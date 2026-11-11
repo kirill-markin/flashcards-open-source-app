@@ -10,21 +10,28 @@ import type { AdminAppConfig } from "../config";
 import { AnalyticsFilterBar } from "../filters/AnalyticsFilterBar";
 import {
   analyticsFilterFieldsByArea,
+  getAnalyticsFilterFieldExplanation,
   reviewPromptDetailsAnalyticsFilterFields,
   type AnalyticsFilterState,
 } from "../filters/analyticsFilters";
 import {
   loadAppVersionFilterOptions,
+  noAppStoreProductPageFilterOptions,
   noSiteVisitorFilterOptions,
   type AnalyticsFilterOptions,
 } from "../filters/optionsQuery";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
+import { AppStoreProductPagesPage } from "../reports/appStoreProductPages/AppStoreProductPagesPage";
 import { AudienceSection } from "../reports/audience/AudienceSection";
+import { BrowserChecksSection } from "../reports/browserChecks/BrowserChecksSection";
+import type { BrowserChecksReport } from "../reports/browserChecks/query";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { FunnelDetailsHeader } from "../reports/funnels/FunnelDetailsHeader";
 import { FunnelsArea, type JourneysPage } from "../reports/funnels/FunnelsArea";
 import type { GeneralReportView } from "../reports/generalReportView";
+import { HomeScreenWidgetsSection } from "../reports/homeScreenWidgets/HomeScreenWidgetsSection";
+import type { HomeScreenWidgetsReport } from "../reports/homeScreenWidgets/query";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import { FilterOptionsError } from "../reports/levelOneMetrics/LevelOneMetricsFrame";
@@ -43,10 +50,12 @@ export type AdminReportsData = Readonly<{
   filterOptions: AnalyticsFilterOptions;
   report: ReviewEventsByDateReport;
   catalogInstallsReport: CatalogInstallsReport;
+  homeScreenWidgetsReport: HomeScreenWidgetsReport;
+  browserChecksReport: BrowserChecksReport;
 }>;
 
 /**
- * The General batch - the filter bar's option lists and the two General reports - an analytics
+ * The General batch - the filter bar's option lists and the General reports - an analytics
  * area either already has, is still fetching, or failed to fetch. Every area but Level 1 metrics
  * loads it; only General waits for it. A failure is area-local and retryable; only a terminal
  * 401/403 replaces the whole page.
@@ -150,6 +159,14 @@ function GeneralReportSections(
       <SocialConnectionsSection
         filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.report)}
       />
+
+      <HomeScreenWidgetsSection
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.homeScreenWidgetsReport)}
+      />
+
+      <BrowserChecksSection
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.browserChecksReport)}
+      />
     </div>
   );
 }
@@ -192,6 +209,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     <>
       <AnalyticsFilterBar
         area={props.activeArea}
+        dateRangeExplanation={getAnalyticsFilterFieldExplanation(props.activeArea, "dateRange")}
         fields={fields}
         title="Filters"
         headingLevel={2}
@@ -210,6 +228,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
         catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
         siteVisitorOptions={noSiteVisitorFilterOptions}
+        appStoreProductPageOptions={noAppStoreProductPageFilterOptions}
         areOptionListsLoading={filterOptions === null || (offersAppVersions && appVersionOptions.status !== "ready")}
         isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}
@@ -311,7 +330,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
 /**
  * The routes the dashboard shell renders: an analytics area, or a Level 1 Details, Who saw us
- * dataset, funnel Details, Retention Details or review prompt Details page under its tab.
+ * dataset, App Store Product pages, funnel Details, Retention Details or review prompt Details page
+ * under its tab.
  */
 export type AdminDashboardRoute = Extract<
   AdminRoute,
@@ -320,6 +340,7 @@ export type AdminDashboardRoute = Extract<
       | "analyticsArea"
       | "levelOneMetricDetails"
       | "whoSawUsDataset"
+      | "appStoreProductPages"
       | "funnelDetails"
       | "retentionDetails"
       | "reviewPromptDetails";
@@ -337,6 +358,7 @@ function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
       return "review-prompts";
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
+    case "appStoreProductPages":
       return "level-1-metrics";
   }
 }
@@ -351,6 +373,7 @@ function getJourneysPage(route: AdminDashboardRoute): JourneysPage | null {
       return { kind: "retentionDetails" };
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
+    case "appStoreProductPages":
     case "reviewPromptDetails":
       return null;
   }
@@ -407,7 +430,7 @@ export function AdminDashboard(
       </section>
 
       {/*
-        A Details or Who saw us dataset page renders the tab row itself, because only it knows the
+        A Details, Who saw us dataset or Product pages page renders the tab row itself, because only it knows the
         selection its Level 1 metrics tab has to carry back. Keyed by metric or dataset, because its
         selection is read from the URL once, so moving between two such pages in history has to
         remount it.
@@ -427,6 +450,15 @@ export function AdminDashboard(
         <WhoSawUsDatasetPage
           key={props.route.dataset}
           dataset={props.route.dataset}
+          config={props.config}
+          onNavigate={props.onNavigate}
+          onTerminalAdminError={props.onTerminalAdminError}
+          renderNavigation={renderNavigation}
+        />
+      ) : null}
+
+      {props.route.kind === "appStoreProductPages" ? (
+        <AppStoreProductPagesPage
           config={props.config}
           onNavigate={props.onNavigate}
           onTerminalAdminError={props.onTerminalAdminError}

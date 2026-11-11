@@ -25,9 +25,12 @@ const val reviewQueueButtonTag: String = "review_queue_button"
 const val reviewFilterSheetTag: String = "review_filter_sheet"
 const val reviewFilterAllCardsOptionTag: String = "review_filter_all_cards_option"
 const val reviewManageDecksButtonTag: String = "review_manage_decks_button"
+const val reviewCardTagOverflowChipTag: String = "review_card_tag_overflow_chip"
 
 fun reviewFilterDeckOptionTag(deckId: String): String = "review_filter_deck_option::$deckId"
 
 fun reviewFilterTagOptionTag(tag: String): String = "review_filter_tag_option::$tag"
 
 fun reviewCardTagChipTag(tag: String): String = "review_card_tag_chip::$tag"
+
+fun reviewCardTagOverflowMenuItemTag(tag: String): String = "review_card_tag_overflow_menu_item::$tag"

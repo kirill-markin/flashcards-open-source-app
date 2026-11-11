@@ -8,6 +8,8 @@ import {
   countDerivativeWriteSlots,
   findChatFileDerivativeKind,
   maximumDerivativeErrorChars,
+  maximumSessionFilesRequestBytes,
+  sessionFileRequestBytes,
   type ChatFileDerivativeKind,
   type ChatSandboxPrepareRequest,
   type ChatSandboxPrepareResponse,
@@ -55,10 +57,13 @@ type Preparation =
   | Readonly<{ outcome: "failed"; error: string; unconfirmedSlots: ReadonlyArray<ChatFileWriteSlot> }>
   | Readonly<{ outcome: "transient"; unconfirmedSlots: ReadonlyArray<ChatFileWriteSlot> }>;
 
-/** `superseded`: the attachment was gone or already prepared once the result was recorded. */
+/**
+ * `superseded`: the attachment was gone or already prepared once the result was recorded. `refusal` names
+ * why derived files the sandbox uploaded were not recorded.
+ */
 type RecordedPreparation =
   | Readonly<{ outcome: "prepared" }>
-  | Readonly<{ outcome: "failed"; error: string }>
+  | Readonly<{ outcome: "failed"; error: string; refusal: "path_taken" | "session_file_limit" | null }>
   | Readonly<{ outcome: "superseded" }>
   | Readonly<{ outcome: "transient" }>;
 
@@ -176,17 +181,31 @@ async function recordPreparation(
     if (preparation.outcome === "failed") {
       const error = toStoredDerivativeError(preparation.error);
       await finishChatAttachmentDerivativesWithExecutor(executor, scope, file.fileId, error);
-      return { outcome: "failed", error };
+      return { outcome: "failed", error, refusal: null };
     }
 
+    const sessionPaths = await listChatFilePathsWithExecutor(executor, scope, sessionId);
     const conflict = findChatFilePathConflict([
-      ...await listChatFilePathsWithExecutor(executor, scope, sessionId),
+      ...sessionPaths,
       ...preparation.derivedFiles.map((derivedFile) => derivedFile.path),
     ]);
     if (conflict !== null) {
       const error = toStoredDerivativeError(`the derived path ${conflict} is already taken`);
       await finishChatAttachmentDerivativesWithExecutor(executor, scope, file.fileId, error);
-      return { outcome: "failed", error };
+      return { outcome: "failed", error, refusal: "path_taken" };
+    }
+
+    const filesRequestBytes = [
+      ...[...sessionPaths].filter((path) => path.startsWith("/files/")),
+      ...preparation.derivedFiles.map((derivedFile) => derivedFile.path),
+    ].reduce((sum, path) => sum + sessionFileRequestBytes + Buffer.byteLength(path), 0);
+    if (filesRequestBytes > maximumSessionFilesRequestBytes) {
+      const error = toStoredDerivativeError(
+        `its ${preparation.derivedFiles.length} files would make this chat's /files list ${filesRequestBytes} bytes, `
+          + `and every command can carry at most ${maximumSessionFilesRequestBytes}; attach it in a new chat`,
+      );
+      await finishChatAttachmentDerivativesWithExecutor(executor, scope, file.fileId, error);
+      return { outcome: "failed", error, refusal: "session_file_limit" };
     }
 
     for (const derivedFile of preparation.derivedFiles) {
@@ -217,13 +236,10 @@ function logUnrecordedUploads(
     return;
   }
 
-  if (recorded.outcome !== "prepared") {
-    logOrphanedChatFileUploads(
-      observationScope,
-      preparation.derivedFiles,
-      recorded.outcome === "superseded" ? "already_converted" : "path_taken",
-      null,
-    );
+  if (recorded.outcome === "superseded") {
+    logOrphanedChatFileUploads(observationScope, preparation.derivedFiles, "already_converted", null);
+  } else if (recorded.outcome === "failed" && recorded.refusal !== null) {
+    logOrphanedChatFileUploads(observationScope, preparation.derivedFiles, recorded.refusal, null);
   }
 }
 

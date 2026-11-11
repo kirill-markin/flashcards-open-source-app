@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "نام محفوظ کریں";
 "settings.workspace.overview.workspace" = "ورک اسپیس";
 "settings.workspace.overview.cards" = "کارڈز";
-"settings.workspace.overview.due" = "دہرائی کا وقت";
 "settings.workspace.overview.new" = "نیا";
 "settings.workspace.overview.deleteDescription" = "یہ ورک اسپیس اور اس کے تمام کارڈز، ڈیکس، دہرائیاں اور ہم وقت سازی کی تاریخ مستقل حذف کریں۔";
 "settings.workspace.overview.deleteWorkspace" = "ورک اسپیس حذف کریں";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "کوئی مماثل ڈیک نہیں";
 "settings.workspace.decks.searchPrompt" = "ڈیکس تلاش کریں";
 "settings.workspace.decks.newDeck" = "نیا ڈیک";
-"settings.workspace.decks.dueCount" = "%d کی دہرائی کا وقت";
-"settings.workspace.decks.totalCards" = "کارڈز: %d";
-"settings.workspace.decks.newCount" = "نئے کارڈز: %d";
-"settings.workspace.decks.reviewedCount" = "%d کی دہرائی ہو چکی";
+"settings.workspace.decks.toStudyCount" = "%d مطالعے کے لیے";
+"settings.workspace.decks.toStudy" = "مطالعے کے لیے";
 "settings.workspace.decks.emptyAllCards" = "آپ نے ابھی کوئی کارڈ نہیں بنایا۔";
 "settings.workspace.decks.emptyDeck" = "اس ڈیک میں ابھی کوئی مماثل کارڈ نہیں ہے۔";
 "settings.workspace.decks.section.deckRules" = "ڈیک کے قواعد";

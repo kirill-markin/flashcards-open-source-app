@@ -68,6 +68,7 @@ extension FlashcardsStore {
         try database.resetForAccountDeletion()
         #if !targetEnvironment(macCatalyst)
         self.deleteWidgetSnapshotForCloudIdentityReset()
+        self.clearLastReportedWidgetPlacementForCloudIdentityReset()
         #endif
         let nextStrictReminderNotificationScope = rotateStrictReminderNotificationScope(
             userDefaults: self.userDefaults

@@ -1225,6 +1225,312 @@
         }
       }
     },
+    "mac.sidebar.row.tooltip" : {
+      "comment" : "Native Mac sidebar row tooltip, for example Review (⌘1). %1$@ is the row title, %2$@ its keyboard shortcut, inserted literally. In right-to-left languages wrap %2$@ in U+2066 … U+2069 so it does not render as 1⌘",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (⁦%2$@⁩)"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (⁦%2$@⁩)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (⁦%2$@⁩)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@）"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (⁦%2$@⁩)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@）"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "mac.sidebar.app_section.title" : {
       "comment" : "Native Mac sidebar section header above app-level items such as Settings",
       "extractionState" : "manual",
@@ -12512,7 +12818,7 @@
       }
     },
     "catalog.list.card_count %lld" : {
-      "comment" : "Deck catalog row: number of cards in a public deck",
+      "comment" : "Number of cards in a deck: Deck catalog rows and the Decks list",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -22698,307 +23004,917 @@
         }
       }
     },
-    "library.row.cards.subtitle" : {
-      "comment" : "Library hub row subtitle for the Cards screen",
+    "library.export.anki.connectionError" : {
+      "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "كل البطاقات في مساحة العمل هذه."
+            "value" : "تحقّق من اتصالك بالإنترنت وحاول التصدير مرة أخرى."
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Всички карти в това работно пространство."
+            "value" : "Проверете интернет връзката си и опитайте да експортирате отново."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "এই কর্মক্ষেত্রের সব কার্ড।"
+            "value" : "ইন্টারনেট সংযোগ পরীক্ষা করে আবার রপ্তানি করার চেষ্টা করুন।"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Totes les targetes d'aquest espai de treball."
+            "value" : "Comprova la connexió a internet i torna a provar d’exportar."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Všechny kartičky v tomto pracovním prostoru."
+            "value" : "Zkontrolujte připojení k internetu a zkuste exportovat znovu."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle kort i dette arbejdsområde."
+            "value" : "Tjek din internetforbindelse, og prøv at eksportere igen."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle Karten in diesem Arbeitsbereich."
+            "value" : "Prüfe deine Internetverbindung und versuche den Export erneut."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας."
+            "value" : "Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και δοκιμάστε ξανά την εξαγωγή."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every card in this workspace."
+            "value" : "Check your internet connection and try exporting again."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todas las tarjetas de este espacio de trabajo."
+            "value" : "Comprueba tu conexión a internet y vuelve a intentar la exportación."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todas las tarjetas de este espacio de trabajo."
+            "value" : "Revisa tu conexión a internet y vuelve a intentar la exportación."
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kõik selle tööruumi kaardid."
+            "value" : "Kontrollige internetiühendust ja proovige uuesti eksportida."
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "همهٔ کارت‌های این فضای کاری."
+            "value" : "اتصال اینترنتتان را بررسی کنید و دوباره خروجی بگیرید."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kaikki tämän työtilan kortit."
+            "value" : "Tarkista internetyhteytesi ja yritä vientiä uudelleen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toutes les cartes de cet espace de travail."
+            "value" : "Vérifiez votre connexion Internet et réessayez d’exporter."
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "આ કાર્યક્ષેત્રનાં બધાં કાર્ડ."
+            "value" : "તમારું ઇન્ટરનેટ કનેક્શન તપાસો અને ફરીથી નિકાસ કરવાનો પ્રયાસ કરો."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "כל הכרטיסיות בסביבת העבודה הזו."
+            "value" : "יש לבדוק את החיבור לאינטרנט ולנסות לייצא שוב."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "इस वर्कस्पेस के सभी कार्ड।"
+            "value" : "अपना इंटरनेट कनेक्शन जाँचें और फिर से एक्सपोर्ट करने की कोशिश करें।"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sve kartice u ovom radnom prostoru."
+            "value" : "Provjerite internetsku vezu i pokušajte ponovno izvesti."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A munkaterület összes kártyája."
+            "value" : "Ellenőrizd az internetkapcsolatot, majd próbáld meg újra az exportálást."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Semua kartu di ruang kerja ini."
+            "value" : "Periksa koneksi internet Anda, lalu coba ekspor lagi."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Öll spjöld á þessu vinnusvæði."
+            "value" : "Athugaðu nettenginguna og reyndu að flytja út aftur."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tutte le schede di questo spazio di lavoro."
+            "value" : "Controlla la connessione a Internet e riprova a esportare."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このワークスペースのすべてのカード。"
+            "value" : "インターネット接続を確認して、もう一度エクスポートしてください。"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿನ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳು."
+            "value" : "ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ರಫ್ತು ಮಾಡಲು ಪ್ರಯತ್ನಿಸಿ."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 작업 공간의 모든 카드입니다."
+            "value" : "인터넷 연결을 확인하고 다시 내보내세요."
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Visos šios darbo srities kortelės."
+            "value" : "Patikrinkite interneto ryšį ir bandykite eksportuoti dar kartą."
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Visas šīs darbvietas kartītes."
+            "value" : "Pārbaudiet interneta savienojumu un mēģiniet eksportēt vēlreiz."
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ഈ വർക്ക്‌സ്‌പേസിലെ എല്ലാ കാർഡുകളും."
+            "value" : "ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും എക്‌സ്‌പോർട്ട് ചെയ്യാൻ ശ്രമിക്കുക."
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "या कार्यक्षेत्रातील सर्व कार्डे."
+            "value" : "इंटरनेट कनेक्शन तपासा आणि पुन्हा एक्सपोर्ट करण्याचा प्रयत्न करा."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle kort i dette arbeidsområdet."
+            "value" : "Sjekk internettforbindelsen og prøv å eksportere på nytt."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle kaarten in deze werkruimte."
+            "value" : "Controleer je internetverbinding en probeer opnieuw te exporteren."
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ।"
+            "value" : "ਆਪਣਾ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਦੁਬਾਰਾ ਐਕਸਪੋਰਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wszystkie fiszki w tym obszarze roboczym."
+            "value" : "Sprawdź połączenie z internetem i spróbuj ponownie wyeksportować talię."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos os cartões deste espaço de trabalho."
+            "value" : "Verifique sua conexão com a internet e tente exportar novamente."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toate fișele din acest spațiu de lucru."
+            "value" : "Verifică conexiunea la internet și încearcă să exporți din nou."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Все карточки в этом рабочем пространстве."
+            "value" : "Проверьте подключение к интернету и повторите экспорт."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Všetky karty v tomto pracovnom priestore."
+            "value" : "Skontrolujte pripojenie k internetu a skúste exportovať znova."
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vse kartice v tem delovnem prostoru."
+            "value" : "Preverite internetno povezavo in poskusite znova izvoziti."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alla kort i den här arbetsytan."
+            "value" : "Kontrollera internetanslutningen och försök exportera igen."
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kadi zote katika nafasi hii ya kazi."
+            "value" : "Angalia muunganisho wako wa intaneti kisha ujaribu kuhamisha tena."
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "இந்தப் பணியிடத்தில் உள்ள எல்லா அட்டைகளும்."
+            "value" : "இணைய இணைப்பைச் சரிபார்த்து, மீண்டும் ஏற்றுமதி செய்ய முயலுங்கள்."
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ఈ వర్క్‌స్పేస్‌లోని అన్ని కార్డులు."
+            "value" : "ఇంటర్నెట్ కనెక్షన్‌ను తనిఖీ చేసి, మళ్లీ ఎగుమతి చేయడానికి ప్రయత్నించండి."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "การ์ดทั้งหมดในพื้นที่ทำงานนี้"
+            "value" : "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองส่งออกอีกครั้ง"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bu çalışma alanındaki tüm kartlar."
+            "value" : "İnternet bağlantınızı kontrol edip dışa aktarmayı tekrar deneyin."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Усі картки в цьому робочому просторі."
+            "value" : "Перевірте підключення до інтернету та повторіть експорт."
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اس ورک اسپیس کے تمام کارڈز۔"
+            "value" : "اپنا انٹرنیٹ کنکشن چیک کریں اور دوبارہ ایکسپورٹ کرنے کی کوشش کریں۔"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mọi thẻ trong không gian làm việc này."
+            "value" : "Kiểm tra kết nối Internet rồi thử xuất lại."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此工作区中的所有卡片。"
+            "value" : "请检查网络连接，然后重试导出。"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wonke amakhadi akule ndawo yokusebenza."
+            "value" : "Hlola ukuxhumeka kwakho kwe-inthanethi bese uzama ukuthumela futhi."
+          }
+        }
+      }
+    },
+    "library.export.anki.description" : {
+      "comment" : "Description of the Anki package export",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صدّر البطاقات النشطة والوسوم والوسائط المشار إليها كملف flashcards.apkg."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортирайте активни карти, етикети и референтни медии като flashcards.apkg."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সক্রিয় কার্ড, ট্যাগ, এবং উল্লেখিত মিডিয়া flashcards.apkg হিসাবে রপ্তানি করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta les targetes actives, les etiquetes i els mitjans de referència com a flashcards.apkg."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportovat aktivní kartičky, štítky a odkazovaná média jako flashcards.apkg."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportér aktive kort, mærkater og refererede medier som flashcards.apkg."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportiert aktive Karten, Tags und referenzierte Medien als flashcards.apkg."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εξαγωγή ενεργών καρτών, ετικετών και αναφερόμενων πολυμέσων ως flashcards.apkg."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export active cards, tags, and referenced media as flashcards.apkg."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta tarjetas activas, etiquetas y medios referenciados como flashcards.apkg."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta tarjetas activas, etiquetas y medios referenciados como flashcards.apkg."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspordi aktiivsed kaardid, sildid ja viidatud meedia failina flashcards.apkg."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارت‌های فعال، برچسب‌ها و رسانه‌های ارجاع‌شده را به صورت flashcards.apkg برون‌بری کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vie aktiiviset kortit, tunnisteet ja viitattu media flashcards.apkg-tiedostona."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportez les cartes actives, les tags et les médias référencés sous forme de flashcards.apkg."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "સક્રિય કાર્ડ, ટૅગ અને સંદર્ભિત મીડિયાની flashcards.apkg તરીકે નિકાસ કરો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ייצוא כרטיסיות פעילות, תגיות ומדיה שיש אליה הפניות כ-flashcards.apkg."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सक्रिय कार्ड, टैग और संदर्भित मीडिया को flashcards.apkg के रूप में निर्यात करें."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvezite aktivne kartice, oznake i referencirane medije kao flashcards.apkg."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktív kártyák, címkék és hivatkozott média exportálása flashcards.apkg fájlként."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspor kartu aktif, tag, dan media yang dirujuk sebagai flashcards.apkg."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flytja virk spjöld, merki og tilvísaða miðla út sem flashcards.apkg."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta schede attive, tag e contenuti multimediali di riferimento come flashcards.apkg."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効なカード、タグ、参照メディアを flashcards.apkg としてエクスポートします。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳು, ಟ್ಯಾಗ್‌ಗಳು ಮತ್ತು ಉಲ್ಲೇಖಿತ ಮಾಧ್ಯಮವನ್ನು flashcards.apkg ಆಗಿ ರಫ್ತು ಮಾಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "활성 카드, 태그, 참조된 미디어를 flashcards.apkg으로 내보냅니다."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuoti aktyvias korteles, žymas ir nurodytą mediją kaip flashcards.apkg."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportēt aktīvās kartītes, birkas un norādīto multividi kā flashcards.apkg."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സജീവ കാർഡുകളും ടാഗുകളും പരാമർശിച്ച മീഡിയയും flashcards.apkg ആയി എക്സ്പോർട്ട് ചെയ്യുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सक्रिय कार्डे, टॅग आणि संदर्भित माध्यमे flashcards.apkg म्हणून निर्यात करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksporter aktive kort, tagger og refererte medier som flashcards.apkg."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporteer actieve kaarten, tags en media waarnaar wordt verwezen als flashcards.apkg."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਰਗਰਮ ਕਾਰਡਾਂ, ਟੈਗਾਂ ਅਤੇ ਹਵਾਲੇ ਵਾਲੇ ਮੀਡੀਆ ਨੂੰ flashcards.apkg ਵਜੋਂ ਨਿਰਯਾਤ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj aktywne fiszki, tagi i wskazane multimedia jako flashcards.apkg."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporte os cartões ativos, as etiquetas e as mídias referenciadas como flashcards.apkg."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportă fișele active, etichetele și fișierele media referite ca flashcards.apkg."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортирует активные карточки, теги и связанные медиа в flashcards.apkg."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportovať aktívne karty, značky a odkazované médiá ako flashcards.apkg."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvozite aktivne kartice, oznake in predstavnost s sklici kot flashcards.apkg."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportera aktiva kort, taggar och refererade medier som flashcards.apkg."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hamisha kadi zinazotumika, lebo na midia iliyorejelewa kama flashcards.apkg."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "செயலில் உள்ள அட்டைகள், குறிச்சொற்கள் மற்றும் குறிப்பிடப்பட்ட ஊடகத்தை flashcards.apkg ஆக ஏற்றுமதி செய்யவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సక్రియ కార్డులు, ట్యాగ్‌లు, సూచించిన మీడియాను flashcards.apkgగా ఎగుమతి చేయండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ส่งออกการ์ดที่ใช้งาน แท็ก และสื่อที่อ้างอิงเป็น flashcards.apkg"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etkin kartları, etiketleri ve başvurulan medyayı flashcards.apkg olarak dışa aktarın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортуйте активні картки, мітки та пов’язані медіа у flashcards.apkg."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فعال کارڈز، ٹیگز اور حوالہ شدہ میڈیا کو flashcards.apkg کے طور پر برآمد کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất thẻ đang hoạt động, nhãn và nội dung đa phương tiện được tham chiếu thành flashcards.apkg."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将活动卡片、标签和引用的媒体导出为 flashcards.apkg。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khipha amakhadi asebenzayo, amathegi nemidiya ekhonjiwe njenge-flashcards.apkg."
+          }
+        }
+      }
+    },
+    "library.export.anki.success" : {
+      "comment" : "Status shown once an exported Anki deck is ready to share",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg جاهز للمشاركة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg е готов за споделяне."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ভাগ করার জন্য প্রস্তুত।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg està llest per compartir."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je připraven ke sdílení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg er klar til deling."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ist zum Teilen bereit."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το flashcards.apkg είναι έτοιμο για κοινοποίηση."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg is ready to share."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg está listo para compartir."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg está listo para compartir."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg on jagamiseks valmis."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg آمادهٔ اشتراک‌گذاری است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg on valmis jaettavaksi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg est prêt à être partagé."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg શેર કરવા તૈયાર છે."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg מוכן לשיתוף."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg साझा करने के लिए तैयार है."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je spreman za dijeljenje."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A flashcards.apkg megosztható."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg siap dibagikan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg er tilbúið til deilingar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg è pronto da condividere."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg を共有できる状態になりました。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ಹಂಚಿಕೊಳ್ಳಲು ಸಿದ್ಧವಾಗಿದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg을 공유할 준비가 되었습니다."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg paruoštas bendrinti."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ir gatavs kopīgošanai."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg പങ്കിടാൻ തയ്യാറാണ്."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg शेअर करण्यासाठी तयार आहे."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg er klar til å deles."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg is klaar om te delen."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ਸਾਂਝਾ ਕਰਨ ਲਈ ਤਿਆਰ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik flashcards.apkg jest gotowy do udostępnienia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O flashcards.apkg está pronto para compartilhar."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg este gata de partajare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg готов к отправке."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je pripravený na zdieľanie."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je pripravljen za deljenje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg är redo att delas."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg iko tayari kushirikiwa."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg பகிரத் தயாராக உள்ளது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg పంచుకోవడానికి సిద్ధంగా ఉంది."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg พร้อมแชร์แล้ว"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg paylaşılmaya hazır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg готовий до поширення."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg شیئر کرنے کے لیے تیار ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg đã sẵn sàng để chia sẻ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg 已可分享。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I-flashcards.apkg isilungele ukwabelana."
           }
         }
       }
@@ -23613,612 +24529,612 @@
         }
       }
     },
-    "library.row.decks.subtitle" : {
-      "comment" : "Library hub row subtitle for the Decks screen",
+    "library.row.export.anki.title" : {
+      "comment" : "Library action and screen title for exporting an Anki deck",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "فلاتر بطاقات محفوظة لمراجعة مركّزة."
+            "value" : "تصدير مجموعة بطاقات Anki"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Запазени филтри на карти за фокусиран преговор."
+            "value" : "Експортиране на тесте за Anki"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "মনোযোগী পুনরালোচনার জন্য সংরক্ষিত কার্ড ফিল্টার।"
+            "value" : "Anki ডেক রপ্তানি করুন"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtres de targetes desats per a un repàs centrat."
+            "value" : "Exporta una baralla d’Anki"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uložené filtry kartiček pro soustředěné opakování."
+            "value" : "Exportovat balíček pro Anki"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gemte kortfiltre til fokuseret repetition."
+            "value" : "Eksportér Anki-kortsæt"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gespeicherte Kartenfilter für gezieltes Wiederholen."
+            "value" : "Anki-Stapel exportieren"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη."
+            "value" : "Εξαγωγή τράπουλας Anki"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saved card filters for focused review."
+            "value" : "Export Anki deck"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtros de tarjetas guardados para un repaso centrado."
+            "value" : "Exportar mazo de Anki"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtros de tarjetas guardados para un repaso enfocado."
+            "value" : "Exportar mazo de Anki"
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Salvestatud kaardifiltrid keskendunud kordamiseks."
+            "value" : "Ekspordi Anki kaardipakk"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "فیلترهای ذخیره‌شدهٔ کارت برای مرور متمرکز."
+            "value" : "برون‌بری دستهٔ کارت Anki"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tallennetut korttisuodattimet keskittyneeseen kertaukseen."
+            "value" : "Vie Anki-pakka"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtres de cartes enregistrés pour une révision ciblée."
+            "value" : "Exporter un paquet Anki"
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "કેન્દ્રિત પુનરાવર્તન માટે સાચવેલાં કાર્ડ ફિલ્ટર."
+            "value" : "Anki ડેક નિકાસ કરો"
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "מסנני כרטיסיות שמורים לחזרה ממוקדת."
+            "value" : "ייצוא חפיסת Anki"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "केंद्रित समीक्षा के लिए सहेजे गए कार्ड फ़िल्टर।"
+            "value" : "Anki डेक निर्यात करें"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spremljeni filtri kartica za usredotočeno ponavljanje."
+            "value" : "Izvezi Anki špil"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mentett kártyaszűrők a célzott ismétléshez."
+            "value" : "Anki-pakli exportálása"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filter kartu tersimpan untuk pengulangan yang terfokus."
+            "value" : "Ekspor dek Anki"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vistaðar spjaldasíur fyrir markvissa upprifjun."
+            "value" : "Flytja út Anki-spjaldastokk"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtri di schede salvati per un ripasso mirato."
+            "value" : "Esporta mazzo Anki"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "集中して復習するための保存済みカードフィルター。"
+            "value" : "Ankiデッキを書き出す"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ಕೇಂದ್ರೀಕೃತ ಪುನರಾವರ್ತನೆಗಾಗಿ ಉಳಿಸಿದ ಕಾರ್ಡ್ ಫಿಲ್ಟರ್‌ಗಳು."
+            "value" : "Anki ಡೆಕ್ ರಫ್ತು ಮಾಡಿ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "집중 복습을 위해 저장한 카드 필터입니다."
+            "value" : "Anki 덱 내보내기"
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Išsaugoti kortelių filtrai susitelkusiam kartojimui."
+            "value" : "Eksportuoti Anki kortelių kaladę"
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saglabāti kartīšu filtri mērķtiecīgai atkārtošanai."
+            "value" : "Eksportēt Anki kartīšu kavu"
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ശ്രദ്ധയോടെയുള്ള ആവർത്തനത്തിനായി സേവ് ചെയ്ത കാർഡ് ഫിൽട്ടറുകൾ."
+            "value" : "Anki ഡെക്ക് എക്സ്പോർട്ട് ചെയ്യുക"
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "एकाग्र उजळणीसाठी जतन केलेले कार्ड फिल्टर."
+            "value" : "Anki डेक निर्यात करा"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lagrede kortfiltre for fokusert repetisjon."
+            "value" : "Eksporter Anki-kortstokk"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opgeslagen kaartfilters om gericht te herhalen."
+            "value" : "Anki-kaartenset exporteren"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ਕੇਂਦ੍ਰਿਤ ਦੁਹਰਾਈ ਲਈ ਸੰਭਾਲੇ ਕਾਰਡ ਫਿਲਟਰ।"
+            "value" : "Anki ਡੈੱਕ ਨਿਰਯਾਤ ਕਰੋ"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zapisane filtry fiszek do ukierunkowanych powtórek."
+            "value" : "Eksportuj talię Anki"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtros de cartões salvos para uma revisão focada."
+            "value" : "Exportar baralho do Anki"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filtre de fișe salvate pentru o recapitulare concentrată."
+            "value" : "Exportă setul de carduri Anki"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сохранённые фильтры карточек для целенаправленного повторения."
+            "value" : "Экспорт колоды Anki"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uložené filtre kariet na sústredené opakovanie."
+            "value" : "Exportovať balíček Anki"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Shranjeni filtri kartic za osredotočeno ponavljanje."
+            "value" : "Izvozi komplet kartic Anki"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sparade kortfilter för fokuserad repetition."
+            "value" : "Exportera Anki-kortlek"
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vichujio vya kadi vilivyohifadhiwa kwa marudio yenye umakini."
+            "value" : "Hamisha seti ya kadi za Anki"
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "கவனம் செலுத்திய மீள்பயிற்சிக்காகச் சேமித்த அட்டை வடிகட்டிகள்."
+            "value" : "Anki அட்டைத் தொகுப்பை ஏற்றுமதி செய்"
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "దృష్టి పెట్టిన పునశ్చరణ కోసం సేవ్ చేసిన కార్డ్ ఫిల్టర్‌లు."
+            "value" : "Anki డెక్‌ను ఎగుమతి చేయండి"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ตัวกรองการ์ดที่บันทึกไว้สำหรับการทบทวนแบบเจาะจง"
+            "value" : "ส่งออกสำรับ Anki"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Odaklı tekrar için kaydedilmiş kart filtreleri."
+            "value" : "Anki destesini dışa aktar"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Збережені фільтри карток для цілеспрямованого повторення."
+            "value" : "Експортувати колоду Anki"
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مرکوز دہرائی کے لیے محفوظ کیے گئے کارڈ فلٹرز۔"
+            "value" : "Anki ڈیک برآمد کریں"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bộ lọc thẻ đã lưu để ôn tập tập trung."
+            "value" : "Xuất bộ thẻ Anki"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为专注复习保存的卡片筛选条件。"
+            "value" : "导出 Anki 牌组"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izihlungi zamakhadi ezilondoloziwe zokubukeza okugxilile."
+            "value" : "Khipha iqoqo lamakhadi le-Anki"
           }
         }
       }
     },
-    "library.row.export.subtitle" : {
-      "comment" : "Library hub row subtitle for the Export screen",
+    "library.row.export.nibomo.title" : {
+      "comment" : "Library action and screen title for exporting a Nibomo package",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "نزّل كل بطاقاتك كملف."
+            "value" : "تصدير حزمة Nibomo"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Изтеглете всичките си карти като файл."
+            "value" : "Експортиране на пакет Nibomo"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনার সব কার্ড একটি ফাইল হিসেবে ডাউনলোড করুন।"
+            "value" : "Nibomo প্যাকেজ রপ্তানি করুন"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarrega totes les teves targetes en un fitxer."
+            "value" : "Exporta un paquet Nibomo"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stáhněte všechny své kartičky jako soubor."
+            "value" : "Exportovat balíček Nibomo"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download alle dine kort som en fil."
+            "value" : "Eksportér Nibomo-pakke"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lade alle deine Karten als Datei herunter."
+            "value" : "Nibomo-Paket exportieren"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Κατεβάστε όλες τις κάρτες σας ως αρχείο."
+            "value" : "Εξαγωγή πακέτου Nibomo"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download all your cards as a file."
+            "value" : "Export Nibomo package"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarga todas tus tarjetas en un archivo."
+            "value" : "Exportar paquete de Nibomo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarga todas tus tarjetas en un archivo."
+            "value" : "Exportar paquete de Nibomo"
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Laadi kõik oma kaardid failina alla."
+            "value" : "Ekspordi Nibomo pakett"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "همهٔ کارت‌هایتان را به صورت یک فایل دریافت کنید."
+            "value" : "برون‌بری بستهٔ Nibomo"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lataa kaikki korttisi tiedostona."
+            "value" : "Vie Nibomo-paketti"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Téléchargez toutes vos cartes dans un fichier."
+            "value" : "Exporter un paquet Nibomo"
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "તમારાં બધાં કાર્ડ ફાઇલ તરીકે ડાઉનલોડ કરો."
+            "value" : "Nibomo પૅકેજ નિકાસ કરો"
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "הורדת כל הכרטיסיות שלך כקובץ."
+            "value" : "ייצוא חבילת Nibomo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अपने सभी कार्ड एक फ़ाइल के रूप में डाउनलोड करें।"
+            "value" : "Nibomo पैकेज निर्यात करें"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preuzmite sve svoje kartice kao datoteku."
+            "value" : "Izvezi Nibomo paket"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Töltsd le az összes kártyádat egy fájlként."
+            "value" : "Nibomo-csomag exportálása"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unduh semua kartu Anda sebagai file."
+            "value" : "Ekspor paket Nibomo"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sæktu öll spjöldin þín sem skrá."
+            "value" : "Flytja út Nibomo-pakka"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scarica tutte le tue schede in un file."
+            "value" : "Esporta pacchetto Nibomo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべてのカードをファイルとしてダウンロードします。"
+            "value" : "Nibomoパッケージを書き出す"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ನಿಮ್ಮ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳನ್ನು ಫೈಲ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ."
+            "value" : "Nibomo ಪ್ಯಾಕೇಜ್ ರಫ್ತು ಮಾಡಿ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 카드를 파일로 내려받습니다."
+            "value" : "Nibomo 패키지 내보내기"
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atsisiųskite visas savo korteles kaip failą."
+            "value" : "Eksportuoti Nibomo paketą"
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lejupielādējiet visas savas kartītes kā failu."
+            "value" : "Eksportēt Nibomo pakotni"
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "നിങ്ങളുടെ എല്ലാ കാർഡുകളും ഒരു ഫയലായി ഡൗൺലോഡ് ചെയ്യുക."
+            "value" : "Nibomo പാക്കേജ് എക്സ്പോർട്ട് ചെയ്യുക"
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "तुमची सर्व कार्डे फाइल म्हणून डाउनलोड करा."
+            "value" : "Nibomo पॅकेज निर्यात करा"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Last ned alle kortene dine som en fil."
+            "value" : "Eksporter Nibomo-pakke"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download al je kaarten als bestand."
+            "value" : "Nibomo-pakket exporteren"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ਆਪਣੇ ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਫ਼ਾਈਲ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ।"
+            "value" : "Nibomo ਪੈਕੇਜ ਨਿਰਯਾਤ ਕਰੋ"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pobierz wszystkie swoje fiszki jako plik."
+            "value" : "Eksportuj pakiet Nibomo"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Baixe todos os seus cartões como um arquivo."
+            "value" : "Exportar pacote do Nibomo"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarcă toate fișele tale într-un fișier."
+            "value" : "Exportă pachetul Nibomo"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Скачайте все свои карточки одним файлом."
+            "value" : "Экспорт пакета Nibomo"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stiahnite všetky svoje karty ako súbor."
+            "value" : "Exportovať balík Nibomo"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prenesite vse svoje kartice kot datoteko."
+            "value" : "Izvozi paket Nibomo"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ladda ner alla dina kort som en fil."
+            "value" : "Exportera Nibomo-paket"
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pakua kadi zako zote kama faili."
+            "value" : "Hamisha kifurushi cha Nibomo"
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "உங்கள் எல்லா அட்டைகளையும் ஒரு கோப்பாகப் பதிவிறக்கவும்."
+            "value" : "Nibomo தொகுப்பை ஏற்றுமதி செய்"
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "మీ అన్ని కార్డులను ఫైల్‌గా డౌన్‌లోడ్ చేయండి."
+            "value" : "Nibomo ప్యాకేజీని ఎగుమతి చేయండి"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ดาวน์โหลดการ์ดทั้งหมดของคุณเป็นไฟล์"
+            "value" : "ส่งออกแพ็กเกจ Nibomo"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tüm kartlarınızı bir dosya olarak indirin."
+            "value" : "Nibomo paketini dışa aktar"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Завантажте всі свої картки одним файлом."
+            "value" : "Експортувати пакет Nibomo"
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اپنے تمام کارڈز ایک فائل کے طور پر ڈاؤن لوڈ کریں۔"
+            "value" : "Nibomo پیکیج برآمد کریں"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tải tất cả thẻ của bạn về dưới dạng tệp."
+            "value" : "Xuất gói Nibomo"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将你的所有卡片下载为一个文件。"
+            "value" : "导出 Nibomo 卡包"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dawuniloda wonke amakhadi akho njengefayela."
+            "value" : "Khipha iphakheji ye-Nibomo"
           }
         }
       }
@@ -24524,311 +25440,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Engeza amakhadi kusuka kufayela."
-          }
-        }
-      }
-    },
-    "library.row.tags.subtitle" : {
-      "comment" : "Library hub row subtitle for the Tags screen",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "كل العلامات المستخدمة في بطاقة واحدة على الأقل."
-          }
-        },
-        "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Всички етикети, използвани в поне една карта."
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "অন্তত একটি কার্ডে ব্যবহৃত সব ট্যাগ।"
-          }
-        },
-        "ca" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Totes les etiquetes usades en almenys una targeta."
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Všechny štítky použité alespoň na jedné kartičce."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle mærkater, der bruges på mindst ét kort."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Tags, die auf mindestens einer Karte verwendet werden."
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every tag used on at least one card."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todas las etiquetas usadas en al menos una tarjeta."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todas las etiquetas usadas en al menos una tarjeta."
-          }
-        },
-        "et" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kõik sildid, mida on kasutatud vähemalt ühel kaardil."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "همهٔ برچسب‌هایی که دست‌کم روی یک کارت استفاده شده‌اند."
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kaikki tunnisteet, joita on käytetty vähintään yhdessä kortissa."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tous les tags utilisés sur au moins une carte."
-          }
-        },
-        "gu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ઓછામાં ઓછા એક કાર્ડ પર વપરાયેલા બધા ટૅગ."
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כל התגיות שמשמשות לפחות בכרטיסייה אחת."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "कम से कम एक कार्ड पर इस्तेमाल हुए सभी टैग।"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sve oznake korištene na barem jednoj kartici."
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minden címke, amely legalább egy kártyán szerepel."
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Semua tag yang dipakai di setidaknya satu kartu."
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Öll merki sem eru notuð á minnst einu spjaldi."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tutti i tag usati su almeno una scheda."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1枚以上のカードで使われているすべてのタグ。"
-          }
-        },
-        "kn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ಕನಿಷ್ಠ ಒಂದು ಕಾರ್ಡ್‌ನಲ್ಲಿ ಬಳಸಲಾದ ಎಲ್ಲಾ ಟ್ಯಾಗ್‌ಗಳು."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "카드 한 장 이상에 사용된 모든 태그입니다."
-          }
-        },
-        "lt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Visos žymos, naudojamos bent vienoje kortelėje."
-          }
-        },
-        "lv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Visas birkas, kas izmantotas vismaz vienā kartītē."
-          }
-        },
-        "ml" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "കുറഞ്ഞത് ഒരു കാർഡിലെങ്കിലും ഉപയോഗിച്ച എല്ലാ ടാഗുകളും."
-          }
-        },
-        "mr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "किमान एका कार्डवर वापरलेले सर्व टॅग."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle tagger som brukes på minst ett kort."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle tags die op minstens één kaart worden gebruikt."
-          }
-        },
-        "pa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ 'ਤੇ ਵਰਤੇ ਗਏ ਸਾਰੇ ਟੈਗ।"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wszystkie tagi użyte w co najmniej jednej fiszce."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todas as etiquetas usadas em pelo menos um cartão."
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toate etichetele folosite pe cel puțin o fișă."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Все теги, которые есть хотя бы на одной карточке."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Všetky značky použité aspoň na jednej karte."
-          }
-        },
-        "sl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vse oznake, uporabljene na vsaj eni kartici."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alla taggar som används på minst ett kort."
-          }
-        },
-        "sw" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lebo zote zinazotumika kwenye angalau kadi moja."
-          }
-        },
-        "ta" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "குறைந்தது ஒரு அட்டையில் பயன்படுத்தப்பட்ட எல்லா குறிச்சொற்களும்."
-          }
-        },
-        "te" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "కనీసం ఒక కార్డుపై ఉపయోగించిన అన్ని ట్యాగ్‌లు."
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "แท็กทั้งหมดที่ใช้กับการ์ดอย่างน้อยหนึ่งใบ"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En az bir kartta kullanılan tüm etiketler."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Усі мітки, використані хоча б на одній картці."
-          }
-        },
-        "ur" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "کم از کم ایک کارڈ پر استعمال ہونے والے تمام ٹیگز۔"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mọi nhãn được dùng trên ít nhất một thẻ."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "至少用于一张卡片的所有标签。"
-          }
-        },
-        "zu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wonke amathegi asetshenziswe okungenani ekhadini elilodwa."
           }
         }
       }
@@ -56248,612 +56859,997 @@
         }
       }
     },
-    "progress.screen.streak_leaderboard.day_count.one" : {
-      "comment" : "Progress streak leaderboard singular day count",
+    "progress.screen.streak_leaderboard.day_count %lld" : {
+      "comment" : "Progress streak leaderboard day count",
       "localizations" : {
         "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يوم واحد"
-          }
-        },
-        "ur" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 دن"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 ngày"
-          }
-        },
-        "zu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usuku olu-1"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 วัน"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 gün"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 день"
-          }
-        },
-        "sw" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Siku 1"
-          }
-        },
-        "ta" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 நாள்"
-          }
-        },
-        "te" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 రోజు"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 deň"
-          }
-        },
-        "sl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dan"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dag"
-          }
-        },
-        "pa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 ਦਿਨ"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dzień"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 zi"
-          }
-        },
-        "mr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 दिवस"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dag"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dag"
-          }
-        },
-        "lt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 d."
-          }
-        },
-        "lv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 d."
-          }
-        },
-        "ml" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 ദിവസം"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 giorno"
-          }
-        },
-        "kn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 ದಿನ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1일"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 nap"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 hari"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dagur"
-          }
-        },
-        "gu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 દિવસ"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "יום אחד"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dan"
-          }
-        },
-        "et" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 päev"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "۱ روز"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 päivä"
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld أيام"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld يومًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "يوم واحد"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld يوم"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "يومان"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld يوم"
+                }
+              }
+            }
           }
         },
         "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 ден"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ден"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дни"
+                }
+              }
+            }
           }
         },
         "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 দিন"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld দিন"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld দিন"
+                }
+              }
+            }
           }
         },
         "ca" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dia"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dies"
+                }
+              }
+            }
           }
         },
         "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 den"
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dny"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dne"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld den"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dní"
+                }
+              }
+            }
           }
         },
         "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dag"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 ημέρα"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dag"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dage"
+                }
+              }
+            }
           }
         },
         "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 Tag"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Tag"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Tage"
+                }
+              }
+            }
+          }
+        },
+        "el" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ημέρα"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ημέρες"
+                }
+              }
+            }
           }
         },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 day"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
           }
         },
         "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 día"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld días"
+                }
+              }
+            }
           }
         },
         "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 día"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 jour"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 दिन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1日"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 dia"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 день"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1天"
-          }
-        }
-      }
-    },
-    "progress.screen.streak_leaderboard.day_count.other" : {
-      "comment" : "Progress streak leaderboard plural day count",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld يومًا"
-          }
-        },
-        "ur" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld دن"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ngày"
-          }
-        },
-        "zu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Izinsuku: %lld"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld วัน"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld gün"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Днів: %lld"
-          }
-        },
-        "sw" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Siku %lld"
-          }
-        },
-        "ta" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld நாட்கள்"
-          }
-        },
-        "te" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld రోజులు"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Počet dní: %lld"
-          }
-        },
-        "sl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Število dni: %lld"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dagar"
-          }
-        },
-        "pa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ਦਿਨ"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Liczba dni: %lld"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zile: %lld"
-          }
-        },
-        "mr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld दिवस"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dager"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dagen"
-          }
-        },
-        "lt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld d."
-          }
-        },
-        "lv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld d."
-          }
-        },
-        "ml" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ദിവസങ്ങൾ"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld giorni"
-          }
-        },
-        "kn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ದಿನಗಳು"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld일"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld nap"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld hari"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fjöldi daga: %lld"
-          }
-        },
-        "gu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld દિવસ"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ימים"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dana"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld días"
+                }
+              }
+            }
           }
         },
         "et" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld päeva"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld päev"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld päeva"
+                }
+              }
+            }
           }
         },
         "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld روز"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld روز"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld روز"
+                }
+              }
+            }
           }
         },
         "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld päivää"
-          }
-        },
-        "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld дни"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld দিন"
-          }
-        },
-        "ca" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dies"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld d."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dage"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ημέρες"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Tage"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld days"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld días"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld días"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld päivä"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld päivää"
+                }
+              }
+            }
           }
         },
         "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld jours"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jours"
+                }
+              }
+            }
+          }
+        },
+        "gu" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld દિવસ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld દિવસ"
+                }
+              }
+            }
+          }
+        },
+        "he" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "יום אחד"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ימים"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "יומיים"
+                }
+              }
+            }
           }
         },
         "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld दिन"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld दिन"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld दिन"
+                }
+              }
+            }
+          }
+        },
+        "hr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dan"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dana"
+                }
+              }
+            }
+          }
+        },
+        "hu" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nap"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nap"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hari"
+                }
+              }
+            }
+          }
+        },
+        "is" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dagur"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dagar"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld giorno"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld giorni"
+                }
+              }
+            }
           }
         },
         "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld日"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld日"
+                }
+              }
+            }
+          }
+        },
+        "kn" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ದಿನ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ದಿನಗಳು"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld일"
+                }
+              }
+            }
+          }
+        },
+        "lt" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienos"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld diena"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienų"
+                }
+              }
+            }
+          }
+        },
+        "lv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld diena"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienas"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dienu"
+                }
+              }
+            }
+          }
+        },
+        "ml" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ദിവസം"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ദിവസങ്ങൾ"
+                }
+              }
+            }
+          }
+        },
+        "mr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld दिवस"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld दिवस"
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dag"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dager"
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dag"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dagen"
+                }
+              }
+            }
+          }
+        },
+        "pa" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ਦਿਨ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ਦਿਨ"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dzień"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dnia"
+                }
+              }
+            }
           }
         },
         "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dias"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias"
+                }
+              }
+            }
+          }
+        },
+        "ro" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zile"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zi"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de zile"
+                }
+              }
+            }
           }
         },
         "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld дн."
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дня"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дней"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld день"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дня"
+                }
+              }
+            }
+          }
+        },
+        "sk" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dňa"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld deň"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dní"
+                }
+              }
+            }
+          }
+        },
+        "sl" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dnevi"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dan"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dni"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dneva"
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dag"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dagar"
+                }
+              }
+            }
+          }
+        },
+        "sw" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Siku %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Siku %lld"
+                }
+              }
+            }
+          }
+        },
+        "ta" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld நாள்"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld நாட்கள்"
+                }
+              }
+            }
+          }
+        },
+        "te" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld రోజు"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld రోజులు"
+                }
+              }
+            }
+          }
+        },
+        "th" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld วัน"
+                }
+              }
+            }
+          }
+        },
+        "tr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld gün"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld gün"
+                }
+              }
+            }
+          }
+        },
+        "uk" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дні"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld днів"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld день"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld дня"
+                }
+              }
+            }
+          }
+        },
+        "ur" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld دن"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld دن"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ngày"
+                }
+              }
+            }
           }
         },
         "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld天"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld天"
+                }
+              }
+            }
+          }
+        },
+        "zu" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld usuku"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld izinsuku"
+                }
+              }
+            }
           }
         }
       }

@@ -20,6 +20,15 @@ const caCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Aquest navegador no ha pogut descodificar l'àudio del micròfon ({{format}}).",
     recovery: "L’accés de convidat no està verificat. Les targetes de la memòria cau són de només lectura. Restaura la sessió original o la connexió i torna-ho a provar.",
     cleanupFailed: "La sessió s’ha iniciat, però no s’ha pogut eliminar la targeta de demostració.",
+    browserCheck: {
+      title: "S'està comprovant el navegador",
+      description: "Abans d'obrir l'espai de treball de convidat, Cloudflare confirma que és un navegador normal. Normalment triga uns segons.",
+      loading: "S'està carregant la comprovació...",
+      verifying: "S'està obrint el teu espai de treball...",
+      loadFailed: "No s'ha pogut carregar la comprovació. Revisa la connexió, permet challenges.cloudflare.com al bloquejador de contingut i torna-ho a provar.",
+      failed: "La comprovació no s'ha superat. Torna-ho a provar o inicia la sessió.",
+      rejected: "La comprovació no s'ha acceptat. Completa-la una altra vegada.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const caCatalog: TranslationCatalog = {
     loading: "S'està carregant...",
     never: "Mai",
     newItem: "nova",
+    image: "Imatge",
     noBackText: "Sense text al revers",
     noTags: "Sense etiquetes",
     notRevoked: "No revocada",
@@ -427,8 +437,12 @@ const caCatalog: TranslationCatalog = {
       offlineEmpty: "La classificació de ratxes no està disponible fora de línia. Torna a connectar-te per veure les posicions.",
       unavailable: "La classificació de ratxes no està disponible ara mateix. Torna-ho a consultar més tard.",
       dayLabels: {
-        one: "dia",
-        other: "dies",
+        zero: "{{count}} dies",
+        one: "{{count}} dia",
+        two: "{{count}} dies",
+        few: "{{count}} dies",
+        many: "{{count}} dies",
+        other: "{{count}} dies",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const caCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "S'està restaurant la sessió. Torna-ho a provar d'aquí a un moment.",
     sessionUnavailable: "La sessió no està disponible",
     syncing: "S'està sincronitzant...",
+    syncFailed: "La sincronització ha fallat",
     workspaceUnavailable: "Espai de treball no disponible",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const caCatalog: TranslationCatalog = {
       yourCards: "Les teves targetes",
       addCards: "Afegeix targetes",
     },
-    cards: {
-      description: "Totes les targetes d'aquest espai de treball.",
-    },
-    tags: {
-      description: "Totes les etiquetes usades en almenys una targeta.",
-    },
-    decks: {
-      description: "Filtres de targetes desats per a un repàs centrat.",
-    },
     deckCatalog: {
       title: "Catàleg de baralles",
       description: "Baralles gratuïtes i llestes per estudiar.",
@@ -860,16 +866,18 @@ const caCatalog: TranslationCatalog = {
     note: "Aquesta configuració només afecta la programació futura. L'estat actual de cada targeta continua sent el de referència.",
   },
   workspaceExport: {
-    title: "Exporta",
+    title: "Exporta un paquet de Nibomo",
+    ankiTitle: "Exporta una baralla d’Anki",
     subtitle: "Descarrega un paquet portàtil d'aquest espai de treball.",
     workspaceUnavailable: "L'espai de treball no està disponible",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Nom de la baralla",
+    ankiEmptySelection: "No hi ha targetes per exportar. Canvia les etiquetes seleccionades o afegeix targetes.",
     packageDescription: "Previsualitza les targetes actives, les metadades, les etiquetes i el contingut multimèdia referenciat abans de descarregar-lo.",
-    packageExportSuccess: "S'ha iniciat la descàrrega de flashcards.zip.",
+    packageExportSuccess: "S'ha iniciat la descàrrega de {{filename}}.",
     packageExporting: "S'està descarregant...",
     packagePreviewing: "S'està previsualitzant...",
     packageExportPreviewButton: "Previsualitza l'exportació",
-    packageExportConfirmButton: "Descarrega flashcards.zip",
+    packageExportConfirmButton: "Descarrega {{filename}}",
     packageExportPreviewRequired: "Previsualitza aquesta exportació abans de descarregar-la.",
     previewCardsLabel: "Targetes",
     previewReferencedMediaLabel: "Contingut multimèdia referenciat",
@@ -1124,6 +1132,10 @@ const caCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Obre la cara de la targeta ({{side}}) al xat d'IA",
     repetitionBadgeAriaLabel: "Repeticions: {{value}}",
     repetitionBadgeNew: "Nova",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Més etiquetes: {{count}}",
+    },
     empty: {
       noCardsBody: "Encara no has creat cap targeta. Afegeix la teva primera targeta per començar a estudiar.",
       noCardsTitle: "Encara no hi ha targetes",
@@ -1135,16 +1147,25 @@ const caCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "No s'ha pogut representar la fórmula.",
       schedulerUnavailable: "La configuració del programador de l'espai de treball no s'ha carregat",
+      storageFull: "Allibera espai d’emmagatzematge en aquest dispositiu i torna a valorar la targeta.",
     },
     leaderboardShortcut: {
       ariaLabel: "Obre la classificació",
     },
     progressBadge: {
-      ariaLabel: "Ratxa de repàs de {{streak}} dies. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Ratxa de repàs de {{streak}} dies. {{todayStatus}}.",
+      ariaLabel: "Ratxa de repàs de {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Ratxa de repàs de {{streak}}. {{todayStatus}}.",
       freezeBank: "Congelacions disponibles {{available}} de {{capacity}}",
       notReviewedToday: "Avui no has repassat",
       reviewedToday: "Avui has repassat",
+      streakDayCount: {
+        zero: "{{count}} dies",
+        one: "{{count}} dia",
+        two: "{{count}} dies",
+        few: "{{count}} dies",
+        many: "{{count}} dies",
+        other: "{{count}} dies",
+      },
       title: "Ratxa",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const caCatalog: TranslationCatalog = {
       snapshot: "S'està mostrant una instantània local recent...",
     },
     media: {
-      privateImage: "Imatge privada",
-      privateAttachment: "Fitxer adjunt privat",
       attachmentLabel: "Adjunt",
       audioLabel: "Adjunt d'àudio",
       imageAlt: "Imatge gestionada",
@@ -1348,23 +1367,14 @@ const caCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} pendents",
+      toStudy: "{{count}} per estudiar",
       total: "{{count}} en total",
     },
-    emptyStatsAriaLabel: "Estadístiques de {{deckName}}",
     newDeck: "Baralla nova",
     statLabels: {
       cards: {
         one: "targeta",
         other: "targetes",
-      },
-      new: {
-        one: "nova",
-        other: "noves",
-      },
-      reviewed: {
-        one: "repassada",
-        other: "repassades",
       },
     },
     subtitle: "Les baralles són filtres intel·ligents, no contenidors. Trien les targetes per etiquetes.",
@@ -1400,10 +1410,10 @@ const caCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Targetes",
-      due: "Pendents",
       new: "Noves",
       summary: "Resum",
       title: "Regles de la baralla",
+      toStudy: "Per estudiar",
     },
     subtitle: "Consulta les regles de la baralla, les targetes coincidents i el punt d'entrada al repàs.",
     subtitles: {

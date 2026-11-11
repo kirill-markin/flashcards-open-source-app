@@ -82,7 +82,7 @@ export function ProgressScreen(): ReactElement {
       includeLeaderboard: true,
     },
   });
-  const { locale, matchedBrowserLanguageTag, direction, messages, t, formatDate, formatNumber, formatCount } = useI18n();
+  const { locale, matchedBrowserLanguageTag, direction, messages, t, formatDate, formatNumber, formatCount, formatPluralMessage } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
   const [reviewsChartSelection, setReviewsChartSelection] = useState<ProgressReviewsChartSelection>({ kind: "none" });
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
@@ -255,7 +255,7 @@ export function ProgressScreen(): ReactElement {
     capacity: formatNumber(reviewProgressBadge.streakFreeze.capacity),
   });
   const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
-    streak: formatNumber(reviewProgressBadge.streakDays),
+    streak: formatPluralMessage(reviewProgressBadge.streakDays, messages.reviewScreen.progressBadge.streakDayCount),
     todayStatus: reviewProgressBadgeTodayStatus,
     freezeBank: reviewProgressFreezeStatus,
   });

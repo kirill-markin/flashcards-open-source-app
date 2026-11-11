@@ -42,7 +42,8 @@ type OrphanedUploadReason =
   | "write_failed"
   | "already_converted"
   | "sandbox_unconfirmed"
-  | "path_taken";
+  | "path_taken"
+  | "session_file_limit";
 
 export function isInlineAttachmentContentPart(
   part: ContentPart | InlineAttachmentContentPart,

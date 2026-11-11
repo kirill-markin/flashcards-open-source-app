@@ -1,0 +1,19 @@
+{
+  "name": "@nibomo.executor.community/nibomo",
+  "description": "Connect Nibomo flashcards through MCP at https://mcp.nibomo.com/mcp. Requires your own Nibomo account and OAuth authorization. Website: https://nibomo.com",
+  "type": "module",
+  "homepage": "https://nibomo.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kirill-markin/flashcards-open-source-app.git",
+    "directory": "apps/executor"
+  },
+  "dependencies": {
+    "apps": "0.0.1-beta.22",
+    "@modelcontextprotocol/sdk": "1.32.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

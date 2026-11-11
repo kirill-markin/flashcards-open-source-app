@@ -37,13 +37,30 @@ async function renderScreenWithIdentitySwitcher(): Promise<void> {
 }
 
 describe("CardFormScreen draft and refresh lifecycle", () => {
-  it("keeps an initial missing-card load blocking", async () => {
+  it("waits for sync before reporting an initial cache miss", async () => {
+    const syncAttempt = createDeferredPromise<void>();
+    const { requireActiveWorkspaceSync } = getAppData();
+    requireActiveWorkspaceSync.mockReturnValueOnce(syncAttempt.promise);
     mocks.loadCardByIdMock.mockResolvedValue(null);
 
     await renderScreen();
 
+    expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(1);
+    expect(requireActiveWorkspaceSync).toHaveBeenCalledExactlyOnceWith("workspace-1", expect.any(Function));
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    getAppData().localReadVersion += 1;
+    await renderScreen();
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+
+    await act(async () => {
+      syncAttempt.resolve(undefined);
+    });
+
     await vi.waitFor(() => {
-      expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(1);
+      expect(requireActiveWorkspaceSync).toHaveBeenCalledTimes(1);
+      expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(2);
       expect(getContainer().querySelector('[data-testid="card-form-load-error"]')?.textContent).toContain(
         "Card not found",
       );
@@ -53,6 +70,141 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
       expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
     });
     expect(mocks.showCapturedTechnicalErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("waits for session verification and a completed sync on a cache miss", async () => {
+    const appData = getAppData();
+    appData.isSessionVerified = false;
+    mocks.loadCardByIdMock.mockResolvedValue(null);
+
+    await renderScreen();
+
+    expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(1);
+    expect(appData.requireActiveWorkspaceSync).not.toHaveBeenCalled();
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    mocks.loadCardByIdMock.mockResolvedValue(makeCard("Hydrated question", "Answer", []));
+    appData.localReadVersion += 1;
+    await renderScreen();
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    const syncAttempt = createDeferredPromise<void>();
+    appData.requireActiveWorkspaceSync.mockReturnValueOnce(syncAttempt.promise);
+    appData.isSessionVerified = true;
+    await renderScreen();
+
+    expect(appData.requireActiveWorkspaceSync).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    await act(async () => syncAttempt.resolve(undefined));
+
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+    const frontField = getContainer().querySelector('[data-testid="card-form-front-text"]');
+    expect(frontField).toHaveProperty("value", "Hydrated question");
+  });
+
+  it("keeps a failed pull visible after it partially hydrates the card and waits for Retry", async () => {
+    const appData = getAppData();
+    const firstPull = createDeferredPromise<void>();
+    appData.requireActiveWorkspaceSync.mockImplementationOnce(async (
+      _workspaceId: string,
+      presentSyncFailure: () => boolean,
+    ): Promise<void> => {
+      await firstPull.promise;
+      expect(presentSyncFailure()).toBe(true);
+      throw new Error("Review history pull failed");
+    });
+    mocks.loadCardByIdMock.mockResolvedValue(null);
+    await renderScreen();
+    expect(appData.requireActiveWorkspaceSync).toHaveBeenCalledTimes(1);
+
+    mocks.loadCardByIdMock.mockResolvedValue(makeCard("Partially hydrated question", "Answer", []));
+    appData.localReadVersion += 1;
+    await renderScreen();
+    await act(async () => firstPull.resolve(undefined));
+
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')?.textContent).toContain("Sync failed");
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    appData.localReadVersion += 1;
+    await renderScreen();
+    expect(appData.requireActiveWorkspaceSync).toHaveBeenCalledTimes(1);
+    expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')?.textContent).toContain("Sync failed");
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    appData.isSessionVerified = false;
+    await renderScreen();
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')?.textContent).toContain("Sync failed");
+    const retryButton = getContainer().querySelector('[data-testid="card-form-load-retry"]');
+    if (!(retryButton instanceof HTMLButtonElement)) {
+      throw new Error("Card form load retry button was not found");
+    }
+
+    const retryPull = createDeferredPromise<void>();
+    appData.requireActiveWorkspaceSync.mockReturnValueOnce(retryPull.promise);
+    await clickElementAsync(retryButton);
+    expect(appData.requireActiveWorkspaceSync).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+
+    appData.isSessionVerified = true;
+    await renderScreen();
+    expect(appData.requireActiveWorkspaceSync).toHaveBeenCalledTimes(2);
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toBeNull();
+
+    await act(async () => retryPull.resolve(undefined));
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+    expect(getContainer().querySelector('[data-testid="card-form-front-text"]')).toHaveProperty(
+      "value", "Partially hydrated question",
+    );
+  });
+
+  it("restores the cached card and its draft after another card's pull fails", async () => {
+    const initialCard = makeCard("Question", "Answer", []);
+    const appData = getAppData();
+    appData.isSessionVerified = false;
+    mocks.loadCardByIdMock.mockImplementation(async (_workspaceId: string, cardId: string): Promise<Card | null> => (
+      cardId === initialCard.cardId ? initialCard : null
+    ));
+    const links = (
+      <>
+        <Link to="/cards/other-card" data-testid="card-form-open-uncached">Open uncached card</Link>
+        <Link to="/cards/card-media-lifecycle" data-testid="card-form-open-cached">Open cached card</Link>
+      </>
+    );
+
+    await renderScreenAt("/cards/card-media-lifecycle", links);
+
+    const frontField = getContainer().querySelector('[data-testid="card-form-front-text"]');
+    if (!(frontField instanceof HTMLTextAreaElement)) {
+      throw new Error("Cached card form was not found during verification");
+    }
+    expect(appData.requireActiveWorkspaceSync).not.toHaveBeenCalled();
+    await setTextFieldValueAsync(frontField, "Edited question");
+
+    appData.isSessionVerified = true;
+    appData.requireActiveWorkspaceSync.mockRejectedValueOnce(new Error("Pull failed"));
+    await renderScreenAt("/cards/card-media-lifecycle", links);
+
+    async function followLink(testId: string): Promise<void> {
+      const link = getContainer().querySelector(`[data-testid="${testId}"]`);
+      if (!(link instanceof HTMLAnchorElement)) {
+        throw new Error(`Card navigation link was not found: ${testId}`);
+      }
+      await act(async () => {
+        link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      });
+    }
+
+    await followLink("card-form-open-uncached");
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')?.textContent).toContain("Sync failed");
+    await followLink("card-form-open-cached");
+
+    expect(appData.requireActiveWorkspaceSync).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector('[data-testid="card-form-load-error"]')).toBeNull();
+    const cachedFrontField = getContainer().querySelector('[data-testid="card-form-front-text"]');
+    expect(cachedFrontField).toHaveProperty("value", "Edited question");
   });
 
   it("preserves a create-card draft through local data refreshes", async () => {
@@ -568,7 +720,8 @@ describe("CardFormScreen draft and refresh lifecycle", () => {
     });
 
     await vi.waitFor(() => {
-      expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(2);
+      expect(getAppData().requireActiveWorkspaceSync).toHaveBeenCalledExactlyOnceWith("workspace-1", expect.any(Function));
+      expect(mocks.loadCardByIdMock).toHaveBeenCalledTimes(3);
       expect(getContainer().querySelector('[data-testid="card-form-load-error"]')?.textContent).toContain(
         "Card not found",
       );

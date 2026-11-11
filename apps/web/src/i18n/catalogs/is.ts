@@ -20,6 +20,15 @@ const isCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Þessi vafri gat ekki afkóðað hljóð úr hljóðnemanum ({{format}}).",
     recovery: "Gestaaðgangur hefur ekki verið staðfestur. Spjöld í skyndiminni eru skrifvarin. Endurheimtu upprunalegu lotuna eða tenginguna og reyndu aftur.",
     cleanupFailed: "Innskráning tókst en ekki tókst að fjarlægja sýnispjaldið.",
+    browserCheck: {
+      title: "Athugum vafrann þinn",
+      description: "Áður en gestavinnusvæðið opnast staðfestir Cloudflare að þetta sé venjulegur vafri. Það tekur yfirleitt nokkrar sekúndur.",
+      loading: "Hleð athugun...",
+      verifying: "Opna vinnusvæðið þitt...",
+      loadFailed: "Ekki tókst að hlaða athuguninni. Athugaðu tenginguna, leyfðu challenges.cloudflare.com í efnislokara og reyndu aftur.",
+      failed: "Athugunin stóðst ekki. Reyndu aftur eða skráðu þig inn í staðinn.",
+      rejected: "Athuguninni var hafnað. Ljúktu henni einu sinni enn.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const isCatalog: TranslationCatalog = {
     loading: "Hleð...",
     never: "Aldrei",
     newItem: "nýtt",
+    image: "Mynd",
     noBackText: "Enginn texti á bakhlið",
     noTags: "Engin merki",
     notRevoked: "Ekki afturkallað",
@@ -427,8 +437,12 @@ const isCatalog: TranslationCatalog = {
       offlineEmpty: "Runutaflan er ekki tiltæk án nettengingar. Tengstu aftur til að sjá stöðuna.",
       unavailable: "Runutaflan er ekki tiltæk núna. Líttu aftur við síðar.",
       dayLabels: {
-        one: "dagur",
-        other: "dagar",
+        zero: "{{count}} dagar",
+        one: "{{count}} dagur",
+        two: "{{count}} dagar",
+        few: "{{count}} dagar",
+        many: "{{count}} dagar",
+        other: "{{count}} dagar",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const isCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Endurheimti lotu. Reyndu aftur eftir andartak.",
     sessionUnavailable: "Lota er ekki tiltæk",
     syncing: "Samstilli...",
+    syncFailed: "Samstilling mistókst",
     workspaceUnavailable: "Vinnusvæði ekki tiltækt",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const isCatalog: TranslationCatalog = {
       yourCards: "Spjöldin þín",
       addCards: "Bæta við spjöldum",
     },
-    cards: {
-      description: "Öll spjöld á þessu vinnusvæði.",
-    },
-    tags: {
-      description: "Öll merki sem eru notuð á minnst einu spjaldi.",
-    },
-    decks: {
-      description: "Vistaðar spjaldasíur fyrir markvissa upprifjun.",
-    },
     deckCatalog: {
       title: "Stokkasafn",
       description: "Ókeypis tilbúnir stokkar til að læra.",
@@ -860,16 +866,18 @@ const isCatalog: TranslationCatalog = {
     note: "Þessar stillingar hafa aðeins áhrif á komandi tímasetningar. Núverandi staða spjalda gildir áfram.",
   },
   workspaceExport: {
-    title: "Flytja út",
+    title: "Flytja út Nibomo-pakka",
+    ankiTitle: "Flytja út Anki-stokk",
     subtitle: "Sæktu flytjanlegan pakka fyrir þetta vinnusvæði.",
     workspaceUnavailable: "Vinnusvæði er ekki tiltækt",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Heiti stokks",
+    ankiEmptySelection: "Engin spjöld til að flytja út. Veldu önnur merki eða bættu við spjöldum.",
     packageDescription: "Forskoðaðu virk spjöld, lýsigögn, merki og tilvísaða miðla áður en þú sækir.",
-    packageExportSuccess: "Niðurhal á flashcards.zip hafið.",
+    packageExportSuccess: "Niðurhal á {{filename}} hafið.",
     packageExporting: "Sæki...",
     packagePreviewing: "Forskoða...",
     packageExportPreviewButton: "Forskoða útflutning",
-    packageExportConfirmButton: "Sækja flashcards.zip",
+    packageExportConfirmButton: "Sækja {{filename}}",
     packageExportPreviewRequired: "Forskoðaðu þennan útflutning áður en þú sækir.",
     previewCardsLabel: "Spjöld",
     previewReferencedMediaLabel: "Tilvísaðir miðlar",
@@ -1124,6 +1132,10 @@ const isCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Opna spjald í gervigreindarspjalli: {{side}}",
     repetitionBadgeAriaLabel: "Endurtekningar: {{value}}",
     repetitionBadgeNew: "Nýtt",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Fleiri merki: {{count}}",
+    },
     empty: {
       noCardsBody: "Þú hefur ekki búið til nein spjöld enn. Bættu við fyrsta spjaldinu til að byrja að læra.",
       noCardsTitle: "Engin spjöld enn",
@@ -1135,16 +1147,25 @@ const isCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Ekki tókst að birta formúluna.",
       schedulerUnavailable: "Stillingar tímaáætlunar vinnusvæðisins hafa ekki verið hlaðnar",
+      storageFull: "Losaðu geymslupláss í þessu tæki og gefðu kortinu síðan einkunn aftur.",
     },
     leaderboardShortcut: {
       ariaLabel: "Opna stigatöflu",
     },
     progressBadge: {
-      ariaLabel: "Dagar í upprifjunarrunu: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Dagar í upprifjunarrunu: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Upprifjunarruna: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Upprifjunarruna: {{streak}}. {{todayStatus}}.",
       freezeBank: "Runuvörn: {{available}} af {{capacity}}",
       notReviewedToday: "Ekki rifjað upp í dag",
       reviewedToday: "Rifjað upp í dag",
+      streakDayCount: {
+        zero: "{{count}} dagar",
+        one: "{{count}} dagur",
+        two: "{{count}} dagar",
+        few: "{{count}} dagar",
+        many: "{{count}} dagar",
+        other: "{{count}} dagar",
+      },
       title: "Runa",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const isCatalog: TranslationCatalog = {
       snapshot: "Sýni nýlega staðbundna mynd...",
     },
     media: {
-      privateImage: "Einkamynd",
-      privateAttachment: "Einkaviðhengi",
       attachmentLabel: "Viðhengi",
       audioLabel: "Hljóðviðhengi",
       imageAlt: "Stýrð mynd",
@@ -1348,23 +1367,14 @@ const isCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Á dagskrá: {{count}}",
+      toStudy: "{{count}} til að læra",
       total: "Alls: {{count}}",
     },
-    emptyStatsAriaLabel: "Tölfræði: {{deckName}}",
     newDeck: "Nýr stokkur",
     statLabels: {
       cards: {
         one: "spjald",
         other: "spjöld",
-      },
-      new: {
-        one: "nýtt",
-        other: "ný",
-      },
-      reviewed: {
-        one: "upprifjað",
-        other: "upprifjuð",
       },
     },
     subtitle: "Stokkar eru snjallsíur, ekki ílát. Þeir velja spjöld eftir merkjum.",
@@ -1400,10 +1410,10 @@ const isCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Spjöld",
-      due: "Á dagskrá",
       new: "Nýtt",
       summary: "Samantekt",
       title: "Reglur stokks",
+      toStudy: "Til að læra",
     },
     subtitle: "Skoðaðu reglur stokksins, samsvarandi spjöld og upphaf upprifjunar.",
     subtitles: {

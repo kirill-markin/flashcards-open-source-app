@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -78,6 +79,15 @@ export const platformLabels: Readonly<Record<ReviewEventPlatform, string>> = {
   // either the actor behind it is not a device, or no device could be resolved for it. It is kept as
   // its own series so it can never be read as a device or summed into one.
   unattributed: "Unresolved",
+};
+
+export const deviceTypeLabels: Readonly<Record<ProductEventDeviceType, string>> = {
+  phone: "Phone",
+  tablet: "Tablet",
+  desktop: "Desktop",
+  tv: "TV",
+  watch: "Watch",
+  unknown: "Unknown",
 };
 
 const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {

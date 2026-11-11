@@ -20,6 +20,15 @@ const lvCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Šī pārlūkprogramma nevarēja dekodēt mikrofona audio ({{format}}).",
     recovery: "Viesa piekļuve nav pārbaudīta. Kešatmiņā saglabātās kartītes var tikai lasīt. Atjaunojiet sākotnējo sesiju vai savienojumu un mēģiniet vēlreiz.",
     cleanupFailed: "Pierakstīšanās izdevās, bet demonstrācijas kartīti neizdevās noņemt.",
+    browserCheck: {
+      title: "Pārbaudām jūsu pārlūku",
+      description: "Pirms viesa darbvietas atvēršanas Cloudflare apstiprina, ka šis ir parasts pārlūks. Parasti tas aizņem dažas sekundes.",
+      loading: "Ielādē pārbaudi...",
+      verifying: "Atver jūsu darbvietu...",
+      loadFailed: "Pārbaudi neizdevās ielādēt. Pārbaudiet savienojumu, satura bloķētājā atļaujiet challenges.cloudflare.com un mēģiniet vēlreiz.",
+      failed: "Pārbaude netika izturēta. Mēģiniet vēlreiz vai pierakstieties.",
+      rejected: "Pārbaude netika pieņemta. Izpildiet to vēlreiz.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const lvCatalog: TranslationCatalog = {
     loading: "Ielādē...",
     never: "Nekad",
     newItem: "jauna",
+    image: "Attēls",
     noBackText: "Aizmugurē nav teksta",
     noTags: "Nav birku",
     notRevoked: "Nav atsaukts",
@@ -427,8 +437,12 @@ const lvCatalog: TranslationCatalog = {
       offlineEmpty: "Sēriju līderu saraksts bezsaistē nav pieejams. Atjaunojiet savienojumu, lai redzētu vietas.",
       unavailable: "Sēriju līderu saraksts pašlaik nav pieejams. Pārbaudiet vēlāk.",
       dayLabels: {
-        one: "diena",
-        other: "dienas",
+        zero: "{{count}} dienu",
+        one: "{{count}} diena",
+        two: "{{count}} dienas",
+        few: "{{count}} dienas",
+        many: "{{count}} dienas",
+        other: "{{count}} dienas",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const lvCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Atjauno sesiju. Pēc brīža mēģiniet vēlreiz.",
     sessionUnavailable: "Sesija nav pieejama",
     syncing: "Sinhronizē...",
+    syncFailed: "Sinhronizācija neizdevās",
     workspaceUnavailable: "Darbvieta nav pieejama",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const lvCatalog: TranslationCatalog = {
       yourCards: "Jūsu kartītes",
       addCards: "Pievienot kartītes",
     },
-    cards: {
-      description: "Visas šīs darbvietas kartītes.",
-    },
-    tags: {
-      description: "Visas birkas, kas izmantotas vismaz vienā kartītē.",
-    },
-    decks: {
-      description: "Saglabāti kartīšu filtri mērķtiecīgai atkārtošanai.",
-    },
     deckCatalog: {
       title: "Kavu katalogs",
       description: "Bezmaksas gatavas kavas mācībām.",
@@ -860,16 +866,18 @@ const lvCatalog: TranslationCatalog = {
     note: "Šie iestatījumi ietekmē tikai turpmāko plānošanu. Esošais kartīšu stāvoklis paliek noteicošais.",
   },
   workspaceExport: {
-    title: "Eksportēt",
+    title: "Eksportēt Nibomo pakotni",
+    ankiTitle: "Eksportēt Anki kavu",
     subtitle: "Lejupielādējiet šīs darbvietas pārnēsājamu pakotni.",
     workspaceUnavailable: "Darbvieta nav pieejama",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Kavas nosaukums",
+    ankiEmptySelection: "Nav kartīšu, ko eksportēt. Mainiet atlasītās birkas vai pievienojiet kartītes.",
     packageDescription: "Pirms lejupielādes priekšskatiet aktīvās kartītes, metadatus, birkas un izmantoto multividi.",
-    packageExportSuccess: "flashcards.zip lejupielāde sākta.",
+    packageExportSuccess: "{{filename}} lejupielāde sākta.",
     packageExporting: "Lejupielādē...",
     packagePreviewing: "Priekšskata...",
     packageExportPreviewButton: "Priekšskatīt eksportu",
-    packageExportConfirmButton: "Lejupielādēt flashcards.zip",
+    packageExportConfirmButton: "Lejupielādēt {{filename}}",
     packageExportPreviewRequired: "Pirms lejupielādes priekšskatiet šo eksportu.",
     previewCardsLabel: "Kartītes",
     previewReferencedMediaLabel: "Izmantotā multivide",
@@ -1124,6 +1132,10 @@ const lvCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Atvērt kartīti MI sarunā ({{side}})",
     repetitionBadgeAriaLabel: "Atkārtojumi: {{value}}",
     repetitionBadgeNew: "Jauna",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Vairāk birku: {{count}}",
+    },
     empty: {
       noCardsBody: "Jūs vēl neesat izveidojis nevienu kartīti. Pievienojiet pirmo kartīti, lai sāktu mācīties.",
       noCardsTitle: "Kartīšu vēl nav",
@@ -1135,16 +1147,25 @@ const lvCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Neizdevās attēlot formulu.",
       schedulerUnavailable: "Darbvietas plānotāja iestatījumi nav ielādēti",
+      storageFull: "Atbrīvo vietu šīs ierīces krātuvē un novērtē kartīti vēlreiz.",
     },
     leaderboardShortcut: {
       ariaLabel: "Atvērt līderu sarakstu",
     },
     progressBadge: {
-      ariaLabel: "Atkārtošanas sērija: {{streak}} d. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Atkārtošanas sērija: {{streak}} d. {{todayStatus}}.",
+      ariaLabel: "Atkārtošanas sērija: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Atkārtošanas sērija: {{streak}}. {{todayStatus}}.",
       freezeBank: "Pieejamās sērijas aizsardzības: {{available}} no {{capacity}}",
       notReviewedToday: "Šodien atkārtošana nav veikta",
       reviewedToday: "Šodien atkārtošana veikta",
+      streakDayCount: {
+        zero: "{{count}} dienu",
+        one: "{{count}} diena",
+        two: "{{count}} dienas",
+        few: "{{count}} dienas",
+        many: "{{count}} dienas",
+        other: "{{count}} dienas",
+      },
       title: "Sērija",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const lvCatalog: TranslationCatalog = {
       snapshot: "Rāda neseno vietējo momentuzņēmumu...",
     },
     media: {
-      privateImage: "Privāts attēls",
-      privateAttachment: "Privāts pielikums",
       attachmentLabel: "Pielikums",
       audioLabel: "Audio pielikums",
       imageAlt: "Pārvaldīts attēls",
@@ -1348,23 +1367,14 @@ const lvCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Jāatkārto: {{count}}",
+      toStudy: "Jāapgūst: {{count}}",
       total: "Kopā: {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}}: statistika",
     newDeck: "Jauna kava",
     statLabels: {
       cards: {
         one: "kartīte",
         other: "kartītes",
-      },
-      new: {
-        one: "jauna",
-        other: "jaunas",
-      },
-      reviewed: {
-        one: "atkārtota",
-        other: "atkārtotas",
       },
     },
     subtitle: "Kavas ir viedie filtri, nevis konteineri. Tās atlasa kartītes pēc birkām.",
@@ -1400,10 +1410,10 @@ const lvCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartītes",
-      due: "Jāatkārto",
       new: "Jaunas",
       summary: "Kopsavilkums",
       title: "Kavas noteikumi",
+      toStudy: "Jāapgūst",
     },
     subtitle: "Pārskatiet kavas noteikumus, atbilstošās kartītes un atkārtošanas sākumpunktu.",
     subtitles: {

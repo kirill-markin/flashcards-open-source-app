@@ -353,6 +353,12 @@ same with the older table in the past tense: a weights-applied total per user-mo
 re-priced, split by surface or attributed to a model. Its rows were not carried over when it was dropped,
 so guest AI consumption from before the cutover is gone rather than restated here.
 
+### `0175_analytics_os_name_device_type.sql` — the value lists are longer
+
+Its header lists four `os_name` values and four `device_type` values. Since
+`0238_watchos_os_name_watch_device_type.sql` they are also `watchos` and `watch`, on every column
+`0175` and `0176` constrained.
+
 ### `0176_client_os_name_device_type.sql` — the four-argument overload is gone
 
 Its header says that the four-argument `sync.claim_installation` from `0168` "stays unchanged" and that
@@ -377,3 +383,17 @@ and that account deletion never reaches these columns. Since `0228_app_event_bot
 authenticated ingest stores them on `guest_client` and `authenticated_client` rows of every platform,
 and `0228` re-adds `product_events_network_and_browser_facts_shape` over all three client trust levels
 with the same value ranges. Account deletion rewrites those rows and clears the three facts.
+
+### `0158_anonymous_event_country.sql` and `0228_app_event_bot_evidence.sql` — app rows carry a country
+
+`0158`'s header says the authenticated batch route "keeps writing this column exactly as it did",
+and `0228`'s says "country stays NULL on these rows". Since `0240_app_event_request_country.sql` the
+authenticated ingest stores the request's country on `guest_client` and `authenticated_client` rows
+of every platform; `0240` restates the column comment.
+
+### `0114_product_analytics_storage.sql` — `event_properties` holds raw browser values
+
+`0114`'s `event_properties` comment says the column "never contains free text, which is why it
+survives anonymization intact". The catalog's named exceptions already carried text, and since
+`0240_app_event_request_country.sql` web `app_opened` and `site_page_viewed` also carry raw browser
+values that account deletion removes from the account's rows; `0240` restates the column comment.

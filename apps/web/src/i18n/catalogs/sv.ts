@@ -20,6 +20,15 @@ const svCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Den här webbläsaren kunde inte avkoda mikrofonljudet ({{format}}).",
     recovery: "Gäståtkomsten är inte verifierad. Cachade kort är skrivskyddade. Återställ den ursprungliga sessionen eller anslutningen och försök igen.",
     cleanupFailed: "Inloggningen lyckades, men demokortet kunde inte tas bort.",
+    browserCheck: {
+      title: "Kontrollerar din webbläsare",
+      description: "Innan din gästarbetsyta öppnas bekräftar Cloudflare att detta är en vanlig webbläsare. Det tar oftast några sekunder.",
+      loading: "Läser in kontrollen...",
+      verifying: "Öppnar din arbetsyta...",
+      loadFailed: "Kontrollen kunde inte läsas in. Kontrollera anslutningen, tillåt challenges.cloudflare.com i eventuell innehållsblockerare och försök igen.",
+      failed: "Kontrollen godkändes inte. Försök igen eller logga in i stället.",
+      rejected: "Kontrollen accepterades inte. Slutför den en gång till.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const svCatalog: TranslationCatalog = {
     loading: "Läser in...",
     never: "Aldrig",
     newItem: "nytt",
+    image: "Bild",
     noBackText: "Ingen baksidestext",
     noTags: "Inga taggar",
     notRevoked: "Inte återkallad",
@@ -427,8 +437,12 @@ const svCatalog: TranslationCatalog = {
       offlineEmpty: "Topplistan för svit är inte tillgänglig offline. Anslut igen för att se placeringarna.",
       unavailable: "Topplistan för svit är inte tillgänglig just nu. Försök igen senare.",
       dayLabels: {
-        one: "dag",
-        other: "dagar",
+        zero: "{{count}} dagar",
+        one: "{{count}} dag",
+        two: "{{count}} dagar",
+        few: "{{count}} dagar",
+        many: "{{count}} dagar",
+        other: "{{count}} dagar",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const svCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Återställer sessionen. Försök igen om en stund.",
     sessionUnavailable: "Sessionen är inte tillgänglig",
     syncing: "Synkroniserar...",
+    syncFailed: "Synkronisering misslyckades",
     workspaceUnavailable: "Arbetsytan är inte tillgänglig",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const svCatalog: TranslationCatalog = {
       yourCards: "Dina kort",
       addCards: "Lägg till kort",
     },
-    cards: {
-      description: "Alla kort i den här arbetsytan.",
-    },
-    tags: {
-      description: "Alla taggar som används på minst ett kort.",
-    },
-    decks: {
-      description: "Sparade kortfilter för fokuserad repetition.",
-    },
     deckCatalog: {
       title: "Kortlekskatalog",
       description: "Gratis färdiga kortlekar att studera.",
@@ -860,16 +866,18 @@ const svCatalog: TranslationCatalog = {
     note: "Inställningarna påverkar bara framtida schemaläggning. Kortens befintliga tillstånd gäller fortfarande.",
   },
   workspaceExport: {
-    title: "Exportera",
+    title: "Exportera Nibomo-paket",
+    ankiTitle: "Exportera Anki-kortlek",
     subtitle: "Ladda ner ett flyttbart paket för arbetsytan.",
     workspaceUnavailable: "Arbetsytan är inte tillgänglig",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Kortlekens namn",
+    ankiEmptySelection: "Det finns inga kort att exportera. Välj andra taggar eller lägg till kort.",
     packageDescription: "Förhandsgranska aktiva kort, metadata, taggar och refererad media innan du laddar ner.",
-    packageExportSuccess: "Nedladdningen av flashcards.zip har startat.",
+    packageExportSuccess: "Nedladdningen av {{filename}} har startat.",
     packageExporting: "Laddar ner...",
     packagePreviewing: "Förhandsgranskar...",
     packageExportPreviewButton: "Förhandsgranska exporten",
-    packageExportConfirmButton: "Ladda ner flashcards.zip",
+    packageExportConfirmButton: "Ladda ner {{filename}}",
     packageExportPreviewRequired: "Förhandsgranska exporten innan du laddar ner.",
     previewCardsLabel: "Kort",
     previewReferencedMediaLabel: "Refererad media",
@@ -1124,6 +1132,10 @@ const svCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Öppna kortets sida ({{side}}) i AI-chatten",
     repetitionBadgeAriaLabel: "Repetitioner: {{value}}",
     repetitionBadgeNew: "Nytt",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Fler taggar: {{count}}",
+    },
     empty: {
       noCardsBody: "Du har inte skapat några kort än. Lägg till ditt första kort för att börja plugga.",
       noCardsTitle: "Inga kort än",
@@ -1135,16 +1147,25 @@ const svCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formeln kunde inte renderas.",
       schedulerUnavailable: "Arbetsytans schemainställningar är inte inlästa",
+      storageFull: "Frigör lagringsutrymme på den här enheten och betygsätt kortet igen.",
     },
     leaderboardShortcut: {
       ariaLabel: "Öppna topplistan",
     },
     progressBadge: {
-      ariaLabel: "Repetitionssvit {{streak}} dagar. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Repetitionssvit {{streak}} dagar. {{todayStatus}}.",
+      ariaLabel: "Repetitionssvit {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Repetitionssvit {{streak}}. {{todayStatus}}.",
       freezeBank: "Fryssaldo {{available}} av {{capacity}}",
       notReviewedToday: "Inte repeterat idag",
       reviewedToday: "Repeterat idag",
+      streakDayCount: {
+        zero: "{{count}} dagar",
+        one: "{{count}} dag",
+        two: "{{count}} dagar",
+        few: "{{count}} dagar",
+        many: "{{count}} dagar",
+        other: "{{count}} dagar",
+      },
       title: "Svit",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const svCatalog: TranslationCatalog = {
       snapshot: "Visar en färsk lokal ögonblicksbild...",
     },
     media: {
-      privateImage: "Privat bild",
-      privateAttachment: "Privat bilaga",
       attachmentLabel: "Bilaga",
       audioLabel: "Ljudbilaga",
       imageAlt: "Hanterad bild",
@@ -1348,23 +1367,14 @@ const svCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} att repetera",
+      toStudy: "{{count}} att studera",
       total: "{{count}} totalt",
     },
-    emptyStatsAriaLabel: "Statistik för {{deckName}}",
     newDeck: "Ny kortlek",
     statLabels: {
       cards: {
         one: "kort",
         other: "kort",
-      },
-      new: {
-        one: "nytt",
-        other: "nya",
-      },
-      reviewed: {
-        one: "repeterat",
-        other: "repeterade",
       },
     },
     subtitle: "Kortlekar är smarta filter, inte behållare. De matchar kort utifrån taggar.",
@@ -1400,10 +1410,10 @@ const svCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kort",
-      due: "Att repetera",
       new: "Nya",
       summary: "Sammanfattning",
       title: "Kortleksregler",
+      toStudy: "Att studera",
     },
     subtitle: "Se kortlekens regler, matchande kort och ingången till repetitionen.",
     subtitles: {

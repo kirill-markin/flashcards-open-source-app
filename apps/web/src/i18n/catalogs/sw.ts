@@ -20,6 +20,15 @@ const swCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Kivinjari hiki hakikuweza kusimbua sauti ya maikrofoni ({{format}}).",
     recovery: "Ufikiaji wa mgeni haujathibitishwa. Kadi zilizohifadhiwa kwenye akiba ni za kusoma tu. Rejesha kipindi cha awali au muunganisho kisha ujaribu tena.",
     cleanupFailed: "Umeingia, lakini kadi ya mfano haikuweza kuondolewa.",
+    browserCheck: {
+      title: "Tunakagua kivinjari chako",
+      description: "Kabla nafasi ya kazi ya mgeni haijafunguka, Cloudflare inathibitisha kuwa hiki ni kivinjari cha kawaida. Kwa kawaida huchukua sekunde chache.",
+      loading: "Inapakia ukaguzi...",
+      verifying: "Inafungua nafasi yako ya kazi...",
+      loadFailed: "Ukaguzi haukuweza kupakia. Kagua muunganisho wako, ruhusu challenges.cloudflare.com kwenye kizuia maudhui, kisha ujaribu tena.",
+      failed: "Ukaguzi haukufaulu. Jaribu tena, au uingie badala yake.",
+      rejected: "Ukaguzi haukukubaliwa. Ukamilishe mara moja zaidi.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const swCatalog: TranslationCatalog = {
     loading: "Inapakia...",
     never: "Kamwe",
     newItem: "mpya",
+    image: "Picha",
     noBackText: "Hakuna maandishi ya nyuma",
     noTags: "Hakuna lebo",
     notRevoked: "Haijabatilishwa",
@@ -427,8 +437,12 @@ const swCatalog: TranslationCatalog = {
       offlineEmpty: "Ubao wa viwango vya mfululizo haupatikani ukiwa nje ya mtandao. Unganisha tena ili kuona viwango.",
       unavailable: "Ubao wa viwango vya mfululizo haupatikani kwa sasa. Angalia tena baadaye.",
       dayLabels: {
-        one: "siku",
-        other: "siku",
+        zero: "siku {{count}}",
+        one: "siku {{count}}",
+        two: "siku {{count}}",
+        few: "siku {{count}}",
+        many: "siku {{count}}",
+        other: "siku {{count}}",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const swCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Inarejesha kipindi. Jaribu tena baada ya muda mfupi.",
     sessionUnavailable: "Kipindi hakipatikani",
     syncing: "Inasawazisha...",
+    syncFailed: "Usawazishaji umeshindwa",
     workspaceUnavailable: "Nafasi ya kazi haipatikani",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const swCatalog: TranslationCatalog = {
       yourCards: "Kadi zako",
       addCards: "Ongeza kadi",
     },
-    cards: {
-      description: "Kadi zote katika nafasi hii ya kazi.",
-    },
-    tags: {
-      description: "Lebo zote zinazotumika kwenye angalau kadi moja.",
-    },
-    decks: {
-      description: "Vichujio vya kadi vilivyohifadhiwa kwa marudio yenye umakini.",
-    },
     deckCatalog: {
       title: "Katalogi ya mafungu",
       description: "Mafungu ya bure yaliyo tayari kwa kujifunza.",
@@ -860,16 +866,18 @@ const swCatalog: TranslationCatalog = {
     note: "Mipangilio hii huathiri upangaji wa baadaye pekee. Hali iliyopo ya kadi hubaki kuwa halisi.",
   },
   workspaceExport: {
-    title: "Hamisha",
+    title: "Hamisha kifurushi cha Nibomo",
+    ankiTitle: "Hamisha fungu la Anki",
     subtitle: "Pakua kifurushi kinachohamishika cha nafasi hii ya kazi.",
     workspaceUnavailable: "Nafasi ya kazi haipatikani",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Jina la fungu",
+    ankiEmptySelection: "Hakuna kadi za kuhamisha. Badilisha lebo ulizochagua au ongeza kadi.",
     packageDescription: "Angalia kadi zinazotumika, metadata, lebo na midia iliyorejelewa kabla ya kupakua.",
-    packageExportSuccess: "Upakuaji wa flashcards.zip umeanza.",
+    packageExportSuccess: "Upakuaji wa {{filename}} umeanza.",
     packageExporting: "Inapakua...",
     packagePreviewing: "Inaandaa onyesho la awali...",
     packageExportPreviewButton: "Onyesha awali uhamishaji",
-    packageExportConfirmButton: "Pakua flashcards.zip",
+    packageExportConfirmButton: "Pakua {{filename}}",
     packageExportPreviewRequired: "Angalia onyesho la awali la uhamishaji huu kabla ya kupakua.",
     previewCardsLabel: "Kadi",
     previewReferencedMediaLabel: "Midia iliyorejelewa",
@@ -1124,6 +1132,10 @@ const swCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Fungua kadi kwenye gumzo la AI: {{side}}",
     repetitionBadgeAriaLabel: "Mara: {{value}}",
     repetitionBadgeNew: "Mpya",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Lebo zaidi: {{count}}",
+    },
     empty: {
       noCardsBody: "Bado hujaunda kadi zozote. Ongeza kadi yako ya kwanza ili uanze kujifunza.",
       noCardsTitle: "Hakuna Kadi Bado",
@@ -1135,16 +1147,25 @@ const swCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Fomula haikuweza kuonyeshwa.",
       schedulerUnavailable: "Mipangilio ya kipanga ratiba ya nafasi ya kazi haijapakiwa",
+      storageFull: "Ongeza nafasi iliyo wazi kwenye hifadhi ya kifaa hiki, kisha kadi ukadirie tena.",
     },
     leaderboardShortcut: {
       ariaLabel: "Fungua ubao wa viwango",
     },
     progressBadge: {
-      ariaLabel: "Mfululizo wa marudio siku {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Mfululizo wa marudio siku {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Mfululizo wa marudio: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Mfululizo wa marudio: {{streak}}. {{todayStatus}}.",
       freezeBank: "Akiba ya kugandisha {{available}} kati ya {{capacity}}",
       notReviewedToday: "Hujarudia leo",
       reviewedToday: "Umerudia leo",
+      streakDayCount: {
+        zero: "siku {{count}}",
+        one: "siku {{count}}",
+        two: "siku {{count}}",
+        few: "siku {{count}}",
+        many: "siku {{count}}",
+        other: "siku {{count}}",
+      },
       title: "Mfululizo",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const swCatalog: TranslationCatalog = {
       snapshot: "Inaonyesha muhtasari wa hivi karibuni wa kifaa...",
     },
     media: {
-      privateImage: "Picha ya faragha",
-      privateAttachment: "Kiambatisho cha faragha",
       attachmentLabel: "Kiambatisho",
       audioLabel: "Kiambatisho cha sauti",
       imageAlt: "Picha inayodhibitiwa",
@@ -1348,23 +1367,14 @@ const swCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} zinazosubiri",
+      toStudy: "{{count}} za kusoma",
       total: "{{count}} jumla",
     },
-    emptyStatsAriaLabel: "Takwimu za {{deckName}}",
     newDeck: "Fungu jipya",
     statLabels: {
       cards: {
         one: "kadi",
         other: "kadi",
-      },
-      new: {
-        one: "mpya",
-        other: "mpya",
-      },
-      reviewed: {
-        one: "iliyorudiwa",
-        other: "zilizorudiwa",
       },
     },
     subtitle: "Mafungu ni vichujio mahiri, si vyombo vya kuhifadhi. Hulinganisha kadi kwa lebo.",
@@ -1400,10 +1410,10 @@ const swCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kadi",
-      due: "Zinazosubiri",
       new: "Mpya",
       summary: "Muhtasari",
       title: "Kanuni za fungu",
+      toStudy: "Za kusoma",
     },
     subtitle: "Kagua kanuni za fungu, kadi zinazolingana na mahali pa kuanzia marudio.",
     subtitles: {

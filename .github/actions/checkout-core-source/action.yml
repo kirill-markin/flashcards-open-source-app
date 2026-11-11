@@ -1,0 +1,27 @@
+name: Check out validated core source
+description: Validate the companion pin before checking out core source.
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v7
+      with:
+        repository: kirill-markin/flashcards-open-source-app
+        ref: refs/heads/main
+        fetch-depth: 0
+        path: core
+        sparse-checkout: |
+          apps/executor
+          scripts/plugins
+        persist-credentials: false
+
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+
+    - name: Validate and check out the core pin
+      shell: bash
+      working-directory: ${{ github.workspace }}/core
+      run: |
+        set -euo pipefail
+        core_sha=$(python -BI scripts/plugins/executor_source.py ../companion)
+        git checkout --detach "$core_sha"

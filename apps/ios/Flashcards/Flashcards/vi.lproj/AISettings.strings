@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "Lưu tên";
 "settings.workspace.overview.workspace" = "Không gian làm việc";
 "settings.workspace.overview.cards" = "Thẻ";
-"settings.workspace.overview.due" = "Đến hạn";
 "settings.workspace.overview.new" = "Mới";
 "settings.workspace.overview.deleteDescription" = "Xóa vĩnh viễn không gian làm việc này cùng mọi thẻ, bộ thẻ, lượt ôn tập và lịch sử đồng bộ bên trong.";
 "settings.workspace.overview.deleteWorkspace" = "Xóa không gian làm việc";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "Không có bộ thẻ phù hợp";
 "settings.workspace.decks.searchPrompt" = "Tìm bộ thẻ";
 "settings.workspace.decks.newDeck" = "Bộ thẻ mới";
-"settings.workspace.decks.dueCount" = "%d đến hạn";
-"settings.workspace.decks.totalCards" = "%d thẻ";
-"settings.workspace.decks.newCount" = "%d mới";
-"settings.workspace.decks.reviewedCount" = "%d đã ôn";
+"settings.workspace.decks.toStudyCount" = "%d cần học";
+"settings.workspace.decks.toStudy" = "Cần học";
 "settings.workspace.decks.emptyAllCards" = "Bạn chưa tạo thẻ nào.";
 "settings.workspace.decks.emptyDeck" = "Bộ thẻ này chưa có thẻ phù hợp.";
 "settings.workspace.decks.section.deckRules" = "Quy tắc bộ thẻ";

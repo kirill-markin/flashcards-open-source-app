@@ -76,6 +76,7 @@ export type HttpErrorDetails = Readonly<{
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
   catalogImageBlob?: CatalogImageBlobErrorDetails;
   reviewSchedule?: ReviewScheduleErrorDetails;
+  turnstileSiteKey?: string;
   retryAfterSeconds?: number;
   // Agent SQL telemetry only, never part of a response.
   sqlRejectedName?: string | null;
@@ -96,6 +97,7 @@ export type PublicHttpErrorDetails = Readonly<{
   syncConflict?: PublicSyncConflictDetails;
   mediaAssetStorage?: PublicMediaAssetStorageErrorDetails;
   reviewSchedule?: ReviewScheduleErrorDetails;
+  turnstileSiteKey?: string;
 }>;
 
 function createPublicSyncConflictDetails(details: SyncConflictDetails): PublicSyncConflictDetails {
@@ -119,12 +121,14 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
   const syncConflict = details.syncConflict;
   const mediaAssetStorage = details.mediaAssetStorage;
   const reviewSchedule = details.reviewSchedule;
+  const turnstileSiteKey = details.turnstileSiteKey;
   if (
     browserGuestAiTrial === undefined
     && validationIssues === undefined
     && syncConflict === undefined
     && mediaAssetStorage === undefined
     && reviewSchedule === undefined
+    && turnstileSiteKey === undefined
   ) {
     return null;
   }
@@ -142,6 +146,7 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
       },
     }),
     ...(reviewSchedule === undefined ? {} : { reviewSchedule }),
+    ...(turnstileSiteKey === undefined ? {} : { turnstileSiteKey }),
   };
 }
 

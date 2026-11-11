@@ -1,7 +1,11 @@
-import { runAdminQuery, type ReviewEventPlatform } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResponse, type ProductEventDeviceType, type ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { buildAppVersionsNarrowingSql, buildEventPlatformsNarrowingSql } from "../../filters/filterSql";
+import {
+  buildAppVersionsNarrowingSql,
+  buildEventDeviceTypesNarrowingSql,
+  buildEventPlatformsNarrowingSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   buildReportBucketColumnsSql,
@@ -20,8 +24,8 @@ import { buildLastAppOpenVersionPeopleCtesSql } from "../whoOpenedTheApp/appOpen
  * `first_use_date` over all retained history, and `coverageCte` one `history_from` row: the
  * source's first retained day, before which no day is measured. `eventRowsFromSql` is the
  * `FROM analytics.product_events_resolved AS events WHERE ...` of the rows `activityCte` is built from,
- * so a platform selection can narrow a range's person-days by those rows' own platform, and
- * `eventRowsAppVersionSql` their app version, or null for rows that record none, whose people a version
+ * so a platform or device class selection can narrow a range's person-days by those rows' own value,
+ * and `eventRowsAppVersionSql` their app version, or null for rows that record none, whose people a version
  * selection keeps in a bar by their last app open there instead.
  */
 export type DailyActivitySource = Readonly<{
@@ -49,20 +53,23 @@ export type DailyNewReturningReport = Readonly<{
 // Unique people per bucket, counted in SQL rather than summed over days: new when the person's
 // first-ever activity day is one of the bucket's selected days, returning when it is earlier, so each
 // person active in a bucket is in exactly one part of its bar. A bucket is measured only when retained
-// history covers all of its selected days. A platform or app version selection keeps a person-day only
-// when one of its rows matches it, or, for rows with no app version, a person in a bar only when their
-// last app open there is on a selected version; first use stays the person's first day anywhere.
+// history covers all of its selected days. A platform, device class or app version selection keeps a
+// person-day only when one of its rows matches it, or, for rows with no app version, a person in a bar
+// only when their last app open there is on a selected version; first use stays the person's first day
+// anywhere.
 export function buildDailyNewReturningSql(
   source: DailyActivitySource,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
   const eventRowsNarrowingSql = [
     buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms),
+    buildEventDeviceTypesNarrowingSql("events.device_type", eventDeviceTypes),
     source.eventRowsAppVersionSql === null ? "" : buildAppVersionsNarrowingSql(source.eventRowsAppVersionSql, appVersions),
   ].filter((sql) => sql !== "").map((sql) => `\n    ${sql}`).join("");
   // The selected person-days are computed once and joined: an `IN (SELECT ...)` against the
@@ -77,7 +84,7 @@ export function buildDailyNewReturningSql(
   const selectedDaysJoinSql = eventRowsNarrowingSql === "" ? "" : "\n  JOIN selected_days USING (actor_id, activity_date)";
   const isNarrowedByLastAppOpen = source.eventRowsAppVersionSql === null && appVersions.length > 0;
   const appVersionPeopleCtesSql = isNarrowedByLastAppOpen
-    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, appVersions)}`
+    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, eventDeviceTypes, appVersions)}`
     : "";
   const bucketDateSql = buildReportBucketSql(period, "activity.activity_date");
   const appVersionPeopleJoinSql = isNarrowedByLastAppOpen
@@ -112,11 +119,21 @@ export async function loadDailyNewReturningReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
   appVersions: ReadonlyArray<string>,
   reportLabel: string,
   signal: AbortSignal,
 ): Promise<DailyNewReturningReport> {
-  const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, eventPlatforms, appVersions, reportLabel), signal);
+  const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, reportLabel), signal);
+  return parseDailyNewReturningReport(response, period, reportLabel, { newUsers: "new_users", returningUsers: "returning_users" });
+}
+
+export function parseDailyNewReturningReport(
+  response: AdminQueryResponse,
+  period: ReportPeriod,
+  reportLabel: string,
+  countColumns: Readonly<{ newUsers: string; returningUsers: string }>,
+): DailyNewReturningReport {
   const result = response.resultSets[0];
   const firstRow = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || firstRow === undefined) {
@@ -127,8 +144,13 @@ export async function loadDailyNewReturningReport(
     period,
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
     buckets: result.rows.map((row) => {
-      const newUsers = parseActivityCount(row.new_users ?? null, reportLabel, "new_users");
-      const returningUsers = parseActivityCount(row.returning_users ?? null, reportLabel, "returning_users");
+      const newUsersValue = row[countColumns.newUsers];
+      const returningUsersValue = row[countColumns.returningUsers];
+      if (newUsersValue === undefined || returningUsersValue === undefined) {
+        throw new Error(`${reportLabel} must return both ${countColumns.newUsers} and ${countColumns.returningUsers}.`);
+      }
+      const newUsers = parseActivityCount(newUsersValue, reportLabel, countColumns.newUsers);
+      const returningUsers = parseActivityCount(returningUsersValue, reportLabel, countColumns.returningUsers);
       if ((newUsers === null) !== (returningUsers === null)) {
         throw new Error(`${reportLabel} must report new and returning people together.`);
       }

@@ -20,6 +20,15 @@ const trCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Bu tarayıcı mikrofon sesini çözemedi ({{format}}).",
     recovery: "Misafir erişimi doğrulanmadı. Önbellekteki kartlar salt okunurdur. İlk oturumu veya bağlantıyı geri yükleyip yeniden deneyin.",
     cleanupFailed: "Giriş yapıldı, ancak demo kart silinemedi.",
+    browserCheck: {
+      title: "Tarayıcınız kontrol ediliyor",
+      description: "Misafir çalışma alanınız açılmadan önce Cloudflare bunun normal bir tarayıcı olduğunu doğrular. Bu genellikle birkaç saniye sürer.",
+      loading: "Kontrol yükleniyor...",
+      verifying: "Çalışma alanınız açılıyor...",
+      loadFailed: "Kontrol yüklenemedi. Bağlantınızı kontrol edin, içerik engelleyicide challenges.cloudflare.com adresine izin verin ve tekrar deneyin.",
+      failed: "Kontrol geçilemedi. Tekrar deneyin veya bunun yerine giriş yapın.",
+      rejected: "Kontrol kabul edilmedi. Bir kez daha tamamlayın.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const trCatalog: TranslationCatalog = {
     loading: "Yükleniyor...",
     never: "Hiçbir zaman",
     newItem: "yeni",
+    image: "Görsel",
     noBackText: "Arka yüz metni yok",
     noTags: "Etiket yok",
     notRevoked: "İptal edilmedi",
@@ -427,8 +437,12 @@ const trCatalog: TranslationCatalog = {
       offlineEmpty: "Seri sıralaması çevrimdışıyken kullanılamaz. Sıralamaları görmek için yeniden bağlanın.",
       unavailable: "Seri sıralaması şu anda kullanılamıyor. Daha sonra tekrar bakın.",
       dayLabels: {
-        one: "gün",
-        other: "gün",
+        zero: "{{count}} gün",
+        one: "{{count}} gün",
+        two: "{{count}} gün",
+        few: "{{count}} gün",
+        many: "{{count}} gün",
+        other: "{{count}} gün",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const trCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Oturum geri yükleniyor. Birazdan tekrar deneyin.",
     sessionUnavailable: "Oturum kullanılamıyor",
     syncing: "Senkronize ediliyor...",
+    syncFailed: "Eşzamanlama başarısız",
     workspaceUnavailable: "Çalışma alanı kullanılamıyor",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const trCatalog: TranslationCatalog = {
       yourCards: "Kartlarınız",
       addCards: "Kart ekle",
     },
-    cards: {
-      description: "Bu çalışma alanındaki tüm kartlar.",
-    },
-    tags: {
-      description: "En az bir kartta kullanılan tüm etiketler.",
-    },
-    decks: {
-      description: "Odaklı tekrar için kaydedilmiş kart filtreleri.",
-    },
     deckCatalog: {
       title: "Deste kataloğu",
       description: "Çalışmak için ücretsiz hazır desteler.",
@@ -860,16 +866,18 @@ const trCatalog: TranslationCatalog = {
     note: "Bu ayarlar yalnızca gelecekteki planlamayı etkiler. Mevcut kart durumu geçerliliğini korur.",
   },
   workspaceExport: {
-    title: "Dışa aktar",
+    title: "Nibomo paketini dışa aktar",
+    ankiTitle: "Anki destesini dışa aktar",
     subtitle: "Bu çalışma alanı için taşınabilir bir paket indirin.",
     workspaceUnavailable: "Çalışma alanı kullanılamıyor",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Deste adı",
+    ankiEmptySelection: "Dışa aktarılacak kart yok. Seçili etiketleri değiştirin veya kart ekleyin.",
     packageDescription: "İndirmeden önce etkin kartları, meta verileri, etiketleri ve başvurulan medyayı önizleyin.",
-    packageExportSuccess: "flashcards.zip indirmesi başladı.",
+    packageExportSuccess: "{{filename}} indirmesi başladı.",
     packageExporting: "İndiriliyor...",
     packagePreviewing: "Önizleniyor...",
     packageExportPreviewButton: "Dışa aktarmayı önizle",
-    packageExportConfirmButton: "flashcards.zip indir",
+    packageExportConfirmButton: "{{filename}} indir",
     packageExportPreviewRequired: "İndirmeden önce bu dışa aktarmayı önizleyin.",
     previewCardsLabel: "Kartlar",
     previewReferencedMediaLabel: "Başvurulan medya",
@@ -1124,6 +1132,10 @@ const trCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "{{side}} kartını AI sohbetinde aç",
     repetitionBadgeAriaLabel: "Tekrar sayısı: {{value}}",
     repetitionBadgeNew: "Yeni",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Diğer etiketler: {{count}}",
+    },
     empty: {
       noCardsBody: "Henüz hiç kart oluşturmadınız. Çalışmaya başlamak için ilk kartınızı ekleyin.",
       noCardsTitle: "Henüz Kart Yok",
@@ -1135,16 +1147,25 @@ const trCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Formül görüntülenemedi.",
       schedulerUnavailable: "Çalışma alanı planlayıcı ayarları yüklenmedi",
+      storageFull: "Bu cihazda depolama alanı açın, ardından kartı tekrar değerlendirin.",
     },
     leaderboardShortcut: {
       ariaLabel: "Sıralama tablosunu aç",
     },
     progressBadge: {
-      ariaLabel: "Tekrar serisi {{streak}} gün. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Tekrar serisi {{streak}} gün. {{todayStatus}}.",
+      ariaLabel: "Tekrar serisi {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Tekrar serisi {{streak}}. {{todayStatus}}.",
       freezeBank: "Dondurma bankası {{capacity}} üzerinden {{available}}",
       notReviewedToday: "Bugün tekrar edilmedi",
       reviewedToday: "Bugün tekrar edildi",
+      streakDayCount: {
+        zero: "{{count}} gün",
+        one: "{{count}} gün",
+        two: "{{count}} gün",
+        few: "{{count}} gün",
+        many: "{{count}} gün",
+        other: "{{count}} gün",
+      },
       title: "Seri",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const trCatalog: TranslationCatalog = {
       snapshot: "Yakın tarihli yerel anlık görüntü gösteriliyor...",
     },
     media: {
-      privateImage: "Özel görsel",
-      privateAttachment: "Özel ek",
       attachmentLabel: "Ek",
       audioLabel: "Ses eki",
       imageAlt: "Yönetilen görsel",
@@ -1348,23 +1367,14 @@ const trCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} zamanı geldi",
+      toStudy: "{{count}} çalışılacak",
       total: "{{count}} toplam",
     },
-    emptyStatsAriaLabel: "{{deckName}} istatistikleri",
     newDeck: "Yeni deste",
     statLabels: {
       cards: {
         one: "kart",
         other: "kart",
-      },
-      new: {
-        one: "yeni",
-        other: "yeni",
-      },
-      reviewed: {
-        one: "tekrar edildi",
-        other: "tekrar edildi",
       },
     },
     subtitle: "Desteler birer kapsayıcı değil, akıllı filtredir. Kartları etiketlere göre eşleştirir.",
@@ -1400,10 +1410,10 @@ const trCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartlar",
-      due: "Zamanı gelen",
       new: "Yeni",
       summary: "Özet",
       title: "Deste kuralları",
+      toStudy: "Çalışılacak",
     },
     subtitle: "Deste kurallarını, eşleşen kartları ve tekrar başlangıç noktasını inceleyin.",
     subtitles: {

@@ -20,6 +20,15 @@ const thCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "เบราว์เซอร์นี้ไม่สามารถถอดรหัสเสียงไมโครโฟนได้ ({{format}})",
     recovery: "ยังไม่ได้ยืนยันสิทธิ์เข้าถึงของผู้เยี่ยมชม บัตรที่แคชไว้อ่านได้อย่างเดียว กู้คืนเซสชันเดิมหรือเชื่อมต่อใหม่แล้วลองอีกครั้ง",
     cleanupFailed: "ลงชื่อเข้าใช้สำเร็จ แต่ลบบัตรสาธิตไม่ได้",
+    browserCheck: {
+      title: "กำลังตรวจสอบเบราว์เซอร์ของคุณ",
+      description: "ก่อนเปิดพื้นที่ทำงานสำหรับผู้เยี่ยมชม Cloudflare จะยืนยันว่านี่เป็นเบราว์เซอร์ทั่วไป ปกติใช้เวลาเพียงไม่กี่วินาที",
+      loading: "กำลังโหลดการตรวจสอบ...",
+      verifying: "กำลังเปิดพื้นที่ทำงานของคุณ...",
+      loadFailed: "โหลดการตรวจสอบไม่ได้ ตรวจสอบการเชื่อมต่อ อนุญาต challenges.cloudflare.com ในตัวบล็อกเนื้อหา แล้วลองอีกครั้ง",
+      failed: "การตรวจสอบไม่ผ่าน ลองอีกครั้ง หรือลงชื่อเข้าใช้แทน",
+      rejected: "การตรวจสอบไม่ได้รับการยอมรับ ทำให้เสร็จอีกครั้ง",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const thCatalog: TranslationCatalog = {
     loading: "กำลังโหลด...",
     never: "ไม่เคย",
     newItem: "ใหม่",
+    image: "รูปภาพ",
     noBackText: "ไม่มีข้อความด้านหลัง",
     noTags: "ไม่มีแท็ก",
     notRevoked: "ยังไม่เพิกถอน",
@@ -427,8 +437,12 @@ const thCatalog: TranslationCatalog = {
       offlineEmpty: "กระดานอันดับสตรีคใช้งานแบบออฟไลน์ไม่ได้ เชื่อมต่ออีกครั้งเพื่อดูอันดับ",
       unavailable: "กระดานอันดับสตรีคใช้งานไม่ได้ในขณะนี้ กลับมาดูใหม่ภายหลัง",
       dayLabels: {
-        one: "วัน",
-        other: "วัน",
+        zero: "{{count}} วัน",
+        one: "{{count}} วัน",
+        two: "{{count}} วัน",
+        few: "{{count}} วัน",
+        many: "{{count}} วัน",
+        other: "{{count}} วัน",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const thCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "กำลังกู้คืนเซสชัน ลองอีกครั้งในอีกสักครู่",
     sessionUnavailable: "เซสชันไม่พร้อมใช้งาน",
     syncing: "กำลังซิงค์...",
+    syncFailed: "ซิงค์ไม่สำเร็จ",
     workspaceUnavailable: "พื้นที่ทำงานไม่พร้อมใช้งาน",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const thCatalog: TranslationCatalog = {
       yourCards: "การ์ดของคุณ",
       addCards: "เพิ่มการ์ด",
     },
-    cards: {
-      description: "การ์ดทั้งหมดในพื้นที่ทำงานนี้",
-    },
-    tags: {
-      description: "แท็กทั้งหมดที่ใช้กับการ์ดอย่างน้อยหนึ่งใบ",
-    },
-    decks: {
-      description: "ตัวกรองการ์ดที่บันทึกไว้สำหรับการทบทวนแบบเจาะจง",
-    },
     deckCatalog: {
       title: "แคตตาล็อกเด็ค",
       description: "เด็คสำเร็จรูปฟรีสำหรับเรียน",
@@ -860,16 +866,18 @@ const thCatalog: TranslationCatalog = {
     note: "การตั้งค่านี้มีผลกับการจัดตารางในอนาคตเท่านั้น สถานะของการ์ดที่มีอยู่ยังคงเป็นข้อมูลหลัก",
   },
   workspaceExport: {
-    title: "ส่งออก",
+    title: "ส่งออกแพ็กเกจ Nibomo",
+    ankiTitle: "ส่งออกสำรับ Anki",
     subtitle: "ดาวน์โหลดแพ็กเกจของพื้นที่ทำงานนี้",
     workspaceUnavailable: "พื้นที่ทำงานไม่พร้อมใช้งาน",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "ชื่อสำรับ",
+    ankiEmptySelection: "ไม่มีการ์ดให้ส่งออก เปลี่ยนแท็กที่เลือกหรือเพิ่มการ์ด",
     packageDescription: "ดูตัวอย่างการ์ดที่ใช้งานอยู่ ข้อมูลเมตา แท็ก และสื่อที่อ้างอิง ก่อนดาวน์โหลด",
-    packageExportSuccess: "เริ่มดาวน์โหลด flashcards.zip แล้ว",
+    packageExportSuccess: "เริ่มดาวน์โหลด {{filename}} แล้ว",
     packageExporting: "กำลังดาวน์โหลด...",
     packagePreviewing: "กำลังสร้างตัวอย่าง...",
     packageExportPreviewButton: "ดูตัวอย่างการส่งออก",
-    packageExportConfirmButton: "ดาวน์โหลด flashcards.zip",
+    packageExportConfirmButton: "ดาวน์โหลด {{filename}}",
     packageExportPreviewRequired: "ดูตัวอย่างการส่งออกนี้ก่อนดาวน์โหลด",
     previewCardsLabel: "การ์ด",
     previewReferencedMediaLabel: "สื่อที่อ้างอิง",
@@ -1124,6 +1132,10 @@ const thCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "เปิด{{side}}ของการ์ดในแชท AI",
     repetitionBadgeAriaLabel: "ทบทวนแล้ว: {{value}} ครั้ง",
     repetitionBadgeNew: "ใหม่",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "แท็กเพิ่มเติม: {{count}}",
+    },
     empty: {
       noCardsBody: "คุณยังไม่ได้สร้างการ์ดเลย เพิ่มการ์ดใบแรกเพื่อเริ่มเรียน",
       noCardsTitle: "ยังไม่มีการ์ด",
@@ -1135,16 +1147,25 @@ const thCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "แสดงผลสูตรไม่สำเร็จ",
       schedulerUnavailable: "ยังไม่ได้โหลดการตั้งค่าตัวจัดตารางทบทวนของพื้นที่ทำงาน",
+      storageFull: "เพิ่มพื้นที่ว่างในอุปกรณ์นี้ แล้วให้คะแนนการ์ดอีกครั้ง",
     },
     leaderboardShortcut: {
       ariaLabel: "เปิดกระดานอันดับ",
     },
     progressBadge: {
-      ariaLabel: "สตรีคการทบทวน {{streak}} วัน {{todayStatus}} {{freezeBank}}",
-      reviewAriaLabel: "สตรีคการทบทวน {{streak}} วัน {{todayStatus}}",
+      ariaLabel: "สตรีคการทบทวน {{streak}} {{todayStatus}} {{freezeBank}}",
+      reviewAriaLabel: "สตรีคการทบทวน {{streak}} {{todayStatus}}",
       freezeBank: "คลังฟรีซ {{available}} จาก {{capacity}}",
       notReviewedToday: "วันนี้ยังไม่ได้ทบทวน",
       reviewedToday: "ทบทวนแล้ววันนี้",
+      streakDayCount: {
+        zero: "{{count}} วัน",
+        one: "{{count}} วัน",
+        two: "{{count}} วัน",
+        few: "{{count}} วัน",
+        many: "{{count}} วัน",
+        other: "{{count}} วัน",
+      },
       title: "สตรีค",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const thCatalog: TranslationCatalog = {
       snapshot: "กำลังแสดงข้อมูลในเครื่องล่าสุด...",
     },
     media: {
-      privateImage: "รูปภาพส่วนตัว",
-      privateAttachment: "ไฟล์แนบส่วนตัว",
       attachmentLabel: "ไฟล์แนบ",
       audioLabel: "ไฟล์เสียงแนบ",
       imageAlt: "รูปภาพที่ระบบจัดการ",
@@ -1348,23 +1367,14 @@ const thCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "ถึงกำหนด {{count}}",
+      toStudy: "ต้องเรียน {{count}}",
       total: "ทั้งหมด {{count}}",
     },
-    emptyStatsAriaLabel: "สถิติของ {{deckName}}",
     newDeck: "เด็คใหม่",
     statLabels: {
       cards: {
         one: "การ์ด",
         other: "การ์ด",
-      },
-      new: {
-        one: "ใหม่",
-        other: "ใหม่",
-      },
-      reviewed: {
-        one: "ทบทวนแล้ว",
-        other: "ทบทวนแล้ว",
       },
     },
     subtitle: "เด็คคือตัวกรองอัจฉริยะ ไม่ใช่กล่องเก็บการ์ด โดยจับคู่การ์ดจากแท็ก",
@@ -1400,10 +1410,10 @@ const thCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "การ์ด",
-      due: "ถึงกำหนด",
       new: "ใหม่",
       summary: "สรุป",
       title: "กฎของเด็ค",
+      toStudy: "ต้องเรียน",
     },
     subtitle: "ดูกฎของเด็ค การ์ดที่ตรงกัน และทางเข้าสู่การทบทวน",
     subtitles: {

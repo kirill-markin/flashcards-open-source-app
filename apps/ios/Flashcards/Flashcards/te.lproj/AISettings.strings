@@ -643,7 +643,6 @@
 "settings.workspace.overview.saveName" = "పేరు సేవ్ చేయి";
 "settings.workspace.overview.workspace" = "వర్క్‌స్పేస్";
 "settings.workspace.overview.cards" = "కార్డులు";
-"settings.workspace.overview.due" = "పునశ్చరణకు సిద్ధం";
 "settings.workspace.overview.new" = "కొత్తవి";
 "settings.workspace.overview.deleteDescription" = "ఈ వర్క్‌స్పేస్‌ను, అందులోని అన్ని కార్డులు, డెక్‌లు, పునశ్చరణలు, సింక్ చరిత్రను శాశ్వతంగా తొలగించు.";
 "settings.workspace.overview.deleteWorkspace" = "వర్క్‌స్పేస్ తొలగించు";
@@ -798,10 +797,8 @@
 "settings.workspace.decks.noMatching" = "సరిపోలే డెక్‌లు లేవు";
 "settings.workspace.decks.searchPrompt" = "డెక్‌లను వెతుకు";
 "settings.workspace.decks.newDeck" = "కొత్త డెక్";
-"settings.workspace.decks.dueCount" = "పునశ్చరణకు సిద్ధం: %d";
-"settings.workspace.decks.totalCards" = "కార్డుల సంఖ్య: %d";
-"settings.workspace.decks.newCount" = "కొత్తవి: %d";
-"settings.workspace.decks.reviewedCount" = "పునశ్చరణ చేసినవి: %d";
+"settings.workspace.decks.toStudyCount" = "చదవడానికి %d";
+"settings.workspace.decks.toStudy" = "చదవడానికి";
 "settings.workspace.decks.emptyAllCards" = "మీరు ఇంకా కార్డులను సృష్టించలేదు.";
 "settings.workspace.decks.emptyDeck" = "ఈ డెక్‌లో ఇంకా సరిపోలే కార్డులు లేవు.";
 "settings.workspace.decks.section.deckRules" = "డెక్ నియమాలు";

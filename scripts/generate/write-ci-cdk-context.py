@@ -147,6 +147,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "demoEmailDostip": get_trimmed_env("CDK_CONTEXT_DEMO_EMAIL_DOSTIP"),
         "demoPasswordSecretArn": get_trimmed_env("CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN"),
         "domainName": get_trimmed_env("CDK_CONTEXT_DOMAIN_NAME"),
+        "guestChallengeSecretName": get_trimmed_env("CDK_CONTEXT_GUEST_CHALLENGE_SECRET_NAME"),
         "githubOidcProviderArn": build_github_oidc_provider_arn(aws_deploy_role_arn),
         "githubRepo": get_trimmed_env("CDK_CONTEXT_GITHUB_REPO"),
         "globalMetricsVisible": get_raw_env("CDK_CONTEXT_GLOBAL_METRICS_VISIBLE"),

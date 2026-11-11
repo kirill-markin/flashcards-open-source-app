@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorSaveResult
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorRoute
@@ -26,6 +27,7 @@ import com.flashcardsopensourceapp.feature.settings.deck.createDeckDetailViewMod
 import com.flashcardsopensourceapp.feature.settings.deck.createDeckEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.deck.createDecksViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel
 import com.flashcardsopensourceapp.feature.settings.workspace.export.createWorkspaceExportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.importing.createWorkspaceImportViewModelFactory
@@ -35,6 +37,33 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private fun NavGraphBuilder.registerLibraryWorkspaceExportDestination(
+    route: String,
+    format: WorkspacePackageExportFormat,
+    appGraph: AppGraph,
+    navController: NavHostController
+) {
+    composable(route = route) {
+        val context = LocalContext.current
+        val workspaceExportViewModel = viewModel<WorkspaceExportViewModel>(
+            factory = createWorkspaceExportViewModelFactory(
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                technicalErrorController = appGraph.appMessageBus,
+                applicationContext = context.applicationContext,
+                format = format
+            )
+        )
+
+        WorkspaceExportRoute(
+            viewModel = workspaceExportViewModel,
+            technicalErrorController = appGraph.appMessageBus,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+}
 
 internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
     appGraph: AppGraph,
@@ -239,24 +268,18 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
         )
     }
 
-    composable(route = LibraryExportDestination.route) {
-        val context = LocalContext.current
-        val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel>(
-            factory = createWorkspaceExportViewModelFactory(
-                cloudAccountRepository = appGraph.cloudAccountRepository,
-                technicalErrorController = appGraph.appMessageBus,
-                applicationContext = context.applicationContext
-            )
-        )
-
-        WorkspaceExportRoute(
-            viewModel = workspaceExportViewModel,
-            technicalErrorController = appGraph.appMessageBus,
-            onBack = {
-                navController.popBackStack()
-            }
-        )
-    }
+    registerLibraryWorkspaceExportDestination(
+        route = LibraryExportDestination.route,
+        format = WorkspacePackageExportFormat.NIBOMO,
+        appGraph = appGraph,
+        navController = navController
+    )
+    registerLibraryWorkspaceExportDestination(
+        route = LibraryAnkiExportDestination.route,
+        format = WorkspacePackageExportFormat.ANKI,
+        appGraph = appGraph,
+        navController = navController
+    )
 
     composable(route = LibraryImportDestination.route) {
         val context = LocalContext.current

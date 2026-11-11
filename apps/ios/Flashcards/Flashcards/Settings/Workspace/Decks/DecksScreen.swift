@@ -251,7 +251,7 @@ private func deckScreenListItemsMatchingSearchText(
 
     return deckListEntries.filter { deckListEntry in
         deckListEntry.title.lowercased().contains(normalizedSearchText)
-            || deckListEntry.filterSummary.lowercased().contains(normalizedSearchText)
+            || deckListEntry.filterSummary?.lowercased().contains(normalizedSearchText) == true
     }
 }
 
@@ -282,34 +282,72 @@ private struct SummaryRow: View {
 
 private struct DeckListRow: View {
     let deckListEntry: DeckScreenListItem
+    /// Title width the one-line layout must leave beside the counts; a longer name wraps there instead of forcing a stacked row.
+    @ScaledMetric(relativeTo: .headline) private var minimumTitleWidth: CGFloat = 80
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(deckListEntry.title)
-                    .foregroundStyle(Color.primary)
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 4) {
+            // The counts never truncate: when they cannot share the title's line (long translations, accessibility sizes), they move below it, then onto separate lines that wrap.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    self.titleText
+                    Spacer(minLength: 0)
+                    self.inlineCounts
+                        .fixedSize()
+                }
 
-                Spacer()
+                VStack(alignment: .leading, spacing: 4) {
+                    self.titleText
+                    self.inlineCounts
+                        .fixedSize()
+                }
 
-                Text(aiSettingsLocalizedFormat("settings.workspace.decks.dueCount", "%d due", deckListEntry.stats.dueCards))
+                VStack(alignment: .leading, spacing: 4) {
+                    self.titleText
+                    self.cardCountText
+                    self.toStudyCountText
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+
+            if let filterSummary = deckListEntry.filterSummary {
+                Text(filterSummary)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-
-            Text(deckListEntry.filterSummary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 12) {
-                Label(aiSettingsLocalizedFormat("settings.workspace.decks.totalCards", "%d cards", deckListEntry.stats.totalCards), systemImage: "square.stack.3d.up")
-                Label(aiSettingsLocalizedFormat("settings.workspace.decks.newCount", "%d new", deckListEntry.stats.newCards), systemImage: "plus.circle")
-                Label(aiSettingsLocalizedFormat("settings.workspace.decks.reviewedCount", "%d reviewed", deckListEntry.stats.reviewedCards), systemImage: "checkmark.circle")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+    }
+
+    private var titleText: some View {
+        Text(deckListEntry.title)
+            .foregroundStyle(Color.primary)
+            .font(.headline)
+            // Only the counts decide which layout fits; the name wraps in full in whichever layout is chosen, so a nested deck keeps its last part.
+            .frame(idealWidth: minimumTitleWidth, alignment: .leading)
+    }
+
+    private var inlineCounts: some View {
+        HStack(spacing: 4) {
+            self.cardCountText
+            Text(verbatim: "·")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            self.toStudyCountText
+        }
+    }
+
+    private var cardCountText: some View {
+        Text(String(localized: "catalog.list.card_count \(deckListEntry.stats.totalCards)", table: "Foundation"))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+    }
+
+    private var toStudyCountText: some View {
+        Text(aiSettingsLocalizedFormat("settings.workspace.decks.toStudyCount", "%d to study", deckListEntry.stats.dueCards))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
     }
 }
 
@@ -321,7 +359,8 @@ enum DeckScreenDestination: Hashable, Sendable {
 private struct DeckScreenListItem: Identifiable, Hashable {
     let id: String
     let title: String
-    let filterSummary: String
+    /// Nil for the All cards item, whose title already says what it includes.
+    let filterSummary: String?
     let stats: DeckCardStats
     let destination: DeckScreenDestination
     let persistedDeckId: String?
@@ -443,7 +482,7 @@ struct DeckDetailScreen: View {
                         symbolName: "square.stack.3d.up"
                     )
                     SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.overview.due", "Due"),
+                        title: aiSettingsLocalized("settings.workspace.decks.toStudy", "To study"),
                         value: "\(detailState.stats.dueCards)",
                         symbolName: "clock.badge.checkmark"
                     )
@@ -864,7 +903,7 @@ private func makeAllCardsDeckScreenListItem(stats: DeckCardStats) -> DeckScreenL
     return DeckScreenListItem(
         id: "system-all-cards",
         title: allCardsDeckLabel,
-        filterSummary: allCardsDeckLabel,
+        filterSummary: nil,
         stats: stats,
         destination: .allCards,
         persistedDeckId: nil

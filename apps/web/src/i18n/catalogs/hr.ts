@@ -20,6 +20,15 @@ const hrCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Ovaj preglednik nije mogao dekodirati zvuk mikrofona ({{format}}).",
     recovery: "Gostujući pristup nije potvrđen. Kartice iz predmemorije dostupne su samo za čitanje. Vratite izvornu sesiju ili vezu pa pokušajte ponovno.",
     cleanupFailed: "Prijava je uspjela, ali pokazna kartica nije se mogla ukloniti.",
+    browserCheck: {
+      title: "Provjeravamo vaš preglednik",
+      description: "Prije otvaranja radnog prostora za goste Cloudflare potvrđuje da je ovo običan preglednik. Obično traje nekoliko sekundi.",
+      loading: "Učitavanje provjere...",
+      verifying: "Otvaranje vašeg radnog prostora...",
+      loadFailed: "Provjera se nije mogla učitati. Provjerite vezu, dopustite challenges.cloudflare.com u blokatoru sadržaja i pokušajte ponovno.",
+      failed: "Provjera nije prošla. Pokušajte ponovno ili se prijavite.",
+      rejected: "Provjera nije prihvaćena. Dovršite je još jednom.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ const hrCatalog: TranslationCatalog = {
     loading: "Učitavanje...",
     never: "Nikad",
     newItem: "nova",
+    image: "Slika",
     noBackText: "Nema teksta na poleđini",
     noTags: "Nema oznaka",
     notRevoked: "Nije opozvano",
@@ -434,9 +444,12 @@ const hrCatalog: TranslationCatalog = {
       offlineEmpty: "Ljestvica nizova nije dostupna izvan mreže. Ponovno se povežite da biste vidjeli plasman.",
       unavailable: "Ljestvica nizova trenutačno nije dostupna. Provjerite ponovno kasnije.",
       dayLabels: {
-        one: "dan",
-        few: "dana",
-        other: "dana",
+        zero: "{{count}} dana",
+        one: "{{count}} dan",
+        two: "{{count}} dana",
+        few: "{{count}} dana",
+        many: "{{count}} dana",
+        other: "{{count}} dana",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ const hrCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Vraćanje sesije. Pokušajte ponovno za trenutak.",
     sessionUnavailable: "Sesija nije dostupna",
     syncing: "Sinkronizacija...",
+    syncFailed: "Sinkronizacija nije uspjela",
     workspaceUnavailable: "Radni prostor nije dostupan",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ const hrCatalog: TranslationCatalog = {
       yourCards: "Vaše kartice",
       addCards: "Dodavanje kartica",
     },
-    cards: {
-      description: "Sve kartice u ovom radnom prostoru.",
-    },
-    tags: {
-      description: "Sve oznake korištene na barem jednoj kartici.",
-    },
-    decks: {
-      description: "Spremljeni filtri kartica za usredotočeno ponavljanje.",
-    },
     deckCatalog: {
       title: "Katalog špilova",
       description: "Besplatni gotovi špilovi za učenje.",
@@ -869,16 +874,18 @@ const hrCatalog: TranslationCatalog = {
     note: "Ove postavke utječu samo na buduće raspoređivanje. Postojeće stanje kartica ostaje mjerodavno.",
   },
   workspaceExport: {
-    title: "Izvoz",
+    title: "Izvezi paket Nibomo",
+    ankiTitle: "Izvezi špil za Anki",
     subtitle: "Preuzmite prenosivi paket za ovaj radni prostor.",
     workspaceUnavailable: "Radni prostor nije dostupan",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Naziv špila",
+    ankiEmptySelection: "Nema kartica za izvoz. Promijenite odabrane oznake ili dodajte kartice.",
     packageDescription: "Prije preuzimanja pregledajte aktivne kartice, metapodatke, oznake i referencirane medije.",
-    packageExportSuccess: "Preuzimanje datoteke flashcards.zip je započelo.",
+    packageExportSuccess: "Preuzimanje datoteke {{filename}} je započelo.",
     packageExporting: "Preuzimanje...",
     packagePreviewing: "Izrada pregleda...",
     packageExportPreviewButton: "Pregledaj izvoz",
-    packageExportConfirmButton: "Preuzmi flashcards.zip",
+    packageExportConfirmButton: "Preuzmi {{filename}}",
     packageExportPreviewRequired: "Pregledajte ovaj izvoz prije preuzimanja.",
     previewCardsLabel: "Kartice",
     previewReferencedMediaLabel: "Referencirani mediji",
@@ -1134,6 +1141,10 @@ const hrCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otvori karticu u AI razgovoru: {{side}}",
     repetitionBadgeAriaLabel: "Ponavljanja: {{value}}",
     repetitionBadgeNew: "Nova",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Još oznaka: {{count}}",
+    },
     empty: {
       noCardsBody: "Još niste stvorili nijednu karticu. Dodajte prvu karticu da biste počeli učiti.",
       noCardsTitle: "Još nema kartica",
@@ -1145,16 +1156,25 @@ const hrCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Nije moguće prikazati formulu.",
       schedulerUnavailable: "Postavke planera radnog prostora nisu učitane",
+      storageFull: "Oslobodite prostor za pohranu na ovom uređaju, a zatim ponovno ocijenite karticu.",
     },
     leaderboardShortcut: {
       ariaLabel: "Otvori ljestvicu",
     },
     progressBadge: {
-      ariaLabel: "Niz ponavljanja, broj dana: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Niz ponavljanja, broj dana: {{streak}}. {{todayStatus}}.",
+      ariaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Niz ponavljanja: {{streak}}. {{todayStatus}}.",
       freezeBank: "Zamrzavanja niza: {{available}} od {{capacity}}",
       notReviewedToday: "Danas nije ponavljano",
       reviewedToday: "Danas ponovljeno",
+      streakDayCount: {
+        zero: "{{count}} dana",
+        one: "{{count}} dan",
+        two: "{{count}} dana",
+        few: "{{count}} dana",
+        many: "{{count}} dana",
+        other: "{{count}} dana",
+      },
       title: "Niz",
     },
     interval: {
@@ -1168,8 +1188,6 @@ const hrCatalog: TranslationCatalog = {
       snapshot: "Prikaz nedavne lokalne snimke...",
     },
     media: {
-      privateImage: "Privatna slika",
-      privateAttachment: "Privatni privitak",
       attachmentLabel: "Privitak",
       audioLabel: "Audioprivitak",
       imageAlt: "Upravljana slika",
@@ -1358,26 +1376,15 @@ const hrCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "Dospjelo: {{count}}",
+      toStudy: "{{count}} za učenje",
       total: "Ukupno: {{count}}",
     },
-    emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Novi špil",
     statLabels: {
       cards: {
         one: "kartica",
         few: "kartice",
         other: "kartica",
-      },
-      new: {
-        one: "nova",
-        few: "nove",
-        other: "novih",
-      },
-      reviewed: {
-        one: "ponovljena",
-        few: "ponovljene",
-        other: "ponovljenih",
       },
     },
     subtitle: "Špilovi su pametni filtri, a ne spremnici. Kartice odabiru prema oznakama.",
@@ -1413,10 +1420,10 @@ const hrCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Kartice",
-      due: "Dospjelo",
       new: "Novo",
       summary: "Sažetak",
       title: "Pravila špila",
+      toStudy: "Za učenje",
     },
     subtitle: "Pregledajte pravila špila, odgovarajuće kartice i ulaz u ponavljanje.",
     subtitles: {

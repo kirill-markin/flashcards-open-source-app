@@ -20,6 +20,15 @@ const viCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Trình duyệt này không thể giải mã âm thanh micrô ({{format}}).",
     recovery: "Quyền truy cập khách chưa được xác minh. Thẻ lưu đệm chỉ có thể đọc. Khôi phục phiên gốc hoặc kết nối rồi thử lại.",
     cleanupFailed: "Đăng nhập thành công nhưng không thể xóa thẻ mẫu.",
+    browserCheck: {
+      title: "Đang kiểm tra trình duyệt của bạn",
+      description: "Trước khi mở không gian làm việc khách, Cloudflare xác nhận đây là trình duyệt thông thường. Thường chỉ mất vài giây.",
+      loading: "Đang tải bước kiểm tra...",
+      verifying: "Đang mở không gian làm việc của bạn...",
+      loadFailed: "Không thể tải bước kiểm tra. Hãy kiểm tra kết nối, cho phép challenges.cloudflare.com trong trình chặn nội dung, rồi thử lại.",
+      failed: "Bạn chưa vượt qua bước kiểm tra. Hãy thử lại hoặc đăng nhập.",
+      rejected: "Bước kiểm tra không được chấp nhận. Hãy hoàn thành thêm một lần nữa.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const viCatalog: TranslationCatalog = {
     loading: "Đang tải...",
     never: "Không bao giờ",
     newItem: "mới",
+    image: "Hình ảnh",
     noBackText: "Không có nội dung mặt sau",
     noTags: "Không có nhãn",
     notRevoked: "Chưa thu hồi",
@@ -427,8 +437,12 @@ const viCatalog: TranslationCatalog = {
       offlineEmpty: "Bảng xếp hạng chuỗi ngày không khả dụng khi ngoại tuyến. Hãy kết nối lại để xem thứ hạng.",
       unavailable: "Bảng xếp hạng chuỗi ngày hiện không khả dụng. Hãy quay lại sau.",
       dayLabels: {
-        one: "ngày",
-        other: "ngày",
+        zero: "{{count}} ngày",
+        one: "{{count}} ngày",
+        two: "{{count}} ngày",
+        few: "{{count}} ngày",
+        many: "{{count}} ngày",
+        other: "{{count}} ngày",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const viCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Đang khôi phục phiên. Hãy thử lại sau giây lát.",
     sessionUnavailable: "Phiên không khả dụng",
     syncing: "Đang đồng bộ...",
+    syncFailed: "Đồng bộ thất bại",
     workspaceUnavailable: "Không gian làm việc không khả dụng",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const viCatalog: TranslationCatalog = {
       yourCards: "Thẻ của bạn",
       addCards: "Thêm thẻ",
     },
-    cards: {
-      description: "Mọi thẻ trong không gian làm việc này.",
-    },
-    tags: {
-      description: "Mọi nhãn được dùng trên ít nhất một thẻ.",
-    },
-    decks: {
-      description: "Bộ lọc thẻ đã lưu để ôn tập tập trung.",
-    },
     deckCatalog: {
       title: "Danh mục bộ thẻ",
       description: "Bộ thẻ miễn phí, có sẵn để học.",
@@ -860,16 +866,18 @@ const viCatalog: TranslationCatalog = {
     note: "Các cài đặt này chỉ ảnh hưởng đến lịch trong tương lai. Trạng thái hiện tại của thẻ vẫn được giữ nguyên.",
   },
   workspaceExport: {
-    title: "Xuất",
+    title: "Xuất gói Nibomo",
+    ankiTitle: "Xuất bộ thẻ Anki",
     subtitle: "Tải gói di động cho không gian làm việc này.",
     workspaceUnavailable: "Không gian làm việc không khả dụng",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Tên bộ thẻ",
+    ankiEmptySelection: "Không có thẻ để xuất. Hãy thay đổi các nhãn đã chọn hoặc thêm thẻ.",
     packageDescription: "Xem trước thẻ đang hoạt động, metadata, nhãn và media được tham chiếu trước khi tải xuống.",
-    packageExportSuccess: "Đã bắt đầu tải flashcards.zip.",
+    packageExportSuccess: "Đã bắt đầu tải {{filename}}.",
     packageExporting: "Đang tải xuống...",
     packagePreviewing: "Đang xem trước...",
     packageExportPreviewButton: "Xem trước bản xuất",
-    packageExportConfirmButton: "Tải flashcards.zip",
+    packageExportConfirmButton: "Tải {{filename}}",
     packageExportPreviewRequired: "Hãy xem trước bản xuất này trước khi tải xuống.",
     previewCardsLabel: "Thẻ",
     previewReferencedMediaLabel: "Media được tham chiếu",
@@ -1124,6 +1132,10 @@ const viCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Mở {{side}} của thẻ trong trò chuyện AI",
     repetitionBadgeAriaLabel: "Số lần lặp: {{value}}",
     repetitionBadgeNew: "Mới",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Thêm nhãn: {{count}}",
+    },
     empty: {
       noCardsBody: "Bạn chưa tạo thẻ nào. Hãy thêm thẻ đầu tiên để bắt đầu học.",
       noCardsTitle: "Chưa có thẻ nào",
@@ -1135,16 +1147,25 @@ const viCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Không hiển thị được công thức.",
       schedulerUnavailable: "Chưa tải được cài đặt lập lịch của không gian làm việc",
+      storageFull: "Giải phóng dung lượng lưu trữ trên thiết bị này, rồi đánh giá lại thẻ.",
     },
     leaderboardShortcut: {
       ariaLabel: "Mở bảng xếp hạng",
     },
     progressBadge: {
-      ariaLabel: "Chuỗi ngày ôn tập {{streak}} ngày. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Chuỗi ngày ôn tập {{streak}} ngày. {{todayStatus}}.",
+      ariaLabel: "Chuỗi ngày ôn tập {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Chuỗi ngày ôn tập {{streak}}. {{todayStatus}}.",
       freezeBank: "Kho đóng băng {{available}} trên {{capacity}}",
       notReviewedToday: "Hôm nay chưa ôn tập",
       reviewedToday: "Hôm nay đã ôn tập",
+      streakDayCount: {
+        zero: "{{count}} ngày",
+        one: "{{count}} ngày",
+        two: "{{count}} ngày",
+        few: "{{count}} ngày",
+        many: "{{count}} ngày",
+        other: "{{count}} ngày",
+      },
       title: "Chuỗi ngày",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const viCatalog: TranslationCatalog = {
       snapshot: "Đang hiển thị bản chụp cục bộ gần đây...",
     },
     media: {
-      privateImage: "Hình ảnh riêng tư",
-      privateAttachment: "Tệp đính kèm riêng tư",
       attachmentLabel: "Tệp đính kèm",
       audioLabel: "Âm thanh đính kèm",
       imageAlt: "Hình ảnh được quản lý",
@@ -1348,23 +1367,14 @@ const viCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} đến hạn",
+      toStudy: "{{count}} cần học",
       total: "Tổng {{count}}",
     },
-    emptyStatsAriaLabel: "Thống kê {{deckName}}",
     newDeck: "Bộ thẻ mới",
     statLabels: {
       cards: {
         one: "thẻ",
         other: "thẻ",
-      },
-      new: {
-        one: "mới",
-        other: "mới",
-      },
-      reviewed: {
-        one: "đã ôn",
-        other: "đã ôn",
       },
     },
     subtitle: "Bộ thẻ là bộ lọc thông minh, không phải thư mục chứa. Chúng khớp thẻ theo nhãn.",
@@ -1400,10 +1410,10 @@ const viCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Thẻ",
-      due: "Đến hạn",
       new: "Mới",
       summary: "Tóm tắt",
       title: "Quy tắc bộ thẻ",
+      toStudy: "Cần học",
     },
     subtitle: "Xem quy tắc bộ thẻ, các thẻ phù hợp và điểm bắt đầu ôn tập.",
     subtitles: {

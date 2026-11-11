@@ -20,6 +20,15 @@ const mlCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "ഈ ബ്രൗസറിന് മൈക്രോഫോൺ ഓഡിയോ ഡീകോഡ് ചെയ്യാനായില്ല ({{format}}).",
     recovery: "അതിഥി പ്രവേശനം സ്ഥിരീകരിച്ചിട്ടില്ല. കാഷിലെ കാർഡുകൾ വായിക്കാൻ മാത്രം കഴിയും. പഴയ സെഷനോ കണക്ഷനോ പുനഃസ്ഥാപിച്ച് വീണ്ടും ശ്രമിക്കുക.",
     cleanupFailed: "സൈൻ ഇൻ വിജയിച്ചു, പക്ഷേ ഡെമോ കാർഡ് നീക്കാനായില്ല.",
+    browserCheck: {
+      title: "നിങ്ങളുടെ ബ്രൗസർ പരിശോധിക്കുന്നു",
+      description: "അതിഥി വർക്ക്‌സ്‌പേസ് തുറക്കുന്നതിന് മുമ്പ്, ഇതൊരു സാധാരണ ബ്രൗസറാണെന്ന് Cloudflare ഉറപ്പാക്കുന്നു. സാധാരണയായി കുറച്ച് സെക്കൻഡുകൾ എടുക്കും.",
+      loading: "പരിശോധന ലോഡ് ചെയ്യുന്നു...",
+      verifying: "നിങ്ങളുടെ വർക്ക്‌സ്‌പേസ് തുറക്കുന്നു...",
+      loadFailed: "പരിശോധന ലോഡ് ചെയ്യാനായില്ല. കണക്ഷൻ പരിശോധിക്കുക, ഉള്ളടക്ക ബ്ലോക്കറിൽ challenges.cloudflare.com അനുവദിക്കുക, തുടർന്ന് വീണ്ടും ശ്രമിക്കുക.",
+      failed: "പരിശോധന വിജയിച്ചില്ല. വീണ്ടും ശ്രമിക്കുക, അല്ലെങ്കിൽ സൈൻ ഇൻ ചെയ്യുക.",
+      rejected: "പരിശോധന സ്വീകരിച്ചില്ല. ഒരിക്കൽ കൂടി പൂർത്തിയാക്കുക.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const mlCatalog: TranslationCatalog = {
     loading: "ലോഡ് ചെയ്യുന്നു...",
     never: "ഒരിക്കലുമില്ല",
     newItem: "പുതിയത്",
+    image: "ചിത്രം",
     noBackText: "പിൻവശത്ത് ടെക്സ്റ്റില്ല",
     noTags: "ടാഗുകളില്ല",
     notRevoked: "പിൻവലിച്ചിട്ടില്ല",
@@ -427,8 +437,12 @@ const mlCatalog: TranslationCatalog = {
       offlineEmpty: "ഓഫ്‌ലൈനിൽ തുടർച്ചാ ലീഡർബോർഡ് ലഭ്യമല്ല. റാങ്കുകൾ കാണാൻ വീണ്ടും ബന്ധിപ്പിക്കുക.",
       unavailable: "തുടർച്ചാ ലീഡർബോർഡ് ഇപ്പോൾ ലഭ്യമല്ല. പിന്നീട് പരിശോധിക്കുക.",
       dayLabels: {
-        one: "ദിവസം",
-        other: "ദിവസം",
+        zero: "{{count}} ദിവസം",
+        one: "{{count}} ദിവസം",
+        two: "{{count}} ദിവസം",
+        few: "{{count}} ദിവസം",
+        many: "{{count}} ദിവസം",
+        other: "{{count}} ദിവസം",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const mlCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "സെഷൻ പുനഃസ്ഥാപിക്കുന്നു. അല്പം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.",
     sessionUnavailable: "സെഷൻ ലഭ്യമല്ല",
     syncing: "സമന്വയിപ്പിക്കുന്നു...",
+    syncFailed: "സമന്വയം പരാജയപ്പെട്ടു",
     workspaceUnavailable: "വർക്ക്‌സ്‌പേസ് ലഭ്യമല്ല",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const mlCatalog: TranslationCatalog = {
       yourCards: "നിങ്ങളുടെ കാർഡുകൾ",
       addCards: "കാർഡുകൾ ചേർക്കുക",
     },
-    cards: {
-      description: "ഈ വർക്ക്‌സ്‌പേസിലെ എല്ലാ കാർഡുകളും.",
-    },
-    tags: {
-      description: "കുറഞ്ഞത് ഒരു കാർഡിലെങ്കിലും ഉപയോഗിച്ച എല്ലാ ടാഗുകളും.",
-    },
-    decks: {
-      description: "ശ്രദ്ധയോടെയുള്ള അവലോകനത്തിനായി സേവ് ചെയ്ത കാർഡ് ഫിൽട്ടറുകൾ.",
-    },
     deckCatalog: {
       title: "ഡെക്ക് കാറ്റലോഗ്",
       description: "പഠിക്കാൻ സൗജന്യമായ തയ്യാറായ ഡെക്കുകൾ.",
@@ -860,16 +866,18 @@ const mlCatalog: TranslationCatalog = {
     note: "ഈ ക്രമീകരണങ്ങൾ ഭാവിയിലെ സമയക്രമത്തെ മാത്രമേ ബാധിക്കൂ. കാർഡുകളുടെ നിലവിലെ നില അതേപടി തുടരും.",
   },
   workspaceExport: {
-    title: "എക്സ്പോർട്ട് ചെയ്യുക",
+    title: "Nibomo പാക്കേജ് എക്‌സ്‌പോർട്ട് ചെയ്യുക",
+    ankiTitle: "Anki ഡെക്ക് എക്‌സ്‌പോർട്ട് ചെയ്യുക",
     subtitle: "ഈ വർക്ക്‌സ്‌പേസിനുള്ള പാക്കേജ് ഡൗൺലോഡ് ചെയ്യുക.",
     workspaceUnavailable: "വർക്ക്‌സ്‌പേസ് ലഭ്യമല്ല",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "ഡെക്കിന്റെ പേര്",
+    ankiEmptySelection: "കയറ്റുമതി ചെയ്യാൻ കാർഡുകളൊന്നുമില്ല. തിരഞ്ഞെടുത്ത ടാഗുകൾ മാറ്റുക അല്ലെങ്കിൽ കാർഡുകൾ ചേർക്കുക.",
     packageDescription: "ഡൗൺലോഡ് ചെയ്യുന്നതിന് മുമ്പ് സജീവ കാർഡുകളും മെറ്റാഡാറ്റയും ടാഗുകളും പരാമർശിച്ച മീഡിയയും കാണുക.",
-    packageExportSuccess: "flashcards.zip ഡൗൺലോഡ് തുടങ്ങി.",
+    packageExportSuccess: "{{filename}} ഡൗൺലോഡ് തുടങ്ങി.",
     packageExporting: "ഡൗൺലോഡ് ചെയ്യുന്നു...",
     packagePreviewing: "പ്രിവ്യൂ തയ്യാറാക്കുന്നു...",
     packageExportPreviewButton: "എക്സ്പോർട്ട് പ്രിവ്യൂ കാണുക",
-    packageExportConfirmButton: "flashcards.zip ഡൗൺലോഡ് ചെയ്യുക",
+    packageExportConfirmButton: "{{filename}} ഡൗൺലോഡ് ചെയ്യുക",
     packageExportPreviewRequired: "ഡൗൺലോഡ് ചെയ്യുന്നതിന് മുമ്പ് ഈ എക്സ്പോർട്ട് പ്രിവ്യൂ കാണുക.",
     previewCardsLabel: "കാർഡുകൾ",
     previewReferencedMediaLabel: "പരാമർശിച്ച മീഡിയ",
@@ -1124,6 +1132,10 @@ const mlCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI ചാറ്റിൽ കാർഡ് തുറക്കുക: {{side}}",
     repetitionBadgeAriaLabel: "ആവർത്തനങ്ങൾ: {{value}}",
     repetitionBadgeNew: "പുതിയത്",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "കൂടുതൽ ടാഗുകൾ: {{count}}",
+    },
     empty: {
       noCardsBody: "നിങ്ങൾ ഇതുവരെ കാർഡുകളൊന്നും സൃഷ്ടിച്ചിട്ടില്ല. പഠനം തുടങ്ങാൻ ആദ്യ കാർഡ് ചേർക്കുക.",
       noCardsTitle: "ഇതുവരെ കാർഡുകളില്ല",
@@ -1135,16 +1147,25 @@ const mlCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "സൂത്രവാക്യം പ്രദർശിപ്പിക്കാനായില്ല.",
       schedulerUnavailable: "വർക്ക്‌സ്‌പേസ് സമയക്രമ ക്രമീകരണങ്ങൾ ലോഡ് ചെയ്തിട്ടില്ല",
+      storageFull: "ഈ ഉപകരണത്തിൽ കുറച്ച് സംഭരണ ഇടം ഒഴിവാക്കിയ ശേഷം കാർഡ് വീണ്ടും വിലയിരുത്തുക.",
     },
     leaderboardShortcut: {
       ariaLabel: "ലീഡർബോർഡ് തുറക്കുക",
     },
     progressBadge: {
-      ariaLabel: "അവലോകന തുടർച്ച {{streak}} ദിവസം. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "അവലോകന തുടർച്ച {{streak}} ദിവസം. {{todayStatus}}.",
+      ariaLabel: "അവലോകന തുടർച്ച {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "അവലോകന തുടർച്ച {{streak}}. {{todayStatus}}.",
       freezeBank: "ഫ്രീസ് ബാങ്ക് {{capacity}}-ൽ {{available}}",
       notReviewedToday: "ഇന്ന് അവലോകനം ചെയ്തിട്ടില്ല",
       reviewedToday: "ഇന്ന് അവലോകനം ചെയ്തു",
+      streakDayCount: {
+        zero: "{{count}} ദിവസം",
+        one: "{{count}} ദിവസം",
+        two: "{{count}} ദിവസം",
+        few: "{{count}} ദിവസം",
+        many: "{{count}} ദിവസം",
+        other: "{{count}} ദിവസം",
+      },
       title: "തുടർച്ച",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const mlCatalog: TranslationCatalog = {
       snapshot: "സമീപകാല പ്രാദേശിക സ്നാപ്പ്ഷോട്ട് കാണിക്കുന്നു...",
     },
     media: {
-      privateImage: "സ്വകാര്യ ചിത്രം",
-      privateAttachment: "സ്വകാര്യ അറ്റാച്ച്മെന്റ്",
       attachmentLabel: "അറ്റാച്ച്മെന്റ്",
       audioLabel: "ഓഡിയോ അറ്റാച്ച്മെന്റ്",
       imageAlt: "നിയന്ത്രിത ചിത്രം",
@@ -1348,23 +1367,14 @@ const mlCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "ആവർത്തിക്കേണ്ടത്: {{count}}",
+      toStudy: "പഠിക്കാൻ: {{count}}",
       total: "ആകെ {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} സ്ഥിതിവിവരങ്ങൾ",
     newDeck: "പുതിയ ഡെക്ക്",
     statLabels: {
       cards: {
         one: "കാർഡ്",
         other: "കാർഡുകൾ",
-      },
-      new: {
-        one: "പുതിയത്",
-        other: "പുതിയത്",
-      },
-      reviewed: {
-        one: "അവലോകനം ചെയ്തത്",
-        other: "അവലോകനം ചെയ്തത്",
       },
     },
     subtitle: "ഡെക്കുകൾ സ്മാർട്ട് ഫിൽട്ടറുകളാണ്, പെട്ടികളല്ല. ടാഗുകൾ അനുസരിച്ചാണ് അവ കാർഡുകൾ കണ്ടെത്തുന്നത്.",
@@ -1400,10 +1410,10 @@ const mlCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "കാർഡുകൾ",
-      due: "ആവർത്തിക്കേണ്ടത്",
       new: "പുതിയത്",
       summary: "സംഗ്രഹം",
       title: "ഡെക്ക് നിയമങ്ങൾ",
+      toStudy: "പഠിക്കാൻ",
     },
     subtitle: "ഡെക്ക് നിയമങ്ങളും പൊരുത്തപ്പെടുന്ന കാർഡുകളും അവലോകനത്തിലേക്കുള്ള പ്രവേശനവും പരിശോധിക്കുക.",
     subtitles: {

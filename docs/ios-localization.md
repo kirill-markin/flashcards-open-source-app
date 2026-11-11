@@ -50,7 +50,7 @@ do not fill missing copy with silent English defaults.
    (Review and Cards copy).
 6. Create `apps/ios/Flashcards/Flashcards/<locale>.lproj/AISettings.strings` with
    every key resolved through
-   [`aiSettingsLocalized`](../apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift),
+   [`aiSettingsLocalized`](../apps/ios/Flashcards/Flashcards/AISettingsLocalizationTable.swift),
    using an existing complete locale as the reference shape.
 7. Add the language to `supportedLanguageSettingsItems()` in
    [LanguageSettingsView.swift](../apps/ios/Flashcards/Flashcards/Settings/LanguageSettingsView.swift),

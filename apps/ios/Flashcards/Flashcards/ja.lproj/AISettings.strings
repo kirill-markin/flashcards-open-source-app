@@ -662,7 +662,6 @@
 "settings.workspace.overview.saveName" = "保存名";
 "settings.workspace.overview.workspace" = "ワークスペース";
 "settings.workspace.overview.cards" = "カード";
-"settings.workspace.overview.due" = "期限";
 "settings.workspace.overview.new" = "新しい";
 "settings.workspace.overview.deleteDescription" = "このワークスペースと、そこに含まれるすべてのカード、デッキ、レビュー、同期履歴を完全に削除します。";
 "settings.workspace.overview.deleteWorkspace" = "ワークスペースを削除";
@@ -823,10 +822,8 @@
 "settings.workspace.decks.noMatching" = "一致するデッキがありません";
 "settings.workspace.decks.searchPrompt" = "デッキを検索";
 "settings.workspace.decks.newDeck" = "新しいデッキ";
-"settings.workspace.decks.dueCount" = "%d 件期限";
-"settings.workspace.decks.totalCards" = "%d カード";
-"settings.workspace.decks.newCount" = "%d 新しい";
-"settings.workspace.decks.reviewedCount" = "%d レビュー済み";
+"settings.workspace.decks.toStudyCount" = "学習対象 %d枚";
+"settings.workspace.decks.toStudy" = "学習対象";
 "settings.workspace.decks.emptyAllCards" = "まだカードを作成していません。";
 "settings.workspace.decks.emptyDeck" = "このデッキには一致するカードがまだありません。";
 "settings.workspace.decks.section.deckRules" = "デッキルール";

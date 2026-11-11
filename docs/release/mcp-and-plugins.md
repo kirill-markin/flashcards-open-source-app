@@ -55,8 +55,8 @@ a directory button based only on a submission or approval.
 
 ## MCP
 
-The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json)
-and registry validation; core owns the credential-reading publisher. During
+The companion repository owns [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json).
+Core owns the validator and credential-reading publisher. During
 [release preparation](versioning.md#release-preparation),
 align its manifest and plugin versions with the selected core release version.
 Require successful [MCP Registry Validate](https://github.com/kirill-markin/nibomo-plugins/actions/workflows/mcp-registry-validate.yml)
@@ -113,9 +113,10 @@ Follow the [canonical procedure and credential setup](../plugin-publishing.md#ex
    including **Executor typecheck**, and applicable focused workflow checks.
    Publish its prepared stable companion Release before the coordinated core
    `vX.Y.Z` GitHub Release. The latter triggers core **Executor Publish**
-   (`.github/workflows/executor-publish.yml`, `release.published`), which uploads
-   the matching immutable companion tag's exact source using core's reviewed
-   publisher. Development pushes and Mac-only Releases never publish Executor.
+   (`.github/workflows/executor-publish.yml`, `release.published`), which resolves
+   the exact Executor source from the matching immutable companion tag using the
+   [canonical source selection](../plugin-publishing.md#executor).
+   Development pushes and Mac-only Releases never publish Executor.
 2. Inspect the workflow result. To retry an existing stable release after
    resolving a failure, dispatch **Executor Publish** from core `main` with
    `release_tag=vX.Y.Z`, selecting the intended immutable companion tag. Manual
@@ -123,9 +124,10 @@ Follow the [canonical procedure and credential setup](../plugin-publishing.md#ex
    Releases. Follow the canonical procedure for the command and diagnosis;
    retrying an older release intentionally republishes its source.
 3. Retain the Actions summary in the [release ledger](evidence.md#release-ledger):
-   release/tag and publisher SHAs, exact-source cloud run, Executor source
-   commit, deployment ID/commit, accepted publication, and immediate anonymous
-   listing/source observation. Keep these identities and outcomes separate.
+   companion release, core publisher and selected Executor Git source SHAs,
+   exact-source cloud run, Executor source commit, deployment ID/commit,
+   accepted publication, and immediate anonymous listing/source observation.
+   Keep these identities and outcomes separate.
    After required checks pass, accepted publication or a verified **no update
    needed** result completes operator work. External propagation remains
    follow-up. Existing installed copies do not update automatically; record

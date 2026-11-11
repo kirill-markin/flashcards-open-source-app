@@ -20,6 +20,15 @@ export const ruCatalog = {
     aiRecordingDecodeFailed: "Браузер не смог декодировать звук микрофона ({{format}}).",
     recovery: "Гостевой доступ не подтверждён. Сохранённые карточки доступны только для чтения. Восстановите исходную сессию или подключение и повторите попытку.",
     cleanupFailed: "Вход выполнен, но удалить демо-карточку не удалось.",
+    browserCheck: {
+      title: "Проверяем ваш браузер",
+      description: "Перед открытием гостевого пространства Cloudflare проверяет, что это обычный браузер. Обычно это занимает несколько секунд.",
+      loading: "Загружаем проверку...",
+      verifying: "Открываем ваше пространство...",
+      loadFailed: "Не удалось загрузить проверку. Проверьте подключение, разрешите challenges.cloudflare.com в блокировщике контента и повторите попытку.",
+      failed: "Проверка не пройдена. Повторите попытку или войдите в аккаунт.",
+      rejected: "Проверка не принята. Пройдите её ещё раз.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -134,6 +143,7 @@ export const ruCatalog = {
     loading: "Загрузка...",
     never: "Никогда",
     newItem: "новая",
+    image: "Изображение",
     noBackText: "Нет текста на обратной стороне",
     noTags: "Нет тегов",
     notRevoked: "Не отозвано",
@@ -434,9 +444,12 @@ export const ruCatalog = {
       offlineEmpty: "Таблица лидеров по серии недоступна офлайн. Подключитесь к сети, чтобы увидеть рейтинг.",
       unavailable: "Таблица лидеров по серии сейчас недоступна. Загляните позже.",
       dayLabels: {
-        one: "день",
-        few: "дня",
-        other: "дней",
+        zero: "{{count}} дней",
+        one: "{{count}} день",
+        two: "{{count}} дней",
+        few: "{{count}} дня",
+        many: "{{count}} дней",
+        other: "{{count}} дней",
       },
     },
     labels: {
@@ -517,6 +530,7 @@ export const ruCatalog = {
     sessionRestoringActionLocked: "Сессия восстанавливается. Попробуйте еще раз через минуту.",
     sessionUnavailable: "Сессия недоступна",
     syncing: "Синхронизация...",
+    syncFailed: "Синхронизация не удалась",
     workspaceUnavailable: "Рабочее пространство недоступно",
   },
   accountMenu: {
@@ -774,15 +788,6 @@ export const ruCatalog = {
       yourCards: "Ваши карточки",
       addCards: "Добавить карточки",
     },
-    cards: {
-      description: "Все карточки в этом рабочем пространстве.",
-    },
-    tags: {
-      description: "Все теги, которые есть хотя бы на одной карточке.",
-    },
-    decks: {
-      description: "Сохранённые фильтры карточек для целенаправленного повторения.",
-    },
     deckCatalog: {
       title: "Каталог колод",
       description: "Бесплатные готовые колоды для изучения.",
@@ -869,16 +874,18 @@ export const ruCatalog = {
     note: "Эти настройки влияют только на будущие планирования. Текущее состояние карточек остается источником истины.",
   },
   workspaceExport: {
-    title: "Экспорт",
+    title: "Экспортировать пакет Nibomo",
+    ankiTitle: "Экспортировать колоду Anki",
     subtitle: "Скачайте переносимый пакет для этого рабочего пространства.",
     workspaceUnavailable: "Рабочее пространство недоступно",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Название колоды",
+    ankiEmptySelection: "Нет карточек для экспорта. Измените выбранные теги или добавьте карточки.",
     packageDescription: "Просмотрите активные карточки, метаданные, теги и связанные медиа перед скачиванием.",
-    packageExportSuccess: "Загрузка flashcards.zip началась.",
+    packageExportSuccess: "Загрузка {{filename}} началась.",
     packageExporting: "Скачивание...",
     packagePreviewing: "Предпросмотр...",
     packageExportPreviewButton: "Предпросмотр экспорта",
-    packageExportConfirmButton: "Скачать flashcards.zip",
+    packageExportConfirmButton: "Скачать {{filename}}",
     packageExportPreviewRequired: "Сначала откройте предпросмотр экспорта.",
     previewCardsLabel: "Карточки",
     previewReferencedMediaLabel: "Связанные медиа",
@@ -1134,6 +1141,10 @@ export const ruCatalog = {
     aiOpenAriaLabel: "Открыть {{side}} карточки в AI-чате",
     repetitionBadgeAriaLabel: "Повторы: {{value}}",
     repetitionBadgeNew: "Новая",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Ещё теги: {{count}}",
+    },
     empty: {
       noCardsBody: "Вы еще не создали ни одной карточки. Добавьте первую карточку, чтобы начать учиться.",
       noCardsTitle: "Карточек пока нет",
@@ -1145,16 +1156,25 @@ export const ruCatalog = {
     errors: {
       mathRenderFailed: "Не удалось отобразить формулу.",
       schedulerUnavailable: "Настройки планировщика рабочего пространства не загружены",
+      storageFull: "Освободите место на этом устройстве, затем снова оцените карточку.",
     },
     leaderboardShortcut: {
       ariaLabel: "Открыть таблицу лидеров",
     },
     progressBadge: {
-      ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}.",
+      ariaLabel: "Серия повторений: {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Серия повторений: {{streak}}. {{todayStatus}}.",
       freezeBank: "Запас заморозок {{available}} из {{capacity}}",
       notReviewedToday: "Сегодня ещё не повторяли",
       reviewedToday: "Сегодня уже повторяли",
+      streakDayCount: {
+        zero: "{{count}} дней",
+        one: "{{count}} день",
+        two: "{{count}} дней",
+        few: "{{count}} дня",
+        many: "{{count}} дней",
+        other: "{{count}} дней",
+      },
       title: "Серия",
     },
     interval: {
@@ -1168,8 +1188,6 @@ export const ruCatalog = {
       snapshot: "Показываем недавний локальный снимок...",
     },
     media: {
-      privateImage: "Приватное изображение",
-      privateAttachment: "Приватное вложение",
       attachmentLabel: "Вложение",
       audioLabel: "Аудиовложение",
       imageAlt: "Управляемое изображение",
@@ -1358,26 +1376,15 @@ export const ruCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} к повторению",
+      toStudy: "{{count}} к изучению",
       total: "{{count}} всего",
     },
-    emptyStatsAriaLabel: "Статистика {{deckName}}",
     newDeck: "Новая колода",
     statLabels: {
       cards: {
         one: "карточка",
         few: "карточки",
         other: "карточек",
-      },
-      new: {
-        one: "новая",
-        few: "новые",
-        other: "новых",
-      },
-      reviewed: {
-        one: "повторенная",
-        few: "повторенные",
-        other: "повторенных",
       },
     },
     subtitle: "Колоды — это умные фильтры, а не контейнеры. Они подбирают карточки по тегам.",
@@ -1413,10 +1420,10 @@ export const ruCatalog = {
     },
     rules: {
       cards: "Карточки",
-      due: "К повторению",
       new: "Новые",
       summary: "Сводка",
       title: "Правила колоды",
+      toStudy: "К изучению",
     },
     subtitle: "Просмотрите правила колоды, подходящие карточки и точку входа в повторение.",
     subtitles: {

@@ -29,6 +29,7 @@ const {
   previewWorkspacePackageExportMock: vi.fn<(
     workspaceId: string,
     request: WorkspacePackageExportRequest,
+    signal: AbortSignal,
   ) => Promise<WorkspacePackageExportPreviewResponse>>(),
   useAppDataMock: vi.fn<() => AppDataContextValue>(),
 }));
@@ -177,6 +178,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     loadWorkspaceResetProgressPreview: vi.fn(async (_workspaceId: string): Promise<WorkspaceResetProgressPreview> => throwNotUsed("loadWorkspaceResetProgressPreview")),
     resetWorkspaceProgress: vi.fn(async (_workspaceId: string, _confirmationText: string): Promise<ResetWorkspaceProgressResponse> => throwNotUsed("resetWorkspaceProgress")),
     runSync: vi.fn(async (): Promise<void> => undefined),
+    requireActiveWorkspaceSync: vi.fn(async (): Promise<void> => undefined),
     runMediaUploadTransfers: vi.fn(),
     refreshLocalData: vi.fn(async (): Promise<void> => undefined),
     getCardById: vi.fn(async (_cardId: string): Promise<Card> => throwNotUsed("getCardById")),
@@ -361,7 +363,7 @@ describe("WorkspaceExportScreen package export", () => {
         createdAt: null,
         sourceUrl: null,
       },
-    });
+    }, expect.any(AbortSignal));
     expect(requireElement("[data-testid='workspace-package-export-preview-card-count']", HTMLElement).textContent).toBe("3");
     expect(requireElement("[data-testid='workspace-package-export-preview-referenced-media-count']", HTMLElement).textContent).toBe("2");
     expect(requireElement("[data-testid='workspace-package-export-preview-referenced-media-bytes']", HTMLElement).textContent).toBe("1.5 KB");

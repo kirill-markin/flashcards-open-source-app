@@ -20,6 +20,15 @@ const elCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "Αυτό το πρόγραμμα περιήγησης δεν μπόρεσε να αποκωδικοποιήσει τον ήχο του μικροφώνου ({{format}}).",
     recovery: "Η πρόσβαση επισκέπτη δεν έχει επαληθευτεί. Οι κάρτες στην προσωρινή μνήμη είναι μόνο για ανάγνωση. Επαναφέρετε την αρχική συνεδρία ή τη σύνδεση και δοκιμάστε ξανά.",
     cleanupFailed: "Η σύνδεση έγινε, αλλά η κάρτα επίδειξης δεν μπόρεσε να διαγραφεί.",
+    browserCheck: {
+      title: "Έλεγχος του προγράμματος περιήγησης",
+      description: "Πριν ανοίξει ο χώρος εργασίας επισκέπτη, το Cloudflare επιβεβαιώνει ότι πρόκειται για κανονικό πρόγραμμα περιήγησης. Συνήθως διαρκεί λίγα δευτερόλεπτα.",
+      loading: "Φόρτωση ελέγχου...",
+      verifying: "Άνοιγμα του χώρου εργασίας σας...",
+      loadFailed: "Δεν ήταν δυνατή η φόρτωση του ελέγχου. Ελέγξτε τη σύνδεσή σας, επιτρέψτε το challenges.cloudflare.com σε τυχόν αποκλεισμό περιεχομένου και δοκιμάστε ξανά.",
+      failed: "Ο έλεγχος δεν ολοκληρώθηκε επιτυχώς. Δοκιμάστε ξανά ή συνδεθείτε.",
+      rejected: "Ο έλεγχος δεν έγινε δεκτός. Ολοκληρώστε τον ακόμη μία φορά.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const elCatalog: TranslationCatalog = {
     loading: "Φόρτωση...",
     never: "Ποτέ",
     newItem: "νέα",
+    image: "Εικόνα",
     noBackText: "Χωρίς κείμενο πίσω πλευράς",
     noTags: "Χωρίς ετικέτες",
     notRevoked: "Δεν έχει ανακληθεί",
@@ -427,8 +437,12 @@ const elCatalog: TranslationCatalog = {
       offlineEmpty: "Η κατάταξη σερί δεν είναι διαθέσιμη εκτός σύνδεσης. Συνδεθείτε στο διαδίκτυο για να δείτε τις θέσεις.",
       unavailable: "Η κατάταξη σερί δεν είναι διαθέσιμη αυτή τη στιγμή. Ελέγξτε ξανά αργότερα.",
       dayLabels: {
-        one: "ημέρα",
-        other: "ημέρες",
+        zero: "{{count}} ημέρες",
+        one: "{{count}} ημέρα",
+        two: "{{count}} ημέρες",
+        few: "{{count}} ημέρες",
+        many: "{{count}} ημέρες",
+        other: "{{count}} ημέρες",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const elCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "Γίνεται επαναφορά συνεδρίας. Δοκιμάστε ξανά σε λίγο.",
     sessionUnavailable: "Η συνεδρία δεν είναι διαθέσιμη",
     syncing: "Συγχρονισμός...",
+    syncFailed: "Ο συγχρονισμός απέτυχε",
     workspaceUnavailable: "Ο χώρος εργασίας δεν είναι διαθέσιμος",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const elCatalog: TranslationCatalog = {
       yourCards: "Οι κάρτες σας",
       addCards: "Προσθήκη καρτών",
     },
-    cards: {
-      description: "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας.",
-    },
-    tags: {
-      description: "Όλες οι ετικέτες που χρησιμοποιούνται σε τουλάχιστον μία κάρτα.",
-    },
-    decks: {
-      description: "Αποθηκευμένα φίλτρα καρτών για στοχευμένη επανάληψη.",
-    },
     deckCatalog: {
       title: "Κατάλογος δεσμών",
       description: "Δωρεάν έτοιμες δέσμες για μελέτη.",
@@ -860,16 +866,18 @@ const elCatalog: TranslationCatalog = {
     note: "Αυτές οι ρυθμίσεις επηρεάζουν μόνο τον μελλοντικό προγραμματισμό. Η υπάρχουσα κατάσταση των καρτών παραμένει η έγκυρη.",
   },
   workspaceExport: {
-    title: "Εξαγωγή",
+    title: "Εξαγωγή πακέτου Nibomo",
+    ankiTitle: "Εξαγωγή τράπουλας Anki",
     subtitle: "Κατεβάστε ένα φορητό πακέτο για αυτόν τον χώρο εργασίας.",
     workspaceUnavailable: "Ο χώρος εργασίας δεν είναι διαθέσιμος",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "Όνομα τράπουλας",
+    ankiEmptySelection: "Δεν υπάρχουν κάρτες για εξαγωγή. Αλλάξτε τις επιλεγμένες ετικέτες ή προσθέστε κάρτες.",
     packageDescription: "Δείτε τις ενεργές κάρτες, τα μεταδεδομένα, τις ετικέτες και τα πολυμέσα πριν από τη λήψη.",
-    packageExportSuccess: "Η λήψη του flashcards.zip ξεκίνησε.",
+    packageExportSuccess: "Η λήψη του {{filename}} ξεκίνησε.",
     packageExporting: "Λήψη...",
     packagePreviewing: "Προεπισκόπηση...",
     packageExportPreviewButton: "Προεπισκόπηση εξαγωγής",
-    packageExportConfirmButton: "Λήψη flashcards.zip",
+    packageExportConfirmButton: "Λήψη {{filename}}",
     packageExportPreviewRequired: "Κάντε προεπισκόπηση αυτής της εξαγωγής πριν από τη λήψη.",
     previewCardsLabel: "Κάρτες",
     previewReferencedMediaLabel: "Πολυμέσα με αναφορά",
@@ -1124,6 +1132,10 @@ const elCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Άνοιγμα της κάρτας στη συνομιλία ΤΝ ({{side}})",
     repetitionBadgeAriaLabel: "Επαναλήψεις: {{value}}",
     repetitionBadgeNew: "Νέα",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "Περισσότερες ετικέτες: {{count}}",
+    },
     empty: {
       noCardsBody: "Δεν έχετε δημιουργήσει κάρτες ακόμα. Προσθέστε την πρώτη σας κάρτα για να ξεκινήσετε τη μελέτη.",
       noCardsTitle: "Δεν υπάρχουν κάρτες ακόμα",
@@ -1135,16 +1147,25 @@ const elCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "Δεν ήταν δυνατή η απόδοση του τύπου.",
       schedulerUnavailable: "Οι ρυθμίσεις προγραμματιστή του χώρου εργασίας δεν έχουν φορτωθεί",
+      storageFull: "Ελευθερώστε χώρο αποθήκευσης σε αυτή τη συσκευή και βαθμολογήστε ξανά την κάρτα.",
     },
     leaderboardShortcut: {
       ariaLabel: "Άνοιγμα κατάταξης",
     },
     progressBadge: {
-      ariaLabel: "Σερί επαναλήψεων {{streak}} ημέρες. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "Σερί επαναλήψεων {{streak}} ημέρες. {{todayStatus}}.",
+      ariaLabel: "Σερί επαναλήψεων {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "Σερί επαναλήψεων {{streak}}. {{todayStatus}}.",
       freezeBank: "Απόθεμα παγωμάτων {{available}} από {{capacity}}",
       notReviewedToday: "Δεν έγινε επανάληψη σήμερα",
       reviewedToday: "Έγινε επανάληψη σήμερα",
+      streakDayCount: {
+        zero: "{{count}} ημέρες",
+        one: "{{count}} ημέρα",
+        two: "{{count}} ημέρες",
+        few: "{{count}} ημέρες",
+        many: "{{count}} ημέρες",
+        other: "{{count}} ημέρες",
+      },
       title: "Σερί",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const elCatalog: TranslationCatalog = {
       snapshot: "Εμφανίζεται ένα πρόσφατο τοπικό στιγμιότυπο...",
     },
     media: {
-      privateImage: "Ιδιωτική εικόνα",
-      privateAttachment: "Ιδιωτικό συνημμένο",
       attachmentLabel: "Συνημμένο",
       audioLabel: "Συνημμένο ήχου",
       imageAlt: "Διαχειριζόμενη εικόνα",
@@ -1348,23 +1367,14 @@ const elCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} προς επανάληψη",
+      toStudy: "{{count}} για μελέτη",
       total: "{{count}} συνολικά",
     },
-    emptyStatsAriaLabel: "Στατιστικά της δέσμης {{deckName}}",
     newDeck: "Νέα δέσμη",
     statLabels: {
       cards: {
         one: "κάρτα",
         other: "κάρτες",
-      },
-      new: {
-        one: "νέα",
-        other: "νέες",
-      },
-      reviewed: {
-        one: "με επανάληψη",
-        other: "με επανάληψη",
       },
     },
     subtitle: "Οι δέσμες είναι έξυπνα φίλτρα, όχι φάκελοι. Αντιστοιχίζουν κάρτες μέσω ετικετών.",
@@ -1400,10 +1410,10 @@ const elCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "Κάρτες",
-      due: "Προς επανάληψη",
       new: "Νέες",
       summary: "Σύνοψη",
       title: "Κανόνες δέσμης",
+      toStudy: "Για μελέτη",
     },
     subtitle: "Δείτε τους κανόνες της δέσμης, τις αντίστοιχες κάρτες και το σημείο εισόδου στην επανάληψη.",
     subtitles: {

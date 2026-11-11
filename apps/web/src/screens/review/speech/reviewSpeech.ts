@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { replaceMarkdownImagesWithAltText } from "../../../components/cardPreviewMarkdown";
 import type { Locale } from "../../../i18n/types";
 import { classifyReviewContentPresentation } from "../components/card/reviewContentPresentation";
 import {
@@ -122,7 +123,7 @@ function resolveDetectedLanguageTag(detectedLanguageTag: string, fallbackLanguag
 }
 
 function normalizeSpeakableInlineText(text: string): string {
-  return text
+  return replaceMarkdownImagesWithAltText(text, "")
     .replaceAll("`", "")
     .replaceAll("|", " ")
     .replace(/\s+/g, " ")

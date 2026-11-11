@@ -20,6 +20,15 @@ const urCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "یہ براؤزر مائیکروفون آڈیو کو ڈی کوڈ نہیں کر سکا ({{format}})۔",
     recovery: "مہمان رسائی کی تصدیق نہیں ہوئی۔ کیش شدہ کارڈ صرف پڑھے جا سکتے ہیں۔ اصل سیشن یا کنکشن بحال کر کے دوبارہ کوشش کریں۔",
     cleanupFailed: "سائن ان کامیاب رہا، لیکن ڈیمو کارڈ ہٹایا نہیں جا سکا۔",
+    browserCheck: {
+      title: "آپ کے براؤزر کی جانچ ہو رہی ہے",
+      description: "مہمان ورک اسپیس کھلنے سے پہلے Cloudflare تصدیق کرتا ہے کہ یہ ایک عام براؤزر ہے۔ عموماً اس میں چند سیکنڈ لگتے ہیں۔",
+      loading: "جانچ لوڈ ہو رہی ہے...",
+      verifying: "آپ کی ورک اسپیس کھل رہی ہے...",
+      loadFailed: "جانچ لوڈ نہیں ہو سکی۔ اپنا کنکشن دیکھیں، مواد بلاکر میں challenges.cloudflare.com کی اجازت دیں، پھر دوبارہ کوشش کریں۔",
+      failed: "جانچ کامیاب نہیں ہوئی۔ دوبارہ کوشش کریں یا سائن ان کریں۔",
+      rejected: "جانچ قبول نہیں ہوئی۔ اسے ایک بار پھر مکمل کریں۔",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const urCatalog: TranslationCatalog = {
     loading: "لوڈ ہو رہا ہے...",
     never: "کبھی نہیں",
     newItem: "نیا",
+    image: "تصویر",
     noBackText: "پچھلے رخ پر کوئی متن نہیں",
     noTags: "کوئی ٹیگ نہیں",
     notRevoked: "منسوخ نہیں",
@@ -427,8 +437,12 @@ const urCatalog: TranslationCatalog = {
       offlineEmpty: "تسلسل کی درجہ بندی آف لائن دستیاب نہیں ہے۔ رتبے دیکھنے کے لیے دوبارہ جڑیں۔",
       unavailable: "تسلسل کی درجہ بندی ابھی دستیاب نہیں ہے۔ بعد میں دوبارہ دیکھیں۔",
       dayLabels: {
-        one: "دن",
-        other: "دن",
+        zero: "{{count}} دن",
+        one: "{{count}} دن",
+        two: "{{count}} دن",
+        few: "{{count}} دن",
+        many: "{{count}} دن",
+        other: "{{count}} دن",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const urCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "سیشن بحال ہو رہا ہے۔ تھوڑی دیر بعد دوبارہ کوشش کریں۔",
     sessionUnavailable: "سیشن دستیاب نہیں ہے",
     syncing: "ہم وقت سازی ہو رہی ہے...",
+    syncFailed: "ہم وقت سازی ناکام",
     workspaceUnavailable: "ورک اسپیس دستیاب نہیں",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const urCatalog: TranslationCatalog = {
       yourCards: "آپ کے کارڈز",
       addCards: "کارڈز شامل کریں",
     },
-    cards: {
-      description: "اس ورک اسپیس کے تمام کارڈز۔",
-    },
-    tags: {
-      description: "کم از کم ایک کارڈ پر استعمال ہونے والے تمام ٹیگز۔",
-    },
-    decks: {
-      description: "مرکوز دہرائی کے لیے محفوظ کیے گئے کارڈ فلٹرز۔",
-    },
     deckCatalog: {
       title: "ڈیک کیٹلاگ",
       description: "مطالعے کے لیے مفت تیار ڈیکس۔",
@@ -860,16 +866,18 @@ const urCatalog: TranslationCatalog = {
     note: "یہ ترتیبات صرف آئندہ شیڈولنگ پر اثر ڈالتی ہیں۔ کارڈ کی موجودہ حالت ہی معتبر رہتی ہے۔",
   },
   workspaceExport: {
-    title: "برآمد",
+    title: "Nibomo پیکیج ایکسپورٹ کریں",
+    ankiTitle: "Anki ڈیک ایکسپورٹ کریں",
     subtitle: "اس ورک اسپیس کے لیے قابلِ منتقلی پیکیج ڈاؤن لوڈ کریں۔",
     workspaceUnavailable: "ورک اسپیس دستیاب نہیں ہے",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "ڈیک کا نام",
+    ankiEmptySelection: "برآمد کرنے کے لیے کوئی کارڈ نہیں ہے۔ منتخب ٹیگز تبدیل کریں یا کارڈ شامل کریں۔",
     packageDescription: "ڈاؤن لوڈ سے پہلے سرگرم کارڈز، میٹا ڈیٹا، ٹیگز اور حوالہ شدہ میڈیا دیکھیں۔",
-    packageExportSuccess: "flashcards.zip کی ڈاؤن لوڈ شروع ہو گئی۔",
+    packageExportSuccess: "{{filename}} کی ڈاؤن لوڈ شروع ہو گئی۔",
     packageExporting: "ڈاؤن لوڈ ہو رہی ہے...",
     packagePreviewing: "پیش منظر بن رہا ہے...",
     packageExportPreviewButton: "برآمد کا پیش منظر",
-    packageExportConfirmButton: "flashcards.zip ڈاؤن لوڈ کریں",
+    packageExportConfirmButton: "{{filename}} ڈاؤن لوڈ کریں",
     packageExportPreviewRequired: "ڈاؤن لوڈ سے پہلے اس برآمد کا پیش منظر دیکھیں۔",
     previewCardsLabel: "کارڈز",
     previewReferencedMediaLabel: "حوالہ شدہ میڈیا",
@@ -1124,6 +1132,10 @@ const urCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI چیٹ میں کارڈ کھولیں: {{side}}",
     repetitionBadgeAriaLabel: "تکرار: {{value}}",
     repetitionBadgeNew: "نیا",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "مزید ٹیگز: {{count}}",
+    },
     empty: {
       noCardsBody: "آپ نے ابھی کوئی کارڈ نہیں بنایا۔ مطالعہ شروع کرنے کے لیے اپنا پہلا کارڈ شامل کریں۔",
       noCardsTitle: "ابھی کوئی کارڈ نہیں",
@@ -1135,16 +1147,25 @@ const urCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "فارمولا دکھایا نہیں جا سکا۔",
       schedulerUnavailable: "ورک اسپیس کے شیڈولر کی ترتیبات لوڈ نہیں ہوئیں",
+      storageFull: "اس ڈیوائس پر کچھ ذخیرہ کرنے کی جگہ خالی کریں، پھر کارڈ کو دوبارہ ریٹ کریں۔",
     },
     leaderboardShortcut: {
       ariaLabel: "درجہ بندی کھولیں",
     },
     progressBadge: {
-      ariaLabel: "دہرائی کا تسلسل {{streak}} دن۔ {{todayStatus}}۔ {{freezeBank}}۔",
-      reviewAriaLabel: "دہرائی کا تسلسل {{streak}} دن۔ {{todayStatus}}۔",
+      ariaLabel: "دہرائی کا تسلسل {{streak}}۔ {{todayStatus}}۔ {{freezeBank}}۔",
+      reviewAriaLabel: "دہرائی کا تسلسل {{streak}}۔ {{todayStatus}}۔",
       freezeBank: "فریز بینک {{capacity}} میں سے {{available}}",
       notReviewedToday: "آج دہرائی نہیں کی",
       reviewedToday: "آج دہرائی کی",
+      streakDayCount: {
+        zero: "{{count}} دن",
+        one: "{{count}} دن",
+        two: "{{count}} دن",
+        few: "{{count}} دن",
+        many: "{{count}} دن",
+        other: "{{count}} دن",
+      },
       title: "تسلسل",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const urCatalog: TranslationCatalog = {
       snapshot: "حالیہ مقامی اسنیپ شاٹ دکھایا جا رہا ہے...",
     },
     media: {
-      privateImage: "نجی تصویر",
-      privateAttachment: "نجی منسلکہ",
       attachmentLabel: "منسلکہ",
       audioLabel: "آڈیو منسلکہ",
       imageAlt: "منظم تصویر",
@@ -1348,23 +1367,14 @@ const urCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "{{count}} واجب",
+      toStudy: "{{count}} مطالعے کے لیے",
       total: "{{count}} کل",
     },
-    emptyStatsAriaLabel: "{{deckName}} کے اعداد و شمار",
     newDeck: "نیا ڈیک",
     statLabels: {
       cards: {
         one: "کارڈ",
         other: "کارڈز",
-      },
-      new: {
-        one: "نیا",
-        other: "نئے",
-      },
-      reviewed: {
-        one: "دہرایا گیا",
-        other: "دہرائے گئے",
       },
     },
     subtitle: "ڈیکس اسمارٹ فلٹر ہیں، ڈبے نہیں۔ وہ ٹیگز کے ذریعے کارڈز سے مماثل ہوتے ہیں۔",
@@ -1400,10 +1410,10 @@ const urCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "کارڈز",
-      due: "واجب",
       new: "نئے",
       summary: "خلاصہ",
       title: "ڈیک کے قواعد",
+      toStudy: "مطالعے کے لیے",
     },
     subtitle: "ڈیک کے قواعد، مماثل کارڈز اور دہرائی کا داخلی راستہ دیکھیں۔",
     subtitles: {

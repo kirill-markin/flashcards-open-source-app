@@ -78,6 +78,10 @@ fun DecksRoute(
                 .imePadding()
         ) {
             item {
+                DeckExplainerCard(body = stringResource(R.string.settings_decks_explainer_body))
+            }
+
+            item {
                 OutlinedTextField(
                     value = uiState.searchQuery,
                     onValueChange = onSearchQueryChange,

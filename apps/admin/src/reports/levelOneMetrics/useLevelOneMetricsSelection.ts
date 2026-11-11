@@ -3,11 +3,14 @@ import type { AdminAppConfig } from "../../config";
 import type {
   AnalyticsDateRange,
   AnalyticsFilterState,
+  AppStoreProductPageFilterState,
   SiteVisitorFilterState,
 } from "../../filters/analyticsFilters";
 import {
   areStringListsEqual,
+  normalizeAppStoreProductPageFilterState,
   normalizeAppVersions,
+  normalizeEventDeviceTypes,
   normalizeEventPlatforms,
   normalizeSiteVisitorFilterState,
 } from "../../filters/analyticsFiltersUrl";
@@ -44,6 +47,7 @@ export type LevelOneMetricsSelectionState = Readonly<{
   dateRangeError: string;
   applyFilters: (nextFilters: AnalyticsFilterState) => boolean;
   setPeriod: (period: ReportPeriod) => void;
+  setAppStoreListing: (listing: string) => void;
   retryRangeLoad: () => void;
 }>;
 
@@ -83,6 +87,12 @@ function isSameSiteFilters(left: SiteVisitorFilterState, right: SiteVisitorFilte
     && areStringListsEqual(left.sitePageKinds, right.sitePageKinds);
 }
 
+function isSameAppStoreFilters(left: AppStoreProductPageFilterState, right: AppStoreProductPageFilterState): boolean {
+  return areStringListsEqual(left.appStoreTerritories, right.appStoreTerritories)
+    && areStringListsEqual(left.appStoreDevices, right.appStoreDevices)
+    && areStringListsEqual(left.appStoreSourceTypes, right.appStoreSourceTypes);
+}
+
 function validateRequestedRange(
   range: AnalyticsDateRange,
   availableRange: AnalyticsDateRange,
@@ -103,7 +113,7 @@ function validateRequestedRange(
 }
 
 /**
- * The date range, platforms, app versions, site filters and Group by every Level 1 page shares. It is read from the URL at once, reconciled
+ * The date range, platforms, device classes, app versions, site and App Store filters, App Store listing and Group by every Level 1 page shares. It is read from the URL at once, reconciled
  * with the available range when the lookup returns, and from then on written back with
  * `replaceState`, so Back leaves the page instead of stepping through every change.
  */
@@ -172,7 +182,7 @@ export function useLevelOneMetricsSelection(
 
   const selectedDateRange = selection.dateRange;
 
-  // Only a new range is judged against the available range, so a platform, version or site filter
+  // Only a new range is judged against the available range, so a platform, device, version, site or App Store filter
   // applies before the lookup returns too.
   const applyFilters = useCallback((nextFilters: AnalyticsFilterState): boolean => {
     if (isSameDateRange(nextFilters.dateRange, selectedDateRange) === false) {
@@ -189,8 +199,10 @@ export function useLevelOneMetricsSelection(
 
     setDateRangeError("");
     const eventPlatforms = normalizeEventPlatforms(nextFilters.eventPlatforms);
+    const eventDeviceTypes = normalizeEventDeviceTypes(nextFilters.eventDeviceTypes);
     const appVersions = normalizeAppVersions(nextFilters.appVersions);
     const siteFilters = normalizeSiteVisitorFilterState(nextFilters);
+    const appStoreFilters = normalizeAppStoreProductPageFilterState(nextFilters);
     // An unchanged filter keeps its object, so the charts it cannot change do not reload.
     setSelection((currentSelection) => ({
       ...currentSelection,
@@ -198,18 +210,28 @@ export function useLevelOneMetricsSelection(
       eventPlatforms: areStringListsEqual(currentSelection.eventPlatforms, eventPlatforms)
         ? currentSelection.eventPlatforms
         : eventPlatforms,
+      eventDeviceTypes: areStringListsEqual(currentSelection.eventDeviceTypes, eventDeviceTypes)
+        ? currentSelection.eventDeviceTypes
+        : eventDeviceTypes,
       appVersions: areStringListsEqual(currentSelection.appVersions, appVersions)
         ? currentSelection.appVersions
         : appVersions,
       siteFilters: isSameSiteFilters(currentSelection.siteFilters, siteFilters)
         ? currentSelection.siteFilters
         : siteFilters,
+      appStoreFilters: isSameAppStoreFilters(currentSelection.appStoreFilters, appStoreFilters)
+        ? currentSelection.appStoreFilters
+        : appStoreFilters,
     }));
     return true;
   }, [availableRange, selectedDateRange]);
 
   const setPeriod = useCallback((period: ReportPeriod): void => {
     setSelection((currentSelection) => ({ ...currentSelection, period }));
+  }, []);
+
+  const setAppStoreListing = useCallback((appStoreListing: string): void => {
+    setSelection((currentSelection) => ({ ...currentSelection, appStoreListing }));
   }, []);
 
   const retryRangeLoad = useCallback((): void => {
@@ -224,6 +246,7 @@ export function useLevelOneMetricsSelection(
     dateRangeError,
     applyFilters,
     setPeriod,
+    setAppStoreListing,
     retryRangeLoad,
   };
 }

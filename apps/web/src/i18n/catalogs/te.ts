@@ -20,6 +20,15 @@ const teCatalog: TranslationCatalog = {
     aiRecordingDecodeFailed: "ఈ బ్రౌజర్ మైక్రోఫోన్ ఆడియోను డీకోడ్ చేయలేకపోయింది ({{format}}).",
     recovery: "అతిథి ప్రాప్యత ధృవీకరించబడలేదు. కాష్ చేసిన కార్డులు చదవడానికి మాత్రమే అందుబాటులో ఉంటాయి. అసలు సెషన్ లేదా కనెక్షన్ పునరుద్ధరించి మళ్లీ ప్రయత్నించండి.",
     cleanupFailed: "సైన్ ఇన్ విజయవంతమైంది, కానీ డెమో కార్డును తీసివేయలేకపోయాము.",
+    browserCheck: {
+      title: "మీ బ్రౌజర్‌ను తనిఖీ చేస్తున్నాం",
+      description: "అతిథి వర్క్‌స్పేస్ తెరవడానికి ముందు, ఇది సాధారణ బ్రౌజర్ అని Cloudflare నిర్ధారిస్తుంది. సాధారణంగా కొన్ని సెకన్లు పడుతుంది.",
+      loading: "తనిఖీ లోడ్ అవుతోంది...",
+      verifying: "మీ వర్క్‌స్పేస్ తెరుస్తున్నాం...",
+      loadFailed: "తనిఖీ లోడ్ కాలేదు. మీ కనెక్షన్‌ను తనిఖీ చేసి, కంటెంట్ బ్లాకర్‌లో challenges.cloudflare.com ను అనుమతించి, మళ్లీ ప్రయత్నించండి.",
+      failed: "తనిఖీ విజయవంతం కాలేదు. మళ్లీ ప్రయత్నించండి లేదా సైన్ ఇన్ చేయండి.",
+      rejected: "తనిఖీ ఆమోదించబడలేదు. దాన్ని మరోసారి పూర్తి చేయండి.",
+    },
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
@@ -128,6 +137,7 @@ const teCatalog: TranslationCatalog = {
     loading: "లోడ్ అవుతోంది...",
     never: "ఎప్పుడూ లేదు",
     newItem: "కొత్తది",
+    image: "చిత్రం",
     noBackText: "వెనుక వైపు వచనం లేదు",
     noTags: "ట్యాగ్‌లు లేవు",
     notRevoked: "రద్దు చేయబడలేదు",
@@ -427,8 +437,12 @@ const teCatalog: TranslationCatalog = {
       offlineEmpty: "ఆఫ్‌లైన్‌లో వరుస రోజుల లీడర్‌బోర్డ్ అందుబాటులో లేదు. ర్యాంకింగ్‌లు చూడటానికి మళ్లీ కనెక్ట్ అవ్వండి.",
       unavailable: "వరుస రోజుల లీడర్‌బోర్డ్ ప్రస్తుతం అందుబాటులో లేదు. తర్వాత మళ్లీ చూడండి.",
       dayLabels: {
-        one: "రోజు",
-        other: "రోజులు",
+        zero: "{{count}} రోజులు",
+        one: "{{count}} రోజు",
+        two: "{{count}} రోజులు",
+        few: "{{count}} రోజులు",
+        many: "{{count}} రోజులు",
+        other: "{{count}} రోజులు",
       },
     },
     labels: {
@@ -509,6 +523,7 @@ const teCatalog: TranslationCatalog = {
     sessionRestoringActionLocked: "సెషన్ పునరుద్ధరిస్తోంది. కొద్దిసేపటిలో మళ్లీ ప్రయత్నించండి.",
     sessionUnavailable: "సెషన్ అందుబాటులో లేదు",
     syncing: "సింక్ అవుతోంది...",
+    syncFailed: "సింక్ విఫలమైంది",
     workspaceUnavailable: "వర్క్‌స్పేస్ అందుబాటులో లేదు",
   },
   accountMenu: {
@@ -766,15 +781,6 @@ const teCatalog: TranslationCatalog = {
       yourCards: "మీ కార్డులు",
       addCards: "కార్డులను జోడించండి",
     },
-    cards: {
-      description: "ఈ వర్క్‌స్పేస్‌లోని అన్ని కార్డులు.",
-    },
-    tags: {
-      description: "కనీసం ఒక కార్డుపై ఉపయోగించిన అన్ని ట్యాగ్‌లు.",
-    },
-    decks: {
-      description: "దృష్టి పెట్టిన పునశ్చరణ కోసం సేవ్ చేసిన కార్డ్ ఫిల్టర్‌లు.",
-    },
     deckCatalog: {
       title: "డెక్ కేటలాగ్",
       description: "చదువుకోవడానికి ఉచిత, సిద్ధంగా ఉన్న డెక్‌లు.",
@@ -860,16 +866,18 @@ const teCatalog: TranslationCatalog = {
     note: "ఈ సెట్టింగ్‌లు భవిష్యత్ షెడ్యూలింగ్‌పై మాత్రమే ప్రభావం చూపుతాయి. ఉన్న కార్డుల స్థితి అలాగే ప్రామాణికంగా ఉంటుంది.",
   },
   workspaceExport: {
-    title: "ఎగుమతి",
+    title: "Nibomo ప్యాకేజీని ఎగుమతి చేయండి",
+    ankiTitle: "Anki డెక్‌ను ఎగుమతి చేయండి",
     subtitle: "ఈ వర్క్‌స్పేస్ కోసం పోర్టబుల్ ప్యాకేజీని డౌన్‌లోడ్ చేయండి.",
     workspaceUnavailable: "వర్క్‌స్పేస్ అందుబాటులో లేదు",
-    packageTitle: "flashcards.zip",
+    ankiDeckNameLabel: "డెక్ పేరు",
+    ankiEmptySelection: "ఎగుమతి చేయడానికి కార్డ్‌లు లేవు. ఎంచుకున్న ట్యాగ్‌లను మార్చండి లేదా కార్డ్‌లను జోడించండి.",
     packageDescription: "డౌన్‌లోడ్ చేసే ముందు సక్రియ కార్డులు, మెటాడేటా, ట్యాగ్‌లు, సూచించిన మీడియాను ప్రివ్యూ చూడండి.",
-    packageExportSuccess: "flashcards.zip డౌన్‌లోడ్ ప్రారంభమైంది.",
+    packageExportSuccess: "{{filename}} డౌన్‌లోడ్ ప్రారంభమైంది.",
     packageExporting: "డౌన్‌లోడ్ అవుతోంది...",
     packagePreviewing: "ప్రివ్యూ సిద్ధం చేస్తోంది...",
     packageExportPreviewButton: "ఎగుమతిని ప్రివ్యూ చూడు",
-    packageExportConfirmButton: "flashcards.zip డౌన్‌లోడ్ చేయి",
+    packageExportConfirmButton: "{{filename}} డౌన్‌లోడ్ చేయి",
     packageExportPreviewRequired: "డౌన్‌లోడ్ చేసే ముందు ఈ ఎగుమతిని ప్రివ్యూ చూడండి.",
     previewCardsLabel: "కార్డులు",
     previewReferencedMediaLabel: "సూచించిన మీడియా",
@@ -1124,6 +1132,10 @@ const teCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI చాట్‌లో కార్డును తెరువు: {{side}}",
     repetitionBadgeAriaLabel: "పునశ్చరణ సార్లు: {{value}}",
     repetitionBadgeNew: "కొత్తది",
+    moreTags: {
+      label: "+{{count}}",
+      ariaLabel: "మరిన్ని ట్యాగ్‌లు: {{count}}",
+    },
     empty: {
       noCardsBody: "మీరు ఇంకా కార్డులను సృష్టించలేదు. చదవడం ప్రారంభించడానికి మీ మొదటి కార్డును చేర్చండి.",
       noCardsTitle: "ఇంకా కార్డులు లేవు",
@@ -1135,16 +1147,25 @@ const teCatalog: TranslationCatalog = {
     errors: {
       mathRenderFailed: "సూత్రాన్ని చూపించలేకపోయాము.",
       schedulerUnavailable: "వర్క్‌స్పేస్ షెడ్యూలర్ సెట్టింగ్‌లు లోడ్ కాలేదు",
+      storageFull: "ఈ పరికరంలో కొంత నిల్వ స్థలాన్ని ఖాళీ చేసి, కార్డుకు మళ్లీ రేటింగ్ ఇవ్వండి.",
     },
     leaderboardShortcut: {
       ariaLabel: "లీడర్‌బోర్డ్ తెరువు",
     },
     progressBadge: {
-      ariaLabel: "పునశ్చరణ వరుస {{streak}} రోజులు. {{todayStatus}}. {{freezeBank}}.",
-      reviewAriaLabel: "పునశ్చరణ వరుస {{streak}} రోజులు. {{todayStatus}}.",
+      ariaLabel: "పునశ్చరణ వరుస {{streak}}. {{todayStatus}}. {{freezeBank}}.",
+      reviewAriaLabel: "పునశ్చరణ వరుస {{streak}}. {{todayStatus}}.",
       freezeBank: "ఫ్రీజ్ బ్యాంక్ {{capacity}}లో {{available}}",
       notReviewedToday: "ఈరోజు పునశ్చరణ చేయలేదు",
       reviewedToday: "ఈరోజు పునశ్చరణ చేశారు",
+      streakDayCount: {
+        zero: "{{count}} రోజులు",
+        one: "{{count}} రోజు",
+        two: "{{count}} రోజులు",
+        few: "{{count}} రోజులు",
+        many: "{{count}} రోజులు",
+        other: "{{count}} రోజులు",
+      },
       title: "వరుస రోజులు",
     },
     interval: {
@@ -1158,8 +1179,6 @@ const teCatalog: TranslationCatalog = {
       snapshot: "ఇటీవలి స్థానిక స్నాప్‌షాట్ చూపుతోంది...",
     },
     media: {
-      privateImage: "ప్రైవేట్ చిత్రం",
-      privateAttachment: "ప్రైవేట్ జోడింపు",
       attachmentLabel: "జోడింపు",
       audioLabel: "ఆడియో జోడింపు",
       imageAlt: "నిర్వహిత చిత్రం",
@@ -1348,23 +1367,14 @@ const teCatalog: TranslationCatalog = {
   },
   decksScreen: {
     counts: {
-      due: "గడువు: {{count}}",
+      toStudy: "చదవడానికి: {{count}}",
       total: "మొత్తం {{count}}",
     },
-    emptyStatsAriaLabel: "{{deckName}} గణాంకాలు",
     newDeck: "కొత్త డెక్",
     statLabels: {
       cards: {
         one: "కార్డు",
         other: "కార్డులు",
-      },
-      new: {
-        one: "కొత్తది",
-        other: "కొత్తవి",
-      },
-      reviewed: {
-        one: "పునశ్చరణ చేసినది",
-        other: "పునశ్చరణ చేసినవి",
       },
     },
     subtitle: "డెక్‌లు స్మార్ట్ ఫిల్టర్‌లు, కంటైనర్‌లు కావు. అవి ట్యాగ్‌ల ఆధారంగా కార్డులను సరిపోలుస్తాయి.",
@@ -1400,10 +1410,10 @@ const teCatalog: TranslationCatalog = {
     },
     rules: {
       cards: "కార్డులు",
-      due: "గడువు",
       new: "కొత్తవి",
       summary: "సారాంశం",
       title: "డెక్ నియమాలు",
+      toStudy: "చదవడానికి",
     },
     subtitle: "డెక్ నియమాలు, సరిపోలే కార్డులు, పునశ్చరణ ప్రవేశ స్థానాన్ని పరిశీలించండి.",
     subtitles: {
