@@ -873,8 +873,8 @@ const thCatalog: TranslationCatalog = {
     note: "การตั้งค่านี้มีผลกับการจัดตารางในอนาคตเท่านั้น สถานะของการ์ดที่มีอยู่ยังคงเป็นข้อมูลหลัก",
   },
   workspaceExport: {
-    title: "ส่งออกแพ็กเกจ Nibomo",
-    ankiTitle: "ส่งออกสำรับ Anki",
+    title: "ส่งออกเป็นแพ็กเกจ Nibomo",
+    ankiTitle: "ส่งออกเป็นสำรับ Anki",
     subtitle: "ดาวน์โหลดแพ็กเกจของพื้นที่ทำงานนี้",
     workspaceUnavailable: "พื้นที่ทำงานไม่พร้อมใช้งาน",
     ankiDeckNameLabel: "ชื่อสำรับ",

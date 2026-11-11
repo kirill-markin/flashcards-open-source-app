@@ -873,8 +873,8 @@ const elCatalog: TranslationCatalog = {
     note: "Αυτές οι ρυθμίσεις επηρεάζουν μόνο τον μελλοντικό προγραμματισμό. Η υπάρχουσα κατάσταση των καρτών παραμένει η έγκυρη.",
   },
   workspaceExport: {
-    title: "Εξαγωγή πακέτου Nibomo",
-    ankiTitle: "Εξαγωγή τράπουλας Anki",
+    title: "Εξαγωγή ως πακέτο Nibomo",
+    ankiTitle: "Εξαγωγή ως τράπουλα Anki",
     subtitle: "Κατεβάστε ένα φορητό πακέτο για αυτόν τον χώρο εργασίας.",
     workspaceUnavailable: "Ο χώρος εργασίας δεν είναι διαθέσιμος",
     ankiDeckNameLabel: "Όνομα τράπουλας",

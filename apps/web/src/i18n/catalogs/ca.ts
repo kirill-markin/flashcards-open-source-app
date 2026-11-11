@@ -873,8 +873,8 @@ const caCatalog: TranslationCatalog = {
     note: "Aquesta configuració només afecta la programació futura. L'estat actual de cada targeta continua sent el de referència.",
   },
   workspaceExport: {
-    title: "Exporta un paquet de Nibomo",
-    ankiTitle: "Exporta una baralla d’Anki",
+    title: "Exporta com a paquet de Nibomo",
+    ankiTitle: "Exporta com a baralla d’Anki",
     subtitle: "Descarrega un paquet portàtil d'aquest espai de treball.",
     workspaceUnavailable: "L'espai de treball no està disponible",
     ankiDeckNameLabel: "Nom de la baralla",

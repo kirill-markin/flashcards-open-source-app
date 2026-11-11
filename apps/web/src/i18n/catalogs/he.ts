@@ -873,8 +873,8 @@ const heCatalog: TranslationCatalog = {
     note: "ההגדרות האלה משפיעות רק על תזמון עתידי. מצב הכרטיסים הקיים נשאר המקור הקובע.",
   },
   workspaceExport: {
-    title: "ייצוא חבילת Nibomo",
-    ankiTitle: "ייצוא חפיסת Anki",
+    title: "ייצוא כחבילת Nibomo",
+    ankiTitle: "ייצוא כחפיסת Anki",
     subtitle: "הורד חבילה ניידת של סביבת העבודה הזו.",
     workspaceUnavailable: "סביבת העבודה אינה זמינה",
     ankiDeckNameLabel: "שם החפיסה",

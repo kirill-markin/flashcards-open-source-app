@@ -25145,301 +25145,301 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تصدير مجموعة بطاقات Anki"
+            "value" : "تصدير كمجموعة بطاقات Anki"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Експортиране на тесте за Anki"
+            "value" : "Експортиране като тесте за Anki"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki ডেক রপ্তানি করুন"
+            "value" : "Anki ডেক হিসেবে রপ্তানি করুন"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exporta una baralla d’Anki"
+            "value" : "Exporta com a baralla d’Anki"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportovat balíček pro Anki"
+            "value" : "Exportovat jako balíček pro Anki"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportér Anki-kortsæt"
+            "value" : "Eksportér som Anki-kortsæt"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki-Stapel exportieren"
+            "value" : "Als Anki-Stapel exportieren"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Εξαγωγή τράπουλας Anki"
+            "value" : "Εξαγωγή ως τράπουλα Anki"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export Anki deck"
+            "value" : "Export as an Anki deck"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportar mazo de Anki"
+            "value" : "Exportar como mazo de Anki"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportar mazo de Anki"
+            "value" : "Exportar como mazo de Anki"
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekspordi Anki kaardipakk"
+            "value" : "Ekspordi Anki kaardipakina"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "برون‌بری دستهٔ کارت Anki"
+            "value" : "برون‌بری به‌صورت دستهٔ کارت Anki"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vie Anki-pakka"
+            "value" : "Vie Anki-pakkana"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exporter un paquet Anki"
+            "value" : "Exporter sous forme de paquet Anki"
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki ડેક નિકાસ કરો"
+            "value" : "Anki ડેક તરીકે નિકાસ કરો"
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ייצוא חפיסת Anki"
+            "value" : "ייצוא כחפיסת Anki"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki डेक निर्यात करें"
+            "value" : "Anki डेक के रूप में निर्यात करें"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izvezi Anki špil"
+            "value" : "Izvezi kao Anki špil"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki-pakli exportálása"
+            "value" : "Exportálás Anki-pakliként"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekspor dek Anki"
+            "value" : "Ekspor sebagai dek Anki"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flytja út Anki-spjaldastokk"
+            "value" : "Flytja út sem Anki-spjaldastokk"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esporta mazzo Anki"
+            "value" : "Esporta come mazzo Anki"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ankiデッキを書き出す"
+            "value" : "Ankiデッキとして書き出す"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki ಡೆಕ್ ರಫ್ತು ಮಾಡಿ"
+            "value" : "Anki ಡೆಕ್ ಆಗಿ ರಫ್ತು ಮಾಡಿ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki 덱 내보내기"
+            "value" : "Anki 덱으로 내보내기"
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportuoti Anki kortelių kaladę"
+            "value" : "Eksportuoti kaip Anki kortelių kaladę"
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportēt Anki kartīšu kavu"
+            "value" : "Eksportēt kā Anki kartīšu kavu"
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki ഡെക്ക് എക്സ്പോർട്ട് ചെയ്യുക"
+            "value" : "Anki ഡെക്കായി എക്സ്പോർട്ട് ചെയ്യുക"
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki डेक निर्यात करा"
+            "value" : "Anki डेक म्हणून निर्यात करा"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksporter Anki-kortstokk"
+            "value" : "Eksporter som Anki-kortstokk"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki-kaartenset exporteren"
+            "value" : "Exporteren als Anki-kaartenset"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki ਡੈੱਕ ਨਿਰਯਾਤ ਕਰੋ"
+            "value" : "Anki ਡੈੱਕ ਵਜੋਂ ਨਿਰਯਾਤ ਕਰੋ"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportuj talię Anki"
+            "value" : "Eksportuj jako talię Anki"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportar baralho do Anki"
+            "value" : "Exportar como baralho do Anki"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportă setul de carduri Anki"
+            "value" : "Exportă ca set de carduri Anki"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Экспорт колоды Anki"
+            "value" : "Экспорт в виде колоды Anki"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportovať balíček Anki"
+            "value" : "Exportovať ako balíček Anki"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izvozi komplet kartic Anki"
+            "value" : "Izvozi kot komplet kartic Anki"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportera Anki-kortlek"
+            "value" : "Exportera som Anki-kortlek"
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hamisha seti ya kadi za Anki"
+            "value" : "Hamisha kama seti ya kadi za Anki"
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki அட்டைத் தொகுப்பை ஏற்றுமதி செய்"
+            "value" : "Anki அட்டைத் தொகுப்பாக ஏற்றுமதி செய்"
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki డెక్‌ను ఎగుమతి చేయండి"
+            "value" : "Anki డెక్‌గా ఎగుమతి చేయండి"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ส่งออกสำรับ Anki"
+            "value" : "ส่งออกเป็นสำรับ Anki"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki destesini dışa aktar"
+            "value" : "Anki destesi olarak dışa aktar"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Експортувати колоду Anki"
+            "value" : "Експортувати як колоду Anki"
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anki ڈیک برآمد کریں"
+            "value" : "Anki ڈیک کے طور پر برآمد کریں"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xuất bộ thẻ Anki"
+            "value" : "Xuất dưới dạng bộ thẻ Anki"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导出 Anki 牌组"
+            "value" : "导出为 Anki 牌组"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khipha iqoqo lamakhadi le-Anki"
+            "value" : "Khipha njengeqoqo lamakhadi le-Anki"
           }
         }
       }
@@ -25450,301 +25450,301 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تصدير حزمة Nibomo"
+            "value" : "تصدير كحزمة Nibomo"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Експортиране на пакет Nibomo"
+            "value" : "Експортиране като пакет Nibomo"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo প্যাকেজ রপ্তানি করুন"
+            "value" : "Nibomo প্যাকেজ হিসেবে রপ্তানি করুন"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exporta un paquet Nibomo"
+            "value" : "Exporta com a paquet Nibomo"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportovat balíček Nibomo"
+            "value" : "Exportovat jako balíček Nibomo"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportér Nibomo-pakke"
+            "value" : "Eksportér som Nibomo-pakke"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo-Paket exportieren"
+            "value" : "Als Nibomo-Paket exportieren"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Εξαγωγή πακέτου Nibomo"
+            "value" : "Εξαγωγή ως πακέτο Nibomo"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export Nibomo package"
+            "value" : "Export as a Nibomo package"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportar paquete de Nibomo"
+            "value" : "Exportar como paquete de Nibomo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportar paquete de Nibomo"
+            "value" : "Exportar como paquete de Nibomo"
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekspordi Nibomo pakett"
+            "value" : "Ekspordi Nibomo paketina"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "برون‌بری بستهٔ Nibomo"
+            "value" : "برون‌بری به‌صورت بستهٔ Nibomo"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vie Nibomo-paketti"
+            "value" : "Vie Nibomo-pakettina"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exporter un paquet Nibomo"
+            "value" : "Exporter sous forme de paquet Nibomo"
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo પૅકેજ નિકાસ કરો"
+            "value" : "Nibomo પૅકેજ તરીકે નિકાસ કરો"
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ייצוא חבילת Nibomo"
+            "value" : "ייצוא כחבילת Nibomo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo पैकेज निर्यात करें"
+            "value" : "Nibomo पैकेज के रूप में निर्यात करें"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izvezi Nibomo paket"
+            "value" : "Izvezi kao Nibomo paket"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo-csomag exportálása"
+            "value" : "Exportálás Nibomo-csomagként"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekspor paket Nibomo"
+            "value" : "Ekspor sebagai paket Nibomo"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flytja út Nibomo-pakka"
+            "value" : "Flytja út sem Nibomo-pakka"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esporta pacchetto Nibomo"
+            "value" : "Esporta come pacchetto Nibomo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomoパッケージを書き出す"
+            "value" : "Nibomoパッケージとして書き出す"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo ಪ್ಯಾಕೇಜ್ ರಫ್ತು ಮಾಡಿ"
+            "value" : "Nibomo ಪ್ಯಾಕೇಜ್ ಆಗಿ ರಫ್ತು ಮಾಡಿ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo 패키지 내보내기"
+            "value" : "Nibomo 패키지로 내보내기"
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportuoti Nibomo paketą"
+            "value" : "Eksportuoti kaip Nibomo paketą"
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportēt Nibomo pakotni"
+            "value" : "Eksportēt kā Nibomo pakotni"
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo പാക്കേജ് എക്സ്പോർട്ട് ചെയ്യുക"
+            "value" : "Nibomo പാക്കേജായി എക്സ്പോർട്ട് ചെയ്യുക"
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo पॅकेज निर्यात करा"
+            "value" : "Nibomo पॅकेज म्हणून निर्यात करा"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksporter Nibomo-pakke"
+            "value" : "Eksporter som Nibomo-pakke"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo-pakket exporteren"
+            "value" : "Exporteren als Nibomo-pakket"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo ਪੈਕੇਜ ਨਿਰਯਾਤ ਕਰੋ"
+            "value" : "Nibomo ਪੈਕੇਜ ਵਜੋਂ ਨਿਰਯਾਤ ਕਰੋ"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportuj pakiet Nibomo"
+            "value" : "Eksportuj jako pakiet Nibomo"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportar pacote do Nibomo"
+            "value" : "Exportar como pacote do Nibomo"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportă pachetul Nibomo"
+            "value" : "Exportă ca pachet Nibomo"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Экспорт пакета Nibomo"
+            "value" : "Экспорт в виде пакета Nibomo"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportovať balík Nibomo"
+            "value" : "Exportovať ako balík Nibomo"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izvozi paket Nibomo"
+            "value" : "Izvozi kot paket Nibomo"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exportera Nibomo-paket"
+            "value" : "Exportera som Nibomo-paket"
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hamisha kifurushi cha Nibomo"
+            "value" : "Hamisha kama kifurushi cha Nibomo"
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo தொகுப்பை ஏற்றுமதி செய்"
+            "value" : "Nibomo தொகுப்பாக ஏற்றுமதி செய்"
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo ప్యాకేజీని ఎగుమతి చేయండి"
+            "value" : "Nibomo ప్యాకేజీగా ఎగుమతి చేయండి"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ส่งออกแพ็กเกจ Nibomo"
+            "value" : "ส่งออกเป็นแพ็กเกจ Nibomo"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo paketini dışa aktar"
+            "value" : "Nibomo paketi olarak dışa aktar"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Експортувати пакет Nibomo"
+            "value" : "Експортувати як пакет Nibomo"
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nibomo پیکیج برآمد کریں"
+            "value" : "Nibomo پیکیج کے طور پر برآمد کریں"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xuất gói Nibomo"
+            "value" : "Xuất dưới dạng gói Nibomo"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导出 Nibomo 卡包"
+            "value" : "导出为 Nibomo 卡包"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khipha iphakheji ye-Nibomo"
+            "value" : "Khipha njengephakheji ye-Nibomo"
           }
         }
       }

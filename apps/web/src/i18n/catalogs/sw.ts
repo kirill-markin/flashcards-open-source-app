@@ -873,8 +873,8 @@ const swCatalog: TranslationCatalog = {
     note: "Mipangilio hii huathiri upangaji wa baadaye pekee. Hali iliyopo ya kadi hubaki kuwa halisi.",
   },
   workspaceExport: {
-    title: "Hamisha kifurushi cha Nibomo",
-    ankiTitle: "Hamisha fungu la Anki",
+    title: "Hamisha kama kifurushi cha Nibomo",
+    ankiTitle: "Hamisha kama fungu la Anki",
     subtitle: "Pakua kifurushi kinachohamishika cha nafasi hii ya kazi.",
     workspaceUnavailable: "Nafasi ya kazi haipatikani",
     ankiDeckNameLabel: "Jina la fungu",

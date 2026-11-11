@@ -873,8 +873,8 @@ export const zhHansCatalog = {
     note: "这些设置只会影响未来的调度。现有卡片状态仍然是权威来源。",
   },
   workspaceExport: {
-    title: "导出 Nibomo 包",
-    ankiTitle: "导出 Anki 牌组",
+    title: "导出为 Nibomo 包",
+    ankiTitle: "导出为 Anki 牌组",
     subtitle: "下载此工作区的可移植包。",
     workspaceUnavailable: "工作区不可用",
     ankiDeckNameLabel: "牌组名称",

@@ -873,8 +873,8 @@ const bgCatalog: TranslationCatalog = {
     note: "Тези настройки засягат само бъдещото планиране. Текущото състояние на картите остава определящо.",
   },
   workspaceExport: {
-    title: "Експортиране на пакет на Nibomo",
-    ankiTitle: "Експортиране на тесте за Anki",
+    title: "Експортиране като пакет на Nibomo",
+    ankiTitle: "Експортиране като тесте за Anki",
     subtitle: "Изтеглете преносим пакет за това работно пространство.",
     workspaceUnavailable: "Работното пространство е недостъпно",
     ankiDeckNameLabel: "Име на тестето",

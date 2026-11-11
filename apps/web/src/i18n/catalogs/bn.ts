@@ -873,8 +873,8 @@ const bnCatalog: TranslationCatalog = {
     note: "এই সেটিংস শুধু ভবিষ্যতের সময়সূচিতে প্রভাব ফেলে। কার্ডের বর্তমান অবস্থাই চূড়ান্ত থাকে।",
   },
   workspaceExport: {
-    title: "Nibomo প্যাকেজ রপ্তানি করুন",
-    ankiTitle: "Anki ডেক রপ্তানি করুন",
+    title: "Nibomo প্যাকেজ হিসেবে রপ্তানি করুন",
+    ankiTitle: "Anki ডেক হিসেবে রপ্তানি করুন",
     subtitle: "এই কর্মক্ষেত্রের জন্য একটি পোর্টেবল প্যাকেজ ডাউনলোড করুন।",
     workspaceUnavailable: "কর্মক্ষেত্র উপলভ্য নয়",
     ankiDeckNameLabel: "ডেকের নাম",

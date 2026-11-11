@@ -873,8 +873,8 @@ const koCatalog: TranslationCatalog = {
     note: "이 설정은 앞으로의 일정에만 영향을 줍니다. 기존 카드 상태는 그대로 유지됩니다.",
   },
   workspaceExport: {
-    title: "Nibomo 패키지 내보내기",
-    ankiTitle: "Anki 덱 내보내기",
+    title: "Nibomo 패키지로 내보내기",
+    ankiTitle: "Anki 덱으로 내보내기",
     subtitle: "이 워크스페이스의 패키지를 내려받습니다.",
     workspaceUnavailable: "워크스페이스를 사용할 수 없음",
     ankiDeckNameLabel: "덱 이름",

@@ -873,8 +873,8 @@ const nlCatalog: TranslationCatalog = {
     note: "Deze instellingen gelden alleen voor toekomstige planning. De bestaande status van een kaart blijft leidend.",
   },
   workspaceExport: {
-    title: "Nibomo-pakket exporteren",
-    ankiTitle: "Anki-kaartenset exporteren",
+    title: "Exporteren als Nibomo-pakket",
+    ankiTitle: "Exporteren als Anki-kaartenset",
     subtitle: "Download een overdraagbaar pakket voor deze werkruimte.",
     workspaceUnavailable: "Werkruimte is niet beschikbaar",
     ankiDeckNameLabel: "Naam van de kaartenset",

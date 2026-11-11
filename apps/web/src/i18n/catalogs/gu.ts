@@ -873,8 +873,8 @@ const guCatalog: TranslationCatalog = {
     note: "આ સેટિંગ્સ ફક્ત ભવિષ્યના સમયનિયોજનને અસર કરે છે. કાર્ડની હાલની સ્થિતિ જ અધિકૃત રહે છે.",
   },
   workspaceExport: {
-    title: "Nibomo પૅકેજ નિકાસ કરો",
-    ankiTitle: "Anki ડેક નિકાસ કરો",
+    title: "Nibomo પૅકેજ તરીકે નિકાસ કરો",
+    ankiTitle: "Anki ડેક તરીકે નિકાસ કરો",
     subtitle: "આ કાર્યક્ષેત્ર માટે પોર્ટેબલ પૅકેજ ડાઉનલોડ કરો.",
     workspaceUnavailable: "કાર્યક્ષેત્ર ઉપલબ્ધ નથી",
     ankiDeckNameLabel: "ડેકનું નામ",

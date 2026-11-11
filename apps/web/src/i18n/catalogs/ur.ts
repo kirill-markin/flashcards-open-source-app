@@ -873,8 +873,8 @@ const urCatalog: TranslationCatalog = {
     note: "یہ ترتیبات صرف آئندہ شیڈولنگ پر اثر ڈالتی ہیں۔ کارڈ کی موجودہ حالت ہی معتبر رہتی ہے۔",
   },
   workspaceExport: {
-    title: "Nibomo پیکیج ایکسپورٹ کریں",
-    ankiTitle: "Anki ڈیک ایکسپورٹ کریں",
+    title: "Nibomo پیکیج کے طور پر ایکسپورٹ کریں",
+    ankiTitle: "Anki ڈیک کے طور پر ایکسپورٹ کریں",
     subtitle: "اس ورک اسپیس کے لیے قابلِ منتقلی پیکیج ڈاؤن لوڈ کریں۔",
     workspaceUnavailable: "ورک اسپیس دستیاب نہیں ہے",
     ankiDeckNameLabel: "ڈیک کا نام",

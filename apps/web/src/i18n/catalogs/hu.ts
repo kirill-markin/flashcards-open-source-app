@@ -873,8 +873,8 @@ const huCatalog: TranslationCatalog = {
     note: "Ezek a beállítások csak a jövőbeli ütemezésre hatnak. A kártyák meglévő állapota marad a mérvadó.",
   },
   workspaceExport: {
-    title: "Nibomo-csomag exportálása",
-    ankiTitle: "Anki-pakli exportálása",
+    title: "Exportálás Nibomo-csomagként",
+    ankiTitle: "Exportálás Anki-pakliként",
     subtitle: "Tölts le hordozható csomagot ehhez a munkaterülethez.",
     workspaceUnavailable: "A munkaterület nem érhető el",
     ankiDeckNameLabel: "Pakli neve",

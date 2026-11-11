@@ -53,8 +53,8 @@
     <string name="library_transfer_section_title">Transfer</string>
     <string name="library_export_title">Export</string>
     <string name="library_export_summary">Save cards to a file.</string>
-    <string name="library_export_nibomo_title">Nibomo package (.zip)</string>
-    <string name="library_export_anki_title">Anki deck (.apkg)</string>
+    <string name="library_export_nibomo_title">Export as a Nibomo package (.zip)</string>
+    <string name="library_export_anki_title">Export as an Anki deck (.apkg)</string>
     <string name="catalog_back_content_description">Back</string>
     <string name="catalog_search_placeholder">Search decks</string>
     <string name="catalog_clear_search_content_description">Clear search</string>

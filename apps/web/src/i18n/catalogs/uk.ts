@@ -881,8 +881,8 @@ const ukCatalog: TranslationCatalog = {
     note: "Ці налаштування впливають лише на майбутнє планування. Поточний стан карток залишається основним.",
   },
   workspaceExport: {
-    title: "Експортувати пакунок Nibomo",
-    ankiTitle: "Експортувати колоду Anki",
+    title: "Експортувати як пакунок Nibomo",
+    ankiTitle: "Експортувати як колоду Anki",
     subtitle: "Завантажте переносний пакунок для цього робочого простору.",
     workspaceUnavailable: "Робочий простір недоступний",
     ankiDeckNameLabel: "Назва колоди",

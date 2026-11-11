@@ -872,8 +872,8 @@ const enCatalog = {
     note: "These settings affect future scheduling only. Existing card state remains authoritative.",
   },
   workspaceExport: {
-    title: "Export Nibomo package",
-    ankiTitle: "Export Anki deck",
+    title: "Export as a Nibomo package",
+    ankiTitle: "Export as an Anki deck",
     subtitle: "Download a portable package for this workspace.",
     workspaceUnavailable: "Workspace is unavailable",
     ankiDeckNameLabel: "Deck name",
