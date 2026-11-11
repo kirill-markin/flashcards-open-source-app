@@ -1,0 +1,123 @@
+<resources>
+    <string name="progress_title">進度</string>
+    <string name="progress_retry">重試</string>
+    <string name="progress_loading">正在載入進度紀錄</string>
+    <string name="progress_error_title">無法載入進度</string>
+    <string name="progress_error_message">暫時無法取得進度資料。請重試以重新載入進度紀錄。</string>
+    <string name="progress_sign_in_required_title">登入以查看進度</string>
+    <string name="progress_sign_in_required_message">登入或開始使用訪客 AI 後，即可查看進度紀錄。</string>
+    <string name="progress_unavailable_title">完成雲端設定以查看進度</string>
+    <string name="progress_unavailable_message">請選擇工作區以完成登入，再載入進度紀錄。</string>
+    <string name="progress_streak_title">連續複習</string>
+    <string name="progress_streak_subtitle">最近 5 週</string>
+    <string name="progress_streak_summary_reviewed_today">今天已複習</string>
+    <string name="progress_streak_summary_not_reviewed_today">今天尚未複習</string>
+    <string name="progress_streak_freeze_bank_value">%1$d/%2$d</string>
+    <string name="progress_streak_freeze_bank_content_description">補休卡共 %2$d 張，目前可用 %1$d 張。</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">關於補休卡</string>
+    <string name="progress_streak_freeze_bank_info_title">補休卡</string>
+    <string name="progress_streak_freeze_bank_info_body">可用張數：%1$d/%2$d。補充進度：%3$d/%4$d。沒複習的日子，補休卡能保住連續紀錄。繼續複習就能補充補休卡。</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">確定</string>
+    <string name="progress_streak_day_reviewed_content_description">%1$s 已複習。</string>
+    <string name="progress_streak_day_frozen_content_description">%1$s 已使用補休卡保留紀錄。</string>
+    <string name="progress_streak_day_future_content_description">%1$s 尚未到來。</string>
+    <string name="progress_streak_day_pending_content_description">%1$s 尚未複習。</string>
+    <string name="progress_streak_day_missed_content_description">%1$s 錯過複習。</string>
+    <string name="progress_reviews_title">複習次數</string>
+    <string name="progress_reviews_previous_week">上一週</string>
+    <string name="progress_reviews_next_week">下一週</string>
+    <string name="progress_reviews_rating_again">重來</string>
+    <string name="progress_reviews_rating_hard">困難</string>
+    <string name="progress_reviews_rating_good">良好</string>
+    <string name="progress_reviews_rating_easy">簡單</string>
+    <string name="progress_reviews_rating_count_percentage">%1$d（%2$s）</string>
+    <string name="progress_reviews_chart_clear_content_description">清除複習圖表的選取項目</string>
+    <string name="progress_review_schedule_title">複習時程</string>
+    <string name="progress_review_schedule_empty">目前沒有進行中的卡片。</string>
+    <string name="progress_review_schedule_chart_content_description">複習時程圖表</string>
+    <string name="progress_review_schedule_bucket_new">新卡</string>
+    <string name="progress_review_schedule_bucket_today">今天</string>
+    <string name="progress_review_schedule_bucket_days_1_to_7">1 至 7 天</string>
+    <string name="progress_review_schedule_bucket_days_8_to_30">8 至 30 天</string>
+    <string name="progress_review_schedule_bucket_days_31_to_90">31 至 90 天</string>
+    <string name="progress_review_schedule_bucket_days_91_to_360">91 至 360 天</string>
+    <string name="progress_review_schedule_bucket_years_1_to_2">1 至 2 年</string>
+    <string name="progress_review_schedule_bucket_later">更晚</string>
+    <string name="progress_review_schedule_bucket_value">%1$s（%2$s）</string>
+    <string name="progress_leaderboard_title">評分排行榜</string>
+    <string name="progress_leaderboard_info_button_content_description">關於評分排行榜</string>
+    <string name="progress_leaderboard_info_title">評分排行榜如何計算</string>
+    <string name="progress_leaderboard_info_fallback_body">評為「困難」、「良好」或「簡單」的複習會計入排名。評為「重來」的複習不計入。</string>
+    <string name="progress_leaderboard_info_dismiss">確定</string>
+    <string name="progress_leaderboard_window_last_24_hours">24 小時</string>
+    <string name="progress_leaderboard_window_last_3_days">3 天</string>
+    <string name="progress_leaderboard_window_last_7_days">7 天</string>
+    <string name="progress_leaderboard_window_last_30_days">30 天</string>
+    <string name="progress_leaderboard_window_all_time">累計</string>
+    <string name="progress_leaderboard_you">你</string>
+    <string name="progress_leaderboard_rank_label">第 %1$s 名</string>
+    <string name="progress_leaderboard_gap_content_description">隱藏的名次</string>
+    <string name="progress_leaderboard_empty_window">這段期間尚無符合排名條件的複習紀錄。</string>
+    <string name="progress_leaderboard_sign_in_message">註冊或登入，即可查看你的複習紀錄在評分排行榜上的名次。</string>
+    <string name="progress_leaderboard_sign_in_button">登入</string>
+    <string name="progress_leaderboard_participation_disabled_message">參加評分排行榜後才能查看評分排名。你可以在排行榜設定中開啟參加選項。</string>
+    <string name="progress_leaderboard_participation_disabled_button">開啟排行榜設定</string>
+    <string name="progress_leaderboard_offline_message">評分排行榜需要網路連線。重新連線後會自動載入。</string>
+    <string name="progress_leaderboard_unavailable_message">評分排行榜尚未就緒。請稍後再查看。</string>
+    <string name="progress_leaderboard_profile_row_content_description">開啟 %1$s 的個人資料</string>
+    <string name="progress_leaderboard_profile_friend_label">好友</string>
+    <string name="progress_leaderboard_profile_current_streak_label">目前連續複習天數</string>
+    <string name="progress_leaderboard_profile_best_rating_label">評分排行榜最佳名次</string>
+    <string name="progress_leaderboard_profile_best_rating_value">%1$s（%2$s）</string>
+    <string name="progress_leaderboard_profile_no_rating_value">尚未上榜</string>
+    <string name="progress_leaderboard_profile_activity_title">最近 30 天</string>
+    <string name="progress_leaderboard_profile_activity_chart_content_description">最近 30 天的複習活動</string>
+    <string name="progress_leaderboard_profile_joined_value">加入日期：%1$s</string>
+    <string name="progress_leaderboard_profile_linked_account_required_message">登入以查看排行榜上的個人資料。</string>
+    <string name="progress_leaderboard_profile_participation_disabled_message">開啟排行榜的參加選項，即可查看個人資料。</string>
+    <string name="progress_leaderboard_profile_unavailable_message">無法查看這位排行榜參加者的個人資料。</string>
+    <string name="progress_leaderboard_profile_error_message">無法載入這份個人資料。請檢查網路連線後再試一次。</string>
+    <string name="progress_streak_leaderboard_title">連續複習排行榜</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">關於連續複習排行榜</string>
+    <string name="progress_streak_leaderboard_info_title">連續複習排行榜如何計算</string>
+    <string name="progress_streak_leaderboard_info_fallback_body">排名依每日公開資料中的目前連續複習天數計算。以當地日期為準，只要當天至少複習一張卡片並評為「重來」、「困難」、「良好」或「簡單」，就計入一天。公開數字可能晚於個人紀錄更新。</string>
+    <string name="progress_streak_leaderboard_empty">連續複習排行榜目前沒有排名。</string>
+    <string name="progress_streak_leaderboard_sign_in_message">註冊或登入，即可和其他成員比較連續複習天數。</string>
+    <string name="progress_streak_leaderboard_participation_disabled_message">參加連續複習排行榜後才能查看排名。你可以在排行榜設定中開啟參加選項。</string>
+    <string name="progress_streak_leaderboard_offline_message">連續複習排行榜需要網路連線。重新連線後會自動載入。</string>
+    <string name="progress_streak_leaderboard_unavailable_message">連續複習排行榜尚未就緒。請稍後再查看。</string>
+    <string name="progress_today">今天</string>
+    <plurals name="progress_streak_summary_content_description">
+        <item quantity="other">已連續複習 %d 天。</item>
+    </plurals>
+    <plurals name="progress_reviews_day_content_description">
+        <item quantity="other">選取 %1$s，當日複習 %2$d 次。</item>
+    </plurals>
+    <plurals name="progress_reviews_day_selected_content_description">
+        <item quantity="other">已選取 %1$s，當日複習 %2$d 次。</item>
+    </plurals>
+    <plurals name="progress_leaderboard_participant_count">
+        <item quantity="other">%1$s 人參加</item>
+    </plurals>
+    <plurals name="progress_streak_leaderboard_day_count">
+        <item quantity="other">%1$s 天</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_minute_label">
+        <item quantity="other">%1$d 分鐘前更新</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_label">
+        <item quantity="other">%1$d 小時前更新</item>
+    </plurals>
+    <plurals name="progress_leaderboard_elapsed_minute_count">
+        <item quantity="other">%1$d 分鐘</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_minute_label">
+        <item quantity="other">%1$d 小時 %2$s前更新</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_activity_total">
+        <item quantity="other">共複習 %1$s 次</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_total_cards_value">
+        <item quantity="other">%1$s 張卡片</item>
+    </plurals>
+</resources>

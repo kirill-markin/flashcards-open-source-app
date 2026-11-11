@@ -1,0 +1,253 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Nibomo 學習卡</string>
+    <string name="top_level_review">複習</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_progress">進度</string>
+    <string name="top_level_library">資料庫</string>
+    <string name="top_level_settings">設定</string>
+    <string name="startup_error_title">啟動失敗</string>
+    <string name="startup_error_message">Nibomo 無法完成啟動。請重試。如果客服需要，請開啟技術詳細資料。</string>
+    <string name="startup_error_retry">重新啟動</string>
+    <string name="technical_error_dialog_default_title">發生錯誤</string>
+    <string name="technical_error_dialog_default_message">應用程式發生技術錯誤。你可以繼續使用 Nibomo，客服可能會請你提供下方的詳細資料。</string>
+    <string name="technical_error_dialog_show_details">顯示技術詳細資料</string>
+    <string name="technical_error_dialog_hide_details">隱藏技術詳細資料</string>
+    <string name="technical_error_dialog_close">關閉</string>
+    <string name="technical_error_dialog_preview_details">技術詳細資料預覽\ncode=android_technical_error_preview\nrequestId=preview-request-id\nstatus=not_reported</string>
+    <string name="account_deletion_blocking_title">正在刪除帳號</string>
+    <string name="account_deletion_in_progress_message">正在刪除你的帳號，完成前請保持此畫面開啟。</string>
+    <string name="account_deletion_failed_message">刪除尚未完成。請重試以繼續刪除帳號。</string>
+    <string name="account_deletion_retry">重試刪除</string>
+    <string name="guest_sign_in_after_review_prompt_title">儲存學習進度</string>
+    <string name="guest_sign_in_after_review_prompt_body">使用電子郵件登入，就能保留這些卡片和複習進度。</string>
+    <string name="guest_sign_in_after_review_prompt_sign_in">登入</string>
+    <string name="guest_sign_in_after_review_prompt_later">稍後</string>
+    <string name="feedback_prompt_title">對 Nibomo 有什麼建議？</string>
+    <string name="feedback_prompt_body">歡迎分享如何讓應用程式更好用。Nibomo 的開發者 %1$s 會親自閱讀每則訊息。</string>
+    <string name="feedback_prompt_message_label">在這裡寫下你的想法</string>
+    <string name="feedback_prompt_send">傳送</string>
+    <string name="feedback_prompt_cancel">取消</string>
+    <string name="feedback_prompt_not_now">先不要</string>
+    <string name="feedback_prompt_submit_success">謝謝你，意見已送出。</string>
+    <string name="feedback_prompt_submit_failed">無法送出意見。請檢查網路連線後再試一次。</string>
+    <string name="feedback_prompt_empty_message">請先輸入訊息再傳送。</string>
+    <plurals name="feedback_prompt_message_too_long">
+        <item quantity="other">意見不得超過 %1$d 個字元。</item>
+    </plurals>
+    <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
+    <string name="demo_card_front">哪款應用程式最適合用來學習？</string>
+    <!-- First paragraph on the back of the onboarding demo flashcard. The placeholder is the product name. -->
+    <string name="demo_card_back_1">就是你正在使用的 <xliff:g id="app_name" example="Nibomo">%1$s</xliff:g>。這裡的每張學習卡都是正面出題、背面揭曉答案。</string>
+    <!-- Second paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_2">告訴內建的 AI 聊天助理一個主題，它就會幫你製作一組卡片。</string>
+    <!-- Third paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
+    <string name="demo_card_back_3">現在就試試：按下 <xliff:g id="again_button" example="Again">%1$s</xliff:g> 為這張卡片評分，約一分鐘後就會再看到它，幫你記住答案。</string>
+    <string name="notification_diagnostics_failed_message">通知診斷失敗。</string>
+    <string name="review_notification_channel_name">複習提醒</string>
+    <string name="review_notification_channel_description">以複習佇列中的卡片提醒你學習。</string>
+    <!-- Home Screen widget name in the launcher's widget picker. -->
+    <string name="review_widget_label">複習</string>
+    <string name="review_widget_description">查看待複習卡片、下一道題目和連續複習紀錄。</string>
+    <string name="review_widget_open_app_message">開啟應用程式開始複習。</string>
+    <string name="review_widget_all_done">複習完畢</string>
+    <!-- Shown instead of the next card's question when its front has no text, such as an image only. -->
+    <string name="review_widget_question_without_text">圖片題目</string>
+    <!-- The placeholder is a time today, otherwise a date and time. -->
+    <string name="review_widget_next_due">下一張卡片：<xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
+    <!-- The big due count on the small widget, in the locale's digits. -->
+    <!-- Shown under the big due count on the small widget. -->
+    <string name="review_widget_due_label">待複習</string>
+    <plurals name="review_widget_cards_due">
+        <item quantity="other">%1$d 張待複習</item>
+    </plurals>
+    <plurals name="review_widget_streak_days">
+        <item quantity="other">連續複習 %1$d 天</item>
+    </plurals>
+    <!-- Sample content of the widget preview in the launcher's widget picker. -->
+    <string name="review_widget_preview_cards_due">12 張待複習</string>
+    <string name="review_widget_preview_question">粒線體會為細胞產生什麼？</string>
+    <string name="review_widget_preview_streak">連續複習 7 天</string>
+    <!-- Reviews chart Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="reviews_chart_widget_label">複習次數</string>
+    <string name="reviews_chart_widget_description">查看最近幾週每天的複習次數。</string>
+    <string name="reviews_chart_widget_daily_average">日均 <xliff:g id="review_count" example="24">%1$d</xliff:g> 次</string>
+    <!-- The quantity is the day count. -->
+    <plurals name="reviews_chart_widget_trend_up">
+        <item quantity="other">較前 <xliff:g id="day_count" example="14">%2$d</xliff:g> 天 ↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%%</item>
+    </plurals>
+    <!-- The quantity is the day count. -->
+    <plurals name="reviews_chart_widget_trend_down">
+        <item quantity="other">較前 <xliff:g id="day_count" example="14">%2$d</xliff:g> 天 ↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%%</item>
+    </plurals>
+    <string name="reviews_chart_widget_preview_daily_average">日均 24 次</string>
+    <!-- Coming up Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="coming_up_widget_label">即將到期</string>
+    <string name="coming_up_widget_description">查看未來 7 天到期的卡片和複習時程。</string>
+    <plurals name="coming_up_widget_header">
+        <item quantity="other">未來 7 天 · <xliff:g id="card_count" example="58">%1$d</xliff:g> 張卡片</item>
+    </plurals>
+    <string name="coming_up_widget_preview_header">未來 7 天 · 58 張卡片</string>
+    <!-- Today Home Screen widget name in the launcher's widget picker, also its title on the medium widget. -->
+    <string name="today_widget_label">今天</string>
+    <string name="today_widget_description">查看今天的複習進度、剩餘卡片和連續複習紀錄。</string>
+    <!-- A count inside the small widget's ring (cards reviewed today) or next to the streak flame, in the locale's digits. -->
+    <!-- Share of today's cards already reviewed, next to the progress bar. -->
+    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
+    <!-- Shown when no card was reviewed today and none is due. -->
+    <string name="today_widget_no_cards_due">沒有待複習卡片</string>
+    <plurals name="today_widget_reviewed">
+        <item quantity="other">已複習 %1$d 張</item>
+    </plurals>
+    <!-- Cards still due today, under the ring on the small widget. -->
+    <plurals name="today_widget_left">
+        <item quantity="other">剩 %1$d 張</item>
+    </plurals>
+    <plurals name="today_widget_cards_left">
+        <item quantity="other">剩 %1$d 張卡片</item>
+    </plurals>
+    <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
+    <string name="today_widget_preview_reviewed">已複習 8 張</string>
+    <string name="today_widget_preview_cards_left">剩 4 張卡片</string>
+    <!-- Activity heatmap widget name in the launcher's widget picker. -->
+    <string name="activity_widget_label">複習活動</string>
+    <string name="activity_widget_description">在熱度圖中查看每天的複習次數和連續複習紀錄。</string>
+    <!-- The flame and the current streak in days on the small Activity widget. -->
+    <plurals name="activity_widget_streak_days">
+        <item quantity="other">🔥 %1$d 天</item>
+    </plurals>
+    <plurals name="activity_widget_reviews">
+        <item quantity="other">%1$d 次複習</item>
+    </plurals>
+    <plurals name="activity_widget_grid_description">
+        <item quantity="other">最近 %1$d 週每天的複習次數</item>
+    </plurals>
+    <!-- Stat labels on the large Activity widget; reviews and active days count the weeks the grid shows. -->
+    <string name="activity_widget_stat_current_streak">連續複習</string>
+    <string name="activity_widget_stat_best_streak">最長紀錄</string>
+    <string name="activity_widget_stat_freezes">補休卡</string>
+    <string name="activity_widget_stat_reviews">複習次數</string>
+    <string name="activity_widget_stat_active_days">有複習的天數</string>
+    <string name="activity_widget_stat_today">今天</string>
+    <string name="activity_widget_stat_due_now">現在待複習</string>
+    <!-- A stat value on the large Activity widget, in the locale's digits. -->
+    <!-- Sample content of the Activity widget preview in the launcher's widget picker. -->
+    <string name="activity_widget_preview_streak">🔥 7 天</string>
+    <string name="activity_widget_preview_reviews">342 次複習</string>
+    <!-- Year view widget name in the launcher's widget picker. -->
+    <string name="year_widget_label">年度總覽</string>
+    <string name="year_widget_description">查看一年內每天的複習次數，每月一列。</string>
+    <string name="year_widget_grid_description">最近 12 個月每天的複習次數</string>
+    <plurals name="year_widget_active_days">
+        <item quantity="other">%1$d 天有複習</item>
+    </plurals>
+    <!-- Sample content of the Year widget preview in the launcher's widget picker. -->
+    <string name="year_widget_preview_reviews">4,120 次複習</string>
+    <string name="year_widget_preview_active_days">186 天有複習</string>
+    <!-- Streaks Home Screen widget name in the launcher's widget picker; also its medium-size header. -->
+    <string name="streaks_widget_label">連續複習紀錄</string>
+    <string name="streaks_widget_description">查看目前、最長和近期的連續複習紀錄。</string>
+    <!-- A streak length in days, in the locale's digits. -->
+    <!-- The longest streak ever, in days. -->
+    <string name="streaks_widget_best">最長 <xliff:g id="days" example="30">%1$d</xliff:g> 天</string>
+    <!-- Streak freezes available. -->
+    <string name="streaks_widget_empty">今天開始複習，建立連續紀錄。</string>
+    <string name="streaks_widget_chart_description">目前和近期的連續複習紀錄</string>
+    <!-- Sample content of the Streaks widget preview in the launcher's widget picker. -->
+    <string name="streaks_widget_preview_best">最長 30 天</string>
+    <!-- Month calendar Home Screen widget name in the launcher's widget picker. -->
+    <string name="month_calendar_widget_label">月曆</string>
+    <string name="month_calendar_widget_description">查看這個月維持連續複習紀錄的日期。</string>
+    <!-- A day of the month in the calendar, in the locale's digits. -->
+    <plurals name="month_calendar_widget_chart_description">
+        <item quantity="other">本月有 %1$d 天維持連續複習紀錄</item>
+    </plurals>
+    <!-- Sample month of the Calendar widget preview in the launcher's widget picker. -->
+    <string name="month_calendar_widget_preview_month">11 月</string>
+    <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
+    <string name="dashboard_widget_label">複習總覽</string>
+    <string name="dashboard_widget_description">查看今日進度、待複習卡片、連續複習紀錄、下一道題目和活動。</string>
+    <string name="premium_title">Premium</string>
+    <string name="premium_benefit_creator_support">支持應用程式的開發者</string>
+    <string name="premium_benefit_accent_color">自選強調色</string>
+    <string name="premium_benefit_themes">深色與淺色主題</string>
+    <string name="premium_benefit_review_animations">自訂複習動畫</string>
+    <string name="premium_benefit_app_icon">自訂應用程式圖示</string>
+    <string name="premium_already_active">你的方案已包含 Premium 權益。</string>
+    <string name="premium_offer_loading">正在從 Google Play 載入優惠…</string>
+    <string name="premium_offer_unavailable">目前無法使用這個帳號在 Google Play 訂閱 Premium。你可以再試一次，或恢復先前的購買項目。</string>
+    <string name="premium_offer_terms_unavailable">此應用程式無法顯示 Google Play 提供的價格條款。請重新載入優惠再訂閱。</string>
+    <string name="premium_activity_unavailable">請關閉此畫面後重新開啟 Premium，即可開始購買。</string>
+    <string name="premium_retry_offer">重新載入優惠</string>
+    <string name="premium_retry">重試</string>
+    <string name="premium_phase_recurring">%1$s/%2$s</string>
+    <string name="premium_phase_free">免費試用 %1$s</string>
+    <string name="premium_phase_once">%2$s 共收費 %1$s</string>
+    <string name="premium_phase_sequence">%1$s，之後為 %2$s</string>
+    <string name="premium_start_trial">開始免費試用（%1$s）</string>
+    <string name="premium_subscribe">訂閱（%1$s）</string>
+    <string name="premium_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="$6.99/1 month">%1$s</xliff:g>。訂閱會自動續訂。請在續訂前於 Google Play 取消，以免扣款。</string>
+    <string name="premium_trial_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="7 days free, then $6.99/1 month">%1$s</xliff:g>。訂閱會自動續訂。請在試用期結束前於 Google Play 取消，以免扣款。</string>
+    <string name="premium_terms">服務條款</string>
+    <string name="premium_privacy">隱私權政策</string>
+    <string name="premium_restore">恢復購買項目</string>
+    <string name="premium_billing_loading">正在連線至 Google Play…</string>
+    <string name="premium_billing_purchasing">請在 Google Play 完成購買。處理期間可以關閉此畫面。</string>
+    <string name="premium_billing_pending">Google Play 正在處理付款。付款與帳號驗證完成後將啟用 Premium。</string>
+    <string name="premium_pending_refresh">查看購買狀態</string>
+    <string name="premium_billing_verifying">正在驗證購買項目並同步方案…</string>
+    <string name="premium_billing_complete">已驗證購買項目。這個帳號已啟用 Premium。</string>
+    <string name="premium_nothing_to_restore">找不到此 Google Play 帳號的 Premium 訂閱。</string>
+    <string name="premium_store_unavailable">無法載入 Google Play 付款服務。請檢查網路連線和 Google Play 帳號後重試。</string>
+    <string name="premium_offer_changed">優惠已變更。請重新載入並確認目前價格後再訂閱。</string>
+    <string name="premium_identity_changed">你已切換應用程式帳號。請切回購買時使用的帳號，或選擇「恢復購買項目」，將訂閱連結到這個帳號。</string>
+    <string name="premium_verification_failed">Nibomo 無法驗證你的購買項目。請檢查網路連線後重新驗證，無須再次購買。</string>
+    <string name="premium_entitlement_unknown">訂閱前須先確認你目前的方案。你仍可恢復購買項目。</string>
+    <string name="premium_entitlement_refresh_failed">無法確認你目前的方案。請檢查網路連線後重試。</string>
+    <string name="premium_retry_plan">查看目前方案</string>
+    <string name="premium_purchase_preparation_failed">無法準備購買流程。請檢查帳號、網路連線和裝置的可用儲存空間後重試。Google Play 結帳畫面尚未開啟。</string>
+    <string name="premium_storage_failed">無法在此裝置儲存恢復購買所需的資料。請檢查可用儲存空間後重試，或恢復購買項目。</string>
+    <string name="premium_purchase_failed">Google Play 無法完成付款請求。請檢查 Google Play 帳號和網路連線後重試。如果已購買，請選擇「恢復購買項目」。</string>
+    <string name="premium_entitlement_not_granted">已驗證購買項目，但這個帳號目前沒有 Premium 權益。請在 Google Play 查看訂閱，或選擇「恢復購買項目」，將訂閱連結到這個帳號。</string>
+    <plurals name="premium_phase_finite">
+        <item quantity="other">每 %2$s 收費 %1$s，共扣款 %3$d 次</item>
+    </plurals>
+    <plurals name="premium_period_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="premium_period_months">
+        <item quantity="other">%1$d 個月</item>
+    </plurals>
+    <plurals name="premium_period_years">
+        <item quantity="other">%1$d 年</item>
+    </plurals>
+    <string name="premium_close">關閉 Premium</string>
+    <string name="premium_ai_limit_title">已達 AI 訊息上限</string>
+    <string name="premium_ai_limit_message">你已用完本月的 AI 訊息額度。</string>
+    <string name="premium_ai_renewal">額度將於 %1$s 重設。</string>
+    <string name="premium_ai_usage_unavailable">無法載入額度重設日期。你仍可使用自己的 OpenAI 金鑰。</string>
+    <string name="premium_own_key_help">新增自己的 OpenAI 金鑰後，回到這個對話再次傳送訊息。使用自己的金鑰可繼續使用 AI，方案維持原樣。</string>
+    <string name="premium_own_key_action">使用自己的 OpenAI 金鑰</string>
+    <string name="premium_sign_in">建立帳號或登入</string>
+    <string name="premium_heading">打造<xliff:g id="yours" example="yours">%1$s</xliff:g> Nibomo。</string>
+    <string name="premium_heading_emphasis">專屬於你的</string>
+    <string name="premium_free_title">免費</string>
+    <string name="premium_welcome">同樣的應用程式，同樣歡迎你。由你選擇。</string>
+    <string name="premium_free_description">為沒有工作的學生打造，人人皆可使用。</string>
+    <string name="premium_free_no_creator_support">無法透過此方案贊助開發者</string>
+    <string name="premium_free_benefits">基本複習、離線學習與同步</string>
+    <string name="premium_free_limited_ai">有限的 AI 聊天額度</string>
+    <string name="premium_free_default_styles">僅限預設樣式</string>
+    <string name="premium_free_no_other_premium_features">無其他 Premium 功能</string>
+    <string name="premium_dont_pay_creator">不付費支持開發者</string>
+    <string name="premium_creator_support">你的訂閱能幫助 Nibomo 的開發者 %1$s 支付伺服器費用，也能買杯咖啡、吃片披薩，繼續開發下一次更新。</string>
+    <string name="premium_start_seven_day_trial">開始 7 天免費試用</string>
+    <string name="premium_manage">在 Google Play 管理訂閱</string>
+    <string name="premium_allowance_loading">正在載入每月 AI 額度…</string>
+    <string name="premium_allowance_unavailable">無法載入每月 AI 額度。請檢查網路連線後重試。</string>
+    <string name="premium_ai_unlimited">AI 訊息不受每月額度限制</string>
+    <string name="premium_preview_purchase_notice">測試模式：未購買任何項目，方案維持原樣。</string>
+    <string name="premium_preview_notice">這是預覽畫面。請從「訂閱」開啟 Premium，查看你的 Google Play 優惠。</string>
+    <plurals name="premium_ai_messages">
+        <item quantity="other">每月 %1$d 則 AI 聊天訊息</item>
+    </plurals>
+</resources>

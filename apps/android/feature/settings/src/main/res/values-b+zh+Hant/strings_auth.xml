@@ -1,0 +1,24 @@
+<resources>
+    <string name="settings_auth_entry_title">登入或建立帳號</string>
+    <string name="settings_auth_google">使用 Google 登入</string>
+    <string name="settings_auth_email">使用電子郵件繼續</string>
+    <string name="settings_auth_apple">使用 Apple 登入</string>
+    <string name="settings_auth_last_used">上次使用</string>
+    <string name="settings_auth_cancelled">這次 Google 登入已取消。請選擇登入方式後再試一次。</string>
+    <string name="settings_auth_google_failed">無法在此裝置完成 Google 登入。請重試，或選擇使用電子郵件繼續。</string>
+    <string name="settings_auth_fresh_attempt">登入未完成。請重新開始登入，或選擇其他方式。</string>
+    <string name="settings_auth_apple_cleanup_pending">上一次的 Apple 登入仍在清理中。請稍候再重新使用 Apple 登入，或選擇其他方式。</string>
+    <string name="settings_auth_network_restart">登入請求因網路問題未完成。請檢查網路連線後重新登入。</string>
+    <string name="settings_auth_fresh_email_code">無法安全地重試這次請求。請索取新的電子郵件驗證碼以繼續。</string>
+    <string name="settings_auth_new_email_code">索取新的電子郵件驗證碼</string>
+    <string name="settings_auth_mailbox_body">請輸入你能收信的電子郵件地址來驗證這次登入。若已有帳號，也需要重新驗證你是信箱的持有人。</string>
+    <string name="settings_auth_mailbox_code">6 至 8 位數的電子郵件驗證碼</string>
+    <string name="settings_auth_mailbox_restart">需要新的驗證碼嗎？請重新登入。這次驗證無法重新寄送驗證碼。</string>
+    <string name="settings_auth_start_again">重新開始或選擇其他方式</string>
+    <string name="settings_auth_browser_waiting">請在瀏覽器中完成 Apple 登入。如果你已關閉瀏覽器，請重新登入。</string>
+    <string name="settings_auth_return_title">Apple 登入</string>
+    <string name="settings_auth_return_storage_failed">無法在此裝置安全儲存 Apple 傳回的登入結果。請釋出一些儲存空間後重試。你也可以關閉此訊息後重新登入。</string>
+    <string name="settings_auth_return_rejected">無法使用 Apple 傳回的結果完成這次登入。請從此應用程式重新登入。</string>
+    <string name="settings_auth_retry">重試</string>
+    <string name="settings_auth_close">關閉</string>
+</resources>
