@@ -1,5 +1,5 @@
-import type { ReactElement, ReactNode } from "react";
-import { Link } from "react-router";
+import type { MouseEvent, ReactElement, ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { GuestAccountAttentionBadge } from "./account/guest/GuestAccountAttentionBadge";
 
 type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access" | "test";
@@ -10,6 +10,17 @@ type SettingsShellProps = Readonly<{
   activeTab: SettingsTab;
   children: ReactNode;
   panelClassName?: string;
+  backLink?: SettingsBackLinkProps;
+}>;
+
+type SettingsBackLinkProps = Readonly<{
+  label: string;
+  to: string;
+  testId: string;
+}>;
+
+type SettingsNavigationState = Readonly<{
+  parentPath: string;
 }>;
 
 type SettingsNavigationCardProps = Readonly<{
@@ -17,6 +28,7 @@ type SettingsNavigationCardProps = Readonly<{
   description: string | null;
   value: string | null;
   to: string;
+  parentPath?: string;
   testId?: string;
   guestAccountAttention?: boolean;
 }>;
@@ -46,8 +58,36 @@ type SettingsGroupProps = Readonly<{
   testId?: string;
 }>;
 
+function SettingsBackLink({ label, to, testId }: SettingsBackLinkProps): ReactElement {
+  const state: SettingsNavigationState | null = useLocation().state;
+  const navigate = useNavigate();
+
+  function handleClick(event: MouseEvent<HTMLAnchorElement>): void {
+    if (
+      state?.parentPath !== to
+      || event.defaultPrevented
+      || event.button !== 0
+      || event.metaKey
+      || event.ctrlKey
+      || event.shiftKey
+      || event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    void navigate(-1);
+  }
+
+  return (
+    <Link className="ghost-btn" to={to} replace onClick={handleClick} data-testid={testId}>
+      {label}
+    </Link>
+  );
+}
+
 export function SettingsShell(props: SettingsShellProps): ReactElement {
-  const { title, subtitle, activeTab, children, panelClassName } = props;
+  const { title, subtitle, activeTab, children, panelClassName, backLink } = props;
   const settingsPanelClassName = panelClassName === undefined
     ? "panel screen-panel settings-panel"
     : `panel screen-panel settings-panel ${panelClassName}`;
@@ -59,6 +99,7 @@ export function SettingsShell(props: SettingsShellProps): ReactElement {
           <div>
             <h1 className="title">{title}</h1>
           </div>
+          {backLink === undefined ? null : <SettingsBackLink {...backLink} />}
         </div>
 
         <div className="screen-body">
@@ -71,10 +112,11 @@ export function SettingsShell(props: SettingsShellProps): ReactElement {
 }
 
 export function SettingsNavigationCard(props: SettingsNavigationCardProps): ReactElement {
-  const { title, description, value, to, testId, guestAccountAttention } = props;
+  const { title, description, value, to, parentPath, testId, guestAccountAttention } = props;
+  const state: SettingsNavigationState | undefined = parentPath === undefined ? undefined : { parentPath };
 
   return (
-    <Link className={`settings-nav-card content-card${description === null ? " settings-nav-card-inline" : ""}${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} data-testid={testId}>
+    <Link className={`settings-nav-card content-card${description === null ? " settings-nav-card-inline" : ""}${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} state={state} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
         {description === null ? null : <p className="subtitle">{description}</p>}
