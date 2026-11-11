@@ -123,10 +123,7 @@ type ReviewRatingButtonColumnProps = Readonly<{
   options: ReadonlyArray<ReviewButtonOption>;
 }>;
 
-function handleDisabledSpeechToggle(): void {
-}
-
-function handleDisabledEdit(): void {
+function handleDisabledAction(): void {
 }
 
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
@@ -171,12 +168,11 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
             text={loadingReviewCurrentCard.frontText}
             contentClassName="review-front"
             copySource={null}
-            editButtonDisabled={true}
             isSpeaking={false}
-            onEdit={handleDisabledEdit}
+            edit={{ disabled: true, onEdit: handleDisabledAction }}
             onOpenAi={null}
             onOpenTextSelection={() => onRequestTextSelection("front")}
-            onToggleSpeech={handleDisabledSpeechToggle}
+            onToggleSpeech={handleDisabledAction}
             repetitionCount={null}
             shortcutTarget={null}
             showAiButton={false}
@@ -205,9 +201,9 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
                   disabled={true}
                   isShortcutTarget={false}
                   isSpeaking={false}
-                  onToggleSpeech={handleDisabledSpeechToggle}
+                  onToggleSpeech={handleDisabledAction}
                 />
-                <ReviewCardEditButton disabled={true} onEdit={handleDisabledEdit} />
+                <ReviewCardEditButton disabled={true} onEdit={handleDisabledAction} />
               </div>
             </div>
           </div>
@@ -379,9 +375,8 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             text={selectedCard.frontText}
             contentClassName="review-front"
             copySource={{ cardId: selectedCard.cardId, side: "front", sourceText: selectedCard.frontText }}
-            editButtonDisabled={false}
+            edit={{ disabled: false, onEdit: () => onEditCard(selectedCard) }}
             isSpeaking={activeSpeechSide === "front"}
-            onEdit={() => onEditCard(selectedCard)}
             onOpenAi={null}
             onOpenTextSelection={() => onRequestTextSelection("front")}
             onToggleSpeech={() => onToggleSpeech("front", selectedCard.frontText)}
@@ -412,9 +407,8 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
               text={selectedCard.backText === "" ? t("common.noBackText") : selectedCard.backText}
               contentClassName="review-back"
               copySource={{ cardId: selectedCard.cardId, side: "back", sourceText: selectedCard.backText }}
-              editButtonDisabled={false}
+              edit={null}
               isSpeaking={activeSpeechSide === "back"}
-              onEdit={null}
               onOpenAi={() => void onAiHandoff(selectedCard)}
               onOpenTextSelection={() => onRequestTextSelection("back")}
               onToggleSpeech={() => onToggleSpeech("back", selectedCard.backText)}

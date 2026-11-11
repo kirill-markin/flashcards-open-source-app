@@ -50,10 +50,10 @@ export type ReviewCardSideProps = Readonly<{
   aiButtonAriaLabel: string | null;
   contentClassName: string;
   copySource: Readonly<{ cardId: string; side: "front" | "back"; sourceText: string }> | null;
-  editButtonDisabled: boolean;
   isSpeaking: boolean;
   label: string;
-  onEdit: (() => void) | null;
+  /** The Edit action shown last in the action row; null hides it. */
+  edit: ReviewCardEditButtonProps | null;
   onOpenAi: (() => void) | null;
   onOpenTextSelection?: () => void;
   onToggleSpeech: () => void;
@@ -432,10 +432,9 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     aiButtonAriaLabel,
     contentClassName,
     copySource,
-    editButtonDisabled,
     isSpeaking,
     label,
-    onEdit,
+    edit,
     onOpenAi,
     onOpenTextSelection,
     onToggleSpeech,
@@ -502,7 +501,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
           </div>
         </div>
 
-        {copySource !== null || showSpeechButton || onEdit !== null || showAiButton ? (
+        {copySource !== null || showSpeechButton || edit !== null || showAiButton ? (
           <div className="review-card-actions">
             {copySource !== null ? (
               <ReviewCardCopyButton
@@ -522,7 +521,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
                 onToggleSpeech={onToggleSpeech}
               />
             ) : null}
-            {onEdit !== null ? <ReviewCardEditButton disabled={editButtonDisabled} onEdit={onEdit} /> : null}
+            {edit !== null ? <ReviewCardEditButton disabled={edit.disabled} onEdit={edit.onEdit} /> : null}
             {showAiButton && onOpenAi !== null ? (
               <button
                 type="button"

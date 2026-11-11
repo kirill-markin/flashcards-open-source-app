@@ -32,6 +32,7 @@ internal fun ReviewCardTagChipRow(
     onRequestTagFilter: (String) -> Unit,
     modifier: Modifier
 ) {
+    val scrollState = rememberScrollState()
     Row(
         horizontalArrangement = Arrangement.spacedBy(spacing),
         verticalAlignment = Alignment.CenterVertically,
@@ -48,9 +49,10 @@ internal fun ReviewCardTagChipRow(
                     placeable.placeRelative(x = 0, y = 0)
                 }
             }
-            // The line reaches the screen edge, so a swipe there scrolls the chips instead of starting Back.
-            .systemGestureExclusion()
-            .horizontalScroll(state = rememberScrollState())
+            // The line reaches the screen edge, so while the chips overflow a swipe there scrolls them
+            // instead of starting Back.
+            .then(if (scrollState.maxValue > 0) Modifier.systemGestureExclusion() else Modifier)
+            .horizontalScroll(state = scrollState)
             .padding(end = endBleed)
     ) {
         tags.forEach { tag ->

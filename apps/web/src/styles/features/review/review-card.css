@@ -63,7 +63,8 @@
 
 .review-card-tags-link:focus-visible {
   outline: 2px solid var(--text);
-  outline-offset: 2px;
+  /* Inset, because on narrow screens the link sits on the pane's clipping edge. */
+  outline-offset: -2px;
 }
 
 .review-tag-icon {
@@ -88,16 +89,23 @@
   font-size: 13px;
 }
 
-/* Every chip on one line that scrolls sideways; ReviewCardHeadTags maps a plain mouse wheel onto it. */
+/* Every chip on one line that scrolls sideways. A precise pointer keeps a thin native scrollbar, because a
+   plain mouse wheel only scrolls vertically; touch hides it like the other header pills. */
 .review-card-head-tags {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-inline: 4px;
-  scrollbar-width: none;
+  scrollbar-width: thin;
 }
 
-.review-card-head-tags::-webkit-scrollbar {
-  display: none;
+@media not ((hover: hover) and (pointer: fine)) {
+  .review-card-head-tags {
+    scrollbar-width: none;
+  }
+
+  .review-card-head-tags::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .review-metadata-chip {

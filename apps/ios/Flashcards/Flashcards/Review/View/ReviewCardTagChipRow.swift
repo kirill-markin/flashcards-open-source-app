@@ -27,7 +27,7 @@ struct ReviewCardTagChipRow: View {
                 Image(systemName: "tag")
                     .padding(.leading, self.leadingBleed)
                     .padding(.trailing, 8)
-                    .frame(minWidth: appMinimumTouchTarget, alignment: .trailing)
+                    .frame(minWidth: appMinimumTouchTarget, alignment: .leading)
                     // The touch target reaches the minimum height above and below the line without making it taller.
                     .background {
                         Color.clear
