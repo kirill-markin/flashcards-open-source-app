@@ -4,24 +4,11 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { strToU8, zipSync, type Zippable } from "fflate";
-import { HttpError } from "../../shared/errors";
-import { createAnkiCollection, defaultAnkiExportDeckName } from "./ankiCollection";
+import { HttpError } from "../../../shared/errors";
+import { createAnkiCollection } from "./ankiCollection";
 import { createAnkiMarkdownRenderer, type AnkiMedia } from "./ankiMarkdown";
-import {
-  loadWorkspacePackageExport,
-  type LoadedWorkspacePackageExport,
-  type WorkspacePackageExportPackageInput,
-} from "./exportPackage";
-
-export const ankiExportFileName = "flashcards.apkg";
-export const ankiExportContentType = "application/apkg";
-export const ankiExportMaxInlineBytes = 4 * 1024 * 1024;
-
-export type AnkiWorkspacePackage = Readonly<{
-  fileName: typeof ankiExportFileName;
-  contentType: typeof ankiExportContentType;
-  bytes: Uint8Array<ArrayBuffer>;
-}>;
+import type { LoadedWorkspacePackageExport } from "../exportPackage";
+import { ankiExportContentType, ankiExportFileName, type AnkiWorkspacePackage } from "./contract";
 
 const ankiPlaybackExtensions = new Set(["aac", "flac", "m4a", "mp3", "mp4", "ogg", "wav", "webm"]);
 const ankiExtraMediaExtensions: ReadonlyMap<string, string> = new Map([
@@ -99,16 +86,4 @@ export function buildAnkiWorkspacePackage(
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
-}
-
-export async function exportAnkiWorkspacePackage(
-  userId: string,
-  workspaceId: string,
-  input: WorkspacePackageExportPackageInput,
-): Promise<AnkiWorkspacePackage> {
-  const exported = await loadWorkspacePackageExport(userId, workspaceId, {
-    ...input,
-    packageMetadata: { ...input.packageMetadata, label: input.packageMetadata.label ?? defaultAnkiExportDeckName },
-  });
-  return buildAnkiWorkspacePackage(workspaceId, exported, input.generatedAt);
 }

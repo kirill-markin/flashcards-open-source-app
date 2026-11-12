@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
+import { strFromU8, unzipSync } from "fflate";
 import { HttpError } from "../../shared/errors";
+import { ankiExportMaxInlineBytes } from "../../workspacePackages/export/anki/contract";
 import type {
   WorkspacePackageExportPackageInput,
   WorkspacePackageExportPreviewInput,
@@ -194,6 +200,103 @@ test("POST /workspaces/:workspaceId/packages/export returns ZIP bytes with downl
   assert.equal(response.headers.get("content-length"), zipBytes.byteLength.toString());
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), zipBytes);
   assert.equal(exportCalls, 1);
+});
+
+test("Anki export returns an archive inline and a signed URL for a larger archive", async () => {
+  const mediaPath = "media/study-note.bin";
+  const downloadUrl = "https://storage.example.com/flashcards.apkg?signature=test";
+  let mediaBytes = Buffer.from("Study note");
+  let signedArchiveCount = 0;
+  const app = createWorkspacePackageTestApp(createWorkspacePackageRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, checkedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(checkedWorkspaceId, workspaceId);
+    },
+    ankiExportOptions: {
+      loadWorkspacePackageExportFn: async (userId, requestedWorkspaceId, input) => {
+        assert.equal(userId, "user-1");
+        assert.equal(requestedWorkspaceId, workspaceId);
+        assertExportInput(input);
+        return {
+          metadata: { label: "Starter deck" },
+          cards: [{
+            cardId,
+            card: {
+              frontText: "What is the example?",
+              backText: "**Answer:** 4\n\n$x^2$\n\n[Study note](" + mediaPath + ")",
+              tags: ["math"],
+              cardType: "basic",
+              metadata: { version: 1, source: null },
+            },
+          }],
+          mediaFiles: [{ path: mediaPath, mimeType: "text/plain", bytes: mediaBytes }],
+        };
+      },
+      createAnkiWorkspacePackageDownloadFn: async (requestedWorkspaceId, archive) => {
+        signedArchiveCount += 1;
+        assert.equal(requestedWorkspaceId, workspaceId);
+        assert.ok(archive.bytes.byteLength > ankiExportMaxInlineBytes);
+        assert.deepEqual(Buffer.from(unzipSync(archive.bytes)["0"]), mediaBytes);
+        return downloadUrl;
+      },
+    },
+  }));
+  const requestExport = async (): Promise<Response> => app.request(
+    "http://localhost/workspaces/" + workspaceId + "/packages/export/anki",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(createWorkspacePackageExportRequestBody()),
+    },
+  );
+
+  const inline = await requestExport();
+  assert.equal(inline.status, 200);
+  assert.equal(inline.headers.get("cache-control"), "private, no-store");
+  assert.equal(inline.headers.get("content-type"), "application/apkg");
+  assert.equal(inline.headers.get("content-disposition"), 'attachment; filename="flashcards.apkg"');
+  const bytes = new Uint8Array(await inline.arrayBuffer());
+  assert.equal(inline.headers.get("content-length"), bytes.byteLength.toString());
+  assert.equal(signedArchiveCount, 0);
+  const entries = unzipSync(bytes);
+  assert.deepEqual(JSON.parse(strFromU8(entries.media)), { 0: "_nibomo-study-note.bin" });
+  assert.deepEqual(Buffer.from(entries["0"]), mediaBytes);
+
+  const directory = mkdtempSync(join(tmpdir(), "nibomo-anki-route-"));
+  try {
+    const collectionPath = join(directory, "collection.anki2");
+    writeFileSync(collectionPath, entries["collection.anki2"]);
+    using collection = new DatabaseSync(collectionPath, { readOnly: true });
+    const card = collection.prepare("SELECT flds, queue, reps FROM notes JOIN cards ON cards.nid = notes.id").get();
+    assert.ok(typeof card?.flds === "string");
+    const [front, back] = card.flds.split("\u001f");
+    assert.match(front, /What is the example\?/u);
+    assert.match(back, /<strong>Answer:<\/strong> 4/u);
+    assert.ok(back.includes("\\(x^2\\)"));
+    assert.ok(back.includes('<a href="_nibomo-study-note.bin" download="">Study note</a>'));
+    assert.equal(card.queue, 0);
+    assert.equal(card.reps, 0);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+
+  mediaBytes = Buffer.alloc(ankiExportMaxInlineBytes, 0x61);
+  const signed = await requestExport();
+  assert.equal(signed.status, 200);
+  assert.equal(signed.headers.get("cache-control"), "private, no-store");
+  assert.match(signed.headers.get("content-type") ?? "", /^application\/json\b/u);
+  assert.equal(signed.headers.get("content-disposition"), null);
+  assert.deepEqual(await signed.json(), {
+    downloadUrl,
+    fileName: "flashcards.apkg",
+    contentType: "application/apkg",
+  });
+  assert.equal(signedArchiveCount, 1);
 });
 
 test("workspace package export routes stop before service calls when workspace access is denied", async () => {
