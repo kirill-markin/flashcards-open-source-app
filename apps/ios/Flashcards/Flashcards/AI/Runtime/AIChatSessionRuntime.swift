@@ -32,7 +32,7 @@ actor AIChatSessionRuntime {
         session: CloudLinkedSession,
         sessionId: String,
         afterCursor: String?,
-        ankiImportRequestId: String?,
+        aiImportRequestId: String?,
         outgoingContent: [AIChatStartRunContentPart],
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async throws {
@@ -55,15 +55,15 @@ actor AIChatSessionRuntime {
                 session: session,
                 request: AIChatStartRunRequestBody(
                     sessionId: effectiveSessionId,
-                    clientRequestId: ankiImportRequestId ?? makeAIChatClientRequestId(),
+                    clientRequestId: aiImportRequestId ?? makeAIChatClientRequestId(),
                     content: outgoingContent,
                     timezone: TimeZone.current.identifier,
                     uiLocale: currentAIChatUILocaleIdentifier()
                 )
             )
-            if let ankiImportRequestId {
+            if let aiImportRequestId {
                 guard startResponse.accepted else {
-                    throw LocalStoreError.validation("The start response did not confirm Anki import request \(ankiImportRequestId).")
+                    throw LocalStoreError.validation("The start response did not confirm AI import request \(aiImportRequestId).")
                 }
                 try validateAIChatBootstrapSessionContract(
                     response: startResponse.envelope,

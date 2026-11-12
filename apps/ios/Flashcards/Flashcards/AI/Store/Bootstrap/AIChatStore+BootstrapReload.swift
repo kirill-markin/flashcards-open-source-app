@@ -252,12 +252,12 @@ extension AIChatStore {
             && self.chatSessionId.isEmpty == false
             && self.requiresRemoteSessionProvisioning == false
             && self.composerPhase == .idle
-            && self.currentComposerDraft().origin != .ankiImport
+            && self.currentComposerDraft().origin != .aiImport
     }
 
     private func shouldPreservePendingLocalSessionDraftOnBootstrapFailure() -> Bool {
         let draft = self.currentComposerDraft()
-        if draft.origin == .ankiImport {
+        if draft.origin == .aiImport {
             return true
         }
         return self.chatSessionId.isEmpty == false

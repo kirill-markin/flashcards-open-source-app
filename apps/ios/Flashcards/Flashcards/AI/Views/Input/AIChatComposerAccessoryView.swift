@@ -117,7 +117,7 @@ extension AIChatView {
                     }
                 }
 
-                if self.chatStore.isAnkiImportDraftBlocked {
+                if self.chatStore.isAIImportDraftBlocked {
                     Text(
                         aiSettingsLocalized(
                             "ai.composer.ankiImport.unconfirmed",

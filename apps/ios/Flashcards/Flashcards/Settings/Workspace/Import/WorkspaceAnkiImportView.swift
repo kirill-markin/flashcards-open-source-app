@@ -1,14 +1,14 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-func ankiImportWorkspaceChangedMessage() -> String {
+func aiImportWorkspaceChangedMessage() -> String {
     aiSettingsLocalized(
         "settings.workspace.import.anki.workspaceChanged",
         "The workspace or account changed. Go back to Library and start the import again."
     )
 }
 
-func ankiImportWaitingMessage() -> String {
+func aiImportWaitingMessage() -> String {
     aiSettingsLocalized("settings.workspace.import.anki.waiting", "Waiting to start Anki import…")
 }
 
@@ -89,7 +89,7 @@ struct WorkspaceAnkiImportView: View {
                         Text(aiSettingsLocalized("settings.workspace.import.anki.start", "Start Import"))
                     }
                 }
-                .disabled(self.selectedFiles.isEmpty || self.isBusy || self.navigation.ankiImportRequest != nil)
+                .disabled(self.selectedFiles.isEmpty || self.isBusy || self.navigation.aiImportRequest != nil)
             }
         }
         .listStyle(.insetGrouped)
@@ -181,14 +181,14 @@ struct WorkspaceAnkiImportView: View {
     }
 
     private func startImport() {
-        guard !self.isBusy, self.navigation.ankiImportRequest == nil, !self.selectedFiles.isEmpty else {
+        guard !self.isBusy, self.navigation.aiImportRequest == nil, !self.selectedFiles.isEmpty else {
             return
         }
         self.errorMessage = nil
         let chatStore = self.store.aiChatStore
         let accessContext = chatStore.currentAccessContext()
         guard accessContext.workspaceId != nil else {
-            self.errorMessage = ankiImportWorkspaceChangedMessage()
+            self.errorMessage = aiImportWorkspaceChangedMessage()
             return
         }
 
@@ -210,14 +210,22 @@ struct WorkspaceAnkiImportView: View {
                 }
                 guard accessContext == chatStore.currentAccessContext() else {
                     aiChatRemoveAttachmentFiles(attachments: attachments)
-                    self.errorMessage = ankiImportWorkspaceChangedMessage()
+                    self.errorMessage = aiImportWorkspaceChangedMessage()
                     return
                 }
 
-                let request = AnkiImportPresentationRequest(id: UUID(), accessContext: accessContext, attachments: attachments)
-                guard self.navigation.openAIAnkiImport(request: request) else {
+                let request = AIImportPresentationRequest(
+                    id: UUID(),
+                    accessContext: accessContext,
+                    attachments: attachments,
+                    requestText: aiSettingsLocalized(
+                        "settings.workspace.import.anki.request",
+                        "Import all attached Anki decks into this workspace."
+                    )
+                )
+                guard self.navigation.openAIImport(request: request) else {
                     aiChatRemoveAttachmentFiles(attachments: attachments)
-                    self.errorMessage = ankiImportWaitingMessage()
+                    self.errorMessage = aiImportWaitingMessage()
                     return
                 }
                 self.clearSelectedFiles()

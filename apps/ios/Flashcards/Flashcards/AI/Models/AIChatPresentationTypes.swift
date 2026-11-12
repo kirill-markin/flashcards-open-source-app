@@ -5,10 +5,11 @@ enum AIChatPresentationRequest: Hashable, Sendable {
     case attachCard(AIChatCardReference)
 }
 
-struct AnkiImportPresentationRequest: Equatable {
+struct AIImportPresentationRequest: Equatable {
     let id: UUID
     let accessContext: AIChatAccessContext
     let attachments: [AIChatAttachment]
+    let requestText: String
 
     func matches(accessContext current: AIChatAccessContext, preservedGuestLink: PreservedGuestWorkspaceLink?) -> Bool {
         if self.accessContext == current {
