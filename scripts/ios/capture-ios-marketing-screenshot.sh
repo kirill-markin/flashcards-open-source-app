@@ -700,7 +700,7 @@ verify_duo_screenshot_dimensions() {
     local width=""
     local height=""
 
-    [[ "$device_family" == iphone-duo-* ]] || return
+    [[ "$device_family" == iphone-duo-* ]] || return 0
     expected_dimensions="$(duo_native_dimensions)"
 
     width="$(sips -g pixelWidth "$screenshot_path" | sed -nE 's/^[[:space:]]*pixelWidth: ([0-9]+)$/\1/p')"
