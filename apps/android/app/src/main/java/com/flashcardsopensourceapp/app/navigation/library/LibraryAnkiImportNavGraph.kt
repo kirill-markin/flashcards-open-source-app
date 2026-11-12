@@ -20,14 +20,14 @@ internal fun NavGraphBuilder.registerLibraryAnkiImportDestination(
         val importViewModel = viewModel<AnkiImportViewModel>(
             factory = createAnkiImportViewModelFactory(
                 applicationContext = context.applicationContext,
-                captureImportOrigin = appGraph::captureAiAnkiImportOrigin
+                captureImportOrigin = appGraph::captureAiImportOrigin
             )
         )
         AnkiImportRoute(
             viewModel = importViewModel,
             onStartImport = { request, origin ->
-                appGraph.appHandoffCoordinator.requestAiAnkiImport(
-                    ankiImport = request,
+                appGraph.appHandoffCoordinator.requestAiImport(
+                    aiImport = request,
                     origin = origin
                 )
                 navController.popBackStack(route = LibraryImportDestination.route, inclusive = false)

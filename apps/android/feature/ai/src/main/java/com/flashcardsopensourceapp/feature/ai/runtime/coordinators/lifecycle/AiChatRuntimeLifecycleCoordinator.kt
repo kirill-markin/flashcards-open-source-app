@@ -126,7 +126,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 loadedAccessKey = context.activeAccessContext?.runtimeKey(),
                 draftMessage = draftState.draftMessage,
                 pendingAttachments = draftState.pendingAttachments,
-                ankiImportRequest = draftState.ankiImportRequest,
+                importRequest = draftState.importRequest,
                 conversationBootstrapState = if (accessContext.workspaceId == null) {
                     AiConversationBootstrapState.LOADING
                 } else if (shouldBootstrapConversation(
@@ -141,7 +141,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
             )
 
             context.runtimeStateMutable.value = nextState
-            if (storedDraft.ankiImportRequest == null || draftState.ankiImportRequest != null) {
+            if (storedDraft.importRequest == null || draftState.importRequest != null) {
                 context.persistCurrentState()
             }
             if (accessContext.workspaceId == null) {
@@ -387,7 +387,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
         if (canUseAi.not()) {
             return false
         }
-        if (context.activeFreshSessionJob != null || state.ankiImportRequest != null) {
+        if (context.activeFreshSessionJob != null || state.importRequest != null) {
             return false
         }
 

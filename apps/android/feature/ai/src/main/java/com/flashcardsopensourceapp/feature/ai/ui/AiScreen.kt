@@ -67,7 +67,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
-import com.flashcardsopensourceapp.feature.ai.AiPendingAnkiImport
+import com.flashcardsopensourceapp.feature.ai.AiPendingImport
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
@@ -104,7 +104,7 @@ import com.flashcardsopensourceapp.feature.settings.access.resolveAccessStatus
 @Composable
 internal fun AiRouteContent(
     uiState: AiUiState,
-    pendingAnkiImport: AiPendingAnkiImport?,
+    pendingImport: AiPendingImport?,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
     onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
@@ -179,9 +179,9 @@ internal fun AiRouteContent(
         uiState.composerSuggestions.isNotEmpty()
     val isColdConversationLoading = uiState.isConversationLoading &&
         hasLocalConversationContent.not()
-    val isWaitingForAnkiGuestAccess = pendingAnkiImport != null && uiState.needsGuestAccessPreparation
-    val ankiGuestAccessError = uiState.guestAccessPreparationError.takeIf { isWaitingForAnkiGuestAccess }
-    val showConversation = isWaitingForAnkiGuestAccess.not() &&
+    val isWaitingForImportGuestAccess = pendingImport != null && uiState.needsGuestAccessPreparation
+    val importGuestAccessError = uiState.guestAccessPreparationError.takeIf { isWaitingForImportGuestAccess }
+    val showConversation = isWaitingForImportGuestAccess.not() &&
         (uiState.isConversationReady || (uiState.isConversationLoading && hasLocalConversationContent))
     val showComposer = uiState.isConsentRequired.not() && showConversation
 
@@ -444,7 +444,7 @@ internal fun AiRouteContent(
                         actions = {
                             IconButton(
                                 onClick = onOpenHistory,
-                                enabled = uiState.canOpenChatHistory && isWaitingForAnkiGuestAccess.not(),
+                                enabled = uiState.canOpenChatHistory && isWaitingForImportGuestAccess.not(),
                                 modifier = Modifier.testTag(tag = aiHistoryButtonTag)
                             ) {
                                 Icon(
@@ -454,7 +454,7 @@ internal fun AiRouteContent(
                             }
                             IconButton(
                                 onClick = onNewChat,
-                                enabled = uiState.canStartNewChat && isWaitingForAnkiGuestAccess.not(),
+                                enabled = uiState.canStartNewChat && isWaitingForImportGuestAccess.not(),
                                 modifier = Modifier.testTag(tag = aiNewChatButtonTag)
                             ) {
                                 Icon(
@@ -464,19 +464,19 @@ internal fun AiRouteContent(
                             }
                         }
                     )
-                    if (uiState.isConsentRequired.not() && pendingAnkiImport != null) {
+                    if (uiState.isConsentRequired.not() && pendingImport != null) {
                         ListItem(
                             headlineContent = { Text(stringResource(id = R.string.ai_anki_import_pending)) },
                             supportingContent = {
                                 Text(
-                                    text = pendingAnkiImport.fileNames.joinToString(separator = ", "),
+                                    text = pendingImport.fileNames.joinToString(separator = ", "),
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             },
                             trailingContent = {
                                 TextButton(
-                                    onClick = pendingAnkiImport.onCancel,
+                                    onClick = pendingImport.onCancel,
                                     modifier = Modifier.testTag(tag = "ai_pending_anki_import_cancel")
                                 ) {
                                     Text(stringResource(id = R.string.ai_anki_import_cancel))
@@ -495,11 +495,11 @@ internal fun AiRouteContent(
             if (uiState.isConsentRequired) {
                 ConsentGate(
                     currentWorkspaceName = uiState.currentWorkspaceName,
-                    pendingAnkiImport = pendingAnkiImport,
+                    pendingImport = pendingImport,
                     onAcceptConsent = onAcceptConsent,
                     modifier = contentModifier
                 )
-            } else if (isColdConversationLoading || (isWaitingForAnkiGuestAccess && ankiGuestAccessError == null)) {
+            } else if (isColdConversationLoading || (isWaitingForImportGuestAccess && importGuestAccessError == null)) {
                 AiConversationLoading(
                     modifier = contentModifier
                 )
@@ -515,7 +515,7 @@ internal fun AiRouteContent(
                     ) {
                         Text(stringResource(id = R.string.ai_chat_unavailable_title))
                         AiConversationLoadErrorCard(
-                            presentation = ankiGuestAccessError ?: uiState.conversationErrorPresentation,
+                            presentation = importGuestAccessError ?: uiState.conversationErrorPresentation,
                             modifier = Modifier.fillMaxWidth()
                         )
                         if (uiState.canRetryConversationLoad) {

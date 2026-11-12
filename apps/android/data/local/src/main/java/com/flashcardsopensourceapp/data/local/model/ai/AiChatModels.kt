@@ -7,7 +7,7 @@ import java.util.UUID
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class AiAnkiImportTarget(
+data class AiImportTarget(
     val workspaceId: String,
     val cloudState: CloudAccountState,
     val linkedUserId: String?,
@@ -16,8 +16,8 @@ data class AiAnkiImportTarget(
 )
 
 @Serializable
-data class AiChatAnkiImportRequest(
-    val target: AiAnkiImportTarget,
+data class AiChatImportRequest(
+    val target: AiImportTarget,
     val sessionId: String,
     val clientRequestId: String,
     val draftMessage: String,
@@ -30,10 +30,10 @@ data class AiChatAnkiImportRequest(
     }
 }
 
-class AiAnkiImportTargetChangedException :
-    IllegalStateException("The authorized workspace, account, or server changed before the Anki import started.")
+class AiImportTargetChangedException :
+    IllegalStateException("The authorized workspace, account, or server changed before the import started.")
 
-class AiAnkiImportPersistenceException(message: String) : IllegalStateException(message)
+class AiImportPersistenceException(message: String) : IllegalStateException(message)
 
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 // Upload limits of one chat turn, the ones apps/backend/src/chatFiles/uploads.ts enforces.
@@ -347,10 +347,10 @@ data class AiChatSessionProvisioningResult(
 data class AiChatDraftState(
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
-    val ankiImportRequest: AiChatAnkiImportRequest?
+    val importRequest: AiChatImportRequest?
 ) {
     constructor(draftMessage: String, pendingAttachments: List<AiChatAttachment>) :
-        this(draftMessage = draftMessage, pendingAttachments = pendingAttachments, ankiImportRequest = null)
+        this(draftMessage = draftMessage, pendingAttachments = pendingAttachments, importRequest = null)
 }
 
 sealed interface AiChatWireContentPart {
@@ -478,7 +478,7 @@ fun makeDefaultAiChatDraftState(): AiChatDraftState {
 }
 
 fun AiChatDraftState.isEmpty(): Boolean {
-    return draftMessage.isBlank() && pendingAttachments.isEmpty() && ankiImportRequest == null
+    return draftMessage.isBlank() && pendingAttachments.isEmpty() && importRequest == null
 }
 
 data class AiChatAttachmentReference(

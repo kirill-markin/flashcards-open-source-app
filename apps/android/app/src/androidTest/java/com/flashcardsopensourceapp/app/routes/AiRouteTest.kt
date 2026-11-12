@@ -98,7 +98,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(isConsentRequired = consentRequired),
                     onAcceptConsent = {
                         consentRequired = false
@@ -160,7 +160,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -243,7 +243,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -307,7 +307,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
@@ -354,7 +354,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         draftMessage = "hello",
                         canSend = true
@@ -414,7 +414,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             CompositionLocalProvider(LocalFocusManager provides recordingFocusManager) {
                 FlashcardsTheme {
                     AiRoute(
-                        pendingAnkiImport = null,
+                        pendingImport = null,
                         uiState = makeAiUiState(
                             draftMessage = "hello",
                             canSend = true
@@ -482,7 +482,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
@@ -548,7 +548,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         isConversationReady = false,
                         isConversationLoading = true
@@ -601,7 +601,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -675,7 +675,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(
@@ -750,7 +750,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ) {
                     composable(route = "ai") {
                         AiRoute(
-                            pendingAnkiImport = null,
+                            pendingImport = null,
                             uiState = makeAiUiState(
                                 messages = listOf(
                                     AiChatMessage(
@@ -829,7 +829,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         conversationErrorPresentation = AiBootstrapErrorPresentation(
                             message = accountStatusMessage,
@@ -895,7 +895,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
-                    pendingAnkiImport = null,
+                    pendingImport = null,
                     uiState = makeAiUiState(
                         messages = listOf(
                             AiChatMessage(

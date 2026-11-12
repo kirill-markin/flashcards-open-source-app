@@ -8,7 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.hasActiveOwnOpenAiKey
@@ -21,7 +21,6 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
-import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImport
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntime
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
@@ -266,8 +265,8 @@ class AiViewModel(
         return chatRuntime.applyEntryPrefill(prefill = prefill)
     }
 
-    fun handoffAnkiImportToChat(ankiImport: AiAnkiImport, workspace: AiAnkiImportTarget?): Boolean {
-        return chatRuntime.handoffAnkiImportToChat(ankiImport = ankiImport, workspace = workspace)
+    fun handoffImportToChat(aiImport: AiImport, workspace: AiImportTarget?): Boolean {
+        return chatRuntime.handoffImportToChat(aiImport = aiImport, workspace = workspace)
     }
 
     fun handoffCardToChat(

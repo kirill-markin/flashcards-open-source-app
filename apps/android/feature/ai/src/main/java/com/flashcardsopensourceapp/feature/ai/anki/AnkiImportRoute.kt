@@ -36,6 +36,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flashcardsopensourceapp.core.ui.ImportFileField
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumFileAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumUploadedAttachmentsPerMessage
+import com.flashcardsopensourceapp.feature.ai.AiImport
+import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes
 
@@ -47,7 +49,7 @@ const val ankiImportStartButtonTag: String = "anki_import_start"
 @Composable
 fun AnkiImportRoute(
     viewModel: AnkiImportViewModel,
-    onStartImport: (AiAnkiImport, AiAnkiImportOrigin) -> Unit,
+    onStartImport: (AiImport, AiImportOrigin) -> Unit,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

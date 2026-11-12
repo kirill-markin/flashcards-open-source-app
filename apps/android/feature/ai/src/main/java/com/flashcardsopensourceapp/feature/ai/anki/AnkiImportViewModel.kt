@@ -10,9 +10,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumUploadedAttachmentsPerMessage
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.LocalGuestWorkspaceMigration
+import com.flashcardsopensourceapp.feature.ai.AiImport
+import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentImportUserException
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
@@ -27,22 +26,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class AiAnkiImport(
-    val message: String,
-    val attachments: List<AiChatAttachment.Binary>
-)
-
-data class AiAnkiImportOrigin(
-    val workspaceId: String,
-    val cloudSettings: CloudSettings,
-    val configuration: CloudServiceConfiguration,
-    val previousGuestMigration: LocalGuestWorkspaceMigration?
-)
-
 internal data class AnkiImportFile(val uri: Uri, val attachment: AiChatAttachment.Binary)
 
 internal data class AnkiImportUiState(
-    val origin: AiAnkiImportOrigin?,
+    val origin: AiImportOrigin?,
     val files: List<AnkiImportFile>,
     val isPreparing: Boolean,
     val isPickerOpen: Boolean,
@@ -56,7 +43,7 @@ internal data class AnkiImportUiState(
 
 class AnkiImportViewModel(
     private val applicationContext: Context,
-    captureImportOrigin: suspend () -> AiAnkiImportOrigin?
+    captureImportOrigin: suspend () -> AiImportOrigin?
 ) : ViewModel() {
     private val uiStateMutable = MutableStateFlow(
         AnkiImportUiState(
@@ -193,13 +180,13 @@ class AnkiImportViewModel(
         deleteAiChatAttachmentStagedFiles(attachments = listOf(file.attachment))
     }
 
-    internal fun takeImport(message: String): AiAnkiImport? {
+    internal fun takeImport(message: String): AiImport? {
         val state = uiStateMutable.value
         if (state.files.isEmpty() || state.isBusy) {
             return null
         }
         uiStateMutable.value = state.copy(files = emptyList(), isStarting = true)
-        return AiAnkiImport(
+        return AiImport(
             message = message,
             attachments = state.files.map(AnkiImportFile::attachment)
         )
@@ -212,7 +199,7 @@ class AnkiImportViewModel(
 
 fun createAnkiImportViewModelFactory(
     applicationContext: Context,
-    captureImportOrigin: suspend () -> AiAnkiImportOrigin?
+    captureImportOrigin: suspend () -> AiImportOrigin?
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
