@@ -457,6 +457,9 @@ describe("WorkspaceImportScreen package import", () => {
     expect(getContainer().querySelector("[data-testid='workspace-text-import-editor']")).toBeNull();
     expect(getContainer().querySelector("[data-testid='workspace-package-import-card']")).toBeNull();
     expect(getContainer().querySelector("[data-testid='workspace-ai-import-card']")).toBeNull();
+    const algoAppRow = requireElement("[data-testid='library-import-ankiapp']", HTMLAnchorElement);
+    expect(algoAppRow.textContent).toContain("AlgoApp (formerly AnkiApp)");
+    expect(algoAppRow.textContent).toContain(".zip, .xml");
   });
 
   it.each([

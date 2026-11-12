@@ -7,8 +7,7 @@ enum AIImportSourceInput: Hashable, Sendable {
     case pastedText(fileName: String)
 }
 
-/// One row of Library > Import > From another app. Every source hands its export to a fresh AI chat,
-/// which parses it; the app checks only the extension and that the file is not empty.
+/// Keep a row per source brand even when file formats overlap. Every row hands off to the same AI import flow.
 enum AIImportSource: String, Hashable, CaseIterable, Sendable {
     case quizlet
     case anki
@@ -36,7 +35,7 @@ enum AIImportSource: String, Hashable, CaseIterable, Sendable {
         case .cram: "Cram"
         case .mochi: "Mochi"
         case .supermemo: "SuperMemo"
-        case .ankiapp: "AnkiApp"
+        case .ankiapp: "AlgoApp (formerly AnkiApp)"
         case .other: nil
         }
     }
