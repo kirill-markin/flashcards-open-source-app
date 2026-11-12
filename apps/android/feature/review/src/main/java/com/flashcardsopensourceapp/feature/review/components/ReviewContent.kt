@@ -380,6 +380,7 @@ private fun ReviewCardContent(
                     showSpeechButton = currentCard.frontSpeakableText.isNotEmpty(),
                     repetitionCount = currentCard.card.reps,
                     onEditCard = onOpenCurrentCard,
+                    editButtonTag = reviewEditCardButtonTag,
                     showAiButton = false,
                     onOpenAi = null
                 )
@@ -403,7 +404,8 @@ private fun ReviewCardContent(
                         onToggleSpeech = onToggleBackSpeech,
                         showSpeechButton = currentCard.backSpeakableText.isNotEmpty(),
                         repetitionCount = null,
-                        onEditCard = null,
+                        onEditCard = onOpenCurrentCard,
+                        editButtonTag = reviewEditBackCardButtonTag,
                         showAiButton = true,
                         onOpenAi = onOpenCurrentCardWithAi
                     )
@@ -467,7 +469,8 @@ private fun ReviewCardSideSection(
     onToggleSpeech: () -> Unit,
     showSpeechButton: Boolean,
     repetitionCount: Int?,
-    onEditCard: (() -> Unit)?,
+    onEditCard: () -> Unit,
+    editButtonTag: String,
     showAiButton: Boolean,
     onOpenAi: (() -> Unit)?
 ) {
@@ -593,23 +596,21 @@ private fun ReviewCardSideSection(
                 }
             }
 
-            if (onEditCard != null) {
-                FilledIconButton(
-                    onClick = onEditCard,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier
-                        .size(reviewSpeechButtonSize)
-                        .testTag(reviewEditCardButtonTag)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = stringResource(id = R.string.review_edit_card_content_description),
-                        modifier = Modifier.size(reviewSpeechIconSize)
-                    )
-                }
+            FilledIconButton(
+                onClick = onEditCard,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .size(reviewSpeechButtonSize)
+                    .testTag(editButtonTag)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = stringResource(id = R.string.review_edit_card_content_description),
+                    modifier = Modifier.size(reviewSpeechIconSize)
+                )
             }
 
             if (showAiButton) {

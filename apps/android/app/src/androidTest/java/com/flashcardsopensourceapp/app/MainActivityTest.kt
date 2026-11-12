@@ -5,6 +5,7 @@ import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
@@ -60,6 +61,7 @@ import com.flashcardsopensourceapp.feature.cards.libraryImportScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryTagsRowTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewEditBackCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
@@ -117,6 +119,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         private const val uiTimeoutMillis: Long = 20_000L
         private const val backStackPopLimit: Int = 6
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
+        private const val reviewOverlayFixtureFrontText: String = "Visible review contract"
     }
 
     private val appStateResetRule = AppStateResetRule()
@@ -549,6 +552,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterButtonTag).fetchSemanticsNode()
         composeRule.onNodeWithText("All cards").fetchSemanticsNode()
         composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(reviewEditBackCardButtonTag).assertDoesNotExist()
         assertTrue(composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithText("Edit card").fetchSemanticsNodes().isEmpty())
 
@@ -695,8 +699,16 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
                 && composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
-        composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
         composeRule.onNodeWithTag(reviewAiCardButtonTag).fetchSemanticsNode()
+
+        for (editButtonTag in listOf(reviewEditBackCardButtonTag, reviewEditCardButtonTag)) {
+            composeRule.onNodeWithTag(editButtonTag).performScrollTo().performClick()
+            waitForTagToExist(tag = cardEditorFrontSummaryCardTag)
+            composeRule.onNodeWithTag(cardEditorFrontSummaryCardTag)
+                .assert(hasText(reviewOverlayFixtureFrontText))
+            pressBack()
+            waitForTagToExist(tag = reviewRateGoodButtonTag)
+        }
     }
 
     private fun waitForCardsEmptyState() {
@@ -847,7 +859,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun createReviewOverlayFixtureCard() {
         createCard(
-            frontText = "Visible review contract",
+            frontText = reviewOverlayFixtureFrontText,
             backText = "First line.\n\nSecond line that is long enough to require scrolling behind the action overlay.",
             tags = listOf("review", "android")
         )

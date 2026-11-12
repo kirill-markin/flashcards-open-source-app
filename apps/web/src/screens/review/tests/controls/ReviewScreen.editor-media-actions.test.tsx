@@ -76,7 +76,7 @@ describe("ReviewScreen editor media and actions", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-card-edit-btn");
+    const editButton = getContainer().querySelector("[data-testid='review-edit-front']");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -185,7 +185,7 @@ describe("ReviewScreen editor media and actions", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-card-edit-btn");
+    const editButton = getContainer().querySelector("[data-testid='review-edit-front']");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -243,7 +243,7 @@ describe("ReviewScreen editor media and actions", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-card-edit-btn");
+    const editButton = getContainer().querySelector("[data-testid='review-edit-front']");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
@@ -272,7 +272,7 @@ describe("ReviewScreen editor media and actions", () => {
 
     await renderReviewScreen();
 
-    const editButton = getContainer().querySelector(".review-card-edit-btn");
+    const editButton = getContainer().querySelector("[data-testid='review-edit-front']");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }
