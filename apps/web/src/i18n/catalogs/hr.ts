@@ -1162,10 +1162,6 @@ const hrCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otvori karticu u AI razgovoru: {{side}}",
     repetitionBadgeAriaLabel: "Ponavljanja: {{value}}",
     repetitionBadgeNew: "Nova",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Još oznaka: {{count}}",
-    },
     empty: {
       noCardsBody: "Još niste stvorili nijednu karticu. Dodajte prvu karticu da biste počeli učiti.",
       noCardsTitle: "Još nema kartica",

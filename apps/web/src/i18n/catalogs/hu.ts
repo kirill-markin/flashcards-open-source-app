@@ -1153,10 +1153,6 @@ const huCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Kártyaoldal megnyitása AI-csevegésben ({{side}})",
     repetitionBadgeAriaLabel: "Ismétlések: {{value}}",
     repetitionBadgeNew: "Új",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "További címkék: {{count}}",
-    },
     empty: {
       noCardsBody: "Még nem hoztál létre kártyát. Adj hozzá egyet a tanulás elkezdéséhez.",
       noCardsTitle: "Még nincs kártya",

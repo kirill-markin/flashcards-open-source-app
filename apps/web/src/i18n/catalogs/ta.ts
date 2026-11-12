@@ -1153,10 +1153,6 @@ const taCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI அரட்டையில் அட்டையைத் திற: {{side}}",
     repetitionBadgeAriaLabel: "பயிற்சி முறைகள்: {{value}}",
     repetitionBadgeNew: "புதியது",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "மேலும் குறிச்சொற்கள்: {{count}}",
-    },
     empty: {
       noCardsBody: "நீங்கள் இன்னும் அட்டைகளை உருவாக்கவில்லை. படிக்கத் தொடங்க முதல் அட்டையைச் சேர்க்கவும்.",
       noCardsTitle: "இன்னும் அட்டைகள் இல்லை",

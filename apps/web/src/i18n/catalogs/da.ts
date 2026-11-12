@@ -1153,10 +1153,6 @@ const daCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Åbn kortets side ({{side}}) i AI-chatten",
     repetitionBadgeAriaLabel: "Gentagelser: {{value}}",
     repetitionBadgeNew: "Nyt",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Flere tags: {{count}}",
-    },
     empty: {
       noCardsBody: "Du har ikke oprettet nogen kort endnu. Tilføj dit første kort for at komme i gang.",
       noCardsTitle: "Ingen kort endnu",

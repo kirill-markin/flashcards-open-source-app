@@ -1153,10 +1153,6 @@ const thCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "เปิด{{side}}ของการ์ดในแชท AI",
     repetitionBadgeAriaLabel: "ทบทวนแล้ว: {{value}} ครั้ง",
     repetitionBadgeNew: "ใหม่",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "แท็กเพิ่มเติม: {{count}}",
-    },
     empty: {
       noCardsBody: "คุณยังไม่ได้สร้างการ์ดเลย เพิ่มการ์ดใบแรกเพื่อเริ่มเรียน",
       noCardsTitle: "ยังไม่มีการ์ด",

@@ -1153,10 +1153,6 @@ const arCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "افتح جانب {{side}} من البطاقة في دردشة الذكاء الاصطناعي",
     repetitionBadgeAriaLabel: "المراجعات: {{value}}",
     repetitionBadgeNew: "جديدة",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "وسوم أخرى: {{count}}",
-    },
     empty: {
       noCardsBody: "لم تنشئ أي بطاقات بعد. أضف بطاقتك الأولى لبدء الدراسة.",
       noCardsTitle: "لا توجد بطاقات بعد",

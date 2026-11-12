@@ -1153,10 +1153,6 @@ const ptBrCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Abrir o {{side}} do cartão no chat com IA",
     repetitionBadgeAriaLabel: "Repetições: {{value}}",
     repetitionBadgeNew: "Novo",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Mais etiquetas: {{count}}",
-    },
     empty: {
       noCardsBody: "Você ainda não criou nenhum cartão. Adicione seu primeiro cartão para começar a estudar.",
       noCardsTitle: "Nenhum cartão ainda",

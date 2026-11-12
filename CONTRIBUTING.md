@@ -8,6 +8,18 @@ Contributions are very welcome!
 - Improve the app incrementally rather than fully rewriting it.
 - Keep each pull request focused on related changes. Submit independent changes in separate pull requests.
 
+## Pull requests with visible changes
+
+When a pull request changes anything people see, open its description with
+screenshots, before any text:
+
+- Put before and after side by side, from the same screen, size, theme, and data.
+- Cover each client the change touches (web, iOS/iPadOS, Mac, Android), at phone
+  and wide sizes when the layout depends on width.
+- Use a short video or GIF when the change is an interaction rather than a layout.
+- Attach the images to the description or host them outside the pull request
+  branch; never commit them to it.
+
 ## Marketing media
 
 App builds need no marketing-media download. For store screenshots, galleries,
