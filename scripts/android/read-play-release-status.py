@@ -23,8 +23,7 @@ LIFECYCLE_DESCRIPTIONS = {
     'RELEASE_LIFECYCLE_STATE_PUBLISHED': 'Available on the track; may be fully rolled out, staged, or halted.',
 }
 LIMITATION = 'The API returns at most 20 non-obsolete releases per track. It does not establish full rollout or public propagation.'
-# The phone ships to production; the Wear OS bundle ships to Wear OS internal testing.
-TRACKS = ('production', 'wear:qa')
+TRACKS = ('production', 'wear:production')
 
 
 class ReleaseSummary(TypedDict):

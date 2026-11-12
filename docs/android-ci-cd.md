@@ -16,7 +16,7 @@ The R8 coverage gate enforces Google Play's 25% minimum in each R8 category on t
 
 We treat the managed-device app instrumentation suite as the closest CI signal to production behavior, while GitHub-hosted jobs keep the fast unit/build/lint checks and the smaller `data:local` instrumentation gate. Google access uses Workload Identity Federation, never a long-lived service account key.
 
-A green `Android Release` run means the GitHub-hosted Android gate and both Device Run sessions, jobs and executions passed, and CI uploaded the phone `production` Play draft and released the Wear OS bundle to [Wear OS internal testing](#one-time-play-console-setup) (`wear:qa`). Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
+A green `Android Release` run means the GitHub-hosted Android gate and both Device Run sessions, jobs and executions passed, and CI uploaded the phone `production` and Wear OS `wear:production` Play drafts. Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
 Historical networking evidence is retained in the [Device Run incident and recovery record](android-device-run-network-issue.md).
 
@@ -128,9 +128,9 @@ Before the release workflow can upload draft releases to Google Play, complete t
 2. Complete the required Play Console setup sections for the app shell, including app access, ads declaration, content rating, target audience, privacy policy, and Data safety if Play requires them for release submission.
 3. Enable Play App Signing for the app.
 4. Configure production availability in Play Console, including countries and regions for the production track.
-5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to upload production-track draft releases and release to testing tracks.
+5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to upload production-track draft releases.
 6. Make the first signed upload manually in Play Console using the same upload keystore that CI will use later.
-7. Before the first release that uploads the watch bundle, add the Wear OS form factor (Advanced settings → Form factors) and add Wear OS screenshots. Until the Wear OS opt-in is complete, each release puts the watch build on Wear OS internal testing (`wear:qa`, available to internal testers). After the first such release, complete the opt-in: Advanced settings → Form factors → Wear OS → opt in and agree to the review policy. Moving the watch to `wear:production` is a later change.
+7. Before the first release that uploads the watch bundle, enable Wear OS: add the Wear OS form factor (Advanced settings → Form factors); add Wear OS screenshots to every language of the default listing and of every custom store listing; on the Wear OS internal testing track, select testers and roll out one watch bundle by hand; then opt in to Wear OS and agree to the review policy, and send that change for review. The Wear OS tracks are `wear:internal`, `wear:beta` and `wear:production`; Google's `wear:qa` example does not exist.
 
 That first manual upload is the safest bootstrap step because it establishes the app entry, Play App Signing state, and first track release before CI takes over subsequent draft uploads.
 

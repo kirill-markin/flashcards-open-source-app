@@ -713,7 +713,7 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
 
   publish_wear_android:
-    name: Upload Wear OS bundle to Google Play Wear OS internal testing release
+    name: Upload Wear OS bundle to Google Play Wear OS production draft release
     # After the phone publisher, so the two Play edits never overlap.
     needs:
       - preflight
@@ -757,13 +757,13 @@ jobs:
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
-      - name: Upload Wear OS bundle to Google Play Wear OS internal testing track
+      - name: Upload Wear OS bundle to Google Play Wear OS production track as draft release
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           AAB_PATH: ${{ runner.temp }}/android-wear-release-bundle/wear-release.aab
           AAB_SHA256: ${{ needs.build_signed_android.outputs.wear_aab_sha256 }}
           ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
-          ANDROID_PLAY_TRACK: 'wear:qa'
+          ANDROID_PLAY_TRACK: 'wear:production'
           ARTIFACT_SOURCE_SHA: ${{ needs.preflight.outputs.target_sha }}
           PLAY_PROVENANCE_PATH: ${{ runner.temp }}/play-wear-publisher-provenance.json
         run: python3 .release-tools/scripts/android/publish-play-draft.py
@@ -776,18 +776,18 @@ jobs:
           if-no-files-found: ignore
           path: ${{ runner.temp }}/play-wear-publisher-provenance.json
 
-      - name: Summarize Wear OS Play internal testing upload
+      - name: Summarize Wear OS Play draft upload
         run: |
           {
-            echo "## Wear OS Play internal testing upload"
+            echo "## Wear OS Play draft upload"
             echo ""
-            echo "- Track: \`wear:qa\`"
+            echo "- Track: \`wear:production\`"
             echo "- Release name: \`${ANDROID_PLAY_RELEASE_NAME}\`"
             echo "- Version code: \`${ANDROID_VERSION_CODE}\`"
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
-            echo "- Release status: \`completed\` (available to internal testers)"
-            echo "- Next step: if the Wear OS opt-in is not complete, complete it in Play Console (Advanced settings → Form factors → Wear OS)."
+            echo "- Upload state: \`draft\`"
+            echo "- Next step: publish it in Play Console together with the phone draft of this run."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
@@ -819,8 +819,8 @@ jobs:
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
             echo "- Wear OS version code: \`${{ needs.preflight.outputs.android_wear_version_code || 'n/a' }}\`"
             echo "- Wear OS Play release name: \`${{ needs.preflight.outputs.android_wear_play_release_name || 'n/a' }}\`"
-            echo "- Wear OS Play internal testing upload result: \`${{ needs.publish_wear_android.result }}\`"
+            echo "- Wear OS Play draft upload result: \`${{ needs.publish_wear_android.result }}\`"
             echo "- Device Run named results and private evidence references: \`android-device-run-submissions\`"
-            echo "- Play publish mode: \`CI uploads a phone production-track draft and a Wear OS internal testing release; phone Play Console publication remains manual\`"
+            echo "- Play publish mode: \`CI uploads phone and Wear OS production-track drafts; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
