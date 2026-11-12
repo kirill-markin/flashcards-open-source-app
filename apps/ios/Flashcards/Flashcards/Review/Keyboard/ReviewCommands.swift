@@ -180,5 +180,10 @@ private func isEditingTextInput(_ view: UIView) -> Bool {
 @MainActor
 private func editingTextInput(in view: UIView) -> UIView? {
     if isEditingTextInput(view) { return view }
-    return view.subviews.lazy.compactMap { editingTextInput(in: $0) }.first
+    for subview in view.subviews {
+        if let input = editingTextInput(in: subview) {
+            return input
+        }
+    }
+    return nil
 }
