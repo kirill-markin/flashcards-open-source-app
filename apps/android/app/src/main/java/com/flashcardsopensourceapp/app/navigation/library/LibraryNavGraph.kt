@@ -59,8 +59,8 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
                         launchSingleTop = true
                     }
                 },
-                onOpenAnkiImport = {
-                    navController.navigate(route = LibraryAnkiImportDestination.route) {
+                onOpenBrandImport = { source ->
+                    navController.navigate(route = LibraryBrandImportDestination.createRoute(source = source)) {
                         launchSingleTop = true
                     }
                 },
@@ -72,7 +72,7 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
                 onBack = { navController.popBackStack() }
             )
         }
-        registerLibraryAnkiImportDestination(
+        registerLibraryBrandImportDestination(
             appGraph = appGraph,
             navController = navController
         )

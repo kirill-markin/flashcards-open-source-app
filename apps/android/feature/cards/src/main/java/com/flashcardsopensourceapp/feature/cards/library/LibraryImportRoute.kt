@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.cards.library
 
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,17 +17,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSource
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSourceInput
 import com.flashcardsopensourceapp.feature.cards.R
-import com.flashcardsopensourceapp.feature.cards.libraryImportAnkiRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportNibomoRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportScreenTag
+import com.flashcardsopensourceapp.feature.cards.libraryImportSourceRowTag
 import com.flashcardsopensourceapp.feature.cards.libraryImportSpreadsheetRowTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryImportRoute(
     onOpenNibomoImport: () -> Unit,
-    onOpenAnkiImport: () -> Unit,
+    onOpenBrandImport: (AiImportSource) -> Unit,
     onOpenSpreadsheetImport: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -53,21 +56,27 @@ fun LibraryImportRoute(
                 .testTag(libraryImportScreenTag)
         ) {
             item {
+                LibrarySectionTitle(title = stringResource(id = R.string.library_import_other_apps_section_title))
+            }
+            items(items = AiImportSource.entries, key = AiImportSource::id) { source ->
+                LibraryRow(
+                    title = libraryImportSourceTitle(source = source),
+                    summary = libraryImportSourceSummary(source = source),
+                    count = null,
+                    testTag = libraryImportSourceRowTag(sourceId = source.id),
+                    onClick = { onOpenBrandImport(source) }
+                )
+            }
+            item {
+                LibrarySectionTitle(title = stringResource(id = R.string.library_import_your_files_section_title))
+            }
+            item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_import_nibomo_title),
                     summary = stringResource(id = R.string.library_import_nibomo_summary),
                     count = null,
                     testTag = libraryImportNibomoRowTag,
                     onClick = onOpenNibomoImport
-                )
-            }
-            item {
-                LibraryRow(
-                    title = stringResource(id = R.string.library_import_anki_title),
-                    summary = stringResource(id = R.string.library_import_anki_summary),
-                    count = null,
-                    testTag = libraryImportAnkiRowTag,
-                    onClick = onOpenAnkiImport
                 )
             }
             item {
@@ -80,5 +89,23 @@ fun LibraryImportRoute(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun libraryImportSourceTitle(source: AiImportSource): String {
+    val brandName = source.brandName
+    return if (brandName == null) {
+        stringResource(id = R.string.library_import_other_title)
+    } else {
+        stringResource(id = R.string.library_import_brand_title, brandName)
+    }
+}
+
+@Composable
+private fun libraryImportSourceSummary(source: AiImportSource): String {
+    return when (val input = source.input) {
+        is AiImportSourceInput.PastedText -> stringResource(id = R.string.library_import_quizlet_summary)
+        is AiImportSourceInput.Files -> input.formats
     }
 }

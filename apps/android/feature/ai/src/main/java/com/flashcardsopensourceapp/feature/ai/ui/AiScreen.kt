@@ -466,7 +466,7 @@ internal fun AiRouteContent(
                     )
                     if (uiState.isConsentRequired.not() && pendingImport != null) {
                         ListItem(
-                            headlineContent = { Text(stringResource(id = R.string.ai_anki_import_pending)) },
+                            headlineContent = { Text(stringResource(id = R.string.ai_import_pending)) },
                             supportingContent = {
                                 Text(
                                     text = pendingImport.fileNames.joinToString(separator = ", "),
@@ -477,9 +477,9 @@ internal fun AiRouteContent(
                             trailingContent = {
                                 TextButton(
                                     onClick = pendingImport.onCancel,
-                                    modifier = Modifier.testTag(tag = "ai_pending_anki_import_cancel")
+                                    modifier = Modifier.testTag(tag = "ai_pending_import_cancel")
                                 ) {
-                                    Text(stringResource(id = R.string.ai_anki_import_cancel))
+                                    Text(stringResource(id = R.string.ai_import_cancel))
                                 }
                             }
                         )

@@ -4,26 +4,38 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
-import com.flashcardsopensourceapp.feature.ai.anki.AnkiImportRoute
-import com.flashcardsopensourceapp.feature.ai.anki.AnkiImportViewModel
-import com.flashcardsopensourceapp.feature.ai.anki.createAnkiImportViewModelFactory
+import com.flashcardsopensourceapp.data.local.model.ai.aiImportSourceForId
+import com.flashcardsopensourceapp.feature.ai.brandimport.BrandImportRoute
+import com.flashcardsopensourceapp.feature.ai.brandimport.BrandImportViewModel
+import com.flashcardsopensourceapp.feature.ai.brandimport.createBrandImportViewModelFactory
 
-internal fun NavGraphBuilder.registerLibraryAnkiImportDestination(
+internal fun NavGraphBuilder.registerLibraryBrandImportDestination(
     appGraph: AppGraph,
     navController: NavHostController
 ) {
-    composable(route = LibraryAnkiImportDestination.route) {
+    composable(
+        route = LibraryBrandImportDestination.routePattern,
+        arguments = listOf(navArgument(name = LibraryBrandImportDestination.routeArgument) {
+            type = NavType.StringType
+        })
+    ) { backStackEntry ->
         val context = LocalContext.current
-        val importViewModel = viewModel<AnkiImportViewModel>(
-            factory = createAnkiImportViewModelFactory(
+        val sourceId = requireNotNull(backStackEntry.arguments?.getString(LibraryBrandImportDestination.routeArgument)) {
+            "Brand import route requires sourceId."
+        }
+        val importViewModel = viewModel<BrandImportViewModel>(
+            factory = createBrandImportViewModelFactory(
                 applicationContext = context.applicationContext,
+                source = aiImportSourceForId(id = sourceId),
                 captureImportOrigin = appGraph::captureAiImportOrigin
             )
         )
-        AnkiImportRoute(
+        BrandImportRoute(
             viewModel = importViewModel,
             onStartImport = { request, origin ->
                 appGraph.appHandoffCoordinator.requestAiImport(

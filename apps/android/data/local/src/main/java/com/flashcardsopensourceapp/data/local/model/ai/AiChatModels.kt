@@ -126,11 +126,15 @@ val aiChatSupportedFileExtensions: Set<String> = setOf(
     "log",
     "docx",
     "zip",
-    "apkg"
+    "apkg",
+    "colpkg",
+    "mochi",
+    "ofc"
 )
 
 private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapOf(
     "apkg" to "application/apkg",
+    "colpkg" to "application/apkg",
     "csv" to "text/csv",
     "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "html" to "text/html",
@@ -138,6 +142,8 @@ private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapO
     "json" to "application/json",
     "log" to "text/plain",
     "md" to "text/markdown",
+    "mochi" to "application/zip",
+    "ofc" to "application/zip",
     "pdf" to "application/pdf",
     "py" to "text/x-python",
     "sql" to "text/plain",

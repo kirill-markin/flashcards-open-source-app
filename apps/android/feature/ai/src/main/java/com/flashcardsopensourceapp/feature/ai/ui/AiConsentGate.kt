@@ -82,7 +82,7 @@ internal fun ConsentGate(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (pendingImport != null) {
-                    Text(stringResource(id = R.string.ai_anki_import_consent_disclosure))
+                    Text(stringResource(id = R.string.ai_import_consent_disclosure))
                     Text(pendingImport.fileNames.joinToString(separator = "\n"))
                 }
                 Button(
@@ -94,7 +94,7 @@ internal fun ConsentGate(
 
                 if (pendingImport != null) {
                     TextButton(onClick = pendingImport.onCancel, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(id = R.string.ai_anki_import_cancel))
+                        Text(stringResource(id = R.string.ai_import_cancel))
                     }
                 }
                 HorizontalDivider()
