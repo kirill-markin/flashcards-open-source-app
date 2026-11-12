@@ -20,6 +20,7 @@ enum AIImportSource: String, Hashable, CaseIterable, Sendable {
     case mochi
     case supermemo
     case ankiapp
+    case gizmo
     case other
 
     /// Brand names are never translated. Nil for `other`.
@@ -36,6 +37,7 @@ enum AIImportSource: String, Hashable, CaseIterable, Sendable {
         case .mochi: "Mochi"
         case .supermemo: "SuperMemo"
         case .ankiapp: "AlgoApp (formerly AnkiApp)"
+        case .gizmo: "Gizmo"
         case .other: nil
         }
     }
@@ -45,7 +47,7 @@ enum AIImportSource: String, Hashable, CaseIterable, Sendable {
         case .quizlet: .pastedText(fileName: "quizlet.txt")
         case .anki: .files(extensions: ["apkg", "colpkg"])
         case .noji: .files(extensions: ["csv", "ofc"])
-        case .knowt: .files(extensions: ["pdf"])
+        case .knowt, .gizmo: .files(extensions: ["pdf"])
         case .remnote: .files(extensions: ["apkg", "md", "txt"])
         case .brainscape, .studysmarter, .cram: .files(extensions: ["csv"])
         case .mochi: .files(extensions: ["mochi"])
@@ -141,6 +143,7 @@ enum AIImportSource: String, Hashable, CaseIterable, Sendable {
         case .mochi: UITestIdentifier.libraryMochiImportRow
         case .supermemo: UITestIdentifier.librarySuperMemoImportRow
         case .ankiapp: UITestIdentifier.libraryAnkiAppImportRow
+        case .gizmo: UITestIdentifier.libraryGizmoImportRow
         case .other: UITestIdentifier.libraryOtherAppImportRow
         }
     }

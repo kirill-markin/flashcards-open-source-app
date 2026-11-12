@@ -75,6 +75,11 @@ enum class AiImportSource(
         brandName = "AlgoApp (formerly AnkiApp)",
         input = AiImportSourceInput.Files(formats = ".zip, .xml", fileExtensions = setOf("zip", "xml"))
     ),
+    GIZMO(
+        id = "gizmo",
+        brandName = "Gizmo",
+        input = AiImportSourceInput.Files(formats = ".pdf", fileExtensions = setOf("pdf"))
+    ),
     OTHER(
         id = "other",
         brandName = null,

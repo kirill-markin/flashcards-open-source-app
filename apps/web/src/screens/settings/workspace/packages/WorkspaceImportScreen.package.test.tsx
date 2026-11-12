@@ -449,7 +449,7 @@ describe("WorkspaceImportScreen package import", () => {
       "[data-testid='library-import-apps'] a[data-testid], [data-testid='library-import-formats'] a[data-testid]",
     ), (row) => row.getAttribute("href"));
     expect(rows).toEqual([
-      ...["quizlet", "anki", "noji", "knowt", "remnote", "brainscape", "studysmarter", "cram", "mochi", "supermemo", "ankiapp", "other"]
+      ...["quizlet", "anki", "noji", "knowt", "remnote", "brainscape", "studysmarter", "cram", "mochi", "supermemo", "ankiapp", "gizmo", "other"]
         .map((sourceId) => `/w/workspace-1/library/import/${sourceId}`),
       "/w/workspace-1/library/import/nibomo",
       "/w/workspace-1/library/import/spreadsheet",
