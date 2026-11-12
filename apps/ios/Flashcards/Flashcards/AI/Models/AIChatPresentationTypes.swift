@@ -5,6 +5,17 @@ enum AIChatPresentationRequest: Hashable, Sendable {
     case attachCard(AIChatCardReference)
 }
 
+func aiImportWorkspaceChangedMessage() -> String {
+    aiSettingsLocalized(
+        "settings.workspace.import.anki.workspaceChanged",
+        "The workspace or account changed. Go back to Library and start the import again."
+    )
+}
+
+func aiImportWaitingMessage() -> String {
+    aiSettingsLocalized("settings.workspace.import.aiImport.waiting", "Waiting to start import…")
+}
+
 struct AIImportPresentationRequest: Equatable {
     let id: UUID
     let accessContext: AIChatAccessContext

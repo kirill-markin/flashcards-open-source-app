@@ -350,16 +350,18 @@ extension LiveSmokeTestCase {
         let libraryTitle = LiveSmokeSelectedTab.library.localizedTitle(localization: self.currentLaunchLocalization)
         let parentTitlesByVisibleIdentifier = [
             (LiveSmokeIdentifier.workspaceImportChooseFileButton, "Import"),
-            (LiveSmokeIdentifier.workspaceImportChooseAnkiFilesButton, "Import"),
+            (LiveSmokeIdentifier.workspaceAIImportChooseFilesButton, "Import"),
             (LiveSmokeIdentifier.workspaceSpreadsheetImportSource, "Import"),
-            (LiveSmokeIdentifier.libraryNibomoImportRow, libraryTitle),
+            // The first and last Import rows: one of them is on screen at either end of the list.
+            (LiveSmokeIdentifier.libraryQuizletImportRow, libraryTitle),
+            (LiveSmokeIdentifier.librarySpreadsheetImportRow, libraryTitle),
             (LiveSmokeIdentifier.workspacePackageExportPreviewButton, "Export"),
             (LiveSmokeIdentifier.libraryNibomoExportRow, libraryTitle)
         ]
-        let visibleParentTitles = parentTitlesByVisibleIdentifier.compactMap { identifier, title in
+        let visibleParentTitles = Array(Set(parentTitlesByVisibleIdentifier.compactMap { identifier, title in
             let element = self.element(identifier: identifier)
             return element.exists && element.isHittable ? title : nil
-        }
+        }))
         guard visibleParentTitles.count == 1,
               let parentTitle = visibleParentTitles.first,
               self.app.alerts.count == 0,

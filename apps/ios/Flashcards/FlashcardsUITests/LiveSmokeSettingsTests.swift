@@ -66,13 +66,14 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             )
             #endif
 
+            // Top-to-bottom list order: scrolling into view only moves toward later rows.
             let importRoutes = [
+                (LiveSmokeIdentifier.libraryAnkiImportRow, LiveSmokeIdentifier.workspaceAIImportChooseFilesButton),
                 (LiveSmokeIdentifier.libraryNibomoImportRow, LiveSmokeIdentifier.workspaceImportChooseFileButton),
-                (LiveSmokeIdentifier.libraryAnkiImportRow, LiveSmokeIdentifier.workspaceImportChooseAnkiFilesButton),
                 (LiveSmokeIdentifier.librarySpreadsheetImportRow, LiveSmokeIdentifier.workspaceSpreadsheetImportSource)
             ]
             for (rowIdentifier, formIdentifier) in importRoutes {
-                try self.tapButton(identifier: rowIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapButtonScrollingIntoView(identifier: rowIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.assertElementExists(identifier: formIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.tapFirstNavigationBackButton()
                 try self.assertElementExists(identifier: rowIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)

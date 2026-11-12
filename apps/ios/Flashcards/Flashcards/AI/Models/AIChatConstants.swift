@@ -42,4 +42,7 @@ let aiChatSupportedFileExtensions: Set<String> = [
     "docx",
     "zip",
     "apkg",
+    "colpkg",
+    "mochi",
+    "ofc",
 ]
