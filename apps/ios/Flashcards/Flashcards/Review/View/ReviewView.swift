@@ -977,7 +977,9 @@ struct ReviewView: View {
                         self.toggleSpeech(side: .back, sourceText: card.backText)
                     },
                     showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
-                    onEdit: nil,
+                    onEdit: {
+                        self.beginEditing(card: card)
+                    },
                     showsAiButton: true,
                     aiButtonAccentColor: self.store.displayedAccountAccentColor,
                     onOpenAi: {

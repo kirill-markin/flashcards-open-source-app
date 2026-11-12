@@ -18,6 +18,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -39,6 +40,7 @@ import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
+import com.flashcardsopensourceapp.feature.cards.R as CardsFeatureR
 import com.flashcardsopensourceapp.feature.review.R as ReviewFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
@@ -60,6 +62,8 @@ import com.flashcardsopensourceapp.feature.cards.libraryImportScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryTagsRowTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
+import com.flashcardsopensourceapp.feature.review.reviewEditBackCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
@@ -104,6 +108,7 @@ import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagR
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagsSearchFieldTag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -117,6 +122,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         private const val uiTimeoutMillis: Long = 20_000L
         private const val backStackPopLimit: Int = 6
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
+        private const val reviewOverlayFixtureFrontText: String = "Visible review contract"
     }
 
     private val appStateResetRule = AppStateResetRule()
@@ -549,6 +555,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterButtonTag).fetchSemanticsNode()
         composeRule.onNodeWithText("All cards").fetchSemanticsNode()
         composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(reviewEditBackCardButtonTag).assertDoesNotExist()
         assertTrue(composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithText("Edit card").fetchSemanticsNodes().isEmpty())
 
@@ -695,8 +702,23 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
                 && composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
-        composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
         composeRule.onNodeWithTag(reviewAiCardButtonTag).fetchSemanticsNode()
+
+        for (editButtonTag in listOf(reviewEditBackCardButtonTag, reviewEditCardButtonTag)) {
+            composeRule.onNodeWithTag(editButtonTag).performScrollTo().performClick()
+            waitForTagToExist(tag = cardEditorFrontSummaryCardTag)
+            composeRule.onNodeWithTag(cardEditorFrontSummaryCardTag).performScrollTo().performClick()
+            waitForTagToExist(tag = cardEditorFrontTextFieldTag)
+            assertEquals(reviewOverlayFixtureFrontText, textFieldValue(tag = cardEditorFrontTextFieldTag))
+
+            tapVisibleBackButton(contentDescriptionResId = CardsFeatureR.string.cards_editor_back_content_description)
+            waitForTagToExist(tag = cardEditorFrontSummaryCardTag)
+            tapVisibleBackButton(contentDescriptionResId = CardsFeatureR.string.cards_editor_back_content_description)
+            waitForTagToExist(tag = reviewRateGoodButtonTag)
+            composeRule.onNodeWithTag(reviewRateGoodButtonTag).assertIsDisplayed()
+            composeRule.onNodeWithTag(reviewCurrentCardFrontContentTag, useUnmergedTree = true)
+                .assertTextEquals(reviewOverlayFixtureFrontText)
+        }
     }
 
     private fun waitForCardsEmptyState() {
@@ -847,7 +869,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun createReviewOverlayFixtureCard() {
         createCard(
-            frontText = "Visible review contract",
+            frontText = reviewOverlayFixtureFrontText,
             backText = "First line.\n\nSecond line that is long enough to require scrolling behind the action overlay.",
             tags = listOf("review", "android")
         )
@@ -969,10 +991,18 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun tapVisibleBackButton() {
+        tapVisibleBackButton(contentDescriptionResId = SettingsR.string.settings_back_content_description)
+    }
+
+    private fun tapVisibleBackButton(@StringRes contentDescriptionResId: Int) {
+        val contentDescription = composeRule.activity.getString(contentDescriptionResId)
+        val backButton = composeRule.onNode(
+            matcher = hasContentDescription(contentDescription).and(other = hasClickAction())
+        )
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            isSettingsBackButtonVisible()
+            backButton.isDisplayed()
         }
-        tapSettingsBackButton()
+        backButton.performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.runOnIdle {
                 composeRule.activity.window.decorView.rootWindowInsets.isVisible(WindowInsets.Type.ime()).not()

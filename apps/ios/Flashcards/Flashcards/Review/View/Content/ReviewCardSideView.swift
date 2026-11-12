@@ -21,8 +21,7 @@ struct ReviewCardSideView: View {
     let isSpeechPlaying: Bool
     let onToggleSpeech: () -> Void
     let showsSpeechButton: Bool
-    /// Shown as the last bottom action; nil hides it.
-    let onEdit: (() -> Void)?
+    let onEdit: () -> Void
     let showsAiButton: Bool
     let aiButtonAccentColor: AccountAccentColor
     let onOpenAi: () -> Void
@@ -47,7 +46,7 @@ struct ReviewCardSideView: View {
         isSpeechPlaying: Bool,
         onToggleSpeech: @escaping () -> Void,
         showsSpeechButton: Bool,
-        onEdit: (() -> Void)?,
+        onEdit: @escaping () -> Void,
         showsAiButton: Bool,
         aiButtonAccentColor: AccountAccentColor,
         onOpenAi: @escaping () -> Void,
@@ -115,82 +114,7 @@ struct ReviewCardSideView: View {
                     ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
-                Spacer(minLength: 0)
-
-                let copyButton = Button(action: self.copySide) {
-                    reviewCardSideActionIcon(
-                        systemName: self.hasCopied ? "checkmark" : "square.on.square",
-                        diameter: self.actionDiameter
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(self.surfaceStyle == .front
-                    ? UITestIdentifier.reviewFrontCopyButton : UITestIdentifier.reviewBackCopyButton)
-                .accessibilityLabel(Text(self.copyActionLabel) + Text(", ") + Text(self.label))
-                // The shortcut hint replaces the copy help, so the Mac never shows two tooltips.
-                if self.showsShortcutHints {
-                    copyButton.reviewCardSideShortcutHint(key: "C")
-                } else {
-                    copyButton.help(self.copyActionLabel)
-                }
-
-                if self.showsSpeechButton {
-                    let speechButton = Button(action: self.onToggleSpeech) {
-                        reviewCardSideActionIcon(
-                            systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2",
-                            diameter: self.actionDiameter
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(
-                        self.isSpeechPlaying
-                            ? String(
-                                format: String(localized: "Stop %@ speech", table: reviewCardsStringsTableName),
-                                locale: Locale.current,
-                                self.label
-                            )
-                            : String(
-                                format: String(localized: "Speak %@", table: reviewCardsStringsTableName),
-                                locale: Locale.current,
-                                self.label
-                            )
-                    )
-                    if self.showsShortcutHints {
-                        speechButton.reviewCardSideShortcutHint(key: "R")
-                    } else {
-                        speechButton
-                    }
-                }
-
-                if let onEdit = self.onEdit {
-                    let editLabel = String(localized: "Edit card", table: reviewCardsStringsTableName)
-                    Button(action: onEdit) {
-                        reviewCardSideActionIcon(systemName: "pencil", diameter: self.actionDiameter)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier(UITestIdentifier.reviewEditCardButton)
-                    .accessibilityLabel(editLabel)
-                    .help(editLabel)
-                }
-
-                if self.showsAiButton {
-                    Button(action: self.onOpenAi) {
-                        Text(String(localized: "AI", table: reviewCardsStringsTableName))
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(self.aiButtonAccentColor.contrastingForegroundColor)
-                            // "AI" fits inside the shared circle; a long translation widens it at the same height.
-                            .padding(.horizontal, 6)
-                            .frame(minWidth: self.actionDiameter, minHeight: self.actionDiameter)
-                            .background(self.aiButtonAccentColor.color, in: Capsule())
-                            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier(UITestIdentifier.reviewAiButton)
-                    .accessibilityLabel(String(localized: "Open card in AI chat", table: reviewCardsStringsTableName))
-                }
-            }
+            self.cardActions
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
@@ -220,6 +144,104 @@ struct ReviewCardSideView: View {
             Text(self.copyError ?? "")
         }
         .reviewKeyboardBlockingPresentation(isPresented: self.copyError != nil)
+    }
+
+    private var cardActions: some View {
+        let spacing: CGFloat = 8
+        let copyAndSpeech = HStack(spacing: spacing) {
+            let copyButton = Button(action: self.copySide) {
+                reviewCardSideActionIcon(
+                    systemName: self.hasCopied ? "checkmark" : "square.on.square",
+                    diameter: self.actionDiameter
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(self.surfaceStyle == .front
+                ? UITestIdentifier.reviewFrontCopyButton : UITestIdentifier.reviewBackCopyButton)
+            .accessibilityLabel(Text(self.copyActionLabel) + Text(", ") + Text(self.label))
+            // The shortcut hint replaces the copy help, so the Mac never shows two tooltips.
+            if self.showsShortcutHints {
+                copyButton.reviewCardSideShortcutHint(key: "C")
+            } else {
+                copyButton.help(self.copyActionLabel)
+            }
+
+            if self.showsSpeechButton {
+                let speechButton = Button(action: self.onToggleSpeech) {
+                    reviewCardSideActionIcon(
+                        systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2",
+                        diameter: self.actionDiameter
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    self.isSpeechPlaying
+                        ? String(
+                            format: String(localized: "Stop %@ speech", table: reviewCardsStringsTableName),
+                            locale: Locale.current,
+                            self.label
+                        )
+                        : String(
+                            format: String(localized: "Speak %@", table: reviewCardsStringsTableName),
+                            locale: Locale.current,
+                            self.label
+                        )
+                )
+                if self.showsShortcutHints {
+                    speechButton.reviewCardSideShortcutHint(key: "R")
+                } else {
+                    speechButton
+                }
+            }
+        }
+        let editAndAi = HStack(spacing: spacing) {
+            let editLabel = String(localized: "Edit card", table: reviewCardsStringsTableName)
+            Button(action: self.onEdit) {
+                reviewCardSideActionIcon(systemName: "pencil", diameter: self.actionDiameter)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(self.surfaceStyle == .front
+                ? UITestIdentifier.reviewEditCardButton : UITestIdentifier.reviewEditBackCardButton)
+            .accessibilityLabel(editLabel)
+            .help(editLabel)
+
+            if self.showsAiButton {
+                Button(action: self.onOpenAi) {
+                    Text(String(localized: "AI", table: reviewCardsStringsTableName))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(self.aiButtonAccentColor.contrastingForegroundColor)
+                        // "AI" fits inside the shared circle; a long translation widens it at the same height.
+                        .padding(.horizontal, 6)
+                        .frame(minWidth: self.actionDiameter, minHeight: self.actionDiameter)
+                        .background(self.aiButtonAccentColor.color, in: Capsule())
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(UITestIdentifier.reviewAiButton)
+                .accessibilityLabel(String(localized: "Open card in AI chat", table: reviewCardsStringsTableName))
+            }
+        }
+        let singleRow = HStack(spacing: spacing) {
+            copyAndSpeech
+            editAndAi
+        }
+
+        return Group {
+            if self.showsAiButton {
+                ViewThatFits(in: .horizontal) {
+                    singleRow.fixedSize(horizontal: true, vertical: false)
+
+                    VStack(alignment: .trailing, spacing: spacing) {
+                        copyAndSpeech
+                        editAndAi
+                    }
+                }
+            } else {
+                singleRow
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     private func copySide() {
