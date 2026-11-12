@@ -153,7 +153,7 @@ describe("ReviewScreen rating controls", () => {
     await dispatchDocumentKeydown("Enter");
     await act(async () => { document.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true })); });
 
-    const editButton = getContainer().querySelector(".review-card-edit-btn");
+    const editButton = getContainer().querySelector("[data-testid='review-edit-front']");
     const navigationLink = getContainer().querySelector("a[href]");
     if (!(editButton instanceof HTMLButtonElement) || !(navigationLink instanceof HTMLAnchorElement)) {
       throw new Error("Review native keyboard controls were not found");
@@ -453,7 +453,7 @@ describe("ReviewScreen rating controls", () => {
 
     await clickElementAsync(trigger);
 
-    const editButton = getContainer().querySelector(".review-card-edit-btn");
+    const editButton = getContainer().querySelector("[data-testid='review-edit-front']");
     if (!(editButton instanceof HTMLButtonElement)) {
       throw new Error("Review edit button was not found");
     }

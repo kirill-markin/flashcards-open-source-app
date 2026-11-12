@@ -52,7 +52,6 @@ export type ReviewCardSideProps = Readonly<{
   copySource: Readonly<{ cardId: string; side: "front" | "back"; sourceText: string }> | null;
   isSpeaking: boolean;
   label: string;
-  /** The Edit action shown last in the action row; null hides it. */
   edit: ReviewCardEditButtonProps | null;
   onOpenAi: (() => void) | null;
   onOpenTextSelection?: () => void;
@@ -85,6 +84,7 @@ export type ReviewCardSpeechButtonProps = Readonly<{
 export type ReviewCardEditButtonProps = Readonly<{
   disabled: boolean;
   onEdit: () => void;
+  testId: "review-edit-front" | "review-edit-back";
 }>;
 
 function reviewMarkdownClassName(tagName: string): string {
@@ -392,7 +392,7 @@ export function ReviewCardSpeechButton(props: ReviewCardSpeechButtonProps): Reac
 }
 
 export function ReviewCardEditButton(props: ReviewCardEditButtonProps): ReactElement {
-  const { disabled, onEdit } = props;
+  const { disabled, onEdit, testId } = props;
   const { t } = useI18n();
   const label = t("reviewScreen.actions.edit");
 
@@ -400,6 +400,7 @@ export function ReviewCardEditButton(props: ReviewCardEditButtonProps): ReactEle
     <button
       type="button"
       className="review-card-edit-btn"
+      data-testid={testId}
       aria-label={label}
       title={label}
       disabled={disabled}
@@ -521,7 +522,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
                 onToggleSpeech={onToggleSpeech}
               />
             ) : null}
-            {edit !== null ? <ReviewCardEditButton disabled={edit.disabled} onEdit={edit.onEdit} /> : null}
+            {edit !== null ? <ReviewCardEditButton {...edit} /> : null}
             {showAiButton && onOpenAi !== null ? (
               <button
                 type="button"

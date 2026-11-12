@@ -150,6 +150,18 @@ async function reviewSeededCardFromQueue(session: LiveSmokeSession): Promise<voi
     await expect(reviewPane).toHaveAttribute("data-review-submit-state", "idle");
     await expect(goodButton).toBeVisible();
   });
+  await diagnostics.runAction("open the current card from both Edit actions after reveal", async () => {
+    await expect(page.locator('[data-testid="review-edit-back"] + .review-card-ai-btn')).toBeVisible();
+    const editor = page.getByRole("dialog").filter({ has: page.getByTestId("review-editor-cancel") });
+    for (const editButtonId of ["review-edit-front", "review-edit-back"]) {
+      await page.getByTestId(editButtonId).click();
+      await expect(editor.getByTestId("card-form-front-text")).toHaveValue(scenario.seededFrontText);
+      await expect(editor.getByTestId("card-form-back-text")).toHaveValue(scenario.seededBackText);
+      await editor.getByTestId("review-editor-cancel").click();
+      await expect(editor).toBeHidden();
+      await expect(reviewPane).toHaveAttribute("data-review-current-card-id", reviewedCardId);
+    }
+  });
   await diagnostics.runAction("submit Good with its native focused-button keyboard action", async () => {
     const goodButton = page.getByTestId("review-rate-good");
     await goodButton.focus();
