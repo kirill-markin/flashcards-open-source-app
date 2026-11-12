@@ -96,6 +96,7 @@ export function WhoSawUsDatasetPage(
           dateRange={selection.dateRange}
           period={selection.period}
           series={props.dataset}
+          eventDeviceTypes={selection.eventDeviceTypes}
           appVersions={selection.appVersions}
           siteFilters={siteFilters}
           detailsLink={null}

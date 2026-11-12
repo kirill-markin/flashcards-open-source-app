@@ -16,14 +16,14 @@ func makeReviewSelectableContent(
 
     func appendAttachment(view: AnyView, text: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout, attributes: [NSAttributedString.Key: Any], to destination: NSMutableAttributedString) {
         let value = NSMutableAttributedString(attachment: ReviewContentAttachment(
-            content: AnyView(view.transformEnvironment(\.self) { hostedEnvironment in
+            content: .hosted(AnyView(view.transformEnvironment(\.self) { hostedEnvironment in
                 // The hosting controller derives these from its own window and accessibility state.
                 let accessibilityEnabled = hostedEnvironment.accessibilityEnabled
                 let legibilityWeight = hostedEnvironment.legibilityWeight
                 hostedEnvironment = environment
                 hostedEnvironment.accessibilityEnabled = accessibilityEnabled
                 hostedEnvironment.legibilityWeight = legibilityWeight
-            }),
+            })),
             copyText: text,
             accessibility: accessibility,
             layout: layout
@@ -72,6 +72,14 @@ func makeReviewSelectableContent(
             if previousBlock != nil {
                 result.append(NSAttributedString(string: "\n", attributes: previousAttributes))
             }
+            #if targetEnvironment(macCatalyst)
+            result.append(NSAttributedString(attachment: ReviewContentAttachment(
+                content: .table(tableContent.rows),
+                copyText: tableContent.copyText,
+                accessibility: .text(tableContent.copyText),
+                layout: .block
+            )))
+            #else
             appendAttachment(
                 view: AnyView(ReviewSelectableTable(rows: tableContent.rows)),
                 text: tableContent.copyText,
@@ -80,6 +88,7 @@ func makeReviewSelectableContent(
                 attributes: [:],
                 to: result
             )
+            #endif
             result.append(NSAttributedString(string: "\n"))
             table = nil
             previousBlock = nil

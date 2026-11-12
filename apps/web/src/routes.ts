@@ -32,8 +32,14 @@ export const cardsRoute: string = `${libraryRoute}/cards`;
 export const libraryDecksRoute: string = `${libraryRoute}/decks`;
 export const libraryDeckNewRoute: string = `${libraryDecksRoute}/new`;
 export const libraryTagsRoute: string = `${libraryRoute}/tags`;
+export const libraryTagDetailRoute: string = `${libraryTagsRoute}/detail`;
 export const libraryImportRoute: string = `${libraryRoute}/import`;
+export const libraryNibomoImportRoute: string = `${libraryImportRoute}/nibomo`;
+export const libraryAnkiImportRoute: string = `${libraryImportRoute}/anki`;
+export const librarySpreadsheetImportRoute: string = `${libraryImportRoute}/spreadsheet`;
 export const libraryExportRoute: string = `${libraryRoute}/export`;
+export const libraryNibomoExportRoute: string = `${libraryExportRoute}/nibomo`;
+export const libraryAnkiExportRoute: string = `${libraryExportRoute}/anki`;
 /** Addresses the Library screens had before the Library tab; `App.tsx` redirects each to its Library equivalent. */
 export const legacyCardsRoute: string = "/cards";
 export const legacySettingsDecksRoute: string = "/settings/decks";
@@ -96,6 +102,10 @@ export function buildLibraryDeckDetailRoute(deckId: string): string {
 
 export function buildLibraryDeckEditRoute(deckId: string): string {
   return `${libraryDecksRoute}/${deckId}/edit`;
+}
+
+export function buildLibraryTagDetailRoute(tag: string): string {
+  return `${libraryTagDetailRoute}?${new URLSearchParams({ tag }).toString()}`;
 }
 
 export function buildFriendInviteRoute(token: string): string {

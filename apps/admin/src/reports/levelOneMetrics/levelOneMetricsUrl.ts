@@ -1,4 +1,4 @@
-import type { ReviewEventPlatform } from "../../adminApi";
+import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import type {
   AnalyticsDateRange,
   AppStoreProductPageFilterState,
@@ -8,6 +8,7 @@ import {
   parseAppStoreProductPageFilterState,
   parseAppVersions,
   parseDateRange,
+  parseEventDeviceTypes,
   parseEventPlatforms,
   parseProvisionalDateRange,
   parseSiteVisitorFilterState,
@@ -15,6 +16,7 @@ import {
   setAppStoreProductPageFilterParams,
   setAppVersionsParam,
   setDateRangeParams,
+  setEventDeviceTypesParam,
   setEventPlatformsParam,
   setSiteVisitorFilterParams,
 } from "../../filters/analyticsFiltersUrl";
@@ -29,6 +31,8 @@ export type LevelOneMetricsSelection = Readonly<{
   period: ReportPeriod;
   /** Applied on the main page and the charted Details pages, and carried by the Who saw us dataset pages. */
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  /** Applied on the Who opened the app and Who studied charts and Details pages, and carried like `eventPlatforms`. */
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   /** Exact versions, `[]` for every version; carried and applied like `eventPlatforms`. */
   appVersions: ReadonlyArray<string>;
   /** Applied on the Web engaged page only, and carried by every Level 1 page so a move keeps them. */
@@ -64,6 +68,7 @@ export function parseLevelOneMetricsSelection(
     dateRange: parseDateRange(searchParams, availableRange, defaultRange),
     period: parsePeriod(searchParams),
     eventPlatforms: parseEventPlatforms(searchParams),
+    eventDeviceTypes: parseEventDeviceTypes(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
     appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
@@ -81,6 +86,7 @@ export function parseProvisionalLevelOneMetricsSelection(
     dateRange: parseProvisionalDateRange(searchParams, todayUtc) ?? provisionalDefaultRange,
     period: parsePeriod(searchParams),
     eventPlatforms: parseEventPlatforms(searchParams),
+    eventDeviceTypes: parseEventDeviceTypes(searchParams),
     appVersions: parseAppVersions(searchParams),
     siteFilters: parseSiteVisitorFilterState(searchParams),
     appStoreFilters: parseAppStoreProductPageFilterState(searchParams),
@@ -96,6 +102,7 @@ export function buildLevelOneMetricsSearch(
   const searchParams = new URLSearchParams();
   setDateRangeParams(searchParams, selection.dateRange, defaultRange);
   setEventPlatformsParam(searchParams, selection.eventPlatforms);
+  setEventDeviceTypesParam(searchParams, selection.eventDeviceTypes);
   setAppVersionsParam(searchParams, selection.appVersions);
   setSiteVisitorFilterParams(searchParams, selection.siteFilters);
   setAppStoreProductPageFilterParams(searchParams, selection.appStoreFilters);

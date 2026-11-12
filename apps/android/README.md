@@ -18,7 +18,7 @@ We do not want an Android app that imitates iPhone UI. We want a modern Android 
 - Minimum supported Android version: Android 11, `minSdk = 30`
 - Compile target: Android 17, `compileSdk = 37`
 - Runtime target: Android 17, `targetSdk = 37`
-- Testing focus: Android 17 / API 37 full suite, with minimal release smoke on API 30, 31, and 33
+- Testing focus: Android 17 / API 37 full suite and critical release journeys, with a minimal API 30 release smoke
 - Primary local storage: Room on top of SQLite
 
 Android 17 / API 37 is the primary design and validation target. One implementation supports API 30 onward, including API 32; older releases use native AndroidX compatibility behavior and small release smoke coverage. The uploaded AAB manifest is authoritative for the distributed minimum.
@@ -123,6 +123,7 @@ The generator module and `:app` share the `benchmark` version in `gradle/libs.ve
 
 ## Android Docs
 
+- Wear OS companion app: [`docs/wear-os.md`](../../docs/wear-os.md)
 - Native sign-in manual acceptance: [`docs/native-sign-in-acceptance.md`](docs/native-sign-in-acceptance.md)
 - Add a new app language safely: [`docs/add-language-checklist.md`](docs/add-language-checklist.md)
 - Localize and publish Google Play listings: [`docs/play-store-localization-runbook.md`](docs/play-store-localization-runbook.md)
@@ -188,7 +189,7 @@ Keep the full suite focused on the latest Android target. Follow the [release te
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, and instrumentation tests when they validate a real module boundary or user flow
 - Run the full Android suite against Android 17 / API 37
-- Release smoke also runs four existing methods on one configured destination each for API 30, 31, and 33; see [Android CI/CD](../../docs/android-ci-cd.md#choose-the-device-run-devices)
+- See the [physical release and targeted compatibility selections](../../docs/android-ci-cd.md#choose-the-device-run-devices)
 - Keep compatibility changes narrow and native; do not add separate engines or screens for older Android versions
 - Prefer background local emulator runs without a visible emulator window by default
 - When starting a local headless emulator manually, prefer `-gpu auto` and avoid the deprecated `-gpu swiftshader_indirect` override
@@ -204,7 +205,7 @@ The Android app uses native Android and Compose testing:
 
 - targeted integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
 - shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
-- manual Device Run app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` instrumentation tree as part of the manual `Android Release` workflow, with `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows there
+- the physical release selection uses `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt`. Use the existing [targeted diagnostics](../../docs/android-ci-cd.md#choose-the-device-run-devices) to run other cases
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
 
 The Android live smoke scenario matches the other clients on purpose:
@@ -224,10 +225,9 @@ The repository policy for Android CI/CD is:
 - Device Run is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the manual `Android Release` workflow ([where Android CI runs](../../docs/android-ci-cd.md)) runs the GitHub-hosted build, unit tests, lint, and `data:local` gate, completes four sequential physical Device Run sessions (API 37 full suite, then one smoke session each on API 30, 31 and 33), then uploads a Google Play production-track draft
+- the manual `Android Release` workflow ([where Android CI runs](../../docs/android-ci-cd.md)) runs the GitHub-hosted build, unit tests, lint, and `data:local` gate, completes the [physical Device Run release selections](../../docs/android-ci-cd.md#choose-the-device-run-devices), then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
 - one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Device Run job labels so the same release stays traceable across GitHub, Play, and Device Run
-- Device Run app instrumentation is manual-only from the top-level `device_run_submission` job in `Android Release`; the shared linked test account requires sequential sessions, and all four sessions, jobs and executions must reach terminal success before the signed draft upload starts; inspect named case results before publication under [the release procedure](../../docs/release/android.md)
 - after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
 
 ## Respect Existing Code

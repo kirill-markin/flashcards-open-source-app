@@ -1,5 +1,8 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useLayoutEffect, useRef, useState, type ReactElement } from "react";
+import { combineAbortSignals } from "../../../../abortSignals";
 import {
+  ApiError,
+  downloadWorkspaceAnkiExport,
   downloadWorkspacePackageExport,
   previewWorkspacePackageExport,
 } from "../../../../api";
@@ -10,10 +13,15 @@ import {
 } from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
-import type {
-  WorkspacePackageExportPreviewResponse,
-  WorkspacePackageExportRequest,
+import { libraryExportRoute } from "../../../../routes";
+import {
+  workspaceAnkiExportFilename,
+  workspacePackageExportFilename,
+  type WorkspacePackageExportMetadataInput,
+  type WorkspacePackageExportPreviewResponse,
+  type WorkspacePackageExportRequest,
 } from "../../../../types";
+import { useWorkspacePath } from "../../../../useWorkspacePath";
 import { SettingsShell } from "../../SettingsShared";
 
 type PackageMetadataRow = Readonly<{
@@ -41,6 +49,14 @@ type TriggerBlobDownloadParams = Readonly<{
 }>;
 
 const workspacePackageGeneratedImportTagPrefix = "import:";
+const defaultAnkiDeckName = "Nibomo Export";
+const emptyPackageMetadata: WorkspacePackageExportMetadataInput = {
+  label: null,
+  author: null,
+  comment: null,
+  createdAt: null,
+  sourceUrl: null,
+};
 
 function triggerBlobDownload(params: TriggerBlobDownloadParams): void {
   const { blob, filename, document, urlApi } = params;
@@ -88,13 +104,7 @@ function buildWorkspacePackageExportPreviewRequest(
     tagPolicy: {
       additionalRemovedTags: [],
     },
-    packageMetadata: {
-      label: null,
-      author: null,
-      comment: null,
-      createdAt: null,
-      sourceUrl: null,
-    },
+    packageMetadata: emptyPackageMetadata,
   };
 }
 
@@ -102,6 +112,7 @@ function buildWorkspacePackageExportDownloadRequest(
   preview: WorkspacePackageExportPreviewResponse,
   selectedCardTags: ReadonlyArray<string>,
   includedTags: ReadonlyArray<string>,
+  packageMetadata: WorkspacePackageExportMetadataInput,
 ): WorkspacePackageExportRequest {
   const includedTagSet = new Set(includedTags);
   const additionalRemovedTags = preview.availableTagCounts
@@ -113,13 +124,7 @@ function buildWorkspacePackageExportDownloadRequest(
     tagPolicy: {
       additionalRemovedTags,
     },
-    packageMetadata: {
-      label: preview.defaultPackageMetadata.label,
-      author: preview.defaultPackageMetadata.author ?? null,
-      comment: preview.defaultPackageMetadata.comment ?? null,
-      createdAt: preview.defaultPackageMetadata.createdAt,
-      sourceUrl: preview.defaultPackageMetadata.sourceUrl ?? null,
-    },
+    packageMetadata,
   };
 }
 
@@ -192,9 +197,20 @@ function formatApproximateBytes(byteCount: number, formatNumberValue: NumberForm
 }
 
 export function WorkspaceExportScreen(): ReactElement {
+  return <WorkspaceExportForm format="nibomo" />;
+}
+
+export function WorkspaceAnkiExportScreen(): ReactElement {
+  return <WorkspaceExportForm format="anki" />;
+}
+
+function WorkspaceExportForm({ format }: Readonly<{ format: "nibomo" | "anki" }>): ReactElement {
   const { activeWorkspace, cloudSettings, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
+  const workspacePath = useWorkspacePath();
+  const requestSignalRef = useRef<AbortSignal>(null);
+  const [ankiDeckName, setAnkiDeckName] = useState<string>(defaultAnkiDeckName);
   const [isPackageExporting, setIsPackageExporting] = useState<boolean>(false);
   const [isPackageExportPreviewing, setIsPackageExportPreviewing] = useState<boolean>(false);
   const [packageExportPreview, setPackageExportPreview] = useState<WorkspacePackageExportPreviewResponse | null>(null);
@@ -204,6 +220,8 @@ export function WorkspaceExportScreen(): ReactElement {
   const [packageExportIncludedTags, setPackageExportIncludedTags] = useState<ReadonlyArray<string>>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const isAnkiExport = format === "anki";
+  const filename = isAnkiExport ? workspaceAnkiExportFilename : workspacePackageExportFilename;
   const technicalErrorMessage = t("appError.technicalError.message");
   const isPackageExportBusy = isPackageExportPreviewing || isPackageExporting;
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
@@ -212,10 +230,11 @@ export function WorkspaceExportScreen(): ReactElement {
     && activeWorkspaceId !== null
     && packageExportPreviewIdentity.workspaceId === activeWorkspaceId;
   const currentPackageExportPreview = isPackageExportPreviewCurrent ? packageExportPreview : null;
+  const isAnkiSelectionEmpty = isAnkiExport && currentPackageExportPreview?.selectedCardCount === 0;
   const packageExportIncludedTagCounts = currentPackageExportPreview === null
     ? []
     : currentPackageExportPreview.availableTagCounts.filter((tagCount) => !isWorkspacePackageGeneratedImportTag(tagCount.tag));
-  const packageExportMetadataRows: ReadonlyArray<PackageMetadataRow> = currentPackageExportPreview === null
+  const packageExportMetadataRows: ReadonlyArray<PackageMetadataRow> = isAnkiExport || currentPackageExportPreview === null
     ? []
     : [
       {
@@ -262,25 +281,25 @@ export function WorkspaceExportScreen(): ReactElement {
     setPackageExportIncludedTags([]);
   }
 
-  function resetPackageExportState(): void {
+  const recoverySignal = indexedDbOpenRecoveryState.signal;
+  useLayoutEffect(() => {
+    const controller = new AbortController();
+    const { signal, dispose } = combineAbortSignals([controller.signal, recoverySignal]);
+    requestSignalRef.current = signal;
     resetPackageExportPreview();
     setPackageExportSelectedCardTags([]);
     setPackageExportCardSelectionTagCounts([]);
-  }
+    setAnkiDeckName(defaultAnkiDeckName);
+    setIsPackageExportPreviewing(false);
+    setIsPackageExporting(false);
+    setErrorMessage("");
+    setSuccessMessage("");
 
-  useEffect(() => {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return;
-    }
-
-    if (packageExportPreviewIdentity === null) {
-      return;
-    }
-
-    if (packageExportPreviewIdentity.workspaceId !== activeWorkspaceId) {
-      resetPackageExportState();
-    }
-  }, [activeWorkspaceId, indexedDbOpenRecoveryState, packageExportPreviewIdentity]);
+    return () => {
+      controller.abort();
+      dispose();
+    };
+  }, [activeWorkspaceId, recoverySignal]);
 
   async function previewPackageExportWithSelection(selectedCardTags: ReadonlyArray<string>): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -293,6 +312,11 @@ export function WorkspaceExportScreen(): ReactElement {
       return;
     }
 
+    const signal = requestSignalRef.current;
+    if (signal === null || signal.aborted) {
+      return;
+    }
+
     setIsPackageExportPreviewing(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -302,8 +326,13 @@ export function WorkspaceExportScreen(): ReactElement {
       const preview = await previewWorkspacePackageExport(
         activeWorkspace.workspaceId,
         buildWorkspacePackageExportPreviewRequest(selectedCardTags),
+        signal,
       );
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (signal.aborted) {
+        return;
+      }
+
       setPackageExportPreview(preview);
       setPackageExportPreviewIdentity({
         workspaceId: activeWorkspace.workspaceId,
@@ -315,7 +344,7 @@ export function WorkspaceExportScreen(): ReactElement {
       ));
       setPackageExportIncludedTags(buildWorkspacePackageIncludedTags(preview));
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error) || signal.aborted) {
         return;
       }
       const wasCaptured = captureWorkspaceExportError(error);
@@ -326,7 +355,7 @@ export function WorkspaceExportScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+      if (!indexedDbOpenRecoveryState.hasFailed() && !signal.aborted) {
         setIsPackageExportPreviewing(false);
       }
     }
@@ -356,36 +385,70 @@ export function WorkspaceExportScreen(): ReactElement {
       return;
     }
 
+    const workspaceId = activeWorkspace.workspaceId;
+    const signal = requestSignalRef.current;
+    if (signal === null || signal.aborted || isAnkiSelectionEmpty) {
+      return;
+    }
+
     setIsPackageExporting(true);
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
-      const result = await downloadWorkspacePackageExport(
-        activeWorkspace.workspaceId,
-        buildWorkspacePackageExportDownloadRequest(currentPreview, packageExportSelectedCardTags, packageExportIncludedTags),
+      const { defaultPackageMetadata } = currentPreview;
+      const packageMetadata: WorkspacePackageExportMetadataInput = isAnkiExport
+        ? { ...emptyPackageMetadata, label: ankiDeckName.trim() || null }
+        : {
+          label: defaultPackageMetadata.label,
+          author: defaultPackageMetadata.author ?? null,
+          comment: defaultPackageMetadata.comment ?? null,
+          createdAt: defaultPackageMetadata.createdAt,
+          sourceUrl: defaultPackageMetadata.sourceUrl ?? null,
+        };
+      const request = buildWorkspacePackageExportDownloadRequest(
+        currentPreview,
+        packageExportSelectedCardTags,
+        packageExportIncludedTags,
+        packageMetadata,
       );
+      const result = isAnkiExport
+        ? await downloadWorkspaceAnkiExport(workspaceId, request, signal)
+        : await downloadWorkspacePackageExport(workspaceId, request);
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (isAnkiExport && signal.aborted) {
+        return;
+      }
+
       triggerBlobDownload({
         blob: result.blob,
         filename: result.filename,
         document: window.document,
         urlApi: URL,
       });
-      setSuccessMessage(t("workspaceExport.packageExportSuccess"));
+      if (!signal.aborted) {
+        setSuccessMessage(t("workspaceExport.packageExportSuccess", { filename }));
+      }
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error) || (isAnkiExport && signal.aborted)) {
+        return;
+      }
+      if (isAnkiExport && error instanceof ApiError && error.code === "WORKSPACE_PACKAGE_EXPORT_ANKI_EMPTY") {
+        resetPackageExportPreview();
+        setErrorMessage(t("workspaceExport.ankiEmptySelection"));
         return;
       }
       const wasCaptured = captureWorkspaceExportError(error);
+      if (signal.aborted) {
+        return;
+      }
       if (wasCaptured) {
         showCapturedTechnicalError(error);
-        setErrorMessage(technicalErrorMessage);
-      } else {
-        setErrorMessage(error instanceof Error ? error.message : String(error));
       }
+      const message = error instanceof Error ? error.message : String(error);
+      setErrorMessage(wasCaptured ? technicalErrorMessage : message);
     } finally {
-      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+      if (!indexedDbOpenRecoveryState.hasFailed() && !signal.aborted) {
         setIsPackageExporting(false);
       }
     }
@@ -427,16 +490,31 @@ export function WorkspaceExportScreen(): ReactElement {
 
   return (
     <SettingsShell
-      title={t("workspaceExport.title")}
+      title={t(isAnkiExport ? "workspaceExport.ankiTitle" : "workspaceExport.title")}
       subtitle={t("workspaceExport.subtitle")}
       activeTab="workspace"
+      backLink={{ label: t("deckDetail.actions.back"), to: workspacePath(libraryExportRoute), testId: "workspace-export-back" }}
     >
       <section className="settings-group">
         <article className="content-card workspace-export-format-card">
           <div className="settings-nav-card-copy">
-            <strong className="panel-subtitle">{t("workspaceExport.packageTitle")}</strong>
-            <p className="subtitle">{t("workspaceExport.packageDescription")}</p>
+            <strong className="panel-subtitle">{filename}</strong>
+            {isAnkiExport ? null : <p className="subtitle">{t("workspaceExport.packageDescription")}</p>}
           </div>
+          {isAnkiExport ? (
+            <label className="form-label">
+              <span>{t("workspaceExport.ankiDeckNameLabel")}</span>
+              <input
+                type="text"
+                dir="auto"
+                className="settings-input"
+                value={ankiDeckName}
+                disabled={isPackageExporting}
+                data-testid="workspace-anki-export-deck-name"
+                onChange={(event) => setAnkiDeckName(event.target.value)}
+              />
+            </label>
+          ) : null}
           {currentPackageExportPreview === null ? null : (
             <section className="workspace-import-preview" data-testid="workspace-package-export-preview">
               <div className="workspace-import-preview-stats">
@@ -459,6 +537,9 @@ export function WorkspaceExportScreen(): ReactElement {
                   </strong>
                 </div>
               </div>
+              {isAnkiSelectionEmpty ? (
+                <p className="subtitle" role="status">{t("workspaceExport.ankiEmptySelection")}</p>
+              ) : null}
               {packageExportMetadataRows.length === 0 ? null : (
                 <dl className="workspace-import-preview-metadata" data-testid="workspace-package-export-preview-metadata">
                   {packageExportMetadataRows.map((row) => (
@@ -547,11 +628,11 @@ export function WorkspaceExportScreen(): ReactElement {
               <button
                 className="primary-btn"
                 type="button"
-                disabled={isPackageExportBusy}
+                disabled={isPackageExportBusy || isAnkiSelectionEmpty}
                 data-testid="workspace-package-export-confirm-button"
                 onClick={() => void downloadPackageExport()}
               >
-                {isPackageExporting ? t("workspaceExport.packageExporting") : t("workspaceExport.packageExportConfirmButton")}
+                {isPackageExporting ? t("workspaceExport.packageExporting") : t("workspaceExport.packageExportConfirmButton", { filename })}
               </button>
             )}
           </div>

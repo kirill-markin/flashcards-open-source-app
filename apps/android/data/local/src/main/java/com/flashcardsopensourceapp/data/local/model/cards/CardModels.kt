@@ -12,6 +12,9 @@ data class DeckDraft(
     val filterDefinition: DeckFilterDefinition
 )
 
+class DeckFilterConflictException :
+    IllegalStateException("The deck filter changed during sync. Choose at least one current tag and save again.")
+
 data class DeckSummary(
     val deckId: String,
     val workspaceId: String,
@@ -39,9 +42,10 @@ data class CardSourceMetadata(
 data class CardMetadata(
     val version: Int,
     val source: CardSourceMetadata?,
-    val onboardingDemo: OnboardingDemoMetadata?
+    val onboardingDemo: OnboardingDemoMetadata?,
+    val maintenanceRevision: Long?
 ) {
-    constructor(version: Int, source: CardSourceMetadata?) : this(version, source, null)
+    constructor(version: Int, source: CardSourceMetadata?) : this(version, source, null, null)
 }
 
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card.
@@ -99,6 +103,8 @@ data class CardDraft private constructor(
         }
     }
 }
+
+data class CardImportText(val frontText: String, val backText: String)
 
 data class CardFilter(
     val tags: List<String>

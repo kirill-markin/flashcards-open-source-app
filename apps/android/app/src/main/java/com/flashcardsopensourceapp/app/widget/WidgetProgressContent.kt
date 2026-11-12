@@ -1,23 +1,19 @@
 package com.flashcardsopensourceapp.app.widget
 
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
+import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueForecast
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
 
 /** Today is the first forecast day, from the queue's due count; these are the days after it. */
 private const val widgetUpcomingDueDayCount: Int = 6
@@ -50,28 +46,20 @@ data class WidgetProgressContent(
     /** All-time best, not limited to [days]. */
     val longestStreakDays: Int,
     val availableFreezeCredits: Int,
-    val upcomingDueDays: List<ReviewDueDay>,
+    val dueForecast: WorkspaceReviewDueForecast,
     /** Null until the review schedule has loaded. */
     val reviewSchedule: List<CloudProgressReviewScheduleBucket>?
 )
-
-/** Follows graph replacement (sign-out, reset) and waits while no graph is published. */
-@OptIn(ExperimentalCoroutinesApi::class)
-fun <T> observeWithCurrentAppGraph(
-    application: FlashcardsApplication,
-    observe: (AppGraph) -> Flow<T>
-): Flow<T> {
-    return application.appGraphState.flatMapLatest { appGraph ->
-        if (appGraph == null) emptyFlow() else observe(appGraph)
-    }
-}
 
 fun observeWidgetContent(appGraph: AppGraph): Flow<WidgetContent> {
     return combine(
         observeReviewWidgetContent(appGraph = appGraph),
         observeWidgetProgressContent(appGraph = appGraph)
     ) { queue, progress ->
-        WidgetContent(queue = queue, progress = progress)
+        WidgetContent(
+            queue = queue,
+            progress = progress?.takeIf { it.dueForecast.workspaceId == queue?.workspaceId }
+        )
     }.distinctUntilChanged()
 }
 
@@ -84,16 +72,16 @@ fun observeWidgetProgressContent(appGraph: AppGraph): Flow<WidgetProgressContent
         appGraph.progressRepository.observeSeriesSnapshot(),
         appGraph.progressRepository.observeSummarySnapshot(),
         appGraph.progressRepository.observeReviewScheduleSnapshot(),
-        appGraph.reviewRepository.observeUpcomingReviewDueDays(dayCount = widgetUpcomingDueDayCount)
-    ) { seriesSnapshot, summarySnapshot, reviewScheduleSnapshot, upcomingDueDays ->
-        if (seriesSnapshot == null || summarySnapshot == null || upcomingDueDays == null) {
+        appGraph.reviewRepository.observeWorkspaceReviewDueForecast(dayCount = widgetUpcomingDueDayCount)
+    ) { seriesSnapshot, summarySnapshot, reviewScheduleSnapshot, dueForecast ->
+        if (seriesSnapshot == null || summarySnapshot == null || dueForecast == null) {
             null
         } else {
             makeWidgetProgressContent(
                 seriesSnapshot = seriesSnapshot,
                 summarySnapshot = summarySnapshot,
                 reviewScheduleSnapshot = reviewScheduleSnapshot,
-                upcomingDueDays = upcomingDueDays
+                dueForecast = dueForecast
             )
         }
     }.distinctUntilChanged()
@@ -103,7 +91,7 @@ private fun makeWidgetProgressContent(
     seriesSnapshot: ProgressSeriesSnapshot,
     summarySnapshot: ProgressSummarySnapshot,
     reviewScheduleSnapshot: ProgressReviewScheduleSnapshot?,
-    upcomingDueDays: List<ReviewDueDay>
+    dueForecast: WorkspaceReviewDueForecast
 ): WidgetProgressContent {
     val series = seriesSnapshot.renderedSeries
     val summary = summarySnapshot.renderedSummary
@@ -129,7 +117,7 @@ private fun makeWidgetProgressContent(
         currentStreakDays = summary.currentStreakDays,
         longestStreakDays = summary.longestStreakDays,
         availableFreezeCredits = summary.streakFreeze.availableCredits,
-        upcomingDueDays = upcomingDueDays,
+        dueForecast = dueForecast,
         reviewSchedule = reviewScheduleSnapshot?.renderedSchedule?.buckets
     )
 }

@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionAction
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionResponse
+import java.io.File
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.ClientDeviceType
@@ -85,6 +86,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -92,6 +96,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -480,6 +485,44 @@ class CloudRemoteService private constructor(
         )
     }
 
+    override suspend fun previewCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        target: CloudCardMaintenanceTarget
+    ): CloudCardMaintenancePreview {
+        return accountWorkspaceApi.previewCardMaintenance(
+            apiBaseUrl = apiBaseUrl,
+            bearerToken = bearerToken,
+            target = target
+        )
+    }
+
+    override suspend fun executeCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        confirmation: CloudCardMaintenanceConfirmation
+    ): Int {
+        return accountWorkspaceApi.executeCardMaintenance(
+            apiBaseUrl = apiBaseUrl,
+            bearerToken = bearerToken,
+            confirmation = confirmation
+        )
+    }
+
+    override suspend fun reconcileCardMaintenance(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        previewFingerprint: String
+    ): Boolean {
+        return accountWorkspaceApi.reconcileCardMaintenance(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            previewFingerprint = previewFingerprint
+        )
+    }
+
     override suspend fun previewWorkspacePackageExport(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -498,13 +541,17 @@ class CloudRemoteService private constructor(
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
-        request: WorkspacePackageExportRequest
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
         return workspacePackageApi.exportWorkspacePackage(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader,
             workspaceId = workspaceId,
-            request = request
+            format = format,
+            request = request,
+            destination = destination
         )
     }
 

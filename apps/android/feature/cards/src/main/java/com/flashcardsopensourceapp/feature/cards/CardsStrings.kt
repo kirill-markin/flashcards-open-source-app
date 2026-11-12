@@ -19,7 +19,8 @@ data class CardsTextProvider(
     val frontTextRequired: String,
     val backTextRequired: String,
     val imageReferenceMissing: String,
-    val cardUnavailable: String
+    val cardUnavailable: String,
+    val writesBlocked: String
 )
 
 fun cardsTextProvider(context: Context): CardsTextProvider {
@@ -31,7 +32,8 @@ fun cardsTextProvider(context: Context): CardsTextProvider {
         frontTextRequired = context.getString(R.string.cards_front_text_required),
         backTextRequired = context.getString(R.string.cards_back_text_required),
         imageReferenceMissing = context.getString(R.string.cards_editor_image_reference_missing),
-        cardUnavailable = context.getString(R.string.cards_editor_card_unavailable)
+        cardUnavailable = context.getString(R.string.cards_editor_card_unavailable),
+        writesBlocked = context.getString(R.string.cards_editor_writes_blocked)
     )
 }
 

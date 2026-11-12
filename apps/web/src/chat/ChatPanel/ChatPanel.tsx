@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactElement } from "react";
 import { GuestSignIn } from "../../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../../appData";
 import {
@@ -36,6 +36,7 @@ import {
   getChatComposerState,
   hasChatDraftContent,
 } from "../composer/chatComposerState";
+import { useAnkiImportHandoff } from "../handoff/AnkiImportHandoffContext";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
 import { ChatHistoryPanel } from "../history/ChatHistoryPanel";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
@@ -68,6 +69,11 @@ export function ChatPanel(props: Props): ReactElement {
     moveDraftToSession,
     replacePendingAttachments,
     clearDraftForSession,
+    clearSessionBoundDraftIfUnchanged,
+    getSessionBoundRequestIdForSend,
+    isAnkiImportRestartRequired,
+    requireAnkiImportRestart,
+    dismissAnkiImportRestart,
     composerSendPhase: sendPhase,
     replaceComposerSendPhase: setSendPhase,
     suppressNextSessionDraftCarryover,
@@ -238,11 +244,14 @@ export function ChatPanel(props: Props): ReactElement {
     activeWorkspaceId,
     attachmentLimitMessages,
     clearDraftForSession,
+    clearSessionBoundDraftIfUnchanged,
     clearTrackedDraftSelection,
     composerAction,
     currentSessionId,
     dictationState,
     draftInputText,
+    isDraftSessionBound: draft.sessionBoundDraftId !== null,
+    getSessionBoundRequestIdForSend,
     draftPendingAttachments,
     draftUpdatedAt: draft.updatedAt,
     indexedDbOpenRecoveryState,
@@ -270,7 +279,14 @@ export function ChatPanel(props: Props): ReactElement {
   const isDictationVisible = dictationState !== "idle";
   const isChatActionLocked = appData.isSessionVerified === false || indexedDbOpenRecoveryState.hasFailed();
   const isAiActionLocked = isChatActionLocked || isGuestUsageUnavailable;
-  async function sendPendingMessage(): Promise<void> {
+  const ankiImportHandoff = useAnkiImportHandoff();
+  const ankiImportTarget = mode === "fullscreen" ? ankiImportHandoff?.target ?? null : null;
+  const isAnkiImportTargetActive = ankiImportTarget !== null && ankiImportTarget.workspaceId === activeWorkspaceId
+    && ankiImportTarget.sessionId === currentSessionId;
+  const ankiImportRestartMessage = isAnkiImportRestartRequired ? t("workspaceImport.anki.chatChanged") : null;
+  const visibleErrorDialogMessage = errorDialogMessage ?? ankiImportRestartMessage;
+
+  async function runPendingMessageSend(requiredSessionId: string | null): Promise<void> {
     if (isAiActionLocked || !isHistoryLoaded || isStopping) return;
     const refusal = isOwnOpenAIKeyActive() ? null : getBrowserGuestAiAdmissionRefusal(aiUsage, guestCapabilities, "chat");
     if (refusal !== null) {
@@ -278,8 +294,15 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
     setGuestAiRefusal(null);
-    await runComposerSend(sendPreparedMessage);
+    await runComposerSend(() => sendPreparedMessage(requiredSessionId));
   }
+
+  async function sendPendingMessage(): Promise<void> {
+    if (!isAnkiImportTargetActive) {
+      await runPendingMessageSend(null);
+    }
+  }
+
   useEffect(() => {
     if (isChatActionLocked && dictationState !== "idle") discardDictation();
   }, [isChatActionLocked, dictationState, discardDictation]);
@@ -346,6 +369,42 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     sendPhase,
   });
+  const sendAnkiImport = useEffectEvent((sessionId: string): void => {
+    void runPendingMessageSend(sessionId);
+  });
+
+  useEffect(() => {
+    if (ankiImportTarget === null || ankiImportHandoff === null || !isHistoryLoaded) {
+      return;
+    }
+
+    if (!isAnkiImportTargetActive) {
+      if (ankiImportHandoff.consume(ankiImportTarget) && ankiImportTarget.workspaceId === activeWorkspaceId) {
+        requireAnkiImportRestart(ankiImportTarget.sessionId, ankiImportTarget.draftUpdatedAt);
+      }
+      return;
+    }
+
+    if (draft.sessionBoundDraftId === null || draft.updatedAt !== ankiImportTarget.draftUpdatedAt) {
+      ankiImportHandoff.consume(ankiImportTarget);
+      return;
+    }
+
+    if (canSendPendingMessage && ankiImportHandoff.consume(ankiImportTarget)) {
+      sendAnkiImport(ankiImportTarget.sessionId);
+    }
+  }, [
+    activeWorkspaceId,
+    ankiImportHandoff,
+    ankiImportTarget,
+    canSendPendingMessage,
+    draft.sessionBoundDraftId,
+    draft.updatedAt,
+    isAnkiImportTargetActive,
+    isHistoryLoaded,
+    requireAnkiImportRestart,
+  ]);
+
   const isSendButtonBusy = sendPhase === "preparingSend" || sendPhase === "startingRun";
   const canShowComposerSuggestions = getCanShowComposerSuggestions({
     areComposerSuggestionsEnabled: aiChatComposerSuggestionsEnabled,
@@ -388,6 +447,8 @@ export function ChatPanel(props: Props): ReactElement {
       suppressNextSessionDraftCarryover(currentSessionId);
       startNewConversationComposerReset(currentSessionId);
       discardDictation();
+      clearSessionBoundDraftIfUnchanged(currentSessionId, draft.updatedAt);
+      dismissAnkiImportRestart();
       const nextSessionId = await clearConversation();
       indexedDbOpenRecoveryState.throwIfFailed();
       finishNewConversationComposerReset(nextSessionId);
@@ -585,7 +646,7 @@ export function ChatPanel(props: Props): ReactElement {
         data-assistant-run-active={isAssistantRunActive ? "true" : "false"}
         data-stopping={isStopping ? "true" : "false"}
         data-draft-state={hasDraftContent ? "filled" : "empty"}
-        data-can-send={canSendPendingMessage ? "true" : "false"}
+        data-can-send={canSendPendingMessage && !isAnkiImportTargetActive ? "true" : "false"}
       >
         {isGuestUsageUnavailable ? (
           <p className="chat-ai-usage-notice" role="status" data-testid="guest-ai-usage-status" data-load-status={aiUsageLoadStatus}>
@@ -779,7 +840,7 @@ export function ChatPanel(props: Props): ReactElement {
                 aria-label={t("chatPanel.actions.sendAriaLabel")}
                 aria-busy={isSendButtonBusy ? "true" : "false"}
                 onClick={() => void sendPendingMessage()}
-                disabled={!canSendPendingMessage}
+                disabled={!canSendPendingMessage || isAnkiImportTargetActive}
                 data-testid="chat-send-button"
               >
                 <span
@@ -797,7 +858,7 @@ export function ChatPanel(props: Props): ReactElement {
         </>
       )}
 
-      {errorDialogMessage !== null ? (
+      {visibleErrorDialogMessage !== null ? (
         <div
           className="chat-error-dialog-backdrop"
           role="dialog"
@@ -806,13 +867,18 @@ export function ChatPanel(props: Props): ReactElement {
         >
           <div className="panel chat-error-dialog">
             <h2 id="chat-error-dialog-title">{t("chatPanel.errorTitle")}</h2>
-            <p>{errorDialogMessage}</p>
+            <p>{visibleErrorDialogMessage}</p>
             <button
               type="button"
               className="primary-btn"
               onClick={() => {
                 if (indexedDbOpenRecoveryState.hasFailed() === false) {
-                  dismissErrorDialog();
+                  if (errorDialogMessage !== null) {
+                    dismissErrorDialog();
+                  }
+                  if (visibleErrorDialogMessage === ankiImportRestartMessage) {
+                    dismissAnkiImportRestart();
+                  }
                 }
               }}
               disabled={isChatActionLocked}

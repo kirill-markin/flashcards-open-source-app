@@ -72,6 +72,7 @@ import { getHttpErrorResponseHeaders } from "./httpErrorResponseHeaders";
 import {
   browserCorsAllowHeaders,
   browserCorsExposeHeaders,
+  browserCorsPreflightMaxAgeSeconds,
 } from "./browserCors";
 import type { AppEnv } from "./appEnv";
 
@@ -277,12 +278,14 @@ function createMountedApp(
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage"],
     exposeHeaders: ["cache-control", "content-type", "x-request-id", "retry-after"],
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   });
   const publicCatalogCorsMiddleware = cors({
     origin: (origin) => getPublicCatalogCorsOrigin(origin),
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: [...publicCatalogCorsAllowHeaders],
     exposeHeaders: [...publicCatalogCorsExposeHeaders],
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   });
   const anonymousAnalyticsCorsMiddleware = cors({
     origin: (origin) => getAnonymousAnalyticsCorsOrigin(
@@ -292,6 +295,7 @@ function createMountedApp(
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage"],
     exposeHeaders: ["content-type", "x-request-id", "retry-after"],
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   });
   // The marketing site reaches this one credentialed route and nothing else. The shared list stays
   // as it is: it governs every other browser route, and the site has no business on those. The route
@@ -313,6 +317,7 @@ function createMountedApp(
     allowHeaders: [...browserCorsAllowHeaders],
     exposeHeaders: [...browserCorsExposeHeaders],
     credentials: true,
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   });
   const browserCorsMiddleware = cors({
     origin: allowedOrigins,
@@ -320,6 +325,7 @@ function createMountedApp(
     allowHeaders: [...browserCorsAllowHeaders],
     exposeHeaders: [...browserCorsExposeHeaders],
     credentials: true,
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   });
   app.use("*", async (context, next) => {
     const requestId = crypto.randomUUID();
@@ -363,6 +369,7 @@ function createMountedApp(
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: [...globalSnapshotCorsAllowHeaders],
     exposeHeaders: ["retry-after"],
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   }));
   app.use("*", async (context, next) => {
     if (

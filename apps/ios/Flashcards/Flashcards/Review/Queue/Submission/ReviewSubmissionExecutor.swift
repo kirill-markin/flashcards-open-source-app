@@ -2,8 +2,8 @@ import Foundation
 
 /// Executes review submissions away from ``MainActor`` so UI updates stay instant.
 protocol ReviewSubmissionExecuting: Sendable {
-    /// Persists one review submission and returns the updated card snapshot.
-    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card
+    /// Persists one review submission and returns the card before and after the write.
+    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> ReviewSubmissionChange
 }
 
 struct ReviewSubmissionMutationState: Sendable {
@@ -158,13 +158,13 @@ actor ReviewSubmissionExecutor: ReviewSubmissionExecuting {
         self.database = nil
     }
 
-    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card {
+    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> ReviewSubmissionChange {
         try self.outboxMutationGate.beginReviewSubmission()
         do {
             let database = try self.resolvedDatabase()
-            let card = try database.submitReview(workspaceId: workspaceId, reviewSubmission: submission)
+            let change = try database.submitReview(workspaceId: workspaceId, reviewSubmission: submission)
             self.outboxMutationGate.finishReviewSubmission()
-            return card
+            return change
         } catch {
             self.outboxMutationGate.finishReviewSubmission()
             throw error

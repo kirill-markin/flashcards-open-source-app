@@ -4,6 +4,8 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
+internal const val cardMaintenanceRevisionKey: String = "maintenanceRevision"
+
 fun normalizeCardType(rawValue: String): String {
     val trimmedValue: String = rawValue.trim()
     return if (trimmedValue.isEmpty()) {
@@ -43,6 +45,9 @@ fun buildCardMetadataJsonObject(metadata: CardMetadata): JSONObject {
     val result = JSONObject()
         .put("version", metadata.version)
         .put("source", metadata.source?.let(::buildCardSourceMetadataJsonObject) ?: JSONObject.NULL)
+    metadata.maintenanceRevision?.let { revision ->
+        result.put(cardMaintenanceRevisionKey, revision)
+    }
     metadata.onboardingDemo?.let { demo ->
         result.put("onboardingDemo", JSONObject()
             .put("version", demo.version)
@@ -84,8 +89,27 @@ fun decodeCardMetadataJsonObject(metadataObject: JSONObject): CardMetadata {
         } else {
             decodeCardSourceMetadataJsonObject(metadataObject = metadataObject.getJSONObject("source"))
         },
-        onboardingDemo = decodeOnboardingDemoMetadata(value = metadataObject.opt("onboardingDemo"))
+        onboardingDemo = decodeOnboardingDemoMetadata(value = metadataObject.opt("onboardingDemo")),
+        maintenanceRevision = if (metadataObject.has(cardMaintenanceRevisionKey)) {
+            val value = metadataObject.get(cardMaintenanceRevisionKey)
+            requireNotNull(parseCardMaintenanceRevision(value = value)) {
+                "Card metadata $cardMaintenanceRevisionKey must be a positive safe integer, got $value."
+            }
+        } else {
+            null
+        }
     )
+}
+
+internal fun parseCardMaintenanceRevision(value: Any): Long? {
+    if (value !is Number) {
+        return null
+    }
+    val revision = value.toLong()
+    return revision.takeIf {
+        it in 1L..9_007_199_254_740_991L &&
+            value.toString().toBigDecimalOrNull()?.compareTo(it.toBigDecimal()) == 0
+    }
 }
 
 private fun buildCardSourceMetadataJsonObject(metadata: CardSourceMetadata): JSONObject {

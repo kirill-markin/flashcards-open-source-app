@@ -29,6 +29,7 @@ import { createChatSandboxFunction } from "./chat-sandbox";
 import { createSentrySourceMapInjectionCommand, getDockerSentryCliPath } from "../sentry-source-maps";
 import { getLambdaSentryRelease } from "../lambda-sentry-release";
 import { createRdsCaBundleCopyCommand, rdsCaBundlePath } from "../rds-ca-bundle";
+import { workspaceExportsPrefix } from "../media-assets";
 
 export interface ApiGatewayProps {
   vpc: ec2.Vpc;
@@ -376,10 +377,14 @@ const gatewayErrorCorsExposeHeaders = [
   "x-amz-apigw-id",
 ] as const;
 
+// Chrome caps Access-Control-Max-Age at 2 hours; without it a preflight is reused for 5 seconds.
+const browserCorsPreflightMaxAge = cdk.Duration.seconds(7_200);
+
 export const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
   allowOrigins: ["*"],
   allowMethods: ["GET", "OPTIONS"],
   allowHeaders: ["content-type", "authorization", "sentry-trace", "baggage"],
+  maxAge: browserCorsPreflightMaxAge,
 };
 
 function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
@@ -388,6 +393,7 @@ function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.Cors
     allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allowHeaders: [...browserCorsAllowHeaders],
     allowCredentials: true,
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -396,6 +402,7 @@ function createPublicCatalogCorsPreflightOptions(allowedOrigins: string[]): apig
     allowOrigins: allowedOrigins,
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage", "x-client-platform", "x-client-version"],
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -404,6 +411,7 @@ function createAnonymousAnalyticsCorsPreflightOptions(allowedOrigins: string[]):
     allowOrigins: allowedOrigins,
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage"],
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -416,6 +424,7 @@ export function createChatLiveFunctionUrlCorsOptions(
     allowedHeaders: [...browserCorsAllowHeaders],
     exposedHeaders: [...chatLiveFunctionUrlCorsExposeHeaders],
     allowCredentials: true,
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -1192,6 +1201,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // configuration. The worker resolves execution settings from the stable
   // ai_cost_mode role, so it can claim runs prepared by the previous API build.
   backendFn.addToRolePolicy(createChatFilesObjectPolicyStatement(props.mediaAssetsBucket));
+  backendFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["s3:GetObject", "s3:PutObject"],
+    resources: [props.mediaAssetsBucket.arnForObjects(workspaceExportsPrefix + "*")],
+  }));
   chatWorkerFn.addToRolePolicy(createChatFilesObjectPolicyStatement(props.mediaAssetsBucket));
   backendFn.node.addDependency(chatWorkerFn);
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);

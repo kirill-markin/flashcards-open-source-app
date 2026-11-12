@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
@@ -18,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.OwnOpenAiKeySettings
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.CardImportText
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
@@ -35,6 +37,10 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
@@ -68,14 +74,17 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
+import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueCount
+import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueForecast
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryResult
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -85,13 +94,19 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import java.time.ZoneId
+
+class CardUnavailableException(cardId: String) : IllegalStateException("Card '$cardId' is unavailable.")
+
+class CardImportWorkspaceChangedException : IllegalStateException("The active workspace changed before importing cards.")
 
 interface CardsRepository {
     fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>>
     fun observeCard(cardId: String): Flow<CardSummary?>
     suspend fun createCard(cardDraft: CardDraft)
-    suspend fun updateCard(cardId: String, cardDraft: CardDraft)
+    suspend fun importSpreadsheetCards(workspaceId: String, rows: List<CardImportText>, tags: List<String>)
+    suspend fun updateCard(cardId: String, cardDraft: CardDraft, savedTags: List<String>): CardDraft
 
     /** Soft-deletes a card. Missing and already deleted cards are successful no-ops. */
     suspend fun deleteCard(cardId: String)
@@ -102,7 +117,7 @@ interface DecksRepository {
     fun observeDeck(deckId: String): Flow<DeckSummary?>
     fun observeDeckCards(deckId: String): Flow<List<CardSummary>>
     suspend fun createDeck(deckDraft: DeckDraft): String
-    suspend fun updateDeck(deckId: String, deckDraft: DeckDraft)
+    suspend fun updateDeck(deckId: String, deckDraft: DeckDraft, savedDraft: DeckDraft)
     suspend fun deleteDeck(deckId: String)
 }
 
@@ -130,17 +145,21 @@ interface ReviewRepository {
         queryInputs: Flow<ReviewSessionQueryInputs>
     ): Flow<ReviewSessionSnapshot>
 
+    fun observeReviewSessionWithInputs(
+        selectedFilter: ReviewFilter,
+        queryInputs: Flow<ReviewSessionQueryInputs>
+    ): Flow<ReviewSessionQueryResult>
+
     /** Deck and tag choices with due counts; collect only while the filter sheet is open. */
     fun observeReviewFilterOptions(): Flow<ReviewFilterOptions>
 
-    /** New and due cards in the current workspace under its persisted Review filter. */
-    fun observeReviewDueBadgeCount(): Flow<Int>
+    fun observeWorkspaceReviewDueCount(): Flow<WorkspaceReviewDueCount?>
 
-    /** [observeReviewDueBadgeCount] with the card Review shows first; null without a current workspace. */
+    /** Null without a current workspace. */
     fun observeReviewQueueHead(): Flow<ReviewQueueHead?>
 
-    /** The [dayCount] local days after today, oldest first, under the same filter; null without a current workspace. */
-    fun observeUpcomingReviewDueDays(dayCount: Int): Flow<List<ReviewDueDay>?>
+    /** The [dayCount] local days after today, oldest first. Null without a current workspace. */
+    fun observeWorkspaceReviewDueForecast(dayCount: Int): Flow<WorkspaceReviewDueForecast?>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 
@@ -308,11 +327,20 @@ interface CloudAccountRepository {
     suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
+    suspend fun previewCardMaintenance(target: CloudCardMaintenanceTarget): CloudCardMaintenancePreview
+    suspend fun executeCardMaintenance(confirmation: CloudCardMaintenanceConfirmation): Int
+    fun loadCardMaintenanceAttempt(workspaceId: String, attemptId: String): CloudCardMaintenanceAttempt?
+    fun observeCardMaintenanceAttempt(workspaceId: String, attemptId: String): Flow<CloudCardMaintenanceAttempt?>
+    suspend fun refreshCardMaintenanceWorkspace(workspaceId: String, attemptId: String)
     suspend fun previewCurrentWorkspacePackageExport(
+        expectedWorkspaceId: String,
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview
     suspend fun exportCurrentWorkspacePackage(
-        request: WorkspacePackageExportRequest
+        expectedWorkspaceId: String,
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse
     suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview
     suspend fun confirmCurrentWorkspacePackageImport(
@@ -348,6 +376,11 @@ data class AiChatPreparedRemoteSession(
     val authorizationHeader: String
 )
 
+data class AiChatPreparedAnkiImport(
+    val request: AiChatAnkiImportRequest,
+    val remoteSession: AiChatPreparedRemoteSession
+)
+
 interface AiChatRepository {
     fun observeConsent(): Flow<Boolean>
     fun hasConsent(): Boolean
@@ -364,13 +397,24 @@ interface AiChatRepository {
     suspend fun loadAiUsage(workspaceId: String?): AiUsageStatus
     fun makeExplicitSessionId(): String
     suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession
+    suspend fun prepareAnkiImportSession(request: AiChatAnkiImportRequest): AiChatPreparedAnkiImport
     suspend fun ensureReadyForSend(workspaceId: String?)
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
-    suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
+    suspend fun savePersistedState(
+        workspaceId: String?,
+        state: AiChatPersistedState,
+        ankiImportRequest: AiChatAnkiImportRequest?
+    )
     suspend fun clearPersistedState(workspaceId: String?)
     suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState
-    suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState)
+    suspend fun saveDraftState(
+        workspaceId: String?,
+        sessionId: String?,
+        state: AiChatDraftState
+    ): Boolean
     suspend fun clearDraftState(workspaceId: String?, sessionId: String?)
+    suspend fun saveAnkiImportState(state: AiChatPersistedState, draftState: AiChatDraftState)
+    suspend fun finishAnkiImport(request: AiChatAnkiImportRequest, state: AiChatPersistedState?): Boolean
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
     suspend fun ensureSessionId(
         workspaceId: String?,
@@ -416,7 +460,8 @@ interface AiChatRepository {
         state: AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
-        uiLocale: String?
+        uiLocale: String?,
+        preparedAnkiImport: AiChatPreparedAnkiImport?
     ): AiChatStartRunResponse
     fun attachLiveRun(
         workspaceId: String?,

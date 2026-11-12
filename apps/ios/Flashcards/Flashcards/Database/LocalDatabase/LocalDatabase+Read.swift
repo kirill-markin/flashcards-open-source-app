@@ -110,16 +110,12 @@ extension LocalDatabase {
         )
     }
 
-    func loadReviewDueBadgeSnapshot(
-        workspaceId: String,
-        reviewQueryDefinition: ReviewQueryDefinition,
-        now: Date
-    ) throws -> ReviewDueBadgeSnapshot {
-        try self.cardStore.loadReviewDueBadgeSnapshot(
-            workspaceId: workspaceId,
-            reviewQueryDefinition: reviewQueryDefinition,
-            now: now
-        )
+    func loadWorkspaceReviewDueBadgeSnapshot(workspaceId: String, now: Date) throws -> ReviewDueBadgeSnapshot {
+        try self.cardStore.loadWorkspaceReviewDueBadgeSnapshot(workspaceId: workspaceId, now: now)
+    }
+
+    func loadWorkspaceReviewDueAdvance(workspaceId: String, countedThrough: Date, now: Date) throws -> Int {
+        try self.cardStore.loadWorkspaceReviewDueAdvance(workspaceId: workspaceId, countedThrough: countedThrough, now: now)
     }
 
     func loadReviewUpcomingDueDates(
@@ -300,6 +296,30 @@ extension LocalDatabase {
 
     func loadWorkspaceTagsSummary(workspaceId: String) throws -> WorkspaceTagsSummary {
         try self.cardStore.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+    }
+
+    func loadTagDetailSnapshot(
+        workspaceId: String,
+        tag: String,
+        now: Date
+    ) throws -> (stats: DeckCardStats, cards: [Card]) {
+        try self.core.inReadTransaction {
+            let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+            let filterDefinition = resolveDeckFilterDefinitionTagNames(
+                filterDefinition: buildDeckFilterDefinition(tags: [tag]),
+                storedTagNames: storedTagNames
+            )
+            let stats = try self.cardStore.loadDeckCardStats(
+                workspaceId: workspaceId,
+                filterDefinition: filterDefinition,
+                now: now
+            )
+            let cards = try self.cardStore.loadCardsMatchingDeck(
+                workspaceId: workspaceId,
+                filterDefinition: filterDefinition
+            )
+            return (stats: stats, cards: cards)
+        }
     }
 
     func loadCardsMatchingDeck(

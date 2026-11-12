@@ -13,15 +13,18 @@ struct ProgressPresentationRequest: Hashable, Sendable {
 enum LibraryNavigationDestination: Hashable, Sendable {
     case cards
     case tags
+    case tagDetail(tag: String, workspaceId: String)
     case decks
     case deckDetail(DeckScreenDestination)
     case deckCatalog
     case catalogDeck(CatalogBrowseIndexDeck)
     case importData
+    case importFormat(WorkspaceImportFormat)
     case exportData
+    case exportFormat(WorkspacePackageExportFormat)
 }
 
-/// A first-level Library page: a hub row, and on the Mac sidebar a row under Library.
+/// A first-level Library page shown in the hub and in the Mac sidebar.
 enum LibrarySection: Hashable, CaseIterable, Sendable {
     case cards
     case tags
@@ -48,7 +51,7 @@ enum LibrarySection: Hashable, CaseIterable, Sendable {
         case .decks: aiSettingsLocalized("settings.workspace.row.decks", "Decks")
         case .deckCatalog: String(localized: "library.row.deck_catalog.title", table: "Foundation")
         case .importData: aiSettingsLocalized("settings.workspace.import.title", "Import")
-        case .exportData: aiSettingsLocalized("settings.workspace.row.export", "Export")
+        case .exportData: String(localized: "library.row.export.title", table: "Foundation")
         }
     }
 

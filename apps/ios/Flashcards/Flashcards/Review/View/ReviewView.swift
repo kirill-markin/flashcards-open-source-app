@@ -57,6 +57,7 @@ struct ReviewView: View {
         backTextSelection: nil,
         observedFrontText: nil,
         observedBackText: nil,
+        observedTags: [],
         tags: [],
         mediaAssetIdsReadyForUpload: []
     )
@@ -422,9 +423,19 @@ struct ReviewView: View {
             isEnabled: streak.isInteractive,
             perform: { _ in self.openProgressWithPresentationBreadcrumb(target: .streak) }
         ))
+        let dueCount = store.displayedReviewDueCount
+        let dueLabel = makeReviewDueBadgeLabel(dueCount: dueCount)
+        let filterTitle: String
+        if #available(macCatalyst 26.0, *) {
+            filterTitle = self.reviewFilterButtonTitle
+        } else {
+            filterTitle = [self.reviewFilterButtonTitle, dueLabel].compactMap { $0 }.joined(separator: " ")
+        }
         let filter = MacToolbarAction(
             identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.reviewFilterButtonTitle,
-            title: self.reviewFilterButtonTitle,
+            title: filterTitle,
+            value: dueLabel,
+            badgeCount: dueCount > 0 ? dueCount : nil,
             toolTip: String(
                 format: String(localized: "Filter: %@ (F)", table: reviewCardsStringsTableName),
                 locale: Locale.current,
@@ -730,21 +741,43 @@ struct ReviewView: View {
     }
 
     private var reviewFilterMenu: some View {
-        let action = self.beginReviewFiltering
+        let dueLabel = makeReviewDueBadgeLabel(dueCount: store.displayedReviewDueCount)
+        let usesNativeBadge: Bool
+        if #available(iOS 26.0, *) {
+            usesNativeBadge = self.showsFilterInReviewColumn == false
+        } else {
+            usesNativeBadge = false
+        }
+        let inlineDueLabel = usesNativeBadge ? nil : dueLabel
+        let accessibilityValue = [
+            self.usesCompactCompanionToolbar ? self.reviewFilterButtonTitle : nil,
+            dueLabel
+        ].compactMap { $0 }.joined(separator: ", ")
+
         return Group {
-            Button(action: action) {
-            Group {
-                if self.usesCompactCompanionToolbar {
+            Button(action: self.beginReviewFiltering) {
+                if self.usesCompactCompanionToolbar && inlineDueLabel == nil {
                     Image(systemName: "line.3.horizontal.decrease")
                         .foregroundStyle(Color.primary)
                 } else {
                     HStack(spacing: 4) {
-                        Text(self.reviewFilterButtonTitle)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
-                        Image(systemName: "chevron.down")
-                            .font(.caption.weight(.semibold))
+                        if self.usesCompactCompanionToolbar {
+                            Image(systemName: "line.3.horizontal.decrease")
+                        } else {
+                            Text(self.reviewFilterButtonTitle)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
+                        }
+                        if let inlineDueLabel {
+                            Text(verbatim: inlineDueLabel)
+                                .monospacedDigit()
+                                .fixedSize()
+                        }
+                        if self.usesCompactCompanionToolbar == false {
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.semibold))
+                        }
                     }
                     .foregroundStyle(Color.primary)
                     .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
@@ -752,14 +785,13 @@ struct ReviewView: View {
                     .contentShape(Rectangle())
                 }
             }
-        }
-        .tint(Color.primary)
-        .labelStyle(.titleAndIcon)
-        .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
-        .accessibilityLabel(self.usesCompactCompanionToolbar
-            ? String(localized: "Filters", table: reviewCardsStringsTableName)
-            : self.reviewFilterButtonTitle)
-        .accessibilityValue(self.usesCompactCompanionToolbar ? self.reviewFilterButtonTitle : "")
+            .tint(Color.primary)
+            .labelStyle(.titleAndIcon)
+            .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
+            .accessibilityLabel(self.usesCompactCompanionToolbar
+                ? String(localized: "Filters", table: reviewCardsStringsTableName)
+                : self.reviewFilterButtonTitle)
+            .accessibilityValue(accessibilityValue)
         }
         #if !targetEnvironment(macCatalyst)
         .onGeometryChange(for: CGRect.self) { geometry in
@@ -767,6 +799,7 @@ struct ReviewView: View {
         } action: { frame in
             self.reviewFilterButtonFrame = frame
         }
+        .badge(usesNativeBadge ? dueLabel.map(Text.init(verbatim:)) : nil)
         #endif
     }
 

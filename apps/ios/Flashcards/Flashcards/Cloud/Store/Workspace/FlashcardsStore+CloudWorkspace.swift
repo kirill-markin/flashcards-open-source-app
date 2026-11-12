@@ -94,8 +94,15 @@ extension FlashcardsStore {
             try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
+        guard let originalSession = self.cloudRuntime.activeCloudSession() else {
+            throw LocalStoreError.uninitialized("Cloud session is unavailable")
+        }
         let currentWorkspaceId = self.workspace?.workspaceId
-        let selectedWorkspace = try await self.withAuthenticatedCloudSession { session in
+        let originalSyncGeneration = self.cloudRuntime.syncGeneration
+        let selectedWorkspace = try await self.withCurrentCloudSession(
+            linkedSession: originalSession,
+            syncGeneration: originalSyncGeneration
+        ) { session in
             let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
             switch selection {
             case .existing(let workspaceId):
@@ -115,11 +122,16 @@ extension FlashcardsStore {
             }
         }
 
+        try self.cloudRuntime.checkSyncGeneration(originalSyncGeneration)
+        try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: originalSession)
         if currentWorkspaceId == selectedWorkspace.workspaceId {
             return
         }
 
-        let activeSession = try await self.withAuthenticatedCloudSession { session in
+        let activeSession = try await self.withCurrentCloudSession(
+            linkedSession: originalSession,
+            syncGeneration: originalSyncGeneration
+        ) { session in
             CloudLinkedSession(
                 userId: session.userId,
                 workspaceId: selectedWorkspace.workspaceId,
@@ -130,26 +142,41 @@ extension FlashcardsStore {
             )
         }
 
-        self.cloudRuntime.cancelForWorkspaceSwitch()
-        await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: selectedWorkspace.workspaceId)
-        let database = try requireLocalDatabase(database: self.database)
-        try database.switchActiveWorkspace(
-            workspace: selectedWorkspace,
-            linkedSession: activeSession
-        )
-        self.reviewPresentationResetRevision += 1
-        self.cloudRuntime.setActiveCloudSession(linkedSession: activeSession)
-        try self.reload()
-        self.syncStatus = .syncing
+        try self.cloudRuntime.checkSyncGeneration(originalSyncGeneration)
+        try self.cloudRuntime.checkCurrentLinkedSyncSession(linkedSession: originalSession)
+        let transition = self.cloudRuntime.beginWorkspaceSyncTransition()
+        do {
+            defer { self.cloudRuntime.endWorkspaceSyncTransition(transition) }
+            try await self.prepareWorkspaceScopedStateForSwitch(
+                nextWorkspaceId: selectedWorkspace.workspaceId,
+                transition: transition
+            )
+            try self.cloudRuntime.checkWorkspaceSyncTransition(transition)
+            let database = try requireLocalDatabase(database: self.database)
+            try database.switchActiveWorkspace(
+                workspace: selectedWorkspace,
+                linkedSession: activeSession
+            )
+            self.reviewPresentationResetRevision += 1
+            self.cloudRuntime.setActiveCloudSession(linkedSession: activeSession)
+            try self.reload()
+        }
 
+        let syncGeneration = self.cloudRuntime.syncGeneration
+        self.syncStatus = .syncing
         do {
             let syncResult = try await self.runLinkedSync(linkedSession: activeSession)
-            try await self.applySyncResultWithoutBlockingReset(
+            try await self.applyCurrentLinkedSyncResult(
                 syncResult: syncResult,
+                linkedSession: activeSession,
+                syncGeneration: syncGeneration,
                 now: Date(),
                 trigger: trigger
             )
         } catch {
+            guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration) else {
+                throw CancellationError()
+            }
             let didCapture = self.captureWorkspaceCloudSyncFailureIfNeeded(
                 error: error,
                 trigger: trigger,
@@ -259,11 +286,17 @@ extension FlashcardsStore {
     }
 
     func previewCurrentWorkspacePackageExport(
+        workspaceId: String,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportPreviewResponse {
         let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
-        var exportContext = try await self.prepareWorkspacePackageExportCloudContext(trigger: trigger)
+        var exportContext = try await self.prepareWorkspacePackageExportCloudContext(
+            expectedWorkspaceId: workspaceId,
+            trigger: trigger
+        )
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        try Task.checkCancellation()
+        let previousSyncStatus = self.syncStatus
         self.syncStatus = .syncing
 
         do {
@@ -273,7 +306,11 @@ extension FlashcardsStore {
                 now: Date(),
                 trigger: trigger
             )
-            exportContext = try await self.prepareWorkspacePackageExportCloudContext(trigger: trigger)
+            exportContext = try await self.prepareWorkspacePackageExportCloudContext(
+                expectedWorkspaceId: workspaceId,
+                trigger: trigger
+            )
+            try Task.checkCancellation()
             let preview = try await cloudSyncService.previewWorkspacePackageExport(
                 apiBaseUrl: exportContext.session.apiBaseUrl,
                 authorizationHeader: exportContext.session.authorizationHeaderValue,
@@ -283,6 +320,15 @@ extension FlashcardsStore {
             self.globalErrorMessage = ""
             return preview
         } catch {
+            guard self.workspace?.workspaceId == workspaceId else {
+                throw error
+            }
+            if isRequestCancellationError(error: error) {
+                if self.syncStatus == .syncing {
+                    self.syncStatus = previousSyncStatus
+                }
+                throw error
+            }
             let didCapture = self.captureCloudSyncFailureIfNeeded(
                 error: error,
                 linkedSession: exportContext.session,
@@ -297,22 +343,37 @@ extension FlashcardsStore {
     }
 
     func exportCurrentWorkspacePackage(
+        workspaceId: String,
+        format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse {
         let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
-        let exportContext = try await self.prepareWorkspacePackageExportCloudContext(trigger: trigger)
+        let exportContext = try await self.prepareWorkspacePackageExportCloudContext(
+            expectedWorkspaceId: workspaceId,
+            trigger: trigger
+        )
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
 
         do {
+            try Task.checkCancellation()
             let response = try await cloudSyncService.exportWorkspacePackage(
                 apiBaseUrl: exportContext.session.apiBaseUrl,
                 authorizationHeader: exportContext.session.authorizationHeaderValue,
                 workspaceId: exportContext.workspaceId,
+                format: format,
                 request: request
             )
             self.globalErrorMessage = ""
             return response
         } catch {
+            guard self.workspace?.workspaceId == workspaceId,
+                  isRequestCancellationError(error: error) == false else {
+                throw error
+            }
+            if format == .anki, workspaceAnkiExportSelectionIsEmpty(error: error) {
+                self.globalErrorMessage = ""
+                throw error
+            }
             let didCapture = self.captureCloudSyncFailureIfNeeded(
                 error: error,
                 linkedSession: exportContext.session,
@@ -320,7 +381,7 @@ extension FlashcardsStore {
                 trigger: trigger,
                 action: "workspace_package_export"
             )
-            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            self.globalErrorMessage = workspacePackageExportFailureMessage(error: error, format: format)
             throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
@@ -557,6 +618,7 @@ extension FlashcardsStore {
     }
 
     private func prepareWorkspacePackageExportCloudContext(
+        expectedWorkspaceId: String,
         trigger: CloudSyncTrigger
     ) async throws -> WorkspacePackageCloudContext {
         let session: CloudLinkedSession
@@ -581,9 +643,9 @@ extension FlashcardsStore {
         }
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
-        guard workspaceId == session.workspaceId else {
+        guard workspaceId == session.workspaceId, workspaceId == expectedWorkspaceId else {
             throw LocalStoreError.validation(
-                "Workspace package export requires the current workspace to match the active cloud session."
+                "Workspace package export requires the selected workspace to stay active in the cloud session."
             )
         }
 

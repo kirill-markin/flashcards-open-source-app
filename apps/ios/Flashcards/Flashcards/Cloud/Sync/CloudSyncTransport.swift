@@ -13,7 +13,6 @@ private let mediaAssetUploadPartPutResponseBodyMaxBytes: Int = 2_048
 let cloudSyncTransportMaxAttempts: Int = 3
 let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
 private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
-private let workspacePackageExportContentType: String = "application/zip"
 private let workspacePackageImportFileName: String = "flashcards.zip"
 private let mediaAssetDownloadURLPathSegmentAllowedCharacters: CharacterSet = {
     var allowedCharacters = CharacterSet.alphanumerics
@@ -318,9 +317,13 @@ struct CloudSyncTransport {
         return "/workspaces/\(encodedWorkspaceId)/packages/export/preview"
     }
 
-    func workspacePackageExportPath(workspaceId: String) throws -> String {
+    func workspacePackageExportPath(workspaceId: String, format: WorkspacePackageExportFormat) throws -> String {
         let encodedWorkspaceId = try self.encodedWorkspacePackagePathWorkspaceId(workspaceId: workspaceId)
-        return "/workspaces/\(encodedWorkspaceId)/packages/export"
+        let basePath = "/workspaces/\(encodedWorkspaceId)/packages/export"
+        switch format {
+        case .nibomo: return basePath
+        case .anki: return "\(basePath)/anki"
+        }
     }
 
     func workspacePackageImportPath(workspaceId: String) throws -> String {
@@ -356,13 +359,15 @@ struct CloudSyncTransport {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
+        format: WorkspacePackageExportFormat,
         requestBody: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse {
-        let path = try self.workspacePackageExportPath(workspaceId: workspaceId)
+        let path = try self.workspacePackageExportPath(workspaceId: workspaceId, format: format)
         var request = URLRequest(url: try self.makeUrl(apiBaseUrl: apiBaseUrl, path: path))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(workspacePackageExportContentType, forHTTPHeaderField: "Accept")
+        let acceptContentTypes = format == .anki ? "\(format.contentType), application/json" : format.contentType
+        request.setValue(acceptContentTypes, forHTTPHeaderField: "Accept")
         request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
         request.setValue(cloudSyncClientPlatform, forHTTPHeaderField: "X-Client-Platform")
         request.setValue(self.appVersion(), forHTTPHeaderField: "X-Client-Version")
@@ -370,6 +375,7 @@ struct CloudSyncTransport {
 
         return try await self.sendAndReadWorkspacePackageExport(
             request: request,
+            format: format,
             phase: .cloudSyncRequest,
             apiBaseUrl: apiBaseUrl
         )
@@ -579,6 +585,7 @@ struct CloudSyncTransport {
 
     private func sendAndReadWorkspacePackageExport(
         request: URLRequest,
+        format: WorkspacePackageExportFormat,
         phase: CloudFlowPhase,
         apiBaseUrl: String
     ) async throws -> WorkspacePackageExportDownloadResponse {
@@ -627,21 +634,33 @@ struct CloudSyncTransport {
         }
 
         do {
-            let contentType = try workspacePackageExportResponseContentType(
-                httpResponse: httpResponse,
-                requestId: requestId
-            )
-            let fileName = try workspacePackageExportResponseFileName(
-                httpResponse: httpResponse,
-                requestId: requestId
-            )
+            let downloadResponse: WorkspacePackageExportDownloadResponse
+            if format == .anki, httpResponse.mimeType == "application/json" {
+                downloadResponse = try await self.readWorkspaceAnkiExportSignedDownload(
+                    data: data,
+                    httpResponse: httpResponse,
+                    requestId: requestId,
+                    phase: phase
+                )
+            } else {
+                try validateWorkspacePackageExportResponseContentType(
+                    httpResponse: httpResponse,
+                    expectedContentType: format.contentType,
+                    requestId: requestId
+                )
+                let fileName = try workspacePackageExportResponseFileName(
+                    httpResponse: httpResponse,
+                    format: format,
+                    requestId: requestId
+                )
+                downloadResponse = .inline(data, fileName: fileName)
+            }
             logCloudFlowPhase(phase: phase, outcome: "success", requestId: requestId)
-            return WorkspacePackageExportDownloadResponse(
-                packageBytes: data,
-                fileName: fileName,
-                contentType: contentType
-            )
+            return downloadResponse
         } catch {
+            if isRequestCancellationError(error: error) {
+                throw error
+            }
             logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
@@ -649,6 +668,73 @@ struct CloudSyncTransport {
                 statusCode: httpResponse.statusCode,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
+            throw error
+        }
+    }
+
+    private func readWorkspaceAnkiExportSignedDownload(
+        data: Data,
+        httpResponse: HTTPURLResponse,
+        requestId: String?,
+        phase: CloudFlowPhase
+    ) async throws -> WorkspacePackageExportDownloadResponse {
+        let download: WorkspacePackageExportSignedDownload
+        do {
+            download = try self.decoder.decode(WorkspacePackageExportSignedDownload.self, from: data)
+        } catch {
+            throw CloudSyncError.invalidResponse(
+                makeCloudSyncResponseDecodingErrorDetails(requestId: requestId),
+                httpResponse.statusCode
+            )
+        }
+        guard download.fileName == workspaceAnkiExportFileName,
+              download.contentType == WorkspacePackageExportFormat.anki.contentType,
+              download.downloadUrl.scheme == "https",
+              download.downloadUrl.host?.isEmpty == false,
+              download.downloadUrl.user == nil,
+              download.downloadUrl.password == nil else {
+            throw LocalStoreError.validation("Anki export returned invalid signed download metadata.")
+        }
+
+        var request = URLRequest(url: download.downloadUrl)
+        request.httpMethod = "GET"
+        request.httpShouldHandleCookies = false
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+
+        let (temporaryFile, response) = try await self.sendRequestWithRetry(
+            phase: phase,
+            apiBaseUrl: nil,
+            allowsRetry: true,
+            httpMethod: request.httpMethod,
+            endpointPath: nil
+        ) {
+            do {
+                return try await self.session.download(for: request)
+            } catch {
+                throw sanitizedWorkspaceAnkiExportDownloadError(error: error)
+            }
+        }
+
+        do {
+            guard let signedResponse = response as? HTTPURLResponse else {
+                throw LocalStoreError.database("Anki export download did not receive an HTTP response.")
+            }
+            guard signedResponse.statusCode == 200 else {
+                throw LocalStoreError.database("Anki export download returned HTTP \(signedResponse.statusCode).")
+            }
+            try validateWorkspacePackageExportResponseContentType(
+                httpResponse: signedResponse,
+                expectedContentType: download.contentType,
+                requestId: requestId
+            )
+            let fileURL = try await prepareWorkspacePackageExportFile(fileName: download.fileName) { fileURL in
+                try FileManager.default.moveItem(at: temporaryFile, to: fileURL)
+            }
+            return .file(fileURL)
+        } catch {
+            if FileManager.default.fileExists(atPath: temporaryFile.path) {
+                try FileManager.default.removeItem(at: temporaryFile)
+            }
             throw error
         }
     }
@@ -668,10 +754,29 @@ struct CloudSyncTransport {
         apiBaseUrl: String,
         allowsRetry: Bool
     ) async throws -> (Data, URLResponse) {
+        try await self.sendRequestWithRetry(
+            phase: phase,
+            apiBaseUrl: apiBaseUrl,
+            allowsRetry: allowsRetry,
+            httpMethod: request.httpMethod,
+            endpointPath: request.url?.path
+        ) {
+            try await self.session.data(for: request)
+        }
+    }
+
+    private func sendRequestWithRetry<Response>(
+        phase: CloudFlowPhase,
+        apiBaseUrl: String?,
+        allowsRetry: Bool,
+        httpMethod: String?,
+        endpointPath: String?,
+        send: () async throws -> Response
+    ) async throws -> Response {
         var lastError: Error?
         for attempt in 1...cloudSyncTransportMaxAttempts {
             do {
-                return try await self.session.data(for: request)
+                return try await send()
             } catch let error as CancellationError {
                 throw error
             } catch {
@@ -706,8 +811,8 @@ struct CloudSyncTransport {
                             messageSummary: Flashcards.errorMessage(error: error),
                             transportDiagnostics: makeIOSNetworkTransportDiagnostics(
                                 error: error,
-                                httpMethod: request.httpMethod,
-                                endpointPath: request.url?.path,
+                                httpMethod: httpMethod,
+                                endpointPath: endpointPath,
                                 apiBaseUrl: apiBaseUrl
                             )
                         )
@@ -866,6 +971,10 @@ struct CloudSyncTransport {
         if method == "POST", requestPath == "/billing/apple/transactions" {
             return true
         }
+        if method == "POST",
+           requestPath.hasSuffix("/card-maintenance/preview") || requestPath.hasSuffix("/card-maintenance/reconcile") {
+            return true
+        }
         if requestPath.hasSuffix("/sync/push") {
             return true
         }
@@ -908,20 +1017,33 @@ private func makeCloudSyncResponseDecodingErrorDetails(
     )
 }
 
-private func workspacePackageExportResponseContentType(
+private func sanitizedWorkspaceAnkiExportDownloadError(error: Error) -> Error {
+    if isRequestCancellationError(error: error) {
+        return CancellationError()
+    }
+    // Signed URLs are stored in URLSession error userInfo.
+    if let code = flashcardsURLErrorCode(error: error, remainingDepth: 4) {
+        return URLError(code)
+    }
+    let transportError = error as NSError
+    return LocalStoreError.database("Anki export download failed (\(transportError.domain) \(transportError.code)).")
+}
+
+private func validateWorkspacePackageExportResponseContentType(
     httpResponse: HTTPURLResponse,
+    expectedContentType: String,
     requestId: String?
-) throws -> String {
+) throws {
     let responseContentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? ""
     let normalizedContentType = responseContentType
         .split(separator: ";", maxSplits: 1)
         .first?
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .lowercased() ?? ""
-    guard normalizedContentType == workspacePackageExportContentType else {
+    guard normalizedContentType == expectedContentType else {
         throw CloudSyncError.invalidResponse(
             CloudApiErrorDetails(
-                message: "Workspace package export returned Content-Type '\(responseContentType)' instead of application/zip.",
+                message: "Workspace package export returned Content-Type '\(responseContentType)' instead of \(expectedContentType).",
                 requestId: requestId,
                 code: cloudSyncPackageExportContentTypeInvalidCode,
                 syncConflict: nil
@@ -929,17 +1051,17 @@ private func workspacePackageExportResponseContentType(
             httpResponse.statusCode
         )
     }
-
-    return responseContentType
 }
 
 private func workspacePackageExportResponseFileName(
     httpResponse: HTTPURLResponse,
+    format: WorkspacePackageExportFormat,
     requestId: String?
 ) throws -> String {
     let contentDisposition = httpResponse.value(forHTTPHeaderField: "Content-Disposition") ?? ""
     let fileName = workspacePackageExportContentDispositionFileName(contentDisposition: contentDisposition)
-    guard let fileName, workspacePackageExportFileNameIsSafe(fileName: fileName) else {
+    guard let fileName, workspacePackageExportFileNameIsSafe(fileName: fileName),
+          format == .nibomo || fileName == workspaceAnkiExportFileName else {
         throw CloudSyncError.invalidResponse(
             CloudApiErrorDetails(
                 message: "Workspace package export returned an invalid Content-Disposition header.",
@@ -981,6 +1103,30 @@ private func workspacePackageExportUnquotedContentDispositionValue(value: String
     return unquotedValue
         .replacingOccurrences(of: "\\\"", with: "\"")
         .replacingOccurrences(of: "\\\\", with: "\\")
+}
+
+@concurrent
+func prepareWorkspacePackageExportFile(
+    fileName: String,
+    write: @Sendable (URL) throws -> Void
+) async throws -> URL {
+    try Task.checkCancellation()
+    let normalizedFileName = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard workspacePackageExportFileNameIsSafe(fileName: normalizedFileName) else {
+        throw LocalStoreError.validation("Workspace package export filename is invalid: \(fileName)")
+    }
+
+    let fileManager = FileManager.default
+    let exportDirectory = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try fileManager.createDirectory(at: exportDirectory, withIntermediateDirectories: false)
+    let fileURL = exportDirectory.appendingPathComponent(normalizedFileName, isDirectory: false)
+    do {
+        try write(fileURL)
+        return fileURL
+    } catch {
+        try fileManager.removeItem(at: exportDirectory)
+        throw error
+    }
 }
 
 private func workspacePackageExportFileNameIsSafe(fileName: String) -> Bool {

@@ -466,7 +466,7 @@ fun ReviewRoute(
 
     // The sheet's tag rows apply on close, so the title names that draft at once, as a deck choice does.
     val filterSheetDraft: ReviewFilter = filterSheetTransaction.draftSelection
-    val topBarFilterTitle: String = if (
+    val pendingFilterTitle: String? = if (
         filterSheetTransaction.isVisible
         && filterSheetTransaction.workspaceId == workspaceId
         && filterSheetDraft != filterSheetTransaction.openingSelection
@@ -479,7 +479,7 @@ fun ReviewRoute(
     } else {
         appliedFilterTitle?.takeIf { applied ->
             isAppliedReviewFilterTitleCurrent(applied = applied, uiState = uiState)
-        }?.title ?: uiState.selectedFilterTitle
+        }?.title
     }
     LaunchedEffect(uiState, appliedFilterTitle) {
         val applied: AppliedReviewFilterTitle = appliedFilterTitle ?: return@LaunchedEffect
@@ -492,10 +492,18 @@ fun ReviewRoute(
         topBar = {
             ReviewTopBar(
                 isLoading = uiState.isLoading,
+                remainingCount = if (
+                    workspaceId != null && uiState.sessionWorkspaceId == workspaceId &&
+                    !uiState.isRequestedFilterSessionPending && pendingFilterTitle == null
+                ) {
+                    uiState.remainingCount
+                } else {
+                    0
+                },
                 totalCount = uiState.totalCount,
                 reviewLeaderboardBadge = uiState.reviewLeaderboardBadge,
                 reviewProgressBadge = uiState.reviewProgressBadge,
-                selectedFilterTitle = topBarFilterTitle,
+                selectedFilterTitle = pendingFilterTitle ?: uiState.selectedFilterTitle,
                 onOpenFilter = {
                     if (workspaceId != null && uiState.isLoading.not()) {
                         filterSheetTransaction = openReviewFilterSheetTransaction(

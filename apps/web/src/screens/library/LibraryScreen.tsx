@@ -14,6 +14,7 @@ import {
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
+  libraryRoute,
   libraryTagsRoute,
 } from "../../routes";
 import { useWorkspacePath } from "../../useWorkspacePath";
@@ -129,24 +130,24 @@ export function LibraryScreen(): ReactElement {
       {errorMessage === "" ? null : <p className="error-banner" role="alert">{errorMessage}</p>}
 
       <SettingsGroup title={t("libraryScreen.groups.yourCards")}>
-        <div className="settings-nav-list">
+        <div className="settings-nav-list library-count-list">
           <SettingsNavigationCard
             title={t("navigation.cards")}
-            description={null}
+            description={t("libraryScreen.cards.description")}
             value={formatCountValue(counts?.cards)}
             to={workspacePath(cardsRoute)}
             testId="library-row-cards"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.tags.title")}
-            description={null}
+            description={t("libraryScreen.tags.description")}
             value={formatCountValue(counts?.tags)}
             to={workspacePath(libraryTagsRoute)}
             testId="library-row-tags"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.decks.title")}
-            description={null}
+            description={t("libraryScreen.decks.description")}
             value={formatCountValue(counts?.decks)}
             to={workspacePath(libraryDecksRoute)}
             testId="library-row-decks"
@@ -165,21 +166,27 @@ export function LibraryScreen(): ReactElement {
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.import.title")}
-            description={t("libraryScreen.import.description")}
+            description={new Intl.ListFormat(locale, { type: "unit" }).format([
+              t("workspaceImport.nibomoFormat"),
+              t("workspaceImport.anki.format"),
+              t("workspaceImport.spreadsheetFormat"),
+            ])}
             value={null}
             to={workspacePath(libraryImportRoute)}
+            parentPath={workspacePath(libraryRoute)}
             testId="library-row-import"
           />
         </div>
       </SettingsGroup>
 
-      <SettingsGroup>
+      <SettingsGroup title={t("libraryScreen.groups.transfer")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("settingsWorkspace.export.title")}
             description={t("libraryScreen.export.description")}
             value={null}
             to={workspacePath(libraryExportRoute)}
+            parentPath={workspacePath(libraryRoute)}
             testId="library-row-export"
           />
         </div>

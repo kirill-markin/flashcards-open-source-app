@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation.library
 
+import com.flashcardsopensourceapp.app.navigation.encodeRouteText
+
 internal data object LibraryRootGraph {
     const val route: String = "library/root"
 }
@@ -40,6 +42,17 @@ data object LibraryTagsDestination {
     const val route: String = "library/tags"
 }
 
+data object LibraryTagDetailDestination {
+    private const val routePrefix = "library/tags/detail"
+    const val workspaceArgument = "workspaceId"
+    const val tagArgument = "tag"
+    const val routePattern = "$routePrefix/{$workspaceArgument}/{$tagArgument}"
+
+    fun createRoute(workspaceId: String, tag: String): String {
+        return "$routePrefix/$workspaceId/${encodeRouteText(value = tag)}"
+    }
+}
+
 data object LibraryDeckCatalogDestination {
     const val route: String = "library/catalog"
 }
@@ -58,6 +71,28 @@ data object LibraryImportDestination {
     const val route: String = "library/import"
 }
 
+internal data object LibraryNibomoImportDestination {
+    const val route: String = "${LibraryImportDestination.route}/nibomo"
+}
+
+internal data object LibraryAnkiImportDestination {
+    const val route: String = "${LibraryImportDestination.route}/anki"
+}
+
+internal data object LibrarySpreadsheetImportGraph {
+    const val route: String = "${LibraryImportDestination.route}/spreadsheet"
+    const val editorRoute: String = "$route/editor"
+    const val tagsRoute: String = "$route/tags"
+}
+
 data object LibraryExportDestination {
     const val route: String = "library/export"
+}
+
+data object LibraryNibomoExportDestination {
+    const val route: String = "${LibraryExportDestination.route}/nibomo"
+}
+
+data object LibraryAnkiExportDestination {
+    const val route: String = "${LibraryExportDestination.route}/anki"
 }

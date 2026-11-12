@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useI18n } from "../../../i18n";
 import { libraryTagsRoute } from "../../../routes";
 import { useWorkspacePath } from "../../../useWorkspacePath";
-import { ReviewTagChip } from "./ReviewCardTags";
+import { ReviewCardTags } from "./ReviewCardTags";
 import { ReviewTagIcon } from "./ReviewIcons";
 
 type ReviewCardHeadTagsProps = Readonly<{
@@ -30,22 +30,13 @@ export function ReviewCardTagsLink(): ReactElement {
  */
 export function ReviewCardHeadTags(props: ReviewCardHeadTagsProps): ReactElement {
   const { onRequestTagFilter, tags } = props;
-  const { t } = useI18n();
 
   return (
     <>
       <ReviewCardTagsLink />
-      {tags.length === 0 ? (
-        <div className="review-pane-head-meta">
-          <span className="tag-value-empty">{t("common.noTags")}</span>
-        </div>
-      ) : (
-        <div className="review-pane-head-meta review-card-head-tags">
-          {tags.map((tag) => (
-            <ReviewTagChip key={tag} onRequestTagFilter={onRequestTagFilter} tag={tag} />
-          ))}
-        </div>
-      )}
+      <div className="review-pane-head-meta">
+        <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={tags} />
+      </div>
     </>
   );
 }

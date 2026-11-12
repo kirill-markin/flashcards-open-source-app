@@ -1,6 +1,6 @@
 # Apple Watch App
 
-The watchOS 26+ companion app embedded in the iOS app: Review on the wrist for a signed-in iPhone account. It is not embedded in Mac Catalyst.
+The watchOS 26+ companion app embedded in the iOS app: Review on the wrist for a signed-in iPhone account. It is not embedded in Mac Catalyst. Android's counterpart is the [Wear OS app](wear-os.md).
 
 ## Product decisions
 

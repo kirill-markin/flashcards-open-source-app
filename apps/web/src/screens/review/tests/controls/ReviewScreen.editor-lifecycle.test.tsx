@@ -116,7 +116,6 @@ describe("ReviewScreen editor lifecycle controls", () => {
     expect(state.appData.updateCardItem).toHaveBeenCalledWith("card-edit", {
       frontText: "After",
       backText: "Existing back",
-      tags: ["grammar"],
     });
   });
 
@@ -161,7 +160,6 @@ describe("ReviewScreen editor lifecycle controls", () => {
         {
           frontText: submittedFrontText,
           backText: "Answer",
-          tags: ["grammar"],
         },
       );
     });
@@ -679,7 +677,6 @@ describe("ReviewScreen editor lifecycle controls", () => {
       {
         frontText: savedFrontText,
         backText: "Answer",
-        tags: ["grammar"],
       },
     );
   });
@@ -1009,7 +1006,6 @@ describe("ReviewScreen editor lifecycle controls", () => {
     expect(state.appData.updateCardItem).toHaveBeenCalledWith("card-media-lifecycle-conflict", {
       frontText: movedFrontText,
       backText: resolvedBackText,
-      tags: ["grammar", "remote"],
     });
   });
 });

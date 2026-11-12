@@ -1,6 +1,8 @@
 import {
+  productEventDeviceTypes,
   reviewEventCohorts,
   reviewEventPlatforms,
+  type ProductEventDeviceType,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -59,6 +61,7 @@ const comparisonDateRangeToParamName = "compare-to";
 const usersParamName = "users";
 const userCohortsParamName = "cohorts";
 const eventPlatformsParamName = "platforms";
+const eventDeviceTypesParamName = "device-types";
 const appVersionsParamName = "app-versions";
 const minimumEventCountsParamName = "min-events";
 const connectionCountriesParamName = "countries";
@@ -263,6 +266,7 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
     eventPlatforms: normalizeEventPlatforms(state.eventPlatforms),
+    eventDeviceTypes: normalizeEventDeviceTypes(state.eventDeviceTypes),
     appVersions: normalizeAppVersions(state.appVersions),
     minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
     connectionCountries: normalizeOpaqueList(state.connectionCountries),
@@ -295,6 +299,27 @@ export function setEventPlatformsParam(
     eventPlatforms,
     reviewEventPlatforms,
     reviewEventPlatforms,
+  );
+}
+
+/** The device class field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeEventDeviceTypes(
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+): ReadonlyArray<ProductEventDeviceType> {
+  return normalizeEnumList(eventDeviceTypes, productEventDeviceTypes);
+}
+
+/** Writes the device class field unless every class is selected; `parseEventDeviceTypes` reads it back. */
+export function setEventDeviceTypesParam(
+  searchParams: URLSearchParams,
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>,
+): void {
+  setEnumListParam(
+    searchParams,
+    eventDeviceTypesParamName,
+    eventDeviceTypes,
+    productEventDeviceTypes,
+    productEventDeviceTypes,
   );
 }
 
@@ -432,6 +457,7 @@ export function toAnalyticsFilterSearchParams(
     reviewEventCohorts,
   );
   setEventPlatformsParam(searchParams, state.eventPlatforms);
+  setEventDeviceTypesParam(searchParams, state.eventDeviceTypes);
   setAppVersionsParam(searchParams, state.appVersions);
 
   const minimumEventCounts = normalizeMinimumEventCounts(state.minimumEventCounts);
@@ -746,6 +772,16 @@ export function parseEventPlatforms(searchParams: URLSearchParams): ReadonlyArra
   );
 }
 
+/** The device class field a query string carries, every class when absent or malformed. */
+export function parseEventDeviceTypes(searchParams: URLSearchParams): ReadonlyArray<ProductEventDeviceType> {
+  return parseEnumList<ProductEventDeviceType>(
+    searchParams,
+    eventDeviceTypesParamName,
+    productEventDeviceTypes,
+    productEventDeviceTypes,
+  );
+}
+
 /** The app version field a query string carries, every version when absent or malformed. */
 export function parseAppVersions(searchParams: URLSearchParams): ReadonlyArray<string> {
   return parseOpaqueList(searchParams, appVersionsParamName, []);
@@ -824,6 +860,7 @@ function parseAnalyticsFilterStateOnDateRanges(
       defaults.userCohorts,
     ),
     eventPlatforms: parseEventPlatforms(searchParams),
+    eventDeviceTypes: parseEventDeviceTypes(searchParams),
     appVersions: parseAppVersions(searchParams),
     minimumEventCounts: parseMinimumEventCounts(searchParams, defaults.minimumEventCounts),
     connectionCountries: parseOpaqueList(

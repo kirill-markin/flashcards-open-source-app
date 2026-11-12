@@ -66,9 +66,12 @@ internal fun makeMonthCalendarWeeks(content: WidgetProgressContent): List<List<M
 internal fun drawMonthCalendarDotsBitmap(
     context: Context,
     weeks: List<List<MonthCalendarCell?>>,
+    accentArgb: Int,
     size: DpSize
 ): Bitmap {
     val density: Float = context.resources.displayMetrics.density
+    val frozenArgb: Int = monthCalendarFrozenColor.toArgb()
+    val frozenMarkArgb: Int = widgetFillLabelArgb(fillArgb = frozenArgb)
     return drawWidgetBitmap(size = size, density = density) { canvas ->
         val cellWidth: Float = canvas.width.toFloat() / monthCalendarDaysPerWeek
         val rowHeight: Float = canvas.height.toFloat() / monthCalendarMaxWeekCount
@@ -83,13 +86,17 @@ internal fun drawMonthCalendarDotsBitmap(
                 if (cell != null) {
                     val centerX: Float = cellWidth * dayIndex + cellWidth / 2
                     dotPaint.color = when (cell.streakState) {
-                        CloudProgressStreakDayState.REVIEWED -> FlashcardsDarkColorScheme.primary.toArgb()
-                        CloudProgressStreakDayState.FROZEN -> monthCalendarFrozenColor.toArgb()
+                        CloudProgressStreakDayState.REVIEWED -> accentArgb
+                        CloudProgressStreakDayState.FROZEN -> frozenArgb
                         CloudProgressStreakDayState.MISSED,
                         CloudProgressStreakDayState.PENDING,
                         null -> FlashcardsDarkColorScheme.onSurface.copy(alpha = 0.18f).toArgb()
                     }
                     canvas.drawCircle(centerX, centerY, dotRadius, dotPaint)
+                    if (cell.streakState == CloudProgressStreakDayState.FROZEN) {
+                        dotPaint.color = frozenMarkArgb
+                        canvas.drawCircle(centerX, centerY, dotRadius * 0.45f, dotPaint)
+                    }
                     if (cell.isToday) {
                         canvas.drawCircle(centerX, centerY, dotRadius + todayPaint.strokeWidth, todayPaint)
                     }
@@ -106,11 +113,15 @@ internal fun drawMonthCalendarDotsBitmap(
 internal fun drawMonthCalendarDaysBitmap(
     context: Context,
     weeks: List<List<MonthCalendarCell?>>,
+    accentArgb: Int,
     firstDayOfWeek: DayOfWeek,
     size: DpSize
 ): Bitmap {
     val density: Float = context.resources.displayMetrics.density
     val locale: Locale = context.resources.configuration.locales[0]
+    val reviewedLabelArgb: Int = widgetFillLabelArgb(fillArgb = accentArgb)
+    val frozenArgb: Int = monthCalendarFrozenColor.toArgb()
+    val frozenLabelArgb: Int = widgetFillLabelArgb(fillArgb = frozenArgb)
     return drawWidgetBitmap(size = size, density = density) { canvas ->
         val cellWidth: Float = canvas.width.toFloat() / monthCalendarDaysPerWeek
         val rowHeight: Float = canvas.height.toFloat() / (monthCalendarMaxWeekCount + 1)
@@ -136,17 +147,24 @@ internal fun drawMonthCalendarDaysBitmap(
                 week = week,
                 centerY = centerY,
                 cellWidth = cellWidth,
-                markHeight = markHeight
+                markHeight = markHeight,
+                accentArgb = accentArgb
             )
             week.forEachIndexed { dayIndex, cell ->
                 if (cell != null) {
                     val centerX: Float = cellWidth * dayIndex + cellWidth / 2
                     if (cell.isToday) {
+                        todayPaint.color = when (cell.streakState) {
+                            CloudProgressStreakDayState.REVIEWED -> widgetFillOutlineArgb(fillArgb = accentArgb)
+                            CloudProgressStreakDayState.FROZEN -> widgetFillOutlineArgb(fillArgb = frozenArgb)
+                            else -> todayPaint.color
+                        }
                         canvas.drawCircle(centerX, centerY, (markHeight - todayPaint.strokeWidth) / 2, todayPaint)
                     }
+                    val isFrozen: Boolean = cell.streakState == CloudProgressStreakDayState.FROZEN
                     textPaint.color = when {
-                        cell.streakState?.let(::isStreakDayState) == true ->
-                            FlashcardsDarkColorScheme.onPrimary.toArgb()
+                        cell.streakState == CloudProgressStreakDayState.REVIEWED -> reviewedLabelArgb
+                        isFrozen -> frozenLabelArgb
                         cell.isFuture -> FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
                         else -> FlashcardsDarkColorScheme.onSurface.toArgb()
                     }
@@ -156,6 +174,9 @@ internal fun drawMonthCalendarDaysBitmap(
                         centeredBaseline(centerY = centerY, paint = textPaint),
                         textPaint
                     )
+                    if (isFrozen) {
+                        canvas.drawCircle(centerX, centerY + markHeight * 0.32f, markHeight * 0.075f, textPaint)
+                    }
                 }
             }
         }
@@ -167,7 +188,8 @@ private fun drawMonthCalendarWeekPills(
     week: List<MonthCalendarCell?>,
     centerY: Float,
     cellWidth: Float,
-    markHeight: Float
+    markHeight: Float,
+    accentArgb: Int
 ) {
     val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     val streakDayIndexes: List<Int> = week.indices.filter { dayIndex ->
@@ -195,7 +217,7 @@ private fun drawMonthCalendarWeekPills(
             pill.forEach { dayIndex ->
                 fillPaint.color = when (week[dayIndex]?.streakState) {
                     CloudProgressStreakDayState.FROZEN -> monthCalendarFrozenColor.toArgb()
-                    else -> FlashcardsDarkColorScheme.primary.toArgb()
+                    else -> accentArgb
                 }
                 drawRect(cellWidth * dayIndex, pillRect.top, cellWidth * (dayIndex + 1), pillRect.bottom, fillPaint)
             }

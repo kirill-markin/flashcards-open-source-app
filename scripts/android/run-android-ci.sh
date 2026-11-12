@@ -17,4 +17,6 @@ cd "${ANDROID_DIR}"
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
   :data:local:assembleDebugAndroidTest \
-  :app:lintDebug
+  :app:lintDebug \
+  :wear:assembleDebug \
+  :wear:lintDebug

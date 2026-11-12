@@ -166,6 +166,8 @@ struct DecksScreen: View {
                     availableTagSuggestions: self.availableTagSuggestions,
                     errorMessage: self.editorErrorMessage,
                     formState: $deckFormState,
+                    savedDeck: nil,
+                    onMaintenanceDismissed: {},
                     onCancel: {
                         isEditorPresented = false
                     },
@@ -252,6 +254,28 @@ private func deckScreenListItemsMatchingSearchText(
     return deckListEntries.filter { deckListEntry in
         deckListEntry.title.lowercased().contains(normalizedSearchText)
             || deckListEntry.filterSummary?.lowercased().contains(normalizedSearchText) == true
+    }
+}
+
+struct DeckCardSummaryRows: View {
+    let stats: DeckCardStats
+
+    var body: some View {
+        SummaryRow(
+            title: aiSettingsLocalized("settings.workspace.overview.cards", "Cards"),
+            value: self.stats.totalCards.formatted(),
+            symbolName: "square.stack.3d.up"
+        )
+        SummaryRow(
+            title: aiSettingsLocalized("settings.workspace.decks.toStudy", "To study"),
+            value: self.stats.dueCards.formatted(),
+            symbolName: "clock.badge.checkmark"
+        )
+        SummaryRow(
+            title: aiSettingsLocalized("settings.workspace.overview.new", "New"),
+            value: self.stats.newCards.formatted(),
+            symbolName: "plus.circle"
+        )
     }
 }
 
@@ -447,6 +471,7 @@ struct DeckDetailScreen: View {
     let destination: DeckScreenDestination
 
     @State private var isEditorPresented: Bool = false
+    @State private var editingDeck: Deck?
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var editorErrorMessage: String = ""
     @State private var pendingDeletion: DeckDeletionTarget? = nil
@@ -476,21 +501,7 @@ struct DeckDetailScreen: View {
         List {
             if let detailState {
                 Section(aiSettingsLocalized("settings.workspace.decks.section.deckRules", "Deck rules")) {
-                    SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.overview.cards", "Cards"),
-                        value: "\(detailState.stats.totalCards)",
-                        symbolName: "square.stack.3d.up"
-                    )
-                    SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.decks.toStudy", "To study"),
-                        value: "\(detailState.stats.dueCards)",
-                        symbolName: "clock.badge.checkmark"
-                    )
-                    SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.overview.new", "New"),
-                        value: "\(detailState.stats.newCards)",
-                        symbolName: "plus.circle"
-                    )
+                    DeckCardSummaryRows(stats: detailState.stats)
                     Text(detailState.filterSummary)
                         .foregroundStyle(.secondary)
 
@@ -596,6 +607,8 @@ struct DeckDetailScreen: View {
                     availableTagSuggestions: self.availableTagSuggestions,
                     errorMessage: self.editorErrorMessage,
                     formState: $deckFormState,
+                    savedDeck: self.editingDeck,
+                    onMaintenanceDismissed: self.reloadEditingDeckRules,
                     onCancel: {
                         isEditorPresented = false
                     },
@@ -624,6 +637,7 @@ struct DeckDetailScreen: View {
         case .deck(let deckItem, _):
             do {
                 self.deckFormState = try makeDeckFormState(deck: deckItem.deck)
+                self.editingDeck = deckItem.deck
                 self.editorErrorMessage = ""
                 self.isEditorPresented = true
             } catch {
@@ -633,7 +647,7 @@ struct DeckDetailScreen: View {
     }
 
     private func saveDeckChanges() {
-        guard let deckId = currentDeckId else {
+        guard let editingDeck else {
             self.editorErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
             return
         }
@@ -644,12 +658,48 @@ struct DeckDetailScreen: View {
         }
 
         do {
-            try store.updateDeck(deckId: deckId, input: makeDeckEditorInput(formState: deckFormState))
+            try store.updateDeck(
+                deckId: editingDeck.deckId,
+                input: makeDeckEditorInput(formState: self.deckFormState),
+                observedTags: editingDeck.filterDefinition.tags
+            )
             self.editorErrorMessage = ""
             self.isEditorPresented = false
+        } catch LocalStoreError.validation(let message) {
+            self.reloadEditingDeckRules()
+            self.editorErrorMessage = message
         } catch {
             self.store.presentTechnicalError(error)
         }
+    }
+
+    private func reloadEditingDeckRules() {
+        guard let editingDeck else {
+            return
+        }
+        do {
+            let latestDeck = try self.store.loadDeck(deckId: editingDeck.deckId)
+            self.deckFormState = self.formStateByReconcilingDeckRules(latestDeck: latestDeck)
+            self.editingDeck = latestDeck
+        } catch LocalStoreError.notFound {
+            self.editingDeck = nil
+            self.editorErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
+        } catch {
+            self.store.presentTechnicalError(error)
+        }
+    }
+
+    private func formStateByReconcilingDeckRules(latestDeck: Deck) -> DeckFormState {
+        guard let editingDeck else {
+            return self.deckFormState
+        }
+        var formState = self.deckFormState
+        formState.tags = reconcileDraftTags(
+            draftTags: formState.tags,
+            observedTags: editingDeck.filterDefinition.tags,
+            refreshedTags: latestDeck.filterDefinition.tags
+        )
+        return formState
     }
 
     private func beginDeletingDeck() {
@@ -726,6 +776,8 @@ private struct DeckEditorView: View {
     let availableTagSuggestions: [TagSuggestion]
     let errorMessage: String
     @Binding var formState: DeckFormState
+    let savedDeck: Deck?
+    let onMaintenanceDismissed: () -> Void
     let onCancel: () -> Void
     let onSave: () -> Void
     let onDelete: (() -> Void)?
@@ -756,11 +808,8 @@ private struct DeckEditorView: View {
                 Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
                     NavigationLink {
                         TagPickerView(
-                            selectedTags: formState.tags,
-                            suggestions: availableTagSuggestions,
-                            onSave: { nextTags in
-                                formState.tags = nextTags
-                            }
+                            selectedTags: $formState.tags,
+                            suggestions: availableTagSuggestions
                         )
                     } label: {
                         TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
@@ -776,8 +825,29 @@ private struct DeckEditorView: View {
                     .foregroundStyle(.secondary)
                 }
 
-                if let onDelete {
+                if let savedDeck, let onDelete {
+                    let rulesChanged = Set(self.formState.tags) != Set(savedDeck.filterDefinition.tags)
                     Section {
+                        CardMaintenanceButton(
+                            scope: CardMaintenanceScope(
+                                workspaceId: savedDeck.workspaceId,
+                                kind: .resetDeck,
+                                target: savedDeck.deckId,
+                                expectedDeckFilter: savedDeck.filterDefinition
+                            ),
+                            isAvailable: rulesChanged == false,
+                            onDismiss: self.onMaintenanceDismissed,
+                            onCompleted: {}
+                        )
+
+                        if rulesChanged {
+                            Text(aiSettingsLocalized(
+                                "settings.workspace.cardMaintenance.saveDeckRules",
+                                "Save the deck rules before resetting study progress."
+                            ))
+                            .foregroundStyle(.secondary)
+                        }
+
                         Button(aiSettingsLocalized("settings.workspace.decks.deleteDeck", "Delete deck"), role: .destructive, action: onDelete)
                     }
                 }
@@ -853,13 +923,6 @@ private func deckEditorEmptyNameValidationMessage() -> String {
     aiSettingsLocalized(
         "settings.workspace.decks.emptyNameValidation",
         "Enter a deck name."
-    )
-}
-
-private func deckEditorEmptyRulesValidationMessage() -> String {
-    aiSettingsLocalized(
-        "settings.workspace.decks.emptyRuleValidation",
-        "Choose at least one tag, or use All Cards on Review."
     )
 }
 

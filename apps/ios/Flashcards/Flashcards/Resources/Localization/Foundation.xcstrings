@@ -23004,6 +23004,1226 @@
         }
       }
     },
+    "library.export.anki.connectionError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحقّق من اتصالك بالإنترنت وحاول التصدير مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверете интернет връзката си и опитайте да експортирате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইন্টারনেট সংযোগ পরীক্ষা করে আবার রপ্তানি করার চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprova la connexió a internet i torna a provar d’exportar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkontrolujte připojení k internetu a zkuste exportovat znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tjek din internetforbindelse, og prøv at eksportere igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfe deine Internetverbindung und versuche den Export erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και δοκιμάστε ξανά την εξαγωγή."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your internet connection and try exporting again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprueba tu conexión a internet y vuelve a intentar la exportación."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisa tu conexión a internet y vuelve a intentar la exportación."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrollige internetiühendust ja proovige uuesti eksportida."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اتصال اینترنتتان را بررسی کنید و دوباره خروجی بگیرید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarkista internetyhteytesi ja yritä vientiä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifiez votre connexion Internet et réessayez d’exporter."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "તમારું ઇન્ટરનેટ કનેક્શન તપાસો અને ફરીથી નિકાસ કરવાનો પ્રયાસ કરો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "יש לבדוק את החיבור לאינטרנט ולנסות לייצא שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपना इंटरनेट कनेक्शन जाँचें और फिर से एक्सपोर्ट करने की कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provjerite internetsku vezu i pokušajte ponovno izvesti."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ellenőrizd az internetkapcsolatot, majd próbáld meg újra az exportálást."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periksa koneksi internet Anda, lalu coba ekspor lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Athugaðu nettenginguna og reyndu að flytja út aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla la connessione a Internet e riprova a esportare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インターネット接続を確認して、もう一度エクスポートしてください。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ರಫ್ತು ಮಾಡಲು ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인터넷 연결을 확인하고 다시 내보내세요."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patikrinkite interneto ryšį ir bandykite eksportuoti dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pārbaudiet interneta savienojumu un mēģiniet eksportēt vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും എക്‌സ്‌പോർട്ട് ചെയ്യാൻ ശ്രമിക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इंटरनेट कनेक्शन तपासा आणि पुन्हा एक्सपोर्ट करण्याचा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjekk internettforbindelsen og prøv å eksportere på nytt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controleer je internetverbinding en probeer opnieuw te exporteren."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਪਣਾ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਦੁਬਾਰਾ ਐਕਸਪੋਰਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź połączenie z internetem i spróbuj ponownie wyeksportować talię."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifique sua conexão com a internet e tente exportar novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifică conexiunea la internet și încearcă să exporți din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверьте подключение к интернету и повторите экспорт."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skontrolujte pripojenie k internetu a skúste exportovať znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preverite internetno povezavo in poskusite znova izvoziti."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrollera internetanslutningen och försök exportera igen."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angalia muunganisho wako wa intaneti kisha ujaribu kuhamisha tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைய இணைப்பைச் சரிபார்த்து, மீண்டும் ஏற்றுமதி செய்ய முயலுங்கள்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఇంటర్నెట్ కనెక్షన్‌ను తనిఖీ చేసి, మళ్లీ ఎగుమతి చేయడానికి ప్రయత్నించండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองส่งออกอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İnternet bağlantınızı kontrol edip dışa aktarmayı tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевірте підключення до інтернету та повторіть експорт."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اپنا انٹرنیٹ کنکشن چیک کریں اور دوبارہ ایکسپورٹ کرنے کی کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiểm tra kết nối Internet rồi thử xuất lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请检查网络连接，然后重试导出。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hlola ukuxhumeka kwakho kwe-inthanethi bese uzama ukuthumela futhi."
+          }
+        }
+      }
+    },
+    "library.export.anki.description" : {
+      "comment" : "Description of the Anki package export",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صدّر البطاقات النشطة والوسوم والوسائط المشار إليها كملف flashcards.apkg."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортирайте активни карти, етикети и референтни медии като flashcards.apkg."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সক্রিয় কার্ড, ট্যাগ, এবং উল্লেখিত মিডিয়া flashcards.apkg হিসাবে রপ্তানি করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta les targetes actives, les etiquetes i els mitjans de referència com a flashcards.apkg."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportovat aktivní kartičky, štítky a odkazovaná média jako flashcards.apkg."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportér aktive kort, mærkater og refererede medier som flashcards.apkg."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportiert aktive Karten, Tags und referenzierte Medien als flashcards.apkg."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εξαγωγή ενεργών καρτών, ετικετών και αναφερόμενων πολυμέσων ως flashcards.apkg."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export active cards, tags, and referenced media as flashcards.apkg."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta tarjetas activas, etiquetas y medios referenciados como flashcards.apkg."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta tarjetas activas, etiquetas y medios referenciados como flashcards.apkg."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspordi aktiivsed kaardid, sildid ja viidatud meedia failina flashcards.apkg."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارت‌های فعال، برچسب‌ها و رسانه‌های ارجاع‌شده را به صورت flashcards.apkg برون‌بری کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vie aktiiviset kortit, tunnisteet ja viitattu media flashcards.apkg-tiedostona."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportez les cartes actives, les tags et les médias référencés sous forme de flashcards.apkg."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "સક્રિય કાર્ડ, ટૅગ અને સંદર્ભિત મીડિયાની flashcards.apkg તરીકે નિકાસ કરો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ייצוא כרטיסיות פעילות, תגיות ומדיה שיש אליה הפניות כ-flashcards.apkg."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सक्रिय कार्ड, टैग और संदर्भित मीडिया को flashcards.apkg के रूप में निर्यात करें."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvezite aktivne kartice, oznake i referencirane medije kao flashcards.apkg."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktív kártyák, címkék és hivatkozott média exportálása flashcards.apkg fájlként."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspor kartu aktif, tag, dan media yang dirujuk sebagai flashcards.apkg."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flytja virk spjöld, merki og tilvísaða miðla út sem flashcards.apkg."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta schede attive, tag e contenuti multimediali di riferimento come flashcards.apkg."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効なカード、タグ、参照メディアを flashcards.apkg としてエクスポートします。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳು, ಟ್ಯಾಗ್‌ಗಳು ಮತ್ತು ಉಲ್ಲೇಖಿತ ಮಾಧ್ಯಮವನ್ನು flashcards.apkg ಆಗಿ ರಫ್ತು ಮಾಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "활성 카드, 태그, 참조된 미디어를 flashcards.apkg으로 내보냅니다."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuoti aktyvias korteles, žymas ir nurodytą mediją kaip flashcards.apkg."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportēt aktīvās kartītes, birkas un norādīto multividi kā flashcards.apkg."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സജീവ കാർഡുകളും ടാഗുകളും പരാമർശിച്ച മീഡിയയും flashcards.apkg ആയി എക്സ്പോർട്ട് ചെയ്യുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सक्रिय कार्डे, टॅग आणि संदर्भित माध्यमे flashcards.apkg म्हणून निर्यात करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksporter aktive kort, tagger og refererte medier som flashcards.apkg."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporteer actieve kaarten, tags en media waarnaar wordt verwezen als flashcards.apkg."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਰਗਰਮ ਕਾਰਡਾਂ, ਟੈਗਾਂ ਅਤੇ ਹਵਾਲੇ ਵਾਲੇ ਮੀਡੀਆ ਨੂੰ flashcards.apkg ਵਜੋਂ ਨਿਰਯਾਤ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj aktywne fiszki, tagi i wskazane multimedia jako flashcards.apkg."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporte os cartões ativos, as etiquetas e as mídias referenciadas como flashcards.apkg."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportă fișele active, etichetele și fișierele media referite ca flashcards.apkg."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортирует активные карточки, теги и связанные медиа в flashcards.apkg."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportovať aktívne karty, značky a odkazované médiá ako flashcards.apkg."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvozite aktivne kartice, oznake in predstavnost s sklici kot flashcards.apkg."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportera aktiva kort, taggar och refererade medier som flashcards.apkg."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hamisha kadi zinazotumika, lebo na midia iliyorejelewa kama flashcards.apkg."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "செயலில் உள்ள அட்டைகள், குறிச்சொற்கள் மற்றும் குறிப்பிடப்பட்ட ஊடகத்தை flashcards.apkg ஆக ஏற்றுமதி செய்யவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సక్రియ కార్డులు, ట్యాగ్‌లు, సూచించిన మీడియాను flashcards.apkgగా ఎగుమతి చేయండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ส่งออกการ์ดที่ใช้งาน แท็ก และสื่อที่อ้างอิงเป็น flashcards.apkg"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etkin kartları, etiketleri ve başvurulan medyayı flashcards.apkg olarak dışa aktarın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортуйте активні картки, мітки та пов’язані медіа у flashcards.apkg."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فعال کارڈز، ٹیگز اور حوالہ شدہ میڈیا کو flashcards.apkg کے طور پر برآمد کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất thẻ đang hoạt động, nhãn và nội dung đa phương tiện được tham chiếu thành flashcards.apkg."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将活动卡片、标签和引用的媒体导出为 flashcards.apkg。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khipha amakhadi asebenzayo, amathegi nemidiya ekhonjiwe njenge-flashcards.apkg."
+          }
+        }
+      }
+    },
+    "library.export.anki.success" : {
+      "comment" : "Status shown once an exported Anki deck is ready to share",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg جاهز للمشاركة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg е готов за споделяне."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ভাগ করার জন্য প্রস্তুত।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg està llest per compartir."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je připraven ke sdílení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg er klar til deling."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ist zum Teilen bereit."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το flashcards.apkg είναι έτοιμο για κοινοποίηση."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg is ready to share."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg está listo para compartir."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg está listo para compartir."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg on jagamiseks valmis."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg آمادهٔ اشتراک‌گذاری است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg on valmis jaettavaksi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg est prêt à être partagé."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg શેર કરવા તૈયાર છે."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg מוכן לשיתוף."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg साझा करने के लिए तैयार है."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je spreman za dijeljenje."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A flashcards.apkg megosztható."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg siap dibagikan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg er tilbúið til deilingar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg è pronto da condividere."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg を共有できる状態になりました。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ಹಂಚಿಕೊಳ್ಳಲು ಸಿದ್ಧವಾಗಿದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg을 공유할 준비가 되었습니다."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg paruoštas bendrinti."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ir gatavs kopīgošanai."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg പങ്കിടാൻ തയ്യാറാണ്."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg शेअर करण्यासाठी तयार आहे."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg er klar til å deles."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg is klaar om te delen."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg ਸਾਂਝਾ ਕਰਨ ਲਈ ਤਿਆਰ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik flashcards.apkg jest gotowy do udostępnienia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O flashcards.apkg está pronto para compartilhar."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg este gata de partajare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg готов к отправке."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je pripravený na zdieľanie."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg je pripravljen za deljenje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg är redo att delas."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg iko tayari kushirikiwa."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg பகிரத் தயாராக உள்ளது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg పంచుకోవడానికి సిద్ధంగా ఉంది."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg พร้อมแชร์แล้ว"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg paylaşılmaya hazır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg готовий до поширення."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg شیئر کرنے کے لیے تیار ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg đã sẵn sàng để chia sẻ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "flashcards.apkg 已可分享。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I-flashcards.apkg isilungele ukwabelana."
+          }
+        }
+      }
+    },
+    "library.row.cards.subtitle" : {
+      "comment" : "Library row subtitle for the Cards screen",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جميع البطاقات في مساحة العمل هذه."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всички карти в това работно пространство."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই কর্মক্ষেত্রের সব কার্ড।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totes les targetes d’aquest espai de treball."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Všechny kartičky v tomto pracovním prostoru."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle kort i dette arbejdsområde."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Karten in diesem Arbeitsbereich."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Όλες οι κάρτες σε αυτόν τον χώρο εργασίας."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All cards in this workspace."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las tarjetas de este espacio de trabajo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las tarjetas de este espacio de trabajo."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kõik selle tööruumi kaardid."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "همهٔ کارت‌های این فضای کاری."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki tämän työtilan kortit."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les cartes de cet espace de travail."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "આ કાર્યક્ષેત્રનાં તમામ કાર્ડ."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כל הכרטיסיות בסביבת העבודה הזו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस कार्यक्षेत्र के सभी कार्ड।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sve kartice u ovom radnom prostoru."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A munkaterület összes kártyája."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua kartu di ruang kerja ini."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öll spjöld á þessu vinnusvæði."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutte le schede di questo spazio di lavoro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このワークスペース内のすべてのカード。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿರುವ ಎಲ್ಲ ಕಾರ್ಡ್‌ಗಳು."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 작업 공간의 모든 카드입니다."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visos šios darbo srities kortelės."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visas kartītes šajā darbvietā."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ വർക്ക്‌സ്‌പേസിലെ എല്ലാ കാർഡുകളും."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "या कार्यक्षेत्रातील सर्व कार्डे."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle kort i dette arbeidsområdet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle kaarten in deze werkruimte."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਸ ਵਰਕਸਪੇਸ ਦੇ ਸਾਰੇ ਕਾਰਡ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie fiszki w tym obszarze roboczym."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os cartões deste espaço de trabalho."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toate fișele din acest spațiu de lucru."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все карточки в этой рабочей области."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Všetky karty v tomto pracovnom priestore."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vse kartice v tem delovnem prostoru."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alla kort på den här arbetsytan."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi zote katika nafasi hii ya kazi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்தப் பணியிடத்தில் உள்ள அனைத்து அட்டைகளும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ వర్క్‌స్పేస్‌లోని అన్ని కార్డులు."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การ์ดทั้งหมดในพื้นที่ทำงานนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu çalışma alanındaki tüm kartlar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі картки в цьому робочому просторі."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اس ورک اسپیس کے تمام کارڈز۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tất cả thẻ trong không gian làm việc này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工作区中的所有卡片。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wonke amakhadi kule ndawo yokusebenza."
+          }
+        }
+      }
+    },
     "library.row.deck_catalog.subtitle" : {
       "comment" : "Library hub row subtitle for the Deck catalog screen",
       "localizations" : {
@@ -23614,612 +24834,1527 @@
         }
       }
     },
-    "library.row.export.subtitle" : {
-      "comment" : "Library hub row subtitle for the Export screen",
+    "library.row.decks.subtitle" : {
+      "comment" : "Library row subtitle for the Decks screen",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "نزّل كل بطاقاتك كملف."
+            "value" : "مجموعات بطاقات حسب العلامات التي تختارها."
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Изтеглете всичките си карти като файл."
+            "value" : "Групи от карти според избраните от вас етикети."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আপনার সব কার্ড একটি ফাইল হিসেবে ডাউনলোড করুন।"
+            "value" : "আপনার বেছে নেওয়া ট্যাগ অনুযায়ী সাজানো কার্ডের দল।"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarrega totes les teves targetes en un fitxer."
+            "value" : "Grups de targetes segons les etiquetes que triïs."
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stáhněte všechny své kartičky jako soubor."
+            "value" : "Skupiny kartiček podle štítků, které vyberete."
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download alle dine kort som en fil."
+            "value" : "Grupper af kort ud fra de mærkater, du vælger."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lade alle deine Karten als Datei herunter."
+            "value" : "Kartengruppen basierend auf den von dir gewählten Tags."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Κατεβάστε όλες τις κάρτες σας ως αρχείο."
+            "value" : "Ομάδες καρτών με βάση τις ετικέτες που επιλέγετε."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download all your cards as a file."
+            "value" : "Card groups based on tags you choose."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarga todas tus tarjetas en un archivo."
+            "value" : "Grupos de tarjetas según las etiquetas que elijas."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarga todas tus tarjetas en un archivo."
+            "value" : "Grupos de tarjetas según las etiquetas que elijas."
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Laadi kõik oma kaardid failina alla."
+            "value" : "Kaardirühmad sinu valitud siltide põhjal."
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "همهٔ کارت‌هایتان را به صورت یک فایل دریافت کنید."
+            "value" : "گروه‌های کارت بر اساس برچسب‌هایی که انتخاب می‌کنید."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lataa kaikki korttisi tiedostona."
+            "value" : "Korttiryhmät valitsemiesi tunnisteiden perusteella."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Téléchargez toutes vos cartes dans un fichier."
+            "value" : "Groupes de cartes selon les tags que vous choisissez."
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "તમારાં બધાં કાર્ડ ફાઇલ તરીકે ડાઉનલોડ કરો."
+            "value" : "તમે પસંદ કરેલા ટૅગના આધારે બનાવેલા કાર્ડના જૂથો."
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "הורדת כל הכרטיסיות שלך כקובץ."
+            "value" : "קבוצות כרטיסיות לפי התגיות שבחרת."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अपने सभी कार्ड एक फ़ाइल के रूप में डाउनलोड करें।"
+            "value" : "आपके चुने हुए टैग के आधार पर कार्ड के समूह।"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preuzmite sve svoje kartice kao datoteku."
+            "value" : "Grupe kartica prema oznakama koje odaberete."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Töltsd le az összes kártyádat egy fájlként."
+            "value" : "Kártyacsoportok az általad kiválasztott címkék alapján."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unduh semua kartu Anda sebagai file."
+            "value" : "Kelompok kartu berdasarkan tag yang Anda pilih."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sæktu öll spjöldin þín sem skrá."
+            "value" : "Hópar spjalda eftir merkjunum sem þú velur."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scarica tutte le tue schede in un file."
+            "value" : "Gruppi di schede in base ai tag che scegli."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべてのカードをファイルとしてダウンロードします。"
+            "value" : "選んだタグに基づくカードのグループ。"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ನಿಮ್ಮ ಎಲ್ಲಾ ಕಾರ್ಡ್‌ಗಳನ್ನು ಫೈಲ್ ಆಗಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ."
+            "value" : "ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಟ್ಯಾಗ್‌ಗಳ ಆಧಾರದ ಮೇಲೆ ಕಾರ್ಡ್‌ಗಳ ಗುಂಪುಗಳು."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 카드를 파일로 내려받습니다."
+            "value" : "선택한 태그를 기준으로 묶은 카드입니다."
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atsisiųskite visas savo korteles kaip failą."
+            "value" : "Kortelių grupės pagal jūsų pasirinktas žymas."
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lejupielādējiet visas savas kartītes kā failu."
+            "value" : "Kartīšu grupas pēc jūsu izvēlētajām birkām."
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "നിങ്ങളുടെ എല്ലാ കാർഡുകളും ഒരു ഫയലായി ഡൗൺലോഡ് ചെയ്യുക."
+            "value" : "നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ടാഗുകൾ അനുസരിച്ചുള്ള കാർഡ് ഗ്രൂപ്പുകൾ."
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "तुमची सर्व कार्डे फाइल म्हणून डाउनलोड करा."
+            "value" : "तुम्ही निवडलेल्या टॅगनुसार तयार केलेले कार्डांचे गट."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Last ned alle kortene dine som en fil."
+            "value" : "Grupper av kort basert på taggene du velger."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download al je kaarten als bestand."
+            "value" : "Groepen kaarten op basis van de tags die je kiest."
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ਆਪਣੇ ਸਾਰੇ ਕਾਰਡ ਇੱਕ ਫ਼ਾਈਲ ਵਜੋਂ ਡਾਊਨਲੋਡ ਕਰੋ।"
+            "value" : "ਤੁਹਾਡੇ ਚੁਣੇ ਟੈਗਾਂ ਮੁਤਾਬਕ ਕਾਰਡਾਂ ਦੇ ਸਮੂਹ।"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pobierz wszystkie swoje fiszki jako plik."
+            "value" : "Grupy fiszek według wybranych przez Ciebie tagów."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Baixe todos os seus cartões como um arquivo."
+            "value" : "Grupos de cartões com base nas etiquetas que você escolhe."
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descarcă toate fișele tale într-un fișier."
+            "value" : "Grupuri de fișe în funcție de etichetele pe care le alegi."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Скачайте все свои карточки одним файлом."
+            "value" : "Группы карточек по выбранным вами тегам."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stiahnite všetky svoje karty ako súbor."
+            "value" : "Skupiny kariet podľa značiek, ktoré vyberiete."
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prenesite vse svoje kartice kot datoteko."
+            "value" : "Skupine kartic glede na oznake, ki jih izberete."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ladda ner alla dina kort som en fil."
+            "value" : "Grupper av kort baserade på de taggar du väljer."
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pakua kadi zako zote kama faili."
+            "value" : "Makundi ya kadi kulingana na lebo unazochagua."
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "உங்கள் எல்லா அட்டைகளையும் ஒரு கோப்பாகப் பதிவிறக்கவும்."
+            "value" : "நீங்கள் தேர்ந்தெடுக்கும் குறிச்சொற்களின் அடிப்படையிலான அட்டைக் குழுக்கள்."
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "మీ అన్ని కార్డులను ఫైల్‌గా డౌన్‌లోడ్ చేయండి."
+            "value" : "మీరు ఎంచుకున్న ట్యాగ్‌ల ఆధారంగా కార్డుల సమూహాలు."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ดาวน์โหลดการ์ดทั้งหมดของคุณเป็นไฟล์"
+            "value" : "กลุ่มการ์ดตามแท็กที่คุณเลือก"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tüm kartlarınızı bir dosya olarak indirin."
+            "value" : "Seçtiğiniz etiketlere göre oluşturulan kart grupları."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Завантажте всі свої картки одним файлом."
+            "value" : "Групи карток за вибраними вами мітками."
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اپنے تمام کارڈز ایک فائل کے طور پر ڈاؤن لوڈ کریں۔"
+            "value" : "آپ کے منتخب کردہ ٹیگز کے مطابق کارڈز کے گروپ۔"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tải tất cả thẻ của bạn về dưới dạng tệp."
+            "value" : "Các nhóm thẻ dựa trên nhãn bạn chọn."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将你的所有卡片下载为一个文件。"
+            "value" : "根据你选择的标签划分的卡片分组。"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dawuniloda wonke amakhadi akho njengefayela."
+            "value" : "Amaqembu amakhadi asekelwe kumathegi owakhethayo."
           }
         }
       }
     },
-    "library.row.import.subtitle" : {
-      "comment" : "Library hub row subtitle for the Import screen",
+    "library.row.export.anki.title" : {
+      "comment" : "Library action and screen title for exporting an Anki deck",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أضف بطاقات من ملف."
+            "value" : "تصدير كمجموعة بطاقات Anki"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Добавете карти от файл."
+            "value" : "Експортиране като тесте за Anki"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ফাইল থেকে কার্ড যোগ করুন।"
+            "value" : "Anki ডেক হিসেবে রপ্তানি করুন"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afegeix targetes des d'un fitxer."
+            "value" : "Exporta com a baralla d’Anki"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Přidejte kartičky ze souboru."
+            "value" : "Exportovat jako balíček pro Anki"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tilføj kort fra en fil."
+            "value" : "Eksportér som Anki-kortsæt"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Füge Karten aus einer Datei hinzu."
+            "value" : "Als Anki-Stapel exportieren"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Προσθέστε κάρτες από αρχείο."
+            "value" : "Εξαγωγή ως τράπουλα Anki"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add cards from a file."
+            "value" : "Export as an Anki deck"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Añade tarjetas desde un archivo."
+            "value" : "Exportar como mazo de Anki"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Agrega tarjetas desde un archivo."
+            "value" : "Exportar como mazo de Anki"
           }
         },
         "et" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lisa kaardid failist."
+            "value" : "Ekspordi Anki kaardipakina"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "کارت‌ها را از یک فایل اضافه کنید."
+            "value" : "برون‌بری به‌صورت دستهٔ کارت Anki"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lisää kortteja tiedostosta."
+            "value" : "Vie Anki-pakkana"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajoutez des cartes depuis un fichier."
+            "value" : "Exporter sous forme de paquet Anki"
           }
         },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ફાઇલમાંથી કાર્ડ ઉમેરો."
+            "value" : "Anki ડેક તરીકે નિકાસ કરો"
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "הוספת כרטיסיות מקובץ."
+            "value" : "ייצוא כחפיסת Anki"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "फ़ाइल से कार्ड जोड़ें।"
+            "value" : "Anki डेक के रूप में निर्यात करें"
           }
         },
         "hr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodajte kartice iz datoteke."
+            "value" : "Izvezi kao Anki špil"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adj hozzá kártyákat fájlból."
+            "value" : "Exportálás Anki-pakliként"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tambahkan kartu dari file."
+            "value" : "Ekspor sebagai dek Anki"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bættu við spjöldum úr skrá."
+            "value" : "Flytja út sem Anki-spjaldastokk"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aggiungi schede da un file."
+            "value" : "Esporta come mazzo Anki"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ファイルからカードを追加します。"
+            "value" : "Ankiデッキとして書き出す"
           }
         },
         "kn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ಫೈಲ್‌ನಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸೇರಿಸಿ."
+            "value" : "Anki ಡೆಕ್ ಆಗಿ ರಫ್ತು ಮಾಡಿ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "파일에서 카드를 추가합니다."
+            "value" : "Anki 덱으로 내보내기"
           }
         },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pridėkite korteles iš failo."
+            "value" : "Eksportuoti kaip Anki kortelių kaladę"
           }
         },
         "lv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pievienojiet kartītes no faila."
+            "value" : "Eksportēt kā Anki kartīšu kavu"
           }
         },
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ഒരു ഫയലിൽ നിന്ന് കാർഡുകൾ ചേർക്കുക."
+            "value" : "Anki ഡെക്കായി എക്സ്പോർട്ട് ചെയ്യുക"
           }
         },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "फाइलमधून कार्डे जोडा."
+            "value" : "Anki डेक म्हणून निर्यात करा"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legg til kort fra en fil."
+            "value" : "Eksporter som Anki-kortstokk"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voeg kaarten toe uit een bestand."
+            "value" : "Exporteren als Anki-kaartenset"
           }
         },
         "pa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ਫ਼ਾਈਲ ਤੋਂ ਕਾਰਡ ਜੋੜੋ।"
+            "value" : "Anki ਡੈੱਕ ਵਜੋਂ ਨਿਰਯਾਤ ਕਰੋ"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodaj fiszki z pliku."
+            "value" : "Eksportuj jako talię Anki"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adicione cartões a partir de um arquivo."
+            "value" : "Exportar como baralho do Anki"
           }
         },
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adaugă fișe dintr-un fișier."
+            "value" : "Exportă ca set de carduri Anki"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Добавьте карточки из файла."
+            "value" : "Экспорт в виде колоды Anki"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pridajte karty zo súboru."
+            "value" : "Exportovať ako balíček Anki"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodajte kartice iz datoteke."
+            "value" : "Izvozi kot komplet kartic Anki"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lägg till kort från en fil."
+            "value" : "Exportera som Anki-kortlek"
           }
         },
         "sw" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ongeza kadi kutoka kwenye faili."
+            "value" : "Hamisha kama seti ya kadi za Anki"
           }
         },
         "ta" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "கோப்பிலிருந்து அட்டைகளைச் சேர்க்கவும்."
+            "value" : "Anki அட்டைத் தொகுப்பாக ஏற்றுமதி செய்"
           }
         },
         "te" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ఫైల్ నుండి కార్డులను జోడించండి."
+            "value" : "Anki డెక్‌గా ఎగుమతి చేయండి"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "เพิ่มการ์ดจากไฟล์"
+            "value" : "ส่งออกเป็นสำรับ Anki"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bir dosyadan kart ekleyin."
+            "value" : "Anki destesi olarak dışa aktar"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Додайте картки з файлу."
+            "value" : "Експортувати як колоду Anki"
           }
         },
         "ur" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "فائل سے کارڈز شامل کریں۔"
+            "value" : "Anki ڈیک کے طور پر برآمد کریں"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm thẻ từ tệp."
+            "value" : "Xuất dưới dạng bộ thẻ Anki"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从文件添加卡片。"
+            "value" : "导出为 Anki 牌组"
           }
         },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Engeza amakhadi kusuka kufayela."
+            "value" : "Khipha njengeqoqo lamakhadi le-Anki"
+          }
+        }
+      }
+    },
+    "library.row.export.nibomo.title" : {
+      "comment" : "Library action and screen title for exporting a Nibomo package",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصدير كحزمة Nibomo"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортиране като пакет Nibomo"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo প্যাকেজ হিসেবে রপ্তানি করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta com a paquet Nibomo"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportovat jako balíček Nibomo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportér som Nibomo-pakke"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als Nibomo-Paket exportieren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εξαγωγή ως πακέτο Nibomo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export as a Nibomo package"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar como paquete de Nibomo"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar como paquete de Nibomo"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspordi Nibomo paketina"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برون‌بری به‌صورت بستهٔ Nibomo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vie Nibomo-pakettina"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter sous forme de paquet Nibomo"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo પૅકેજ તરીકે નિકાસ કરો"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ייצוא כחבילת Nibomo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo पैकेज के रूप में निर्यात करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvezi kao Nibomo paket"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportálás Nibomo-csomagként"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspor sebagai paket Nibomo"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flytja út sem Nibomo-pakka"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta come pacchetto Nibomo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoパッケージとして書き出す"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ಪ್ಯಾಕೇಜ್ ಆಗಿ ರಫ್ತು ಮಾಡಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo 패키지로 내보내기"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuoti kaip Nibomo paketą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportēt kā Nibomo pakotni"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo പാക്കേജായി എക്സ്പോർട്ട് ചെയ്യുക"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo पॅकेज म्हणून निर्यात करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksporter som Nibomo-pakke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporteren als Nibomo-pakket"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਪੈਕੇਜ ਵਜੋਂ ਨਿਰਯਾਤ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj jako pakiet Nibomo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar como pacote do Nibomo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportă ca pachet Nibomo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспорт в виде пакета Nibomo"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportovať ako balík Nibomo"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvozi kot paket Nibomo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportera som Nibomo-paket"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hamisha kama kifurushi cha Nibomo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo தொகுப்பாக ஏற்றுமதி செய்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ప్యాకేజీగా ఎగుమతి చేయండి"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ส่งออกเป็นแพ็กเกจ Nibomo"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo paketi olarak dışa aktar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортувати як пакет Nibomo"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo پیکیج کے طور پر برآمد کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất dưới dạng gói Nibomo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出为 Nibomo 卡包"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khipha njengephakheji ye-Nibomo"
+          }
+        }
+      }
+    },
+    "library.row.export.title" : {
+      "comment" : "Library action and screen title for choosing an export format",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصدير"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортиране"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রপ্তানি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporta"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksport"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportieren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εξαγωγή"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksport"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برون‌بری"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vienti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "નિકાસ"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ייצוא"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "निर्यात"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvoz"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportálás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekspor"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flytja út"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エクスポート"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ರಫ್ತು ಮಾಡಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보내기"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuoti"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportēt"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "എക്സ്പോർട്ട് ചെയ്യുക"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "निर्यात"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksport"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporteren"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਨਿਰਯਾਤ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksport"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспорт"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvoz"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hamisha"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ஏற்றுமதி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఎగుమతి"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ส่งออก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dışa Aktar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експорт"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برآمد کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xuất"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khipha"
+          }
+        }
+      }
+    },
+    "library.row.tags.subtitle" : {
+      "comment" : "Library row subtitle for the Tags screen",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العلامات المستخدمة على بطاقاتك."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Етикетите на вашите карти."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার কার্ডে ব্যবহৃত ট্যাগ।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les etiquetes que fas servir a les teves targetes."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Štítky použité na vašich kartičkách."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mærkater, du bruger på dine kort."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags, die du auf deinen Karten verwendest."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι ετικέτες που χρησιμοποιούνται στις κάρτες σας."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags used on your cards."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etiquetas que usas en tus tarjetas."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etiquetas que usas en tus tarjetas."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinu kaartidel kasutatavad sildid."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برچسب‌های استفاده‌شده روی کارت‌هایتان."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korteissasi käytetyt tunnisteet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les tags utilisés sur vos cartes."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "તમારાં કાર્ડ પર વપરાતા ટૅગ."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התגיות שבשימוש בכרטיסיות שלך."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपके कार्ड पर इस्तेमाल किए गए टैग।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oznake koje upotrebljavate na svojim karticama."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A kártyáidon használt címkék."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag yang digunakan pada kartu Anda."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merki sem eru notuð á spjöldunum þínum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag usati nelle tue schede."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードに使われているタグ。"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳಲ್ಲಿ ಬಳಸಿದ ಟ್ಯಾಗ್‌ಗಳು."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드에 사용된 태그입니다."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūsų kortelėms priskirtos žymos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūsu kartītēm pievienotās birkas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിങ്ങളുടെ കാർഡുകളിൽ ഉപയോഗിക്കുന്ന ടാഗുകൾ."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमच्या कार्डांवर वापरलेले टॅग."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tagger som brukes på kortene dine."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags die je op je kaarten gebruikt."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤੁਹਾਡੇ ਕਾਰਡਾਂ ਉੱਤੇ ਵਰਤੇ ਗਏ ਟੈਗ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tagi przypisane do Twoich fiszek."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etiquetas usadas nos seus cartões."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etichetele folosite pe fișele tale."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теги, которыми помечены ваши карточки."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Značky použité na vašich kartách."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oznake, uporabljene na vaših karticah."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taggar som används på dina kort."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lebo zinazotumiwa kwenye kadi zako."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் அட்டைகளில் பயன்படுத்தப்படும் குறிச்சொற்கள்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ కార్డులకు ఉపయోగించిన ట్యాగ్‌లు."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "แท็กที่ใช้กับการ์ดของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartlarınızda kullanılan etiketler."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мітки, використані на ваших картках."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آپ کے کارڈز پر استعمال ہونے والے ٹیگز۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các nhãn được dùng trên thẻ của bạn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的卡片上使用的标签。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amathegi asetshenziswa emakhadini akho."
           }
         }
       }
@@ -24525,6 +26660,311 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Engeza amakhadi"
+          }
+        }
+      }
+    },
+    "library.section.transfer" : {
+      "comment" : "Section header above the Export row in the Library hub and Mac sidebar",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نقل البيانات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прехвърляне"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডেটা স্থানান্তর"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferència"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přenos"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overførsel"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übertragung"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μεταφορά"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferencia"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferencia"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andmeedastus"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انتقال داده‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siirto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfert"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ડેટા ટ્રાન્સફર"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "העברת נתונים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डेटा स्थानांतरण"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prijenos"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adatátvitel"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer data"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gagnaflutningur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasferimento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ転送"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಡೇಟಾ ವರ್ಗಾವಣೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "데이터 전송"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duomenų perkėlimas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datu pārsūtīšana"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഡാറ്റ കൈമാറ്റം"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डेटा हस्तांतरण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overføring"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overdracht"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਡਾਟਾ ਟ੍ਰਾਂਸਫਰ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenoszenie danych"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferência"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенос данных"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prenos"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prenos"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Överföring"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uhamishaji wa data"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தரவு பரிமாற்றம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "డేటా బదిలీ"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "การถ่ายโอนข้อมูล"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veri aktarımı"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенесення даних"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ڈیٹا کی منتقلی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chuyển dữ liệu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据传输"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukudlulisa idatha"
           }
         }
       }

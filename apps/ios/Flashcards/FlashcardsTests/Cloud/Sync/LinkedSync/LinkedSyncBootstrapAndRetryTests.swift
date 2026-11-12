@@ -168,7 +168,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         XCTAssertEqual(0, try self.loadOutboxCount(database: database))
     }
 
-    func testLinkedSyncEmptyRemoteBootstrapPushesMoreThanTwoHundredHotEntriesInOneRequest() async throws {
+    func testLinkedSyncEmptyRemoteBootstrapPushesLargeSnapshotAndKeepsConcurrentImport() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cardCount: Int = 201
@@ -194,11 +194,20 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             session: URLSession(configuration: configuration),
             decoder: makeFlashcardsRemoteJSONDecoder()
         )
+        let databaseURL = database.databaseURL
+        let importScope = SpreadsheetImportScope(
+            workspaceId: workspace.workspaceId,
+            cloudSettings: try database.workspaceSettingsStore.loadCloudSettings()
+        )
+        let importInput = CardEditorInput(frontText: "Imported question", backText: "Imported answer", tags: [])
         CloudSyncRunnerTestURLProtocol.requestHandler = { request in
             try LinkedSyncRunnerTestTransportSupport.handleLargeEmptyRemoteBootstrapRequest(
                 request: request,
                 expectedEntryCount: expectedEntryCount
-            )
+            ) {
+                let writer = try LocalDatabase(existingWritableDatabaseURL: databaseURL)
+                XCTAssertEqual(1, try writer.createSpreadsheetImportCards(scope: importScope, inputs: [importInput]))
+            }
         }
 
         let syncResult = try await CloudSyncRunner(database: database, transport: transport).runLinkedSync(
@@ -210,7 +219,12 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         XCTAssertTrue(syncResult.changedEntityTypes.contains(.card))
         XCTAssertTrue(syncResult.changedEntityTypes.contains(.workspaceSchedulerSettings))
         XCTAssertEqual(cardCount, syncResult.cleanedUpOperationCount)
-        XCTAssertEqual(77, syncState.lastAppliedHotChangeId)
+        let importedCard = try XCTUnwrap(
+            try database.loadActiveCards(workspaceId: workspace.workspaceId).first { $0.frontText == importInput.frontText }
+        )
+        XCTAssertEqual([importedCard.cardId], CloudSyncRunnerTestURLProtocol.pushEntityIds)
+        XCTAssertEqual(1, syncResult.acknowledgedOperationCount)
+        XCTAssertEqual(78, syncState.lastAppliedHotChangeId)
         XCTAssertTrue(syncState.hasHydratedHotState)
         XCTAssertEqual(0, try self.loadOutboxCount(database: database))
     }

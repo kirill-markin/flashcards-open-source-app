@@ -378,7 +378,9 @@ function buildUsersCtesSql(countrySampleRange: AnalyticsDateRange): string {
     FROM analytics.product_events_resolved AS events
     WHERE events.actor_id IS NOT NULL
     GROUP BY events.actor_id
-  ), countries AS (
+  ), countries AS MATERIALIZED (
+    -- Postgres estimates 1 row (~1.6k actual); inlined, it joins user_settings in a nested loop that
+    -- re-evaluates the join filter per user (25M comparisons, ~20 s at 16k users); materialized, a hash join.
     SELECT country_samples.actor_id::text AS actor_id,
       array_agg(DISTINCT country_samples.country ORDER BY country_samples.country) AS countries
     FROM (

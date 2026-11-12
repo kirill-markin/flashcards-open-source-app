@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useAppData } from "../../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -8,10 +8,10 @@ import {
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
-import { reviewRoute } from "../../../routes";
+import { buildLibraryTagDetailRoute } from "../../../routes";
 import { useWorkspacePath } from "../../../useWorkspacePath";
 import { handleRefreshLocalDataError } from "../../shared/refreshLocalDataError";
-import type { ReviewFilter, WorkspaceTagsSummary } from "../../../types";
+import type { WorkspaceTagsSummary } from "../../../types";
 
 const emptyTagsSummary: WorkspaceTagsSummary = {
   tags: [],
@@ -19,10 +19,9 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 };
 
 export function TagsScreen(): ReactElement {
-  const { activeWorkspace, cloudSettings, localReadVersion, openReview, refreshLocalData, session } = useAppData();
+  const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatNumber } = useI18n();
-  const navigate = useNavigate();
   const workspacePath = useWorkspacePath();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -102,20 +101,6 @@ export function TagsScreen(): ReactElement {
     };
   }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
-  function handleOpenTagReview(tag: string): void {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return;
-    }
-
-    const reviewFilter: ReviewFilter = {
-      kind: "tags",
-      tags: [tag],
-    };
-
-    openReview(reviewFilter);
-    navigate(workspacePath(reviewRoute));
-  }
-
   async function handleRefreshLocalData(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
@@ -171,7 +156,7 @@ export function TagsScreen(): ReactElement {
   }
 
   return (
-    <main className="container tags-page">
+    <main className="container">
       <section className="panel tags-screen-panel">
         <div className="screen-head">
           <div>
@@ -187,18 +172,16 @@ export function TagsScreen(): ReactElement {
           {tagsSummary.tags.length === 0 ? (
             <div className="content-card">{t("tagsScreen.empty")}</div>
           ) : tagsSummary.tags.map((tagSummary) => (
-            <button
+            <Link
               key={tagSummary.tag}
               className="content-card tags-summary-card tags-summary-card-button"
-              type="button"
-              onClick={() => handleOpenTagReview(tagSummary.tag)}
-              aria-label={`${t("deckDetail.actions.openReview")}: ${tagSummary.tag}`}
+              to={workspacePath(buildLibraryTagDetailRoute(tagSummary.tag))}
             >
               <div className="tags-summary-card-head">
-                <strong className="panel-subtitle">{tagSummary.tag}</strong>
+                <strong className="panel-subtitle"><bdi>{tagSummary.tag}</bdi></strong>
                 <span className="badge">{formatCount(tagSummary.cardsCount, messages.common.countLabels.card)}</span>
               </div>
-            </button>
+            </Link>
           ))}
         </div>
 

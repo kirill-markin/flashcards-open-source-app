@@ -4,10 +4,15 @@ import { chartMargin, stackedChartHeight, uniqueUserCohortColors, type ChartTool
 import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import { renderMeaningfulActivityFrame, renderMeaningfulActivityHitTargets } from "./meaningfulActivityFrame";
 
+export function getNewReturningChartPeak(buckets: ReadonlyArray<NewReturningBucket>): number {
+  return d3.max(buckets, (entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0)) ?? 0;
+}
+
 export function renderDailyNewReturningChart(params: Readonly<{
   svgElement: SVGSVGElement;
   buckets: ReadonlyArray<NewReturningBucket>;
   notes: ReadonlyArray<PlacedChartNote>;
+  sharedPeak: number | null;
   /** The still-filling bucket, drawn faded; null when the range has none. */
   inProgressKey: string | null;
   xLabel: string;
@@ -17,7 +22,7 @@ export function renderDailyNewReturningChart(params: Readonly<{
   tooltipHandlers: ChartTooltipHandlers;
 }>): void {
   const keys = params.buckets.map((entry) => entry.bucket.key);
-  const peak = d3.max(params.buckets, (entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0)) ?? 0;
+  const peak = params.sharedPeak ?? getNewReturningChartPeak(params.buckets);
   const y = d3.scaleLinear().domain([0, Math.max(1, peak)]).nice()
     .range([stackedChartHeight - chartMargin.top - chartMargin.bottom, 0]);
   const frame = renderMeaningfulActivityFrame(params.svgElement, keys, y, y.ticks(6).filter(Number.isInteger),

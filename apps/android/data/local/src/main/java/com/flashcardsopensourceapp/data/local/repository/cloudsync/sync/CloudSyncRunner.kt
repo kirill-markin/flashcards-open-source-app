@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapP
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceStillPendingException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
@@ -44,6 +45,19 @@ internal suspend fun runCloudSyncCore(
     }
     syncLocalStore.recordSyncAttempt(workspaceId)
     try {
+        val pendingMaintenance = syncLocalStore.loadPendingCardMaintenance(workspaceId = workspaceId)
+        if (pendingMaintenance != null && pendingMaintenance.affectedCardsCount == null) {
+            val isSettled = remoteService.reconcileCardMaintenance(
+                apiBaseUrl = syncSession.apiBaseUrl,
+                authorizationHeader = syncSession.authorizationHeader,
+                workspaceId = workspaceId,
+                previewFingerprint = pendingMaintenance.previewFingerprint
+            )
+            if (!isSettled) {
+                throw CloudCardMaintenanceStillPendingException()
+            }
+        }
+
         var workspaceForkRecoveryState = WorkspaceForkRecoveryState(recoveredConflicts = emptySet())
         syncLoop@ while (true) {
             val bootstrapState = runBootstrapHydrationWithForkRecovery(
@@ -153,6 +167,9 @@ internal suspend fun runCloudSyncCore(
                 hasHydratedHotState = hasHydratedHotState,
                 hasHydratedReviewHistory = hasHydratedReviewHistory
             )
+            if (pendingMaintenance != null) {
+                syncLocalStore.finishCardMaintenanceRefresh(workspaceId = workspaceId, attempt = pendingMaintenance)
+            }
             break
         }
     } catch (error: CancellationException) {

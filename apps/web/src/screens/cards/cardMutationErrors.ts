@@ -1,3 +1,5 @@
+import { WorkspaceMaintenancePendingError } from "../../appData/sync/engine/workspaceMaintenanceLock";
+
 const cardFrontTextRequiredMessage = "Card front text must not be empty";
 const cardNotFoundMessagePrefix = "Card not found: ";
 const workspaceUnavailableMessage = "Workspace is unavailable";
@@ -10,7 +12,7 @@ export function getExpectedCardMutationInlineErrorMessage(
     return null;
   }
 
-  if (error.message === cardFrontTextRequiredMessage) {
+  if (error instanceof WorkspaceMaintenancePendingError || error.message === cardFrontTextRequiredMessage) {
     return error.message;
   }
 

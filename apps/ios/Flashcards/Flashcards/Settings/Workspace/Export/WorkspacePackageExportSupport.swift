@@ -2,6 +2,15 @@ import Foundation
 
 private let workspacePackageExportGeneratedImportTagPrefix: String = "import:"
 
+extension WorkspacePackageExportFormat {
+    var localizedTitle: String {
+        switch self {
+        case .nibomo: String(localized: "library.row.export.nibomo.title", table: "Foundation")
+        case .anki: String(localized: "library.row.export.anki.title", table: "Foundation")
+        }
+    }
+}
+
 struct WorkspacePackageExportMetadataDraft: Hashable, Sendable {
     var label: String
     var author: String
@@ -24,6 +33,16 @@ struct WorkspacePackageExportMetadataDraft: Hashable, Sendable {
             comment: defaultPackageMetadata.comment ?? "",
             createdAt: defaultPackageMetadata.createdAt,
             sourceUrl: defaultPackageMetadata.sourceUrl ?? ""
+        )
+    }
+
+    var packageMetadata: WorkspacePackageExportMetadataInput {
+        WorkspacePackageExportMetadataInput(
+            label: optionalWorkspacePackageExportMetadataText(value: self.label),
+            author: optionalWorkspacePackageExportMetadataText(value: self.author),
+            comment: optionalWorkspacePackageExportMetadataText(value: self.comment),
+            createdAt: optionalWorkspacePackageExportMetadataText(value: self.createdAt),
+            sourceUrl: optionalWorkspacePackageExportMetadataText(value: self.sourceUrl)
         )
     }
 }
@@ -56,7 +75,7 @@ func makeWorkspacePackageExportPreviewRequest(
 
 func makeWorkspacePackageExportRequest(
     preview: WorkspacePackageExportPreviewResponse,
-    metadataDraft: WorkspacePackageExportMetadataDraft,
+    packageMetadata: WorkspacePackageExportMetadataInput,
     selectedCardTags: Set<String>,
     includedTags: Set<String>
 ) -> WorkspacePackageExportRequest {
@@ -68,13 +87,7 @@ func makeWorkspacePackageExportRequest(
                 includedTags: includedTags
             )
         ),
-        packageMetadata: WorkspacePackageExportMetadataInput(
-            label: optionalWorkspacePackageExportMetadataText(value: metadataDraft.label),
-            author: optionalWorkspacePackageExportMetadataText(value: metadataDraft.author),
-            comment: optionalWorkspacePackageExportMetadataText(value: metadataDraft.comment),
-            createdAt: optionalWorkspacePackageExportMetadataText(value: metadataDraft.createdAt),
-            sourceUrl: optionalWorkspacePackageExportMetadataText(value: metadataDraft.sourceUrl)
-        )
+        packageMetadata: packageMetadata
     )
 }
 
@@ -124,23 +137,28 @@ func formatWorkspacePackageExportByteCount(byteCount: Int64) -> String {
     return formatter.string(fromByteCount: byteCount)
 }
 
-func prepareWorkspacePackageExportDownload(
-    response: WorkspacePackageExportDownloadResponse,
-    fileManager: FileManager,
-    temporaryDirectory: URL
-) throws -> URL {
-    let fileName = response.fileName.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard workspacePackageExportFileNameIsSafe(fileName: fileName) else {
-        throw LocalStoreError.validation("Workspace package export filename is invalid: \(response.fileName)")
-    }
+func makeWorkspaceAnkiExportMetadata(deckName: String) -> WorkspacePackageExportMetadataInput {
+    WorkspacePackageExportMetadataInput(
+        label: optionalWorkspacePackageExportMetadataText(value: deckName),
+        author: nil,
+        comment: nil,
+        createdAt: nil,
+        sourceUrl: nil
+    )
+}
 
-    let fileURL = temporaryDirectory.appendingPathComponent(fileName, isDirectory: false)
-    if fileManager.fileExists(atPath: fileURL.path) {
-        try fileManager.removeItem(at: fileURL)
+func workspaceAnkiExportSelectionIsEmpty(error: Error) -> Bool {
+    guard case CloudSyncError.invalidResponse(let details, 400) = technicalErrorPresentationSource(error: error) else {
+        return false
     }
+    return details.code == "WORKSPACE_PACKAGE_EXPORT_ANKI_EMPTY"
+}
 
-    try response.packageBytes.write(to: fileURL, options: .atomic)
-    return fileURL
+func workspacePackageExportFailureMessage(error: Error, format: WorkspacePackageExportFormat) -> String {
+    if format == .anki, isRetryableNetworkTransportFailure(error: error) {
+        return String(localized: "library.export.anki.connectionError", table: "Foundation")
+    }
+    return Flashcards.errorMessage(error: error)
 }
 
 private func optionalWorkspacePackageExportMetadataText(value: String) -> String? {
@@ -163,11 +181,4 @@ private func makeWorkspacePackageExportSelection(selectedCardTags: Set<String>) 
 
 func isWorkspacePackageExportGeneratedImportTag(tag: String) -> Bool {
     tag.hasPrefix(workspacePackageExportGeneratedImportTagPrefix)
-}
-
-private func workspacePackageExportFileNameIsSafe(fileName: String) -> Bool {
-    fileName.isEmpty == false
-        && fileName.rangeOfCharacter(from: .controlCharacters) == nil
-        && fileName.contains("/") == false
-        && fileName.contains("\\") == false
 }

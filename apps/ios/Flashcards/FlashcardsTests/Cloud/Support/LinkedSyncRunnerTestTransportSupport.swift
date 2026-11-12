@@ -102,7 +102,8 @@ enum LinkedSyncRunnerTestTransportSupport {
 
     static func handleLargeEmptyRemoteBootstrapRequest(
         request: URLRequest,
-        expectedEntryCount: Int
+        expectedEntryCount: Int,
+        importDuringBootstrapPush: () throws -> Void
     ) throws -> (HTTPURLResponse, Data) {
         let path = try XCTUnwrap(request.url?.path)
         if path.hasSuffix("/sync/bootstrap") {
@@ -128,6 +129,7 @@ enum LinkedSyncRunnerTestTransportSupport {
             let entries = try XCTUnwrap(body["entries"] as? [[String: Any]])
             CloudSyncRunnerTestURLProtocol.bootstrapPushEntryCounts.append(entries.count)
             XCTAssertEqual(expectedEntryCount, entries.count)
+            try importDuringBootstrapPush()
             return try Self.jsonResponse(
                 request: request,
                 statusCode: 200,
@@ -140,6 +142,30 @@ enum LinkedSyncRunnerTestTransportSupport {
             )
         }
 
+        if path.hasSuffix("/sync/push") {
+            let body = try JSONDecoder().decode(WorkspaceSyncPushRetryRequestBody.self, from: Self.requestBodyData(request: request))
+            XCTAssertEqual(1, body.operations.count)
+            let operation = try XCTUnwrap(body.operations.first)
+            XCTAssertEqual(.card, operation.entityType)
+            CloudSyncRunnerTestURLProtocol.pushEntityIds.append(operation.entityId)
+            return try Self.jsonResponse(
+                request: request,
+                statusCode: 200,
+                body: """
+                {
+                  "operations": [{
+                    "operationId": "\(operation.operationId)",
+                    "entityType": "card",
+                    "entityId": "\(operation.entityId)",
+                    "status": "applied",
+                    "resultingHotChangeId": 78,
+                    "error": null
+                  }]
+                }
+                """
+            )
+        }
+
         if path.hasSuffix("/sync/pull") {
             return try Self.jsonResponse(
                 request: request,
@@ -147,7 +173,7 @@ enum LinkedSyncRunnerTestTransportSupport {
                 body: """
                 {
                   "changes": [],
-                  "nextHotChangeId": 77,
+                  "nextHotChangeId": 78,
                   "hasMore": false
                 }
                 """

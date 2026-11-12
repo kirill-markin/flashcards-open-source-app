@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
@@ -172,6 +173,23 @@ class SyncLocalStore(
             hasHydratedHotState = hasHydratedHotState,
             hasHydratedReviewHistory = hasHydratedReviewHistory
         )
+    }
+
+    internal fun loadPendingCardMaintenance(workspaceId: String): CloudCardMaintenanceAttempt? {
+        return preferencesStore.loadCardMaintenanceAttempt(workspaceId = workspaceId)
+            ?.takeUnless { attempt -> attempt.isRefreshComplete }
+    }
+
+    internal suspend fun finishCardMaintenanceRefresh(workspaceId: String, attempt: CloudCardMaintenanceAttempt) {
+        if (attempt.affectedCardsCount == null) {
+            preferencesStore.clearCardMaintenanceAttempt(workspaceId = workspaceId)
+        } else {
+            // Keep the acknowledged result available to the restored confirmation screen after sync.
+            preferencesStore.saveCardMaintenanceAttempt(
+                workspaceId = workspaceId,
+                attempt = attempt.copy(isRefreshComplete = true)
+            )
+        }
     }
 
     suspend fun reidentifyWorkspaceForkConflictEntity(

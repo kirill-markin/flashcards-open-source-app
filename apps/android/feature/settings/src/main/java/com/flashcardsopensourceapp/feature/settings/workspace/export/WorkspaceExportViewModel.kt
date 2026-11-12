@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
@@ -20,9 +21,11 @@ import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.cloud.expectedWorkspacePackageExportCloudFailureMessage
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +33,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+private const val defaultAnkiDeckName: String = "Nibomo Export"
 
 private data class WorkspacePackageExportPreviewIdentity(
     val activeWorkspaceId: String,
@@ -62,7 +68,8 @@ private data class WorkspaceExportDraftState(
 class WorkspaceExportViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val technicalErrorController: AppTechnicalErrorController,
-    private val strings: SettingsStringResolver
+    private val strings: SettingsStringResolver,
+    val format: WorkspacePackageExportFormat
 ) : ViewModel() {
     private val cloudSettingsState: StateFlow<CloudSettings> = cloudAccountRepository.observeCloudSettings().stateIn(
         scope = viewModelScope,
@@ -93,6 +100,7 @@ class WorkspaceExportViewModel(
     )
     private val isPackageExportRunning = AtomicBoolean(false)
     private val latestPackagePreviewRequestId = AtomicLong(0L)
+    private var pendingPackageExport: WorkspacePackageExportSave? = null
 
     val uiState: StateFlow<WorkspaceExportUiState> = combine(
         cloudSettingsState,
@@ -109,6 +117,7 @@ class WorkspaceExportViewModel(
             null
         }
         WorkspaceExportUiState(
+            format = format,
             packagePreview = currentPackagePreview,
             packageMetadataDraft = if (currentPackagePreview != null) {
                 draft.packageMetadataDraft
@@ -138,6 +147,7 @@ class WorkspaceExportViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = WorkspaceExportUiState(
+            format = format,
             packagePreview = null,
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
             packageCardSelectionTags = emptySet(),
@@ -224,6 +234,7 @@ class WorkspaceExportViewModel(
 
         try {
             val preview: WorkspacePackageExportPreview = cloudAccountRepository.previewCurrentWorkspacePackageExport(
+                expectedWorkspaceId = previewIdentity.activeWorkspaceId,
                 request = makeWorkspacePackageExportPreviewRequest(selectedCardTags = selectedCardTags)
             )
             updateDraftStateForPackagePreviewRequest(previewRequestId = previewRequestId) { state ->
@@ -232,8 +243,13 @@ class WorkspaceExportViewModel(
                 } else {
                     preservedCardSelectionTagCounts.ifEmpty { preview.availableTagCounts }
                 }
-                val nextMetadataDraft: WorkspacePackageExportMetadataDraft = preservedDraft?.metadataDraft
-                    ?: makeWorkspacePackageExportMetadataDraft(defaultPackageMetadata = preview.defaultPackageMetadata)
+                val nextMetadataDraft = preservedDraft?.metadataDraft ?: when (format) {
+                    WorkspacePackageExportFormat.NIBOMO -> makeWorkspacePackageExportMetadataDraft(
+                        defaultPackageMetadata = preview.defaultPackageMetadata
+                    )
+                    WorkspacePackageExportFormat.ANKI ->
+                        emptyWorkspacePackageExportMetadataDraft().copy(label = defaultAnkiDeckName)
+                }
                 val nextKnownRegularTags: Set<String> = makeWorkspacePackageExportKnownRegularTags(preview = preview)
                 val nextIncludedTags: Set<String> = preservedDraft?.let { draft ->
                     makeWorkspacePackageExportRefreshedIncludedTags(
@@ -276,38 +292,42 @@ class WorkspaceExportViewModel(
         }
     }
 
-    suspend fun preparePackageExportDownload(): WorkspacePackageExportDownloadResponse? {
+    suspend fun preparePackageExportDownload(destinationDirectory: File): WorkspacePackageExportDownloadResponse? {
         if (isPackageExportRunning.compareAndSet(false, true).not()) {
             return null
         }
         return try {
-            preparePackageExportDownloadAsync()
+            preparePackageExportDownloadAsync(destinationDirectory = destinationDirectory)
+        } catch (error: CancellationException) {
+            finishPackageExport()
+            throw error
         } finally {
             isPackageExportRunning.set(false)
         }
     }
 
-    private suspend fun preparePackageExportDownloadAsync(): WorkspacePackageExportDownloadResponse? {
-        val currentUiState: WorkspaceExportUiState = uiState.value
-        val preview: WorkspacePackageExportPreview = currentUiState.packagePreview ?: run {
-            draftState.update { state ->
-                state.copy(errorMessage = strings.get(R.string.settings_export_package_preview_required))
-            }
+    private suspend fun preparePackageExportDownloadAsync(
+        destinationDirectory: File
+    ): WorkspacePackageExportDownloadResponse? {
+        val draft = draftState.value
+        if (draft.isPackagePreviewing || draft.isPackageExporting) {
             return null
         }
-        if (currentUiState.packageAvailabilityMessage.isNotEmpty()) {
-            draftState.update { state ->
-                state.copy(
-                    packagePreview = null,
-                    packagePreviewIdentity = null,
-                    packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-                    packageCardSelectionTags = emptySet(),
-                    packageCardSelectionTagCounts = emptyList(),
-                    packageKnownRegularTags = emptySet(),
-                    packageIncludedTags = emptySet(),
-                    errorMessage = currentUiState.packageAvailabilityMessage
-                )
-            }
+        val cloudSettings = cloudSettingsState.value
+        val availabilityMessage = workspacePackageExportAvailabilityMessage(cloudSettings = cloudSettings, strings = strings)
+        if (availabilityMessage.isNotEmpty()) {
+            showExportError(message = availabilityMessage)
+            return null
+        }
+        val preview = draft.packagePreview
+        val previewIdentity = draft.packagePreviewIdentity
+        if (preview == null || previewIdentity == null || previewIdentity != makePackagePreviewIdentity(cloudSettings)) {
+            showExportError(message = strings.get(R.string.settings_export_package_preview_required))
+            return null
+        }
+
+        if (preview.isAnkiSelectionEmpty(format = format)) {
+            showExportError(message = strings.get(R.string.settings_export_anki_empty))
             return null
         }
 
@@ -318,15 +338,30 @@ class WorkspaceExportViewModel(
             )
         }
 
+        var archiveFile: File? = null
+        var didPrepareExport = false
         return try {
-            cloudAccountRepository.exportCurrentWorkspacePackage(
+            withContext(Dispatchers.IO) {
+                archiveFile = createWorkspacePackageExportFile(destinationDirectory = destinationDirectory)
+            }
+            val download = cloudAccountRepository.exportCurrentWorkspacePackage(
+                expectedWorkspaceId = previewIdentity.activeWorkspaceId,
+                format = format,
                 request = makeWorkspacePackageExportRequest(
                     preview = preview,
-                    metadataDraft = currentUiState.packageMetadataDraft,
-                    selectedCardTags = currentUiState.packageCardSelectionTags,
-                    includedTags = currentUiState.packageIncludedTags
-                )
+                    metadataDraft = draft.packageMetadataDraft,
+                    selectedCardTags = draft.packageCardSelectionTags,
+                    includedTags = draft.packageIncludedTags
+                ),
+                destination = checkNotNull(archiveFile)
             )
+            if (previewIdentity != makePackagePreviewIdentity(cloudSettings = cloudSettingsState.value)) {
+                showExportError(message = strings.get(R.string.settings_export_package_workspace_unavailable))
+                null
+            } else {
+                didPrepareExport = true
+                download
+            }
         } catch (error: CancellationException) {
             throw error
         } catch (error: SyncBlockedException) {
@@ -343,6 +378,10 @@ class WorkspaceExportViewModel(
                 fallbackMessage = strings.get(R.string.settings_export_package_download_failed)
             )
             null
+        } finally {
+            if (didPrepareExport.not()) {
+                archiveFile?.let { deleteWorkspacePackageExportEntry(entry = it) }
+            }
         }
     }
 
@@ -443,13 +482,53 @@ class WorkspaceExportViewModel(
         }
     }
 
+    internal suspend fun preparePackageExportSave(cacheDirectory: File): String? {
+        val packageExport = preparePackageExportDownload(destinationDirectory = cacheDirectory) ?: return null
+        var save: WorkspacePackageExportSave? = null
+        try {
+            check(pendingPackageExport == null) {
+                "An Android package export is already waiting for a destination."
+            }
+            withContext(Dispatchers.IO) {
+                save = openWorkspacePackageExportSave(packageExport = packageExport)
+            }
+            val preparedSave = checkNotNull(save)
+            pendingPackageExport = preparedSave
+            return preparedSave.fileName
+        } catch (error: Exception) {
+            val preparedSave = save
+            if (preparedSave == null) {
+                deleteWorkspacePackageExportEntry(entry = packageExport.archiveFile)
+            } else {
+                preparedSave.close()
+            }
+            throw error
+        }
+    }
+
+    internal fun consumePendingPackageExport(): WorkspacePackageExportSave? {
+        val packageExport = pendingPackageExport
+        pendingPackageExport = null
+        return packageExport
+    }
+
+    override fun onCleared() {
+        discardPendingPackageExport()
+    }
+
+    private fun discardPendingPackageExport() {
+        consumePendingPackageExport()?.close()
+    }
+
     fun finishPackageExport() {
+        discardPendingPackageExport()
         draftState.update { state ->
             state.copy(isPackageExporting = false)
         }
     }
 
     fun showExportError(message: String) {
+        discardPendingPackageExport()
         draftState.update { state ->
             state.copy(
                 isPackageExporting = false,
@@ -472,7 +551,8 @@ class WorkspaceExportViewModel(
     ) {
         val expectedErrorMessage: String? = expectedWorkspacePackageExportCloudFailureMessage(
             error = error,
-            fallbackMessage = fallbackMessage
+            fallbackMessage = fallbackMessage,
+            ankiEmptyMessage = strings.get(R.string.settings_export_anki_empty)
         )
         var didHandleCurrentRequest = false
         updateDraftStateForPackagePreviewRequest(previewRequestId = previewRequestId) { state ->
@@ -501,7 +581,8 @@ class WorkspaceExportViewModel(
     ) {
         val expectedErrorMessage: String? = expectedWorkspacePackageExportCloudFailureMessage(
             error = error,
-            fallbackMessage = fallbackMessage
+            fallbackMessage = fallbackMessage,
+            ankiEmptyMessage = strings.get(R.string.settings_export_anki_empty)
         )
         draftState.update { state ->
             state.copy(
@@ -611,14 +692,16 @@ private fun workspacePackageExportAvailabilityMessage(
 fun createWorkspaceExportViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     technicalErrorController: AppTechnicalErrorController,
-    applicationContext: Context
+    applicationContext: Context,
+    format: WorkspacePackageExportFormat
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             WorkspaceExportViewModel(
                 cloudAccountRepository = cloudAccountRepository,
                 technicalErrorController = technicalErrorController,
-                strings = createSettingsStringResolver(context = applicationContext)
+                strings = createSettingsStringResolver(context = applicationContext),
+                format = format
             )
         }
     }

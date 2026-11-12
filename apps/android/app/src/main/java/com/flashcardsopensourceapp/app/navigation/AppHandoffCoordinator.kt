@@ -4,6 +4,9 @@ import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
+import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImport
+import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImportOrigin
+import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +23,12 @@ data class AiCardHandoffRequest(
     val frontText: String,
     val backText: String,
     val tags: List<String>
+)
+
+data class AiAnkiImportRequest(
+    val requestId: Long,
+    val ankiImport: AiAnkiImport,
+    val origin: AiAnkiImportOrigin
 )
 
 data class CardEditorRequest(
@@ -73,6 +82,7 @@ class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
+    private val aiAnkiImportState = MutableStateFlow<AiAnkiImportRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
     private val reviewWidgetCardState = MutableStateFlow<ReviewWidgetCardRequest?>(value = null)
@@ -85,6 +95,10 @@ class AppHandoffCoordinator {
 
     fun observeAiCardHandoff(): StateFlow<AiCardHandoffRequest?> {
         return aiCardHandoffState.asStateFlow()
+    }
+
+    fun observeAiAnkiImport(): StateFlow<AiAnkiImportRequest?> {
+        return aiAnkiImportState.asStateFlow()
     }
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
@@ -108,6 +122,7 @@ class AppHandoffCoordinator {
     }
 
     fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
+        discardPendingAiAnkiImport()
         aiEntryPrefillState.value = AiEntryPrefillRequest(
             requestId = nextRequestId.incrementAndGet(),
             prefill = prefill
@@ -128,6 +143,7 @@ class AppHandoffCoordinator {
         backText: String,
         tags: List<String>
     ) {
+        discardPendingAiAnkiImport()
         aiCardHandoffState.value = AiCardHandoffRequest(
             requestId = nextRequestId.incrementAndGet(),
             cardId = cardId,
@@ -143,6 +159,38 @@ class AppHandoffCoordinator {
         }
 
         aiCardHandoffState.value = null
+    }
+
+    fun requestAiAnkiImport(
+        ankiImport: AiAnkiImport,
+        origin: AiAnkiImportOrigin
+    ) {
+        discardPendingAiAnkiImport()
+        aiEntryPrefillState.value = null
+        aiCardHandoffState.value = null
+        aiAnkiImportState.value = AiAnkiImportRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            ankiImport = ankiImport,
+            origin = origin
+        )
+    }
+
+    fun consumeAiAnkiImport(requestId: Long) {
+        if (aiAnkiImportState.value?.requestId == requestId) {
+            aiAnkiImportState.value = null
+        }
+    }
+
+    fun cancelAiAnkiImport(requestId: Long) {
+        if (aiAnkiImportState.value?.requestId == requestId) {
+            discardPendingAiAnkiImport()
+        }
+    }
+
+    private fun discardPendingAiAnkiImport() {
+        val request = aiAnkiImportState.value ?: return
+        aiAnkiImportState.value = null
+        deleteAiChatAttachmentStagedFiles(attachments = request.ankiImport.attachments)
     }
 
     fun requestCardEditor(cardId: String?) {

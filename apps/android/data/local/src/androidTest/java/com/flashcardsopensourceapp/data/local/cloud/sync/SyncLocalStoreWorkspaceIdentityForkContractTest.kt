@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
@@ -71,7 +72,9 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             frontText = "Front",
             backText = "Back",
             cardType = defaultCardType,
-            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(1L)),
+            metadataJson = JSONObject(encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(1L)))
+                .put("maintenanceRevision", 17L)
+                .toString(),
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,
@@ -184,6 +187,11 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
         assertEquals("workspace-2", database.workspaceDao().loadAnyWorkspace()?.workspaceId)
         assertEquals("workspace-2", forkedCard.workspaceId)
         assertEquals(originalCard.frontText, forkedCard.frontText)
+        assertNull(decodeCardMetadataJson(metadataJson = forkedCard.metadataJson).maintenanceRevision)
+        assertNull(
+            (forkedOutboxEntries.first { entry -> entry.operation.entityType == SyncEntityType.CARD }
+                .operation.payload as SyncOperationPayload.Card).payload.metadata.maintenanceRevision
+        )
         assertEquals(originalCard.deletedAtMillis, forkedCard.deletedAtMillis)
         assertEquals("workspace-2", forkedDeck.workspaceId)
         assertEquals(originalDeck.deletedAtMillis, forkedDeck.deletedAtMillis)

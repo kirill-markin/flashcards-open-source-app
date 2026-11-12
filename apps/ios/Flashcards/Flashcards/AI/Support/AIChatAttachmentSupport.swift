@@ -88,11 +88,19 @@ func aiChatAttachmentMenuActions() -> [AIChatAttachmentMenuAction] {
 /// a declaration exported by another installed app, such as AnkiMobile, takes the `.apkg` extension first.
 private let aiChatAnkiPackageContentType: UTType = UTType(importedAs: "com.nibomo.anki-package")
 
+func aiChatAnkiPackageImporterContentTypes() -> [UTType] {
+    var types = [aiChatAnkiPackageContentType]
+    if let extensionType = UTType(filenameExtension: "apkg"), extensionType != aiChatAnkiPackageContentType {
+        types.append(extensionType)
+    }
+    return types
+}
+
 func aiChatImporterContentTypes() -> [UTType] {
     let extensionTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
         UTType(filenameExtension: fileExtension)
     }
-    let baseTypes = Set(extensionTypes + [aiChatAnkiPackageContentType])
+    let baseTypes = Set(extensionTypes + aiChatAnkiPackageImporterContentTypes())
 
     return baseTypes.sorted { left, right in
         left.identifier < right.identifier
@@ -445,7 +453,7 @@ func aiChatIsFilePermissionError(error: Error) -> Bool {
     return false
 }
 
-private func aiChatValidateAttachmentSize(byteCount: Int, maximumByteCount: Int) throws {
+func aiChatValidateAttachmentSize(byteCount: Int, maximumByteCount: Int) throws {
     if byteCount > maximumByteCount {
         throw NSError(
             domain: aiChatAttachmentErrorDomain,

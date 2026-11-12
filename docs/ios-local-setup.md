@@ -191,102 +191,82 @@ For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` 
 
 ## Local native acceptance
 
-For every new release, complete the unsigned device Release archive in [the release procedure](release/ios.md#ios) and all three local test gates below on the accepted native inputs. Run one destination per invocation, sequentially; latest iPhone and iPad must use the same latest supported iOS major. Pin device UUID/model, actual OS, Xcode/SDK, [source snapshot](release/evidence.md#source-snapshots), scheme, test plan, test-plan configuration and build configuration in the [ledger](release/evidence.md#release-ledger).
+Use **Flashcards Native Acceptance**, Debug and test-plan configuration **Acceptance**.
+Run each plan on exactly one actual destination. The
+[Mac procedure](macos-ci-cd.md#signed-local-native-acceptance) uses a separate signed plan.
 
-Use shared scheme **Flashcards Native Acceptance**, `-only-test-configuration Acceptance` (the test-plan configuration), and Debug build configuration. The original **Flashcards Open Source App** archive scheme does not establish these local gates. Catalyst acceptance uses the explicit [LocalMac plan](macos-ci-cd.md#signed-local-native-acceptance).
+| Readiness gate | Xcode plan | Destination | Coverage |
+| --- | --- | --- | --- |
+| `local-iphone-critical` | [LocalIPhoneCritical](../apps/ios/Flashcards/LocalIPhoneCritical.xctestplan) | Latest iPhone | FSRS parity and review outbox checks; card and rating persistence across relaunch, real linked-workspace sign-in and relaunch, live guest AI after consent, and fixture-driven notification routing |
+| `local-ipad-critical` | [LocalIPadCritical](../apps/ios/Flashcards/LocalIPadCritical.xctestplan) | Latest iPad | Wide companion preserves the draft and revealed answer across sections |
+| `local-ios18-critical` | [IOS18Critical](../apps/ios/Flashcards/IOS18Critical.xctestplan) | Actual 18.x iPhone or iPad | Card and rating persistence across relaunch |
 
-| Gate / plan | Exactly one destination | Required inventory |
-| --- | --- | --- |
-| `local-full` / `LocalFull` | Latest iPhone | Entire existing `Flashcards Open Source App Tests` non-UI bundle and all eligible `Flashcards Open Source App UI Tests` flows. UI coverage includes Review, Cards, AI, Settings, own-key persistence, ordinary iPhone, RTL and the four phone-eligible consent flows. |
-| `local-ipad` / `LocalIPad` | Latest iPad | `LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()`, `LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()`, `LiveSmokeAIConsentTests/testWideCompanionAndCardHandoffStayBlockedAfterWithdrawal()` |
-| `local-ios18` / `IOS18Compatibility` | Actual iOS/iPadOS 18.x iPhone or iPad | `LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()`, `LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()`, `LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()` |
+Use the same latest iOS major for the iPhone and iPad. Independently establish
+the selected inventory from the pinned plans and Xcode destination before
+inspecting results. Record the actual OS, exact selection, every named result,
+logs and `.xcresult` in the [ledger](release/evidence.md#release-ledger).
+Unexpected skips, missing cases and failures block the gate. Use
+[targeted recovery](release/evidence.md#targeted-recovery) for an affected
+selected case. For changed behavior, use `LocalFull`, `LocalIPad` or
+`IOS18Compatibility`, with `-only-testing:'<target>/<class>/<method>'` when
+appropriate. Use the compatibility plan or filter
+`LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()` there for
+iOS 18 sign-in, session or Keychain changes. The disabled Cloud test workflow
+retains `CloudSmoke` for historical evidence.
 
-The full phone plan excludes `MarketingScreenshotsTests`, `LiveSmokeIPadTests`, `LiveSmokeMacCatalystTests` and only the wide-companion consent method. The iPad plan selects both iPad methods and that consent method; the compatibility plan selects exactly the three named methods. `CloudSmoke` is retained for historical evidence and disabled Cloud test configuration; it is not a new release gate. These are plan exclusions, not passing or skipped test results. Independently establish the full expected discovered inventory from the pinned scheme, plan, source and Xcode selection before inspecting passes; retain every selected non-UI/UI method and its native result. Do not infer completeness from these descriptions or a fixed count. Record unexpected skips, failures, missing or unselected required methods as blocking; acceptance requires every configured required case to execute and pass.
+The manual card journey starts in an empty local guest workspace. It uses the
+real editor and review UI and verifies the saved rating in local Progress after
+relaunch. Use the [signed artifact check](release/ios.md#exact-artifact-checks)
+for disconnected operation and the [independent-client check](release/evidence.md#independent-client-sync-check)
+for sync. Check real notification permission and delivery when changed.
 
-Configure the review email in the UI-test runner for all plans. `TEST_RUNNER_` passes the variable to the runner with that prefix removed; setting it only in the app process or a separately invoked `ci_post_clone.sh` does not satisfy `configuredReviewEmail()`. The plans and UI launcher set `FLASHCARDS_AUTOMATION_RUN=1`; verify `automation_run_decided` reports `isAutomation=true` before app interaction. Keep software keyboard input available.
-
-After local configuration setup, inspect installed runtimes/devices and substitute actual UUIDs and unique result paths. Run from the repository root; each command has one explicit plan and one destination. Keep `set -o pipefail` when using `tee`, so logging cannot hide a failure:
+After [local configuration](#after-cloning), run from the repository root once
+per table row. Keep the software keyboard available. The runner environment
+passes the configured review email for the linked-workspace method. Verify the
+[automation marker](ios-ci-cd.md#automation-marker) before interaction.
 
 ```bash
 set -o pipefail
 mkdir -p tmp
 xcrun simctl list runtimes
 xcrun simctl list devices available
-xcrun simctl bootstatus <latest-iphone-uuid> -b
+xcrun simctl bootstatus '<simulator-uuid>' -b
 TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
 xcodebuild \
   -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
   -scheme "Flashcards Native Acceptance" \
-  -configuration Debug -testPlan LocalFull -only-test-configuration Acceptance \
+  -configuration Debug -testPlan '<plan>' -only-test-configuration Acceptance \
   -derivedDataPath "tmp/ios-derived-data" \
-  -destination 'platform=iOS Simulator,id=<latest-iphone-uuid>' \
+  -destination 'platform=iOS Simulator,id=<simulator-uuid>' \
   -parallel-testing-enabled NO \
-  -resultBundlePath "tmp/ios-local-full-<unique-run>.xcresult" \
+  -resultBundlePath "tmp/ios-<gate>-<unique-run>.xcresult" \
   CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test \
-  2>&1 | tee "tmp/ios-local-full-<unique-run>.log"
-
-xcrun simctl bootstatus <latest-ipad-uuid> -b
-TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
-xcodebuild \
-  -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
-  -scheme "Flashcards Native Acceptance" \
-  -configuration Debug -testPlan LocalIPad -only-test-configuration Acceptance \
-  -derivedDataPath "tmp/ios-derived-data" \
-  -destination 'platform=iOS Simulator,id=<latest-ipad-uuid>' \
-  -parallel-testing-enabled NO \
-  -resultBundlePath "tmp/ios-local-ipad-<unique-run>.xcresult" \
-  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test \
-  2>&1 | tee "tmp/ios-local-ipad-<unique-run>.log"
+  2>&1 | tee "tmp/ios-<gate>-<unique-run>.log"
 ```
 
-The ad-hoc signing overrides enable simulator app/runner signing and their Keychain access. Inspect full logs, named results and `.xcresult` attachments even after a successful command. The plans' `diagnosticCollectionPolicy=Never` leaves ordinary XCTest logs/results and explicit screenshot/hierarchy attachments available; retain failure artifacts before rerunning. Record measured durations and evidence sizes separately from targets.
-
-During diagnosis, append `-only-testing:'<target>/<class>/<method>'` before `test` to rerun an affected selected method. Such filtered results are diagnostic evidence; they count toward acceptance only under [targeted recovery](release/evidence.md#targeted-recovery). Reuse successful unchanged gates under [source snapshots](release/evidence.md#source-snapshots). Do not reuse failed or interrupted results as passes.
+Ad-hoc signing enables simulator app/runner signing and Keychain access.
+Inspect full logs and `.xcresult` attachments, including warnings and failures.
+Retain evidence before retrying and record measured duration and size.
 
 ## iOS 18 compatibility smoke
 
-Every new release requires the `IOS18Compatibility` plan on one actual 18.x destination locally, in addition to latest-iPhone full acceptance and focused latest-iPad acceptance. Cloud test workflows remain disabled.
+Use the current Xcode/SDK and pinned packages with deployment target 18.0.
+If an 18.x simulator is unavailable, use a trusted iPhone or iPad on 18.x with
+Developer Mode. In the command above, omit `simctl`, use
+`-destination 'platform=iOS,id=<device-uuid>'`, add
+`-allowProvisioningUpdates DEVELOPMENT_TEAM=<team-id>`, and replace
+`CODE_SIGN_IDENTITY=-` with an installed Apple Development identity. Retain
+`CODE_SIGNING_ALLOWED=YES` for app and runner signing. Tell the user before
+downloading a runtime. If no suitable destination is available, record the
+restriction under the [standing release policy](release/README.md#standing-best-effort-release-policy).
 
-Use the current Xcode/SDK and pinned packages with deployment target 18.0. If
-no supported 18.x simulator is installed, use an iPhone or iPad running 18.x.
-Tell the user before downloading a runtime. If neither destination is available,
-record the restriction under the [standing release policy](release/README.md#standing-best-effort-release-policy).
+For the first release expanding iOS/iPadOS 18 support, or changes affecting
+its OS-specific behavior, check the applicable surfaces on that destination
+with disposable data and the verified [automation marker](ios-ci-cd.md#automation-marker).
 
-```bash
-set -o pipefail
-mkdir -p tmp
-xcrun simctl bootstatus <ios-18-device-uuid> -b
-TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
-xcodebuild \
-  -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
-  -scheme "Flashcards Native Acceptance" \
-  -configuration Debug -testPlan IOS18Compatibility -only-test-configuration Acceptance \
-  -derivedDataPath "tmp/ios-derived-data" \
-  -destination 'platform=iOS Simulator,id=<ios-18-device-uuid>' \
-  -parallel-testing-enabled NO \
-  -resultBundlePath "tmp/ios-local-ios18-<unique-run>.xcresult" \
-  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test \
-  2>&1 | tee "tmp/ios-local-ios18-<unique-run>.log"
-```
-
-For hardware, omit `simctl`, use `-destination 'platform=iOS,id=<device-uuid>'`, and replace `CODE_SIGN_IDENTITY=-` with a real installed Apple Development identity. Use a trusted device with Developer Mode, add `-allowProvisioningUpdates` and `DEVELOPMENT_TEAM=<team-id>`, and retain `CODE_SIGNING_ALLOWED=YES`: the test targets disable iOS signing by default, so a team alone does not enable runner signing. Keep runner email injection and the same plan/configuration. Require all three named tests to execute and pass, and record exact source/toolchain/destination, selection, logs and result bundle in the ledger. Do not create a duplicate suite or relax stable identifiers for older presentation.
-
-For the first public release expanding support to iOS/iPadOS 18, or changes
-affecting OS-specific behavior, also complete this short manual checklist on
-that same 18.x destination using an isolated workspace and disposable cards. Set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interacting:
-
-1. Open AI, type with the software keyboard, send/stop a response, dismiss and
-   reopen the keyboard. Verify the composer, transcript and Done button remain
-   visible, tappable and clear of the keyboard/tab bar, including multiline input.
-2. Create a card, reveal its answer and rate it. Scroll long front/back text;
-   verify the bottom actions remain reachable and do not cover the last content.
-3. Open a destructive workspace confirmation: check disabled/enabled states,
-   red role styling, cancel, progress and completion on disposable data. Inspect
-   account deletion confirmation and cancel without deleting the review account.
-4. Open tag/deck and attachment pickers, search Cards/Tags/Decks, return to the
-   same flow, and edit scheduler fields with the keyboard and Done button.
-5. Configure reminders through the native permissions flow; verify a scheduled
-   reminder opens the intended review surface on a device supporting delivery.
-6. After online bootstrap, go offline, create a card, relaunch and review it.
-   Reconnect, sync the linked workspace, and confirm the card/review persist
-   after another relaunch and appear in another supported client.
+- AI composer, transcript and Done with the keyboard open, including multiline input and send/stop.
+- Long review text scrolls clear of bottom actions, and editor, pickers and scheduler inputs remain usable.
+- Destructive workspace confirmation, cancellation and completion, and account deletion confirmation cancelled.
+- Native notification permissions and reminder routing on a device that can receive the reminder.
+- For persistence or sync changes, use the [signed artifact](release/ios.md#exact-artifact-checks)
+  and [independent-client](release/evidence.md#independent-client-sync-check) checks on iOS 18.

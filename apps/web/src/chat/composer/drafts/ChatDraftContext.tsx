@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../../appData";
+import { ANKI_CHAT_ATTACHMENT_MEDIA_TYPE } from "../../attachments/attachmentMediaTypes";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import {
   areChatDraftContentsEqual,
   createChatDraftContent,
+  createUpdatedChatDraft,
   loadChatDraftWorkspaceState,
   readStoredChatDraftForSession,
   replaceChatDraftForSession,
@@ -21,6 +23,7 @@ export type ChatDraft = Readonly<{
   inputText: string;
   pendingAttachments: ReadonlyArray<PendingAttachment>;
   updatedAt: number | null;
+  sessionBoundDraftId: symbol | null;
 }>;
 
 export type ChatComposerSendPhase = "idle" | "preparingSend" | "startingRun";
@@ -29,11 +32,17 @@ type ChatDraftContextValue = Readonly<{
   draft: ChatDraft;
   composerSendPhase: ChatComposerSendPhase;
   focusComposerRequestVersion: number;
+  isAnkiImportRestartRequired: boolean;
   replaceInputText: (nextInputText: string) => void;
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
-  replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => void;
+  replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => boolean;
   moveDraftToSession: (sourceSessionId: string | null, sourceDraftUpdatedAt: number | null, targetSessionId: string, nextDraft: ChatDraftContent) => number | null;
   replaceDraftForSession: (sessionId: string | null, nextDraft: ChatDraftContent) => void;
+  startSessionBoundDraft: (sessionId: string, draft: ChatDraftContent) => number | null;
+  getSessionBoundRequestIdForSend: (content: ChatDraftContent) => string | null;
+  clearSessionBoundDraftIfUnchanged: (sessionId: string | null, expectedUpdatedAt: number | null) => void;
+  requireAnkiImportRestart: (sessionId: string, expectedUpdatedAt: number) => void;
+  dismissAnkiImportRestart: () => void;
   replaceComposerSendPhase: (nextSendPhase: ChatComposerSendPhase) => void;
   requestComposerFocus: () => void;
   suppressNextSessionDraftCarryover: (sourceSessionId: string | null) => void;
@@ -55,6 +64,15 @@ type DraftTarget = Readonly<{
   sessionId: string | null;
 }>;
 
+type SessionBoundDraft = Readonly<{
+  id: symbol;
+  workspaceId: string;
+  sessionId: string;
+  originalImportPrompt: string;
+  lastRequest: Readonly<{ id: string; content: ChatDraftContent }> | null;
+  draft: StoredChatDraft;
+}>;
+
 const ChatDraftContext = createContext<ChatDraftContextValue | null>(null);
 
 function createEmptyChatDraft(workspaceId: string | null): ChatDraft {
@@ -64,6 +82,7 @@ function createEmptyChatDraft(workspaceId: string | null): ChatDraft {
     inputText: "",
     pendingAttachments: [],
     updatedAt: null,
+    sessionBoundDraftId: null,
   };
 }
 
@@ -76,6 +95,10 @@ export function ChatDraftProvider(props: Props): ReactElement {
   const [draftsBySessionId, setDraftsBySessionId] = useState<Record<string, StoredChatDraft>>(() =>
     loadChatDraftWorkspaceState(activeWorkspaceId));
   const draftsBySessionIdRef = useRef<Readonly<Record<string, StoredChatDraft>>>(draftsBySessionId);
+  const [sessionBoundDraft, setSessionBoundDraft] = useState<SessionBoundDraft | null>(null);
+  const sessionBoundDraftRef = useRef<SessionBoundDraft | null>(null);
+  const [ankiImportRestartWorkspaceId, setAnkiImportRestartWorkspaceId] = useState<string | null>(null);
+  const isHistoryLoaded = session?.isHistoryLoaded === true;
   const [transientDraft, setTransientDraft] = useState<TransientChatDraft | null>(null);
   const [composerSendPhase, setComposerSendPhase] = useState<ChatComposerSendPhase>("idle");
   const [focusComposerRequestVersion, setFocusComposerRequestVersion] = useState<number>(0);
@@ -136,6 +159,9 @@ export function ChatDraftProvider(props: Props): ReactElement {
     const previousDraftTarget = previousDraftTargetRef.current;
 
     if (previousDraftTarget.workspaceId !== activeWorkspaceId) {
+      if (sessionBoundDraftRef.current?.workspaceId !== activeWorkspaceId) {
+        updateSessionBoundDraft(null);
+      }
       previousDraftTargetRef.current = {
         workspaceId: activeWorkspaceId,
         sessionId: activeSessionId,
@@ -144,30 +170,31 @@ export function ChatDraftProvider(props: Props): ReactElement {
       return;
     }
 
-    if (previousDraftTarget.sessionId === activeSessionId) {
-      return;
+    if (previousDraftTarget.sessionId !== activeSessionId) {
+      if (consumeSuppressedDraftCarryover(suppressedDraftCarryoverRef, previousDraftTarget)) {
+        if (readSessionBoundDraft(previousDraftTarget.sessionId) !== null) {
+          updateSessionBoundDraft(null);
+        }
+        dismissAnkiImportRestart();
+      } else if (activeWorkspaceId !== null && activeSessionId !== null) {
+        carryDraftToSession(previousDraftTarget.sessionId, activeSessionId);
+      }
+
+      previousDraftTargetRef.current = {
+        workspaceId: activeWorkspaceId,
+        sessionId: activeSessionId,
+      };
     }
 
-    const shouldSuppressCarryover = consumeSuppressedDraftCarryover(
-      suppressedDraftCarryoverRef,
-      previousDraftTarget,
-    );
-
-    if (
-      shouldSuppressCarryover === false
-      && activeWorkspaceId !== null
-      && activeSessionId !== null
-    ) {
-      carryDraftToSession(previousDraftTarget.sessionId, activeSessionId);
+    const currentDraft = sessionBoundDraftRef.current;
+    if (currentDraft !== null && isHistoryLoaded && currentDraft.sessionId !== activeSessionId) {
+      requireAnkiImportRestart(currentDraft.sessionId, currentDraft.draft.updatedAt);
     }
+  }, [activeSessionId, activeWorkspaceId, isHistoryLoaded, transientDraft]);
 
-    previousDraftTargetRef.current = {
-      workspaceId: activeWorkspaceId,
-      sessionId: activeSessionId,
-    };
-  }, [activeSessionId, activeWorkspaceId, transientDraft]);
-
-  const draft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionId, transientDraft);
+  const activeSessionBoundDraft = sessionBoundDraft?.workspaceId === activeWorkspaceId
+    && sessionBoundDraft.sessionId === activeSessionId ? sessionBoundDraft : null;
+  const draft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionId, transientDraft, activeSessionBoundDraft);
 
   function replaceDraftForSession(sessionId: string | null, nextDraft: ChatDraftContent): void {
     if (sessionId === null) {
@@ -181,6 +208,23 @@ export function ChatDraftProvider(props: Props): ReactElement {
       setTransientDraft(null);
     }
 
+    const currentSessionBoundDraft = readSessionBoundDraft(sessionId);
+    if (currentSessionBoundDraft !== null) {
+      if (isChatDraftContentEmpty(nextDraft)) {
+        updateSessionBoundDraft(null);
+        return;
+      }
+
+      const hasAnkiFiles = nextDraft.pendingAttachments.some((attachment) =>
+        attachment.type === "binary" && attachment.mediaType === ANKI_CHAT_ATTACHMENT_MEDIA_TYPE);
+      if (hasAnkiFiles || nextDraft.inputText.trim() === currentSessionBoundDraft.originalImportPrompt) {
+        updateSessionBoundDraft({ ...currentSessionBoundDraft, draft: createUpdatedChatDraft(nextDraft) });
+        return;
+      }
+
+      updateSessionBoundDraft(null);
+    }
+
     const nextDraftsBySessionId = replaceChatDraftForSession(
       draftsBySessionIdRef.current,
       sessionId,
@@ -191,10 +235,77 @@ export function ChatDraftProvider(props: Props): ReactElement {
     setDraftsBySessionId(nextDraftsBySessionId);
   }
 
+  function readSessionBoundDraft(sessionId: string | null): SessionBoundDraft | null {
+    const currentDraft = sessionBoundDraftRef.current;
+    return currentDraft?.workspaceId === activeWorkspaceId && currentDraft.sessionId === sessionId ? currentDraft : null;
+  }
+
+  function updateSessionBoundDraft(nextDraft: SessionBoundDraft | null): void {
+    sessionBoundDraftRef.current = nextDraft;
+    setSessionBoundDraft(nextDraft);
+  }
+
+  function startSessionBoundDraft(sessionId: string, content: ChatDraftContent): number | null {
+    if (activeWorkspaceId === null) {
+      return null;
+    }
+
+    const draft = createUpdatedChatDraft(content);
+    updateSessionBoundDraft({
+      id: Symbol(),
+      workspaceId: activeWorkspaceId,
+      sessionId,
+      originalImportPrompt: content.inputText.trim(),
+      lastRequest: null,
+      draft,
+    });
+    setAnkiImportRestartWorkspaceId(null);
+    return draft.updatedAt;
+  }
+
+  function getSessionBoundRequestIdForSend(content: ChatDraftContent): string | null {
+    const currentDraft = readSessionBoundDraft(activeSessionId);
+    if (currentDraft === null || currentDraft.id !== draft.sessionBoundDraftId
+      || currentDraft.draft.updatedAt !== draft.updatedAt) {
+      return null;
+    }
+
+    const requestContent = createChatDraftContent(content.inputText.trim(), content.pendingAttachments);
+    if (currentDraft.lastRequest !== null && areChatDraftContentsEqual(currentDraft.lastRequest.content, requestContent)) {
+      return currentDraft.lastRequest.id;
+    }
+
+    const requestId = crypto.randomUUID().toLowerCase();
+    updateSessionBoundDraft({ ...currentDraft, lastRequest: { id: requestId, content: requestContent } });
+    return requestId;
+  }
+
+  function clearSessionBoundDraftIfUnchanged(sessionId: string | null, expectedUpdatedAt: number | null): void {
+    if (readSessionBoundDraft(sessionId)?.draft.updatedAt === expectedUpdatedAt) {
+      updateSessionBoundDraft(null);
+    }
+  }
+
+  function requireAnkiImportRestart(sessionId: string, expectedUpdatedAt: number): void {
+    const currentDraft = readSessionBoundDraft(sessionId);
+    if (currentDraft?.draft.updatedAt === expectedUpdatedAt) {
+      updateSessionBoundDraft(null);
+      setAnkiImportRestartWorkspaceId(currentDraft.workspaceId);
+    }
+  }
+
+  function dismissAnkiImportRestart(): void {
+    setAnkiImportRestartWorkspaceId(null);
+  }
+
   function carryDraftToSession(
     sourceSessionId: string | null,
     targetSessionId: string,
   ): void {
+    if (readSessionBoundDraft(sourceSessionId) !== null || readSessionBoundDraft(targetSessionId) !== null) {
+      return;
+    }
+
     const currentDraftsBySessionId = draftsBySessionIdRef.current;
     const targetDraft = readStoredChatDraftForSession(currentDraftsBySessionId, targetSessionId);
     if (targetDraft !== null) {
@@ -303,8 +414,15 @@ export function ChatDraftProvider(props: Props): ReactElement {
     replaceDraftForSession(activeSessionId, createChatDraftContent(updateDraftText(draft.inputText), draft.pendingAttachments));
   }
 
-  function replacePendingAttachments(nextPendingAttachments: ReadonlyArray<PendingAttachment>): void {
-    replaceDraftForSession(activeSessionId, createChatDraftContent(draft.inputText, nextPendingAttachments));
+  function replacePendingAttachments(nextPendingAttachments: ReadonlyArray<PendingAttachment>): boolean {
+    const currentSessionBoundDraft = readSessionBoundDraft(activeSessionId);
+    if (draft.sessionBoundDraftId !== null && currentSessionBoundDraft?.id !== draft.sessionBoundDraftId) {
+      return false;
+    }
+
+    const currentInputText = currentSessionBoundDraft?.draft.inputText ?? draft.inputText;
+    replaceDraftForSession(activeSessionId, createChatDraftContent(currentInputText, nextPendingAttachments));
+    return true;
   }
 
   function clearDraft(): void {
@@ -332,11 +450,17 @@ export function ChatDraftProvider(props: Props): ReactElement {
         draft,
         composerSendPhase,
         focusComposerRequestVersion,
+        isAnkiImportRestartRequired: activeWorkspaceId !== null && ankiImportRestartWorkspaceId === activeWorkspaceId,
         replaceInputText,
         updateInputText,
         replacePendingAttachments,
         moveDraftToSession,
         replaceDraftForSession,
+        startSessionBoundDraft,
+        getSessionBoundRequestIdForSend,
+        clearSessionBoundDraftIfUnchanged,
+        requireAnkiImportRestart,
+        dismissAnkiImportRestart,
         replaceComposerSendPhase,
         requestComposerFocus,
         suppressNextSessionDraftCarryover,
@@ -374,22 +498,24 @@ function getActiveDraft(
   sessionId: string | null,
   draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
   transientDraft: TransientChatDraft | null,
+  sessionBoundDraft: SessionBoundDraft | null,
 ): ChatDraft {
   if (workspaceId === null) {
     return createEmptyChatDraft(null);
   }
 
-  if (transientDraft !== null && transientDraft.workspaceId === workspaceId) {
+  if (sessionBoundDraft === null && transientDraft !== null && transientDraft.workspaceId === workspaceId) {
     return {
       workspaceId,
       sessionId,
       inputText: transientDraft.draft.inputText,
       pendingAttachments: transientDraft.draft.pendingAttachments,
       updatedAt: null,
+      sessionBoundDraftId: null,
     };
   }
 
-  const resolvedDraft = readStoredChatDraftForSession(draftsBySessionId, sessionId);
+  const resolvedDraft = sessionBoundDraft?.draft ?? readStoredChatDraftForSession(draftsBySessionId, sessionId);
   if (resolvedDraft !== null) {
     return {
       workspaceId,
@@ -397,6 +523,7 @@ function getActiveDraft(
       inputText: resolvedDraft.inputText,
       pendingAttachments: resolvedDraft.pendingAttachments,
       updatedAt: resolvedDraft.updatedAt,
+      sessionBoundDraftId: sessionBoundDraft?.id ?? null,
     };
   }
 

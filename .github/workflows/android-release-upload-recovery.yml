@@ -85,6 +85,7 @@ jobs:
       - name: Commit exact original bundle as guarded production draft
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          ANDROID_PLAY_TRACK: production
           PLAY_PROVENANCE_PATH: ${{ runner.temp }}/android-upload-recovery/play-publisher-provenance.json
         run: python3 scripts/android/publish-play-draft.py
       - name: Retain recovery correlation

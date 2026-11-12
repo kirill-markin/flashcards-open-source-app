@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import ReactDOM from "react-dom/client";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../../../appData";
 import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
@@ -29,6 +30,7 @@ const {
   previewWorkspacePackageExportMock: vi.fn<(
     workspaceId: string,
     request: WorkspacePackageExportRequest,
+    signal: AbortSignal,
   ) => Promise<WorkspacePackageExportPreviewResponse>>(),
   useAppDataMock: vi.fn<() => AppDataContextValue>(),
 }));
@@ -259,7 +261,9 @@ function setupWorkspaceExportScreen(): WorkspaceExportScreenHarness {
       currentRoot.render(
         <I18nProvider>
           <AppErrorDialogProvider>
-            <WorkspaceExportScreen />
+            <MemoryRouter>
+              <WorkspaceExportScreen />
+            </MemoryRouter>
           </AppErrorDialogProvider>
         </I18nProvider>,
       );
@@ -362,7 +366,7 @@ describe("WorkspaceExportScreen package export", () => {
         createdAt: null,
         sourceUrl: null,
       },
-    });
+    }, expect.any(AbortSignal));
     expect(requireElement("[data-testid='workspace-package-export-preview-card-count']", HTMLElement).textContent).toBe("3");
     expect(requireElement("[data-testid='workspace-package-export-preview-referenced-media-count']", HTMLElement).textContent).toBe("2");
     expect(requireElement("[data-testid='workspace-package-export-preview-referenced-media-bytes']", HTMLElement).textContent).toBe("1.5 KB");

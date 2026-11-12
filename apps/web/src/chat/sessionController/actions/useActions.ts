@@ -513,6 +513,14 @@ export function useChatSessionActions(
 
     const requestSequence = getActiveRequestSequence();
     const sourceSessionId = runtimeRefs.currentSessionIdRef.current;
+    const { requiredSessionId } = sendParams;
+    if (requiredSessionId !== null && sourceSessionId !== requiredSessionId) {
+      dispatch({
+        type: "error_shown",
+        message: uiMessages.activeChatChanged,
+      });
+      return createRejectedSendResult(requiredSessionId);
+    }
 
     const finishStaleRequest = (): SendChatMessageResult => ({
       status: "stale",
@@ -546,6 +554,10 @@ export function useChatSessionActions(
     const prepareDraftTargetSession = (targetSessionId: string): boolean => {
       if (isRequestSequenceCurrent(requestSequence) === false) {
         return false;
+      }
+
+      if (requiredSessionId !== null && targetSessionId !== requiredSessionId) {
+        throw createChatSessionActionError(uiMessages.activeChatChanged);
       }
 
       if (preparedDraftSessionId === targetSessionId) {
@@ -830,6 +842,12 @@ export function useChatSessionActions(
     };
 
     const recoverCurrentSession = async (requestSessionId: string): Promise<SendChatMessageResult> => {
+      // An automatic send is authorized only for its target conversation.
+      if (requiredSessionId !== null) {
+        dispatch({ type: "error_shown", message: uiMessages.activeChatChanged });
+        return createRejectedSendResult(requiredSessionId);
+      }
+
       const isRecoverySessionCurrent = (): boolean => isRequestSequenceCurrent(requestSequence)
         && runtimeRefs.currentSessionIdRef.current === requestSessionId
         && sendParams.isDraftTargetCurrent();
@@ -990,17 +1008,16 @@ export function useChatSessionActions(
 
     invalidatePendingSnapshotRequests();
 
-    // Accepted responses can already include tool-call content for the
-    // current run, whether the snapshot is terminal or still active. The
-    // accepted response is compared against the current local history so
-    // older server messages do not get mistaken for the new run.
+    const isSessionBoundReplay = requiredSessionId !== null && response.deduplicated === true;
+    // A fresh acceptance can already include tool calls. Compare it against local history
+    // so older messages do not get mistaken for the new run.
     markRunHadToolCallsFromSnapshot(
       response.activeRun,
       response.conversation.messages,
       runtimeRefs.messagesRef.current,
-      contentParts,
+      isSessionBoundReplay ? null : contentParts,
     );
-    if (response.activeRun === null && response.conversation.messages.length > 0) {
+    if ((response.activeRun === null || isSessionBoundReplay) && response.conversation.messages.length > 0) {
       runtimeRefs.messagesRef.current = response.conversation.messages;
       replaceMessages(response.conversation.messages);
     } else {

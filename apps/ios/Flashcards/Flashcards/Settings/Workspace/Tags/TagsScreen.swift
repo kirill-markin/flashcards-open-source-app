@@ -14,6 +14,7 @@ struct TagsScreen: View {
     @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    @State private var loadedWorkspaceId: String?
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
     @State private var isLoading: Bool = true
     @State private var isSearchPresented: Bool = false
@@ -39,7 +40,7 @@ struct TagsScreen: View {
             }
 
             Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
-                if self.isLoading {
+                if self.isLoading || self.loadedWorkspaceId != self.store.workspace?.workspaceId {
                     Text(aiSettingsLocalized("settings.workspace.tags.loading", "Loading tags…"))
                         .foregroundStyle(.secondary)
                 } else if self.tagsSummary.tags.isEmpty {
@@ -51,11 +52,9 @@ struct TagsScreen: View {
                         systemImage: "magnifyingglass",
                         description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
                     )
-                } else {
+                } else if let workspaceId = self.loadedWorkspaceId {
                     ForEach(self.filteredTags, id: \.tag) { tagSummary in
-                        Button {
-                            self.openReview(tag: tagSummary.tag)
-                        } label: {
+                        NavigationLink(value: LibraryNavigationDestination.tagDetail(tag: tagSummary.tag, workspaceId: workspaceId)) {
                             HStack(spacing: 12) {
                                 Label(tagSummary.tag, systemImage: "tag")
                                     .foregroundStyle(.primary)
@@ -71,9 +70,7 @@ struct TagsScreen: View {
                             #endif
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
                         .padding(.vertical, 4)
-                        .accessibilityLabel("\(aiSettingsLocalized("settings.workspace.decks.openReview", "Open review")): \(tagSummary.tag)")
                         .rememberedListRow(id: tagSummary.tag)
                     }
                 }
@@ -141,14 +138,16 @@ struct TagsScreen: View {
             Analytics.trackScreenViewed(.tags)
         }
         .onDisappear {
-            // Conditional, because this also fires for a tab switch away from an open tags list.
-            Analytics.trackScreenViewedOnDismiss(of: .tags, restoring: .library)
+            if self.navigation.isTagsOnLibraryPath == false {
+                Analytics.trackScreenViewedOnDismiss(of: .tags, restoring: .library)
+            }
         }
     }
 
     @MainActor
     private func reloadTagsSummary() async {
         guard let database = store.database, let workspaceId = store.workspace?.workspaceId else {
+            self.loadedWorkspaceId = nil
             self.tagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
             self.isLoading = false
             return
@@ -158,16 +157,12 @@ struct TagsScreen: View {
 
         do {
             self.tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+            self.loadedWorkspaceId = workspaceId
         } catch {
             self.store.presentTechnicalError(error)
         }
 
         self.isLoading = false
-    }
-
-    private func openReview(tag: String) {
-        store.selectReviewFilter(reviewFilter: makeReviewTagsFilter(tags: [tag]))
-        navigation.selectTab(.review)
     }
 }
 

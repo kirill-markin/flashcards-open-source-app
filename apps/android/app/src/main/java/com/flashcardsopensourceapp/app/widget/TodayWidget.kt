@@ -3,8 +3,6 @@ package com.flashcardsopensourceapp.app.widget
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -25,7 +23,6 @@ import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -40,15 +37,12 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
-import kotlinx.coroutines.flow.first
 
 private val todayWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
 private val todayWidgetMediumSize = DpSize(width = 220.dp, height = 100.dp)
@@ -56,7 +50,6 @@ internal val todayWidgetSizes: Set<DpSize> = setOf(todayWidgetSmallSize, todayWi
 /** The ring bitmap is drawn at the small widget's minimum size and scaled down to fit the space left. */
 private val todayWidgetRingBitmapSize = DpSize(width = 100.dp, height = 100.dp)
 private const val TODAY_WIDGET_RING_STROKE_FRACTION: Float = 0.1f
-private val todayWidgetColors = ColorProviders(scheme = FlashcardsDarkColorScheme)
 
 /** Today's reviews against the cards still due now, the Review badge count. */
 private data class TodayWidgetProgress(
@@ -72,16 +65,8 @@ class TodayWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(sizes = todayWidgetSizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val contentFlow = observeWithCurrentAppGraph(
-            application = context.applicationContext as FlashcardsApplication,
-            observe = ::observeWidgetContent
-        )
-        val initialContent = contentFlow.first()
-        provideContent {
-            val content by contentFlow.collectAsState(initial = initialContent)
-            GlanceTheme(colors = todayWidgetColors) {
-                TodayWidgetBody(content = content, size = todayWidgetSize(size = LocalSize.current))
-            }
+        provideStyledWidgetContent(context = context, observe = ::observeWidgetContent) { content ->
+            TodayWidgetBody(content = content, size = todayWidgetSize(size = LocalSize.current))
         }
     }
 }
@@ -107,10 +92,10 @@ private fun makeTodayWidgetProgress(queue: ReviewWidgetContent, progress: Widget
 }
 
 @Composable
-private fun TodayWidgetBody(content: WidgetContent, size: ReviewWidgetSize) {
+private fun TodayWidgetBody(content: WidgetContent?, size: ReviewWidgetSize) {
     val context = LocalContext.current
-    val queue: ReviewWidgetContent? = content.queue
-    val progress: WidgetProgressContent? = content.progress
+    val queue: ReviewWidgetContent? = content?.queue
+    val progress: WidgetProgressContent? = content?.progress
     Scaffold(
         backgroundColor = GlanceTheme.colors.surface,
         modifier = GlanceModifier.clickable(
@@ -163,7 +148,13 @@ private fun ColumnScope.TodayWidgetSmall(progress: TodayWidgetProgress) {
         contentAlignment = Alignment.Center
     ) {
         Image(
-            provider = ImageProvider(bitmap = makeTodayWidgetRingBitmap(context = context, fraction = progress.fraction)),
+            provider = ImageProvider(
+                bitmap = makeTodayWidgetRingBitmap(
+                    context = context,
+                    fraction = progress.fraction,
+                    accentArgb = widgetAccentColor().toArgb()
+                )
+            ),
             contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = GlanceModifier.fillMaxSize()
@@ -278,7 +269,7 @@ private fun todayWidgetFinishedText(context: Context, progress: TodayWidgetProgr
     }
 }
 
-private fun makeTodayWidgetRingBitmap(context: Context, fraction: Float): Bitmap {
+private fun makeTodayWidgetRingBitmap(context: Context, fraction: Float, accentArgb: Int): Bitmap {
     val density: Float = context.resources.displayMetrics.density
     return drawWidgetBitmap(size = todayWidgetRingBitmapSize, density = density) { canvas ->
         drawWidgetProgressRing(
@@ -286,7 +277,7 @@ private fun makeTodayWidgetRingBitmap(context: Context, fraction: Float): Bitmap
             fraction = fraction,
             strokeWidthPx = canvas.width * TODAY_WIDGET_RING_STROKE_FRACTION,
             trackColor = FlashcardsDarkColorScheme.surfaceVariant.toArgb(),
-            progressColor = FlashcardsDarkColorScheme.primary.toArgb()
+            progressColor = accentArgb
         )
     }
 }

@@ -13,6 +13,10 @@ type CardSeparatorChoice = "newline" | "semicolon" | "custom";
 type WorkspaceTextImportEditorProps = Readonly<{
   isDisabled: boolean;
   isImporting: boolean;
+  isSyncing: boolean;
+  unavailableMessage: string | null;
+  syncErrorMessage: string | null;
+  onRetrySync: () => void;
   errorMessage: string;
   successMessage: string;
   tagSuggestions: ReadonlyArray<TagSuggestion>;
@@ -67,6 +71,10 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
   const {
     isDisabled,
     isImporting,
+    isSyncing,
+    unavailableMessage,
+    syncErrorMessage,
+    onRetrySync,
     errorMessage,
     successMessage,
     tagSuggestions,
@@ -166,10 +174,8 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
 
   return (
     <article className="content-card workspace-text-import-editor" data-testid="workspace-text-import-editor">
-      <div className="settings-nav-card-copy">
-        <strong className="panel-subtitle">{t("workspaceImport.textTitle")}</strong>
-        <p className="subtitle">{t("workspaceImport.textDescription")}</p>
-      </div>
+      <p className="subtitle">{t("workspaceImport.textDescription")}</p>
+      {unavailableMessage === null ? null : <p className="subtitle" role="status">{unavailableMessage}</p>}
 
       <label className="workspace-text-import-source">
         <span>{t("workspaceImport.textInputLabel")}</span>
@@ -435,6 +441,21 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
       )}
       {successMessage === "" ? null : (
         <p className="subtitle" data-testid="workspace-import-success">{successMessage}</p>
+      )}
+      {isSyncing ? <p className="subtitle" role="status">{t("catalogImport.syncing")}</p> : null}
+      {syncErrorMessage === null ? null : (
+        <div className="cell-stack">
+          <p className="error-banner" role="alert">{syncErrorMessage}</p>
+          <button
+            className="ghost-btn"
+            type="button"
+            disabled={isDisabled}
+            onClick={onRetrySync}
+            data-testid="workspace-text-import-retry-sync"
+          >
+            {t("catalogImport.retrySync")}
+          </button>
+        </div>
       )}
     </article>
   );

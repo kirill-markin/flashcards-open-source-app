@@ -27,6 +27,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .cards, pages: [])
     case .tags:
         return LibraryLocation(section: .tags, pages: [])
+    case .tagDetail:
+        return LibraryLocation(section: .tags, pages: [destination])
     case .decks:
         return LibraryLocation(section: .decks, pages: [])
     case .deckDetail(let deck):
@@ -37,8 +39,12 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
+    case .importFormat:
+        return LibraryLocation(section: .importData, pages: [destination])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
+    case .exportFormat:
+        return LibraryLocation(section: .exportData, pages: [destination])
     }
 }
 #else
@@ -48,6 +54,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.cards]
     case .tags:
         return [.tags]
+    case .tagDetail:
+        return [.tags, destination]
     case .decks:
         return [.decks]
     case .deckDetail(let deck):
@@ -58,8 +66,12 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
+    case .importFormat:
+        return [.importData, destination]
     case .exportData:
         return [.exportData]
+    case .exportFormat:
+        return [.exportData, destination]
     }
 }
 #endif
@@ -147,6 +159,7 @@ final class AppNavigationModel {
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
+    private(set) var ankiImportRequest: AnkiImportPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
     private(set) var canPresentAICompanion: Bool = false
@@ -270,6 +283,7 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
+        self.cancelAnkiImport()
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
@@ -278,12 +292,41 @@ final class AppNavigationModel {
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
+        self.cancelAnkiImport()
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
         self.popAIToLiveChat()
+    }
+
+    func openAIAnkiImport(request: AnkiImportPresentationRequest) -> Bool {
+        guard self.ankiImportRequest == nil else {
+            return false
+        }
+
+        self.aiChatPresentationRequest = nil
+        self.ankiImportRequest = request
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
+        self.popAIToLiveChat()
+        return true
+    }
+
+    func takeAnkiImportRequest() -> AnkiImportPresentationRequest? {
+        guard let request = self.ankiImportRequest else {
+            return nil
+        }
+        self.ankiImportRequest = nil
+        return request
+    }
+
+    func cancelAnkiImport() {
+        if let request = self.takeAnkiImportRequest() {
+            aiChatRemoveAttachmentFiles(attachments: request.attachments)
+        }
     }
 
     func popAIToLiveChat() {
@@ -345,14 +388,6 @@ final class AppNavigationModel {
         if self.isLibraryPathRoot(.deckCatalog) {
             return .catalog
         }
-        #if targetEnvironment(macCatalyst)
-        let depth = self.libraryPath.count + (self.librarySection == nil ? 0 : 1)
-        #else
-        let depth = self.libraryPath.count
-        #endif
-        if depth > 1 {
-            return .deckDetail
-        }
         if self.isLibraryPathRoot(.cards) {
             return .cards
         }
@@ -360,7 +395,11 @@ final class AppNavigationModel {
             return .tags
         }
         if self.isLibraryPathRoot(.decks) {
-            return .decks
+            #if targetEnvironment(macCatalyst)
+            return self.libraryPath.isEmpty ? .decks : .deckDetail
+            #else
+            return self.libraryPath.count == 1 ? .decks : .deckDetail
+            #endif
         }
         return .library
     }
@@ -380,8 +419,6 @@ final class AppNavigationModel {
         self.isLibraryPathRoot(.tags)
     }
 
-    /// Every Library screen except a deck detail and a catalog deck page is reachable only as the
-    /// first page of the stack, which on Mac is the sidebar section.
     private func isLibraryPathRoot(_ destination: LibraryNavigationDestination) -> Bool {
         #if targetEnvironment(macCatalyst)
         return self.librarySection?.destination == destination

@@ -52,7 +52,11 @@ describe("workspace package export API endpoints", () => {
       .mockResolvedValueOnce(createJsonResponse(previewResponse));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(previewWorkspacePackageExport("workspace-1", exportRequest)).resolves.toEqual(previewResponse);
+    await expect(previewWorkspacePackageExport(
+      "workspace-1",
+      exportRequest,
+      new AbortController().signal,
+    )).resolves.toEqual(previewResponse);
 
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/workspaces/workspace-1/packages/export/preview");

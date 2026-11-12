@@ -1,3 +1,4 @@
+import { buildTagEdit } from "../../../../appData/domain/cardTags";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   toAnalyticsMediaUploadFailureReason,
@@ -38,7 +39,7 @@ import {
   type GeneratedMediaLifecycleTextReplacements,
 } from "../../../cards/form/cardFormMediaLifecycle";
 import { markMediaUploadTransferDueForRetry } from "../../../../localDb/mediaTransfers";
-import type { Card } from "../../../../types";
+import type { Card, UpdateCardInput } from "../../../../types";
 
 export type ReviewEditorPresentationToken = Readonly<{
   presentationGeneration: number;
@@ -72,11 +73,7 @@ type UseReviewCardEditorParams = Readonly<{
   selectedCard: Card | null;
   setErrorMessage: (message: string) => void;
   t: (key: TranslationKey) => string;
-  updateCardItem: (cardId: string, input: Readonly<{
-    frontText: string;
-    backText: string;
-    tags: ReadonlyArray<string>;
-  }>) => Promise<Card>;
+  updateCardItem: (cardId: string, input: UpdateCardInput) => Promise<Card>;
   userId: string | null;
   workspaceId: string | null;
 }>;
@@ -436,6 +433,9 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     }
     const submittedFormRevision = editorFormRevisionRef.current;
     const submittedFormState = editorFormStateRef.current;
+    const baseline = reconciliationBaselineCardRef.current;
+    if (baseline === null) return;
+    const tagEdit = buildTagEdit(baseline.tags, submittedFormState.tags);
     setIsEditorSaving(true);
     setEditorErrorMessage("");
     setErrorMessage("");
@@ -444,7 +444,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       const savedCard = await updateCardItem(editingCardId, {
         frontText: submittedFormState.frontText,
         backText: submittedFormState.backText,
-        tags: submittedFormState.tags,
+        ...(tagEdit === undefined ? {} : { tagEdit }),
       });
       indexedDbOpenRecoveryState.throwIfFailed();
       if (isEditorPresentationCurrent(presentationToken) === false) {
@@ -504,6 +504,9 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     }
     const submittedFormRevision = editorFormRevisionRef.current;
     const submittedFormState = editorFormStateRef.current;
+    const baseline = reconciliationBaselineCardRef.current;
+    if (baseline === null) return null;
+    const tagEdit = buildTagEdit(baseline.tags, submittedFormState.tags);
     setIsEditorSaving(true);
     setEditorErrorMessage("");
     setErrorMessage("");
@@ -512,7 +515,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       const savedCard = await updateCardItem(editingCardId, {
         frontText: submittedFormState.frontText,
         backText: submittedFormState.backText,
-        tags: submittedFormState.tags,
+        ...(tagEdit === undefined ? {} : { tagEdit }),
       });
       indexedDbOpenRecoveryState.throwIfFailed();
       if (isEditorPresentationCurrent(presentationToken) === false) {

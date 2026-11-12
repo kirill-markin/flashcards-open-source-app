@@ -342,7 +342,103 @@ try {
   const smokeEquivalence = structuredClone(changedSource);
   smokeEquivalence.equivalences[0].gateIds.push("cloud-smoke");
   expectInvalid(smokeEquivalence, "manifest.equivalences[0].gateIds");
-  console.log("Mobile readiness CLI replayed captured Xcode Cloud 606, 603 and the complete 614 destination matrix; historical gates and schema 4 local acceptance enforce complete evidence.");
+  const criticalPlans = [
+    { id: "local-iphone-critical", testPlan: "LocalIPhoneCritical", kind: "iphone", osVersion: "27.0", uiCount: 4, nonUiCount: 2 },
+    { id: "local-ipad-critical", testPlan: "LocalIPadCritical", kind: "ipad", osVersion: "27.0.1", uiCount: 1, nonUiCount: 0 },
+    { id: "local-ios18-critical", testPlan: "IOS18Critical", kind: "iphone", osVersion: "18.7", uiCount: 1, nonUiCount: 0 },
+  ];
+  const critical = structuredClone(localOnly);
+  critical.schemaVersion = 5;
+  for (const [index, { id, testPlan, kind, osVersion, uiCount, nonUiCount }] of criticalPlans.entries()) {
+    const gateIndex = index + 1;
+    const gate = critical.gates[gateIndex];
+    const nativeResult = critical.results[gateIndex];
+    const plan = JSON.parse(readFileSync(new URL(`../../../apps/ios/Flashcards/${testPlan}.xctestplan`, import.meta.url), "utf8"));
+    const selected = plan.testTargets.find((target) => target.target.name === uiTarget).selectedTests;
+    assert.equal(selected.length, uiCount);
+    const nonUiSelection = plan.testTargets.find((target) => target.target.name === nonUiTarget);
+    assert.equal(nonUiSelection !== undefined, nonUiCount > 0);
+    const selectedNonUi = nonUiSelection?.selectedTests ?? [];
+    assert.equal(selectedNonUi.length, nonUiCount);
+    const destination = { id: `${id}-device`, model: kind === "ipad" ? "iPad" : "iPhone", osVersion, kind };
+    gate.id = id;
+    gate.selection = { scheme: "Flashcards Native Acceptance", testPlan, configuration: "Acceptance", destination };
+    gate.cases = [
+      ...selected.map((method) => ({ id: `${method}@${destination.id}`, target: uiTarget, disposition: "required" })),
+      ...selectedNonUi.map((method) => ({ id: `${method}@${destination.id}`, target: nonUiTarget, disposition: "required" })),
+    ];
+    nativeResult.gateId = id;
+    nativeResult.cases = gate.cases.map((test) => ({ id: test.id, status: "passed" }));
+  }
+  const readyCritical = invoke(critical);
+  assert.equal(readyCritical.exitCode, 0);
+  assert.equal(readyCritical.report.schemaVersion, 5);
+  assert.deepEqual(readyCritical.report.gates.map((gate) => gate.id), ["local-archive", ...criticalPlans.map(({ id }) => id), "cloud-archive"]);
+  const compatibilityIPad = structuredClone(critical);
+  Object.assign(compatibilityIPad.gates[3].selection.destination, { kind: "ipad", model: "iPad" });
+  assert.equal(invoke(compatibilityIPad).exitCode, 0);
+  for (const [index, { id, kind }] of criticalPlans.entries()) {
+    const gateIndex = index + 1;
+    const path = `manifest.gates[${gateIndex}]`;
+    const historicalPlan = structuredClone(critical);
+    historicalPlan.gates[gateIndex].selection.testPlan = localOnly.gates[gateIndex].selection.testPlan;
+    expectInvalid(historicalPlan, `${path}.selection.testPlan`);
+    const wrongOS = structuredClone(critical);
+    wrongOS.gates[gateIndex].selection.destination.osVersion = id === "local-ios18-critical" ? "27.0" : "18.7";
+    expectInvalid(wrongOS, `${path}.selection.destination.osVersion`);
+    if (id !== "local-ios18-critical") {
+      const wrongFamily = structuredClone(critical);
+      wrongFamily.gates[gateIndex].selection.destination.kind = kind === "ipad" ? "iphone" : "ipad";
+      expectInvalid(wrongFamily, `${path}.selection.destination.kind`);
+    }
+    const wrongDestination = structuredClone(critical);
+    wrongDestination.gates[gateIndex].selection.destination.id = "different-device";
+    expectInvalid(wrongDestination, `${path}.cases[0].id`);
+    const narrowed = structuredClone(critical);
+    narrowed.gates[gateIndex].cases.shift();
+    expectInvalid(narrowed, `${path}.cases`);
+    const broadened = structuredClone(critical);
+    const extraId = `UnexpectedTests/testUnexpected()@${critical.gates[gateIndex].selection.destination.id}`;
+    broadened.gates[gateIndex].cases.push({ id: extraId, target: uiTarget, disposition: "required" });
+    expectInvalid(broadened, `${path}.cases`);
+    const missingResult = structuredClone(critical);
+    missingResult.results[gateIndex].cases.shift();
+    assert.equal(invoke(missingResult).report.gates[gateIndex].counts.missing, 1);
+  }
+  const criticalNonUiMissing = structuredClone(critical);
+  const missingNonUiCase = criticalNonUiMissing.gates[1].cases.pop();
+  assert.equal(missingNonUiCase.target, nonUiTarget);
+  criticalNonUiMissing.results[1].cases.pop();
+  expectInvalid(criticalNonUiMissing, "manifest.gates[1].cases");
+  const criticalNonUiWrongMethod = structuredClone(criticalNonUiMissing);
+  const extraNonUi = {
+    id: `UnexpectedTests/testUnexpected()@${critical.gates[1].selection.destination.id}`,
+    target: nonUiTarget,
+    disposition: "required",
+  };
+  criticalNonUiWrongMethod.gates[1].cases.push(extraNonUi);
+  expectInvalid(criticalNonUiWrongMethod, "manifest.gates[1].cases");
+  const criticalNonUiExtra = structuredClone(critical);
+  criticalNonUiExtra.gates[1].cases.push(extraNonUi);
+  expectInvalid(criticalNonUiExtra, "manifest.gates[1].cases");
+  const criticalNonUiMissingResult = structuredClone(critical);
+  criticalNonUiMissingResult.results[1].cases.pop();
+  const missingNonUiResult = invoke(criticalNonUiMissingResult);
+  assert.equal(missingNonUiResult.exitCode, 1);
+  assert.equal(missingNonUiResult.report.gates[1].counts.missing, 1);
+  const criticalLatestMismatch = structuredClone(critical);
+  criticalLatestMismatch.gates[2].selection.destination.osVersion = "26.1";
+  assert.equal(invoke(criticalLatestMismatch).exitCode, 1);
+  const criticalWrongArtifact = structuredClone(critical);
+  criticalWrongArtifact.target.artifactId = "different-uploaded-archive";
+  assert.equal(invoke(criticalWrongArtifact).exitCode, 1);
+  const criticalHistoricalGates = structuredClone(localOnly);
+  criticalHistoricalGates.schemaVersion = 5;
+  expectInvalid(criticalHistoricalGates, "manifest.gates");
+  const criticalWrongPlatform = structuredClone(critical);
+  criticalWrongPlatform.platform = "android";
+  expectInvalid(criticalWrongPlatform, "manifest.platform");
+  console.log("Mobile readiness CLI replayed captured Xcode Cloud 606, 603 and the complete 614 destination matrix and checked historical and schema 5 critical release contracts.");
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

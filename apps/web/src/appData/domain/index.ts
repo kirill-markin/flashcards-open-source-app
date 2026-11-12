@@ -1,3 +1,4 @@
+import { rebaseTagDraft } from "./cardTags";
 import type {
   ReviewableCardScheduleState,
 } from "../../../../backend/src/scheduling";
@@ -646,7 +647,7 @@ export function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInpu
   return {
     frontText: input.frontText === undefined ? undefined : normalizeRequiredCardText(input.frontText),
     backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
-    tags: input.tags,
+    tagEdit: input.tagEdit,
   };
 }
 
@@ -661,7 +662,7 @@ export function buildUpdatedCard(
     ...card,
     frontText: input.frontText ?? card.frontText,
     backText: input.backText ?? card.backText,
-    tags: input.tags ?? card.tags,
+    tags: input.tagEdit === undefined ? card.tags : rebaseTagDraft(input.tagEdit.baseline, card.tags, input.tagEdit.draft),
     clientUpdatedAt,
     lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,

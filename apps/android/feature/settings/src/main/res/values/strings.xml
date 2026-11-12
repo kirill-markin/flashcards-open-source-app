@@ -333,11 +333,11 @@
     <string name="settings_account_status_sync_status_label">Sync status</string>
     <string name="settings_account_status_last_successful_sync_label">Last successful sync</string>
     <string name="settings_account_status_sync_blocked_title">Sync is blocked on this device</string>
-    <string name="settings_account_status_sync_blocked_body">Use Log out to clear local cloud identity on this device before reconnecting.</string>
+    <string name="settings_account_status_sync_blocked_body">To reconnect, log out and sign in again. Logging out removes local data from this device, including changes that haven’t synced.</string>
     <string name="settings_account_status_sign_in_button">Sign in or sign up</string>
     <string name="settings_account_status_sync_now_button">Sync now</string>
     <string name="settings_account_status_logout_dialog_title">Log out?</string>
-    <string name="settings_account_status_logout_dialog_body">This clears cloud identity from the current device and keeps local card data intact.</string>
+    <string name="settings_account_status_logout_dialog_body">Logging out removes local data from this device. Synced data will return when you sign in again. Unsynced changes will be lost.</string>
     <string name="settings_account_status_logout_failed">Logout failed.</string>
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>
@@ -518,6 +518,7 @@
     <string name="settings_deck_editor_delete_confirmation_body">Your cards will remain. This removes only the saved deck filter.</string>
     <string name="settings_deck_editor_delete_failed">Could not delete the deck.</string>
     <string name="settings_deck_editor_name_required">Deck name is required.</string>
+    <string name="settings_deck_editor_filter_conflict">The deck’s tags changed during sync. Choose at least one current tag and save again.</string>
     <string name="settings_deck_editor_filter_required">Choose at least one tag, or use All cards in Review.</string>
     <string name="settings_deck_editor_save_failed">Could not save the deck.</string>
     <string name="settings_deck_filter_tags_any">tags any of %1$s</string>
@@ -553,7 +554,14 @@
     <string name="settings_scheduler_steps_invalid_empty">%1$s must not be empty.</string>
     <string name="settings_scheduler_steps_invalid_positive">%1$s must contain positive integers.</string>
 
-    <string name="settings_export_title">Export</string>
+    <string name="settings_export_title">Export Nibomo package</string>
+    <string name="settings_export_anki_title">Export Anki deck</string>
+    <string name="settings_export_anki_section">flashcards.apkg deck</string>
+    <string name="settings_export_anki_body">Export active cards, included tags, and referenced media as new Anki cards.</string>
+    <string name="settings_export_anki_empty">No cards to export. Add a card or change which cards are selected, then preview again.</string>
+    <string name="settings_export_anki_deck_name">Deck name</string>
+    <string name="settings_export_anki_save">Save flashcards.apkg</string>
+    <string name="settings_export_anki_share">Share flashcards.apkg</string>
     <string name="settings_export_package_summary">Export a Nibomo ZIP package</string>
     <string name="settings_export_dismiss_error">Dismiss error</string>
     <string name="settings_export_package_section">flashcards.zip package</string>
@@ -564,7 +572,7 @@
     <string name="settings_export_package_save">Save flashcards.zip</string>
     <string name="settings_export_package_share">Share flashcards.zip</string>
     <string name="settings_export_package_share_title">Share flashcards.zip</string>
-    <string name="settings_export_package_cloud_required">Media ZIP export requires a linked cloud workspace in this version.</string>
+    <string name="settings_export_package_cloud_required">Export requires a linked cloud workspace.</string>
     <string name="settings_export_package_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
     <string name="settings_export_package_preview_failed">Package export preview failed.</string>
     <string name="settings_export_package_download_failed">Package export failed.</string>
@@ -589,15 +597,17 @@
     <string name="settings_export_package_include_tag">Include %1$s</string>
     <string name="settings_export_package_generated_import_tag_not_included">Generated import tags are not included in package exports.</string>
 
-    <string name="settings_import_title">Import</string>
+    <string name="settings_import_nibomo_title">Import from Nibomo</string>
+    <string name="settings_import_advanced">Advanced</string>
+    <string name="settings_import_picker_unavailable">No file picker is available on this device.</string>
+    <string name="settings_import_single_file_required">Choose one Nibomo ZIP file at a time.</string>
     <string name="settings_import_package_section">Package</string>
     <string name="settings_import_package_body">Choose a portable Nibomo ZIP package to preview before importing.</string>
     <string name="settings_import_choose_package">Choose ZIP package</string>
     <string name="settings_import_previewing">Previewing...</string>
     <string name="settings_import_importing">Importing...</string>
-    <string name="settings_import_confirm_button">Import package</string>
+    <string name="settings_import_cards_button">Import cards</string>
     <string name="settings_import_dismiss_error">Dismiss error</string>
-    <string name="settings_import_selected_file">File: %1$s</string>
     <string name="settings_import_cloud_required">Media ZIP import requires a linked cloud workspace in this version.</string>
     <string name="settings_import_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
     <string name="settings_import_invalid_file">Choose a Nibomo ZIP package.</string>
@@ -611,7 +621,6 @@
     <string name="settings_import_missing_import_tag">Enter an import tag.</string>
     <string name="settings_import_source_section">Source</string>
     <string name="settings_import_source_kind">Type</string>
-    <string name="settings_import_source_title">Title</string>
     <string name="settings_import_source_zip">ZIP package</string>
     <string name="settings_import_metadata_section">Metadata</string>
     <string name="settings_import_metadata_label">Label</string>
@@ -625,7 +634,7 @@
     <string name="settings_import_referenced_media">Referenced media</string>
     <string name="settings_import_package_media">Package media files</string>
     <string name="settings_import_options_section">Options</string>
-    <string name="settings_import_add_import_tag">Add import tag</string>
+    <string name="settings_import_tag_imported_cards">Tag imported cards</string>
     <string name="settings_import_add_import_tag_body">Adds a unique import tag to this package import.</string>
     <string name="settings_import_import_tag">Import tag</string>
     <string name="settings_import_keep_tag">Keep %1$s</string>
@@ -945,4 +954,9 @@
     <string name="settings_first_review_onboarding_save_failed">Your review was saved, but the guide setting could not be saved on this device.</string>
     <string name="settings_first_review_onboarding_local_save_failed">The guide setting could not be saved on this device. Please try again.</string>
     <string name="settings_first_review_onboarding_update_failed">Could not update the guide setting. An offline change stays saved on this device and will sync when connected.</string>
+    <string name="settings_deck_editor_save_rules_before_reset">Save the filter changes before resetting study progress.</string>
+    <string name="settings_tag_detail_total">Total</string>
+    <string name="settings_tag_detail_open_review">Open Review</string>
+    <string name="settings_tag_detail_remove_tag">Remove tag from cards</string>
+    <string name="settings_tag_detail_unavailable">This tag is no longer available in the current workspace.</string>
 </resources>

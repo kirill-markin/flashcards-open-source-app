@@ -26,6 +26,7 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - macOS app: macOS 15+ on Apple silicon via Mac Catalyst. Before making any Catalyst change, read [apps/ios/README.md](apps/ios/README.md) and [docs/macos-ci-cd.md](docs/macos-ci-cd.md).
 - Apple Watch app: watchOS 26+ companion embedded in the iOS app. Before making any watch change, read [docs/apple-watch.md](docs/apple-watch.md).
 - Android app: Kotlin + Jetpack Compose; Android 11, 12, 12L, 13, 14, 15, 16, and 17. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
+- Wear OS app: Wear OS 5+ companion of the Android app. Before making any watch change, read [docs/wear-os.md](docs/wear-os.md).
 - Before Google Cloud or Google Play operations, read [Google Cloud access](docs/android-ci-cd.md#google-cloud-access-and-device-preflight).
 - AI assistants via MCP: supported at `https://mcp.nibomo.com/mcp`.
 - Terminal / AI-agent API client: supported via the canonical machine API entrypoint `GET https://api.flashcards-open-source-app.com/v1/` (the same discovery payload is also available at `GET https://api.flashcards-open-source-app.com/v1/agent`)
@@ -52,6 +53,7 @@ We do not optimize for blanket test coverage. Do not add unit tests, in an imple
 Targeted integration or module-boundary tests are allowed when they validate a real interaction between modules, storage layers, or contracts.
 The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment. Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
 Run the full existing mobile smoke selection on the latest OS; run only a small essential compatibility smoke on older supported OS versions.
+Keep deploy and release critical paths fast by running only the minimum critical tests and checks.
 A test plan offers only real testing: a real integration/end-to-end/smoke flow that exercises the app or API, or explicit manual test instructions for the user.
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).

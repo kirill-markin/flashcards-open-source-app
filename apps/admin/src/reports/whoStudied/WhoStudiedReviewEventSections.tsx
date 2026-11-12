@@ -1,5 +1,5 @@
 import { useMemo, type JSX } from "react";
-import type { ReviewEventPlatform } from "../../adminApi";
+import type { ProductEventDeviceType, ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { getUserPath } from "../../routing";
@@ -21,6 +21,7 @@ const reviewEventsCount = <li>Every answered review of the Who studied people, w
 
 const reviewEventsRules = <>
   <li>The Platform filter keeps only the reviews recorded on a selected platform, Unresolved being a review with no resolved device.</li>
+  <li>The Device filter keeps only the reviews recorded on a selected device class, Unknown being a review that names none.</li>
   <li>The App version filter keeps a person’s reviews in a bar only when Who studied keeps that person there: their last app open in it is on a selected version.</li>
   <li>The shared actor exclusions apply, and only credentialed rows count. A guest, and several guests merged into one account, count as that one person. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
   <li>Later offline review syncs can revise past bars.</li>
@@ -32,20 +33,22 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  eventDeviceTypes: ReadonlyArray<ProductEventDeviceType>;
   appVersions: ReadonlyArray<string>;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const eventPlatforms = props.eventPlatforms;
+  const eventDeviceTypes = props.eventDeviceTypes;
   const appVersions = props.appVersions;
-  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms and
-  // versions here.
+  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms, device
+  // classes and versions here.
   const loadByPerson = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
-    loadReviewEventsByPersonReport(config, dateRange, period, eventPlatforms, appVersions, signal)
-  ), [eventPlatforms, appVersions]);
+    loadReviewEventsByPersonReport(config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, signal)
+  ), [eventPlatforms, eventDeviceTypes, appVersions]);
   const loadByPlatform = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
-    loadReviewEventsByPlatformReport(config, dateRange, period, eventPlatforms, appVersions, signal)
-  ), [eventPlatforms, appVersions]);
+    loadReviewEventsByPlatformReport(config, dateRange, period, eventPlatforms, eventDeviceTypes, appVersions, signal)
+  ), [eventPlatforms, eventDeviceTypes, appVersions]);
   return (
     <>
       <BreakdownSection

@@ -182,6 +182,30 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func waitForSavedLocalReviewRatings(goodCount: Int, easyCount: Int) throws {
+        let identifier = LiveSmokeIdentifier.progressStreakSection
+        let section = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        let expectedValue = "localGoodReviews=\(goodCount);localEasyReviews=\(easyCount);"
+        let timeout = LiveSmokeConfiguration.longUiTimeoutSeconds
+        try self.assertElementExists(identifier: identifier, timeout: timeout)
+        guard try self.waitForElementValueContaining(
+            section,
+            identifier: identifier,
+            expectedValue: expectedValue,
+            timeout: timeout
+        ) else {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: identifier,
+                expectedValue: expectedValue,
+                actualValue: self.elementValue(element: section),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func waitForReviewAnswerReveal() throws {
         let showAnswerButton = self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton]
         let rateGoodButton = self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton]

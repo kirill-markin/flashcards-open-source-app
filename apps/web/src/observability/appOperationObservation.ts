@@ -1,4 +1,5 @@
 import { ApiContractError, ApiError, AuthRedirectError } from "../api";
+import { WorkspaceMaintenancePendingError } from "../appData/sync/engine/workspaceMaintenanceLock";
 import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import {
   captureWebException,
@@ -110,7 +111,7 @@ function isExpectedAppOperationError(error: Error, context: AppOperationObservat
     return false;
   }
 
-  if (error instanceof AuthRedirectError) {
+  if (error instanceof AuthRedirectError || error instanceof WorkspaceMaintenancePendingError) {
     return true;
   }
 

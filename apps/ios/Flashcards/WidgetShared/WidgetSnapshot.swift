@@ -38,7 +38,7 @@ struct WidgetSnapshotProgress: Codable, Sendable, Equatable {
 
 struct WidgetSnapshotDueDay: Codable, Sendable, Equatable {
     let localDate: String
-    /// Cards in the Review filter whose due time falls on `localDate`; new cards are already due and never counted.
+    /// Cards in the workspace whose due time falls on `localDate`.
     let dueCount: Int
 }
 
@@ -63,7 +63,7 @@ struct WidgetSnapshotScheduleBucket: Codable, Sendable, Equatable {
 struct WidgetSnapshot: Codable, Sendable, Equatable {
     let generatedAt: Date
     let workspaceId: String
-    /// Equals the Review tab badge count at `generatedAt`.
+    /// Ready cards in the workspace at `generatedAt`, including new cards.
     let dueCount: Int
     /// The next due times strictly after `generatedAt`, ascending, at most 100, with no time window.
     let upcomingDueAt: [Date]
@@ -75,4 +75,5 @@ struct WidgetSnapshot: Codable, Sendable, Equatable {
     let upcomingDueDays: [WidgetSnapshotDueDay]?
     /// The Progress review schedule buckets in their stable order; nil until the app has loaded them.
     let reviewSchedule: [WidgetSnapshotScheduleBucket]?
+    let accentColor: AccountAccentColor?
 }

@@ -40,11 +40,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CardTagsRoute(
     uiState: CardEditorUiState,
@@ -53,15 +53,37 @@ fun CardTagsRoute(
     onRemoveTag: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    CardTagsSelectionRoute(
+        selectedTags = uiState.selectedTags,
+        availableTagSuggestions = uiState.availableTagSuggestions,
+        tagsErrorMessage = uiState.tagsErrorMessage,
+        onToggleSuggestedTag = onToggleSuggestedTag,
+        onAddTag = onAddTag,
+        onRemoveTag = onRemoveTag,
+        onBack = onBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CardTagsSelectionRoute(
+    selectedTags: List<String>,
+    availableTagSuggestions: List<WorkspaceTagSummary>,
+    tagsErrorMessage: String,
+    onToggleSuggestedTag: (String) -> Unit,
+    onAddTag: (String) -> Unit,
+    onRemoveTag: (String) -> Unit,
+    onBack: () -> Unit
+) {
     var draftTagValue by rememberSaveable { mutableStateOf(value = "") }
     val normalizedDraftKey = normalizeTagKey(tag = draftTagValue)
-    val filteredSuggestions = remember(uiState.availableTagSuggestions, draftTagValue) {
-        uiState.availableTagSuggestions.filter { tagSummary ->
+    val filteredSuggestions = remember(availableTagSuggestions, draftTagValue) {
+        availableTagSuggestions.filter { tagSummary ->
             normalizedDraftKey.isEmpty() || normalizeTagKey(tag = tagSummary.tag).contains(other = normalizedDraftKey)
         }
     }
-    val selectedTagKeys = remember(uiState.selectedTags) {
-        uiState.selectedTags.map(::normalizeTagKey).toSet()
+    val selectedTagKeys = remember(selectedTags) {
+        selectedTags.map(::normalizeTagKey).toSet()
     }
     val canAddCustomTag = draftTagValue.trim().isNotEmpty() && selectedTagKeys.contains(normalizedDraftKey).not()
 
@@ -96,11 +118,11 @@ fun CardTagsRoute(
                 .consumeWindowInsets(innerPadding)
                 .imePadding()
         ) {
-            if (uiState.tagsErrorMessage.isNotEmpty()) {
+            if (tagsErrorMessage.isNotEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = uiState.tagsErrorMessage,
+                            text = tagsErrorMessage,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(16.dp)
                         )
@@ -165,7 +187,7 @@ fun CardTagsRoute(
                 )
             }
 
-            if (uiState.selectedTags.isEmpty()) {
+            if (selectedTags.isEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -180,7 +202,7 @@ fun CardTagsRoute(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        uiState.selectedTags.forEach { tag ->
+                        selectedTags.forEach { tag ->
                             InputChip(
                                 selected = true,
                                 onClick = {
@@ -252,7 +274,7 @@ fun CardTagsRoute(
                     ) {
                         filteredSuggestions.forEach { tagSummary ->
                             FilterChip(
-                                selected = uiState.selectedTags.any { tag ->
+                                selected = selectedTags.any { tag ->
                                     normalizeTagKey(tag = tag) == normalizeTagKey(tag = tagSummary.tag)
                                 },
                                 onClick = {

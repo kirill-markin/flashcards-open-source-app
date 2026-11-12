@@ -102,6 +102,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        sessionWorkspaceId = "review-route-test-workspace",
                         requestedFilter = ReviewFilter.AllCards,
                         isRequestedFilterSessionPending = false,
                         selectedFilter = ReviewFilter.AllCards,
@@ -521,6 +522,7 @@ private fun reviewRouteUiState(
 ): ReviewUiState {
     return ReviewUiState(
         isLoading = isLoading,
+        sessionWorkspaceId = null,
         requestedFilter = requestedFilter,
         isRequestedFilterSessionPending = false,
         selectedFilter = requestedFilter,

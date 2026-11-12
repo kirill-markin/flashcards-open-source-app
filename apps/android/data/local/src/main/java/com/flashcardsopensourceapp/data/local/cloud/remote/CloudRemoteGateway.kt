@@ -38,6 +38,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -46,12 +49,14 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import org.json.JSONObject
+import java.io.File
 
 class CloudHealthValidationException(
     message: String,
@@ -146,6 +151,22 @@ interface CloudRemoteGateway {
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceResetProgressResult
+    suspend fun previewCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        target: CloudCardMaintenanceTarget
+    ): CloudCardMaintenancePreview
+    suspend fun executeCardMaintenance(
+        apiBaseUrl: String,
+        bearerToken: String,
+        confirmation: CloudCardMaintenanceConfirmation
+    ): Int
+    suspend fun reconcileCardMaintenance(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        previewFingerprint: String
+    ): Boolean
     suspend fun previewWorkspacePackageExport(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -156,7 +177,9 @@ interface CloudRemoteGateway {
         apiBaseUrl: String,
         authorizationHeader: String,
         workspaceId: String,
-        request: WorkspacePackageExportRequest
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse
     suspend fun previewWorkspacePackageImport(
         apiBaseUrl: String,

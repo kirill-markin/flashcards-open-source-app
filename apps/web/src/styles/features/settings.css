@@ -214,6 +214,20 @@
   }
 }
 
+.library-count-list > .settings-nav-card {
+  flex-direction: row;
+  align-items: center;
+}
+
+.library-count-list .settings-nav-card-copy {
+  overflow-wrap: anywhere;
+}
+
+.library-count-list .badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .settings-temporary-banner {
   margin: 0 0 4px;
   padding: 13px 16px;
@@ -782,6 +796,44 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.workspace-import-file-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workspace-import-file-picker.ghost-btn {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
+  background: var(--surface-muted);
+}
+
+.workspace-import-file-picker.ghost-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.workspace-import-file-drop-hint {
+  font-weight: 400;
+}
+
+.workspace-import-file-name {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace-import-advanced > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.workspace-import-advanced[open] > summary {
+  margin-bottom: 10px;
 }
 
 .workspace-import-tag-control {

@@ -456,9 +456,15 @@ fun FlashcardsApp(
         )
         // Collection restarts on every return to the foreground, so a resume re-reads the count.
         val reviewDueBadgeCountFlow = remember(appGraph) {
-            appGraph.reviewRepository.observeReviewDueBadgeCount()
+            appGraph.reviewRepository.observeWorkspaceReviewDueCount()
         }
-        val reviewDueBadgeCount by reviewDueBadgeCountFlow.collectAsStateWithLifecycle(initialValue = 0)
+        val reviewBadgeWorkspaceFlow = remember(appGraph) { appGraph.workspaceRepository.observeWorkspace() }
+        val reviewBadgeWorkspace by reviewBadgeWorkspaceFlow.collectAsStateWithLifecycle(initialValue = null)
+        val reviewDueBadge by reviewDueBadgeCountFlow.collectAsStateWithLifecycle(initialValue = null)
+        val reviewDueBadgeCount = reviewDueBadge?.takeIf { badge ->
+            badge.workspaceId == reviewBadgeWorkspace?.workspaceId &&
+                (cloudSettings.activeWorkspaceId == null || badge.workspaceId == cloudSettings.activeWorkspaceId)
+        }?.dueCount ?: 0
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
@@ -748,8 +754,9 @@ fun FlashcardsApp(
             layoutType = navigationSuiteType,
             navigationSuiteItems = {
                 topLevelDestinations.forEach { destination ->
+                    val isSelected = currentDestination.route == destination.route
                     val destinationBadge: (@Composable () -> Unit)? = when {
-                        destination == ReviewDestination && reviewDueBadgeCount > 0 -> {
+                        destination == ReviewDestination && !isSelected && reviewDueBadgeCount > 0 -> {
                             {
                                 ReviewDueBadge(count = reviewDueBadgeCount)
                             }
@@ -763,10 +770,9 @@ fun FlashcardsApp(
                     }
 
                     item(
-                        selected = currentDestination.route == destination.route,
+                        selected = isSelected,
                         onClick = {
-                            val isDestinationChange = currentDestination.route != destination.route
-                            if (isDestinationChange && canRunImmediateAutoSync) {
+                            if (!isSelected && canRunImmediateAutoSync) {
                                 if (destination == ReviewDestination) {
                                     appGraph.autoSyncController.triggerImmediateAutoSync(
                                         source = AutoSyncSource.REVIEW_TAB_SELECTED,

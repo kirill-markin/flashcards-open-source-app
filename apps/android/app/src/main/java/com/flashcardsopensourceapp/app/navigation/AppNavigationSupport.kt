@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation.NavBackStackEntry
@@ -68,6 +69,11 @@ internal fun rememberRouteBackStackEntry(
         null
     }
 }
+
+// StringType interprets the literal "null" as a missing value. A prefix preserves arbitrary names.
+internal fun encodeRouteText(value: String): String = "~${Uri.encode(value)}"
+
+internal fun decodeRouteText(value: String): String = value.removePrefix("~")
 
 internal fun navigateToCardEditor(
     navController: NavHostController,

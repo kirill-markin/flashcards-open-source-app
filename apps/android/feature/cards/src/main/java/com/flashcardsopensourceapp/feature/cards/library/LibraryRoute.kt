@@ -1,24 +1,30 @@
 package com.flashcardsopensourceapp.feature.cards.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.formatCardsCount
@@ -63,7 +69,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_cards_title),
-                    summary = null,
+                    summary = stringResource(id = R.string.library_cards_summary),
                     count = uiState.cardsCount,
                     testTag = libraryCardsRowTag,
                     onClick = onOpenCards
@@ -72,7 +78,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_tags_title),
-                    summary = null,
+                    summary = stringResource(id = R.string.library_tags_summary),
                     count = uiState.tagsCount,
                     testTag = libraryTagsRowTag,
                     onClick = onOpenTags
@@ -81,7 +87,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_decks_title),
-                    summary = null,
+                    summary = stringResource(id = R.string.library_decks_summary),
                     count = uiState.decksCount,
                     testTag = libraryDecksRowTag,
                     onClick = onOpenDecks
@@ -102,14 +108,14 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_import_title),
-                    summary = stringResource(id = R.string.library_import_summary),
+                    summary = stringResource(id = R.string.library_import_methods_summary),
                     count = null,
                     testTag = libraryImportRowTag,
                     onClick = onOpenImport
                 )
             }
             item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                LibrarySectionTitle(title = stringResource(id = R.string.library_transfer_section_title))
             }
             item {
                 LibraryRow(
@@ -137,7 +143,7 @@ private fun LibrarySectionTitle(title: String) {
 }
 
 @Composable
-private fun LibraryRow(
+internal fun LibraryRow(
     title: String,
     summary: String?,
     count: Int?,
@@ -147,10 +153,18 @@ private fun LibraryRow(
     val resources = LocalResources.current
     val trailingContent: (@Composable () -> Unit)? = count?.let { rowCount ->
         {
-            Text(
-                text = formatCardsCount(resources = resources, count = rowCount),
-                style = MaterialTheme.typography.labelLarge
-            )
+            Box(
+                modifier = Modifier
+                    .width(IntrinsicSize.Max)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    text = formatCardsCount(resources = resources, count = rowCount),
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 
@@ -159,6 +173,9 @@ private fun LibraryRow(
             Text(rowSummary)
         }
     }
+
+    // Material 3 top-aligns the trailing slot when supporting text wraps.
+    val rowHeight = if (count != null) Modifier.height(IntrinsicSize.Min) else Modifier
 
     ListItem(
         headlineContent = {
@@ -169,5 +186,6 @@ private fun LibraryRow(
         modifier = Modifier
             .testTag(testTag)
             .clickable(onClick = onClick)
+            .then(rowHeight)
     )
 }

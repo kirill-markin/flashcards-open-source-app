@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import com.flashcardsopensourceapp.data.local.model.sync.preservingLocalAccountIdentity
+import java.io.File
 
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -25,6 +26,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceConfirmation
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenancePreview
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
@@ -47,6 +52,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
@@ -162,6 +168,7 @@ class LocalCloudAccountRepository(
             syncLocalStore = syncLocalStore,
             operationCoordinator = operationCoordinator,
             sessionProvider = sessionProvider,
+            resetCoordinator = resetCoordinator,
             transitionCoordinator = transitionCoordinator,
             appVersion = appVersion
         )
@@ -534,6 +541,14 @@ class LocalCloudAccountRepository(
         )
     }
 
+    /** The Wear OS watch's link: always replaces the local shell; see [CloudWorkspaceLinkCoordinator.completeReplicaCloudLink]. */
+    suspend fun completeReplicaCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        workspaceId: String
+    ): CloudWorkspaceSummary {
+        return workspaceLinkCoordinator.completeReplicaCloudLink(linkContext = linkContext, workspaceId = workspaceId)
+    }
+
     internal suspend fun completeSocialCloudLink(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection,
@@ -598,16 +613,48 @@ class LocalCloudAccountRepository(
         return workspaceOperationsCoordinator.resetCurrentWorkspaceProgress(confirmationText = confirmationText)
     }
 
+    override suspend fun previewCardMaintenance(target: CloudCardMaintenanceTarget): CloudCardMaintenancePreview {
+        return workspaceOperationsCoordinator.previewCardMaintenance(target = target)
+    }
+
+    override suspend fun executeCardMaintenance(confirmation: CloudCardMaintenanceConfirmation): Int {
+        return workspaceOperationsCoordinator.executeCardMaintenance(confirmation = confirmation)
+    }
+
+    override fun loadCardMaintenanceAttempt(workspaceId: String, attemptId: String): CloudCardMaintenanceAttempt? {
+        return workspaceOperationsCoordinator.loadCardMaintenanceAttempt(workspaceId = workspaceId, attemptId = attemptId)
+    }
+
+    override fun observeCardMaintenanceAttempt(workspaceId: String, attemptId: String): Flow<CloudCardMaintenanceAttempt?> {
+        return workspaceOperationsCoordinator.observeCardMaintenanceAttempt(workspaceId = workspaceId, attemptId = attemptId)
+    }
+
+    override suspend fun refreshCardMaintenanceWorkspace(workspaceId: String, attemptId: String) {
+        workspaceOperationsCoordinator.refreshCardMaintenanceWorkspace(workspaceId = workspaceId, attemptId = attemptId)
+    }
+
     override suspend fun previewCurrentWorkspacePackageExport(
+        expectedWorkspaceId: String,
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview {
-        return workspaceOperationsCoordinator.previewCurrentWorkspacePackageExport(request = request)
+        return workspaceOperationsCoordinator.previewCurrentWorkspacePackageExport(
+            expectedWorkspaceId = expectedWorkspaceId,
+            request = request
+        )
     }
 
     override suspend fun exportCurrentWorkspacePackage(
-        request: WorkspacePackageExportRequest
+        expectedWorkspaceId: String,
+        format: WorkspacePackageExportFormat,
+        request: WorkspacePackageExportRequest,
+        destination: File
     ): WorkspacePackageExportDownloadResponse {
-        return workspaceOperationsCoordinator.exportCurrentWorkspacePackage(request = request)
+        return workspaceOperationsCoordinator.exportCurrentWorkspacePackage(
+            expectedWorkspaceId = expectedWorkspaceId,
+            format = format,
+            request = request,
+            destination = destination
+        )
     }
 
     override suspend fun previewCurrentWorkspacePackageImport(

@@ -4,6 +4,7 @@
   --review-pane-inner-radius: calc(var(--review-pane-radius) / 2);
   --review-card-radius: var(--panel-inner-radius, var(--radius-lg));
   --review-managed-media-image-radius: calc(var(--review-card-radius) / 2);
+  --review-tag-chip-padding-block: 5px;
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -38,19 +39,22 @@
 }
 
 .review-pane-head {
+  --review-head-line-height: 1.1375rem;
+  --review-head-item-block-size: max(30px, calc(var(--review-head-line-height) + 2 * var(--review-tag-chip-padding-block)));
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  font-size: 0.8125rem;
+  line-height: var(--review-head-line-height);
 }
 
-/* One chip tall, so the head keeps its height with or without tags. */
 .review-card-tags-link {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
   width: 30px;
-  height: 30px;
+  block-size: var(--review-head-item-block-size);
   border-radius: var(--radius-pill);
   color: var(--text-secondary);
   transition: background-color 140ms ease, color 140ms ease;
@@ -84,26 +88,31 @@
   margin-block: -4px;
   margin-inline: -4px 0;
   padding: 4px;
-  overflow: hidden;
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-/* Every chip on one line that scrolls sideways. A precise pointer keeps a thin native scrollbar, because a
-   plain mouse wheel only scrolls vertically; touch hides it like the other header pills. */
-.review-card-head-tags {
-  overflow-x: auto;
+  /* A classic horizontal scrollbar contributes to intrinsic height even without overflow
+     (https://www.w3.org/TR/css-overflow-3/#scrollbar-layout). */
+  overflow: scroll hidden;
   overscroll-behavior-x: contain;
   scroll-padding-inline: 4px;
   scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+.review-pane-head-meta > :is(.badge, .tag-value-empty) {
+  min-block-size: var(--review-head-item-block-size);
+  font-size: inherit;
+}
+
+.review-pane-head-meta > .tag-value-empty {
+  display: flex;
+  align-items: center;
 }
 
 @media not ((hover: hover) and (pointer: fine)) {
-  .review-card-head-tags {
+  .review-pane-head-meta {
     scrollbar-width: none;
   }
 
-  .review-card-head-tags::-webkit-scrollbar {
+  .review-pane-head-meta::-webkit-scrollbar {
     display: none;
   }
 }
@@ -112,7 +121,7 @@
   flex: 0 0 auto;
   gap: 6px;
   min-height: 30px;
-  padding: 5px 9px;
+  padding: var(--review-tag-chip-padding-block) 9px;
   border: 0;
   white-space: nowrap;
 }

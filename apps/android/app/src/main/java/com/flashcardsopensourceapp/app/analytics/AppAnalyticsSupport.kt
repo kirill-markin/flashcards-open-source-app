@@ -322,9 +322,8 @@ private fun isSilentAnalyticsGuestMintFailure(error: Throwable): Boolean {
  * `review/preview`; `library` and every other `library/…` leaf; `ai`; `progress`; the three
  * `cards/editor/…` steps; `settings` and every `settings/…` leaf.
  *
- * Each workspace content leaf of `library/…` reports its own surface, and the hub, `library/import`
- * and `library/export` report `library`. The sign-in flow reports `signin` for all three of its
- * steps, which is `screen` in its ordinary reading, where the person is now. That is *not* the
+ * The sign-in flow reports `signin` for all three steps, which is `screen` in its ordinary
+ * reading, where the person is now. That is *not* the
  * entry-point reading `signin_failed` needs: the surface that owned the tapped sign-in control rides
  * in on the route's `origin` argument instead, so nothing here may be used to attribute a sign-in
  * failure. The remaining app-preference and account leaves collapse into `settings` on purpose.
@@ -357,8 +356,9 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
         normalizedRoute == LibraryTagsDestination.route -> AnalyticsSurface.TAGS
         normalizedRoute == LibraryCardsDestination.route -> AnalyticsSurface.CARDS
         normalizedRoute == LibraryDestination.route ||
-            normalizedRoute == LibraryImportDestination.route ||
-            normalizedRoute == LibraryExportDestination.route -> AnalyticsSurface.LIBRARY
+            normalizedRoute.isWithinRoutePrefix(routePrefix = LibraryImportDestination.route) ||
+            normalizedRoute.isWithinRoutePrefix(routePrefix = LibraryExportDestination.route) ->
+            AnalyticsSurface.LIBRARY
         normalizedRoute.isWithinRoutePrefix(routePrefix = SettingsAccountSignInEmailDestination.routePrefix) ->
             AnalyticsSurface.SIGNIN
         normalizedRoute == SettingsDestination.route ||

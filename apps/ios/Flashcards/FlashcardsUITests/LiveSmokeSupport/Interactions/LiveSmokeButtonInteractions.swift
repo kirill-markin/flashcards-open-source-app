@@ -302,6 +302,15 @@ extension LiveSmokeTestCase {
                     backButton = compactToolbarBackButton
                     break
                 }
+                #else
+                if #unavailable(iOS 26.0),
+                   !navigationBarButton.exists,
+                   !toolbarBackButton.exists,
+                   let libraryTransferBackButton = self.iOS18LibraryTransferBackButton(),
+                   libraryTransferBackButton.isEnabled && libraryTransferBackButton.isHittable {
+                    backButton = libraryTransferBackButton
+                    break
+                }
                 #endif
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
@@ -332,6 +341,42 @@ extension LiveSmokeTestCase {
     }
 
     #if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func iOS18LibraryTransferBackButton() -> XCUIElement? {
+        guard self.currentLaunchLocalization == .english else {
+            return nil
+        }
+
+        let libraryTitle = LiveSmokeSelectedTab.library.localizedTitle(localization: self.currentLaunchLocalization)
+        let parentTitlesByVisibleIdentifier = [
+            (LiveSmokeIdentifier.workspaceImportChooseFileButton, "Import"),
+            (LiveSmokeIdentifier.workspaceImportChooseAnkiFilesButton, "Import"),
+            (LiveSmokeIdentifier.workspaceSpreadsheetImportSource, "Import"),
+            (LiveSmokeIdentifier.libraryNibomoImportRow, libraryTitle),
+            (LiveSmokeIdentifier.workspacePackageExportPreviewButton, "Export"),
+            (LiveSmokeIdentifier.libraryNibomoExportRow, libraryTitle)
+        ]
+        let visibleParentTitles = parentTitlesByVisibleIdentifier.compactMap { identifier, title in
+            let element = self.element(identifier: identifier)
+            return element.exists && element.isHittable ? title : nil
+        }
+        guard visibleParentTitles.count == 1,
+              let parentTitle = visibleParentTitles.first,
+              self.app.alerts.count == 0,
+              self.app.sheets.count == 0 else {
+            return nil
+        }
+
+        let navigationBars = self.elements(query: self.app.navigationBars).filter(\.isHittable)
+        guard navigationBars.count == 1 else {
+            return nil
+        }
+
+        // iOS 18 exposes native Back by its parent title without the BackButton identifier.
+        let buttons = navigationBars[0].buttons.matching(NSPredicate(format: "label == %@", parentTitle))
+        return buttons.count == 1 ? buttons.firstMatch : nil
+    }
+
     @MainActor
     private func iOS18CardEditorBackButton() throws -> XCUIElement? {
         let editorIdentifiers = [LiveSmokeIdentifier.cardEditorFrontTextEditor, LiveSmokeIdentifier.cardEditorBackTextEditor]

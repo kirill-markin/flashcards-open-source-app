@@ -121,7 +121,7 @@ private fun makeSelectedReviewFilterKey(workspaceId: String): String {
     return "$selectedReviewFilterKeyPrefix$workspaceId"
 }
 
-private fun encodePersistedReviewFilter(reviewFilter: ReviewFilter): String {
+internal fun encodePersistedReviewFilter(reviewFilter: ReviewFilter): String {
     val payload = JSONObject()
 
     when (reviewFilter) {
@@ -143,7 +143,7 @@ private fun encodePersistedReviewFilter(reviewFilter: ReviewFilter): String {
     return payload.toString()
 }
 
-private fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
+internal fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
     val payload = JSONObject(rawValue)
     return when (payload.getString(persistedReviewFilterKindKey)) {
         persistedReviewFilterAllCardsKind -> ReviewFilter.AllCards

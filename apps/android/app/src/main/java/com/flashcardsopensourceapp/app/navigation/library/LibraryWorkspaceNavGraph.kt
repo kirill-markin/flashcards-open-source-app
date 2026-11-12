@@ -13,9 +13,14 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.navigation.decodeRouteText
+import com.flashcardsopensourceapp.app.navigation.maintenance.CardMaintenanceDestination
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceKind
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportFormat
+import com.flashcardsopensourceapp.feature.cards.library.LibraryExportRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorSaveResult
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorRoute
@@ -26,15 +31,46 @@ import com.flashcardsopensourceapp.feature.settings.deck.createDeckDetailViewMod
 import com.flashcardsopensourceapp.feature.settings.deck.createDeckEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.deck.createDecksViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel
 import com.flashcardsopensourceapp.feature.settings.workspace.export.createWorkspaceExportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.importing.createWorkspaceImportViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.WorkspaceTagDetailRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.WorkspaceTagDetailViewModel
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.WorkspaceTagsRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.tags.createWorkspaceTagDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.createWorkspaceTagsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private fun NavGraphBuilder.registerLibraryWorkspaceExportDestination(
+    route: String,
+    format: WorkspacePackageExportFormat,
+    appGraph: AppGraph,
+    navController: NavHostController
+) {
+    composable(route = route) {
+        val context = LocalContext.current
+        val workspaceExportViewModel = viewModel<WorkspaceExportViewModel>(
+            factory = createWorkspaceExportViewModelFactory(
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                technicalErrorController = appGraph.appMessageBus,
+                applicationContext = context.applicationContext,
+                format = format
+            )
+        )
+
+        WorkspaceExportRoute(
+            viewModel = workspaceExportViewModel,
+            technicalErrorController = appGraph.appMessageBus,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+}
 
 internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
     appGraph: AppGraph,
@@ -168,6 +204,7 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
             )
         )
         val uiState by deckEditorViewModel.uiState.collectAsStateWithLifecycle()
+        val savedDeck = uiState.deleteTarget
 
         DeckEditorRoute(
             uiState = uiState,
@@ -194,6 +231,17 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
                             null -> Unit
                         }
                     }
+                }
+            },
+            onResetProgress = savedDeck?.let { deck ->
+                {
+                    navController.navigate(
+                        route = CardMaintenanceDestination.createRoute(
+                            workspaceId = deck.workspaceId,
+                            kind = CloudCardMaintenanceKind.RESET_DECK,
+                            target = deck.deckId
+                        )
+                    )
                 }
             },
             onDelete = if (editingDeckId == null) {
@@ -228,10 +276,9 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
         WorkspaceTagsRoute(
             uiState = uiState,
             onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery,
-            onOpenTagReview = { tag ->
-                appGraph.appHandoffCoordinator.requestReviewFilter(
-                    reviewFilter = makeReviewTagFilter(tagNames = listOf(tag))
-                )
+            onOpenTag = { tag ->
+                val workspaceId = requireNotNull(uiState.workspaceId)
+                navController.navigate(route = LibraryTagDetailDestination.createRoute(workspaceId = workspaceId, tag = tag))
             },
             onBack = {
                 navController.popBackStack()
@@ -239,26 +286,87 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
         )
     }
 
-    composable(route = LibraryExportDestination.route) {
-        val context = LocalContext.current
-        val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel>(
-            factory = createWorkspaceExportViewModelFactory(
-                cloudAccountRepository = appGraph.cloudAccountRepository,
-                technicalErrorController = appGraph.appMessageBus,
-                applicationContext = context.applicationContext
+    composable(
+        route = LibraryTagDetailDestination.routePattern,
+        arguments = listOf(
+            navArgument(LibraryTagDetailDestination.workspaceArgument) { type = NavType.StringType },
+            navArgument(LibraryTagDetailDestination.tagArgument) { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val arguments = requireNotNull(backStackEntry.arguments)
+        val workspaceId = requireNotNull(arguments.getString(LibraryTagDetailDestination.workspaceArgument))
+        val tag = decodeRouteText(value = requireNotNull(arguments.getString(LibraryTagDetailDestination.tagArgument)))
+        val detailViewModel = viewModel<WorkspaceTagDetailViewModel>(
+            factory = createWorkspaceTagDetailViewModelFactory(
+                cardsRepository = appGraph.cardsRepository,
+                workspaceRepository = appGraph.workspaceRepository,
+                workspaceId = workspaceId,
+                tag = tag
             )
         )
+        val uiState by detailViewModel.uiState.collectAsStateWithLifecycle()
 
-        WorkspaceExportRoute(
-            viewModel = workspaceExportViewModel,
-            technicalErrorController = appGraph.appMessageBus,
+        WorkspaceTagDetailRoute(
+            tag = tag,
+            uiState = uiState,
+            onOpenReview = {
+                appGraph.appHandoffCoordinator.requestReviewFilter(
+                    reviewFilter = makeReviewTagFilter(tagNames = listOf(tag))
+                )
+            },
+            onResetProgress = {
+                navController.navigate(
+                    route = CardMaintenanceDestination.createRoute(
+                        workspaceId = workspaceId,
+                        kind = CloudCardMaintenanceKind.RESET_TAG,
+                        target = tag
+                    )
+                )
+            },
+            onRemoveTag = {
+                navController.navigate(
+                    route = CardMaintenanceDestination.createRoute(
+                        workspaceId = workspaceId,
+                        kind = CloudCardMaintenanceKind.REMOVE_TAG,
+                        target = tag
+                    )
+                )
+            },
+            onOpenCard = { cardId ->
+                appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+            },
+            onBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(route = LibraryExportDestination.route) {
+        LibraryExportRoute(
+            onOpenNibomoExport = {
+                navController.navigate(route = LibraryNibomoExportDestination.route)
+            },
+            onOpenAnkiExport = {
+                navController.navigate(route = LibraryAnkiExportDestination.route)
+            },
             onBack = {
                 navController.popBackStack()
             }
         )
     }
 
-    composable(route = LibraryImportDestination.route) {
+    registerLibraryWorkspaceExportDestination(
+        route = LibraryNibomoExportDestination.route,
+        format = WorkspacePackageExportFormat.NIBOMO,
+        appGraph = appGraph,
+        navController = navController
+    )
+    registerLibraryWorkspaceExportDestination(
+        route = LibraryAnkiExportDestination.route,
+        format = WorkspacePackageExportFormat.ANKI,
+        appGraph = appGraph,
+        navController = navController
+    )
+
+    composable(route = LibraryNibomoImportDestination.route) {
         val context = LocalContext.current
         val workspaceImportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportViewModel>(
             factory = createWorkspaceImportViewModelFactory(

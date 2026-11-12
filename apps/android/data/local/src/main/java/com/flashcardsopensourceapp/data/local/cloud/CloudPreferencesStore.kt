@@ -6,12 +6,15 @@ import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.sync.LocalOutboxWriteGate
+import com.flashcardsopensourceapp.data.local.cloud.sync.LocalOutboxWritesBlockedException
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudCardMaintenanceAttempt
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
@@ -38,10 +41,12 @@ import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.parseAccountTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
@@ -351,6 +356,78 @@ class CloudPreferencesStore(
 
     internal suspend fun <Result> runWithLocalOutboxWritesAllowed(block: suspend () -> Result): Result {
         return localOutboxWriteGate.runWithLocalOutboxWritesAllowed(block = block)
+    }
+
+    internal fun requireCardMaintenanceRefreshComplete(workspaceId: String) {
+        val attempt = loadCardMaintenanceAttempt(workspaceId = workspaceId)
+        if (attempt != null && !attempt.isRefreshComplete) {
+            throw LocalOutboxWritesBlockedException(
+                "Sync workspace '$workspaceId' to finish applying card maintenance before making changes."
+            )
+        }
+    }
+
+    internal fun loadCardMaintenanceAttempt(workspaceId: String): CloudCardMaintenanceAttempt? {
+        return readCardMaintenanceAttempt(key = cardMaintenanceAttemptKey(workspaceId = workspaceId))
+    }
+
+    internal fun observeCardMaintenanceAttempt(workspaceId: String): Flow<CloudCardMaintenanceAttempt?> {
+        val key = cardMaintenanceAttemptKey(workspaceId = workspaceId)
+        return callbackFlow {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+                if (changedKey == null || changedKey == key) trySend(Unit)
+            }
+            metadataPreferences.registerOnSharedPreferenceChangeListener(listener)
+            trySend(Unit)
+            awaitClose {
+                metadataPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+            }
+        }.map { readCardMaintenanceAttempt(key = key) }
+    }
+
+    private fun readCardMaintenanceAttempt(key: String): CloudCardMaintenanceAttempt? {
+        val value = metadataPreferences.getString(key, null) ?: return null
+        val attempt = JSONObject(value)
+        return CloudCardMaintenanceAttempt(
+            attemptId = attempt.requireCloudString("attemptId", "cardMaintenanceAttempt.attemptId"),
+            previewFingerprint = attempt.requireCloudString("previewFingerprint", "cardMaintenanceAttempt.previewFingerprint"),
+            affectedCardsCount = if (attempt.has("affectedCardsCount")) {
+                attempt.requireCloudInt("affectedCardsCount", "cardMaintenanceAttempt.affectedCardsCount")
+            } else {
+                null
+            },
+            isRefreshComplete = attempt.requireCloudBoolean("isRefreshComplete", "cardMaintenanceAttempt.isRefreshComplete")
+        )
+    }
+
+    internal suspend fun saveCardMaintenanceAttempt(workspaceId: String, attempt: CloudCardMaintenanceAttempt) {
+        val key = cardMaintenanceAttemptKey(workspaceId = workspaceId)
+        val value = JSONObject()
+            .put("attemptId", attempt.attemptId)
+            .put("previewFingerprint", attempt.previewFingerprint)
+            .put("affectedCardsCount", attempt.affectedCardsCount)
+            .put("isRefreshComplete", attempt.isRefreshComplete)
+            .toString()
+        withContext(Dispatchers.IO) {
+            check(metadataPreferences.edit().putString(key, value).commit()) {
+                "Could not persist the card maintenance attempt for workspace '$workspaceId'."
+            }
+        }
+    }
+
+    internal suspend fun clearCardMaintenanceAttempt(workspaceId: String) {
+        val key = cardMaintenanceAttemptKey(workspaceId = workspaceId)
+        if (metadataPreferences.contains(key)) {
+            withContext(Dispatchers.IO) {
+                check(metadataPreferences.edit().remove(key).commit()) {
+                    "Could not clear the card maintenance attempt for workspace '$workspaceId'."
+                }
+            }
+        }
+    }
+
+    private fun cardMaintenanceAttemptKey(workspaceId: String): String {
+        return "card-maintenance-attempt:${currentServerConfiguration().apiBaseUrl}:$workspaceId"
     }
 
     private suspend fun hasPendingGuestUpgrade(): Boolean {

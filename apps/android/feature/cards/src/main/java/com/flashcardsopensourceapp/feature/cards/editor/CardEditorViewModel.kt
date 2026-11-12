@@ -2,13 +2,16 @@ package com.flashcardsopensourceapp.feature.cards.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flashcardsopensourceapp.data.local.cloud.sync.LocalOutboxWritesBlockedException
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.applyTagSelectionChanges
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReference
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
 import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
+import com.flashcardsopensourceapp.data.local.repository.CardUnavailableException
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.cards.CardsTextProvider
@@ -26,6 +29,7 @@ private data class CardEditorDraftState(
     val frontTextSelection: CardEditorTextSelection,
     val backTextSelection: CardEditorTextSelection,
     val selectedTags: List<String>,
+    val savedTags: List<String>,
     val frontTextErrorMessage: String,
     val backTextErrorMessage: String,
     val tagsErrorMessage: String,
@@ -33,6 +37,7 @@ private data class CardEditorDraftState(
     val isDirty: Boolean,
     val hasLoadedInitialValues: Boolean,
     val isCardUnavailable: Boolean,
+    val editingWorkspaceId: String?,
     val schedulingMetadata: CardEditorSchedulingMetadata?
 )
 
@@ -49,6 +54,7 @@ class CardEditorViewModel(
             frontTextSelection = CardEditorTextSelection(start = 0, end = 0),
             backTextSelection = CardEditorTextSelection(start = 0, end = 0),
             selectedTags = emptyList(),
+            savedTags = emptyList(),
             frontTextErrorMessage = "",
             backTextErrorMessage = "",
             tagsErrorMessage = "",
@@ -56,6 +62,7 @@ class CardEditorViewModel(
             isDirty = false,
             hasLoadedInitialValues = editingCardId == null,
             isCardUnavailable = false,
+            editingWorkspaceId = null,
             schedulingMetadata = null
         )
     )
@@ -67,33 +74,17 @@ class CardEditorViewModel(
             viewModelScope.launch {
                 var previousObservedCard: CardSummary? = null
                 cardsRepository.observeCard(cardId = editingCardId).collect { card ->
-                    if (card == null) {
-                        inputState.update { state ->
-                            state.copy(
-                                errorMessage = textProvider.cardUnavailable,
-                                hasLoadedInitialValues = true,
-                                isCardUnavailable = true
-                            )
-                        }
-                        return@collect
-                    }
-
-                    if (card.deletedAtMillis != null && inputState.value.hasLoadedInitialValues.not()) {
-                        inputState.update { state ->
-                            if (state.hasLoadedInitialValues) {
-                                state
-                            } else {
-                                state.copy(
-                                    errorMessage = textProvider.cardUnavailable,
-                                    hasLoadedInitialValues = true,
-                                    isCardUnavailable = true
-                                )
-                            }
-                        }
+                    if (card == null || card.deletedAtMillis != null) {
+                        markCardUnavailable()
                         return@collect
                     }
 
                     val previousCard: CardSummary? = previousObservedCard
+                    val schedulingMetadata = CardEditorSchedulingMetadata(
+                        dueAtMillis = card.dueAtMillis,
+                        reps = card.reps,
+                        lapses = card.lapses
+                    )
                     inputState.update { state ->
                         if (state.hasLoadedInitialValues && previousCard != null) {
                             val refreshedFrontText = refreshManagedImageReferenceStates(
@@ -112,7 +103,14 @@ class CardEditorViewModel(
                                 frontText = refreshedFrontText.text,
                                 backText = refreshedBackText.text,
                                 frontTextSelection = refreshedFrontText.selection,
-                                backTextSelection = refreshedBackText.selection
+                                backTextSelection = refreshedBackText.selection,
+                                selectedTags = applyTagSelectionChanges(
+                                    savedTags = state.savedTags,
+                                    selectedTags = state.selectedTags,
+                                    currentTags = card.tags
+                                ),
+                                savedTags = card.tags,
+                                schedulingMetadata = schedulingMetadata
                             )
                         }
                         if (state.hasLoadedInitialValues) {
@@ -123,12 +121,10 @@ class CardEditorViewModel(
                             frontText = card.frontText,
                             backText = card.backText,
                             selectedTags = card.tags,
+                            savedTags = card.tags,
                             hasLoadedInitialValues = true,
-                            schedulingMetadata = CardEditorSchedulingMetadata(
-                                dueAtMillis = card.dueAtMillis,
-                                reps = card.reps,
-                                lapses = card.lapses
-                            )
+                            editingWorkspaceId = card.workspaceId,
+                            schedulingMetadata = schedulingMetadata
                         )
                     }
                     previousObservedCard = card
@@ -145,6 +141,7 @@ class CardEditorViewModel(
                 isCardUnavailable = currentState.isCardUnavailable,
                 title = if (editingCardId == null) textProvider.newCardTitle else textProvider.editCardTitle,
                 isEditing = editingCardId != null,
+                editingWorkspaceId = currentState.editingWorkspaceId,
                 frontText = currentState.frontText,
                 backText = currentState.backText,
                 frontTextSelection = clampCardEditorTextSelection(
@@ -177,6 +174,7 @@ class CardEditorViewModel(
                 isCardUnavailable = false,
                 title = if (editingCardId == null) textProvider.newCardTitle else textProvider.editCardTitle,
                 isEditing = editingCardId != null,
+                editingWorkspaceId = null,
                 frontText = "",
                 backText = "",
                 frontTextSelection = CardEditorTextSelection(start = 0, end = 0),
@@ -407,7 +405,8 @@ class CardEditorViewModel(
     }
 
     suspend fun save(editingCardId: String?): CardDraft? {
-        val state = uiState.value
+        val state = inputState.value
+        if (!state.hasLoadedInitialValues || state.isCardUnavailable) return null
         val validation = validateCardEditorInput(
             frontText = state.frontText,
             backText = state.backText,
@@ -432,36 +431,57 @@ class CardEditorViewModel(
             referenceTags = currentReferenceTags()
         )
 
-        return if (editingCardId == null) {
-            cardsRepository.createCard(cardDraft = cardDraft)
-            inputState.update { currentState ->
-                currentState.copy(
-                    frontTextErrorMessage = "",
-                    backTextErrorMessage = "",
-                    tagsErrorMessage = "",
-                    errorMessage = "",
-                    isDirty = false
-                )
+        val savedDraft = try {
+            if (editingCardId == null) {
+                cardsRepository.createCard(cardDraft = cardDraft)
+                cardDraft
+            } else {
+                cardsRepository.updateCard(cardId = editingCardId, cardDraft = cardDraft, savedTags = state.savedTags)
             }
-            cardDraft
-        } else {
-            cardsRepository.updateCard(cardId = editingCardId, cardDraft = cardDraft)
-            inputState.update { currentState ->
-                currentState.copy(
-                    frontTextErrorMessage = "",
-                    backTextErrorMessage = "",
-                    tagsErrorMessage = "",
-                    errorMessage = "",
-                    isDirty = false
-                )
-            }
-            cardDraft
+        } catch (error: CardUnavailableException) {
+            markCardUnavailable()
+            return null
+        } catch (error: LocalOutboxWritesBlockedException) {
+            showWritesBlocked()
+            return null
         }
+
+        inputState.update { currentState ->
+            currentState.copy(
+                frontTextErrorMessage = "",
+                backTextErrorMessage = "",
+                tagsErrorMessage = "",
+                errorMessage = "",
+                isDirty = false
+            )
+        }
+        return savedDraft
     }
 
     suspend fun delete(editingCardId: String): Boolean {
-        cardsRepository.deleteCard(cardId = editingCardId)
-        return true
+        return try {
+            cardsRepository.deleteCard(cardId = editingCardId)
+            true
+        } catch (error: LocalOutboxWritesBlockedException) {
+            showWritesBlocked()
+            false
+        }
+    }
+
+    private fun markCardUnavailable() {
+        inputState.update { state ->
+            state.copy(
+                errorMessage = textProvider.cardUnavailable,
+                hasLoadedInitialValues = true,
+                isCardUnavailable = true
+            )
+        }
+    }
+
+    private fun showWritesBlocked() {
+        inputState.update { state ->
+            if (state.isCardUnavailable) state else state.copy(errorMessage = textProvider.writesBlocked)
+        }
     }
 
     private fun currentReferenceTags(): List<String> {

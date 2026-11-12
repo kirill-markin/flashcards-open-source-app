@@ -27,6 +27,7 @@ internal fun initialReviewAppMetadataSummary(textProvider: ReviewTextProvider): 
 internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiState {
     return ReviewUiState(
         isLoading = true,
+        sessionWorkspaceId = null,
         requestedFilter = ReviewFilter.AllCards,
         isRequestedFilterSessionPending = false,
         selectedFilter = ReviewFilter.AllCards,
@@ -75,8 +76,7 @@ internal fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): Rev
 }
 
 internal fun mapToReviewUiState(
-    sessionSnapshot: ReviewSessionSnapshot,
-    sessionRequestedFilter: ReviewFilter,
+    observedSession: ObservedReviewSessionState,
     state: ReviewDraftState,
     appMetadata: AppMetadataSummary,
     progressSummarySnapshot: ProgressSummarySnapshot?,
@@ -85,14 +85,32 @@ internal fun mapToReviewUiState(
     filterOptions: ReviewFilterOptions?,
     textProvider: ReviewTextProvider
 ): ReviewUiState {
+    val sessionSnapshot = observedSession.sessionSnapshot
     val mediaAssetsById = mediaAssets.associateBy { mediaAsset ->
         mediaAsset.mediaAssetId
     }
-    val displayedCurrentCard = state.optimisticPreparedCurrentCard?.card
-        ?: resolveDisplayedCurrentCard(
-            sessionCards = sessionSnapshot.cards,
-            presentedCard = sessionSnapshot.presentedCard
+    val queryInputs = observedSession.result.queryInputs
+    val unreflectedRatings = queryInputs?.let { inputs ->
+        unreflectedReviewRatings(state = state, observedRevision = inputs.ratingRevision)
+    }.orEmpty()
+    val pendingReviewedCardIds = state.pendingReviewedCards.mapTo(mutableSetOf(), PendingReviewedCard::cardId)
+    fun isAvailableForPresentation(card: ReviewCard): Boolean {
+        return card.isAvailableForPresentation(
+            excludedCardIds = pendingReviewedCardIds,
+            excludedRatings = unreflectedRatings
         )
+    }
+    val sessionCards = if (pendingReviewedCardIds.isEmpty() && unreflectedRatings.isEmpty()) {
+        sessionSnapshot.cards
+    } else {
+        sessionSnapshot.cards.filter(::isAvailableForPresentation)
+    }
+    val sessionPreparedNextCard = sessionSnapshot.preparedNextCard?.takeIf(::isAvailableForPresentation)
+    val sessionPresentedCard = sessionSnapshot.presentedCard?.takeIf(::isAvailableForPresentation)
+        ?: sessionCards.firstOrNull { card -> card.cardId == state.presentedCard?.cardId }
+        ?: sessionPreparedNextCard?.takeIf { card -> card.cardId == state.presentedCard?.cardId }
+    val displayedCurrentCard = state.optimisticPreparedCurrentCard?.card
+        ?: resolveDisplayedCurrentCard(sessionCards = sessionCards, presentedCard = sessionPresentedCard)
     val optimisticPreparedCurrentCard = state.optimisticPreparedCurrentCard?.let { presentation ->
         refreshPreparedReviewCardPresentationMedia(
             presentation = presentation,
@@ -112,8 +130,8 @@ internal fun mapToReviewUiState(
     }
     val currentPreparedCard = optimisticPreparedCurrentCard ?: sessionPreparedCurrentCard
     val displayedNextCard = resolveDisplayedNextCard(
-        sessionCards = sessionSnapshot.cards,
-        sessionPreparedNextCard = sessionSnapshot.preparedNextCard,
+        sessionCards = sessionCards,
+        sessionPreparedNextCard = sessionPreparedNextCard,
         preparedNextCardId = state.preparedNextCardId,
         displayedCurrentCard = displayedCurrentCard
     )
@@ -123,23 +141,25 @@ internal fun mapToReviewUiState(
         mediaAssetsById = mediaAssetsById,
         textProvider = textProvider
     )
+    val remainingCount = displayedReviewRemainingCount(observed = observedSession, draft = state)
     val emptyState = resolveReviewEmptyState(
         selectedFilter = sessionSnapshot.selectedFilter,
-        remainingCount = sessionSnapshot.remainingCount,
+        remainingCount = remainingCount,
         totalCount = sessionSnapshot.totalCount,
         workspaceCardCount = appMetadata.cardCount
     )
 
     return ReviewUiState(
         isLoading = sessionSnapshot.isLoading,
+        sessionWorkspaceId = observedSession.result.workspaceId,
         requestedFilter = state.requestedFilter,
-        isRequestedFilterSessionPending = sessionRequestedFilter != state.requestedFilter,
+        isRequestedFilterSessionPending = observedSession.requestedFilter != state.requestedFilter,
         selectedFilter = sessionSnapshot.selectedFilter,
         selectedFilterTitle = textProvider.filterTitle(
             selectedFilter = sessionSnapshot.selectedFilter,
             deckTitle = sessionSnapshot.selectedFilterTitle
         ),
-        remainingCount = sessionSnapshot.remainingCount,
+        remainingCount = remainingCount,
         totalCount = sessionSnapshot.totalCount,
         reviewedInSessionCount = state.reviewedInSessionCount,
         isAnswerVisible = state.revealedCardId == currentPreparedCard?.card?.cardId,
@@ -214,27 +234,39 @@ internal fun resolveDisplayedNextCard(
     preparedNextCardId: String?,
     displayedCurrentCard: ReviewCard?
 ): ReviewCard? {
+    fun isSuccessor(card: ReviewCard): Boolean {
+        return card.cardId != displayedCurrentCard?.cardId
+    }
     val pinnedNextCard = sessionCards.firstOrNull { card ->
         card.cardId == preparedNextCardId
     }
-    return listOfNotNull(pinnedNextCard, sessionPreparedNextCard).firstOrNull { card ->
-        card.cardId != displayedCurrentCard?.cardId
-    }
+    return pinnedNextCard?.takeIf(::isSuccessor)
+        ?: sessionPreparedNextCard?.takeIf(::isSuccessor)
+        ?: sessionCards.firstOrNull(::isSuccessor)
 }
 
-/** A rating's new next card: the first queued card other than the card it shows and the cards already rated. */
 internal fun chooseNextCardIdAfterRating(
     sessionCards: List<ReviewCard>,
     nextPresentedCard: ReviewCard?,
-    pendingReviewedCards: Set<PendingReviewedCard>
+    excludedCardIds: Set<String>,
+    excludedRatings: Set<PendingReviewedCard>
 ): String? {
     val shownCard = nextPresentedCard ?: return null
-    val ratedCardIds: Set<String> = pendingReviewedCards.map { pendingReviewedCard ->
-        pendingReviewedCard.cardId
-    }.toSet()
     return sessionCards.firstOrNull { card ->
-        card.cardId != shownCard.cardId && ratedCardIds.contains(card.cardId).not()
+        card.cardId != shownCard.cardId && card.isAvailableForPresentation(
+            excludedCardIds = excludedCardIds,
+            excludedRatings = excludedRatings
+        )
     }?.cardId
+}
+
+private fun ReviewCard.isAvailableForPresentation(
+    excludedCardIds: Set<String>,
+    excludedRatings: Set<PendingReviewedCard>
+): Boolean {
+    return cardId !in excludedCardIds && (
+        excludedRatings.isEmpty() || PendingReviewedCard(cardId = cardId, updatedAtMillis = updatedAtMillis) !in excludedRatings
+    )
 }
 
 internal fun resolveDisplayedSessionAnswerOptions(

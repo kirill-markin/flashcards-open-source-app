@@ -24,6 +24,7 @@ import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
+import { AnkiImportHandoffProvider } from "./chat/handoff/AnkiImportHandoffContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
@@ -51,11 +52,17 @@ import {
   legacySettingsExportRoute,
   legacySettingsImportRoute,
   legacySettingsTagsRoute,
+  libraryAnkiExportRoute,
+  libraryAnkiImportRoute,
   libraryDeckNewRoute,
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
+  libraryNibomoExportRoute,
+  libraryNibomoImportRoute,
   libraryRoute,
+  librarySpreadsheetImportRoute,
+  libraryTagDetailRoute,
   libraryTagsRoute,
   normalizeRoutePath,
   progressRoute,
@@ -97,10 +104,13 @@ import { AIChatPreferencesProvider } from "./chat/preferences/AIChatPreferencesC
 import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
+import { LibraryExportScreen } from "./screens/library/LibraryExportScreen";
+import { LibraryImportScreen } from "./screens/library/LibraryImportScreen";
 import { LibraryScreen } from "./screens/library/LibraryScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
+import { WorkspacePackageImportProvider } from "./screens/settings/workspace/packages/WorkspacePackageImportContext";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
 import { GuestConversionGate } from "./screens/settings/account/guest/GuestConversionGate";
@@ -243,17 +253,29 @@ const TestLocalSyncDiagnosticsScreen = lazy(async () => import("./screens/settin
 const TestSettingsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
   default: module.TestSettingsScreen,
 })));
+const TagDetailScreen = lazy(async () => import("./screens/settings/workspace/TagDetailScreen").then((module) => ({
+  default: module.TagDetailScreen,
+})));
 const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScreen").then((module) => ({
   default: module.TagsScreen,
 })));
 const WorkspaceSchedulerScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSchedulerScreen").then((module) => ({
   default: module.WorkspaceSchedulerScreen,
 })));
+const WorkspaceAnkiExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
+  default: module.WorkspaceAnkiExportScreen,
+})));
 const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
 })));
+const WorkspaceAnkiImport = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceAnkiImport").then((module) => ({
+  default: module.WorkspaceAnkiImport,
+})));
 const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceImportScreen").then((module) => ({
   default: module.WorkspaceImportScreen,
+})));
+const WorkspaceTextImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceTextImportScreen").then((module) => ({
+  default: module.WorkspaceTextImportScreen,
 })));
 const CatalogImportScreen = lazy(async () => import("./screens/catalog/CatalogImportScreen").then((module) => ({
   default: module.CatalogImportScreen,
@@ -955,9 +977,13 @@ export function AppShell(): ReactElement {
               <div className="nav-links">
                 {primaryNavigationItems.map((item) => (
                   <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${buildPrimaryNavigationBadgeTargetClassName(item.route)}`} to={workspacePath(item.route)}>
-                    {t(item.labelKey)}
-                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                    {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                    {({ isActive }) => (
+                      <>
+                        {t(item.labelKey)}
+                        {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                        {item.route === reviewRoute && !isActive ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -1017,9 +1043,13 @@ export function AppShell(): ReactElement {
                 to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
-                {t(item.labelKey)}
-                {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                {({ isActive }) => (
+                  <>
+                    {t(item.labelKey)}
+                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                    {item.route === reviewRoute && !isActive ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
+                  </>
+                )}
               </NavLink>
             ))}
           </AnchoredFloatingOverlay>
@@ -1085,18 +1115,24 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${cardsRoute}`} element={<CardsScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/new`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
-          <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
-          <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={<LibraryImportScreen />} />
+          <Route path={`${workspaceRoutePattern}${libraryNibomoImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryAnkiImportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiImport />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${librarySpreadsheetImportRoute}`} element={renderDeferredRoute(<WorkspaceTextImportScreen />, "loading.importSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={<LibraryExportScreen />} />
+          <Route path={`${workspaceRoutePattern}${libraryNibomoExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={`${workspaceRoutePattern}${libraryAnkiExportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiExportScreen />, "loading.exportSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}`} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
           <Route path={`${workspaceRoutePattern}${libraryDeckNewRoute}`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
           <Route path={`${workspaceRoutePattern}${libraryDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
           <Route path={`${workspaceRoutePattern}${libraryTagsRoute}`} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
+          <Route path={`${workspaceRoutePattern}${libraryTagDetailRoute}`} element={renderDeferredRoute(<TagDetailScreen />, "loading.tags")} />
           {renderLegacyLibraryRedirects(legacyCardsRoute, cardsRoute, ["", "/new", "/:cardId"])}
           {renderLegacyLibraryRedirects(legacySettingsDecksRoute, libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
           {renderLegacyLibraryRedirects(legacySettingsTagsRoute, libraryTagsRoute, [""])}
           {renderLegacyLibraryRedirects(legacySettingsImportRoute, libraryImportRoute, [""])}
-          {renderLegacyLibraryRedirects(legacySettingsExportRoute, libraryExportRoute, [""])}
+          {renderLegacyLibraryRedirects(legacySettingsExportRoute, libraryNibomoExportRoute, [""])}
           {renderLegacyLibraryRedirects("/decks", libraryDecksRoute, ["", "/new", "/:deckId/edit", "/:deckId"])}
           {renderLegacyLibraryRedirects("/tags", libraryTagsRoute, [""])}
           <Route path={`${workspaceRoutePattern}${reviewRoute}`} element={<ReviewScreen />} />
@@ -1204,9 +1240,13 @@ function AuthenticatedApp(): ReactElement {
             <ChatLayoutProvider>
               <ChatSessionControllerProvider>
                 <ChatDraftProvider>
-                  <AccountDeletionRecoveryGate>
-                    <AppShell />
-                  </AccountDeletionRecoveryGate>
+                  <AnkiImportHandoffProvider>
+                    <AccountDeletionRecoveryGate>
+                      <WorkspacePackageImportProvider>
+                        <AppShell />
+                      </WorkspacePackageImportProvider>
+                    </AccountDeletionRecoveryGate>
+                  </AnkiImportHandoffProvider>
                 </ChatDraftProvider>
               </ChatSessionControllerProvider>
             </ChatLayoutProvider>
