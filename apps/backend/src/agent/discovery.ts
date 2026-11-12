@@ -9,12 +9,12 @@ import {
   GUIDE_TOPICS,
   type GuideTopic,
 } from "../aiTools/toolContract/sqlToolContract";
-import { ankiExportContentType, ankiExportFileName, ankiExportMaxInlineBytes } from "../workspacePackages/export/ankiPackage";
+import { ankiExportContentType, ankiExportFileName, ankiExportMaxInlineBytes } from "../workspacePackages/export/anki/contract";
 import { maximumImageIngestionOriginalBytes } from "../mediaAssets/validators";
 import {
   workspacePackageImportConfirmRouteMaxZipBytes,
   workspacePackageImportPreviewRouteMaxZipBytes,
-} from "../routes/workspacePackages";
+} from "../routes/workspacePackages/importContract";
 import type { WorkspacePackageExportRouteInput } from "../routes/workspacePackages/export";
 
 type AgentDiscoveryEnvelope = Readonly<{

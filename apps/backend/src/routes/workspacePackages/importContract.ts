@@ -1,0 +1,2 @@
+export const workspacePackageImportPreviewRouteMaxZipBytes = 4_000_000;
+export const workspacePackageImportConfirmRouteMaxZipBytes = workspacePackageImportPreviewRouteMaxZipBytes;
