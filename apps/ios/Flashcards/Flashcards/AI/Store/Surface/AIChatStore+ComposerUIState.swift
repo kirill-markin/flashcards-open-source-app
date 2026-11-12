@@ -6,12 +6,12 @@ extension AIChatStore {
             && self.composerPhase == .idle
             && self.dictationState == .idle
             && self.hasExternalProviderConsent
-            && self.isAnkiImportDraftBlocked == false
+            && self.isAIImportDraftBlocked == false
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
 
-    var isAnkiImportDraftBlocked: Bool {
-        self.currentComposerDraft().origin == .ankiImport
+    var isAIImportDraftBlocked: Bool {
+        self.currentComposerDraft().origin == .aiImport
             && (self.activeRunId != nil || self.hasOlderMessages || self.messages.contains { message in
                 message.role == .user && (message.itemId != nil || message.cursor != nil)
             })
@@ -25,7 +25,7 @@ extension AIChatStore {
     /// Text editing intentionally stays available during dictation so the keyboard and cursor remain active.
     var canEditDraftText: Bool {
         guard self.isChatInteractive,
-              self.currentComposerDraft().ankiImportRequestId == nil else {
+              self.currentComposerDraft().aiImportRequestId == nil else {
             return false
         }
         if aiChatDictationStateKeepsDraftTextEditable(self.dictationState) {
@@ -52,7 +52,7 @@ extension AIChatStore {
             && self.hasExternalProviderConsent
             && self.serverChatConfig.features.dictationEnabled
             && self.dictationState == .idle
-            && self.currentComposerDraft().ankiImportRequestId == nil
+            && self.currentComposerDraft().aiImportRequestId == nil
             && aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
     }
 

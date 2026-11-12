@@ -12,7 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRunLive
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
@@ -39,7 +39,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
-import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedAnkiImport
+import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedImport
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
@@ -474,13 +474,13 @@ internal class FakeAiChatRepository : AiChatRepository {
     override suspend fun savePersistedState(
         workspaceId: String?,
         state: AiChatPersistedState,
-        ankiImportRequest: AiChatAnkiImportRequest?
+        importRequest: AiChatImportRequest?
     ) {
         val sessionId = state.chatSessionId
-        if (draftStates[workspaceId to sessionId]?.ankiImportRequest?.clientRequestId != ankiImportRequest?.clientRequestId) {
+        if (draftStates[workspaceId to sessionId]?.importRequest?.clientRequestId != importRequest?.clientRequestId) {
             return
         }
-        if (ankiImportRequest != null && (sessionId != ankiImportRequest.sessionId || persistedStates[workspaceId]?.chatSessionId != sessionId)) {
+        if (importRequest != null && (sessionId != importRequest.sessionId || persistedStates[workspaceId]?.chatSessionId != sessionId)) {
             return
         }
         recordPersistedState(workspaceId = workspaceId, state = state)
@@ -516,10 +516,10 @@ internal class FakeAiChatRepository : AiChatRepository {
         state: AiChatDraftState
     ): Boolean {
         val key: Pair<String?, String?> = workspaceId to sessionId
-        if (draftStates[key]?.ankiImportRequest?.clientRequestId != state.ankiImportRequest?.clientRequestId) {
+        if (draftStates[key]?.importRequest?.clientRequestId != state.importRequest?.clientRequestId) {
             return false
         }
-        if (state.draftMessage.isBlank() && state.pendingAttachments.isEmpty() && state.ankiImportRequest == null) {
+        if (state.draftMessage.isBlank() && state.pendingAttachments.isEmpty() && state.importRequest == null) {
             draftStates.remove(key)
         } else {
             draftStates[key] = state
@@ -529,21 +529,21 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun clearDraftState(workspaceId: String?, sessionId: String?) {
         val key = workspaceId to sessionId
-        if (draftStates[key]?.ankiImportRequest == null) {
+        if (draftStates[key]?.importRequest == null) {
             draftStates.remove(key)
         }
     }
 
-    override suspend fun saveAnkiImportState(state: AiChatPersistedState, draftState: AiChatDraftState) {
-        val request = requireNotNull(draftState.ankiImportRequest)
+    override suspend fun saveImportState(state: AiChatPersistedState, draftState: AiChatDraftState) {
+        val request = requireNotNull(draftState.importRequest)
         recordPersistedState(workspaceId = request.target.workspaceId, state = state)
         draftStates[request.target.workspaceId to request.sessionId] = draftState
     }
 
-    override suspend fun finishAnkiImport(request: AiChatAnkiImportRequest, state: AiChatPersistedState?): Boolean {
+    override suspend fun finishImport(request: AiChatImportRequest, state: AiChatPersistedState?): Boolean {
         val workspaceId = request.target.workspaceId
         val key = workspaceId to request.sessionId
-        if (draftStates[key]?.ankiImportRequest?.clientRequestId != request.clientRequestId) {
+        if (draftStates[key]?.importRequest?.clientRequestId != request.clientRequestId) {
             return false
         }
         if (state != null && persistedStates[workspaceId]?.chatSessionId == request.sessionId) {
@@ -690,8 +690,8 @@ internal class FakeAiChatRepository : AiChatRepository {
         return transcribeAudioResponse
     }
 
-    override suspend fun prepareAnkiImportSession(request: AiChatAnkiImportRequest): AiChatPreparedAnkiImport {
-        return AiChatPreparedAnkiImport(
+    override suspend fun prepareImportSession(request: AiChatImportRequest): AiChatPreparedImport {
+        return AiChatPreparedImport(
             request = request,
             remoteSession = prepareSessionForAi(workspaceId = request.target.workspaceId)
         )
@@ -705,7 +705,7 @@ internal class FakeAiChatRepository : AiChatRepository {
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
         uiLocale: String?,
-        preparedAnkiImport: AiChatPreparedAnkiImport?
+        preparedImport: AiChatPreparedImport?
     ): AiChatStartRunResponse {
         startRunCalls += 1
         remoteCallEvents += "startRun:${state.chatSessionId}"

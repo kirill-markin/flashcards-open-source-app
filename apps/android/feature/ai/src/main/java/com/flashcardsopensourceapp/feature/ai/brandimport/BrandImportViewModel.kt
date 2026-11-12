@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.anki
+package com.flashcardsopensourceapp.feature.ai.brandimport
 
 import android.content.Context
 import android.net.Uri
@@ -9,14 +9,16 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSource
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSourceInput
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumUploadedAttachmentsPerMessage
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.LocalGuestWorkspaceMigration
+import com.flashcardsopensourceapp.feature.ai.AiImport
+import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentImportUserException
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
-import com.flashcardsopensourceapp.feature.ai.input.makeAnkiPackageAttachmentFromUri
+import com.flashcardsopensourceapp.feature.ai.input.makeAiImportFileAttachmentFromUri
+import com.flashcardsopensourceapp.feature.ai.input.makeAiImportPastedTextAttachment
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -27,23 +29,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class AiAnkiImport(
-    val message: String,
-    val attachments: List<AiChatAttachment.Binary>
-)
+internal data class BrandImportFile(val uri: Uri, val attachment: AiChatAttachment.Binary)
 
-data class AiAnkiImportOrigin(
-    val workspaceId: String,
-    val cloudSettings: CloudSettings,
-    val configuration: CloudServiceConfiguration,
-    val previousGuestMigration: LocalGuestWorkspaceMigration?
-)
-
-internal data class AnkiImportFile(val uri: Uri, val attachment: AiChatAttachment.Binary)
-
-internal data class AnkiImportUiState(
-    val origin: AiAnkiImportOrigin?,
-    val files: List<AnkiImportFile>,
+internal data class BrandImportUiState(
+    val origin: AiImportOrigin?,
+    val files: List<BrandImportFile>,
+    val pastedText: String,
     val isPreparing: Boolean,
     val isPickerOpen: Boolean,
     val isCheckingFiles: Boolean,
@@ -54,14 +45,16 @@ internal data class AnkiImportUiState(
         get() = isPreparing || isPickerOpen || isCheckingFiles || isStarting
 }
 
-class AnkiImportViewModel(
+class BrandImportViewModel(
     private val applicationContext: Context,
-    captureImportOrigin: suspend () -> AiAnkiImportOrigin?
+    val source: AiImportSource,
+    captureImportOrigin: suspend () -> AiImportOrigin?
 ) : ViewModel() {
     private val uiStateMutable = MutableStateFlow(
-        AnkiImportUiState(
+        BrandImportUiState(
             origin = null,
             files = emptyList(),
+            pastedText = "",
             isPreparing = true,
             isPickerOpen = false,
             isCheckingFiles = false,
@@ -69,7 +62,7 @@ class AnkiImportViewModel(
             errorMessage = null
         )
     )
-    internal val uiState: StateFlow<AnkiImportUiState> = uiStateMutable.asStateFlow()
+    internal val uiState: StateFlow<BrandImportUiState> = uiStateMutable.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -78,7 +71,7 @@ class AnkiImportViewModel(
                 origin = origin,
                 isPreparing = false,
                 errorMessage = uiStateMutable.value.errorMessage ?: if (origin == null) {
-                    applicationContext.getString(R.string.ai_anki_import_workspace_unavailable)
+                    applicationContext.getString(R.string.ai_import_workspace_unavailable)
                 } else {
                     null
                 }
@@ -99,7 +92,7 @@ class AnkiImportViewModel(
     internal fun onFilePickerUnavailable() {
         uiStateMutable.value = uiStateMutable.value.copy(
             isPickerOpen = false,
-            errorMessage = applicationContext.getString(R.string.ai_anki_import_picker_unavailable)
+            errorMessage = applicationContext.getString(R.string.ai_import_picker_unavailable)
         )
     }
 
@@ -107,7 +100,7 @@ class AnkiImportViewModel(
         val state = uiStateMutable.value
         if (state.isPickerOpen.not()) {
             if (uris.isNotEmpty()) {
-                showError(message = applicationContext.getString(R.string.ai_anki_import_choose_files_again))
+                showError(message = applicationContext.getString(R.string.ai_import_choose_files_again))
             }
             return
         }
@@ -120,7 +113,16 @@ class AnkiImportViewModel(
         return stageFiles(uris = uris)
     }
 
+    internal fun updatePastedText(text: String) {
+        val state = uiStateMutable.value
+        if (state.isBusy) {
+            return
+        }
+        uiStateMutable.value = state.copy(pastedText = text, errorMessage = null)
+    }
+
     private fun stageFiles(uris: List<Uri>): Job? {
+        val files = source.input as? AiImportSourceInput.Files ?: return null
         val state = uiStateMutable.value
         if (state.origin == null || state.isBusy) return null
         val existingUris = state.files.map { file -> file.uri }.toSet()
@@ -132,7 +134,7 @@ class AnkiImportViewModel(
         if (state.files.size + newUris.size > aiChatMaximumUploadedAttachmentsPerMessage) {
             showError(
                 message = applicationContext.getString(
-                    R.string.ai_anki_import_too_many_files,
+                    R.string.ai_import_too_many_files,
                     aiChatMaximumUploadedAttachmentsPerMessage
                 )
             )
@@ -141,17 +143,19 @@ class AnkiImportViewModel(
 
         uiStateMutable.value = state.copy(isCheckingFiles = true, errorMessage = null)
         return viewModelScope.launch {
-            val stagedFiles = mutableListOf<AnkiImportFile>()
+            val stagedFiles = mutableListOf<BrandImportFile>()
             try {
                 val textProvider = aiTextProvider(context = applicationContext)
                 withContext(Dispatchers.IO) {
                     for (uri in newUris) {
-                        val attachment = makeAnkiPackageAttachmentFromUri(
+                        val attachment = makeAiImportFileAttachmentFromUri(
                             context = applicationContext,
                             uri = uri,
+                            source = source,
+                            files = files,
                             textProvider = textProvider
                         )
-                        stagedFiles.add(AnkiImportFile(uri = uri, attachment = attachment))
+                        stagedFiles.add(BrandImportFile(uri = uri, attachment = attachment))
                     }
                 }
                 uiStateMutable.value = uiStateMutable.value.copy(
@@ -159,14 +163,14 @@ class AnkiImportViewModel(
                     isCheckingFiles = false
                 )
             } catch (error: CancellationException) {
-                deleteAiChatAttachmentStagedFiles(attachments = stagedFiles.map(AnkiImportFile::attachment))
+                deleteAiChatAttachmentStagedFiles(attachments = stagedFiles.map(BrandImportFile::attachment))
                 throw error
             } catch (error: Exception) {
-                deleteAiChatAttachmentStagedFiles(attachments = stagedFiles.map(AnkiImportFile::attachment))
+                deleteAiChatAttachmentStagedFiles(attachments = stagedFiles.map(BrandImportFile::attachment))
                 if (error !is AiAttachmentImportUserException && error !is SecurityException) {
                     AiChatDiagnosticsLogger.error(
                         event = "anki_import_staging_failed",
-                        fields = emptyList(),
+                        fields = listOf("sourceId" to source.id),
                         throwable = error
                     )
                 }
@@ -183,7 +187,7 @@ class AnkiImportViewModel(
         uiStateMutable.value = uiStateMutable.value.copy(errorMessage = message)
     }
 
-    internal fun removeFile(file: AnkiImportFile) {
+    internal fun removeFile(file: BrandImportFile) {
         val state = uiStateMutable.value
         if (state.isBusy) {
             return
@@ -193,31 +197,70 @@ class AnkiImportViewModel(
         deleteAiChatAttachmentStagedFiles(attachments = listOf(file.attachment))
     }
 
-    internal fun takeImport(message: String): AiAnkiImport? {
+    internal fun takeFilesImport(message: String): AiImport? {
         val state = uiStateMutable.value
         if (state.files.isEmpty() || state.isBusy) {
             return null
         }
         uiStateMutable.value = state.copy(files = emptyList(), isStarting = true)
-        return AiAnkiImport(
+        return AiImport(
             message = message,
-            attachments = state.files.map(AnkiImportFile::attachment)
+            attachments = state.files.map(BrandImportFile::attachment)
         )
     }
 
+    /** Null when nothing can start yet, or when the text cannot be attached; the reason is then shown. */
+    internal suspend fun takePastedTextImport(message: String): AiImport? {
+        val pastedText = source.input as? AiImportSourceInput.PastedText ?: return null
+        val state = uiStateMutable.value
+        if (state.pastedText.isBlank() || state.isBusy) {
+            return null
+        }
+        uiStateMutable.value = state.copy(isStarting = true, errorMessage = null)
+        return try {
+            val attachment = withContext(Dispatchers.IO) {
+                makeAiImportPastedTextAttachment(
+                    context = applicationContext,
+                    text = state.pastedText,
+                    pastedText = pastedText
+                )
+            }
+            AiImport(message = message, attachments = listOf(attachment))
+        } catch (error: CancellationException) {
+            uiStateMutable.value = uiStateMutable.value.copy(isStarting = false)
+            throw error
+        } catch (error: AiAttachmentImportUserException) {
+            uiStateMutable.value = uiStateMutable.value.copy(isStarting = false, errorMessage = error.message)
+            null
+        } catch (error: Exception) {
+            AiChatDiagnosticsLogger.error(
+                event = "anki_import_staging_failed",
+                fields = listOf("sourceId" to source.id),
+                throwable = error
+            )
+            uiStateMutable.value = uiStateMutable.value.copy(
+                isStarting = false,
+                errorMessage = applicationContext.getString(R.string.ai_selected_file_read_failed)
+            )
+            null
+        }
+    }
+
     override fun onCleared() {
-        deleteAiChatAttachmentStagedFiles(attachments = uiStateMutable.value.files.map(AnkiImportFile::attachment))
+        deleteAiChatAttachmentStagedFiles(attachments = uiStateMutable.value.files.map(BrandImportFile::attachment))
     }
 }
 
-fun createAnkiImportViewModelFactory(
+fun createBrandImportViewModelFactory(
     applicationContext: Context,
-    captureImportOrigin: suspend () -> AiAnkiImportOrigin?
+    source: AiImportSource,
+    captureImportOrigin: suspend () -> AiImportOrigin?
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            AnkiImportViewModel(
+            BrandImportViewModel(
                 applicationContext = applicationContext,
+                source = source,
                 captureImportOrigin = captureImportOrigin
             )
         }

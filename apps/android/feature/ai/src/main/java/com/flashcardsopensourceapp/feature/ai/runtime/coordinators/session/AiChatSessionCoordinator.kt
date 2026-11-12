@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
@@ -51,21 +51,21 @@ internal class AiChatSessionCoordinator(
             draftMessage = draftMessage,
             pendingAttachments = pendingAttachments,
             shouldFocusComposer = shouldFocusComposer,
-            ankiImportTarget = null
+            importTarget = null
         )
         initializeFreshConversation(workspaceId = workspaceId, targetSessionId = targetSessionId)
     }
 
-    fun prepareAnkiImportConversation(
+    fun prepareImportConversation(
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
-        target: AiAnkiImportTarget
+        target: AiImportTarget
     ) {
         prepareFreshConversation(
             draftMessage = draftMessage,
             pendingAttachments = pendingAttachments,
             shouldFocusComposer = false,
-            ankiImportTarget = target
+            importTarget = target
         )
     }
 
@@ -73,14 +73,14 @@ internal class AiChatSessionCoordinator(
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
         shouldFocusComposer: Boolean,
-        ankiImportTarget: AiAnkiImportTarget?
+        importTarget: AiImportTarget?
     ): String {
         cancelActiveDictation("AI dictation cancelled because a new chat was requested.")
         val currentState = context.runtimeStateMutable.value
         context.persistDraft(snapshot = currentState)
         val targetSessionId = makeAiChatSessionId()
-        val ankiImportRequest = ankiImportTarget?.let { target ->
-            AiChatAnkiImportRequest(
+        val importRequest = importTarget?.let { target ->
+            AiChatImportRequest(
                 target = target,
                 sessionId = targetSessionId,
                 clientRequestId = UUID.randomUUID().toString().lowercase(),
@@ -105,7 +105,7 @@ internal class AiChatSessionCoordinator(
                 isLiveAttached = false,
                 draftMessage = draftMessage,
                 pendingAttachments = pendingAttachments,
-                ankiImportRequest = ankiImportRequest,
+                importRequest = importRequest,
                 focusComposerRequestVersion = if (shouldFocusComposer) {
                     state.focusComposerRequestVersion + 1L
                 } else {

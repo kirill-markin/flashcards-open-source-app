@@ -1179,8 +1179,8 @@ struct RootTabView: View {
             LibraryImportScreen()
         case .importFormat(.nibomo):
             WorkspaceImportView()
-        case .importFormat(.anki):
-            WorkspaceAnkiImportView()
+        case .importFormat(.aiImport(let source)):
+            WorkspaceAIImportView(source: source)
         case .importFormat(.spreadsheet):
             WorkspaceSpreadsheetImportView()
         case .exportData:

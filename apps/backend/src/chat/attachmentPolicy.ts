@@ -4,10 +4,11 @@ import { chatFileApkgMediaType, chatFileZipMediaType } from "../chatSandbox/cont
 import { HttpError } from "../shared/errors";
 
 export const chatAttachmentUnsupportedTypeCode = "CHAT_ATTACHMENT_UNSUPPORTED_TYPE";
-export const chatAttachmentUnsupportedTypeMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again.";
+export const chatAttachmentUnsupportedTypeMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC, or an image, then try again.";
 
 const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
   apkg: chatFileApkgMediaType,
+  colpkg: chatFileApkgMediaType,
   csv: "text/csv",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   html: "text/html",
@@ -15,6 +16,8 @@ const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
   json: "application/json",
   log: "text/plain",
   md: "text/markdown",
+  mochi: chatFileZipMediaType,
+  ofc: chatFileZipMediaType,
   pdf: "application/pdf",
   py: "text/x-python",
   sql: "text/plain",

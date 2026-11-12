@@ -1,42 +1,53 @@
 import SwiftUI
 
-enum WorkspaceImportFormat: Hashable, CaseIterable, Sendable {
+enum WorkspaceImportFormat: Hashable, Sendable {
     case nibomo
-    case anki
+    case aiImport(AIImportSource)
     case spreadsheet
-
-    var localizedFormatName: String {
-        switch self {
-        case .nibomo: aiSettingsLocalized("settings.workspace.import.format.nibomo", "Nibomo format")
-        case .anki: aiSettingsLocalized("settings.workspace.import.format.anki", "Anki format")
-        case .spreadsheet: aiSettingsLocalized("settings.workspace.import.format.spreadsheet", "Spreadsheet")
-        }
-    }
 
     var localizedTitle: String {
         switch self {
         case .nibomo: aiSettingsLocalized("settings.workspace.import.method.nibomo", "Import from Nibomo")
-        case .anki: aiSettingsLocalized("settings.workspace.import.method.anki", "Import from Anki")
+        case .aiImport(let source): source.localizedTitle
         case .spreadsheet: aiSettingsLocalized("settings.workspace.import.method.spreadsheet", "Import from a spreadsheet")
         }
     }
 }
 
+func libraryImportOtherAppsSectionTitle() -> String {
+    aiSettingsLocalized("settings.workspace.import.section.otherApps", "From another app")
+}
+
+/// The Library hub subtitle of the Import row, one line per group entry point.
+func libraryImportSummary() -> String {
+    [
+        libraryImportOtherAppsSectionTitle(),
+        aiSettingsLocalized("settings.workspace.import.format.nibomo", "Nibomo format"),
+        aiSettingsLocalized("settings.workspace.import.format.spreadsheet", "Spreadsheet"),
+    ].joined(separator: "\n")
+}
+
 struct LibraryImportScreen: View {
     var body: some View {
         List {
-            NavigationLink(value: LibraryNavigationDestination.importFormat(.nibomo)) {
-                LabeledContent(WorkspaceImportFormat.nibomo.localizedTitle, value: ".zip")
+            Section(libraryImportOtherAppsSectionTitle()) {
+                ForEach(AIImportSource.allCases, id: \.self) { source in
+                    NavigationLink(value: LibraryNavigationDestination.importFormat(.aiImport(source))) {
+                        LabeledContent(source.localizedTitle, value: source.formatsText)
+                    }
+                    .accessibilityIdentifier(source.rowAccessibilityIdentifier)
+                }
             }
-            .accessibilityIdentifier(UITestIdentifier.libraryNibomoImportRow)
 
-            NavigationLink(value: LibraryNavigationDestination.importFormat(.anki)) {
-                LabeledContent(WorkspaceImportFormat.anki.localizedTitle, value: ".apkg")
+            Section(aiSettingsLocalized("settings.workspace.import.section.yourFiles", "Your files")) {
+                NavigationLink(value: LibraryNavigationDestination.importFormat(.nibomo)) {
+                    LabeledContent(WorkspaceImportFormat.nibomo.localizedTitle, value: ".zip")
+                }
+                .accessibilityIdentifier(UITestIdentifier.libraryNibomoImportRow)
+
+                NavigationLink(WorkspaceImportFormat.spreadsheet.localizedTitle, value: LibraryNavigationDestination.importFormat(.spreadsheet))
+                    .accessibilityIdentifier(UITestIdentifier.librarySpreadsheetImportRow)
             }
-            .accessibilityIdentifier(UITestIdentifier.libraryAnkiImportRow)
-
-            NavigationLink(WorkspaceImportFormat.spreadsheet.localizedTitle, value: LibraryNavigationDestination.importFormat(.spreadsheet))
-                .accessibilityIdentifier(UITestIdentifier.librarySpreadsheetImportRow)
         }
         .listStyle(.insetGrouped)
         .nativeNavigationTitle(LibrarySection.importData.localizedTitle)

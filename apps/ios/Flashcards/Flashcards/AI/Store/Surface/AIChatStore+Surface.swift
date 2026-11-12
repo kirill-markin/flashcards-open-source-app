@@ -413,7 +413,7 @@ extension AIChatStore {
     }
 
     func shouldAutoStartFreshLocalSession(persistedState: AIChatPersistedState) -> Bool {
-        guard self.canAutoStartFreshLocalSession(), self.currentComposerDraft().origin != .ankiImport else {
+        guard self.canAutoStartFreshLocalSession(), self.currentComposerDraft().origin != .aiImport else {
             return false
         }
 
@@ -626,11 +626,11 @@ extension AIChatStore {
         let previousSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
         let previousWorkspaceId = self.historyWorkspaceId()
         let previousDraft = self.currentComposerDraft()
-        // An unconfirmed Anki send can have an empty composer while its retry draft remains on disk.
+        // An unconfirmed AI import send can have an empty composer while its retry draft remains on disk.
         if previousDraft.isEmpty == false || self.historyStore.loadDraft(
             workspaceId: previousWorkspaceId,
             sessionId: previousSessionId
-        ).ankiImportRequestId == nil {
+        ).aiImportRequestId == nil {
             self.schedulePersistDraftState(
                 workspaceId: previousWorkspaceId,
                 sessionId: previousSessionId,

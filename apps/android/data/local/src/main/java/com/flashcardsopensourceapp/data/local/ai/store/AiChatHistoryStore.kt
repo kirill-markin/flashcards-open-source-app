@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportPersistenceException
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportPersistenceException
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
@@ -40,6 +40,8 @@ private const val aiChatDefaultHistoryKey: String = "ai-chat-history"
 private const val aiChatWorkspaceHistoryPrefix: String = "ai-chat-history::"
 private const val aiChatDefaultDraftKey: String = "ai-chat-draft"
 private const val aiChatWorkspaceDraftPrefix: String = "ai-chat-draft::"
+// Drafts saved by released builds store the pending import under this name.
+private const val aiChatDraftImportRequestKey: String = "ankiImportRequest"
 private const val aiChatMaxMessages: Int = 200
 private const val legacyMediumEffortTag: String = "medium"
 private const val legacyLongEffortTag: String = "long"
@@ -105,20 +107,20 @@ class AiChatHistoryStore(
     suspend fun saveState(
         workspaceId: String?,
         state: AiChatPersistedState,
-        ankiImportRequest: AiChatAnkiImportRequest?
+        importRequest: AiChatImportRequest?
     ) = withContext(Dispatchers.IO) {
         val sessionId = normalizeSessionId(sessionId = state.chatSessionId)
         synchronized(preferences) {
             val storedRequestId = sessionId?.let { id ->
-                ankiImportRequestId(rawDraft = preferences.getString(draftStorageKey(workspaceId, id), null))
+                importRequestId(rawDraft = preferences.getString(draftStorageKey(workspaceId, id), null))
             }
-            if (storedRequestId != ankiImportRequest?.clientRequestId) {
+            if (storedRequestId != importRequest?.clientRequestId) {
                 return@synchronized
             }
             // Only the checked write can establish or move the pointer for a pending import.
             if (
-                ankiImportRequest != null &&
-                (sessionId != ankiImportRequest.sessionId || currentState(workspaceId).chatSessionId != sessionId)
+                importRequest != null &&
+                (sessionId != importRequest.sessionId || currentState(workspaceId).chatSessionId != sessionId)
             ) {
                 return@synchronized
             }
@@ -128,39 +130,39 @@ class AiChatHistoryStore(
         }
     }
 
-    suspend fun saveAnkiImportState(
+    suspend fun saveImportState(
         workspaceId: String,
         state: AiChatPersistedState,
         draftState: AiChatDraftState
     ) = withContext(Dispatchers.IO) {
-        val request = requireNotNull(draftState.ankiImportRequest)
-        require(state.chatSessionId == request.sessionId) { "Anki draft does not match the requested session." }
+        val request = requireNotNull(draftState.importRequest)
+        require(state.chatSessionId == request.sessionId) { "Import draft does not match the requested session." }
         val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = request.sessionId)
         synchronized(preferences) {
-            val storedRequestId = ankiImportRequestId(rawDraft = preferences.getString(draftKey, null))
+            val storedRequestId = importRequestId(rawDraft = preferences.getString(draftKey, null))
             check(storedRequestId == null || storedRequestId == request.clientRequestId) {
-                "Anki import session already has a different pending request."
+                "Import session already has a different pending request."
             }
             val committed = preferences.edit()
                 .putString(storageKey(workspaceId = workspaceId), encodeStoredState(state = state))
                 .putString(draftKey, encodeDraftState(draftState = draftState).toString())
                 .commit()
             if (committed.not()) {
-                throw AiAnkiImportPersistenceException("Could not save the pending Anki import for chat ${request.sessionId}.")
+                throw AiImportPersistenceException("Could not save the pending import for chat ${request.sessionId}.")
             }
         }
     }
 
-    suspend fun finishAnkiImport(
+    suspend fun finishImport(
         workspaceId: String,
-        request: AiChatAnkiImportRequest,
+        request: AiChatImportRequest,
         state: AiChatPersistedState?
     ): Boolean = withContext(Dispatchers.IO) {
         val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = request.sessionId)
         val historyKey = storageKey(workspaceId = workspaceId)
         synchronized(preferences) {
             val previousDraft = preferences.getString(draftKey, null)
-            if (ankiImportRequestId(rawDraft = previousDraft) != request.clientRequestId) {
+            if (importRequestId(rawDraft = previousDraft) != request.clientRequestId) {
                 return@synchronized false
             }
             val previousHistory = preferences.getString(historyKey, null)
@@ -174,7 +176,7 @@ class AiChatHistoryStore(
                     putString(draftKey, previousDraft)
                     putString(historyKey, previousHistory)
                 }
-                throw AiAnkiImportPersistenceException("Could not clear the completed Anki import for chat ${request.sessionId}.")
+                throw AiImportPersistenceException("Could not clear the completed import for chat ${request.sessionId}.")
             }
             true
         }
@@ -221,13 +223,13 @@ class AiChatHistoryStore(
     suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState): Boolean = withContext(Dispatchers.IO) {
         val normalizedSessionId = normalizeSessionId(sessionId = sessionId)
             ?: throw IllegalArgumentException("AI chat draft state requires a sessionId.")
-        val request = state.ankiImportRequest
+        val request = state.importRequest
         require(request == null || request.sessionId == normalizedSessionId) {
-            "Anki draft does not match the requested session."
+            "Import draft does not match the requested session."
         }
         val storageKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
         synchronized(preferences) {
-            if (ankiImportRequestId(rawDraft = preferences.getString(storageKey, null)) != request?.clientRequestId) {
+            if (importRequestId(rawDraft = preferences.getString(storageKey, null)) != request?.clientRequestId) {
                 return@synchronized false
             }
             val editor = preferences.edit()
@@ -244,7 +246,7 @@ class AiChatHistoryStore(
         val normalizedSessionId = normalizeSessionId(sessionId = sessionId) ?: return@withContext
         val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
         synchronized(preferences) {
-            if (ankiImportRequestId(rawDraft = preferences.getString(draftKey, null)) == null) {
+            if (importRequestId(rawDraft = preferences.getString(draftKey, null)) == null) {
                 clearDraftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
             }
         }
@@ -294,12 +296,12 @@ class AiChatHistoryStore(
         return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() }
     }
 
-    private fun ankiImportRequestId(rawDraft: String?): String? {
+    private fun importRequestId(rawDraft: String?): String? {
         if (rawDraft == null) {
             return null
         }
         return try {
-            JSONObject(rawDraft).optJSONObject("ankiImportRequest")?.optString("clientRequestId")
+            JSONObject(rawDraft).optJSONObject(aiChatDraftImportRequestKey)?.optString("clientRequestId")
         } catch (_: JSONException) {
             null
         }
@@ -590,7 +592,7 @@ class AiChatHistoryStore(
         return JSONObject()
             .put("draftMessage", draftState.draftMessage)
             .put("pendingAttachments", JSONArray(draftState.pendingAttachments.map(::encodeAttachment)))
-            .put("ankiImportRequest", draftState.ankiImportRequest?.let { request ->
+            .put(aiChatDraftImportRequestKey, draftState.importRequest?.let { request ->
                 JSONObject(Json.encodeToString(request))
             })
     }
@@ -605,8 +607,8 @@ class AiChatHistoryStore(
         return AiChatDraftState(
             draftMessage = draftMessage,
             pendingAttachments = pendingAttachments,
-            ankiImportRequest = if (jsonObject.has("ankiImportRequest")) {
-                Json.decodeFromString<AiChatAnkiImportRequest>(jsonObject.getJSONObject("ankiImportRequest").toString())
+            importRequest = if (jsonObject.has(aiChatDraftImportRequestKey)) {
+                Json.decodeFromString<AiChatImportRequest>(jsonObject.getJSONObject(aiChatDraftImportRequestKey).toString())
             } else {
                 null
             }

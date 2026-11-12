@@ -11,13 +11,16 @@
     <string name="library_deck_catalog_title">Deck catalog</string>
     <string name="library_deck_catalog_summary">Free ready-made decks to study.</string>
     <string name="library_import_title">Import</string>
-    <string name="library_import_methods_summary">Nibomo format, Anki format, Spreadsheet</string>
+    <string name="library_import_sources_summary">Quizlet, Anki, other apps, your files</string>
     <string name="library_import_nibomo_title">Import from Nibomo</string>
-    <string name="library_import_anki_title">Import from Anki</string>
+    <string name="library_import_other_apps_section_title">From another app</string>
+    <string name="library_import_your_files_section_title">Your files</string>
+    <string name="library_import_brand_title">Import from %1$s</string>
+    <string name="library_import_other_title">Import from another app</string>
+    <string name="library_import_quizlet_summary">Paste exported text</string>
     <string name="library_import_spreadsheet_title">Import from a spreadsheet</string>
     <string name="library_import_spreadsheet_summary">Paste two columns of text</string>
     <string name="library_import_nibomo_summary" translatable="false">.zip</string>
-    <string name="library_import_anki_summary" translatable="false">.apkg</string>
     <string name="spreadsheet_import_description">Copy two columns from a spreadsheet, then check the front and back of each card before importing.</string>
     <string name="spreadsheet_import_input">Paste spreadsheet text</string>
     <string name="spreadsheet_import_field_separator">Front and back separator</string>

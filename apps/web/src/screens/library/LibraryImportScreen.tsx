@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { useI18n } from "../../i18n";
 import {
-  libraryAnkiImportRoute,
+  buildLibraryAiImportRoute,
   libraryImportRoute,
   libraryNibomoImportRoute,
   libraryRoute,
@@ -9,6 +9,11 @@ import {
 } from "../../routes";
 import { workspacePackageExportFilename } from "../../types";
 import { useWorkspacePath } from "../../useWorkspacePath";
+import {
+  aiImportSources,
+  aiImportSourceSubtitle,
+  aiImportSourceTitle,
+} from "../settings/workspace/packages/aiImportSources";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "../settings/SettingsShared";
 
 export function LibraryImportScreen(): ReactElement {
@@ -23,7 +28,22 @@ export function LibraryImportScreen(): ReactElement {
       activeTab="workspace"
       backLink={{ label: t("deckDetail.actions.back"), to: workspacePath(libraryRoute), testId: "library-import-back" }}
     >
-      <SettingsGroup testId="library-import-formats">
+      <SettingsGroup title={t("workspaceImport.fromAnotherAppGroup")} testId="library-import-apps">
+        <div className="settings-nav-list">
+          {aiImportSources.map((source) => (
+            <SettingsNavigationCard
+              key={source.id}
+              title={aiImportSourceTitle(source, t)}
+              description={aiImportSourceSubtitle(source, t)}
+              value={null}
+              to={workspacePath(buildLibraryAiImportRoute(source.id))}
+              parentPath={importPath}
+              testId={`library-import-${source.id}`}
+            />
+          ))}
+        </div>
+      </SettingsGroup>
+      <SettingsGroup title={t("workspaceImport.yourFilesGroup")} testId="library-import-formats">
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("workspaceImport.nibomoTitle")}
@@ -32,14 +52,6 @@ export function LibraryImportScreen(): ReactElement {
             to={workspacePath(libraryNibomoImportRoute)}
             parentPath={importPath}
             testId="library-import-nibomo"
-          />
-          <SettingsNavigationCard
-            title={t("workspaceImport.anki.title")}
-            description=".apkg"
-            value={null}
-            to={workspacePath(libraryAnkiImportRoute)}
-            parentPath={importPath}
-            testId="library-import-anki"
           />
           <SettingsNavigationCard
             title={t("workspaceImport.spreadsheetTitle")}

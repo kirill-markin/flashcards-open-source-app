@@ -4,8 +4,8 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTargetChangedException
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTargetChangedException
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
@@ -81,7 +81,7 @@ internal class AiChatRuntimeContext(
     private val persistedStateWriteMutex = Mutex()
     private val persistedStateWriteRequestVersion = AtomicLong(0L)
     private var isToolRunPostSyncInFlight: Boolean = false
-    private var supersededAnkiImportRequest: AiChatAnkiImportRequest? = null
+    private var supersededImportRequest: AiChatImportRequest? = null
     val runtimeStateMutable = MutableStateFlow(makeDefaultAiDraftState())
     var activeSendJob: Job? = null
     var activeDictationJob: Job? = null
@@ -206,7 +206,7 @@ internal class AiChatRuntimeContext(
             persistedStateWriteMutex.withLock {
                 if (
                     requestVersion != persistedStateWriteRequestVersion.get() ||
-                    snapshot.ankiImportRequest?.let(::isAnkiImportOriginCurrent) == false
+                    snapshot.importRequest?.let(::isImportOriginCurrent) == false
                 ) {
                     return@withLock
                 }
@@ -220,7 +220,7 @@ internal class AiChatRuntimeContext(
 
     fun persistDraft(snapshot: AiChatRuntimeState) {
         scope.launch {
-            if (snapshot.ankiImportRequest == null) {
+            if (snapshot.importRequest == null) {
                 persistDraftSnapshot(snapshot = snapshot)
             } else {
                 persistedStateWriteMutex.withLock {
@@ -232,7 +232,7 @@ internal class AiChatRuntimeContext(
 
     private suspend fun persistDraftSnapshot(snapshot: AiChatRuntimeState) {
         val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null } ?: return
-        if (supersededAnkiImportRequest != null && snapshot.ankiImportRequest == supersededAnkiImportRequest) {
+        if (supersededImportRequest != null && snapshot.importRequest == supersededImportRequest) {
             return
         }
         aiChatRepository.saveDraftState(
@@ -242,39 +242,39 @@ internal class AiChatRuntimeContext(
         )
     }
 
-    fun isAnkiImportOriginCurrent(request: AiChatAnkiImportRequest): Boolean {
+    fun isImportOriginCurrent(request: AiChatImportRequest): Boolean {
         val state = runtimeStateMutable.value
-        return request != supersededAnkiImportRequest &&
+        return request != supersededImportRequest &&
             state.workspaceId == request.target.workspaceId &&
             state.persistedState.chatSessionId == request.sessionId &&
-            state.ankiImportRequest == request &&
+            state.importRequest == request &&
             state.loadedAccessKey == activeAccessContext?.runtimeKey()
     }
 
-    suspend fun persistAnkiImportNow(snapshot: AiChatRuntimeState) {
-        val request = requireNotNull(snapshot.ankiImportRequest)
+    suspend fun persistImportNow(snapshot: AiChatRuntimeState) {
+        val request = requireNotNull(snapshot.importRequest)
         persistedStateWriteMutex.withLock {
-            if (isAnkiImportOriginCurrent(request = request).not()) {
-                throw AiAnkiImportTargetChangedException()
+            if (isImportOriginCurrent(request = request).not()) {
+                throw AiImportTargetChangedException()
             }
             persistedStateWriteRequestVersion.incrementAndGet()
-            aiChatRepository.saveAnkiImportState(
+            aiChatRepository.saveImportState(
                 state = snapshot.persistedState.copy(composerSuggestions = snapshot.serverComposerSuggestions),
                 draftState = snapshot.toDraftState()
             )
         }
     }
 
-    suspend fun finishAnkiImport(
-        request: AiChatAnkiImportRequest,
+    suspend fun finishImport(
+        request: AiChatImportRequest,
         attachments: List<AiChatAttachment>,
         rollbackPersistedState: AiChatPersistedState,
         applyResult: (AiChatRuntimeState) -> AiChatRuntimeState
     ): Boolean = withContext(NonCancellable) {
         persistedStateWriteMutex.withLock {
-            val nextState = runtimeStateMutable.value.takeIf { isAnkiImportOriginCurrent(request = request) }
+            val nextState = runtimeStateMutable.value.takeIf { isImportOriginCurrent(request = request) }
                 ?.let(applyResult)
-            val cleared = aiChatRepository.finishAnkiImport(
+            val cleared = aiChatRepository.finishImport(
                 request = request,
                 state = nextState?.let { state ->
                     state.persistedState.copy(composerSuggestions = state.serverComposerSuggestions)
@@ -283,16 +283,16 @@ internal class AiChatRuntimeContext(
             if (cleared) {
                 deleteAiChatAttachmentStagedFiles(attachments = attachments)
             }
-            if (isAnkiImportOriginCurrent(request = request).not()) {
+            if (isImportOriginCurrent(request = request).not()) {
                 return@withLock false
             }
             persistedStateWriteRequestVersion.incrementAndGet()
             if (cleared.not()) {
-                supersededAnkiImportRequest = request
+                supersededImportRequest = request
                 runtimeStateMutable.update { state ->
                     state.copy(
                         persistedState = rollbackPersistedState,
-                        activeAlert = textProvider.generalError(message = textProvider.ankiImportDraftChanged)
+                        activeAlert = textProvider.generalError(message = textProvider.importDraftChanged)
                     )
                 }
                 return@withLock false
@@ -321,7 +321,7 @@ internal class AiChatRuntimeContext(
             state = snapshot.persistedState.copy(
                 composerSuggestions = snapshot.serverComposerSuggestions
             ),
-            ankiImportRequest = snapshot.ankiImportRequest
+            importRequest = snapshot.importRequest
         )
         val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
         if (chatSessionId != null) {
@@ -436,7 +436,7 @@ internal class AiChatRuntimeContext(
                     aiChatRepository.savePersistedState(
                         workspaceId = origin.workspaceId,
                         state = clearPendingToolRunPostSync(state = persistedState),
-                        ankiImportRequest = null
+                        importRequest = null
                     )
                 } catch (error: CancellationException) {
                     throw error
@@ -486,6 +486,6 @@ private fun AiChatRuntimeState.toDraftState(): AiChatDraftState {
     return AiChatDraftState(
         draftMessage = draftMessage,
         pendingAttachments = pendingAttachments,
-        ankiImportRequest = ankiImportRequest
+        importRequest = importRequest
     )
 }

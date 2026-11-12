@@ -95,7 +95,7 @@ internal class AiChatBootstrapCoordinator(
         }
 
         val currentState = context.runtimeStateMutable.value
-        if (currentState.ankiImportRequest != null && currentState.persistedState.requiresRemoteSessionProvisioning) {
+        if (currentState.importRequest != null && currentState.persistedState.requiresRemoteSessionProvisioning) {
             // Leave provisioning to the import send, which verifies the original account and server.
             context.runtimeStateMutable.update { state ->
                 state.copy(conversationBootstrapState = AiConversationBootstrapState.READY)
@@ -148,7 +148,7 @@ internal class AiChatBootstrapCoordinator(
                 val canLoadCurrentChat =
                     forceReloadState.not()
                         && preBootstrapState.activeRun == null
-                        && preBootstrapState.ankiImportRequest == null
+                        && preBootstrapState.importRequest == null
                         && preBootstrapState.composerPhase == AiComposerPhase.IDLE
                 context.activeLiveJob?.cancel(
                     cause = CancellationException("AI live attach cancelled because bootstrap restarted.")
@@ -166,7 +166,7 @@ internal class AiChatBootstrapCoordinator(
                             isLiveAttached = false,
                             draftMessage = "",
                             pendingAttachments = emptyList(),
-                            ankiImportRequest = null,
+                            importRequest = null,
                             serverComposerSuggestions = persistedState.composerSuggestions,
                             composerPhase = AiComposerPhase.IDLE,
                             dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
@@ -400,7 +400,7 @@ internal class AiChatBootstrapCoordinator(
                 // Once the switch landed, the pre-bootstrap state is an older chat; restoring it would move back.
                 val didSwitchChat = switchTargetSessionId != null && currentSessionId == switchTargetSessionId
                 val shouldPreserveConversationState = didSwitchChat.not()
-                    && (preBootstrapState.ankiImportRequest != null || shouldPreserveConversationStateOnBootstrapFailure(
+                    && (preBootstrapState.importRequest != null || shouldPreserveConversationStateOnBootstrapFailure(
                         error = error,
                         forceReloadState = forceReloadState,
                         preBootstrapState = preBootstrapState,
@@ -438,7 +438,7 @@ internal class AiChatBootstrapCoordinator(
                             isLiveAttached = false,
                             draftMessage = preBootstrapState.draftMessage,
                             pendingAttachments = preBootstrapState.pendingAttachments,
-                            ankiImportRequest = preBootstrapState.ankiImportRequest,
+                            importRequest = preBootstrapState.importRequest,
                             composerPhase = preBootstrapState.composerPhase,
                             dictationState = preBootstrapState.dictationState,
                             serverComposerSuggestions = preBootstrapState.serverComposerSuggestions,
@@ -468,7 +468,7 @@ internal class AiChatBootstrapCoordinator(
                         isLiveAttached = false,
                         draftMessage = draftStateToPreserve?.draftMessage ?: "",
                         pendingAttachments = draftStateToPreserve?.pendingAttachments ?: emptyList(),
-                        ankiImportRequest = draftStateToPreserve?.ankiImportRequest,
+                        importRequest = draftStateToPreserve?.importRequest,
                         serverComposerSuggestions = emptyList(),
                         composerPhase = AiComposerPhase.IDLE,
                         dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
@@ -732,14 +732,14 @@ internal class AiChatBootstrapCoordinator(
                 move.storedDraft ?: AiChatDraftState(
                     draftMessage = state.draftMessage,
                     pendingAttachments = state.pendingAttachments,
-                    ankiImportRequest = state.ankiImportRequest
+                    importRequest = state.importRequest
                 )
             }?.takeIf { draft ->
-                draftState?.ankiImportRequest == null && draft.ankiImportRequest == null &&
+                draftState?.importRequest == null && draft.importRequest == null &&
                     (draft.draftMessage.isNotBlank() || draft.pendingAttachments.isNotEmpty())
             }
             didMoveDraft = movedDraft != null
-            if (draftMove != null && draftState?.ankiImportRequest != null && draftMove.storedDraft == null) {
+            if (draftMove != null && draftState?.importRequest != null && draftMove.storedDraft == null) {
                 sourceStateToPreserve = state
             }
             val composerDraft = movedDraft ?: draftState?.forSession(workspaceId = workspaceId, sessionId = resolvedSessionId)
@@ -767,10 +767,10 @@ internal class AiChatBootstrapCoordinator(
                     } else {
                         composerDraft?.pendingAttachments ?: emptyList()
                     },
-                    ankiImportRequest = if (preserveLocalComposerState) {
-                        state.ankiImportRequest
+                    importRequest = if (preserveLocalComposerState) {
+                        state.importRequest
                     } else {
-                        composerDraft?.ankiImportRequest
+                        composerDraft?.importRequest
                     },
                     composerPhase = if (response.activeRun != null) {
                         AiComposerPhase.RUNNING

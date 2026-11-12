@@ -1,4 +1,5 @@
 import {
+  buildLibraryAiImportRoute,
   cardsRoute,
   catalogImportRoutePrefix,
   chatRoute,
@@ -6,7 +7,6 @@ import {
   friendInviteRoutePrefix,
   legacySettingsLibraryRoutes,
   libraryAnkiExportRoute,
-  libraryAnkiImportRoute,
   libraryDecksRoute,
   libraryExportRoute,
   libraryImportRoute,
@@ -23,6 +23,7 @@ import {
   shareRoute,
   splitWorkspaceRoutePath,
 } from "../routes";
+import { aiImportSources } from "../screens/settings/workspace/packages/aiImportSources";
 import type { AnalyticsSurface } from "./events";
 
 /**
@@ -140,7 +141,7 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
     pathname === libraryRoute
     || pathname === libraryImportRoute
     || pathname === libraryNibomoImportRoute
-    || pathname === libraryAnkiImportRoute
+    || aiImportSources.some((source) => pathname === buildLibraryAiImportRoute(source.id))
     || pathname === librarySpreadsheetImportRoute
     || pathname === libraryExportRoute
     || pathname === libraryNibomoExportRoute

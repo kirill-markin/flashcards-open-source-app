@@ -59,7 +59,7 @@ export const chatSandboxTransferErrorType = "PresignedTransferError";
 /** The `errorType` of a call that failed to upload one of the files it wrote. */
 export const chatSandboxUploadErrorType = "ChatSandboxUploadError";
 
-/** The media types `apps/backend/src/chat/attachmentPolicy.ts` must give `.zip` and `.apkg` attachments. */
+/** The media types `apps/backend/src/chat/attachmentPolicy.ts` must give ZIP archives and Anki packages. */
 export const chatFileZipMediaType = "application/zip";
 export const chatFileApkgMediaType = "application/apkg";
 

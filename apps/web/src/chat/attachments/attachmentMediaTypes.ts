@@ -1,9 +1,10 @@
-export const ANKI_CHAT_ATTACHMENT_MEDIA_TYPE = "application/apkg";
+const ANKI_CHAT_ATTACHMENT_MEDIA_TYPE = "application/apkg";
 
 // Mirrors apps/backend/src/chat/attachmentPolicy.ts; the backend unpacks ZIP and APKG only under these exact
 // media types.
 const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
   apkg: ANKI_CHAT_ATTACHMENT_MEDIA_TYPE,
+  colpkg: ANKI_CHAT_ATTACHMENT_MEDIA_TYPE,
   csv: "text/csv",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   html: "text/html",
@@ -11,6 +12,8 @@ const canonicalFileMediaTypeByExtension: Readonly<Record<string, string>> = {
   json: "application/json",
   log: "text/plain",
   md: "text/markdown",
+  mochi: "application/zip",
+  ofc: "application/zip",
   pdf: "application/pdf",
   py: "text/x-python",
   sql: "text/plain",

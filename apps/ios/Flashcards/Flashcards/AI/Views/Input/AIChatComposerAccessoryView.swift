@@ -117,11 +117,11 @@ extension AIChatView {
                     }
                 }
 
-                if self.chatStore.isAnkiImportDraftBlocked {
+                if self.chatStore.isAIImportDraftBlocked {
                     Text(
                         aiSettingsLocalized(
-                            "ai.composer.ankiImport.unconfirmed",
-                            "Couldn’t confirm the Anki import. Check this chat and your Library before starting another import."
+                            "ai.composer.aiImport.unconfirmed",
+                            "Couldn’t confirm the import. Check this chat and your Library before starting another import."
                         )
                     )
                     .font(.footnote)
