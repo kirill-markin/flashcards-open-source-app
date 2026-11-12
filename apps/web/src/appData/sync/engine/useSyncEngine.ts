@@ -13,7 +13,6 @@ import { combineAbortSignals } from "../../../abortSignals";
 import {
   isAuthRedirectError,
 } from "../../../api";
-import { reconcileCardMaintenance } from "../../../api/endpoints/cardMaintenance";
 import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import {
   isIndexedDbOpenRecoveryFailureMark,
@@ -103,13 +102,11 @@ import {
 import { useMediaUploadLifecycle } from "./useMediaUploadLifecycle";
 import {
   WorkspaceMaintenancePendingError,
-  clearPendingWorkspaceMaintenance,
-  hasPendingWorkspaceMaintenance,
-  readPendingWorkspaceMaintenance,
   runWithExclusiveWorkspaceMaintenance,
   runWithWorkspaceSyncLock,
   runWithWorkspaceWriteLock,
 } from "./workspaceMaintenanceLock";
+import { hasPendingWorkspaceMaintenance, readWorkspaceMaintenanceRecovery } from "./workspaceMaintenanceProtocol";
 
 type UseSyncEngineParams = Readonly<{
   onReviewSaved: (userId: string) => Promise<void>;
@@ -772,13 +769,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         syncInstallationId = installationId;
         const pendingMaintenance = session.browserGuestCapabilities?.isGuest === true
           ? null
-          : readPendingWorkspaceMaintenance(owner);
+          : readWorkspaceMaintenanceRecovery(owner);
         if (pendingMaintenance?.stage === "unresolved") {
           hasUnresolvedMaintenance = true;
-          // A pull can reach the server before the lost execute request takes the workspace lock.
-          const isSettled = await waitForRecoveryGuardedSyncPhase(
-            reconcileCardMaintenance(workspaceId, session.userId, pendingMaintenance.previewFingerprint, syncSignal),
-          );
+          const isSettled = await waitForRecoveryGuardedSyncPhase(pendingMaintenance.reconcile(syncSignal));
           requireCurrentWorkspaceSync(workspaceId);
           if (!isSettled) throw new WorkspaceMaintenancePendingError(maintenanceOutcomeUnknownMessage);
         }
@@ -838,7 +832,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         observeSyncSuccess(workspaceId);
         if (session.browserGuestCapabilities?.isGuest === true) markBrowserGuestHydrated(session.userId);
         runMediaUploadTransfersForWorkspace(workspace);
-        if (pendingMaintenance !== null) clearPendingWorkspaceMaintenance(owner);
+        pendingMaintenance?.retireAfterSync();
         return "completed";
       } catch (error) {
         // Set on every failure and discard, never re-read here, so offline ticks never rebuild.
@@ -1227,7 +1221,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         mutationTask = runWithWorkspaceWriteLock(owner, async () => {
           requireLocalWorkspaceMutationReady();
           requireWorkspaceSyncNotDiscarded(activeWorkspaceId, mutationSyncGeneration, mutationWorkspaceGeneration);
-          const pendingMaintenance = readPendingWorkspaceMaintenance(owner);
+          const pendingMaintenance = readWorkspaceMaintenanceRecovery(owner);
           if (pendingMaintenance !== null) {
             if (activeWorkspace !== null) runSyncInBackground(runSyncForWorkspaceOnStartup(activeWorkspace));
             throw new WorkspaceMaintenancePendingError(pendingMaintenance.stage === "unresolved"
