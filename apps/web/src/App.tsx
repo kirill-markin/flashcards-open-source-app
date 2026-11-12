@@ -52,8 +52,8 @@ import {
   legacySettingsExportRoute,
   legacySettingsImportRoute,
   legacySettingsTagsRoute,
+  buildLibraryAiImportRoute,
   libraryAnkiExportRoute,
-  libraryAnkiImportRoute,
   libraryDeckNewRoute,
   libraryDecksRoute,
   libraryExportRoute,
@@ -110,6 +110,7 @@ import { LibraryScreen } from "./screens/library/LibraryScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
+import { aiImportSources } from "./screens/settings/workspace/packages/aiImportSources";
 import { WorkspacePackageImportProvider } from "./screens/settings/workspace/packages/WorkspacePackageImportContext";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
@@ -268,8 +269,8 @@ const WorkspaceAnkiExportScreen = lazy(async () => import("./screens/settings/wo
 const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
 })));
-const WorkspaceAnkiImport = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceAnkiImport").then((module) => ({
-  default: module.WorkspaceAnkiImport,
+const WorkspaceAiImport = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceAiImport").then((module) => ({
+  default: module.WorkspaceAiImport,
 })));
 const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceImportScreen").then((module) => ({
   default: module.WorkspaceImportScreen,
@@ -1117,7 +1118,13 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${cardsRoute}/:cardId`} element={<CardFormScreen />} />
           <Route path={`${workspaceRoutePattern}${libraryImportRoute}`} element={<LibraryImportScreen />} />
           <Route path={`${workspaceRoutePattern}${libraryNibomoImportRoute}`} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
-          <Route path={`${workspaceRoutePattern}${libraryAnkiImportRoute}`} element={renderDeferredRoute(<WorkspaceAnkiImport />, "loading.importSettings")} />
+          {aiImportSources.map((source) => (
+            <Route
+              key={source.id}
+              path={`${workspaceRoutePattern}${buildLibraryAiImportRoute(source.id)}`}
+              element={renderDeferredRoute(<WorkspaceAiImport key={source.id} source={source} />, "loading.importSettings")}
+            />
+          ))}
           <Route path={`${workspaceRoutePattern}${librarySpreadsheetImportRoute}`} element={renderDeferredRoute(<WorkspaceTextImportScreen />, "loading.importSettings")} />
           <Route path={`${workspaceRoutePattern}${libraryExportRoute}`} element={<LibraryExportScreen />} />
           <Route path={`${workspaceRoutePattern}${libraryNibomoExportRoute}`} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />

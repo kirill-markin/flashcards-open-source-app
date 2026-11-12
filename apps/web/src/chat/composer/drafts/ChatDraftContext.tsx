@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../../appData";
-import { ANKI_CHAT_ATTACHMENT_MEDIA_TYPE } from "../../attachments/attachmentMediaTypes";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import {
   areChatDraftContentsEqual,
@@ -69,6 +68,7 @@ type SessionBoundDraft = Readonly<{
   workspaceId: string;
   sessionId: string;
   originalImportPrompt: string;
+  originalImportAttachments: ReadonlyArray<PendingAttachment>;
   lastRequest: Readonly<{ id: string; content: ChatDraftContent }> | null;
   draft: StoredChatDraft;
 }>;
@@ -215,9 +215,9 @@ export function ChatDraftProvider(props: Props): ReactElement {
         return;
       }
 
-      const hasAnkiFiles = nextDraft.pendingAttachments.some((attachment) =>
-        attachment.type === "binary" && attachment.mediaType === ANKI_CHAT_ATTACHMENT_MEDIA_TYPE);
-      if (hasAnkiFiles || nextDraft.inputText.trim() === currentSessionBoundDraft.originalImportPrompt) {
+      const hasImportAttachments = nextDraft.pendingAttachments.some((attachment) =>
+        currentSessionBoundDraft.originalImportAttachments.includes(attachment));
+      if (hasImportAttachments || nextDraft.inputText.trim() === currentSessionBoundDraft.originalImportPrompt) {
         updateSessionBoundDraft({ ...currentSessionBoundDraft, draft: createUpdatedChatDraft(nextDraft) });
         return;
       }
@@ -256,6 +256,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
       workspaceId: activeWorkspaceId,
       sessionId,
       originalImportPrompt: content.inputText.trim(),
+      originalImportAttachments: content.pendingAttachments,
       lastRequest: null,
       draft,
     });

@@ -19,7 +19,8 @@ import type {
   WorkspaceResetProgressPreview,
 } from "../../../../types";
 import { LibraryImportScreen } from "../../../library/LibraryImportScreen";
-import { WorkspaceAnkiImport } from "./WorkspaceAnkiImport";
+import { aiImportSources } from "./aiImportSources";
+import { WorkspaceAiImport } from "./WorkspaceAiImport";
 import { WorkspaceImportScreen } from "./WorkspaceImportScreen";
 import { WorkspacePackageImportProvider } from "./WorkspacePackageImportContext";
 import { WorkspaceTextImportScreen } from "./WorkspaceTextImportScreen";
@@ -441,33 +442,35 @@ function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
 }
 
 describe("WorkspaceImportScreen package import", () => {
-  it("links to each dedicated form in Nibomo, Anki, and spreadsheet order", async () => {
+  it("links to each dedicated form in brand, then Nibomo and spreadsheet order", async () => {
     await renderScreen(<LibraryImportScreen />);
 
-    const menu = requireElement("[data-testid='library-import-formats']", HTMLElement);
-    const rows = Array.from(menu.querySelectorAll("a[data-testid]"), (row) => row.getAttribute("href"));
+    const rows = Array.from(getContainer().querySelectorAll(
+      "[data-testid='library-import-apps'] a[data-testid], [data-testid='library-import-formats'] a[data-testid]",
+    ), (row) => row.getAttribute("href"));
     expect(rows).toEqual([
+      ...["quizlet", "anki", "noji", "knowt", "remnote", "brainscape", "studysmarter", "cram", "mochi", "supermemo", "ankiapp", "other"]
+        .map((sourceId) => `/w/workspace-1/library/import/${sourceId}`),
       "/w/workspace-1/library/import/nibomo",
-      "/w/workspace-1/library/import/anki",
       "/w/workspace-1/library/import/spreadsheet",
     ]);
     expect(getContainer().querySelector("[data-testid='workspace-text-import-editor']")).toBeNull();
     expect(getContainer().querySelector("[data-testid='workspace-package-import-card']")).toBeNull();
-    expect(getContainer().querySelector("[data-testid='workspace-anki-import-card']")).toBeNull();
+    expect(getContainer().querySelector("[data-testid='workspace-ai-import-card']")).toBeNull();
   });
 
   it.each([
-    {
-      form: WorkspaceAnkiImport,
-      container: "workspace-anki-import-card",
-      control: "workspace-anki-import-select",
-    },
+    ...aiImportSources.filter((source) => source.id === "anki" || source.id === "quizlet").map((source) => ({
+      form: () => <WorkspaceAiImport source={source} />,
+      container: "workspace-ai-import-card",
+      control: source.inputKind === "text" ? "workspace-ai-import-text-input" : "workspace-ai-import-select",
+    })),
     {
       form: WorkspaceTextImportScreen,
       container: "workspace-text-import-editor",
       control: "workspace-text-import-input",
     },
-  ])("shows session restoration while $container is disabled", async ({ form: Form, container, control }) => {
+  ])("shows session restoration while $control is disabled", async ({ form: Form, container, control }) => {
     const appData = getAppData();
     appData.isSessionVerified = false;
     appData.sessionVerificationState = "unverified";

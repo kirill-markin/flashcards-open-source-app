@@ -283,7 +283,7 @@ export function ChatPanel(props: Props): ReactElement {
   const aiImportTarget = mode === "fullscreen" ? aiImportHandoff?.target ?? null : null;
   const isAiImportTargetActive = aiImportTarget !== null && aiImportTarget.workspaceId === activeWorkspaceId
     && aiImportTarget.sessionId === currentSessionId;
-  const aiImportRestartMessage = isAiImportRestartRequired ? t("workspaceImport.anki.chatChanged") : null;
+  const aiImportRestartMessage = isAiImportRestartRequired ? t("workspaceImport.ai.chatChanged") : null;
   const visibleErrorDialogMessage = errorDialogMessage ?? aiImportRestartMessage;
 
   async function runPendingMessageSend(requiredSessionId: string | null): Promise<void> {
