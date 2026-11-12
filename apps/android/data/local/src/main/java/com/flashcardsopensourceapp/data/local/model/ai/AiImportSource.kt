@@ -12,7 +12,7 @@ sealed interface AiImportSourceInput {
 }
 
 /**
- * The apps Library > Import offers to import from through AI chat, in the order the list shows them.
+ * Keep a row per source brand even when file formats overlap. Every row hands off to the same AI import flow.
  * [brandName] is never translated and is null only for the catch-all row.
  */
 enum class AiImportSource(
@@ -72,7 +72,7 @@ enum class AiImportSource(
     ),
     ANKIAPP(
         id = "ankiapp",
-        brandName = "AnkiApp",
+        brandName = "AlgoApp (formerly AnkiApp)",
         input = AiImportSourceInput.Files(formats = ".zip, .xml", fileExtensions = setOf("zip", "xml"))
     ),
     OTHER(

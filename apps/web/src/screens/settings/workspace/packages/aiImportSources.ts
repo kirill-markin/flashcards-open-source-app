@@ -44,7 +44,9 @@ function fileSource(id: AiImportSourceId, brandName: string | null, extensions: 
   };
 }
 
-/** Library > Import rows that hand the chosen export to a fresh AI chat, in screen order (most popular first). */
+/**
+ * Keep a row per source brand even when file formats overlap. Every row hands off to the same AI import flow.
+ */
 export const aiImportSources: ReadonlyArray<AiImportSource> = [
   { id: "quizlet", inputKind: "text", brandName: "Quizlet" },
   fileSource("anki", "Anki", ["apkg", "colpkg"]),
@@ -56,7 +58,7 @@ export const aiImportSources: ReadonlyArray<AiImportSource> = [
   fileSource("cram", "Cram", ["csv"]),
   fileSource("mochi", "Mochi", ["mochi"]),
   fileSource("supermemo", "SuperMemo", ["xml"]),
-  fileSource("ankiapp", "AnkiApp", ["zip", "xml"]),
+  fileSource("ankiapp", "AlgoApp (formerly AnkiApp)", ["zip", "xml"]),
   {
     ...fileSource("other", null, ["csv", "txt", "xlsx", "xls", "pdf", "json", "xml", "md", "docx", "zip"]),
     formats: "CSV, TXT, XLSX, PDF",
