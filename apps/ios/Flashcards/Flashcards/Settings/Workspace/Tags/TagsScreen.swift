@@ -105,6 +105,7 @@ struct TagsScreen: View {
             topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isTagsOnLibraryPath }),
             isContentReady: self.isLoading == false
         )
+        .accessibilityIdentifier(UITestIdentifier.tagsScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(

@@ -1153,10 +1153,6 @@ const itCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Apri il {{side}} della carta nella chat AI",
     repetitionBadgeAriaLabel: "Ripetizioni: {{value}}",
     repetitionBadgeNew: "Nuova",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Altri tag: {{count}}",
-    },
     empty: {
       noCardsBody: "Non hai ancora creato nessuna carta. Aggiungi la tua prima carta per iniziare a studiare.",
       noCardsTitle: "Ancora nessuna carta",

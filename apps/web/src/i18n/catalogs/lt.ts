@@ -1162,10 +1162,6 @@ const ltCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Atidaryti kortelę DI pokalbyje: {{side}}",
     repetitionBadgeAriaLabel: "Pakartojimai: {{value}}",
     repetitionBadgeNew: "Nauja",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Daugiau žymų: {{count}}",
-    },
     empty: {
       noCardsBody: "Dar nesukūrėte nė vienos kortelės. Pridėkite pirmąją, kad pradėtumėte mokytis.",
       noCardsTitle: "Kortelių dar nėra",

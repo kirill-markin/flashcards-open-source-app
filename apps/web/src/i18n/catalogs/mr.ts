@@ -1153,10 +1153,6 @@ const mrCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "AI चॅटमध्ये कार्ड उघडा: {{side}}",
     repetitionBadgeAriaLabel: "पुनरावृत्ती: {{value}}",
     repetitionBadgeNew: "नवीन",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "आणखी टॅग: {{count}}",
-    },
     empty: {
       noCardsBody: "तुम्ही अद्याप कोणतीही कार्डे तयार केलेली नाहीत. अभ्यास सुरू करण्यासाठी पहिले कार्ड जोडा.",
       noCardsTitle: "अजून कार्डे नाहीत",

@@ -1153,10 +1153,6 @@ const viCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Mở {{side}} của thẻ trong trò chuyện AI",
     repetitionBadgeAriaLabel: "Số lần lặp: {{value}}",
     repetitionBadgeNew: "Mới",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Thêm nhãn: {{count}}",
-    },
     empty: {
       noCardsBody: "Bạn chưa tạo thẻ nào. Hãy thêm thẻ đầu tiên để bắt đầu học.",
       noCardsTitle: "Chưa có thẻ nào",

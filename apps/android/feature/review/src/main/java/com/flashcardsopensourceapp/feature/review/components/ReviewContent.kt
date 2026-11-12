@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -33,11 +36,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,8 +53,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,8 +78,7 @@ private val reviewEmptyStateMaxWidth = 420.dp
 // Every card, tagged or not, gets the standard Material chip height so the card never shifts between them.
 private val reviewMetadataLineMinHeight = AssistChipDefaults.Height
 private val reviewTagChipSpacing = 6.dp
-private val reviewEditButtonSize = 26.dp
-private val reviewEditIconSize = 14.dp
+private val reviewRepetitionIconSize = 16.dp
 private val reviewSpeechButtonSize = 32.dp
 private val reviewSpeechIconSize = 18.dp
 private val reviewCurrentCardCornerRadius = 12.dp
@@ -118,10 +120,12 @@ internal fun ReviewContent(
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
     onRequestTagFilter: (String) -> Unit,
+    onOpenTags: () -> Unit,
     modifier: Modifier,
     contentPadding: PaddingValues
 ) {
     val currentCard = uiState.preparedCurrentCard?.card
+    val contentEndPadding = contentPadding.calculateEndPadding(layoutDirection = LocalLayoutDirection.current)
     val presentedCardId: String? = if (uiState.isLoading) {
         null
     } else {
@@ -203,6 +207,8 @@ internal fun ReviewContent(
                         onToggleFrontSpeech = onToggleFrontSpeech,
                         onToggleBackSpeech = onToggleBackSpeech,
                         onRequestTagFilter = onRequestTagFilter,
+                        onOpenTags = onOpenTags,
+                        tagsEndBleed = contentEndPadding,
                         onSelectFrontText = {
                             textSelectionSide = ReviewTextSelectionSide.FRONT
                         },
@@ -324,60 +330,25 @@ private fun ReviewCardContent(
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
     onRequestTagFilter: (String) -> Unit,
+    onOpenTags: () -> Unit,
+    tagsEndBleed: Dp,
     onSelectFrontText: () -> Unit,
     onSelectBackText: () -> Unit,
     frontBringIntoViewRequester: BringIntoViewRequester,
     backBringIntoViewRequester: BringIntoViewRequester
 ) {
-    val context = LocalContext.current
-    val locale = currentResourceLocale(resources = context.resources)
-
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = reviewMetadataLineMinHeight)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                key(currentCard.card.cardId) {
-                    ReviewCardTags(
-                        tags = currentCard.card.tags,
-                        noTagsLabel = currentCard.tagsLabel,
-                        onRequestTagFilter = onRequestTagFilter,
-                        modifier = Modifier.weight(weight = 1f, fill = false)
-                    )
-                }
-                ReviewRepetitionPill(
-                    reps = currentCard.card.reps,
-                    formattedReps = NumberFormat.getIntegerInstance(locale).format(currentCard.card.reps)
-                )
-            }
-
-            FilledIconButton(
-                onClick = onOpenCurrentCard,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                modifier = Modifier
-                    .size(reviewEditButtonSize)
-                    .testTag(reviewEditCardButtonTag)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = stringResource(id = R.string.review_edit_card_content_description),
-                    modifier = Modifier.size(reviewEditIconSize)
-                )
-            }
+        key(currentCard.card.cardId) {
+            ReviewCardTags(
+                tags = currentCard.card.tags,
+                noTagsLabel = currentCard.tagsLabel,
+                endBleed = tagsEndBleed,
+                onOpenTags = onOpenTags,
+                onRequestTagFilter = onRequestTagFilter
+            )
         }
 
         Card(
@@ -407,6 +378,8 @@ private fun ReviewCardContent(
                     isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.FRONT,
                     onToggleSpeech = onToggleFrontSpeech,
                     showSpeechButton = currentCard.frontSpeakableText.isNotEmpty(),
+                    repetitionCount = currentCard.card.reps,
+                    onEditCard = onOpenCurrentCard,
                     showAiButton = false,
                     onOpenAi = null
                 )
@@ -429,6 +402,8 @@ private fun ReviewCardContent(
                         isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.BACK,
                         onToggleSpeech = onToggleBackSpeech,
                         showSpeechButton = currentCard.backSpeakableText.isNotEmpty(),
+                        repetitionCount = null,
+                        onEditCard = null,
                         showAiButton = true,
                         onOpenAi = onOpenCurrentCardWithAi
                     )
@@ -438,8 +413,9 @@ private fun ReviewCardContent(
     }
 }
 
+/** Card metadata set in the side label's style, so it sits on the label line without making it taller. */
 @Composable
-private fun ReviewRepetitionPill(
+private fun ReviewRepetitionCount(
     reps: Int,
     formattedReps: String
 ) {
@@ -453,29 +429,24 @@ private fun ReviewRepetitionPill(
         id = R.string.review_repetition_content_description,
         displayedReps
     )
-    Surface(
-        shape = RoundedCornerShape(percent = 50),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.clearAndSetSemantics {
             contentDescription = repetitionContentDescription
         }
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Autorenew,
-                contentDescription = null,
-                modifier = Modifier.size(reviewMetadataIconSize)
-            )
-            Text(
-                text = displayedReps,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.Autorenew,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(reviewRepetitionIconSize)
+        )
+        Text(
+            text = displayedReps,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -495,6 +466,8 @@ private fun ReviewCardSideSection(
     isSpeechPlaying: Boolean,
     onToggleSpeech: () -> Unit,
     showSpeechButton: Boolean,
+    repetitionCount: Int?,
+    onEditCard: (() -> Unit)?,
     showAiButton: Boolean,
     onOpenAi: (() -> Unit)?
 ) {
@@ -520,16 +493,29 @@ private fun ReviewCardSideSection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = sectionModifier.fillMaxWidth()
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = labelModifier
-                .clickable(role = Role.Button, onClick = onSelectText)
-                .semantics {
-                    contentDescription = selectTextContentDescription
-                }
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = labelModifier
+                    .clickable(role = Role.Button, onClick = onSelectText)
+                    .semantics {
+                        contentDescription = selectTextContentDescription
+                    }
+            )
+            if (repetitionCount != null) {
+                Spacer(modifier = Modifier.weight(1f))
+                ReviewRepetitionCount(
+                    reps = repetitionCount,
+                    formattedReps = NumberFormat.getIntegerInstance(locale).format(repetitionCount)
+                )
+            }
+        }
         key(cardId) {
             SelectionContainer {
                 ReviewRenderedContentView(
@@ -607,6 +593,25 @@ private fun ReviewCardSideSection(
                 }
             }
 
+            if (onEditCard != null) {
+                FilledIconButton(
+                    onClick = onEditCard,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier
+                        .size(reviewSpeechButtonSize)
+                        .testTag(reviewEditCardButtonTag)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = stringResource(id = R.string.review_edit_card_content_description),
+                        modifier = Modifier.size(reviewSpeechIconSize)
+                    )
+                }
+            }
+
             if (showAiButton) {
                 val openAi = checkNotNull(onOpenAi)
                 FilledIconButton(
@@ -631,68 +636,60 @@ private fun ReviewCardSideSection(
     }
 }
 
+/** The tags button stays put while the card's tag chips scroll beside it. */
 @Composable
 private fun ReviewCardTags(
     tags: List<String>,
     noTagsLabel: String,
-    onRequestTagFilter: (String) -> Unit,
-    modifier: Modifier
+    endBleed: Dp,
+    onOpenTags: () -> Unit,
+    onRequestTagFilter: (String) -> Unit
 ) {
-    if (tags.isEmpty()) {
-        ReviewMetadataItem(
-            icon = Icons.AutoMirrored.Outlined.Label,
-            label = noTagsLabel,
-            modifier = modifier
-        )
-        return
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(reviewTagChipSpacing),
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.Label,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(reviewMetadataIconSize)
-        )
-        // Without this the 48dp minimum would grow the line past the 32dp chip; hit testing still expands taps to 48dp.
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-            ReviewCardTagChipRow(
-                tags = tags,
-                spacing = reviewTagChipSpacing,
-                onRequestTagFilter = onRequestTagFilter,
+    // Without this the 48dp minimum would grow the line past the 32dp chip; hit testing still expands taps to 48dp.
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(reviewTagChipSpacing),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = reviewMetadataLineMinHeight)
+        ) {
+            IconButton(
+                onClick = onOpenTags,
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                // The line keeps only the glyph's width, so the glyph sits on the content edge as the card's text does;
+                // the chip-high button overflows it evenly.
                 modifier = Modifier
-            )
+                    .width(reviewMetadataIconSize)
+                    .requiredSize(reviewMetadataLineMinHeight)
+                    .testTag(reviewTagsButtonTag)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Label,
+                    contentDescription = stringResource(id = R.string.review_tags_title),
+                    modifier = Modifier.size(reviewMetadataIconSize)
+                )
+            }
+            if (tags.isEmpty()) {
+                Text(
+                    text = noTagsLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                ReviewCardTagChipRow(
+                    tags = tags,
+                    spacing = reviewTagChipSpacing,
+                    endBleed = endBleed,
+                    onRequestTagFilter = onRequestTagFilter,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
-    }
-}
-
-@Composable
-private fun ReviewMetadataItem(
-    icon: ImageVector,
-    label: String,
-    modifier: Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(reviewMetadataIconSize)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }

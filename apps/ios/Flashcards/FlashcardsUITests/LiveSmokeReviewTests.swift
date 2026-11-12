@@ -21,6 +21,19 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     func testLiveSmokeGuestAiCardReviewFlow() throws {
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
 
+        try self.step("open Library Tags from the review card's tag button") {
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewCardTagsButton,
+                timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.tagsScreen,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+
         try self.step("review the guest AI card") {
             try self.reviewCurrentCard(
                 expectedFrontText: LiveSmokeLaunchFixtureData.aiReviewFrontText

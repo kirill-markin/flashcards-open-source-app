@@ -1162,10 +1162,6 @@ const skCatalog: TranslationCatalog = {
     aiOpenAriaLabel: "Otvoriť kartu ({{side}}) v AI chate",
     repetitionBadgeAriaLabel: "Opakovania: {{value}}",
     repetitionBadgeNew: "Nová",
-    moreTags: {
-      label: "+{{count}}",
-      ariaLabel: "Ďalšie značky: {{count}}",
-    },
     empty: {
       noCardsBody: "Zatiaľ ste nevytvorili žiadne karty. Pridajte prvú kartu a začnite sa učiť.",
       noCardsTitle: "Zatiaľ žiadne karty",

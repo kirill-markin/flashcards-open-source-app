@@ -40,6 +40,20 @@ export function ReviewEyeIcon(): ReactElement {
   );
 }
 
+export function ReviewTagIcon(): ReactElement {
+  return (
+    <svg className="review-tag-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M3.5 4.9V11.4C3.5 11.8 3.66 12.2 3.94 12.5L11.5 20.06C12.09 20.65 13.04 20.65 13.62 20.06L20.06 13.62C20.65 13.04 20.65 12.09 20.06 11.5L12.5 3.94C12.2 3.66 11.8 3.5 11.4 3.5H4.9C4.13 3.5 3.5 4.13 3.5 4.9Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="8" cy="8" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 function ReviewAgainIcon(): ReactElement {
   return (
     <ReviewCircleFillIcon className="review-btn-icon review-btn-icon-again">
