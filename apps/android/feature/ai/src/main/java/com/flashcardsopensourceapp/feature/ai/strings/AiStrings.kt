@@ -474,7 +474,7 @@ fun testAiTextProvider(): AiTextProvider {
         attachmentUploadNotFound = "An attached file was not found on the server: its upload failed or expired. Send the message again.",
         attachmentFileMissing = "An attached file is no longer on this device. Remove it, attach it again, then send the message.",
         attachmentUnsupportedTitle = "Unsupported file type",
-        attachmentUnsupportedMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again.",
+        attachmentUnsupportedMessage = "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC, or an image, then try again.",
         requestTooLargeTitle = "Message is too large",
         requestTooLargeMessage = "AI chat can’t send this much content at once. Remove one or more attachments, choose a smaller file or photo, or split the request and try again.",
         serverChatOfficialUnavailable = "AI is temporarily unavailable on the official server. Try again later.",

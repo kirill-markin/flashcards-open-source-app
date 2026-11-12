@@ -1537,7 +1537,7 @@ const csCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "Obrázky jsou na jednu zprávu v chatu s AI příliš velké: dohromady mohou mít nejvýše {{limit}} MB. Pošlete některé z nich v další zprávě.",
       attachmentLimit: "Zpráva je příliš velká. Chat s AI nemůže odeslat tolik obsahu najednou. Odeberte jednu či více příloh, vyberte menší soubor nebo fotku nebo rozdělte požadavek a zkuste to znovu.",
       attachmentTooLarge: "Tento soubor je pro chat s AI příliš velký. Soubory mohou mít nejvýše {{fileLimit}} MB a obrázky nejvýše {{imageLimit}} MB. Vyberte menší soubor a zkuste to znovu.",
-      attachmentUnsupported: "Tento typ souboru není v chatu s AI podporován. Odeberte soubor nebo jej uložte jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG nebo obrázek a zkuste to znovu.",
+      attachmentUnsupported: "Tento typ souboru není v chatu s AI podporován. Odeberte soubor nebo jej uložte jako PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC nebo obrázek a zkuste to znovu.",
       attachmentUploadFailed: "Přílohu se nepodařilo nahrát. Zkontrolujte připojení a zkuste to znovu.",
       attachmentsTooMany: "Jedna zpráva v chatu s AI může obsahovat nejvýše {{limit}} souborů a obrázků. Zbytek pošlete v další zprávě.",
       microphoneUnavailable: "Nahrávání z mikrofonu není v tomto prohlížeči dostupné.",

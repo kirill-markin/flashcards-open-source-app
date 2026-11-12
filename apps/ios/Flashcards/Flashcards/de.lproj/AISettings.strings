@@ -67,7 +67,7 @@
 "ai.error.requestTooLarge.title" = "Nachricht ist zu groß";
 "ai.error.requestTooLarge.message" = "Der KI-Chat kann nicht so viel Inhalt auf einmal senden. Entferne einen oder mehrere Anhänge, wähle eine kleinere Datei oder ein kleineres Foto, oder teile die Anfrage auf und versuche es erneut.";
 "ai.error.attachmentUnsupported.title" = "Nicht unterstützter Dateityp";
-"ai.error.attachmentUnsupported.message" = "Dieser Dateityp wird im KI-Chat nicht unterstützt. Entferne die Datei oder speichere sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG oder Bild und versuche es erneut.";
+"ai.error.attachmentUnsupported.message" = "Dieser Dateityp wird im KI-Chat nicht unterstützt. Entferne die Datei oder speichere sie als PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC oder Bild und versuche es erneut.";
 "ai.error.limitReached" = "Dein KI-Limit für diesen Monat ist aufgebraucht. Es wird zu Beginn des nächsten Monats zurückgesetzt.";
 "ai.error.summary.couldNotContinue" = "KI-Antwort konnte nicht fortgesetzt werden";
 "ai.error.summary.invalidResponse" = "Es wurde eine ungültige KI-Antwort empfangen";

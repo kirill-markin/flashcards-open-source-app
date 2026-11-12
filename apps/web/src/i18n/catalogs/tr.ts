@@ -1526,7 +1526,7 @@ const trCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "Görseller tek bir AI sohbeti mesajı için çok büyük: toplamda en fazla {{limit}} MB olabilir. Bazılarını başka bir mesajda gönderin.",
       attachmentLimit: "Mesaj çok büyük. AI sohbeti bu kadar içeriği tek seferde gönderemez. Bir veya daha fazla eki kaldırın, daha küçük bir dosya ya da fotoğraf seçin veya isteği bölüp tekrar deneyin.",
       attachmentTooLarge: "Bu dosya AI sohbeti için çok büyük. Dosyalar en fazla {{fileLimit}} MB, görseller en fazla {{imageLimit}} MB olabilir. Daha küçük bir dosya seçip tekrar deneyin.",
-      attachmentUnsupported: "Bu dosya türü AI sohbetinde desteklenmiyor. Dosyayı kaldırın veya PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ya da bir görsel olarak kaydedip tekrar deneyin.",
+      attachmentUnsupported: "Bu dosya türü AI sohbetinde desteklenmiyor. Dosyayı kaldırın veya PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC ya da bir görsel olarak kaydedip tekrar deneyin.",
       attachmentUploadFailed: "Ek yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
       attachmentsTooMany: "Bir AI sohbeti mesajında en fazla {{limit}} dosya ve görsel olabilir. Kalanları başka bir mesajda gönderin.",
       microphoneUnavailable: "Bu tarayıcıda mikrofon kaydı kullanılamıyor.",

@@ -1526,7 +1526,7 @@ const heCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "התמונות גדולות מדי להודעה אחת בצ'אט AI: יחד הן יכולות להגיע עד {{limit}} MB. שלח חלק מהן בהודעה אחרת.",
       attachmentLimit: "ההודעה גדולה מדי. צ'אט AI לא יכול לשלוח כל כך הרבה תוכן בבת אחת. הסר קובץ מצורף אחד או יותר, בחר קובץ או תמונה קטנים יותר, או פצל את הבקשה ונסה שוב.",
       attachmentTooLarge: "הקובץ הזה גדול מדי לצ'אט AI. קבצים יכולים להגיע עד {{fileLimit}} MB ותמונות עד {{imageLimit}} MB. בחר קובץ קטן יותר ונסה שוב.",
-      attachmentUnsupported: "סוג הקובץ הזה אינו נתמך בצ'אט AI. הסר את הקובץ או שמור אותו כ-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG או כתמונה, ואז נסה שוב.",
+      attachmentUnsupported: "סוג הקובץ הזה אינו נתמך בצ'אט AI. הסר את הקובץ או שמור אותו כ-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC או כתמונה, ואז נסה שוב.",
       attachmentUploadFailed: "לא ניתן היה להעלות את הקובץ המצורף. בדוק את החיבור ונסה שוב.",
       attachmentsTooMany: "הודעה אחת בצ'אט AI יכולה לכלול עד {{limit}} קבצים ותמונות. שלח את השאר בהודעה אחרת.",
       microphoneUnavailable: "הקלטה במיקרופון אינה זמינה בדפדפן הזה.",

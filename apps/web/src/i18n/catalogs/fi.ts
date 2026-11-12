@@ -1526,7 +1526,7 @@ const fiCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "Kuvat ovat liian suuria yhteen tekoälykeskustelun viestiin: yhteensä ne voivat olla enintään {{limit}} Mt. Lähetä osa niistä toisessa viestissä.",
       attachmentLimit: "Viesti on liian suuri. Tekoälykeskustelu ei voi lähettää näin paljon sisältöä kerralla. Poista yksi tai useampi liite, valitse pienempi tiedosto tai kuva tai jaa pyyntö osiin ja yritä uudelleen.",
       attachmentTooLarge: "Tiedosto on liian suuri tekoälykeskusteluun. Tiedostot voivat olla enintään {{fileLimit}} Mt ja kuvat enintään {{imageLimit}} Mt. Valitse pienempi tiedosto ja yritä uudelleen.",
-      attachmentUnsupported: "Tätä tiedostotyyppiä ei tueta tekoälykeskustelussa. Poista tiedosto tai tallenna se muodossa PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG tai kuvana ja yritä uudelleen.",
+      attachmentUnsupported: "Tätä tiedostotyyppiä ei tueta tekoälykeskustelussa. Poista tiedosto tai tallenna se muodossa PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC tai kuvana ja yritä uudelleen.",
       attachmentUploadFailed: "Liitteen lataaminen epäonnistui. Tarkista yhteys ja yritä uudelleen.",
       attachmentsTooMany: "Yksi tekoälykeskustelun viesti voi sisältää enintään {{limit}} tiedostoa ja kuvaa. Lähetä loput toisessa viestissä.",
       microphoneUnavailable: "Mikrofonilla nauhoittaminen ei ole käytettävissä tässä selaimessa.",

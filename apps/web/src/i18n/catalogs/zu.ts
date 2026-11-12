@@ -1526,7 +1526,7 @@ const zuCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "Izithombe zinkulu kakhulu kumlayezo owodwa wengxoxo ye-AI: zizonke zingaba ngu-{{limit}} MB kuphela. Thumela ezinye zazo komunye umlayezo.",
       attachmentLimit: "Umlayezo mkhulu kakhulu. Ingxoxo ye-AI ayikwazi ukuthumela okuqukethwe okungaka ngesikhathi esisodwa. Susa okunamathiselwe okukodwa noma ngaphezulu, khetha ifayela noma isithombe esincane, noma uhlukanise isicelo bese uzama futhi.",
       attachmentTooLarge: "Leli fayela likhulu kakhulu engxoxweni ye-AI. Amafayela angaba ngu-{{fileLimit}} MB kuphela, izithombe zibe ngu-{{imageLimit}} MB kuphela. Khetha ifayela elincane bese uzama futhi.",
-      attachmentUnsupported: "Lolu hlobo lwefayela alusekelwa engxoxweni ye-AI. Susa ifayela noma ulilondoloze njenge-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, noma isithombe, bese uzama futhi.",
+      attachmentUnsupported: "Lolu hlobo lwefayela alusekelwa engxoxweni ye-AI. Susa ifayela noma ulilondoloze njenge-PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC, noma isithombe, bese uzama futhi.",
       attachmentUploadFailed: "Ayikwazanga ukulayisha okunamathiselwe. Hlola uxhumano lwakho bese uzama futhi.",
       attachmentsTooMany: "Umlayezo owodwa wengxoxo ye-AI ungaba namafayela nezithombe ezingu-{{limit}} kuphela. Thumela okusele komunye umlayezo.",
       microphoneUnavailable: "Ukuqopha ngemakrofoni akutholakali kulesi siphequluli.",
