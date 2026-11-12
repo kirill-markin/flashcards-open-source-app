@@ -1,5 +1,4 @@
 import { useState, type ReactElement } from "react";
-import { flushBeforeIdentityTeardown } from "../../../../analytics";
 import { buildLoginUrl } from "../../../../api";
 import { useAppData } from "../../../../appData";
 import { beginGuestSignIn } from "../../../../appData/session/guest/browserGuestConversion";
@@ -19,8 +18,6 @@ export function GuestSignIn(props: Readonly<{ label: string; testId: string; ret
         await beginGuestSignIn(session.userId, activeWorkspace.workspaceId, drainGuestWorkspace);
       }
       props.onStarted?.();
-      try { await flushBeforeIdentityTeardown(); }
-      catch { /* The analytics transport reports its own failure; departure must still complete. */ }
       window.location.assign(buildLoginUrl(props.returnUrl ?? window.location.origin + "/", locale));
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : String(failure);
