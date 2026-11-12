@@ -20,6 +20,14 @@ export type StoredStripePurchase = Readonly<{
   invalidated_at: Date | null;
   account_deleted_at: Date | null;
 }>;
+// Every column persistStripePurchaseInExecutor writes, to decide whether its upsert would change the row.
+export type ComparableStripePurchase = StoredStripePurchase & Readonly<{
+  environment: StripeEnvironment;
+  provider_purchase_id: string;
+  is_trial: boolean;
+  until: Date | null;
+  grace_until: Date | null;
+}>;
 export type StoredStripeEvent = Readonly<{
   event_id: string;
   environment: StripeEnvironment;
@@ -74,6 +82,23 @@ export async function readStripePurchaseInExecutor(
     FROM billing.purchases WHERE provider = 'stripe' AND environment = $1 AND provider_purchase_id = $2`,
   [environment, subscriptionId]);
   return result.rows[0] ?? null;
+}
+
+export async function listStripePurchasesOfUsersInExecutor(
+  executor: DatabaseExecutor, userIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<ComparableStripePurchase>> {
+  const result = await executor.query<ComparableStripePurchase>(`SELECT ${purchaseColumns},
+    environment, provider_purchase_id, is_trial, until, grace_until FROM billing.purchases
+    WHERE provider = 'stripe' AND user_id = ANY($1::text[])`, [userIds]);
+  return result.rows;
+}
+
+export async function listEverPurchasedAtInExecutor(
+  executor: DatabaseExecutor, userIds: ReadonlyArray<string>,
+): Promise<ReadonlyMap<string, Date>> {
+  const result = await executor.query<{ user_id: string; ever_purchased_at: Date }>(`SELECT user_id, ever_purchased_at
+    FROM billing.user_billing_state WHERE user_id = ANY($1::text[]) AND ever_purchased_at IS NOT NULL`, [userIds]);
+  return new Map(result.rows.map((row) => [row.user_id, row.ever_purchased_at]));
 }
 
 export async function persistStripePurchaseInExecutor(
