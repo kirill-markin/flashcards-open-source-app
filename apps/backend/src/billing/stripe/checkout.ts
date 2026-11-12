@@ -43,6 +43,20 @@ export type StripeCustomerObservation = Readonly<{
   pending: ReadonlyArray<StripeCheckoutAttempt>;
   transitions: ReadonlyArray<StripeCommittedTransition>;
 }>;
+export type StripeCustomerView = Readonly<{
+  identity: StripeCustomerIdentity;
+  subscriptions: ReadonlyArray<Stripe.Subscription>;
+  pending: ReadonlyArray<StripeCheckoutAttempt>;
+  transitions: ReadonlyArray<Pick<StripeCommittedTransition, "purchase" | "state">>;
+}>;
+
+export function toStripeAccountContext(
+  profile: Readonly<{ email: string; locale: string }>, identities: ReadonlyArray<StripeCustomerIdentity>,
+): StripeAccountContext {
+  const environment = isConfiguredDemoEmail(profile.email) ? "sandbox" : "production";
+  return { environment, email: profile.email, locale: resolveStripeCopyLocale(profile.locale),
+    checkoutEnabled: environment === "sandbox" || process.env.STRIPE_CHECKOUT_LIVE_ENABLED === "true", identities };
+}
 
 export async function lockStripeHumanAccountInExecutor(
   executor: DatabaseExecutor, actor: StripeHumanActor,
@@ -50,11 +64,7 @@ export async function lockStripeHumanAccountInExecutor(
   await lockStripeAccountInExecutor(executor, actor.subject, actor.userId);
   const result = await executor.query<{ email: string; locale: string }>(
     "SELECT email, locale FROM org.user_settings WHERE user_id = $1", [actor.userId]);
-  const profile = result.rows[0];
-  const environment = isConfiguredDemoEmail(profile.email) ? "sandbox" : "production";
-  return { environment, email: profile.email, locale: resolveStripeCopyLocale(profile.locale),
-    checkoutEnabled: environment === "sandbox" || process.env.STRIPE_CHECKOUT_LIVE_ENABLED === "true",
-    identities: await lockStripePersonIdentitiesInExecutor(executor, [actor.userId]) };
+  return toStripeAccountContext(result.rows[0], await lockStripePersonIdentitiesInExecutor(executor, [actor.userId]));
 }
 
 export function stripeSubscriptionCanBill(subscription: Stripe.Subscription): boolean {
@@ -78,15 +88,18 @@ export function requireOwnedStripeCheckout(
   }
 }
 
+export function requireOwnedStripeCustomer(identity: StripeCustomerIdentity, customer: Stripe.Customer): void {
+  if (customer.metadata.nibomo_identity_id !== identity.identityId) {
+    throw new StripeBillingError("STRIPE_IDENTITY_MISMATCH", false, "Stripe customer ownership could not be confirmed.");
+  }
+}
+
 export async function observeStripeCustomerInExecutor(
   executor: DatabaseExecutor, identity: StripeCustomerIdentity, provider: StripeProvider,
 ): Promise<StripeCustomerObservation> {
   if (identity.customerId === null) throw new StripeBillingError("STRIPE_RECOVERY_REQUIRED", true,
     "The Stripe customer reservation has not finished. Retry its original operation.");
-  const customer = await provider.retrieveCustomer(identity.customerId);
-  if (customer.metadata.nibomo_identity_id !== identity.identityId) {
-    throw new StripeBillingError("STRIPE_IDENTITY_MISMATCH", false, "Stripe customer ownership could not be confirmed.");
-  }
+  requireOwnedStripeCustomer(identity, await provider.retrieveCustomer(identity.customerId));
   const attempts = await listStripeCheckoutAttemptsInExecutor(executor, identity);
   const sessions = await provider.listCheckouts(identity.customerId);
   for (const session of sessions) {
