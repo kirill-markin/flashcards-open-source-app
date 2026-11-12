@@ -5,7 +5,6 @@ import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
@@ -61,6 +60,7 @@ import com.flashcardsopensourceapp.feature.cards.libraryImportScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryScreenTag
 import com.flashcardsopensourceapp.feature.cards.libraryTagsRowTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEditBackCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
@@ -106,6 +106,7 @@ import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagR
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagsSearchFieldTag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -704,10 +705,17 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         for (editButtonTag in listOf(reviewEditBackCardButtonTag, reviewEditCardButtonTag)) {
             composeRule.onNodeWithTag(editButtonTag).performScrollTo().performClick()
             waitForTagToExist(tag = cardEditorFrontSummaryCardTag)
-            composeRule.onNodeWithTag(cardEditorFrontSummaryCardTag)
-                .assert(hasText(reviewOverlayFixtureFrontText))
+            composeRule.onNodeWithTag(cardEditorFrontSummaryCardTag).performScrollTo().performClick()
+            waitForTagToExist(tag = cardEditorFrontTextFieldTag)
+            assertEquals(reviewOverlayFixtureFrontText, textFieldValue(tag = cardEditorFrontTextFieldTag))
+
+            tapVisibleBackButton()
+            waitForTagToExist(tag = cardEditorFrontSummaryCardTag)
             pressBack()
             waitForTagToExist(tag = reviewRateGoodButtonTag)
+            composeRule.onNodeWithTag(reviewRateGoodButtonTag).assertIsDisplayed()
+            composeRule.onNodeWithTag(reviewCurrentCardFrontContentTag, useUnmergedTree = true)
+                .assertTextEquals(reviewOverlayFixtureFrontText)
         }
     }
 
