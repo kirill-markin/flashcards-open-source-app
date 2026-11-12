@@ -18,6 +18,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -39,6 +40,7 @@ import com.flashcardsopensourceapp.app.support.AppStateResetRule
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
+import com.flashcardsopensourceapp.feature.cards.R as CardsFeatureR
 import com.flashcardsopensourceapp.feature.review.R as ReviewFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
@@ -709,9 +711,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             waitForTagToExist(tag = cardEditorFrontTextFieldTag)
             assertEquals(reviewOverlayFixtureFrontText, textFieldValue(tag = cardEditorFrontTextFieldTag))
 
-            tapVisibleBackButton()
+            tapVisibleBackButton(contentDescriptionResId = CardsFeatureR.string.cards_editor_back_content_description)
             waitForTagToExist(tag = cardEditorFrontSummaryCardTag)
-            pressBack()
+            tapVisibleBackButton(contentDescriptionResId = CardsFeatureR.string.cards_editor_back_content_description)
             waitForTagToExist(tag = reviewRateGoodButtonTag)
             composeRule.onNodeWithTag(reviewRateGoodButtonTag).assertIsDisplayed()
             composeRule.onNodeWithTag(reviewCurrentCardFrontContentTag, useUnmergedTree = true)
@@ -989,10 +991,18 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun tapVisibleBackButton() {
+        tapVisibleBackButton(contentDescriptionResId = SettingsR.string.settings_back_content_description)
+    }
+
+    private fun tapVisibleBackButton(@StringRes contentDescriptionResId: Int) {
+        val contentDescription = composeRule.activity.getString(contentDescriptionResId)
+        val backButton = composeRule.onNode(
+            matcher = hasContentDescription(contentDescription).and(other = hasClickAction())
+        )
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            isSettingsBackButtonVisible()
+            backButton.isDisplayed()
         }
-        tapSettingsBackButton()
+        backButton.performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.runOnIdle {
                 composeRule.activity.window.decorView.rootWindowInsets.isVisible(WindowInsets.Type.ime()).not()
