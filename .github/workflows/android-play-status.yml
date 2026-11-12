@@ -57,7 +57,7 @@ jobs:
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
-      - name: Read exact production and Wear OS internal testing release status
+      - name: Read exact phone and Wear OS production release status
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           ANDROID_VERSION_CODE: ${{ inputs.version_code }}

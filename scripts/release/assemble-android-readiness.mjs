@@ -7,7 +7,7 @@ const deviceId = /^[A-Za-z0-9_-]+$/;
 const methodTarget = /^class com\.flashcardsopensourceapp\.app\.[\w.]+#\w+$/;
 const signedJob = "Build and verify signed Android App Bundle";
 const publisherJob = "Upload Android bundle to Google Play production draft release";
-const wearPublisherJob = "Upload Wear OS bundle to Google Play Wear OS internal testing release";
+const wearPublisherJob = "Upload Wear OS bundle to Google Play Wear OS production draft release";
 
 function requireEvidence(condition, message) {
   if (!condition) throw new TypeError(message);
@@ -71,7 +71,7 @@ function verifyRun(run, pin, publisher, hasWear) {
     [signed, requiredSteps],
     [byName.get("Device Run app instrumentation"), ["Collect private native evidence and gate named results"]],
     [byName.get(publisherJob), ["Upload bundle to Google Play production track as draft release"]],
-    ...(hasWear ? [[byName.get(wearPublisherJob), ["Upload Wear OS bundle to Google Play Wear OS internal testing track"]]] : []),
+    ...(hasWear ? [[byName.get(wearPublisherJob), ["Upload Wear OS bundle to Google Play Wear OS production track as draft release"]]] : []),
   ]) {
     requireEvidence(Array.isArray(job.steps) && steps.every((step) =>
       job.steps.filter((entry) => entry?.name === step && entry.conclusion === "success").length === 1),
@@ -101,16 +101,16 @@ function verifyWearPublisher(wear, pin, publisher) {
   requireEvidence(wear.sourceSha === sourceSha && wear.versionCode === wearVersionCode &&
     wear.publisherRunId === runId && wear.publisherRunAttempt === attempt &&
     wear.workflowSha === publisher.workflowSha && wear.aabSha256 === wearAabSha256 &&
-    wear.releaseName === releaseName && wear.playTrack === "wear:qa" &&
+    wear.releaseName === releaseName && wear.playTrack === "wear:production" &&
     wear.commitStatus === "confirmed" && wear.committed === true &&
     wear.changesInReviewBehavior === "ERROR_IF_IN_REVIEW",
   "Wear OS Play publisher does not confirm the pinned source, run, attempt, Wear OS release code and AAB");
   const { track, releases } = wear.track ?? {};
-  requireEvidence(track === "wear:qa" && Array.isArray(releases) && releases.length === 1 &&
-    releases[0]?.status === "completed" && releases[0].name === releaseName &&
+  requireEvidence(track === "wear:production" && Array.isArray(releases) && releases.length === 1 &&
+    releases[0]?.status === "draft" && releases[0].name === releaseName &&
     Array.isArray(releases[0].versionCodes) && releases[0].versionCodes.length === 1 &&
     releases[0].versionCodes[0] === wearVersionCode,
-  "Play did not return a single completed Wear OS internal testing release for the pinned Wear OS version code");
+  "Play did not return a single Wear OS production draft for the pinned Wear OS version code");
 }
 
 function checkedCases(cases, api) {

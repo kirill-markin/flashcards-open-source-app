@@ -2,7 +2,7 @@
 
 Use **Android Play Status** ([workflow](../.github/workflows/android-play-status.yml))
 in GitHub Actions to inspect the lifecycle of an exact version code on the phone
-`production` track or the Wear OS internal testing `wear:qa` track.
+`production` track or the Wear OS `wear:production` track.
 It reads with the existing Play repository variables, creates no Play edit and
 changes no release.
 
