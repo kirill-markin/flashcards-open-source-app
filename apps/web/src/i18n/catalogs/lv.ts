@@ -1526,7 +1526,7 @@ const lvCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "Attēli ir pārāk lieli vienai MI sarunas ziņai: kopā tie var būt līdz {{limit}} MB. Daļu no tiem nosūtiet citā ziņā.",
       attachmentLimit: "Ziņa ir pārāk liela. MI saruna nevar nosūtīt tik daudz satura vienlaikus. Noņemiet vienu vai vairākus pielikumus, izvēlieties mazāku failu vai fotoattēlu vai sadaliet pieprasījumu un mēģiniet vēlreiz.",
       attachmentTooLarge: "Šis fails ir pārāk liels MI sarunai. Faili var būt līdz {{fileLimit}} MB, bet attēli – līdz {{imageLimit}} MB. Izvēlieties mazāku failu un mēģiniet vēlreiz.",
-      attachmentUnsupported: "Šis faila tips MI sarunā netiek atbalstīts. Noņemiet failu vai saglabājiet to kā PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG vai attēlu un mēģiniet vēlreiz.",
+      attachmentUnsupported: "Šis faila tips MI sarunā netiek atbalstīts. Noņemiet failu vai saglabājiet to kā PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC vai attēlu un mēģiniet vēlreiz.",
       attachmentUploadFailed: "Pielikumu neizdevās augšupielādēt. Pārbaudiet savienojumu un mēģiniet vēlreiz.",
       attachmentsTooMany: "Vienā MI sarunas ziņā var būt līdz {{limit}} failiem un attēliem. Pārējos nosūtiet citā ziņā.",
       microphoneUnavailable: "Mikrofona ierakstīšana šajā pārlūkā nav pieejama.",

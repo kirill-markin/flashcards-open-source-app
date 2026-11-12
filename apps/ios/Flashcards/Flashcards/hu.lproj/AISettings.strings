@@ -67,7 +67,7 @@
 "ai.error.requestTooLarge.title" = "Az üzenet túl nagy";
 "ai.error.requestTooLarge.message" = "Az AI-csevegés nem tud ennyi tartalmat egyszerre elküldeni. Távolíts el mellékleteket, válassz kisebb fájlt vagy fotót, vagy oszd fel a kérést, majd próbáld újra.";
 "ai.error.attachmentUnsupported.title" = "Nem támogatott fájltípus";
-"ai.error.attachmentUnsupported.message" = "Az AI-csevegés nem támogatja ezt a fájltípust. Távolítsd el, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG formátumban vagy képként, majd próbáld újra.";
+"ai.error.attachmentUnsupported.message" = "Az AI-csevegés nem támogatja ezt a fájltípust. Távolítsd el, vagy mentsd PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC formátumban vagy képként, majd próbáld újra.";
 "ai.error.limitReached" = "Elhasználtad az AI-korlátodat erre a hónapra. A következő hónap elején áll vissza.";
 "ai.error.summary.couldNotContinue" = "Nem sikerült folytatni az AI válaszát";
 "ai.error.summary.invalidResponse" = "Érvénytelen AI-válasz érkezett";
@@ -770,7 +770,7 @@
 "settings.workspace.import.aiImport.choose" = "Fájlok kiválasztása";
 "settings.workspace.import.aiImport.invalidFile" = "A(z) „%1$@” nem használható %2$@-exportfájl. Válassz egy nem üres %3$@ fájlt.";
 "settings.workspace.import.aiImport.invalidFileOther" = "A(z) „%1$@” nem támogatott fájl. Válassz egy nem üres %2$@ fájlt.";
-"settings.workspace.import.aiImport.fileTooLarge" = "A(z) „%1$@” nagyobb mint %2$d MiB. Válassz kisebb exportfájlt.";
+"settings.workspace.import.aiImport.fileTooLarge" = "A(z) „%1$@” nagyobb, mint %2$d MiB. Válassz kisebb exportfájlt.";
 "settings.workspace.import.aiImport.request" = "Importáld a kártyákat a(z) %@ alkalmazásból ebbe a munkaterületbe.";
 "settings.workspace.import.aiImport.requestOther" = "Importáld a kártyákat a csatolt fájlokból ebbe a munkaterületbe.";
 "settings.workspace.import.aiImport.waiting" = "Várakozás az importálás indítására…";

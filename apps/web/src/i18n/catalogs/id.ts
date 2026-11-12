@@ -1526,7 +1526,7 @@ const idCatalog: TranslationCatalog = {
       attachmentImagesTooLarge: "Gambar terlalu besar untuk satu pesan obrolan AI: totalnya paling besar {{limit}} MB. Kirim sebagian gambar di pesan lain.",
       attachmentLimit: "Pesan terlalu besar. Obrolan AI tidak dapat mengirim konten sebanyak ini sekaligus. Hapus satu atau beberapa lampiran, pilih berkas atau foto yang lebih kecil, atau pecah permintaan lalu coba lagi.",
       attachmentTooLarge: "Berkas ini terlalu besar untuk obrolan AI. Ukuran berkas paling besar {{fileLimit}} MB dan gambar paling besar {{imageLimit}} MB. Pilih berkas yang lebih kecil lalu coba lagi.",
-      attachmentUnsupported: "Jenis berkas ini tidak didukung untuk obrolan AI. Hapus berkasnya atau simpan sebagai PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, atau gambar, lalu coba lagi.",
+      attachmentUnsupported: "Jenis berkas ini tidak didukung untuk obrolan AI. Hapus berkasnya atau simpan sebagai PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC, atau gambar, lalu coba lagi.",
       attachmentUploadFailed: "Lampiran gagal diunggah. Periksa koneksi Anda lalu coba lagi.",
       attachmentsTooMany: "Satu pesan obrolan AI dapat berisi paling banyak {{limit}} berkas dan gambar. Kirim sisanya di pesan lain.",
       microphoneUnavailable: "Perekaman mikrofon tidak tersedia di peramban ini.",
