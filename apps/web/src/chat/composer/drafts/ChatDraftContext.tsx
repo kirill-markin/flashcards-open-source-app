@@ -32,7 +32,7 @@ type ChatDraftContextValue = Readonly<{
   draft: ChatDraft;
   composerSendPhase: ChatComposerSendPhase;
   focusComposerRequestVersion: number;
-  isAnkiImportRestartRequired: boolean;
+  isAiImportRestartRequired: boolean;
   replaceInputText: (nextInputText: string) => void;
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
   replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => boolean;
@@ -41,8 +41,8 @@ type ChatDraftContextValue = Readonly<{
   startSessionBoundDraft: (sessionId: string, draft: ChatDraftContent) => number | null;
   getSessionBoundRequestIdForSend: (content: ChatDraftContent) => string | null;
   clearSessionBoundDraftIfUnchanged: (sessionId: string | null, expectedUpdatedAt: number | null) => void;
-  requireAnkiImportRestart: (sessionId: string, expectedUpdatedAt: number) => void;
-  dismissAnkiImportRestart: () => void;
+  requireAiImportRestart: (sessionId: string, expectedUpdatedAt: number) => void;
+  dismissAiImportRestart: () => void;
   replaceComposerSendPhase: (nextSendPhase: ChatComposerSendPhase) => void;
   requestComposerFocus: () => void;
   suppressNextSessionDraftCarryover: (sourceSessionId: string | null) => void;
@@ -97,7 +97,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
   const draftsBySessionIdRef = useRef<Readonly<Record<string, StoredChatDraft>>>(draftsBySessionId);
   const [sessionBoundDraft, setSessionBoundDraft] = useState<SessionBoundDraft | null>(null);
   const sessionBoundDraftRef = useRef<SessionBoundDraft | null>(null);
-  const [ankiImportRestartWorkspaceId, setAnkiImportRestartWorkspaceId] = useState<string | null>(null);
+  const [aiImportRestartWorkspaceId, setAiImportRestartWorkspaceId] = useState<string | null>(null);
   const isHistoryLoaded = session?.isHistoryLoaded === true;
   const [transientDraft, setTransientDraft] = useState<TransientChatDraft | null>(null);
   const [composerSendPhase, setComposerSendPhase] = useState<ChatComposerSendPhase>("idle");
@@ -175,7 +175,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
         if (readSessionBoundDraft(previousDraftTarget.sessionId) !== null) {
           updateSessionBoundDraft(null);
         }
-        dismissAnkiImportRestart();
+        dismissAiImportRestart();
       } else if (activeWorkspaceId !== null && activeSessionId !== null) {
         carryDraftToSession(previousDraftTarget.sessionId, activeSessionId);
       }
@@ -188,7 +188,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
 
     const currentDraft = sessionBoundDraftRef.current;
     if (currentDraft !== null && isHistoryLoaded && currentDraft.sessionId !== activeSessionId) {
-      requireAnkiImportRestart(currentDraft.sessionId, currentDraft.draft.updatedAt);
+      requireAiImportRestart(currentDraft.sessionId, currentDraft.draft.updatedAt);
     }
   }, [activeSessionId, activeWorkspaceId, isHistoryLoaded, transientDraft]);
 
@@ -259,7 +259,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
       lastRequest: null,
       draft,
     });
-    setAnkiImportRestartWorkspaceId(null);
+    setAiImportRestartWorkspaceId(null);
     return draft.updatedAt;
   }
 
@@ -286,16 +286,16 @@ export function ChatDraftProvider(props: Props): ReactElement {
     }
   }
 
-  function requireAnkiImportRestart(sessionId: string, expectedUpdatedAt: number): void {
+  function requireAiImportRestart(sessionId: string, expectedUpdatedAt: number): void {
     const currentDraft = readSessionBoundDraft(sessionId);
     if (currentDraft?.draft.updatedAt === expectedUpdatedAt) {
       updateSessionBoundDraft(null);
-      setAnkiImportRestartWorkspaceId(currentDraft.workspaceId);
+      setAiImportRestartWorkspaceId(currentDraft.workspaceId);
     }
   }
 
-  function dismissAnkiImportRestart(): void {
-    setAnkiImportRestartWorkspaceId(null);
+  function dismissAiImportRestart(): void {
+    setAiImportRestartWorkspaceId(null);
   }
 
   function carryDraftToSession(
@@ -450,7 +450,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
         draft,
         composerSendPhase,
         focusComposerRequestVersion,
-        isAnkiImportRestartRequired: activeWorkspaceId !== null && ankiImportRestartWorkspaceId === activeWorkspaceId,
+        isAiImportRestartRequired: activeWorkspaceId !== null && aiImportRestartWorkspaceId === activeWorkspaceId,
         replaceInputText,
         updateInputText,
         replacePendingAttachments,
@@ -459,8 +459,8 @@ export function ChatDraftProvider(props: Props): ReactElement {
         startSessionBoundDraft,
         getSessionBoundRequestIdForSend,
         clearSessionBoundDraftIfUnchanged,
-        requireAnkiImportRestart,
-        dismissAnkiImportRestart,
+        requireAiImportRestart,
+        dismissAiImportRestart,
         replaceComposerSendPhase,
         requestComposerFocus,
         suppressNextSessionDraftCarryover,

@@ -3,7 +3,7 @@ import { useAppData } from "../../../../appData";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { normalizeChatAttachmentFileMediaType } from "../../../../chat/attachments/attachmentMediaTypes";
 import type { BinaryPendingAttachment } from "../../../../chat/attachments/FileAttachment";
-import { useOpenAnkiImportChat } from "../../../../chat/handoff/useOpenAnkiImportChat";
+import { useOpenAiImportChat } from "../../../../chat/handoff/useOpenAiImportChat";
 import {
   AI_CHAT_MAXIMUM_FILE_UPLOAD_BYTES,
   AI_CHAT_MAXIMUM_UPLOADS_PER_TURN,
@@ -22,7 +22,7 @@ export function WorkspaceAnkiImport(): ReactElement {
   const { isSessionVerified } = useAppData();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
-  const { isOpening, errorMessage, start } = useOpenAnkiImportChat();
+  const { isOpening, errorMessage, start } = useOpenAiImportChat();
   const [attachments, setAttachments] = useState<ReadonlyArray<BinaryPendingAttachment>>([]);
   const [selectionError, setSelectionError] = useState("");
   const [isValidating, setIsValidating] = useState(false);

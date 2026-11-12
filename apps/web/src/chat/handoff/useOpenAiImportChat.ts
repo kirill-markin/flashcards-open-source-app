@@ -10,31 +10,31 @@ import { buildWorkspaceRoute, chatRoute } from "../../routes";
 import { useOptionalChatDraft } from "../composer/drafts/ChatDraftContext";
 import type { ChatDraftContent } from "../composer/drafts/chatDraftStorage";
 import { useOptionalChatSession } from "../sessionController";
-import { useAnkiImportHandoff } from "./AnkiImportHandoffContext";
+import { useAiImportHandoff } from "./AiImportHandoffContext";
 
-type AnkiImportRequest = Readonly<{
+type AiImportRequest = Readonly<{
   workspaceId: string;
   draft: ChatDraftContent;
 }>;
 
-type OpenAnkiImportChat = Readonly<{
+type OpenAiImportChat = Readonly<{
   isOpening: boolean;
   errorMessage: string;
   start: (draft: ChatDraftContent) => void;
 }>;
 
-export function useOpenAnkiImportChat(): OpenAnkiImportChat {
+export function useOpenAiImportChat(): OpenAiImportChat {
   const { activeWorkspace, isSessionVerified } = useAppData();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { t } = useI18n();
   const navigate = useNavigate();
   const draftContext = useOptionalChatDraft();
   const session = useOptionalChatSession();
-  const handoff = useAnkiImportHandoff();
+  const handoff = useAiImportHandoff();
   const workspaceId = activeWorkspace?.workspaceId ?? null;
-  const [request, setRequest] = useState<AnkiImportRequest | null>(null);
+  const [request, setRequest] = useState<AiImportRequest | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const pendingRequestRef = useRef<AnkiImportRequest | null>(null);
+  const pendingRequestRef = useRef<AiImportRequest | null>(null);
   const draft = draftContext?.draft;
   const hasTransientDraft = draft !== undefined && draft.updatedAt === null
     && (draft.inputText !== "" || draft.pendingAttachments.length > 0);
@@ -55,7 +55,7 @@ export function useOpenAnkiImportChat(): OpenAnkiImportChat {
     setRequest(nextRequest);
   }
 
-  const openFreshChat = useEffectEvent(async (nextRequest: AnkiImportRequest): Promise<void> => {
+  const openFreshChat = useEffectEvent(async (nextRequest: AiImportRequest): Promise<void> => {
     let navigated = false;
     try {
       indexedDbOpenRecoveryState.throwIfFailed();

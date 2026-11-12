@@ -24,7 +24,7 @@ import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
-import { AnkiImportHandoffProvider } from "./chat/handoff/AnkiImportHandoffContext";
+import { AiImportHandoffProvider } from "./chat/handoff/AiImportHandoffContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
@@ -1240,13 +1240,13 @@ function AuthenticatedApp(): ReactElement {
             <ChatLayoutProvider>
               <ChatSessionControllerProvider>
                 <ChatDraftProvider>
-                  <AnkiImportHandoffProvider>
+                  <AiImportHandoffProvider>
                     <AccountDeletionRecoveryGate>
                       <WorkspacePackageImportProvider>
                         <AppShell />
                       </WorkspacePackageImportProvider>
                     </AccountDeletionRecoveryGate>
-                  </AnkiImportHandoffProvider>
+                  </AiImportHandoffProvider>
                 </ChatDraftProvider>
               </ChatSessionControllerProvider>
             </ChatLayoutProvider>
