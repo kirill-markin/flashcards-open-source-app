@@ -116,6 +116,7 @@ enum UITestIdentifier {
     static let libraryMochiImportRow: String = "library.mochiImportRow"
     static let librarySuperMemoImportRow: String = "library.supermemoImportRow"
     static let libraryAnkiAppImportRow: String = "library.ankiappImportRow"
+    static let libraryGizmoImportRow: String = "library.gizmoImportRow"
     static let libraryOtherAppImportRow: String = "library.otherAppImportRow"
     static let librarySpreadsheetImportRow: String = "library.spreadsheetImportRow"
     static let libraryExportRow: String = "library.exportRow"

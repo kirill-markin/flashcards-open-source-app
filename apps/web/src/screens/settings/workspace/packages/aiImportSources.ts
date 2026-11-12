@@ -12,6 +12,7 @@ export type AiImportSourceId =
   | "mochi"
   | "supermemo"
   | "ankiapp"
+  | "gizmo"
   | "other";
 
 export type AiImportFileSource = Readonly<{
@@ -59,6 +60,7 @@ export const aiImportSources: ReadonlyArray<AiImportSource> = [
   fileSource("mochi", "Mochi", ["mochi"]),
   fileSource("supermemo", "SuperMemo", ["xml"]),
   fileSource("ankiapp", "AlgoApp (formerly AnkiApp)", ["zip", "xml"]),
+  fileSource("gizmo", "Gizmo", ["pdf"]),
   {
     ...fileSource("other", null, ["csv", "txt", "xlsx", "xls", "pdf", "json", "xml", "md", "docx", "zip"]),
     formats: "CSV, TXT, XLSX, PDF",
