@@ -4,8 +4,8 @@ import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
-import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImport
-import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImportOrigin
+import com.flashcardsopensourceapp.feature.ai.AiImport
+import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,10 +25,10 @@ data class AiCardHandoffRequest(
     val tags: List<String>
 )
 
-data class AiAnkiImportRequest(
+data class AiImportRequest(
     val requestId: Long,
-    val ankiImport: AiAnkiImport,
-    val origin: AiAnkiImportOrigin
+    val aiImport: AiImport,
+    val origin: AiImportOrigin
 )
 
 data class CardEditorRequest(
@@ -69,7 +69,8 @@ data class ReviewWidgetTapHandoffRequest(
 )
 
 enum class LibraryNavigationTarget {
-    DECKS
+    DECKS,
+    TAGS
 }
 
 data class LibraryNavigationRequest(
@@ -81,7 +82,7 @@ class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
-    private val aiAnkiImportState = MutableStateFlow<AiAnkiImportRequest?>(value = null)
+    private val aiImportState = MutableStateFlow<AiImportRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
     private val reviewWidgetCardState = MutableStateFlow<ReviewWidgetCardRequest?>(value = null)
@@ -96,8 +97,8 @@ class AppHandoffCoordinator {
         return aiCardHandoffState.asStateFlow()
     }
 
-    fun observeAiAnkiImport(): StateFlow<AiAnkiImportRequest?> {
-        return aiAnkiImportState.asStateFlow()
+    fun observeAiImport(): StateFlow<AiImportRequest?> {
+        return aiImportState.asStateFlow()
     }
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
@@ -121,7 +122,7 @@ class AppHandoffCoordinator {
     }
 
     fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
-        discardPendingAiAnkiImport()
+        discardPendingAiImport()
         aiEntryPrefillState.value = AiEntryPrefillRequest(
             requestId = nextRequestId.incrementAndGet(),
             prefill = prefill
@@ -142,7 +143,7 @@ class AppHandoffCoordinator {
         backText: String,
         tags: List<String>
     ) {
-        discardPendingAiAnkiImport()
+        discardPendingAiImport()
         aiCardHandoffState.value = AiCardHandoffRequest(
             requestId = nextRequestId.incrementAndGet(),
             cardId = cardId,
@@ -160,36 +161,36 @@ class AppHandoffCoordinator {
         aiCardHandoffState.value = null
     }
 
-    fun requestAiAnkiImport(
-        ankiImport: AiAnkiImport,
-        origin: AiAnkiImportOrigin
+    fun requestAiImport(
+        aiImport: AiImport,
+        origin: AiImportOrigin
     ) {
-        discardPendingAiAnkiImport()
+        discardPendingAiImport()
         aiEntryPrefillState.value = null
         aiCardHandoffState.value = null
-        aiAnkiImportState.value = AiAnkiImportRequest(
+        aiImportState.value = AiImportRequest(
             requestId = nextRequestId.incrementAndGet(),
-            ankiImport = ankiImport,
+            aiImport = aiImport,
             origin = origin
         )
     }
 
-    fun consumeAiAnkiImport(requestId: Long) {
-        if (aiAnkiImportState.value?.requestId == requestId) {
-            aiAnkiImportState.value = null
+    fun consumeAiImport(requestId: Long) {
+        if (aiImportState.value?.requestId == requestId) {
+            aiImportState.value = null
         }
     }
 
-    fun cancelAiAnkiImport(requestId: Long) {
-        if (aiAnkiImportState.value?.requestId == requestId) {
-            discardPendingAiAnkiImport()
+    fun cancelAiImport(requestId: Long) {
+        if (aiImportState.value?.requestId == requestId) {
+            discardPendingAiImport()
         }
     }
 
-    private fun discardPendingAiAnkiImport() {
-        val request = aiAnkiImportState.value ?: return
-        aiAnkiImportState.value = null
-        deleteAiChatAttachmentStagedFiles(attachments = request.ankiImport.attachments)
+    private fun discardPendingAiImport() {
+        val request = aiImportState.value ?: return
+        aiImportState.value = null
+        deleteAiChatAttachmentStagedFiles(attachments = request.aiImport.attachments)
     }
 
     fun requestCardEditor(cardId: String?) {

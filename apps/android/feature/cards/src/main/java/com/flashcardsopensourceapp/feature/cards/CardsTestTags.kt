@@ -23,7 +23,7 @@ const val libraryDeckCatalogRowTag: String = "library_row_deck_catalog"
 const val libraryImportRowTag: String = "library_row_import"
 const val libraryImportScreenTag: String = "library_import_screen"
 const val libraryImportNibomoRowTag: String = "library_import_nibomo_row"
-const val libraryImportAnkiRowTag: String = "library_import_anki_row"
+const val libraryImportSpreadsheetRowTag: String = "library_import_spreadsheet_row"
 const val libraryExportRowTag: String = "library_row_export"
 const val libraryExportScreenTag: String = "library_export_screen"
 const val libraryExportNibomoRowTag: String = "library_export_row_nibomo"
@@ -48,4 +48,8 @@ const val catalogDeckCardPreviewTag: String = "catalog_deck_card_preview"
 
 fun cardTextEditorManagedMediaPreviewItemTag(mediaAssetId: String): String {
     return "card_text_editor_managed_media_preview_item_$mediaAssetId"
+}
+
+fun libraryImportSourceRowTag(sourceId: String): String {
+    return "library_import_${sourceId}_row"
 }

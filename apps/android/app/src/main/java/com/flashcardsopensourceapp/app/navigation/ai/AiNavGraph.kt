@@ -27,7 +27,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermiss
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
-import com.flashcardsopensourceapp.feature.ai.AiPendingAnkiImport
+import com.flashcardsopensourceapp.feature.ai.AiPendingImport
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiViewModel
 import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
@@ -68,13 +68,13 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             aiViewModel.dismissAlert()
             premiumPresenter.showAiLimit(refusal = refusal)
         }
-        val ankiImportRequest by appGraph.appHandoffCoordinator.observeAiAnkiImport().collectAsStateWithLifecycle()
+        val importRequest by appGraph.appHandoffCoordinator.observeAiImport().collectAsStateWithLifecycle()
         val cloudSettingsFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeCloudSettings() }
         val cloudSettings by cloudSettingsFlow.collectAsStateWithLifecycle(initialValue = null)
         val configurationFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeServerConfiguration() }
         val configuration by configurationFlow.collectAsStateWithLifecycle(initialValue = null)
         LaunchedEffect(
-            ankiImportRequest?.requestId,
+            importRequest?.requestId,
             cloudSettings?.installationId,
             cloudSettings?.linkedUserId,
             cloudSettings?.cloudState,
@@ -86,17 +86,17 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             uiState.isComposerBusy,
             uiState.isImportingAttachment
         ) {
-            val request = ankiImportRequest ?: return@LaunchedEffect
-            appGraph.withAiAnkiImportWorkspace(request = request) { workspace ->
-                if (appGraph.appHandoffCoordinator.observeAiAnkiImport().value?.requestId != request.requestId) {
-                    return@withAiAnkiImportWorkspace
+            val request = importRequest ?: return@LaunchedEffect
+            appGraph.withAiImportWorkspace(request = request) { workspace ->
+                if (appGraph.appHandoffCoordinator.observeAiImport().value?.requestId != request.requestId) {
+                    return@withAiImportWorkspace
                 }
-                val didHandle = aiViewModel.handoffAnkiImportToChat(
-                    ankiImport = request.ankiImport,
+                val didHandle = aiViewModel.handoffImportToChat(
+                    aiImport = request.aiImport,
                     workspace = workspace
                 )
                 if (didHandle) {
-                    appGraph.appHandoffCoordinator.consumeAiAnkiImport(requestId = request.requestId)
+                    appGraph.appHandoffCoordinator.consumeAiImport(requestId = request.requestId)
                 }
             }
         }
@@ -181,10 +181,10 @@ internal fun NavGraphBuilder.registerAiNavGraph(
 
         AiRoute(
             uiState = uiState,
-            pendingAnkiImport = ankiImportRequest?.let { request ->
-                AiPendingAnkiImport(
-                    fileNames = request.ankiImport.attachments.map { attachment -> attachment.fileName },
-                    onCancel = { appGraph.appHandoffCoordinator.cancelAiAnkiImport(requestId = request.requestId) }
+            pendingImport = importRequest?.let { request ->
+                AiPendingImport(
+                    fileNames = request.aiImport.attachments.map { attachment -> attachment.fileName },
+                    onCancel = { appGraph.appHandoffCoordinator.cancelAiImport(requestId = request.requestId) }
                 )
             },
             onAcceptConsent = aiViewModel::acceptConsent,

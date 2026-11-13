@@ -5,6 +5,8 @@
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/TopLevelDestinations.kt
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/settings/SettingsDestinations.kt
  */
+import type { AiImportSourceId } from "./screens/settings/workspace/packages/aiImportSources";
+
 export const reviewRoute: string = "/review";
 export const chatRoute: string = "/chat";
 export const progressRoute: string = "/progress";
@@ -34,6 +36,11 @@ export const libraryDeckNewRoute: string = `${libraryDecksRoute}/new`;
 export const libraryTagsRoute: string = `${libraryRoute}/tags`;
 export const libraryTagDetailRoute: string = `${libraryTagsRoute}/detail`;
 export const libraryImportRoute: string = `${libraryRoute}/import`;
+export const libraryNibomoImportRoute: string = `${libraryImportRoute}/nibomo`;
+export function buildLibraryAiImportRoute(sourceId: AiImportSourceId): string {
+  return `${libraryImportRoute}/${sourceId}`;
+}
+export const librarySpreadsheetImportRoute: string = `${libraryImportRoute}/spreadsheet`;
 export const libraryExportRoute: string = `${libraryRoute}/export`;
 export const libraryNibomoExportRoute: string = `${libraryExportRoute}/nibomo`;
 export const libraryAnkiExportRoute: string = `${libraryExportRoute}/anki`;

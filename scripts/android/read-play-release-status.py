@@ -6,6 +6,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,7 +22,8 @@ LIFECYCLE_DESCRIPTIONS = {
     'RELEASE_LIFECYCLE_STATE_NOT_APPROVED': 'Rejected in review.',
     'RELEASE_LIFECYCLE_STATE_PUBLISHED': 'Available on the track; may be fully rolled out, staged, or halted.',
 }
-LIMITATION = 'The API returns at most 20 non-obsolete releases. It does not establish full rollout or public propagation.'
+LIMITATION = 'The API returns at most 20 non-obsolete releases per track. It does not establish full rollout or public propagation.'
+TRACKS = ('production', 'wear:production')
 
 
 class ReleaseSummary(TypedDict):
@@ -65,12 +67,12 @@ def fetch_releases(url: str, token: str) -> dict[str, Json]:
     raise RuntimeError('Play release-list retry loop ended without a response')
 
 
-def release_summary(value: Json) -> ReleaseSummary:
+def release_summary(value: Json, track: str) -> ReleaseSummary:
     release = object_value(value)
     name = release.get('releaseName')
     state = release.get('releaseLifecycleState')
-    if not isinstance(name, str) or not name.strip() or release.get('track') != 'production':
-        raise ValueError('Play release-list contains a missing release name or unexpected production track')
+    if not isinstance(name, str) or not name.strip() or release.get('track') != track:
+        raise ValueError(f'Play release-list contains a missing release name or a track other than {track}')
     if state == 'RELEASE_LIFECYCLE_STATE_UNSPECIFIED':
         raise ValueError('Play returned an unspecified release lifecycle; publication cannot be determined')
     if not isinstance(state, str) or state not in LIFECYCLE_DESCRIPTIONS:
@@ -83,7 +85,7 @@ def release_summary(value: Json) -> ReleaseSummary:
         codes.append(code)
     if len(codes) != len(set(codes)):
         raise ValueError('Play returned duplicate active artifact version codes within a release')
-    return {'releaseName': name, 'track': 'production', 'activeVersionCodes': codes,
+    return {'releaseName': name, 'track': track, 'activeVersionCodes': codes,
             'releaseLifecycleState': state, 'lifecycleMeaning': LIFECYCLE_DESCRIPTIONS[state]}
 
 
@@ -95,25 +97,30 @@ def main() -> None:
     token = os.environ['PLAY_ACCESS_TOKEN']
     if not token:
         raise ValueError('PLAY_ACCESS_TOKEN is empty; inspect the workflow WIF authentication step')
-    url = f'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}/tracks/production/releases'
-    response = fetch_releases(url, token)
-    releases = [release_summary(value) for value in array_value(response.get('releases', []))]
-    if len(releases) > 20:
-        raise ValueError('Play returned more than the documented maximum of 20 releases')
+    releases: list[ReleaseSummary] = []
+    release_counts: dict[str, int] = {}
+    for track in TRACKS:
+        # Percent-encode so the form factor colon cannot read as a custom method suffix.
+        url = f'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}/tracks/{urllib.parse.quote(track, safe="")}/releases'
+        track_releases = [release_summary(value, track) for value in array_value(fetch_releases(url, token).get('releases', []))]
+        if len(track_releases) > 20:
+            raise ValueError(f'Play returned more than the documented maximum of 20 releases on {track}')
+        releases.extend(track_releases)
+        release_counts[track] = len(track_releases)
     matches = [release for release in releases if int(code) in release['activeVersionCodes']]
     outcome = 'matched' if len(matches) == 1 else 'missing' if not matches else 'ambiguous'
-    record = {'packageName': package, 'track': 'production', 'versionCode': int(code),
+    record = {'packageName': package, 'tracks': list(TRACKS), 'versionCode': int(code),
               'checkedAt': datetime.now(timezone.utc).isoformat(), 'outcome': outcome,
-              'matches': matches, 'returnedReleaseCount': len(releases), 'apiLimitation': LIMITATION}
+              'matches': matches, 'returnedReleaseCounts': release_counts, 'apiLimitation': LIMITATION}
     encoded = json.dumps(record, indent=2)
     Path(os.environ['PLAY_STATUS_PATH']).write_text(encoded + '\n')
     with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
         summary.write(f'## Android Play release status\n\n<pre>{html.escape(encoded)}</pre>\n\n{LIMITATION}\n')
     print(json.dumps(record))
     if not matches:
-        raise ValueError(f'No exact active artifact match for production versionCode={code}. It may be absent or obsolete; publication is unconfirmed. {LIMITATION}')
+        raise ValueError(f'No exact active artifact match for versionCode={code} on {" or ".join(TRACKS)}. It may be absent or obsolete; publication is unconfirmed. {LIMITATION}')
     if len(matches) != 1:
-        raise ValueError(f'Ambiguous production versionCode={code}: {len(matches)} releases match; publication is unconfirmed')
+        raise ValueError(f'Ambiguous versionCode={code}: {len(matches)} releases match; publication is unconfirmed')
 
 
 if __name__ == '__main__':

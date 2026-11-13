@@ -857,7 +857,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
                 session: session,
                 sessionId: "session-guest",
                 afterCursor: nil,
-                ankiImportRequestId: nil,
+                aiImportRequestId: nil,
                 outgoingContent: [.text("Help me review this card.")],
                 eventHandler: { event in
                     await recorder.record(event)

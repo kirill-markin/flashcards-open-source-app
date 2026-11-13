@@ -335,6 +335,7 @@ test("global snapshot API Gateway mock preflight allows content type and Sentry 
     "method.response.header.Access-Control-Allow-Headers": "'content-type,authorization,sentry-trace,baggage'",
     "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
     "method.response.header.Access-Control-Allow-Origin": "'*'",
+    "method.response.header.Access-Control-Max-Age": "'7200'",
   });
   assert.equal(
     optionsMethods[0]?.Properties?.MethodResponses?.[0]?.ResponseParameters?.[

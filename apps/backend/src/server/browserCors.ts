@@ -35,6 +35,9 @@ export const browserCorsExposeHeaders = [
   "retry-after",
 ] as const;
 
+// Chrome caps Access-Control-Max-Age at 2 hours; without it a preflight is reused for 5 seconds.
+export const browserCorsPreflightMaxAgeSeconds = 7_200;
+
 export function getAllowedBrowserOrigins(): Array<string> {
   const raw = process.env.BACKEND_ALLOWED_ORIGINS
     ?? "http://localhost:3000,http://localhost:3001";

@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHeadCard
+import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueCount
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
@@ -65,11 +66,6 @@ internal sealed interface ReviewTagPredicate {
 
 internal data class ReviewQueuePredicate(
     val tagPredicate: ReviewTagPredicate
-)
-
-internal data class CurrentReviewQueuePredicate(
-    val workspaceId: String,
-    val predicate: ReviewQueuePredicate
 )
 
 internal data class ReviewSessionQueryBase(
@@ -208,65 +204,53 @@ internal fun observeActiveReviewQueue(
     }
 }
 
-internal fun observeReviewDueBadgeCountForPredicate(
-    database: AppDatabase,
-    workspaceId: String,
-    predicate: ReviewQueuePredicate
-): Flow<Int> {
+internal fun observeWorkspaceDueCount(database: AppDatabase, workspaceId: String): Flow<WorkspaceReviewDueCount> {
     return observeAtReviewDueClock(
         observeAt = { nowMillis ->
-            observeReviewDueCountRow(
-                database = database,
-                workspaceId = workspaceId,
-                nowMillis = nowMillis,
-                predicate = predicate
-            )
+            database.reviewCountDao().observeReviewDueBadgeCount(workspaceId = workspaceId, nowMillis = nowMillis)
         },
         nextDueAtMillis = ReviewDueBadgeCountRow::nextDueAtMillis
-    ).map { row -> row.dueCount }
+    ).map { row -> WorkspaceReviewDueCount(workspaceId = workspaceId, dueCount = row.dueCount) }
 }
 
-internal fun observeReviewQueueHeadForPredicate(
+@OptIn(ExperimentalCoroutinesApi::class)
+internal fun observeWidgetReviewQueueHead(
     database: AppDatabase,
     workspaceId: String,
-    predicate: ReviewQueuePredicate
+    savedPredicates: Flow<ReviewQueuePredicate>
 ): Flow<ReviewQueueHead> {
-    return observeAtReviewDueClock(
-        observeAt = { nowMillis ->
-            combine(
-                observeReviewDueCountRow(
-                    database = database,
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    predicate = predicate
-                ),
-                observeActiveReviewQueue(
-                    database = database,
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    predicate = predicate,
-                    limit = 1
-                )
-            ) { row, cards ->
-                ReviewQueueHead(
-                    workspaceId = workspaceId,
-                    dueCount = row.dueCount,
-                    nextDueAtMillis = row.nextDueAtMillis,
-                    topCard = cards.firstOrNull()?.card?.let { card ->
-                        ReviewQueueHeadCard(cardId = card.cardId, frontText = card.frontText)
-                    }
-                )
-            }
-        },
-        nextDueAtMillis = ReviewQueueHead::nextDueAtMillis
-    )
+    return savedPredicates.flatMapLatest { predicate ->
+        observeAtReviewDueClock(
+            observeAt = { nowMillis ->
+                combine(
+                    database.reviewCountDao().observeReviewDueBadgeCount(workspaceId = workspaceId, nowMillis = nowMillis),
+                    observeActiveReviewQueue(
+                        database = database,
+                        workspaceId = workspaceId,
+                        nowMillis = nowMillis,
+                        predicate = predicate,
+                        limit = 1
+                    )
+                ) { row, cards ->
+                    ReviewQueueHead(
+                        workspaceId = workspaceId,
+                        dueCount = row.dueCount,
+                        nextDueAtMillis = row.nextDueAtMillis,
+                        topCard = cards.firstOrNull()?.card?.let { card ->
+                            ReviewQueueHeadCard(cardId = card.cardId, frontText = card.frontText)
+                        }
+                    )
+                }
+            },
+            nextDueAtMillis = ReviewQueueHead::nextDueAtMillis
+        )
+    }
 }
 
 /** Re-queries at each local midnight, so the days stay the ones after the current today. */
-internal fun observeUpcomingReviewDueDaysForPredicate(
+internal fun observeUpcomingWorkspaceReviewDueDays(
     database: AppDatabase,
     workspaceId: String,
-    predicate: ReviewQueuePredicate,
     dayCount: Int,
     timeProvider: TimeProvider
 ): Flow<List<ReviewDueDay>> {
@@ -284,12 +268,10 @@ internal fun observeUpcomingReviewDueDaysForPredicate(
             val toMillis: Long = startOfLocalDayMillis(date = days.last().plusDays(1L), zoneId = zoneId)
             withTimeoutOrNull(timeMillis = fromMillis - nowMillis) {
                 emitAll(
-                    observeReviewDueAtMillisInRange(
-                        database = database,
+                    database.reviewCountDao().observeReviewDueAtMillisInRange(
                         workspaceId = workspaceId,
                         fromMillis = fromMillis,
-                        toMillis = toMillis,
-                        predicate = predicate
+                        toMillis = toMillis
                     ).map { dueAtMillisList ->
                         val dueCountsByDate: Map<LocalDate, Int> = dueAtMillisList.groupingBy { dueAtMillis ->
                             Instant.ofEpochMilli(dueAtMillis).atZone(zoneId).toLocalDate()
@@ -306,30 +288,6 @@ internal fun observeUpcomingReviewDueDaysForPredicate(
 
 private fun startOfLocalDayMillis(date: LocalDate, zoneId: ZoneId): Long {
     return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
-}
-
-private fun observeReviewDueAtMillisInRange(
-    database: AppDatabase,
-    workspaceId: String,
-    fromMillis: Long,
-    toMillis: Long,
-    predicate: ReviewQueuePredicate
-): Flow<List<Long>> {
-    return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.MatchNone -> flowOf(emptyList())
-        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewDueAtMillisInRange(
-            workspaceId = workspaceId,
-            fromMillis = fromMillis,
-            toMillis = toMillis
-        )
-
-        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewDueAtMillisInRangeByAnyTags(
-            workspaceId = workspaceId,
-            fromMillis = fromMillis,
-            toMillis = toMillis,
-            tagNames = tagPredicate.tagNames
-        )
-    }
 }
 
 /**
@@ -413,8 +371,7 @@ internal fun observeReviewTagNamesOffRatingPath(
     }.distinctUntilChanged()
 }
 
-/** The shown card and the prepared next card by id, so both stay pinned outside the queue window. */
-internal fun observePinnedReviewCards(
+internal fun observeTrackedReviewCards(
     database: AppDatabase,
     workspaceId: String,
     cardIds: List<String>
@@ -429,47 +386,22 @@ internal fun observePinnedReviewCards(
     }
 }
 
-internal fun observePendingReviewedCards(
-    database: AppDatabase,
-    workspaceId: String,
-    pendingReviewedCards: Set<PendingReviewedCard>
-): Flow<List<CardWithRelations>> {
-    val cardIds: List<String> = pendingReviewedCards.map { pendingReviewedCard ->
-        pendingReviewedCard.cardId
-    }.distinct()
-
-    return if (cardIds.isEmpty()) {
-        flowOf(emptyList())
-    } else {
-        database.cardDao().observeCardsWithRelationsByWorkspaceAndIds(
-            workspaceId = workspaceId,
-            cardIds = cardIds
-        )
-    }
-}
-
-internal fun isPendingReviewCardCounted(
-    card: CardSummary,
-    pendingReviewedCards: Set<PendingReviewedCard>,
-    selectedFilter: ReviewFilter,
-    decks: List<DeckSummary>,
+internal fun isCardCountedInReviewScope(
+    card: CardWithRelations,
+    predicate: ReviewQueuePredicate,
     nowMillis: Long
 ): Boolean {
-    if (matchesPendingReviewedCard(pendingReviewedCards = pendingReviewedCards, card = card).not()) {
+    val dueAtMillis = card.card.dueAtMillis
+    if (card.card.deletedAtMillis != null || (dueAtMillis != null && dueAtMillis > nowMillis)) {
         return false
     }
-    if (card.deletedAtMillis != null) {
-        return false
+    return when (val tagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.MatchNone -> false
+        ReviewTagPredicate.None -> true
+        is ReviewTagPredicate.ExactTagNames -> card.tags.any { tag ->
+            tag.workspaceId == card.card.workspaceId && tag.name in tagPredicate.tagNames
+        }
     }
-    if (isCardDue(card = card, nowMillis = nowMillis).not()) {
-        return false
-    }
-
-    return matchesReviewFilter(
-        filter = selectedFilter,
-        decks = decks,
-        card = card
-    )
 }
 
 /** The pinned card while it is still in review: in the queue window, or loaded and still due in the filter. */

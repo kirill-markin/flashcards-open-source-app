@@ -10,16 +10,63 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     func testLiveSmokeManualCardReviewFlow() throws {
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
 
-        try self.step("review the guest manual card") {
-            try self.reviewCurrentCard(
-                expectedFrontText: LiveSmokeLaunchFixtureData.manualReviewFrontText
+        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        try self.step("open the current card from Front Edit") {
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
             )
+            XCTAssertFalse(self.app.buttons[LiveSmokeIdentifier.reviewEditBackCardButton].exists)
+            try self.assertManualReviewCardEditor(editButtonIdentifier: LiveSmokeIdentifier.reviewEditCardButton)
         }
+
+        try self.step("reveal and open the same card from Back Edit") {
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
+            try self.waitForReviewAnswerReveal()
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewAiButton, timeout: timeout)
+            try self.assertManualReviewCardEditor(editButtonIdentifier: LiveSmokeIdentifier.reviewEditBackCardButton)
+        }
+
+        try self.step("rate the guest manual card") {
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: timeout)
+        }
+    }
+
+    @MainActor
+    private func assertManualReviewCardEditor(editButtonIdentifier: String) throws {
+        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        try self.tapButtonScrollingIntoView(identifier: editButtonIdentifier, timeout: timeout)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: timeout)
+        let editor = self.element(identifier: LiveSmokeIdentifier.cardEditorFrontTextEditor)
+        let expectedFront = LiveSmokeLaunchFixtureData.manualReviewFrontText
+        let hasExpectedFront = try self.waitForElementValue(
+            editor,
+            identifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
+            expectedValue: expectedFront,
+            timeout: timeout
+        )
+        XCTAssertTrue(hasExpectedFront, "Review Edit should open the current card with front '\(expectedFront)'.")
+        try self.tapFirstNavigationBackButton()
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorCancelButton, timeout: timeout)
+        try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: timeout)
     }
 
     @MainActor
     func testLiveSmokeGuestAiCardReviewFlow() throws {
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
+
+        try self.step("open Library Tags from the review card's tag button") {
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewCardTagsButton,
+                timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.tagsScreen,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
 
         try self.step("review the guest AI card") {
             try self.reviewCurrentCard(

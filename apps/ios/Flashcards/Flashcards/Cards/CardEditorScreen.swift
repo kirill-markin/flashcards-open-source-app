@@ -244,6 +244,7 @@ struct CardEditorScreen: View {
             ToolbarItem(placement: .cancellationAction) {
                 self.cancelButton
                     .reviewCardsShortcutHelp(key: "⎋")
+                    .accessibilityIdentifier(UITestIdentifier.cardEditorCancelButton)
             }
 
             ToolbarItem(placement: .confirmationAction) {

@@ -257,6 +257,28 @@ private func deckScreenListItemsMatchingSearchText(
     }
 }
 
+struct DeckCardSummaryRows: View {
+    let stats: DeckCardStats
+
+    var body: some View {
+        SummaryRow(
+            title: aiSettingsLocalized("settings.workspace.overview.cards", "Cards"),
+            value: self.stats.totalCards.formatted(),
+            symbolName: "square.stack.3d.up"
+        )
+        SummaryRow(
+            title: aiSettingsLocalized("settings.workspace.decks.toStudy", "To study"),
+            value: self.stats.dueCards.formatted(),
+            symbolName: "clock.badge.checkmark"
+        )
+        SummaryRow(
+            title: aiSettingsLocalized("settings.workspace.overview.new", "New"),
+            value: self.stats.newCards.formatted(),
+            symbolName: "plus.circle"
+        )
+    }
+}
+
 private struct SummaryRow: View {
     let title: String
     let value: String
@@ -479,21 +501,7 @@ struct DeckDetailScreen: View {
         List {
             if let detailState {
                 Section(aiSettingsLocalized("settings.workspace.decks.section.deckRules", "Deck rules")) {
-                    SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.overview.cards", "Cards"),
-                        value: "\(detailState.stats.totalCards)",
-                        symbolName: "square.stack.3d.up"
-                    )
-                    SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.decks.toStudy", "To study"),
-                        value: "\(detailState.stats.dueCards)",
-                        symbolName: "clock.badge.checkmark"
-                    )
-                    SummaryRow(
-                        title: aiSettingsLocalized("settings.workspace.overview.new", "New"),
-                        value: "\(detailState.stats.newCards)",
-                        symbolName: "plus.circle"
-                    )
+                    DeckCardSummaryRows(stats: detailState.stats)
                     Text(detailState.filterSummary)
                         .foregroundStyle(.secondary)
 

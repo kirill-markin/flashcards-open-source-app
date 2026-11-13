@@ -13,7 +13,7 @@
     <string name="ai_chat_error_context_length_exceeded">La conversation est trop longue pour que l’IA puisse continuer. Commencez un nouveau clavardage pour poursuivre.</string>
     <string name="ai_selected_attachment_not_added_chat_busy">La pièce jointe sélectionnée n’a pas été ajoutée parce que le clavardage était occupé. Attendez un moment, puis joignez-la de nouveau.</string>
     <string name="ai_attachment_too_large">Ce fichier est trop volumineux pour le clavardage avec l’IA. La taille maximale est de 30 Mo par fichier et de 10 Mo par image.</string>
-    <string name="ai_attachment_unsupported_message">Ce type de fichier n’est pas pris en charge dans le clavardage avec l’IA. Retirez le fichier ou enregistrez-le au format PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG ou dans un format d’image, puis réessayez.</string>
+    <string name="ai_attachment_unsupported_message">Ce type de fichier n’est pas pris en charge dans le clavardage avec l’IA. Retirez le fichier ou enregistrez-le au format PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC ou dans un format d’image, puis réessayez.</string>
     <string name="ai_request_too_large_message">Le clavardage avec l’IA ne peut pas envoyer autant de contenu à la fois. Retirez une ou plusieurs pièces jointes, choisissez un fichier ou une photo de plus petite taille, ou divisez la demande et réessayez.</string>
     <string name="ai_history_title">Historique des clavardages</string>
     <string name="ai_history_search_placeholder">Rechercher des clavardages</string>

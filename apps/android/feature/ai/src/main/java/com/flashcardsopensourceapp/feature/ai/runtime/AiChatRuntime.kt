@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -17,7 +17,7 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt
-import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImport
+import com.flashcardsopensourceapp.feature.ai.AiImport
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import com.flashcardsopensourceapp.feature.ai.input.isAiChatAttachmentStaged
@@ -393,7 +393,7 @@ internal class AiChatRuntime(
             return false
         }
 
-        if (currentState.ankiImportRequest != null) {
+        if (currentState.importRequest != null) {
             showErrorMessage(message = context.textProvider.entryPrefillRequiresNewChat)
             return true
         }
@@ -416,10 +416,10 @@ internal class AiChatRuntime(
         return true
     }
 
-    fun handoffAnkiImportToChat(ankiImport: AiAnkiImport, workspace: AiAnkiImportTarget?): Boolean {
+    fun handoffImportToChat(aiImport: AiImport, workspace: AiImportTarget?): Boolean {
         if (workspace == null) {
-            deleteAiChatAttachmentStagedFiles(attachments = ankiImport.attachments)
-            showErrorMessage(message = context.textProvider.ankiImportWorkspaceChanged)
+            deleteAiChatAttachmentStagedFiles(attachments = aiImport.attachments)
+            showErrorMessage(message = context.textProvider.importWorkspaceChanged)
             return true
         }
         val accessContext = context.activeAccessContext ?: return false
@@ -435,20 +435,20 @@ internal class AiChatRuntime(
         }
 
         val errorMessage = when {
-            canAddPendingAttachment(state = state).not() -> context.textProvider.ankiImportAttachmentsUnavailable
-            ankiImport.attachments.any { attachment -> isAiChatAttachmentStaged(attachment = attachment).not() } ->
+            canAddPendingAttachment(state = state).not() -> context.textProvider.importAttachmentsUnavailable
+            aiImport.attachments.any { attachment -> isAiChatAttachmentStaged(attachment = attachment).not() } ->
                 context.textProvider.attachmentFileMissing
             else -> null
         }
         if (errorMessage != null) {
-            deleteAiChatAttachmentStagedFiles(attachments = ankiImport.attachments)
+            deleteAiChatAttachmentStagedFiles(attachments = aiImport.attachments)
             showErrorMessage(message = errorMessage)
             return true
         }
 
-        sessionCoordinator.prepareAnkiImportConversation(
-            draftMessage = ankiImport.message,
-            pendingAttachments = ankiImport.attachments,
+        sessionCoordinator.prepareImportConversation(
+            draftMessage = aiImport.message,
+            pendingAttachments = aiImport.attachments,
             target = workspace
         )
         sendCoordinator.sendMessage()

@@ -80,7 +80,10 @@
     <string name="review_loading">A carregar…</string>
     <string name="review_no_tags_label">Sem etiquetas</string>
     <string name="review_tag_chip_click_label">Alterar filtro de revisão</string>
-    <string name="review_tag_overflow_label">+%1$d</string>
+    <plurals name="review_filter_due_badge_content_description">
+        <item quantity="one">%d cartão para rever</item>
+        <item quantity="other">%d cartões para rever</item>
+    </plurals>
     <string name="review_tag_filter_dialog_title">Filtro de revisão</string>
     <string name="review_tag_filter_dialog_change_body">Está a rever «%1$s». Quer rever apenas os cartões com a etiqueta «%2$s»?</string>
     <string name="review_tag_filter_dialog_already_selected_body">Já está a rever os cartões com a etiqueta «%1$s».</string>
@@ -106,10 +109,6 @@
     <plurals name="review_queue_button_content_description">
         <item quantity="one">Fila de revisão com %d cartão.</item>
         <item quantity="other">Fila de revisão com %d cartões.</item>
-    </plurals>
-    <plurals name="review_tag_overflow_content_description">
-        <item quantity="one">Mais %d etiqueta</item>
-        <item quantity="other">Mais %d etiquetas</item>
     </plurals>
     <plurals name="review_filter_tag_count">
         <item quantity="one">%d etiqueta</item>

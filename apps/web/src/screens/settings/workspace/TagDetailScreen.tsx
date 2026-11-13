@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useAppData } from "../../../appData";
-import { getErrorMessage, isCardDue } from "../../../appData/domain";
+import { getErrorMessage } from "../../../appData/domain";
 import { markIndexedDbOpenRecoveryFailureAndCheckActive, useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { buildDeckFilterDefinition } from "../../../deckFilters";
 import { useI18n } from "../../../i18n";
@@ -11,6 +11,9 @@ import { libraryTagsRoute, reviewRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import { useWorkspacePath } from "../../../useWorkspacePath";
 import { CardMaintenanceAction } from "./CardMaintenanceAction";
+import { DeckDetailStats, MatchingCardPreview, MatchingCardsSection } from "./decks/DeckDetailContent";
+
+const tagCardsPageSize = 50;
 
 export function TagDetailScreen(): ReactElement {
   const [searchParams] = useSearchParams();
@@ -33,7 +36,7 @@ export function TagDetailScreen(): ReactElement {
 function TagDetail({ tag, workspaceId }: Readonly<{ tag: string; workspaceId: string }>): ReactElement {
   const { cloudSettings, localReadVersion, openReview, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatNumber } = useI18n();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const workspacePath = useWorkspacePath();
   const [cards, setCards] = useState<ReadonlyArray<Card> | null>(null);
@@ -43,7 +46,6 @@ function TagDetail({ tag, workspaceId }: Readonly<{ tag: string; workspaceId: st
   const installationId = cloudSettings?.installationId ?? null;
   const technicalErrorMessage = t("appError.technicalError.message");
   const tagsPath = workspacePath(libraryTagsRoute);
-  const nowTimestamp = Date.now();
 
   useEffect(() => {
     let isCurrent = true;
@@ -85,70 +87,86 @@ function TagDetail({ tag, workspaceId }: Readonly<{ tag: string; workspaceId: st
   }
 
   return (
-    <main className="container tags-page">
-      <section className="panel tags-screen-panel" data-testid="tag-detail">
+    <main className="container">
+      <section className="panel tag-detail-panel" data-testid="tag-detail">
         <div className="screen-head">
-          <h1 className="title" dir="auto">{tag}</h1>
+          <div>
+            <h1 className="title"><bdi>{tag}</bdi></h1>
+          </div>
           <div className="screen-actions">
             <Link className="ghost-btn" to={tagsPath}>{t("deckDetail.actions.back")}</Link>
+            <button
+              className="primary-btn"
+              type="button"
+              onClick={handleOpenReview}
+              disabled={cards === null || cards.length === 0 || errorMessage !== ""}
+              data-testid="tag-detail-open-review"
+            >
+              {t("deckDetail.actions.openReview")}
+            </button>
           </div>
         </div>
 
         {errorMessage !== "" ? (
-          <>
+          <div className="cell-stack tag-detail-error">
             <p className="error-banner" role="alert">{errorMessage}</p>
             <button className="ghost-btn" type="button" onClick={() => setReadAttempt((attempt) => attempt + 1)}>
               {t("common.retry")}
             </button>
-          </>
+          </div>
         ) : cards === null ? (
-          <p className="subtitle" role="status">{t("loading.tags")}</p>
+          <p className="subtitle" role="status">{t("common.loading")}</p>
         ) : null}
 
         {cards === null ? null : (
-          <>
-            <div className="deck-detail-stats">
-              <div className="content-card deck-detail-stat-card">
-                <span className="deck-detail-stat-label">{t("tagsScreen.totalCards.label")}</span>
-                <span className="deck-detail-stat-value">{formatNumber(cards.length)}</span>
-              </div>
-              <div className="content-card deck-detail-stat-card">
-                <span className="deck-detail-stat-label">{t("deckDetail.rules.new")}</span>
-                <span className="deck-detail-stat-value">
-                  {formatNumber(cards.filter((card) => card.reps === 0 && card.lapses === 0).length)}
-                </span>
-              </div>
-              <div className="content-card deck-detail-stat-card">
-                <span className="deck-detail-stat-label">{t("deckDetail.rules.toStudy")}</span>
-                <span className="deck-detail-stat-value">
-                  {formatNumber(cards.filter((card) => isCardDue(card, nowTimestamp)).length)}
-                </span>
+          <div className="deck-detail-layout">
+            <div className="deck-detail-panel">
+              <DeckDetailStats cards={cards} />
+              <div className="tag-detail-maintenance">
+                <CardMaintenanceAction kind="resetTag" target={tag} disabled={false} />
+                <CardMaintenanceAction
+                  kind="removeTag"
+                  target={tag}
+                  disabled={false}
+                  onComplete={() => navigate(tagsPath, { replace: true })}
+                  didApplyAfterSync={async () => (
+                    (await loadCardsMatchingDeck(workspaceId, buildDeckFilterDefinition([tag]))).length === 0
+                  )}
+                />
               </div>
             </div>
-            <div className="screen-actions">
-              <button
-                className="primary-btn"
-                type="button"
-                onClick={handleOpenReview}
-                disabled={cards.length === 0 || errorMessage !== ""}
-                data-testid="tag-detail-open-review"
-              >
-                {t("deckDetail.actions.openReview")}
-              </button>
-              <CardMaintenanceAction kind="resetTag" target={tag} disabled={false} />
-              <CardMaintenanceAction
-                kind="removeTag"
-                target={tag}
-                disabled={false}
-                onComplete={() => navigate(tagsPath, { replace: true })}
-                didApplyAfterSync={async () => (
-                  (await loadCardsMatchingDeck(workspaceId, buildDeckFilterDefinition([tag]))).length === 0
-                )}
-              />
-            </div>
-          </>
+            <TagMatchingCards cards={cards} />
+          </div>
         )}
       </section>
     </main>
+  );
+}
+
+function TagMatchingCards({ cards }: Readonly<{ cards: ReadonlyArray<Card> }>): ReactElement {
+  const { t } = useI18n();
+  const [visibleCount, setVisibleCount] = useState(tagCardsPageSize);
+  const observeLastCard = useCallback((row: HTMLElement | null): (() => void) | undefined => {
+    if (row === null) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisibleCount((count) => Math.max(count, visibleCount + tagCardsPageSize));
+      }
+    });
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [visibleCount]);
+
+  return (
+    <MatchingCardsSection cardCount={cards.length} emptyMessage={t("reviewScreen.empty.noCardsTitle")}>
+      {cards.slice(0, visibleCount).map((card, index) => (
+        <MatchingCardPreview
+          key={card.cardId}
+          card={card}
+          rowRef={visibleCount < cards.length && index === visibleCount - 1 ? observeLastCard : undefined}
+        />
+      ))}
+    </MatchingCardsSection>
   );
 }

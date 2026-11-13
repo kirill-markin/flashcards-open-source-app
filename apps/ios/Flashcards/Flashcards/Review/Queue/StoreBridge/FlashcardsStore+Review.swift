@@ -255,6 +255,7 @@ extension FlashcardsStore {
             preservedPresentedReviewCard: preservedPresentedReviewCard,
             preservedNextReviewCard: preservedNextReviewCard
         )
+        self.appliedReviewLoadState = .loading
         self.applyReviewPublishedState(reviewState: plan.publishedState)
         self.persistSelectedReviewFilter(reviewFilter: plan.publishedState.selectedReviewFilter)
         self.globalErrorMessage = ""
@@ -317,6 +318,7 @@ extension FlashcardsStore {
                     errorSummary: nil
                 )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
+                self.publishAppliedReviewLoadCutoffIfReady(now: plan.headRequest.now)
                 self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)
                 self.startReviewQueueChunkLoadIfNeeded(now: plan.headRequest.now)
             } catch is CancellationError {
@@ -342,6 +344,7 @@ extension FlashcardsStore {
                     publishedState: nextReviewState,
                     errorSummary: Flashcards.errorMessage(error: error)
                 )
+                self.appliedReviewLoadState = .incomplete
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
@@ -486,8 +489,7 @@ extension FlashcardsStore {
                     errorSummary: nil
                 )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
-                // The request belongs to the active load of the selected filter, so its due count is the badge's.
-                self.reviewDueBadgeCount = reviewCounts.dueCount
+                self.publishAppliedReviewLoadCutoffIfReady(now: request.now)
             } catch is CancellationError {
                 return
             } catch {
@@ -511,6 +513,7 @@ extension FlashcardsStore {
                     publishedState: nextReviewState,
                     errorSummary: Flashcards.errorMessage(error: error)
                 )
+                self.appliedReviewLoadState = .incomplete
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
@@ -704,7 +707,13 @@ extension FlashcardsStore {
         let onboardingInstallationId = self.cloudSettings?.installationId
         do {
             try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
-            _ = try await reviewSubmissionExecutor.submitReview(
+            let localReadVersion = self.localReadVersion
+            self.workspaceReviewDueRatingSavesInFlight += 1
+            defer {
+                self.workspaceReviewDueRatingSavesInFlight -= 1
+                self.workspaceReviewDueRatingVersion += 1
+            }
+            let reviewChange = try await reviewSubmissionExecutor.submitReview(
                 workspaceId: request.workspaceId,
                 submission: ReviewSubmission(
                     cardId: request.cardId,
@@ -712,6 +721,11 @@ extension FlashcardsStore {
                     reviewedAtClient: request.reviewedAtClient,
                     reviewedTimeZone: request.reviewedTimeZone
                 )
+            )
+            self.applyWorkspaceReviewDueRating(
+                previousCard: reviewChange.previousCard,
+                ratedCard: reviewChange.ratedCard,
+                localReadVersion: localReadVersion
             )
         } catch {
             await self.handleReviewSubmissionFailure(request: request, submissionError: error)
@@ -1022,15 +1036,6 @@ extension FlashcardsStore {
         guard workspaceId == self.workspace?.workspaceId else {
             return false
         }
-        // The Review badge counts the same due cards for the same filter, so it needs no query of its own. Fresh
-        // counts publish it even when the queue below is unchanged, because a rating rereads nothing else; a
-        // superseded reconcile publishes nothing, so it cannot overwrite a newer count.
-        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
-        if requestedReviewFilter == self.selectedReviewFilter,
-           self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion),
-           self.reviewRuntime.shouldApplyReviewReconciliation(generation: reconciliationGeneration) {
-            self.reviewDueBadgeCount = reviewCounts.dueCount
-        }
         guard currentReviewState == self.currentReviewPublishedState() else {
             return false
         }
@@ -1098,21 +1103,43 @@ extension FlashcardsStore {
         let didChangeLoadedReviewQueue = currentNonPendingReviewQueue != refreshedReviewQueue
         let didChangePresentedReviewCard = currentReviewState.presentedReviewCard != nextPresentedReviewCard
 
-        guard didChangeReviewSession || didChangeReviewCounts || didChangeLoadedReviewQueue || didChangePresentedReviewCard else {
-            return false
+        let didChange = didChangeReviewSession || didChangeReviewCounts || didChangeLoadedReviewQueue
+            || didChangePresentedReviewCard
+        let replacesCountsLoad = currentReviewState.isReviewCountsLoading
+        if didChange || replacesCountsLoad {
+            if replacesCountsLoad {
+                self.reviewRuntime.cancelActiveReviewCountsLoad()
+            }
+            let nextReviewState = self.reviewRuntime.applyBackgroundReviewRefresh(
+                publishedState: currentReviewState,
+                selectedReviewFilter: resolvedReviewQuery.reviewFilter,
+                reviewCounts: reviewCounts,
+                reviewQueue: refreshedReviewQueue,
+                presentedReviewCard: nextPresentedReviewCard,
+                hasMoreCards: reviewQueueWindowState.hasMoreCards
+            )
+            self.applyReviewPublishedState(reviewState: nextReviewState)
+            self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)
         }
 
-        let nextReviewState = self.reviewRuntime.applyBackgroundReviewRefresh(
-            publishedState: currentReviewState,
-            selectedReviewFilter: resolvedReviewQuery.reviewFilter,
-            reviewCounts: reviewCounts,
-            reviewQueue: refreshedReviewQueue,
-            presentedReviewCard: nextPresentedReviewCard,
-            hasMoreCards: reviewQueueWindowState.hasMoreCards
-        )
-        self.applyReviewPublishedState(reviewState: nextReviewState)
-        self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)
-        self.startReviewQueueChunkLoadIfNeeded(now: now)
+        switch trigger {
+        case .cloudSyncSilently, .cloudSyncWithVisibleChangeBanner:
+            self.appliedReviewDueCutoff = now
+        case .localReview, .staleLocalReview:
+            if self.appliedReviewLoadState != .settled
+                || resolvedReviewQuery.reviewFilter != currentReviewState.selectedReviewFilter {
+                self.appliedReviewDueCutoff = now
+            }
+        }
+        self.appliedReviewLoadState = .settled
+        let nextReviewState = self.currentReviewPublishedState()
+        if didChange || replacesCountsLoad {
+            self.startReviewQueueChunkLoadIfNeeded(now: now)
+        }
+
+        guard didChange else {
+            return false
+        }
 
         let nextEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: nextReviewState)
         let nextCardId = currentReviewCard(reviewQueue: nextEffectiveQueue)?.cardId

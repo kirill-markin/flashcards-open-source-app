@@ -39,8 +39,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
-    case .importAnki:
-        return LibraryLocation(section: .importData, pages: [.importAnki])
+    case .importFormat:
+        return LibraryLocation(section: .importData, pages: [destination])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
     case .exportFormat:
@@ -66,8 +66,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
-    case .importAnki:
-        return [.importData, .importAnki]
+    case .importFormat:
+        return [.importData, destination]
     case .exportData:
         return [.exportData]
     case .exportFormat:
@@ -159,7 +159,7 @@ final class AppNavigationModel {
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
-    private(set) var ankiImportRequest: AnkiImportPresentationRequest?
+    private(set) var aiImportRequest: AIImportPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
     private(set) var canPresentAICompanion: Bool = false
@@ -283,7 +283,7 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
-        self.cancelAnkiImport()
+        self.cancelAIImport()
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
@@ -292,7 +292,7 @@ final class AppNavigationModel {
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
-        self.cancelAnkiImport()
+        self.cancelAIImport()
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
         if self.isAICompanionVisible == false {
@@ -301,13 +301,13 @@ final class AppNavigationModel {
         self.popAIToLiveChat()
     }
 
-    func openAIAnkiImport(request: AnkiImportPresentationRequest) -> Bool {
-        guard self.ankiImportRequest == nil else {
+    func openAIImport(request: AIImportPresentationRequest) -> Bool {
+        guard self.aiImportRequest == nil else {
             return false
         }
 
         self.aiChatPresentationRequest = nil
-        self.ankiImportRequest = request
+        self.aiImportRequest = request
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
@@ -315,16 +315,16 @@ final class AppNavigationModel {
         return true
     }
 
-    func takeAnkiImportRequest() -> AnkiImportPresentationRequest? {
-        guard let request = self.ankiImportRequest else {
+    func takeAIImportRequest() -> AIImportPresentationRequest? {
+        guard let request = self.aiImportRequest else {
             return nil
         }
-        self.ankiImportRequest = nil
+        self.aiImportRequest = nil
         return request
     }
 
-    func cancelAnkiImport() {
-        if let request = self.takeAnkiImportRequest() {
+    func cancelAIImport() {
+        if let request = self.takeAIImportRequest() {
             aiChatRemoveAttachmentFiles(attachments: request.attachments)
         }
     }

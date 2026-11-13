@@ -31,18 +31,15 @@ extension AIChatStore {
         }
     }
 
-    func startAnkiImport(attachments: [AIChatAttachment]) {
+    func startAIImport(attachments: [AIChatAttachment], requestText: String) {
         if self.chatSessionId.isEmpty && self.currentComposerDraft().isEmpty == false {
             self.prepareExplicitRemoteSessionProvisioning(sessionId: makeAIChatSessionId())
         }
         self.startFreshLocalSession(
             draft: AIChatComposerDraft(
-                inputText: aiSettingsLocalized(
-                    "settings.workspace.import.anki.request",
-                    "Import all attached Anki decks into this workspace."
-                ),
+                inputText: requestText,
                 pendingAttachments: attachments,
-                origin: .ankiImport
+                origin: .aiImport
             )
         )
         self.sendMessage()
@@ -52,7 +49,7 @@ extension AIChatStore {
         guard self.isChatInteractive else {
             return
         }
-        if self.isComposerBusy || self.dictationState != .idle || self.isAnkiImportDraftBlocked {
+        if self.isComposerBusy || self.dictationState != .idle || self.isAIImportDraftBlocked {
             return
         }
 
@@ -96,10 +93,10 @@ extension AIChatStore {
             return
         }
         var preparedDraft = self.currentComposerDraft()
-        let isAnkiImportRetry = preparedDraft.ankiImportRequestId != nil
+        let isAIImportRetry = preparedDraft.aiImportRequestId != nil
         let initialHistoryWorkspaceId = self.historyWorkspaceId()
-        if preparedDraft.origin == .ankiImport {
-            preparedDraft.ankiImportRequestId = preparedDraft.ankiImportRequestId ?? makeAIChatClientRequestId()
+        if preparedDraft.origin == .aiImport {
+            preparedDraft.aiImportRequestId = preparedDraft.aiImportRequestId ?? makeAIChatClientRequestId()
             self.invalidateActivePassiveSnapshotRefreshTask()
             self.persistDraftStateImmediately(
                 workspaceId: initialHistoryWorkspaceId,
@@ -138,7 +135,7 @@ extension AIChatStore {
                     attachments: draft.pendingAttachments,
                     text: outgoingText
                 )
-                if isAnkiImportRetry {
+                if isAIImportRetry {
                     let response = try await self.chatService.loadBootstrap(
                         session: session,
                         sessionId: explicitSessionId,
@@ -157,7 +154,7 @@ extension AIChatStore {
                         return
                     }
                 }
-                if draft.ankiImportRequestId != nil {
+                if draft.aiImportRequestId != nil {
                     try Task.checkCancellation()
                     let currentHistoryWorkspaceId = self.historyWorkspaceId()
                     if currentHistoryWorkspaceId != initialHistoryWorkspaceId {
@@ -175,13 +172,13 @@ extension AIChatStore {
                     session: session,
                     sessionId: explicitSessionId,
                     afterCursor: self.liveCursor,
-                    ankiImportRequestId: draft.ankiImportRequestId,
+                    aiImportRequestId: draft.aiImportRequestId,
                     outgoingContent: startRunContent,
                     eventHandler: { [weak self] event in
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
                     }
                 )
-                if draft.origin != .ankiImport || self.activeConversationId == conversationId {
+                if draft.origin != .aiImport || self.activeConversationId == conversationId {
                     aiChatRemoveAttachmentFiles(attachments: draft.pendingAttachments)
                 }
             } catch is CancellationError {
@@ -354,7 +351,7 @@ extension AIChatStore {
         // Signing in is the fix only while this install has no account; a signed-in caller must not be
         // told to create one, so only the unlinked states keep the upgrade prompt.
         let shouldShowGuestQuotaUpgradePrompt = isAiLimitReached && self.usesGuestAIRestrictions
-        let didProvisionAnkiImportSession = draft.origin == .ankiImport && self.requiresRemoteSessionProvisioning == false
+        let didProvisionAIImportSession = draft.origin == .aiImport && self.requiresRemoteSessionProvisioning == false
         self.repairStatus = nil
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
@@ -362,7 +359,7 @@ extension AIChatStore {
 
         if didAcceptRun == false && didAppendOptimisticMessages {
             self.restorePreSendState(preSendSnapshot)
-            if didProvisionAnkiImportSession {
+            if didProvisionAIImportSession {
                 self.requiresRemoteSessionProvisioning = false
             }
             self.suppressDraftRestore = false
@@ -390,9 +387,9 @@ extension AIChatStore {
 
         if didAcceptRun == false && isAIChatSessionNotCurrentError(error: error) {
             let staleSessionId = self.chatSessionId
-            if draft.origin == .ankiImport {
+            if draft.origin == .aiImport {
                 // The server checks for the original request before refusing a stale session.
-                self.moveAnkiImportToFreshDraft(staleSessionId: staleSessionId, draft: draft)
+                self.moveAIImportToFreshDraft(staleSessionId: staleSessionId, draft: draft)
             } else {
                 self.switchToCurrentChatAfterSessionNotCurrent(staleSessionId: staleSessionId, draft: draft)
             }
@@ -447,9 +444,9 @@ extension AIChatStore {
     }
 
     /// A concurrent New on another device must not move the import into an existing chat's draft.
-    private func moveAnkiImportToFreshDraft(staleSessionId: String, draft: AIChatComposerDraft) {
+    private func moveAIImportToFreshDraft(staleSessionId: String, draft: AIChatComposerDraft) {
         var freshDraft = draft
-        freshDraft.ankiImportRequestId = nil
+        freshDraft.aiImportRequestId = nil
         self.startFreshLocalDraftSession(draft: freshDraft)
         self.persistDraftStateImmediately(
             workspaceId: self.historyWorkspaceId(),

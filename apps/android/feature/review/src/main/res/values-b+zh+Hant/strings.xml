@@ -81,7 +81,10 @@
     <string name="review_no_tags_label">無標籤</string>
     <string name="review_tag_chip_click_label">變更複習篩選條件</string>
     <!-- Label of the chip that collects the card tags that do not fit on the line. -->
-    <string name="review_tag_overflow_label">+%1$d</string>
+    <plurals name="review_filter_due_badge_content_description">
+        <item quantity="one">%d 張待複習卡片</item>
+        <item quantity="other">%d 張待複習卡片</item>
+    </plurals>
     <string name="review_tag_filter_dialog_title">複習篩選條件</string>
     <string name="review_tag_filter_dialog_change_body">目前正在複習「%1$s」。要改成只複習有「%2$s」標籤的卡片嗎？</string>
     <string name="review_tag_filter_dialog_already_selected_body">你已在複習有「%1$s」標籤的卡片。</string>
@@ -103,9 +106,6 @@
     </plurals>
     <plurals name="review_queue_button_content_description">
         <item quantity="other">複習佇列有 %d 張卡片。</item>
-    </plurals>
-    <plurals name="review_tag_overflow_content_description">
-        <item quantity="other">另有 %d 個標籤</item>
     </plurals>
     <plurals name="review_filter_tag_count">
         <item quantity="other">%d 個標籤</item>

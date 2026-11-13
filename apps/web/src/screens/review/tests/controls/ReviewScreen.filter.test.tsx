@@ -179,6 +179,9 @@ describe("ReviewScreen filter controls", () => {
     expect(headerActions.contains(scopeTrigger)).toBe(true);
     expect(headerActions.querySelector(".review-filter-label")).toBeNull();
     expect(scopeTrigger.getAttribute("aria-label")).toBe("Open review filter");
+    const scopeBadge = scopeTrigger.querySelector(".review-due-badge");
+    expect(scopeBadge?.getAttribute("aria-label")).toBe("1 due");
+    expect(scopeTrigger.getAttribute("aria-describedby")?.split(" ")).toContain(scopeBadge?.id);
     expect(headerActions.contains(queueBadge)).toBe(true);
     expect(headerActions.contains(leaderboardShortcut)).toBe(true);
     expect(headerActions.contains(progressBadge)).toBe(true);
@@ -190,7 +193,45 @@ describe("ReviewScreen filter controls", () => {
 
     expect(progressBadgeIcon.getAttribute("aria-hidden")).toBe("true");
 
-    await clickElementAsync(queueBadge);
+    const moreTrigger = getContainer().querySelector("[data-testid='review-more-actions-trigger']");
+    if (!(moreTrigger instanceof HTMLButtonElement)) {
+      throw new Error("Review More actions trigger was not found");
+    }
+
+    await clickElementAsync(moreTrigger);
+    const moreScope = document.querySelector("[data-testid='review-more-actions-scope']");
+    if (!(moreScope instanceof HTMLButtonElement)) {
+      throw new Error("Review More actions scope was not found");
+    }
+
+    await clickElementAsync(moreScope);
+    expect(scopeTrigger.getAttribute("aria-expanded")).toBe("true");
+    expect(document.querySelector("#review-filter-listbox")).not.toBeNull();
+
+    await pointerDownElementAsync(scopeTrigger);
+    expect(scopeTrigger.getAttribute("aria-expanded")).toBe("true");
+    await clickElementAsync(scopeTrigger);
+    expect(scopeTrigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector("#review-filter-listbox")).toBeNull();
+
+    await clickElementAsync(moreTrigger);
+    expect(moreTrigger.getAttribute("aria-expanded")).toBe("true");
+    scopeTrigger.focus();
+    await clickElementAsync(scopeTrigger);
+    expect(scopeTrigger.getAttribute("aria-expanded")).toBe("true");
+    expect(moreTrigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement?.id).toBe("review-filter-listbox");
+
+    moreTrigger.focus();
+    await clickElementAsync(moreTrigger);
+    expect(scopeTrigger.getAttribute("aria-expanded")).toBe("false");
+    expect(moreTrigger.getAttribute("aria-expanded")).toBe("true");
+    const moreQueue = document.querySelector("[data-testid='review-more-actions-queue']");
+    if (!(moreQueue instanceof HTMLButtonElement)) {
+      throw new Error("Review More actions queue was not found");
+    }
+
+    await clickElementAsync(moreQueue);
     expect(queueBadge.getAttribute("aria-controls")).toBe("review-queue-panel");
     expect(queueBadge.getAttribute("aria-expanded")).toBe("true");
     expect(reviewLayout.className).toContain("review-layout-queue-open");
@@ -785,6 +826,7 @@ describe("ReviewScreen filter controls", () => {
       },
       cards: [card],
       nextCursor: null,
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: 1,
         totalCount: 1,
@@ -846,6 +888,7 @@ describe("ReviewScreen filter controls", () => {
       resolvedReviewFilter: { kind: "allCards" },
       cards: state.reviewQueue,
       nextCursor: null,
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: state.reviewQueue.length,
         totalCount: state.reviewQueue.length,
@@ -904,6 +947,7 @@ describe("ReviewScreen filter controls", () => {
       resolvedReviewFilter,
       cards: resolvedReviewFilter.tags.length === 0 ? [] : [card],
       nextCursor: null,
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: resolvedReviewFilter.tags.length === 0 ? 0 : 1,
         totalCount: resolvedReviewFilter.tags.length === 0 ? 0 : 1,

@@ -108,11 +108,7 @@ fun LibraryRoute(
             item {
                 LibraryRow(
                     title = stringResource(id = R.string.library_import_title),
-                    summary = stringResource(
-                        R.string.library_import_formats_summary,
-                        stringResource(id = R.string.library_import_nibomo_format),
-                        stringResource(id = R.string.library_import_anki_format)
-                    ),
+                    summary = stringResource(id = R.string.library_import_sources_summary),
                     count = null,
                     testTag = libraryImportRowTag,
                     onClick = onOpenImport
@@ -135,7 +131,7 @@ fun LibraryRoute(
 }
 
 @Composable
-private fun LibrarySectionTitle(title: String) {
+internal fun LibrarySectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,

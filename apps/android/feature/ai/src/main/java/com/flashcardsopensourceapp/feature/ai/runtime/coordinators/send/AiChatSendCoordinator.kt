@@ -7,9 +7,9 @@ import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeR
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatSessionNotCurrentRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiLimitReachedRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunRequestSize
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportPersistenceException
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTargetChangedException
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportPersistenceException
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTargetChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
@@ -85,12 +85,12 @@ internal class AiChatSendCoordinator(
             return
         }
 
-        val ankiImportRequest = currentState.ankiImportRequest
-        if (ankiImportRequest != null && canRetryAnkiImport(state = currentState, request = ankiImportRequest).not()) {
+        val importRequest = currentState.importRequest
+        if (importRequest != null && canRetryImport(state = currentState, request = importRequest).not()) {
             context.runtimeStateMutable.update { state ->
                 state.copy(
                     activeAlert = context.textProvider.generalError(
-                        message = context.textProvider.ankiImportRetryUnavailable
+                        message = context.textProvider.importRetryUnavailable
                     ),
                     errorMessage = ""
                 )
@@ -145,12 +145,12 @@ internal class AiChatSendCoordinator(
         val durableDraftState = AiChatDraftState(
             draftMessage = draftMessageBackup,
             pendingAttachments = pendingAttachmentsBackup,
-            ankiImportRequest = ankiImportRequest
+            importRequest = importRequest
         )
         context.runtimeStateMutable.update { state ->
             state.copy(
-                draftMessage = if (ankiImportRequest == null) "" else draftMessageBackup,
-                pendingAttachments = if (ankiImportRequest == null) emptyList() else pendingAttachmentsBackup,
+                draftMessage = if (importRequest == null) "" else draftMessageBackup,
+                pendingAttachments = if (importRequest == null) emptyList() else pendingAttachmentsBackup,
                 composerPhase = AiComposerPhase.PREPARING_SEND,
                 dictationState = AiChatDictationState.IDLE,
                 repairStatus = null,
@@ -170,8 +170,8 @@ internal class AiChatSendCoordinator(
             var rollbackPersistedState = initialPersistedState
             try {
                 var preparedSession: AiChatPreparedRemoteSession? = null
-                if (ankiImportRequest != null) {
-                    context.persistAnkiImportNow(snapshot = currentState)
+                if (importRequest != null) {
+                    context.persistImportNow(snapshot = currentState)
                 } else if (currentCloudState() == CloudAccountState.DISCONNECTED) {
                     preparedSession = context.aiChatRepository.prepareSessionForAi(
                         workspaceId = context.runtimeStateMutable.value.workspaceId
@@ -180,27 +180,27 @@ internal class AiChatSendCoordinator(
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
                 context.aiChatRepository.ensureReadyForSend(
-                    workspaceId = ankiImportRequest?.target?.workspaceId ?: context.runtimeStateMutable.value.workspaceId
+                    workspaceId = importRequest?.target?.workspaceId ?: context.runtimeStateMutable.value.workspaceId
                 )
-                val preparedAnkiImport = ankiImportRequest?.let { request ->
-                    context.aiChatRepository.prepareAnkiImportSession(request = request)
+                val preparedImport = importRequest?.let { request ->
+                    context.aiChatRepository.prepareImportSession(request = request)
                 }
-                if (ankiImportRequest != null && context.isAnkiImportOriginCurrent(request = ankiImportRequest).not()) {
-                    throw AiAnkiImportTargetChangedException()
+                if (importRequest != null && context.isImportOriginCurrent(request = importRequest).not()) {
+                    throw AiImportTargetChangedException()
                 }
                 val ensuredSession = sessionCoordinator.ensureSessionIdIfNeededPreservingDraft(
                     draftState = durableDraftState,
-                    preparedSession = preparedAnkiImport?.remoteSession ?: preparedSession
+                    preparedSession = preparedImport?.remoteSession ?: preparedSession
                 )
                 requestSessionId = ensuredSession.sessionId
-                if (ankiImportRequest != null) {
-                    if (context.isAnkiImportOriginCurrent(request = ankiImportRequest).not()) {
-                        throw AiAnkiImportTargetChangedException()
+                if (importRequest != null) {
+                    if (context.isImportOriginCurrent(request = importRequest).not()) {
+                        throw AiImportTargetChangedException()
                     }
                     // Make the original request recoverable before uploading or dispatching it.
-                    context.persistAnkiImportNow(snapshot = context.runtimeStateMutable.value)
-                    if (context.isAnkiImportOriginCurrent(request = ankiImportRequest).not()) {
-                        throw AiAnkiImportTargetChangedException()
+                    context.persistImportNow(snapshot = context.runtimeStateMutable.value)
+                    if (context.isImportOriginCurrent(request = importRequest).not()) {
+                        throw AiImportTargetChangedException()
                     }
                 }
                 rollbackPersistedState = context.runtimeStateMutable.value.persistedState
@@ -225,21 +225,21 @@ internal class AiChatSendCoordinator(
                         runHadToolCalls = false
                     )
                 }
-                if (ankiImportRequest == null) {
+                if (importRequest == null) {
                     context.persistCurrentStatePreservingDraft(draftState = durableDraftState)
                 }
                 didAppendOptimisticMessages = true
 
                 val response = context.aiChatRepository.startRun(
-                    workspaceId = ankiImportRequest?.target?.workspaceId ?: context.runtimeStateMutable.value.workspaceId,
+                    workspaceId = importRequest?.target?.workspaceId ?: context.runtimeStateMutable.value.workspaceId,
                     state = nextPersistedState,
                     draftMessage = draftMessageBackup,
                     pendingAttachments = pendingAttachmentsBackup,
                     uiLocale = context.currentUiLocaleTag(),
-                    preparedAnkiImport = preparedAnkiImport
+                    preparedImport = preparedImport
                 )
                 didAcceptRun = true
-                if (ankiImportRequest == null) {
+                if (importRequest == null) {
                     deleteAiChatAttachmentStagedFiles(attachments = pendingAttachmentsBackup)
                 }
                 applyAcceptedRunResponse(
@@ -250,14 +250,14 @@ internal class AiChatSendCoordinator(
                 )
             } catch (error: CancellationException) {
                 if (
-                    ankiImportRequest != null && didAcceptRun.not() && didAppendOptimisticMessages &&
-                    context.isAnkiImportOriginCurrent(request = ankiImportRequest)
+                    importRequest != null && didAcceptRun.not() && didAppendOptimisticMessages &&
+                    context.isImportOriginCurrent(request = importRequest)
                 ) {
                     context.runtimeStateMutable.update { state -> state.copy(persistedState = rollbackPersistedState) }
                 }
                 throw error
-            } catch (_: AiAnkiImportTargetChangedException) {
-                if (ankiImportRequest != null && context.isAnkiImportOriginCurrent(request = ankiImportRequest)) {
+            } catch (_: AiImportTargetChangedException) {
+                if (importRequest != null && context.isImportOriginCurrent(request = importRequest)) {
                     restorePreAcceptFailureState(
                         didAppendOptimisticMessages = didAppendOptimisticMessages,
                         rollbackPersistedState = rollbackPersistedState,
@@ -267,7 +267,7 @@ internal class AiChatSendCoordinator(
                     context.runtimeStateMutable.update { state ->
                         state.copy(
                             activeAlert = context.textProvider.generalError(
-                                message = context.textProvider.ankiImportRetryUnavailable
+                                message = context.textProvider.importRetryUnavailable
                             )
                         )
                     }
@@ -299,7 +299,7 @@ internal class AiChatSendCoordinator(
                         repairStatus = null
                     )
                 }
-                if (ankiImportRequest == null || context.isAnkiImportOriginCurrent(request = ankiImportRequest)) {
+                if (importRequest == null || context.isImportOriginCurrent(request = importRequest)) {
                     context.persistCurrentState()
                 }
                 context.activeSendJob = null
@@ -362,8 +362,8 @@ internal class AiChatSendCoordinator(
         }
     }
 
-    private fun canRetryAnkiImport(state: AiChatRuntimeState, request: AiChatAnkiImportRequest): Boolean {
-        return context.isAnkiImportOriginCurrent(request = request)
+    private fun canRetryImport(state: AiChatRuntimeState, request: AiChatImportRequest): Boolean {
+        return context.isImportOriginCurrent(request = request)
             && request.matchesDraft(message = state.draftMessage, attachments = state.pendingAttachments)
             && state.pendingAttachments.all(::isAiChatAttachmentStaged)
     }
@@ -397,8 +397,8 @@ internal class AiChatSendCoordinator(
         rollbackPersistedState: AiChatPersistedState,
         draftState: AiChatDraftState
     ) {
-        val ankiImportRequest = draftState.ankiImportRequest
-        if (ankiImportRequest == null && sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
+        val importRequest = draftState.importRequest
+        if (importRequest == null && sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
             return
         }
         // Accepted responses can still mirror older recovered history before the
@@ -427,7 +427,7 @@ internal class AiChatSendCoordinator(
                     isLiveAttached = false,
                     draftMessage = "",
                     pendingAttachments = emptyList(),
-                    ankiImportRequest = null,
+                    importRequest = null,
                     composerPhase = if (response.activeRun != null) {
                         AiComposerPhase.RUNNING
                     } else {
@@ -440,11 +440,11 @@ internal class AiChatSendCoordinator(
                 nextSuggestions = response.composerSuggestions
             )
         }
-        if (ankiImportRequest == null) {
+        if (importRequest == null) {
             context.runtimeStateMutable.update(applyResponse)
         } else {
-            val applied = context.finishAnkiImport(
-                request = ankiImportRequest,
+            val applied = context.finishImport(
+                request = importRequest,
                 attachments = draftState.pendingAttachments,
                 rollbackPersistedState = rollbackPersistedState,
                 applyResult = applyResponse
@@ -462,7 +462,7 @@ internal class AiChatSendCoordinator(
             context.refreshAiUsage()
             context.triggerToolRunPostSyncIfNeeded(reason = "accepted_response_terminal")
         }
-        if (ankiImportRequest == null) {
+        if (importRequest == null) {
             context.persistCurrentState()
         }
     }
@@ -475,20 +475,20 @@ internal class AiChatSendCoordinator(
         rollbackPersistedState: AiChatPersistedState,
         draftState: AiChatDraftState
     ) {
-        val ankiImportRequest = draftState.ankiImportRequest
+        val importRequest = draftState.importRequest
         val startRunError = error as? AiChatRemoteException
         val failure = if (
-            ankiImportRequest != null && didAcceptRun.not() &&
+            importRequest != null && didAcceptRun.not() &&
             startRunError?.let(::isAiChatSessionNotCurrentRemoteError) == true
         ) {
             try {
-                finishStaleAnkiImport(
-                    request = ankiImportRequest,
+                finishStaleImport(
+                    request = importRequest,
                     rollbackPersistedState = rollbackPersistedState,
                     attachments = draftState.pendingAttachments
                 )
                 return
-            } catch (clearError: AiAnkiImportPersistenceException) {
+            } catch (clearError: AiImportPersistenceException) {
                 clearError
             }
         } else {
@@ -496,7 +496,7 @@ internal class AiChatSendCoordinator(
         }
         if (
             sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not() ||
-            (ankiImportRequest != null && context.isAnkiImportOriginCurrent(request = ankiImportRequest).not())
+            (importRequest != null && context.isImportOriginCurrent(request = importRequest).not())
         ) {
             return
         }
@@ -511,7 +511,7 @@ internal class AiChatSendCoordinator(
             )
             return
         }
-        if (didAcceptRun.not() || ankiImportRequest != null) {
+        if (didAcceptRun.not() || importRequest != null) {
             restorePreAcceptFailureState(
                 didAppendOptimisticMessages = didAppendOptimisticMessages,
                 rollbackPersistedState = rollbackPersistedState,
@@ -594,8 +594,8 @@ internal class AiChatSendCoordinator(
             return
         }
 
-        val presentation = if (failure is AiAnkiImportPersistenceException) {
-            AiUserFacingErrorPresentation(message = context.textProvider.ankiImportPersistenceFailed, technicalError = failure)
+        val presentation = if (failure is AiImportPersistenceException) {
+            AiUserFacingErrorPresentation(message = context.textProvider.importPersistenceFailed, technicalError = failure)
         } else {
             makeAiUserFacingErrorPresentation(
                 error = failure,
@@ -649,12 +649,12 @@ internal class AiChatSendCoordinator(
         }
     }
 
-    private suspend fun finishStaleAnkiImport(
-        request: AiChatAnkiImportRequest,
+    private suspend fun finishStaleImport(
+        request: AiChatImportRequest,
         rollbackPersistedState: AiChatPersistedState,
         attachments: List<AiChatAttachment>
     ) {
-        context.finishAnkiImport(
+        context.finishImport(
             request = request,
             attachments = attachments,
             rollbackPersistedState = rollbackPersistedState
@@ -663,8 +663,8 @@ internal class AiChatSendCoordinator(
                 persistedState = rollbackPersistedState,
                 draftMessage = "",
                 pendingAttachments = emptyList(),
-                ankiImportRequest = null,
-                activeAlert = context.textProvider.generalError(message = context.textProvider.ankiImportChatReplaced)
+                importRequest = null,
+                activeAlert = context.textProvider.generalError(message = context.textProvider.importChatReplaced)
             )
         }
     }
@@ -730,7 +730,7 @@ internal class AiChatSendCoordinator(
                 return
             }
             val didMoveDraft = didSaveDestinationDraft &&
-                currentState.ankiImportRequest == null &&
+                currentState.importRequest == null &&
                 currentState.draftMessage == draftMessage &&
                 currentState.pendingAttachments == pendingAttachments
             val activeAlert = if (didMoveDraft) {
@@ -738,8 +738,8 @@ internal class AiChatSendCoordinator(
             } else {
                 AiAlertState.UnsentMessage(
                     title = context.textProvider.errorTitle,
-                    message = if (currentState.ankiImportRequest != null) {
-                        context.textProvider.chatNotCurrentAnkiImportNotice
+                    message = if (currentState.importRequest != null) {
+                        context.textProvider.chatNotCurrentImportNotice
                     } else {
                         context.textProvider.chatNotCurrentUnsentMessageNotice
                     },

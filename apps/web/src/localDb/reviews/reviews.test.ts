@@ -7,6 +7,7 @@ import { replaceDecks } from "../cards/decks";
 import { loadWorkspaceTagsSummary } from "../cards/workspace";
 import { parsePersistedReviewFilter } from "../../appData/context/reviewFilterPersistence";
 import {
+  loadReviewDueBadgeSummary,
   loadReviewQueueChunk,
   loadReviewQueueSnapshot,
   loadReviewTimelinePage,
@@ -500,6 +501,15 @@ describe("localDb reviews", () => {
             fsrsLastReviewedAt: "2026-03-10T11:55:00.000Z",
           }),
           makeCard({
+            cardId: "deleted-new",
+            frontText: "Deleted new",
+            backText: "back",
+            tags: ["grammar"],
+            dueAt: null,
+            createdAt: "2026-03-10T09:00:00.000Z",
+            deletedAt: "2026-03-10T11:55:00.000Z",
+          }),
+          makeCard({
             cardId: "old-yesterday",
             frontText: "Old yesterday",
             backText: "back",
@@ -527,9 +537,21 @@ describe("localDb reviews", () => {
           }),
         ]);
 
+        await replaceCards("other-workspace", [makeCard({
+          cardId: "other-workspace-new",
+          frontText: "Other workspace new",
+          backText: "back",
+          tags: [],
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        })]);
+
         const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
         const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
         const grammarQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tags", tags: ["grammar"] }, 10);
+        const shortQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tags", tags: ["grammar"] }, 1);
+        const workspaceBadgeSummary = await loadReviewDueBadgeSummary(workspaceId, nowTimestamp);
+        const nextDueAtMillis = Date.parse("2026-03-11T12:00:00.000Z");
 
         expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
           "recent-1115",
@@ -544,6 +566,10 @@ describe("localDb reviews", () => {
           dueCount: 5,
           totalCount: 7,
         });
+        expect(workspaceBadgeSummary).toEqual({ dueCount: 5, nextDueAtMillis });
+        expect(shortQueueSnapshot.cards).toHaveLength(1);
+        expect(shortQueueSnapshot.reviewCounts.dueCount).toBe(4);
+        expect(shortQueueSnapshot.nextDueAtMillis).toBe(nextDueAtMillis);
         expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
           "recent-1115",
           "recent-1155",

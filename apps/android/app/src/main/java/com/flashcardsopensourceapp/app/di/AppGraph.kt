@@ -53,7 +53,7 @@ import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
-import com.flashcardsopensourceapp.app.navigation.AiAnkiImportRequest
+import com.flashcardsopensourceapp.app.navigation.AiImportRequest
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
@@ -93,7 +93,7 @@ import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesRev
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
-import com.flashcardsopensourceapp.data.local.model.ai.AiAnkiImportTarget
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -147,7 +147,7 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
-import com.flashcardsopensourceapp.feature.ai.anki.AiAnkiImportOrigin
+import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
 import com.flashcardsopensourceapp.feature.settings.accent.createAccentColorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.theme.createThemeViewModelFactory
 import kotlinx.coroutines.CancellationException
@@ -1208,15 +1208,15 @@ class AppGraph(
         )
     }
 
-    internal suspend fun captureAiAnkiImportOrigin(): AiAnkiImportOrigin? = cloudOperationCoordinator.runExclusive {
+    internal suspend fun captureAiImportOrigin(): AiImportOrigin? = cloudOperationCoordinator.runExclusive {
         val workspaceId = workspaceRepository.observeWorkspace().first()?.workspaceId ?: return@runExclusive null
         val configuration = cloudPreferencesStore.currentServerConfiguration()
-        val cloudSettings = resolveAiAnkiImportCloudSettings(
+        val cloudSettings = resolveAiImportCloudSettings(
             workspaceId = workspaceId,
             settings = cloudPreferencesStore.currentCloudSettings(),
             configuration = configuration
         ) ?: return@runExclusive null
-        AiAnkiImportOrigin(
+        AiImportOrigin(
             workspaceId = workspaceId,
             cloudSettings = cloudSettings,
             configuration = configuration,
@@ -1224,15 +1224,15 @@ class AppGraph(
         )
     }
 
-    internal suspend fun withAiAnkiImportWorkspace(
-        request: AiAnkiImportRequest,
-        handoff: (AiAnkiImportTarget?) -> Unit
+    internal suspend fun withAiImportWorkspace(
+        request: AiImportRequest,
+        handoff: (AiImportTarget?) -> Unit
     ) = cloudOperationCoordinator.runExclusive {
         val workspaceId = workspaceRepository.observeWorkspace().first()?.workspaceId
             ?: return@runExclusive handoff(null)
         val settings = cloudPreferencesStore.currentCloudSettings()
         val configuration = cloudPreferencesStore.currentServerConfiguration()
-        val current = resolveAiAnkiImportCloudSettings(
+        val current = resolveAiImportCloudSettings(
             workspaceId = workspaceId,
             settings = settings,
             configuration = configuration
@@ -1255,7 +1255,7 @@ class AppGraph(
             if (current.linkedUserId != settings.linkedUserId) {
                 return@runExclusive
             }
-            AiAnkiImportTarget(
+            AiImportTarget(
                 workspaceId = workspaceId,
                 cloudState = current.cloudState,
                 linkedUserId = current.linkedUserId,
@@ -1268,7 +1268,7 @@ class AppGraph(
         handoff(verifiedWorkspace)
     }
 
-    private suspend fun resolveAiAnkiImportCloudSettings(
+    private suspend fun resolveAiImportCloudSettings(
         workspaceId: String,
         settings: CloudSettings,
         configuration: CloudServiceConfiguration

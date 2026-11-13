@@ -63,6 +63,9 @@ const apiCorsExposeHeaders = [
   "x-request-id",
 ] as const;
 
+// Chrome caps Access-Control-Max-Age at 2 hours; without it a preflight is reused for 5 seconds.
+const corsPreflightMaxAgeSeconds = 7_200;
+
 function getMountPaths(basePath: string): ReadonlyArray<string> {
   if (basePath === "/v1") {
     return ["/", "/v1"];
@@ -102,6 +105,7 @@ function setApiCorsHeaders(c: Context<AuthAppEnv>, origin: string): void {
   c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   c.header("Access-Control-Allow-Headers", apiCorsAllowHeaders.join(", "));
   c.header("Access-Control-Expose-Headers", apiCorsExposeHeaders.join(", "));
+  c.header("Access-Control-Max-Age", String(corsPreflightMaxAgeSeconds));
   c.header("Vary", appendVaryHeader(c.res.headers.get("Vary") ?? undefined, "Origin"));
 }
 
@@ -295,6 +299,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     c.header("Access-Control-Allow-Origin", "*");
     c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     c.header("Access-Control-Allow-Headers", "content-type, authorization");
+    c.header("Access-Control-Max-Age", String(corsPreflightMaxAgeSeconds));
     if (c.req.method === "OPTIONS") {
       return c.body(null, 204);
     }

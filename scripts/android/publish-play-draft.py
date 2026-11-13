@@ -12,8 +12,8 @@ from play_release_notes import parse_notes, read_notes
 
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
-# The phone release stays a draft for manual publication; Wear OS internal testing rolls out to internal testers at once.
-PLAY_TRACK_RELEASE_STATUS = {'production': 'draft', 'wear:qa': 'completed'}
+# Both releases stay drafts for manual publication.
+PLAY_TRACK_RELEASE_STATUS = {'production': 'draft', 'wear:production': 'draft'}
 
 
 def object_value(value: Json) -> dict[str, Json]:

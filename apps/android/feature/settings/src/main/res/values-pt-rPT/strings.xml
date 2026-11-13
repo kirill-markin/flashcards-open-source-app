@@ -533,15 +533,18 @@
     <string name="settings_export_package_tags_empty">Sem etiquetas no pacote.</string>
     <string name="settings_export_package_include_tag">Incluir %1$s</string>
     <string name="settings_export_package_generated_import_tag_not_included">As etiquetas geradas na importação ficam de fora dos pacotes exportados.</string>
-    <string name="settings_import_title">Importar</string>
+    <string name="settings_import_nibomo_title">Importar do Nibomo</string>
+    <string name="settings_import_advanced">Opções avançadas</string>
+    <string name="settings_import_picker_unavailable">O seletor de ficheiros não está disponível neste dispositivo.</string>
+    <string name="settings_import_single_file_required">Escolha um ficheiro ZIP do Nibomo de cada vez.</string>
+    <string name="settings_import_cards_button">Importar cartões</string>
+    <string name="settings_import_tag_imported_cards">Etiquetar cartões importados</string>
     <string name="settings_import_package_section">Pacote</string>
     <string name="settings_import_package_body">Escolha um pacote ZIP portátil do Nibomo para o pré-visualizar antes de importar.</string>
     <string name="settings_import_choose_package">Escolher pacote ZIP</string>
     <string name="settings_import_previewing">A preparar pré-visualização…</string>
     <string name="settings_import_importing">A importar…</string>
-    <string name="settings_import_confirm_button">Importar pacote</string>
     <string name="settings_import_dismiss_error">Fechar mensagem de erro</string>
-    <string name="settings_import_selected_file">Ficheiro: %1$s</string>
     <string name="settings_import_cloud_required">Nesta versão, importar multimédia de um ZIP requer um espaço de trabalho associado na nuvem.</string>
     <string name="settings_import_workspace_unavailable">O espaço de trabalho está indisponível. Volte a carregar o espaço de trabalho atual e tente novamente.</string>
     <string name="settings_import_invalid_file">Escolha um pacote ZIP do Nibomo.</string>
@@ -555,7 +558,6 @@
     <string name="settings_import_missing_import_tag">Introduza uma etiqueta de importação.</string>
     <string name="settings_import_source_section">Origem</string>
     <string name="settings_import_source_kind">Tipo</string>
-    <string name="settings_import_source_title">Título</string>
     <string name="settings_import_source_zip">Pacote ZIP</string>
     <string name="settings_import_metadata_section">Metadados</string>
     <string name="settings_import_metadata_label">Rótulo</string>
@@ -569,7 +571,6 @@
     <string name="settings_import_referenced_media">Conteúdo multimédia referenciado</string>
     <string name="settings_import_package_media">Ficheiros multimédia do pacote</string>
     <string name="settings_import_options_section">Opções</string>
-    <string name="settings_import_add_import_tag">Adicionar etiqueta de importação</string>
     <string name="settings_import_add_import_tag_body">Adiciona uma etiqueta exclusiva a esta importação do pacote.</string>
     <string name="settings_import_import_tag">Etiqueta de importação</string>
     <string name="settings_import_keep_tag">Manter %1$s</string>

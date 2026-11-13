@@ -9,10 +9,20 @@ private struct StoreReviewRequestTaskID: Hashable {
     let requestAttemptId: String?
 }
 
-private struct ReviewDueBadgeTaskID: Hashable {
+private struct ReviewDueRefreshTaskID: Hashable {
     let workspaceId: String?
     let reviewFilter: ReviewFilter
     let localReadVersion: Int
+    let cutoff: Date?
+    let loadState: AppliedReviewLoadState
+    let isLoading: Bool
+    let isSceneActive: Bool
+}
+
+private struct WorkspaceReviewDueTaskID: Hashable {
+    let workspaceId: String?
+    let localReadVersion: Int
+    let ratingVersion: Int
     let isSceneActive: Bool
 }
 
@@ -38,7 +48,9 @@ private func librarySidebarItemIdentifier(_ section: LibrarySection) -> String {
 private struct WidgetSnapshotTaskID: Hashable {
     let workspaceId: String?
     let reviewFilter: ReviewFilter
-    let dueCount: Int
+    let workspaceDueCount: Int
+    let localReadVersion: Int
+    let reviewScheduleVersion: Int
     let presentedReviewCardId: String?
     let progressBadgeState: ReviewProgressBadgeState
     let progressSnapshot: ProgressSnapshot?
@@ -162,11 +174,23 @@ struct RootTabView: View {
         }
     }
 
-    private var reviewDueBadgeTaskID: ReviewDueBadgeTaskID {
-        ReviewDueBadgeTaskID(
+    private var reviewDueRefreshTaskID: ReviewDueRefreshTaskID {
+        ReviewDueRefreshTaskID(
             workspaceId: store.workspace?.workspaceId,
             reviewFilter: store.selectedReviewFilter,
             localReadVersion: store.localReadVersion,
+            cutoff: store.appliedReviewDueCutoff,
+            loadState: store.appliedReviewLoadState,
+            isLoading: store.isReviewHeadLoading || store.isReviewCountsLoading,
+            isSceneActive: self.scenePhase == .active
+        )
+    }
+
+    private var workspaceReviewDueTaskID: WorkspaceReviewDueTaskID {
+        WorkspaceReviewDueTaskID(
+            workspaceId: store.workspace?.workspaceId,
+            localReadVersion: store.localReadVersion,
+            ratingVersion: store.workspaceReviewDueRatingVersion,
             isSceneActive: self.scenePhase == .active
         )
     }
@@ -176,7 +200,9 @@ struct RootTabView: View {
         WidgetSnapshotTaskID(
             workspaceId: store.workspace?.workspaceId,
             reviewFilter: store.selectedReviewFilter,
-            dueCount: store.reviewDueBadgeCount,
+            workspaceDueCount: store.workspaceReviewDueCount,
+            localReadVersion: store.localReadVersion,
+            reviewScheduleVersion: store.reviewScheduleVersion,
             presentedReviewCardId: store.presentedReviewCard?.cardId,
             progressBadgeState: store.reviewProgressBadgeState,
             progressSnapshot: store.widgetProgressSnapshot,
@@ -188,9 +214,10 @@ struct RootTabView: View {
     #endif
 
     private var reviewDueBadgeLabel: Text? {
-        makeReviewDueBadgeLabel(dueCount: store.reviewDueBadgeCount).map { label in
-            Text(label)
+        guard self.navigation.selectedTab != .review else {
+            return nil
         }
+        return makeReviewDueBadgeLabel(dueCount: store.workspaceReviewDueCount).map(Text.init(verbatim:))
     }
 
     private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
@@ -874,8 +901,14 @@ struct RootTabView: View {
         .task(id: self.storeReviewRequestTaskID) {
             await self.requestStoreReviewIfNeeded()
         }
-        .task(id: self.reviewDueBadgeTaskID) {
-            await self.store.runReviewDueBadgeUpdates()
+        .task(id: self.reviewDueRefreshTaskID) {
+            await self.store.refreshAppliedReviewDueTimer()
+        }
+        .task(id: self.workspaceReviewDueTaskID) {
+            guard self.scenePhase == .active else {
+                return
+            }
+            await self.store.runWorkspaceReviewDueUpdates()
         }
         #if !targetEnvironment(macCatalyst)
         .task(id: self.widgetSnapshotTaskID) {
@@ -1143,9 +1176,13 @@ struct RootTabView: View {
         case .catalogDeck(let deck):
             CatalogDeckScreen(deck: deck)
         case .importData:
+            LibraryImportScreen()
+        case .importFormat(.nibomo):
             WorkspaceImportView()
-        case .importAnki:
-            WorkspaceAnkiImportView()
+        case .importFormat(.aiImport(let source)):
+            WorkspaceAIImportView(source: source)
+        case .importFormat(.spreadsheet):
+            WorkspaceSpreadsheetImportView()
         case .exportData:
             LibraryExportScreen()
         case .exportFormat(let format):

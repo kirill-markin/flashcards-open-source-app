@@ -1,6 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.conversation
 
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAnkiImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
@@ -93,7 +93,7 @@ internal data class AiDraftState(
     val isLiveAttached: Boolean,
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
-    val ankiImportRequest: AiChatAnkiImportRequest?,
+    val importRequest: AiChatImportRequest?,
     /** A picked attachment is being copied into the app cache or waits for the draft; the send waits for it. */
     val isImportingAttachment: Boolean,
     val focusComposerRequestVersion: Long,
@@ -182,7 +182,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
-        ankiImportRequest = null,
+        importRequest = null,
         isImportingAttachment = false,
         focusComposerRequestVersion = 0L,
         serverComposerSuggestions = emptyList(),
@@ -217,7 +217,7 @@ internal fun makeAiDraftState(
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
-        ankiImportRequest = null,
+        importRequest = null,
         isImportingAttachment = false,
         focusComposerRequestVersion = 0L,
         serverComposerSuggestions = normalizedPersistedState.composerSuggestions,
@@ -263,7 +263,7 @@ internal fun makeAiChatSessionId(): String {
 }
 
 internal fun AiChatDraftState.forSession(workspaceId: String?, sessionId: String?): AiChatDraftState {
-    val request = ankiImportRequest ?: return this
+    val request = importRequest ?: return this
     return if (request.target.workspaceId == workspaceId && request.sessionId == sessionId) {
         this
     } else {

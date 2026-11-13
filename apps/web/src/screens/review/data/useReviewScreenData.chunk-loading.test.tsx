@@ -78,6 +78,7 @@ describe("useReviewScreenData chunk loading", () => {
       resolvedReviewFilter: state.appData.selectedReviewFilter,
       cards: state.reviewQueue,
       nextCursor: "cursor-after-initial-window",
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: state.reviewQueue.length,
         totalCount: state.reviewQueue.length,
@@ -139,6 +140,7 @@ describe("useReviewScreenData chunk loading", () => {
       resolvedReviewFilter: state.appData.selectedReviewFilter,
       cards: state.reviewQueue,
       nextCursor: "cursor-after-initial-window",
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: state.reviewQueue.length,
         totalCount: state.reviewQueue.length,
@@ -241,6 +243,7 @@ describe("useReviewScreenData chunk loading", () => {
       resolvedReviewFilter: state.appData.selectedReviewFilter,
       cards: state.reviewQueue,
       nextCursor: "cursor-after-initial-window",
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: state.reviewQueue.length,
         totalCount: state.reviewQueue.length,
@@ -369,6 +372,7 @@ describe("useReviewScreenData chunk loading", () => {
       resolvedReviewFilter: state.appData.selectedReviewFilter,
       cards: state.reviewQueue,
       nextCursor: "cursor-after-initial-window",
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: state.reviewQueue.length,
         totalCount: state.reviewQueue.length,
@@ -493,6 +497,7 @@ describe("useReviewScreenData chunk loading", () => {
       resolvedReviewFilter: state.appData.selectedReviewFilter,
       cards: state.reviewQueue,
       nextCursor: snapshotCursor,
+      nextDueAtMillis: null,
       reviewCounts: {
         dueCount: state.reviewQueue.length,
         totalCount: state.reviewQueue.length,

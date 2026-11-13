@@ -247,6 +247,16 @@ export async function lockStripePersonIdentitiesInExecutor(
   return identities.rows.map(toIdentity);
 }
 
+// The unlocked read of lockStripePersonIdentitiesInExecutor; a caller acts on it only when nothing differs.
+export async function listStripePersonIdentitiesInExecutor(
+  executor: DatabaseExecutor, userId: string,
+): Promise<ReadonlyArray<StripeCustomerIdentity>> {
+  const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
+    is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
+    WHERE user_id = $1 AND account_deleted_at IS NULL ORDER BY identity_id`, [userId]);
+  return identities.rows.map(toIdentity);
+}
+
 export async function listStripeCheckoutAttemptsInExecutor(
   executor: DatabaseExecutor, identity: StripeCustomerIdentity,
 ): Promise<ReadonlyArray<StripeCheckoutAttempt>> {

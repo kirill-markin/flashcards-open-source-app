@@ -81,7 +81,10 @@
     <string name="review_no_tags_label">ଟ୍ୟାଗ୍ ନାହିଁ</string>
     <string name="review_tag_chip_click_label">ଅଭ୍ୟାସ ଫିଲ୍ଟର୍ ବଦଳାନ୍ତୁ</string>
     <!-- Label of the chip that collects the card tags that do not fit on the line. -->
-    <string name="review_tag_overflow_label">+%1$d</string>
+    <plurals name="review_filter_due_badge_content_description">
+        <item quantity="one">%dଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</item>
+        <item quantity="other">%dଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</item>
+    </plurals>
     <string name="review_tag_filter_dialog_title">ଅଭ୍ୟାସ ଫିଲ୍ଟର୍</string>
     <string name="review_tag_filter_dialog_change_body">ଆପଣ “%1$s” ଅଭ୍ୟାସ କରୁଛନ୍ତି। ଏହା ବଦଳରେ କେବଳ “%2$s” ଟ୍ୟାଗ୍ ଥିବା କାର୍ଡ ଅଭ୍ୟାସ କରିବେ କି?</string>
     <string name="review_tag_filter_dialog_already_selected_body">ଆପଣ ଆଗରୁ “%1$s” ଟ୍ୟାଗ୍ ଥିବା କାର୍ଡ ଅଭ୍ୟାସ କରୁଛନ୍ତି।</string>
@@ -107,10 +110,6 @@
     <plurals name="review_queue_button_content_description">
         <item quantity="one">ଅଭ୍ୟାସ ତାଲିକାରେ %dଟି କାର୍ଡ।</item>
         <item quantity="other">ଅଭ୍ୟାସ ତାଲିକାରେ %dଟି କାର୍ଡ।</item>
-    </plurals>
-    <plurals name="review_tag_overflow_content_description">
-        <item quantity="one">ଆଉ %dଟି ଟ୍ୟାଗ୍</item>
-        <item quantity="other">ଆଉ %dଟି ଟ୍ୟାଗ୍</item>
     </plurals>
     <plurals name="review_filter_tag_count">
         <item quantity="one">%dଟି ଟ୍ୟାଗ୍</item>

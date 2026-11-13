@@ -25,7 +25,11 @@ func workspacePackageImportAllowedContentTypes() -> [UTType] {
 }
 
 func readWorkspacePackageImportSelectedFile(url: URL) throws -> WorkspacePackageImportSelectedFile {
-    guard url.pathExtension.lowercased() == "zip" else {
+    try readWorkspacePackageImportSelectedFile(url: url, fileName: url.lastPathComponent)
+}
+
+func readWorkspacePackageImportSelectedFile(url: URL, fileName: String) throws -> WorkspacePackageImportSelectedFile {
+    guard (fileName as NSString).pathExtension.lowercased() == "zip" else {
         throw LocalStoreError.validation(
             aiSettingsLocalized(
                 "settings.workspace.import.invalidFile",
@@ -53,14 +57,14 @@ func readWorkspacePackageImportSelectedFile(url: URL) throws -> WorkspacePackage
     }
 
     return WorkspacePackageImportSelectedFile(
-        fileName: url.lastPathComponent,
+        fileName: fileName,
         packageBytes: try Data(contentsOf: url)
     )
 }
 
 private func workspacePackageImportFileSizeBytes(url: URL) throws -> Int64 {
-    let resourceValues = try url.resourceValues(forKeys: [.fileSizeKey])
-    guard let fileSize = resourceValues.fileSize else {
+    let resourceValues = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+    guard resourceValues.isRegularFile == true, let fileSize = resourceValues.fileSize, fileSize > 0 else {
         throw LocalStoreError.validation(
             aiSettingsLocalized(
                 "settings.workspace.import.invalidFile",

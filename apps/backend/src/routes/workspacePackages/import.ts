@@ -29,6 +29,10 @@ import { recordWorkspacePackageImportedAnalytics } from "../../productAnalytics/
 import { HttpError } from "../../shared/errors";
 import type { AppEnv } from "../../server/app";
 import {
+  workspacePackageImportConfirmRouteMaxZipBytes,
+  workspacePackageImportPreviewRouteMaxZipBytes,
+} from "./importContract";
+import {
   createWorkspacePackageScope,
   getRequestContextUserId,
   summarizeValidationDetails,
@@ -57,8 +61,10 @@ type WorkspacePackageImportConfirmUpload = Readonly<{
   options: WorkspacePackageImportConfirmRouteOptions;
 }>;
 
-export const workspacePackageImportPreviewRouteMaxZipBytes = 4_000_000;
-export const workspacePackageImportConfirmRouteMaxZipBytes = workspacePackageImportPreviewRouteMaxZipBytes;
+export {
+  workspacePackageImportConfirmRouteMaxZipBytes,
+  workspacePackageImportPreviewRouteMaxZipBytes,
+};
 
 const workspacePackageImportConfirmTimestampSchema = z.string().datetime().transform(
   (value): string => new Date(value).toISOString(),

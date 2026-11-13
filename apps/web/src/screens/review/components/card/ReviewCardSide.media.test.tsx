@@ -155,11 +155,13 @@ function renderReviewCardSide(
           aiButtonAriaLabel={null}
           contentClassName="review-front"
           copySource={null}
+          edit={null}
           isSpeaking={false}
           label="Front"
           localReadVersion={localReadVersion}
           onOpenAi={null}
           onToggleSpeech={() => undefined}
+          repetitionCount={null}
           shortcutTarget={null}
           showAiButton={false}
           showSpeechButton={false}

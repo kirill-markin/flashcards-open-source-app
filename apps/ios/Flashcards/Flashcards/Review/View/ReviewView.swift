@@ -3,6 +3,7 @@ import UIKit
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
+private let reviewCardContentHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
@@ -15,11 +16,6 @@ private let reviewQueuePreviewPageSize: Int = 50
 private enum ReviewCardScrollTarget: Hashable {
     case front
     case back
-}
-
-private struct ReviewFilterPresentationContext: Equatable {
-    let workspaceId: String?
-    let committedFilter: ReviewFilter
 }
 
 struct ReviewView: View {
@@ -63,9 +59,7 @@ struct ReviewView: View {
     @State var screenErrorMessage: String = ""
     @State var reviewTagSummaries: [WorkspaceTagSummary] = []
     @State var totalCardsCount: Int = 0
-    @State var isReviewFilterPopoverPresented: Bool = false
-    @State var reviewFilterDraft: ReviewFilter = .allCards
-    @State private var reviewFilterPresentationContext: ReviewFilterPresentationContext? = nil
+    @State private var reviewFilterEditSession = ReviewFilterEditSession()
     @State private var reviewFilterButtonFrame: CGRect = .zero
     @State private var reviewTagFilterRequest: ReviewTagFilterRequest? = nil
     #if targetEnvironment(macCatalyst)
@@ -85,12 +79,15 @@ struct ReviewView: View {
         self.reviewFilterTitle(reviewFilter: store.selectedReviewFilter)
     }
 
-    /// The open filter's tag rows apply on close, so the button names that draft at once, as a deck choice does.
+    private var reviewFilterScope: ReviewFilterEditSession.Scope {
+        ReviewFilterEditSession.Scope(
+            workspaceId: self.store.workspace?.workspaceId,
+            appliedFilter: self.store.selectedReviewFilter
+        )
+    }
+
     private var reviewFilterButtonTitle: String {
-        guard self.isReviewFilterPopoverPresented, self.reviewFilterPresentationContext != nil else {
-            return self.selectedReviewFilterTitle
-        }
-        return self.reviewFilterTitle(reviewFilter: self.reviewFilterDraft)
+        self.reviewFilterTitle(reviewFilter: self.reviewFilterEditSession.displayedFilter(in: self.reviewFilterScope))
     }
 
     private func reviewFilterTitle(reviewFilter: ReviewFilter) -> String {
@@ -197,26 +194,23 @@ struct ReviewView: View {
             }
         }
         .onChange(of: [self.showsFilterInReviewColumn, self.usesCompactCompanionToolbar]) { _, _ in
-            // Moving the control commits the draft like an ordinary outside tap.
-            if self.isReviewFilterPopoverPresented {
-                self.finalizeReviewFilterDraft()
-                self.isReviewFilterPopoverPresented = false
+            self.finishReviewFiltering()
+        }
+        .onChange(of: self.reviewFilterEditSession.isPresented) { _, _ in
+            if self.reviewFilterEditSession.isPresented == false {
+                self.finishReviewFiltering()
             }
         }
-        .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
-            if isPresented == false {
-                self.finalizeReviewFilterDraft()
-            }
+        .onChange(of: self.reviewFilterScope) { _, _ in
+            self.reviewFilterEditSession.discardIfScopeChanged(to: self.reviewFilterScope)
         }
         .onChange(of: store.workspace?.workspaceId) { _, _ in
             self.textSelection = nil
-            self.dismissReviewFilterPopoverIfContextDiverged()
         }
         .onChange(of: store.selectedReviewFilter, initial: true) { previousFilter, filter in
             if previousFilter != filter {
                 self.textSelection = nil
                 self.reviewSpeechController.stopSpeech()
-                self.dismissReviewFilterPopoverIfContextDiverged()
             }
             // The model outlives this view, so a filter changed while Review was off screen resets it here.
             if self.reviewScreen.presentedReviewFilter != filter {
@@ -305,14 +299,14 @@ struct ReviewView: View {
             GeometryReader { geometry in
                 Color.clear
                     .popover(
-                        isPresented: self.$isReviewFilterPopoverPresented,
+                        isPresented: self.$reviewFilterEditSession.isPresented,
                         attachmentAnchor: .rect(.rect(self.reviewFilterButtonFrame.offsetBy(
                             dx: -geometry.frame(in: .global).minX,
                             dy: -geometry.frame(in: .global).minY
                         )))
                     ) {
                         ReviewFilterPopover(
-                            reviewFilter: self.$reviewFilterDraft,
+                            reviewFilter: self.$reviewFilterEditSession.draft,
                             decks: store.decks,
                             tagSummaries: self.reviewTagSummaries,
                             onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
@@ -422,9 +416,19 @@ struct ReviewView: View {
             isEnabled: streak.isInteractive,
             perform: { _ in self.openProgressWithPresentationBreadcrumb(target: .streak) }
         ))
+        let dueCount = store.displayedReviewDueCount
+        let dueLabel = makeReviewDueBadgeLabel(dueCount: dueCount)
+        let filterTitle: String
+        if #available(macCatalyst 26.0, *) {
+            filterTitle = self.reviewFilterButtonTitle
+        } else {
+            filterTitle = [self.reviewFilterButtonTitle, dueLabel].compactMap { $0 }.joined(separator: " ")
+        }
         let filter = MacToolbarAction(
             identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.reviewFilterButtonTitle,
-            title: self.reviewFilterButtonTitle,
+            title: filterTitle,
+            value: dueLabel,
+            badgeCount: dueCount > 0 ? dueCount : nil,
             toolTip: String(
                 format: String(localized: "Filter: %@ (F)", table: reviewCardsStringsTableName),
                 locale: Locale.current,
@@ -439,9 +443,9 @@ struct ReviewView: View {
             },
             perform: { context in
                 self.beginReviewFiltering()
-                context.presentPopover(isPresented: self.$isReviewFilterPopoverPresented) {
+                context.presentPopover(isPresented: self.$reviewFilterEditSession.isPresented) {
                     ReviewFilterPopover(
-                        reviewFilter: self.$reviewFilterDraft, decks: self.store.decks,
+                        reviewFilter: self.$reviewFilterEditSession.draft, decks: self.store.decks,
                         tagSummaries: self.reviewTagSummaries,
                         onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
                         onSingleChoice: self.dismissReviewFilterPopover
@@ -730,21 +734,43 @@ struct ReviewView: View {
     }
 
     private var reviewFilterMenu: some View {
-        let action = self.beginReviewFiltering
+        let dueLabel = makeReviewDueBadgeLabel(dueCount: store.displayedReviewDueCount)
+        let usesNativeBadge: Bool
+        if #available(iOS 26.0, *) {
+            usesNativeBadge = self.showsFilterInReviewColumn == false
+        } else {
+            usesNativeBadge = false
+        }
+        let inlineDueLabel = usesNativeBadge ? nil : dueLabel
+        let accessibilityValue = [
+            self.usesCompactCompanionToolbar ? self.reviewFilterButtonTitle : nil,
+            dueLabel
+        ].compactMap { $0 }.joined(separator: ", ")
+
         return Group {
-            Button(action: action) {
-            Group {
-                if self.usesCompactCompanionToolbar {
+            Button(action: self.beginReviewFiltering) {
+                if self.usesCompactCompanionToolbar && inlineDueLabel == nil {
                     Image(systemName: "line.3.horizontal.decrease")
                         .foregroundStyle(Color.primary)
                 } else {
                     HStack(spacing: 4) {
-                        Text(self.reviewFilterButtonTitle)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
-                        Image(systemName: "chevron.down")
-                            .font(.caption.weight(.semibold))
+                        if self.usesCompactCompanionToolbar {
+                            Image(systemName: "line.3.horizontal.decrease")
+                        } else {
+                            Text(self.reviewFilterButtonTitle)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
+                        }
+                        if let inlineDueLabel {
+                            Text(verbatim: inlineDueLabel)
+                                .monospacedDigit()
+                                .fixedSize()
+                        }
+                        if self.usesCompactCompanionToolbar == false {
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.semibold))
+                        }
                     }
                     .foregroundStyle(Color.primary)
                     .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
@@ -752,14 +778,13 @@ struct ReviewView: View {
                     .contentShape(Rectangle())
                 }
             }
-        }
-        .tint(Color.primary)
-        .labelStyle(.titleAndIcon)
-        .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
-        .accessibilityLabel(self.usesCompactCompanionToolbar
-            ? String(localized: "Filters", table: reviewCardsStringsTableName)
-            : self.reviewFilterButtonTitle)
-        .accessibilityValue(self.usesCompactCompanionToolbar ? self.reviewFilterButtonTitle : "")
+            .tint(Color.primary)
+            .labelStyle(.titleAndIcon)
+            .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
+            .accessibilityLabel(self.usesCompactCompanionToolbar
+                ? String(localized: "Filters", table: reviewCardsStringsTableName)
+                : self.reviewFilterButtonTitle)
+            .accessibilityValue(accessibilityValue)
         }
         #if !targetEnvironment(macCatalyst)
         .onGeometryChange(for: CGRect.self) { geometry in
@@ -767,48 +792,27 @@ struct ReviewView: View {
         } action: { frame in
             self.reviewFilterButtonFrame = frame
         }
+        .badge(usesNativeBadge ? dueLabel.map(Text.init(verbatim:)) : nil)
         #endif
     }
 
-    private func finalizeReviewFilterDraft() {
-        guard let presentationContext = self.reviewFilterPresentationContext else {
-            return
+    private func finishReviewFiltering() {
+        if let candidate = self.reviewFilterEditSession.finish(in: self.reviewFilterScope) {
+            self.store.selectReviewFilter(reviewFilter: candidate)
         }
-        self.reviewFilterPresentationContext = nil
-
-        guard presentationContext.workspaceId == store.workspace?.workspaceId,
-              presentationContext.committedFilter == store.selectedReviewFilter,
-              presentationContext.committedFilter != self.reviewFilterDraft else {
-            return
-        }
-
-        store.selectReviewFilter(reviewFilter: self.reviewFilterDraft)
     }
 
-    private func dismissReviewFilterPopoverIfContextDiverged() {
-        guard self.isReviewFilterPopoverPresented,
-              let presentationContext = self.reviewFilterPresentationContext,
-              presentationContext.workspaceId != store.workspace?.workspaceId
-                || presentationContext.committedFilter != store.selectedReviewFilter else {
-            return
-        }
-
-        // The committed filter moved underneath the open popover, so the draft is built on a stale
-        // snapshot and is discarded instead of applied; reopening the menu re-seeds it. Clearing the
-        // context first also keeps the finalize on popover dismissal a no-op.
-        self.reviewFilterPresentationContext = nil
-        self.isReviewFilterPopoverPresented = false
-    }
-
-    /// Closing commits the draft through the presentation change, on both the popover and the Mac toolbar path.
     private func dismissReviewFilterPopover() {
-        self.isReviewFilterPopoverPresented = false
+        self.reviewFilterEditSession.isPresented = false
     }
 
     private func dismissReviewFilterPopoverAndOpenDecks() {
-        self.finalizeReviewFilterDraft()
-        self.isReviewFilterPopoverPresented = false
-        navigation.openLibrary(destination: .decks)
+        self.finishReviewFiltering()
+        self.navigation.openLibrary(destination: .decks)
+    }
+
+    private func openLibraryTags() {
+        self.navigation.openLibrary(destination: .tags)
     }
 
     private var reviewLoadingView: some View {
@@ -827,7 +831,7 @@ struct ReviewView: View {
             ScrollView {
                 ReadableContentLayout(
                     maxWidth: flashcardsReadableContentMaxWidth,
-                    horizontalPadding: 20
+                    horizontalPadding: reviewCardContentHorizontalPadding
                 ) {
                     activeCardContentView(card: card, preparedRevealState: preparedRevealState)
                         .padding(.vertical, 20)
@@ -868,10 +872,7 @@ struct ReviewView: View {
     }
 
     private func beginReviewFiltering() {
-        let committedFilter = self.store.selectedReviewFilter
-        self.reviewFilterDraft = committedFilter
-        self.reviewFilterPresentationContext = ReviewFilterPresentationContext(workspaceId: self.store.workspace?.workspaceId, committedFilter: committedFilter)
-        self.isReviewFilterPopoverPresented = true
+        self.reviewFilterEditSession.open(in: self.reviewFilterScope)
     }
 
     private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
@@ -881,34 +882,18 @@ struct ReviewView: View {
                     .foregroundStyle(.red)
             }
 
-            HStack(alignment: .top, spacing: 12) {
-                HStack(spacing: 12) {
-                    ReviewCardTagChipRow(
-                        tags: card.tags,
-                        onSelectTag: self.requestReviewTagFilter(tag:)
-                    )
-                    reviewRepetitionBadge(reps: card.reps)
-                }
-                // Without priority the trailing Spacer takes an equal share and the chips overflow early.
-                .layoutPriority(1)
-
-                Spacer(minLength: 12)
-
-                Button {
-                    self.beginEditing(card: card)
-                } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.title3)
-                        #if targetEnvironment(macCatalyst)
-                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                        .contentShape(Rectangle())
-                        #endif
-                }
-                .accessibilityLabel(String(localized: "Edit card", table: reviewCardsStringsTableName))
-                .accessibilityIdentifier(UITestIdentifier.reviewEditCardButton)
-            }
+            ReviewCardTagChipRow(
+                tags: card.tags,
+                leadingBleed: reviewCardContentHorizontalPadding,
+                // Compact width runs the chips to the screen edge; regular width stops them at the card edge.
+                trailingBleed: self.horizontalSizeClass == .compact ? reviewCardContentHorizontalPadding : 0,
+                onOpenTags: self.openLibraryTags,
+                onSelectTag: self.requestReviewTagFilter(tag:)
+            )
             .font(.subheadline)
             .foregroundStyle(.secondary)
+            // A new card starts its chips from the first tag.
+            .id(card.cardId)
 
             ReviewCardSideView(
                 label: String(localized: "Front", table: reviewCardsStringsTableName),
@@ -917,11 +902,15 @@ struct ReviewView: View {
                 onSelectText: {
                     self.openReviewTextSelection(card: card, side: .front)
                 },
+                repetitionCount: card.reps,
                 isSpeechPlaying: self.reviewSpeechController.activeSide == .front,
                 onToggleSpeech: {
                     self.toggleSpeech(side: .front, sourceText: card.frontText)
                 },
                 showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
+                onEdit: {
+                    self.beginEditing(card: card)
+                },
                 showsAiButton: false,
                 aiButtonAccentColor: self.store.displayedAccountAccentColor,
                 onOpenAi: {},
@@ -946,11 +935,15 @@ struct ReviewView: View {
                     onSelectText: {
                         self.openReviewTextSelection(card: card, side: .back)
                     },
+                    repetitionCount: nil,
                     isSpeechPlaying: self.reviewSpeechController.activeSide == .back,
                     onToggleSpeech: {
                         self.toggleSpeech(side: .back, sourceText: card.backText)
                     },
                     showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
+                    onEdit: {
+                        self.beginEditing(card: card)
+                    },
                     showsAiButton: true,
                     aiButtonAccentColor: self.store.displayedAccountAccentColor,
                     onOpenAi: {
@@ -1202,7 +1195,7 @@ struct ReviewView: View {
             && self.isEditorPresented == false
             && self.textSelection == nil
             && self.isQueuePreviewPresented == false
-            && self.isReviewFilterPopoverPresented == false
+            && self.reviewFilterEditSession.isPresented == false
             && self.reviewTagFilterRequest == nil
             && self.store.reviewSubmissionFailure == nil
             && self.store.isReviewHardReminderPresented == false
@@ -1226,7 +1219,7 @@ struct ReviewView: View {
             && self.isEditorPresented == false
             && self.textSelection == nil
             && self.isQueuePreviewPresented == false
-            && self.isReviewFilterPopoverPresented == false
+            && self.reviewFilterEditSession.isPresented == false
             && self.reviewTagFilterRequest == nil
             && self.shouldShowReviewLoader == false
             && self.store.reviewSubmissionFailure == nil
@@ -1590,22 +1583,6 @@ private func reviewTagFilterAlertMessage(request: ReviewTagFilterRequest) -> Str
         comment: "Alert message asking before switching the review filter to a tapped tag. The first %@ is the current review filter, the second %@ is the tag."
     )
     return String(format: localizedFormat, locale: Locale.current, request.currentFilterTitle, request.tag)
-}
-
-@ViewBuilder
-private func reviewRepetitionBadge(reps: Int) -> some View {
-    let accessibilityLabel = String(localized: "Reps", table: reviewCardsStringsTableName)
-    let accessibilityValue = reps == 0
-        ? String(localized: "New", table: reviewCardsStringsTableName)
-        : localizedCardCountValue(count: reps)
-
-    Label(accessibilityValue, systemImage: "arrow.clockwise")
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.thinMaterial, in: Capsule(style: .continuous))
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue(accessibilityValue)
 }
 
 #Preview {

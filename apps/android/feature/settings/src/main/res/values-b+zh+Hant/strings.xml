@@ -549,15 +549,18 @@
     <string name="settings_export_package_include_tag">包含「%1$s」</string>
     <string name="settings_export_package_generated_import_tag_not_included">匯出的套件不會包含匯入時自動產生的標籤。</string>
 
-    <string name="settings_import_title">匯入</string>
+    <string name="settings_import_nibomo_title">從 Nibomo 匯入</string>
+    <string name="settings_import_advanced">進階</string>
+    <string name="settings_import_picker_unavailable">這部裝置無法使用檔案選擇工具。</string>
+    <string name="settings_import_single_file_required">每次只能選擇一個 Nibomo ZIP 檔案。</string>
+    <string name="settings_import_cards_button">匯入卡片</string>
+    <string name="settings_import_tag_imported_cards">為匯入的卡片加上標籤</string>
     <string name="settings_import_package_section">套件</string>
     <string name="settings_import_package_body">選取可攜式 Nibomo ZIP 套件，在匯入前預覽。</string>
     <string name="settings_import_choose_package">選擇 ZIP 套件</string>
     <string name="settings_import_previewing">正在預覽…</string>
     <string name="settings_import_importing">正在匯入…</string>
-    <string name="settings_import_confirm_button">匯入套件</string>
     <string name="settings_import_dismiss_error">關閉錯誤訊息</string>
-    <string name="settings_import_selected_file">檔案：%1$s</string>
     <string name="settings_import_cloud_required">此版本需要已連結的雲端工作區，才能匯入含媒體的 ZIP 套件。</string>
     <string name="settings_import_workspace_unavailable">工作區無法使用。請重新載入目前的工作區後再試一次。</string>
     <string name="settings_import_invalid_file">請選擇 Nibomo ZIP 套件。</string>
@@ -571,7 +574,6 @@
     <string name="settings_import_missing_import_tag">請輸入匯入標籤。</string>
     <string name="settings_import_source_section">來源</string>
     <string name="settings_import_source_kind">類型</string>
-    <string name="settings_import_source_title">標題</string>
     <string name="settings_import_source_zip">ZIP 套件</string>
     <string name="settings_import_metadata_section">中繼資料</string>
     <string name="settings_import_metadata_label">標示名稱</string>
@@ -585,7 +587,6 @@
     <string name="settings_import_referenced_media">引用的媒體</string>
     <string name="settings_import_package_media">套件中的媒體檔案</string>
     <string name="settings_import_options_section">選項</string>
-    <string name="settings_import_add_import_tag">新增匯入標籤</string>
     <string name="settings_import_add_import_tag_body">為此次套件匯入新增專用的標籤。</string>
     <string name="settings_import_import_tag">匯入標籤</string>
     <string name="settings_import_keep_tag">保留「%1$s」</string>

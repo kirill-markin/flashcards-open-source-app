@@ -144,16 +144,17 @@ extension FlashcardsStore {
         self.resumeReviewLoadsInvalidatedBySourceChange(now: now)
         self.reviewScheduleVersion += 1
         // "Again in 1 minute" can come due before the armed timer; only the timer moves, nothing is reread.
-        if let ratedDueAt = ratedCard?.dueAt.flatMap({ dueAt in parseIsoTimestamp(value: dueAt) }),
+        if let ratedCard,
+           cardMatchesResolvedReviewFilter(reviewFilter: self.selectedReviewFilter, decks: self.decks, card: ratedCard),
+           let dueAt = ratedCard.dueAt,
+           let ratedDueAt = parseIsoTimestamp(value: dueAt),
            ratedDueAt > now,
            self.armedNextDueRefreshAt().map({ nextDueRefreshAt in ratedDueAt < nextDueRefreshAt }) ?? true {
             self.scheduleNextDueRefresh(nextDueAt: ratedDueAt)
         }
     }
 
-    /// A fired or cancelled timer leaves nothing armed. A timer past its time that has not woken yet stays armed:
-    /// it re-arms at the earliest due time, the rated card included.
-    private func armedNextDueRefreshAt() -> Date? {
+    func armedNextDueRefreshAt() -> Date? {
         guard let nextDueRefreshTask = self.nextDueRefreshTask, nextDueRefreshTask.isCancelled == false else {
             return nil
         }
@@ -168,28 +169,61 @@ extension FlashcardsStore {
         self.nextDueRefreshTask?.cancel()
         self.nextDueRefreshTask = nil
         self.nextDueRefreshAt = nextDueAt
-        guard let nextDueAt else {
+        self.appliedReviewDueReconcileState = .idle
+        guard let nextDueAt, let workspaceId = self.workspace?.workspaceId else {
             return
         }
+        let reviewFilter = self.selectedReviewFilter
         self.nextDueRefreshTask = Task { @MainActor in
             do {
                 try await Task.sleep(for: .seconds(max(0, nextDueAt.timeIntervalSinceNow)))
                 try Task.checkCancellation()
-                // A fired timer is unarmed: a rating during this refresh arms its own timer without cancelling
-                // this one, which then re-arms at the earliest due time.
-                self.nextDueRefreshTask = nil
-                self.nextDueRefreshAt = nil
-                _ = try await self.refreshReviewState(now: Date(), mode: .backgroundReconcileSilently)
-            } catch is CancellationError {
-                return
             } catch {
-                self.globalErrorMessage = Flashcards.errorMessage(error: error)
-            }
-            guard Task.isCancelled == false else {
                 return
             }
-            // Publishes the badge and arms the timer at the following due time.
-            await self.runReviewDueBadgeUpdates()
+            let cutoff = self.appliedReviewDueCutoff
+            self.appliedReviewDueReconcileState = .active(cutoff: cutoff)
+            defer {
+                if Task.isCancelled == false {
+                    self.nextDueRefreshTask = nil
+                    self.nextDueRefreshAt = nil
+                    self.appliedReviewDueReconcileState = .idle
+                }
+            }
+            for attempt in 0..<2 {
+                guard self.workspace?.workspaceId == workspaceId, self.selectedReviewFilter == reviewFilter,
+                      self.appliedReviewDueCutoff == cutoff,
+                      self.isReviewHeadLoading == false, self.isReviewCountsLoading == false else {
+                    return
+                }
+                do {
+                    _ = try await self.refreshReviewState(now: Date(), mode: .backgroundReconcileSilently) {
+                        try Task.checkCancellation()
+                        guard self.workspace?.workspaceId == workspaceId, self.selectedReviewFilter == reviewFilter,
+                              self.appliedReviewDueCutoff == cutoff else {
+                            throw CancellationError()
+                        }
+                    }
+                    // The root re-arms from the new cutoff. A discarded reconcile leaves the cutoff unchanged.
+                    guard self.appliedReviewDueCutoff == cutoff else {
+                        return
+                    }
+                } catch is CancellationError {
+                    return
+                } catch {
+                    guard Task.isCancelled == false else {
+                        return
+                    }
+                    self.globalErrorMessage = Flashcards.errorMessage(error: error)
+                }
+                if attempt == 0 {
+                    do {
+                        try await Task.sleep(for: .seconds(2))
+                    } catch {
+                        return
+                    }
+                }
+            }
         }
     }
 
@@ -256,10 +290,10 @@ extension FlashcardsStore {
         self.activeReviewDataRebuildTask = Task { @MainActor in
             do {
                 let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
-                _ = try await self.refreshReviewState(now: now, mode: .backgroundReconcileSilently)
                 if bootstrapRefreshOutcome.didChange {
                     self.localReadVersion += 1
                 }
+                _ = try await self.refreshReviewState(now: now, mode: .backgroundReconcileSilently)
                 // Due data shown on other screens moves with time even when nothing was written.
                 self.reviewScheduleVersion += 1
             } catch is CancellationError {

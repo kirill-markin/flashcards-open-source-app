@@ -4,6 +4,7 @@
   --review-pane-inner-radius: calc(var(--review-pane-radius) / 2);
   --review-card-radius: var(--panel-inner-radius, var(--radius-lg));
   --review-managed-media-image-radius: calc(var(--review-card-radius) / 2);
+  --review-tag-chip-padding-block: 5px;
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -38,62 +39,89 @@
 }
 
 .review-pane-head {
+  --review-head-line-height: 1.1375rem;
+  --review-head-item-block-size: max(30px, calc(var(--review-head-line-height) + 2 * var(--review-tag-chip-padding-block)));
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  font-size: 0.8125rem;
+  line-height: var(--review-head-line-height);
 }
 
-/* The 4px padding cancelled by the negative margin keeps tag focus rings inside the clipped head. */
+.review-card-tags-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  block-size: var(--review-head-item-block-size);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.review-card-tags-link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.review-card-tags-link:focus-visible {
+  outline: 2px solid var(--text);
+  /* Inset, because on narrow screens the link sits on the pane's clipping edge. */
+  outline-offset: -2px;
+}
+
+.review-tag-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* The 4px padding cancelled by the negative margin keeps tag focus rings inside the clipped head.
+   The end margin stays 0 so the head never widens the scrolling pane. */
 .review-pane-head-meta {
   display: flex;
   flex: 1 1 0;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  margin: -4px;
+  margin-block: -4px;
+  margin-inline: -4px 0;
   padding: 4px;
-  overflow: hidden;
+  /* A classic horizontal scrollbar contributes to intrinsic height even without overflow
+     (https://www.w3.org/TR/css-overflow-3/#scrollbar-layout). */
+  overflow: scroll hidden;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 4px;
+  scrollbar-width: thin;
   white-space: nowrap;
-  font-size: 13px;
 }
 
-/* One line of whole chips; ReviewCardHeadTags moves the tags that do not fit into its "+N" menu. */
-.review-card-head-tags {
-  position: relative;
+.review-pane-head-meta > :is(.badge, .tag-value-empty) {
+  min-block-size: var(--review-head-item-block-size);
+  font-size: inherit;
+}
+
+.review-pane-head-meta > .tag-value-empty {
   display: flex;
-  flex: 1 1 0;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
 }
 
-.review-card-head-tags-measure {
-  position: absolute;
-  top: 0;
-  inset-inline-start: 0;
-  display: flex;
-  gap: 8px;
-  width: max-content;
-  visibility: hidden;
-  pointer-events: none;
-}
+@media not ((hover: hover) and (pointer: fine)) {
+  .review-pane-head-meta {
+    scrollbar-width: none;
+  }
 
-.review-filter-menu.review-tag-overflow-menu {
-  width: max-content;
-  min-width: 180px;
-  overflow-y: auto;
-}
-
-.review-filter-menu-entry.review-tag-overflow-entry {
-  grid-template-columns: minmax(0, 1fr);
+  .review-pane-head-meta::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .review-metadata-chip {
   flex: 0 0 auto;
   gap: 6px;
   min-height: 30px;
-  padding: 5px 9px;
+  padding: var(--review-tag-chip-padding-block) 9px;
   border: 0;
   white-space: nowrap;
 }
@@ -112,11 +140,6 @@
   outline-offset: 2px;
 }
 
-.review-metadata-chip .review-progress-badge-icon {
-  width: 15px;
-  height: 15px;
-}
-
 .review-metadata-chip-accessible-label {
   position: absolute;
   width: 1px;
@@ -127,29 +150,6 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-.review-pane-head-actions {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-inline-start: auto;
-  flex-shrink: 0;
-}
-
-.review-pane-edit-btn {
-  width: 30px;
-  min-width: 30px;
-  height: 30px;
-  min-height: 30px;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.review-pane-edit-icon {
-  width: 15px;
-  height: 15px;
-  display: block;
 }
 
 .review-loading-retry-btn {
@@ -235,6 +235,31 @@
   min-height: 0;
 }
 
+.review-card-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Caption metadata without a pill, so the label line keeps its height. */
+.review-card-repetitions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.review-card-repetitions .review-progress-badge-icon {
+  width: 12px;
+  height: 12px;
+}
+
 .review-label {
   font-size: 12px;
   text-transform: uppercase;
@@ -243,7 +268,6 @@
 }
 
 .review-label-button {
-  justify-self: start;
   margin: 0;
   padding: 0;
   border: 0;
@@ -312,7 +336,8 @@
 }
 
 .review-card-copy-btn,
-.review-card-speech-btn {
+.review-card-speech-btn,
+.review-card-edit-btn {
   width: 32px;
   height: 32px;
   min-height: 32px;
@@ -328,14 +353,16 @@
 }
 
 .review-card-copy-btn:hover,
-.review-card-speech-btn:hover {
+.review-card-speech-btn:hover,
+.review-card-edit-btn:hover {
   color: var(--text);
   background: rgba(var(--overlay-rgb), 0.08);
   border-color: rgba(var(--overlay-rgb), 0.12);
 }
 
 .review-card-copy-btn:focus-visible,
-.review-card-speech-btn:focus-visible {
+.review-card-speech-btn:focus-visible,
+.review-card-edit-btn:focus-visible {
   outline: 2px solid rgba(var(--overlay-rgb), 0.28);
   outline-offset: 2px;
 }
@@ -373,7 +400,9 @@
 }
 
 .review-card-speech-btn:disabled,
-.review-card-speech-btn:disabled:hover {
+.review-card-speech-btn:disabled:hover,
+.review-card-edit-btn:disabled,
+.review-card-edit-btn:disabled:hover {
   color: var(--text-tertiary);
   background: rgba(var(--overlay-rgb), 0.03);
   border-color: rgba(var(--overlay-rgb), 0.06);
@@ -381,16 +410,18 @@
 }
 
 .review-card-copy-btn svg,
-.review-card-speech-btn svg {
+.review-card-speech-btn svg,
+.review-card-edit-btn svg {
   width: 16px;
   height: 16px;
 }
 
+/* As tall as the round buttons beside it and at least as wide; longer text widens it. */
 .review-card-ai-btn {
-  min-width: 40px;
+  min-width: 32px;
   height: 32px;
   min-height: 32px;
-  padding-inline: 11px;
+  padding-inline: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: var(--accent);
