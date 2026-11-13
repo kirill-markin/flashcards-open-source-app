@@ -8,6 +8,15 @@ owns the inventory, store-upload status and links to the manual refresh
 procedure. This README and the manifests it names record source and processing
 provenance.
 
+[Localization provenance](localization-provenance.json) identifies the exact
+November 2026 draft cards for eight Store locales across iPhone, iPad, iPhone Duo
+inner and Mac. The custom product page used the same iPhone and iPad images.
+The approved package has its own `ready/` and `previews/` under
+`localizations-2026-11-13/`, with each regional listing pointing to its capture
+tag. The native inputs are in the usual family directories. The Portuguese
+iPhone originals came directly from XCTest attachments, and the Catalyst
+captures used a signed capture-only entitlement override.
+
 The current `export-manifest.json` contains 210 Mac cards at processing
 HEAD `4fb044b41043b4c0344ef6763253f8e3d2c0bb0f`, 210 landscape iPad
 cards at processing
