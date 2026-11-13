@@ -32,14 +32,13 @@ struct QuestionWidgetTimelineProvider: TimelineProvider {
             completion(Timeline(entries: [makeNoSnapshotReviewWidgetEntry(date: now)], policy: .never))
             return
         }
+        let slotStarts = questionWidgetUpcomingSlotStarts(now: now)
+        // Ask again after the last slot, so rotation continues while the app stays closed.
+        let reloadDate = slotStarts.last ?? now.addingTimeInterval(24 * 60 * 60)
         completion(
             Timeline(
-                entries: makeReviewWidgetEntries(
-                    snapshot: snapshot,
-                    now: now,
-                    reservedDates: questionWidgetUpcomingSlotStarts(now: now)
-                ),
-                policy: .never
+                entries: makeReviewWidgetEntries(snapshot: snapshot, now: now, reservedDates: slotStarts),
+                policy: .after(reloadDate)
             )
         )
     }

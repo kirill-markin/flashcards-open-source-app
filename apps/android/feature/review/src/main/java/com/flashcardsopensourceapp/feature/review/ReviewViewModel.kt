@@ -324,10 +324,7 @@ class ReviewViewModel(
             return true
         }
         if (isShowingOrRatingCard(cardId = cardId)) {
-            if (revealAnswer && uiState.value.preparedCurrentCard?.card?.cardId == cardId) {
-                // `this.`: the parameter shadows the function's name.
-                this.revealAnswer()
-            }
+            revealShownCardForHandoff(cardId = cardId, shouldReveal = revealAnswer)
             return true
         }
 
@@ -354,8 +351,12 @@ class ReviewViewModel(
             if (
                 operationWorkspaceGeneration != workspaceGeneration
                 || operationFilterGeneration != reviewFilterGeneration
-                || isShowingOrRatingCard(cardId = cardId)
             ) {
+                return@launch
+            }
+            // The queue may have presented the card while it loaded, for example on a cold launch.
+            if (isShowingOrRatingCard(cardId = cardId)) {
+                revealShownCardForHandoff(cardId = cardId, shouldReveal = revealAnswer)
                 return@launch
             }
 
@@ -374,6 +375,13 @@ class ReviewViewModel(
             }
         }
         return true
+    }
+
+    /** Flips [cardId] when it is the shown card; a card awaiting its rating reveals nothing. */
+    private fun revealShownCardForHandoff(cardId: String, shouldReveal: Boolean) {
+        if (shouldReveal && uiState.value.preparedCurrentCard?.card?.cardId == cardId) {
+            revealAnswer()
+        }
     }
 
     private fun isShowingOrRatingCard(cardId: String): Boolean {

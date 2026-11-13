@@ -27,8 +27,8 @@ struct ProgressPace: Equatable, Sendable {
     let baseline: ProgressPaceBaseline?
 }
 
-/// `dayReviewCounts` holds one count per consecutive local day, ascending and ending today. The earliest reviewed
-/// day stands for the first review, so pass the longest history available.
+/// `dayReviewCounts` holds one count per consecutive local day, ascending and ending today. The first review is the
+/// earliest reviewed day within the last 35 days, as in the reference.
 func makeProgressPace(dayReviewCounts: [Int]) -> ProgressPace {
     let lastSevenDaysReviewCount = dayReviewCounts.suffix(progressPaceWindowDayCount).reduce(0, +)
     let lastSevenDaysAveragePerDay = Double(lastSevenDaysReviewCount) / Double(progressPaceWindowDayCount)
@@ -37,8 +37,9 @@ func makeProgressPace(dayReviewCounts: [Int]) -> ProgressPace {
         lastSevenDaysAveragePerDay: lastSevenDaysAveragePerDay,
         baseline: nil
     )
+    let paceStartIndex = max(dayReviewCounts.count - progressPaceWindowDayCount - progressPaceBaselineDayCount, 0)
     guard
-        let firstReviewIndex = dayReviewCounts.firstIndex(where: { reviewCount in reviewCount > 0 }),
+        let firstReviewIndex = dayReviewCounts[paceStartIndex...].firstIndex(where: { reviewCount in reviewCount > 0 }),
         dayReviewCounts.count - firstReviewIndex >= progressPaceMinimumHistoryDayCount
     else {
         return noBaseline

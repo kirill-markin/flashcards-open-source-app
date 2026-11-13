@@ -119,8 +119,9 @@ async function loadLifetimeDayRowsInExecutor(
   return result.rows;
 }
 
-// Cards met: the card's first-ever review falls in the window. Relearned: a day in the
-// window with a pass whose previous review day of that card held an Again.
+// Cards met: the user's first-ever review of the card falls in the window. Relearned: a day
+// in the window with a pass whose previous review day of that card held an Again. Both read
+// only the user's own reviews, since workspace members share cards.
 async function loadRecentCardCountsInExecutor(
   executor: DatabaseExecutor,
   request: WorkspaceInsightsRequest,
@@ -153,6 +154,7 @@ async function loadRecentCardCountsInExecutor(
       "FROM content.review_events AS review_events",
       "INNER JOIN recent_cards ON recent_cards.card_id = review_events.card_id",
       "WHERE review_events.workspace_id = $1",
+      "AND review_events.reviewed_by_user_id = $2",
       "GROUP BY review_events.card_id, review_date",
       "), sequenced_card_days AS (",
       "SELECT",

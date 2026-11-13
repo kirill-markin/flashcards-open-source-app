@@ -46,16 +46,15 @@ private fun sumReviewsInRange(days: List<ReviewPaceDay>, from: LocalDate, to: Lo
     }
 }
 
-private fun findFirstReviewDate(days: List<ReviewPaceDay>, today: LocalDate): LocalDate? {
+private fun findFirstReviewDate(days: List<ReviewPaceDay>, from: LocalDate, today: LocalDate): LocalDate? {
     return days
-        .filter { day -> day.reviewCount > 0 && !day.localDate.isAfter(today) }
+        .filter { day -> day.reviewCount > 0 && !day.localDate.isBefore(from) && !day.localDate.isAfter(today) }
         .minOfOrNull { day -> day.localDate }
 }
 
 /**
  * [days] is a per-local-day series covering at least the 35 days ending [today]; missing days count
- * as 0. The earliest reviewed day in the series stands for the first review, so pass the longest
- * series the client already has.
+ * as 0.
  */
 fun calculateReviewPace(days: List<ReviewPaceDay>, today: LocalDate): ReviewPace {
     val windowStart: LocalDate = today.minusDays((reviewPaceWindowDayCount - 1).toLong())
@@ -63,7 +62,7 @@ fun calculateReviewPace(days: List<ReviewPaceDay>, today: LocalDate): ReviewPace
     val baselineStart: LocalDate = windowStart.minusDays(reviewPaceBaselineDayCount.toLong())
     val last7DaysReviewCount: Int = sumReviewsInRange(days = days, from = windowStart, to = today)
     val last7DaysAveragePerDay: Double = last7DaysReviewCount.toDouble() / reviewPaceWindowDayCount
-    val firstReviewDate: LocalDate? = findFirstReviewDate(days = days, today = today)
+    val firstReviewDate: LocalDate? = findFirstReviewDate(days = days, from = baselineStart, today = today)
 
     if (
         firstReviewDate == null ||

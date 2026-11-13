@@ -4,8 +4,9 @@ import { shiftLocalDate } from "./progressDates";
 // (ReviewPace.kt) port this function; keep the three in step.
 //
 // Last 7 local days (today and the 6 before) against the daily average of the 28 days before
-// them, rest days counting 0. A young account's baseline averages only the days on or after its
-// first review. There is no baseline when history since the first review is under 14 days or the
+// them, rest days counting 0. The first review is the earliest reviewed day within those 35 days,
+// so every client agrees however much history it holds; a young or returning account's baseline
+// averages only the days on or after it. There is no baseline when history since the first review is under 14 days or the
 // baseline window holds under 14 reviews. The ring is the same number drawn as laps.
 export const reviewPaceWindowDayCount: number = 7;
 export const reviewPaceBaselineDayCount: number = 28;
@@ -46,9 +47,13 @@ function sumReviewsInRange(days: ReadonlyArray<ReviewPaceDay>, from: string, to:
   ), 0);
 }
 
-function findFirstReviewDate(days: ReadonlyArray<ReviewPaceDay>, today: string): string | null {
+function findFirstReviewDate(
+  days: ReadonlyArray<ReviewPaceDay>,
+  from: string,
+  today: string,
+): string | null {
   return days.reduce<string | null>((first, day) => {
-    if (day.reviewCount <= 0 || day.date > today) {
+    if (day.reviewCount <= 0 || day.date < from || day.date > today) {
       return first;
     }
 
@@ -58,8 +63,7 @@ function findFirstReviewDate(days: ReadonlyArray<ReviewPaceDay>, today: string):
 
 /**
  * `days` is a per-local-day series covering at least the 35 days ending `today`; missing days count
- * as 0. The earliest reviewed day in the series stands for the first review, so pass the longest
- * series the client already has.
+ * as 0.
  */
 export function calculateReviewPace(days: ReadonlyArray<ReviewPaceDay>, today: string): ReviewPace {
   const windowStart = shiftLocalDate(today, 1 - reviewPaceWindowDayCount);
@@ -67,7 +71,7 @@ export function calculateReviewPace(days: ReadonlyArray<ReviewPaceDay>, today: s
   const baselineStart = shiftLocalDate(windowStart, -reviewPaceBaselineDayCount);
   const last7DaysReviewCount = sumReviewsInRange(days, windowStart, today);
   const last7DaysAveragePerDay = last7DaysReviewCount / reviewPaceWindowDayCount;
-  const firstReviewDate = findFirstReviewDate(days, today);
+  const firstReviewDate = findFirstReviewDate(days, baselineStart, today);
 
   if (
     firstReviewDate === null
