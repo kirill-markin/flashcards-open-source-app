@@ -17,6 +17,7 @@ import {
   readAnalyticsConsentDecision,
   recordAnalyticsConsentDecision,
 } from "./consent";
+import { createAnalyticsDeliveryRetryState } from "./deliveryRetryState";
 import type {
   AnalyticsDropReason,
   AnalyticsEvent,
@@ -41,7 +42,6 @@ import {
   reportAnalyticsQueueFailure,
   reportAnalyticsQueueOverflow,
   reportAnalyticsQueueTtlExpiry,
-  reportAnalyticsSustainedDeliveryFailure,
 } from "./observation";
 import {
   isProductAnalyticsCollectionEnabled,
@@ -77,9 +77,6 @@ import {
 const batchEventLimit = 50;
 const flushThresholdEventCount = 20;
 const analyticsEventByteLimit = 4 * 1024;
-const retryBaseDelayMs = 1000;
-const retryMaxDelayMs = 60 * 60 * 1000;
-const sustainedFailureWindowMs = 60 * 60 * 1000;
 const periodicFlushIntervalMs = 60 * 1000;
 /** Summed event bytes of one page-hide batch; the envelope adds well under 1 KB to reach ~48 KB. */
 const pageHideBatchEventByteLimit = 47 * 1024;
@@ -198,16 +195,7 @@ export function createAnalyticsDeliveryRuntime(
   let flushTimerId: number | null = null;
   let flushDueAtMs: number | null = null;
   let trackedSinceFlushCount = 0;
-  let consecutiveFailureCount = 0;
-  let firstDeliveryFailureAtMs: number | null = null;
-  let lastFailureStatusCode: number | null = null;
-  let retryNotBeforeMs = 0;
-  /**
-   * The part of `retryNotBeforeMs` the server asked for with `Retry-After`. Only the identity
-   * teardown reads it, to tell a delay the server set from one this client chose after a transport
-   * failure or a 5xx.
-   */
-  let serverDirectedRetryNotBeforeMs = 0;
+  const deliveryRetry = createAnalyticsDeliveryRetryState();
   let isFlushing = false;
   /**
    * The flush that is running now, or the last one that ran. `runFlush` returns immediately while
@@ -271,7 +259,7 @@ export function createAnalyticsDeliveryRuntime(
    * Arming on every unanswered append rather than on a deferred one is deliberate, and it arms more
    * often than the deferral alone would: any load whose first `persistTask` link is a persist rather
    * than a release latches, which a re-entered `startAnalytics()` on this module singleton can do
-   * when `runFlush` returns early on an armed `retryNotBeforeMs`. What that costs is waiting — this
+   * when `runFlush` returns early on an armed delivery backoff. What that costs is waiting — this
    * load's events sit in the dead guest's queue until a later load retires it, and are discarded
    * with it — and waiting is recoverable in a way the clear is not: a clear that runs under a load
    * already recording into that queue destroys records nothing reported as lost.
@@ -598,12 +586,6 @@ export function createAnalyticsDeliveryRuntime(
     }, 0);
   }
 
-  function createBackoffDelayMs(failureCount: number): number {
-    const exponentialDelayMs = retryBaseDelayMs * 2 ** (failureCount - 1);
-    const cappedDelayMs = Math.min(exponentialDelayMs, retryMaxDelayMs);
-    return Math.floor(Math.random() * cappedDelayMs);
-  }
-
   function scheduleFlush(delayMs: number): void {
     const dueAtMs = Date.now() + delayMs;
     if (flushTimerId !== null && flushDueAtMs !== null && flushDueAtMs <= dueAtMs) {
@@ -672,18 +654,6 @@ export function createAnalyticsDeliveryRuntime(
       isAutomation: isAutomationRun,
       events: wireEvents,
     };
-  }
-
-  function trackSustainedDeliveryFailure(statusCode: number): void {
-    const nowMs = Date.now();
-    if (firstDeliveryFailureAtMs === null) {
-      firstDeliveryFailureAtMs = nowMs;
-      return;
-    }
-
-    if (nowMs - firstDeliveryFailureAtMs > sustainedFailureWindowMs) {
-      reportAnalyticsSustainedDeliveryFailure(statusCode);
-    }
   }
 
   /**
@@ -763,19 +733,8 @@ export function createAnalyticsDeliveryRuntime(
    * rate the other does not.
    */
   function armDeliveryBackoff(error: unknown, statusCode: number): void {
-    if (statusCode === 429 || statusCode >= 500) {
-      trackSustainedDeliveryFailure(statusCode);
-    }
-
-    consecutiveFailureCount += 1;
-    lastFailureStatusCode = statusCode;
-    // `Retry-After` is an optimisation, never a precondition: only the analytics writer's own 429 and
-    // 503 carry it, and the gateway throttle's 429 never does.
     const retryAfterMs = error instanceof ApiError ? error.retryAfterMs : null;
-    const delayMs = retryAfterMs ?? createBackoffDelayMs(consecutiveFailureCount);
-    retryNotBeforeMs = Date.now() + delayMs;
-    serverDirectedRetryNotBeforeMs = retryAfterMs === null ? 0 : retryNotBeforeMs;
-    scheduleFlush(delayMs);
+    scheduleFlush(deliveryRetry.recordFailure(statusCode, retryAfterMs));
   }
 
   /**
@@ -1002,7 +961,7 @@ export function createAnalyticsDeliveryRuntime(
 
     // A 429 or a transport failure earlier in this split armed a backoff; the rest of the split honours
     // it instead of firing the delay away on the same stack.
-    if (Date.now() < retryNotBeforeMs) {
+    if (deliveryRetry.isWaitingForRetry(Date.now())) {
       return;
     }
 
@@ -1022,10 +981,7 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
-    consecutiveFailureCount = 0;
-    firstDeliveryFailureAtMs = null;
-    lastFailureStatusCode = null;
-    retryNotBeforeMs = 0;
+    deliveryRetry.reset();
     // A reset landed while the request was in flight; it already discarded everything that was sent,
     // and the loss was accounted for there.
     if (flushGeneration !== analyticsGeneration) {
@@ -1059,7 +1015,7 @@ export function createAnalyticsDeliveryRuntime(
       // The three preconditions `deliverBatch` rechecks before every request, for the same reasons: a
       // reset may not be outrun, a backoff armed by an earlier event in this loop is honoured rather
       // than fired away on the same stack, and the request budget bounds one flush.
-      if (flushGeneration !== analyticsGeneration || Date.now() < retryNotBeforeMs) {
+      if (flushGeneration !== analyticsGeneration || deliveryRetry.isWaitingForRetry(Date.now())) {
         return;
       }
 
@@ -1080,10 +1036,7 @@ export function createAnalyticsDeliveryRuntime(
         continue;
       }
 
-      consecutiveFailureCount = 0;
-      firstDeliveryFailureAtMs = null;
-      lastFailureStatusCode = null;
-      retryNotBeforeMs = 0;
+      deliveryRetry.reset();
       if (flushGeneration !== analyticsGeneration) {
         return;
       }
@@ -1134,7 +1087,7 @@ export function createAnalyticsDeliveryRuntime(
   async function deliverHeldEventsWithoutIdentity(flushGeneration: number): Promise<void> {
     while (heldWireEvents.length > 0) {
       // The same three preconditions every request in `deliverBatch` rechecks, for the same reasons.
-      if (flushGeneration !== analyticsGeneration || Date.now() < retryNotBeforeMs) {
+      if (flushGeneration !== analyticsGeneration || deliveryRetry.isWaitingForRetry(Date.now())) {
         return;
       }
 
@@ -1169,10 +1122,7 @@ export function createAnalyticsDeliveryRuntime(
         continue;
       }
 
-      consecutiveFailureCount = 0;
-      firstDeliveryFailureAtMs = null;
-      lastFailureStatusCode = null;
-      retryNotBeforeMs = 0;
+      deliveryRetry.reset();
       if (flushGeneration !== analyticsGeneration) {
         return;
       }
@@ -1268,10 +1218,7 @@ export function createAnalyticsDeliveryRuntime(
         return await deliverHeldBatchUnderAccount(wireEvents.slice(midpoint), flushGeneration);
       }
 
-      consecutiveFailureCount = 0;
-      firstDeliveryFailureAtMs = null;
-      lastFailureStatusCode = null;
-      retryNotBeforeMs = 0;
+      deliveryRetry.reset();
       if (flushGeneration !== analyticsGeneration) {
         return false;
       }
@@ -1299,7 +1246,7 @@ export function createAnalyticsDeliveryRuntime(
   async function deliverHeldEventsUnderAccount(flushGeneration: number): Promise<void> {
     while (heldWireEvents.length > 0) {
       // The same preconditions every request in `deliverBatch` rechecks, for the same reasons.
-      if (flushGeneration !== analyticsGeneration || Date.now() < retryNotBeforeMs) {
+      if (flushGeneration !== analyticsGeneration || deliveryRetry.isWaitingForRetry(Date.now())) {
         return;
       }
 
@@ -1355,10 +1302,7 @@ export function createAnalyticsDeliveryRuntime(
     void sendAnalyticsEventsBatch(batch, true)
       .then(
         (result: AnalyticsIngestResult): void => {
-          consecutiveFailureCount = 0;
-          firstDeliveryFailureAtMs = null;
-          lastFailureStatusCode = null;
-          retryNotBeforeMs = 0;
+          deliveryRetry.reset();
           if (flushGeneration !== analyticsGeneration) {
             return;
           }
@@ -1440,7 +1384,7 @@ export function createAnalyticsDeliveryRuntime(
       if (
         isProductAnalyticsCollecting() === false
         || isAwaitingAnalyticsConsentDecision()
-        || Date.now() < serverDirectedRetryNotBeforeMs
+        || deliveryRetry.isWaitingForServerRetry(Date.now())
         || hasSendableSessionCredential() === false
       ) {
         return;
@@ -1670,9 +1614,9 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
-    const nowMs = Date.now();
-    if (nowMs < retryNotBeforeMs) {
-      scheduleFlush(retryNotBeforeMs - nowMs);
+    const retryDelayMs = deliveryRetry.getRemainingDelayMs(Date.now());
+    if (retryDelayMs !== null) {
+      scheduleFlush(retryDelayMs);
       return;
     }
 
@@ -1899,10 +1843,7 @@ export function createAnalyticsDeliveryRuntime(
       confirmedOwnerId = userId;
       isQueueOwnerReconciled = false;
       analyticsGeneration += 1;
-      consecutiveFailureCount = 0;
-      firstDeliveryFailureAtMs = null;
-      lastFailureStatusCode = null;
-      retryNotBeforeMs = 0;
+      deliveryRetry.reset();
       bindColdOpenToConfirmedOwner(userId);
       claimQueueOwner(userId);
     } catch {
@@ -2015,14 +1956,8 @@ export function createAnalyticsDeliveryRuntime(
   async function runDrainPasses(): Promise<void> {
     await settledFlushTask();
     persistTrackedAnalyticsEvents();
-    // A delay this client chose itself is not this drain's to inherit. After a transient 5xx or an
-    // offline stretch it reaches the one-hour cap, and the passes below would then all return at
-    // the guard in `runFlush` with perfect connectivity — at the one moment these events can never
-    // be retried. A `Retry-After` the server sent is kept: that one is not ours to ignore. Cleared
-    // after the in-flight flush has settled, so a failure inside it cannot re-park the first pass.
-    if (Date.now() < retryNotBeforeMs && Date.now() >= serverDirectedRetryNotBeforeMs) {
-      retryNotBeforeMs = 0;
-    }
+    // Clear eligible backoff after the in-flight flush settles so it cannot re-park the first pass.
+    deliveryRetry.clearClientDelayForIdentityTeardown();
     for (let pass = 0; pass < identityTeardownFlushPassLimit; pass += 1) {
       startTrackedFlush();
       await settledFlushTask();
@@ -2162,10 +2097,7 @@ export function createAnalyticsDeliveryRuntime(
     }
 
     pendingDropCounts = new Map<AnalyticsDropReason, number>();
-    consecutiveFailureCount = 0;
-    firstDeliveryFailureAtMs = null;
-    lastFailureStatusCode = null;
-    retryNotBeforeMs = 0;
+    deliveryRetry.reset();
     // Nothing on this load ever opened the analytics database, so there is nothing stored to
     // discard — and `clearAnalyticsQueue` would open it, which creates it. On the refusal path that
     // is precisely the write the banner promised not to make: a browser that answered `Decline`
@@ -2500,13 +2432,7 @@ export function createAnalyticsDeliveryRuntime(
     }
 
     function handleOnline(): void {
-      // Connectivity returning is exactly the signal a transport backoff was waiting for; a throttle
-      // or server backoff keeps its delay.
-      if (lastFailureStatusCode === 0) {
-        consecutiveFailureCount = 0;
-        lastFailureStatusCode = null;
-        retryNotBeforeMs = 0;
-      }
+      deliveryRetry.resetAfterReconnect();
 
       // A browser that was offline when it asked for the identity has nothing to flush until it has
       // one: the credential-free gate stays shut on an unsettled identity, so resuming delivery for

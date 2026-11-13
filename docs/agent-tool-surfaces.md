@@ -100,8 +100,8 @@ adds no tool. The route list is
 
 The per-code map is the remediation module above. The chat's generated-image
 tool answers with codes and remediation messages of its own:
-`executeGeneratedImageToolCall` in `tools.ts` returns expected outcomes to the
-model and rethrows what must end the run; its limits are the
+[`executeGeneratedImageToolCall`](../apps/backend/src/chat/openai/tools/generatedImage/runner.ts)
+returns expected outcomes to the model and rethrows what must end the run; its limits are the
 [generation ceilings](managed-media-cross-client-smoke.md#generation-ceilings).
 The deployed MCP dispatcher's pre-execution throttle is checked by the
 [MCP capacity smoke](mcp-capacity-smoke.md).
