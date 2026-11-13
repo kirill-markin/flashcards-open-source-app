@@ -20,7 +20,7 @@ import {
 } from "../../openai/tools/tools";
 import {
   GENERATED_IMAGE_TOOL_NAME,
-} from "../../openai/tools/generatedImageToolContract";
+} from "../../openai/tools/generatedImage/contract";
 import {
   CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   createAbortError,

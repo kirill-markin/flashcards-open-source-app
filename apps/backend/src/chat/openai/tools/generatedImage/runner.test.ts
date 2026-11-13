@@ -3,46 +3,46 @@ import test from "node:test";
 import OpenAI from "openai";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
-} from "../../../aiTools/agentSql/operations";
+} from "../../../../aiTools/agentSql/operations";
 import {
   DatabaseDeadlineExceededError,
   DatabaseTransactionRolledBackError,
-} from "../../../database";
+} from "../../../../database";
 import {
   DatabaseCommitOutcomeUnknownError,
   TransientDatabaseHttpError,
-} from "../../../database/transient";
+} from "../../../../database/transient";
 import {
   GeneratedMediaPromotionStorageTerminalError,
   GeneratedMediaPromotionStorageTransientError,
-} from "../../../mediaAssets/storage";
-import { createBackendObservationScope } from "../../../observability/sentry";
-import { HttpError } from "../../../shared/errors";
-import { InactiveChatRunClaimError } from "../../runs";
+} from "../../../../mediaAssets/storage";
+import { createBackendObservationScope } from "../../../../observability/sentry";
+import { HttpError } from "../../../../shared/errors";
+import { InactiveChatRunClaimError } from "../../../runs";
 import {
   buildOpenAIChatTools,
   executeChatToolCallWithDependencies,
   type OpenAIToolContext,
   type OpenAIToolDependencies,
-} from "./tools";
+} from "../tools";
 import {
   GENERATED_IMAGE_TOOL_ARGUMENT_VALIDATOR,
   GENERATED_IMAGE_TOOL_NAME,
   OPENAI_GENERATED_IMAGE_TOOL,
-} from "./generatedImageToolContract";
+} from "./contract";
 import {
   generatedImageAltTextJsonSchemaPattern,
   maximumGeneratedImageAltTextCodePoints,
-} from "../../cardImages/contract";
+} from "../../../cardImages/contract";
 import {
   OpenAIGeneratedCardImageProvider,
   OpenAIImageGenerationResponseError,
-} from "../../cardImages/provider/openaiAdapter";
+} from "../../../cardImages/provider/openaiAdapter";
 import {
   GeneratedCardImageDeadlineExceededError,
   GeneratedCardImageProviderOutcomeUnknownError,
   GeneratedCardImageStagingOutcomeUnknownError,
-} from "../../cardImages/providerTypes";
+} from "../../../cardImages/providerTypes";
 
 const runId = "11111111-1111-4111-8111-111111111111";
 const sessionId = "22222222-2222-4222-8222-222222222222";
