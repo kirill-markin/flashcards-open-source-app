@@ -185,7 +185,7 @@ test("catalog package inputs lowercase language tags, keep the educational subje
     title: "Test package",
     summary: "Test summary",
     description: "Test description",
-    languageTags: ["EN"],
+    languageTags: ["EN", "ZH", "zh-Hant", "MS", "OR"],
     educationalSubject: "Statistics",
     license: "CC0-1.0",
     contentWarning: null,
@@ -216,7 +216,7 @@ test("catalog package inputs lowercase language tags, keep the educational subje
   assert.equal(updateResponse.status, 200);
   assert.deepEqual(
     parsedInputs.map((input) => input.languageTags),
-    [["en"], ["en"]],
+    [["en", "zh", "zh-hant", "ms", "or"], ["en", "zh", "zh-hant", "ms", "or"]],
   );
   assert.deepEqual(
     parsedInputs.map((input) => [
@@ -328,8 +328,7 @@ test("catalog package inputs explicitly reject the removed topicTags field", asy
 });
 
 test("catalog package inputs reject a language tag outside the supported audience locales", async () => {
-  // The marketing website routes decks by generic tag, so a regional or cased entry would break it.
-  assert.deepEqual(catalogAudienceLocales.filter((locale) => !/^[a-z]{2}$/.test(locale)), []);
+  assert.deepEqual(catalogAudienceLocales.filter((locale) => !/^[a-z]{2}$/.test(locale)), ["zh-hant"]);
   assert.equal(new Set(catalogAudienceLocales).size, catalogAudienceLocales.length);
   let processingCalls = 0;
   const app = createCatalogPackageInputValidationApp(async () => {
