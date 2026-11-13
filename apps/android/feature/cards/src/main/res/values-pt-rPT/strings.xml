@@ -45,10 +45,12 @@
     <string name="spreadsheet_import_workspace_changed">O espaço de trabalho mudou. Volte atrás e inicie uma nova importação no espaço de trabalho atual.</string>
     <plurals name="spreadsheet_import_action_count">
         <item quantity="one">Importar %1$d cartão</item>
+        <item quantity="many">Importar %1$d cartões</item>
         <item quantity="other">Importar %1$d cartões</item>
     </plurals>
     <plurals name="spreadsheet_import_success">
         <item quantity="one">Foi importado %1$d cartão para a Biblioteca.</item>
+        <item quantity="many">Foram importados %1$d cartões para a Biblioteca.</item>
         <item quantity="other">Foram importados %1$d cartões para a Biblioteca.</item>
     </plurals>
     <string name="library_import_back_content_description">Voltar</string>
@@ -67,6 +69,7 @@
     <string name="catalog_sort_content_description">Ordenar baralhos por %1$s</string>
     <plurals name="catalog_deck_card_count">
         <item quantity="one">%1$s cartão</item>
+        <item quantity="many">%1$s cartões</item>
         <item quantity="other">%1$s cartões</item>
     </plurals>
     <string name="catalog_empty_no_decks">Ainda não há baralhos disponíveis.</string>
@@ -86,6 +89,7 @@
     <string name="cards_filter_content_description">Filtrar cartões</string>
     <plurals name="cards_filter_content_description_active">
         <item quantity="one">Filtrar cartões (%d ativo)</item>
+        <item quantity="many">Filtrar cartões (%d ativos)</item>
         <item quantity="other">Filtrar cartões (%d ativos)</item>
     </plurals>
     <string name="cards_add_card_content_description">Adicionar cartão</string>

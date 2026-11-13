@@ -136,6 +136,7 @@
     <string name="ai_own_openai_key_error_prefix">Está a usar a sua própria chave da OpenAI. A OpenAI devolveu este erro para a chave. Corrija o problema na sua conta da OpenAI e tente novamente.</string>
     <plurals name="ai_remaining_messages_notice">
         <item quantity="one">Resta %d mensagem de IA este mês</item>
+        <item quantity="many">Restam %d mensagens de IA este mês</item>
         <item quantity="other">Restam %d mensagens de IA este mês</item>
     </plurals>
     <string name="ai_alert_microphone_title">É necessário acesso ao microfone</string>
