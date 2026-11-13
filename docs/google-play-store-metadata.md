@@ -34,24 +34,29 @@ Google Play's [published listing language list](https://support.google.com/googl
 
 ### App Name
 
-Nibomo: AI Flashcards
+Nibomo: AI Flashcard Maker
 
 ### Short Description
 
-AI flashcards from notes and photos for exam prep and vocabulary practice
+Turn notes and photos into flashcards. Review offline with spaced repetition.
 
 ### Full Description
 
-Prepare for exams and practice vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+Turn class notes, photos, and topics into flashcards with Nibomo's AI flashcard maker. Build your own decks, review with spaced repetition, and keep studying offline once your cards are saved.
 
-Practice active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+Make flashcards from your study material
+Paste lecture notes, attach a photo of a notebook page, or describe a topic you want to learn. Ask AI to focus on the definitions, examples, or key facts you need to remember. Edit the questions and answers so they make sense to you. You can also make your own flashcards one card at a time.
 
-- Ask AI to clarify answers, add examples, and improve your cards.
-- Review your cards offline.
-- Organize subjects with decks and tags, then find cards with search and filters.
-- Sign in with email to sync your study material across devices when online.
+Remember more with spaced repetition
+Read the question and try to answer it from memory. Flip the card and rate how well you recalled it. Nibomo schedules the next review based on your rating, so difficult cards return sooner and familiar cards wait longer. Use this routine to review course material before an exam or keep important concepts fresh after it.
 
-AI features require internet and have usage limits. Premium offers higher limits.
+Practice English and Spanish vocabulary
+Make vocabulary flashcards from the words you encounter in class, in a book, or in conversation. Add your own example sentences so you remember how a word is used. You can also start with a ready-made deck from the Nibomo catalog, such as English phrasal verbs or beginner Spanish vocabulary.
+
+Review your flashcards offline
+Open your saved cards on the train, between classes, or anywhere you have a few minutes. Your reviews sync when you reconnect, so you can pick up where you left off on another device.
+
+AI features require an internet connection.
 
 ### Release notes
 
@@ -63,24 +68,29 @@ AI features require internet and have usage limits. Premium offers higher limits
 
 ### App Name
 
-Nibomo: بطاقات ذكاء اصطناعي
+Nibomo: صانع فلاش كارد
 
 ### Short Description
 
-بطاقات بالذكاء الاصطناعي من ملاحظاتك وصورك للاختبارات وتعلّم المفردات
+حوّل الملاحظات والصور إلى بطاقات وراجعها بالتكرار المتباعد، حتى دون إنترنت.
 
 ### Full Description
 
-استعد للاختبارات وتدرّب على المفردات ببطاقات مراجعة من موادك الدراسية. استخدم الذكاء الاصطناعي لتحويل الملاحظات والصور إلى أسئلة وإجابات، أو اكتب بطاقاتك بنفسك.
+أنشئ بطاقات للمذاكرة من ملاحظاتك وصورك مع Nibomo. استخدم الذكاء الاصطناعي لصياغة الأسئلة، ونظّم البطاقات في مجموعات، وراجعها بالتكرار المتباعد.
 
-تدرّب على الاسترجاع النشط: حاول الإجابة قبل إظهار ظهر كل بطاقة. يستخدم Nibomo التكرار المتباعد لجدولة المراجعات بحسب مدى تذكّرك.
+بطاقات من ملاحظاتك وصورك
+الصق ملاحظات المحاضرة أو أرفق صورة من دفترك أو اكتب الموضوع الذي تريد مذاكرته. اطلب من الذكاء الاصطناعي التركيز على التعريفات أو الأمثلة أو الأفكار الرئيسية. عدّل الأسئلة والأجوبة قبل المراجعة، أو أنشئ البطاقات بنفسك واحدة تلو الأخرى.
 
-- اطلب من الذكاء الاصطناعي توضيح الإجابات وإضافة أمثلة وتحسين بطاقاتك.
-- راجع بطاقاتك دون اتصال بالإنترنت.
-- نظّم المواد في مجموعات وبوسوم، واعثر على البطاقات بالبحث والتصفية.
-- سجّل الدخول ببريدك الإلكتروني لمزامنة مواد الدراسة بين أجهزتك عند الاتصال بالإنترنت.
+التكرار المتباعد للمذاكرة
+اقرأ السؤال وحاول استرجاع الإجابة قبل قلب البطاقة. بعد أن تقيّم تذكّرك، يحدّد Nibomo موعد المراجعة التالية. تظهر البطاقات الصعبة مجددًا في وقت أقرب، ويطول الفاصل بين مراجعات البطاقات التي تتذكّرها بسهولة.
 
-تتطلب ميزات الذكاء الاصطناعي اتصالًا بالإنترنت وتخضع لحدود استخدام. يتيح Premium حدودًا أعلى.
+بطاقات المفردات
+حوّل الكلمات التي تصادفها في القراءة أو المحادثة إلى بطاقات. أضف مثالًا يوضّح استخدام الكلمة. ويمكنك البدء من مكتبة Nibomo بمجموعة للأفعال المركّبة بالإنجليزية أو للمفردات الإسبانية للمبتدئين.
+
+مراجعة البطاقات دون إنترنت
+راجع بطاقاتك المحفوظة في طريقك أو بين المحاضرات. عند عودة الاتصال، سجّل الدخول بالحساب نفسه لمزامنة مراجعاتك ومتابعة الدراسة على أجهزتك الأخرى.
+
+تتطلّب ميزات الذكاء الاصطناعي اتصالًا بالإنترنت.
 
 ### Release notes
 
@@ -92,24 +102,29 @@ Nibomo: بطاقات ذكاء اصطناعي
 
 ### App Name
 
-Nibomo: AI 闪卡
+Nibomo：AI 抽认卡生成器
 
 ### Short Description
 
-用 AI 将笔记和照片变成闪卡，备考、学词汇，按记忆情况安排复习
+把笔记和照片变成闪卡，用间隔重复复习，离线也能背单词。
 
 ### Full Description
 
-用自己的学习资料制作闪卡，备考、练习词汇。用 AI 将笔记和照片转成问题与答案，也可以自己编写卡片。
+用 Nibomo 把课堂笔记、照片和想学的主题做成抽认卡。创建自己的卡组，按间隔重复法安排复习，没网时也能打开已保存的卡片。
 
-练习主动回忆：先尝试作答，再翻看每张卡片的背面。Nibomo 采用间隔重复，根据你的记忆情况安排复习。
+从笔记或照片制作闪卡
+贴上课堂笔记、附上一张照片，或描述想学的主题。让 AI 围绕定义、例子或关键知识点生成问答，检查和修改后再开始复习。也可以自己一张张写卡，把需要记住的内容整理到同一个卡组。
 
-- 请 AI 解释答案、补充例子，改进卡片内容。
-- 离线复习卡片。
-- 用牌组和标签整理各科内容，通过搜索和筛选找到卡片。
-- 使用邮箱登录，联网时在不同设备间同步学习资料。
+用间隔重复巩固记忆
+看着问题先在心里作答，再翻卡并评价记得怎么样。Nibomo 根据你的评价安排下次复习，难记的卡片早点出现，熟悉的卡片隔得久一点。既可以考前复习，也可以在学完后定期回顾。
 
-AI 功能需要联网，且有使用额度限制。Premium 提供更高的使用额度。
+用单词卡练习英语和西班牙语
+把上课、阅读或聊天时遇到的生词做成卡片。给单词加上自己的例句，记住它在句子里怎么用。想直接开始，也可以从 Nibomo 的卡组目录选一套英语短语动词或西班牙语入门词汇卡。
+
+离线复习已保存的卡片
+在地铁上或课间，用几分钟过一遍卡片。重新联网后可同步复习进度，在另一台设备上接着学。
+
+AI 功能需要联网。
 
 ### Release notes
 
@@ -121,24 +136,29 @@ AI 功能需要联网，且有使用额度限制。Premium 提供更高的使用
 
 ### App Name
 
-Nibomo : Flashcards IA
+Nibomo : Cartes flash IA
 
 ### Short Description
 
-L’IA transforme notes et photos en fiches pour les examens et le vocabulaire
+Créez des cartes à partir de notes ou de photos. Révisez hors ligne.
 
 ### Full Description
 
-Préparez vos examens et travaillez votre vocabulaire avec des fiches créées à partir de vos propres supports de cours. Transformez vos notes et photos en questions et réponses avec l’IA, ou rédigez vos fiches vous-même.
+Créez des cartes flash à partir de notes de cours, de photos ou d’un sujet à réviser. Le générateur de flashcards de Nibomo prépare des questions et des réponses que vous pouvez modifier avant de les étudier.
 
-Pratiquez le rappel actif : essayez de répondre avant d’afficher le verso de chaque fiche. Nibomo utilise la répétition espacée pour planifier les révisions selon ce que vous retenez.
+Transformez vos supports de cours en cartes
+Collez vos notes ou joignez la photo d’une page de cahier. Demandez à l’IA de cibler les définitions, les exemples ou les notions que vous voulez retenir. Reformulez une question ou complétez une réponse à votre convenance. Vous pouvez aussi créer vos propres cartes une par une.
 
-- Demandez à l’IA de clarifier les réponses, d’ajouter des exemples et d’améliorer vos fiches.
-- Révisez vos fiches hors connexion.
-- Classez vos matières par paquets et étiquettes, et retrouvez vos fiches avec la recherche et les filtres.
-- Connectez-vous par e-mail pour synchroniser vos supports de révision entre vos appareils lorsque vous êtes en ligne.
+Mémorisez avec la répétition espacée
+Essayez de répondre avant de retourner la carte. Indiquez ensuite à quel point vous vous souveniez de la réponse. Nibomo planifie la prochaine révision et vous présente plus tôt les cartes difficiles.
 
-Les fonctions d’IA nécessitent Internet et sont soumises à des limites d’utilisation. Premium offre des limites plus élevées.
+Enrichissez votre vocabulaire
+Faites des cartes de vocabulaire à partir des mots rencontrés en cours, dans un livre ou au fil d’une conversation. Ajoutez une phrase d’exemple ou choisissez un paquet du catalogue, comme les verbes à particule en anglais ou le vocabulaire espagnol de base.
+
+Révisez vos cartes hors ligne
+Ouvrez les cartes déjà enregistrées entre deux cours ou dans les transports. Vos révisions se synchronisent lorsque vous retrouvez une connexion.
+
+Les fonctions d’IA nécessitent une connexion Internet.
 
 ### Release notes
 
@@ -154,20 +174,22 @@ Nibomo: KI-Karteikarten
 
 ### Short Description
 
-KI-Karteikarten aus Notizen und Fotos für Prüfungen und Vokabeln
+Erstelle Karteikarten aus Notizen und Fotos. Wiederhole sie auch offline.
 
 ### Full Description
 
-Bereite dich mit Karteikarten aus deinem eigenen Lernmaterial auf Prüfungen vor und übe Vokabeln. Wandle Notizen und Fotos mit KI in Fragen und Antworten um oder schreibe deine Karten selbst.
+Erstelle Karteikarten mit KI aus Notizen, Fotos oder einem Thema. Nutze Nibomo als Vokabeltrainer und wiederhole deine Lernkarten in passenden Abständen, auch unterwegs ohne Netz.
 
-Übe aktives Erinnern: Versuche zu antworten, bevor du die Rückseite einer Karte aufdeckst. Nibomo nutzt Spaced Repetition, um Wiederholungen danach zu planen, wie gut du dich erinnerst.
+Karteikarten aus deinen Notizen
+Füge eine Mitschrift oder ein Foto von einer Heftseite hinzu und lass dir von der KI Fragen und Antworten vorschlagen. Du kannst die Vorschläge überarbeiten oder deine Lernkarten selbst erstellen.
 
-- Lass dir von der KI Antworten erläutern, Beispiele ergänzen und Karten verbessern.
-- Wiederhole deine Karten offline.
-- Ordne deine Themen mit Stapeln und Tags und finde Karten über Suche und Filter.
-- Melde dich per E-Mail an, um dein Lernmaterial bei bestehender Internetverbindung zwischen Geräten zu synchronisieren.
+In passenden Abständen wiederholen
+Versuche, dich an die Antwort zu erinnern, bevor du die Karte umdrehst. Bewerte anschließend, wie gut du sie wusstest. Beim verteilten Wiederholen (Spaced Repetition) kommen schwierige Karten früher wieder und vertraute später.
 
-KI-Funktionen benötigen Internet und unterliegen Nutzungslimits. Premium bietet höhere Limits.
+Englische und spanische Vokabeln üben
+Erstelle einen Stapel mit Wörtern aus deinem Unterricht oder ergänze eigene Beispielsätze. Im Nibomo-Katalog findest du fertige Stapel, etwa zu englischen Phrasal Verbs oder Spanisch für den Einstieg.
+
+Gespeicherte Karten kannst du offline wiederholen. Dein Fortschritt wird synchronisiert, sobald du wieder online bist. Für KI-Funktionen brauchst du Internet.
 
 ### Release notes
 
@@ -179,24 +201,29 @@ KI-Funktionen benötigen Internet und unterliegen Nutzungslimits. Premium bietet
 
 ### App Name
 
-Nibomo: AI फ्लैशकार्ड
+Nibomo: AI फ्लैश कार्ड
 
 ### Short Description
 
-नोट्स और फ़ोटो से AI फ्लैशकार्ड बनाएं, परीक्षा और शब्दावली का अभ्यास करें
+नोट्स और फ़ोटो से फ्लैश कार्ड बनाएँ। सहेजे हुए कार्ड ऑफलाइन दोहराएँ।
 
 ### Full Description
 
-अपनी पढ़ाई की सामग्री से बने फ्लैशकार्ड के साथ परीक्षा की तैयारी और शब्दावली का अभ्यास करें। AI से नोट्स और फ़ोटो को सवाल-जवाब में बदलें, या अपने कार्ड खुद लिखें।
+क्लास के नोट्स, कॉपी के पन्ने की फ़ोटो या किसी विषय से Nibomo में फ्लैश कार्ड बनाएँ। अपने डेक तैयार करें और कार्ड सहेजने के बाद इंटरनेट के बिना भी पढ़ें।
 
-सक्रिय स्मरण का अभ्यास करें: हर कार्ड का पिछला हिस्सा देखने से पहले जवाब देने की कोशिश करें। Nibomo अंतराल पर दोहराने की विधि का इस्तेमाल करता है और आपको कितना याद है, उसके आधार पर अगली समीक्षा का समय तय करता है।
+नोट्स से फ्लैश कार्ड बनाएँ
+अपने नोट्स पेस्ट करें या फ़ोटो जोड़ें। AI को बताएँ कि किन परिभाषाओं, उदाहरणों या तथ्यों के सवाल बनाने हैं। पढ़ने से पहले सवाल और जवाब अपनी ज़रूरत के मुताबिक बदलें। चाहें तो हर कार्ड खुद लिखें।
 
-- AI से जवाब समझाने, उदाहरण जोड़ने और कार्ड बेहतर बनाने को कहें।
-- अपने कार्ड ऑफ़लाइन दोहराएं।
-- डेक और टैग से विषय व्यवस्थित करें, फिर खोज और फ़िल्टर से कार्ड ढूंढें।
-- ईमेल से साइन इन करके इंटरनेट से जुड़े होने पर अपनी पढ़ाई की सामग्री अलग-अलग डिवाइस पर सिंक करें।
+अंतराल पर दोहराएँ
+सवाल पढ़कर जवाब याद करने की कोशिश करें। कार्ड पलटें और बताएँ कि जवाब कितनी अच्छी तरह याद था। स्पेस्ड रिपीटिशन में इसी आधार पर अगली बार कार्ड दिखाने का समय तय होता है। मुश्किल कार्ड जल्दी लौटते हैं और आसान कार्ड थोड़े लंबे अंतराल के बाद आते हैं।
 
-AI सुविधाओं के लिए इंटरनेट ज़रूरी है और इनके इस्तेमाल की सीमाएं हैं। Premium में ज़्यादा इस्तेमाल की सीमा मिलती है।
+अंग्रेज़ी शब्द सीखें और उनका अभ्यास करें
+किसी किताब में या बातचीत में मिले नए शब्दों से शब्दावली के फ्लैश कार्ड बनाएँ। हर शब्द के साथ अपना उदाहरण वाक्य लिखें। आप Nibomo के कैटलॉग से अंग्रेज़ी के फ़्रेज़ल वर्ब या शुरुआती स्पैनिश शब्दावली का डेक भी चुन सकते हैं।
+
+सहेजे हुए फ्लैश कार्ड ऑफलाइन दोहराएँ
+सफ़र के दौरान या क्लास के बीच कुछ मिनट मिलें तो सहेजे हुए कार्ड खोलें। इंटरनेट से फिर जुड़ने पर प्रगति सिंक होती है। उसी खाते से दूसरे डिवाइस पर पढ़ाई जारी रख सकते हैं।
+
+AI सुविधाओं के लिए इंटरनेट ज़रूरी है।
 
 ### Release notes
 
@@ -208,24 +235,29 @@ AI सुविधाओं के लिए इंटरनेट ज़रू�
 
 ### App Name
 
-Nibomo: AI暗記カード
+Nibomo: AIで作る暗記カード
 
 ### Short Description
 
-ノートや写真からAIで暗記カードを作成。試験対策や単語学習を、覚え具合に合った復習で
+ノートや写真から暗記カードを作成。間隔反復で覚え、保存したカードはオフラインでも復習。
 
 ### Full Description
 
-自分の学習資料から作った暗記カードで、試験対策や単語の練習に取り組めます。AIでノートや写真を問題と答えに変えたり、自分でカードを書いたりできます。
+授業のノートや写真から暗記カードを作りましょう。Nibomoなら、自分の学習資料を問題と答えにまとめ、間隔反復で復習できます。
 
-アクティブリコールを実践しましょう。カードの裏面を表示する前に、自分で答えを思い出してみてください。Nibomoは間隔反復を使い、覚え具合に合わせて復習の予定を組みます。
+ノートや写真から暗記カードを作成
+ノートを貼り付ける、ノートのページを撮った写真を添付する、学びたいテーマを伝える。覚えたい定義や例を指定すると、AIが問題と答えの下書きを作ります。下書きは編集でき、カードを一枚ずつ手作りすることもできます。
 
-- AIに答えの説明や例の追加を頼み、カードの内容を改善できます。
-- オフラインでカードを復習できます。
-- デッキやタグで科目を整理し、検索や絞り込みでカードを探せます。
-- メールアドレスでログインすると、インターネット接続時に学習内容を複数の端末で同期できます。
+間隔反復で、覚えにくい内容を早めに復習
+質問を読んだら、まず答えを思い出してからカードをめくります。どのくらい覚えていたかを評価すると、次の復習までの間隔が調整されます。苦手なカードは早めに、覚えたカードは少し間を空けて出てきます。
 
-AI機能にはインターネット接続が必要で、利用上限があります。Premiumでは利用上限が増えます。
+英単語やスペイン語の単語帳を作る
+授業や読書、会話で出会った単語をカードに。自分で例文を書き加えると、意味だけでなく使い方も確認できます。Nibomoのカタログにある英語の句動詞や初級スペイン語のカードセットから始めることもできます。
+
+保存したカードをオフラインで復習
+通学中や授業の合間に、保存済みのカードを開いて復習できます。ネットにつなぎ直すと進捗を同期でき、別の端末でも続きから学べます。
+
+AI機能にはインターネット接続が必要です。
 
 ### Release notes
 
@@ -241,20 +273,25 @@ Nibomo: Flashcards com IA
 
 ### Short Description
 
-Crie flashcards de anotações e fotos com IA para provas e vocabulário
+Crie flashcards de anotações e fotos. Revise offline com repetição espaçada.
 
 ### Full Description
 
-Prepare-se para provas e pratique vocabulário com flashcards feitos a partir do seu próprio material de estudo. Use IA para transformar anotações e fotos em perguntas e respostas ou escreva seus próprios cartões.
+Crie flashcards a partir de anotações de aula, fotos ou temas que você quer estudar. Use o gerador de flashcards com IA do Nibomo para montar seus baralhos e revisar com repetição espaçada.
 
-Pratique a recordação ativa: tente responder antes de revelar o verso de cada cartão. O Nibomo usa repetição espaçada para programar as revisões conforme você se lembra do conteúdo.
+Passe das anotações aos cartões
+Cole as anotações ou anexe uma foto de uma página do caderno. Peça à IA para elaborar perguntas sobre definições, exemplos ou conceitos importantes. Ajuste as perguntas e respostas antes de começar. Você também pode escrever seus cartões do zero.
 
-- Peça à IA para explicar respostas, acrescentar exemplos e melhorar seus cartões.
-- Revise seus cartões offline.
-- Organize as matérias com baralhos e etiquetas e encontre cartões com a busca e os filtros.
-- Entre com seu e-mail para sincronizar seu material de estudo entre dispositivos quando estiver online.
+Lembre-se do que estudou
+Tente responder antes de virar o cartão. Depois, indique como foi lembrar da resposta. O Nibomo programa a próxima revisão de acordo com sua avaliação, trazendo de volta primeiro os cartões mais difíceis.
 
-Os recursos de IA exigem internet e têm limites de uso. O Premium oferece limites maiores.
+Aprenda vocabulário em inglês e espanhol
+Crie flashcards de vocabulário com palavras que encontrou numa leitura ou conversa. Acrescente uma frase de exemplo para lembrar do uso. Se quiser começar com um baralho pronto, no catálogo há verbos frasais em inglês e vocabulário de espanhol para iniciantes.
+
+Revise seus flashcards offline
+Abra os cartões salvos no ônibus ou no intervalo da aula. Seus registros de revisão são sincronizados quando você se conecta novamente.
+
+Os recursos de IA precisam de conexão com a internet.
 
 ### Release notes
 
@@ -266,24 +303,29 @@ Os recursos de IA exigem internet e têm limites de uso. O Premium oferece limit
 
 ### App Name
 
-Nibomo: ИИ-флешкарты
+Nibomo: Флешкарты с ИИ
 
 ### Short Description
 
-ИИ-карточки из заметок и фото для подготовки к экзаменам и изучения слов
+Карточки для запоминания из конспектов и фото. Повторяйте офлайн.
 
 ### Full Description
 
-Готовьтесь к экзаменам и учите слова с карточками из ваших учебных материалов. Превращайте заметки и фото в вопросы и ответы с помощью ИИ или составляйте карточки сами.
+Создавайте карточки для запоминания из заметок, конспектов и фотографий. Используйте ИИ, чтобы составить вопросы и ответы, собирайте свои колоды и закрепляйте материал с помощью интервального повторения.
 
-Практикуйте активное вспоминание: попробуйте ответить, прежде чем открыть обратную сторону карточки. Nibomo использует интервальные повторения и планирует занятия с учётом того, насколько хорошо вы помните материал.
+Создавайте флешкарты из своих материалов
+Вставьте конспект лекции, добавьте фото страницы тетради или укажите тему. Попросите ИИ выделить нужные определения, примеры или ключевые факты. Проверьте и отредактируйте вопросы и ответы перед учёбой. Можно также создать карточки вручную и собрать их в колоды по темам.
 
-- Просите ИИ объяснить ответы, добавить примеры и улучшить карточки.
-- Повторяйте карточки без интернета.
-- Распределяйте материал по колодам и тегам, находите карточки через поиск и фильтры.
-- Войдите по электронной почте, чтобы при подключении к интернету синхронизировать учебные материалы между устройствами.
+Закрепляйте знания с интервальным повторением
+Прочитайте вопрос и попробуйте ответить по памяти. Затем переверните карточку и оцените, насколько хорошо вы вспомнили ответ. По этой оценке Nibomo запланирует следующее повторение. Сложные карточки появятся раньше, а знакомые — позже.
 
-Для функций ИИ нужен интернет; их использование ограничено лимитами. В Premium лимиты выше.
+Учите английские и испанские слова
+Соберите карточки для изучения слов, которые встречаются на занятиях, в книгах или разговорах. Добавьте свои примеры, чтобы помнить, как употребляются слова. В каталоге Nibomo есть и готовые колоды, например с английскими фразовыми глаголами и базовой испанской лексикой.
+
+Повторяйте флешкарты офлайн
+Открывайте сохранённые карточки в дороге и между занятиями. Чтобы синхронизировать прогресс между устройствами, подключитесь к интернету и войдите в один и тот же аккаунт.
+
+Для функций ИИ нужно подключение к интернету.
 
 ### Release notes
 
@@ -299,20 +341,25 @@ Nibomo: Flashcards con IA
 
 ### Short Description
 
-Crea tarjetas con IA a partir de apuntes y fotos para exámenes y vocabulario
+Convierte apuntes y fotos en tarjetas. Repasa sin internet.
 
 ### Full Description
 
-Prepárate para exámenes y practica vocabulario con tarjetas hechas a partir de tu propio material de estudio. Usa IA para convertir apuntes y fotos en preguntas y respuestas, o escribe tus propias tarjetas.
+Crea tarjetas de estudio con tus apuntes, fotos o temas de clase. Con Nibomo puedes hacer flashcards con IA, organizar tus propios mazos y estudiar con repetición espaciada.
 
-Practica la recuperación activa: intenta responder antes de mostrar el reverso de cada tarjeta. Nibomo usa repetición espaciada para programar los repasos según qué tan bien recuerdas el contenido.
+Convierte tus apuntes en tarjetas
+Pega el texto o adjunta una foto de una página del cuaderno. Pídele a la IA preguntas y respuestas sobre lo que necesitas recordar, desde definiciones hasta ejemplos. Edita el contenido antes de estudiar o escribe tus tarjetas desde cero.
 
-- Pídele a la IA que aclare respuestas, agregue ejemplos y mejore tus tarjetas.
-- Repasa tus tarjetas sin conexión.
-- Organiza tus materias con mazos y etiquetas y encuentra tarjetas con la búsqueda y los filtros.
-- Inicia sesión con tu correo electrónico para sincronizar tu material entre dispositivos cuando tengas conexión a internet.
+Recuerda lo que estudias
+Intenta responder sin mirar el reverso. Luego voltea la tarjeta e indica qué tan bien la recordaste. Nibomo programa el próximo repaso según tu respuesta, para que vuelvas a ver primero lo que más se te dificulta.
 
-Las funciones de IA requieren internet y tienen límites de uso. Premium ofrece límites más altos.
+Practica vocabulario en inglés
+Crea tarjetas de vocabulario con palabras nuevas y agrega oraciones de ejemplo. Si quieres empezar con un mazo listo, en el catálogo encontrarás verbos frasales en inglés y vocabulario básico en español.
+
+Repasa tus flashcards sin internet
+Una vez guardadas, puedes abrir tus tarjetas en el camino o entre clases. Los repasos se sincronizan cuando recuperas la conexión, para que puedas continuar en otro dispositivo.
+
+Las funciones de IA necesitan conexión a internet.
 
 ### Release notes
 
@@ -324,24 +371,29 @@ Las funciones de IA requieren internet y tienen límites de uso. Premium ofrece 
 
 ### App Name
 
-Nibomo: Flashcards con IA
+Nibomo: Fichas de estudio
 
 ### Short Description
 
-Tarjetas con IA de apuntes y fotos para preparar exámenes y aprender vocabulario
+Crea fichas con IA a partir de apuntes o fotos. Repasa sin conexión.
 
 ### Full Description
 
-Prepara tus exámenes y practica vocabulario con tarjetas creadas a partir de tu propio material de estudio. Usa IA para convertir apuntes y fotos en preguntas y respuestas, o escribe tus propias tarjetas.
+Crea fichas de estudio a partir de apuntes, fotos o un tema. Con el generador de flashcards de Nibomo puedes convertir el material de clase en preguntas y preparar repasos a tu ritmo.
 
-Practica la recuperación activa: intenta responder antes de mostrar el reverso de cada tarjeta. Nibomo utiliza la repetición espaciada para programar los repasos según lo bien que recuerdas el contenido.
+De los apuntes a las flashcards
+Pega unos apuntes o adjunta una foto de tu cuaderno. Pide a la IA que se centre en los conceptos, las definiciones o los ejemplos que necesitas. Edita las preguntas y las respuestas antes de ponerte a estudiar. También puedes crear tus fichas una a una.
 
-- Pide a la IA que aclare las respuestas, añada ejemplos y mejore tus tarjetas.
-- Repasa tus tarjetas sin conexión.
-- Ordena tus asignaturas con mazos y etiquetas y localiza tarjetas con la búsqueda y los filtros.
-- Inicia sesión con tu correo electrónico para sincronizar tu material entre dispositivos cuando tengas conexión a internet.
+Repasa con repetición espaciada
+Intenta contestar antes de girar la ficha. Después indica cuánto te ha costado recordar la respuesta. Así, Nibomo te vuelve a mostrar antes las fichas difíciles y deja más tiempo entre los repasos de las que ya dominas.
 
-Las funciones de IA necesitan internet y tienen límites de uso. Premium ofrece límites más altos.
+Crea tarjetas de vocabulario
+Prepara fichas con las palabras en inglés que encuentres en clase o al leer. Añade ejemplos de uso o empieza con un mazo del catálogo, como el de verbos con partícula en inglés o el de vocabulario básico en español.
+
+Llévate tus fichas
+Repasa sin conexión las fichas guardadas, en el transporte o entre clases. Tus repasos se sincronizan al volver a conectarte.
+
+Las funciones de IA necesitan conexión a internet.
 
 ### Release notes
 
@@ -353,24 +405,29 @@ Las funciones de IA necesitan internet y tienen límites de uso. Premium ofrece 
 
 ### App Name
 
-Nibomo: Flashcards con IA
+Nibomo: Tarjetas de estudio
 
 ### Short Description
 
-Tarjetas con IA de notas y fotos para estudiar vocabulario y preparar exámenes
+Convierte notas y fotos en tarjetas con IA. Repasa sin internet.
 
 ### Full Description
 
-Prepárate para exámenes y practica vocabulario con tarjetas hechas a partir de tu propio material de estudio. Usa IA para convertir notas y fotos en preguntas y respuestas, o escribe tus propias tarjetas.
+Convierte tus notas de clase y fotos en tarjetas de estudio con Nibomo. Crea flashcards con IA para repasar conceptos, practicar vocabulario en inglés y recordar lo que estudias.
 
-Practica la recuperación activa: intenta responder antes de mostrar el reverso de cada tarjeta. Nibomo usa repetición espaciada para programar los repasos según qué tan bien recuerdas el contenido.
+Crea tarjetas con tus notas
+Pega tus notas, toma una foto de la página o describe el tema. Pídele a la IA que redacte preguntas y respuestas sobre las ideas que quieras retener. Revisa el resultado y ajústalo. También puedes escribir tus propias tarjetas una por una.
 
-- Pídele a la IA que explique respuestas, agregue ejemplos y mejore tus tarjetas.
-- Repasa tus tarjetas sin conexión.
-- Organiza tus materias con mazos y etiquetas y encuentra tarjetas con la búsqueda y los filtros.
-- Inicia sesión con tu email para sincronizar tu material de estudio entre dispositivos cuando tengas conexión a internet.
+Estudia con repetición espaciada
+Lee la pregunta y trata de responder antes de voltear la tarjeta. Luego indica si te resultó fácil o difícil recordar la respuesta. Nibomo programa el próximo repaso y vuelve a mostrarte antes las tarjetas más difíciles.
 
-Las funciones de IA requieren internet y tienen límites de uso. Premium ofrece límites más altos.
+Practica palabras en inglés y español
+Haz tarjetas de vocabulario con palabras que encuentres en clase, en el trabajo o en una conversación. Agrega tus propios ejemplos, o elige un mazo del catálogo de Nibomo, como el de verbos frasales en inglés o el de vocabulario básico en español.
+
+Repasa sin internet
+Abre las tarjetas que ya guardaste cuando estés en el transporte o tengas unos minutos libres. Los repasos se sincronizan al volver a conectarte.
+
+Las funciones de IA necesitan conexión a internet.
 
 ### Release notes
 
@@ -382,24 +439,29 @@ Las funciones de IA requieren internet y tienen límites de uso. Premium ofrece 
 
 ### App Name
 
-Nibomo: Флашкарти с ИИ
+Nibomo: Флаш карти с ИИ
 
 ### Short Description
 
-Превърнете бележки и снимки във флашкарти с ИИ за изпити и нови думи
+Флаш карти от бележки и снимки. Интервално повторение и преговор офлайн.
 
 ### Full Description
 
-Подготвяйте се за изпити и упражнявайте нови думи с флашкарти от собствените си учебни материали. Използвайте ИИ, за да превърнете бележки и снимки във въпроси и отговори, или пишете картите си сами.
+Създавайте флаш карти от учебните си материали с Nibomo. Превърнете бележки от лекция, снимка на страница от тетрадка или тема в карти с въпроси и отговори. После ги преговаряйте с интервално повторение.
 
-Упражнявайте активно припомняне: опитайте да отговорите, преди да разкриете гърба на всяка карта. Nibomo използва разпределено повторение, за да планира преговорите според това колко добре помните.
+Създавайте свои карти
+Поставете откъс от записките си или добавете снимка. ИИ ще предложи въпроси и отговори, които можете да редактирате. Можете също сами да напишете всяка карта и да подредите материала в отделни тестета.
 
-- Помолете ИИ да разясни отговорите, да добави примери и да подобри картите ви.
-- Преговаряйте картите си офлайн.
-- Подредете темите в тестета и с етикети и намирайте карти чрез търсене и филтри.
-- Влезте с имейл, за да синхронизирате учебните си материали между устройствата, когато сте онлайн.
+Запомняйте с интервално повторение
+Прочетете въпроса и се опитайте да отговорите, преди да обърнете картата. После отбележете доколко сте запомнили отговора. Nibomo планира следващия преговор според оценката ви, като показва по-трудните карти по-скоро.
 
-Функциите с ИИ изискват интернет и имат ограничения за използване. Premium предлага по-високи лимити.
+Упражнявайте нови думи
+Създавайте флашкарти за английски или испански думи и добавяйте собствени примери. Можете и да започнете с готово тесте от каталога Nibomo, например с английски фразови глаголи или испански думи и изрази за начинаещи.
+
+Преговаряйте офлайн
+Отворете запазените си карти и без интернет. Когато се свържете отново, напредъкът ви се синхронизира между устройствата.
+
+Функциите с ИИ изискват интернет връзка.
 
 ### Release notes
 
@@ -411,24 +473,29 @@ Nibomo: Флашкарти с ИИ
 
 ### App Name
 
-Nibomo: AI ফ্ল্যাশকার্ড
+Nibomo: AI ফ্ল্যাশ কার্ড
 
 ### Short Description
 
-নোট ও ছবি থেকে AI ফ্ল্যাশকার্ড বানান, পরীক্ষার প্রস্তুতি নিন ও নতুন শব্দ শিখুন
+নোট ও ছবি থেকে ফ্ল্যাশ কার্ড বানান। সেভ করা কার্ড অফলাইনে ঝালিয়ে নিন।
 
 ### Full Description
 
-নিজের পড়ার উপকরণ থেকে তৈরি ফ্ল্যাশকার্ড দিয়ে পরীক্ষার প্রস্তুতি নিন ও নতুন শব্দের অনুশীলন করুন। AI দিয়ে নোট ও ছবি থেকে প্রশ্ন ও উত্তর তৈরি করুন, অথবা নিজের কার্ড নিজেই লিখুন।
+ক্লাসের নোট, খাতার ছবি বা একটি বিষয় থেকে Nibomo-তে ফ্ল্যাশ কার্ড তৈরি করুন। নিজের ডেক বানিয়ে নিয়মিত পড়া ঝালিয়ে নিন। সেভ করা কার্ড নিয়ে ইন্টারনেট ছাড়াও পড়তে পারবেন।
 
-সক্রিয়ভাবে মনে করার অনুশীলন করুন: প্রতিটি কার্ডের পেছনের দিক দেখার আগে উত্তর দেওয়ার চেষ্টা করুন। Nibomo বিরতি দিয়ে পুনরাবৃত্তির পদ্ধতি ব্যবহার করে; আপনার কতটা মনে আছে, তার ভিত্তিতে আবার পড়ার সময় নির্ধারণ করে।
+পড়ার উপকরণ থেকে কার্ড বানান
+নোট পেস্ট করুন বা খাতার পাতার ছবি যোগ করুন। কোন সংজ্ঞা বা উদাহরণ মনে রাখতে চান, তা AI-কে বলুন। AI-এর তৈরি প্রশ্ন ও উত্তর নিজের মতো করে বদলে নিন। চাইলে শুরু থেকেই নিজে প্রশ্ন ও উত্তর লিখুন।
 
-- AI-কে উত্তর বুঝিয়ে দিতে, উদাহরণ যোগ করতে ও কার্ডের বিষয়বস্তু উন্নত করতে বলুন।
-- অফলাইনে কার্ডগুলো ঝালিয়ে নিন।
-- ডেক ও ট্যাগ দিয়ে বিষয়গুলো সাজান, তারপর সার্চ ও ফিল্টার দিয়ে কার্ড খুঁজুন।
-- ইমেইল দিয়ে সাইন ইন করে ইন্টারনেট সংযোগ থাকলে বিভিন্ন ডিভাইসে পড়ার উপকরণ সিঙ্ক করুন।
+বিরতি দিয়ে বারবার পড়ুন
+প্রশ্ন দেখে উত্তরটা মনে করার চেষ্টা করুন। কার্ড ওল্টানোর পর জানান উত্তরটি কতটা মনে ছিল। এই পদ্ধতিকে স্পেসড রিপিটেশন বলে। কঠিন কার্ডগুলো আগে ফিরে আসে, আর সহজগুলো দেখার আগে বেশি সময় পান।
 
-AI ফিচারের জন্য ইন্টারনেট প্রয়োজন এবং ব্যবহারের সীমা রয়েছে। Premium-এ ব্যবহারের সীমা বেশি।
+নতুন শব্দের অনুশীলন করুন
+পড়তে গিয়ে বা কথা বলতে গিয়ে যে ইংরেজি শব্দগুলো পান, সেগুলো দিয়ে নিজের ফ্ল্যাশ কার্ড বানান। শব্দটি কীভাবে ব্যবহার হয়, তা মনে রাখতে একটি উদাহরণ বাক্য লিখুন। Nibomo-র ক্যাটালগে ইংরেজি ফ্রেজাল ভার্ব ও প্রাথমিক স্প্যানিশ শব্দভাণ্ডারের ডেকও আছে।
+
+সেভ করা কার্ড অফলাইনে পড়ুন
+যাতায়াতের পথে বা ক্লাসের ফাঁকে সেভ করা কার্ড খুলুন। আবার ইন্টারনেটে যুক্ত হলে অগ্রগতি সিঙ্ক হবে। একই অ্যাকাউন্টে অন্য ডিভাইস থেকেও পড়া চালিয়ে যেতে পারবেন।
+
+AI ফিচারের জন্য ইন্টারনেট সংযোগ প্রয়োজন।
 
 ### Release notes
 
@@ -440,24 +507,29 @@ AI ফিচারের জন্য ইন্টারনেট প্রয�
 
 ### App Name
 
-Nibomo: Targetes amb IA
+Nibomo: Flashcards amb IA
 
 ### Short Description
 
-Crea targetes amb IA a partir d’apunts i fotos per a exàmens i vocabulari
+Crea targetes amb apunts i fotos. Fes repàs espaiat sense connexió.
 
 ### Full Description
 
-Prepara exàmens i practica vocabulari amb targetes creades a partir del teu propi material d’estudi. Fes servir la IA per convertir apunts i fotos en preguntes i respostes, o escriu les teves pròpies targetes.
+Crea flashcards amb els teus apunts de classe, una foto o un tema que vulguis estudiar. Nibomo t’ajuda a preparar les targetes i a repassar-les amb repetició espaiada.
 
-Practica la recuperació activa: intenta respondre abans de mostrar el revers de cada targeta. Nibomo fa servir la repetició espaiada per programar els repassos segons com recordes el contingut.
+Converteix apunts en targetes d’estudi
+Enganxa els apunts o adjunta una foto d’una pàgina de la llibreta. Demana a la IA que prepari preguntes sobre definicions, exemples o idees clau. Pots editar les respostes o fer les targetes de zero, una per una.
 
-- Demana a la IA que aclareixi respostes, afegeixi exemples i millori les targetes.
-- Repassa les targetes sense connexió.
-- Organitza les matèries amb baralles i etiquetes i troba targetes amb la cerca i els filtres.
-- Inicia la sessió amb el correu electrònic per sincronitzar el material entre dispositius quan tinguis connexió a internet.
+Recorda el que estudies
+Prova de respondre de memòria i gira la targeta per comprovar la resposta. Indica si t’ha costat recordar-la. Nibomo programa el repàs següent en funció de la teva valoració i et torna a mostrar abans el que et costa més.
 
-Les funcions d’IA necessiten internet i tenen límits d’ús. Premium ofereix límits més alts.
+Practica amb targetes de vocabulari
+Recull les paraules noves que trobes en una lectura o en una conversa i afegeix-hi frases d’exemple. Si vols començar amb un conjunt preparat, al catàleg de Nibomo hi ha verbs amb partícula en anglès i vocabulari bàsic en castellà.
+
+Repassa sense connexió
+Obre les targetes desades al tren o entre classes. Quan et tornis a connectar, es sincronitzaran els repassos i podràs continuar en un altre dispositiu.
+
+Les funcions d’IA necessiten connexió a internet.
 
 ### Release notes
 
@@ -469,24 +541,29 @@ Les funcions d’IA necessiten internet i tenen límits d’ús. Premium ofereix
 
 ### App Name
 
-Nibomo: Kartičky s AI
+Nibomo: Kartičky na učení
 
 ### Short Description
 
-AI kartičky z poznámek a fotek pro přípravu na zkoušky a učení slovíček
+Kartičky z poznámek a fotek. Opakujte s rozestupy i offline.
 
 ### Full Description
 
-Připravujte se na zkoušky a procvičujte slovíčka s kartičkami z vlastních učebních materiálů. Pomocí AI proměňte poznámky a fotky v otázky a odpovědi nebo si napište vlastní kartičky.
+Vytvořte si v Nibomu kartičky na učení z vlastních materiálů. Z poznámek, fotky stránky v sešitu nebo zadaného tématu vám AI navrhne otázky a odpovědi. Rozložené opakování pak pomáhá udržet učivo v paměti.
 
-Procvičujte aktivní vybavování: zkuste odpovědět, než odhalíte zadní stranu kartičky. Nibomo využívá opakování s rozestupy a plánuje opakování podle toho, jak dobře si učivo pamatujete.
+Připravte si vlastní kartičky
+Vložte poznámky z přednášky nebo přidejte fotku. AI můžete požádat, aby se zaměřila na pojmy, příklady nebo fakta, která potřebujete znát. Návrhy upravte podle sebe. Kartičky si také můžete napsat ručně a rozdělit do balíčků podle předmětu.
 
-- Požádejte AI o vysvětlení odpovědí, doplnění příkladů a vylepšení kartiček.
-- Opakujte si kartičky offline.
-- Třiďte učivo pomocí balíčků a štítků, kartičky najděte vyhledáváním a filtry.
-- Přihlaste se e-mailem a po připojení k internetu synchronizujte učební materiály mezi zařízeními.
+Opakujte v rozestupech
+Nejdřív si zkuste odpověď vybavit, potom kartičku otočte a ohodnoťte, jak dobře jste si vzpomněli. Nibomo podle toho naplánuje další opakování. Obtížnější kartičky se objeví dřív, známé později.
 
-Funkce AI vyžadují internet a mají limity využití. Premium nabízí vyšší limity.
+Učte se slovíčka v kontextu
+Přidejte slova z učebnice, knihy nebo rozhovoru a doplňte vlastní příkladové věty. V katalogu Nibomo najdete i hotové balíčky, třeba anglická frázová slovesa nebo základy španělské slovní zásoby.
+
+Opakujte i offline
+Uložené kartičky otevřete bez připojení, třeba cestou do školy. Po návratu na internet se pokrok synchronizuje mezi zařízeními.
+
+Funkce AI vyžadují připojení k internetu.
 
 ### Release notes
 
@@ -502,20 +579,22 @@ Nibomo: Flashcards med AI
 
 ### Short Description
 
-Lav flashcards af noter og fotos med AI til eksamener og nye gloser
+Lav flashcards fra noter og fotos. Repetér med mellemrum, også offline.
 
 ### Full Description
 
-Forbered dig til eksamener, og øv gloser med flashcards lavet af dit eget studiemateriale. Brug AI til at omdanne noter og fotos til spørgsmål og svar, eller skriv dine egne kort.
+Lav flashcards med AI ud fra dit eget studiemateriale. Opret dine egne kortsæt, lær gloser, og repetér gemte kort, selv når du er offline.
 
-Øv aktiv genkaldelse: Prøv at svare, før du viser bagsiden af hvert kort. Nibomo bruger repetition med mellemrum til at planlægge dine gentagelser ud fra, hvor godt du husker stoffet.
+Lav kort af dit eget materiale
+Indsæt dine noter, vedhæft et foto af en side, eller giv AI et emne. Du får forslag til spørgsmål og svar, som du kan tilpasse. Du kan også skrive hvert kort selv.
 
-- Bed AI om at forklare svar, tilføje eksempler og forbedre dine kort.
-- Repeter dine kort offline.
-- Organiser fag med kortsæt og tags, og find kort med søgning og filtre.
-- Log ind med e-mail for at synkronisere dit studiemateriale mellem enheder, når du er online.
+Repetér med passende mellemrum
+Prøv at huske svaret, før du vender kortet. Vurdér bagefter, hvor godt du huskede det. Nibomo bruger intervalgentagelse (spaced repetition), så du ser svære kort igen før dem, du allerede kan.
 
-AI-funktioner kræver internet og har brugsgrænser. Premium giver højere grænser.
+Lær gloser
+Lav flashkort med nye ord fra undervisningen eller en bog, og tilføj gerne eksempler. Du kan også vælge et færdigt sæt i Nibomos katalog, f.eks. engelske udsagnsord med partikler eller spanske gloser for begyndere.
+
+Repetér gemte kort offline. Dine fremskridt bliver synkroniseret, når du er på nettet igen. AI-funktionerne kræver internetforbindelse.
 
 ### Release notes
 
@@ -527,24 +606,29 @@ AI-funktioner kræver internet og har brugsgrænser. Premium giver højere græn
 
 ### App Name
 
-Nibomo: Κάρτες με AI
+Nibomo: AI Flashcards
 
 ### Short Description
 
-Κάρτες με AI από σημειώσεις και φωτογραφίες για εξετάσεις και λεξιλόγιο
+Φτιάξτε flashcards από σημειώσεις και φωτογραφίες. Μελέτη εκτός σύνδεσης.
 
 ### Full Description
 
-Προετοιμαστείτε για εξετάσεις και εξασκηθείτε στο λεξιλόγιο με κάρτες από το δικό σας υλικό μελέτης. Χρησιμοποιήστε AI για να μετατρέψετε σημειώσεις και φωτογραφίες σε ερωτήσεις και απαντήσεις ή γράψτε τις δικές σας κάρτες.
+Φτιάξτε flashcards από σημειώσεις ή φωτογραφίες, οργανώστε τις κάρτες σας σε συλλογές και κάντε επανάληψη σε διαστήματα με το Nibomo.
 
-Εξασκήστε την ενεργή ανάκληση: προσπαθήστε να απαντήσετε πριν αποκαλύψετε την πίσω όψη κάθε κάρτας. Το Nibomo χρησιμοποιεί επανάληψη σε διαστήματα για να προγραμματίζει τις επαναλήψεις ανάλογα με το πόσο καλά θυμάστε.
+Δημιουργία καρτών μελέτης
+Επικολλήστε τις σημειώσεις ενός μαθήματος, προσθέστε μια φωτογραφία από το τετράδιο ή περιγράψτε τι θέλετε να μάθετε. Ζητήστε από την τεχνητή νοημοσύνη να εστιάσει σε ορισμούς, παραδείγματα ή βασικές ιδέες. Επεξεργαστείτε τις προτεινόμενες ερωτήσεις και απαντήσεις ή γράψτε τις κάρτες μία προς μία.
 
-- Ζητήστε από το AI να εξηγήσει απαντήσεις, να προσθέσει παραδείγματα και να βελτιώσει τις κάρτες.
-- Επαναλάβετε τις κάρτες σας εκτός σύνδεσης.
-- Οργανώστε τα μαθήματα με συλλογές και ετικέτες και βρείτε κάρτες με αναζήτηση και φίλτρα.
-- Συνδεθείτε με email για να συγχρονίσετε το υλικό μελέτης μεταξύ συσκευών όταν είστε συνδεδεμένοι στο διαδίκτυο.
+Επανάληψη σε διαστήματα
+Διαβάστε την ερώτηση και προσπαθήστε να απαντήσετε από μνήμης. Γυρίστε την κάρτα και δηλώστε πόσο εύκολα θυμηθήκατε την απάντηση. Το Nibomo προγραμματίζει την επόμενη επανάληψη βάσει της αξιολόγησής σας, ώστε οι δύσκολες κάρτες να εμφανίζονται νωρίτερα.
 
-Οι λειτουργίες AI απαιτούν διαδίκτυο και έχουν όρια χρήσης. Το Premium προσφέρει υψηλότερα όρια.
+Κάρτες για αγγλικό και ισπανικό λεξιλόγιο
+Κρατήστε σε κάρτες τις νέες λέξεις που συναντάτε στο διάβασμα ή σε μια συζήτηση. Προσθέστε ένα παράδειγμα χρήσης ή ξεκινήστε με μια έτοιμη συλλογή από τον κατάλογο του Nibomo, όπως φραστικά ρήματα στα αγγλικά ή ισπανικό λεξιλόγιο για αρχάριους.
+
+Μελέτη εκτός σύνδεσης
+Κάντε επανάληψη με τις αποθηκευμένες κάρτες στη διαδρομή ή ανάμεσα στα μαθήματα. Όταν βρεθείτε ξανά στο διαδίκτυο, συνδεθείτε στον ίδιο λογαριασμό για να συγχρονίσετε την πρόοδό σας και να συνεχίσετε από άλλη συσκευή.
+
+Οι λειτουργίες AI απαιτούν σύνδεση στο διαδίκτυο.
 
 ### Release notes
 
@@ -556,24 +640,26 @@ Nibomo: Κάρτες με AI
 
 ### App Name
 
-Nibomo: AI õpikaardid
+Nibomo: Flashcards
 
 ### Short Description
 
-Tee märkmetest ja fotodest AI abil õpikaardid eksamiteks ja sõnavara õppimiseks
+Tee märkmetest ja fotodest õpikaardid. Korda ka internetita.
 
 ### Full Description
 
-Valmistu eksamiteks ja harjuta sõnavara oma õppematerjalidest tehtud õpikaartidega. Muuda märkmed ja fotod AI abil küsimusteks ja vastusteks või kirjuta oma kaardid ise.
+Loo märkmetest ja fotodest õpikaardid (flashcards). Vahedega kordamine aitab õpitut meeles hoida ja sõnakaardid sobivad uue sõnavara harjutamiseks.
 
-Harjuta aktiivset meenutamist: proovi vastata enne kaardi tagakülje avamist. Nibomo kasutab hajutatud kordamist ja ajastab kordamised selle järgi, kui hästi õpitut mäletad.
+Tee õpikaardid enda materjalist
+Kleebi märkmed rakendusse, lisa foto vihikulehest või kirjelda teemat. Tehisintellekt pakub küsimusi ja vastuseid, mida saad enne õppimist muuta. Võid ka ise kaardid algusest peale valmis kirjutada.
 
-- Palu AI-l vastuseid selgitada, näiteid lisada ja kaarte täiendada.
-- Korda kaarte võrguühenduseta.
-- Korrasta teemasid kaardipakkide ja siltidega ning leia kaarte otsingu ja filtrite abil.
-- Logi sisse e-postiga, et sünkroonida õppematerjale seadmete vahel, kui oled võrgus.
+Korda sobivate vahedega
+Proovi vastus enne kaardi ümberpööramist meelde tuletada. Seejärel hinda, kui hästi vastust mäletasid. Nibomo toob keerulisemad kaardid kordamiseks tagasi varem ja tuttavamad hiljem.
 
-AI-funktsioonid vajavad internetti ja nende kasutamisel on piirangud. Premium pakub suuremaid kasutuslimiite.
+Harjuta sõnavara
+Tee sõnakaardid tunnis, raamatus või vestluses kohatud sõnadest. Lisa näitelause, mis aitab sõna kasutust meelde jätta. Nibomo kataloogist leiad ka valmis kaardipakke, näiteks hispaania keele algtaseme sõnavara harjutamiseks.
+
+Salvestatud õpikaarte saad korrata võrguühenduseta. Õppimise edenemine sünkroonitakse, kui oled uuesti võrgus. Tehisintellekti funktsioonid vajavad internetiühendust.
 
 ### Release notes
 
@@ -585,24 +671,29 @@ AI-funktsioonid vajavad internetti ja nende kasutamisel on piirangud. Premium pa
 
 ### App Name
 
-Nibomo: فلش‌کارت هوشمند
+Nibomo: ساخت فلش کارت
 
 ### Short Description
 
-با هوش مصنوعی از یادداشت و عکس فلش‌کارت بسازید؛ برای امتحان و یادگیری واژه‌ها
+با هوش مصنوعی از جزوه و عکس فلش کارت بسازید و آفلاین مرور کنید.
 
 ### Full Description
 
-با فلش‌کارت‌هایی از مطالب درسی خودتان برای امتحان آماده شوید و واژه‌ها را تمرین کنید. با هوش مصنوعی یادداشت‌ها و عکس‌ها را به پرسش و پاسخ تبدیل کنید یا کارت‌هایتان را خودتان بنویسید.
+با Nibomo از مطالب درسی‌تان فلش کارت بسازید و با تکرار فاصله‌دار مرورشان کنید. کارت‌هایی را که ذخیره کرده‌اید می‌توانید بدون اینترنت هم مرور کنید.
 
-یادآوری فعال را تمرین کنید: پیش از نمایش پشت هر کارت، سعی کنید پاسخ دهید. Nibomo با استفاده از تکرار فاصله‌دار، زمان مرورها را بر اساس میزان یادآوری شما تنظیم می‌کند.
+ساخت فلش کارت از جزوه و عکس
+متن جزوه را وارد کنید، عکسی از صفحهٔ دفترتان بفرستید یا موضوعی را که می‌خواهید یاد بگیرید بنویسید. از هوش مصنوعی بخواهید برای تعریف‌ها، مثال‌ها یا نکات کلیدی پرسش و پاسخ پیشنهاد کند. قبل از مطالعه آن‌ها را ویرایش کنید یا کارت‌هایتان را خودتان یکی‌یکی بسازید.
 
-- از هوش مصنوعی بخواهید پاسخ‌ها را توضیح دهد، مثال اضافه کند و کارت‌ها را بهتر کند.
-- کارت‌هایتان را بدون اینترنت مرور کنید.
-- مطالب را با دسته‌ها و برچسب‌ها مرتب کنید و با جست‌وجو و فیلتر کارت‌ها را پیدا کنید.
-- با ایمیل وارد شوید تا هنگام اتصال به اینترنت، مطالب درسی‌تان بین دستگاه‌ها همگام شود.
+مرور در زمان مناسب
+پرسش را بخوانید و قبل از برگرداندن کارت، پاسخ را به یاد بیاورید. بعد مشخص کنید چقدر خوب آن را به یاد داشتید. زمان مرور بعدی بر اساس ارزیابی شما تعیین می‌شود و کارت‌های سخت زودتر برمی‌گردند.
 
-ویژگی‌های هوش مصنوعی به اینترنت نیاز دارند و محدودیت استفاده دارند. Premium سقف استفادهٔ بالاتری ارائه می‌دهد.
+تمرین لغات انگلیسی و اسپانیایی
+برای واژه‌هایی که در کلاس، کتاب یا گفت‌وگو می‌بینید فلش کارت بسازید. یک جملهٔ نمونه هم اضافه کنید تا کاربرد واژه را در متن به خاطر بسپارید. در فهرست Nibomo می‌توانید با دسته‌ای آماده، مثل افعال عبارتی انگلیسی یا واژگان اسپانیایی مقدماتی، شروع کنید.
+
+مرور آفلاین
+کارت‌های ذخیره‌شده را در مسیر یا بین کلاس‌ها مرور کنید. بعد از اتصال دوباره، با همان حساب وارد شوید تا پیشرفتتان همگام شود و بتوانید در دستگاه دیگری ادامه دهید.
+
+امکانات هوش مصنوعی به اتصال اینترنت نیاز دارند.
 
 ### Release notes
 
@@ -618,20 +709,22 @@ Nibomo: AI-muistikortit
 
 ### Short Description
 
-AI-muistikortit muistiinpanoista ja kuvista kokeisiin ja sanaston opiskeluun
+Tee muistikortit muistiinpanoista ja kuvista. Kertaa myös ilman nettiä.
 
 ### Full Description
 
-Valmistaudu kokeisiin ja harjoittele sanastoa omasta opiskelumateriaalistasi tehdyillä muistikorteilla. Muuta muistiinpanot ja kuvat tekoälyllä kysymyksiksi ja vastauksiksi tai kirjoita kortit itse.
+Tee omat muistikortit muistiinpanoista ja kuvista. Nibomo auttaa opiskelussa ja sanaston harjoittelussa aikavälikertauksen (spaced repetition) avulla. Voit kerrata tallennettuja kortteja myös offline-tilassa.
 
-Harjoittele aktiivista mieleen palauttamista: yritä vastata ennen kortin kääntöpuolen näyttämistä. Nibomo käyttää aikavälikertausta ja ajoittaa kertaukset sen mukaan, kuinka hyvin muistat.
+Tee omat muistikorttisi
+Liitä luentomuistiinpanot tai kuva vihkon sivusta. Voit myös kertoa, mitä aihetta haluat harjoitella. Tekoäly ehdottaa kysymyksiä ja vastauksia, joita voit muokata. Halutessasi voit kirjoittaa kortit itse.
 
-- Pyydä tekoälyä selittämään vastauksia, lisäämään esimerkkejä ja parantamaan kortteja.
-- Kertaa kortteja offline-tilassa.
-- Järjestä aiheet pakkoihin ja tunnisteilla ja löydä kortit haun ja suodattimien avulla.
-- Kirjaudu sähköpostilla ja synkronoi opiskelumateriaalisi laitteiden välillä, kun olet verkossa.
+Kertaa sopivin välein
+Yritä palauttaa vastaus mieleen, käännä sitten kortti ja arvioi, kuinka hyvin muistit. Nibomon jaksotettu kertaus tuo vaikeat kortit takaisin nopeammin ja antaa tutuille korteille pidemmän kertausvälin.
 
-Tekoälytoiminnot vaativat internetyhteyden, ja niillä on käyttörajat. Premium tarjoaa korkeammat käyttörajat.
+Harjoittele sanastoa
+Tee sanastokortteja vastaan tulevista sanoista ja lisää omia esimerkkilauseita. Nibomon luettelosta voit valita valmiin pakan, esimerkiksi englannin fraasiverbejä tai espanjan alkeissanastoa.
+
+Voit kerrata tallennettuja kortteja ilman verkkoyhteyttä. Edistymisesi synkronoituu, kun olet taas verkossa. Tekoälytoiminnot vaativat internetyhteyden.
 
 ### Release notes
 
@@ -647,20 +740,25 @@ Nibomo: AI ફ્લેશકાર્ડ્સ
 
 ### Short Description
 
-નોટ્સ અને ફોટામાંથી AI કાર્ડ બનાવો, પરીક્ષાની તૈયારી કરો અને શબ્દો શીખો
+નોટ્સ અને ફોટામાંથી ફ્લેશકાર્ડ બનાવો. સાચવેલા કાર્ડનો ઑફલાઇન અભ્યાસ કરો.
 
 ### Full Description
 
-તમારી પોતાની અભ્યાસ સામગ્રીમાંથી બનાવેલા ફ્લેશકાર્ડ સાથે પરીક્ષાની તૈયારી કરો અને શબ્દોનો અભ્યાસ કરો. AI વડે નોટ્સ અને ફોટામાંથી પ્રશ્નો અને જવાબો બનાવો, અથવા તમારા કાર્ડ જાતે લખો.
+નોટ્સ અને નોટબુકના ફોટામાંથી Nibomoમાં ફ્લેશકાર્ડ (flashcards) બનાવો. તમારા કાર્ડનો ડેક તૈયાર કરો, સમયાંતરે તેનો અભ્યાસ કરો અને સાચવેલા કાર્ડ ઇન્ટરનેટ વિના પણ ખોલો.
 
-સક્રિય રીતે યાદ કરવાનો અભ્યાસ કરો: દરેક કાર્ડની પાછળની બાજુ જોતા પહેલાં જવાબ આપવાનો પ્રયત્ન કરો. Nibomo અંતરાલ સાથે પુનરાવર્તનની પદ્ધતિ વાપરે છે અને તમને કેટલું યાદ છે તેના આધારે ફરી અભ્યાસ કરવાનો સમય નક્કી કરે છે.
+અભ્યાસની સામગ્રીમાંથી ફ્લેશકાર્ડ બનાવો
+વર્ગની નોટ્સ પેસ્ટ કરો, ફોટો ઉમેરો અથવા જે વિષય શીખવો છે તે લખો. કઈ વ્યાખ્યા, ઉદાહરણ કે માહિતી યાદ રાખવી છે તે AIને જણાવો. તૈયાર થયેલા પ્રશ્નો અને જવાબો સુધારો અથવા કાર્ડ જાતે લખો.
 
-- AIને જવાબો સમજાવવા, ઉદાહરણો ઉમેરવા અને કાર્ડ સુધારવા કહો.
-- તમારા કાર્ડનો ઑફલાઇન અભ્યાસ કરો.
-- ડેક અને ટૅગથી વિષયો ગોઠવો, પછી શોધ અને ફિલ્ટરથી કાર્ડ શોધો.
-- ઇમેઇલથી સાઇન ઇન કરો અને ઇન્ટરનેટ સાથે જોડાયેલા હો ત્યારે અલગ-અલગ ડિવાઇસ પર અભ્યાસની સામગ્રી સિંક કરો.
+અંતર રાખીને ફરી અભ્યાસ કરો
+પહેલાં પ્રશ્ન વાંચો અને જવાબ યાદ કરવાનો પ્રયત્ન કરો. પછી કાર્ડ પલટાવો અને તમને કેટલું યાદ આવ્યું તે જણાવો. સ્પેસ્ડ રિપીટિશન એટલે સમયાંતરે પુનરાવર્તન. જે કાર્ડ અઘરા લાગે તે વહેલા ફરી દેખાય છે.
 
-AI સુવિધાઓ માટે ઇન્ટરનેટ જરૂરી છે અને વપરાશની મર્યાદા છે. Premiumમાં વપરાશની મર્યાદા વધારે છે.
+અંગ્રેજી શબ્દભંડોળ વધારો
+વાંચવામાં કે વાતચીતમાં મળેલા અંગ્રેજી શબ્દો માટે પોતાના ફ્લેશકાર્ડ બનાવો. વાક્યમાં શબ્દ કેવી રીતે વપરાય છે તે યાદ રાખવા તમારું ઉદાહરણ ઉમેરો. Nibomoના કૅટલૉગમાં અંગ્રેજી ફ્રેઝલ વર્બ્સ અને શરૂઆતના સ્તરના સ્પેનિશ શબ્દોના તૈયાર ડેક પણ છે.
+
+સાચવેલા કાર્ડનો ઑફલાઇન અભ્યાસ કરો
+મુસાફરીમાં કે વર્ગો વચ્ચે સમય મળે ત્યારે સાચવેલા કાર્ડ ફરી જુઓ. ઇન્ટરનેટ પાછું મળે ત્યારે પ્રગતિ સિંક થાય છે. પછી એ જ એકાઉન્ટથી બીજા ડિવાઇસ પર અભ્યાસ ચાલુ રાખી શકો છો.
+
+AI સુવિધાઓ માટે ઇન્ટરનેટ જરૂરી છે.
 
 ### Release notes
 
@@ -672,24 +770,29 @@ AI સુવિધાઓ માટે ઇન્ટરનેટ જરૂરી �
 
 ### App Name
 
-Nibomo: כרטיסיות עם AI
+Nibomo: כרטיסיות לימוד עם AI
 
 ### Short Description
 
-הופכים סיכומים ותמונות לכרטיסיות עם AI, להכנה למבחנים וללימוד אוצר מילים
+הפכו סיכומים ותמונות לכרטיסיות. חזרו עליהן במרווחים, גם ללא אינטרנט.
 
 ### Full Description
 
-התכוננו למבחנים ותרגלו אוצר מילים עם כרטיסיות מחומר הלימוד שלכם. השתמשו ב-AI כדי להפוך סיכומים ותמונות לשאלות ותשובות, או כתבו את הכרטיסיות בעצמכם.
+צרו כרטיסיות לימוד מהחומר שלכם, תרגלו אוצר מילים והשתמשו בחזרה מרווחת כדי לזכור את מה שלמדתם לאורך זמן.
 
-תרגלו שליפה פעילה מהזיכרון: נסו לענות לפני שתציגו את הצד האחורי של כל כרטיסייה. Nibomo משתמש בחזרה מרווחת כדי לתזמן חזרות לפי מידת הזיכרון שלכם.
+יצירת כרטיסיות מסיכומים ומתמונות
+הדביקו סיכום משיעור, צרפו תמונה מהמחברת או כתבו איזה נושא תרצו ללמוד. בקשו מהבינה המלאכותית להתמקד בהגדרות, בדוגמאות או בנקודות החשובות. תוכלו לערוך את השאלות והתשובות שהיא מציעה או להכין את הכרטיסיות בעצמכם.
 
-- בקשו מה-AI להסביר תשובות, להוסיף דוגמאות ולשפר את הכרטיסיות.
-- חזרו על הכרטיסיות גם ללא חיבור לאינטרנט.
-- ארגנו נושאים בחפיסות ובעזרת תגיות ומצאו כרטיסיות באמצעות חיפוש וסינון.
-- התחברו עם כתובת אימייל כדי לסנכרן את חומר הלימוד בין מכשירים כשיש חיבור לאינטרנט.
+חזרה מרווחת לפי קצב הלימוד שלכם
+קראו את השאלה ונסו לשלוף את התשובה מהזיכרון. הפכו את הכרטיסייה וסמנו עד כמה זכרתם. לפי הדירוג שלכם, Nibomo יחזיר כרטיסיות קשות מוקדם יותר וירווח את החזרות על מה שכבר מוכר לכם.
 
-תכונות ה-AI דורשות חיבור לאינטרנט וכפופות למגבלות שימוש. Premium מציע מגבלות שימוש גבוהות יותר.
+תרגול אוצר מילים באנגלית ובספרדית
+אספו מילים שנתקלתם בהן בקריאה או בשיחה והוסיפו לכל כרטיסייה משפט לדוגמה. אפשר גם להתחיל מחפיסה מוכנה מהקטלוג של Nibomo, כמו פעלים צירופיים באנגלית או אוצר מילים בספרדית למתחילים.
+
+חזרה ללא אינטרנט
+חזרו על הכרטיסיות השמורות בדרך או בין שיעורים. כשתחזרו לאינטרנט, היכנסו לאותו חשבון כדי לסנכרן את ההתקדמות ולהמשיך ממכשיר אחר.
+
+תכונות הבינה המלאכותית דורשות חיבור לאינטרנט.
 
 ### Release notes
 
@@ -701,24 +804,29 @@ Nibomo: כרטיסיות עם AI
 
 ### App Name
 
-Nibomo: Kartice uz AI
+Nibomo: Kartice za učenje
 
 ### Short Description
 
-Pretvori bilješke i fotografije u AI kartice za ispite i učenje novih riječi
+Izradi kartice iz bilješki i fotografija. Ponavljaj ih u razmacima i offline.
 
 ### Full Description
 
-Pripremi se za ispite i vježbaj nove riječi uz kartice izrađene od vlastitog gradiva. Uz AI pretvori bilješke i fotografije u pitanja i odgovore ili samostalno napiši kartice.
+Izradi kartice za učenje iz vlastitog gradiva u Nibomu. Pretvori bilješke, fotografiju stranice ili zadanu temu u kartice s pitanjima i odgovorima pa ih ponavljaj u razmacima.
 
-Vježbaj aktivno prisjećanje: pokušaj odgovoriti prije nego što otkriješ poleđinu svake kartice. Nibomo koristi ponavljanje s razmacima i planira ponavljanja prema tome koliko dobro pamtiš gradivo.
+Pretvori bilješke u kartice
+Zalijepi bilješke s predavanja ili dodaj fotografiju iz bilježnice. AI može predložiti pitanja o pojmovima, primjerima i činjenicama koje želiš zapamtiti. Uredi prijedloge prema svojim potrebama ili od početka napiši vlastite kartice i složi ih u špilove.
 
-- Zamoli AI da pojasni odgovore, doda primjere i poboljša kartice.
-- Ponavljaj kartice izvan mreže.
-- Organiziraj gradivo u špilove i pomoću oznaka, a kartice pronađi pretraživanjem i filtrima.
-- Prijavi se e-poštom kako bi se materijali za učenje sinkronizirali između uređaja dok si na internetu.
+Ponavljaj u pravom trenutku
+Prvo pokušaj odgovoriti, a zatim okreni karticu i ocijeni koliko se dobro sjećaš odgovora. Ponavljanje s razmacima, poznato i kao spaced repetition, vraća teže kartice ranije, a one koje dobro znaš kasnije.
 
-Značajke AI-ja zahtijevaju internet i imaju ograničenja upotrebe. Premium nudi veća ograničenja.
+Vježbaj nove riječi
+Izradi kartice za učenje vokabulara od riječi koje čuješ na nastavi ili pronađeš u knjizi. Dodaj vlastite primjere ili počni s gotovim špilom iz kataloga Nibomo, kao što su engleski frazni glagoli ili španjolske riječi za početnike.
+
+Ponavljaj spremljene kartice bez interneta
+Otvori ih kad uhvatiš nekoliko slobodnih minuta. Kad se ponovno povežeš, napredak se sinkronizira između uređaja.
+
+Za značajke koje koriste AI potrebna je internetska veza.
 
 ### Release notes
 
@@ -730,24 +838,29 @@ Značajke AI-ja zahtijevaju internet i imaju ograničenja upotrebe. Premium nudi
 
 ### App Name
 
-Nibomo: AI-tanulókártyák
+Nibomo: Tanulókártya-készítő
 
 ### Short Description
 
-AI-tanulókártyák jegyzetekből és fotókból vizsgákhoz és szótanuláshoz
+Készíts tanulókártyákat jegyzetből és fotóból, és ismételj offline is.
 
 ### Full Description
 
-Készülj vizsgákra és gyakorold a szókincset a saját tananyagaidból készített tanulókártyákkal. Alakíts jegyzeteket és fotókat kérdésekké és válaszokká AI-val, vagy írd meg a kártyákat magad.
+Készíts tanulókártyákat a saját tananyagodhoz a Nibomo segítségével. Állíts össze paklikat jegyzetekből vagy fotókból, majd az időközönkénti ismétléssel gyakorold, amit szeretnél megjegyezni.
 
-Gyakorold az aktív felidézést: próbálj válaszolni, mielőtt megmutatnád a kártya hátoldalát. A Nibomo időközönkénti ismétlést használ, és aszerint ütemezi az ismétléseket, hogy mennyire emlékszel a tanultakra.
+Tanulókártyák jegyzetből és fotóból
+Másold be az órai jegyzetedet, csatolj egy fotót a füzetedről, vagy írd le, mit szeretnél megtanulni. Kérhetsz az AI-tól kérdés-válasz párokat a fontos fogalmakhoz vagy példákhoz. A javaslatokat átírhatod, és saját kártyákat is készíthetsz egyenként.
 
-- Kérd meg az AI-t, hogy magyarázza el a válaszokat, adjon példákat és javítsa a kártyákat.
-- Ismételd át a kártyákat offline is.
-- Rendezd a témákat paklikba és címkékkel, majd kereséssel és szűrőkkel találd meg a kártyákat.
-- Jelentkezz be e-maillel, hogy internetkapcsolat mellett szinkronizáld a tananyagot az eszközeid között.
+Időközönkénti ismétlés a saját tempódban
+Olvasd el a kérdést, és próbálj emlékezetből válaszolni. Fordítsd meg a kártyát, majd jelöld, mennyire ment könnyen. A Nibomo ehhez igazítja a következő ismétlést. A nehéz kártyák hamarabb kerülnek újra elő, a jól ismert kártyák ritkábban.
 
-Az AI-funkciókhoz internet szükséges, és használati korlátok vonatkoznak rájuk. A Premium magasabb kereteket kínál.
+Angol szókártyák és spanyol szókincs
+Készíts kártyákat azokhoz a szavakhoz, amelyekkel olvasás vagy beszélgetés közben találkozol. Példamondatot is adhatsz hozzá, hogy a szó használatát is megjegyezd. Választhatsz kész paklit is a Nibomo katalógusából, például angol igekötős igékhez vagy kezdő spanyol szavakhoz.
+
+Ismétlés offline
+A mentett kártyákat útközben és órák között is átismételheted. Ha újra van interneted, jelentkezz be ugyanazzal a fiókkal a haladásod szinkronizálásához, és folytasd akár egy másik eszközön.
+
+Az AI-funkciókhoz internetkapcsolat szükséges.
 
 ### Release notes
 
@@ -759,24 +872,29 @@ Az AI-funkciókhoz internet szükséges, és használati korlátok vonatkoznak r
 
 ### App Name
 
-Nibomo: Flashcard AI
+Nibomo: Pembuat Flashcard AI
 
 ### Short Description
 
-Ubah catatan dan foto jadi flashcard dengan AI untuk ujian dan kosakata
+Buat flashcard dari catatan dan foto. Ulangi kartu tersimpan secara offline.
 
 ### Full Description
 
-Siapkan diri untuk ujian dan latih kosakata dengan flashcard dari materi belajarmu sendiri. Gunakan AI untuk mengubah catatan dan foto menjadi pertanyaan dan jawaban, atau tulis kartumu sendiri.
+Buat flashcard dari catatan, foto, atau topik yang sedang kamu pelajari. Dengan Nibomo, kamu bisa membuat dek sendiri, mengulang materi dengan pengulangan berjarak, dan melanjutkan belajar secara offline setelah kartumu tersimpan.
 
-Latih ingatan aktif: coba jawab sebelum membuka sisi belakang setiap kartu. Nibomo menggunakan pengulangan berjarak untuk menjadwalkan ulasan berdasarkan seberapa baik kamu mengingat materi.
+Dari catatan atau foto menjadi flashcard
+Tempel catatan kuliah, lampirkan foto halaman buku, atau jelaskan topik yang ingin kamu pelajari. Minta AI menyusun pertanyaan dan jawaban dari definisi, contoh, atau fakta penting. Edit hasilnya sebelum belajar atau buat kartu sendiri satu per satu.
 
-- Minta AI menjelaskan jawaban, menambahkan contoh, dan memperbaiki kartu.
-- Ulangi kartu secara offline.
-- Atur materi dengan dek dan tag, lalu temukan kartu lewat pencarian dan filter.
-- Masuk dengan email untuk menyinkronkan materi belajar antarperangkat saat terhubung ke internet.
+Ingat materi lebih lama
+Baca pertanyaan dan coba jawab dari ingatan. Balik kartu, lalu beri nilai sesuai seberapa baik kamu mengingat jawabannya. Nibomo menggunakan pengulangan berjarak untuk menentukan jadwal berikutnya. Kartu yang sulit muncul lebih cepat, sementara kartu yang sudah kamu kuasai mendapat jeda lebih panjang.
 
-Fitur AI memerlukan internet dan memiliki batas penggunaan. Premium menawarkan batas yang lebih tinggi.
+Latih kosakata dengan flashcard
+Buat kartu untuk kata yang kamu temui di kelas, di buku, atau saat mengobrol. Tambahkan contoh kalimat untuk mengingat cara memakai setiap kata. Kamu juga bisa memakai dek siap pakai dari katalog Nibomo, seperti phrasal verbs bahasa Inggris atau kosakata bahasa Spanyol untuk pemula.
+
+Ulangi kartu secara offline
+Buka kartu yang sudah tersimpan saat menunggu atau dalam perjalanan tanpa internet. Masuk dengan akunmu untuk menyinkronkan progres belajar antarperangkat saat kembali online.
+
+Fitur AI memerlukan koneksi internet.
 
 ### Release notes
 
@@ -788,24 +906,26 @@ Fitur AI memerlukan internet dan memiliki batas penggunaan. Premium menawarkan b
 
 ### App Name
 
-Nibomo: Námskort með AI
+Nibomo: Flashcards
 
 ### Short Description
 
-Búðu til námskort úr glósum og myndum með gervigreind fyrir próf og orðaforða
+Búðu til minnisspjöld úr glósum og myndum. Rifjaðu upp án nets.
 
 ### Full Description
 
-Undirbúðu þig fyrir próf og æfðu orðaforða með námskortum úr þínu eigin námsefni. Notaðu gervigreind til að breyta glósum og myndum í spurningar og svör eða skrifaðu þín eigin kort.
+Búðu til minnisspjöld (flashcards) úr eigin glósum og myndum. Rifjaðu námsefnið upp með reglulegu millibili og notaðu orðaspjöld til að auka orðaforðann.
 
-Æfðu virka upprifjun: reyndu að svara áður en þú sýnir bakhlið hvers korts. Nibomo notar endurtekningu með millibili til að skipuleggja upprifjun eftir því hversu vel þú manst efnið.
+Búðu til þín eigin minnisspjöld
+Límdu inn glósur, bættu við mynd af síðu eða lýstu viðfangsefni. Gervigreindin stingur upp á spurningum og svörum sem þú getur lagað að þínu námi. Þú getur líka skrifað spjöldin frá grunni.
 
-- Biddu gervigreindina um að útskýra svör, bæta við dæmum og lagfæra kortin.
-- Rifjaðu upp kortin án nettengingar.
-- Skipuleggðu námsefnið með kortastokkum og merkjum og finndu kort með leit og síum.
-- Skráðu þig inn með netfangi til að samstilla námsefnið milli tækja þegar þú ert nettengdur.
+Rifjaðu upp með millibili
+Reyndu að muna svarið áður en þú snýrð spjaldinu við. Gefðu svo til kynna hversu vel þú mundir svarið. Nibomo ákveður hvenær þú sérð spjaldið næst. Erfið spjöld birtast fyrr en þau sem þú kannt vel.
 
-Gervigreindareiginleikar krefjast nettengingar og hafa notkunarmörk. Premium býður upp á hærri mörk.
+Æfðu orðaforðann
+Settu orð úr kennslustund, bók eða samtali á spjöld og bættu við dæmasetningum. Í safni Nibomo eru líka tilbúnir spjaldapakkar, til dæmis algeng spænsk orð og orðasambönd fyrir byrjendur.
+
+Opnaðu vistuð spjöld án nettengingar. Framvindan samstillist þegar þú tengist netinu aftur. Gervigreindin þarf nettengingu.
 
 ### Release notes
 
@@ -821,20 +941,25 @@ Nibomo: Flashcard con IA
 
 ### Short Description
 
-Trasforma appunti e foto in flashcard con IA per esami e vocabolario
+Crea flashcard da appunti e foto. Ripassa offline con ripetizione spaziata.
 
 ### Full Description
 
-Preparati agli esami e fai pratica con il vocabolario usando flashcard create dal tuo materiale di studio. Usa l’IA per trasformare appunti e foto in domande e risposte oppure scrivi le tue carte.
+Trasforma gli appunti di lezione e le foto del quaderno in flashcard. Con il generatore di flashcard di Nibomo puoi preparare un mazzo per ripassare gli argomenti che ti interessano.
 
-Pratica il richiamo attivo: prova a rispondere prima di scoprire il retro di ogni carta. Nibomo usa la ripetizione dilazionata per programmare i ripassi in base a quanto ricordi.
+Dagli appunti alle domande
+Incolla gli appunti, allega una foto o descrivi l’argomento che vuoi imparare. Chiedi all’IA di concentrarsi sulle definizioni, sugli esempi o sui concetti chiave. Controlla le domande e modifica le risposte prima di studiare. Puoi anche creare una scheda alla volta, a mano.
 
-- Chiedi all’IA di chiarire le risposte, aggiungere esempi e migliorare le carte.
-- Ripassa le tue carte offline.
-- Organizza le materie con mazzi e tag e ritrova le carte usando ricerca e filtri.
-- Accedi con la tua email per sincronizzare il materiale di studio tra dispositivi quando sei online.
+Ripassa con la ripetizione dilazionata
+Leggi la domanda e prova a rispondere senza guardare. Gira la flashcard e indica quanto bene ricordavi la risposta. Nibomo calcola il prossimo ripasso e fa tornare prima le schede più difficili.
 
-Le funzioni di IA richiedono internet e hanno limiti di utilizzo. Premium offre limiti più alti.
+Impara i vocaboli inglesi
+Crea flashcard con le parole che incontri a lezione, nei libri o in una conversazione. Aggiungi esempi per ricordare come si usano. Nel catalogo trovi anche mazzi pronti, per esempio sui verbi frasali inglesi e sul lessico spagnolo di base.
+
+Ripassa le flashcard offline
+Apri le schede già salvate anche senza connessione. Quando torni online, i ripassi si sincronizzano e puoi continuare su un altro dispositivo.
+
+Le funzioni di IA richiedono una connessione a Internet.
 
 ### Release notes
 
@@ -846,24 +971,29 @@ Le funzioni di IA richiedono internet e hanno limiti di utilizzo. Premium offre 
 
 ### App Name
 
-Nibomo: AI ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್
+Nibomo: Make AI Flashcards
 
 ### Short Description
 
-ನೋಟ್ಸ್ ಮತ್ತು ಫೋಟೋಗಳಿಂದ AI ಕಾರ್ಡ್‌ಗಳು: ಪರೀಕ್ಷಾ ತಯಾರಿ ಮತ್ತು ಪದ ಕಲಿಕೆ
+ಟಿಪ್ಪಣಿ ಮತ್ತು ಫೋಟೋಗಳಿಂದ AI ಬಳಸಿ ಕಾರ್ಡ್ ಮಾಡಿ. ಆಫ್‌ಲೈನ್‌ನಲ್ಲೂ ಓದಿ.
 
 ### Full Description
 
-ನಿಮ್ಮದೇ ಕಲಿಕಾ ಸಾಮಗ್ರಿಯಿಂದ ತಯಾರಿಸಿದ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳೊಂದಿಗೆ ಪರೀಕ್ಷೆಗೆ ತಯಾರಾಗಿ ಮತ್ತು ಹೊಸ ಪದಗಳನ್ನು ಅಭ್ಯಾಸ ಮಾಡಿ. AI ಬಳಸಿ ನೋಟ್ಸ್ ಮತ್ತು ಫೋಟೋಗಳನ್ನು ಪ್ರಶ್ನೆ ಮತ್ತು ಉತ್ತರಗಳಾಗಿ ಪರಿವರ್ತಿಸಿ, ಅಥವಾ ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ನೀವೇ ಬರೆಯಿರಿ.
+ತರಗತಿಯ ಟಿಪ್ಪಣಿಗಳು, ನೋಟ್‌ಬುಕ್ ಪುಟದ ಫೋಟೋ ಅಥವಾ ಓದಲು ಬಯಸುವ ವಿಷಯದಿಂದ Nibomoದಲ್ಲಿ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ. ಅಂತರವಿಟ್ಟು ಮರುಅಭ್ಯಾಸ ಮಾಡಿ. ಕಾರ್ಡ್‌ಗಳನ್ನು ಉಳಿಸಿಕೊಂಡಿದ್ದರೆ ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದಾಗಲೂ ಓದಬಹುದು.
 
-ಸಕ್ರಿಯವಾಗಿ ನೆನಪಿಸಿಕೊಳ್ಳುವುದನ್ನು ಅಭ್ಯಾಸ ಮಾಡಿ: ಪ್ರತಿ ಕಾರ್ಡ್‌ನ ಹಿಂಭಾಗವನ್ನು ನೋಡುವ ಮೊದಲು ಉತ್ತರಿಸಲು ಪ್ರಯತ್ನಿಸಿ. Nibomo ಅಂತರಗಳೊಂದಿಗೆ ಪುನರಾವರ್ತಿಸುವ ವಿಧಾನವನ್ನು ಬಳಸಿ, ನಿಮಗೆ ಎಷ್ಟು ನೆನಪಿದೆ ಎಂಬುದರ ಆಧಾರದ ಮೇಲೆ ಮರುಅಭ್ಯಾಸದ ಸಮಯ ನಿಗದಿಪಡಿಸುತ್ತದೆ.
+ಟಿಪ್ಪಣಿಗಳಿಂದ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು
+ನೆನಪಿಟ್ಟುಕೊಳ್ಳಬೇಕಾದ ವ್ಯಾಖ್ಯಾನಗಳು, ಉದಾಹರಣೆಗಳು ಅಥವಾ ಮುಖ್ಯ ಅಂಶಗಳ ಮೇಲೆ ಗಮನ ಕೊಡಲು AIಗೆ ಕೇಳಿ. ಅದು ಸಿದ್ಧಪಡಿಸಿದ ಪ್ರಶ್ನೆ ಮತ್ತು ಉತ್ತರಗಳನ್ನು ನಿಮಗೆ ಸರಿಹೊಂದುವಂತೆ ತಿದ್ದಿಕೊಳ್ಳಿ. ಬಯಸಿದರೆ ನಿಮ್ಮದೇ ಕಾರ್ಡ್‌ಗಳನ್ನು ಒಂದೊಂದಾಗಿ ಬರೆಯಿರಿ.
 
-- ಉತ್ತರಗಳನ್ನು ವಿವರಿಸಲು, ಉದಾಹರಣೆಗಳನ್ನು ಸೇರಿಸಲು ಮತ್ತು ಕಾರ್ಡ್‌ಗಳನ್ನು ಸುಧಾರಿಸಲು AIಗೆ ಕೇಳಿ.
-- ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಮರುಅಭ್ಯಾಸ ಮಾಡಿ.
-- ಡೆಕ್ ಮತ್ತು ಟ್ಯಾಗ್‌ಗಳ ಮೂಲಕ ವಿಷಯಗಳನ್ನು ಜೋಡಿಸಿ, ಹುಡುಕಾಟ ಮತ್ತು ಫಿಲ್ಟರ್‌ಗಳಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಹುಡುಕಿ.
-- ಇಮೇಲ್ ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ ಮತ್ತು ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವಿದ್ದಾಗ ಸಾಧನಗಳ ನಡುವೆ ಕಲಿಕಾ ಸಾಮಗ್ರಿಯನ್ನು ಸಿಂಕ್ ಮಾಡಿ.
+ಅಂತರವಿಟ್ಟು ಪುನರಾವರ್ತನೆ (spaced repetition)
+ಪ್ರಶ್ನೆ ಓದಿ ಉತ್ತರವನ್ನು ನೆನಪಿಸಿಕೊಳ್ಳಲು ಪ್ರಯತ್ನಿಸಿ. ಕಾರ್ಡ್ ತಿರುಗಿಸಿದ ಮೇಲೆ ನಿಮಗೆ ಉತ್ತರ ಎಷ್ಟು ಚೆನ್ನಾಗಿ ನೆನಪಿತ್ತು ಎಂದು ದಾಖಲಿಸಿ. Nibomo ಅದರ ಆಧಾರದ ಮೇಲೆ ಮುಂದಿನ ಮರುಅಭ್ಯಾಸವನ್ನು ನಿಗದಿಪಡಿಸುತ್ತದೆ. ಕಷ್ಟವಾದ ಕಾರ್ಡ್‌ಗಳು ಬೇಗ ಬರುತ್ತವೆ. ಚೆನ್ನಾಗಿ ನೆನಪಿರುವ ಕಾರ್ಡ್‌ಗಳು ಹೆಚ್ಚಿನ ಅಂತರದ ನಂತರ ಬರುತ್ತವೆ.
 
-AI ವೈಶಿಷ್ಟ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು ಮತ್ತು ಬಳಕೆಯ ಮಿತಿಗಳಿವೆ. Premiumನಲ್ಲಿ ಬಳಕೆಯ ಮಿತಿಗಳು ಹೆಚ್ಚಿರುತ್ತವೆ.
+ಇಂಗ್ಲಿಷ್ ಪದಗಳ ಅಭ್ಯಾಸ
+ತರಗತಿಯಲ್ಲಿ, ಪುಸ್ತಕದಲ್ಲಿ ಅಥವಾ ಮಾತುಕತೆಯಲ್ಲಿ ಸಿಕ್ಕ ಹೊಸ ಪದಗಳಿಗೆ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ಮಾಡಿ. ನಿಮ್ಮದೇ ಉದಾಹರಣೆ ವಾಕ್ಯಗಳನ್ನು ಸೇರಿಸಿ. Nibomo ಸಂಗ್ರಹದಲ್ಲಿ ಇಂಗ್ಲಿಷ್ ಫ್ರೇಸಲ್ ವರ್ಬ್‌ಗಳು ಮತ್ತು ಆರಂಭಿಕ ಸ್ಪ್ಯಾನಿಷ್ ಪದಗಳ ಸಿದ್ಧ ಕಾರ್ಡ್‌ಗಳೂ ಇವೆ.
+
+ಉಳಿಸಿದ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಓದಿ
+ಪ್ರಯಾಣದಲ್ಲೋ ತರಗತಿಗಳ ನಡುವೆಯೋ ಕೆಲವು ನಿಮಿಷ ಸಿಕ್ಕಾಗ ಕಾರ್ಡ್‌ಗಳನ್ನು ಮರುಅಭ್ಯಾಸ ಮಾಡಿ. ಇಂಟರ್ನೆಟ್‌ಗೆ ಮತ್ತೆ ಸಂಪರ್ಕಿಸಿದಾಗ ನಿಮ್ಮ ಪ್ರಗತಿ ಸಿಂಕ್ ಆಗುತ್ತದೆ.
+
+AI ವೈಶಿಷ್ಟ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕ ಬೇಕು.
 
 ### Release notes
 
@@ -875,24 +1005,29 @@ AI ವೈಶಿಷ್ಟ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಬೇ
 
 ### App Name
 
-Nibomo: AI 암기카드
+Nibomo: AI 암기카드 만들기
 
 ### Short Description
 
-노트와 사진을 AI 암기카드로 바꾸고, 기억하는 정도에 맞춰 시험 공부와 단어 학습을 이어가세요
+노트와 사진으로 암기카드를 만들고 간격 반복으로 복습하세요. 저장한 카드는 오프라인에서도 열 수 있어요.
 
 ### Full Description
 
-내 학습 자료로 만든 암기카드로 시험을 준비하고 단어를 연습하세요. AI로 노트와 사진을 질문과 답으로 바꾸거나 직접 카드를 작성할 수 있습니다.
+수업 노트와 사진을 암기카드로 바꿔 보세요. Nibomo로 내 카드 모음을 만들고, 간격 반복으로 복습하고, 저장한 카드는 인터넷 없이도 공부할 수 있어요.
 
-능동적 회상을 연습하세요. 카드 뒷면을 보기 전에 먼저 답을 떠올려 보세요. Nibomo는 간격 반복을 활용해 얼마나 잘 기억하는지에 따라 복습 일정을 정합니다.
+노트와 사진으로 플래시카드 만들기
+수업 노트를 붙여 넣거나 공책 사진을 첨부하세요. 공부하고 싶은 주제를 입력해도 돼요. 꼭 기억할 개념이나 예시를 알려 주면 AI가 질문과 답의 초안을 만들어 줘요. 원하는 대로 고치거나 한 장씩 직접 작성하세요.
 
-- AI에게 답을 설명하거나 예시를 추가해 카드를 개선해 달라고 요청하세요.
-- 오프라인에서도 카드를 복습하세요.
-- 덱과 태그로 과목을 정리하고 검색과 필터로 필요한 카드를 찾으세요.
-- 이메일로 로그인하면 인터넷에 연결되어 있을 때 여러 기기에서 학습 자료를 동기화할 수 있습니다.
+간격 반복으로 오래 기억하기
+앞면의 질문을 읽고 답을 먼저 떠올려 보세요. 카드를 뒤집어 답을 확인한 뒤 얼마나 잘 기억했는지 표시하세요. Nibomo는 그 결과에 따라 다음 복습을 정해요. 어려운 카드는 더 빨리, 익숙한 카드는 더 나중에 다시 나와요.
 
-AI 기능은 인터넷 연결이 필요하며 사용량 제한이 있습니다. Premium은 더 높은 사용 한도를 제공합니다.
+영단어와 스페인어 어휘 연습하기
+수업, 독서, 대화에서 만난 단어를 모아 나만의 단어장을 만들어 보세요. 직접 예문을 넣으면 단어가 문장에서 어떻게 쓰이는지도 함께 익힐 수 있어요. Nibomo 카탈로그에서 영어 구동사나 스페인어 입문 어휘 카드 모음을 골라 시작해도 좋아요.
+
+저장한 암기카드를 오프라인으로 복습하기
+이동 중이나 쉬는 시간에 저장한 카드를 몇 장씩 복습하세요. 다시 연결되면 복습 진도를 동기화해 다른 기기에서도 이어서 공부할 수 있어요.
+
+AI 기능은 인터넷 연결이 필요해요.
 
 ### Release notes
 
@@ -904,24 +1039,26 @@ AI 기능은 인터넷 연결이 필요하며 사용량 제한이 있습니다. 
 
 ### App Name
 
-Nibomo: Kortelės su DI
+Nibomo: Flashcards
 
 ### Short Description
 
-DI kortelės iš užrašų ir nuotraukų egzaminams ir naujiems žodžiams mokytis
+Kurkite mokymosi korteles iš užrašų ir nuotraukų. Kartokite be interneto.
 
 ### Full Description
 
-Ruoškitės egzaminams ir mokykitės žodžių su kortelėmis, sukurtomis iš jūsų pačių mokymosi medžiagos. Pasitelkite DI, kad užrašus ir nuotraukas paverstumėte klausimais ir atsakymais, arba rašykite korteles patys.
+Kurkite mokymosi korteles (flashcards) iš savo užrašų ir nuotraukų. Intervalinis kartojimas padeda išlaikyti atmintyje tai, ką išmokote, ir įsiminti naujus žodžius.
 
-Praktikuokite aktyvų prisiminimą: bandykite atsakyti prieš atversdami kiekvienos kortelės kitą pusę. „Nibomo“ naudoja intervalinį kartojimą ir planuoja kartojimus pagal tai, kaip gerai prisimenate.
+Paverskite mokymosi medžiagą kortelėmis
+Įklijuokite paskaitos užrašus, pridėkite sąsiuvinio puslapio nuotrauką arba apibūdinkite temą. Dirbtinis intelektas (DI) pasiūlys klausimų ir atsakymų. Galite juos pataisyti arba korteles parašyti patys.
 
-- Paprašykite DI paaiškinti atsakymus, pridėti pavyzdžių ir patobulinti korteles.
-- Kartokite korteles be interneto.
-- Tvarkykite temas naudodami kalades ir žymas, o korteles raskite per paiešką ir filtrus.
-- Prisijunkite el. paštu ir sinchronizuokite mokymosi medžiagą tarp įrenginių, kai esate prisijungę prie interneto.
+Kartokite tinkamais intervalais
+Pamėginkite prisiminti atsakymą prieš apversdami kortelę. Tada įvertinkite, kaip gerai jį prisiminėte. Pagal jūsų įvertinimą „Nibomo“ suplanuoja kitą kartojimą: sunkesnes korteles parodo anksčiau, o gerai žinomas – vėliau.
 
-DI funkcijoms reikia interneto, o jų naudojimas ribojamas. Premium suteikia didesnius naudojimo limitus.
+Mokykitės anglų ir ispanų kalbų žodžių
+Kurkite žodžių korteles iš pamokose, knygose ar pokalbiuose sutiktų žodžių. Pridėkite sakinių pavyzdžių, kad prisimintumėte, kaip vartoti žodį. „Nibomo“ kataloge yra ir paruoštų rinkinių, pavyzdžiui, ispanų kalbos žodžių pradedantiesiems.
+
+Išsaugotas korteles galite kartoti be interneto. Kai vėl prisijungsite prie interneto, jūsų pažanga bus sinchronizuota. DI funkcijoms reikia interneto ryšio.
 
 ### Release notes
 
@@ -933,24 +1070,26 @@ DI funkcijoms reikia interneto, o jų naudojimas ribojamas. Premium suteikia did
 
 ### App Name
 
-Nibomo: Kartītes ar MI
+Nibomo: Flashcards
 
 ### Short Description
 
-Veido MI kartītes no piezīmēm un foto eksāmeniem un jaunu vārdu apguvei
+Veido mācību kartītes no piezīmēm un fotogrāfijām. Atkārto bezsaistē.
 
 ### Full Description
 
-Gatavojies eksāmeniem un apgūsti vārdus ar kartītēm, kas veidotas no taviem mācību materiāliem. Izmanto MI, lai piezīmes un fotogrāfijas pārvērstu jautājumos un atbildēs, vai raksti kartītes pats.
+Pārvērt piezīmes un fotogrāfijas mācību kartītēs (flashcards). Atkārto apgūto ar intervāliem un veido vārdu kartītes, lai papildinātu vārdu krājumu.
 
-Trenē aktīvo atcerēšanos: mēģini atbildēt, pirms atklāj katras kartītes otru pusi. Nibomo izmanto intervālu atkārtošanu un plāno atkārtošanas reizes atbilstoši tam, cik labi atceries.
+Veido kartītes no sava mācību materiāla
+Ielīmē piezīmes, pievieno burtnīcas lapas fotoattēlu vai apraksti tematu. Mākslīgais intelekts (MI) piedāvās jautājumus un atbildes. Vari tos labot vai uzrakstīt kartītes pats.
 
-- Palūdz MI paskaidrot atbildes, pievienot piemērus un uzlabot kartītes.
-- Atkārto kartītes bezsaistē.
-- Sakārto tēmas ar kartīšu komplektiem un birkām un atrodi kartītes ar meklēšanu un filtriem.
-- Pieraksties ar e-pastu, lai sinhronizētu mācību materiālus starp ierīcēm, kad ir interneta savienojums.
+Atkārto ar piemērotiem intervāliem
+Mēģini atcerēties atbildi, pirms apgriez kartīti. Pēc tam novērtē, cik labi to atcerējies. Nibomo ieplāno nākamo atkārtošanas reizi: grūtākas kartītes parādās ātrāk, labi apgūtās – vēlāk.
 
-MI funkcijām nepieciešams internets, un tām ir lietošanas limiti. Premium piedāvā lielākus limitus.
+Papildini vārdu krājumu
+Izveido kartītes vārdiem, ko esi dzirdējis stundā vai sarunā vai izlasījis grāmatā. Pievieno teikuma piemēru, lai atcerētos, kā vārdu lietot. Nibomo katalogā ir arī gatavi komplekti, piemēram, spāņu valodas vārdi un frāzes iesācējiem.
+
+Saglabātās kartītes vari atkārtot bez interneta. Kad savienojums ir atjaunots, Nibomo sinhronizē tavu progresu. MI funkcijām nepieciešams interneta savienojums.
 
 ### Release notes
 
@@ -962,24 +1101,29 @@ MI funkcijām nepieciešams internets, un tām ir lietošanas limiti. Premium pi
 
 ### App Name
 
-Nibomo: AI ഫ്ലാഷ്‌കാർഡുകൾ
+Nibomo: Make AI Flashcards
 
 ### Short Description
 
-നോട്ടും ഫോട്ടോയും AI കാർഡുകളാക്കൂ; പരീക്ഷയ്ക്ക് പഠിക്കൂ, പുതിയ വാക്കുകൾ പഠിക്കൂ
+കുറിപ്പും ഫോട്ടോയും AI ഉപയോഗിച്ച് കാർഡുകളാക്കൂ. ഓഫ്‌ലൈനിലും പഠിക്കൂ.
 
 ### Full Description
 
-സ്വന്തം പഠനസാമഗ്രിയിൽ നിന്ന് തയ്യാറാക്കിയ ഫ്ലാഷ്‌കാർഡുകൾ ഉപയോഗിച്ച് പരീക്ഷയ്ക്ക് തയ്യാറെടുക്കൂ, പുതിയ വാക്കുകൾ പരിശീലിക്കൂ. AI ഉപയോഗിച്ച് നോട്ടുകളും ഫോട്ടോകളും ചോദ്യങ്ങളും ഉത്തരങ്ങളുമാക്കൂ, അല്ലെങ്കിൽ കാർഡുകൾ സ്വയം എഴുതൂ.
+ക്ലാസിലെ കുറിപ്പുകളോ നോട്ട്ബുക്കിലെ ഒരു പേജിന്റെ ഫോട്ടോയോ പഠിക്കാനുള്ള വിഷയമോ Nibomo ഉപയോഗിച്ച് ഫ്ലാഷ് കാർഡുകളാക്കൂ. ഇടവിട്ട് ആവർത്തിച്ച് പഠിക്കൂ. സേവ് ചെയ്ത കാർഡുകൾ ഇന്റർനെറ്റ് ഇല്ലാത്തപ്പോഴും തുറക്കാം.
 
-സജീവമായി ഓർത്തെടുക്കുന്നത് പരിശീലിക്കൂ: ഓരോ കാർഡിന്റെയും മറുവശം കാണുന്നതിന് മുമ്പ് ഉത്തരം പറയാൻ ശ്രമിക്കൂ. Nibomo ഇടവിട്ടുള്ള ആവർത്തനം ഉപയോഗിച്ച്, നിങ്ങൾക്ക് എത്രത്തോളം ഓർമയുണ്ട് എന്നതനുസരിച്ച് ആവർത്തനങ്ങളുടെ സമയം നിശ്ചയിക്കുന്നു.
+കുറിപ്പുകളിൽ നിന്ന് ഫ്ലാഷ് കാർഡുകൾ
+ഓർത്തിരിക്കേണ്ട നിർവചനങ്ങളും ഉദാഹരണങ്ങളും പ്രധാന വിവരങ്ങളും ഉൾപ്പെടുത്തി ചോദ്യങ്ങളും ഉത്തരങ്ങളും തയ്യാറാക്കാൻ AIയോട് പറയൂ. തയ്യാറായ കാർഡുകൾ നിങ്ങൾക്ക് മനസ്സിലാകുന്ന രീതിയിൽ തിരുത്തൂ. ഓരോ ഫ്ലാഷ് കാർഡും സ്വന്തമായി എഴുതാനും കഴിയും.
 
-- ഉത്തരങ്ങൾ വിശദീകരിക്കാനും ഉദാഹരണങ്ങൾ ചേർക്കാനും കാർഡുകൾ മെച്ചപ്പെടുത്താനും AIയോട് ആവശ്യപ്പെടൂ.
-- കാർഡുകൾ ഓഫ്‌ലൈനായി ആവർത്തിച്ച് പഠിക്കൂ.
-- ഡെക്കുകളും ടാഗുകളും ഉപയോഗിച്ച് വിഷയങ്ങൾ ക്രമീകരിക്കൂ; തിരയലും ഫിൽട്ടറുകളും ഉപയോഗിച്ച് കാർഡുകൾ കണ്ടെത്തൂ.
-- ഇമെയിൽ ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്ത്, ഇന്റർനെറ്റ് ഉള്ളപ്പോൾ ഉപകരണങ്ങൾക്കിടയിൽ പഠനസാമഗ്രികൾ സിങ്ക് ചെയ്യൂ.
+ഇടവിട്ട ആവർത്തനം (spaced repetition)
+ചോദ്യം വായിച്ച് ഉത്തരം ഓർത്തെടുക്കാൻ ശ്രമിക്കൂ. കാർഡ് മറിച്ച ശേഷം ഉത്തരം എത്ര നന്നായി ഓർമ വന്നു എന്ന് രേഖപ്പെടുത്തൂ. അതനുസരിച്ച് അടുത്ത ആവർത്തനം Nibomo നിശ്ചയിക്കും. പ്രയാസമുള്ള കാർഡുകൾ വേഗത്തിലും നന്നായി ഓർമയുള്ളവ കൂടുതൽ ഇടവേളയ്ക്കു ശേഷവും വീണ്ടും വരും.
 
-AI ഫീച്ചറുകൾക്ക് ഇന്റർനെറ്റ് ആവശ്യമാണ്; ഉപയോഗത്തിന് പരിധികളുണ്ട്. Premium ഉയർന്ന ഉപയോഗപരിധികൾ നൽകുന്നു.
+പദാവലി പരിശീലിക്കൂ
+ക്ലാസിലോ പുസ്തകത്തിലോ സംഭാഷണത്തിലോ കാണുന്ന പുതിയ വാക്കുകൾക്ക് കാർഡുകൾ ഉണ്ടാക്കൂ. അവ ഉപയോഗിക്കുന്ന രീതി ഓർക്കാൻ സ്വന്തം ഉദാഹരണ വാക്യങ്ങൾ ചേർക്കൂ. ഇംഗ്ലീഷ് ഫ്രേസൽ വെർബുകൾക്കും തുടക്കക്കാർക്കുള്ള സ്പാനിഷ് വാക്കുകൾക്കും Nibomo ശേഖരത്തിൽ റെഡിമെയ്ഡ് കാർഡുകളുണ്ട്.
+
+സേവ് ചെയ്ത കാർഡുകൾ ഓഫ്‌ലൈനിൽ ആവർത്തിക്കൂ
+യാത്രയ്ക്കിടയിലോ ക്ലാസുകൾക്കിടയിലോ കിട്ടുന്ന കുറച്ച് സമയം പഠിക്കാൻ ഉപയോഗിക്കൂ. ഇന്റർനെറ്റ് വീണ്ടും ലഭിക്കുമ്പോൾ പഠന പുരോഗതി സിങ്ക് ചെയ്യും.
+
+AI ഫീച്ചറുകൾക്ക് ഇന്റർനെറ്റ് ആവശ്യമാണ്.
 
 ### Release notes
 
@@ -991,24 +1135,29 @@ AI ഫീച്ചറുകൾക്ക് ഇന്റർനെറ്റ് ആ
 
 ### App Name
 
-Nibomo: AI फ्लॅशकार्ड्स
+Nibomo: AI फ्लॅशकार्ड
 
 ### Short Description
 
-नोट्स व फोटोंपासून AI कार्ड बनवा; परीक्षेची तयारी करा आणि नवे शब्द शिका
+नोट्स व फोटोंपासून फ्लॅशकार्ड तयार करा. जतन केलेल्या कार्डांची ऑफलाइन उजळणी करा.
 
 ### Full Description
 
-स्वतःच्या अभ्याससाहित्यातून तयार केलेल्या फ्लॅशकार्ड्ससह परीक्षेची तयारी करा आणि नव्या शब्दांचा सराव करा. AIच्या मदतीने नोट्स आणि फोटोंपासून प्रश्न व उत्तरे तयार करा किंवा स्वतःची कार्ड्स लिहा.
+वर्गातल्या नोट्स, वहीच्या पानाचा फोटो किंवा एखादा विषय वापरून Nibomoमध्ये फ्लॅशकार्ड (flashcards) तयार करा. स्वतःचा डेक बनवा. कार्डे जतन केली की इंटरनेट नसतानाही त्यांची उजळणी करता येते.
 
-सक्रियपणे आठवण्याचा सराव करा: प्रत्येक कार्डची मागची बाजू पाहण्यापूर्वी उत्तर देण्याचा प्रयत्न करा. Nibomo ठरावीक अंतराने उजळणी करण्याची पद्धत वापरते आणि तुम्हाला किती आठवते यानुसार उजळणीची वेळ ठरवते.
+नोट्समधून फ्लॅशकार्ड तयार करा
+नोट्स पेस्ट करा किंवा फोटो जोडा. कोणत्या व्याख्या, उदाहरणे किंवा मुद्दे लक्षात ठेवायचे आहेत ते AIला सांगा. तयार झालेले प्रश्न आणि उत्तरे आपल्या शब्दांत बदलून घ्या. हवे असल्यास प्रत्येक कार्ड स्वतः लिहा.
 
-- उत्तरे समजावून सांगायला, उदाहरणे जोडायला आणि कार्ड्स सुधारायला AIला सांगा.
-- तुमच्या कार्ड्सची ऑफलाइन उजळणी करा.
-- डेक आणि टॅग वापरून विषय नीट लावा, मग शोध आणि फिल्टरने कार्ड्स शोधा.
-- ईमेलने साइन इन करा आणि इंटरनेटशी जोडलेले असताना अभ्यासाचे साहित्य वेगवेगळ्या डिव्हाइसवर सिंक करा.
+ठरावीक अंतराने उजळणी करा
+प्रश्न पाहून आधी उत्तर आठवून पाहा. कार्ड उलटल्यावर उत्तर किती चांगले आठवले ते नोंदवा. स्पेस्ड रिपिटिशनमध्ये या नोंदीवरून पुढची उजळणी कधी करायची ते ठरते. अवघड कार्डे लवकर, तर परिचित कार्डे जास्त अंतराने दिसतात.
 
-AI सुविधांसाठी इंटरनेट आवश्यक आहे आणि वापराच्या मर्यादा आहेत. Premiumमध्ये वापराच्या मर्यादा जास्त आहेत.
+इंग्रजी शब्दसंग्रह वाढवा
+पुस्तकात किंवा बोलताना सापडलेल्या नव्या इंग्रजी शब्दांसाठी कार्डे बनवा. एखादा शब्द कुठे वापरायचा हे लक्षात ठेवण्यासाठी स्वतःचे उदाहरण वाक्य लिहा. Nibomoच्या कॅटलॉगमध्ये इंग्रजी फ्रेझल व्हर्ब्स आणि प्राथमिक स्पॅनिश शब्दांसाठी तयार डेकही आहेत.
+
+जतन केलेल्या कार्डांची ऑफलाइन उजळणी करा
+प्रवासात किंवा वर्गांच्या मध्ये थोडा वेळ मिळाला तर जतन केलेली कार्डे उघडा. इंटरनेटशी पुन्हा जोडल्यावर प्रगती सिंक होते. त्याच खात्याने दुसऱ्या डिव्हाइसवर पुढचा अभ्यास करता येतो.
+
+AI सुविधांसाठी इंटरनेट आवश्यक आहे.
 
 ### Release notes
 
@@ -1024,20 +1173,22 @@ Nibomo: Flashcards met AI
 
 ### Short Description
 
-Maak AI-flashcards van notities en foto’s voor examens en woordenschat
+Maak flashcards van notities en foto’s. Herhaal met tussenpozen, ook offline.
 
 ### Full Description
 
-Bereid je voor op examens en oefen woordenschat met flashcards van je eigen studiemateriaal. Gebruik AI om notities en foto’s om te zetten in vragen en antwoorden, of schrijf je eigen kaarten.
+Maak met Nibomo je eigen flashcards van aantekeningen, foto’s of een onderwerp. Gebruik gespreide herhaling om lesstof en woordjes te leren, en oefen met opgeslagen kaarten als je offline bent.
 
-Oefen actief ophalen: probeer te antwoorden voordat je de achterkant van een kaart toont. Nibomo gebruikt gespreide herhaling om herhalingen te plannen op basis van hoe goed je de stof onthoudt.
+Maak flitskaarten van je eigen lesstof
+Plak je aantekeningen, voeg een foto van een bladzijde toe of beschrijf een onderwerp. AI stelt vragen en antwoorden voor die je kunt aanpassen. Je kunt je kaarten ook één voor één zelf maken.
 
-- Vraag AI om antwoorden toe te lichten, voorbeelden toe te voegen en kaarten te verbeteren.
-- Herhaal je kaarten offline.
-- Orden je vakken met kaartensets en tags en vind kaarten via zoeken en filters.
-- Log in met je e-mailadres om je studiemateriaal tussen apparaten te synchroniseren wanneer je online bent.
+Herhaal met passende tussenpozen
+Probeer het antwoord te bedenken voordat je de kaart omdraait. Geef daarna aan hoe goed je het antwoord wist. Nibomo gebruikt gespreide herhaling (spaced repetition). Lastige kaarten krijg je sneller terug, bekende kaarten pas later.
 
-AI-functies vereisen internet en hebben gebruikslimieten. Premium biedt hogere limieten.
+Oefen je woordenschat
+Maak kaartjes met woorden uit de les, een boek of een gesprek. Voeg een voorbeeldzin toe om te oefenen hoe je het woord gebruikt. In de Nibomo-catalogus staan ook kant-en-klare sets, bijvoorbeeld met Engelse phrasal verbs of Spaanse woordjes voor beginners.
+
+Open opgeslagen kaarten offline. Je voortgang wordt gesynchroniseerd zodra je weer online bent. Voor AI-functies heb je internet nodig.
 
 ### Release notes
 
@@ -1049,24 +1200,26 @@ AI-functies vereisen internet en hebben gebruikslimieten. Premium biedt hogere l
 
 ### App Name
 
-Nibomo: Læringskort med KI
+Nibomo: Flashcards med KI
 
 ### Short Description
 
-Lag læringskort fra notater og bilder med KI til eksamener og nye ord
+Lag flashcards av notater og bilder. Repeter med mellomrom, også uten nett.
 
 ### Full Description
 
-Forbered deg til eksamener og øv på ordforråd med læringskort fra ditt eget studiemateriale. Bruk KI til å gjøre notater og bilder om til spørsmål og svar, eller skriv dine egne kort.
+Lag flashcards med KI fra notater, bilder eller et tema. Nibomo hjelper deg å repetere det du har lært og trene ordforrådet, også når du har lagret kortene og er uten nett.
 
-Øv på aktiv gjenkalling: prøv å svare før du viser baksiden av hvert kort. Nibomo bruker repetisjon med mellomrom for å planlegge repetisjonene ut fra hvor godt du husker stoffet.
+Lag dine egne puggekort
+Lim inn notater, legg ved et bilde av en side, eller beskriv et tema. KI kan foreslå spørsmål og svar. Du kan redigere forslagene eller skrive kortene selv.
 
-- Be KI forklare svar, legge til eksempler og forbedre kortene dine.
-- Repeter kortene dine uten nett.
-- Organiser fag med kortstokker og etiketter, og finn kort med søk og filtre.
-- Logg inn med e-post for å synkronisere studiematerialet mellom enheter når du er på nett.
+Repeter med passe mellomrom
+Prøv å svare før du snur kortet. Vurder så hvor godt du husket svaret. Med spredt repetisjon (spaced repetition) kommer vanskelige kort tilbake tidligere, mens du kan vente lenger med dem du kan godt.
 
-KI-funksjoner krever internett og har bruksgrenser. Premium gir høyere grenser.
+Øv på gloser
+Lag kort med ord fra undervisningen, en bok eller en samtale. Legg gjerne til en setning som viser hvordan ordet brukes. I Nibomo-katalogen finner du også ferdige kortsett, for eksempel engelske partikkelverb eller spanske gloser for nybegynnere.
+
+Åpne lagrede kort når du er offline. Fremgangen din synkroniseres når du er på nett igjen. KI-funksjoner krever nettilkobling.
 
 ### Release notes
 
@@ -1078,24 +1231,29 @@ KI-funksjoner krever internett og har bruksgrenser. Premium gir høyere grenser.
 
 ### App Name
 
-Nibomo: AI ਫਲੈਸ਼ਕਾਰਡ
+Nibomo: AI ਫਲੈਸ਼ ਕਾਰਡ
 
 ### Short Description
 
-ਨੋਟਸ ਤੇ ਫੋਟੋਆਂ ਤੋਂ AI ਕਾਰਡ ਬਣਾਓ, ਇਮਤਿਹਾਨ ਦੀ ਤਿਆਰੀ ਕਰੋ ਤੇ ਨਵੇਂ ਸ਼ਬਦ ਸਿੱਖੋ
+ਨੋਟਾਂ ਤੇ ਫੋਟੋਆਂ ਤੋਂ ਫਲੈਸ਼ ਕਾਰਡ ਬਣਾਓ। ਸੇਵ ਕੀਤੇ ਕਾਰਡ ਆਫਲਾਈਨ ਦੁਹਰਾਓ।
 
 ### Full Description
 
-ਆਪਣੀ ਪੜ੍ਹਾਈ ਦੀ ਸਮੱਗਰੀ ਤੋਂ ਬਣਾਏ ਫਲੈਸ਼ਕਾਰਡਾਂ ਨਾਲ ਇਮਤਿਹਾਨ ਦੀ ਤਿਆਰੀ ਕਰੋ ਅਤੇ ਨਵੇਂ ਸ਼ਬਦਾਂ ਦਾ ਅਭਿਆਸ ਕਰੋ। AI ਨਾਲ ਨੋਟਸ ਤੇ ਫੋਟੋਆਂ ਨੂੰ ਸਵਾਲਾਂ ਅਤੇ ਜਵਾਬਾਂ ਵਿੱਚ ਬਦਲੋ, ਜਾਂ ਆਪਣੇ ਕਾਰਡ ਆਪ ਲਿਖੋ।
+ਜਮਾਤ ਦੇ ਨੋਟਾਂ, ਕਾਪੀ ਦੇ ਸਫ਼ੇ ਦੀ ਫੋਟੋ ਜਾਂ ਕਿਸੇ ਵਿਸ਼ੇ ਤੋਂ Nibomo ਵਿੱਚ ਫਲੈਸ਼ ਕਾਰਡ (flashcards) ਬਣਾਓ। ਆਪਣਾ ਡੈੱਕ ਤਿਆਰ ਕਰੋ ਅਤੇ ਸੇਵ ਕੀਤੇ ਕਾਰਡ ਇੰਟਰਨੈੱਟ ਤੋਂ ਬਿਨਾਂ ਵੀ ਪੜ੍ਹੋ।
 
-ਸਰਗਰਮੀ ਨਾਲ ਯਾਦ ਕਰਨ ਦਾ ਅਭਿਆਸ ਕਰੋ: ਹਰ ਕਾਰਡ ਦਾ ਪਿਛਲਾ ਪਾਸਾ ਦੇਖਣ ਤੋਂ ਪਹਿਲਾਂ ਜਵਾਬ ਦੇਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ। Nibomo ਵਕਫ਼ਿਆਂ ਨਾਲ ਦੁਹਰਾਈ ਦੀ ਵਿਧੀ ਵਰਤਦਾ ਹੈ ਅਤੇ ਤੁਹਾਨੂੰ ਕਿੰਨਾ ਯਾਦ ਹੈ, ਉਸ ਮੁਤਾਬਕ ਦੁਹਰਾਈ ਦਾ ਸਮਾਂ ਤੈਅ ਕਰਦਾ ਹੈ।
+ਨੋਟਾਂ ਤੋਂ ਫਲੈਸ਼ ਕਾਰਡ ਬਣਾਓ
+ਨੋਟ ਪੇਸਟ ਕਰੋ ਜਾਂ ਫੋਟੋ ਜੋੜੋ। AI ਨੂੰ ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਕਿਹੜੀਆਂ ਪਰਿਭਾਸ਼ਾਵਾਂ, ਉਦਾਹਰਨਾਂ ਜਾਂ ਮੁੱਖ ਗੱਲਾਂ ਯਾਦ ਰੱਖਣੀਆਂ ਹਨ। ਤਿਆਰ ਸਵਾਲ ਤੇ ਜਵਾਬ ਆਪਣੀ ਲੋੜ ਮੁਤਾਬਕ ਬਦਲੋ ਜਾਂ ਹਰ ਕਾਰਡ ਆਪਣੇ ਹੱਥੀਂ ਲਿਖੋ।
 
-- AI ਨੂੰ ਜਵਾਬ ਸਮਝਾਉਣ, ਉਦਾਹਰਨਾਂ ਜੋੜਨ ਅਤੇ ਕਾਰਡ ਬਿਹਤਰ ਬਣਾਉਣ ਲਈ ਕਹੋ।
-- ਆਪਣੇ ਕਾਰਡਾਂ ਦੀ ਆਫ਼ਲਾਈਨ ਦੁਹਰਾਈ ਕਰੋ।
-- ਡੈੱਕ ਅਤੇ ਟੈਗ ਨਾਲ ਵਿਸ਼ੇ ਤਰਤੀਬ ਵਿੱਚ ਰੱਖੋ, ਫਿਰ ਖੋਜ ਅਤੇ ਫਿਲਟਰਾਂ ਨਾਲ ਕਾਰਡ ਲੱਭੋ।
-- ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ ਅਤੇ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੇ ਹੋਣ ਵੇਲੇ ਵੱਖ-ਵੱਖ ਡਿਵਾਈਸਾਂ ਉੱਤੇ ਪੜ੍ਹਾਈ ਦੀ ਸਮੱਗਰੀ ਸਿੰਕ ਕਰੋ।
+ਵਕਫ਼ਿਆਂ ਨਾਲ ਦੁਹਰਾਈ ਕਰੋ
+ਸਵਾਲ ਪੜ੍ਹ ਕੇ ਜਵਾਬ ਯਾਦ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ। ਕਾਰਡ ਪਲਟੋ ਤੇ ਦੱਸੋ ਕਿ ਜਵਾਬ ਕਿੰਨੀ ਚੰਗੀ ਤਰ੍ਹਾਂ ਯਾਦ ਸੀ। ਇਸ ਨੂੰ spaced repetition ਕਹਿੰਦੇ ਹਨ। ਔਖੇ ਕਾਰਡ ਛੇਤੀ ਮੁੜ ਆਉਂਦੇ ਹਨ ਤੇ ਸੌਖੇ ਕਾਰਡ ਵੱਡੇ ਵਕਫ਼ੇ ਮਗਰੋਂ।
 
-AI ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਲੋੜੀਂਦਾ ਹੈ ਅਤੇ ਵਰਤੋਂ ਦੀਆਂ ਹੱਦਾਂ ਹਨ। Premium ਵਿੱਚ ਵਰਤੋਂ ਦੀਆਂ ਹੱਦਾਂ ਵੱਧ ਹਨ।
+ਅੰਗਰੇਜ਼ੀ ਸ਼ਬਦਾਂ ਦਾ ਅਭਿਆਸ ਕਰੋ
+ਕਿਤਾਬ ਜਾਂ ਗੱਲਬਾਤ ਵਿੱਚ ਮਿਲੇ ਨਵੇਂ ਸ਼ਬਦਾਂ ਦੇ ਫਲੈਸ਼ ਕਾਰਡ ਬਣਾਓ। ਵਰਤੋਂ ਯਾਦ ਰੱਖਣ ਲਈ ਆਪਣਾ ਉਦਾਹਰਨ ਵਾਲਾ ਵਾਕ ਜੋੜੋ। Nibomo ਦੇ ਕੈਟਾਲਾਗ ਵਿੱਚ ਅੰਗਰੇਜ਼ੀ ਦੇ ਫ੍ਰੇਜ਼ਲ ਵਰਬਾਂ ਅਤੇ ਮੁੱਢਲੀ ਸਪੇਨੀ ਸ਼ਬਦਾਵਲੀ ਦੇ ਤਿਆਰ ਡੈੱਕ ਵੀ ਹਨ।
+
+ਸੇਵ ਕੀਤੇ ਕਾਰਡ ਆਫਲਾਈਨ ਦੁਹਰਾਓ
+ਸਫ਼ਰ ਦੌਰਾਨ ਜਾਂ ਜਮਾਤਾਂ ਵਿਚਕਾਰ ਕੁਝ ਮਿੰਟ ਮਿਲਣ ਤਾਂ ਸੇਵ ਕੀਤੇ ਕਾਰਡ ਖੋਲ੍ਹੋ। ਮੁੜ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜਨ ’ਤੇ ਤੁਹਾਡੀ ਤਰੱਕੀ ਸਿੰਕ ਹੋ ਜਾਂਦੀ ਹੈ। ਉਸੇ ਖਾਤੇ ਨਾਲ ਦੂਜੇ ਡਿਵਾਈਸ ’ਤੇ ਵੀ ਪੜ੍ਹਾਈ ਜਾਰੀ ਰੱਖ ਸਕਦੇ ਹੋ।
+
+AI ਸਹੂਲਤਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਚਾਹੀਦਾ ਹੈ।
 
 ### Release notes
 
@@ -1107,24 +1265,29 @@ AI ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਲੋ�
 
 ### App Name
 
-Nibomo: Fiszki z AI
+Nibomo: Generator fiszek AI
 
 ### Short Description
 
-Fiszki z notatek i zdjęć dzięki AI: nauka słówek i przygotowanie do egzaminów
+Twórz fiszki z notatek i zdjęć. Ucz się słówek i powtarzaj offline.
 
 ### Full Description
 
-Przygotowuj się do egzaminów i ćwicz słownictwo z fiszkami z własnych materiałów do nauki. Użyj AI, by zamienić notatki i zdjęcia w pytania i odpowiedzi, albo napisz własne fiszki.
+Twórz własne fiszki z notatek, zdjęć i tematów, które chcesz opanować. Generator fiszek AI w Nibomo podsuwa pytania i odpowiedzi, a powtórki rozłożone w czasie pomagają utrwalać materiał.
 
-Ćwicz aktywne przypominanie: spróbuj odpowiedzieć, zanim odkryjesz odwrotną stronę fiszki. Nibomo stosuje powtórki w odstępach i planuje je na podstawie tego, jak dobrze pamiętasz materiał.
+Zrób fiszki z notatek lub zdjęcia
+Wklej notatki z zajęć, dodaj zdjęcie strony zeszytu albo wpisz temat. Poproś AI o skupienie się na ważnych pojęciach, definicjach lub przykładach. Popraw pytania i odpowiedzi przed nauką albo napisz fiszki samodzielnie i ułóż z nich własną talię.
 
-- Poproś AI o wyjaśnienie odpowiedzi, dodanie przykładów i poprawienie fiszek.
-- Powtarzaj fiszki offline.
-- Porządkuj tematy za pomocą talii i tagów, a fiszki znajduj przez wyszukiwanie i filtry.
-- Zaloguj się adresem e-mail, by synchronizować materiały do nauki między urządzeniami, gdy masz połączenie z internetem.
+Rozłóż powtórki w czasie
+Przeczytaj pytanie i odpowiedz z pamięci. Odwróć fiszkę i oceń, jak dobrze udało Ci się przypomnieć odpowiedź. Nibomo wyznaczy kolejną powtórkę. Trudniejsze fiszki wracają wcześniej, a znany materiał możesz powtarzać rzadziej.
 
-Funkcje AI wymagają internetu i mają limity użycia. Premium oferuje wyższe limity.
+Ucz się angielskich i hiszpańskich słówek
+Zapisuj słowa z zajęć, książek i rozmów. Dodawaj własne zdania, żeby zapamiętać nie tylko znaczenie, lecz także użycie danego słowa. Możesz też zacząć od gotowej talii z katalogu Nibomo, np. z angielskimi czasownikami frazowymi lub podstawowymi zwrotami po hiszpańsku.
+
+Powtarzaj fiszki offline
+Wracaj do zapisanych fiszek w drodze lub między zajęciami. Po ponownym połączeniu z internetem postępy zsynchronizują się między urządzeniami.
+
+Funkcje AI wymagają połączenia z internetem.
 
 ### Release notes
 
@@ -1136,24 +1299,29 @@ Funkcje AI wymagają internetu i mają limity użycia. Premium oferuje wyższe l
 
 ### App Name
 
-Nibomo: Fișe cu AI
+Nibomo: Flashcards cu AI
 
 ### Short Description
 
-Transformă notițe și fotografii în fișe cu AI pentru examene și vocabular
+Creează flashcarduri din notițe sau poze. Recapitulează și offline.
 
 ### Full Description
 
-Pregătește-te pentru examene și exersează vocabularul cu fișe create din propriile materiale de studiu. Folosește AI pentru a transforma notițe și fotografii în întrebări și răspunsuri sau scrie singur fișele.
+Creează flashcarduri din notițele de la cursuri, din poze sau pornind de la un subiect. Cu generatorul de flashcarduri din Nibomo poți pregăti seturi de fișe pentru ce ai de învățat.
 
-Exersează reamintirea activă: încearcă să răspunzi înainte să afișezi verso-ul fiecărei fișe. Nibomo folosește repetiția spațiată pentru a programa recapitulările în funcție de cât de bine îți amintești.
+Transformă materialul de studiu în întrebări
+Lipește notițele sau atașează o poză din caiet. Cere-i AI-ului să pregătească întrebări despre definiții, exemple sau idei esențiale. Modifică întrebările și răspunsurile după cum ai nevoie. Poți crea și singur fișe, una câte una.
 
-- Cere-i AI-ului să explice răspunsurile, să adauge exemple și să îmbunătățească fișele.
-- Recapitulează fișele offline.
-- Organizează materiile în seturi și cu etichete și găsește fișele prin căutare și filtre.
-- Conectează-te cu adresa de e-mail pentru a sincroniza materialele între dispozitive când ai conexiune la internet.
+Folosește repetarea spațiată
+Citește întrebarea și încearcă să răspunzi înainte de a întoarce fișa. Apoi indică dacă ți-a fost ușor sau greu să-ți amintești. Nibomo programează următoarea recapitulare și îți arată mai devreme fișele care ți-au dat de furcă.
 
-Funcțiile AI necesită internet și au limite de utilizare. Premium oferă limite mai mari.
+Creează fișe de vocabular
+Adună cuvintele întâlnite la curs, într-o carte sau în conversații. Adaugă propoziții de exemplu sau începe cu un set din catalogul Nibomo, precum verbele frazale în engleză sau vocabularul spaniol pentru începători.
+
+Recapitulează offline
+Poți deschide fișele salvate în autobuz sau în pauza dintre cursuri. Recapitulările se sincronizează când te conectezi din nou la internet.
+
+Funcțiile AI necesită o conexiune la internet.
 
 ### Release notes
 
@@ -1165,24 +1333,29 @@ Funcțiile AI necesită internet și au limite de utilizare. Premium oferă limi
 
 ### App Name
 
-Nibomo: Kartičky s AI
+Nibomo: Učebné kartičky
 
 ### Short Description
 
-AI kartičky z poznámok a fotiek na prípravu na skúšky a učenie slovíčok
+Kartičky z poznámok a fotiek. Opakujte si učivo v odstupoch aj offline.
 
 ### Full Description
 
-Pripravujte sa na skúšky a precvičujte slovíčka s kartičkami z vlastných učebných materiálov. Pomocou AI premeňte poznámky a fotky na otázky a odpovede alebo si napíšte vlastné kartičky.
+Vytvorte si učebné kartičky z vlastných materiálov. Nibomo vám pomocou AI navrhne otázky a odpovede z poznámok, fotky zošita alebo témy. Učivo si potom môžete upevniť rozloženým opakovaním.
 
-Precvičujte aktívne vybavovanie z pamäti: skúste odpovedať skôr, než odhalíte zadnú stranu kartičky. Nibomo využíva opakovanie s odstupmi a plánuje opakovania podľa toho, ako dobre si učivo pamätáte.
+Pripravte si vlastné kartičky
+Vložte poznámky z prednášky alebo pridajte fotku strany zo zošita. Požiadajte AI, aby sa zamerala na dôležité definície a príklady. Navrhnuté otázky a odpovede upravte podľa seba alebo si kartičky napíšte ručne. Na jednotlivé predmety si môžete vytvoriť vlastné balíčky.
 
-- Požiadajte AI o vysvetlenie odpovedí, doplnenie príkladov a vylepšenie kartičiek.
-- Opakujte si kartičky offline.
-- Trieďte učivo pomocou balíčkov a štítkov, kartičky nájdite vyhľadávaním a filtrami.
-- Prihláste sa e-mailom a po pripojení k internetu synchronizujte učebné materiály medzi zariadeniami.
+Opakujte v odstupoch
+Prečítajte si otázku a skúste si odpoveď vybaviť. Otočte kartičku a ohodnoťte, ako dobre ste si spomenuli. Nibomo podľa vášho hodnotenia určí čas ďalšieho opakovania. Náročnejšie kartičky uvidíte skôr.
 
-Funkcie AI vyžadujú internet a majú limity používania. Premium ponúka vyššie limity.
+Učte sa slovíčka s príkladmi
+Pridajte si slovíčka zo školy, z knihy alebo z rozhovoru a napíšte k nim vlastné vety. V katalógu Nibomo nájdete aj hotové balíčky, napríklad anglické frázové slovesá alebo základné španielske slová a frázy.
+
+Majte uložené kartičky poruke aj offline
+Opakujte si ich napríklad v autobuse. Po obnovení pripojenia sa pokrok zosynchronizuje medzi zariadeniami.
+
+Funkcie AI vyžadujú pripojenie na internet.
 
 ### Release notes
 
@@ -1194,24 +1367,29 @@ Funkcie AI vyžadujú internet a majú limity používania. Premium ponúka vyš
 
 ### App Name
 
-Nibomo: Učne kartice z AI
+Nibomo: Kartice za učenje
 
 ### Short Description
 
-Ustvari kartice iz zapiskov in fotografij z AI za izpite in učenje besedišča
+Učne kartice iz zapiskov in fotografij. Ponavljaj v presledkih tudi offline.
 
 ### Full Description
 
-Pripravljaj se na izpite in vadi besedišče z učnimi karticami iz svojega učnega gradiva. Z AI pretvori zapiske in fotografije v vprašanja in odgovore ali pa kartice napiši sam.
+V Nibomu si pripravi kartice za učenje iz lastnega gradiva. Umetna inteligenca (AI) predlaga vprašanja in odgovore iz zapiskov, fotografije ali teme. Učne kartice nato ponavljaj v presledkih, da si snov lažje zapomniš.
 
-Vadi aktivni priklic: poskusi odgovoriti, preden razkriješ hrbtno stran vsake kartice. Nibomo uporablja razmaknjeno ponavljanje in načrtuje ponovitve glede na to, kako dobro si zapomniš snov.
+Ustvari kartice iz zapiskov
+Prilepi zapiske s predavanja ali dodaj fotografijo strani iz zvezka. Orodje lahko usmeriš na ključne pojme, razlage ali primere. Vprašanja in odgovore uredi po svoje ali pa kartice napiši samostojno in jih združi v komplete.
 
-- Prosi AI, naj pojasni odgovore, doda primere in izboljša kartice.
-- Ponavljaj kartice brez internetne povezave.
-- Razvrsti snov v komplete in z oznakami, kartice pa poišči z iskanjem in filtri.
-- Prijavi se z e-pošto za sinhronizacijo učnega gradiva med napravami, ko imaš internetno povezavo.
+Ponavljaj s smiselnimi razmiki
+Najprej poskusi odgovor priklicati iz spomina. Obrni kartico in oceni, kako dobro si ga znal. Nibomo na podlagi ocene določi naslednji termin za ponavljanje. Težje kartice se pokažejo prej.
 
-Funkcije AI potrebujejo internet in imajo omejitve uporabe. Premium ponuja višje omejitve.
+Vadi angleško in špansko besedišče
+Iz besed, ki jih srečaš pri pouku, branju ali v pogovoru, sestavi kartice za učenje besedišča. Dodaj svoje primere ali uporabi pripravljen komplet iz kataloga Nibomo, na primer angleške frazne glagole ali osnovne španske besede in izraze.
+
+Ponavljaj tudi brez povezave
+Shranjene kartice odpri na poti ali med odmori. Ko si spet na spletu, se napredek sinhronizira med napravami.
+
+Funkcije umetne inteligence potrebujejo internetno povezavo.
 
 ### Release notes
 
@@ -1223,24 +1401,26 @@ Funkcije AI potrebujejo internet in imajo omejitve uporabe. Premium ponuja višj
 
 ### App Name
 
-Nibomo: Flashcards med AI
+Nibomo: AI-flashcards
 
 ### Short Description
 
-Gör AI-flashcards av anteckningar och foton för prov och nya ord
+Skapa flashcards av anteckningar och foton. Repetera även offline.
 
 ### Full Description
 
-Förbered dig inför prov och öva ord med flashcards gjorda av ditt eget studiematerial. Använd AI för att göra anteckningar och foton till frågor och svar, eller skriv dina egna kort.
+Skapa flashcards med AI utifrån dina anteckningar, foton eller ett ämne. Nibomo hjälper dig att repetera med mellanrum och plugga glosor. Sparade flashkort går att öva på offline.
 
-Öva aktiv återkallning: försök svara innan du visar baksidan av varje kort. Nibomo använder repetition med mellanrum för att planera repetitionerna utifrån hur väl du minns.
+Skapa flashkort av det du pluggar
+Klistra in dina anteckningar, bifoga ett foto av en sida eller beskriv ett ämne. AI föreslår frågor och svar som du kan ändra. Du kan också skriva korten själv.
 
-- Be AI förklara svar, lägga till exempel och förbättra dina kort.
-- Repetera dina kort offline.
-- Ordna ämnen med kortlekar och taggar och hitta kort med sökning och filter.
-- Logga in med e-post för att synkronisera ditt studiematerial mellan enheter när du är online.
+Repetera med lagom mellanrum
+Försök komma på svaret innan du vänder kortet. Bedöm sedan hur bra du mindes det. Med intervallrepetition (spaced repetition) dyker svåra kort upp tidigare, medan kort du kan får vänta längre.
 
-AI-funktioner kräver internet och har användningsgränser. Premium ger högre gränser.
+Plugga glosor med egna exempel
+Gör kort av ord du stöter på under lektionen, i en bok eller i ett samtal. Lägg gärna till en exempelmening. I Nibomos katalog finns färdiga kortuppsättningar, till exempel engelska partikelverb och spanska glosor för nybörjare.
+
+Repetera sparade kort offline. Dina framsteg synkroniseras när du är uppkopplad igen. AI-funktionerna kräver internetanslutning.
 
 ### Release notes
 
@@ -1252,24 +1432,29 @@ AI-funktioner kräver internet och har användningsgränser. Premium ger högre 
 
 ### App Name
 
-Nibomo: Kadi za kujifunza
+Nibomo: Flashcards za AI
 
 ### Short Description
 
-Geuza madokezo na picha kuwa kadi kwa AI kwa maandalizi ya mitihani na msamiati
+Tengeneza kadi kwa AI kutoka kwa noti na picha. Rudia hata bila intaneti.
 
 ### Full Description
 
-Jiandae kwa mitihani na ufanye mazoezi ya msamiati kwa kadi zilizotengenezwa kutoka kwenye nyenzo zako za kujifunza. Tumia AI kugeuza madokezo na picha kuwa maswali na majibu, au uandike kadi zako mwenyewe.
+Tengeneza kadi za kujifunzia (flashcards) kutoka kwa noti, picha au mada unayosoma. Nibomo hukusaidia kupanga marudio kwa vipindi na kusoma bila intaneti ukishahifadhi kadi zako.
 
-Fanya mazoezi ya kukumbuka kwa juhudi: jaribu kujibu kabla ya kuonyesha upande wa nyuma wa kila kadi. Nibomo hutumia marudio yenye vipindi kupanga muda wa kurudia kulingana na jinsi unavyokumbuka.
+Tengeneza kadi kutoka kwa noti au picha
+Bandika noti za darasani, ambatisha picha ya ukurasa wa daftari au eleza mada unayotaka kujifunza. Iombe AI itengeneze maswali na majibu kuhusu mambo muhimu unayotaka kukumbuka. Hariri kadi kabla ya kusoma au andika kadi zako mwenyewe.
 
-- Iombe AI ifafanue majibu, iongeze mifano na kuboresha kadi zako.
-- Rudia kadi zako bila intaneti.
-- Panga masomo kwa makundi ya kadi na lebo, kisha pata kadi kwa utafutaji na vichujio.
-- Ingia kwa barua pepe ili kusawazisha nyenzo zako za kujifunza kwenye vifaa vyako unapokuwa na intaneti.
+Rudia kwa vipindi
+Soma swali na jaribu kukumbuka jibu kabla ya kugeuza kadi. Kisha chagua jinsi ulivyolikumbuka jibu. Nibomo hupanga marudio yanayofuata kulingana na chaguo lako. Kadi ngumu hurudi mapema, na zile unazozijua vizuri hurudi baada ya muda mrefu zaidi.
 
-Vipengele vya AI vinahitaji intaneti na vina vikomo vya matumizi. Premium inatoa vikomo vya juu zaidi.
+Jifunze msamiati wa Kiingereza
+Tengeneza kadi za maneno mapya unayokutana nayo darasani, vitabuni au kwenye mazungumzo. Ongeza mifano ya sentensi ili ukumbuke jinsi ya kutumia kila neno. Unaweza pia kuanza na seti iliyo tayari kutoka kwenye katalogi ya Nibomo, kama vile kadi za vitenzi vya Kiingereza vyenye maneno zaidi ya moja au za msamiati wa Kihispania kwa wanaoanza.
+
+Soma kadi zilizohifadhiwa bila intaneti
+Fungua kadi zako ukiwa safarini au wakati huna intaneti. Ukiingia kwenye akaunti yako, maendeleo yako yatasawazishwa kwenye vifaa vyako utakapounganishwa tena na intaneti.
+
+Vipengele vya AI vinahitaji intaneti.
 
 ### Release notes
 
@@ -1281,24 +1466,29 @@ Vipengele vya AI vinahitaji intaneti na vina vikomo vya matumizi. Premium inatoa
 
 ### App Name
 
-Nibomo: AI கற்றல் அட்டைகள்
+Nibomo: Make AI Flashcards
 
 ### Short Description
 
-குறிப்புகள், படங்களிலிருந்து AI அட்டைகள்: தேர்வுத் தயாரிப்பு, புதிய சொற்கள்
+AI மூலம் குறிப்புகளையும் படங்களையும் அட்டைகளாக்குங்கள். ஆஃப்லைனில் படியுங்கள்.
 
 ### Full Description
 
-உங்கள் சொந்தப் பாடப் பொருட்களிலிருந்து உருவாக்கிய கற்றல் அட்டைகளுடன் தேர்வுக்குத் தயாராகுங்கள், புதிய சொற்களைப் பயிற்சி செய்யுங்கள். AI மூலம் குறிப்புகளையும் படங்களையும் கேள்விகளாகவும் பதில்களாகவும் மாற்றுங்கள், அல்லது உங்கள் அட்டைகளை நீங்களே எழுதுங்கள்.
+வகுப்புக் குறிப்புகள், நோட்டுப் பக்கத்தின் புகைப்படம் அல்லது நீங்கள் படிக்க விரும்பும் தலைப்பிலிருந்து Nibomo மூலம் ஃபிளாஷ் கார்டுகளை உருவாக்குங்கள். இடைவெளி விட்டு மீண்டும் படியுங்கள். அட்டைகளைச் சேமித்த பின் இணையமின்றியும் பயிற்சி செய்யலாம்.
 
-நினைவிலிருந்து பதிலை மீட்டெடுக்கும் பயிற்சி செய்யுங்கள்: ஒவ்வொரு அட்டையின் பின்பக்கத்தையும் பார்க்கும் முன் பதிலளிக்க முயலுங்கள். Nibomo இடைவெளி விட்டு மீண்டும் படிக்கும் முறையைப் பயன்படுத்தி, உங்களுக்கு எவ்வளவு நினைவில் உள்ளது என்பதற்கேற்ப மீள்பார்வை நேரத்தைத் திட்டமிடுகிறது.
+குறிப்புகளிலிருந்து ஃபிளாஷ் கார்டுகள்
+நினைவில் வைக்க வேண்டிய வரையறைகள், எடுத்துக்காட்டுகள் அல்லது முக்கியத் தகவல்களைக் கொண்டு கேள்விகளையும் பதில்களையும் தயாரிக்க AIயிடம் கேளுங்கள். அவற்றை உங்களுக்குப் புரியும் வகையில் திருத்துங்கள். அட்டைகளை ஒவ்வொன்றாக நீங்களே எழுதவும் முடியும்.
 
-- பதில்களை விளக்கவும் எடுத்துக்காட்டுகளைச் சேர்க்கவும் அட்டைகளை மேம்படுத்தவும் AIயிடம் கேளுங்கள்.
-- உங்கள் அட்டைகளை இணையமின்றி மீள்பார்வையிடுங்கள்.
-- அட்டைத் தொகுப்புகள் மற்றும் குறிச்சொற்களால் பாடங்களை ஒழுங்குபடுத்தி, தேடல் மற்றும் வடிகட்டிகளால் அட்டைகளைக் கண்டறியுங்கள்.
-- மின்னஞ்சல் மூலம் உள்நுழைந்து, இணைய இணைப்பு இருக்கும்போது சாதனங்களுக்கு இடையே பாடப் பொருட்களை ஒத்திசையுங்கள்.
+இடைவெளி மீள்பயிற்சி (spaced repetition)
+கேள்வியைப் படித்ததும் பதிலை நினைவுகூர முயலுங்கள். அட்டையைத் திருப்பிய பின் பதில் எந்த அளவுக்கு நினைவில் இருந்தது என்பதைப் பதிவு செய்யுங்கள். அதற்கேற்ப அடுத்த பயிற்சியை Nibomo திட்டமிடும். கடினமான அட்டைகள் சீக்கிரமாகவும் நன்கு நினைவில் உள்ள அட்டைகள் நீண்ட இடைவெளிக்குப் பிறகும் மீண்டும் வரும்.
 
-AI அம்சங்களுக்கு இணையம் தேவை; பயன்பாட்டு வரம்புகள் உள்ளன. Premium அதிக பயன்பாட்டு வரம்புகளை வழங்குகிறது.
+ஆங்கில வார்த்தைகளைக் கற்றுக்கொள்ளுங்கள்
+வகுப்பில், புத்தகத்தில் அல்லது உரையாடலில் கேட்கும் புதிய சொற்களுக்கு அட்டைகளை உருவாக்குங்கள். ஒரு சொல்லை எப்படிப் பயன்படுத்துவது என்பதை நினைவில் வைக்க உங்கள் சொந்த எடுத்துக்காட்டு வாக்கியங்களைச் சேருங்கள். Nibomo தொகுப்பில் ஆங்கிலச் சொற்றொடர் வினைச்சொற்களுக்கும் தொடக்கநிலை ஸ்பானியச் சொற்களுக்கும் தயாராக உள்ள அட்டைகள் கிடைக்கின்றன.
+
+சேமித்த அட்டைகளை இணையமின்றிப் படியுங்கள்
+பயணத்திலோ வகுப்புகளுக்கு இடையிலோ சில நிமிடங்கள் கிடைக்கும்போது பயிற்சி செய்யுங்கள். மீண்டும் இணையத்தில் இணைந்ததும் பயிற்சி முன்னேற்றம் ஒத்திசையும்.
+
+AI அம்சங்களுக்கு இணைய இணைப்பு தேவை.
 
 ### Release notes
 
@@ -1310,24 +1500,29 @@ AI அம்சங்களுக்கு இணையம் தேவை; ப�
 
 ### App Name
 
-Nibomo: AI ఫ్లాష్‌కార్డులు
+Nibomo: Make AI Flashcards
 
 ### Short Description
 
-నోట్స్, ఫోటోల నుంచి AI కార్డులు: పరీక్షల సన్నద్ధత, కొత్త పదాల అభ్యాసం
+AIతో నోట్స్, ఫోటోలను కార్డులుగా మార్చండి. ఆఫ్‌లైన్‌లో పునశ్చరణ చేయండి.
 
 ### Full Description
 
-మీ సొంత అధ్యయన సామగ్రి నుంచి తయారు చేసిన ఫ్లాష్‌కార్డులతో పరీక్షలకు సిద్ధమవండి, కొత్త పదాలను సాధన చేయండి. AIతో నోట్స్, ఫోటోలను ప్రశ్నలు, సమాధానాలుగా మార్చండి లేదా మీ కార్డులను మీరే రాయండి.
+తరగతి నోట్స్, నోట్‌బుక్ పేజీ ఫోటో లేదా మీరు చదవాలనుకున్న అంశం నుంచి Nibomoతో ఫ్లాష్‌కార్డ్‌లు తయారు చేసుకోండి. విరామాలతో మళ్లీ చదవండి. కార్డులు సేవ్ చేసిన తర్వాత ఇంటర్నెట్ లేకున్నా వాటిని తెరవచ్చు.
 
-చురుకుగా గుర్తుతెచ్చుకోవడాన్ని సాధన చేయండి: ప్రతి కార్డు వెనుకవైపు చూసే ముందు సమాధానం చెప్పడానికి ప్రయత్నించండి. Nibomo విరామాలతో పునశ్చరణ పద్ధతిని ఉపయోగించి, మీకు ఎంతవరకు గుర్తుందో బట్టి పునశ్చరణ సమయాన్ని నిర్ణయిస్తుంది.
+గమనికల నుంచి ఫ్లాష్‌కార్డ్‌లు
+గుర్తుంచుకోవాల్సిన నిర్వచనాలు, ఉదాహరణలు లేదా ముఖ్య విషయాలపై దృష్టి పెట్టి ప్రశ్నలు, సమాధానాలు తయారు చేయమని AIని అడగండి. అవి మీకు అర్థమయ్యేలా సవరించుకోండి. ఒక్కో కార్డును మీరే రాయవచ్చు.
 
-- సమాధానాలను వివరించమని, ఉదాహరణలు జోడించమని, కార్డులను మెరుగుపరచమని AIని అడగండి.
-- మీ కార్డులను ఆఫ్‌లైన్‌లో పునశ్చరణ చేయండి.
-- డెక్‌లు, ట్యాగ్‌లతో విషయాలను క్రమబద్ధీకరించి, శోధన మరియు ఫిల్టర్‌లతో కార్డులను కనుగొనండి.
-- ఇమెయిల్‌తో సైన్ ఇన్ చేసి, ఇంటర్నెట్‌కు కనెక్ట్ అయినప్పుడు పరికరాల మధ్య మీ అధ్యయన సామగ్రిని సింక్ చేయండి.
+విరామాలతో పునశ్చరణ (spaced repetition)
+ప్రశ్న చదివి సమాధానం గుర్తు తెచ్చుకోవడానికి ప్రయత్నించండి. కార్డును తిప్పిన తర్వాత సమాధానం ఎంత బాగా గుర్తొచ్చిందో నమోదు చేయండి. దాన్ని బట్టి Nibomo తదుపరి పునశ్చరణను నిర్ణయిస్తుంది. కష్టమైన కార్డులు త్వరగా మళ్లీ వస్తాయి. బాగా గుర్తున్న కార్డులు ఎక్కువ విరామం తర్వాత వస్తాయి.
 
-AI ఫీచర్లకు ఇంటర్నెట్ అవసరం, వినియోగ పరిమితులు ఉంటాయి. Premiumలో వినియోగ పరిమితులు ఎక్కువగా ఉంటాయి.
+ఆంగ్ల పదాలు నేర్చుకోండి
+తరగతిలో, పుస్తకంలో లేదా సంభాషణలో ఎదురైన కొత్త పదాలతో ఫ్లాష్‌కార్డ్‌లు తయారు చేసుకోండి. పదం ఎలా వాడాలో గుర్తుంచుకోవడానికి మీ సొంత ఉదాహరణ వాక్యాలు జోడించండి. ఆంగ్ల ఫ్రేజల్ వెర్బ్స్, ప్రారంభ స్థాయి స్పానిష్ పదాలకు Nibomo కేటలాగ్‌లో సిద్ధంగా ఉన్న కార్డులనూ ఉపయోగించవచ్చు.
+
+సేవ్ చేసిన కార్డులను ఆఫ్‌లైన్‌లో చదవండి
+ప్రయాణంలోనో తరగతుల మధ్యలోనో కొన్ని నిమిషాలు దొరికినప్పుడు సాధన చేయండి. మళ్లీ ఇంటర్నెట్‌కు కనెక్ట్ అయినప్పుడు మీ ప్రగతి సింక్ అవుతుంది.
+
+AI ఫీచర్లకు ఇంటర్నెట్ అవసరం.
 
 ### Release notes
 
@@ -1339,24 +1534,29 @@ AI ఫీచర్లకు ఇంటర్నెట్ అవసరం, వి�
 
 ### App Name
 
-Nibomo: แฟลชการ์ด AI
+Nibomo: สร้างแฟลชการ์ดด้วย AI
 
 ### Short Description
 
-เปลี่ยนโน้ตและรูปเป็นแฟลชการ์ดด้วย AI เพื่อเตรียมสอบและฝึกคำศัพท์
+เปลี่ยนโน้ตและรูปเป็นแฟลชการ์ด ทบทวนแบบเว้นระยะ ออฟไลน์ได้เมื่อบันทึกการ์ดแล้ว
 
 ### Full Description
 
-เตรียมสอบและฝึกคำศัพท์ด้วยแฟลชการ์ดที่สร้างจากเนื้อหาการเรียนของคุณเอง ใช้ AI เปลี่ยนโน้ตและรูปถ่ายเป็นคำถามและคำตอบ หรือเขียนการ์ดเอง
+เปลี่ยนโน้ตจากชั้นเรียน รูปถ่าย และหัวข้อที่อยากเรียนให้เป็นแฟลชการ์ดด้วย Nibomo สร้างชุดการ์ดของตัวเอง ทบทวนแบบเว้นระยะ และเปิดการ์ดที่บันทึกไว้ได้แม้ไม่มีอินเทอร์เน็ต
 
-ฝึกดึงความรู้จากความจำ: ลองตอบก่อนเปิดดูด้านหลังการ์ดแต่ละใบ Nibomo ใช้การทบทวนแบบเว้นระยะเพื่อจัดเวลาทบทวนตามระดับที่คุณจำเนื้อหาได้
+สร้างแฟลชการ์ดจากโน้ตและรูป
+วางโน้ตจากชั้นเรียน แนบรูปหน้าสมุด หรือพิมพ์หัวข้อที่อยากเรียน ให้ AI ช่วยร่างคำถามและคำตอบจากนิยาม ตัวอย่าง หรือใจความสำคัญที่คุณอยากจำ จากนั้นแก้ไขให้เข้าใจก่อนเริ่มทบทวน หรือสร้างการ์ดเองทีละใบก็ได้
 
-- ขอให้ AI อธิบายคำตอบ เพิ่มตัวอย่าง และปรับปรุงการ์ดของคุณ
-- ทบทวนการ์ดได้แม้ออฟไลน์
-- จัดหมวดหมู่วิชาด้วยชุดการ์ดและแท็ก แล้วค้นหาการ์ดด้วยการค้นหาและตัวกรอง
-- ลงชื่อเข้าใช้ด้วยอีเมลเพื่อซิงค์เนื้อหาที่เรียนระหว่างอุปกรณ์เมื่อเชื่อมต่ออินเทอร์เน็ต
+ทบทวนแบบเว้นระยะ
+อ่านคำถามแล้วลองนึกคำตอบก่อนพลิกการ์ด จากนั้นประเมินว่าจำได้ดีแค่ไหน Nibomo ใช้ผลประเมินเพื่อกำหนดเวลาทบทวนครั้งถัดไป การ์ดที่ยากจะกลับมาเร็วขึ้น ส่วนการ์ดที่จำได้แม่นจะเว้นช่วงนานกว่า
 
-ฟีเจอร์ AI ต้องใช้อินเทอร์เน็ตและมีขีดจำกัดการใช้งาน Premium ให้ขีดจำกัดที่สูงขึ้น
+ฝึกคำศัพท์ภาษาอังกฤษและภาษาสเปน
+สร้างบัตรคำศัพท์จากคำที่พบในชั้นเรียน ในหนังสือ หรือในบทสนทนา เพิ่มประโยคตัวอย่างของตัวเองเพื่อจำวิธีใช้ หรือเริ่มด้วยชุดการ์ดจากคลัง Nibomo เช่น กริยาวลีภาษาอังกฤษหรือคำศัพท์ภาษาสเปนสำหรับผู้เริ่มต้น
+
+เปิดแฟลชการ์ดออฟไลน์
+ระหว่างเดินทางหรือพักจากชั้นเรียน เปิดการ์ดที่บันทึกไว้แล้วทบทวนสักสองสามใบ เมื่อกลับมาออนไลน์ก็ซิงค์ความคืบหน้าและเรียนต่อบนอุปกรณ์อื่นได้
+
+ฟีเจอร์ AI ต้องเชื่อมต่ออินเทอร์เน็ต
 
 ### Release notes
 
@@ -1368,24 +1568,29 @@ Nibomo: แฟลชการ์ด AI
 
 ### App Name
 
-Nibomo: Yapay Zekâ Kartları
+Nibomo: Bilgi Kartları
 
 ### Short Description
 
-Not ve fotoğraflardan yapay zekâyla kartlar: sınav hazırlığı ve kelime öğrenme
+Notlarından ve fotoğraflarından bilgi kartları oluştur. Çevrimdışı tekrar et.
 
 ### Full Description
 
-Kendi çalışma materyalinizden oluşturduğunuz bilgi kartlarıyla sınavlara hazırlanın ve kelime çalışın. Yapay zekâyla not ve fotoğrafları soru ve yanıtlara dönüştürün veya kartlarınızı kendiniz yazın.
+Nibomo ile ders notlarını ve fotoğraflarını bilgi kartlarına dönüştür. Kendi destelerini oluştur, aralıklı tekrar yap ve kayıtlı kartlarınla çevrimdışı çalış.
 
-Aktif hatırlama alıştırması yapın: Her kartın arka yüzünü açmadan önce yanıtlamaya çalışın. Nibomo, aralıklı tekrar yöntemini kullanarak tekrarları ne kadar iyi hatırladığınıza göre planlar.
+Notlardan ve fotoğraflardan bilgi kartı oluştur
+Ders notlarını yapıştır, defter sayfanın fotoğrafını ekle ya da öğrenmek istediğin konuyu yaz. Yapay zekâdan tanımlara, örneklere veya önemli noktalara odaklanan soru ve cevaplar önermesini iste. Çalışmadan önce önerileri düzenle veya kartlarını tek tek kendin yaz.
 
-- Yapay zekâdan yanıtları açıklamasını, örnekler eklemesini ve kartları iyileştirmesini isteyin.
-- Kartlarınızı çevrimdışı tekrar edin.
-- Konuları desteler ve etiketlerle düzenleyin, arama ve filtrelerle kartları bulun.
-- İnternete bağlıyken çalışma materyallerinizi cihazlar arasında eşitlemek için e-postayla giriş yapın.
+Aralıklı tekrarla hatırla
+Soruyu oku ve kartı çevirmeden cevabı hatırlamaya çalış. Sonra ne kadar iyi hatırladığını işaretle. Nibomo bir sonraki tekrarı bu değerlendirmeye göre planlar. Zorlandığın kartlar daha erken karşına çıkar, iyi bildiklerin ise daha uzun süre bekler.
 
-Yapay zekâ özellikleri internet gerektirir ve kullanım sınırlarına tabidir. Premium daha yüksek sınırlar sunar.
+İngilizce ve İspanyolca kelime kartları
+Derste, okurken veya konuşurken karşılaştığın kelimeler için kart hazırla. Kelimenin nasıl kullanıldığını hatırlamak için örnek bir cümle ekle. Nibomo kataloğunda İngilizce öbek fiiller ve başlangıç düzeyi İspanyolca kelimeler gibi hazır desteler de bulabilirsin.
+
+Çevrimdışı tekrar
+Yolda veya ders arasında kayıtlı kartlarını internetsiz açıp tekrar et. Yeniden internete bağlandığında aynı hesapla oturum açarak ilerlemeni eşitle ve başka bir cihazda kaldığın yerden devam et.
+
+Yapay zekâ özellikleri internet bağlantısı gerektirir.
 
 ### Release notes
 
@@ -1397,24 +1602,29 @@ Yapay zekâ özellikleri internet gerektirir ve kullanım sınırlarına tabidir
 
 ### App Name
 
-Nibomo: Флешкартки з ШІ
+Nibomo: Флешкартки з конспекту
 
 ### Short Description
 
-Картки з нотаток і фото з ШІ для підготовки до іспитів і вивчення слів
+Створюйте картки з конспектів і фото. Повторюйте збережені картки офлайн.
 
 ### Full Description
 
-Готуйтеся до іспитів і вчіть слова з картками з власних навчальних матеріалів. Перетворюйте нотатки й фото на запитання та відповіді за допомогою ШІ або пишіть картки самі.
+Створюйте флешкартки з власних матеріалів у Nibomo. Перетворюйте нотатки, фото або тему на запитання й відповіді, складайте власні колоди та закріплюйте вивчене за допомогою інтервального повторення.
 
-Практикуйте активне пригадування: спробуйте відповісти, перш ніж відкрити зворотний бік картки. Nibomo використовує інтервальні повторення й планує їх залежно від того, наскільки добре ви пам’ятаєте матеріал.
+Створюйте картки з конспектів
+Вставте нотатки з лекції чи додайте фото сторінки зошита. Попросіть ШІ зосередитися на потрібних визначеннях, фактах або прикладах. Перевірте й відредагуйте запропоновані запитання та відповіді. Картки також можна створити вручну й розподілити за темами.
 
-- Просіть ШІ пояснити відповіді, додати приклади й поліпшити картки.
-- Повторюйте картки без інтернету.
-- Упорядковуйте теми за допомогою колод і тегів, знаходьте картки через пошук і фільтри.
-- Увійдіть за електронною поштою, щоб за наявності інтернету синхронізувати навчальні матеріали між пристроями.
+Повторюйте матеріал у потрібний час
+Прочитайте запитання й спробуйте відповісти з пам’яті. Перегорніть картку й оцініть, наскільки добре пригадали відповідь. За цією оцінкою Nibomo запланує наступне повторення. Складні картки повертаються раніше, а знайомі — пізніше.
 
-Функції ШІ потребують інтернету й мають ліміти використання. У Premium ліміти вищі.
+Вивчайте англійські й іспанські слова
+Створюйте картки для вивчення слів, які чуєте на заняттях або зустрічаєте в книжках. Додавайте власні речення, щоб пам’ятати, як вживаються слова. Можна почати й з готових колод із каталогу Nibomo, зокрема з англійських фразових дієслів або базової іспанської лексики.
+
+Повторюйте флешкартки офлайн
+Відкривайте збережені картки в дорозі або на перерві. Щоб синхронізувати прогрес між пристроями, підключіться до інтернету й увійдіть в один і той самий обліковий запис.
+
+Для функцій ШІ потрібне підключення до інтернету.
 
 ### Release notes
 
@@ -1430,20 +1640,25 @@ Nibomo: AI فلیش کارڈز
 
 ### Short Description
 
-نوٹس اور تصاویر سے AI کارڈز بنائیں، امتحان کی تیاری کریں اور نئے الفاظ سیکھیں
+نوٹس اور تصاویر سے فلیش کارڈز بنائیں۔ محفوظ کارڈز آف لائن دہرائیں۔
 
 ### Full Description
 
-اپنے مطالعاتی مواد سے بنے فلیش کارڈز کے ساتھ امتحان کی تیاری کریں اور نئے الفاظ کی مشق کریں۔ AI سے نوٹس اور تصاویر کو سوالات اور جوابات میں بدلیں، یا اپنے کارڈز خود لکھیں۔
+کلاس کے نوٹس، نوٹ بک کی تصویر یا کسی موضوع سے Nibomo میں فلیش کارڈز (flashcards) بنائیں۔ اپنے ڈیک ترتیب دیں اور کارڈز محفوظ کرنے کے بعد انٹرنیٹ کے بغیر بھی دہرائی کریں۔
 
-فعال یادآوری کی مشق کریں: ہر کارڈ کا پچھلا رخ دیکھنے سے پہلے جواب دینے کی کوشش کریں۔ Nibomo وقفوں سے دہرانے کا طریقہ استعمال کرتا ہے اور آپ کو کتنا یاد ہے، اس کے مطابق دہرائی کا وقت طے کرتا ہے۔
+نوٹس سے فلیش کارڈز بنائیں
+نوٹس پیسٹ کریں یا تصویر لگائیں۔ AI کو بتائیں کہ کون سی تعریفیں، مثالیں یا اہم نکات یاد رکھنے ہیں۔ تیار سوالوں اور جوابوں کو اپنی ضرورت کے مطابق بدلیں۔ چاہیں تو ہر کارڈ خود لکھیں۔
 
-- AI سے جوابات کی وضاحت، مثالیں شامل کرنے اور کارڈز بہتر بنانے کو کہیں۔
-- اپنے کارڈز آف لائن دہرائیں۔
-- ڈیکس اور ٹیگز سے موضوعات ترتیب دیں، پھر تلاش اور فلٹرز سے کارڈز ڈھونڈیں۔
-- ای میل سے سائن ان کریں تاکہ انٹرنیٹ سے منسلک ہونے پر مختلف ڈیوائسز پر اپنا مطالعاتی مواد سنک کر سکیں۔
+وقفے وقفے سے تکرار کریں
+سوال پڑھ کر جواب یاد کرنے کی کوشش کریں۔ کارڈ پلٹ کر بتائیں کہ جواب کتنی اچھی طرح یاد تھا۔ اس طریقے کو اسپیسڈ ریپیٹیشن کہتے ہیں۔ مشکل کارڈز جلد اور آسان کارڈز زیادہ وقفے کے بعد دوبارہ دکھائی دیتے ہیں۔
 
-AI خصوصیات کے لیے انٹرنیٹ ضروری ہے اور استعمال کی حدیں ہیں۔ Premium میں استعمال کی حدیں زیادہ ہیں۔
+انگریزی الفاظ یاد کریں
+پڑھتے وقت یا گفتگو میں ملنے والے نئے الفاظ کے فلیش کارڈز بنائیں۔ استعمال یاد رکھنے کے لیے اپنے جملے بطور مثال شامل کریں۔ Nibomo کے کیٹلاگ میں انگریزی فریزل وربز اور ابتدائی ہسپانوی الفاظ کے تیار ڈیک بھی ہیں۔
+
+محفوظ فلیش کارڈز آف لائن دہرائیں
+سفر کے دوران یا کلاسوں کے درمیان چند منٹ ملیں تو محفوظ کارڈز کھولیں۔ دوبارہ انٹرنیٹ سے جڑنے پر دہرائی کی پیش رفت سنک ہوتی ہے۔ اسی اکاؤنٹ سے دوسرے ڈیوائس پر پڑھائی جاری رکھ سکتے ہیں۔
+
+AI خصوصیات کے لیے انٹرنیٹ ضروری ہے۔
 
 ### Release notes
 
@@ -1455,24 +1670,29 @@ AI خصوصیات کے لیے انٹرنیٹ ضروری ہے اور استعما
 
 ### App Name
 
-Nibomo: Thẻ ghi nhớ AI
+Nibomo: Tạo thẻ ghi nhớ với AI
 
 ### Short Description
 
-Biến ghi chú và ảnh thành thẻ ghi nhớ bằng AI để ôn thi và học từ vựng
+Tạo thẻ từ ghi chú và ảnh. Ôn ngoại tuyến theo phương pháp lặp lại ngắt quãng.
 
 ### Full Description
 
-Ôn thi và luyện từ vựng với thẻ ghi nhớ được tạo từ tài liệu học của riêng bạn. Dùng AI để biến ghi chú và ảnh thành câu hỏi và câu trả lời, hoặc tự viết thẻ.
+Dùng Nibomo để biến ghi chú, ảnh và chủ đề đang học thành thẻ ghi nhớ. Tự tạo bộ thẻ, ôn theo phương pháp lặp lại ngắt quãng và tiếp tục học khi mất mạng với thẻ đã lưu.
 
-Luyện nhớ chủ động: thử trả lời trước khi mở mặt sau của mỗi thẻ. Nibomo dùng phương pháp lặp lại ngắt quãng để lên lịch ôn theo mức độ bạn ghi nhớ.
+Tạo flashcard từ ghi chú và ảnh
+Dán ghi chú trên lớp, đính kèm ảnh một trang vở hoặc mô tả chủ đề bạn muốn học. Nhờ AI tập trung vào định nghĩa, ví dụ hay ý chính cần nhớ. Bạn có thể chỉnh sửa câu hỏi và câu trả lời trước khi ôn, hoặc tự viết từng thẻ.
 
-- Nhờ AI giải thích câu trả lời, thêm ví dụ và cải thiện nội dung thẻ.
-- Ôn thẻ khi ngoại tuyến.
-- Sắp xếp môn học bằng bộ thẻ và nhãn, tìm thẻ bằng công cụ tìm kiếm và bộ lọc.
-- Đăng nhập bằng email để đồng bộ tài liệu học giữa các thiết bị khi có kết nối internet.
+Ôn tập ngắt quãng để nhớ lâu hơn
+Đọc câu hỏi, thử nhớ câu trả lời rồi mới lật thẻ. Sau khi xem đáp án, đánh giá xem bạn nhớ được đến đâu. Nibomo dựa vào đánh giá đó để lên lịch ôn lại. Thẻ khó sẽ quay lại sớm hơn, còn thẻ đã quen sẽ được ôn sau.
 
-Các tính năng AI cần internet và có giới hạn sử dụng. Premium cung cấp hạn mức cao hơn.
+Học từ vựng tiếng Anh và tiếng Tây Ban Nha
+Ghi lại từ mới bạn gặp trên lớp, trong sách hoặc khi trò chuyện bằng cách tạo thẻ. Thêm câu ví dụ của riêng bạn để nhớ cách dùng từ. Bạn cũng có thể chọn một bộ thẻ có sẵn trong danh mục Nibomo, như cụm động từ tiếng Anh hoặc từ vựng tiếng Tây Ban Nha cho người mới.
+
+Ôn thẻ đã lưu khi ngoại tuyến
+Tranh thủ ôn vài thẻ lúc đi xe hoặc nghỉ giữa giờ. Khi có mạng trở lại, bạn có thể đồng bộ tiến độ để học tiếp trên thiết bị khác.
+
+Tính năng AI cần có kết nối internet.
 
 ### Release notes
 
@@ -1484,24 +1704,29 @@ Các tính năng AI cần internet và có giới hạn sử dụng. Premium cun
 
 ### App Name
 
-Nibomo: Amakhadi okufunda
+Nibomo: Flashcards nge-AI
 
 ### Short Description
 
-Yenza amakhadi nge-AI ngamanothi nezithombe ukuze ulungiselele izivivinyo
+Guqula amanothi nezithombe kube amakhadi. Funda ngaphandle kwe-inthanethi.
 
 ### Full Description
 
-Lungiselela izivivinyo futhi uzijwayeze amagama amasha ngamakhadi enziwe ngezinto zakho zokufunda. Sebenzisa i-AI ukuguqula amanothi nezithombe kube imibuzo nezimpendulo, noma ubhale amakhadi akho.
+Yenza amakhadi okufunda (flashcards) ngamanothi, ngezithombe noma ngesihloko osifundayo. Buyekeza ngezikhawu ukuze ukhumbule okufundile, futhi uvule amakhadi agciniwe noma ungaxhunyiwe ku-inthanethi.
 
-Zijwayeze ukukhumbula: zama ukuphendula ngaphambi kokuveza uhlangothi olungemuva lwekhadi ngalinye. I-Nibomo isebenzisa ukuphindaphinda ngezikhawu ukuhlela ukubuyekeza ngokuthi ukhumbula kahle kangakanani.
+Yenza amakhadi okufunda ngamanothi nezithombe
+Faka amanothi aseklasini, namathisela isithombe sekhasi lencwadi yamanothi noma uchaze isihloko ofuna ukusifunda. Cela i-AI ibhale imibuzo nezimpendulo ngamaphuzu abalulekile. Hlela imibuzo nezimpendulo ngaphambi kokufunda, noma uzibhalele amakhadi akho.
 
-- Cela i-AI ichaze izimpendulo, ingeze izibonelo futhi ithuthukise amakhadi akho.
-- Buyekeza amakhadi akho ngaphandle kwe-inthanethi.
-- Hlela izifundo ngamaqoqo amakhadi nomaka, bese uthola amakhadi ngokusesha nangezihlungi.
-- Ngena nge-imeyili ukuze uvumelanise izinto ozifundayo phakathi kwamadivayisi lapho uxhumeke ku-inthanethi.
+Buyekeza ngezikhawu
+Zama ukukhumbula impendulo ngaphambi kokubheka uhlangothi olungemuva lwekhadi. Bese ukhetha ukuthi uyikhumbule kahle kangakanani. I-Nibomo ihlela isikhathi sokubuyekeza ngokwendlela okhumbule ngayo. Amakhadi anzima abuya ngokushesha, kanti lawo osuwazi kahle abuya ngemva kwesikhathi eside.
 
-Izici ze-AI zidinga i-inthanethi futhi zinemikhawulo yokusetshenziswa. I-Premium inikeza imikhawulo ephakeme.
+Funda amagama esiNgisi ngamakhadi
+Yenza amakhadi ngamagama ohlangana nawo ezincwadini, ekilasini noma ezingxoxweni. Faka izibonelo zemisho ukuze ukhumbule indlela yokusebenzisa igama ngalinye. Ungaqala nangeqoqo lamakhadi elisohlwini lwe-Nibomo, njengeqoqo lemishwana yesiNgisi noma iqoqo lamagama esiSpanishi labaqalayo.
+
+Funda ngaphandle kwe-inthanethi
+Buyekeza amakhadi osuwagcinile uma usohambeni noma ungaxhunyiwe ku-inthanethi. Uma ungene ngemvume, intuthuko yakho iyavumelaniswa phakathi kwamadivayisi lapho usuxhumeke futhi.
+
+Izici ze-AI zidinga i-inthanethi.
 
 ### Release notes
 
@@ -1513,205 +1738,250 @@ Izici ze-AI zidinga i-inthanethi futhi zinemikhawulo yokusetshenziswa. I-Premium
 
 ### App Name
 
-Nibomo：AI 閃卡
+Nibomo：AI 閃卡製作
 
 ### Short Description
 
-用 AI 把筆記和照片做成閃卡，準備考試、練習字彙
+把筆記和照片做成閃卡。用間隔複習背單字，儲存後也能離線複習。
 
 ### Full Description
 
-用自己的學習資料製作閃卡，準備考試、練習字彙。你可以用 AI 把筆記和照片轉成問答，也可以自己編寫閃卡。
+把上課筆記、照片和想學的主題做成閃卡。用 Nibomo 建立自己的卡組，依照記憶狀況安排間隔複習，也能離線複習已儲存的卡片。
 
-練習主動回想：先試著回答，再翻到閃卡背面看答案。Nibomo 採用間隔複習法，依照你記得多少來安排複習時間。
+從筆記或照片製作閃卡
+貼上課堂筆記、附上一張筆記照片，或描述想學的主題。讓 AI 把定義、例子或重要觀念整理成問答。確認並編輯內容後再開始複習，也可以自己一張一張寫卡片。
 
-- 請 AI 解釋答案、補充範例，幫你改進閃卡。
-- 離線複習閃卡。
-- 用卡組和標籤整理各科內容，再用搜尋和篩選功能找出需要的閃卡。
-- 使用電子郵件登入，在有網路連線時同步不同裝置上的學習資料。
+用間隔重複記得更久
+先看問題、試著想出答案，再翻卡評估自己記得多少。Nibomo 依照你的評估安排下次複習，難記的內容比較快再出現，熟悉的內容可以隔久一點再看。
 
-AI 功能需要網路連線，且有用量限制。Premium 提供更高的使用額度。
+自製單字卡，練習英文和西班牙文
+把上課、閱讀或聊天時遇到的生字做成卡片，加上例句來記住用法。也能從 Nibomo 的卡組目錄選一套卡片開始，例如英文片語動詞或西班牙文入門詞彙。
+
+離線複習
+在捷運上或下課空檔，打開已儲存的閃卡複習幾張。重新連線後可同步進度，再到另一台裝置上繼續。
+
+AI 功能需要網路連線。
 
 ## Chinese (Hong Kong) - zh-HK
 
 ### App Name
 
-Nibomo：AI 閃卡
+Nibomo：AI Flashcards
 
 ### Short Description
 
-用 AI 將筆記和相片製成閃卡，溫習考試、練習詞彙
+用 AI 將筆記和相片製成閃卡。以間隔重複溫習生字，儲存後可離線使用。
 
 ### Full Description
 
-用自己的學習材料製作閃卡，準備考試、練習詞彙。你可以用 AI 將筆記和相片轉成問答，也可以自己編寫閃卡。
+將課堂筆記、相片和想學的主題製成閃卡。用 Nibomo 建立自己的卡組，以間隔重複溫習，沒有網絡時也可翻看已儲存的卡片。
 
-練習主動回想：先嘗試作答，再翻看閃卡背面的答案。Nibomo 採用間隔重溫法，按你的記憶程度安排溫習時間。
+用筆記或相片製作閃卡
+貼上筆記、附上筆記簿的相片，或說明想溫習的主題。請 AI 根據定義、例子或重點擬出問題和答案。修改內容後便可開始溫習，你也可以逐張自製卡片。
 
-- 請 AI 解釋答案、補充例子，幫你改進閃卡。
-- 離線溫習閃卡。
-- 用卡組和標籤整理各科內容，再用搜尋和篩選功能找出需要的閃卡。
-- 使用電郵登入，在連接互聯網時同步不同裝置上的學習材料。
+按記憶程度安排溫習
+先試想答案，再翻卡並評估自己記得多少。Nibomo 會按你的評估安排下一次溫習，未記熟的卡片會較快再次出現，熟悉的內容則可隔久一點再看。
 
-AI 功能需要連接互聯網，並設有使用上限。Premium 提供更高的使用上限。
+自製英文生字卡
+將上堂、閱讀或傾談時遇到的生字做成卡片，加上例句來記住用法。你也可從 Nibomo 的卡組目錄選一套卡片開始，例如英文片語動詞或西班牙語入門詞彙。
+
+離線溫習
+搭港鐵或小休時，打開已儲存的閃卡溫習幾張。重新連接網絡後可同步進度，在另一部裝置上繼續學習。
+
+AI 功能需要連接互聯網。
 
 ## English (Australia) - en-AU
 
 ### App Name
 
-Nibomo: AI Flashcards
+Nibomo: AI Flashcard Maker
 
 ### Short Description
 
-AI flashcards from notes and photos for exam prep and vocabulary practice
+Make flashcards from notes or photos. Review offline with spaced repetition.
 
 ### Full Description
 
-Prepare for exams and practise vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+Turn class notes and photos into flashcards with Nibomo’s AI flashcard maker. Build your own decks, use spaced repetition to revise and review saved flashcards offline.
 
-Practise active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+Make flashcards from your notes
+Paste notes from class, add a photo of a notebook page or give AI a topic. Ask it to focus on the definitions or examples you need to remember. Edit the draft questions and answers before you study, or write your own cards from scratch.
 
-- Ask AI to clarify answers, add examples, and improve your cards.
-- Review your cards offline.
-- Organise subjects with decks and tags, then find cards with search and filters.
-- Sign in with email to sync your study material across devices when online.
+Make time for the cards you find harder
+Read the question, try to recall the answer, then flip the card and rate how well you remembered it. Spaced repetition brings difficult cards back sooner and gives familiar cards a longer gap. Use it to revise for an exam or keep key concepts fresh after the course ends.
 
-AI features require internet and have usage limits. Premium offers higher limits.
+Practise vocabulary with examples
+Make flashcards for words you meet in a book, in class or in conversation. Add a sentence to help you remember how each word is used. Start with your own deck, or choose a catalogue deck for beginner Spanish vocabulary or English phrasal verbs.
+
+Keep revising offline
+Open your saved cards on the train or between classes. When you’re back online, sign in to sync your reviews across devices.
+
+AI features need an internet connection.
 
 ## English (Canada) - en-CA
 
 ### App Name
 
-Nibomo: AI Flashcards
+Nibomo: AI Flashcard Maker
 
 ### Short Description
 
-AI flashcards from notes and photos for exam prep and vocabulary practice
+Turn notes and photos into flashcards. Study French vocabulary offline.
 
 ### Full Description
 
-Prepare for exams and practice vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+Make flashcards from your notes, photos or a topic. Nibomo’s AI flashcard maker helps you build a study deck you can edit, then spaced repetition helps you keep up with reviews.
 
-Practice active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+Turn your class notes into flashcards
+Paste a passage from your notes, add a photo of a page, or describe a topic you want to study. Ask AI to draft questions and answers about the facts, definitions or examples you care about. Edit the draft before studying, or write your own questions and answers one card at a time.
 
-- Ask AI to clarify answers, add examples, and improve your cards.
-- Review your cards offline.
-- Organize subjects with decks and tags, then find cards with search and filters.
-- Sign in with email to sync your study material across devices when online.
+Build French and English vocabulary
+Make French flashcards from words you encounter in class, at work or in conversation. Add a sample sentence on the back to remember how a word is used. Use the same approach for English vocabulary, or try a ready-made deck from the Nibomo catalogue.
 
-AI features require internet and have usage limits. Premium offers higher limits.
+Review at intervals that fit what you remember
+Read a question and try to answer from memory. Flip the card and rate your recall. Nibomo uses spaced repetition to bring back difficult cards sooner and leave more time between reviews of familiar cards.
+
+Review saved flashcards offline
+Open saved cards on the bus or between classes. When you’re back online, sign in to sync your review progress across devices.
+
+AI features need an internet connection.
 
 ## English (United Kingdom) - en-GB
 
 ### App Name
 
-Nibomo: AI Flashcards
+Nibomo: AI Revision Cards
 
 ### Short Description
 
-AI flashcards from notes and photos for exam prep and vocabulary practice
+Make flashcards from notes and photos. Revise offline with spaced repetition.
 
 ### Full Description
 
-Prepare for exams and practise vocabulary with flashcards made from your own study material. Use AI to turn notes and photos into questions and answers, or write your own cards.
+Make your own revision cards from lesson notes, photos or a topic. Nibomo’s AI flashcard maker drafts questions and answers you can edit. Review your deck with spaced repetition and keep revising offline once the cards are saved.
 
-Practise active recall: try to answer before revealing the back of each card. Nibomo uses spaced repetition to schedule reviews based on how well you remember.
+Turn study notes into flashcards
+Paste notes from class, attach a photo of a page or tell AI what you want to revise. Ask it to focus on the key facts, definitions or worked examples. Edit the questions and answers to match what you need to learn, or write your revision cards from scratch.
 
-- Ask AI to clarify answers, add examples, and improve your cards.
-- Review your cards offline.
-- Organise subjects with decks and tags, then find cards with search and filters.
-- Sign in with email to sync your study material across devices when online.
+Revise at the right intervals
+Try to answer each question before you flip the card. Rate how well you remembered it and Nibomo will schedule the next review. Spaced repetition gives familiar cards a longer gap and brings difficult ones back sooner. Use it to prepare for an exam or keep material fresh afterwards.
 
-AI features require internet and have usage limits. Premium offers higher limits.
+Make vocabulary flashcards
+Create a deck for Spanish, French or English words you want to remember. Add an example sentence to practise using the word in context. You can also choose a ready-made deck from the Nibomo catalogue, such as beginner Spanish vocabulary.
+
+Take your revision offline
+Open saved flashcards on the bus or whenever you have a few minutes. When you’re back online, sign in to sync your review progress across devices.
+
+AI features need an internet connection.
 
 ## French (Canada) - fr-CA
 
 ### App Name
 
-Nibomo : Flashcards IA
+Nibomo : Cartes-éclair IA
 
 ### Short Description
 
-L’IA transforme notes et photos en fiches pour les examens et le vocabulaire
+Créez des cartes-éclair à partir de notes ou de photos. Révisez hors ligne.
 
 ### Full Description
 
-Préparez vos examens et travaillez votre vocabulaire avec des fiches créées à partir de votre propre matériel d’étude. Transformez vos notes et photos en questions et réponses avec l’IA, ou rédigez vos fiches vous-même.
+Créez des cartes-éclair à partir de vos notes de cours, d’une photo ou d’un sujet. Avec Nibomo, préparez du matériel d’étude à votre façon et retenez-le grâce à la répétition espacée.
 
-Pratiquez le rappel actif : essayez de répondre avant d’afficher le verso de chaque fiche. Nibomo utilise la répétition espacée pour planifier les révisions selon ce que vous retenez.
+Passez des notes aux cartes-éclair
+Collez vos notes ou joignez une photo de votre cahier. Demandez à l’IA de préparer des questions sur les définitions ou les idées principales. Relisez les réponses et modifiez-les au besoin. Vous pouvez aussi écrire vos cartes une à une.
 
-- Demandez à l’IA de clarifier les réponses, d’ajouter des exemples et d’améliorer vos fiches.
-- Révisez vos fiches hors ligne.
-- Classez vos matières par paquets et étiquettes, et retrouvez vos fiches avec la recherche et les filtres.
-- Connectez-vous avec votre adresse courriel pour synchroniser votre matériel d’étude entre vos appareils lorsque vous êtes en ligne.
+Faites revenir les notions au bon moment
+Tentez de répondre de mémoire, puis retournez la carte. Indiquez ensuite si vous vous souveniez de la réponse. Nibomo utilise votre évaluation pour décider quand vous présenter de nouveau la carte et fait revenir plus tôt celles qui vous posent problème.
 
-Les fonctions d’IA nécessitent Internet et sont soumises à des limites d’utilisation. Premium offre des limites plus élevées.
+Exercez-vous avec des cartes de vocabulaire
+Ajoutez les mots qui vous sont utiles à l’école, au travail ou dans une conversation. Écrivez une phrase d’exemple pour les revoir en contexte, ou choisissez un ensemble du catalogue, comme des verbes à particule en anglais ou du vocabulaire espagnol pour débuter.
+
+Étudiez hors ligne
+Ouvrez vos cartes déjà enregistrées dans l’autobus ou entre deux cours. Vos révisions se synchronisent dès que vous retrouvez une connexion.
+
+Les fonctions d’IA nécessitent une connexion Internet.
 
 ## Portuguese (Portugal) - pt-PT
 
 ### App Name
 
-Nibomo: Flashcards com IA
+Nibomo: Cartões de estudo
 
 ### Short Description
 
-Flashcards com IA a partir de apontamentos e fotos para exames e vocabulário
+Crie cartões com IA a partir de apontamentos ou fotografias. Reveja offline.
 
 ### Full Description
 
-Prepare-se para exames e pratique vocabulário com flashcards criados a partir do seu próprio material de estudo. Use a IA para transformar apontamentos e fotografias em perguntas e respostas ou escreva os seus próprios cartões.
+Crie cartões de estudo a partir de apontamentos, fotografias ou temas que pretende estudar. O Nibomo ajuda a preparar os seus flashcards e a planear a revisão com repetição espaçada.
 
-Pratique a recordação ativa: tente responder antes de revelar o verso de cada cartão. O Nibomo usa a repetição espaçada para programar as revisões em função do que consegue recordar.
+Dos apontamentos aos cartões
+Cole os apontamentos ou anexe uma fotografia de uma página do caderno. Peça à IA que prepare perguntas sobre os conceitos, as definições ou os exemplos que quer memorizar. Pode editar as perguntas e respostas ou escrever os seus cartões de raiz.
 
-- Peça à IA para explicar respostas, acrescentar exemplos e melhorar os seus cartões.
-- Reveja os seus cartões offline.
-- Organize as matérias com baralhos e etiquetas e encontre cartões com a pesquisa e os filtros.
-- Inicie sessão com o seu e-mail para sincronizar o seu material de estudo entre dispositivos quando estiver online.
+Faça revisões espaçadas
+Tente responder de memória antes de virar o cartão. Depois indique até que ponto se lembrava da resposta. O Nibomo agenda a revisão seguinte e mostra-lhe mais cedo os cartões que lhe deram mais trabalho.
 
-As funcionalidades de IA precisam de uma ligação à internet e têm limites de utilização. O Premium oferece limites mais elevados.
+Crie cartões de vocabulário
+Recolha as palavras que encontra nas aulas, numa leitura ou numa conversa. Acrescente exemplos ou comece com um baralho do catálogo do Nibomo, como o de verbos frásicos em inglês ou o de vocabulário básico de espanhol.
+
+Reveja os seus flashcards offline
+Abra os cartões guardados, por exemplo nos transportes ou no intervalo entre aulas. As revisões são sincronizadas quando volta a ter ligação à Internet.
+
+As funcionalidades de IA precisam de ligação à Internet.
 
 ## Malay - ms
 
 ### App Name
 
-Nibomo: Kad Imbas AI
+Nibomo: Kad Imbas dengan AI
 
 ### Short Description
 
-Kad imbas AI daripada nota dan foto untuk peperiksaan dan latihan kosa kata
+Buat kad imbas daripada nota dan gambar. Ulang kaji kad di luar talian.
 
 ### Full Description
 
-Buat kad imbas daripada bahan pembelajaran anda sendiri untuk bersedia menghadapi peperiksaan dan berlatih menggunakan kosa kata. Gunakan AI untuk menukar nota dan foto kepada soalan dan jawapan, atau tulis kad anda sendiri.
+Buat kad imbas daripada nota, gambar atau topik yang ingin anda pelajari. Dengan Nibomo, anda boleh membina set kad sendiri, mengulang kaji dengan pengulangan berjarak, dan terus belajar di luar talian selepas kad disimpan.
 
-Latih daya ingatan secara aktif: cuba jawab sebelum melihat bahagian belakang setiap kad. Nibomo menggunakan pengulangan berjarak untuk menjadualkan ulang kaji mengikut sejauh mana anda mengingati jawapan.
+Tukar bahan belajar kepada kad imbas
+Tampal nota kelas, lampirkan gambar halaman buku nota atau nyatakan topik yang ingin anda pelajari. Minta AI merangka soalan dan jawapan berdasarkan takrif, contoh atau fakta penting. Sunting draf sebelum belajar atau tulis kad anda sendiri.
 
-- Minta AI menjelaskan jawapan, menambah contoh dan menambah baik kad anda.
-- Ulang kaji kad anda di luar talian.
-- Susun mata pelajaran dengan dek dan teg. Gunakan carian dan penapis untuk mencari kad.
-- Log masuk dengan e-mel untuk menyegerakkan bahan pembelajaran antara peranti apabila dalam talian.
+Ingat pelajaran dengan pengulangan berjarak
+Baca soalan dan cuba ingat jawapannya. Balikkan kad, kemudian nilai sejauh mana anda mengingati jawapan itu. Nibomo menjadualkan sesi seterusnya berdasarkan penilaian anda. Kad yang sukar muncul semula lebih awal. Kad yang sudah anda kuasai muncul selepas sela yang lebih panjang.
 
-Ciri AI memerlukan sambungan internet dan mempunyai had penggunaan. Premium menawarkan had yang lebih tinggi.
+Latih kosa kata dengan kad imbas
+Buat kad untuk perkataan yang anda temui di kelas, dalam buku atau semasa berbual. Tambah contoh ayat sendiri untuk mengingat cara perkataan itu digunakan. Cuba set kad sedia ada daripada katalog Nibomo, seperti kata kerja frasa bahasa Inggeris atau kosa kata bahasa Sepanyol untuk pemula.
+
+Ulang kaji kad imbas di luar talian
+Buka kad yang telah disimpan semasa dalam perjalanan atau apabila tiada internet. Log masuk ke akaun anda untuk menyegerakkan kemajuan antara peranti apabila kembali dalam talian.
+
+Ciri AI memerlukan sambungan internet.
 
 ## Malay (Malaysia) - ms-MY
 
 ### App Name
 
-Nibomo: Kad Imbas AI
+Nibomo: Kad Imbas dengan AI
 
 ### Short Description
 
-Kad imbas AI daripada nota dan foto untuk peperiksaan dan latihan kosa kata
+Buat kad imbas daripada nota dan gambar. Ulang kaji kad di luar talian.
 
 ### Full Description
 
-Buat kad imbas daripada bahan pembelajaran anda sendiri untuk bersedia menghadapi peperiksaan dan berlatih menggunakan kosa kata. Gunakan AI untuk menukar nota dan foto kepada soalan dan jawapan, atau tulis kad anda sendiri.
+Buat kad imbas daripada nota, gambar atau topik yang ingin anda pelajari. Dengan Nibomo, anda boleh membina set kad sendiri, mengulang kaji dengan pengulangan berjarak, dan terus belajar di luar talian selepas kad disimpan.
 
-Latih daya ingatan secara aktif: cuba jawab sebelum melihat bahagian belakang setiap kad. Nibomo menggunakan pengulangan berjarak untuk menjadualkan ulang kaji mengikut sejauh mana anda mengingati jawapan.
+Tukar bahan belajar kepada kad imbas
+Tampal nota kelas, lampirkan gambar halaman buku nota atau nyatakan topik yang ingin anda pelajari. Minta AI merangka soalan dan jawapan berdasarkan takrif, contoh atau fakta penting. Sunting draf sebelum belajar atau tulis kad anda sendiri.
 
-- Minta AI menjelaskan jawapan, menambah contoh dan menambah baik kad anda.
-- Ulang kaji kad anda di luar talian.
-- Susun mata pelajaran dengan dek dan teg. Gunakan carian dan penapis untuk mencari kad.
-- Log masuk dengan e-mel untuk menyegerakkan bahan pembelajaran antara peranti apabila dalam talian.
+Ingat pelajaran dengan pengulangan berjarak
+Baca soalan dan cuba ingat jawapannya. Balikkan kad, kemudian nilai sejauh mana anda mengingati jawapan itu. Nibomo menjadualkan sesi seterusnya berdasarkan penilaian anda. Kad yang sukar muncul semula lebih awal. Kad yang sudah anda kuasai muncul selepas sela yang lebih panjang.
 
-Ciri AI memerlukan sambungan internet dan mempunyai had penggunaan. Premium menawarkan had yang lebih tinggi.
+Latih kosa kata dengan kad imbas
+Buat kad untuk perkataan yang anda temui di kelas, dalam buku atau semasa berbual. Tambah contoh ayat sendiri untuk mengingat cara perkataan itu digunakan. Cuba set kad sedia ada daripada katalog Nibomo, seperti kata kerja frasa bahasa Inggeris atau kosa kata bahasa Sepanyol untuk pemula.
+
+Ulang kaji kad imbas di luar talian
+Buka kad yang telah disimpan semasa dalam perjalanan atau apabila tiada internet. Log masuk ke akaun anda untuk menyegerakkan kemajuan antara peranti apabila kembali dalam talian.
+
+Ciri AI memerlukan sambungan internet.
