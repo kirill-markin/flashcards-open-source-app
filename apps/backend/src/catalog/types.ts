@@ -14,7 +14,7 @@ export type CatalogPackageStatus = (typeof catalogPackageStatuses)[number];
 
 /**
  * Audience locales a catalog package may declare in `languageTags`. Intentionally mirrors the
- * marketing website's `src/lib/localeConfig.ts`, which derives a deck's canonical route and its
+ * marketing website's `src/lib/publicCatalogAudience.ts`, which drives a deck's canonical route and its
  * schema.org `inLanguage` from these tags, and must be changed together with it.
  */
 export const catalogAudienceLocales = [
@@ -47,8 +47,10 @@ export const catalogAudienceLocales = [
   "lv",
   "ml",
   "mr",
+  "ms",
   "nb",
   "nl",
+  "or",
   "pa",
   "pl",
   "pt",
@@ -66,6 +68,7 @@ export const catalogAudienceLocales = [
   "ur",
   "vi",
   "zh",
+  "zh-hant",
   "zu",
 ] as const;
 
