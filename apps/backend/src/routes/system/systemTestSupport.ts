@@ -113,6 +113,15 @@ export function createProgressSummaryResponse(): ProgressSummaryResponse {
         nextCreditRequiredUnits: 10,
       },
     },
+    insights: {
+      totalReviews: 120,
+      bestDayBeforeToday: { date: "2026-04-10", reviewCount: 30 },
+      bestWeekBeforeToday: { endDate: "2026-04-12", reviewCount: 90 },
+      cardsMetLast7Days: 5,
+      relearnedLast7Days: 2,
+      secondsPerDueCard: null,
+      studySecondsByDay: null,
+    },
     generatedAt: "2026-04-17T10:11:12.000Z",
     reviewHistoryWatermarks: [
       { workspaceId: "workspace-1", reviewSequenceId: 42 },

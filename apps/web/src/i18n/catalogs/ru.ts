@@ -330,9 +330,25 @@ export const ruCatalog = {
     reviewsBreakdown: {
       legendLabel: "Оценки повторений",
     },
+    reviewsPace: {
+      lastSevenDays: "Последние 7 дней · {{count}} в день",
+      studyTime: "Время занятий · ≈ {{count}} мин",
+    },
+    records: {
+      title: "Рекорды",
+      bestDay: "Лучший день",
+      bestWeek: "Лучшая неделя",
+      longestStreak: "Самая длинная серия",
+      totalReviews: "Всего повторений",
+      lastSevenDays: "Последние 7 дней",
+      cardsMet: "Новые карточки",
+      relearned: "Выучено заново",
+    },
     reviewSchedule: {
       title: "Расписание повторений",
       totalCards: "Всего карточек: {{count}}",
+      dueToday: "На сегодня {{count}}",
+      dueTodayWithMinutes: "На сегодня {{count}} · ≈ {{minutes}} мин",
       legendLabel: "Интервалы расписания повторений",
       buckets: {
         new: "Новые",

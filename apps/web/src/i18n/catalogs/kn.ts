@@ -323,9 +323,25 @@ const knCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "ಪುನರಾವರ್ತನೆ ಮೌಲ್ಯಮಾಪನಗಳು",
     },
+    reviewsPace: {
+      lastSevenDays: "ಕಳೆದ 7 ದಿನಗಳು · ದಿನಕ್ಕೆ {{count}}",
+      studyTime: "ಅಧ್ಯಯನ ಸಮಯ · ≈ {{count}} ನಿಮಿಷ",
+    },
+    records: {
+      title: "ದಾಖಲೆಗಳು",
+      bestDay: "ಅತ್ಯುತ್ತಮ ದಿನ",
+      bestWeek: "ಅತ್ಯುತ್ತಮ ವಾರ",
+      longestStreak: "ಅತಿ ಉದ್ದದ ಸರಣಿ",
+      totalReviews: "ಒಟ್ಟು ಪುನರಾವರ್ತನೆಗಳು",
+      lastSevenDays: "ಕಳೆದ 7 ದಿನಗಳು",
+      cardsMet: "ಹೊಸ ಕಾರ್ಡ್‌ಗಳು",
+      relearned: "ಮತ್ತೆ ಕಲಿತವು",
+    },
     reviewSchedule: {
       title: "ಪುನರಾವರ್ತನೆ ವೇಳಾಪಟ್ಟಿ",
       totalCards: "ಒಟ್ಟು ಕಾರ್ಡ್‌ಗಳು: {{count}}",
+      dueToday: "ಇಂದು ಬಾಕಿ {{count}}",
+      dueTodayWithMinutes: "ಇಂದು ಬಾಕಿ {{count}} · ≈ {{minutes}} ನಿಮಿಷ",
       legendLabel: "ಪುನರಾವರ್ತನೆ ವೇಳಾಪಟ್ಟಿಯ ವಿಭಾಗಗಳು",
       buckets: {
         new: "ಹೊಸದು",

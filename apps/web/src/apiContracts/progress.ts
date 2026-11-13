@@ -23,6 +23,7 @@ import type {
   ProgressStreakLeaderboardRow,
   ProgressStreakLeaderboardStatus,
   ProgressStreakLeaderboardViewer,
+  ProgressInsights,
   ProgressSummaryPayload,
 } from "../types";
 import {
@@ -50,6 +51,7 @@ import {
   parseEnum,
   parseLiteral,
   parseNullableString,
+  parseNullableNumber,
   parseNumber,
   parseObject,
   parseOptionalField,
@@ -318,6 +320,108 @@ export function parseProgressSeriesResponse(value: unknown, endpoint: string): P
   };
 }
 
+function parseNullableProgressBestDay(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressInsights["bestDayBeforeToday"] {
+  if (value === null) {
+    return null;
+  }
+
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    date: parseRequiredField(objectValue, "date", endpoint, path, parseIsoLocalDateString),
+    reviewCount: parseRequiredField(objectValue, "reviewCount", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseNullableProgressBestWeek(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressInsights["bestWeekBeforeToday"] {
+  if (value === null) {
+    return null;
+  }
+
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    endDate: parseRequiredField(objectValue, "endDate", endpoint, path, parseIsoLocalDateString),
+    reviewCount: parseRequiredField(objectValue, "reviewCount", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseProgressStudySecondsDay(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): NonNullable<ProgressInsights["studySecondsByDay"]>[number] {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    date: parseRequiredField(objectValue, "date", endpoint, path, parseIsoLocalDateString),
+    seconds: parseRequiredField(objectValue, "seconds", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseNullableProgressStudySecondsByDay(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressInsights["studySecondsByDay"] {
+  if (value === null) {
+    return null;
+  }
+
+  return parseArray(value, endpoint, path, parseProgressStudySecondsDay);
+}
+
+function parseNullableNonNegativeNumber(value: unknown, endpoint: string, path: string): number | null {
+  const numberValue = parseNullableNumber(value, endpoint, path);
+  if (numberValue !== null && numberValue < 0) {
+    throw new ApiContractError(endpoint, describePath(path), "a non-negative number or null");
+  }
+
+  return numberValue;
+}
+
+export function parseProgressInsights(value: unknown, endpoint: string, path: string): ProgressInsights {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    totalReviews: parseRequiredField(objectValue, "totalReviews", endpoint, path, parseNonNegativeSafeInteger),
+    bestDayBeforeToday: parseRequiredField(
+      objectValue,
+      "bestDayBeforeToday",
+      endpoint,
+      path,
+      parseNullableProgressBestDay,
+    ),
+    bestWeekBeforeToday: parseRequiredField(
+      objectValue,
+      "bestWeekBeforeToday",
+      endpoint,
+      path,
+      parseNullableProgressBestWeek,
+    ),
+    cardsMetLast7Days: parseRequiredField(objectValue, "cardsMetLast7Days", endpoint, path, parseNonNegativeSafeInteger),
+    relearnedLast7Days: parseRequiredField(
+      objectValue,
+      "relearnedLast7Days",
+      endpoint,
+      path,
+      parseNonNegativeSafeInteger,
+    ),
+    secondsPerDueCard: parseRequiredField(objectValue, "secondsPerDueCard", endpoint, path, parseNullableNonNegativeNumber),
+    studySecondsByDay: parseRequiredField(
+      objectValue,
+      "studySecondsByDay",
+      endpoint,
+      path,
+      parseNullableProgressStudySecondsByDay,
+    ),
+  };
+}
+
 export function parseProgressSummaryResponse(value: unknown, endpoint: string): ProgressSummaryPayload {
   const objectValue = parseObject(value, endpoint, "");
 
@@ -330,6 +434,8 @@ export function parseProgressSummaryResponse(value: unknown, endpoint: string): 
       "",
     ),
     summary: parseRequiredField(objectValue, "summary", endpoint, "", parseProgressSummary),
+    // Older servers omit insights.
+    insights: parseOptionalField(objectValue, "insights", endpoint, "", parseProgressInsights) ?? null,
   };
 }
 

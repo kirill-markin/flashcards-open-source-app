@@ -323,9 +323,25 @@ export const jaCatalog = {
     reviewsBreakdown: {
       legendLabel: "レビュー評価",
     },
+    reviewsPace: {
+      lastSevenDays: "過去7日間 · 1日{{count}}回",
+      studyTime: "学習時間 · ≈ {{count}}分",
+    },
+    records: {
+      title: "記録",
+      bestDay: "最高の日",
+      bestWeek: "最高の週",
+      longestStreak: "最長連続日数",
+      totalReviews: "総復習数",
+      lastSevenDays: "過去7日間",
+      cardsMet: "新しいカード",
+      relearned: "再学習",
+    },
     reviewSchedule: {
       title: "復習スケジュール",
       totalCards: "合計カード数: {{count}}",
+      dueToday: "今日の期限 {{count}}",
+      dueTodayWithMinutes: "今日の期限 {{count}} · ≈ {{minutes}}分",
       legendLabel: "復習スケジュールの区分",
       buckets: {
         new: "新規",

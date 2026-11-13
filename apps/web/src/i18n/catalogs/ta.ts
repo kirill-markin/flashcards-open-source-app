@@ -323,9 +323,25 @@ const taCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "மீள்பயிற்சி மதிப்பீடுகள்",
     },
+    reviewsPace: {
+      lastSevenDays: "கடந்த 7 நாட்கள் · நாளுக்கு {{count}}",
+      studyTime: "படிப்பு நேரம் · ≈ {{count}} நிமி",
+    },
+    records: {
+      title: "சாதனைகள்",
+      bestDay: "சிறந்த நாள்",
+      bestWeek: "சிறந்த வாரம்",
+      longestStreak: "நீண்ட தொடர்",
+      totalReviews: "மொத்த மீள்பார்வைகள்",
+      lastSevenDays: "கடந்த 7 நாட்கள்",
+      cardsMet: "புதிய அட்டைகள்",
+      relearned: "மீண்டும் கற்றவை",
+    },
     reviewSchedule: {
       title: "மீள்பயிற்சி அட்டவணை",
       totalCards: "மொத்த அட்டைகள்: {{count}}",
+      dueToday: "இன்று நிலுவை {{count}}",
+      dueTodayWithMinutes: "இன்று நிலுவை {{count}} · ≈ {{minutes}} நிமி",
       legendLabel: "மீள்பயிற்சி அட்டவணைப் பிரிவுகள்",
       buckets: {
         new: "புதியவை",

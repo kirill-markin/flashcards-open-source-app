@@ -323,9 +323,25 @@ const nlCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Beoordelingen van herhalingen",
     },
+    reviewsPace: {
+      lastSevenDays: "Laatste 7 dagen · {{count}} per dag",
+      studyTime: "Studietijd · ≈ {{count}} min",
+    },
+    records: {
+      title: "Records",
+      bestDay: "Beste dag",
+      bestWeek: "Beste week",
+      longestStreak: "Langste reeks",
+      totalReviews: "Herhalingen totaal",
+      lastSevenDays: "Laatste 7 dagen",
+      cardsMet: "Nieuwe kaarten",
+      relearned: "Opnieuw geleerd",
+    },
     reviewSchedule: {
       title: "Herhalingsplanning",
       totalCards: "Totaal aantal kaarten: {{count}}",
+      dueToday: "Vandaag te herhalen {{count}}",
+      dueTodayWithMinutes: "Vandaag te herhalen {{count}} · ≈ {{minutes}} min",
       legendLabel: "Categorieën in de herhalingsplanning",
       buckets: {
         new: "Nieuw",

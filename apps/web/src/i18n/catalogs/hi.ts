@@ -323,9 +323,25 @@ const hiCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "रिव्यू रेटिंग",
     },
+    reviewsPace: {
+      lastSevenDays: "पिछले 7 दिन · {{count}} प्रतिदिन",
+      studyTime: "पढ़ाई का समय · ≈ {{count}} मिनट",
+    },
+    records: {
+      title: "रिकॉर्ड",
+      bestDay: "सबसे अच्छा दिन",
+      bestWeek: "सबसे अच्छा सप्ताह",
+      longestStreak: "सबसे लंबा सिलसिला",
+      totalReviews: "कुल रिव्यू",
+      lastSevenDays: "पिछले 7 दिन",
+      cardsMet: "नए कार्ड",
+      relearned: "फिर से सीखे",
+    },
     reviewSchedule: {
       title: "रिव्यू शेड्यूल",
       totalCards: "कुल कार्ड: {{count}}",
+      dueToday: "आज बाकी {{count}}",
+      dueTodayWithMinutes: "आज बाकी {{count}} · ≈ {{minutes}} मिनट",
       legendLabel: "रिव्यू शेड्यूल बकेट",
       buckets: {
         new: "नए",

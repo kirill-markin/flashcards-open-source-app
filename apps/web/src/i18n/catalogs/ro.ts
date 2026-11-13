@@ -330,9 +330,25 @@ const roCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Evaluările recapitulărilor",
     },
+    reviewsPace: {
+      lastSevenDays: "Ultimele 7 zile · {{count}} pe zi",
+      studyTime: "Timp de studiu · ≈ {{count}} min",
+    },
+    records: {
+      title: "Recorduri",
+      bestDay: "Cea mai bună zi",
+      bestWeek: "Cea mai bună săptămână",
+      longestStreak: "Cea mai lungă serie",
+      totalReviews: "Total recapitulări",
+      lastSevenDays: "Ultimele 7 zile",
+      cardsMet: "Carduri noi",
+      relearned: "Reînvățate",
+    },
     reviewSchedule: {
       title: "Programul recapitulărilor",
       totalCards: "Total fișe: {{count}}",
+      dueToday: "De recapitulat azi {{count}}",
+      dueTodayWithMinutes: "De recapitulat azi {{count}} · ≈ {{minutes}} min",
       legendLabel: "Intervalele programului de recapitulare",
       buckets: {
         new: "Noi",

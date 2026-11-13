@@ -323,9 +323,25 @@ const mrCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "उजळणीची रेटिंग",
     },
+    reviewsPace: {
+      lastSevenDays: "मागील 7 दिवस · दिवसाला {{count}}",
+      studyTime: "अभ्यासाचा वेळ · ≈ {{count}} मिनिटे",
+    },
+    records: {
+      title: "विक्रम",
+      bestDay: "सर्वोत्तम दिवस",
+      bestWeek: "सर्वोत्तम आठवडा",
+      longestStreak: "सर्वात मोठी मालिका",
+      totalReviews: "एकूण उजळण्या",
+      lastSevenDays: "मागील 7 दिवस",
+      cardsMet: "नवी कार्डे",
+      relearned: "पुन्हा शिकलेली",
+    },
     reviewSchedule: {
       title: "उजळणीचे वेळापत्रक",
       totalCards: "एकूण कार्डे: {{count}}",
+      dueToday: "आज बाकी {{count}}",
+      dueTodayWithMinutes: "आज बाकी {{count}} · ≈ {{minutes}} मिनिटे",
       legendLabel: "उजळणी वेळापत्रकाचे गट",
       buckets: {
         new: "नवीन",

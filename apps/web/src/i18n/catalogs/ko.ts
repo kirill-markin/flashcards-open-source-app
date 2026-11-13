@@ -323,9 +323,25 @@ const koCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "복습 평가",
     },
+    reviewsPace: {
+      lastSevenDays: "최근 7일 · 하루 {{count}}회",
+      studyTime: "학습 시간 · ≈ {{count}}분",
+    },
+    records: {
+      title: "기록",
+      bestDay: "최고의 날",
+      bestWeek: "최고의 주",
+      longestStreak: "최장 연속 기록",
+      totalReviews: "총 복습 수",
+      lastSevenDays: "최근 7일",
+      cardsMet: "새 카드",
+      relearned: "다시 익힘",
+    },
     reviewSchedule: {
       title: "복습 일정",
       totalCards: "전체 카드: {{count}}",
+      dueToday: "오늘 예정 {{count}}",
+      dueTodayWithMinutes: "오늘 예정 {{count}} · ≈ {{minutes}}분",
       legendLabel: "복습 일정 구간",
       buckets: {
         new: "신규",

@@ -412,6 +412,17 @@ export function createProgressExecutor(
         return createQueryResult<ReviewScheduleCountRow>(rows) as unknown as pg.QueryResult<Row>;
       }
 
+      // Progress insights queries (loaders/insights.ts); these tests cover the summary around them.
+      if (text.includes("AS lifetime_review_count") || text.includes("AS due_card_count")) {
+        return createQueryResult<QueryResultRow>([]) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (text.includes("AS cards_met_count")) {
+        return createQueryResult<QueryResultRow>([
+          { cards_met_count: 0, relearned_count: 0 },
+        ]) as unknown as pg.QueryResult<Row>;
+      }
+
       throw new Error(`Unexpected progress query: ${text}`);
     },
   };

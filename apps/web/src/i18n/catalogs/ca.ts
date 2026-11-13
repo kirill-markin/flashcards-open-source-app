@@ -323,9 +323,25 @@ const caCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Valoracions dels repassos",
     },
+    reviewsPace: {
+      lastSevenDays: "Últims 7 dies · {{count}} al dia",
+      studyTime: "Temps d'estudi · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rècords",
+      bestDay: "Millor dia",
+      bestWeek: "Millor setmana",
+      longestStreak: "Ratxa més llarga",
+      totalReviews: "Repassos totals",
+      lastSevenDays: "Últims 7 dies",
+      cardsMet: "Targetes noves",
+      relearned: "Reapreses",
+    },
     reviewSchedule: {
       title: "Calendari de repàs",
       totalCards: "Targetes totals: {{count}}",
+      dueToday: "Pendents avui {{count}}",
+      dueTodayWithMinutes: "Pendents avui {{count}} · ≈ {{minutes}} min",
       legendLabel: "Trams del calendari de repàs",
       buckets: {
         new: "Noves",
