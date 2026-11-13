@@ -62,8 +62,9 @@ Manual XCUITest entrypoints:
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewScreenshotsTests.swift`
 - `Flashcards Open Source App UI Tests/MarketingScreenshotsTests/testGenerateMarketingScreenshots`
 
-Shared screenshot support:
+Screenshot support:
 
+- `apps/ios/Flashcards/MarketingScreenshotShared/MarketingScreenshotFixtureCatalog.swift`
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingManualScreenshotTestCase.swift`
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift`
 - `apps/ios/Flashcards/Flashcards/Cloud/Store/UITestSupport/FlashcardsStore+CloudUITest.swift`
@@ -74,23 +75,22 @@ What each layer does:
 - `capture-ios-marketing-screenshots.sh` runs the supported unified marketing scenario and verifies screenshots 1, 2, 3, 4, and 5 in one pass.
 - `build-ios-marketing-materials.sh` can regenerate raw localized screenshots, compose the horizontal derived PNGs, and optimize the final files.
 - `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
-- `MarketingScreenshotFixtures.swift` holds the test-side locale catalog (`MarketingScreenshotLocaleCatalog`): the supported locale list, the locale alias map, and the localized fixture card text. The generated output filenames come from the `MarketingScreenshotLocaleFixture` file-name properties and the screenshot slug constants on `MarketingScreenshotFixture`.
-- `FlashcardsStore+CloudUITest.swift` holds the app-side mirror of that catalog (`FlashcardsUITestMarketingFixtures`), seeds the localized UI-test content used by the screenshot flows, and defines the dedicated guest-session cleanup launch scenario used at the end of each manual test.
+- `MarketingScreenshotFixtureCatalog.swift` resolves capture tags and aliases and holds the localized card fixtures shared by the app and UI tests.
+- `MarketingScreenshotFixtures.swift` holds the Apple launch locales, unsent AI drafts, and screenshot filenames.
+- `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content and defines the dedicated guest-session cleanup launch scenario.
 
-Keep locale codes, aliases, and shared seeded card text and tags identical in the
-two Swift catalogs. The unsent AI drafts belong only to the test-side catalog.
 The shell layer also owns locale maps: `capture-ios-marketing-screenshot.sh`
 has `supported_locales`, `iphone_only_locales`, and `canonicalize_locale`, and
 `build-ios-marketing-materials.sh` has another `canonicalize_locale`.
 
-Add every capture tag to both Swift catalogs, to `supported_locales`, and to both
-`canonicalize_locale` maps in the same change. Add it to `iphone_only_locales` if
-and only if Apple has no listing locale for it, in which case it must stay out of
-the uploader's
+Add every capture tag to the shared Swift catalog, the UI test launch fixtures,
+`supported_locales`, and both `canonicalize_locale` maps in the same change. Add
+it to `iphone_only_locales` if and only if Apple has no listing locale for it, in
+which case it must stay out of the uploader's
 [locale mapping](../../../scripts/ios/app-store-localization-inputs.mts); every
 other tag belongs in that map. Store IDs differ from some capture tags. Missing
-shell support fails argument validation; missing app-side support fails fixture
-seeding before the first screenshot.
+shell support fails argument validation. Missing Swift fixture data fails before
+the first screenshot.
 
 ## Guest cloud cleanup lifecycle
 

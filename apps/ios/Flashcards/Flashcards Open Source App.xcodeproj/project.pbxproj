@@ -302,6 +302,11 @@
 			path = WatchShared;
 			sourceTree = "<group>";
 		};
+		A10000000000000000000087 /* MarketingScreenshotShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MarketingScreenshotShared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -361,6 +366,7 @@
 				A10000000000000000000062 /* WidgetShared */,
 				A10000000000000000000071 /* FlashcardsWatch */,
 				A10000000000000000000072 /* WatchShared */,
+				A10000000000000000000087 /* MarketingScreenshotShared */,
 				A10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -411,6 +417,7 @@
 				A1000000000000000000000F /* Flashcards */,
 				A10000000000000000000062 /* WidgetShared */,
 				A10000000000000000000072 /* WatchShared */,
+				A10000000000000000000087 /* MarketingScreenshotShared */,
 			);
 			name = "Flashcards Open Source App";
 			packageProductDependencies = (
@@ -461,6 +468,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				A10000000000000000000031 /* FlashcardsUITests */,
+				A10000000000000000000087 /* MarketingScreenshotShared */,
 			);
 			name = "Flashcards Open Source App UI Tests";
 			productName = "Flashcards Open Source App UI Tests";
