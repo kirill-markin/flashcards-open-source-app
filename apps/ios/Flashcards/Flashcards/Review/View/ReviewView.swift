@@ -18,11 +18,6 @@ private enum ReviewCardScrollTarget: Hashable {
     case back
 }
 
-private struct ReviewFilterPresentationContext: Equatable {
-    let workspaceId: String?
-    let committedFilter: ReviewFilter
-}
-
 struct ReviewView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locale) private var locale
@@ -64,9 +59,7 @@ struct ReviewView: View {
     @State var screenErrorMessage: String = ""
     @State var reviewTagSummaries: [WorkspaceTagSummary] = []
     @State var totalCardsCount: Int = 0
-    @State var isReviewFilterPopoverPresented: Bool = false
-    @State var reviewFilterDraft: ReviewFilter = .allCards
-    @State private var reviewFilterPresentationContext: ReviewFilterPresentationContext? = nil
+    @State private var reviewFilterEditSession = ReviewFilterEditSession()
     @State private var reviewFilterButtonFrame: CGRect = .zero
     @State private var reviewTagFilterRequest: ReviewTagFilterRequest? = nil
     #if targetEnvironment(macCatalyst)
@@ -86,12 +79,15 @@ struct ReviewView: View {
         self.reviewFilterTitle(reviewFilter: store.selectedReviewFilter)
     }
 
-    /// The open filter's tag rows apply on close, so the button names that draft at once, as a deck choice does.
+    private var reviewFilterScope: ReviewFilterEditSession.Scope {
+        ReviewFilterEditSession.Scope(
+            workspaceId: self.store.workspace?.workspaceId,
+            appliedFilter: self.store.selectedReviewFilter
+        )
+    }
+
     private var reviewFilterButtonTitle: String {
-        guard self.isReviewFilterPopoverPresented, self.reviewFilterPresentationContext != nil else {
-            return self.selectedReviewFilterTitle
-        }
-        return self.reviewFilterTitle(reviewFilter: self.reviewFilterDraft)
+        self.reviewFilterTitle(reviewFilter: self.reviewFilterEditSession.displayedFilter(in: self.reviewFilterScope))
     }
 
     private func reviewFilterTitle(reviewFilter: ReviewFilter) -> String {
@@ -198,26 +194,23 @@ struct ReviewView: View {
             }
         }
         .onChange(of: [self.showsFilterInReviewColumn, self.usesCompactCompanionToolbar]) { _, _ in
-            // Moving the control commits the draft like an ordinary outside tap.
-            if self.isReviewFilterPopoverPresented {
-                self.finalizeReviewFilterDraft()
-                self.isReviewFilterPopoverPresented = false
+            self.finishReviewFiltering()
+        }
+        .onChange(of: self.reviewFilterEditSession.isPresented) { _, _ in
+            if self.reviewFilterEditSession.isPresented == false {
+                self.finishReviewFiltering()
             }
         }
-        .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
-            if isPresented == false {
-                self.finalizeReviewFilterDraft()
-            }
+        .onChange(of: self.reviewFilterScope) { _, _ in
+            self.reviewFilterEditSession.discardIfScopeChanged(to: self.reviewFilterScope)
         }
         .onChange(of: store.workspace?.workspaceId) { _, _ in
             self.textSelection = nil
-            self.dismissReviewFilterPopoverIfContextDiverged()
         }
         .onChange(of: store.selectedReviewFilter, initial: true) { previousFilter, filter in
             if previousFilter != filter {
                 self.textSelection = nil
                 self.reviewSpeechController.stopSpeech()
-                self.dismissReviewFilterPopoverIfContextDiverged()
             }
             // The model outlives this view, so a filter changed while Review was off screen resets it here.
             if self.reviewScreen.presentedReviewFilter != filter {
@@ -306,14 +299,14 @@ struct ReviewView: View {
             GeometryReader { geometry in
                 Color.clear
                     .popover(
-                        isPresented: self.$isReviewFilterPopoverPresented,
+                        isPresented: self.$reviewFilterEditSession.isPresented,
                         attachmentAnchor: .rect(.rect(self.reviewFilterButtonFrame.offsetBy(
                             dx: -geometry.frame(in: .global).minX,
                             dy: -geometry.frame(in: .global).minY
                         )))
                     ) {
                         ReviewFilterPopover(
-                            reviewFilter: self.$reviewFilterDraft,
+                            reviewFilter: self.$reviewFilterEditSession.draft,
                             decks: store.decks,
                             tagSummaries: self.reviewTagSummaries,
                             onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
@@ -450,9 +443,9 @@ struct ReviewView: View {
             },
             perform: { context in
                 self.beginReviewFiltering()
-                context.presentPopover(isPresented: self.$isReviewFilterPopoverPresented) {
+                context.presentPopover(isPresented: self.$reviewFilterEditSession.isPresented) {
                     ReviewFilterPopover(
-                        reviewFilter: self.$reviewFilterDraft, decks: self.store.decks,
+                        reviewFilter: self.$reviewFilterEditSession.draft, decks: self.store.decks,
                         tagSummaries: self.reviewTagSummaries,
                         onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks,
                         onSingleChoice: self.dismissReviewFilterPopover
@@ -803,45 +796,19 @@ struct ReviewView: View {
         #endif
     }
 
-    private func finalizeReviewFilterDraft() {
-        guard let presentationContext = self.reviewFilterPresentationContext else {
-            return
+    private func finishReviewFiltering() {
+        if let candidate = self.reviewFilterEditSession.finish(in: self.reviewFilterScope) {
+            self.store.selectReviewFilter(reviewFilter: candidate)
         }
-        self.reviewFilterPresentationContext = nil
-
-        guard presentationContext.workspaceId == store.workspace?.workspaceId,
-              presentationContext.committedFilter == store.selectedReviewFilter,
-              presentationContext.committedFilter != self.reviewFilterDraft else {
-            return
-        }
-
-        store.selectReviewFilter(reviewFilter: self.reviewFilterDraft)
     }
 
-    private func dismissReviewFilterPopoverIfContextDiverged() {
-        guard self.isReviewFilterPopoverPresented,
-              let presentationContext = self.reviewFilterPresentationContext,
-              presentationContext.workspaceId != store.workspace?.workspaceId
-                || presentationContext.committedFilter != store.selectedReviewFilter else {
-            return
-        }
-
-        // The committed filter moved underneath the open popover, so the draft is built on a stale
-        // snapshot and is discarded instead of applied; reopening the menu re-seeds it. Clearing the
-        // context first also keeps the finalize on popover dismissal a no-op.
-        self.reviewFilterPresentationContext = nil
-        self.isReviewFilterPopoverPresented = false
-    }
-
-    /// Closing commits the draft through the presentation change, on both the popover and the Mac toolbar path.
     private func dismissReviewFilterPopover() {
-        self.isReviewFilterPopoverPresented = false
+        self.reviewFilterEditSession.isPresented = false
     }
 
     private func dismissReviewFilterPopoverAndOpenDecks() {
-        self.finalizeReviewFilterDraft()
-        self.isReviewFilterPopoverPresented = false
-        navigation.openLibrary(destination: .decks)
+        self.finishReviewFiltering()
+        self.navigation.openLibrary(destination: .decks)
     }
 
     private func openLibraryTags() {
@@ -905,10 +872,7 @@ struct ReviewView: View {
     }
 
     private func beginReviewFiltering() {
-        let committedFilter = self.store.selectedReviewFilter
-        self.reviewFilterDraft = committedFilter
-        self.reviewFilterPresentationContext = ReviewFilterPresentationContext(workspaceId: self.store.workspace?.workspaceId, committedFilter: committedFilter)
-        self.isReviewFilterPopoverPresented = true
+        self.reviewFilterEditSession.open(in: self.reviewFilterScope)
     }
 
     private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
@@ -1231,7 +1195,7 @@ struct ReviewView: View {
             && self.isEditorPresented == false
             && self.textSelection == nil
             && self.isQueuePreviewPresented == false
-            && self.isReviewFilterPopoverPresented == false
+            && self.reviewFilterEditSession.isPresented == false
             && self.reviewTagFilterRequest == nil
             && self.store.reviewSubmissionFailure == nil
             && self.store.isReviewHardReminderPresented == false
@@ -1255,7 +1219,7 @@ struct ReviewView: View {
             && self.isEditorPresented == false
             && self.textSelection == nil
             && self.isQueuePreviewPresented == false
-            && self.isReviewFilterPopoverPresented == false
+            && self.reviewFilterEditSession.isPresented == false
             && self.reviewTagFilterRequest == nil
             && self.shouldShowReviewLoader == false
             && self.store.reviewSubmissionFailure == nil
