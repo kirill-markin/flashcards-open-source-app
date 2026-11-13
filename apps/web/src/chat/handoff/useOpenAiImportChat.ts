@@ -10,7 +10,6 @@ import { buildWorkspaceRoute, chatRoute } from "../../routes";
 import { useOptionalChatDraft } from "../composer/drafts/ChatDraftContext";
 import type { ChatDraftContent } from "../composer/drafts/chatDraftStorage";
 import { useOptionalChatSession } from "../sessionController";
-import { useAiImportHandoff } from "./AiImportHandoffContext";
 
 type AiImportRequest = Readonly<{
   workspaceId: string;
@@ -30,7 +29,6 @@ export function useOpenAiImportChat(): OpenAiImportChat {
   const navigate = useNavigate();
   const draftContext = useOptionalChatDraft();
   const session = useOptionalChatSession();
-  const handoff = useAiImportHandoff();
   const workspaceId = activeWorkspace?.workspaceId ?? null;
   const [request, setRequest] = useState<AiImportRequest | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -44,7 +42,7 @@ export function useOpenAiImportChat(): OpenAiImportChat {
       return;
     }
 
-    if (workspaceId === null || !isSessionVerified || draftContext === null || session === null || handoff === null) {
+    if (workspaceId === null || !isSessionVerified || draftContext === null || session === null) {
       setErrorMessage(t("chatPanel.transientErrors.remoteNotReady"));
       return;
     }
@@ -60,7 +58,7 @@ export function useOpenAiImportChat(): OpenAiImportChat {
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
       if (nextRequest.workspaceId !== workspaceId || !isSessionVerified
-        || draftContext === null || session === null || handoff === null) {
+        || draftContext === null || session === null) {
         setErrorMessage(t("chatPanel.transientErrors.remoteNotReady"));
         return;
       }
@@ -84,13 +82,11 @@ export function useOpenAiImportChat(): OpenAiImportChat {
         return;
       }
 
-      const draftUpdatedAt = draftContext.startSessionBoundDraft(sessionId, nextRequest.draft);
-      if (draftUpdatedAt === null) {
+      if (!draftContext.stageAiImportDraft(sessionId, nextRequest.draft)) {
         setErrorMessage(t("chatPanel.transientErrors.remoteNotReady"));
         return;
       }
 
-      handoff.arm({ workspaceId: nextRequest.workspaceId, sessionId, draftUpdatedAt });
       await navigate(buildWorkspaceRoute(nextRequest.workspaceId, chatRoute));
       navigated = true;
     } catch (error) {
