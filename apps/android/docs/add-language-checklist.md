@@ -5,74 +5,53 @@ Use this checklist when adding a new Android UI language.
 Android is one surface of a cross-client rollout; for the order and the locale tag
 each other surface expects, see [docs/add-language.md](../../../docs/add-language.md).
 
-The Android localization model is Play-first:
-
-- The repository owns the base English Android strings plus locale plumbing.
-- Google Play App strings translation is the default source for Android app-internal translated copy.
-- Do not add or maintain repository-owned Android `values-xx` translation trees by default, including Spanish.
-- Treat Google Play listing localization and Android in-app string localization as separate concerns.
-
-Work from the current tree, not memory. Other people may already be changing Android files in parallel, so do not revert unrelated work. Re-scan the current Android modules before you edit anything and adapt this checklist to the files that exist now.
+Follow the [Android localization rule](../README.md#localization-rule). Choose
+the owner for the exact app locale tag before adding resources.
 
 ## 1. Confirm the request is really for an Android app language
 
-Clarify which surface needs localization:
+For listing text, screenshots, or other marketing assets, use the
+[Play listing localization runbook](play-store-localization-runbook.md). Use this
+checklist for UI copy and in-app language selection.
 
-- Android app-internal UI strings belong to the Play-first flow below.
-- Google Play listing text, screenshots, and marketing assets are store-localization work, not Android app-string source changes.
-- For listing-only work, use the [Play listing localization runbook](play-store-localization-runbook.md); do not touch Android app locale plumbing.
+## 2. Register the locale and its resource qualifiers
 
-Likely failure modes:
-
-- Store listing work gets mixed into app-resource work and the scope expands unnecessarily.
-- Someone reintroduces committed Android translation files because they are really trying to localize Play listing copy.
-
-## 2. Keep the Android locale plumbing Play-first
-
-The default Play-first path keeps locale advertising explicit without reintroducing repository-managed translations.
-
-- Verify `apps/android/app/src/main/res/resources.properties` still points `unqualifiedResLocale` at the base language. Today that is `en`; adding a translated app language does not require changing the base locale.
-- Maintain the checked-in explicit supported-language locale config that the app uses to advertise languages to Android system settings. Update that config whenever an app language is added or removed.
-- The Android app build reads `apps/android/app/src/main/res/xml/locales_config.xml` and mirrors that list into `androidResources.localeFilters`, so keep the XML list authoritative and complete.
-- `readSupportedAndroidLocales` in `apps/android/app/build.gradle.kts` parses that XML with a regular expression, not an XML parser. Commenting out a `<locale>` line does not disable it. Removing a language means deleting the line.
-- Keep the alias spellings that `toAndroidLocaleFilters` in the same file emits. Two different cases sit behind that map: Android resource qualifiers still use the superseded ISO 639 codes `iw` for `he` and `in` for `id`, while `nb` is not a legacy spelling of `no` but Bokmål, the narrower code AndroidX ships Norwegian resources under. Either way AAPT2 treats `he`/`iw`, `id`/`in`, and `no`/`nb` as unrelated resource configurations, so `locales_config.xml` keeps the code Play uses while the build filters on both spellings. Drop the alias and every library translation for that language, Hebrew included, is stripped from the bundle with no failing check.
-- The Android app bundle ships the full supported locale set instead of relying on Play language splits. This keeps Play translation preview, RTL checks, and offline app-language switching deterministic.
-- Do not rely on AGP locale generation from checked-in resources as the only way Android discovers supported languages. That path cannot advertise Play-managed translations by itself once repository-owned `values-xx` folders are gone.
-- Keep the explicit Android supported-language list aligned with the languages that will actually be translated in Play App strings for the release.
-- Do not reintroduce app-startup locale forcing such as `AppLocaleInitializer.kt` unless the user explicitly asks for a custom locale-selection policy.
-- Do not add `values-es`, `values-fr`, or other repository-owned translation folders unless the user explicitly asks for an exception.
-
-Likely failure modes:
-
-- The language is translated in Play, but it never appears in Android's per-app language settings because the explicit supported-language config was not updated.
-- The language appears in Android settings, but the Play draft does not actually ship translated strings for it yet, so users select it and still get English.
-- Someone reintroduces old repo-managed locale wiring and creates a second source of truth beside Play.
-- A contributor adds `values-xx` trees because they are thinking in the old translation model, and the repository drifts from the actual Play-managed release state.
+- Keep `unqualifiedResLocale=en` in `app/src/main/res/resources.properties`. Put
+  the exact supported tag under its owner in
+  [the manifest-linked locale config](../app/src/main/res/xml/locales_config.xml).
+  Keep the list explicit so Android can offer languages that Play adds after
+  the build. Delete the `<locale>` line to remove a tag. The Gradle parser also
+  reads tags inside XML comments.
+- Use the qualifiers that `toAndroidLocaleFilters` emits in
+  [the app Gradle file](../app/build.gradle.kts). Keep its library aliases.
+  Wear OS uses the phone's resource filters and follows the watch's system
+  language.
+- Add bundled translations to the corresponding app-owned resource files.
+  A sparse regional pack can use its parent locale for shared copy. Canadian
+  French uses `values-fr-rCA` for overrides and can use generic Play-managed
+  French for the remaining phone strings once Play processes the bundle.
+  [Android resource resolution](https://developer.android.com/guide/topics/resources/multilingual-support)
+- Keep language splitting disabled so packaged translations are available when
+  switching languages offline. Leave locale selection to the system. Android
+  13 and later offer per-app language settings, and Android 11, 12, and 12L
+  follow the device language.
 
 ## 3. Make sure the base English strings are complete and translation-ready
 
-Play-first translation only works well if the repository still exposes every user-facing string cleanly from the English base resources.
+Keep user-facing strings in the English base resources for both Play-managed and bundled translations.
 
 Verify the current resource layout with:
 
 ```bash
-rg --files apps/android | rg 'src/main/res/values(-[a-zA-Z-r]+)?/strings.xml$'
+rg --files apps/android | rg '/src/main/res/values/strings(_[^/]+)?\.xml$'
 ```
-
-At the time of writing, user-facing English base strings live in these modules:
-
-- `apps/android/app/src/main/res/values/strings.xml`
-- `apps/android/feature/review/src/main/res/values/strings.xml`
-- `apps/android/feature/cards/src/main/res/values/strings.xml`
-- `apps/android/feature/ai/src/main/res/values/strings.xml`
-- `apps/android/feature/settings/src/main/res/values/strings.xml`
 
 For a new language:
 
-- Start from the base `values/strings.xml` file in each module above.
+- Start from the English source files in each affected module.
 - Ensure every user-facing English string that should be translated exists in base resources and is not hardcoded in Kotlin.
 - Keep string names and plural names aligned across modules so Play sees a stable app-string surface.
-- Do not create matching `values-xx` folders as part of the default flow.
+- Keep Play-managed locales in Play Console and add `values-xx` files for bundled locales.
 
 Likely failure modes:
 
@@ -111,7 +90,7 @@ Likely failure modes:
 
 ## 5. Re-check plurals, formatting, and speech paths
 
-Adding a Play-managed language still requires the app to behave correctly when Android resolves that locale at runtime.
+Check locale-sensitive behavior for each new language.
 
 Review these plural-heavy areas:
 
@@ -135,24 +114,22 @@ Likely failure modes:
 - Scheduler or notification settings look half-localized because short duration labels or format assumptions stayed English-centric.
 - The UI is translated, but spoken review text still uses the wrong locale or the fallback path was never rechecked.
 
-## 6. Upload a Play draft release, then translate in Play Console
+## 6. Check locale ownership in the Play draft
 
-After the locale plumbing and base English string review are done:
-
-- Let `Android Release` upload the signed AAB to Google Play as a production-track draft release.
-- Use the Play Console App strings workflow and Gemini translation tools there to create or update the translated Android copy.
-- Confirm the languages enabled in Play App strings for that draft still match the explicit supported-language list advertised by the Android app.
-- Review the translated strings in Play Console before publishing.
-- Keep the translated Android UI copy in Play Console. Do not sync Play-managed translations back into repository-owned `values-xx` trees.
-
-Important policy note:
-
-- The repository should stop owning Spanish Android translations. If Spanish is added or updated, do that through Play App strings, not through committed `values-es` files.
-
-Likely failure modes:
-
-- CI uploads the bundle, but nobody finishes the Play App strings review, so the release sits as a draft and never reaches users.
-- A contributor edits Play-managed translations in the repository and the repo drifts away from the actual Play release state.
+- Follow the [Android release procedure](../../../docs/release/android.md) for
+  the draft bundle and version code.
+- In Play Console, open **Grow users → Translations → App strings** and select
+  that draft bundle. Enable newly Play-managed tags so Gemini generates or
+  updates their translations. Review the generated strings and use **Apply
+  changes** for edits. On first setup, turn on automatic translations after
+  reviewing the preview.
+- Confirm that base English, the enabled Play App strings locales, and the
+  bundled locales together match the manifest-linked list. Compare the actual
+  app locale tags in the draft. Leave existing Play-managed languages enabled
+  and keep bundled tags out of the Play App strings selection. Play overrides
+  existing translations for any locale it manages.
+  [Play App strings](https://support.google.com/googleplay/android-developer/answer/9844778#zippy=%2Capp-strings-translation-using-gemini)
+- Verify that Play processing preserved the bundled resources.
 
 ## 7. Re-check tests before shipping the language
 
@@ -198,14 +175,23 @@ For RTL validation in tests:
 
 ## 8. Run Android-specific manual verification
 
-Before publishing the Play draft release, verify the new locale in a real Android app session after the Play-managed strings are available.
+On the same Play-processed draft version code, verify a bundled locale, a
+Play-managed locale, and every new locale. Check Traditional and Simplified
+Chinese separately, Malay on `ms-MY`, Odia on `or-IN`, and an actual override
+for each regional tag. In Canadian French, check both a bundled override and a
+string inherited from generic Play-managed French.
 
 Minimum checklist:
 
-- Install the Play-delivered draft build that already includes the Play-managed strings for the target language. Do not treat a local debug build as the source of truth for translated copy or app-language availability.
-- Switch the device language to the target language and relaunch the app. For RTL work, use a real RTL language such as Arabic first, and use an RTL pseudolocale only as a secondary stress check if needed.
-- If Android's per-app language settings show the target language for this build, verify that path too. Do not assume it is available until the Play-delivered build is in hand.
-- If the Play-delivered build does not show the target language in Android's per-app language settings, treat that as a locale-advertising regression even if the Play translation exists.
+- On Android 13 and later, open the app's language settings and select each
+  target locale. Treat a missing option as a regression and record the affected
+  tag and OS version.
+- Verify device-language matching on API 30 and 32. For RTL work, use a real
+  RTL language such as Arabic. Use an RTL pseudolocale for secondary stress
+  checks.
+- When the Wear OS build adds bundled translations, check the corresponding
+  watch device language on the matching build from the
+  [Android release procedure](../../../docs/release/android.md).
 - Check top-level navigation labels.
 - Check that app bars, back arrows, and other directional icons mirror correctly and that the touch targets stay on the expected start or end edge for RTL.
 - Check rows, cards, search fields, and metadata chips for start/end spacing issues. Do not validate RTL by assuming left/right placement from the LTR build.
@@ -224,7 +210,7 @@ cd apps/android
 ./gradlew :app:assembleDebug
 ```
 
-That local sanity build only validates repository-owned English resources and build wiring. It does not validate Play-managed translated strings or the final language list that users will see from the Play-delivered release build.
+The local build checks resource packaging and locale wiring before the Play-delivered verification.
 
 ## 9. Finish the store-side follow-up separately
 

@@ -6,11 +6,23 @@ private struct SupportedLanguageSettingsItem: Identifiable {
 }
 
 private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem] {
-    [
+    let appLocale = Locale(identifier: currentAppUILocaleIdentifier() ?? "en")
+
+    func systemLanguageItem(id: String, defaultTitle: String) -> SupportedLanguageSettingsItem {
+        SupportedLanguageSettingsItem(
+            id: id,
+            title: appLocale.localizedString(forIdentifier: id) ?? defaultTitle
+        )
+    }
+
+    return [
         SupportedLanguageSettingsItem(
             id: "en",
             title: aiSettingsLocalized("settings.language.supported.english", "English")
         ),
+        systemLanguageItem(id: "en-AU", defaultTitle: "English (Australia)"),
+        systemLanguageItem(id: "en-CA", defaultTitle: "English (Canada)"),
+        systemLanguageItem(id: "en-GB", defaultTitle: "English (United Kingdom)"),
         SupportedLanguageSettingsItem(
             id: "ar",
             title: aiSettingsLocalized("settings.language.supported.arabic", "Arabic")
@@ -103,6 +115,7 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
             id: "mr",
             title: aiSettingsLocalized("settings.language.supported.marathi", "Marathi")
         ),
+        systemLanguageItem(id: "ms", defaultTitle: "Malay"),
         SupportedLanguageSettingsItem(
             id: "nb",
             title: aiSettingsLocalized("settings.language.supported.norwegianBokmal", "Norwegian Bokmål")
@@ -111,6 +124,7 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
             id: "nl",
             title: aiSettingsLocalized("settings.language.supported.dutch", "Dutch")
         ),
+        systemLanguageItem(id: "or", defaultTitle: "Odia"),
         SupportedLanguageSettingsItem(
             id: "pa",
             title: aiSettingsLocalized("settings.language.supported.punjabi", "Punjabi")
@@ -175,10 +189,12 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
             id: "zh-Hans",
             title: aiSettingsLocalized("settings.language.supported.chineseSimplified", "Chinese Simplified")
         ),
+        systemLanguageItem(id: "zh-Hant", defaultTitle: "Chinese (Traditional)"),
         SupportedLanguageSettingsItem(
             id: "fr",
             title: aiSettingsLocalized("settings.language.supported.french", "French")
         ),
+        systemLanguageItem(id: "fr-CA", defaultTitle: "French (Canada)"),
         SupportedLanguageSettingsItem(
             id: "de",
             title: aiSettingsLocalized("settings.language.supported.german", "German")
@@ -195,6 +211,7 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
             id: "pt-BR",
             title: aiSettingsLocalized("settings.language.supported.portugueseBrazil", "Portuguese Brazil")
         ),
+        systemLanguageItem(id: "pt-PT", defaultTitle: "Portuguese (Portugal)"),
         SupportedLanguageSettingsItem(
             id: "ru",
             title: aiSettingsLocalized("settings.language.supported.russian", "Russian")

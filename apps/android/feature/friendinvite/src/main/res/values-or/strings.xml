@@ -1,0 +1,18 @@
+<resources>
+    <string name="friend_invite_button">ସାଙ୍ଗ ଯୋଡ଼ନ୍ତୁ</string>
+    <string name="friend_invite_dialog_title">ଜଣେ ସାଙ୍ଗ ଯୋଡ଼ନ୍ତୁ</string>
+    <string name="friend_invite_dialog_body">ରାଙ୍କିଂ ତାଲିକାକୁ ଜଣେ ସାଙ୍ଗଙ୍କୁ ନିମନ୍ତ୍ରଣ କରିବା ପାଇଁ ଏକ ବ୍ୟକ୍ତିଗତ ଲିଙ୍କ୍ ତିଆରି କରନ୍ତୁ।</string>
+    <string name="friend_invite_display_name_label">ଆପଣଙ୍କ ରାଙ୍କିଂ ତାଲିକାରେ ସାଙ୍ଗଙ୍କ ନାମ</string>
+    <string name="friend_invite_expiry_note">ଆପଣଙ୍କ ରାଙ୍କିଂ ତାଲିକାରେ ଏହି ନାମ କେବଳ ଆପଣ ଦେଖିବେ। ନିମନ୍ତ୍ରଣ ଗ୍ରହଣ କଲାବେଳେ ଆପଣଙ୍କ ସାଙ୍ଗ ଆପଣଙ୍କ ପାଇଁ ଏକ ନାମ ବାଛିବେ। ନିମନ୍ତ୍ରଣ ଲିଙ୍କ୍ ୨ ଦିନ ପରେ ଅକାମୀ ହୋଇଯାଏ।</string>
+    <string name="friend_invite_create_button">ଲିଙ୍କ୍ ତିଆରି କରନ୍ତୁ</string>
+    <string name="friend_invite_cancel_button">ବାତିଲ କରନ୍ତୁ</string>
+    <string name="friend_invite_share_title">ସାଙ୍ଗଙ୍କୁ ଏହି ଲିଙ୍କ୍ ପଠାନ୍ତୁ</string>
+    <string name="friend_invite_share_text">ଏହି Nibomo ନିମନ୍ତ୍ରଣ ଖୋଲି ସାଇନ୍ ଇନ୍ କରନ୍ତୁ ବା ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ। ତା’ପରେ ଆମେ ଆପ୍‌ରେ ପରସ୍ପରକୁ ଦେଖିପାରିବା।\n\n%1$s</string>
+    <string name="friend_invite_display_name_empty">ଏକ ନାମ ଲେଖନ୍ତୁ।</string>
+    <string name="friend_invite_display_name_too_long">୩୦ ଅକ୍ଷର ଭିତରେ ଲେଖନ୍ତୁ।</string>
+    <string name="friend_invite_display_name_control_character">ଧାଡ଼ି ବିଭାଜକ ଓ ନିୟନ୍ତ୍ରଣ ଅକ୍ଷର ହଟାନ୍ତୁ।</string>
+    <string name="friend_invite_create_limit_reached">ଆପଣଙ୍କର ଅନେକ ନିମନ୍ତ୍ରଣ ଲିଙ୍କ୍ ଆଗରୁ ସକ୍ରିୟ ଅଛି। ଆଉ ଏକ ତିଆରି କରିବା ଆଗରୁ ଗୋଟିଏ ଲିଙ୍କ୍‌ର ସମୟ ସରିବା ବା ଗ୍ରହଣ ହେବା ଯାଏ ଅପେକ୍ଷା କରନ୍ତୁ।</string>
+    <string name="friend_invite_create_sign_in_required">ନିମନ୍ତ୍ରଣ ଲିଙ୍କ୍ ତିଆରି କରିବାକୁ ପୁଣି ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="friend_invite_create_invalid_name">ଦେଖାଯିବା ନାମ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="friend_invite_create_failed">ନିମନ୍ତ୍ରଣ ଲିଙ୍କ୍ ତିଆରି ହୋଇପାରିଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+</resources>

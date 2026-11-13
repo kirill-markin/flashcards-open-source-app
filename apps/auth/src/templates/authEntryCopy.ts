@@ -12,7 +12,7 @@ type AuthEntryCopy = Readonly<{
   returnToApp: string;
 }>;
 
-export const AUTH_ENTRY_COPY: Readonly<Record<LoginPageLocale, AuthEntryCopy>> = {
+const BASE_AUTH_ENTRY_COPY = {
   en: {
     cleanupPending: "Apple sign-in cleanup is still running. Wait a moment, then start a fresh Apple sign-in, or choose another method.",
     returnToApp: "To cancel or choose another method, close this tab and return to the app.",
@@ -412,5 +412,50 @@ export const AUTH_ENTRY_COPY: Readonly<Record<LoginPageLocale, AuthEntryCopy>> =
     title: "Ngena ngemvume noma udale i-akhawunti",
     google: "Qhubeka nge-Google", apple: "Qhubeka nge-Apple",
     email: "Qhubeka nge-imeyili", opening: "Kuvulwa ukungena ngemvume…", methods: "Ezinye izindlela zokungena ngemvume",
+  },
+
+  "zh-Hant": {
+    cleanupPending: "Apple 登入的清理作業尚未完成。請稍候，再次使用 Apple 登入或選擇其他方式。",
+    returnToApp: "若要取消或改用其他方式，請關閉此分頁並返回應用程式。",
+    notCompleted: "未能完成登入。請選擇一種登入方式，再試一次。",
+    title: "登入或建立帳號",
+    google: "使用 Google 繼續", apple: "使用 Apple 繼續",
+    email: "使用電子郵件繼續", opening: "正在開啟登入頁面…", methods: "其他登入方式",
+  },
+  ms: {
+    cleanupPending: "Proses pembersihan log masuk Apple masih berjalan. Tunggu sebentar, kemudian cuba log masuk dengan Apple sekali lagi atau pilih kaedah lain.",
+    returnToApp: "Untuk membatalkan atau memilih kaedah lain, tutup tab ini dan kembali ke aplikasi.",
+    notCompleted: "Log masuk belum selesai. Pilih kaedah log masuk untuk mencuba lagi.",
+    title: "Log masuk atau cipta akaun",
+    google: "Teruskan dengan Google", apple: "Teruskan dengan Apple",
+    email: "Teruskan dengan e-mel", opening: "Sedang membuka halaman log masuk…", methods: "Kaedah log masuk lain",
+  },
+  or: {
+    cleanupPending: "Apple ସାଇନ୍ ଇନ୍‌ର ପୁରୁଣା ତଥ୍ୟ ହଟାଇବା କାମ ଚାଲିଛି। ଟିକେ ଅପେକ୍ଷା କରି Apple ମାଧ୍ୟମରେ ପୁଣି ସାଇନ୍ ଇନ୍ କରନ୍ତୁ କିମ୍ବା ଅନ୍ୟ ଉପାୟ ବାଛନ୍ତୁ।",
+    returnToApp: "ବାତିଲ କରିବାକୁ କିମ୍ବା ଅନ୍ୟ ଉପାୟ ବାଛିବାକୁ ଏହି ଟ୍ୟାବ୍ ବନ୍ଦ କରି ଆପ୍‌କୁ ଫେରନ୍ତୁ।",
+    notCompleted: "ସାଇନ୍ ଇନ୍ ସମ୍ପୂର୍ଣ୍ଣ ହେଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରିବାକୁ ଗୋଟିଏ ସାଇନ୍ ଇନ୍ ଉପାୟ ବାଛନ୍ତୁ।",
+    title: "ସାଇନ୍ ଇନ୍ କରନ୍ତୁ କିମ୍ବା ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ",
+    google: "Google ମାଧ୍ୟମରେ ଆଗକୁ ବଢ଼ନ୍ତୁ", apple: "Apple ମାଧ୍ୟମରେ ଆଗକୁ ବଢ଼ନ୍ତୁ",
+    email: "ଇମେଲ୍ ମାଧ୍ୟମରେ ଆଗକୁ ବଢ଼ନ୍ତୁ", opening: "ସାଇନ୍ ଇନ୍ ପୃଷ୍ଠା ଖୋଲୁଛି…", methods: "ସାଇନ୍ ଇନ୍‌ର ଅନ୍ୟ ଉପାୟ",
+  },
+} satisfies Partial<Record<LoginPageLocale, AuthEntryCopy>>;
+
+export const AUTH_ENTRY_COPY: Readonly<Record<LoginPageLocale, AuthEntryCopy>> = {
+  ...BASE_AUTH_ENTRY_COPY,
+  "en-AU": BASE_AUTH_ENTRY_COPY.en,
+  "en-CA": BASE_AUTH_ENTRY_COPY.en,
+  "en-GB": BASE_AUTH_ENTRY_COPY.en,
+  "fr-CA": {
+    ...BASE_AUTH_ENTRY_COPY.fr,
+    email: "Continuer par courriel",
+  },
+  "pt-PT": {
+    ...BASE_AUTH_ENTRY_COPY["pt-BR"],
+    cleanupPending: "A limpeza dos dados de início de sessão com a Apple ainda está em curso. Aguarde um momento e volte a iniciar sessão com a Apple ou escolha outro método.",
+    returnToApp: "Para cancelar ou escolher outro método, feche este separador e volte à aplicação.",
+    notCompleted: "Não foi possível iniciar sessão. Escolha um método de início de sessão para tentar novamente.",
+    email: "Continuar com email",
+    opening: "A abrir a página de início de sessão…",
+    methods: "Outros métodos de início de sessão",
   },
 };

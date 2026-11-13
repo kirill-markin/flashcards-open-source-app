@@ -111,10 +111,10 @@ Other language captions/headings were authored and shortened with LLM assistance
 and checked for fit; a layout check is not a native-language editorial review.
 
 Store copy has one shared source: five `[heading, caption]` pairs per canonical
-capture tag in `assets/localized-copy.json`. Android listing variants select that
-copy through their `copyTag` mapping, and each platform's listing map is its own
-`store-locales.json`. These are marketing strings, not app-internal localization
-resources. Keep the existing platform localization ownership intact.
+capture tag in `assets/localized-copy.json`. The Apple processor shares the
+[App Store locale map](../scripts/ios/app-store-localization-inputs.mts) with
+Mac capture and the App Store uploaders. Android listing variants select copy
+through their `copyTag` in `assets/google-play/store-locales.json`.
 
 LLM work is **authoring only**, outside the renderer:
 

@@ -112,6 +112,11 @@ enum MarketingScreenshotFixture {
             appleLocale: "zh_CN",
             reviewAiDraftMessage: "请围绕同一经济学主题再创建 6 张新卡片，覆盖与之密切相关且我们目前还没有的概念。"
         ),
+        "zh-Hant": LaunchFixture(
+            appleLanguage: "zh-Hant",
+            appleLocale: "zh_TW",
+            reviewAiDraftMessage: "請針對同一個經濟學主題新增 6 張卡片，涵蓋與這個主題密切相關、目前還沒收錄的概念。"
+        ),
         "fr": LaunchFixture(
             appleLanguage: "fr",
             appleLocale: "fr_FR",
@@ -136,6 +141,11 @@ enum MarketingScreenshotFixture {
             appleLanguage: "pt-BR",
             appleLocale: "pt_BR",
             reviewAiDraftMessage: "Crie 6 novos cartões sobre o mesmo tema de economia, cobrindo ideias bem relacionadas que ainda não temos."
+        ),
+        "pt-PT": LaunchFixture(
+            appleLanguage: "pt-PT",
+            appleLocale: "pt_PT",
+            reviewAiDraftMessage: "Cria 6 cartões novos sobre o mesmo tema de economia, com conceitos relacionados que ainda não temos."
         ),
         "ru": LaunchFixture(
             appleLanguage: "ru",
@@ -262,6 +272,11 @@ enum MarketingScreenshotFixture {
             appleLocale: "mr_IN",
             reviewAiDraftMessage: "याच अर्थशास्त्राच्या विषयाशी जवळून संबंधित आणि आपल्याकडे अजून नसलेल्या संकल्पनांवर ६ नवीन अभ्यास कार्डे तयार कर."
         ),
+        "ms": LaunchFixture(
+            appleLanguage: "ms",
+            appleLocale: "ms_MY",
+            reviewAiDraftMessage: "Cipta 6 kad imbas baharu tentang topik ekonomi yang sama, dengan konsep berkait rapat yang belum ada dalam kad kita."
+        ),
         "nb": LaunchFixture(
             appleLanguage: "nb",
             appleLocale: "nb_NO",
@@ -271,6 +286,11 @@ enum MarketingScreenshotFixture {
             appleLanguage: "nl",
             appleLocale: "nl_NL",
             reviewAiDraftMessage: "Maak 6 nieuwe leerkaarten over hetzelfde economische onderwerp, met nauw verwante begrippen die we nog niet hebben."
+        ),
+        "or": LaunchFixture(
+            appleLanguage: "or",
+            appleLocale: "or_IN",
+            reviewAiDraftMessage: "ଅର୍ଥଶାସ୍ତ୍ରର ଏହି ବିଷୟ ସହ ଘନିଷ୍ଠ ଭାବେ ଜଡ଼ିତ ଏବଂ ଆମ କାର୍ଡରେ ଏଯାଏଁ ନଥିବା ଧାରଣାଗୁଡ଼ିକ ଉପରେ ୬ଟି ନୂଆ ପଢ଼ା କାର୍ଡ ତିଆରି କର।"
         ),
         "pa": LaunchFixture(
             appleLanguage: "pa",

@@ -1,0 +1,5 @@
+"kMDItemKeywords" = "flashcards,flash cards,cartões,cartoes,cartões de memória,cartoes de memoria,cartões de estudo,flashcard,revisão,memorização,cartões de revisão";
+"MDItemKeywords" = "flashcards,flash cards,cartões,cartoes,cartões de memória,cartoes de memoria,cartões de estudo,flashcard,revisão,memorização,cartões de revisão";
+"NSCameraUsageDescription" = "Tire fotografias para a conversa com IA. As fotografias que anexar são enviadas à OpenAI para processamento por IA.";
+"NSMicrophoneUsageDescription" = "Grave o áudio do ditado e envie-o à OpenAI para o transcrever em texto para a conversa com IA.";
+"NSPhotoLibraryUsageDescription" = "Escolha fotografias para anexar à conversa com IA e enviar à OpenAI para processamento por IA.";

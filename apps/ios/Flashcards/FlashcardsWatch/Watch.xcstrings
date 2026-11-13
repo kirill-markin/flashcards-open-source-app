@@ -59,6 +59,24 @@
             "value" : "All done"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -90,6 +108,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes à jour"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vous êtes à jour"
@@ -185,6 +209,12 @@
             "value" : "सर्व पूर्ण झाले"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -195,6 +225,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Helemaal bij"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସବୁ ସରିଲା"
           }
         },
         "pa" : {
@@ -210,6 +246,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo em dia"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tudo em dia"
@@ -299,6 +341,12 @@
             "value" : "全部完成"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "都複習完了"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -365,6 +413,24 @@
             "value" : "Next card %@"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card %@"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card %@"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -396,6 +462,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prochaine carte : %@"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prochaine carte : %@"
@@ -491,6 +563,12 @@
             "value" : "पुढचे कार्ड: %@"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kad seterusnya: %@"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -501,6 +579,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Volgende kaart: %@"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପରବର୍ତ୍ତୀ କାର୍ଡ: %@"
           }
         },
         "pa" : {
@@ -516,6 +600,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próximo cartão: %@"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Próximo cartão: %@"
@@ -605,6 +695,12 @@
             "value" : "下一张卡片：%@"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一張卡片：%@"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -671,6 +767,24 @@
             "value" : "Open on iPhone to see the image or formula"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on iPhone to see the image or formula"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on iPhone to see the image or formula"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on iPhone to see the image or formula"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -702,6 +816,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez sur l’iPhone pour voir l’image ou la formule"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrez sur l’iPhone pour voir l’image ou la formule"
@@ -797,6 +917,12 @@
             "value" : "प्रतिमा किंवा सूत्र पाहण्यासाठी iPhone वर उघडा"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka pada iPhone untuk melihat imej atau formula"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -807,6 +933,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open op iPhone om de afbeelding of formule te zien"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଛବି ବା ସୂତ୍ର ଦେଖିବାକୁ iPhoneରେ ଖୋଲନ୍ତୁ"
           }
         },
         "pa" : {
@@ -822,6 +954,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra no iPhone para ver a imagem ou a fórmula"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abra no iPhone para ver a imagem ou a fórmula"
@@ -911,6 +1049,12 @@
             "value" : "在 iPhone 上打开以查看图片或公式"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在 iPhone 上開啟，查看圖片或公式"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -977,6 +1121,24 @@
             "value" : "Connecting to iPhone…"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting to iPhone…"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting to iPhone…"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting to iPhone…"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1008,6 +1170,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion à l’iPhone…"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connexion à l’iPhone…"
@@ -1103,6 +1271,12 @@
             "value" : "iPhone शी कनेक्ट होत आहे…"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menyambung ke iPhone…"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1113,6 +1287,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verbinden met iPhone…"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone ସହ ସଂଯୋଗ ହେଉଛି…"
           }
         },
         "pa" : {
@@ -1131,6 +1311,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conectando ao iPhone…"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ligar ao iPhone…"
           }
         },
         "ro" : {
@@ -1217,6 +1403,12 @@
             "value" : "正在连接 iPhone…"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在連線至 iPhone…"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1283,6 +1475,24 @@
             "value" : "Sign in there to review your cards on Apple Watch."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in there to review your cards on Apple Watch."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in there to review your cards on Apple Watch."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in there to review your cards on Apple Watch."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1314,6 +1524,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous dans l’app pour réviser vos cartes sur l’Apple Watch."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connectez-vous dans l’app pour réviser vos cartes sur l’Apple Watch."
@@ -1409,6 +1625,12 @@
             "value" : "Apple Watch वर तुमच्या कार्डांची उजळणी करण्यासाठी तिथे साइन-इन करा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log masuk pada iPhone untuk mengulang kaji kad anda pada Apple Watch."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1419,6 +1641,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Meld je daar aan om je kaarten op de Apple Watch te herhalen."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Watchରେ କାର୍ଡଗୁଡ଼ିକର ପୁନରାବୃତ୍ତି କରିବାକୁ iPhoneରେ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -1437,6 +1665,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entre lá para revisar seus cartões no Apple Watch."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicie sessão no iPhone para rever os seus cartões no Apple Watch."
           }
         },
         "ro" : {
@@ -1523,6 +1757,12 @@
             "value" : "在那里登录后，即可在 Apple Watch 上复习卡片。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上登入後，即可在 Apple Watch 上複習卡片。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1589,6 +1829,24 @@
             "value" : "Open Nibomo on iPhone"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo on iPhone"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo on iPhone"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo on iPhone"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1620,6 +1878,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Nibomo sur l’iPhone"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrez Nibomo sur l’iPhone"
@@ -1715,6 +1979,12 @@
             "value" : "iPhone वर Nibomo उघडा"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Nibomo pada iPhone"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1725,6 +1995,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Nibomo op iPhone"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneରେ Nibomo ଖୋଲନ୍ତୁ"
           }
         },
         "pa" : {
@@ -1740,6 +2016,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra o Nibomo no iPhone"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abra o Nibomo no iPhone"
@@ -1829,6 +2111,12 @@
             "value" : "在 iPhone 上打开 Nibomo"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上開啟 Nibomo"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1895,6 +2183,24 @@
             "value" : "Discard and switch"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard and switch"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard and switch"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard and switch"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1926,6 +2232,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer et changer"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Supprimer et changer"
@@ -2021,6 +2333,12 @@
             "value" : "हटवा आणि बदला"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Padam dan tukar"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2031,6 +2349,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verwijderen en wisselen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ହଟାଇ ବଦଳାନ୍ତୁ"
           }
         },
         "pa" : {
@@ -2049,6 +2373,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apagar e trocar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar e mudar"
           }
         },
         "ro" : {
@@ -2135,6 +2465,12 @@
             "value" : "删除并切换"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除並切換"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2201,6 +2537,24 @@
             "value" : "They will be lost. This can't be undone."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They will be lost. This can't be undone."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They will be lost. This can't be undone."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They will be lost. This can't be undone."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2232,6 +2586,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elles seront perdues. Cette action est irréversible."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elles seront perdues. Cette action est irréversible."
@@ -2327,6 +2687,12 @@
             "value" : "ती गमावली जातील. हे पूर्ववत करता येणार नाही."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Penilaian ini akan hilang. Tindakan ini tidak boleh dibuat asal."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2337,6 +2703,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ze gaan verloren. Dit kan niet ongedaan worden gemaakt."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଏହି ମୂଲ୍ୟାୟନଗୁଡ଼ିକ ହଜିଯିବ। ଏହି କାମକୁ ପଛକୁ ଫେରାଇହେବ ନାହିଁ।"
           }
         },
         "pa" : {
@@ -2355,6 +2727,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elas serão perdidas. Esta ação não pode ser desfeita."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As avaliações serão perdidas. Não pode desfazer esta ação."
           }
         },
         "ro" : {
@@ -2439,6 +2817,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这些评分将丢失，且无法撤销。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這些評分將遺失，且無法復原。"
           }
         },
         "zu" : {
@@ -2657,6 +3041,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld rating?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld ratings?"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld rating?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld ratings?"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld rating?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard %lld ratings?"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -2760,6 +3198,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Supprimer %lld évaluations ?"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Supprimer %lld évaluation ?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Supprimer %lld évaluations ?"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -3071,6 +3533,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Padam %lld penilaian?"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -3102,6 +3576,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld beoordelingen verwijderen?"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ମୂଲ୍ୟାୟନ ହଟାଇବେ?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ମୂଲ୍ୟାୟନ ହଟାଇବେ?"
                 }
               }
             }
@@ -3174,6 +3666,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Apagar %lld avaliações?"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Eliminar %lld de avaliações?"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Eliminar %lld avaliação?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Eliminar %lld avaliações?"
                 }
               }
             }
@@ -3467,6 +3983,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "刪除 %lld 筆評分？"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -3545,6 +4073,24 @@
             "value" : "Your iPhone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your iPhone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your iPhone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your iPhone switched account or workspace. Try again once the watch is online, or discard these ratings to switch now."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3576,6 +4122,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre iPhone a changé de compte ou d’espace de travail. Réessayez quand la montre sera en ligne, ou supprimez ces évaluations pour changer maintenant."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Votre iPhone a changé de compte ou d’espace de travail. Réessayez quand la montre sera en ligne, ou supprimez ces évaluations pour changer maintenant."
@@ -3671,6 +4223,12 @@
             "value" : "तुमच्या iPhone वर खाते किंवा कार्यक्षेत्र बदलले आहे. घड्याळ ऑनलाइन झाल्यावर पुन्हा प्रयत्न करा, किंवा आत्ताच बदलण्यासाठी ही रेटिंग हटवा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone anda telah bertukar akaun atau ruang kerja. Cuba lagi apabila Apple Watch dalam talian, atau padam penilaian ini untuk bertukar sekarang."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3681,6 +4239,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Je iPhone is gewisseld van account of werkruimte. Probeer het opnieuw zodra de watch online is, of verwijder deze beoordelingen om nu te wisselen."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆପଣଙ୍କ iPhoneରେ ଆକାଉଣ୍ଟ ବା କାର୍ଯ୍ୟକ୍ଷେତ୍ର ବଦଳିଛି। Apple Watch ଅନଲାଇନ୍ ହେଲେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ, କିମ୍ବା ଏବେ ବଦଳାଇବାକୁ ଏହି ମୂଲ୍ୟାୟନଗୁଡ଼ିକୁ ହଟାନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -3699,6 +4263,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seu iPhone trocou de conta ou espaço de trabalho. Tente novamente quando o relógio estiver online ou apague estas avaliações para trocar agora."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O iPhone mudou de conta ou de espaço de trabalho. Volte a tentar quando o Apple Watch estiver online ou elimine estas avaliações para mudar já."
           }
         },
         "ro" : {
@@ -3783,6 +4353,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的 iPhone 已切换账户或工作区。请在手表联网后重试，或删除这些评分以立即切换。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 已切換帳號或工作區。請在 Apple Watch 連上網路後再試，或刪除這些評分以立即切換。"
           }
         },
         "zu" : {
@@ -4001,6 +4577,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rating can't sync yet"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ratings can't sync yet"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rating can't sync yet"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ratings can't sync yet"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rating can't sync yet"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ratings can't sync yet"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -4104,6 +4734,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld évaluations ne peuvent pas encore être synchronisées"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld évaluation ne peut pas encore être synchronisée"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld évaluations ne peuvent pas encore être synchronisées"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -4415,6 +5069,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Belum dapat menyegerakkan %lld penilaian"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -4446,6 +5112,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld beoordelingen kunnen nog niet worden gesynchroniseerd"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ମୂଲ୍ୟାୟନ ଏବେ ସିଙ୍କ୍ ହୋଇପାରୁନାହିଁ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ମୂଲ୍ୟାୟନ ଏବେ ସିଙ୍କ୍ ହୋଇପାରୁନାହିଁ"
                 }
               }
             }
@@ -4518,6 +5202,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld avaliações ainda não podem ser sincronizadas"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de avaliações ainda por sincronizar"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld avaliação ainda por sincronizar"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld avaliações ainda por sincronizar"
                 }
               }
             }
@@ -4811,6 +5519,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 筆評分暫時無法同步"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -4889,6 +5609,24 @@
             "value" : "Syncing cards…"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing cards…"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing cards…"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing cards…"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4920,6 +5658,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisation des cartes…"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Synchronisation des cartes…"
@@ -5015,6 +5759,12 @@
             "value" : "कार्डे सिंक होत आहेत…"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menyegerakkan kad…"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5025,6 +5775,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kaarten synchroniseren…"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କାର୍ଡ ସିଙ୍କ୍ ହେଉଛି…"
           }
         },
         "pa" : {
@@ -5043,6 +5799,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sincronizando cartões…"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sincronizar cartões…"
           }
         },
         "ro" : {
@@ -5129,6 +5891,12 @@
             "value" : "正在同步卡片…"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在同步卡片…"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5195,6 +5963,24 @@
             "value" : "Update Nibomo on your iPhone and Apple Watch"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Nibomo on your iPhone and Apple Watch"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Nibomo on your iPhone and Apple Watch"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Nibomo on your iPhone and Apple Watch"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5226,6 +6012,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettez à jour Nibomo sur votre iPhone et votre Apple Watch"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mettez à jour Nibomo sur votre iPhone et votre Apple Watch"
@@ -5321,6 +6113,12 @@
             "value" : "तुमच्या iPhone आणि Apple Watch वर Nibomo अपडेट करा"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kemas kini Nibomo pada iPhone dan Apple Watch"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5331,6 +6129,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Werk Nibomo bij op je iPhone en Apple Watch"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone ଓ Apple Watchରେ Nibomo ଅପଡେଟ୍ କରନ୍ତୁ"
           }
         },
         "pa" : {
@@ -5346,6 +6150,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualize o Nibomo no iPhone e no Apple Watch"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atualize o Nibomo no iPhone e no Apple Watch"
@@ -5433,6 +6243,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请在 iPhone 和 Apple Watch 上更新 Nibomo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 和 Apple Watch 上更新 Nibomo"
           }
         },
         "zu" : {

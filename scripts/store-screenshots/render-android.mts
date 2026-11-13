@@ -3,6 +3,7 @@ import { resolve, join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
+import { findCaptureSet, requireCaptureSet } from "./capture-set.mts";
 import { requireResolvedSeparation, previousResults, mergeResults } from "./output.mts";
 import { createHash } from "node:crypto";
 import { parseArgs } from "node:util";
@@ -41,6 +42,15 @@ const copy: Copy = Object.fromEntries(locales.map(locale => {
 }));
 const names = await readdir(inputRoot);
 const order = [4, 1, 2, 3, 5] as const;
+const selected = values.locales === undefined ? null : new Set(values.locales.split(","));
+const captureSets = locales.flatMap(locale => {
+  if (selected && !selected.has(locale.storeLocale)) return [];
+  const sources = selected
+    ? requireCaptureSet(names, locale.capturePrefix, order, inputRoot)
+    : findCaptureSet(names, locale.capturePrefix, order, inputRoot);
+  return sources ? [{ locale, sources }] : [];
+});
+if (!captureSets.length) throw new Error(`No Android capture sets selected in ${inputRoot}. Capture a configured Play listing locale first.`);
 const slugs = ["ai-flashcards", "start-learning", "smart-reviews", "your-progress", "your-cards"] as const;
 const rtl = new Set(["ar", "he", "fa", "ur"]);
 const width = 1080;
@@ -49,7 +59,6 @@ const textScale = width / 519;
 const screenHeight = 1450;
 const screenWidth = screenHeight * 1080 / 2400;
 const padding = 30;
-const selected = values.locales ? new Set(values.locales.split(",")) : null;
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;");
 const dataUrl = (bytes: Buffer): string => `data:image/png;base64,${bytes.toString("base64")}`;
 const backgrounds: string[] = [];
@@ -98,17 +107,14 @@ try {
   await cdp.send("DOM.enable");
   await cdp.send("CSS.enable");
   const fontAudit: Array<{ locale: string; card: number; fonts: ReadonlyArray<PlatformFont> }> = [];
-  for (const locale of locales) {
-    if (selected && !selected.has(locale.storeLocale)) continue;
+  for (const { locale, sources } of captureSets) {
     const tag = locale.storeLocale;
     if (copy[tag].length !== 5 || copy[tag][0][0] !== "Nibomo App") throw new Error(`Invalid copy set: ${tag}`);
 
     const typography: Array<readonly [string, string, number, number]> = [];
     for (let card = 1; card <= 5; card++) {
-      const matches = names.filter(name => name.startsWith(`${locale.capturePrefix}-${order[card - 1]}_`) && name.endsWith(".png"));
-      if (matches.length !== 1) throw new Error(`Expected one native Android source for ${tag}/${card}; found ${matches.length}`);
-      const source = `play-store-screenshots/${matches[0]}`;
-      const raw = await readFile(join(inputRoot, matches[0]));
+      const source = `play-store-screenshots/${sources[card - 1]}`;
+      const raw = await readFile(join(inputRoot, sources[card - 1]));
       const original = await sharp(raw).metadata();
       if (original.width !== 1080 || original.height !== 2400) throw new Error(`Wrong native Android source dimensions: ${source}`);
       await page.setContent(html(locale, card, dataUrl(raw)), { waitUntil: "load" });
@@ -169,7 +175,6 @@ try {
     console.log(`${values["check-layout"] ? "Layout checked" : "Exported"}: ${tag} (native Android phone)`);
   }
   if (!values["check-layout"]) {
-    if (!results.length) throw new Error("No Android capture sets selected. Pass a configured Play listing locale.");
     for (const file of results) {
       await mkdir(dirname(join(root, file.path)), { recursive: true });
       await copyFile(join(staging!, file.path), join(root, file.path));

@@ -1,0 +1,18 @@
+<resources>
+    <string name="friend_invite_button">Tambah rakan</string>
+    <string name="friend_invite_dialog_title">Tambah rakan</string>
+    <string name="friend_invite_dialog_body">Buat pautan jemputan peribadi untuk menambah rakan pada papan kedudukan.</string>
+    <string name="friend_invite_display_name_label">Nama rakan pada papan kedudukan anda</string>
+    <string name="friend_invite_expiry_note">Hanya anda yang dapat melihat nama ini pada papan kedudukan anda. Rakan anda memilih nama untuk anda ketika menerima jemputan. Pautan jemputan tamat tempoh dalam 2 hari.</string>
+    <string name="friend_invite_create_button">Buat pautan</string>
+    <string name="friend_invite_cancel_button">Batal</string>
+    <string name="friend_invite_share_title">Hantar pautan ini kepada rakan anda</string>
+    <string name="friend_invite_share_text">Buka jemputan Nibomo ini, log masuk atau daftar, dan kita boleh melihat satu sama lain dalam aplikasi:\n\n%1$s</string>
+    <string name="friend_invite_display_name_empty">Masukkan nama.</string>
+    <string name="friend_invite_display_name_too_long">Gunakan maksimum 30 aksara.</string>
+    <string name="friend_invite_display_name_control_character">Buang pemisah baris dan aksara kawalan.</string>
+    <string name="friend_invite_create_limit_reached">Anda sudah mempunyai terlalu banyak pautan jemputan aktif. Tunggu sehingga salah satu jemputan tamat tempoh atau diterima sebelum membuat pautan baharu.</string>
+    <string name="friend_invite_create_sign_in_required">Log masuk semula untuk membuat pautan jemputan.</string>
+    <string name="friend_invite_create_invalid_name">Semak nama paparan dan cuba lagi.</string>
+    <string name="friend_invite_create_failed">Pautan jemputan tidak dapat dibuat. Cuba lagi.</string>
+</resources>

@@ -2,8 +2,8 @@
 
 Human setup and handoff for Android billing. Product decisions live in
 [Premium offer](premium-offer.md), access and ownership rules in
-[Premium entitlements](premium-entitlements.md), and catalog IDs and all 51
-Google Play locales in [Subscription store metadata](subscription-store-metadata.md#google-play).
+[Premium entitlements](premium-entitlements.md), and catalog IDs and current locale inputs in
+[Subscription store metadata](subscription-store-metadata.md#google-play).
 
 Regional price changes follow the [native-store pricing runbook](regional-subscription-pricing-stores.md),
 including baseline capture, trial alignment and legacy-cohort limits.
@@ -18,7 +18,7 @@ with their evidence and timestamp before updating a gate.
 | --- | --- |
 | Console | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment, app-scoped billing permissions, license testing and restricted AWS federation are saved. |
 | Backend | The Google reconciliation rule runs every 15 minutes. Federation is ACTIVE; a deliberately invalid Publisher `subscriptionsv2.get` returned HTTP 400 after STS HTTP 200, proving impersonation reaches Publisher. |
-| Catalog | `premium` has all 51 locales from [store metadata](subscription-store-metadata.md#google-play-texts). Base plan `monthly` covers 175 countries/regions with new ones included, USD 6.99 base with Play-converted regional prices, 7-day grace and a 53-day account hold (60 combined), charge-at-next-billing-date changes and resubscribe allowed. Offer `free-trial-7d` covers the same regions with Google's “Never had this subscription” eligibility and no further phases. |
+| Catalog | `premium` had 51 saved localizations at this readback. Base plan `monthly` covers 175 countries/regions with new ones included, USD 6.99 base with Play-converted regional prices, 7-day grace and a 53-day account hold (60 combined), charge-at-next-billing-date changes and resubscribe allowed. Offer `free-trial-7d` covers the same regions with Google's “Never had this subscription” eligibility and no further phases. |
 | Notifications | Authenticated Push and the resource-only Token Creator grant are saved; Play's official test was processed and acknowledged, and unsigned requests return HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. |
 | Console translations | App Strings covers 49 languages with automatic translation ON; the Premium rows were reviewed. This is not verification of translations delivered by the native app. |
 | Privacy | Privacy and account-deletion pages are published; the Data Safety declaration is IN REVIEW. |
@@ -168,7 +168,9 @@ does not prove purchase recovery; record actual affected-purchase readbacks.
    [release authorization runbook](release/README.md); keep public production in draft.
 3. In **Monetize with Play > Products > Subscriptions**, reopen `premium`,
    `monthly` and `free-trial-7d`; compare their settings with the snapshot above.
-   Maintain all 51 [Google Play locale texts](subscription-store-metadata.md#google-play-texts).
+   Use the [current Google Play locale inputs](subscription-store-metadata.md#google-play-texts).
+   During the authorized catalog check, inspect the subscription's language picker for Odia
+   and record the result.
    Google's [catalog procedure](https://support.google.com/googleplay/android-developer/answer/140504?hl=en)
    owns the Console steps. After any change, reload and verify IDs, locale entries,
    monthly period, price/currency/regions, active states, trial duration, and

@@ -1,0 +1,8 @@
+<resources>
+    <string name="settings_auth_email">Continuer par courriel</string>
+    <string name="settings_auth_google_failed">La connexion avec Google n’a pas pu se terminer sur cet appareil. Réessayez ou continuez par courriel.</string>
+    <string name="settings_auth_fresh_email_code">Impossible de relancer cette demande de code en toute sécurité. Demandez un nouveau code par courriel pour continuer.</string>
+    <string name="settings_auth_new_email_code">Demander un nouveau code par courriel</string>
+    <string name="settings_auth_mailbox_body">Vérifiez l’adresse courriel utilisée pour cette connexion. Entrez une adresse à laquelle vous avez accès. Pour un compte existant, vous devez confirmer à nouveau que l’adresse vous appartient.</string>
+    <string name="settings_auth_mailbox_code">Code de 6 à 8 chiffres reçu par courriel</string>
+</resources>

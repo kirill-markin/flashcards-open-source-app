@@ -51,11 +51,13 @@ do not fill missing copy with silent English defaults.
 6. Create `apps/ios/Flashcards/Flashcards/<locale>.lproj/AISettings.strings` with
    every key resolved through
    [`aiSettingsLocalized`](../apps/ios/Flashcards/Flashcards/AISettingsLocalizationTable.swift),
-   using an existing complete locale as the reference shape.
+   using an existing complete locale as the reference shape. `en-AU`, `en-CA`,
+   and `en-GB` share the Swift English defaults for this table. Parity still
+   requires their other bundle resources.
 7. Add the language to `supportedLanguageSettingsItems()` in
-   [LanguageSettingsView.swift](../apps/ios/Flashcards/Flashcards/Settings/LanguageSettingsView.swift),
-   and its `settings.language.supported.<language>` key to every
-   `<locale>.lproj/AISettings.strings`.
+   [LanguageSettingsView.swift](../apps/ios/Flashcards/Flashcards/Settings/LanguageSettingsView.swift).
+   Use the Foundation locale name in the app’s selected language. The existing
+   `settings.language.supported.*` labels live in `AISettings.strings`.
 8. Audit support and error layers, not just screens:
    - [TransientBannerSupport.swift](../apps/ios/Flashcards/Flashcards/TransientBannerSupport.swift)
    - [ErrorMessageSupport.swift](../apps/ios/Flashcards/Flashcards/ErrorMessageSupport.swift)

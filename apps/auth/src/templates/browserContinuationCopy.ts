@@ -10,7 +10,7 @@ type BrowserContinuationCopy = Readonly<{
   completed: string;
 }>;
 
-export const BROWSER_CONTINUATION_COPY: Readonly<Record<LoginPageLocale, BrowserContinuationCopy>> = {
+const BASE_BROWSER_CONTINUATION_COPY = {
   en: {
     mailboxRequired: "Verify your email to finish this provider request.",
     codeSent: "Check your email for a 6–8 digit code, including your spam folder.",
@@ -310,5 +310,45 @@ export const BROWSER_CONTINUATION_COPY: Readonly<Record<LoginPageLocale, Browser
     codeSent: "Bheka ikhodi enezinombolo ezingu-6–8 ku-imeyili yakho, nasefoldeni yogaxekile.",
     restart: "Qala kabusha", expired: "Lesi sicelo siphelelwe isikhathi. Qala kabusha.",
     requestNewCode: "Udinga enye ikhodi? Qala isicelo esisha ngomhlinzeki.", continue: "Qhubeka", completed: "Ukungena ngemvume kuqediwe.",
+  },
+
+  "zh-Hant": {
+    mailboxRequired: "請驗證你的電子郵件地址，以完成這次透過登入服務提出的要求。",
+    codeSent: "請在電子郵件中尋找 6 至 8 位數的驗證碼，也請檢查垃圾郵件資料夾。",
+    restart: "重新開始", expired: "此要求已逾期，請重新開始。",
+    requestNewCode: "需要新的驗證碼嗎？請透過同一個登入服務重新提出要求。", continue: "繼續", completed: "登入完成。",
+  },
+  ms: {
+    mailboxRequired: "Sahkan alamat e-mel anda untuk menyelesaikan permintaan melalui penyedia ini.",
+    codeSent: "Cari kod 6 hingga 8 digit dalam e-mel anda, termasuk dalam folder spam.",
+    restart: "Mula semula", expired: "Permintaan ini telah tamat tempoh. Mula semula.",
+    requestNewCode: "Perlukan kod baharu? Mulakan permintaan baharu melalui penyedia log masuk.", continue: "Teruskan", completed: "Log masuk selesai.",
+  },
+  or: {
+    mailboxRequired: "ଏହି ପ୍ରଦାନକାରୀଙ୍କ ମାଧ୍ୟମରେ ଅନୁରୋଧଟି ସମ୍ପୂର୍ଣ୍ଣ କରିବାକୁ ଆପଣଙ୍କ ଇମେଲ୍ ଠିକଣା ଯାଞ୍ଚ କରନ୍ତୁ।",
+    codeSent: "6–8 ଅଙ୍କର କୋଡ୍ ପାଇଁ ଆପଣଙ୍କ ଇମେଲ୍ ଓ ସ୍ପାମ୍ ଫୋଲ୍ଡର୍ ଦେଖନ୍ତୁ।",
+    restart: "ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ", expired: "ଏହି ଅନୁରୋଧର ମିଆଦ ସରିଯାଇଛି। ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ।",
+    requestNewCode: "ନୂଆ କୋଡ୍ ଦରକାର କି? ପ୍ରଦାନକାରୀଙ୍କ ମାଧ୍ୟମରେ ନୂଆ ଅନୁରୋଧ କରନ୍ତୁ।", continue: "ଆଗକୁ ବଢ଼ନ୍ତୁ", completed: "ସାଇନ୍ ଇନ୍ ସମ୍ପୂର୍ଣ୍ଣ ହେଲା।",
+  },
+} satisfies Partial<Record<LoginPageLocale, BrowserContinuationCopy>>;
+
+export const BROWSER_CONTINUATION_COPY: Readonly<Record<LoginPageLocale, BrowserContinuationCopy>> = {
+  ...BASE_BROWSER_CONTINUATION_COPY,
+  "en-AU": BASE_BROWSER_CONTINUATION_COPY.en,
+  "en-CA": BASE_BROWSER_CONTINUATION_COPY.en,
+  "en-GB": BASE_BROWSER_CONTINUATION_COPY.en,
+  "fr-CA": {
+    ...BASE_BROWSER_CONTINUATION_COPY.fr,
+    mailboxRequired: "Vérifiez votre adresse courriel pour terminer cette demande auprès du fournisseur.",
+    codeSent: "Cherchez un code de 6 à 8 chiffres dans vos courriels, y compris dans le dossier de courrier indésirable.",
+    requestNewCode: "Besoin d’un autre code? Lancez une nouvelle demande auprès du fournisseur.",
+  },
+  "pt-PT": {
+    ...BASE_BROWSER_CONTINUATION_COPY["pt-BR"],
+    mailboxRequired: "Verifique o seu endereço de email para concluir este pedido através do fornecedor.",
+    codeSent: "Procure no seu email um código de 6 a 8 dígitos. Verifique também a pasta de spam.",
+    expired: "Este pedido expirou. Recomece.",
+    requestNewCode: "Precisa de outro código? Inicie um novo pedido junto do fornecedor.",
+    completed: "Sessão iniciada.",
   },
 };

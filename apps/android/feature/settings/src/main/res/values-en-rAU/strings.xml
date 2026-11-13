@@ -1,0 +1,9 @@
+<resources>
+    <string name="settings_scheduling_summary">Retention, learning steps, and interval behaviour</string>
+    <string name="settings_accent_title">Accent colour</string>
+    <string name="settings_accent_selected">Selected colour: %1$s</string>
+    <string name="settings_accent_premium_note">Custom accent colours are included with Premium. Your saved choice is kept while Default is displayed on the free plan.</string>
+    <string name="settings_accent_custom">Custom colour</string>
+    <string name="settings_accent_hex">HEX colour</string>
+    <string name="settings_accent_update_failed">Could not save your accent colour. Check your connection and try again.</string>
+</resources>

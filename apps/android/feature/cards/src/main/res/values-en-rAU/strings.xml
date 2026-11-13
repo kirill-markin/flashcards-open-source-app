@@ -1,0 +1,5 @@
+<resources>
+    <string name="library_deck_catalog_title">Deck catalogue</string>
+    <string name="catalog_load_failed">Couldn\'t load the deck catalogue. Check your connection and try again.</string>
+    <string name="catalog_refresh_failed">Couldn\'t update the deck catalogue. Showing saved decks.</string>
+</resources>

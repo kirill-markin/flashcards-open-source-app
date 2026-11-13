@@ -1,17 +1,37 @@
 import { defaultLocale, type Locale } from "./types";
 import { enCatalog } from "./catalogs/en";
 import type { TranslationCatalog } from "./catalogTypes";
+import { createStripeCatalog } from "./stripeCatalog";
 
 export type { TranslationKey } from "./catalogTypes";
 
 export type TranslationMessages = TranslationCatalog;
 
-// One dynamic import per locale, so a browser downloads only the catalogs it renders instead of
-// every supported language. The default locale stays statically imported with the app shell.
-const translationCatalogLoaders: Readonly<Record<Locale, () => Promise<TranslationCatalog>>> = {
+type RegionalCatalog = Readonly<{
+  baseLocale: Locale;
+  loadStripe?: () => Promise<TranslationCatalog["stripe"]>;
+}>;
+
+const regionalCatalogs = {
+  "en-AU": { baseLocale: "en" },
+  "en-CA": { baseLocale: "en" },
+  "en-GB": { baseLocale: "en" },
+  "fr-CA": {
+    baseLocale: "fr",
+    loadStripe: async () => createStripeCatalog(
+      (await import("../../../backend/src/billing/stripe/copy/locales/fr-CA.json")).default,
+    ),
+  },
+} as const satisfies Partial<Record<Locale, RegionalCatalog>>;
+
+type CatalogLocale = Exclude<Locale, keyof typeof regionalCatalogs>;
+const regionalCatalogsByLocale: Readonly<Partial<Record<Locale, RegionalCatalog & { baseLocale: CatalogLocale }>>> = regionalCatalogs;
+
+const translationCatalogLoaders: Readonly<Record<CatalogLocale, () => Promise<TranslationCatalog>>> = {
   en: () => Promise.resolve(enCatalog),
   ar: async () => (await import("./catalogs/ar")).arCatalog,
   "zh-Hans": async () => (await import("./catalogs/zh-Hans")).zhHansCatalog,
+  "zh-Hant": async () => (await import("./catalogs/zh-Hant")).zhHantCatalog,
   de: async () => (await import("./catalogs/de")).deCatalog,
   hi: async () => (await import("./catalogs/hi")).hiCatalog,
   ja: async () => (await import("./catalogs/ja")).jaCatalog,
@@ -20,6 +40,7 @@ const translationCatalogLoaders: Readonly<Record<Locale, () => Promise<Translati
   "es-ES": async () => (await import("./catalogs/es-ES")).esEsCatalog,
   fr: async () => (await import("./catalogs/fr")).frCatalog,
   "pt-BR": async () => (await import("./catalogs/pt-BR")).ptBrCatalog,
+  "pt-PT": async () => (await import("./catalogs/pt-PT")).ptPtCatalog,
   it: async () => (await import("./catalogs/it")).itCatalog,
   ko: async () => (await import("./catalogs/ko")).koCatalog,
   id: async () => (await import("./catalogs/id")).idCatalog,
@@ -45,6 +66,8 @@ const translationCatalogLoaders: Readonly<Record<Locale, () => Promise<Translati
   kn: async () => (await import("./catalogs/kn")).knCatalog,
   ml: async () => (await import("./catalogs/ml")).mlCatalog,
   mr: async () => (await import("./catalogs/mr")).mrCatalog,
+  ms: async () => (await import("./catalogs/ms")).msCatalog,
+  or: async () => (await import("./catalogs/or")).orCatalog,
   pa: async () => (await import("./catalogs/pa")).paCatalog,
   ta: async () => (await import("./catalogs/ta")).taCatalog,
   te: async () => (await import("./catalogs/te")).teCatalog,
@@ -65,39 +88,55 @@ const translationCatalogLoaders: Readonly<Record<Locale, () => Promise<Translati
 const loadedTranslationCatalogs = new Map<Locale, TranslationCatalog>([[defaultLocale, enCatalog]]);
 const pendingTranslationCatalogLoads = new Map<Locale, Promise<TranslationCatalog>>();
 
+function getCatalogCacheKey(locale: Locale): Locale {
+  const regionalCatalog = regionalCatalogsByLocale[locale];
+  return regionalCatalog?.loadStripe === undefined ? regionalCatalog?.baseLocale ?? locale : locale;
+}
+
+function requestTranslationCatalog(locale: Locale): Promise<TranslationCatalog> {
+  const regionalCatalog = regionalCatalogsByLocale[locale];
+  if (regionalCatalog?.loadStripe !== undefined) {
+    return Promise.all([loadTranslationCatalog(regionalCatalog.baseLocale), regionalCatalog.loadStripe()])
+      .then(([catalog, stripe]) => ({ ...catalog, stripe }));
+  }
+
+  return translationCatalogLoaders[locale as CatalogLocale]();
+}
+
 export function isTranslationCatalogLoaded(locale: Locale): boolean {
-  return loadedTranslationCatalogs.has(locale);
+  return loadedTranslationCatalogs.has(getCatalogCacheKey(locale));
 }
 
 export function loadTranslationCatalog(locale: Locale): Promise<TranslationCatalog> {
-  const cachedCatalog = loadedTranslationCatalogs.get(locale);
+  const catalogKey = getCatalogCacheKey(locale);
+  const cachedCatalog = loadedTranslationCatalogs.get(catalogKey);
   if (cachedCatalog !== undefined) {
     return Promise.resolve(cachedCatalog);
   }
 
   // Concurrent callers, and a retry that races an attempt still in flight, share one chunk request.
-  const pendingLoad = pendingTranslationCatalogLoads.get(locale);
+  const pendingLoad = pendingTranslationCatalogLoads.get(catalogKey);
   if (pendingLoad !== undefined) {
     return pendingLoad;
   }
 
-  const startedLoad = translationCatalogLoaders[locale]()
+  const startedLoad = requestTranslationCatalog(catalogKey)
     .then((catalog) => {
-      loadedTranslationCatalogs.set(locale, catalog);
+      loadedTranslationCatalogs.set(catalogKey, catalog);
       return catalog;
     })
     // Cleared on rejection too, so the map only ever holds an attempt still in flight.
     .finally(() => {
-      pendingTranslationCatalogLoads.delete(locale);
+      pendingTranslationCatalogLoads.delete(catalogKey);
     });
 
-  pendingTranslationCatalogLoads.set(locale, startedLoad);
+  pendingTranslationCatalogLoads.set(catalogKey, startedLoad);
 
   return startedLoad;
 }
 
 export function getLoadedTranslationCatalog(locale: Locale): TranslationCatalog {
-  const loadedCatalog = loadedTranslationCatalogs.get(locale);
+  const loadedCatalog = loadedTranslationCatalogs.get(getCatalogCacheKey(locale));
   if (loadedCatalog === undefined) {
     throw new Error(`Translation catalog for locale "${locale}" is not loaded; await loadTranslationCatalog("${locale}") before translating`);
   }

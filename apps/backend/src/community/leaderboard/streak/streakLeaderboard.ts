@@ -8,11 +8,8 @@ import {
   createAnonymousDisplayName,
   ensurePublicProfileForCurrentUserInExecutor,
 } from "../../publicProfiles";
-import {
-  getAnonymousDisplayNameWordPools,
-  resolveAnonymousDisplayNameLocale,
-  type AnonymousDisplayNameLocale,
-} from "../../anonymousDisplayNames";
+import { getAnonymousDisplayNameWordPools } from "../../anonymousDisplayNames";
+import { resolveLeaderboardMetricLocale, type LeaderboardMetricLocale } from "../metricLocale";
 import { STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "./streakLeaderboardSnapshots";
 
 /**
@@ -119,7 +116,7 @@ type StreakLeaderboardMetricCopy = Readonly<{
 }>;
 
 const STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
-  Record<AnonymousDisplayNameLocale, StreakLeaderboardMetricCopy>
+  Record<LeaderboardMetricLocale, StreakLeaderboardMetricCopy>
 > = {
   en: {
     title: "Current streak days",
@@ -132,6 +129,10 @@ const STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
   "zh-Hans": {
     title: "当前连续天数",
     description: "连续记录日是至少有一次卡片复习被评为重来、困难、良好或简单的本地日。排名使用公共每日快照中的当前连续天数；公共数值可能落后于你的实时个人连续记录。",
+  },
+  "zh-Hant": {
+    title: "目前連續天數",
+    description: "依你所在時區計算，只要當天至少有一次卡片複習評為「重來」、「困難」、「良好」或「簡單」，這一天就會計入連續紀錄。排名以每日公開資料中的目前連續天數為準，這個數字可能比你的個人連續紀錄晚更新。",
   },
   fr: {
     title: "Jours de série actuels",
@@ -149,9 +150,21 @@ const STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
     title: "現在の連続日数",
     description: "連続日とは、少なくとも1回のカード復習がもう一度、難しい、良い、簡単のいずれかで評価されたローカル日です。順位は公開の日次スナップショットの現在の連続日数を使います。公開値は個人の最新連続記録より遅れることがあります。",
   },
+  ms: {
+    title: "Bilangan hari berturut-turut semasa",
+    description: "Mengikut zon waktu anda, satu hari dikira dalam rekod ini jika anda mengulang kaji sekurang-kurangnya satu kad dan memilih penilaian “Ulang”, “Sukar”, “Baik” atau “Mudah”. Kedudukan ditentukan berdasarkan bilangan hari berturut-turut semasa dalam data awam harian. Angka itu mungkin belum mencerminkan rekod peribadi terkini anda.",
+  },
+  or: {
+    title: "ବର୍ତ୍ତମାନର ଲଗାତାର ଦିନ ସଂଖ୍ୟା",
+    description: "ଆପଣଙ୍କ ସ୍ଥାନୀୟ ସମୟ ଅନୁସାରେ, କୌଣସି ଦିନ ଅତି କମରେ ଗୋଟିଏ କାର୍ଡର ପୁନରାବୃତ୍ତି ପାଇଁ ‘ପୁଣି’, ‘କଠିନ’, ‘ଭଲ’ କିମ୍ବା ‘ସହଜ’ ବାଛିଲେ ସେହି ଦିନଟି ଲଗାତାର ଦିନ ଭାବେ ଗଣାଯାଏ। ପ୍ରତିଦିନ ପ୍ରକାଶିତ ତଥ୍ୟରେ ଥିବା ବର୍ତ୍ତମାନର ଲଗାତାର ଦିନ ସଂଖ୍ୟା ଆଧାରରେ ଆପଣଙ୍କ ସ୍ଥାନ ଧାର୍ଯ୍ୟ ହୁଏ। ଏହି ତଥ୍ୟରେ ଆପଣଙ୍କ ବ୍ୟକ୍ତିଗତ ରେକର୍ଡର ସଦ୍ୟତମ ପରିବର୍ତ୍ତନ ଦେଖାଯିବାରେ ବିଳମ୍ବ ହୋଇପାରେ।",
+  },
   pt: {
     title: "Dias de sequência atual",
     description: "Um dia de sequência é um dia local com pelo menos uma revisão de cartão avaliada como De novo, Difícil, Bom ou Fácil. A classificação usa os dias de sequência atual do instantâneo público diário; os valores públicos podem ficar atrás da sua sequência pessoal em tempo real.",
+  },
+  "pt-PT": {
+    title: "Dias da sequência atual",
+    description: "Um dia conta para a sequência se, no teu fuso horário, fizeres pelo menos uma revisão de um cartão e a classificares como «De novo», «Difícil», «Bom» ou «Fácil». O ranking baseia-se na sequência atual publicada diariamente e pode não refletir logo as alterações à tua sequência pessoal.",
   },
   ru: {
     title: "Текущая серия в днях",
@@ -210,7 +223,7 @@ type StreakLeaderboardFriendDisplayNameRow = Readonly<{
 }>;
 
 function resolveStreakLeaderboardMetric(localeHint: string): StreakLeaderboardMetric {
-  const copy = STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE[resolveAnonymousDisplayNameLocale(localeHint)];
+  const copy = STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE[resolveLeaderboardMetricLocale(localeHint)];
   return {
     metricVersion: STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION,
     title: copy.title,

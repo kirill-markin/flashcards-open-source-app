@@ -15,38 +15,40 @@ selected display:
 node scripts/ios/upload-app-store-duo-screenshots.mts \
   --version '<editable-version>' \
   --screenshots apps/ios/docs/media/app-store-cards/ready \
-  --locale en-US \
+  --all-locales \
   --family iphone-duo-inner
 ```
 
-Use `--all-locales` instead of `--locale en-US` to target every existing Store
-locale in the [Store locale map](../scripts/store-screenshots/assets/app-store/store-locales.json).
-The selected version must already have each selected version localization; the
-uploader does not create locale metadata. `--family` is required: choose
-`iphone-duo-inner`, `iphone-duo-outer`, or `all`, which places outer 1–5 before
-inner 1–5:
+Use `--locale en-US` to target one ID in the
+[App Store locale map](../scripts/ios/app-store-localization-inputs.mts).
+The selected version must already have each selected version localization.
+To upload both displays for English, use this command before or after the inner
+bulk upload. Later inner-only uploads preserve the English outer placements.
 
 ```bash
 node scripts/ios/upload-app-store-duo-screenshots.mts \
   --version '<editable-version>' \
   --screenshots apps/ios/docs/media/app-store-cards/ready \
-  --all-locales \
+  --locale en-US \
   --family all
 ```
 
-For each selected locale, the input root must contain exactly one
-`<capture-tag>-1_*.png` through `-5_*.png` in each selected family folder. The
-command validates every selected file and the draft before writing. The cards
-share one group with a catalog-defined limit; any unrelated placement consumes
-capacity and causes a clear refusal when the selected set will not fit.
+Use `--family iphone-duo-outer` for outer cards only. `--family all` orders outer
+cards 1–5 before inner cards 1–5. For each selected locale, the input root must
+contain exactly one `<capture-tag>-1_*.png` through `-5_*.png` in each selected
+family folder. The command validates every selected file and the draft before
+writing. The cards share one group with a catalog-defined limit. All retained
+placements count toward that limit, including the other display's cards during
+a single-display upload.
 
 Per locale, the uploader first uploads and waits for all selected images to
-finish processing, then replaces only its own placements. Selecting one display
-removes this uploader's placements for the other display. It never deletes
-library image assets. The old managed placements must be removed before new
-placements can be created, so a failure during that phase may leave the locale's
-Duo group partly updated, and earlier locales may already be complete when a
-later one fails.
+finish processing, then replaces its outdated placements for the selected
+display or displays. It preserves the IDs and relative order of retained
+placements and verifies the resulting order and selected image identities on
+readback. It never deletes library image assets. Outdated placements must be
+removed before new placements can be created, so a failure during that phase
+may leave the selected display partly updated. Earlier locales may already be
+complete when a later one fails.
 
 On rerun with the same files, the command reuses processed images, waits for
 processing ones, or resumes one unfinished upload reservation. Inspect any

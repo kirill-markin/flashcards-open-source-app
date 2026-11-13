@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
+import { LOCALES } from "../ios/app-store-localization-inputs.mts";
 
 const { values } = parseArgs({ options: {
   platform: { type: "string", default: "all" }, family: { type: "string", default: "all" },
@@ -15,7 +16,8 @@ Usage: npm --prefix scripts/store-screenshots run render -- [options]
   --platform all|ios|android          Default: all
   --family all|iphone|ipad|iphone-duo-outer|iphone-duo-inner|macos
                                       iOS family; default: existing iPhone and iPad
-  --locales en-US,ar                  Selected capture tags or listing locale IDs
+  --locales en-US,ar                  Require selected capture tags or listing locale IDs
+                                      Default: process complete saved sets
   --input-root <directory>            Override native input root for one platform
   --output-root <directory>           Override derived output root for one platform
   --chromium-executable <path>        Use an installed browser instead of Playwright Chromium
@@ -39,10 +41,11 @@ const run = (file: string, args: string[]): void => {
 };
 for (const platform of values.platform === "all" ? ["ios", "android"] : [values.platform!]) {
   const args: string[] = [];
-  const asset = platform === "ios" ? "app-store" : "google-play";
   if (requested) {
     const copy: Record<string, unknown> = JSON.parse(await readFile(resolve(directory, "assets/localized-copy.json"), "utf8"));
-    const locales: Array<{ storeLocale: string; captureTag?: string; capturePrefix?: string; copyTag?: string }> = JSON.parse(await readFile(resolve(directory, `assets/${asset}/store-locales.json`), "utf8"));
+    const locales: Array<{ storeLocale: string; captureTag?: string; capturePrefix?: string; copyTag?: string }> = platform === "ios"
+      ? LOCALES.map(([, storeLocale, captureTag]) => ({ storeLocale, captureTag }))
+      : JSON.parse(await readFile(resolve(directory, "assets/google-play/store-locales.json"), "utf8"));
     const tags = requested.map(tag => {
       if (platform === "ios" && Object.hasOwn(copy, tag)) return tag;
       const match = locales.find(item => [item.storeLocale, item.captureTag, item.capturePrefix, item.copyTag].includes(tag));

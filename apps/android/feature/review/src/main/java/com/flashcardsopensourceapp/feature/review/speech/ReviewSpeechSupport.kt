@@ -458,29 +458,44 @@ class ReviewSpeechController(
     }
 }
 
-/**
- * Uses the engine's own default voice whenever setLanguage reports the language available. Otherwise
- * setLanguage leaves the previous voice in place, so only an installed voice of the same language may
- * replace it.
- */
 private fun applyReviewSpeechLanguage(
     controller: TextToSpeech,
     locale: Locale
 ): ReviewSpeechLanguageResult {
+    val chineseLocale = makeReviewSpeechChineseLocale(locale = locale)
     val languageStatus = controller.setLanguage(locale)
-    if (languageStatus >= TextToSpeech.LANG_AVAILABLE) {
+    val defaultChineseVoice = if (languageStatus >= TextToSpeech.LANG_AVAILABLE && chineseLocale != null) {
+        controller.voice?.takeIf { voice ->
+            isReviewSpeechVoiceInstalled(voice = voice)
+                && makeReviewSpeechChineseLocale(locale = voice.locale)?.script == chineseLocale.script
+        }
+    } else {
+        null
+    }
+
+    // setLanguage can report success with the engine's closest regional voice.
+    if (
+        languageStatus >= TextToSpeech.LANG_AVAILABLE
+        && (chineseLocale == null || defaultChineseVoice?.locale?.country == chineseLocale.country)
+    ) {
         return ReviewSpeechLanguageResult.Applied(languageStatus = languageStatus, voiceName = null)
     }
 
     val fallbackVoice = selectInstalledReviewSpeechVoice(
         voices = controller.voices?.toList().orEmpty(),
         locale = locale
-    ) ?: return ReviewSpeechLanguageResult.Failed(
-        stage = AndroidReviewSpeechFailureStage.SET_LANGUAGE,
-        errorCode = null,
-        languageStatus = languageStatus,
-        voiceName = null
     )
+    if (defaultChineseVoice != null && fallbackVoice?.locale?.country != chineseLocale?.country) {
+        return ReviewSpeechLanguageResult.Applied(languageStatus = languageStatus, voiceName = null)
+    }
+    if (fallbackVoice == null) {
+        return ReviewSpeechLanguageResult.Failed(
+            stage = AndroidReviewSpeechFailureStage.SET_LANGUAGE,
+            errorCode = null,
+            languageStatus = languageStatus,
+            voiceName = null
+        )
+    }
 
     val voiceStatus = controller.setVoice(fallbackVoice)
     if (voiceStatus != TextToSpeech.SUCCESS) {
@@ -496,20 +511,27 @@ private fun applyReviewSpeechLanguage(
 }
 
 // Engines list voices whose data is not downloaded yet; speaking with one fails only asynchronously.
+private fun isReviewSpeechVoiceInstalled(voice: Voice): Boolean {
+    return voice.features.orEmpty().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED).not()
+}
+
 private fun selectInstalledReviewSpeechVoice(
     voices: List<Voice>,
     locale: Locale
 ): Voice? {
     val languageTag = locale.toLanguageTag().lowercase(Locale.US)
     val primaryLanguage = locale.language.lowercase(Locale.US)
+    val chineseLocale = makeReviewSpeechChineseLocale(locale = locale)
 
     return voices
         .filter { voice ->
             voice.locale.language.lowercase(Locale.US) == primaryLanguage
-                && voice.features.orEmpty().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED).not()
+                && isReviewSpeechVoiceInstalled(voice = voice)
+                && (chineseLocale == null || makeReviewSpeechChineseLocale(locale = voice.locale)?.script == chineseLocale.script)
         }
         .minWithOrNull(
             compareBy<Voice>(
+                { voice -> chineseLocale != null && voice.locale.country != chineseLocale.country },
                 { voice -> voice.locale.toLanguageTag().lowercase(Locale.US) != languageTag },
                 { voice -> voice.isNetworkConnectionRequired }
             )
@@ -550,7 +572,10 @@ private fun splitReviewSpeechSegments(
     val latinFallbackLanguageTag = makeReviewSpeechLatinFallbackLanguageTag(
         fallbackLanguageTag = sanitizedFallbackLanguageTag
     )
-    val cjkLanguageTag = detectReviewSpeechCjkLanguage(text = speakableText)
+    val cjkLanguageTag = detectReviewSpeechCjkLanguage(
+        text = speakableText,
+        fallbackLanguageTag = sanitizedFallbackLanguageTag
+    )
 
     return speakableText.split(regex = reviewSpeechLineBreakRegex)
         .map { line -> line.trim() }
@@ -658,7 +683,7 @@ private fun isReviewSpeechHan(codePoint: Int): Boolean {
 }
 
 // Scans every character of the whole text, kana punctuation such as `・` included, so all CJK runs share one language.
-private fun detectReviewSpeechCjkLanguage(text: String): String {
+private fun detectReviewSpeechCjkLanguage(text: String, fallbackLanguageTag: String): String {
     val codePoints = text.codePoints().toArray()
     if (codePoints.any { codePoint -> isReviewSpeechKana(codePoint = codePoint) }) {
         return "ja-JP"
@@ -667,7 +692,20 @@ private fun detectReviewSpeechCjkLanguage(text: String): String {
         return "ko-KR"
     }
 
-    return "zh-CN"
+    val chineseLocale = makeReviewSpeechChineseLocale(locale = Locale.forLanguageTag(fallbackLanguageTag))
+    return when {
+        chineseLocale?.script != "Hant" -> "zh-CN"
+        chineseLocale.country == "HK" -> "zh-HK"
+        else -> "zh-TW"
+    }
+}
+
+private fun makeReviewSpeechChineseLocale(locale: Locale): ULocale? {
+    if (locale.language != "zh") {
+        return null
+    }
+
+    return ULocale.addLikelySubtags(ULocale.forLocale(locale))
 }
 
 // A run's language comes from its script group, so non-letters attached to the run never change it.

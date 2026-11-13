@@ -1,0 +1,24 @@
+<resources>
+    <string name="settings_auth_entry_title">Log masuk atau buat akaun</string>
+    <string name="settings_auth_google">Log masuk dengan Google</string>
+    <string name="settings_auth_email">Teruskan dengan e-mel</string>
+    <string name="settings_auth_apple">Log masuk dengan Apple</string>
+    <string name="settings_auth_last_used">Kali terakhir digunakan</string>
+    <string name="settings_auth_cancelled">Log masuk dengan Google dibatalkan. Pilih kaedah log masuk untuk mencuba lagi.</string>
+    <string name="settings_auth_google_failed">Log masuk dengan Google tidak dapat diselesaikan pada peranti ini. Cuba lagi atau pilih Teruskan dengan e-mel.</string>
+    <string name="settings_auth_fresh_attempt">Log masuk tidak dapat diselesaikan. Mulakan semula atau pilih kaedah lain.</string>
+    <string name="settings_auth_apple_cleanup_pending">Proses pembersihan log masuk Apple masih berjalan. Tunggu sebentar, kemudian log masuk dengan Apple semula atau pilih kaedah lain.</string>
+    <string name="settings_auth_network_restart">Permintaan log masuk tidak dapat diselesaikan melalui rangkaian. Semak sambungan anda, kemudian cuba log masuk semula.</string>
+    <string name="settings_auth_fresh_email_code">Permintaan kod ini tidak dapat dicuba semula dengan selamat. Minta kod e-mel baharu untuk meneruskan.</string>
+    <string name="settings_auth_new_email_code">Minta kod e-mel baharu</string>
+    <string name="settings_auth_mailbox_body">Sahkan alamat e-mel untuk log masuk ini. Masukkan alamat e-mel yang boleh anda akses. Untuk akaun sedia ada, anda perlu mengesahkan semula bahawa alamat e-mel itu milik anda.</string>
+    <string name="settings_auth_mailbox_code">Kod e-mel 6–8 digit</string>
+    <string name="settings_auth_mailbox_restart">Perlukan kod lain? Mulakan proses log masuk semula. Permintaan pengesahan ini tidak dapat menghantar semula kod.</string>
+    <string name="settings_auth_start_again">Mulakan semula atau pilih kaedah lain</string>
+    <string name="settings_auth_browser_waiting">Selesaikan log masuk dengan Apple dalam pelayar anda. Jika anda telah menutup pelayar, mulakan semula.</string>
+    <string name="settings_auth_return_title">Log masuk dengan Apple</string>
+    <string name="settings_auth_return_storage_failed">Respons log masuk Apple tidak dapat disimpan dengan selamat pada peranti ini. Kosongkan sedikit ruang storan, kemudian cuba lagi. Tutup mesej ini untuk memulakan proses log masuk semula.</string>
+    <string name="settings_auth_return_rejected">Respons daripada Apple tidak dapat menyelesaikan log masuk yang sedang berjalan. Mulakan semula dari aplikasi ini.</string>
+    <string name="settings_auth_retry">Cuba lagi</string>
+    <string name="settings_auth_close">Tutup</string>
+</resources>

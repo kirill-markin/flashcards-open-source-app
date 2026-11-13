@@ -136,16 +136,9 @@ Use that one wrapper when adding or validating multi-language Play screenshot co
 
 ## Localization Rule
 
-Android app-internal translations are Play-first.
+[The explicit locale config](app/src/main/res/xml/locales_config.xml) lists base English, Play-managed languages, and bundled languages. Each locale tag has one translation owner. Play App strings is the default for new languages. Keep bundled locale tags out of automatic Play translation and edit Play-managed copy in Play Console.
 
-- Keep the Android source tree authoritative for the base English strings, stable string keys/plurals, base locale metadata, and the explicit supported-language list used to advertise app languages to Android system settings.
-- Google Play App strings translation is the source of truth for translated Android UI copy. Do not sync Play-managed translations back into repository-owned Android `values-xx` trees.
-- Do not rely on AGP locale generation from checked-in resources as the source of supported translated languages. Play-managed languages must still be advertised explicitly from the checked-in Android locale plumbing so Android's per-app language settings can list them.
-- Keep the explicit Android supported-language list aligned with the languages enabled for Play App strings in the release you are shipping.
-- Keep store listing text, screenshots, and other marketing localization separate from in-app Android strings. Those are Play Console and media-asset concerns, not a reason to reintroduce repository-managed Android UI translations.
-- Screenshot-only UI translation overlays belong in `apps/android/app/src/marketingScreenshot/res` and are packaged only into the dedicated `marketingScreenshot` build type used by the manual screenshot wrappers. They must not be used to change normal `debug` or `release` builds.
-- When a new Android app language is needed, add the English source strings or locale-ready formatting in repo, update the explicit locale-advertising config, upload a draft release to Google Play, review the Play-managed translations there, verify the Play-delivered build, and publish later from Play Console.
-- A local debug build is useful only for base-resource sanity and locale-plumbing checks. Treat the Play-delivered draft build as the source of truth for translated UI copy and final per-app language availability.
+Follow the [app-language checklist](docs/add-language-checklist.md) for resource qualifiers, Play draft checks, and device verification. Store listing localization is a [separate workflow](docs/play-store-localization-runbook.md). Screenshot-only translations live in `app/src/marketingScreenshot/res` and ship only in the `marketingScreenshot` build type.
 
 ## Media Assets
 
@@ -228,7 +221,7 @@ The repository policy for Android CI/CD is:
 - the manual `Android Release` workflow ([where Android CI runs](../../docs/android-ci-cd.md)) runs the GitHub-hosted build, unit tests, lint, and `data:local` gate, completes the [physical Device Run release selections](../../docs/android-ci-cd.md#choose-the-device-run-devices), then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
 - one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Device Run job labels so the same release stays traceable across GitHub, Play, and Device Run
-- after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
+- after the workflow uploads the AAB, [reconcile locale ownership for the Play draft](docs/add-language-checklist.md#6-check-locale-ownership-in-the-play-draft) and [verify the Play-delivered build](docs/add-language-checklist.md#8-run-android-specific-manual-verification) before publishing
 
 ## Respect Existing Code
 

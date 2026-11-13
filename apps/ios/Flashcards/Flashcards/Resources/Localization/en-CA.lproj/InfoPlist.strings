@@ -1,0 +1,5 @@
+"kMDItemKeywords" = "flashcards,flash cards,study cards,revision cards";
+"MDItemKeywords" = "flashcards,flash cards,study cards,revision cards";
+"NSCameraUsageDescription" = "Take photos for AI chat. Photos you attach are sent to OpenAI for AI processing.";
+"NSMicrophoneUsageDescription" = "Record dictation audio and send it to OpenAI to transcribe text for AI chat.";
+"NSPhotoLibraryUsageDescription" = "Choose photos to attach to AI chat and send to OpenAI for AI processing.";

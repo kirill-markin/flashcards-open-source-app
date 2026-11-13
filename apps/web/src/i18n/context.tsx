@@ -6,6 +6,7 @@ import {
   type TranslationKey,
   type TranslationMessages,
 } from "./catalog";
+import { formatLocaleDisplayName } from "./localeDisplayNames";
 import {
   formatCount,
   formatDate,
@@ -26,6 +27,7 @@ type I18nContextValue = Readonly<ResolvedLocaleState & {
   messages: TranslationMessages;
   setLocalePreference: (localePreference: LocalePreference) => void;
   t: (key: TranslationKey, values?: TranslationValues) => string;
+  getLocaleName: (locale: Locale) => string;
   formatDate: (value: DateTimeValue, options?: Readonly<Intl.DateTimeFormatOptions>) => string;
   formatTime: (value: DateTimeValue, options?: Readonly<Intl.DateTimeFormatOptions>) => string;
   formatDateTime: (value: DateTimeValue, options?: Readonly<Intl.DateTimeFormatOptions>) => string;
@@ -201,6 +203,7 @@ export function I18nProvider(props: Props): ReactElement {
         messages: renderedTranslation.messages,
         setLocalePreference,
         t,
+        getLocaleName: (locale) => formatLocaleDisplayName(locale, renderedLocale, renderedTranslation.messages.locale.names),
         formatDate: formatDateValue,
         formatTime: formatTimeValue,
         formatDateTime: formatDateTimeValue,

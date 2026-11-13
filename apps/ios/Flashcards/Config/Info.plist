@@ -15,6 +15,9 @@
 		<string>de</string>
 		<string>el</string>
 		<string>en</string>
+		<string>en-AU</string>
+		<string>en-CA</string>
+		<string>en-GB</string>
 		<string>es-ES</string>
 		<string>es-MX</string>
 		<string>et</string>
@@ -33,8 +36,10 @@
 		<string>lv</string>
 		<string>ml</string>
 		<string>mr</string>
+		<string>ms</string>
 		<string>nb</string>
 		<string>nl</string>
+		<string>or</string>
 		<string>pa</string>
 		<string>pl</string>
 		<string>ro</string>
@@ -51,11 +56,14 @@
 		<string>vi</string>
 		<string>zu</string>
 		<string>fr</string>
+		<string>fr-CA</string>
 		<string>hi</string>
 		<string>ja</string>
 		<string>pt-BR</string>
+		<string>pt-PT</string>
 		<string>ru</string>
 		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>$(APP_DISPLAY_NAME)</string>

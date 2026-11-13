@@ -29,10 +29,12 @@ private val marketingScreenshotFixtureLocales: Map<String, String> = mapOf(
     "lv" to "lv",
     "ml-IN" to "ml",
     "mr-IN" to "mr",
+    "ms" to "ms",
     "nl-NL" to "nl",
     "no-NO" to "no",
     "pa" to "pa",
     "pl-PL" to "pl",
+    "pt-PT" to "pt-PT",
     "ro" to "ro",
     "sk" to "sk",
     "sl" to "sl",
@@ -45,13 +47,20 @@ private val marketingScreenshotFixtureLocales: Map<String, String> = mapOf(
     "uk" to "uk",
     "ur" to "ur",
     "vi" to "vi",
+    "zh-TW" to "zh-Hant",
     "zu" to "zu"
 )
 
+private val marketingScreenshotFixtureAliases: Map<String, String> = mapOf(
+    "ms-MY" to "ms",
+    "zh-HK" to "zh-TW"
+)
+
 internal fun loadMarketingScreenshotLocaleConfig(localePrefix: String): MarketingScreenshotLocaleConfig {
-    val expectedAppLocaleTag = marketingScreenshotFixtureLocales[localePrefix]
+    val fixturePrefix = marketingScreenshotFixtureAliases[localePrefix] ?: localePrefix
+    val expectedAppLocaleTag = marketingScreenshotFixtureLocales[fixturePrefix]
         ?: throw IllegalArgumentException("Unsupported marketing screenshot locale prefix '$localePrefix'.")
-    val assetPath = "marketing-locales/$localePrefix.json"
+    val assetPath = "marketing-locales/$fixturePrefix.json"
     val fixtureText = try {
         InstrumentationRegistry.getInstrumentation().context.assets.open(assetPath).use { input ->
             input.reader(Charsets.UTF_8).readText()
@@ -65,13 +74,13 @@ internal fun loadMarketingScreenshotLocaleConfig(localePrefix: String): Marketin
     } catch (exception: JSONException) {
         throw IllegalArgumentException("Invalid screenshot fixture '$assetPath': ${exception.message}", exception)
     }
-    require(config.localePrefix == localePrefix) {
-        "Screenshot fixture '$assetPath' must declare localePrefix '$localePrefix', got '${config.localePrefix}'."
+    require(config.localePrefix == fixturePrefix) {
+        "Screenshot fixture '$assetPath' must declare localePrefix '$fixturePrefix', got '${config.localePrefix}'."
     }
     require(config.appLocaleTag == expectedAppLocaleTag) {
         "Screenshot fixture '$assetPath' must declare appLocaleTag '$expectedAppLocaleTag', got '${config.appLocaleTag}'."
     }
-    return config
+    return config.copy(localePrefix = localePrefix)
 }
 
 private fun parseMarketingScreenshotLocaleConfig(fixture: JSONObject): MarketingScreenshotLocaleConfig {

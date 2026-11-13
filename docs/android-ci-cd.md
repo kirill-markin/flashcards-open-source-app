@@ -75,7 +75,7 @@ Named result automation verifies native execution and correlation only. Raw warn
 
 ## Play-managed translations
 
-Android app-internal translations are Play-first, as the [add-language checklist](../apps/android/docs/add-language-checklist.md) defines: after CI uploads the draft, create or update translated Android UI copy with Google Play App strings translation and Gemini in Play Console, and publish the draft only after those translations are reviewed. Google Play listing localization is separate.
+After CI uploads the draft, [check locale ownership](../apps/android/docs/add-language-checklist.md#6-check-locale-ownership-in-the-play-draft) and [verify both translation sources in the Play-delivered build](../apps/android/docs/add-language-checklist.md#8-run-android-specific-manual-verification) before publishing.
 
 ## Google Cloud access and device preflight
 

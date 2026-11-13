@@ -59,6 +59,24 @@
             "value" : "See your daily reviews and streak on a heatmap."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and streak on a heatmap."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and streak on a heatmap."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and streak on a heatmap."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -90,6 +108,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez vos révisions quotidiennes et votre série sur une carte de chaleur."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez vos révisions quotidiennes et votre série sur une carte de chaleur."
@@ -185,6 +209,12 @@
             "value" : "हीटमॅपवर तुमच्या दैनंदिन उजळण्या आणि सलग दिवस पाहा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat ulang kaji harian dan rekod berturut-turut anda pada peta haba."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -195,6 +225,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk je dagelijkse herhalingen en je dagreeks op een heatmap."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ହିଟ୍‌ମ୍ୟାପ୍‌ରେ ପ୍ରତିଦିନର ପୁନରାବୃତ୍ତି ଓ କ୍ରମାଗତ ଦିନ ଦେଖନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -213,6 +249,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja suas revisões diárias e sua sequência em um mapa de calor."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja as suas revisões diárias e a sua sequência num mapa de calor."
           }
         },
         "ro" : {
@@ -299,6 +341,12 @@
             "value" : "通过热力图查看每日复习和连续记录。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在熱圖上查看每日複習次數和連續紀錄。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -365,6 +413,24 @@
             "value" : "Activity"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -396,6 +462,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activité"
@@ -491,6 +563,12 @@
             "value" : "क्रियाकलाप"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviti"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -501,6 +579,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activiteit"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କାର୍ଯ୍ୟକଳାପ"
           }
         },
         "pa" : {
@@ -516,6 +600,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atividade"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atividade"
@@ -603,6 +693,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "活动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "活動"
           }
         },
         "zu" : {
@@ -821,6 +917,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld weeks"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld weeks"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Active days in %lld weeks"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -924,6 +1074,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jours actifs sur %lld de semaines"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jours actifs sur %lld semaine"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jours actifs sur %lld semaines"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -1235,6 +1409,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Hari aktif dalam %lld minggu"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -1266,6 +1452,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Actieve dagen in %lld weken"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ସପ୍ତାହରେ ସକ୍ରିୟ ଦିନ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ସପ୍ତାହରେ ସକ୍ରିୟ ଦିନ"
                 }
               }
             }
@@ -1320,6 +1524,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dias ativos em %lld de semanas"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dias ativos em %lld semana"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Dias ativos em %lld semanas"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -1631,6 +1859,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 週內的活躍天數"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -1709,6 +1949,24 @@
             "value" : "Best streak"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best streak"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best streak"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best streak"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1740,6 +1998,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meilleure série"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Meilleure série"
@@ -1835,6 +2099,12 @@
             "value" : "सर्वोत्तम सलग दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rekod terbaik"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1845,6 +2115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Beste dagreeks"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସବୁଠୁ ଲମ୍ବା କ୍ରମ"
           }
         },
         "pa" : {
@@ -1860,6 +2136,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melhor sequência"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Melhor sequência"
@@ -1949,6 +2231,12 @@
             "value" : "最长连续"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最長連續紀錄"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2015,6 +2303,24 @@
             "value" : "Current streak"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current streak"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current streak"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current streak"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2046,6 +2352,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Série actuelle"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Série actuelle"
@@ -2141,6 +2453,12 @@
             "value" : "सध्याची सलग दिवसांची मालिका"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rekod semasa"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2151,6 +2469,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Huidige dagreeks"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଚଳିତ କ୍ରମାଗତ ଦିନ"
           }
         },
         "pa" : {
@@ -2166,6 +2490,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sequência atual"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sequência atual"
@@ -2255,6 +2585,12 @@
             "value" : "当前连续天数"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前連續紀錄"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2321,6 +2657,24 @@
             "value" : "Due now"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due now"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due now"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due now"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2352,6 +2706,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À réviser"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "À réviser"
@@ -2447,6 +2807,12 @@
             "value" : "आता उजळणी बाकी"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untuk ulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2457,6 +2823,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nu te herhalen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି ପାଇଁ"
           }
         },
         "pa" : {
@@ -2475,6 +2847,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Para revisar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por rever"
           }
         },
         "ro" : {
@@ -2559,6 +2937,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "待复习"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待複習"
           }
         },
         "zu" : {
@@ -2777,6 +3161,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld weeks"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld weeks"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Reviews in %lld weeks"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -2880,6 +3318,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Révisions sur %lld de semaines"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Révisions sur %lld semaine"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Révisions sur %lld semaines"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -3191,6 +3653,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ulang kaji dalam %lld minggu"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -3222,6 +3696,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Herhalingen in %lld weken"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ସପ୍ତାହରେ ପୁନରାବୃତ୍ତି"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ସପ୍ତାହରେ ପୁନରାବୃତ୍ତି"
                 }
               }
             }
@@ -3276,6 +3768,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revisões em %lld de semanas"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revisões em %lld semana"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revisões em %lld semanas"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -3587,6 +4103,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 週內的複習次數"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -3665,6 +4193,24 @@
             "value" : "Reviews today"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews today"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews today"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews today"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3696,6 +4242,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Révisions du jour"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Révisions du jour"
@@ -3791,6 +4343,12 @@
             "value" : "आजच्या उजळण्या"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulang kaji hari ini"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3801,6 +4359,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herhalingen vandaag"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଜିର ପୁନରାବୃତ୍ତି"
           }
         },
         "pa" : {
@@ -3819,6 +4383,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisões hoje"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisões de hoje"
           }
         },
         "ro" : {
@@ -3905,6 +4475,12 @@
             "value" : "今日复习"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日複習"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3971,6 +4547,24 @@
             "value" : "Streak freezes"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak freezes"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak freezes"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak freezes"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4002,6 +4596,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gels de série"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gels de série"
@@ -4097,6 +4697,12 @@
             "value" : "सलग दिवसांचे संरक्षण"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perlindungan rekod"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4107,6 +4713,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dagreeksbescherming"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କ୍ରମ ସୁରକ୍ଷା"
           }
         },
         "pa" : {
@@ -4125,6 +4737,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Congelamentos de sequência"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proteções de sequência"
           }
         },
         "ro" : {
@@ -4211,6 +4829,12 @@
             "value" : "连续记录冻结"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連續紀錄凍結"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4277,6 +4901,24 @@
             "value" : "Next card at %@"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card at %@"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card at %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next card at %@"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4308,6 +4950,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prochaine carte : %@"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prochaine carte : %@"
@@ -4403,6 +5051,12 @@
             "value" : "पुढचे कार्ड: %@"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kad seterusnya: %@"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4413,6 +5067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Volgende kaart: %@"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପରବର୍ତ୍ତୀ କାର୍ଡ: %@"
           }
         },
         "pa" : {
@@ -4428,6 +5088,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próximo cartão: %@"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Próximo cartão: %@"
@@ -4517,6 +5183,12 @@
             "value" : "下一张卡片：%@"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一張卡片：%@"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4583,6 +5255,24 @@
             "value" : "All done"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4614,6 +5304,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes à jour"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vous êtes à jour"
@@ -4709,6 +5405,12 @@
             "value" : "सर्व पूर्ण झाले"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4719,6 +5421,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Helemaal bij"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସବୁ ସରିଲା"
           }
         },
         "pa" : {
@@ -4734,6 +5442,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo em dia"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tudo em dia"
@@ -4823,6 +5537,12 @@
             "value" : "全部完成"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "都複習完了"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4889,6 +5609,24 @@
             "value" : "Cards are ready to review"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards are ready to review"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards are ready to review"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards are ready to review"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4920,6 +5658,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Des cartes sont prêtes à être révisées"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Des cartes sont prêtes à être révisées"
@@ -5015,6 +5759,12 @@
             "value" : "कार्डे उजळणीसाठी तयार आहेत"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kad sedia diulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5025,6 +5775,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Er staan kaarten klaar om te herhalen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କାର୍ଡଗୁଡ଼ିକ ପୁନରାବୃତ୍ତି ପାଇଁ ପ୍ରସ୍ତୁତ"
           }
         },
         "pa" : {
@@ -5043,6 +5799,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Há cartões prontos para revisar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Há cartões para rever"
           }
         },
         "ro" : {
@@ -5129,6 +5891,12 @@
             "value" : "有卡片可以复习了"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有卡片可以複習了"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5195,6 +5963,24 @@
             "value" : "See how many cards are due today and over the next days."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due today and over the next days."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due today and over the next days."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due today and over the next days."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5226,6 +6012,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez combien de cartes sont à réviser aujourd’hui et les jours suivants."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez combien de cartes sont à réviser aujourd’hui et les jours suivants."
@@ -5321,6 +6113,12 @@
             "value" : "आज आणि पुढील काही दिवसांत किती कार्डांची उजळणी बाकी आहे ते पाहा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat bilangan kad untuk diulang kaji hari ini dan dalam beberapa hari akan datang."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5331,6 +6129,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk hoeveel kaarten je vandaag en de komende dagen moet herhalen."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଜି ଓ ଆଗାମୀ କିଛି ଦିନରେ କେତୋଟି କାର୍ଡର ପୁନରାବୃତ୍ତି କରିବେ ଦେଖନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -5349,6 +6153,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja quantos cartões estão pendentes hoje e nos próximos dias."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja quantos cartões tem para rever hoje e nos próximos dias."
           }
         },
         "ro" : {
@@ -5435,6 +6245,12 @@
             "value" : "查看今天和接下来几天有多少张卡片到期。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看今天和接下來幾天有多少張卡片待複習。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5501,6 +6317,24 @@
             "value" : "Coming up"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming up"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming up"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming up"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5532,6 +6366,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À venir"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "À venir"
@@ -5627,6 +6467,12 @@
             "value" : "आगामी"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akan datang"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5637,6 +6483,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Binnenkort"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଗାମୀ"
           }
         },
         "pa" : {
@@ -5652,6 +6504,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próximos dias"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Próximos dias"
@@ -5739,6 +6597,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "即将到期"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接下來幾天"
           }
         },
         "zu" : {
@@ -5957,6 +6821,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld card"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld cards"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld card"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld cards"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld card"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Next 7 days · %lld cards"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -6060,6 +6978,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "7 prochains jours · %lld de cartes"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "7 prochains jours · %lld carte"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "7 prochains jours · %lld cartes"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -6371,6 +7313,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "7 hari akan datang · %lld kad"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -6402,6 +7356,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Komende 7 dagen · %lld kaarten"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ଆଗାମୀ 7 ଦିନ · %lldଟି କାର୍ଡ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ଆଗାମୀ 7 ଦିନ · %lldଟି କାର୍ଡ"
                 }
               }
             }
@@ -6456,6 +7428,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Próximos 7 dias · %lld de cartões"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Próximos 7 dias · %lld cartão"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Próximos 7 dias · %lld cartões"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -6767,6 +7763,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "未來 7 天 · %lld 張卡片"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -6845,6 +7853,24 @@
             "value" : "Review schedule"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6876,6 +7902,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendrier de révision"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calendrier de révision"
@@ -6971,6 +8003,12 @@
             "value" : "उजळणीचे वेळापत्रक"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jadual ulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6981,6 +8019,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herhaalschema"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି ସୂଚୀ"
           }
         },
         "pa" : {
@@ -6999,6 +8043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agenda de revisões"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendário de revisões"
           }
         },
         "ro" : {
@@ -7085,6 +8135,12 @@
             "value" : "复习计划"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複習排程"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7151,6 +8207,24 @@
             "value" : "Today’s progress, cards due, your streak, the next question and recent activity."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s progress, cards due, your streak, the next question and recent activity."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s progress, cards due, your streak, the next question and recent activity."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s progress, cards due, your streak, the next question and recent activity."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7182,6 +8256,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progrès du jour, cartes à réviser, votre série, la question suivante et l’activité récente."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progrès du jour, cartes à réviser, votre série, la question suivante et l’activité récente."
@@ -7277,6 +8357,12 @@
             "value" : "आजची प्रगती, उजळणी बाकी असलेली कार्डे, तुमचे सलग दिवस, पुढचा प्रश्न आणि अलीकडील क्रियाकलाप."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat kemajuan hari ini, kad untuk diulang kaji, rekod berturut-turut, soalan seterusnya dan aktiviti terkini."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7287,6 +8373,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voortgang van vandaag, te herhalen kaarten, je dagreeks, de volgende vraag en recente activiteit."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଜିର ପ୍ରଗତି, ବାକି କାର୍ଡ, କ୍ରମାଗତ ଦିନ, ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ ଓ ନିକଟର କାର୍ଯ୍ୟକଳାପ ଦେଖନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -7305,6 +8397,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progresso de hoje, cartões pendentes, sua sequência, a próxima pergunta e a atividade recente."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja o progresso de hoje, os cartões por rever, a sua sequência, a próxima pergunta e a atividade recente."
           }
         },
         "ro" : {
@@ -7391,6 +8489,12 @@
             "value" : "今日进度、待复习卡片、连续记录、下一个问题和近期活动。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看今日進度、待複習卡片、連續紀錄、下一道題目和近期活動。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7457,6 +8561,24 @@
             "value" : "Dashboard"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7488,6 +8610,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tableau de bord"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tableau de bord"
@@ -7583,6 +8711,12 @@
             "value" : "डॅशबोर्ड"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papan pemuka"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7593,6 +8727,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dashboard"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଡ୍ୟାଶବୋର୍ଡ"
           }
         },
         "pa" : {
@@ -7608,6 +8748,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Painel"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Painel"
@@ -7697,6 +8843,12 @@
             "value" : "仪表板"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總覽"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7763,6 +8915,24 @@
             "value" : "To review"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To review"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To review"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To review"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7794,6 +8964,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À réviser"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "À réviser"
@@ -7889,6 +9065,12 @@
             "value" : "उजळणी बाकी"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untuk ulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7899,6 +9081,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Te herhalen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି ପାଇଁ"
           }
         },
         "pa" : {
@@ -7917,6 +9105,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Para revisar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por rever"
           }
         },
         "ro" : {
@@ -8003,6 +9197,12 @@
             "value" : "待复习"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待複習"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8069,6 +9269,24 @@
             "value" : "See how many cards are due and the next question."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due and the next question."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due and the next question."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how many cards are due and the next question."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8100,6 +9318,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez combien de cartes sont à réviser et la question suivante."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez combien de cartes sont à réviser et la question suivante."
@@ -8195,6 +9419,12 @@
             "value" : "किती कार्डांची उजळणी बाकी आहे आणि पुढचा प्रश्न पाहा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat bilangan kad untuk diulang kaji dan soalan seterusnya."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8205,6 +9435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk hoeveel kaarten je moet herhalen en de volgende vraag."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି ପାଇଁ ବାକି କାର୍ଡ ସଂଖ୍ୟା ଓ ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ ଦେଖନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -8223,6 +9459,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja quantos cartões estão pendentes e a próxima pergunta."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja quantos cartões tem por rever e qual é a próxima pergunta."
           }
         },
         "ro" : {
@@ -8309,6 +9551,12 @@
             "value" : "查看有多少张卡片到期以及下一个问题。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看待複習的卡片數量和下一道題目。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8375,6 +9623,24 @@
             "value" : "Review"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8406,6 +9672,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réviser"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réviser"
@@ -8501,6 +9773,12 @@
             "value" : "उजळणी"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulang Kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8511,6 +9789,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herhalen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି"
           }
         },
         "pa" : {
@@ -8529,6 +9813,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rever"
           }
         },
         "ro" : {
@@ -8613,6 +9903,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复习"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複習"
           }
         },
         "zu" : {
@@ -8831,6 +10127,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active days"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active days"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active days"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -8934,6 +10284,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de jours actifs"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jour actif"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jours actifs"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -9245,6 +10619,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hari aktif"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -9276,6 +10662,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld actieve dagen"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ସକ୍ରିୟ ଦିନ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ସକ୍ରିୟ ଦିନ"
                 }
               }
             }
@@ -9330,6 +10734,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de dias ativos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia ativo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias ativos"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -9641,6 +11069,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "活躍 %lld 天"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -9869,6 +11309,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -9972,6 +11466,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de jours"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jours"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -10283,6 +11801,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hari"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -10314,6 +11844,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld dagen"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ଦିନ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ଦିନ"
                 }
               }
             }
@@ -10368,6 +11916,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de dias"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -10679,6 +12251,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 天"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -10907,6 +12491,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld review"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviews"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld review"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviews"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld review"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviews"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -11010,6 +12648,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de révisions"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld révision"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld révisions"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -11321,6 +12983,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ulang kaji"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -11352,6 +13026,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld herhalingen"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ଥର ପୁନରାବୃତ୍ତି"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ଥର ପୁନରାବୃତ୍ତି"
                 }
               }
             }
@@ -11406,6 +13098,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de revisões"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld revisão"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld revisões"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -11717,6 +13433,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "複習 %lld 次"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -11945,6 +13673,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld due"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -12048,6 +13830,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld à réviser"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld à réviser"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld à réviser"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -12359,6 +14165,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld untuk ulang kaji"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -12390,6 +14208,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld te herhalen"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ବାକି"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ବାକି"
                 }
               }
             }
@@ -12462,6 +14298,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld para revisar"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld por rever"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld por rever"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld por rever"
                 }
               }
             }
@@ -12755,6 +14615,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 張待複習"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -12833,6 +14705,24 @@
             "value" : "%1$lld due · 🔥 %2$lld"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld due · 🔥 %2$lld"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld due · 🔥 %2$lld"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld due · 🔥 %2$lld"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12864,6 +14754,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld à revoir · 🔥 %2$lld"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld à revoir · 🔥 %2$lld"
@@ -12959,6 +14855,12 @@
             "value" : "%1$lld बाकी · 🔥 %2$lld"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld untuk ulang kaji · 🔥 %2$lld"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12969,6 +14871,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld te doen · 🔥 %2$lld"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldଟି ବାକି · 🔥 %2$lld"
           }
         },
         "pa" : {
@@ -12987,6 +14895,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisar: %1$lld · 🔥 %2$lld"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld por rever · 🔥 %2$lld"
           }
         },
         "ro" : {
@@ -13073,6 +14987,12 @@
             "value" : "%1$lld 张待复习 · 🔥 %2$lld"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld 張待複習 · 🔥 %2$lld"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13139,6 +15059,24 @@
             "value" : "Cards due, today’s progress and the next question."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due, today’s progress and the next question."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due, today’s progress and the next question."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due, today’s progress and the next question."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13170,6 +15108,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartes à réviser, progrès du jour et question suivante."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartes à réviser, progrès du jour et question suivante."
@@ -13265,6 +15209,12 @@
             "value" : "उजळणी बाकी असलेली कार्डे, आजची प्रगती आणि पुढचा प्रश्न."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kad untuk diulang kaji, kemajuan hari ini dan soalan seterusnya."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13275,6 +15225,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Te herhalen kaarten, voortgang van vandaag en de volgende vraag."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ବାକି କାର୍ଡ, ଆଜିର ପ୍ରଗତି ଓ ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ।"
           }
         },
         "pa" : {
@@ -13293,6 +15249,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartões pendentes, o progresso de hoje e a próxima pergunta."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartões por rever, progresso de hoje e próxima pergunta."
           }
         },
         "ro" : {
@@ -13379,6 +15341,12 @@
             "value" : "待复习卡片、今日进度和下一个问题。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看待複習卡片、今日進度和下一道題目。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13445,6 +15413,24 @@
             "value" : "Cards due"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards due"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13476,6 +15462,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartes à réviser"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartes à réviser"
@@ -13571,6 +15563,12 @@
             "value" : "उजळणी बाकी"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kad untuk ulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13581,6 +15579,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Te herhalen kaarten"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ବାକି କାର୍ଡ"
           }
         },
         "pa" : {
@@ -13599,6 +15603,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartões pendentes"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartões por rever"
           }
         },
         "ro" : {
@@ -13685,6 +15695,12 @@
             "value" : "待复习卡片"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待複習卡片"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13751,6 +15767,24 @@
             "value" : "See the days you reviewed this month."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the days you reviewed this month."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the days you reviewed this month."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the days you reviewed this month."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13782,6 +15816,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez les jours où vous avez révisé ce mois-ci."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez les jours où vous avez révisé ce mois-ci."
@@ -13877,6 +15917,12 @@
             "value" : "या महिन्यात तुम्ही उजळणी केलेले दिवस पाहा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat hari anda mengulang kaji pada bulan ini."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13887,6 +15933,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk op welke dagen je deze maand hebt herhaald."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଏହି ମାସରେ କେଉଁ ଦିନ ପୁନରାବୃତ୍ତି କରିଥିଲେ ଦେଖନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -13905,6 +15957,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja os dias em que você revisou neste mês."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja em que dias deste mês fez revisões."
           }
         },
         "ro" : {
@@ -13991,6 +16049,12 @@
             "value" : "查看本月有复习的日子。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看本月哪些日子有複習。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14057,6 +16121,24 @@
             "value" : "Calendar"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14088,6 +16170,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendrier"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calendrier"
@@ -14183,6 +16271,12 @@
             "value" : "कॅलेंडर"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kalendar"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14193,6 +16287,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kalender"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କ୍ୟାଲେଣ୍ଡର"
           }
         },
         "pa" : {
@@ -14208,6 +16308,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendário"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calendário"
@@ -14297,6 +16403,12 @@
             "value" : "日历"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行事曆"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14363,6 +16475,24 @@
             "value" : "Open Nibomo to start reviewing"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo to start reviewing"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo to start reviewing"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nibomo to start reviewing"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14394,6 +16524,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Nibomo pour commencer à réviser"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrez Nibomo pour commencer à réviser"
@@ -14489,6 +16625,12 @@
             "value" : "उजळणी सुरू करण्यासाठी Nibomo उघडा"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Nibomo untuk mula mengulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14499,6 +16641,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Nibomo om te beginnen met herhalen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି ଆରମ୍ଭ କରିବାକୁ Nibomo ଖୋଲନ୍ତୁ"
           }
         },
         "pa" : {
@@ -14517,6 +16665,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abra o Nibomo para começar a revisar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra o Nibomo para começar a rever"
           }
         },
         "ro" : {
@@ -14603,6 +16757,12 @@
             "value" : "打开 Nibomo 开始复习"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 Nibomo 開始複習"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14669,6 +16829,24 @@
             "value" : "Again"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Again"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Again"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Again"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14700,6 +16878,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À revoir"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "À revoir"
@@ -14795,6 +16979,12 @@
             "value" : "पुन्हा"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulang"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14805,6 +16995,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opnieuw"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁଣି"
           }
         },
         "pa" : {
@@ -14820,6 +17016,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De novo"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "De novo"
@@ -14909,6 +17111,12 @@
             "value" : "重来"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重來"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14975,6 +17183,24 @@
             "value" : "Easy"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15006,6 +17232,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facile"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Facile"
@@ -15101,6 +17333,12 @@
             "value" : "सोपे"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudah"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15111,6 +17349,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Makkelijk"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସହଜ"
           }
         },
         "pa" : {
@@ -15126,6 +17370,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fácil"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fácil"
@@ -15215,6 +17465,12 @@
             "value" : "简单"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簡單"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15281,6 +17537,24 @@
             "value" : "Good"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15312,6 +17586,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correct"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Correct"
@@ -15407,6 +17687,12 @@
             "value" : "चांगले"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baik"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15417,6 +17703,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Goed"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଭଲ"
           }
         },
         "pa" : {
@@ -15432,6 +17724,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bom"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bom"
@@ -15521,6 +17819,12 @@
             "value" : "良好"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "良好"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15587,6 +17891,24 @@
             "value" : "Hard"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15618,6 +17940,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difficile"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Difficile"
@@ -15713,6 +18041,12 @@
             "value" : "कठीण"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sukar"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15723,6 +18057,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Moeilijk"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କଠିନ"
           }
         },
         "pa" : {
@@ -15738,6 +18078,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difícil"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Difícil"
@@ -15827,6 +18173,12 @@
             "value" : "困难"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "困難"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15893,6 +18245,24 @@
             "value" : "Daily avg %@"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily avg %@"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily avg %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily avg %@"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15924,6 +18294,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moy. par jour : %@"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Moy. par jour : %@"
@@ -16019,6 +18395,12 @@
             "value" : "दैनिक सरासरी %@"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purata harian %@"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16029,6 +18411,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gem. per dag %@"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଦୈନିକ ହାରାହାରି %@"
           }
         },
         "pa" : {
@@ -16044,6 +18432,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Média diária %@"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Média diária %@"
@@ -16133,6 +18527,12 @@
             "value" : "日均 %@"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每日平均 %@"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16199,6 +18599,24 @@
             "value" : "See your daily reviews and how they compare with the period before."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and how they compare with the period before."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and how they compare with the period before."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your daily reviews and how they compare with the period before."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16230,6 +18648,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez vos révisions quotidiennes comparées à la période précédente."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez vos révisions quotidiennes comparées à la période précédente."
@@ -16325,6 +18749,12 @@
             "value" : "मागील कालावधीच्या तुलनेत तुमच्या दैनंदिन उजळण्या पाहा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandingkan ulang kaji harian anda dengan tempoh sebelumnya."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16335,6 +18765,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk je dagelijkse herhalingen vergeleken met de periode ervoor."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପ୍ରତିଦିନର ପୁନରାବୃତ୍ତିକୁ ପୂର୍ବ ଅବଧି ସହ ତୁଳନା କରନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -16353,6 +18789,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja suas revisões diárias em comparação com o período anterior."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare as suas revisões diárias com as do período anterior."
           }
         },
         "ro" : {
@@ -16439,6 +18881,12 @@
             "value" : "查看每日复习，并与上一时段比较。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看每日複習次數，並與上一時段比較。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16505,6 +18953,24 @@
             "value" : "Reviews"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16536,6 +19002,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Révisions"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Révisions"
@@ -16631,6 +19103,12 @@
             "value" : "उजळण्या"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carta ulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16641,6 +19119,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herhalingen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୁନରାବୃତ୍ତି ସଂଖ୍ୟା"
           }
         },
         "pa" : {
@@ -16656,6 +19140,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisões"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisões"
@@ -16743,6 +19233,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复习量"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複習次數"
           }
         },
         "zu" : {
@@ -17051,6 +19547,90 @@
             }
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17204,6 +19784,40 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld %% vs %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg de jours précédents"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg jour précédent"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg jours précédents"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "↑ %1$lld %% vs %#@days@"
@@ -17675,6 +20289,28 @@
             }
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld%% vs tempoh %#@days@ terdahulu"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg hari"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17724,6 +20360,34 @@
                     "stringUnit" : {
                       "state" : "translated",
                       "value" : "%arg dagen"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୂର୍ବର %#@days@ ତୁଳନାରେ ↑ %1$lld%%"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg ଦିନ"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg ଦିନ"
                     }
                   }
                 }
@@ -17803,6 +20467,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "↑ %1$lld%% vs. %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg de dias anteriores"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dia anterior"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dias anteriores"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ %1$lld %% vs. %#@days@"
           },
           "substitutions" : {
             "days" : {
@@ -18261,6 +20959,28 @@
             }
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "較前 %#@days@ ↑ %1$lld%%"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg 天"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18589,6 +21309,90 @@
             }
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld%% vs previous %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18742,6 +21546,40 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld %% vs %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg de jours précédents"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg jour précédent"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg jours précédents"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "↓ %1$lld %% vs %#@days@"
@@ -19213,6 +22051,28 @@
             }
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld%% vs tempoh %#@days@ terdahulu"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg hari"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19262,6 +22122,34 @@
                     "stringUnit" : {
                       "state" : "translated",
                       "value" : "%arg dagen"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପୂର୍ବର %#@days@ ତୁଳନାରେ ↓ %1$lld%%"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg ଦିନ"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg ଦିନ"
                     }
                   }
                 }
@@ -19341,6 +22229,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "↓ %1$lld%% vs. %#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg de dias anteriores"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dia anterior"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dias anteriores"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓ %1$lld %% vs. %#@days@"
           },
           "substitutions" : {
             "days" : {
@@ -19799,6 +22721,28 @@
             }
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "較前 %#@days@ ↓ %1$lld%%"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg 天"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20037,6 +22981,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld days"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld days"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Same as previous %lld days"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -20140,6 +23138,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stable vs %lld de jours précédents"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stable vs %lld jour précédent"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stable vs %lld jours précédents"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -20451,6 +23473,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sama seperti tempoh %lld hari terdahulu"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -20482,6 +23516,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Gelijk aan %lld dagen ervoor"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ପୂର୍ବର %lld ଦିନ ସହ ସମାନ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ପୂର୍ବର %lld ଦିନ ସହ ସମାନ"
                 }
               }
             }
@@ -20554,6 +23606,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Sem mudança vs. %lld dias anteriores"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sem variação vs. %lld de dias anteriores"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sem variação vs. %lld dia anterior"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sem variação vs. %lld dias anteriores"
                 }
               }
             }
@@ -20847,6 +23923,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "與前 %lld 天持平"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -20925,6 +24013,24 @@
             "value" : "1-7 days"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 days"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 days"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 days"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20956,6 +24062,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 jours"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 jours"
@@ -21051,6 +24163,12 @@
             "value" : "1–7 दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 hari"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21061,6 +24179,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1–7 dagen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 ଦିନ"
           }
         },
         "pa" : {
@@ -21076,6 +24200,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 dias"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 dias"
@@ -21165,6 +24295,12 @@
             "value" : "1-7 天"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21231,6 +24367,24 @@
             "value" : "31-90 days"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 days"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 days"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 days"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21262,6 +24416,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 jours"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 jours"
@@ -21357,6 +24517,12 @@
             "value" : "31–90 दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 hari"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21367,6 +24533,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31–90 dagen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 ଦିନ"
           }
         },
         "pa" : {
@@ -21382,6 +24554,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 dias"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 dias"
@@ -21471,6 +24649,12 @@
             "value" : "31-90 天"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21537,6 +24721,24 @@
             "value" : "8-30 days"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 days"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 days"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 days"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21568,6 +24770,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 jours"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "8-30 jours"
@@ -21663,6 +24871,12 @@
             "value" : "8–30 दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 hari"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21673,6 +24887,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "8–30 dagen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 ଦିନ"
           }
         },
         "pa" : {
@@ -21688,6 +24908,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 dias"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "8-30 dias"
@@ -21777,6 +25003,12 @@
             "value" : "8-30 天"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21843,6 +25075,24 @@
             "value" : "91-360 days"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 days"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 days"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 days"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21874,6 +25124,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 jours"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "91-360 jours"
@@ -21969,6 +25225,12 @@
             "value" : "91–360 दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 hari"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21979,6 +25241,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "91–360 dagen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 ଦିନ"
           }
         },
         "pa" : {
@@ -21994,6 +25262,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 dias"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "91-360 dias"
@@ -22083,6 +25357,12 @@
             "value" : "91-360 天"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22149,6 +25429,24 @@
             "value" : "Later"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22180,6 +25478,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus tard"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plus tard"
@@ -22275,6 +25579,12 @@
             "value" : "नंतर"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kemudian"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22285,6 +25595,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Later"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ପରେ"
           }
         },
         "pa" : {
@@ -22303,6 +25619,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Depois"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mais tarde"
           }
         },
         "ro" : {
@@ -22389,6 +25711,12 @@
             "value" : "更晚"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更晚"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22455,6 +25783,24 @@
             "value" : "New"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22486,6 +25832,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelles"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nouvelles"
@@ -22581,6 +25933,12 @@
             "value" : "नवीन"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baharu"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22591,6 +25949,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nieuw"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ନୂଆ"
           }
         },
         "pa" : {
@@ -22606,6 +25970,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novos"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Novos"
@@ -22695,6 +26065,12 @@
             "value" : "新卡"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新卡"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22761,6 +26137,24 @@
             "value" : "Today"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22792,6 +26186,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd’hui"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aujourd’hui"
@@ -22887,6 +26287,12 @@
             "value" : "आज"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari ini"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22897,6 +26303,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vandaag"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଜି"
           }
         },
         "pa" : {
@@ -22912,6 +26324,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoje"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hoje"
@@ -23001,6 +26419,12 @@
             "value" : "今天"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23067,6 +26491,24 @@
             "value" : "1-2 years"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 years"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 years"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 years"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23098,6 +26540,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 ans"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-2 ans"
@@ -23193,6 +26641,12 @@
             "value" : "1–2 वर्षे"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 tahun"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23203,6 +26657,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1–2 jaar"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 ବର୍ଷ"
           }
         },
         "pa" : {
@@ -23218,6 +26678,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 anos"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-2 anos"
@@ -23302,6 +26768,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 年"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-2 年"
@@ -23523,6 +26995,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld-day streak"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -23626,6 +27152,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Série de %lld de jours"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Série de %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Série de %lld jours"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -23937,6 +27487,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hari berturut-turut"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -23968,6 +27530,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Dagreeks: %lld dagen"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "କ୍ରମାଗତ %lld ଦିନ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "କ୍ରମାଗତ %lld ଦିନ"
                 }
               }
             }
@@ -24022,6 +27602,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sequência de %lld de dias"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sequência de %lld dia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sequência de %lld dias"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -24333,6 +27937,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "連續 %lld 天"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -24411,6 +28027,24 @@
             "value" : "Best %lld"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best %lld"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best %lld"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best %lld"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24442,6 +28076,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record : %lld"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Record : %lld"
@@ -24537,6 +28177,12 @@
             "value" : "सर्वोत्तम %lld"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terbaik: %lld"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24547,6 +28193,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Beste: %lld"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସର୍ବାଧିକ %lld"
           }
         },
         "pa" : {
@@ -24562,6 +28214,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorde: %lld"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recorde: %lld"
@@ -24651,6 +28309,12 @@
             "value" : "最长 %lld"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最長 %lld 天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24717,6 +28381,24 @@
             "value" : "Day streak"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day streak"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day streak"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day streak"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24748,6 +28430,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jours de série"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jours de série"
@@ -24843,6 +28531,12 @@
             "value" : "सलग दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari berturut-turut"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24853,6 +28547,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dagen op rij"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କ୍ରମାଗତ ଦିନ"
           }
         },
         "pa" : {
@@ -24868,6 +28568,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dias seguidos"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dias seguidos"
@@ -24957,6 +28663,12 @@
             "value" : "连续天数"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連續天數"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25023,6 +28735,24 @@
             "value" : "Review on consecutive days to build a streak."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review on consecutive days to build a streak."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review on consecutive days to build a streak."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review on consecutive days to build a streak."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25054,6 +28784,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Révisez plusieurs jours de suite pour créer une série."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Révisez plusieurs jours de suite pour créer une série."
@@ -25149,6 +28885,12 @@
             "value" : "सलग दिवस तयार करण्यासाठी लागोपाठ दिवशी उजळणी करा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulang kaji setiap hari untuk membina rekod berturut-turut."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25159,6 +28901,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herhaal op opeenvolgende dagen om een dagreeks op te bouwen."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କ୍ରମ ଆରମ୍ଭ କରିବାକୁ ଲଗାତାର କିଛି ଦିନ ପୁନରାବୃତ୍ତି କରନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -25177,6 +28925,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revise em dias seguidos para criar uma sequência."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reveja em dias consecutivos para criar uma sequência."
           }
         },
         "ro" : {
@@ -25261,6 +29015,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "连续多天复习即可建立连续记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天複習，累積連續紀錄。"
           }
         },
         "zu" : {
@@ -25479,6 +29239,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freeze available"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freezes available"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freeze available"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freezes available"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freeze available"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld streak freezes available"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -25582,6 +29396,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de gels de série disponibles"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld gel de série disponible"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld gels de série disponibles"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -25893,6 +29731,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Perlindungan rekod tersedia: %lld"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -25924,6 +29774,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld dagreeksbeschermingen beschikbaar"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ଉପଲବ୍ଧ କ୍ରମ ସୁରକ୍ଷା: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ଉପଲବ୍ଧ କ୍ରମ ସୁରକ୍ଷା: %lld"
                 }
               }
             }
@@ -25996,6 +29864,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld congelamentos de sequência disponíveis"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de proteções de sequência disponíveis"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld proteção de sequência disponível"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld proteções de sequência disponíveis"
                 }
               }
             }
@@ -26289,6 +30181,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "連續紀錄凍結可用次數：%lld"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -26367,6 +30271,24 @@
             "value" : "See your current streak, your best streak, and your recent streaks."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your current streak, your best streak, and your recent streaks."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your current streak, your best streak, and your recent streaks."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your current streak, your best streak, and your recent streaks."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26398,6 +30320,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez votre série actuelle, votre meilleure série et vos séries récentes."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez votre série actuelle, votre meilleure série et vos séries récentes."
@@ -26493,6 +30421,12 @@
             "value" : "तुमचे सध्याचे, सर्वोत्तम आणि अलीकडील सलग दिवस पाहा."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat rekod berturut-turut semasa, terbaik dan terkini anda."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26503,6 +30437,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk je huidige dagreeks, je beste dagreeks en je recente dagreeksen."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଏବେର, ସବୁଠୁ ଲମ୍ବା ଓ ନିକଟର କ୍ରମାଗତ ଦିନର ରେକର୍ଡ ଦେଖନ୍ତୁ।"
           }
         },
         "pa" : {
@@ -26521,6 +30461,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja sua sequência atual, sua melhor sequência e suas sequências recentes."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja a sua sequência atual, a melhor e as mais recentes."
           }
         },
         "ro" : {
@@ -26607,6 +30553,12 @@
             "value" : "查看当前连续记录、最长连续记录和近期连续记录。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看目前、最長及近期的連續紀錄。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26673,6 +30625,24 @@
             "value" : "Streaks"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26704,6 +30674,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Séries"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Séries"
@@ -26799,6 +30775,12 @@
             "value" : "सलग दिवस"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rekod berturut-turut"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26809,6 +30791,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dagreeksen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କ୍ରମାଗତ ଦିନ"
           }
         },
         "pa" : {
@@ -26824,6 +30812,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sequências"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sequências"
@@ -26911,6 +30905,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "连续记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連續紀錄"
           }
         },
         "zu" : {
@@ -27129,6 +31129,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld card left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cards left"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld card left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cards left"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld card left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cards left"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -27232,6 +31286,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld de cartes restantes"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld carte restante"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cartes restantes"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -27543,6 +31621,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Baki %lld kad"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -27574,6 +31664,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Nog %lld kaarten"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି କାର୍ଡ ବାକି"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି କାର୍ଡ ବାକି"
                 }
               }
             }
@@ -27628,6 +31736,30 @@
           }
         },
         "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Faltam %lld de cartões"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Falta %lld cartão"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Faltam %lld cartões"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -27939,6 +32071,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "還剩 %lld 張卡片"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -28017,6 +32161,24 @@
             "value" : "Today’s reviews, cards left and your streak."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s reviews, cards left and your streak."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s reviews, cards left and your streak."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today’s reviews, cards left and your streak."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28048,6 +32210,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Révisions du jour, cartes restantes et votre série."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Révisions du jour, cartes restantes et votre série."
@@ -28143,6 +32311,12 @@
             "value" : "आजच्या उजळण्या, उरलेली कार्डे आणि तुमचे सलग दिवस."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulang kaji hari ini, baki kad dan rekod berturut-turut anda."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28153,6 +32327,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herhalingen van vandaag, resterende kaarten en je dagreeks."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଜିର ପୁନରାବୃତ୍ତି, ବାକି କାର୍ଡ ଓ କ୍ରମାଗତ ଦିନ।"
           }
         },
         "pa" : {
@@ -28171,6 +32351,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisões de hoje, cartões restantes e sua sequência."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisões de hoje, cartões por rever e a sua sequência."
           }
         },
         "ro" : {
@@ -28255,6 +32441,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今日复习、剩余卡片和连续记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看今日複習次數、剩餘卡片和連續紀錄。"
           }
         },
         "zu" : {
@@ -28473,6 +32665,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -28576,6 +32822,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld restantes"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld restante"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld restantes"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -28887,6 +33157,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Baki %lld"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -28918,6 +33200,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Nog %lld"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ବାକି"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lldଟି ବାକି"
                 }
               }
             }
@@ -28990,6 +33290,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Faltam %lld"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld por rever"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld por rever"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld por rever"
                 }
               }
             }
@@ -29283,6 +33607,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "剩 %lld 張"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -29361,6 +33697,24 @@
             "value" : "No cards due"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cards due"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cards due"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cards due"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29392,6 +33746,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien à réviser"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rien à réviser"
@@ -29487,6 +33847,12 @@
             "value" : "उजळणी बाकी नाही"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiada kad untuk diulang kaji"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29497,6 +33863,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niets te herhalen"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "କୌଣସି କାର୍ଡ ବାକି ନାହିଁ"
           }
         },
         "pa" : {
@@ -29515,6 +33887,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nada para revisar"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem cartões por rever"
           }
         },
         "ro" : {
@@ -29599,6 +33977,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "没有待复习的卡片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有待複習的卡片"
           }
         },
         "zu" : {
@@ -29817,6 +34201,60 @@
             }
           }
         },
+        "en-AU" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              }
+            }
+          }
+        },
+        "en-CA" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              }
+            }
+          }
+        },
+        "en-GB" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviewed"
+                }
+              }
+            }
+          }
+        },
         "es-ES" : {
           "variations" : {
             "plural" : {
@@ -29920,6 +34358,30 @@
           }
         },
         "fr" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld révisées"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld révisée"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld révisées"
+                }
+              }
+            }
+          }
+        },
+        "fr-CA" : {
           "variations" : {
             "plural" : {
               "many" : {
@@ -30231,6 +34693,18 @@
             }
           }
         },
+        "ms" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld telah diulang kaji"
+                }
+              }
+            }
+          }
+        },
         "nb" : {
           "variations" : {
             "plural" : {
@@ -30262,6 +34736,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld herhaald"
+                }
+              }
+            }
+          }
+        },
+        "or" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ପୁନରାବୃତ୍ତି ସରିଛି: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ପୁନରାବୃତ୍ତି ସରିଛି: %lld"
                 }
               }
             }
@@ -30334,6 +34826,30 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld revisados"
+                }
+              }
+            }
+          }
+        },
+        "pt-PT" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revistos: %lld"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revistos: %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Revistos: %lld"
                 }
               }
             }
@@ -30627,6 +35143,18 @@
             }
           }
         },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "已複習 %lld 張"
+                }
+              }
+            }
+          }
+        },
         "zu" : {
           "variations" : {
             "plural" : {
@@ -30705,6 +35233,24 @@
             "value" : "Today"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30736,6 +35282,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd’hui"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aujourd’hui"
@@ -30831,6 +35383,12 @@
             "value" : "आज"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari ini"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30841,6 +35399,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vandaag"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଆଜି"
           }
         },
         "pa" : {
@@ -30856,6 +35420,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoje"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hoje"
@@ -30945,6 +35515,12 @@
             "value" : "今天"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31011,6 +35587,24 @@
             "value" : "See a year of daily reviews, one row per month."
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See a year of daily reviews, one row per month."
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See a year of daily reviews, one row per month."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See a year of daily reviews, one row per month."
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31042,6 +35636,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voyez une année de révisions quotidiennes, une ligne par mois."
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voyez une année de révisions quotidiennes, une ligne par mois."
@@ -31137,6 +35737,12 @@
             "value" : "वर्षभराच्या दैनंदिन उजळण्या पाहा, दरमहा एक ओळ."
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihat ulang kaji harian selama setahun, satu baris bagi setiap bulan."
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31147,6 +35753,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bekijk een jaar aan dagelijkse herhalingen, één rij per maand."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଗୋଟିଏ ବର୍ଷର ଦୈନିକ ପୁନରାବୃତ୍ତି ଦେଖନ୍ତୁ, ପ୍ରତି ମାସ ପାଇଁ ଗୋଟିଏ ଧାଡ଼ି।"
           }
         },
         "pa" : {
@@ -31165,6 +35777,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veja um ano de revisões diárias, uma linha por mês."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja um ano de revisões diárias, com uma linha por mês."
           }
         },
         "ro" : {
@@ -31251,6 +35869,12 @@
             "value" : "查看一年的每日复习，每月一行。"
           }
         },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看一年的每日複習次數，每月一列。"
+          }
+        },
         "zu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31317,6 +35941,24 @@
             "value" : "Year"
           }
         },
+        "en-AU" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year"
+          }
+        },
+        "en-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year"
+          }
+        },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31348,6 +35990,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Année"
+          }
+        },
+        "fr-CA" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Année"
@@ -31443,6 +36091,12 @@
             "value" : "वर्ष"
           }
         },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tahun"
+          }
+        },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31453,6 +36107,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jaar"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ବର୍ଷ"
           }
         },
         "pa" : {
@@ -31468,6 +36128,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ano"
+          }
+        },
+        "pt-PT" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ano"
@@ -31552,6 +36218,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年度"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "年度"
