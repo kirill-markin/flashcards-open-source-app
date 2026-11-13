@@ -472,6 +472,9 @@ extension FlashcardsStore {
                 )
             }
         } catch {
+            if self.isCloudCredentialRecoveryValidation(error) {
+                throw error
+            }
             try validateContext()
             // Unwrapped here rather than inside `isCloudAccountDeletedError`: the restore this
             // branch guards fails through `performSameWorkspaceCloudRestore`, which captures the
@@ -574,6 +577,9 @@ extension FlashcardsStore {
                 }
             }
         } catch {
+            if self.isCloudCredentialRecoveryValidation(error) {
+                throw error
+            }
             try validateContext()
             if linkedSession.authorization.isGuest == false {
                 if self.isCloudAccountDeletedError(error) {

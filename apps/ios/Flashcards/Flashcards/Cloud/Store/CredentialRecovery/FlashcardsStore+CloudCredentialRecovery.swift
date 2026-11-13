@@ -94,6 +94,14 @@ extension FlashcardsStore {
         )
     }
 
+    func isCloudCredentialRecoveryValidation(_ error: Error) -> Bool {
+        guard let recoveryState = self.cloudCredentialRecoveryState,
+              case .validation(let message) = error as? LocalStoreError else {
+            return false
+        }
+        return message == localizedCloudCredentialRecoveryBlockedMessage(reason: recoveryState.reason)
+    }
+
     func throwIfCredentialRecoveryBlocksPendingGuestUpgrade() throws {
         guard let reason = self.cloudCredentialRecoveryState?.reason,
             reason == .invalidStoredState || reason == .linkedWorkspaceUnavailable else {
