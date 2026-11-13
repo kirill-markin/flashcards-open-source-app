@@ -306,9 +306,9 @@ extension LiveSmokeTestCase {
                 if #unavailable(iOS 26.0),
                    !navigationBarButton.exists,
                    !toolbarBackButton.exists,
-                   let libraryExportBackButton = self.iOS18LibraryExportBackButton(),
-                   libraryExportBackButton.isEnabled && libraryExportBackButton.isHittable {
-                    backButton = libraryExportBackButton
+                   let libraryTransferBackButton = self.iOS18LibraryTransferBackButton(),
+                   libraryTransferBackButton.isEnabled && libraryTransferBackButton.isHittable {
+                    backButton = libraryTransferBackButton
                     break
                 }
                 #endif
@@ -342,16 +342,28 @@ extension LiveSmokeTestCase {
 
     #if !targetEnvironment(macCatalyst)
     @MainActor
-    private func iOS18LibraryExportBackButton() -> XCUIElement? {
+    private func iOS18LibraryTransferBackButton() -> XCUIElement? {
         guard self.currentLaunchLocalization == .english else {
             return nil
         }
 
-        let preview = self.element(identifier: LiveSmokeIdentifier.workspacePackageExportPreviewButton)
-        let chooser = self.element(identifier: LiveSmokeIdentifier.libraryNibomoExportRow)
-        let isPreviewVisible = preview.exists && preview.isHittable
-        let isChooserVisible = chooser.exists && chooser.isHittable
-        guard isPreviewVisible != isChooserVisible,
+        let libraryTitle = LiveSmokeSelectedTab.library.localizedTitle(localization: self.currentLaunchLocalization)
+        let parentTitlesByVisibleIdentifier = [
+            (LiveSmokeIdentifier.workspaceImportChooseFileButton, "Import"),
+            (LiveSmokeIdentifier.workspaceAIImportChooseFilesButton, "Import"),
+            (LiveSmokeIdentifier.workspaceSpreadsheetImportSource, "Import"),
+            // The first and last Import rows: one of them is on screen at either end of the list.
+            (LiveSmokeIdentifier.libraryQuizletImportRow, libraryTitle),
+            (LiveSmokeIdentifier.librarySpreadsheetImportRow, libraryTitle),
+            (LiveSmokeIdentifier.workspacePackageExportPreviewButton, "Export"),
+            (LiveSmokeIdentifier.libraryNibomoExportRow, libraryTitle)
+        ]
+        let visibleParentTitles = Array(Set(parentTitlesByVisibleIdentifier.compactMap { identifier, title in
+            let element = self.element(identifier: identifier)
+            return element.exists && element.isHittable ? title : nil
+        }))
+        guard visibleParentTitles.count == 1,
+              let parentTitle = visibleParentTitles.first,
               self.app.alerts.count == 0,
               self.app.sheets.count == 0 else {
             return nil
@@ -363,7 +375,6 @@ extension LiveSmokeTestCase {
         }
 
         // iOS 18 exposes native Back by its parent title without the BackButton identifier.
-        let parentTitle = isPreviewVisible ? "Export" : LiveSmokeSelectedTab.library.localizedTitle(localization: self.currentLaunchLocalization)
         let buttons = navigationBars[0].buttons.matching(NSPredicate(format: "label == %@", parentTitle))
         return buttons.count == 1 ? buttons.firstMatch : nil
     }

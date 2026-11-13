@@ -1,0 +1,123 @@
+<resources>
+    <string name="progress_title">Kemajuan</string>
+    <string name="progress_retry">Cuba lagi</string>
+    <string name="progress_loading">Memuatkan sejarah kemajuan</string>
+    <string name="progress_error_title">Kemajuan tidak dapat dimuatkan</string>
+    <string name="progress_error_message">Data kemajuan tidak tersedia buat sementara waktu. Cuba muat semula sejarah kemajuan.</string>
+    <string name="progress_sign_in_required_title">Log masuk untuk melihat kemajuan</string>
+    <string name="progress_sign_in_required_message">Sejarah kemajuan hanya tersedia selepas anda log masuk atau memulakan sesi AI sebagai tetamu.</string>
+    <string name="progress_unavailable_title">Selesaikan persediaan awan untuk melihat kemajuan</string>
+    <string name="progress_unavailable_message">Pilih ruang kerja untuk menyelesaikan log masuk sebelum memuatkan sejarah kemajuan.</string>
+    <string name="progress_streak_title">Hari berturut-turut</string>
+    <string name="progress_streak_subtitle">5 minggu terakhir</string>
+    <string name="progress_streak_summary_reviewed_today">Diulang kaji hari ini</string>
+    <string name="progress_streak_summary_not_reviewed_today">Belum diulang kaji hari ini</string>
+    <string name="progress_streak_freeze_bank_value">%1$d/%2$d</string>
+    <string name="progress_streak_freeze_bank_content_description">%1$d daripada %2$d perlindungan rekod tersedia.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">Perihal perlindungan rekod</string>
+    <string name="progress_streak_freeze_bank_info_title">Perlindungan rekod</string>
+    <string name="progress_streak_freeze_bank_info_body">Tersedia: %1$d/%2$d. Kemajuan pengisian semula: %3$d/%4$d. Perlindungan ini mengekalkan rekod apabila anda terlepas sehari dan diisi semula apabila rekod anda berterusan.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
+    <string name="progress_streak_day_reviewed_content_description">Ulang kaji dibuat pada %1$s.</string>
+    <string name="progress_streak_day_frozen_content_description">Rekod hari berturut-turut dilindungi pada %1$s.</string>
+    <string name="progress_streak_day_future_content_description">%1$s belum tiba.</string>
+    <string name="progress_streak_day_pending_content_description">Belum ada ulang kaji pada %1$s.</string>
+    <string name="progress_streak_day_missed_content_description">Ulang kaji terlepas pada %1$s.</string>
+    <string name="progress_reviews_title">Ulang kaji</string>
+    <string name="progress_reviews_previous_week">Minggu sebelumnya</string>
+    <string name="progress_reviews_next_week">Minggu seterusnya</string>
+    <string name="progress_reviews_rating_again">Ulang</string>
+    <string name="progress_reviews_rating_hard">Sukar</string>
+    <string name="progress_reviews_rating_good">Baik</string>
+    <string name="progress_reviews_rating_easy">Mudah</string>
+    <string name="progress_reviews_rating_count_percentage">%1$d (%2$s)</string>
+    <string name="progress_reviews_chart_clear_content_description">Kosongkan pilihan carta ulang kaji</string>
+    <string name="progress_review_schedule_title">Jadual ulang kaji</string>
+    <string name="progress_review_schedule_empty">Belum ada kad aktif.</string>
+    <string name="progress_review_schedule_chart_content_description">Carta jadual ulang kaji</string>
+    <string name="progress_review_schedule_bucket_new">Baharu</string>
+    <string name="progress_review_schedule_bucket_today">Hari ini</string>
+    <string name="progress_review_schedule_bucket_days_1_to_7">1–7 hari</string>
+    <string name="progress_review_schedule_bucket_days_8_to_30">8–30 hari</string>
+    <string name="progress_review_schedule_bucket_days_31_to_90">31–90 hari</string>
+    <string name="progress_review_schedule_bucket_days_91_to_360">91–360 hari</string>
+    <string name="progress_review_schedule_bucket_years_1_to_2">1–2 tahun</string>
+    <string name="progress_review_schedule_bucket_later">Kemudian</string>
+    <string name="progress_review_schedule_bucket_value">%1$s (%2$s)</string>
+    <string name="progress_leaderboard_title">Papan kedudukan penilaian</string>
+    <string name="progress_leaderboard_info_button_content_description">Perihal papan kedudukan penilaian</string>
+    <string name="progress_leaderboard_info_title">Cara kedudukan penilaian dikira</string>
+    <string name="progress_leaderboard_info_fallback_body">Penilaian Sukar, Baik dan Mudah dikira untuk kedudukan anda. Penilaian Ulang tidak dikira.</string>
+    <string name="progress_leaderboard_info_dismiss">OK</string>
+    <string name="progress_leaderboard_window_last_24_hours">24j</string>
+    <string name="progress_leaderboard_window_last_3_days">3h</string>
+    <string name="progress_leaderboard_window_last_7_days">7h</string>
+    <string name="progress_leaderboard_window_last_30_days">30h</string>
+    <string name="progress_leaderboard_window_all_time">Sepanjang masa</string>
+    <string name="progress_leaderboard_you">Anda</string>
+    <string name="progress_leaderboard_rank_label">#%1$s</string>
+    <string name="progress_leaderboard_gap_content_description">Kedudukan tersembunyi</string>
+    <string name="progress_leaderboard_empty_window">Belum ada ulang kaji yang layak dalam tempoh ini.</string>
+    <string name="progress_leaderboard_sign_in_message">Daftar atau log masuk untuk melihat kedudukan ulang kaji anda pada papan kedudukan penilaian.</string>
+    <string name="progress_leaderboard_sign_in_button">Log masuk</string>
+    <string name="progress_leaderboard_participation_disabled_message">Kedudukan penilaian hanya dipaparkan apabila anda menyertai papan kedudukan penilaian. Hidupkan penyertaan dalam tetapan papan kedudukan.</string>
+    <string name="progress_leaderboard_participation_disabled_button">Buka tetapan papan kedudukan</string>
+    <string name="progress_leaderboard_offline_message">Papan kedudukan penilaian memerlukan sambungan. Papan akan dimuatkan apabila anda kembali dalam talian.</string>
+    <string name="progress_leaderboard_unavailable_message">Papan kedudukan penilaian belum sedia. Semak semula sebentar lagi.</string>
+    <string name="progress_leaderboard_profile_row_content_description">Buka profil %1$s</string>
+    <string name="progress_leaderboard_profile_friend_label">Rakan</string>
+    <string name="progress_leaderboard_profile_current_streak_label">Rekod semasa</string>
+    <string name="progress_leaderboard_profile_best_rating_label">Kedudukan penilaian terbaik</string>
+    <string name="progress_leaderboard_profile_best_rating_value">%1$s dalam %2$s</string>
+    <string name="progress_leaderboard_profile_no_rating_value">Belum tersenarai</string>
+    <string name="progress_leaderboard_profile_activity_title">30 hari terakhir</string>
+    <string name="progress_leaderboard_profile_activity_chart_content_description">Aktiviti ulang kaji sepanjang 30 hari lalu</string>
+    <string name="progress_leaderboard_profile_joined_value">Menyertai pada %1$s</string>
+    <string name="progress_leaderboard_profile_linked_account_required_message">Log masuk untuk melihat profil pada papan kedudukan.</string>
+    <string name="progress_leaderboard_profile_participation_disabled_message">Hidupkan penyertaan pada papan kedudukan untuk melihat profil.</string>
+    <string name="progress_leaderboard_profile_unavailable_message">Profil pada papan kedudukan ini tidak tersedia.</string>
+    <string name="progress_leaderboard_profile_error_message">Profil ini tidak dapat dimuatkan. Semak sambungan anda dan cuba lagi.</string>
+    <string name="progress_streak_leaderboard_title">Papan kedudukan hari berturut-turut</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">Perihal papan kedudukan hari berturut-turut</string>
+    <string name="progress_streak_leaderboard_info_title">Cara kedudukan hari berturut-turut dikira</string>
+    <string name="progress_streak_leaderboard_info_fallback_body">Kedudukan dikira berdasarkan bilangan hari berturut-turut dalam rekod awam harian. Setiap hari mengikut waktu tempatan dengan sekurang-kurangnya satu ulang kaji kad yang dinilai Ulang, Sukar, Baik atau Mudah dikira. Angka yang dipaparkan kepada umum mungkin belum mencerminkan rekod semasa anda.</string>
+    <string name="progress_streak_leaderboard_empty">Belum ada peserta tersenarai pada papan kedudukan hari berturut-turut.</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Daftar atau log masuk untuk membandingkan rekod hari berturut-turut dengan komuniti.</string>
+    <string name="progress_streak_leaderboard_participation_disabled_message">Kedudukan hari berturut-turut hanya dipaparkan apabila anda menyertai papan kedudukan tersebut. Hidupkan penyertaan dalam tetapan papan kedudukan.</string>
+    <string name="progress_streak_leaderboard_offline_message">Papan kedudukan hari berturut-turut memerlukan sambungan. Papan akan dimuatkan apabila anda kembali dalam talian.</string>
+    <string name="progress_streak_leaderboard_unavailable_message">Papan kedudukan hari berturut-turut belum sedia. Semak semula sebentar lagi.</string>
+    <string name="progress_today">Hari ini</string>
+    <plurals name="progress_streak_summary_content_description">
+        <item quantity="other">Rekod ulang kaji %d hari berturut-turut.</item>
+    </plurals>
+    <plurals name="progress_reviews_day_content_description">
+        <item quantity="other">Pilih %1$s, %2$d ulang kaji.</item>
+    </plurals>
+    <plurals name="progress_reviews_day_selected_content_description">
+        <item quantity="other">%1$s dipilih, %2$d ulang kaji.</item>
+    </plurals>
+    <plurals name="progress_leaderboard_participant_count">
+        <item quantity="other">%1$s peserta</item>
+    </plurals>
+    <plurals name="progress_streak_leaderboard_day_count">
+        <item quantity="other">%1$s hari</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_minute_label">
+        <item quantity="other">Dikemas kini %1$d minit lalu</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_label">
+        <item quantity="other">Dikemas kini %1$d jam lalu</item>
+    </plurals>
+    <plurals name="progress_leaderboard_elapsed_minute_count">
+        <item quantity="other">%1$d minit</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_minute_label">
+        <item quantity="other">Dikemas kini %1$d jam %2$s lalu</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_activity_total">
+        <item quantity="other">Jumlah %1$s ulang kaji</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_total_cards_value">
+        <item quantity="other">%1$s kad</item>
+    </plurals>
+</resources>

@@ -1,4 +1,5 @@
 import {
+  buildLibraryAiImportRoute,
   cardsRoute,
   catalogImportRoutePrefix,
   chatRoute,
@@ -10,7 +11,9 @@ import {
   libraryExportRoute,
   libraryImportRoute,
   libraryNibomoExportRoute,
+  libraryNibomoImportRoute,
   libraryRoute,
+  librarySpreadsheetImportRoute,
   libraryTagDetailRoute,
   libraryTagsRoute,
   normalizeRoutePath,
@@ -20,6 +23,7 @@ import {
   shareRoute,
   splitWorkspaceRoutePath,
 } from "../routes";
+import { aiImportSources } from "../screens/settings/workspace/packages/aiImportSources";
 import type { AnalyticsSurface } from "./events";
 
 /**
@@ -136,6 +140,9 @@ export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface |
   if (
     pathname === libraryRoute
     || pathname === libraryImportRoute
+    || pathname === libraryNibomoImportRoute
+    || aiImportSources.some((source) => pathname === buildLibraryAiImportRoute(source.id))
+    || pathname === librarySpreadsheetImportRoute
     || pathname === libraryExportRoute
     || pathname === libraryNibomoExportRoute
     || pathname === libraryAnkiExportRoute

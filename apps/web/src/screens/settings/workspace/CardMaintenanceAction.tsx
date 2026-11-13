@@ -1,15 +1,11 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { ApiError, isAuthRedirectError } from "../../../api";
-import { executeCardMaintenance, loadCardMaintenancePreview } from "../../../api/endpoints/cardMaintenance";
+import { loadCardMaintenancePreview } from "../../../api/endpoints/cardMaintenance";
 import type { CardMaintenancePreview, CardMaintenanceTarget } from "../../../apiContracts/cardMaintenance";
 import { useAppData } from "../../../appData";
 import { getErrorMessage } from "../../../appData/domain";
-import {
-  clearPendingWorkspaceMaintenance,
-  markWorkspaceMaintenanceConfirmed,
-  markWorkspaceMaintenanceUnresolved,
-  supportsWorkspaceMaintenanceLock,
-} from "../../../appData/sync/engine/workspaceMaintenanceLock";
+import { supportsWorkspaceMaintenanceLock } from "../../../appData/sync/engine/workspaceMaintenanceLock";
+import { confirmWorkspaceMaintenance } from "../../../appData/sync/engine/workspaceMaintenanceProtocol";
 import { isCapturedSyncFailure } from "../../../appData/sync/observation/syncErrorObservation";
 import { markIndexedDbOpenRecoveryFailureAndCheckActive, useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
@@ -31,16 +27,6 @@ type DialogState =
   | Readonly<{ stage: "preview"; preview: CardMaintenancePreview; notice: string }>
   | Readonly<{ stage: "preview-error"; message: string; notice: string }>
   | Readonly<{ stage: "syncing" | "sync-error" | "sync-error-dismissed"; reason: RecoveryReason }>;
-
-function isDefiniteMaintenanceRejection(error: unknown): error is ApiError {
-  return error instanceof ApiError && error.statusCode >= 400 && error.statusCode < 500 && (
-    error.code === "CARD_MAINTENANCE_PREVIEW_CHANGED"
-    || error.code === "CARD_MAINTENANCE_TARGET_NOT_FOUND"
-    || error.code === "CARD_MAINTENANCE_CONFIRMATION_INVALID"
-    || error.code === "CARD_MAINTENANCE_SHARED"
-    || error.code === "CARD_MAINTENANCE_INPUT_INVALID"
-  );
-}
 
 export function CardMaintenanceAction(props: ActionProps): ReactElement {
   const { activeWorkspace, cloudSettings, isSessionVerified, session } = useAppData();
@@ -226,27 +212,18 @@ function LinkedCardMaintenanceAction({
         await sync();
         if (!scopeActiveRef.current || disabledRef.current || canStart?.() === false) return "cancelled";
 
-        markWorkspaceMaintenanceUnresolved(lockOwner, preview.previewFingerprint);
-        let reason: RecoveryReason = "uncertain";
-        try {
-          await executeCardMaintenance(workspaceId, userId, {
-            kind,
-            target,
-            confirmationText: confirmation,
-            previewFingerprint: preview.previewFingerprint,
-          });
-          reason = "confirmed";
-        } catch (error) {
-          if (isDefiniteMaintenanceRejection(error)) {
-            clearPendingWorkspaceMaintenance(lockOwner);
-            throw error;
-          }
-          describeRequestError(error, "card_maintenance_execute");
-        }
+        const result = await confirmWorkspaceMaintenance(lockOwner, {
+          kind,
+          target,
+          confirmationText: confirmation,
+          previewFingerprint: preview.previewFingerprint,
+        });
+        const reason = result.outcome;
+        if (result.outcome === "uncertain") describeRequestError(result.error, "card_maintenance_execute");
 
         if (scopeActiveRef.current) setDialog({ stage: "syncing", reason });
         try {
-          if (reason === "confirmed") markWorkspaceMaintenanceConfirmed(lockOwner);
+          if (result.outcome === "confirmed") result.persistConfirmation();
           await sync();
           return reason;
         } catch (error) {

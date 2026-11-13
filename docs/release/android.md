@@ -64,7 +64,8 @@ Apply the [standing best-effort policy](README.md#standing-best-effort-release-p
    [readiness manifest and report](readiness.md#generate-the-android-manifest).
 6. Open Google Play Console and select that draft by its
    `main-draft-<releaseIdentifier>` name and version code, and the Wear OS
-   `wear:production` draft by its wear name and version code from the run summary.
+   `wear:production` draft by its wear name and version code from the run
+   summary.
    Confirm both belong to the same SHA/run/attempt as the passing Device Run sessions. Confirm the uploaded
    phone AAB manifest advertises minimum API 30 and target API 37; source declarations
    alone do not prove the distributed minimum. Device Run exercises the
@@ -180,8 +181,8 @@ Source changes require the bounded comparisons and affected gates in
    state, delivered translations, processing and publication controls; upload
    recovery alone does not establish readiness or public availability.
    Recovery re-uploads only the phone bundle, so a recovered release has no
-   `wear:production` draft: publish the phone draft alone; the Wear OS bundle
-   ships with the next normal release.
+   Wear OS draft: publish the phone draft alone; the watch follows with the
+   next normal release.
 
 ## First-release API 30 walkthrough
 

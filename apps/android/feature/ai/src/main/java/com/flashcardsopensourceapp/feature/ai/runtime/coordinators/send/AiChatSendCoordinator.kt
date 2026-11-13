@@ -7,6 +7,9 @@ import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeR
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatSessionNotCurrentRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.isAiLimitReachedRemoteError
 import com.flashcardsopensourceapp.data.local.ai.remote.requireAiChatStartRunRequestSize
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportPersistenceException
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTargetChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
@@ -22,6 +25,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.findAiChatAttachmentLimit
 import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
+import com.flashcardsopensourceapp.feature.ai.input.isAiChatAttachmentStaged
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.aiChatBootstrapPageLimit
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
@@ -37,6 +41,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.snapshotRunHa
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.live.AiChatLiveStreamCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session.AiChatSessionCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatExceptionEvent
@@ -76,6 +81,19 @@ internal class AiChatSendCoordinator(
                         errorMessage = ""
                     )
                 }
+            }
+            return
+        }
+
+        val importRequest = currentState.importRequest
+        if (importRequest != null && canRetryImport(state = currentState, request = importRequest).not()) {
+            context.runtimeStateMutable.update { state ->
+                state.copy(
+                    activeAlert = context.textProvider.generalError(
+                        message = context.textProvider.importRetryUnavailable
+                    ),
+                    errorMessage = ""
+                )
             }
             return
         }
@@ -126,12 +144,13 @@ internal class AiChatSendCoordinator(
         val pendingAttachmentsBackup = currentState.pendingAttachments
         val durableDraftState = AiChatDraftState(
             draftMessage = draftMessageBackup,
-            pendingAttachments = pendingAttachmentsBackup
+            pendingAttachments = pendingAttachmentsBackup,
+            importRequest = importRequest
         )
         context.runtimeStateMutable.update { state ->
             state.copy(
-                draftMessage = "",
-                pendingAttachments = emptyList(),
+                draftMessage = if (importRequest == null) "" else draftMessageBackup,
+                pendingAttachments = if (importRequest == null) emptyList() else pendingAttachmentsBackup,
                 composerPhase = AiComposerPhase.PREPARING_SEND,
                 dictationState = AiChatDictationState.IDLE,
                 repairStatus = null,
@@ -151,19 +170,39 @@ internal class AiChatSendCoordinator(
             var rollbackPersistedState = initialPersistedState
             try {
                 var preparedSession: AiChatPreparedRemoteSession? = null
-                if (currentCloudState() == CloudAccountState.DISCONNECTED) {
+                if (importRequest != null) {
+                    context.persistImportNow(snapshot = currentState)
+                } else if (currentCloudState() == CloudAccountState.DISCONNECTED) {
                     preparedSession = context.aiChatRepository.prepareSessionForAi(
                         workspaceId = context.runtimeStateMutable.value.workspaceId
                     )
                 }
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
-                context.aiChatRepository.ensureReadyForSend(workspaceId = context.runtimeStateMutable.value.workspaceId)
+                context.aiChatRepository.ensureReadyForSend(
+                    workspaceId = importRequest?.target?.workspaceId ?: context.runtimeStateMutable.value.workspaceId
+                )
+                val preparedImport = importRequest?.let { request ->
+                    context.aiChatRepository.prepareImportSession(request = request)
+                }
+                if (importRequest != null && context.isImportOriginCurrent(request = importRequest).not()) {
+                    throw AiImportTargetChangedException()
+                }
                 val ensuredSession = sessionCoordinator.ensureSessionIdIfNeededPreservingDraft(
                     draftState = durableDraftState,
-                    preparedSession = preparedSession
+                    preparedSession = preparedImport?.remoteSession ?: preparedSession
                 )
                 requestSessionId = ensuredSession.sessionId
+                if (importRequest != null) {
+                    if (context.isImportOriginCurrent(request = importRequest).not()) {
+                        throw AiImportTargetChangedException()
+                    }
+                    // Make the original request recoverable before uploading or dispatching it.
+                    context.persistImportNow(snapshot = context.runtimeStateMutable.value)
+                    if (context.isImportOriginCurrent(request = importRequest).not()) {
+                        throw AiImportTargetChangedException()
+                    }
+                }
                 rollbackPersistedState = context.runtimeStateMutable.value.persistedState
                 val nextPersistedState = rollbackPersistedState.copy(
                     messages = rollbackPersistedState.messages + listOf(
@@ -186,34 +225,53 @@ internal class AiChatSendCoordinator(
                         runHadToolCalls = false
                     )
                 }
-                context.persistCurrentStatePreservingDraft(draftState = durableDraftState)
+                if (importRequest == null) {
+                    context.persistCurrentStatePreservingDraft(draftState = durableDraftState)
+                }
                 didAppendOptimisticMessages = true
 
                 val response = context.aiChatRepository.startRun(
-                    workspaceId = context.runtimeStateMutable.value.workspaceId,
+                    workspaceId = importRequest?.target?.workspaceId ?: context.runtimeStateMutable.value.workspaceId,
                     state = nextPersistedState,
                     draftMessage = draftMessageBackup,
                     pendingAttachments = pendingAttachmentsBackup,
-                    uiLocale = context.currentUiLocaleTag()
+                    uiLocale = context.currentUiLocaleTag(),
+                    preparedImport = preparedImport
                 )
                 didAcceptRun = true
-                deleteAiChatAttachmentStagedFiles(attachments = pendingAttachmentsBackup)
+                if (importRequest == null) {
+                    deleteAiChatAttachmentStagedFiles(attachments = pendingAttachmentsBackup)
+                }
                 applyAcceptedRunResponse(
                     response = response,
-                    targetSessionId = requestSessionId
+                    targetSessionId = requestSessionId,
+                    rollbackPersistedState = rollbackPersistedState,
+                    draftState = durableDraftState
                 )
             } catch (error: CancellationException) {
+                if (
+                    importRequest != null && didAcceptRun.not() && didAppendOptimisticMessages &&
+                    context.isImportOriginCurrent(request = importRequest)
+                ) {
+                    context.runtimeStateMutable.update { state -> state.copy(persistedState = rollbackPersistedState) }
+                }
                 throw error
-            } catch (error: AiChatRemoteException) {
-                handleSendFailure(
-                    error = error,
-                    targetSessionId = requestSessionId,
-                    didAcceptRun = didAcceptRun,
-                    didAppendOptimisticMessages = didAppendOptimisticMessages,
-                    rollbackPersistedState = rollbackPersistedState,
-                    draftMessage = draftMessageBackup,
-                    pendingAttachments = pendingAttachmentsBackup
-                )
+            } catch (_: AiImportTargetChangedException) {
+                if (importRequest != null && context.isImportOriginCurrent(request = importRequest)) {
+                    restorePreAcceptFailureState(
+                        didAppendOptimisticMessages = didAppendOptimisticMessages,
+                        rollbackPersistedState = rollbackPersistedState,
+                        draftMessage = draftMessageBackup,
+                        pendingAttachments = pendingAttachmentsBackup
+                    )
+                    context.runtimeStateMutable.update { state ->
+                        state.copy(
+                            activeAlert = context.textProvider.generalError(
+                                message = context.textProvider.importRetryUnavailable
+                            )
+                        )
+                    }
+                }
             } catch (error: Exception) {
                 handleSendFailure(
                     error = error,
@@ -221,8 +279,7 @@ internal class AiChatSendCoordinator(
                     didAcceptRun = didAcceptRun,
                     didAppendOptimisticMessages = didAppendOptimisticMessages,
                     rollbackPersistedState = rollbackPersistedState,
-                    draftMessage = draftMessageBackup,
-                    pendingAttachments = pendingAttachmentsBackup
+                    draftState = durableDraftState
                 )
             } finally {
                 if (context.activeSendJob !== sendJob) {
@@ -242,7 +299,9 @@ internal class AiChatSendCoordinator(
                         repairStatus = null
                     )
                 }
-                context.persistCurrentState()
+                if (importRequest == null || context.isImportOriginCurrent(request = importRequest)) {
+                    context.persistCurrentState()
+                }
                 context.activeSendJob = null
             }
         }
@@ -303,6 +362,12 @@ internal class AiChatSendCoordinator(
         }
     }
 
+    private fun canRetryImport(state: AiChatRuntimeState, request: AiChatImportRequest): Boolean {
+        return context.isImportOriginCurrent(request = request)
+            && request.matchesDraft(message = state.draftMessage, attachments = state.pendingAttachments)
+            && state.pendingAttachments.all(::isAiChatAttachmentStaged)
+    }
+
     private fun canSendMessage(state: AiChatRuntimeState): Boolean {
         if (hasConsent().not()) {
             return false
@@ -328,9 +393,12 @@ internal class AiChatSendCoordinator(
 
     private suspend fun applyAcceptedRunResponse(
         response: AiChatStartRunResponse,
-        targetSessionId: String
+        targetSessionId: String,
+        rollbackPersistedState: AiChatPersistedState,
+        draftState: AiChatDraftState
     ) {
-        if (sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
+        val importRequest = draftState.importRequest
+        if (importRequest == null && sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
             return
         }
         // Accepted responses can still mirror older recovered history before the
@@ -341,7 +409,7 @@ internal class AiChatSendCoordinator(
             activeRun = response.activeRun,
             messages = response.conversation.messages
         )
-        context.runtimeStateMutable.update { state ->
+        val applyResponse: (AiChatRuntimeState) -> AiChatRuntimeState = { state ->
             updateComposerSuggestions(
                 state = state.copy(
                     persistedState = state.persistedState.copy(
@@ -359,6 +427,7 @@ internal class AiChatSendCoordinator(
                     isLiveAttached = false,
                     draftMessage = "",
                     pendingAttachments = emptyList(),
+                    importRequest = null,
                     composerPhase = if (response.activeRun != null) {
                         AiComposerPhase.RUNNING
                     } else {
@@ -371,6 +440,19 @@ internal class AiChatSendCoordinator(
                 nextSuggestions = response.composerSuggestions
             )
         }
+        if (importRequest == null) {
+            context.runtimeStateMutable.update(applyResponse)
+        } else {
+            val applied = context.finishImport(
+                request = importRequest,
+                attachments = draftState.pendingAttachments,
+                rollbackPersistedState = rollbackPersistedState,
+                applyResult = applyResponse
+            )
+            if (applied.not()) {
+                return
+            }
+        }
         if (response.activeRun != null) {
             liveStreamCoordinator.attachAcceptedLiveStreamIfNeeded(
                 workspaceId = context.runtimeStateMutable.value.workspaceId,
@@ -380,7 +462,9 @@ internal class AiChatSendCoordinator(
             context.refreshAiUsage()
             context.triggerToolRunPostSyncIfNeeded(reason = "accepted_response_terminal")
         }
-        context.persistCurrentState()
+        if (importRequest == null) {
+            context.persistCurrentState()
+        }
     }
 
     private suspend fun handleSendFailure(
@@ -389,29 +473,50 @@ internal class AiChatSendCoordinator(
         didAcceptRun: Boolean,
         didAppendOptimisticMessages: Boolean,
         rollbackPersistedState: AiChatPersistedState,
-        draftMessage: String,
-        pendingAttachments: List<AiChatAttachment>
+        draftState: AiChatDraftState
     ) {
-        if (sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
+        val importRequest = draftState.importRequest
+        val startRunError = error as? AiChatRemoteException
+        val failure = if (
+            importRequest != null && didAcceptRun.not() &&
+            startRunError?.let(::isAiChatSessionNotCurrentRemoteError) == true
+        ) {
+            try {
+                finishStaleImport(
+                    request = importRequest,
+                    rollbackPersistedState = rollbackPersistedState,
+                    attachments = draftState.pendingAttachments
+                )
+                return
+            } catch (clearError: AiImportPersistenceException) {
+                clearError
+            }
+        } else {
+            error
+        }
+        if (
+            sessionCoordinator.canApplySessionScopedResult(targetSessionId = targetSessionId).not() ||
+            (importRequest != null && context.isImportOriginCurrent(request = importRequest).not())
+        ) {
             return
         }
-        val remoteError = error as? AiChatRemoteException
+        val remoteError = failure as? AiChatRemoteException
         if (didAcceptRun.not() && remoteError?.let(::isAiChatSessionNotCurrentRemoteError) == true) {
             switchToCurrentChatAfterNotCurrentRefusal(
                 staleSessionId = targetSessionId,
                 didAppendOptimisticMessages = didAppendOptimisticMessages,
                 rollbackPersistedState = rollbackPersistedState,
-                draftMessage = draftMessage,
-                pendingAttachments = pendingAttachments
+                draftMessage = draftState.draftMessage,
+                pendingAttachments = draftState.pendingAttachments
             )
             return
         }
-        if (didAcceptRun.not()) {
+        if (didAcceptRun.not() || importRequest != null) {
             restorePreAcceptFailureState(
                 didAppendOptimisticMessages = didAppendOptimisticMessages,
                 rollbackPersistedState = rollbackPersistedState,
-                draftMessage = draftMessage,
-                pendingAttachments = pendingAttachments
+                draftMessage = draftState.draftMessage,
+                pendingAttachments = draftState.pendingAttachments
             )
         }
         if (remoteError?.let(::isAiLimitReachedRemoteError) == true) {
@@ -446,7 +551,7 @@ internal class AiChatSendCoordinator(
         }
 
         if (
-            error is AiChatRequestTooLargeException
+            failure is AiChatRequestTooLargeException
             || remoteError?.let(::isAiChatRequestTooLargeRemoteError) == true
         ) {
             context.runtimeStateMutable.update { state ->
@@ -489,14 +594,18 @@ internal class AiChatSendCoordinator(
             return
         }
 
-        val presentation = makeAiUserFacingErrorPresentation(
-            error = error,
-            surface = AiErrorSurface.CHAT,
-            configuration = currentServerConfiguration(),
-            textProvider = context.textProvider
-        )
+        val presentation = if (failure is AiImportPersistenceException) {
+            AiUserFacingErrorPresentation(message = context.textProvider.importPersistenceFailed, technicalError = failure)
+        } else {
+            makeAiUserFacingErrorPresentation(
+                error = failure,
+                surface = AiErrorSurface.CHAT,
+                configuration = currentServerConfiguration(),
+                textProvider = context.textProvider
+            )
+        }
         val currentState = context.runtimeStateMutable.value
-        val issueDisposition = aiChatFailureIssueDisposition(error = error)
+        val issueDisposition = aiChatFailureIssueDisposition(error = failure)
         when (issueDisposition) {
             AiChatFailureIssueDisposition.NONE -> Unit
             AiChatFailureIssueDisposition.WARNING -> {
@@ -507,7 +616,7 @@ internal class AiChatSendCoordinator(
                         chatSessionId = currentState.persistedState.chatSessionId,
                         messageCount = currentState.persistedState.messages.size,
                         remoteError = aiChatRemoteErrorDetails(error = remoteError),
-                        message = aiChatFailureWarningMessage(error = error)
+                        message = aiChatFailureWarningMessage(error = failure)
                     )
                 )
             }
@@ -520,7 +629,7 @@ internal class AiChatSendCoordinator(
                         messageCount = currentState.persistedState.messages.size,
                         userFacingMessage = presentation.message,
                         remoteError = aiChatRemoteErrorDetails(error = remoteError),
-                        error = error
+                        error = failure
                     )
                 )
             }
@@ -540,10 +649,26 @@ internal class AiChatSendCoordinator(
         }
     }
 
-    /**
-     * Another device replaced this chat, so the backend refused the turn before starting a run. The
-     * refused message goes back into the composer of the current chat; it is never resent on its own.
-     */
+    private suspend fun finishStaleImport(
+        request: AiChatImportRequest,
+        rollbackPersistedState: AiChatPersistedState,
+        attachments: List<AiChatAttachment>
+    ) {
+        context.finishImport(
+            request = request,
+            attachments = attachments,
+            rollbackPersistedState = rollbackPersistedState
+        ) { state ->
+            state.copy(
+                persistedState = rollbackPersistedState,
+                draftMessage = "",
+                pendingAttachments = emptyList(),
+                importRequest = null,
+                activeAlert = context.textProvider.generalError(message = context.textProvider.importChatReplaced)
+            )
+        }
+    }
+
     private suspend fun switchToCurrentChatAfterNotCurrentRefusal(
         staleSessionId: String,
         didAppendOptimisticMessages: Boolean,
@@ -581,27 +706,51 @@ internal class AiChatSendCoordinator(
             ) {
                 return
             }
-            // The refused message becomes the current chat's draft, so applying the bootstrap shows it.
-            context.aiChatRepository.clearDraftState(
+            val refusedDraft = AiChatDraftState(draftMessage = draftMessage, pendingAttachments = pendingAttachments)
+            val didSaveSourceDraft = context.aiChatRepository.saveDraftState(
                 workspaceId = workspaceId,
-                sessionId = staleSessionId
+                sessionId = staleSessionId,
+                state = refusedDraft
             )
-            context.aiChatRepository.saveDraftState(
-                workspaceId = workspaceId,
-                sessionId = currentChat.sessionId,
-                state = AiChatDraftState(
-                    draftMessage = draftMessage,
-                    pendingAttachments = pendingAttachments
-                )
-            )
+            val didSaveDestinationDraft = didSaveSourceDraft && (currentChat.sessionId == staleSessionId ||
+                context.aiChatRepository.saveDraftState(
+                    workspaceId = workspaceId,
+                    sessionId = currentChat.sessionId,
+                    state = refusedDraft
+                ))
+            if (
+                context.runtimeStateMutable.value.workspaceId != workspaceId ||
+                sessionCoordinator.canApplySessionScopedResult(targetSessionId = staleSessionId).not()
+            ) {
+                return
+            }
             applyActiveBootstrap(currentChat, currentChat.sessionId)
-            context.runtimeStateMutable.update { state ->
-                state.copy(
-                    activeAlert = context.textProvider.generalError(
-                        message = context.textProvider.chatNotCurrentNotice
-                    ),
-                    errorMessage = ""
+            val currentState = context.runtimeStateMutable.value
+            if (currentState.workspaceId != workspaceId || currentState.persistedState.chatSessionId != currentChat.sessionId) {
+                return
+            }
+            val didMoveDraft = didSaveDestinationDraft &&
+                currentState.importRequest == null &&
+                currentState.draftMessage == draftMessage &&
+                currentState.pendingAttachments == pendingAttachments
+            val activeAlert = if (didMoveDraft) {
+                context.textProvider.generalError(message = context.textProvider.chatNotCurrentNotice)
+            } else {
+                AiAlertState.UnsentMessage(
+                    title = context.textProvider.errorTitle,
+                    message = if (currentState.importRequest != null) {
+                        context.textProvider.chatNotCurrentImportNotice
+                    } else {
+                        context.textProvider.chatNotCurrentUnsentMessageNotice
+                    },
+                    draftMessage = draftMessage
                 )
+            }
+            context.runtimeStateMutable.update { state ->
+                state.copy(activeAlert = activeAlert, errorMessage = "")
+            }
+            if (didMoveDraft && staleSessionId != currentChat.sessionId) {
+                context.aiChatRepository.clearDraftState(workspaceId = workspaceId, sessionId = staleSessionId)
             }
             liveStreamCoordinator.attachBootstrapLiveIfNeeded(
                 workspaceId = requireNotNull(workspaceId) {
@@ -619,8 +768,10 @@ internal class AiChatSendCoordinator(
                 didAcceptRun = false,
                 didAppendOptimisticMessages = false,
                 rollbackPersistedState = rollbackPersistedState,
-                draftMessage = draftMessage,
-                pendingAttachments = pendingAttachments
+                draftState = AiChatDraftState(
+                    draftMessage = draftMessage,
+                    pendingAttachments = pendingAttachments
+                )
             )
         }
     }

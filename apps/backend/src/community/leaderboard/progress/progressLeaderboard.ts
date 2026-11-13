@@ -8,11 +8,8 @@ import {
   createAnonymousDisplayName,
   ensurePublicProfileForCurrentUserInExecutor,
 } from "../../publicProfiles";
-import {
-  getAnonymousDisplayNameWordPools,
-  resolveAnonymousDisplayNameLocale,
-  type AnonymousDisplayNameLocale,
-} from "../../anonymousDisplayNames";
+import { getAnonymousDisplayNameWordPools } from "../../anonymousDisplayNames";
+import { resolveLeaderboardMetricLocale, type LeaderboardMetricLocale } from "../metricLocale";
 import {
   DEFAULT_COMPACT_LEADERBOARD_WINDOW_KEY,
   LEADERBOARD_SNAPSHOT_METRIC_VERSION,
@@ -128,10 +125,8 @@ type ProgressLeaderboardMetricCopy = Readonly<{
   description: string;
 }>;
 
-// Localized metric copy mirrors the anonymous-display-name locale set so the whole
-// payload (names plus metric text) stays consistent for the resolved locale.
 const PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
-  Record<AnonymousDisplayNameLocale, ProgressLeaderboardMetricCopy>
+  Record<LeaderboardMetricLocale, ProgressLeaderboardMetricCopy>
 > = {
   en: {
     title: "Qualified reviews",
@@ -144,6 +139,10 @@ const PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
   "zh-Hans": {
     title: "有效复习",
     description: "“困难”“良好”“简单”计入排名，“重来”不计入。",
+  },
+  "zh-Hant": {
+    title: "計入排名的複習",
+    description: "「困難」、「良好」和「簡單」會計入排名，「重來」不計入。",
   },
   fr: {
     title: "Révisions comptabilisées",
@@ -161,9 +160,21 @@ const PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
     title: "有効な復習",
     description: "「難しい」「普通」「簡単」はランクに加算されます。「もう一度」は加算されません。",
   },
+  ms: {
+    title: "Ulang kaji yang dikira",
+    description: "Ulang kaji yang dinilai “Sukar”, “Baik” atau “Mudah” dikira untuk menentukan kedudukan anda. Ulang kaji yang dinilai “Ulang” tidak dikira.",
+  },
+  or: {
+    title: "ଗଣାଯାଉଥିବା ପୁନରାବୃତ୍ତି",
+    description: "କାର୍ଡ ପୁନରାବୃତ୍ତିରେ ‘କଠିନ’, ‘ଭଲ’ କିମ୍ବା ‘ସହଜ’ ବାଛିଲେ, ତାହା ଆପଣଙ୍କ ସ୍ଥାନ ନିର୍ଣ୍ଣୟ ପାଇଁ ଗଣାଯାଏ। ‘ପୁଣି’ ବାଛିଲେ ତାହା ଗଣାଯାଏ ନାହିଁ।",
+  },
   pt: {
     title: "Revisões válidas",
     description: "As revisões Difícil, Bom e Fácil contam para a sua posição. De novo não conta.",
+  },
+  "pt-PT": {
+    title: "Revisões válidas",
+    description: "As revisões classificadas como «Difícil», «Bom» ou «Fácil» contam para a tua posição. As marcadas como «De novo» não contam.",
   },
   ru: {
     title: "Зачтённые повторения",
@@ -225,7 +236,7 @@ type LeaderboardFriendDisplayNameRow = Readonly<{
 }>;
 
 function resolveProgressLeaderboardMetric(localeHint: string): ProgressLeaderboardMetric {
-  const copy = PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE[resolveAnonymousDisplayNameLocale(localeHint)];
+  const copy = PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE[resolveLeaderboardMetricLocale(localeHint)];
   return {
     metricVersion: LEADERBOARD_SNAPSHOT_METRIC_VERSION,
     title: copy.title,

@@ -4,6 +4,9 @@ import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.app.widget.ReviewWidgetTapRequest
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
+import com.flashcardsopensourceapp.feature.ai.AiImport
+import com.flashcardsopensourceapp.feature.ai.AiImportOrigin
+import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +23,12 @@ data class AiCardHandoffRequest(
     val frontText: String,
     val backText: String,
     val tags: List<String>
+)
+
+data class AiImportRequest(
+    val requestId: Long,
+    val aiImport: AiImport,
+    val origin: AiImportOrigin
 )
 
 data class CardEditorRequest(
@@ -60,7 +69,8 @@ data class ReviewWidgetTapHandoffRequest(
 )
 
 enum class LibraryNavigationTarget {
-    DECKS
+    DECKS,
+    TAGS
 }
 
 data class LibraryNavigationRequest(
@@ -72,6 +82,7 @@ class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
+    private val aiImportState = MutableStateFlow<AiImportRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val reviewFilterState = MutableStateFlow<ReviewFilterRequest?>(value = null)
     private val reviewWidgetCardState = MutableStateFlow<ReviewWidgetCardRequest?>(value = null)
@@ -84,6 +95,10 @@ class AppHandoffCoordinator {
 
     fun observeAiCardHandoff(): StateFlow<AiCardHandoffRequest?> {
         return aiCardHandoffState.asStateFlow()
+    }
+
+    fun observeAiImport(): StateFlow<AiImportRequest?> {
+        return aiImportState.asStateFlow()
     }
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
@@ -107,6 +122,7 @@ class AppHandoffCoordinator {
     }
 
     fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
+        discardPendingAiImport()
         aiEntryPrefillState.value = AiEntryPrefillRequest(
             requestId = nextRequestId.incrementAndGet(),
             prefill = prefill
@@ -127,6 +143,7 @@ class AppHandoffCoordinator {
         backText: String,
         tags: List<String>
     ) {
+        discardPendingAiImport()
         aiCardHandoffState.value = AiCardHandoffRequest(
             requestId = nextRequestId.incrementAndGet(),
             cardId = cardId,
@@ -142,6 +159,38 @@ class AppHandoffCoordinator {
         }
 
         aiCardHandoffState.value = null
+    }
+
+    fun requestAiImport(
+        aiImport: AiImport,
+        origin: AiImportOrigin
+    ) {
+        discardPendingAiImport()
+        aiEntryPrefillState.value = null
+        aiCardHandoffState.value = null
+        aiImportState.value = AiImportRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            aiImport = aiImport,
+            origin = origin
+        )
+    }
+
+    fun consumeAiImport(requestId: Long) {
+        if (aiImportState.value?.requestId == requestId) {
+            aiImportState.value = null
+        }
+    }
+
+    fun cancelAiImport(requestId: Long) {
+        if (aiImportState.value?.requestId == requestId) {
+            discardPendingAiImport()
+        }
+    }
+
+    private fun discardPendingAiImport() {
+        val request = aiImportState.value ?: return
+        aiImportState.value = null
+        deleteAiChatAttachmentStagedFiles(attachments = request.aiImport.attachments)
     }
 
     fun requestCardEditor(cardId: String?) {

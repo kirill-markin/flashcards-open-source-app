@@ -10,35 +10,66 @@ struct ReviewTagFilterRequest: Equatable {
     let isRequestedTagFilterSelected: Bool
 }
 
-/// Whole chips on a single line so the card header height stays stable; tags that do not fit move into a
-/// trailing "+N" menu instead of being clipped.
+/// A fixed tag button that opens Library Tags, then every chip on one horizontally scrolling line, so the card
+/// header height stays stable.
 struct ReviewCardTagChipRow: View {
     let tags: [String]
+    /// Padding the tag button's hit area reaches into, so its glyph stays on the content edge and close to the chips.
+    let leadingBleed: CGFloat
+    /// Padding the chips scroll into past the card's trailing edge.
+    let trailingBleed: CGFloat
+    let onOpenTags: () -> Void
     let onSelectTag: (String) -> Void
 
     var body: some View {
-        if self.tags.isEmpty {
-            Label(localizedNoTagsLabel(), systemImage: "tag")
-        } else {
-            // A plain HStack instead of Label, so VoiceOver reaches each chip as its own button rather than
-            // one merged title; the default spacing and inherited font and color keep the Label look.
-            HStack {
+        HStack(spacing: 0) {
+            Button(action: self.onOpenTags) {
                 Image(systemName: "tag")
-                    .accessibilityHidden(true)
-                // ViewThatFits shows the first candidate that fits: every chip, then one chip fewer plus the
-                // overflow menu at a time, down to the overflow menu alone.
-                ViewThatFits(in: .horizontal) {
-                    ForEach(Array(stride(from: self.tags.count, through: 0, by: -1)), id: \.self) { visibleTagCount in
-                        self.chips(visibleTagCount: visibleTagCount)
+                    .padding(.leading, self.leadingBleed)
+                    .padding(.trailing, 8)
+                    .frame(minWidth: appMinimumTouchTarget, alignment: .leading)
+                    // The touch target reaches the minimum height above and below the line without making it taller.
+                    .background {
+                        Color.clear
+                            .frame(height: appMinimumTouchTarget)
+                            .contentShape(Rectangle())
                     }
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, -self.leadingBleed)
+            .accessibilityLabel(LibrarySection.tags.localizedTitle)
+            .accessibilityIdentifier(UITestIdentifier.reviewCardTagsButton)
+            .help(LibrarySection.tags.localizedTitle)
+
+            if self.tags.isEmpty {
+                // A hidden chip holds the line at chip height, so the card sits where it does below a tagged card.
+                ZStack(alignment: .leading) {
+                    Button(localizedNoTagsLabel()) {}
+                        .reviewCardTagChipStyle()
+                        .hidden()
+                        .accessibilityHidden(true)
+                    Text(localizedNoTagsLabel())
                 }
+            } else {
+                ScrollView(.horizontal) {
+                    self.chips
+                }
+                #if targetEnvironment(macCatalyst)
+                // A plain mouse wheel scrolls vertically, so the Mac keeps a draggable indicator.
+                .scrollIndicators(.automatic)
+                #else
+                .scrollIndicators(.hidden)
+                #endif
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .contentMargins(.trailing, self.trailingBleed, for: .scrollContent)
+                .padding(.trailing, -self.trailingBleed)
             }
         }
     }
 
-    private func chips(visibleTagCount: Int) -> some View {
+    private var chips: some View {
         HStack(spacing: reviewCardTagChipSpacing) {
-            ForEach(self.tags.prefix(visibleTagCount), id: \.self) { tag in
+            ForEach(self.tags, id: \.self) { tag in
                 Button {
                     self.onSelectTag(tag)
                 } label: {
@@ -55,42 +86,7 @@ struct ReviewCardTagChipRow: View {
                     )
                 )
             }
-
-            if visibleTagCount < self.tags.count {
-                self.overflowMenu(hiddenTags: Array(self.tags.dropFirst(visibleTagCount)))
-            }
         }
-    }
-
-    private func overflowMenu(hiddenTags: [String]) -> some View {
-        let hiddenTagCount = hiddenTags.count
-        return Menu {
-            ForEach(hiddenTags, id: \.self) { tag in
-                Button(tag) {
-                    self.onSelectTag(tag)
-                }
-            }
-        } label: {
-            Text(
-                String(
-                    localized: "review.tag_chip.overflow_label",
-                    defaultValue: "+\(hiddenTagCount)",
-                    table: reviewCardsStringsTableName,
-                    comment: "Review card chip that opens a menu with the tags that do not fit on the chip row"
-                )
-            )
-        }
-        .menuStyle(.button)
-        .menuIndicator(.hidden)
-        .reviewCardTagChipStyle()
-        .accessibilityLabel(
-            String(
-                localized: "More tags: \(hiddenTagCount)",
-                table: reviewCardsStringsTableName,
-                comment: "Accessibility label for the Review card chip that opens a menu with the tags that do not fit on the chip row"
-            )
-        )
-        .accessibilityIdentifier(UITestIdentifier.reviewCardTagOverflowMenu)
     }
 }
 

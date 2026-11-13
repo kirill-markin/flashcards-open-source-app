@@ -11,7 +11,7 @@ Check the keyword picker for these terms and their localized variants. Select va
 
 ## Media
 
-Duplicate the [main listing](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&hl=en_US&gl=US) and reuse its assigned media. For each locale, use the same Play locale code as in its copy filename.
+Reuse the assigned media from the [main listing](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&hl=en_US&gl=US). For each locale, use the same Play locale code as in its copy filename. For locales missing from the pinned archives, use the corresponding reviewed main-listing media once it is available.
 
 | Field | Existing asset |
 | --- | --- |
@@ -24,7 +24,9 @@ Duplicate the [main listing](https://play.google.com/store/apps/details?id=com.f
 
 ## Localized copy
 
-Copy the three text blocks from the file for the selected locale. These are the same 51 locales as the [main listing](../../google-play-store-metadata.md).
+Copy the three text blocks from the file for the selected locale. Use the same
+locale codes as the [main listing](../../google-play-store-metadata.md). Odia is
+unavailable in Google Play listing localization.
 
 - [English (United States) (en-US)](en-US.md)
 - [Arabic (ar)](ar.md)
@@ -77,3 +79,12 @@ Copy the three text blocks from the file for the selected locale. These are the 
 - [Urdu (ur)](ur.md)
 - [Vietnamese (vi)](vi.md)
 - [Zulu (zu)](zu.md)
+- [Chinese (Traditional) (zh-TW)](zh-TW.md)
+- [Chinese (Hong Kong) (zh-HK)](zh-HK.md)
+- [English (Australia) (en-AU)](en-AU.md)
+- [English (Canada) (en-CA)](en-CA.md)
+- [English (United Kingdom) (en-GB)](en-GB.md)
+- [French (Canada) (fr-CA)](fr-CA.md)
+- [Portuguese (Portugal) (pt-PT)](pt-PT.md)
+- [Malay (ms)](ms.md)
+- [Malay (Malaysia) (ms-MY)](ms-MY.md)

@@ -350,6 +350,7 @@ function createReviewQueueSnapshot(state: ReviewScreenTestState): ReviewQueueSna
     resolvedReviewFilter: state.appData.selectedReviewFilter,
     cards: state.reviewQueue,
     nextCursor: null,
+    nextDueAtMillis: null,
     reviewCounts: {
       dueCount: state.reviewQueue.length,
       totalCount: state.reviewQueue.length,

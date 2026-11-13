@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 private let aiChatCanonicalFileMediaTypesByExtension: [String: String] = [
     "apkg": "application/apkg",
+    "colpkg": "application/apkg",
     "csv": "text/csv",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "html": "text/html",
@@ -11,6 +12,8 @@ private let aiChatCanonicalFileMediaTypesByExtension: [String: String] = [
     "json": "application/json",
     "log": "text/plain",
     "md": "text/markdown",
+    "mochi": "application/zip",
+    "ofc": "application/zip",
     "pdf": "application/pdf",
     "py": "text/x-python",
     "sql": "text/plain",
@@ -84,15 +87,28 @@ func aiChatAttachmentMenuActions() -> [AIChatAttachmentMenuAction] {
     ]
 }
 
-/// Declared in `UTImportedTypeDeclarations` of `Config/Info.plist`. The extension lookup stays beside it because
-/// a declaration exported by another installed app, such as AnkiMobile, takes the `.apkg` extension first.
-private let aiChatAnkiPackageContentType: UTType = UTType(importedAs: "com.nibomo.anki-package")
+/// Declared in `UTImportedTypeDeclarations` of `Config/Info.plist`, because a type exported by another
+/// installed app, such as AnkiMobile, may take the extension first; the extension lookup covers that case.
+private let aiChatImportedContentTypesByExtension: [String: UTType] = [
+    "apkg": UTType(importedAs: "com.nibomo.anki-package"),
+    "colpkg": UTType(importedAs: "com.nibomo.anki-collection-package"),
+    "mochi": UTType(importedAs: "com.nibomo.mochi-export"),
+    "ofc": UTType(importedAs: "com.nibomo.noji-export"),
+]
+
+func aiChatFileImporterContentTypes(fileExtension: String) -> [UTType] {
+    var types: [UTType] = []
+    if let importedType = aiChatImportedContentTypesByExtension[fileExtension] {
+        types.append(importedType)
+    }
+    if let extensionType = UTType(filenameExtension: fileExtension), types.contains(extensionType) == false {
+        types.append(extensionType)
+    }
+    return types
+}
 
 func aiChatImporterContentTypes() -> [UTType] {
-    let extensionTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
-        UTType(filenameExtension: fileExtension)
-    }
-    let baseTypes = Set(extensionTypes + [aiChatAnkiPackageContentType])
+    let baseTypes = Set(aiChatSupportedFileExtensions.flatMap(aiChatFileImporterContentTypes(fileExtension:)))
 
     return baseTypes.sorted { left, right in
         left.identifier < right.identifier
@@ -445,7 +461,7 @@ func aiChatIsFilePermissionError(error: Error) -> Bool {
     return false
 }
 
-private func aiChatValidateAttachmentSize(byteCount: Int, maximumByteCount: Int) throws {
+func aiChatValidateAttachmentSize(byteCount: Int, maximumByteCount: Int) throws {
     if byteCount > maximumByteCount {
         throw NSError(
             domain: aiChatAttachmentErrorDomain,

@@ -194,7 +194,7 @@ function buildReviewSection(): string {
 function buildChatFilesSection(): string {
   return joinLines([
     "Chat files:",
-    "- Plain files derived from an attachment sit beside it in /files: a PDF's or DOCX's text in <file>.txt (PDF pages marked --- page N ---), an XLSX's sheets as <file>.d/<sheet>.csv, a ZIP's files under <file>.d/, and an Anki .apkg's collection as <file>.d/collection.sqlite. The attachment line names them or says why there are none.",
+    "- Plain files derived from an attachment sit beside it in /files: a PDF's or DOCX's text in <file>.txt (PDF pages marked --- page N ---), an XLSX's sheets as <file>.d/<sheet>.csv, a ZIP's files under <file>.d/, and an Anki .apkg's or .colpkg's collection as <file>.d/collection.sqlite. The attachment line names them or says why there are none.",
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
@@ -213,7 +213,7 @@ function buildChatFilesSection(): string {
  */
 function buildAnkiImportSection(): string {
   return joinLines([
-    "Anki .apkg imports:",
+    "Anki .apkg and .colpkg imports:",
     "- Keep the notes' own Anki tags, and recreate each Anki deck that holds cards directly or in its subdecks: add to its own cards one tag, its full name as a lowercase hyphenated slug with :: between levels (Spanish Basics::Home becomes spanish-basics::home), and create a deck named with its full Anki name whose tags are its own tag and every subdeck's, such as INSERT INTO decks (name, tags) VALUES ('Spanish Basics', ('spanish-basics', 'spanish-basics::home')).",
     "- Name the decks you created in your reply.",
     "- The collection is <file>.d/collection.sqlite; its decks table, where there is one, separates a deck name's levels with the 0x1F character, which Anki shows as ::. The media files are the package's numbered entries (0, 1, ...), named in entry order by its media list: <file>.d/media.json for older packages.",
@@ -224,6 +224,16 @@ function buildAnkiImportSection(): string {
     "- Compute each image's alt in code from its own note: every image on a front gets an empty alt, ![](fcasset:<id>), even when its <img> has one; on a back, the <img>'s alt only when it is real text that is not already on that side, which the app shows and reads beside the image, and is not a file name or just Image, otherwise an empty alt; never a keyword list or default written for one deck.",
     "- Unpack, convert and upload media in one command, keeping the media bytes in /tmp; keep only those lookups and a small progress file in /work.",
     `- Upload each image with fc-media-put, at most ${maximumMediaPutsPerCommand} per command: loop across commands and keep progress in /work. Upload a JPEG, PNG or WebP of at most ${maximumImageIngestionOriginalBytes / 1_000_000} MB with its original bytes; convert with magick only other formats or larger files.`,
+  ]);
+}
+
+/** Clients attach other apps' exports unparsed; the sandbox unpacks .mochi and .ofc as ZIPs and nothing else of theirs. */
+function buildOtherAppImportSection(): string {
+  return joinLines([
+    "Imports from other flashcard apps:",
+    "- Follow the source app the user's message names; when it names none, work it out from the files. Recreate its decks, folders or sets as tags and decks the way the Anki rules do, and keep the front and back contract above.",
+    "- A .mochi is a ZIP with data.edn or data.json plus media, and an .ofc is Noji's backup ZIP of unknown layout; both unpack under <file>.d/ when the attachment line names it, otherwise open the ZIP itself in python3; inspect an .ofc's files before mapping them.",
+    "- Quizlet text arrives as quizlet.txt: a newline between cards and a tab between term and definition, or the custom separators the text shows; a definition can itself contain line breaks.",
   ]);
 }
 
@@ -312,6 +322,7 @@ export function buildSystemInstructions(
     buildReviewSection(),
     buildChatFilesSection(),
     buildAnkiImportSection(),
+    buildOtherAppImportSection(),
     buildSandboxSqlSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),

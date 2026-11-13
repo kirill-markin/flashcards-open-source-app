@@ -244,7 +244,7 @@ func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], n
     )
 }
 
-private func cardMatchesResolvedReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], card: Card) -> Bool {
+func cardMatchesResolvedReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], card: Card) -> Bool {
     guard card.deletedAt == nil else {
         return false
     }

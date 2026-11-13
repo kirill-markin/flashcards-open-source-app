@@ -69,20 +69,21 @@ internal fun mapToAiUiState(
     val isConversationLoading = runtimeState.conversationBootstrapState == AiConversationBootstrapState.LOADING
         || runtimeState.conversationBootstrapState == AiConversationBootstrapState.RESETTING
     val chatConfig = effectiveAiChatServerConfig(runtimeState.persistedState.lastKnownChatConfig)
+    val needsGuestAccessPreparation = shouldPrepareGuestAccess(
+        accessContext = AiAccessContext(
+            workspaceId = runtimeState.workspaceId,
+            cloudState = cloudState,
+            linkedUserId = null,
+            activeWorkspaceId = null
+        ),
+        hasConsent = hasConsent
+    )
     val isCardHandoffReady = hasConsent &&
         runtimeState.workspaceId != null &&
         isConversationReady &&
         runtimeState.dictationState == AiChatDictationState.IDLE &&
         canPrepareAiDraftInComposerPhase(composerPhase = runtimeState.composerPhase) &&
-        shouldPrepareGuestAccess(
-            accessContext = AiAccessContext(
-                workspaceId = runtimeState.workspaceId,
-                cloudState = cloudState,
-                linkedUserId = null,
-                activeWorkspaceId = null
-            ),
-            hasConsent = hasConsent
-        ).not()
+        needsGuestAccessPreparation.not()
     val hasActiveRun = runtimeState.activeRun != null
     val isStreaming = hasActiveRun || runtimeState.composerPhase == AiComposerPhase.STOPPING
     val isComposerBusy = runtimeState.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun
@@ -90,6 +91,8 @@ internal fun mapToAiUiState(
         && isConversationReady
         && runtimeState.dictationState == AiChatDictationState.IDLE
         && runtimeState.isImportingAttachment.not()
+    val isSendingImport = runtimeState.importRequest != null &&
+        (runtimeState.composerPhase == AiComposerPhase.PREPARING_SEND || runtimeState.composerPhase == AiComposerPhase.STARTING_RUN)
     val canEditDraftText = canEditAiDraftText(state = runtimeState)
     val canEditDraft = canEditAiDraft(state = runtimeState)
     val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
@@ -112,9 +115,9 @@ internal fun mapToAiUiState(
         currentWorkspaceName = metadata.currentWorkspaceName ?: textProvider.unavailableLabel,
         conversationScrollStateKey = aiConversationScrollStateKey(runtimeState = runtimeState),
         messages = runtimeState.persistedState.messages,
-        pendingAttachments = runtimeState.pendingAttachments,
+        pendingAttachments = if (isSendingImport) emptyList() else runtimeState.pendingAttachments,
         isImportingAttachment = runtimeState.isImportingAttachment,
-        draftMessage = runtimeState.draftMessage,
+        draftMessage = if (isSendingImport) "" else runtimeState.draftMessage,
         focusComposerRequestVersion = runtimeState.focusComposerRequestVersion,
         composerSuggestions = composerSuggestions,
         chatConfig = chatConfig,
@@ -124,6 +127,8 @@ internal fun mapToAiUiState(
         isConversationLoading = isConversationLoading,
         isCardHandoffReady = isCardHandoffReady,
         conversationErrorPresentation = runtimeState.conversationBootstrapErrorPresentation,
+        needsGuestAccessPreparation = needsGuestAccessPreparation,
+        guestAccessPreparationError = runtimeState.guestAccessPreparationError,
         canRetryConversationLoad = isCloudIdentityBlocked.not(),
         showOpenAccountStatusForConversationError = isCloudIdentityBlocked,
         isComposerBusy = isComposerBusy,
@@ -181,6 +186,8 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         isConversationLoading = true,
         isCardHandoffReady = false,
         conversationErrorPresentation = emptyAiBootstrapErrorPresentation(),
+        needsGuestAccessPreparation = false,
+        guestAccessPreparationError = null,
         canRetryConversationLoad = true,
         showOpenAccountStatusForConversationError = false,
         isComposerBusy = false,

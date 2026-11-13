@@ -19,6 +19,7 @@ import type { AppEnv } from "../appEnv";
 import {
   browserCorsAllowHeaders,
   browserCorsExposeHeaders,
+  browserCorsPreflightMaxAgeSeconds,
   getAllowedBrowserOrigins,
 } from "../browserCors";
 import {
@@ -46,6 +47,7 @@ function createDirectImageIngestionMountedApp(
     allowHeaders: [...browserCorsAllowHeaders],
     exposeHeaders: [...browserCorsExposeHeaders],
     credentials: true,
+    maxAge: browserCorsPreflightMaxAgeSeconds,
   });
   app.use("*", async (context, next) => {
     const requestId =

@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-// App Store Connect language inventory; screenshot tags match the capture wrappers.
-export const LOCALES: ReadonlyArray<readonly [string, string, string]> = [
+type LocaleMapping = readonly [heading: string, storeLocale: string, screenshotLocale: string];
+
+const BASELINE_LOCALES: readonly LocaleMapping[] = [
   ["English (U.S.)", "en-US", "en-US"], ["Arabic", "ar-SA", "ar"],
   ["Chinese (Simplified)", "zh-Hans", "zh-Hans"], ["French", "fr-FR", "fr"],
   ["German", "de-DE", "de"], ["Hindi", "hi", "hi"], ["Japanese", "ja", "ja"],
@@ -22,14 +23,25 @@ export const LOCALES: ReadonlyArray<readonly [string, string, string]> = [
   ["Vietnamese", "vi", "vi"],
 ];
 
+const ADDED_LOCALES: readonly LocaleMapping[] = [
+  ["English (Australia)", "en-AU", "en-US"], ["English (Canada)", "en-CA", "en-US"],
+  ["English (U.K.)", "en-GB", "en-US"], ["Chinese (Traditional)", "zh-Hant", "zh-Hant"],
+  ["French (Canada)", "fr-CA", "fr"], ["Portuguese (Portugal)", "pt-PT", "pt-PT"],
+  ["Malay", "ms", "ms"], ["Odia", "or-IN", "or"],
+];
+
+export const LOCALES = [...BASELINE_LOCALES, ...ADDED_LOCALES] as const;
+
 export type Screenshot = { path: string; fileName: string; fileSize: number; checksum: string };
 export type ScreenshotSet = { displayType: string; files: Screenshot[]; screenshotLocale: string };
-export type Localization = {
+export type LocalizationText = {
   locale: string;
+  screenshotLocale: string;
   info: { name: string; subtitle: string };
   version: { description: string; keywords: string; whatsNew: string };
-  screenshots: ScreenshotSet[];
+  macOSWhatsNew?: string;
 };
+export type Localization = LocalizationText & { screenshots: ScreenshotSet[] };
 
 function field(section: string, heading: string, limit: number, locale: string): string {
   const matches = [...section.matchAll(/^### (.+)\n([\s\S]*?)(?=^### |$(?![\s\S]))/gm)]
@@ -60,7 +72,7 @@ function screenshot(path: string, fileName: string, family: string): Screenshot 
   return { path, fileName, fileSize: bytes.length, checksum: createHash("md5").update(bytes).digest("hex") };
 }
 
-export function loadLocalizations(metadataPath: string, screenshotsPath: string): Localization[] {
+export function loadLocalizationTexts(metadataPath: string): LocalizationText[] {
   const document = readFileSync(metadataPath, "utf8").replaceAll("\r\n", "\n");
   const sections = [...document.matchAll(/^## (.+)\n([\s\S]*?)(?=^## |$(?![\s\S]))/gm)];
   if (sections.length !== LOCALES.length) throw new Error(`Expected ${LOCALES.length} locale sections in ${metadataPath}; found ${sections.length}`);
@@ -70,24 +82,45 @@ export function loadLocalizations(metadataPath: string, screenshotsPath: string)
     const section = matches[0][2];
     const declaredLocale = section.match(/^App Store locale: `([^`]+)`$/m)?.[1];
     if (declaredLocale !== undefined && declaredLocale !== locale) throw new Error(`${heading}: expected App Store locale ${locale}, got ${declaredLocale}`);
+    const isAddedLocale = ADDED_LOCALES.some(([, storeLocale]) => storeLocale === locale);
+    const macOSWhatsNew = isAddedLocale || /^### What's New \(macOS\)$/m.test(section)
+      ? field(section, "What's New (macOS)", 4000, locale)
+      : undefined;
+    const keywords = field(section, "Keywords", 100, locale);
+    if (isAddedLocale) {
+      const keywordBytes = Buffer.byteLength(keywords, "utf8");
+      if (keywordBytes > 100) throw new Error(`${locale}: Keywords has ${keywordBytes} UTF-8 bytes; expected 1–100`);
+    }
     return {
       locale,
+      screenshotLocale,
       info: { name: field(section, "Name", 30, locale), subtitle: field(section, "Subtitle", 30, locale) },
       version: {
         description: field(section, "Description", 4000, locale),
-        keywords: field(section, "Keywords", 100, locale),
+        keywords,
         whatsNew: field(section, "What's New", 4000, locale),
       },
-      screenshots: ["iphone", "ipad"].map((family) => {
-        const directory = join(screenshotsPath, family);
-        const names = readdirSync(directory);
-        const files = [1, 2, 3, 4, 5].map((index) => {
-          const namesForIndex = names.filter((name) => name.startsWith(`${screenshotLocale}-${index}_`) && name.endsWith(".png"));
-          if (namesForIndex.length !== 1) throw new Error(`${directory}: expected one ${screenshotLocale}-${index}_*.png; found ${namesForIndex.length}`);
-          return screenshot(join(directory, namesForIndex[0]), namesForIndex[0], family);
-        });
-        return { displayType: family === "iphone" ? "APP_IPHONE_65" : "APP_IPAD_PRO_3GEN_129", files, screenshotLocale };
-      }),
+      macOSWhatsNew,
     };
   });
+}
+
+export function loadScreenshotSets(screenshotsPath: string, screenshotLocale: string): ScreenshotSet[] {
+  return ["iphone", "ipad"].map((family) => {
+    const directory = join(screenshotsPath, family);
+    const names = readdirSync(directory);
+    const files = [1, 2, 3, 4, 5].map((index) => {
+      const namesForIndex = names.filter((name) => name.startsWith(`${screenshotLocale}-${index}_`) && name.endsWith(".png"));
+      if (namesForIndex.length !== 1) throw new Error(`${directory}: expected one ${screenshotLocale}-${index}_*.png; found ${namesForIndex.length}`);
+      return screenshot(join(directory, namesForIndex[0]), namesForIndex[0], family);
+    });
+    return { displayType: family === "iphone" ? "APP_IPHONE_65" : "APP_IPAD_PRO_3GEN_129", files, screenshotLocale };
+  });
+}
+
+export function loadLocalizations(metadataPath: string, screenshotsPath: string): Localization[] {
+  return loadLocalizationTexts(metadataPath).map((localization) => ({
+    ...localization,
+    screenshots: loadScreenshotSets(screenshotsPath, localization.screenshotLocale),
+  }));
 }

@@ -4,10 +4,9 @@ Catalog and review-material preparation do not submit a subscription or release 
 The ordinary iOS purchase offer follows the [paid-access contract](premium-entitlements.md).
 Build dispatch, App Review submission, and publication remain separate authorization gates.
 
-[Subscription store metadata](subscription-store-metadata.md) owns product identity and all
-42 Apple subscription/group localizations. The store inventory is separate from the full
-iOS UI language inventory. [Premium offer](premium-offer.md) owns price, trial, allowance,
-and the completed early-user lifetime gift. The
+[Subscription store metadata](subscription-store-metadata.md) owns product identity and the Apple
+subscription and group locale inputs. [Premium offer](premium-offer.md) owns price, trial,
+allowance, and the completed early-user lifetime gift. The
 [canonical English App Review notes](subscription-store-metadata.md#canonical-english-app-review-notes)
 are the only source for the subscription's reviewer text.
 
@@ -30,7 +29,15 @@ baseline capture, subscriber effects and readback.
    in the main checkout. The [shared client](../scripts/ios/app-store-connect-client.mts)
    finds them from a worktree. Catalog operations use `APP_STORE_CONNECT_*`, not the
    separate In-App Purchase signing key. Keep private keys and JWTs out of reports.
-3. Execute the reviewed source:
+3. Read the current state of `premium_monthly`. For a localization rollout, open the product
+   and Premium group localization pickers in App Store Connect without saving. Confirm
+   Odia (`or-IN`) is available in both and record the result before applying the locale inputs.
+4. For the current `APPROVED` product, use an authorized localization-only path. Save only the
+   intended product and group texts from the
+   [current inputs](subscription-store-metadata.md#app-store-connect-texts). Read back both
+   sets of saved localizations and compare the intended entries with those inputs.
+5. For initial catalog setup or an unsubmitted draft (`MISSING_METADATA` or `READY_TO_SUBMIT`),
+   execute the reviewed source:
 
    ```bash
    node scripts/ios/configure-apple-subscription.mts --apply
@@ -40,7 +47,8 @@ baseline capture, subscriber effects and readback.
    updates localized text to the canonical metadata, and sets prices, trials and availability
    for every storefront Apple returns. A changed territory inventory stops the run for
    explicit catalog correction.
-4. Keep the final `apple_subscription_catalog_readback` output as the operational record.
+6. For the draft writer, keep the final `apple_subscription_catalog_readback` output as the
+   operational record.
    Confirm the public IDs match
    [the metadata configuration table](subscription-store-metadata.md#app-store-connect).
    Keep user, sandbox-account, and transaction data out of that file.
@@ -234,10 +242,9 @@ pending. This procedure does not authorize Xcode Cloud dispatch or app/product s
    failures, with Restore/retry available when connectivity returns.
    Also exercise an empty product lookup and recovery through
    Retry. Failure details must remain visible, with no optimistic access grant.
-8. Check long text, enlarged Dynamic Type, and an RTL language. All new UI strings must
-   come from the full 49 non-English app resource set; the 42 store metadata locales
-   are separate. Read only necessary billing metadata to confirm sandbox environment,
-   stable purchase identity, processed notifications, and expected entitlement. Keep
+8. Check long text, enlarged Dynamic Type, and an RTL language. Confirm new UI strings use
+   the localized iOS app resources. Read only necessary billing metadata to confirm the
+   sandbox environment, stable purchase identity, processed notifications, and expected entitlement. Keep
    test identities and transaction IDs private. Reports exclude sandbox from production
    revenue. Record build, device, language, outcome, and sanitized failure evidence.
 
@@ -247,10 +254,9 @@ configuration, record that check as pending. This procedure neither changes the 
 ## Prepare App Review materials
 
 Use the existing [App Store Connect client and credentials](xcode-cloud-data-access.md#required-local-secrets)
-from the reviewed checkout. The catalog covers 175 territories and 42 store locales.
-Read fresh product, screenshot, and app-version state before writing. An empty review note,
-missing screenshot, or `MISSING_METADATA` product state is an open preparation gap;
-this checklist is not evidence that those gaps have been closed.
+from the reviewed checkout. Read fresh product, screenshot, and app-version state before writing.
+An empty review note, missing screenshot, or `MISSING_METADATA` product state is an open
+preparation gap; this checklist is not evidence that those gaps have been closed.
 
 1. Capture a screenshot of the real compiled offer from Settings → Subscription in the
    accepted build, using a free guest without a lifetime gift. Wait for the real StoreKit

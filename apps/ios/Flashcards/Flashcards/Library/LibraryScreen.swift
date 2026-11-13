@@ -6,12 +6,7 @@ private let libraryStringsTableName: String = "Foundation"
 struct LibraryScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    /// Nil until the tags summary has loaded once.
-    @State private var tagsCount: Int? = nil
-
-    private var tagsSourceKey: String {
-        "\(self.store.workspace?.workspaceId ?? "")|\(self.store.localReadVersion)"
-    }
+    let tagsCount: Int?
 
     var body: some View {
         List {
@@ -19,7 +14,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.cards) {
                     LibraryRow(
                         title: LibrarySection.cards.localizedTitle,
-                        subtitle: nil,
+                        subtitle: LibrarySection.cards.localizedWorkspaceSubtitle,
                         systemImage: LibrarySection.cards.systemImage,
                         count: self.store.cards.count
                     )
@@ -29,7 +24,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.tags) {
                     LibraryRow(
                         title: LibrarySection.tags.localizedTitle,
-                        subtitle: nil,
+                        subtitle: LibrarySection.tags.localizedWorkspaceSubtitle,
                         systemImage: LibrarySection.tags.systemImage,
                         count: self.tagsCount
                     )
@@ -39,7 +34,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.decks) {
                     LibraryRow(
                         title: LibrarySection.decks.localizedTitle,
-                        subtitle: nil,
+                        subtitle: LibrarySection.decks.localizedWorkspaceSubtitle,
                         systemImage: LibrarySection.decks.systemImage,
                         count: self.store.decks.count
                     )
@@ -61,7 +56,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: LibraryNavigationDestination.importData) {
                     LibraryRow(
                         title: LibrarySection.importData.localizedTitle,
-                        subtitle: String(localized: "library.row.import.subtitle", table: libraryStringsTableName),
+                        subtitle: libraryImportSummary(),
                         systemImage: LibrarySection.importData.systemImage,
                         count: nil
                     )
@@ -89,24 +84,6 @@ struct LibraryScreen: View {
             AICompanionToolbarItem()
         }
         #endif
-        .task(id: self.tagsSourceKey) {
-            await self.reloadTagsCount()
-        }
-    }
-
-    /// The same source as the Tags screen, so the count matches its rows.
-    @MainActor
-    private func reloadTagsCount() async {
-        guard let database = self.store.database, let workspaceId = self.store.workspace?.workspaceId else {
-            self.tagsCount = 0
-            return
-        }
-
-        do {
-            self.tagsCount = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId).tags.count
-        } catch {
-            self.store.presentTechnicalError(error)
-        }
     }
 }
 
@@ -117,33 +94,66 @@ private struct LibraryRow: View {
     let count: Int?
 
     var body: some View {
-        LabeledContent {
+        HStack {
+            LibraryRowLabel(title: self.title, subtitle: self.subtitle, systemImage: self.systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             if let count = self.count {
                 Text(count.formatted())
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-        } label: {
-            Label {
+        }
+    }
+}
+
+struct LibraryRowLabel: View {
+    let title: String
+    let subtitle: String?
+    let systemImage: String
+
+    private var titleText: some View {
+        Text(self.title)
+        #if !targetEnvironment(macCatalyst)
+            .foregroundStyle(Color.primary)
+        #endif
+    }
+
+    var body: some View {
+        Label {
+            if let subtitle = self.subtitle {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(self.title)
-                        .foregroundStyle(Color.primary)
-                    if let subtitle = self.subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+                    self.titleText
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-            } icon: {
-                Image(systemName: self.systemImage)
+            } else {
+                self.titleText
             }
+        } icon: {
+            Image(systemName: self.systemImage)
+        }
+    }
+}
+
+extension LibrarySection {
+    var localizedWorkspaceSubtitle: String? {
+        switch self {
+        case .cards: String(localized: "library.row.cards.subtitle", table: libraryStringsTableName)
+        case .tags: String(localized: "library.row.tags.subtitle", table: libraryStringsTableName)
+        case .decks: String(localized: "library.row.decks.subtitle", table: libraryStringsTableName)
+        case .deckCatalog, .importData, .exportData: nil
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        LibraryScreen()
+        LibraryScreen(tagsCount: nil)
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
     }

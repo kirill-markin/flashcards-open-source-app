@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Nibomo 學習卡</string>
+    <string name="wear_retry">重試</string>
+    <string name="wear_session_open_phone_app">在手機上開啟 Nibomo</string>
+    <string name="wear_session_not_connected_message">在手機上登入後，即可在手錶上複習卡片。</string>
+    <string name="wear_session_connecting">正在連線至手機…</string>
+    <string name="wear_session_syncing">正在同步卡片…</string>
+    <string name="wear_session_update_required">在手機和手錶上更新 Nibomo</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="other">%d 筆評分暫時無法同步</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">手機已切換帳號或工作區。請在手錶連上網路後再試，或刪除這些評分以立即切換。</string>
+    <string name="wear_session_switch_blocked_discard">刪除並切換</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="other">刪除 %d 筆評分？</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">這些評分將遺失，且無法復原。</string>
+    <string name="wear_review_show_answer">顯示答案</string>
+    <string name="wear_review_again">重來</string>
+    <string name="wear_review_hard">困難</string>
+    <string name="wear_review_good">良好</string>
+    <string name="wear_review_easy">簡單</string>
+    <string name="wear_review_open_on_phone">請在手機上開啟，查看圖片或公式</string>
+    <string name="wear_review_all_done">都複習完了</string>
+    <string name="wear_review_next_card_due">下一張卡片：%1$s</string>
+</resources>

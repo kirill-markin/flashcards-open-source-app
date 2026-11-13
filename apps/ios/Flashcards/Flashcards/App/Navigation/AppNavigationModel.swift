@@ -39,6 +39,8 @@ func makeLibraryLocation(destination: LibraryNavigationDestination) -> LibraryLo
         return LibraryLocation(section: .deckCatalog, pages: [.catalogDeck(deck)])
     case .importData:
         return LibraryLocation(section: .importData, pages: [])
+    case .importFormat:
+        return LibraryLocation(section: .importData, pages: [destination])
     case .exportData:
         return LibraryLocation(section: .exportData, pages: [])
     case .exportFormat:
@@ -64,6 +66,8 @@ func makeLibraryNavigationPath(destination: LibraryNavigationDestination) -> [Li
         return [.deckCatalog, .catalogDeck(deck)]
     case .importData:
         return [.importData]
+    case .importFormat:
+        return [.importData, destination]
     case .exportData:
         return [.exportData]
     case .exportFormat:
@@ -155,6 +159,7 @@ final class AppNavigationModel {
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
+    private(set) var aiImportRequest: AIImportPresentationRequest?
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
     private(set) var canPresentAICompanion: Bool = false
@@ -278,6 +283,7 @@ final class AppNavigationModel {
     }
 
     func openAICardCreation() {
+        self.cancelAIImport()
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
@@ -286,12 +292,41 @@ final class AppNavigationModel {
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
+        self.cancelAIImport()
         // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
         if self.isAICompanionVisible == false {
             self.selectTab(.ai)
         }
         self.popAIToLiveChat()
+    }
+
+    func openAIImport(request: AIImportPresentationRequest) -> Bool {
+        guard self.aiImportRequest == nil else {
+            return false
+        }
+
+        self.aiChatPresentationRequest = nil
+        self.aiImportRequest = request
+        if self.isAICompanionVisible == false {
+            self.selectTab(.ai)
+        }
+        self.popAIToLiveChat()
+        return true
+    }
+
+    func takeAIImportRequest() -> AIImportPresentationRequest? {
+        guard let request = self.aiImportRequest else {
+            return nil
+        }
+        self.aiImportRequest = nil
+        return request
+    }
+
+    func cancelAIImport() {
+        if let request = self.takeAIImportRequest() {
+            aiChatRemoveAttachmentFiles(attachments: request.attachments)
+        }
     }
 
     func popAIToLiveChat() {

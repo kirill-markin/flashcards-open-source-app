@@ -14,6 +14,7 @@ type WorkspaceTextImportEditorProps = Readonly<{
   isDisabled: boolean;
   isImporting: boolean;
   isSyncing: boolean;
+  unavailableMessage: string | null;
   syncErrorMessage: string | null;
   onRetrySync: () => void;
   errorMessage: string;
@@ -71,6 +72,7 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
     isDisabled,
     isImporting,
     isSyncing,
+    unavailableMessage,
     syncErrorMessage,
     onRetrySync,
     errorMessage,
@@ -172,10 +174,8 @@ export function WorkspaceTextImportEditor(props: WorkspaceTextImportEditorProps)
 
   return (
     <article className="content-card workspace-text-import-editor" data-testid="workspace-text-import-editor">
-      <div className="settings-nav-card-copy">
-        <strong className="panel-subtitle">{t("workspaceImport.textTitle")}</strong>
-        <p className="subtitle">{t("workspaceImport.textDescription")}</p>
-      </div>
+      <p className="subtitle">{t("workspaceImport.textDescription")}</p>
+      {unavailableMessage === null ? null : <p className="subtitle" role="status">{unavailableMessage}</p>}
 
       <label className="workspace-text-import-source">
         <span>{t("workspaceImport.textInputLabel")}</span>

@@ -58,6 +58,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
     uiLocale: locale,
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
     uiMessages: {
+      activeChatChanged: t("workspaceImport.ai.chatChanged"),
       activeRunInProgress: t("chatPanel.errors.activeRunInProgress"),
       currentChatRecovered: t("chatPanel.currentChatRecovered"),
       currentChatDraftConflict: t("chatPanel.errors.currentChatDraftConflict"),

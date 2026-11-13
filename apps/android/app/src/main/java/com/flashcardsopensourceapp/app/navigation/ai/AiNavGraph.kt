@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.navigation.ai
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,6 +27,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermiss
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
+import com.flashcardsopensourceapp.feature.ai.AiPendingImport
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiViewModel
 import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
@@ -66,6 +68,39 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             aiViewModel.dismissAlert()
             premiumPresenter.showAiLimit(refusal = refusal)
         }
+        val importRequest by appGraph.appHandoffCoordinator.observeAiImport().collectAsStateWithLifecycle()
+        val cloudSettingsFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeCloudSettings() }
+        val cloudSettings by cloudSettingsFlow.collectAsStateWithLifecycle(initialValue = null)
+        val configurationFlow = remember(appGraph) { appGraph.cloudAccountRepository.observeServerConfiguration() }
+        val configuration by configurationFlow.collectAsStateWithLifecycle(initialValue = null)
+        LaunchedEffect(
+            importRequest?.requestId,
+            cloudSettings?.installationId,
+            cloudSettings?.linkedUserId,
+            cloudSettings?.cloudState,
+            cloudSettings?.activeWorkspaceId,
+            configuration,
+            uiState.workspaceId,
+            uiState.isConsentRequired,
+            uiState.isCardHandoffReady,
+            uiState.isComposerBusy,
+            uiState.isImportingAttachment
+        ) {
+            val request = importRequest ?: return@LaunchedEffect
+            appGraph.withAiImportWorkspace(request = request) { workspace ->
+                if (appGraph.appHandoffCoordinator.observeAiImport().value?.requestId != request.requestId) {
+                    return@withAiImportWorkspace
+                }
+                val didHandle = aiViewModel.handoffImportToChat(
+                    aiImport = request.aiImport,
+                    workspace = workspace
+                )
+                if (didHandle) {
+                    appGraph.appHandoffCoordinator.consumeAiImport(requestId = request.requestId)
+                }
+            }
+        }
+
         val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()
         val cardHandoffRequest by appGraph.appHandoffCoordinator.observeAiCardHandoff().collectAsStateWithLifecycle()
 
@@ -76,15 +111,11 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             uiState.isConversationReady
         ) {
             val request = entryPrefillRequest ?: return@LaunchedEffect
-            if (
-                uiState.canEditDraft.not()
-                || uiState.isConsentRequired
-                || uiState.isConversationReady.not()
-            ) {
+            if (uiState.isConsentRequired || uiState.isConversationReady.not()) {
                 return@LaunchedEffect
             }
-            val didApplyRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
-            if (didApplyRequest) {
+            val didHandleRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
+            if (didHandleRequest) {
                 appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
             }
         }
@@ -150,6 +181,12 @@ internal fun NavGraphBuilder.registerAiNavGraph(
 
         AiRoute(
             uiState = uiState,
+            pendingImport = importRequest?.let { request ->
+                AiPendingImport(
+                    fileNames = request.aiImport.attachments.map { attachment -> attachment.fileName },
+                    onCancel = { appGraph.appHandoffCoordinator.cancelAiImport(requestId = request.requestId) }
+                )
+            },
             onAcceptConsent = aiViewModel::acceptConsent,
             onDraftMessageChange = aiViewModel::updateDraftMessage,
             onApplyComposerSuggestion = aiViewModel::applyComposerSuggestion,

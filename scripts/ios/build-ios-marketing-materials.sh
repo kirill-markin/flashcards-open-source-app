@@ -21,8 +21,8 @@ What it does:
   3. Optimizes the generated PNG files.
 
 Locale selection:
-  --all-locales      Build every capture tag of the resolved family. This is the default if no locale flag is passed.
-                     The iPad and Duo families exclude the iPhone-only capture tags.
+  --all-locales      Build every capture tag of the resolved family, or every saved set with --skip-screenshots.
+                     This is the default if no locale flag is passed. Incomplete and duplicate sets fail.
   --locale <code>    Build one locale. Supported canonical locales match the raw screenshot pipeline.
 
 Locale discovery:
@@ -77,7 +77,7 @@ canonicalize_locale() {
     local raw_locale="$1"
 
     case "$raw_locale" in
-        en | en-US)
+        en | en-US | en-AU | en-CA | en-GB)
             echo "en-US"
             ;;
         ar | ar-SA)
@@ -86,7 +86,10 @@ canonicalize_locale() {
         zh-CN | zh-Hans)
             echo "zh-Hans"
             ;;
-        fr | fr-FR)
+        zh-Hant)
+            echo "zh-Hant"
+            ;;
+        fr | fr-FR | fr-CA)
             echo "fr"
             ;;
         de | de-DE)
@@ -100,6 +103,9 @@ canonicalize_locale() {
             ;;
         pt-BR | pt)
             echo "pt-BR"
+            ;;
+        pt-PT)
+            echo "pt-PT"
             ;;
         ru | ru-RU)
             echo "ru"
@@ -176,11 +182,17 @@ canonicalize_locale() {
         mr | mr-IN)
             echo "mr"
             ;;
+        ms)
+            echo "ms"
+            ;;
         nb | no)
             echo "nb"
             ;;
         nl | nl-NL)
             echo "nl"
+            ;;
+        or | or-IN)
+            echo "or"
             ;;
         pa | pa-IN)
             echo "pa"
@@ -404,24 +416,28 @@ resolve_screenshot_paths() {
     local locale="$2"
 
     local screenshot_directory="$raw_screenshot_root/$family"
+    if [[ ! -d "$screenshot_directory" ]]; then
+        echo "Missing native $family screenshot folder: $screenshot_directory" >&2
+        return 1
+    fi
+    local paths_output
+    paths_output="$(find "$screenshot_directory" -maxdepth 1 -type f -name "${locale}-[1-5]_*.png" -print | sort)" || return
+    if [[ -z "$paths_output" ]]; then
+        return
+    fi
+
     local -a screenshot_paths=()
     local screenshot_index=""
     local -a matching_paths=()
 
-    local matching_paths_output
     local line
     for screenshot_index in 1 2 3 4 5; do
-        matching_paths_output="$(
-            find "$screenshot_directory" \
-                -maxdepth 1 \
-                -type f \
-                -name "${locale}-${screenshot_index}_*.png" \
-                -print | sort
-        )"
         matching_paths=()
         while IFS= read -r line; do
-            [[ -n "$line" ]] && matching_paths+=("$line")
-        done <<< "${matching_paths_output}"
+            if [[ "$line" == */"${locale}-${screenshot_index}_"*.png ]]; then
+                matching_paths+=("$line")
+            fi
+        done <<< "$paths_output"
 
         if [[ "${#matching_paths[@]}" -eq 0 ]]; then
             echo "Expected raw screenshot file matching $screenshot_directory/${locale}-${screenshot_index}_*.png" >&2
@@ -439,6 +455,19 @@ resolve_screenshot_paths() {
     done
 
     printf '%s\n' "${screenshot_paths[@]}"
+}
+
+list_saved_locales() {
+    local family="$1"
+    local locales="$2"
+    local locale=""
+    local paths=""
+    while IFS= read -r locale; do
+        paths="$(resolve_screenshot_paths "$family" "$locale")" || return
+        if [[ -n "$paths" ]]; then
+            printf '%s\n' "$locale"
+        fi
+    done <<< "$locales"
 }
 
 capture_raw_screenshots_for_locale() {
@@ -567,7 +596,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --locale)
             shift
-            if [[ $# -eq 0 ]]; then
+            if [[ $# -eq 0 || -z "$1" ]]; then
                 echo "Missing value after --locale." >&2
                 exit 1
             fi
@@ -576,6 +605,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --locale=*)
             requested_locale="${1#*=}"
+            if [[ -z "$requested_locale" ]]; then
+                echo "Missing value after --locale=." >&2
+                exit 1
+            fi
             shift
             ;;
         --family)
@@ -659,6 +692,13 @@ if [[ "$use_all_locales" == "false" && -z "$requested_locale" ]]; then
 fi
 
 resolved_locales_output="$(resolve_requested_locales "$resolved_family" "$use_all_locales" "$requested_locale")"
+if [[ "$should_capture_screenshots" == "false" && -z "$requested_locale" ]]; then
+    resolved_locales_output="$(list_saved_locales "$resolved_family" "$resolved_locales_output")"
+    if [[ -z "$resolved_locales_output" ]]; then
+        echo "No saved $resolved_family screenshot sets under $raw_screenshot_root/$resolved_family." >&2
+        exit 1
+    fi
+fi
 resolved_locales=()
 while IFS= read -r line; do
     [[ -n "$line" ]] && resolved_locales+=("$line")
@@ -673,6 +713,10 @@ for locale in "${resolved_locales[@]}"; do
     fi
 
     screenshot_paths_output="$(resolve_screenshot_paths "$resolved_family" "$locale")"
+    if [[ -z "$screenshot_paths_output" ]]; then
+        echo "No saved screenshots for $resolved_family/$locale under $raw_screenshot_root/$resolved_family. Capture the selected five-shot set first." >&2
+        exit 1
+    fi
     screenshot_paths=()
     while IFS= read -r line; do
         [[ -n "$line" ]] && screenshot_paths+=("$line")

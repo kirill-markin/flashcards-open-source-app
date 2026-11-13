@@ -57,6 +57,10 @@ extension FlashcardsStore {
             workspaceId: nextWorkspaceId
         )
         self.reviewRuntime.cancelForAccountDeletion()
+        self.scheduleNextDueRefresh(nextDueAt: nil)
+        self.appliedReviewDueCutoff = nil
+        self.appliedReviewLoadState = .settled
+        self.workspaceReviewDue = nil
         self.resetReviewHardReminderSession()
         self.reviewRuntime = ReviewQueueRuntime(
             reviewSeedQueueSize: reviewSeedQueueSize,

@@ -355,5 +355,68 @@
     "capturePrefix": "zu",
     "copyTag": "zu",
     "consoleAvailability": "verified-in-play-console"
+  },
+  {
+    "name": "Chinese (Traditional)",
+    "storeLocale": "zh-TW",
+    "capturePrefix": "zh-TW",
+    "copyTag": "zh-Hant",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Chinese (Hong Kong)",
+    "storeLocale": "zh-HK",
+    "capturePrefix": "zh-TW",
+    "copyTag": "zh-Hant",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "English (Australia)",
+    "storeLocale": "en-AU",
+    "capturePrefix": "en",
+    "copyTag": "en-US",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "English (Canada)",
+    "storeLocale": "en-CA",
+    "capturePrefix": "en",
+    "copyTag": "en-US",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "English (United Kingdom)",
+    "storeLocale": "en-GB",
+    "capturePrefix": "en",
+    "copyTag": "en-US",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "French (Canada)",
+    "storeLocale": "fr-CA",
+    "capturePrefix": "fr-FR",
+    "copyTag": "fr",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Portuguese (Portugal)",
+    "storeLocale": "pt-PT",
+    "capturePrefix": "pt-PT",
+    "copyTag": "pt-PT",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Malay",
+    "storeLocale": "ms",
+    "capturePrefix": "ms",
+    "copyTag": "ms",
+    "consoleAvailability": "listed-in-google-help"
+  },
+  {
+    "name": "Malay (Malaysia)",
+    "storeLocale": "ms-MY",
+    "capturePrefix": "ms",
+    "copyTag": "ms",
+    "consoleAvailability": "listed-in-google-help"
   }
 ]

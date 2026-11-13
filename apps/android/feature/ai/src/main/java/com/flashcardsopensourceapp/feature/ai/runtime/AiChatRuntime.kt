@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -16,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt
+import com.flashcardsopensourceapp.feature.ai.AiImport
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import com.flashcardsopensourceapp.feature.ai.input.isAiChatAttachmentStaged
@@ -29,6 +31,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraf
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldPrepareGuestAccess
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapCoordinator
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.dictation.AiChatDictationCoordinator
@@ -176,7 +179,7 @@ internal class AiChatRuntime(
     fun updateAccessContext(accessContext: AiAccessContext) {
         val previousAccessContext = context.activeAccessContext
         lifecycleCoordinator.updateAccessContext(accessContext = accessContext)
-        if (previousAccessContext?.runtimeKey() != accessContext.runtimeKey()) {
+        if (previousAccessContext?.runtimeKey()?.matchesCurrentAccess(current = accessContext.runtimeKey()) != true) {
             context.aiUsageStateMutable.value = null
             context.refreshAiUsage()
         }
@@ -386,9 +389,15 @@ internal class AiChatRuntime(
             currentState.workspaceId == null
             || context.hasConsent().not()
             || currentState.conversationBootstrapState != AiConversationBootstrapState.READY
-            || canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()
-            || currentState.dictationState != AiChatDictationState.IDLE
         ) {
+            return false
+        }
+
+        if (currentState.importRequest != null) {
+            showErrorMessage(message = context.textProvider.entryPrefillRequiresNewChat)
+            return true
+        }
+        if (canEditAiDraft(state = currentState).not()) {
             return false
         }
 
@@ -404,6 +413,45 @@ internal class AiChatRuntime(
             )
         }
         persistCurrentDraft()
+        return true
+    }
+
+    fun handoffImportToChat(aiImport: AiImport, workspace: AiImportTarget?): Boolean {
+        if (workspace == null) {
+            deleteAiChatAttachmentStagedFiles(attachments = aiImport.attachments)
+            showErrorMessage(message = context.textProvider.importWorkspaceChanged)
+            return true
+        }
+        val accessContext = context.activeAccessContext ?: return false
+        val state = runtimeStateMutable.value
+        if (
+            state.loadedAccessKey != accessContext.runtimeKey() || accessContext.workspaceId != workspace.workspaceId ||
+            accessContext.cloudState != workspace.cloudState || accessContext.linkedUserId != workspace.linkedUserId ||
+            shouldBootstrapConversation(accessContext = accessContext, hasConsent = hasConsent()).not() ||
+            state.conversationBootstrapState != AiConversationBootstrapState.READY ||
+            canClearConversation(state = state).not() || state.isImportingAttachment
+        ) {
+            return false
+        }
+
+        val errorMessage = when {
+            canAddPendingAttachment(state = state).not() -> context.textProvider.importAttachmentsUnavailable
+            aiImport.attachments.any { attachment -> isAiChatAttachmentStaged(attachment = attachment).not() } ->
+                context.textProvider.attachmentFileMissing
+            else -> null
+        }
+        if (errorMessage != null) {
+            deleteAiChatAttachmentStagedFiles(attachments = aiImport.attachments)
+            showErrorMessage(message = errorMessage)
+            return true
+        }
+
+        sessionCoordinator.prepareImportConversation(
+            draftMessage = aiImport.message,
+            pendingAttachments = aiImport.attachments,
+            target = workspace
+        )
+        sendCoordinator.sendMessage()
         return true
     }
 
@@ -575,6 +623,12 @@ internal class AiChatRuntime(
             return
         }
 
+        if (runtimeStateMutable.value.guestAccessPreparationError != null &&
+            shouldPrepareGuestAccess(accessContext = context.activeAccessContext, hasConsent = true)
+        ) {
+            lifecycleCoordinator.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+            return
+        }
         bootstrapCoordinator.startConversationBootstrap(
             forceReloadState = true,
             resumeDiagnostics = null

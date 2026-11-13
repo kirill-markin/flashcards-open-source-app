@@ -10,13 +10,7 @@ import { useAccountAccentColor } from "../../premium/accentColor";
 import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
 import { useAccountTheme } from "../../premium/theme";
 import { getAppConfig } from "../../config";
-import {
-  autoLocalePreference,
-  type Locale,
-  type LocalePreference,
-  type TranslationKey,
-  useI18n,
-} from "../../i18n";
+import { autoLocalePreference, useI18n } from "../../i18n";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
@@ -60,29 +54,12 @@ import {
 
 const appStoreListingUrl = "https://apps.apple.com/app/id6760538964";
 
-type LocaleNameTranslationKey = `locale.names.${Locale}`;
-
 function accountStatusValue(linkedEmail: string | null, unavailableLabel: string): string {
   if (linkedEmail === null || linkedEmail === "") {
     return unavailableLabel;
   }
 
   return linkedEmail;
-}
-
-function localeNameKey(locale: Locale): LocaleNameTranslationKey {
-  return `locale.names.${locale}`;
-}
-
-function formatLocalePreferenceLabel(
-  localePreference: LocalePreference,
-  t: (key: TranslationKey) => string,
-): string {
-  if (localePreference === autoLocalePreference) {
-    return t("locale.preferenceAuto");
-  }
-
-  return t(localeNameKey(localePreference));
 }
 
 function formatShareErrorMessage(error: unknown, unavailableMessage: string): string {
@@ -110,7 +87,7 @@ export function SettingsScreen(): ReactElement {
   const { effectiveColor } = useAccountAccentColor();
   const { effectiveTheme } = useAccountTheme();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
-  const { localePreference, t } = useI18n();
+  const { localePreference, getLocaleName, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
   const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
   const { isEnabled: isOwnOpenAIKeyEnabled } = useOwnOpenAIKeySetting();
@@ -122,7 +99,9 @@ export function SettingsScreen(): ReactElement {
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const isGuest = session?.browserGuestCapabilities?.isGuest === true;
   const accountStatus = isGuest ? `${t("guest.title")} · ${t("guest.signIn")}` : accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
-  const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
+  const languagePreferenceLabel = localePreference === autoLocalePreference
+    ? t("locale.preferenceAuto")
+    : getLocaleName(localePreference);
   const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
   const canCreateInvite = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
   const appShareUrl = `${getAppConfig().appBaseUrl}${shareRoute}`;

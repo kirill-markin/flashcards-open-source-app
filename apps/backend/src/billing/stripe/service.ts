@@ -5,6 +5,7 @@ import type { DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
 import {
   StripeBillingError, type StripeCustomerIdentity, type StripeEnvironment, type StripeLifecycleResult,
+  type StripePurchaseState,
 } from "./contracts";
 import { loadStripeProvider, type StripeProvider } from "./provider";
 import {
@@ -88,6 +89,26 @@ async function recordCheckoutTarget(
   await recordStripeCheckoutSessionInExecutor(executor, attempt, target.checkout);
 }
 
+export async function retrieveStableStripePurchaseState(
+  provider: StripeProvider, customerId: string, subscriptionId: string,
+): Promise<StripePurchaseState> {
+  const subscription = await provider.retrieveSubscription(subscriptionId, customerId);
+  const financial = await provider.retrieveSubscriptionFinancialState(subscription, customerId);
+  const confirmed = await provider.retrieveSubscription(subscriptionId, customerId);
+  const item = subscription.items.data[0];
+  const confirmedItem = confirmed.items.data[0];
+  if (confirmed.status !== subscription.status || objectId(confirmed.latest_invoice) !== objectId(subscription.latest_invoice)
+    || confirmedItem.current_period_start !== item.current_period_start
+    || confirmedItem.current_period_end !== item.current_period_end
+    || confirmed.trial_start !== subscription.trial_start || confirmed.trial_end !== subscription.trial_end
+    || confirmed.cancel_at !== subscription.cancel_at || confirmed.cancel_at_period_end !== subscription.cancel_at_period_end
+    || confirmed.canceled_at !== subscription.canceled_at) {
+    throw new StripeBillingError("STRIPE_STORAGE_CONFLICT", true,
+      "Stripe subscription changed while reading its financial state. Retry authoritative reconciliation.");
+  }
+  return normalizeStripePurchase(subscription, customerId, provider.environment, financial, new Date());
+}
+
 // Caller holds profile -> identity -> Checkout locks. Returned facts must be published only after
 // its transaction commits. This lets Checkout/deletion orchestration share the same purchase writer.
 export async function reconcileStripeSubscriptionsInExecutor(
@@ -101,21 +122,7 @@ export async function reconcileStripeSubscriptionsInExecutor(
   const transitions: Array<StripeCommittedTransition> = [];
   for (const subscriptionId of [...new Set(subscriptionIds)].sort()) {
     // No event payload status, invoice id or event.created participates in the access decision.
-    const subscription = await provider.retrieveSubscription(subscriptionId, customerId);
-    const financial = await provider.retrieveSubscriptionFinancialState(subscription, customerId);
-    const confirmed = await provider.retrieveSubscription(subscriptionId, customerId);
-    const item = subscription.items.data[0];
-    const confirmedItem = confirmed.items.data[0];
-    if (confirmed.status !== subscription.status || objectId(confirmed.latest_invoice) !== objectId(subscription.latest_invoice)
-      || confirmedItem.current_period_start !== item.current_period_start
-      || confirmedItem.current_period_end !== item.current_period_end
-      || confirmed.trial_start !== subscription.trial_start || confirmed.trial_end !== subscription.trial_end
-      || confirmed.cancel_at !== subscription.cancel_at || confirmed.cancel_at_period_end !== subscription.cancel_at_period_end
-      || confirmed.canceled_at !== subscription.canceled_at) {
-      throw new StripeBillingError("STRIPE_STORAGE_CONFLICT", true,
-        "Stripe subscription changed while reading its financial state. Retry authoritative reconciliation.");
-    }
-    const state = normalizeStripePurchase(subscription, customerId, provider.environment, financial, new Date());
+    const state = await retrieveStableStripePurchaseState(provider, customerId, subscriptionId);
     const previous = await readStripePurchaseInExecutor(executor, provider.environment, subscriptionId);
     const purchase = await persistStripePurchaseInExecutor(executor, identity, state);
     transitions.push({ previous, purchase, state, receivedAt });

@@ -175,6 +175,7 @@ export function useReviewScreenController(
     showMessage: showReviewSpeechMessage,
     speechUnavailableMessage: t("reviewScreen.speechUnavailable"),
   });
+  const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
   const {
     activeReviewFilterOptionId,
     activeReviewFilterOptionKey,
@@ -182,35 +183,30 @@ export function useReviewScreenController(
     handleCloseMenu,
     handleReviewFilterComboboxKeyDown,
     handleReviewFilterListboxKeyDown,
-    handleReviewFilterMenuOpenFromKeyboard,
-    handleReviewFilterMenuOpenFromMoreActions,
+    openReviewFilterMenu,
     handleReviewFilterMenuToggle,
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
-    menuReviewFilter,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
     reviewFilterListboxId,
     reviewFilterListboxRef,
-    reviewFilterMenuAnchorRef,
     reviewFilterMenuRef,
     reviewFilterMenuItems,
     reviewFilterTriggerRef,
-    reviewMoreActionsTriggerRef,
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   } = useReviewFilterMenu({
     deckSummaries,
+    onOpen: () => setIsReviewMoreActionsMenuOpen(false),
     onSelectReviewFilter: selectReviewFilter,
     reviewTagSummaries,
     selectedReviewFilter,
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
-  const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
-  const [isReviewTagOverflowMenuOpen, setIsReviewTagOverflowMenuOpen] = useState<boolean>(false);
   const {
     captureEditorPresentationToken,
     editorErrorMessage,
@@ -262,7 +258,6 @@ export function useReviewScreenController(
     isGuest: session?.browserGuestCapabilities?.isGuest === true,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
-    isReviewTagOverflowMenuOpen,
     isSessionVerified,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -296,10 +291,6 @@ export function useReviewScreenController(
     : isReviewLoading
       ? requestedReviewFilterTitle
       : selectedReviewFilterTitle;
-  // An open menu's tag rows apply on close, so the trigger names that selection at once, as a deck choice does.
-  const reviewFilterTriggerTitle = isReviewFilterEqual(menuReviewFilter, selectedReviewFilter)
-    ? visibleSelectedReviewFilterTitle
-    : resolveLocalizedReviewFilterTitle(menuReviewFilter);
   const visibleQueueCardsCount = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.queuePreview.length
     : queueCards.length;
@@ -569,12 +560,11 @@ export function useReviewScreenController(
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
-    isReviewTagOverflowMenuOpen,
     isSubmitting: isSubmitting || reviewPaywall?.isPresented === true,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     onShortcutInputStart: dismissReviewReactions,
-    openReviewFilterMenu: handleReviewFilterMenuOpenFromKeyboard,
+    openReviewFilterMenu,
     selectedBackSpeakableText,
     selectedCard,
     selectedFrontSpeakableText,
@@ -680,11 +670,11 @@ export function useReviewScreenController(
         reviewDeckSearchText,
         reviewFilterListboxId,
         reviewFilterListboxRef,
-        reviewFilterMenuAnchorRef,
         reviewFilterMenuRef,
         reviewFilterMenuItems,
         reviewFilterTriggerRef,
-        selectedReviewFilterTitle: reviewFilterTriggerTitle,
+        selectedReviewFilterDueCount: reviewCounts.dueCount,
+        selectedReviewFilterTitle: visibleSelectedReviewFilterTitle,
         setReviewDeckSearchText,
         shouldShowReviewDeckSearch,
         visibleReviewDeckFilterMenuItems,
@@ -694,7 +684,7 @@ export function useReviewScreenController(
       isReviewMoreActionsMenuOpen,
       isReviewQueuePanelOpen,
       onRetry: handleRetryReviewLoad,
-      onReviewFilterMenuOpenFromMoreActions: handleReviewFilterMenuOpenFromMoreActions,
+      onReviewFilterMenuOpenFromMoreActions: openReviewFilterMenu,
       onReviewMoreActionsMenuOpenChange: setIsReviewMoreActionsMenuOpen,
       onReviewQueueShortcutClick: handleReviewQueueShortcutClick,
       reviewQueueTotalCount: isInitialReviewLoad && reviewLoadingSnapshot !== null
@@ -703,7 +693,6 @@ export function useReviewScreenController(
       reviewLoadErrorMessage,
       reviewLeaderboardBadge,
       reviewProgressBadge,
-      reviewMoreActionsTriggerRef,
       reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,
     },
     paneProps: {
@@ -711,7 +700,7 @@ export function useReviewScreenController(
         && (session?.browserGuestCapabilities?.isGuest !== true || isSessionVerified)
         && !isEditorPresented && !isFeedbackDialogOpen && !isHardReminderVisible
         && !isGuestSignInPromptVisible && !isMobileAppPromotionDialogOpen
-        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isReviewTagOverflowMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
+        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
         && !isReviewQueuePanelOpen && reviewPaywall?.isPresented !== true
         && !indexedDbOpenRecoveryState.isFailed,
       activeSideCopyButtonRef,
@@ -720,7 +709,6 @@ export function useReviewScreenController(
       isAnswerVisible,
       isInitialReviewLoad,
       isSubmitting,
-      isTagOverflowMenuOpen: isReviewTagOverflowMenuOpen,
       lastSubmittedReview,
       localReadVersion,
       loadingReviewCurrentCard,
@@ -732,7 +720,6 @@ export function useReviewScreenController(
       onReview: handleReview,
       onShortcutButtonPointerEnter: handleShortcutButtonPointerEnter,
       onSwitchToAllCards: handleSwitchToAllCards,
-      onTagOverflowMenuOpenChange: setIsReviewTagOverflowMenuOpen,
       onToggleSpeech: toggleSpeech,
       reviewButtonErrorMessage,
       reviewButtonOptions,

@@ -1,0 +1,5 @@
+"kMDItemKeywords" = "flashcards,flash cards,ଫ୍ଲାସକାର୍ଡ,ଫ୍ଲାସ୍ କାର୍ଡ,ପଢ଼ା କାର୍ଡ,ଅଧ୍ୟୟନ କାର୍ଡ,ପୁନରାବୃତ୍ତି କାର୍ଡ,ମନେ ରଖିବା କାର୍ଡ";
+"MDItemKeywords" = "flashcards,flash cards,ଫ୍ଲାସକାର୍ଡ,ଫ୍ଲାସ୍ କାର୍ଡ,ପଢ଼ା କାର୍ଡ,ଅଧ୍ୟୟନ କାର୍ଡ,ପୁନରାବୃତ୍ତି କାର୍ଡ,ମନେ ରଖିବା କାର୍ଡ";
+"NSCameraUsageDescription" = "AI ଚାଟ୍ ପାଇଁ ଫଟୋ ଉଠାନ୍ତୁ। ଆପଣ ଯୋଡ଼ିଥିବା ଫଟୋ AI ଦ୍ୱାରା ପ୍ରକ୍ରିୟାକରଣ ପାଇଁ OpenAI କୁ ପଠାଯାଏ।";
+"NSMicrophoneUsageDescription" = "AI ଚାଟ୍ ପାଇଁ ଆପଣଙ୍କ କଥା ରେକର୍ଡ କରି ଲେଖାରେ ବଦଳାଇବାକୁ OpenAI କୁ ପଠାନ୍ତୁ।";
+"NSPhotoLibraryUsageDescription" = "AI ଚାଟ୍‌ରେ ଯୋଡ଼ିବାକୁ ଫଟୋ ବାଛନ୍ତୁ। ସେଗୁଡ଼ିକ AI ଦ୍ୱାରା ପ୍ରକ୍ରିୟାକରଣ ପାଇଁ OpenAI କୁ ପଠାଯାଏ।";

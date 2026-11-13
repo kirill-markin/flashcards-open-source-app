@@ -1,11 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import {
-  ankiExportMaxInlineBytes,
-  exportAnkiWorkspacePackage,
-  type AnkiWorkspacePackage,
-} from "../../workspacePackages/export/ankiPackage";
-import { createAnkiWorkspacePackageDownload } from "../../workspacePackages/export/ankiDownload";
+  createAnkiWorkspacePackageExporter,
+  type AnkiWorkspacePackageExportOptions,
+} from "../../workspacePackages/export/anki";
+import { ankiExportContentType, type AnkiWorkspacePackage } from "../../workspacePackages/export/anki/contract";
 import {
   exportWorkspacePackage,
   previewWorkspacePackageExport,
@@ -45,8 +44,7 @@ export type WorkspacePackageExportRoutesOptions = Readonly<{
   assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
   previewWorkspacePackageExportFn?: typeof previewWorkspacePackageExport;
   exportWorkspacePackageFn?: typeof exportWorkspacePackage;
-  exportAnkiWorkspacePackageFn?: typeof exportAnkiWorkspacePackage;
-  createAnkiWorkspacePackageDownloadFn?: typeof createAnkiWorkspacePackageDownload;
+  ankiExportOptions?: AnkiWorkspacePackageExportOptions;
 }>;
 
 export type WorkspacePackageExportRouteInput = Readonly<{
@@ -162,8 +160,7 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
   const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
   const previewWorkspacePackageExportFn = options.previewWorkspacePackageExportFn ?? previewWorkspacePackageExport;
   const exportWorkspacePackageFn = options.exportWorkspacePackageFn ?? exportWorkspacePackage;
-  const exportAnkiWorkspacePackageFn = options.exportAnkiWorkspacePackageFn ?? exportAnkiWorkspacePackage;
-  const createAnkiWorkspacePackageDownloadFn = options.createAnkiWorkspacePackageDownloadFn ?? createAnkiWorkspacePackageDownload;
+  const prepareAnkiWorkspacePackageDownload = createAnkiWorkspacePackageExporter(options.ankiExportOptions ?? {});
 
   app.post("/workspaces/:workspaceId/packages/export/preview", async (context) => {
     const requestId = context.get("requestId");
@@ -247,7 +244,7 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
           workspaceId,
         });
 
-        if (archive.contentType === "application/apkg") {
+        if (archive.contentType === ankiExportContentType) {
           context.header("Cache-Control", "private, no-store");
         }
         if (downloadUrl !== undefined) {
@@ -280,16 +277,7 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
   );
   addPackageDownloadRoute(
     "/workspaces/:workspaceId/packages/export/anki",
-    async (userId, workspaceId, input) => {
-      const archive = await exportAnkiWorkspacePackageFn(userId, workspaceId, input);
-      // API Gateway base64-encodes the binary body inside Lambda's buffered response.
-      if (archive.bytes.byteLength <= ankiExportMaxInlineBytes) {
-        return { archive };
-      }
-
-      const downloadUrl = await createAnkiWorkspacePackageDownloadFn(workspaceId, archive);
-      return { archive, downloadUrl };
-    },
+    prepareAnkiWorkspacePackageDownload,
   );
 
   return app;

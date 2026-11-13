@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.ai.hasActiveOwnOpenAiKey
@@ -262,6 +263,10 @@ class AiViewModel(
 
     fun applyEntryPrefill(prefill: AiEntryPrefill): Boolean {
         return chatRuntime.applyEntryPrefill(prefill = prefill)
+    }
+
+    fun handoffImportToChat(aiImport: AiImport, workspace: AiImportTarget?): Boolean {
+        return chatRuntime.handoffImportToChat(aiImport = aiImport, workspace = workspace)
     }
 
     fun handoffCardToChat(

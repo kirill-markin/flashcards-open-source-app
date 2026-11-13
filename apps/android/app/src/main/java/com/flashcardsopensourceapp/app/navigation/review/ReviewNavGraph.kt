@@ -254,6 +254,11 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         target = LibraryNavigationTarget.DECKS
                     )
                 },
+                onOpenTagManagement = {
+                    appGraph.appHandoffCoordinator.requestLibraryNavigation(
+                        target = LibraryNavigationTarget.TAGS
+                    )
+                },
                 onCreateCard = {
                     appGraph.analytics.track(
                         event = AnalyticsEvent.CardCreateStarted(

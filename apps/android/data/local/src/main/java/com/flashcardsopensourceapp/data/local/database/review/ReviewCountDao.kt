@@ -158,30 +158,6 @@ interface ReviewCountDao {
 
     @Query(
         """
-        SELECT dueAtMillis FROM cards
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
-            AND dueAtMillis >= :fromMillis
-            AND dueAtMillis < :toMillis
-            AND EXISTS (
-                SELECT 1
-                FROM card_tags
-                INNER JOIN tags ON tags.tagId = card_tags.tagId
-                WHERE card_tags.cardId = cards.cardId
-                    AND tags.workspaceId = cards.workspaceId
-                    AND tags.name IN (:tagNames)
-            )
-        """
-    )
-    fun observeReviewDueAtMillisInRangeByAnyTags(
-        workspaceId: String,
-        fromMillis: Long,
-        toMillis: Long,
-        tagNames: List<String>
-    ): Flow<List<Long>>
-
-    @Query(
-        """
         SELECT DISTINCT tags.name AS tag, cards.cardId AS cardId
         FROM cards
         INNER JOIN card_tags ON card_tags.cardId = cards.cardId

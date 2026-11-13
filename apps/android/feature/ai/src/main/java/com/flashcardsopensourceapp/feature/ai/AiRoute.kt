@@ -10,10 +10,13 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.ui.AiRouteContent
 
+data class AiPendingImport(val fileNames: List<String>, val onCancel: () -> Unit)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiRoute(
     uiState: AiUiState,
+    pendingImport: AiPendingImport?,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
     onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
@@ -48,6 +51,7 @@ fun AiRoute(
 ) {
     AiRouteContent(
         uiState = uiState,
+        pendingImport = pendingImport,
         onAcceptConsent = onAcceptConsent,
         onDraftMessageChange = onDraftMessageChange,
         onApplyComposerSuggestion = onApplyComposerSuggestion,

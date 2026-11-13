@@ -44,12 +44,13 @@ internal data class MarketingScreenshotLocaleConfig(
     val cards: List<MarketingConceptCard>
 )
 
-private fun makeEnglishUnitedStatesMarketingScreenshotLocaleConfig(
-    localePrefix: String
+private fun makeEnglishMarketingScreenshotLocaleConfig(
+    localePrefix: String,
+    appLocaleTag: String
 ): MarketingScreenshotLocaleConfig {
     return MarketingScreenshotLocaleConfig(
         localePrefix = localePrefix,
-        appLocaleTag = "en-US",
+        appLocaleTag = appLocaleTag,
         uiText = MarketingScreenshotUiText(
             emptyCardsMessage = "No cards yet. Tap the add button to create the first card.",
             cardsTabTitle = "Cards",
@@ -854,11 +855,15 @@ private val spanishUnitedStatesMarketingScreenshotLocaleConfig: MarketingScreens
 )
 
 private val marketingScreenshotLocaleConfigs: List<MarketingScreenshotLocaleConfig> = listOf(
-    makeEnglishUnitedStatesMarketingScreenshotLocaleConfig(localePrefix = "en"),
-    makeEnglishUnitedStatesMarketingScreenshotLocaleConfig(localePrefix = "en-US"),
+    makeEnglishMarketingScreenshotLocaleConfig(localePrefix = "en", appLocaleTag = "en-US"),
+    makeEnglishMarketingScreenshotLocaleConfig(localePrefix = "en-US", appLocaleTag = "en-US"),
+    makeEnglishMarketingScreenshotLocaleConfig(localePrefix = "en-AU", appLocaleTag = "en-AU"),
+    makeEnglishMarketingScreenshotLocaleConfig(localePrefix = "en-CA", appLocaleTag = "en-CA"),
+    makeEnglishMarketingScreenshotLocaleConfig(localePrefix = "en-GB", appLocaleTag = "en-GB"),
     arabicMarketingScreenshotLocaleConfig,
     chineseSimplifiedMarketingScreenshotLocaleConfig,
     frenchMarketingScreenshotLocaleConfig,
+    frenchMarketingScreenshotLocaleConfig.copy(localePrefix = "fr-CA", appLocaleTag = "fr-CA"),
     germanMarketingScreenshotLocaleConfig,
     hindiMarketingScreenshotLocaleConfig,
     japaneseMarketingScreenshotLocaleConfig,

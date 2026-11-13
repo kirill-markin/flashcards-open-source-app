@@ -27,18 +27,36 @@ final class DatabaseCore {
         try self.init(databaseURL: Self.defaultDatabaseURL())
     }
 
-    init(databaseURL: URL) throws {
+    convenience init(databaseURL: URL) throws {
+        try FileManager.default.createDirectory(
+            at: databaseURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+        try self.init(databaseURL: databaseURL, flags: SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE)
+        try self.enableForeignKeys()
+        try self.enableWriteAheadLogging()
+        try LocalDatabaseMigrator(core: self).migrate()
+        self.createdDefaultWorkspaceId = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
+    }
+
+    convenience init(existingWritableDatabaseURL: URL) throws {
+        try self.init(databaseURL: existingWritableDatabaseURL, flags: SQLITE_OPEN_READWRITE)
+        try self.enableForeignKeys()
+    }
+
+    convenience init(readOnlyDatabaseURL: URL) throws {
+        try self.init(databaseURL: readOnlyDatabaseURL, flags: SQLITE_OPEN_READONLY)
+    }
+
+    private init(databaseURL: URL, flags: Int32) throws {
         self.databaseURL = databaseURL
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
         self.createdDefaultWorkspaceId = nil
         self.isClosed = false
-        self.connection = try Self.openConnection(databaseURL: databaseURL)
+        self.connection = try Self.openConnection(databaseURL: databaseURL, flags: flags)
         sqlite3_busy_timeout(self.connection, 5_000)
-        try self.enableForeignKeys()
-        try self.enableWriteAheadLogging()
-        try LocalDatabaseMigrator(core: self).migrate()
-        self.createdDefaultWorkspaceId = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
     }
 
     deinit {
@@ -297,17 +315,9 @@ final class DatabaseCore {
         return databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
     }
 
-    private static func openConnection(databaseURL: URL) throws -> OpaquePointer {
-        let parentDirectory = databaseURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(
-            at: parentDirectory,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-
+    private static func openConnection(databaseURL: URL, flags: Int32) throws -> OpaquePointer {
         var connection: OpaquePointer?
-        let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX
-        let resultCode = sqlite3_open_v2(databaseURL.path, &connection, flags, nil)
+        let resultCode = sqlite3_open_v2(databaseURL.path, &connection, flags | SQLITE_OPEN_FULLMUTEX, nil)
 
         guard resultCode == SQLITE_OK, let connection else {
             let message = connection.map { openConnection in

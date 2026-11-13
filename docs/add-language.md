@@ -5,8 +5,8 @@ the decision and links to the guide that owns it.
 
 A new app language lands on every product surface: auth, iOS, the web app,
 Android, and the marketing website. Auth, iOS, and the web app use the same
-tags, with separate `es-ES` and `es-MX`; Android and the website use one
-generic tag per language. Repository resources, generated screenshots, editable
+tags, with separate `es-ES` and `es-MX`. Android uses generic and regional tags
+from its app locale config. Repository resources, generated screenshots, editable
 Store drafts, and the released binary are separate delivery states. The backend's
 [anonymous display-name pools](../apps/backend/src/community/anonymousDisplayNames.ts)
 stay narrower; do not widen them without an explicit scope decision.
@@ -61,7 +61,7 @@ and `INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE` in
 | 3 | Backend | composer-suggestion aliases and the deliberate English name-pool fallback | [Auth and backend dependencies](#auth-and-backend-dependencies) |
 | 4 | Demo onboarding card | the four strings in every locale of each affected client | [docs/demo-card.md](demo-card.md) |
 | 5 | iOS | bundle localization, `kMDItemKeywords`, and the Settings language row | [docs/ios-localization.md](ios-localization.md) |
-| 6 | Android | one line in `locales_config.xml`, then enable the language in Play App strings | [apps/android/docs/add-language-checklist.md](../apps/android/docs/add-language-checklist.md) |
+| 6 | Android | the app locale tag and its bundled or Play-managed translation owner | [apps/android/docs/add-language-checklist.md](../apps/android/docs/add-language-checklist.md) |
 | 7 | Store listings | supported Store locale, authored copy, localized assets, and publication from an editable version | [docs/app-store-connect-metadata.md](app-store-connect-metadata.md), [docs/subscription-store-metadata.md](subscription-store-metadata.md), [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md), [OpenAI directory metadata](openai-plugin-metadata.md) |
 | 8 | Screenshots and composites | capture per locale, then build the derived materials | [apps/ios/docs/marketing-screenshots.md](../apps/ios/docs/marketing-screenshots.md), [apps/android/docs/marketing-screenshot-runbook.md](../apps/android/docs/marketing-screenshot-runbook.md) |
 | 9 | Marketing website | the generic tag, its translated interface and marketing pages, `catalogAudienceLocales`, and the home-page composite | `flashcards-open-source-app-website`, `src/lib/localeConfig.ts` |

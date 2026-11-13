@@ -6,7 +6,7 @@ type BrowserHintCopy = Readonly<{
   error: string;
 }>;
 
-export const BROWSER_HINT_COPY: Readonly<Record<LoginPageLocale, BrowserHintCopy>> = {
+const BASE_BROWSER_HINT_COPY = {
   "en": { details: "Technical details", lastUsed: "Last used", error: "Could not update sign-in information. Allow auth site data and retry." },
   "ar": { details: "التفاصيل التقنية", lastUsed: "آخر استخدام", error: "تعذّر تحديث معلومات الدخول. اسمح ببيانات موقع المصادقة وأعد المحاولة." },
   "zh-Hans": { details: "技术详情", lastUsed: "上次使用", error: "无法更新登录信息。请允许认证网站存储数据后重试。" },
@@ -57,4 +57,21 @@ export const BROWSER_HINT_COPY: Readonly<Record<LoginPageLocale, BrowserHintCopy
   "ur": { details: "تکنیکی تفصیلات", lastUsed: "آخری استعمال", error: "سائن ان معلومات تبدیل نہیں ہو سکیں۔ تصدیقی سائٹ کے ڈیٹا کی اجازت دیں اور دوبارہ کوشش کریں۔" },
   "vi": { details: "Chi tiết kỹ thuật", lastUsed: "Dùng gần nhất", error: "Không thể đổi thông tin đăng nhập. Cho phép dữ liệu trang xác thực rồi thử lại." },
   "zu": { details: "Imininingwane yezobuchwepheshe", lastUsed: "Kusetshenziswe ekugcineni", error: "Ulwazi lokungena alukwazanga ukushintshwa. Vumela idatha yesayithi lokuqinisekisa bese uzama futhi." },
+
+  "zh-Hant": { details: "技術詳細資料", lastUsed: "上次使用", error: "無法更新登入資訊。請允許登入網站儲存資料，然後再試一次。" },
+  "ms": { details: "Butiran teknikal", lastUsed: "Terakhir digunakan", error: "Maklumat log masuk tidak dapat dikemas kini. Benarkan penyimpanan data untuk laman log masuk, kemudian cuba lagi." },
+  "or": { details: "ବୈଷୟିକ ବିବରଣୀ", lastUsed: "ଗତଥର ବ୍ୟବହୃତ", error: "ସାଇନ୍ ଇନ୍ ତଥ୍ୟ ଅପଡେଟ୍ କରିହେଲା ନାହିଁ। ସାଇନ୍ ଇନ୍ ସାଇଟ୍‌କୁ ତଥ୍ୟ ସଞ୍ଚୟ କରିବାକୁ ଅନୁମତି ଦେଇ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।" },
+} satisfies Partial<Record<LoginPageLocale, BrowserHintCopy>>;
+
+export const BROWSER_HINT_COPY: Readonly<Record<LoginPageLocale, BrowserHintCopy>> = {
+  ...BASE_BROWSER_HINT_COPY,
+  "en-AU": BASE_BROWSER_HINT_COPY.en,
+  "en-CA": BASE_BROWSER_HINT_COPY.en,
+  "en-GB": BASE_BROWSER_HINT_COPY.en,
+  "fr-CA": BASE_BROWSER_HINT_COPY.fr,
+  "pt-PT": {
+    ...BASE_BROWSER_HINT_COPY["pt-BR"],
+    lastUsed: "Última utilização",
+    error: "Não foi possível atualizar as informações de início de sessão. Permita que o site de autenticação guarde dados e tente novamente.",
+  },
 };

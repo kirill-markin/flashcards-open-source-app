@@ -67,12 +67,14 @@ jobs:
             apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
       - name: Upload lint report
-        if: always() && (steps.android-lint.outcome == 'success' || steps.android-build.outcome == 'success' || hashFiles('apps/android/app/build/reports/lint-results-debug.html') != '')
+        if: always() && (steps.android-lint.outcome == 'success' || steps.android-build.outcome == 'success' || hashFiles('apps/android/app/build/reports/lint-results-debug.html', 'apps/android/wear/build/reports/lint-results-debug.html') != '')
         uses: actions/upload-artifact@v7
         with:
           name: android-lint-report
           if-no-files-found: error
-          path: apps/android/app/build/reports/lint-results-debug.html
+          path: |
+            apps/android/app/build/reports/lint-results-debug.html
+            apps/android/wear/build/reports/lint-results-debug.html
 
       - name: Upload unit test reports
         if: always() && !inputs.lint_only && (steps.android-build.outcome == 'success' || hashFiles('apps/android/**/build/reports/tests/**', 'apps/android/**/build/test-results/**') != '')

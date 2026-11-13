@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation.library
 
 import com.flashcardsopensourceapp.app.navigation.encodeRouteText
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSource
 
 internal data object LibraryRootGraph {
     const val route: String = "library/root"
@@ -69,6 +70,26 @@ data object LibraryCatalogDeckDestination {
 
 data object LibraryImportDestination {
     const val route: String = "library/import"
+}
+
+internal data object LibraryNibomoImportDestination {
+    const val route: String = "${LibraryImportDestination.route}/nibomo"
+}
+
+internal data object LibraryBrandImportDestination {
+    private const val routePrefix: String = "${LibraryImportDestination.route}/brand"
+    const val routeArgument: String = "sourceId"
+    const val routePattern: String = "$routePrefix/{$routeArgument}"
+
+    fun createRoute(source: AiImportSource): String {
+        return "$routePrefix/${source.id}"
+    }
+}
+
+internal data object LibrarySpreadsheetImportGraph {
+    const val route: String = "${LibraryImportDestination.route}/spreadsheet"
+    const val editorRoute: String = "$route/editor"
+    const val tagsRoute: String = "$route/tags"
 }
 
 data object LibraryExportDestination {

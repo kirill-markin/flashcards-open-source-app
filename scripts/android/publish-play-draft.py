@@ -12,7 +12,8 @@ from play_release_notes import parse_notes, read_notes
 
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
-PLAY_TRACKS = frozenset({'production', 'wear:production'})
+# Both releases stay drafts for manual publication.
+PLAY_TRACK_RELEASE_STATUS = {'production': 'draft', 'wear:production': 'draft'}
 
 
 def object_value(value: Json) -> dict[str, Json]:
@@ -35,8 +36,8 @@ def main() -> None:
     code = os.environ['ANDROID_VERSION_CODE']
     name = os.environ['ANDROID_PLAY_RELEASE_NAME']
     track_name = os.environ['ANDROID_PLAY_TRACK']
-    if track_name not in PLAY_TRACKS:
-        raise ValueError(f'Unsupported ANDROID_PLAY_TRACK {track_name!r}; expected one of {sorted(PLAY_TRACKS)}')
+    if track_name not in PLAY_TRACK_RELEASE_STATUS:
+        raise ValueError(f'Unsupported ANDROID_PLAY_TRACK {track_name!r}; expected one of {sorted(PLAY_TRACK_RELEASE_STATUS)}')
     source = os.environ['ARTIFACT_SOURCE_SHA']
     if re.fullmatch(r'[a-f0-9]{40}', source) is None:
         raise ValueError('Signed artifact source must be a full Git SHA')
@@ -89,7 +90,7 @@ def main() -> None:
         record['bundleOperation'] = 'upload-original-signed-bytes'
     if str(bundle.get('versionCode')) != code or bundle.get('sha256') != expected_hash:
         raise ValueError(f'Play bundle identity differs: expected code={code} sha256={expected_hash}, received={bundle}')
-    release: dict[str, Json] = {'name': name, 'versionCodes': [code], 'status': 'draft'}
+    release: dict[str, Json] = {'name': name, 'versionCodes': [code], 'status': PLAY_TRACK_RELEASE_STATUS[track_name]}
     if notes:
         release['releaseNotes'] = notes
     track: dict[str, Json] = {'track': track_name, 'releases': [release]}
@@ -97,7 +98,7 @@ def main() -> None:
     updated = request('PUT', f'{edit_base}/tracks/{urllib.parse.quote(track_name, safe="")}', json.dumps(track).encode(), 'application/json')
     releases = updated.get('releases')
     if updated.get('track') != track_name or not isinstance(releases, list) or len(releases) != 1 or any(object_value(releases[0]).get(key) != release[key] for key in ('name', 'versionCodes', 'status')):
-        raise ValueError(f'Play draft track readback differs from the single intended release: {updated}')
+        raise ValueError(f'Play track readback differs from the single intended release: {updated}')
     if notes:
         returned_notes = parse_notes(json.dumps(object_value(releases[0]).get('releaseNotes')))
         if {str(object_value(note)['language']): object_value(note)['text'] for note in returned_notes} != {str(object_value(note)['language']): object_value(note)['text'] for note in notes}:

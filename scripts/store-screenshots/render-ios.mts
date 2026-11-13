@@ -3,14 +3,15 @@ import { resolve, join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
+import { findCaptureSet, requireCaptureSet } from "./capture-set.mts";
 import { requireResolvedSeparation, previousResults, mergeResults } from "./output.mts";
 import { createHash } from "node:crypto";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
+import { LOCALES } from "../ios/app-store-localization-inputs.mts";
 
 type Family = "iphone" | "ipad" | "iphone-duo-outer" | "iphone-duo-inner" | "macos";
 type Copy = Readonly<Record<string, ReadonlyArray<readonly [string, string]>>>;
-type Locale = { readonly name: string; readonly storeLocale: string; readonly captureTag: string };
 type Bounds = { x: number; y: number; width: number; height: number };
 type PlatformFont = { familyName: string; postScriptName: string; isCustomFont: boolean; glyphCount: number };
 type FontAudit = { tag: string; family?: Family; card: number; fonts: ReadonlyArray<PlatformFont> };
@@ -37,7 +38,6 @@ const root = resolve(repoRoot, values["output-root"] ?? "apps/ios/docs/media/app
 await requireResolvedSeparation(inputRoot, root);
 const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
 const copy: Copy = JSON.parse(await readFile(resolve(assetRoot, "../localized-copy.json"), "utf8"));
-const locales: ReadonlyArray<Locale> = JSON.parse(await readFile(join(assetRoot, "store-locales.json"), "utf8"));
 const order = [4, 1, 2, 3, 5] as const;
 const slugs = ["ai-flashcards", "start-learning", "smart-reviews", "your-progress", "your-cards"] as const;
 const rtl = new Set(["ar", "he", "fa", "ur"]);
@@ -51,25 +51,42 @@ const nativeDimensions: Readonly<Record<Family, ReadonlyArray<readonly [number, 
   macos: [[1280, 800], [1440, 900], [2560, 1600], [2880, 1800]],
 };
 if (values.family !== "all" && !Object.hasOwn(dimensions, values.family!)) throw new Error(`Unsupported iOS family: ${values.family}`);
-const selected = values.locales ? new Set(values.locales.split(",")) : null;
-const needsIpad = (values.family === "all" || values.family === "ipad") && Object.keys(copy).some(tag => (!selected || selected.has(tag)) && locales.some(locale => locale.captureTag === tag));
+const selected = values.locales === undefined ? null : new Set(values.locales.split(","));
+for (const tag of selected ?? []) {
+  if (!Object.hasOwn(copy, tag)) throw new Error(`No saved marketing copy for iOS capture tag ${tag}.`);
+}
+const candidates = Object.keys(copy).filter(tag => !selected || selected.has(tag)).flatMap(tag => {
+  const storeLocale = LOCALES.find(([, , captureTag]) => captureTag === tag)?.[1] ?? null;
+  if (!storeLocale && values.family !== "all" && values.family !== "iphone") {
+    if (selected) throw new Error(`No ${values.family} capture is configured for iPhone-only language ${tag}. Select --family iphone.`);
+    return [];
+  }
+  const families: Family[] = values.family === "all" ? storeLocale ? ["iphone", "ipad"] : ["iphone"] : [values.family as Family];
+  return [{ tag, storeLocale, families }];
+});
 async function readSourceNames(family: Family): Promise<ReadonlyArray<string>> {
   try {
-    return await readdir(join(inputRoot, family));
+    const entries = await readdir(join(inputRoot, family), { withFileTypes: true });
+    return entries.filter(entry => entry.isFile() || entry.isSymbolicLink()).map(entry => entry.name);
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      if (!selected && values.family === "all") return [];
       throw new Error(`Missing native ${family} screenshot folder: ${join(inputRoot, family)}. Capture the five real screenshots per selected locale first.`, { cause: error });
     }
     throw error;
   }
 }
-const sourceNames: Readonly<Record<Family, ReadonlyArray<string>>> = {
-  iphone: values.family === "all" || values.family === "iphone" ? await readSourceNames("iphone") : [],
-  ipad: needsIpad ? await readSourceNames("ipad") : [],
-  "iphone-duo-outer": values.family === "iphone-duo-outer" ? await readSourceNames("iphone-duo-outer") : [],
-  "iphone-duo-inner": values.family === "iphone-duo-inner" ? await readSourceNames("iphone-duo-inner") : [],
-  macos: values.family === "macos" ? await readSourceNames("macos") : [],
-};
+const sourceFamilies = new Set(candidates.flatMap(candidate => candidate.families));
+const sourceNames = new Map(await Promise.all([...sourceFamilies].map(async family => [family, await readSourceNames(family)] as const)));
+const locateSet = selected ? requireCaptureSet : findCaptureSet;
+const captureSets = candidates.flatMap(({ tag, storeLocale, families }) => {
+  const sources = families.flatMap(family => {
+    const names = locateSet(sourceNames.get(family)!, tag, order, join(inputRoot, family));
+    return names ? [{ family, names }] : [];
+  });
+  return sources.length ? [{ tag, storeLocale, sources }] : [];
+});
+if (!captureSets.length) throw new Error(`No selected iOS capture sets match ${values.family} under ${inputRoot}. Capture a complete five-shot set first.`);
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;");
 const dataUrl = (bytes: Buffer): string => `data:image/png;base64,${bytes.toString("base64")}`;
 
@@ -145,25 +162,16 @@ try {
   await cdp.send("DOM.enable");
   await cdp.send("CSS.enable");
   const fontAudit: FontAudit[] = [];
-  for (const tag of Object.keys(copy)) {
-    if (selected && !selected.has(tag)) continue;
-    const locale = locales.find(item => item.captureTag === tag);
-    if (!locale && values.family !== "all" && values.family !== "iphone") {
-      if (selected) throw new Error(`No ${values.family} capture is configured for iPhone-only language ${tag}. Select --family iphone.`);
-      continue;
-    }
+  for (const { tag, storeLocale, sources } of captureSets) {
     if (copy[tag].length !== 5 || copy[tag][0][0] !== "Nibomo App") throw new Error(`Invalid copy set: ${tag}`);
-    const families: Family[] = values.family === "all" ? locale ? ["iphone", "ipad"] : ["iphone"] : [values.family as Family];
-    for (const family of families) {
+    for (const { family, names } of sources) {
       const [width, height] = dimensions[family];
       await page.setViewportSize({ width, height });
-      const group = locale ? "ready" : "additional-languages";
+      const group = storeLocale ? "ready" : "additional-languages";
 
       const typography: Array<readonly [string, string, number, number]> = [];
       for (let card = 1; card <= 5; card++) {
-        const names = sourceNames[family].filter(name => name.startsWith(`${tag}-${order[card - 1]}_`) && name.endsWith(".png"));
-        if (names.length !== 1) throw new Error(`Expected one source matching ${family}/${tag}-${order[card - 1]}_*.png under ${inputRoot}; found ${names.length}. Capture the selected five-shot set first.`);
-        const source = `${family}/${names[0]}`;
+        const source = `${family}/${names[card - 1]}`;
         const raw = await readFile(join(inputRoot, source));
         const original = await sharp(raw).metadata();
         const sourceWidth = original.width;
@@ -249,19 +257,18 @@ try {
         if (metadata.width !== width || metadata.height !== height || metadata.hasAlpha) throw new Error(`Invalid output PNG: ${family}/${tag}/${card}`);
         await mkdir(dirname(join(staging!, path)), { recursive: true });
         await writeFile(join(staging!, path), opaque);
-        results.push({ path, family, captureTag: tag, storeLocale: locale?.storeLocale ?? null, card, inputRoot, sourceRevision,
+        results.push({ path, family, captureTag: tag, storeLocale, card, inputRoot, sourceRevision,
           heading: copy[tag][card - 1][0], caption: copy[tag][card - 1][1], source, sourceSha256: createHash("sha256").update(raw).digest("hex"), width, height,
           sha256: createHash("sha256").update(opaque).digest("hex"), audit });
       }
     }
-    console.log(`${values["check-layout"] ? "Layout checked" : "Exported"}: ${tag} (${values.family === "all" ? locale ? "iPhone + iPad" : "iPhone; no Store locale" : values.family})`);
+    console.log(`${values["check-layout"] ? "Layout checked" : "Exported"}: ${tag} (${sources.map(({ family }) => family).join(", ")})`);
   }
   if (values["check-layout"]) {
 
     console.log(JSON.stringify({ overflows }, null, 2));
     if (overflows.length) process.exitCode = 1;
   } else {
-    if (!results.length) throw new Error(`No selected iOS capture sets match ${values.family}. Check the selected locales and native screenshot folders.`);
     for (const file of results) {
       await mkdir(dirname(join(root, file.path)), { recursive: true });
       await copyFile(join(staging!, file.path), join(root, file.path));

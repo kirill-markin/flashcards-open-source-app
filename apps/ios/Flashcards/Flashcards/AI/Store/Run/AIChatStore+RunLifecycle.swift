@@ -31,11 +31,25 @@ extension AIChatStore {
         }
     }
 
+    func startAIImport(attachments: [AIChatAttachment], requestText: String) {
+        if self.chatSessionId.isEmpty && self.currentComposerDraft().isEmpty == false {
+            self.prepareExplicitRemoteSessionProvisioning(sessionId: makeAIChatSessionId())
+        }
+        self.startFreshLocalSession(
+            draft: AIChatComposerDraft(
+                inputText: requestText,
+                pendingAttachments: attachments,
+                origin: .aiImport
+            )
+        )
+        self.sendMessage()
+    }
+
     func sendMessage() {
         guard self.isChatInteractive else {
             return
         }
-        if self.isComposerBusy || self.dictationState != .idle {
+        if self.isComposerBusy || self.dictationState != .idle || self.isAIImportDraftBlocked {
             return
         }
 
@@ -78,8 +92,19 @@ extension AIChatStore {
             self.showGeneralError(error: error)
             return
         }
-        let draftText = self.inputText
-        let draftAttachments = self.pendingAttachments
+        var preparedDraft = self.currentComposerDraft()
+        let isAIImportRetry = preparedDraft.aiImportRequestId != nil
+        let initialHistoryWorkspaceId = self.historyWorkspaceId()
+        if preparedDraft.origin == .aiImport {
+            preparedDraft.aiImportRequestId = preparedDraft.aiImportRequestId ?? makeAIChatClientRequestId()
+            self.invalidateActivePassiveSnapshotRefreshTask()
+            self.persistDraftStateImmediately(
+                workspaceId: initialHistoryWorkspaceId,
+                sessionId: resolvedSessionId,
+                draft: preparedDraft
+            )
+        }
+        let draft = preparedDraft
         let outgoingText = self.trimmedInputText()
         self.transitionToPreparingSend()
         self.persistStateSynchronously(state: self.currentPersistedState())
@@ -97,8 +122,8 @@ extension AIChatStore {
                         self.transitionToIdle()
                     }
                     self.activeConversationId = nil
+                    self.activeSendTask = nil
                 }
-                self.activeSendTask = nil
             }
 
             do {
@@ -107,21 +132,55 @@ extension AIChatStore {
                 let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 let startRunContent = try await self.uploadOutgoingContent(
                     session: session,
-                    attachments: draftAttachments,
+                    attachments: draft.pendingAttachments,
                     text: outgoingText
                 )
+                if isAIImportRetry {
+                    let response = try await self.chatService.loadBootstrap(
+                        session: session,
+                        sessionId: explicitSessionId,
+                        limit: aiChatBootstrapPageLimit,
+                        resumeAttemptDiagnostics: nil
+                    )
+                    try Task.checkCancellation()
+                    try validateAIChatBootstrapSessionContract(response: response, requestedSessionId: explicitSessionId)
+                    // The transcript carries no request identity, and a replay could append after someone else's turn.
+                    if response.activeRun != nil || response.conversation.hasOlder
+                        || response.conversation.messages.contains(where: { $0.role == .user }) {
+                        self.applyComposerDraft(draft, operation: .sendFailedRestore)
+                        self.schedulePersistCurrentDraftState()
+                        self.applyBootstrap(response)
+                        self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
+                        return
+                    }
+                }
+                if draft.aiImportRequestId != nil {
+                    try Task.checkCancellation()
+                    let currentHistoryWorkspaceId = self.historyWorkspaceId()
+                    if currentHistoryWorkspaceId != initialHistoryWorkspaceId {
+                        self.persistDraftStateImmediately(
+                            workspaceId: currentHistoryWorkspaceId,
+                            sessionId: explicitSessionId,
+                            draft: draft
+                        )
+                        self.persistStateSynchronously(state: preSendSnapshot.persistedState)
+                    }
+                }
                 self.resetRunToolCallTracking()
                 self.transitionToStartingRun()
                 try await self.runtime.run(
                     session: session,
                     sessionId: explicitSessionId,
                     afterCursor: self.liveCursor,
+                    aiImportRequestId: draft.aiImportRequestId,
                     outgoingContent: startRunContent,
                     eventHandler: { [weak self] event in
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
                     }
                 )
-                aiChatRemoveAttachmentFiles(attachments: draftAttachments)
+                if draft.origin != .aiImport || self.activeConversationId == conversationId {
+                    aiChatRemoveAttachmentFiles(attachments: draft.pendingAttachments)
+                }
             } catch is CancellationError {
             } catch {
                 // A cancelled upload throws `URLError(.cancelled)`; whoever cancelled the send already owns the
@@ -134,8 +193,7 @@ extension AIChatStore {
                     didAcceptRun: self.composerPhase == .running,
                     didAppendOptimisticMessages: true,
                     preSendSnapshot: preSendSnapshot,
-                    draftText: draftText,
-                    draftAttachments: draftAttachments
+                    draft: draft
                 )
             }
         }
@@ -287,13 +345,13 @@ extension AIChatStore {
         didAcceptRun: Bool,
         didAppendOptimisticMessages: Bool,
         preSendSnapshot: AIChatPreSendSnapshot,
-        draftText: String,
-        draftAttachments: [AIChatAttachment]
+        draft: AIChatComposerDraft
     ) {
         let isAiLimitReached = didAcceptRun == false && isAiLimitReachedError(error: error)
         // Signing in is the fix only while this install has no account; a signed-in caller must not be
         // told to create one, so only the unlinked states keep the upgrade prompt.
         let shouldShowGuestQuotaUpgradePrompt = isAiLimitReached && self.usesGuestAIRestrictions
+        let didProvisionAIImportSession = draft.origin == .aiImport && self.requiresRemoteSessionProvisioning == false
         self.repairStatus = nil
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
@@ -301,24 +359,20 @@ extension AIChatStore {
 
         if didAcceptRun == false && didAppendOptimisticMessages {
             self.restorePreSendState(preSendSnapshot)
+            if didProvisionAIImportSession {
+                self.requiresRemoteSessionProvisioning = false
+            }
             self.suppressDraftRestore = false
             self.persistDraftRestoreSuppressionSynchronously(
                 workspaceId: self.historyWorkspaceId(),
                 sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
                 isSuppressed: false
             )
-            let beforeCount = self.inputText.utf16.count
-            self.recordComposerEditing(operation: .sendFailedRestore, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: draftText.utf16.count)
-            self.inputText = draftText
-            self.recordComposerEditing(operation: .sendFailedRestore, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: draftText.utf16.count)
-            self.pendingAttachments = draftAttachments
+            self.applyComposerDraft(draft, operation: .sendFailedRestore)
             self.persistDraftStateImmediately(
                 workspaceId: self.historyWorkspaceId(),
                 sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
-                draft: AIChatComposerDraft(
-                    inputText: draftText,
-                    pendingAttachments: draftAttachments
-                )
+                draft: draft
             )
             if shouldShowGuestQuotaUpgradePrompt {
                 self.appendAssistantAccountUpgradePrompt(
@@ -332,13 +386,13 @@ extension AIChatStore {
         }
 
         if didAcceptRun == false && isAIChatSessionNotCurrentError(error: error) {
-            self.switchToCurrentChatAfterSessionNotCurrent(
-                staleSessionId: self.chatSessionId,
-                draft: AIChatComposerDraft(
-                    inputText: draftText,
-                    pendingAttachments: draftAttachments
-                )
-            )
+            let staleSessionId = self.chatSessionId
+            if draft.origin == .aiImport {
+                // The server checks for the original request before refusing a stale session.
+                self.moveAIImportToFreshDraft(staleSessionId: staleSessionId, draft: draft)
+            } else {
+                self.switchToCurrentChatAfterSessionNotCurrent(staleSessionId: staleSessionId, draft: draft)
+            }
             return
         }
 
@@ -387,6 +441,19 @@ extension AIChatStore {
         }
 
         self.showGeneralError(error: error)
+    }
+
+    /// A concurrent New on another device must not move the import into an existing chat's draft.
+    private func moveAIImportToFreshDraft(staleSessionId: String, draft: AIChatComposerDraft) {
+        var freshDraft = draft
+        freshDraft.aiImportRequestId = nil
+        self.startFreshLocalDraftSession(draft: freshDraft)
+        self.persistDraftStateImmediately(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: staleSessionId,
+            draft: AIChatComposerDraft(inputText: "", pendingAttachments: [])
+        )
+        self.showAlert(.generalError(title: aiChatSessionNotCurrentNotice(), message: ""))
     }
 }
 

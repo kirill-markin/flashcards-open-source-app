@@ -1,5 +1,27 @@
 import Foundation
 
+let localCardCreateBatchLimit: Int = 5_000
+private let localCardEditBatchLimit: Int = 100
+
+struct SpreadsheetImportScope: Equatable, Sendable {
+    let workspaceId: String
+    let installationId: String
+    let linkedUserId: String?
+
+    init(workspaceId: String, cloudSettings: CloudSettings) {
+        self.workspaceId = workspaceId
+        self.installationId = cloudSettings.installationId
+        self.linkedUserId = cloudSettings.linkedUserId
+    }
+
+    static func changedError() -> LocalStoreError {
+        .validation(aiSettingsLocalized(
+            "settings.workspace.import.anki.workspaceChanged",
+            "The workspace or account changed. Go back to Library and start the import again."
+        ))
+    }
+}
+
 extension LocalDatabase {
     func saveCard(
         workspaceId: String,
@@ -63,7 +85,19 @@ extension LocalDatabase {
     }
 
     func createCards(workspaceId: String, inputs: [CardEditorInput]) throws -> [Card] {
-        try self.validateCardBatchCount(count: inputs.count)
+        try self.createCards(workspaceId: workspaceId, inputs: inputs, spreadsheetImportScope: nil)
+    }
+
+    func createSpreadsheetImportCards(scope: SpreadsheetImportScope, inputs: [CardEditorInput]) throws -> Int {
+        try self.createCards(workspaceId: scope.workspaceId, inputs: inputs, spreadsheetImportScope: scope).count
+    }
+
+    private func createCards(
+        workspaceId: String,
+        inputs: [CardEditorInput],
+        spreadsheetImportScope: SpreadsheetImportScope?
+    ) throws -> [Card] {
+        try self.validateCardBatchCount(count: inputs.count, maximumCount: localCardCreateBatchLimit)
         for input in inputs {
             try self.cardStore.validateCardInput(input: input)
         }
@@ -71,6 +105,15 @@ extension LocalDatabase {
         return try self.core.inTransaction {
             let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            if let spreadsheetImportScope {
+                let activeWorkspace = try self.workspaceSettingsStore.loadWorkspace()
+                guard spreadsheetImportScope == SpreadsheetImportScope(
+                    workspaceId: activeWorkspace.workspaceId,
+                    cloudSettings: cloudSettings
+                ) else {
+                    throw SpreadsheetImportScope.changedError()
+                }
+            }
             var createdCards: [Card] = []
             createdCards.reserveCapacity(inputs.count)
 
@@ -105,7 +148,7 @@ extension LocalDatabase {
     }
 
     func updateCards(workspaceId: String, updates: [CardUpdateInput]) throws -> [Card] {
-        try self.validateCardBatchCount(count: updates.count)
+        try self.validateCardBatchCount(count: updates.count, maximumCount: localCardEditBatchLimit)
         try self.validateUniqueCardIds(cardIds: updates.map { update in
             update.cardId
         })
@@ -137,7 +180,7 @@ extension LocalDatabase {
     }
 
     func deleteCards(workspaceId: String, cardIds: [String]) throws -> BulkDeleteCardsResult {
-        try self.validateCardBatchCount(count: cardIds.count)
+        try self.validateCardBatchCount(count: cardIds.count, maximumCount: localCardEditBatchLimit)
         try self.validateUniqueCardIds(cardIds: cardIds)
 
         return try self.core.inTransaction {
@@ -221,13 +264,13 @@ extension LocalDatabase {
         return deletedCard
     }
 
-    func validateCardBatchCount(count: Int) throws {
+    private func validateCardBatchCount(count: Int, maximumCount: Int) throws {
         if count < 1 {
             throw LocalStoreError.validation("Card batch must contain at least one item")
         }
 
-        if count > 100 {
-            throw LocalStoreError.validation("Card batch must contain at most 100 items")
+        if count > maximumCount {
+            throw LocalStoreError.validation("Card batch must contain at most \(maximumCount) items")
         }
     }
 

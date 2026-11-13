@@ -23,7 +23,7 @@ store_locales() {
 import { pathToFileURL } from "node:url";
 const { LOCALES } = await import(pathToFileURL(process.argv[2]).href);
 const requested = process.argv[3];
-if (requested === "list") console.log(LOCALES.map(([, , tag]) => tag).join("\n"));
+if (requested === "list") console.log([...new Set(LOCALES.map(([, , tag]) => tag))].join("\n"));
 else {
     const matching = LOCALES.find(([, store, tag]) => store === requested || tag === requested);
     if (!matching) throw new Error(`Unsupported Mac Store locale: ${requested}`);

@@ -21,6 +21,14 @@ sealed interface AiAlertState {
         override val showsSettingsAction: Boolean = true
     }
 
+    data class UnsentMessage(
+        override val title: String,
+        override val message: String,
+        val draftMessage: String
+    ) : AiAlertState {
+        override val showsSettingsAction: Boolean = false
+    }
+
     data class GeneralError(
         override val title: String,
         override val message: String,

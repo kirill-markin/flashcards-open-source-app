@@ -5,12 +5,13 @@ import type { PurchaseStatus } from "../resolver";
 import { resolveEntitlementLimits } from "../limits";
 import { describeStripeOffer, resolveStripeOffer, type StripeOfferDetails, type StripeOfferPrice } from "../regionalPricing/offers";
 import { stripeHostedLocale } from "./checkoutPresentation";
-import { lockStripeHumanAccountInExecutor, observeStripeAccountInExecutor,
-  stripeSubscriptionCanBill, type StripeHumanActor } from "./checkout";
+import { lockStripeHumanAccountInExecutor, observeStripeAccountInExecutor, stripeSubscriptionCanBill,
+  type StripeAccountContext, type StripeCustomerView, type StripeHumanActor } from "./checkout";
 import { StripeBillingError, type StripeEnvironment } from "./contracts";
 import { publishStripeTransitions } from "./facts";
 import { getStripeAccountTrialEligibilityInExecutor } from "./identityStore";
 import { loadStripeProvider } from "./provider";
+import { observeUnchangedStripeAccount } from "./unchangedObservation";
 
 export type StripeSubscriptionDetails = Readonly<{
   identityId: string;
@@ -59,47 +60,60 @@ export async function getStripeGuestOffer(country?: string): Promise<StripeBilli
   };
 }
 
+async function buildStripeBillingDetails(
+  account: Readonly<{ context: Pick<StripeAccountContext, "environment" | "checkoutEnabled">;
+    trialEligible: boolean | null; customers: ReadonlyArray<StripeCustomerView> }>,
+  country: string | null,
+): Promise<StripeBillingDetails> {
+  const { context, trialEligible, customers: observations } = account;
+  const hasSubscription = observations.some((customer) => customer.subscriptions.some(stripeSubscriptionCanBill));
+  const pending = observations.flatMap((customer) => customer.pending);
+  const selection = resolveStripeOffer(context.environment, country);
+  const selectedOffer = context.checkoutEnabled ? await getStripeOffer(context.environment, country) : null;
+  const pendingCheckouts: Array<StripeBillingDetails["pendingCheckouts"][number]> = [];
+  for (const attempt of pending) {
+    const price = await (await loadStripeProvider(attempt.environment)).retrieveCheckoutPrice(attempt.priceId);
+    pendingCheckouts.push({ attemptId: attempt.attemptId, identityId: attempt.identityId,
+      sessionId: attempt.sessionId, status: attempt.status === "open" ? "open" : "pending",
+      expiresAt: attempt.expiresAt.toISOString(), offer: describeStripeOffer(attempt, price) });
+  }
+  const customers = observations.map((customer): StripeSubscriptionDetails => ({
+    identityId: customer.identity.identityId, environment: customer.identity.environment,
+    managementAvailable: true,
+    subscriptions: customer.transitions.map((transition) => {
+      const subscription = customer.subscriptions.find((candidate) => candidate.id === transition.state.subscriptionId);
+      if (subscription === undefined) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", true,
+        "Stripe subscription details changed during reconciliation. Refresh the subscription.");
+      return { subscriptionId: subscription.id, status: transition.purchase.status,
+        providerStatus: transition.state.providerStatus, isTrial: transition.state.isTrial,
+        willRenew: transition.state.willRenew, until: transition.state.until.toISOString(),
+        trialEnd: subscription.trial_end === null ? null : new Date(subscription.trial_end * 1000).toISOString(),
+        cancelAt: subscription.cancel_at === null ? null : new Date(subscription.cancel_at * 1000).toISOString(),
+        invalidated: transition.purchase.invalidated_at !== null,
+        basePrice: { currency: subscription.items.data[0].price.currency,
+          unitAmount: subscription.items.data[0].price.unit_amount!, interval: "month", taxBehavior: "inclusive" } };
+    }),
+  }));
+  return {
+    premiumAiMonthlyMessages: resolveEntitlementLimits("premium", "account").aiMonthlyMessages,
+    environment: context.environment, checkoutAvailable: context.checkoutEnabled && selection.salesAvailable && !hasSubscription && pending.length === 0,
+    checkoutUnavailableReason: !context.checkoutEnabled ? "purchases_disabled"
+      : hasSubscription ? "existing_subscription" : pending.length > 0 ? "checkout_pending"
+        : selection.salesAvailable ? null : "country_unavailable",
+    basePrice: selectedOffer?.basePrice ?? null, selectedOffer, trialEligible, customers, pendingCheckouts,
+  };
+}
+
+// Session loads must not queue the account's other requests behind Stripe calls, so the locks are
+// taken only when Stripe differs from the stored rows. Nothing changed, so there is nothing to publish.
 export async function getStripeBillingDetails(actor: StripeHumanActor, country?: string): Promise<StripeBillingDetails> {
+  const unchanged = await observeUnchangedStripeAccount(actor);
+  if (unchanged !== null) return buildStripeBillingDetails(unchanged, country ?? null);
   const observed = await unsafeTransaction(async (executor) => {
     const context = await lockStripeHumanAccountInExecutor(executor, actor);
     const observations = await observeStripeAccountInExecutor(executor, context);
-    const hasSubscription = observations.some((customer) => customer.subscriptions.some(stripeSubscriptionCanBill));
-    const pending = observations.flatMap((customer) => customer.pending);
     const trialEligible = await getStripeAccountTrialEligibilityInExecutor(executor, actor.userId, context.environment);
-    const selection = resolveStripeOffer(context.environment, country ?? null);
-    const selectedOffer = context.checkoutEnabled ? await getStripeOffer(context.environment, country ?? null) : null;
-    const pendingCheckouts: Array<StripeBillingDetails["pendingCheckouts"][number]> = [];
-    for (const attempt of pending) {
-      const price = await (await loadStripeProvider(attempt.environment)).retrieveCheckoutPrice(attempt.priceId);
-      pendingCheckouts.push({ attemptId: attempt.attemptId, identityId: attempt.identityId,
-        sessionId: attempt.sessionId, status: attempt.status === "open" ? "open" : "pending",
-        expiresAt: attempt.expiresAt.toISOString(), offer: describeStripeOffer(attempt, price) });
-    }
-    const customers = observations.map((customer): StripeSubscriptionDetails => ({
-      identityId: customer.identity.identityId, environment: customer.identity.environment,
-      managementAvailable: true,
-      subscriptions: customer.transitions.map((transition) => {
-        const subscription = customer.subscriptions.find((candidate) => candidate.id === transition.state.subscriptionId);
-        if (subscription === undefined) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", true,
-          "Stripe subscription details changed during reconciliation. Refresh the subscription.");
-        return { subscriptionId: subscription.id, status: transition.purchase.status,
-          providerStatus: transition.state.providerStatus, isTrial: transition.state.isTrial,
-          willRenew: transition.state.willRenew, until: transition.state.until.toISOString(),
-          trialEnd: subscription.trial_end === null ? null : new Date(subscription.trial_end * 1000).toISOString(),
-          cancelAt: subscription.cancel_at === null ? null : new Date(subscription.cancel_at * 1000).toISOString(),
-          invalidated: transition.purchase.invalidated_at !== null,
-          basePrice: { currency: subscription.items.data[0].price.currency,
-            unitAmount: subscription.items.data[0].price.unit_amount!, interval: "month", taxBehavior: "inclusive" } };
-      }),
-    }));
-    const result: StripeBillingDetails = {
-      premiumAiMonthlyMessages: resolveEntitlementLimits("premium", "account").aiMonthlyMessages,
-      environment: context.environment, checkoutAvailable: context.checkoutEnabled && selection.salesAvailable && !hasSubscription && pending.length === 0,
-      checkoutUnavailableReason: !context.checkoutEnabled ? "purchases_disabled"
-        : hasSubscription ? "existing_subscription" : pending.length > 0 ? "checkout_pending"
-          : selection.salesAvailable ? null : "country_unavailable",
-      basePrice: selectedOffer?.basePrice ?? null, selectedOffer, trialEligible, customers, pendingCheckouts,
-    };
+    const result = await buildStripeBillingDetails({ context, trialEligible, customers: observations }, country ?? null);
     return { result, transitions: observations.flatMap((customer) => customer.transitions) };
   });
   await publishStripeTransitions(observed.transitions);

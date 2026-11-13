@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.conversation
 
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -30,8 +33,15 @@ internal enum class AiConversationBootstrapState {
 
 internal data class AiAccessContextRuntimeKey(
     val workspaceId: String?,
-    val cloudState: CloudAccountState
-)
+    val cloudState: CloudAccountState,
+    val linkedUserId: String?
+) {
+    fun matchesCurrentAccess(current: AiAccessContextRuntimeKey): Boolean {
+        return this == current ||
+            (workspaceId != null && cloudState == CloudAccountState.GUEST && linkedUserId == null &&
+                this == current.copy(linkedUserId = null))
+    }
+}
 
 internal data class AiAccessContext(
     val workspaceId: String?,
@@ -43,7 +53,8 @@ internal data class AiAccessContext(
 internal fun AiAccessContext.runtimeKey(): AiAccessContextRuntimeKey {
     return AiAccessContextRuntimeKey(
         workspaceId = workspaceId,
-        cloudState = cloudState
+        cloudState = cloudState,
+        linkedUserId = linkedUserId
     )
 }
 
@@ -72,6 +83,7 @@ internal fun shouldPrepareGuestAccess(
 
 internal data class AiDraftState(
     val workspaceId: String?,
+    val loadedAccessKey: AiAccessContextRuntimeKey?,
     val persistedState: AiChatPersistedState,
     val conversationScopeId: String?,
     val hasOlder: Boolean,
@@ -81,6 +93,7 @@ internal data class AiDraftState(
     val isLiveAttached: Boolean,
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
+    val importRequest: AiChatImportRequest?,
     /** A picked attachment is being copied into the app cache or waits for the draft; the send waits for it. */
     val isImportingAttachment: Boolean,
     val focusComposerRequestVersion: Long,
@@ -89,6 +102,7 @@ internal data class AiDraftState(
     val dictationState: AiChatDictationState,
     val conversationBootstrapState: AiConversationBootstrapState,
     val conversationBootstrapErrorPresentation: AiBootstrapErrorPresentation,
+    val guestAccessPreparationError: AiBootstrapErrorPresentation?,
     val repairStatus: AiChatRepairAttemptStatus?,
     val activeAlert: AiAlertState?,
     val errorMessage: String
@@ -158,6 +172,7 @@ internal fun canPrepareAiDraftInComposerPhase(composerPhase: AiComposerPhase): B
 internal fun makeDefaultAiDraftState(): AiDraftState {
     return AiDraftState(
         workspaceId = null,
+        loadedAccessKey = null,
         persistedState = makeDefaultAiChatPersistedState(),
         conversationScopeId = null,
         hasOlder = false,
@@ -167,6 +182,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
+        importRequest = null,
         isImportingAttachment = false,
         focusComposerRequestVersion = 0L,
         serverComposerSuggestions = emptyList(),
@@ -174,6 +190,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.LOADING,
         conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
+        guestAccessPreparationError = null,
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""
@@ -190,6 +207,7 @@ internal fun makeAiDraftState(
     )
     return AiDraftState(
         workspaceId = workspaceId,
+        loadedAccessKey = null,
         persistedState = normalizedPersistedState,
         conversationScopeId = null,
         hasOlder = false,
@@ -199,6 +217,7 @@ internal fun makeAiDraftState(
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
+        importRequest = null,
         isImportingAttachment = false,
         focusComposerRequestVersion = 0L,
         serverComposerSuggestions = normalizedPersistedState.composerSuggestions,
@@ -206,6 +225,7 @@ internal fun makeAiDraftState(
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,
         conversationBootstrapErrorPresentation = emptyAiBootstrapErrorPresentation(),
+        guestAccessPreparationError = null,
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""
@@ -240,4 +260,13 @@ internal fun normalizeAiChatPersistedStateForWorkspace(
 
 internal fun makeAiChatSessionId(): String {
     return UUID.randomUUID().toString().lowercase()
+}
+
+internal fun AiChatDraftState.forSession(workspaceId: String?, sessionId: String?): AiChatDraftState {
+    val request = importRequest ?: return this
+    return if (request.target.workspaceId == workspaceId && request.sessionId == sessionId) {
+        this
+    } else {
+        makeDefaultAiChatDraftState()
+    }
 }

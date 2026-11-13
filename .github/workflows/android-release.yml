@@ -68,12 +68,13 @@ jobs:
 
           base_epoch_seconds=1767225600
           current_epoch_seconds="$(date -u +%s)"
-          version_code=$(( current_epoch_seconds - base_epoch_seconds ))
+          # Even phone and odd Wear OS codes keep the form factors disjoint, and doubling
+          # keeps every code above the earlier phone codes, which were plain seconds.
+          version_code=$(( (current_epoch_seconds - base_epoch_seconds) * 2 ))
           version_name="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/p' apps/android/app/build.gradle.kts | head -n 1)"
           target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
           release_id="vc${version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
           play_release_name="main-draft-${release_id}"
-          # Phone codes are seconds, so the next code is unique to this release.
           wear_version_code=$(( version_code + 1 ))
           wear_play_release_name="main-draft-vc${wear_version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
 
@@ -712,7 +713,7 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
 
   publish_wear_android:
-    name: Upload Wear OS bundle to Google Play wear production draft release
+    name: Upload Wear OS bundle to Google Play Wear OS production draft release
     # After the phone publisher, so the two Play edits never overlap.
     needs:
       - preflight
@@ -756,7 +757,7 @@ jobs:
           service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
-      - name: Upload Wear OS bundle to Google Play wear production track as draft release
+      - name: Upload Wear OS bundle to Google Play Wear OS production track as draft release
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           AAB_PATH: ${{ runner.temp }}/android-wear-release-bundle/wear-release.aab
@@ -786,7 +787,7 @@ jobs:
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- Upload state: \`draft\`"
-            echo "- Next step: publish manually in Play Console together with the phone draft of this release."
+            echo "- Next step: publish it in Play Console together with the phone draft of this run."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
@@ -820,6 +821,6 @@ jobs:
             echo "- Wear OS Play release name: \`${{ needs.preflight.outputs.android_wear_play_release_name || 'n/a' }}\`"
             echo "- Wear OS Play draft upload result: \`${{ needs.publish_wear_android.result }}\`"
             echo "- Device Run named results and private evidence references: \`android-device-run-submissions\`"
-            echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
+            echo "- Play publish mode: \`CI uploads phone and Wear OS production-track drafts; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"

@@ -103,6 +103,7 @@ describe("ReviewScreen loading controls", () => {
         resolvedReviewFilter: state.appData.selectedReviewFilter,
         cards: [snapshotCard],
         nextCursor: null,
+        nextDueAtMillis: null,
         reviewCounts: {
           dueCount: 1,
           totalCount: 1,
@@ -189,6 +190,7 @@ describe("ReviewScreen loading controls", () => {
         resolvedReviewFilter: state.appData.selectedReviewFilter,
         cards: [snapshotCard],
         nextCursor: null,
+        nextDueAtMillis: null,
         reviewCounts: {
           dueCount: 1,
           totalCount: 1,

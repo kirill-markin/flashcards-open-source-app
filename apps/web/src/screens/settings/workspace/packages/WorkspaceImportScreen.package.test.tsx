@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../../api";
 import type { AppDataContextValue } from "../../../../appData";
@@ -17,7 +18,12 @@ import type {
   WorkspacePackageImportPreviewResponse,
   WorkspaceResetProgressPreview,
 } from "../../../../types";
+import { LibraryImportScreen } from "../../../library/LibraryImportScreen";
+import { aiImportSources } from "./aiImportSources";
+import { WorkspaceAiImport } from "./WorkspaceAiImport";
 import { WorkspaceImportScreen } from "./WorkspaceImportScreen";
+import { WorkspacePackageImportProvider } from "./WorkspacePackageImportContext";
+import { WorkspaceTextImportScreen } from "./WorkspaceTextImportScreen";
 
 const workspaceReplicaId = "ed46c6cc-17c9-5b1c-a82a-169543e8a453";
 
@@ -70,7 +76,7 @@ type Mutable<Type> = {
 type WorkspaceImportScreenHarness = Readonly<{
   getAppData: () => Mutable<AppDataContextValue>;
   getContainer: () => HTMLDivElement;
-  renderScreen: () => Promise<void>;
+  renderScreen: (screen: ReactElement) => Promise<void>;
 }>;
 
 function throwNotUsed(functionName: string): never {
@@ -277,7 +283,7 @@ function setupWorkspaceImportScreen(): WorkspaceImportScreenHarness {
     return container;
   }
 
-  async function renderScreen(): Promise<void> {
+  async function renderScreen(screen: ReactElement): Promise<void> {
     const currentRoot = root;
     if (currentRoot === null) {
       throw new Error("Workspace import test root is not ready");
@@ -287,7 +293,9 @@ function setupWorkspaceImportScreen(): WorkspaceImportScreenHarness {
       currentRoot.render(
         <I18nProvider>
           <AppErrorDialogProvider>
-            <WorkspaceImportScreen />
+            <WorkspacePackageImportProvider>
+              <MemoryRouter>{screen}</MemoryRouter>
+            </WorkspacePackageImportProvider>
           </AppErrorDialogProvider>
         </I18nProvider>,
       );
@@ -434,15 +442,53 @@ function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
 }
 
 describe("WorkspaceImportScreen package import", () => {
-  it("presents pasted text as the primary import path and identifies ZIP as a Nibomo package", async () => {
-    await renderScreen();
+  it("links to each dedicated form in brand, then Nibomo and spreadsheet order", async () => {
+    await renderScreen(<LibraryImportScreen />);
 
-    expect(requireElement("[data-testid='workspace-text-import-editor']", HTMLElement).textContent).toContain(
-      "Paste text",
-    );
-    expect(requireElement("[data-testid='workspace-package-import-card']", HTMLElement).textContent).toContain(
-      "Nibomo package",
-    );
+    const rows = Array.from(getContainer().querySelectorAll(
+      "[data-testid='library-import-apps'] a[data-testid], [data-testid='library-import-formats'] a[data-testid]",
+    ), (row) => row.getAttribute("href"));
+    expect(rows).toEqual([
+      ...["quizlet", "anki", "noji", "knowt", "remnote", "brainscape", "studysmarter", "cram", "mochi", "supermemo", "ankiapp", "gizmo", "other"]
+        .map((sourceId) => `/w/workspace-1/library/import/${sourceId}`),
+      "/w/workspace-1/library/import/nibomo",
+      "/w/workspace-1/library/import/spreadsheet",
+    ]);
+    expect(getContainer().querySelector("[data-testid='workspace-text-import-editor']")).toBeNull();
+    expect(getContainer().querySelector("[data-testid='workspace-package-import-card']")).toBeNull();
+    expect(getContainer().querySelector("[data-testid='workspace-ai-import-card']")).toBeNull();
+    const algoAppRow = requireElement("[data-testid='library-import-ankiapp']", HTMLAnchorElement);
+    expect(algoAppRow.textContent).toContain("AlgoApp (formerly AnkiApp)");
+    expect(algoAppRow.textContent).toContain(".zip, .xml");
+  });
+
+  it.each([
+    ...aiImportSources.filter((source) => source.id === "anki" || source.id === "quizlet").map((source) => ({
+      form: () => <WorkspaceAiImport source={source} />,
+      container: "workspace-ai-import-card",
+      control: source.inputKind === "text" ? "workspace-ai-import-text-input" : "workspace-ai-import-select",
+    })),
+    {
+      form: WorkspaceTextImportScreen,
+      container: "workspace-text-import-editor",
+      control: "workspace-text-import-input",
+    },
+  ])("shows session restoration while $control is disabled", async ({ form: Form, container, control }) => {
+    const appData = getAppData();
+    appData.isSessionVerified = false;
+    appData.sessionVerificationState = "unverified";
+    await renderScreen(<Form />);
+
+    const form = requireElement(`[data-testid='${container}']`, HTMLElement);
+    expect(form.querySelector("[role='status']")).not.toBeNull();
+    expect(form.querySelector(`[data-testid='${control}']`)?.hasAttribute("disabled")).toBe(true);
+
+    appData.isSessionVerified = true;
+    appData.sessionVerificationState = "verified";
+    await renderScreen(<Form />);
+
+    expect(form.querySelector("[role='status']")).toBeNull();
+    expect(form.querySelector(`[data-testid='${control}']`)?.hasAttribute("disabled")).toBe(false);
   });
 
   it("imports edited pasted cards through package preview and confirm", async () => {
@@ -461,7 +507,7 @@ describe("WorkspaceImportScreen package import", () => {
       },
     });
 
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     await setTextAreaValue(
       requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
       "Canada\tOttawa\nUnited States\tWashington D.C.",
@@ -506,7 +552,7 @@ describe("WorkspaceImportScreen package import", () => {
       .mockResolvedValueOnce(undefined);
     getAppData().refreshLocalData = refreshLocalDataMock;
 
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     const input = requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement);
     const confirmButton = requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement);
     await setTextAreaValue(input, "Canada\tOttawa\nFrance\tParis");
@@ -527,7 +573,7 @@ describe("WorkspaceImportScreen package import", () => {
   });
 
   it("blocks pasted text import until every preview card has a front and back", async () => {
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     await setTextAreaValue(
       requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
       "Complete\tAnswer\nMissing answer",
@@ -540,7 +586,7 @@ describe("WorkspaceImportScreen package import", () => {
   });
 
   it("deletes every invalid pasted card in one action", async () => {
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     await setTextAreaValue(
       requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
       "Complete\tAnswer\nMissing answer\n\tMissing front",
@@ -576,7 +622,7 @@ describe("WorkspaceImportScreen package import", () => {
       },
     });
 
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     await waitForCondition("Tag suggestions were not loaded", () => loadWorkspaceTagsSummaryMock.mock.calls.length === 1);
     await setTextAreaValue(
       requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
@@ -610,7 +656,7 @@ describe("WorkspaceImportScreen package import", () => {
   });
 
   it("offers existing workspace tags in the pasted-card tag picker", async () => {
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     await waitForCondition("Tag suggestions were not loaded", () => loadWorkspaceTagsSummaryMock.mock.calls.length === 1);
     await clickElement(requireElement(
       "[data-testid='workspace-text-import-tags-trigger']",
@@ -633,7 +679,7 @@ describe("WorkspaceImportScreen package import", () => {
       responseBodyKind: "empty",
     }));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceTextImportScreen />);
     const editor = requireElement("[data-testid='workspace-text-import-editor']", HTMLElement);
     await setTextAreaValue(
       requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement),
@@ -650,27 +696,53 @@ describe("WorkspaceImportScreen package import", () => {
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 
-  it("initializes the editable import tag option from preview defaults", async () => {
-    const file = createZipFile("flashcards.zip");
+  it("keeps a tagging choice made before selecting a ZIP and applies preview defaults on replacement", async () => {
+    await renderScreen(<WorkspaceImportScreen />);
 
-    await renderScreen();
-    await choosePackageFile(file);
+    const advanced = requireElement("[data-testid='workspace-package-import-advanced']", HTMLElement);
+    expect(advanced.closest("details")?.open).toBe(false);
+    const checkbox = requireElement("[data-testid='workspace-package-import-tag-checkbox']", HTMLInputElement);
+    expect(checkbox.checked).toBe(true);
+
+    await clickElement(advanced);
+    await clickElement(checkbox);
+    await choosePackageFile(createZipFile("flashcards.zip"));
+    await waitForPreview();
+    expect(checkbox.checked).toBe(false);
+
+    await clickElement(advanced);
+    const replacement = createZipFile("replacement.zip");
+    const preview = createPreviewResponse();
+    previewWorkspacePackageImportMock.mockResolvedValueOnce({
+      ...preview,
+      defaultOptions: { ...preview.defaultOptions, suggestedImportTag: "import:replacement", removedTags: [] },
+    });
+    await choosePackageFile(replacement);
     await waitForPreview();
 
-    const checkbox = requireElement("[data-testid='workspace-package-import-tag-checkbox']", HTMLInputElement);
-    const importTagInput = requireElement("[data-testid='workspace-package-import-tag-input']", HTMLInputElement);
-
+    expect(advanced.closest("details")?.open).toBe(false);
     expect(checkbox.checked).toBe(true);
-    expect(importTagInput.value).toBe("import:2026-07-01");
+    expect(requireElement("[data-testid='workspace-package-import-tag-input']", HTMLInputElement).value).toBe("import:replacement");
+    expect(requireElement(
+      "[data-testid='workspace-package-remove-tag-checkbox'][data-tag='temporary']",
+      HTMLInputElement,
+    ).checked).toBe(false);
   });
 
-  it("previews a chosen ZIP and displays package counts and details", async () => {
+  it("previews a dropped ZIP and displays its filename, package counts and details", async () => {
     const file = createZipFile("flashcards.zip");
 
-    await renderScreen();
-    await choosePackageFile(file);
+    await renderScreen(<WorkspaceImportScreen />);
+    const picker = requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement);
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", { value: { files: [file] } });
+    await act(async () => {
+      picker.dispatchEvent(drop);
+    });
     await waitForPreview();
 
+    expect(drop.defaultPrevented).toBe(true);
+    expect(requireElement("[data-testid='workspace-package-import-file-name']", HTMLParagraphElement).textContent).toBe(file.name);
     expect(previewWorkspacePackageImportMock).toHaveBeenCalledWith("workspace-1", file);
     expect(requireElement("[data-testid='workspace-package-import-preview-source']", HTMLElement).textContent).toBe("ZIP package");
     expect(requireElement("[data-testid='workspace-package-import-preview-card-count']", HTMLElement).textContent).toBe("3");
@@ -690,7 +762,7 @@ describe("WorkspaceImportScreen package import", () => {
       sourceUrl: "javascript:alert(1)",
     }));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
 
@@ -708,7 +780,7 @@ describe("WorkspaceImportScreen package import", () => {
       createdAt: "not-a-date",
     }));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
 
@@ -719,7 +791,7 @@ describe("WorkspaceImportScreen package import", () => {
   it("uses the current tag removal checkbox state when confirming import", async () => {
     const file = createZipFile("flashcards.zip");
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
 
@@ -739,7 +811,7 @@ describe("WorkspaceImportScreen package import", () => {
   it("sends the edited import tag when confirming import", async () => {
     const file = createZipFile("flashcards.zip");
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
     await setTextInputValue(
@@ -755,7 +827,7 @@ describe("WorkspaceImportScreen package import", () => {
   it("blocks confirm when enabled import tagging has a blank tag", async () => {
     const file = createZipFile("flashcards.zip");
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
     await setTextInputValue(
@@ -768,33 +840,87 @@ describe("WorkspaceImportScreen package import", () => {
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 
-  it("resets the preview when the active workspace changes before confirm", async () => {
+  it("keeps ZIP confirmation and sync retry scoped when switching workspaces", async () => {
     const file = createZipFile("flashcards.zip");
+    let resolveConfirm: ((result: WorkspacePackageImportConfirmResponse) => void) | null = null;
+    const pendingConfirm = new Promise<WorkspacePackageImportConfirmResponse>((resolve) => {
+      resolveConfirm = resolve;
+    });
+    confirmWorkspacePackageImportMock.mockReturnValueOnce(pendingConfirm);
+    const refreshLocalDataMock = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("Previous workspace refresh failed"));
+    getAppData().refreshLocalData = refreshLocalDataMock;
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
+    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
+    await waitForConfirm();
 
-    getAppData().activeWorkspace = {
+    const appData = getAppData();
+    const firstWorkspace = appData.activeWorkspace;
+    const secondWorkspace = {
       workspaceId: "workspace-2",
       name: "Secondary",
       createdAt: "2026-03-11T00:00:00.000Z",
       isSelected: true,
     };
-    await renderScreen();
-    await waitForCondition("Package preview was not reset after workspace change", () => (
-      getContainer().querySelector("[data-testid='workspace-package-import-preview']") === null
-    ));
-
+    appData.activeWorkspace = secondWorkspace;
+    await renderScreen(<WorkspaceImportScreen />);
+    expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();
     expect(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
-    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+    expect(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement).disabled).toBe(false);
+
+    appData.activeWorkspace = firstWorkspace;
+    await renderScreen(<WorkspaceImportScreen />);
+    expect(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement).disabled).toBe(true);
+    const confirmButton = requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement);
+    expect(confirmButton.disabled).toBe(true);
+    expect(confirmButton.getAttribute("aria-busy")).toBe("true");
+
+    appData.activeWorkspace = secondWorkspace;
+    appData.refreshLocalData = vi.fn(async () => undefined);
+    await renderScreen(<WorkspaceImportScreen />);
+
+    const completeConfirm = resolveConfirm;
+    if (completeConfirm === null) {
+      throw new Error("Package confirmation resolve function is unavailable");
+    }
+    await act(async () => completeConfirm(createConfirmResponse()));
+
+    expect(refreshLocalDataMock).toHaveBeenCalledTimes(2);
+    expect(appData.refreshLocalData).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-testid='app-error-dialog']")).toBeNull();
+    expect(getContainer().querySelector("[data-testid='workspace-import-error']")).toBeNull();
+    expect(getContainer().querySelector("[data-testid='workspace-import-success']")).toBeNull();
+    expect(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement).disabled).toBe(false);
+
+    const newFile = createZipFile("workspace-2.zip");
+    await choosePackageFile(newFile);
+    await waitForPreview();
+    expect(previewWorkspacePackageImportMock).toHaveBeenLastCalledWith("workspace-2", newFile);
+    expect(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement).disabled).toBe(false);
+
+    appData.activeWorkspace = firstWorkspace;
+    const retryRefresh = vi.fn(async () => undefined);
+    appData.refreshLocalData = retryRefresh;
+    await renderScreen(<WorkspaceImportScreen />);
+    expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement)).not.toBeNull();
+    const retryButton = requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement);
+    expect(retryButton.disabled).toBe(false);
+    await clickElement(retryButton);
+
+    expect(retryRefresh).toHaveBeenCalledTimes(1);
+    expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
+    expect(requireElement("[data-testid='workspace-import-success']", HTMLParagraphElement)).not.toBeNull();
   });
 
   it("resets the preview when the installation id changes before confirm", async () => {
     const file = createZipFile("flashcards.zip");
     const appData = getAppData();
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
 
@@ -806,7 +932,7 @@ describe("WorkspaceImportScreen package import", () => {
       ...appData.cloudSettings,
       installationId: "00000000-0000-4000-8000-000000000002",
     };
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await waitForCondition("Package preview was not reset after installation change", () => (
       getContainer().querySelector("[data-testid='workspace-package-import-preview']") === null
     ));
@@ -815,7 +941,7 @@ describe("WorkspaceImportScreen package import", () => {
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 
-  it("does not start package preview when installation id is missing", async () => {
+  it("explains unavailable ZIP and spreadsheet forms when there is no linked installation", async () => {
     const appData = getAppData();
 
     if (appData.cloudSettings === null) {
@@ -827,7 +953,7 @@ describe("WorkspaceImportScreen package import", () => {
       installationId: "",
     };
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await clickElement(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement));
 
     expect(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement).disabled).toBe(true);
@@ -835,6 +961,27 @@ describe("WorkspaceImportScreen package import", () => {
     expect(requireElement("[data-testid='workspace-package-import-unavailable']", HTMLParagraphElement).textContent).toContain("Workspace is unavailable");
     expect(previewWorkspacePackageImportMock).not.toHaveBeenCalled();
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+
+    if (appData.session === null) {
+      throw new Error("Session fixture is not ready");
+    }
+    appData.session = {
+      ...appData.session,
+      authTransport: "guest",
+      browserGuestCapabilities: {
+        isGuest: true, platformFundedAi: false, ownKeyAi: true, requiresAccountLinking: true,
+      },
+    };
+    appData.cloudSettings = {
+      ...appData.cloudSettings,
+      cloudState: "guest",
+      linkedEmail: null,
+    };
+    await renderScreen(<WorkspaceTextImportScreen />);
+    expect(requireElement("[data-testid='workspace-text-import-input']", HTMLTextAreaElement).disabled).toBe(true);
+    expect(requireElement("[data-testid='workspace-text-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
+    expect(requireElement("[data-testid='workspace-text-import-editor'] [role='status']", HTMLParagraphElement).textContent)
+      .toContain("Workspace is unavailable");
   });
 
   it("registers and submits the derived replica, refreshes imported data, and shows tagged success", async () => {
@@ -858,7 +1005,7 @@ describe("WorkspaceImportScreen package import", () => {
       return createConfirmResponse();
     });
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
     await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
@@ -893,16 +1040,32 @@ describe("WorkspaceImportScreen package import", () => {
     expect(requireElement("[data-testid='workspace-import-success']", HTMLParagraphElement).textContent).toContain("Imported 2 cards with tag import:2026-07-01.");
   });
 
-  it("surfaces refresh failures after confirm without showing success", async () => {
+  it("refreshes the destination after Back and keeps the failed sync available for retry", async () => {
     const file = createZipFile("flashcards.zip");
+    const pendingConfirm = Promise.withResolvers<WorkspacePackageImportConfirmResponse>();
+    confirmWorkspacePackageImportMock.mockReturnValueOnce(pendingConfirm.promise);
     getAppData().refreshLocalData = vi.fn()
       .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("Refresh failed"));
+      .mockRejectedValueOnce(new Error("Refresh failed"))
+      .mockResolvedValueOnce(undefined);
 
-    await renderScreen();
+    await renderScreen(
+      <Routes>
+        <Route path="/" element={<Navigate replace to="/w/workspace-1/library/import/nibomo" />} />
+        <Route path="/w/:workspaceId/library/import" element={<LibraryImportScreen />} />
+        <Route path="/w/:workspaceId/library/import/nibomo" element={<WorkspaceImportScreen />} />
+      </Routes>,
+    );
     await choosePackageFile(file);
     await waitForPreview();
     await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
+    await waitForConfirm();
+    await clickElement(requireElement("[data-testid='workspace-import-back']", HTMLAnchorElement));
+    expect(getContainer().querySelector("[data-testid='workspace-package-import-card']")).toBeNull();
+    await act(async () => pendingConfirm.resolve(createConfirmResponse()));
+    expect(getAppData().refreshLocalData).toHaveBeenCalledTimes(2);
+
+    await clickElement(requireElement("[data-testid='library-import-nibomo']", HTMLAnchorElement));
     await waitForCondition("Package refresh error was not shown", () => (
       getContainer().querySelector("[data-testid='workspace-import-error']") !== null
     ));
@@ -913,17 +1076,19 @@ describe("WorkspaceImportScreen package import", () => {
     expect(getContainer().querySelector("[data-testid='workspace-import-success']")).toBeNull();
     expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();
 
-    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
-
-    expect(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
+    const retryButton = requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement);
+    expect(retryButton.disabled).toBe(false);
+    await clickElement(retryButton);
+    expect(getAppData().refreshLocalData).toHaveBeenCalledTimes(3);
     expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
+    expect(requireElement("[data-testid='workspace-import-success']", HTMLParagraphElement)).not.toBeNull();
   });
 
   it("surfaces preview errors through the existing error UI", async () => {
     const file = createZipFile("flashcards.zip");
     previewWorkspacePackageImportMock.mockRejectedValueOnce(new Error("Preview failed"));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForCondition("Package preview error was not shown", () => (
       getContainer().querySelector("[data-testid='workspace-import-error']") !== null
@@ -931,6 +1096,13 @@ describe("WorkspaceImportScreen package import", () => {
 
     expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain("A technical error occurred.");
     expect(document.body.querySelector("[data-testid='app-error-dialog']")).not.toBeNull();
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+
+    const retryButton = requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement);
+    expect(retryButton.disabled).toBe(false);
+    await clickElement(retryButton);
+    await waitForPreview();
+    expect(previewWorkspacePackageImportMock).toHaveBeenCalledTimes(2);
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 
@@ -946,7 +1118,7 @@ describe("WorkspaceImportScreen package import", () => {
       responseBodyKind: "json",
     }));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForCondition("Invalid package guidance was not shown", () => (
       getContainer().querySelector("[data-testid='workspace-import-error']") !== null
@@ -972,7 +1144,7 @@ describe("WorkspaceImportScreen package import", () => {
       responseBodyKind: "empty",
     }));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForCondition("Package-too-large guidance was not shown", () => (
       getContainer().querySelector("[data-testid='workspace-import-error']") !== null
@@ -998,7 +1170,7 @@ describe("WorkspaceImportScreen package import", () => {
       responseBodyKind: "json",
     }));
 
-    await renderScreen();
+    await renderScreen(<WorkspaceImportScreen />);
     await choosePackageFile(file);
     await waitForPreview();
     await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));

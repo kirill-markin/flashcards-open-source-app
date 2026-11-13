@@ -147,13 +147,35 @@ struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
     let transcript: String
 }
 
+/// Raw values are persisted with the composer draft.
+enum AIChatComposerDraftOrigin: String, Codable, Hashable, Sendable {
+    case aiImport = "ankiImport"
+}
+
 struct AIChatComposerDraft: Codable, Hashable, Sendable {
-    let inputText: String
-    let pendingAttachments: [AIChatAttachment]
+    var inputText: String
+    var pendingAttachments: [AIChatAttachment]
+    var origin: AIChatComposerDraftOrigin?
+    var aiImportRequestId: String?
+
+    /// Persisted keys; drafts written by released builds must keep decoding.
+    private enum CodingKeys: String, CodingKey {
+        case inputText
+        case pendingAttachments
+        case origin
+        case aiImportRequestId = "ankiImportRequestId"
+    }
 
     var isEmpty: Bool {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && self.pendingAttachments.isEmpty
+    }
+
+    mutating func clearOriginIfEmpty() {
+        if self.isEmpty {
+            self.origin = nil
+            self.aiImportRequestId = nil
+        }
     }
 }
 
@@ -208,8 +230,7 @@ struct AIChatConversationState {
 }
 
 struct AIChatComposerState {
-    var inputText: String
-    var pendingAttachments: [AIChatAttachment]
+    var draft: AIChatComposerDraft
     var serverSuggestions: [AIChatComposerSuggestion]
     var dictationState: AIChatDictationState
     var completedDictationTranscript: AIChatCompletedDictationTranscript?

@@ -19,12 +19,13 @@
 @container review-screen (max-width: 768px) {
   .review-screen-head {
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
   }
 
   .review-screen-head > div:first-child {
-    flex: 1 1 auto;
+    flex: 1 0 auto;
+    max-inline-size: 100%;
   }
 
   .review-screen-head .title {
@@ -34,12 +35,38 @@
   }
 
   .review-screen-head-actions {
-    flex-wrap: nowrap;
+    flex: 0 1 auto;
+    max-inline-size: 100%;
+    margin-inline-start: auto;
   }
 
-  .review-screen-head-actions > .review-filter-menu-wrap,
+  .review-progress-shortcuts {
+    flex-wrap: wrap;
+  }
+
+  .review-screen-head-actions > .review-filter-menu-wrap {
+    min-width: 0;
+  }
+
+  .review-filter-menu-wrap > .review-filter-trigger {
+    min-width: 42px;
+    justify-content: center;
+    gap: 6px;
+    padding-inline: 10px;
+  }
+
+  .review-filter-menu-wrap > .review-filter-trigger:has(> .review-due-badge) {
+    min-width: 64px;
+  }
+
+  .review-filter-menu-wrap .review-filter-trigger-value,
+  .review-filter-menu-wrap .review-filter-trigger-chevron,
   .review-progress-shortcuts > .review-queue-shortcut {
     display: none;
+  }
+
+  .review-filter-menu-wrap .review-filter-trigger-icon {
+    display: block;
   }
 
   .review-progress-shortcuts > .review-more-actions-trigger {
@@ -70,15 +97,6 @@
   /* The card, its tags and the action dock line up with the page title. */
   .review-pane {
     padding-inline: 0;
-  }
-
-  .review-pane-head-actions {
-    width: auto;
-  }
-
-  .review-pane-head-actions > .ghost-btn,
-  .review-pane-head-actions > .primary-btn {
-    width: auto;
   }
 
   .review-card-surface {

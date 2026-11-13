@@ -336,8 +336,8 @@
     <string name="settings_account_status_sync_blocked_body">To reconnect, log out and sign in again. Logging out removes local data from this device, including changes that haven’t synced.</string>
     <string name="settings_account_status_sign_in_button">Sign in or sign up</string>
     <string name="settings_account_status_sync_now_button">Sync now</string>
-    <string name="settings_account_status_logout_dialog_title">Log out?</string>
-    <string name="settings_account_status_logout_dialog_body">Logging out removes local data from this device. Synced data will return when you sign in again. Unsynced changes will be lost.</string>
+    <string name="settings_account_status_logout_dialog_title">Log out and clear Nibomo data from this device?</string>
+    <string name="settings_account_status_logout_dialog_body">Logging out removes workspaces and cards from this device. Synced data stays in the cloud. Unsynced changes may be lost.</string>
     <string name="settings_account_status_logout_failed">Logout failed.</string>
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>
@@ -597,15 +597,17 @@
     <string name="settings_export_package_include_tag">Include %1$s</string>
     <string name="settings_export_package_generated_import_tag_not_included">Generated import tags are not included in package exports.</string>
 
-    <string name="settings_import_title">Import</string>
+    <string name="settings_import_nibomo_title">Import from Nibomo</string>
+    <string name="settings_import_advanced">Advanced</string>
+    <string name="settings_import_picker_unavailable">No file picker is available on this device.</string>
+    <string name="settings_import_single_file_required">Choose one Nibomo ZIP file at a time.</string>
     <string name="settings_import_package_section">Package</string>
     <string name="settings_import_package_body">Choose a portable Nibomo ZIP package to preview before importing.</string>
     <string name="settings_import_choose_package">Choose ZIP package</string>
     <string name="settings_import_previewing">Previewing...</string>
     <string name="settings_import_importing">Importing...</string>
-    <string name="settings_import_confirm_button">Import package</string>
+    <string name="settings_import_cards_button">Import cards</string>
     <string name="settings_import_dismiss_error">Dismiss error</string>
-    <string name="settings_import_selected_file">File: %1$s</string>
     <string name="settings_import_cloud_required">Media ZIP import requires a linked cloud workspace in this version.</string>
     <string name="settings_import_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
     <string name="settings_import_invalid_file">Choose a Nibomo ZIP package.</string>
@@ -619,7 +621,6 @@
     <string name="settings_import_missing_import_tag">Enter an import tag.</string>
     <string name="settings_import_source_section">Source</string>
     <string name="settings_import_source_kind">Type</string>
-    <string name="settings_import_source_title">Title</string>
     <string name="settings_import_source_zip">ZIP package</string>
     <string name="settings_import_metadata_section">Metadata</string>
     <string name="settings_import_metadata_label">Label</string>
@@ -633,7 +634,7 @@
     <string name="settings_import_referenced_media">Referenced media</string>
     <string name="settings_import_package_media">Package media files</string>
     <string name="settings_import_options_section">Options</string>
-    <string name="settings_import_add_import_tag">Add import tag</string>
+    <string name="settings_import_tag_imported_cards">Tag imported cards</string>
     <string name="settings_import_add_import_tag_body">Adds a unique import tag to this package import.</string>
     <string name="settings_import_import_tag">Import tag</string>
     <string name="settings_import_keep_tag">Keep %1$s</string>

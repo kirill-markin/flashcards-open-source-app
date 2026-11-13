@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -22,13 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -36,8 +41,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsAppearance
 import com.flashcardsopensourceapp.core.ui.theme.LocalFlashcardsAppearance
+import java.text.NumberFormat
 
-private val reviewTopBarFilterMaxWidth = 128.dp
+private val reviewTopBarFilterLabelMaxWidth = 80.dp
 private val reviewLeaderboardTrophyDarkColor = Color(0xFFFFD60A)
 private val reviewLeaderboardTrophyLightColor = Color(0xFFC98A00)
 
@@ -45,6 +51,7 @@ private val reviewLeaderboardTrophyLightColor = Color(0xFFC98A00)
 @Composable
 internal fun ReviewTopBar(
     isLoading: Boolean,
+    remainingCount: Int,
     totalCount: Int,
     reviewLeaderboardBadge: ReviewLeaderboardBadgeState,
     reviewProgressBadge: ReviewProgressBadgeState,
@@ -84,6 +91,7 @@ internal fun ReviewTopBar(
                 label = {
                     Text(
                         text = selectedFilterTitle,
+                        modifier = Modifier.widthIn(max = reviewTopBarFilterLabelMaxWidth),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -94,8 +102,13 @@ internal fun ReviewTopBar(
                         contentDescription = null
                     )
                 },
+                trailingIcon = if (remainingCount > 0) {
+                    { ReviewFilterDueBadge(count = remainingCount) }
+                } else {
+                    null
+                },
                 modifier = Modifier
-                    .widthIn(max = reviewTopBarFilterMaxWidth)
+                    .weight(weight = 1f, fill = false)
                     .testTag(reviewFilterButtonTag)
             )
 
@@ -140,6 +153,24 @@ internal fun ReviewTopBar(
             }
         }
     )
+}
+
+@Composable
+private fun ReviewFilterDueBadge(count: Int) {
+    val badgeContentDescription = pluralStringResource(
+        R.plurals.review_filter_due_badge_content_description,
+        count,
+        count
+    )
+    val locale = LocalConfiguration.current.locales[0]
+    val countFormatter = remember(locale) { NumberFormat.getIntegerInstance(locale) }
+    Badge(
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = badgeContentDescription
+        }
+    ) {
+        Text(text = countFormatter.format(count))
+    }
 }
 
 @Composable

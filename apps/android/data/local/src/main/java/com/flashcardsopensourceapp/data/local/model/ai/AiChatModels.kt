@@ -1,7 +1,39 @@
 package com.flashcardsopensourceapp.data.local.model.ai
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import java.util.UUID
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class AiImportTarget(
+    val workspaceId: String,
+    val cloudState: CloudAccountState,
+    val linkedUserId: String?,
+    val installationId: String,
+    val configuration: CloudServiceConfiguration
+)
+
+@Serializable
+data class AiChatImportRequest(
+    val target: AiImportTarget,
+    val sessionId: String,
+    val clientRequestId: String,
+    val draftMessage: String,
+    val attachmentIds: List<String>
+) {
+    fun matchesDraft(message: String, attachments: List<AiChatAttachment>): Boolean {
+        return message == draftMessage &&
+            attachments.all { attachment -> attachment is AiChatAttachment.Binary } &&
+            attachments.map { attachment -> attachment.id } == attachmentIds
+    }
+}
+
+class AiImportTargetChangedException :
+    IllegalStateException("The authorized workspace, account, or server changed before the import started.")
+
+class AiImportPersistenceException(message: String) : IllegalStateException(message)
 
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 // Upload limits of one chat turn, the ones apps/backend/src/chatFiles/uploads.ts enforces.
@@ -94,11 +126,15 @@ val aiChatSupportedFileExtensions: Set<String> = setOf(
     "log",
     "docx",
     "zip",
-    "apkg"
+    "apkg",
+    "colpkg",
+    "mochi",
+    "ofc"
 )
 
 private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapOf(
     "apkg" to "application/apkg",
+    "colpkg" to "application/apkg",
     "csv" to "text/csv",
     "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "html" to "text/html",
@@ -106,6 +142,8 @@ private val aiChatCanonicalFileMediaTypesByExtension: Map<String, String> = mapO
     "json" to "application/json",
     "log" to "text/plain",
     "md" to "text/markdown",
+    "mochi" to "application/zip",
+    "ofc" to "application/zip",
     "pdf" to "application/pdf",
     "py" to "text/x-python",
     "sql" to "text/plain",
@@ -314,8 +352,12 @@ data class AiChatSessionProvisioningResult(
 
 data class AiChatDraftState(
     val draftMessage: String,
-    val pendingAttachments: List<AiChatAttachment>
-)
+    val pendingAttachments: List<AiChatAttachment>,
+    val importRequest: AiChatImportRequest?
+) {
+    constructor(draftMessage: String, pendingAttachments: List<AiChatAttachment>) :
+        this(draftMessage = draftMessage, pendingAttachments = pendingAttachments, importRequest = null)
+}
 
 sealed interface AiChatWireContentPart {
     data class Text(
@@ -442,7 +484,7 @@ fun makeDefaultAiChatDraftState(): AiChatDraftState {
 }
 
 fun AiChatDraftState.isEmpty(): Boolean {
-    return draftMessage.isBlank() && pendingAttachments.isEmpty()
+    return draftMessage.isBlank() && pendingAttachments.isEmpty() && importRequest == null
 }
 
 data class AiChatAttachmentReference(
@@ -623,7 +665,7 @@ fun makeAiChatAttachment(
     mediaType: String,
     localFilePath: String,
     sizeBytes: Long
-): AiChatAttachment {
+): AiChatAttachment.Binary {
     return AiChatAttachment.Binary(
         id = UUID.randomUUID().toString().lowercase(),
         fileName = fileName,

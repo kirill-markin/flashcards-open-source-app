@@ -703,8 +703,8 @@ private func makeReviewSubmissionSessionSignatureForBackgroundTest(
 private struct SuccessfulReviewSubmissionExecutor: ReviewSubmissionExecuting {
     let card: Card
 
-    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card {
-        self.card
+    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> ReviewSubmissionChange {
+        ReviewSubmissionChange(previousCard: self.card, ratedCard: self.card)
     }
 }
 
@@ -720,7 +720,7 @@ private actor GatedDatabaseReviewSubmissionExecutor: ReviewSubmissionExecuting {
         self.gate = gate
     }
 
-    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card {
+    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> ReviewSubmissionChange {
         await self.gate.wait()
         return try await self.executor.submitReview(workspaceId: workspaceId, submission: submission)
     }

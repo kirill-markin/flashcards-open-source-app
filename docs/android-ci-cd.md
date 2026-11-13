@@ -75,7 +75,7 @@ Named result automation verifies native execution and correlation only. Raw warn
 
 ## Play-managed translations
 
-Android app-internal translations are Play-first, as the [add-language checklist](../apps/android/docs/add-language-checklist.md) defines: after CI uploads the draft, create or update translated Android UI copy with Google Play App strings translation and Gemini in Play Console, and publish the draft only after those translations are reviewed. Google Play listing localization is separate.
+After CI uploads the draft, [check locale ownership](../apps/android/docs/add-language-checklist.md#6-check-locale-ownership-in-the-play-draft) and [verify both translation sources in the Play-delivered build](../apps/android/docs/add-language-checklist.md#8-run-android-specific-manual-verification) before publishing.
 
 ## Google Cloud access and device preflight
 
@@ -130,7 +130,7 @@ Before the release workflow can upload draft releases to Google Play, complete t
 4. Configure production availability in Play Console, including countries and regions for the production track.
 5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to upload production-track draft releases.
 6. Make the first signed upload manually in Play Console using the same upload keystore that CI will use later.
-7. Before the first release that uploads the watch bundle, add the Wear OS form factor (Advanced settings → Form factors) and add Wear OS screenshots.
+7. Before the first release that uploads the watch bundle, enable Wear OS: add the Wear OS form factor (Advanced settings → Form factors); add Wear OS screenshots to every language of the default listing and of every custom store listing; on the Wear OS internal testing track, select testers and roll out one watch bundle by hand; then opt in to Wear OS and agree to the review policy, and send that change for review. The Wear OS tracks are `wear:internal`, `wear:beta` and `wear:production`; Google's `wear:qa` example does not exist.
 
 That first manual upload is the safest bootstrap step because it establishes the app entry, Play App Signing state, and first track release before CI takes over subsequent draft uploads.
 
@@ -183,8 +183,8 @@ Build the signed release bundle with the same inputs that the release workflow u
 
 ```bash
 bash scripts/android/run-android-release.sh \
-  --version-code "12345" \
-  --wear-version-code "12346"
+  --version-code "12346" \
+  --wear-version-code "12347"
 ```
 
 Run one app instrumentation class on a local emulator for ad hoc debugging (requires a running emulator via `adb devices`). `connectedDebugAndroidTest` does not support the `--tests` flag, so filter by class:

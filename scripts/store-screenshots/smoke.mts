@@ -7,6 +7,8 @@ import { createHash } from "node:crypto";
 import { parseArgs } from "node:util";
 import { chromium } from "playwright";
 import sharp from "sharp";
+import { LOCALES } from "../ios/app-store-localization-inputs.mts";
+import { findCaptureSet } from "./capture-set.mts";
 
 type Bounds = { x: number; y: number; width: number; height: number };
 type IosAudit = { screen: Bounds; screenBox: Bounds; frame: Bounds; naturalWidth: number; naturalHeight: number; headingStyle: string; captionStyle: string; headingTop: number; captionTop: number };
@@ -15,9 +17,13 @@ type Manifest = { inputRoot: string; sourceRevision: string; results: File[] };
 type GalleryFile = { path: string; heading: string; caption: string };
 type IosGallery = Array<{ tag: string; sets: Array<{ family: string; files: GalleryFile[] }> }>;
 type AndroidGallery = Array<{ tag: string; files: GalleryFile[] }>;
+type GalleryScenario = { platform: "android"; language: string }
+  | { platform: "ios"; language: string; device: "macos" }
+  | { platform: "ios"; language: string; device: "ipad"; ipadOnlyLanguage?: string };
 const { values } = parseArgs({ options: { "chromium-executable": { type: "string" } } });
 const repoRoot = resolve(import.meta.dirname, "../..");
 const iosInput = resolve(repoRoot, "apps/ios/docs/media/app-store-screenshots");
+const macInput = join(iosInput, "macos");
 const androidInput = resolve(repoRoot, "apps/android/docs/media/play-store-screenshots");
 const temporary = await mkdtemp(join(tmpdir(), "nibomo-store-smoke-"));
 const iosOutput = join(temporary, "ios");
@@ -33,17 +39,17 @@ function invoke(args: string[], expectedSuccess = true): string {
   return output;
 }
 
-async function macSourceNames(): Promise<string[]> {
-  try { return (await readdir(join(iosInput, "macos"))).filter(name => name.endsWith(".png")); }
+async function macSourceNames(): Promise<string[] | undefined> {
+  try { return (await readdir(macInput)).filter(name => name.endsWith(".png")); }
   catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return undefined;
     throw error;
   }
 }
 
 async function sourceSnapshot(): Promise<Record<string, string>> {
   const paths = [
-    ...(await macSourceNames()).map(name => join(iosInput, "macos", name)),
+    ...((await macSourceNames()) ?? []).map(name => join(macInput, name)),
     ...(await readdir(join(iosInput, "iphone"))).filter(name => name.endsWith(".png")).map(name => join(iosInput, "iphone", name)),
     ...(await readdir(join(iosInput, "ipad"))).filter(name => name.endsWith(".png")).map(name => join(iosInput, "ipad", name)),
     ...(await readdir(androidInput)).filter(name => name.endsWith(".png")).map(name => join(androidInput, name)),
@@ -92,10 +98,10 @@ async function verifyExports(root: string, expectedCount: number, platform: "ios
   return manifest;
 }
 
-async function verifyGallery(root: string, platform: "ios" | "android", expectedLanguages: number): Promise<void> {
+async function verifyGallery(root: string, expectedLanguages: number, scenario: GalleryScenario): Promise<void> {
   let html = await readFile(join(root, "index.html"), "utf8");
   const data = JSON.parse(await readFile(join(root, "gallery-data.json"), "utf8")) as IosGallery | AndroidGallery;
-  const files = platform === "ios" ? (data as IosGallery).flatMap(item => item.sets.flatMap(set => set.files)) : (data as AndroidGallery).flatMap(item => item.files);
+  const files = scenario.platform === "ios" ? (data as IosGallery).flatMap(item => item.sets.flatMap(set => set.files)) : (data as AndroidGallery).flatMap(item => item.files);
   for (const file of files) {
     const bytes = await sharp(join(root, file.path)).resize({ height: 500 }).png().toBuffer();
     html = html.replaceAll(file.path, `data:image/png;base64,${bytes.toString("base64")}`);
@@ -111,14 +117,13 @@ async function verifyGallery(root: string, platform: "ios" | "android", expected
     };
     assert.equal(await page.locator("#language option").count(), expectedLanguages);
     await loaded();
-    await page.selectOption("#language", "ar");
+    await page.selectOption("#language", scenario.language);
     await loaded();
-    if (platform === "ios") {
-      const family = (data as IosGallery).some(item => item.sets.some(set => set.family === "ipad")) ? "ipad" : "macos";
-      await page.selectOption("#device", family);
+    if (scenario.platform === "ios") {
+      await page.selectOption("#device", scenario.device);
       await loaded();
-      if (expectedLanguages === 3) {
-        await page.selectOption("#language", "ru");
+      if (scenario.device === "ipad" && scenario.ipadOnlyLanguage) {
+        await page.selectOption("#language", scenario.ipadOnlyLanguage);
         assert.equal(await page.inputValue("#device"), "ipad");
         assert.equal(await page.locator('#device option[value="iphone"]').evaluate(option => (option as HTMLOptionElement).disabled), true);
         await loaded();
@@ -134,21 +139,29 @@ try {
   const initialIos = await verifyExports(iosOutput, 20, "ios");
   assert.equal(initialIos.inputRoot, iosInput);
   assert.ok(initialIos.results.every(file => file.inputRoot === iosInput && file.sourceRevision === initialIos.sourceRevision));
-  await verifyGallery(iosOutput, "ios", 2);
+  await verifyGallery(iosOutput, 2, { platform: "ios", language: "ar", device: "ipad" });
   assert.ok(initialIos.results.filter(file => file.family === "iphone").every(file => file.audit?.naturalWidth === 1284 && file.audit?.naturalHeight === 2778));
   assert.ok(initialIos.results.filter(file => file.family === "ipad").every(file => file.audit?.naturalWidth === 2752 && file.audit?.naturalHeight === 2064));
 
-  console.log("Smoke: explicit Mac selection uses only genuine native inputs.");
+  console.log("Smoke: the Mac batch uses only complete saved native inputs.");
   const macOutput = join(temporary, "macos");
-  if ((await macSourceNames()).length) {
-    const macLocales: Array<{ captureTag: string }> = JSON.parse(await readFile(resolve(import.meta.dirname, "assets/app-store/store-locales.json"), "utf8"));
+  const macSources = await macSourceNames();
+  if (macSources?.length) {
+    const macLocales = [...new Set(LOCALES.map(([, , captureTag]) => captureTag))]
+      .filter(tag => findCaptureSet(macSources, tag, [1, 2, 3, 4, 5], macInput));
+    assert.ok(macLocales.length > 0, "Expected at least one mapped native Mac capture tag.");
     invoke(["--platform", "ios", "--family", "macos", "--output-root", macOutput]);
     const mac = await verifyExports(macOutput, macLocales.length * 5, "ios");
     assert.ok(mac.results.every(file => file.family === "macos"));
-    await verifyGallery(macOutput, "ios", macLocales.length);
+    assert.deepEqual(new Set(mac.results.map(file => file.captureTag)), new Set(macLocales));
+    const macLanguage = macLocales.find(tag => tag !== mac.results[0].captureTag) ?? macLocales[0];
+    await verifyGallery(macOutput, macLocales.length, { platform: "ios", language: macLanguage, device: "macos" });
   } else {
     const missingMac = invoke(["--platform", "ios", "--family", "macos", "--locales", "en-US", "--output-root", macOutput], false);
-    assert.match(missingMac, /Missing native macos screenshot folder|Expected one source matching macos/);
+    const expectedError = macSources === undefined
+      ? `Missing native macos screenshot folder: ${macInput}.`
+      : `Expected one source matching ${join(macInput, "en-US-4_*.png")}; found 0.`;
+    assert.ok(missingMac.includes(`Error: ${expectedError}`), missingMac);
     await assert.rejects(readFile(join(macOutput, "export-manifest.json")), { code: "ENOENT" });
   }
 
@@ -157,7 +170,7 @@ try {
   const initialAndroid = await verifyExports(androidOutput, 10, "android");
   assert.equal(initialAndroid.inputRoot, androidInput);
   assert.ok(initialAndroid.results.every(file => file.inputRoot === androidInput && file.sourceRevision === initialAndroid.sourceRevision));
-  await verifyGallery(androidOutput, "android", 2);
+  await verifyGallery(androidOutput, 2, { platform: "android", language: "ar" });
 
   console.log("Smoke: add one iPad-only locale from a relative input override and retain previous provenance.");
   const alternateIos = join(temporary, "ios-native");
@@ -170,7 +183,7 @@ try {
   assert.deepEqual(retained.results.filter(file => file.captureTag !== "ru"), initialIos.results);
   assert.ok(retained.results.filter(file => file.captureTag === "ru").every(file => file.inputRoot === alternateIos));
   assert.equal(retained.results.filter(file => file.captureTag === "ru").length, 5);
-  await verifyGallery(iosOutput, "ios", 3);
+  await verifyGallery(iosOutput, 3, { platform: "ios", language: "ar", device: "ipad", ipadOnlyLanguage: "ru" });
 
   console.log("Smoke: replace one Android locale from an absolute input override and retain previous provenance.");
   const alternateAndroid = join(temporary, "android-native");
@@ -180,7 +193,7 @@ try {
   assert.equal(retainedAndroid.inputRoot, alternateAndroid);
   assert.deepEqual(retainedAndroid.results.filter(file => file.storeLocale === "ar"), initialAndroid.results.filter(file => file.storeLocale === "ar"));
   assert.ok(retainedAndroid.results.filter(file => file.storeLocale === "en-US").every(file => file.inputRoot === alternateAndroid));
-  await verifyGallery(androidOutput, "android", 2);
+  await verifyGallery(androidOutput, 2, { platform: "android", language: "ar" });
 
   console.log("Smoke: a late missing input must not change previously exported cards.");
   const invalidInput = join(temporary, "incomplete-native");
@@ -191,6 +204,12 @@ try {
   const beforeManifest = await readFile(join(iosOutput, "export-manifest.json"));
   const failure = invoke(["--platform", "ios", "--family", "iphone", "--locales", "en-US", "--input-root", invalidInput, "--output-root", iosOutput], false);
   assert.match(failure, /Expected one source/);
+  const invalidBatch = ["--platform", "ios", "--family", "iphone", "--input-root", invalidInput, "--output-root", iosOutput];
+  assert.match(invoke(invalidBatch, false), /Expected one source matching.*en-US-5_.*found 0/);
+  const fourthSource = inputNames.find(name => name.startsWith("en-US-4_"));
+  assert.ok(fourthSource);
+  await copyFile(join(invalidInput, "iphone", fourthSource), join(invalidInput, "iphone", "en-US-4_duplicate.png"));
+  assert.match(invoke(invalidBatch, false), /Expected one source matching.*en-US-4_.*found 2/);
   assert.deepEqual(await readFile(join(iosOutput, "export-manifest.json")), beforeManifest);
   await verifyExports(iosOutput, 25, "ios");
 

@@ -1,0 +1,18 @@
+<resources>
+    <string name="friend_invite_button">Adicionar amigo</string>
+    <string name="friend_invite_dialog_title">Adicionar um amigo</string>
+    <string name="friend_invite_dialog_body">Crie uma ligação de convite privada para o quadro de classificação.</string>
+    <string name="friend_invite_display_name_label">Nome do amigo no seu quadro de classificação</string>
+    <string name="friend_invite_expiry_note">Este nome só é visível no seu quadro de classificação. Ao aceitar o convite, o seu amigo escolhe o nome que quer dar-lhe. As ligações de convite expiram ao fim de 2 dias.</string>
+    <string name="friend_invite_create_button">Criar ligação</string>
+    <string name="friend_invite_cancel_button">Cancelar</string>
+    <string name="friend_invite_share_title">Envie esta ligação ao seu amigo</string>
+    <string name="friend_invite_share_text">Abra este convite do Nibomo, crie uma conta ou inicie sessão, e vamos poder ver-nos na aplicação:\n\n%1$s</string>
+    <string name="friend_invite_display_name_empty">Introduza um nome.</string>
+    <string name="friend_invite_display_name_too_long">Use até 30 caracteres.</string>
+    <string name="friend_invite_display_name_control_character">Remova as quebras de linha e os caracteres de controlo.</string>
+    <string name="friend_invite_create_limit_reached">Já tem demasiadas ligações de convite ativas. Aguarde que uma expire ou seja aceite antes de criar outra.</string>
+    <string name="friend_invite_create_sign_in_required">Inicie sessão novamente para criar uma ligação de convite.</string>
+    <string name="friend_invite_create_invalid_name">Verifique o nome a apresentar e tente novamente.</string>
+    <string name="friend_invite_create_failed">Não foi possível criar a ligação de convite. Tente novamente.</string>
+</resources>

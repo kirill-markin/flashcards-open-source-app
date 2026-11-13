@@ -4,6 +4,8 @@ import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryResult
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 
 internal data class ReviewDraftState(
@@ -14,6 +16,8 @@ internal data class ReviewDraftState(
     val revealedCardId: String?,
     val reviewedInSessionCount: Int,
     val pendingReviewedCards: Set<PendingReviewedCard>,
+    val ratingRevision: Long,
+    val committedCountRatings: Map<PendingReviewedCard, Long>,
     val optimisticPreparedCurrentCard: PreparedReviewCardPresentation?,
     val previewCards: List<ReviewCard>,
     val nextPreviewOffset: Int,
@@ -56,8 +60,34 @@ internal data class FailedReviewSubmissionRollbackLookup(
 
 internal data class ObservedReviewSessionState(
     val requestedFilter: ReviewFilter,
-    val sessionSnapshot: ReviewSessionSnapshot
-)
+    val result: ReviewSessionQueryResult
+) {
+    val sessionSnapshot: ReviewSessionSnapshot get() = result.snapshot
+}
+
+internal fun ReviewSessionQueryInputs.matchesPresentation(state: ReviewDraftState): Boolean {
+    return pendingReviewedCards == state.pendingReviewedCards &&
+        ratingRevision == state.ratingRevision &&
+        presentedCardId == state.presentedCard?.cardId &&
+        preparedNextCardId == state.preparedNextCardId
+}
+
+internal fun unreflectedReviewRatings(
+    state: ReviewDraftState,
+    observedRevision: Long
+): Set<PendingReviewedCard> {
+    val unobservedCommits = state.committedCountRatings.filterValues { revision -> revision > observedRevision }
+    return state.pendingReviewedCards + unobservedCommits.keys
+}
+
+internal fun displayedReviewRemainingCount(
+    observed: ObservedReviewSessionState,
+    draft: ReviewDraftState
+): Int {
+    val queryInputs = observed.result.queryInputs ?: return observed.sessionSnapshot.remainingCount
+    val unreflectedRatings = unreflectedReviewRatings(state = draft, observedRevision = queryInputs.ratingRevision)
+    return observed.sessionSnapshot.dueCount - unreflectedRatings.count(observed.result.countedCardVersions::contains)
+}
 
 internal data class ObservedReviewSessionSignature(
     val requestedFilter: ReviewFilter,
@@ -79,6 +109,8 @@ internal fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDr
         revealedCardId = null,
         reviewedInSessionCount = 0,
         pendingReviewedCards = emptySet(),
+        ratingRevision = 0L,
+        committedCountRatings = emptyMap(),
         optimisticPreparedCurrentCard = null,
         previewCards = emptyList(),
         nextPreviewOffset = 0,

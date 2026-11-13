@@ -102,6 +102,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        sessionWorkspaceId = "review-route-test-workspace",
                         requestedFilter = ReviewFilter.AllCards,
                         isRequestedFilterSessionPending = false,
                         selectedFilter = ReviewFilter.AllCards,
@@ -148,6 +149,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenCurrentCard = {},
                     onOpenCurrentCardWithAi = { _, _, _, _ -> },
                     onOpenDeckManagement = {},
+                    onOpenTagManagement = {},
                     onOpenLeaderboard = {
                         openLeaderboardCalls += 1
                     },
@@ -480,6 +482,7 @@ private fun ReviewRouteTestContent(
             onOpenCurrentCard = {},
             onOpenCurrentCardWithAi = { _, _, _, _ -> },
             onOpenDeckManagement = onOpenDeckManagement,
+            onOpenTagManagement = {},
             onCreateCard = {},
             onCreateCardWithAi = {},
             onSwitchToAllCards = {},
@@ -519,6 +522,7 @@ private fun reviewRouteUiState(
 ): ReviewUiState {
     return ReviewUiState(
         isLoading = isLoading,
+        sessionWorkspaceId = null,
         requestedFilter = requestedFilter,
         isRequestedFilterSessionPending = false,
         selectedFilter = requestedFilter,

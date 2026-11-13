@@ -304,11 +304,11 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
                 tag = tag
             )
         )
-        val stats by detailViewModel.stats.collectAsStateWithLifecycle()
+        val uiState by detailViewModel.uiState.collectAsStateWithLifecycle()
 
         WorkspaceTagDetailRoute(
             tag = tag,
-            stats = stats,
+            uiState = uiState,
             onOpenReview = {
                 appGraph.appHandoffCoordinator.requestReviewFilter(
                     reviewFilter = makeReviewTagFilter(tagNames = listOf(tag))
@@ -331,6 +331,9 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
                         target = tag
                     )
                 )
+            },
+            onOpenCard = { cardId ->
+                appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
             },
             onBack = { navController.popBackStack() }
         )
@@ -363,7 +366,7 @@ internal fun NavGraphBuilder.registerLibraryWorkspaceDestinations(
         navController = navController
     )
 
-    composable(route = LibraryImportDestination.route) {
+    composable(route = LibraryNibomoImportDestination.route) {
         val context = LocalContext.current
         val workspaceImportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportViewModel>(
             factory = createWorkspaceImportViewModelFactory(

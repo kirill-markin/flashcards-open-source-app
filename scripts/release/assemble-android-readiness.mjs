@@ -7,6 +7,7 @@ const deviceId = /^[A-Za-z0-9_-]+$/;
 const methodTarget = /^class com\.flashcardsopensourceapp\.app\.[\w.]+#\w+$/;
 const signedJob = "Build and verify signed Android App Bundle";
 const publisherJob = "Upload Android bundle to Google Play production draft release";
+const wearPublisherJob = "Upload Wear OS bundle to Google Play Wear OS production draft release";
 
 function requireEvidence(condition, message) {
   if (!condition) throw new TypeError(message);
@@ -46,7 +47,7 @@ function sourceFile(sourceSha, path) {
   }
 }
 
-function verifyRun(run, pin, publisher) {
+function verifyRun(run, pin, publisher, hasWear) {
   const { status, conclusion, headSha, databaseId, attempt, url, jobs } = run;
   const attemptUrl = `https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/${pin.runId}/attempts/${pin.attempt}`;
   requireEvidence(Number.isSafeInteger(databaseId) && String(databaseId) === pin.runId &&
@@ -59,7 +60,7 @@ function verifyRun(run, pin, publisher) {
   const byName = new Map(jobs.map((job) => [job.name, job]));
   const requiredJobs = ["Resolve Android release target", "Android CI / Android build, unit tests, and lint",
     "Android CI / Android emulator data:local instrumentation", "Device Run app instrumentation",
-    publisherJob, "Android release summary"];
+    publisherJob, "Android release summary", ...(hasWear ? [wearPublisherJob] : [])];
   requireEvidence(byName.size === jobs.length && requiredJobs.every((name) => byName.has(name)),
     "The retained workflow is missing required Android Release jobs or has duplicate jobs");
   const signed = byName.get(signedJob) ?? byName.get(publisherJob);
@@ -70,6 +71,7 @@ function verifyRun(run, pin, publisher) {
     [signed, requiredSteps],
     [byName.get("Device Run app instrumentation"), ["Collect private native evidence and gate named results"]],
     [byName.get(publisherJob), ["Upload bundle to Google Play production track as draft release"]],
+    ...(hasWear ? [[byName.get(wearPublisherJob), ["Upload Wear OS bundle to Google Play Wear OS production track as draft release"]]] : []),
   ]) {
     requireEvidence(Array.isArray(job.steps) && steps.every((step) =>
       job.steps.filter((entry) => entry?.name === step && entry.conclusion === "success").length === 1),
@@ -91,6 +93,24 @@ function verifyPublisher(publisher, pin, releaseId, aabSha256) {
     releases[0]?.status === "draft" && releases[0].name === releaseName &&
     Array.isArray(releases[0].versionCodes) && releases[0].versionCodes.length === 1 &&
     releases[0].versionCodes[0] === versionCode, "Play did not return a single production draft for the pinned version code");
+}
+
+function verifyWearPublisher(wear, pin, publisher) {
+  const { sourceSha, wearVersionCode, wearAabSha256, runId, attempt } = pin;
+  const releaseName = `main-draft-vc${wearVersionCode}-r${runId}a${attempt}-s${sourceSha.slice(0, 8)}`;
+  requireEvidence(wear.sourceSha === sourceSha && wear.versionCode === wearVersionCode &&
+    wear.publisherRunId === runId && wear.publisherRunAttempt === attempt &&
+    wear.workflowSha === publisher.workflowSha && wear.aabSha256 === wearAabSha256 &&
+    wear.releaseName === releaseName && wear.playTrack === "wear:production" &&
+    wear.commitStatus === "confirmed" && wear.committed === true &&
+    wear.changesInReviewBehavior === "ERROR_IF_IN_REVIEW",
+  "Wear OS Play publisher does not confirm the pinned source, run, attempt, Wear OS release code and AAB");
+  const { track, releases } = wear.track ?? {};
+  requireEvidence(track === "wear:production" && Array.isArray(releases) && releases.length === 1 &&
+    releases[0]?.status === "draft" && releases[0].name === releaseName &&
+    Array.isArray(releases[0].versionCodes) && releases[0].versionCodes.length === 1 &&
+    releases[0].versionCodes[0] === wearVersionCode,
+  "Play did not return a single Wear OS production draft for the pinned Wear OS version code");
 }
 
 function checkedCases(cases, api) {
@@ -199,11 +219,17 @@ function verifyNative(summary, pin, releaseId, selection) {
   return { required, sessionIds, retries, appSha256: hashes.app, testSha256: hashes.test };
 }
 
-async function assemble(review, run, native, publisher, bundlePath) {
-  const { sourceSha, version, versionCode, runId, attempt, aabSha256, reviewedBy, reviews } = review;
+async function assemble(review, run, native, publisher, bundlePath, wearPublisher) {
+  const { sourceSha, version, versionCode, wearVersionCode, wearAabSha256, runId, attempt, aabSha256, reviewedBy, reviews } = review;
   requireEvidence(matches(sourceSha, /^[a-f0-9]{40}$/) && isDigest(aabSha256) &&
     [versionCode, runId, attempt].every((value) => matches(value, /^[1-9][0-9]*$/)),
   "Pin the full release source SHA, signed AAB SHA-256, version code, run ID and attempt as strings");
+  // Runs dispatched before the Wear OS job existed carry no Wear OS evidence.
+  const hasWear = Array.isArray(run.value.jobs) && run.value.jobs.some((job) => job?.name === wearPublisherJob);
+  requireEvidence(hasWear === (wearPublisher !== undefined) && (!hasWear ||
+    matches(wearVersionCode, /^[1-9][0-9]*$/) && wearVersionCode !== versionCode && isDigest(wearAabSha256)),
+  hasWear ? "This run uploaded a Wear OS bundle: pass its publisher provenance and pin wearVersionCode and wearAabSha256"
+    : "This run has no Wear OS job: omit the Wear OS publisher provenance");
   const versions = [...sourceFile(sourceSha, "apps/android/app/build.gradle.kts").matchAll(/versionName\s*=\s*"([^"]+)"/g)];
   requireEvidence(versions.length === 1 && versions[0][1] === version, "Pinned marketing version differs from the release source");
   const selection = JSON.parse(sourceFile(sourceSha, "scripts/android/device-run-test-selection.json"));
@@ -212,7 +238,8 @@ async function assemble(review, run, native, publisher, bundlePath) {
   for await (const chunk of createReadStream(bundlePath)) hash.update(chunk);
   requireEvidence(hash.digest("hex") === aabSha256, "Downloaded signed AAB differs from the pinned checksum");
   verifyPublisher(publisher.value, review, releaseId, aabSha256);
-  verifyRun(run.value, review, publisher.value);
+  if (hasWear) verifyWearPublisher(wearPublisher.value, review, publisher.value);
+  verifyRun(run.value, review, publisher.value, hasWear);
   const { required, appSha256, testSha256, sessionIds, retries } = verifyNative(native.value, review, releaseId, selection);
 
   const target = { sourceSha, version, build: versionCode, artifactId: `sha256-${aabSha256}` };
@@ -232,15 +259,16 @@ async function assemble(review, run, native, publisher, bundlePath) {
   }
   const manifest = parseManifest({ schemaVersion: 2, platform: "android", target, gates, results, equivalences: [] });
   return { ...manifest, androidEvidence: { releaseId, nativeSummarySha256: native.sha256,
-    publisherSha256: publisher.sha256, githubRunSha256: run.sha256, testSha256, sessionIds, retries } };
+    publisherSha256: publisher.sha256, ...(hasWear ? { wearPublisherSha256: wearPublisher.sha256 } : {}), githubRunSha256: run.sha256, testSha256, sessionIds, retries } };
 }
 
 try {
-  const [review, run, native, publisher, bundle, ...extra] = process.argv.slice(2);
+  const [review, run, native, publisher, bundle, wearPublisher, ...extra] = process.argv.slice(2);
   requireEvidence(bundle && !extra.length,
-    "Usage: node scripts/release/assemble-android-readiness.mjs review.json github-run.json summary.json play-publisher-provenance.json app-release.aab");
+    "Usage: node scripts/release/assemble-android-readiness.mjs review.json github-run.json summary.json play-publisher-provenance.json app-release.aab [play-wear-publisher-provenance.json]");
   const manifest = await assemble(readJson(review, "review").value, readJson(run, "GitHub run"),
-    readJson(native, "native summary"), readJson(publisher, "Play publisher provenance"), bundle);
+    readJson(native, "native summary"), readJson(publisher, "Play publisher provenance"), bundle,
+    wearPublisher === undefined ? undefined : readJson(wearPublisher, "Wear OS Play publisher provenance"));
   console.log(JSON.stringify(manifest, null, 2));
 } catch (error) {
   if (!(error instanceof TypeError) && !error.code && !(error instanceof SyntaxError)) throw error;

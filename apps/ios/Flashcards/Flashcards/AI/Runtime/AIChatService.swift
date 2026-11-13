@@ -84,7 +84,7 @@ func aiChatAttachmentUnsupportedTypeTitle() -> String {
 func aiChatAttachmentUnsupportedTypeMessage() -> String {
     aiSettingsLocalized(
         "ai.error.attachmentUnsupported.message",
-        "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG, or an image, then try again."
+        "This file type is not supported for AI chat. Remove the file or save it as PDF, TXT, CSV, JSON, XML, Markdown, HTML, Python, JavaScript, TypeScript, YAML, XLS/XLSX, DOCX, ZIP, Anki APKG/COLPKG, Mochi, Noji OFC, or an image, then try again."
     )
 }
 

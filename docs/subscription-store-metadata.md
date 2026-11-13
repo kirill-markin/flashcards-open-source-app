@@ -80,10 +80,14 @@ script unless that listing writes AI in the locale's own script.
 
 ## App Store Connect texts
 
-The 42 store locales below are separate from the full iOS UI inventory. The
+The store locales below are separate from the iOS UI inventory. The
 [catalog procedure](apple-subscriptions.md) loads every one, rejects missing or
 unsupported locales, and checks Apple field limits before contacting Apple.
-Descriptions state the Premium allowance; sync remains free.
+Descriptions state the Premium allowance. Confirm Odia (`or-IN`) in both
+subscription localization pickers before applying the texts. Apple's
+[locale shortcodes](https://developer.apple.com/documentation/appstoreconnectapi/managing-metadata-in-your-app-by-using-locale-shortcodes)
+include `or-IN`. The subscription APIs return saved localizations and cannot
+confirm whether an unsaved locale is selectable.
 
 ### English (U.S.) - en-US
 
@@ -337,10 +341,62 @@ Descriptions state the Premium allowance; sync remains free.
 - Description (max 45): `1000 tin nhắn AI mỗi tháng` (26)
 - Subscription group display name (max 30): `Premium` (7)
 
+### Chinese (Traditional) - zh-Hant
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `每月 1000 則 AI 訊息` (15)
+- Subscription group display name (max 30): `Premium` (7)
+
+### English (Australia) - en-AU
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `1000 AI messages per month` (26)
+- Subscription group display name (max 30): `Premium` (7)
+
+### English (Canada) - en-CA
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `1000 AI messages per month` (26)
+- Subscription group display name (max 30): `Premium` (7)
+
+### English (U.K.) - en-GB
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `1000 AI messages per month` (26)
+- Subscription group display name (max 30): `Premium` (7)
+
+### French (Canada) - fr-CA
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `1000 messages d’IA par mois` (27)
+- Subscription group display name (max 30): `Premium` (7)
+
+### Portuguese (Portugal) - pt-PT
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `1000 mensagens de IA por mês` (28)
+- Subscription group display name (max 30): `Premium` (7)
+
+### Malay - ms
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `1000 mesej AI sebulan` (21)
+- Subscription group display name (max 30): `Premium` (7)
+
+### Odia - or-IN
+
+- Display name (max 30): `Premium` (7)
+- Description (max 45): `ମାସକୁ 1000 AI ସନ୍ଦେଶ` (20)
+- Subscription group display name (max 30): `Premium` (7)
+
 ## Google Play texts
 
 Play shows up to four benefits. List only what the subscription adds: free
 features such as sync are not subscription benefits.
+
+Odia is absent from Google's [published app listing languages](https://support.google.com/googleplay/android-developer/answer/9844778?hl=en).
+Subscription support depends on the [subscription picker check](google-play-subscriptions.md#finish-merchant-verification-and-read-back-the-catalog).
+The Publisher API reports saved translations.
 
 ### Default - English (United States) - en-US
 
@@ -647,3 +703,57 @@ features such as sync are not subscription benefits.
 - Name (max 55): `Premium` (7)
 - Benefit 1 (max 40): `Imiyalezo ye-AI engu-1000 ngenyanga` (35)
 - Description (max 80): `Imiyalezo ye-AI engu-1000 ngenyanga.` (36)
+
+### Chinese (Hong Kong) - zh-HK
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `每月 1000 條 AI 訊息` (15)
+- Description (max 80): `每月 1000 條 AI 訊息。` (16)
+
+### Chinese (Traditional) - zh-TW
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `每月 1000 則 AI 訊息` (15)
+- Description (max 80): `每月 1000 則 AI 訊息。` (16)
+
+### English (Australia) - en-AU
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 AI messages per month` (26)
+- Description (max 80): `1000 AI messages per month.` (27)
+
+### English (Canada) - en-CA
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 AI messages per month` (26)
+- Description (max 80): `1000 AI messages per month.` (27)
+
+### English (United Kingdom) - en-GB
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 AI messages per month` (26)
+- Description (max 80): `1000 AI messages per month.` (27)
+
+### French (Canada) - fr-CA
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 messages d’IA par mois` (27)
+- Description (max 80): `1000 messages d’IA par mois.` (28)
+
+### Portuguese (Portugal) - pt-PT
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 mensagens de IA por mês` (28)
+- Description (max 80): `1000 mensagens de IA por mês.` (29)
+
+### Malay - ms
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 mesej AI sebulan` (21)
+- Description (max 80): `1000 mesej AI sebulan.` (22)
+
+### Malay (Malaysia) - ms-MY
+
+- Name (max 55): `Premium` (7)
+- Benefit 1 (max 40): `1000 mesej AI sebulan` (21)
+- Description (max 80): `1000 mesej AI sebulan.` (22)

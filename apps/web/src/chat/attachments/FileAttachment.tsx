@@ -66,7 +66,7 @@ export class ChatImageAttachmentPreparationError extends Error {
   }
 }
 
-const ACCEPTED_TYPES = "image/*,.pdf,.txt,.csv,.json,.xml,.xlsx,.xls,.md,.html,.py,.js,.ts,.yaml,.yml,.sql,.log,.docx,.zip,.apkg";
+const ACCEPTED_TYPES = "image/*,.pdf,.txt,.csv,.json,.xml,.xlsx,.xls,.md,.html,.py,.js,.ts,.yaml,.yml,.sql,.log,.docx,.zip,.apkg,.colpkg,.mochi,.ofc";
 const MB = 1024 * 1024;
 
 export const IMAGE_RAW_MAX_FILE_SIZE_BYTES = 40 * MB;

@@ -4,7 +4,11 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportTargetChangedException
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
@@ -16,10 +20,12 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
+import com.flashcardsopensourceapp.feature.ai.input.deleteAiChatAttachmentStagedFiles
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.clearPendingToolRunPostSync
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeDefaultAiDraftState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.shouldBootstrapConversation
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarning
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.createAiChatRuntimeObservability
@@ -31,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +45,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 internal const val aiChatBootstrapPageLimit: Int = 20
 internal const val aiChatClientPlatform: String = "android"
@@ -73,6 +81,7 @@ internal class AiChatRuntimeContext(
     private val persistedStateWriteMutex = Mutex()
     private val persistedStateWriteRequestVersion = AtomicLong(0L)
     private var isToolRunPostSyncInFlight: Boolean = false
+    private var supersededImportRequest: AiChatImportRequest? = null
     val runtimeStateMutable = MutableStateFlow(makeDefaultAiDraftState())
     var activeSendJob: Job? = null
     var activeDictationJob: Job? = null
@@ -195,7 +204,10 @@ internal class AiChatRuntimeContext(
         val requestVersion = persistedStateWriteRequestVersion.incrementAndGet()
         scope.launch {
             persistedStateWriteMutex.withLock {
-                if (requestVersion != persistedStateWriteRequestVersion.get()) {
+                if (
+                    requestVersion != persistedStateWriteRequestVersion.get() ||
+                    snapshot.importRequest?.let(::isImportOriginCurrent) == false
+                ) {
                     return@withLock
                 }
                 persistStateSnapshot(
@@ -208,14 +220,85 @@ internal class AiChatRuntimeContext(
 
     fun persistDraft(snapshot: AiChatRuntimeState) {
         scope.launch {
-            val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
-            if (chatSessionId != null) {
-                aiChatRepository.saveDraftState(
-                    workspaceId = snapshot.workspaceId,
-                    sessionId = chatSessionId,
-                    state = snapshot.toDraftState()
-                )
+            if (snapshot.importRequest == null) {
+                persistDraftSnapshot(snapshot = snapshot)
+            } else {
+                persistedStateWriteMutex.withLock {
+                    persistDraftSnapshot(snapshot = snapshot)
+                }
             }
+        }
+    }
+
+    private suspend fun persistDraftSnapshot(snapshot: AiChatRuntimeState) {
+        val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null } ?: return
+        if (supersededImportRequest != null && snapshot.importRequest == supersededImportRequest) {
+            return
+        }
+        aiChatRepository.saveDraftState(
+            workspaceId = snapshot.workspaceId,
+            sessionId = chatSessionId,
+            state = snapshot.toDraftState()
+        )
+    }
+
+    fun isImportOriginCurrent(request: AiChatImportRequest): Boolean {
+        val state = runtimeStateMutable.value
+        return request != supersededImportRequest &&
+            state.workspaceId == request.target.workspaceId &&
+            state.persistedState.chatSessionId == request.sessionId &&
+            state.importRequest == request &&
+            state.loadedAccessKey == activeAccessContext?.runtimeKey()
+    }
+
+    suspend fun persistImportNow(snapshot: AiChatRuntimeState) {
+        val request = requireNotNull(snapshot.importRequest)
+        persistedStateWriteMutex.withLock {
+            if (isImportOriginCurrent(request = request).not()) {
+                throw AiImportTargetChangedException()
+            }
+            persistedStateWriteRequestVersion.incrementAndGet()
+            aiChatRepository.saveImportState(
+                state = snapshot.persistedState.copy(composerSuggestions = snapshot.serverComposerSuggestions),
+                draftState = snapshot.toDraftState()
+            )
+        }
+    }
+
+    suspend fun finishImport(
+        request: AiChatImportRequest,
+        attachments: List<AiChatAttachment>,
+        rollbackPersistedState: AiChatPersistedState,
+        applyResult: (AiChatRuntimeState) -> AiChatRuntimeState
+    ): Boolean = withContext(NonCancellable) {
+        persistedStateWriteMutex.withLock {
+            val nextState = runtimeStateMutable.value.takeIf { isImportOriginCurrent(request = request) }
+                ?.let(applyResult)
+            val cleared = aiChatRepository.finishImport(
+                request = request,
+                state = nextState?.let { state ->
+                    state.persistedState.copy(composerSuggestions = state.serverComposerSuggestions)
+                }
+            )
+            if (cleared) {
+                deleteAiChatAttachmentStagedFiles(attachments = attachments)
+            }
+            if (isImportOriginCurrent(request = request).not()) {
+                return@withLock false
+            }
+            persistedStateWriteRequestVersion.incrementAndGet()
+            if (cleared.not()) {
+                supersededImportRequest = request
+                runtimeStateMutable.update { state ->
+                    state.copy(
+                        persistedState = rollbackPersistedState,
+                        activeAlert = textProvider.generalError(message = textProvider.importDraftChanged)
+                    )
+                }
+                return@withLock false
+            }
+            runtimeStateMutable.value = applyResult(runtimeStateMutable.value)
+            true
         }
     }
 
@@ -225,10 +308,7 @@ internal class AiChatRuntimeContext(
             if (requestVersion != persistedStateWriteRequestVersion.get()) {
                 return@withLock
             }
-            persistStateSnapshot(
-                snapshot = snapshot,
-                draftState = snapshot.toDraftState()
-            )
+            persistStateSnapshot(snapshot = snapshot, draftState = snapshot.toDraftState())
         }
     }
 
@@ -240,7 +320,8 @@ internal class AiChatRuntimeContext(
             workspaceId = snapshot.workspaceId,
             state = snapshot.persistedState.copy(
                 composerSuggestions = snapshot.serverComposerSuggestions
-            )
+            ),
+            importRequest = snapshot.importRequest
         )
         val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
         if (chatSessionId != null) {
@@ -354,7 +435,8 @@ internal class AiChatRuntimeContext(
                 try {
                     aiChatRepository.savePersistedState(
                         workspaceId = origin.workspaceId,
-                        state = clearPendingToolRunPostSync(state = persistedState)
+                        state = clearPendingToolRunPostSync(state = persistedState),
+                        importRequest = null
                     )
                 } catch (error: CancellationException) {
                     throw error
@@ -403,6 +485,7 @@ private fun isExpectedTransientToolRunPostSyncFailure(error: Throwable): Boolean
 private fun AiChatRuntimeState.toDraftState(): AiChatDraftState {
     return AiChatDraftState(
         draftMessage = draftMessage,
-        pendingAttachments = pendingAttachments
+        pendingAttachments = pendingAttachments,
+        importRequest = importRequest
     )
 }

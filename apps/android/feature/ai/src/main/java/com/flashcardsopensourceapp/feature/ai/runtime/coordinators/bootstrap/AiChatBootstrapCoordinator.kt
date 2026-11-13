@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessConte
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.forSession
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.normalizeAiChatPersistedStateForWorkspace
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.resolveAiChatSessionIdForWorkspace
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runtimeKey
@@ -67,7 +68,8 @@ internal class AiChatBootstrapCoordinator(
         if (expectedJob == null || context.activeBootstrapJob !== expectedJob) {
             return false
         }
-        return context.activeAccessContext?.runtimeKey() == expectedContext.runtimeKey()
+        val currentKey = context.activeAccessContext?.runtimeKey() ?: return false
+        return expectedContext.runtimeKey().matchesCurrentAccess(current = currentKey)
     }
 
     private fun canApplyBootstrapResult(
@@ -89,6 +91,15 @@ internal class AiChatBootstrapCoordinator(
         val accessContext = context.activeAccessContext ?: return
         val workspaceId = accessContext.workspaceId ?: return
         if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
+            return
+        }
+
+        val currentState = context.runtimeStateMutable.value
+        if (currentState.importRequest != null && currentState.persistedState.requiresRemoteSessionProvisioning) {
+            // Leave provisioning to the import send, which verifies the original account and server.
+            context.runtimeStateMutable.update { state ->
+                state.copy(conversationBootstrapState = AiConversationBootstrapState.READY)
+            }
             return
         }
 
@@ -137,6 +148,7 @@ internal class AiChatBootstrapCoordinator(
                 val canLoadCurrentChat =
                     forceReloadState.not()
                         && preBootstrapState.activeRun == null
+                        && preBootstrapState.importRequest == null
                         && preBootstrapState.composerPhase == AiComposerPhase.IDLE
                 context.activeLiveJob?.cancel(
                     cause = CancellationException("AI live attach cancelled because bootstrap restarted.")
@@ -154,6 +166,7 @@ internal class AiChatBootstrapCoordinator(
                             isLiveAttached = false,
                             draftMessage = "",
                             pendingAttachments = emptyList(),
+                            importRequest = null,
                             serverComposerSuggestions = persistedState.composerSuggestions,
                             composerPhase = AiComposerPhase.IDLE,
                             dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
@@ -387,13 +400,13 @@ internal class AiChatBootstrapCoordinator(
                 // Once the switch landed, the pre-bootstrap state is an older chat; restoring it would move back.
                 val didSwitchChat = switchTargetSessionId != null && currentSessionId == switchTargetSessionId
                 val shouldPreserveConversationState = didSwitchChat.not()
-                    && shouldPreserveConversationStateOnBootstrapFailure(
+                    && (preBootstrapState.importRequest != null || shouldPreserveConversationStateOnBootstrapFailure(
                         error = error,
                         forceReloadState = forceReloadState,
                         preBootstrapState = preBootstrapState,
                         workspaceId = workspaceId,
                         persistedState = persistedState
-                    )
+                    ))
                 val failureSessionId = failedProvisionalSessionId
                     ?: currentSessionId
                     ?: persistedState.chatSessionId
@@ -425,6 +438,7 @@ internal class AiChatBootstrapCoordinator(
                             isLiveAttached = false,
                             draftMessage = preBootstrapState.draftMessage,
                             pendingAttachments = preBootstrapState.pendingAttachments,
+                            importRequest = preBootstrapState.importRequest,
                             composerPhase = preBootstrapState.composerPhase,
                             dictationState = preBootstrapState.dictationState,
                             serverComposerSuggestions = preBootstrapState.serverComposerSuggestions,
@@ -454,6 +468,7 @@ internal class AiChatBootstrapCoordinator(
                         isLiveAttached = false,
                         draftMessage = draftStateToPreserve?.draftMessage ?: "",
                         pendingAttachments = draftStateToPreserve?.pendingAttachments ?: emptyList(),
+                        importRequest = draftStateToPreserve?.importRequest,
                         serverComposerSuggestions = emptyList(),
                         composerPhase = AiComposerPhase.IDLE,
                         dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
@@ -705,6 +720,7 @@ internal class AiChatBootstrapCoordinator(
         }
         var didApplyBootstrap: Boolean = false
         var didMoveDraft: Boolean = false
+        var sourceStateToPreserve: AiChatRuntimeState? = null
         context.runtimeStateMutable.update { state ->
             if (canApplyBootstrap().not()) {
                 return@update state
@@ -715,13 +731,18 @@ internal class AiChatBootstrapCoordinator(
             val movedDraft = draftMove?.let { move ->
                 move.storedDraft ?: AiChatDraftState(
                     draftMessage = state.draftMessage,
-                    pendingAttachments = state.pendingAttachments
+                    pendingAttachments = state.pendingAttachments,
+                    importRequest = state.importRequest
                 )
             }?.takeIf { draft ->
-                draft.draftMessage.isNotBlank() || draft.pendingAttachments.isNotEmpty()
+                draftState?.importRequest == null && draft.importRequest == null &&
+                    (draft.draftMessage.isNotBlank() || draft.pendingAttachments.isNotEmpty())
             }
             didMoveDraft = movedDraft != null
-            val composerDraft = movedDraft ?: draftState
+            if (draftMove != null && draftState?.importRequest != null && draftMove.storedDraft == null) {
+                sourceStateToPreserve = state
+            }
+            val composerDraft = movedDraft ?: draftState?.forSession(workspaceId = workspaceId, sessionId = resolvedSessionId)
             updateComposerSuggestions(
                 state = state.copy(
                     persistedState = state.persistedState.copy(
@@ -745,6 +766,11 @@ internal class AiChatBootstrapCoordinator(
                         state.pendingAttachments
                     } else {
                         composerDraft?.pendingAttachments ?: emptyList()
+                    },
+                    importRequest = if (preserveLocalComposerState) {
+                        state.importRequest
+                    } else {
+                        composerDraft?.importRequest
                     },
                     composerPhase = if (response.activeRun != null) {
                         AiComposerPhase.RUNNING
@@ -776,6 +802,7 @@ internal class AiChatBootstrapCoordinator(
                 sessionId = draftMove.shownSessionId
             )
         }
+        sourceStateToPreserve?.let(context::persistDraft)
         if (response.activeRun == null && shouldPersistPendingToolRunPostSync) {
             context.triggerToolRunPostSyncIfNeeded(reason = "bootstrap_terminal")
         }

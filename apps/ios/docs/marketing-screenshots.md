@@ -15,14 +15,11 @@ This generator drives local iOS simulator-backed XCUITest flows and regenerates 
 
 ## What is included
 
-The capture catalog supports 50 capture tags (49 languages): the 42 Store locales
-plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
-inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
-and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
-The optional iPhone Duo inner family has 210 archived native PNGs for the 42
-Store locales. The outer family has five archived English native PNGs; its
-remaining locales have not been captured. Their capture provenance is in
-the separate
+The expected raw inventory is five screenshots per tag per captured device
+family. Use `--list-locales` for iPhone and `--list-ipad-locales` for the iPad
+capture tags. The optional iPhone Duo inner family has 210 archived native
+PNGs across 42 Store locales. The outer family has five archived English native
+PNGs. Capture provenance is in
 [`duo-source-manifest.json`](media/app-store-cards/duo-source-manifest.json).
 The complete Mac inventory and its provenance are recorded under
 [Native Mac Catalyst capture](#native-mac-catalyst-capture).
@@ -359,7 +356,7 @@ The derived-material builder is the wrapper that turns the five localized screen
 
 Default behavior:
 
-- locale scope defaults to every capture tag of the resolved family, and the iPad family excludes the iPhone-only capture tags
+- locale scope defaults to every capture tag of the resolved family. With `--skip-screenshots`, the batch uses complete saved sets for that family
 - raw screenshot regeneration is enabled
 - optimization mode defaults to `visually-lossless`
 - output family is inferred from the currently booted simulator unless you pass `--skip-screenshots`, in which case `--family` becomes required
@@ -384,6 +381,10 @@ Reuse already generated raw screenshots and only rebuild the derived assets for 
 ```bash
 bash scripts/ios/build-ios-marketing-materials.sh --all-locales --skip-screenshots --family iphone
 ```
+
+The saved batch skips capture tags with no native files. It rejects partial or
+duplicate sets before composing any output. Use `--locale <capture-tag>` to
+require a specific saved set.
 
 After genuine Duo raw captures exist, build a display's horizontal material
 independently, for example:
@@ -522,7 +523,7 @@ bash scripts/ios/capture-macos-marketing-screenshots.sh \
   --mac-id <registered-mac-id> --locale en-US
 ```
 
-`--list-locales` prints the existing 42 Store capture tags; `--locale` accepts a
+`--list-locales` prints the distinct Store capture tags. `--locale` accepts a
 capture tag or its Store locale ID. `--all-locales` captures them sequentially
 using one build. `--skip-build` reuses the original generated `.xctestrun` only
 when application/test sources and signing inputs remain unchanged. Rebuild after

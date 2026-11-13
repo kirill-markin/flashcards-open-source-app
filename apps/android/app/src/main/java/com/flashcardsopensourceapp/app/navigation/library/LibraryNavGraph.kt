@@ -10,6 +10,7 @@ import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.LibraryDestination
 import com.flashcardsopensourceapp.feature.cards.createLibraryViewModelFactory
+import com.flashcardsopensourceapp.feature.cards.library.LibraryImportRoute
 import com.flashcardsopensourceapp.feature.cards.library.LibraryRoute
 import com.flashcardsopensourceapp.feature.cards.library.LibraryViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +52,34 @@ internal fun NavGraphBuilder.registerLibraryNavGraph(
                 }
             )
         }
+        composable(route = LibraryImportDestination.route) {
+            LibraryImportRoute(
+                onOpenNibomoImport = {
+                    navController.navigate(route = LibraryNibomoImportDestination.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenBrandImport = { source ->
+                    navController.navigate(route = LibraryBrandImportDestination.createRoute(source = source)) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenSpreadsheetImport = {
+                    navController.navigate(route = LibrarySpreadsheetImportGraph.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        registerLibraryBrandImportDestination(
+            appGraph = appGraph,
+            navController = navController
+        )
+        registerLibrarySpreadsheetImportDestinations(
+            appGraph = appGraph,
+            navController = navController
+        )
         registerLibraryCardsDestination(
             appGraph = appGraph,
             navController = navController,

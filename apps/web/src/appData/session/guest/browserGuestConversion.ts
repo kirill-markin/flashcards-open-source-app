@@ -1,3 +1,4 @@
+import { flushBeforeIdentityTeardown } from "../../../analytics";
 import { deliverFirstReviewOnboarding } from "../firstReviewOnboardingWrite";
 import { completeBrowserGuestUpgrade, forgetBrowserGuestSession, prepareBrowserGuestUpgrade, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
 import { getOptionalSession, primeGuestSession, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
@@ -45,6 +46,9 @@ export async function beginGuestSignIn(userId: string, workspaceId: string, drai
     await drainBrowserGuestInThisTab(async () => {
       await drainGuestWorkspace();
       await deliverFirstReviewOnboarding(guestSession, new AbortController().signal);
+      // Sign-in merges and revokes this guest, so its queued events only ship now: the next phase pauses the guest transport.
+      try { await flushBeforeIdentityTeardown(); }
+      catch { /* The analytics transport reports its own failure; departure must still complete. */ }
     });
   } catch (error) {
     await resumeGuestAfterCancelledSignIn();

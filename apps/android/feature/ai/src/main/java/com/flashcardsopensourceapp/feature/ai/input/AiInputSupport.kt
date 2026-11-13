@@ -11,11 +11,14 @@ import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatStagedAttachmentStore
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSource
+import com.flashcardsopensourceapp.data.local.model.ai.AiImportSourceInput
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumFileAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumImageAttachmentBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSupportedFileExtensions
 import com.flashcardsopensourceapp.data.local.model.ai.canonicalAiChatAttachmentMediaTypeForExtension
 import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatAttachment
+import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiDictationNoSpeechException
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.ByteArrayOutputStream
@@ -59,6 +62,12 @@ open class AiAttachmentImportUserException(
  * from a type rather than from a localized message, which would only match in one language.
  */
 class AiAttachmentTooLargeUserException(
+    message: String,
+    cause: Throwable?
+) : AiAttachmentImportUserException(message = message, cause = cause)
+
+/** A picked file with no bytes, split out so the import screen can show its own invalid-file text. */
+class AiAttachmentEmptyUserException(
     message: String,
     cause: Throwable?
 ) : AiAttachmentImportUserException(message = message, cause = cause)
@@ -263,11 +272,7 @@ suspend fun makeAiChatDocumentAttachmentFromUri(
     uri: Uri,
     textProvider: AiTextProvider
 ): AiChatAttachment {
-    val displayName = queryDisplayName(context = context, uri = uri)
-        ?: throw AiAttachmentImportUserException(
-            message = textProvider.selectedFileNameUnavailable,
-            cause = null
-        )
+    val displayName = requireAiChatDocumentDisplayName(context = context, uri = uri, textProvider = textProvider)
     val mediaType = resolveMimeType(context = context, uri = uri)
     val fileExtension = resolveFileExtension(
         fileName = displayName,
@@ -278,6 +283,121 @@ suspend fun makeAiChatDocumentAttachmentFromUri(
         fileExtension = fileExtension,
         textProvider = textProvider
     )
+    return makeStagedAiChatDocumentAttachment(
+        context = context,
+        uri = uri,
+        displayName = displayName,
+        fileExtension = fileExtension,
+        textProvider = textProvider
+    )
+}
+
+/**
+ * Stages one file picked for [source]: only the source's extensions pass, and every refusal names the
+ * file so the person can tell which pick to replace.
+ */
+internal suspend fun makeAiImportFileAttachmentFromUri(
+    context: Context,
+    uri: Uri,
+    source: AiImportSource,
+    files: AiImportSourceInput.Files,
+    textProvider: AiTextProvider
+): AiChatAttachment.Binary {
+    val displayName = requireAiChatDocumentDisplayName(context = context, uri = uri, textProvider = textProvider)
+    val fileExtension = displayName.substringAfterLast(delimiter = '.', missingDelimiterValue = "").lowercase()
+    if (files.fileExtensions.contains(fileExtension).not()) {
+        throw AiAttachmentImportUserException(
+            message = aiImportInvalidFileMessage(context = context, source = source, files = files, fileName = displayName),
+            cause = null
+        )
+    }
+    return try {
+        makeStagedAiChatDocumentAttachment(
+            context = context,
+            uri = uri,
+            displayName = displayName,
+            fileExtension = fileExtension,
+            textProvider = textProvider
+        )
+    } catch (error: AiAttachmentEmptyUserException) {
+        throw AiAttachmentImportUserException(
+            message = aiImportInvalidFileMessage(context = context, source = source, files = files, fileName = displayName),
+            cause = error
+        )
+    } catch (error: AiAttachmentTooLargeUserException) {
+        throw AiAttachmentImportUserException(
+            message = aiImportFileTooLargeMessage(context = context, fileName = displayName),
+            cause = error
+        )
+    } catch (error: AiAttachmentImportUserException) {
+        throw AiAttachmentImportUserException(
+            message = context.getString(R.string.ai_import_file_error, displayName, error.message),
+            cause = error
+        )
+    } catch (error: SecurityException) {
+        throw AiAttachmentImportUserException(
+            message = context.getString(R.string.ai_import_file_error, displayName, textProvider.selectedFileReadFailed),
+            cause = error
+        )
+    }
+}
+
+/** Stages pasted text as one plain-text attachment; writes to disk, so call it off the main thread. */
+internal fun makeAiImportPastedTextAttachment(
+    context: Context,
+    text: String,
+    pastedText: AiImportSourceInput.PastedText
+): AiChatAttachment.Binary {
+    val bytes = text.toByteArray(charset = Charsets.UTF_8)
+    if (bytes.size > aiChatMaximumFileAttachmentBytes) {
+        throw AiAttachmentImportUserException(
+            message = aiImportFileTooLargeMessage(context = context, fileName = pastedText.attachmentFileName),
+            cause = null
+        )
+    }
+    return makeStagedAiChatAttachment(
+        context = context,
+        fileName = pastedText.attachmentFileName,
+        mediaType = canonicalAiChatAttachmentMediaTypeForExtension(
+            fileExtension = pastedText.attachmentFileName.substringAfterLast(delimiter = '.')
+        ),
+        bytes = bytes
+    )
+}
+
+private fun aiImportInvalidFileMessage(
+    context: Context,
+    source: AiImportSource,
+    files: AiImportSourceInput.Files,
+    fileName: String
+): String {
+    val brandName = source.brandName
+    return if (brandName == null) {
+        context.getString(R.string.ai_import_other_invalid_file, fileName, files.formats)
+    } else {
+        context.getString(R.string.ai_import_brand_invalid_file, fileName, brandName, files.formats)
+    }
+}
+
+private fun aiImportFileTooLargeMessage(context: Context, fileName: String): String {
+    return context.getString(R.string.ai_import_file_too_large, fileName, aiChatMaximumFileAttachmentBytes / (1024L * 1024))
+}
+
+private fun requireAiChatDocumentDisplayName(context: Context, uri: Uri, textProvider: AiTextProvider): String {
+    return queryDisplayName(context = context, uri = uri)
+        ?: throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileNameUnavailable,
+            cause = null
+        )
+}
+
+private suspend fun makeStagedAiChatDocumentAttachment(
+    context: Context,
+    uri: Uri,
+    displayName: String,
+    fileExtension: String,
+    textProvider: AiTextProvider
+): AiChatAttachment.Binary {
     val canonicalMediaType = canonicalAiChatAttachmentMediaTypeForExtension(fileExtension = fileExtension)
     val stagedFile = stageAiChatDocumentAttachmentFile(
         context = context,
@@ -313,7 +433,7 @@ private fun makeStagedAiChatAttachment(
     fileName: String,
     mediaType: String,
     bytes: ByteArray
-): AiChatAttachment {
+): AiChatAttachment.Binary {
     val stagedFile = AiChatStagedAttachmentStore(context = context).makeFile()
     stagedFile.writeBytes(bytes)
     return makeAiChatAttachment(
@@ -392,7 +512,7 @@ private suspend fun copyAiChatDocumentAttachmentBytesBounded(
 
     // The upload endpoint takes only a positive size.
     if (totalBytes == 0L) {
-        throw AiAttachmentImportUserException(
+        throw AiAttachmentEmptyUserException(
             message = textProvider.selectedFileEmpty,
             cause = null
         )

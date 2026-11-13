@@ -377,10 +377,14 @@ const gatewayErrorCorsExposeHeaders = [
   "x-amz-apigw-id",
 ] as const;
 
+// Chrome caps Access-Control-Max-Age at 2 hours; without it a preflight is reused for 5 seconds.
+const browserCorsPreflightMaxAge = cdk.Duration.seconds(7_200);
+
 export const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
   allowOrigins: ["*"],
   allowMethods: ["GET", "OPTIONS"],
   allowHeaders: ["content-type", "authorization", "sentry-trace", "baggage"],
+  maxAge: browserCorsPreflightMaxAge,
 };
 
 function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
@@ -389,6 +393,7 @@ function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.Cors
     allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allowHeaders: [...browserCorsAllowHeaders],
     allowCredentials: true,
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -397,6 +402,7 @@ function createPublicCatalogCorsPreflightOptions(allowedOrigins: string[]): apig
     allowOrigins: allowedOrigins,
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage", "x-client-platform", "x-client-version"],
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -405,6 +411,7 @@ function createAnonymousAnalyticsCorsPreflightOptions(allowedOrigins: string[]):
     allowOrigins: allowedOrigins,
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage"],
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 
@@ -417,6 +424,7 @@ export function createChatLiveFunctionUrlCorsOptions(
     allowedHeaders: [...browserCorsAllowHeaders],
     exposedHeaders: [...chatLiveFunctionUrlCorsExposeHeaders],
     allowCredentials: true,
+    maxAge: browserCorsPreflightMaxAge,
   };
 }
 

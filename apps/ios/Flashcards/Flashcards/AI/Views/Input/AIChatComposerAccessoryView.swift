@@ -117,6 +117,17 @@ extension AIChatView {
                     }
                 }
 
+                if self.chatStore.isAIImportDraftBlocked {
+                    Text(
+                        aiSettingsLocalized(
+                            "ai.composer.aiImport.unconfirmed",
+                            "Couldn’t confirm the import. Check this chat and your Library before starting another import."
+                        )
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
                 if self.chatStore.visibleComposerSuggestions.isEmpty == false {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {

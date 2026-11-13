@@ -32,6 +32,7 @@ actor AIChatSessionRuntime {
         session: CloudLinkedSession,
         sessionId: String,
         afterCursor: String?,
+        aiImportRequestId: String?,
         outgoingContent: [AIChatStartRunContentPart],
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async throws {
@@ -54,12 +55,21 @@ actor AIChatSessionRuntime {
                 session: session,
                 request: AIChatStartRunRequestBody(
                     sessionId: effectiveSessionId,
-                    clientRequestId: makeAIChatClientRequestId(),
+                    clientRequestId: aiImportRequestId ?? makeAIChatClientRequestId(),
                     content: outgoingContent,
                     timezone: TimeZone.current.identifier,
                     uiLocale: currentAIChatUILocaleIdentifier()
                 )
             )
+            if let aiImportRequestId {
+                guard startResponse.accepted else {
+                    throw LocalStoreError.validation("The start response did not confirm AI import request \(aiImportRequestId).")
+                }
+                try validateAIChatBootstrapSessionContract(
+                    response: startResponse.envelope,
+                    requestedSessionId: effectiveSessionId
+                )
+            }
             await eventHandler(.accepted(startResponse))
             logAIChatRuntimeEvent(
                 action: "ai_run_started",

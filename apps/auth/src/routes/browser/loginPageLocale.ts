@@ -1,7 +1,8 @@
 const SUPPORTED_LOGIN_PAGE_LOCALES = [
-  "en", "ar", "zh-Hans", "fr", "de", "hi", "ja", "pt-BR", "ru", "es-MX", "es-ES",
+  "en", "en-AU", "en-CA", "en-GB", "ar", "zh-Hans", "zh-Hant", "fr", "fr-CA", "de",
+  "hi", "ja", "pt-BR", "pt-PT", "ru", "es-MX", "es-ES",
   "bg", "bn", "ca", "cs", "da", "el", "et", "fa", "fi", "gu", "he", "hr", "hu",
-  "id", "is", "it", "kn", "ko", "lt", "lv", "ml", "mr", "nb", "nl", "pa", "pl",
+  "id", "is", "it", "kn", "ko", "lt", "lv", "ml", "mr", "ms", "nb", "nl", "or", "pa", "pl",
   "ro", "sk", "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zu",
 ] as const;
 const DEFAULT_LOGIN_PAGE_LOCALE = "en" as const;
@@ -39,8 +40,10 @@ const LOGIN_PAGE_LOCALE_DIRECTIONS: Readonly<Record<LoginPageLocale, LoginPageDi
   lv: "ltr",
   ml: "ltr",
   mr: "ltr",
+  ms: "ltr",
   nb: "ltr",
   nl: "ltr",
+  or: "ltr",
   pa: "ltr",
   pl: "ltr",
   ro: "ltr",
@@ -57,13 +60,19 @@ const LOGIN_PAGE_LOCALE_DIRECTIONS: Readonly<Record<LoginPageLocale, LoginPageDi
   vi: "ltr",
   zu: "ltr",
   en: "ltr",
+  "en-AU": "ltr",
+  "en-CA": "ltr",
+  "en-GB": "ltr",
   ar: "rtl",
   "zh-Hans": "ltr",
+  "zh-Hant": "ltr",
   fr: "ltr",
+  "fr-CA": "ltr",
   de: "ltr",
   hi: "ltr",
   ja: "ltr",
   "pt-BR": "ltr",
+  "pt-PT": "ltr",
   ru: "ltr",
   "es-MX": "ltr",
   "es-ES": "ltr",
@@ -92,8 +101,10 @@ const PRIMARY_LANGUAGE_LOGIN_PAGE_FALLBACKS: Readonly<Record<string, LoginPageLo
   lv: "lv",
   ml: "ml",
   mr: "mr",
+  ms: "ms",
   nb: "nb",
   nl: "nl",
+  or: "or",
   pa: "pa",
   pl: "pl",
   ro: "ro",
@@ -118,11 +129,6 @@ const PRIMARY_LANGUAGE_LOGIN_PAGE_FALLBACKS: Readonly<Record<string, LoginPageLo
   ja: "ja",
   pt: "pt-BR",
   ru: "ru",
-};
-
-const LEGACY_LOGIN_PAGE_LOCALE_MAP: Readonly<Record<string, LoginPageLocale>> = {
-  en: "en",
-  es: DEFAULT_SPANISH_LOGIN_PAGE_LOCALE,
 };
 
 function hasOwnProperty<Value>(
@@ -168,35 +174,50 @@ function resolveSpanishLocale(region: string | null): LoginPageLocale {
 }
 
 function resolveChineseLocale(script: string | null, region: string | null): LoginPageLocale | null {
-  if (script === "Hans" || region === "CN" || region === "SG") {
+  if (script === "Hans") {
     return "zh-Hans";
+  }
+
+  if (script === "Hant") {
+    return "zh-Hant";
+  }
+
+  if (region === "CN" || region === "SG") {
+    return "zh-Hans";
+  }
+
+  if (region === "TW" || region === "HK" || region === "MO") {
+    return "zh-Hant";
   }
 
   return null;
 }
 
 function resolveSupportedLoginPageLocale(languageTag: string): LoginPageLocale | null {
-  const exactLocale = normalizeSupportedLoginPageLocale(languageTag);
-  if (exactLocale !== null) {
-    return exactLocale;
-  }
-
   const normalizedLanguageTag = normalizeLanguageTag(languageTag);
   if (normalizedLanguageTag === null) {
     return null;
   }
 
-  if (hasOwnProperty(LEGACY_LOGIN_PAGE_LOCALE_MAP, normalizedLanguageTag)) {
-    return LEGACY_LOGIN_PAGE_LOCALE_MAP[normalizedLanguageTag];
+  const locale = new Intl.Locale(normalizedLanguageTag);
+  const baseName = locale.baseName;
+  if (isSupportedLoginPageLocale(baseName)) {
+    return baseName;
   }
 
-  const locale = new Intl.Locale(normalizedLanguageTag);
   if (locale.language === "es") {
     return resolveSpanishLocale(locale.region ?? null);
   }
 
   if (locale.language === "zh") {
     return resolveChineseLocale(locale.script ?? null, locale.region ?? null);
+  }
+
+  if (locale.region !== undefined) {
+    const regionalLocale = `${locale.language}-${locale.region}`;
+    if (isSupportedLoginPageLocale(regionalLocale)) {
+      return regionalLocale;
+    }
   }
 
   return hasOwnProperty(PRIMARY_LANGUAGE_LOGIN_PAGE_FALLBACKS, locale.language)
@@ -223,7 +244,7 @@ function parseAcceptLanguageEntry(entry: string, order: number): AcceptLanguageE
   const qualityPart = entryParts.find((part) => part.startsWith("q="));
   const qualityValue = qualityPart?.slice("q=".length);
   const weight = qualityValue === undefined ? 1 : parseAcceptLanguageWeight(qualityValue);
-  if (weight === null) {
+  if (weight === null || weight === 0) {
     return null;
   }
 
