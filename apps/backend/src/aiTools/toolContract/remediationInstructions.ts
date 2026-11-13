@@ -224,7 +224,7 @@ const REST_API_KEY_AUTHORIZATION = "Use a valid non-revoked API key in the Autho
  * That is wording, not reachability: a tool surface can put one of these codes in front of the
  * model without this module's wording. The chat's generated-image tool reports
  * MEDIA_ASSET_STORAGE_UNAVAILABLE in its own `{ ok: false, code, retryable, message }` envelope
- * (`getGeneratedImageToolSafeErrorCode` in `apps/backend/src/chat/openai/tools/tools.ts`), which
+ * (`getGeneratedImageToolSafeErrorCode` in `apps/backend/src/chat/openai/tools/generatedImage/runner.ts`), which
  * never reaches this module; its short `message` comes from `generatedImageErrorMessages` there.
  */
 const REST_CODE_INSTRUCTIONS: Readonly<Record<string, RestWording | undefined>> = {

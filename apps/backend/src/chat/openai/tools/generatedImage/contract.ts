@@ -6,7 +6,7 @@ import {
   hasValidGeneratedImageAltTextCharactersAndLength,
   maximumGeneratedImageAltTextCodePoints,
   maximumGeneratedImagePromptCodePoints,
-} from "../../cardImages/contract";
+} from "../../../cardImages/contract";
 
 export const GENERATED_IMAGE_TOOL_NAME = "add_generated_image_to_card";
 

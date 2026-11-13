@@ -26,7 +26,7 @@ import type {
 } from "../../../productAnalytics/catalog";
 import type { UserOpenAIApiKey } from "../../userOpenAIApiKey";
 import { createGeneratedImageOperationKey } from "../../generatedImageOperationIdentity";
-import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImageToolContract";
+import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImage/contract";
 import { isTransientProviderOverloadError } from "../../runtime/providerErrors";
 import { writeCloudWatchRecord } from "../../../observability/cloudWatch";
 import type { BackendObservationScope } from "../../../observability/sentry";
