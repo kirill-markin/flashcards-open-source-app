@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "repository": "kirill-markin/flashcards-open-source-app",
-  "releaseTag": "media-archive-20261017",
+  "releaseTag": "media-archive-20261113-localizations",
   "bundles": {
     "ios-native": {
       "root": "apps/ios/docs/media/app-store-screenshots",
       "asset": "ios-native.tar.gz",
-      "sha256": "3dae7cc429118064c674cb09bffe4f1ad0cfae5ff024e72637e6ae6655fe89e0",
-      "size": 310054034,
+      "sha256": "ed9dd49b0efaa08f6a4e415979f6dd1dcbb4ae572d1e8616f0f50c48abda1508",
+      "size": 341887525,
       "files": [
         {
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/ar-1_review-card-front-app-store-opportunity-cost.png",
@@ -610,6 +610,31 @@
           "size": 421583
         },
         {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/ms-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "f1f49c2e0954be6ccf8a7cabb882b4199592cbeaff133be1cf255b25e5641339",
+          "size": 229985
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/ms-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "7a362e6ec075e057451568bcc3db918f0cbbd68c6ce4b1a5a2b606f2dc7ee20f",
+          "size": 394014
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/ms-3_progress-app-store-study-history.png",
+          "sha256": "b904cb6637c7329a7bb7296236909a4a79072f536635ba773bdbf6cdcd449b65",
+          "size": 314840
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/ms-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "824f23facf444be3be325c25ea6445fa3659d94a537ffcca8563c002aec2a819",
+          "size": 614288
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/ms-5_cards-list-app-store-vocabulary.png",
+          "sha256": "f1bd07ed182576196843ca80deb327c3f088c7267f1f03b11d4bc41e4242a08b",
+          "size": 466534
+        },
+        {
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/nb-1_review-card-front-app-store-opportunity-cost.png",
           "sha256": "f8d0627344d501b8de719396ce54f984f6a799d7c877dae34b99fffd0cee74a9",
           "size": 195998
@@ -658,6 +683,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/nl-5_cards-list-app-store-vocabulary.png",
           "sha256": "a5359c09fc36b2cda1216cc179220af7751fbc08027efb4a20bdcea37bff9465",
           "size": 435625
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/or-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "10a78d3fbaedbbc792da7862260f76fb428cca63c47d4a00105986f4dbb49189",
+          "size": 252698
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/or-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "67f6020f4d0d5baa1a96793202036a9a3c644958481da41b450c8ef97ed99ee8",
+          "size": 462150
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/or-3_progress-app-store-study-history.png",
+          "sha256": "c76322feb115d06f412aca5d14ca48b7415cbcb84aabd82bbdc27ae6f00630d8",
+          "size": 364164
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/or-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "d3a9a1fb8f710f24eb0adcc6e88f08456d8029c9063e5ae44bbcb051543c80de",
+          "size": 718444
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/or-5_cards-list-app-store-vocabulary.png",
+          "sha256": "ebe8f8f276c4725a1307cc136af147b4c40126c2b998f867e3d8156a1191b593",
+          "size": 564786
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/pa-1_review-card-front-app-store-opportunity-cost.png",
@@ -733,6 +783,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/pt-BR-5_cards-list-app-store-vocabulary.png",
           "sha256": "4a015790d353e4d4f84fa084c6342e5f0266c33346ac0121154a347239260d85",
           "size": 439426
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/pt-PT-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "7c4c128aed7b323a6f89704ff95dec13d6942c3dc8916e1c6566d3e555abec2f",
+          "size": 236539
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/pt-PT-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "5b47868bf35632a0a127007b1525ecf9285206eeb2326e8553c9dbf9da6f720f",
+          "size": 403570
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/pt-PT-3_progress-app-store-study-history.png",
+          "sha256": "97b6caa1bac90a8bb849cfc2d4769fe95d3ded25be1775da1f0fcaf13fada18a",
+          "size": 336117
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/pt-PT-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "1e8acdc14c26f6cab797260126640fe96e10ebdedccbbe1f1f0a2c10fd42d59c",
+          "size": 625281
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/pt-PT-5_cards-list-app-store-vocabulary.png",
+          "sha256": "9354661c1074f8f358ff5bef52bb2a2c007679dacb343be2a5396ac724bb7650",
+          "size": 477121
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/ro-1_review-card-front-app-store-opportunity-cost.png",
@@ -1058,6 +1133,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/ipad/zh-Hans-5_cards-list-app-store-vocabulary.png",
           "sha256": "bbf1ddb084a2e2c7f72044053edaee2f6125ec2ffb41ac75d8588782bcec426e",
           "size": 453407
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/zh-Hant-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "7ffd9e89416c6fc8a3fd74393e09a86610fea5dd87d99dbe193698a631063a02",
+          "size": 240886
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/zh-Hant-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "d21dc9db3b5516d6e4f9d70045ca4f6c91c341e1125c501df8c55b33f05105d2",
+          "size": 402646
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/zh-Hant-3_progress-app-store-study-history.png",
+          "sha256": "086a3684be4096c68cfea670c88ceb25e147b8d8485ea0165cb2974a0b2db415",
+          "size": 325264
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/zh-Hant-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "ea4d8f918682eccb30a11a368fa751ac353d599e474ddca5c3e2ce1bf1e79363",
+          "size": 609065
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/ipad/zh-Hant-5_cards-list-app-store-vocabulary.png",
+          "sha256": "59e66a4b39db74039ea7020c2f5ab6fefca8a73583c25d07307f75f0bd86e18a",
+          "size": 507530
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/ar-1_review-card-front-app-store-opportunity-cost.png",
@@ -1810,6 +1910,31 @@
           "size": 338352
         },
         {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/ms-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "1d4ad928962da1e9436f090d96799f89d0646c1bd42aacc84f978b62e02cef32",
+          "size": 272918
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/ms-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "2296f390c3b27ab5f5db614f11e7c033648e09abd060807269651dc637a17e05",
+          "size": 815072
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/ms-3_progress-app-store-study-history.png",
+          "sha256": "95e2468d397cd40ea4b0108cfd89236d59ac72f5063ef1cb3ca4e3041a44c21c",
+          "size": 334090
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/ms-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "98474fcd93de3bd23c4a2bb737e9562b6ad93e5b6991a08b8cf0621e5582d076",
+          "size": 330723
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/ms-5_cards-list-app-store-vocabulary.png",
+          "sha256": "390879914b157df0cd54a62fee0284bcc25052ccb7f726e033073070a448f0bd",
+          "size": 301222
+        },
+        {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/nb-1_review-card-front-app-store-opportunity-cost.png",
           "sha256": "04a42e205d572b20d2fb03aee9451e6f9a70fbe8cf74228c69a5854836f04df2",
           "size": 222674
@@ -1858,6 +1983,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/nl-5_cards-list-app-store-vocabulary.png",
           "sha256": "99501a61861eb9ab9eb2399727aa02efefc7a269e416c7c2b03b1c21ce6cfcaf",
           "size": 351774
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/or-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "8bf9fc7f6c4d3885eea930316a2cb4e19354525bf0271dfc52267f4ef4929326",
+          "size": 309277
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/or-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "963feeb4cb55e782a9fe0c2f6b2eef87618cefc0f85c41966c2032423a6fb869",
+          "size": 950466
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/or-3_progress-app-store-study-history.png",
+          "sha256": "6f99069a8d099fd11e4bca3f5b9f7dd6e2b4cf413476c778ca9c0fdd741cf359",
+          "size": 367719
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/or-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "616426535fea4b97cfa56b9f79e81ae111a1d1d53e764577b1ad9617963423eb",
+          "size": 385251
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/or-5_cards-list-app-store-vocabulary.png",
+          "sha256": "8ef32d3759d4ed30c30cfb55676e50704174f89f718f07f8f4a3800c7191d7f0",
+          "size": 376680
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/pa-1_review-card-front-app-store-opportunity-cost.png",
@@ -1933,6 +2083,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/pt-BR-5_cards-list-app-store-vocabulary.png",
           "sha256": "75f52e7d4aac297d67d946121cd74f8fdc47db3f0a0c258692d615a1554748c3",
           "size": 361756
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/pt-PT-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "fab6b60b3747b663b961ef5ad11efbf9c9d9d462849285c9ace55f811fe9deb8",
+          "size": 305255
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/pt-PT-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "1e164b20dcbf03b5c764ec869f0aad44493bd9edd6662b39729b82df182bf494",
+          "size": 901168
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/pt-PT-3_progress-app-store-study-history.png",
+          "sha256": "d1dc1ce67dff6aa45d21180a6ddeefffab1d931cd4452e8dd46809c65bf0963f",
+          "size": 352967
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/pt-PT-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "18a3a746bf9bc70057946da3534374ec644676414184817b70652128f4ecc1a5",
+          "size": 324818
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/pt-PT-5_cards-list-app-store-vocabulary.png",
+          "sha256": "85a91533234e4103d77dad1a7cc332215ae6b7aff8c00c15cf3fecaf9dbc9dc8",
+          "size": 334995
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/ro-1_review-card-front-app-store-opportunity-cost.png",
@@ -2283,6 +2458,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/zh-Hans-5_cards-list-app-store-vocabulary.png",
           "sha256": "b6ad022b6a986b89d63d13ac497b964d00946a90ab1436eb2580a1d3d7f20931",
           "size": 300903
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/zh-Hant-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "0dceb012ebf9a5be2db7628125a99f64fb4c57ab4397773bb47d425b774c977a",
+          "size": 293299
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/zh-Hant-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "347ff33f7c873d3e27aeb54524347de0a12a5a607ae08984cc72152b46d8677d",
+          "size": 626336
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/zh-Hant-3_progress-app-store-study-history.png",
+          "sha256": "720cfaaf9a9374afbf9740e82b95591900e57b203683b8d7ea003910f4a6ebca",
+          "size": 324668
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/zh-Hant-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "621b2709594c605d896b50630f70f898e6fbf9af6b2e894353632ae8dd60bedc",
+          "size": 322268
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone/zh-Hant-5_cards-list-app-store-vocabulary.png",
+          "sha256": "7b6a29db44aaf608bf90c82abf41fef48238ab2257aa9e9c4d5ce160a4f88b37",
+          "size": 332591
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone/zu-1_review-card-front-app-store-opportunity-cost.png",
@@ -2910,6 +3110,31 @@
           "size": 502071
         },
         {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/ms-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "594a0c5ec284b44319374e7e2cf1d675a5b577e4b3df8ad481c0206ed3e3e6dc",
+          "size": 322755
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/ms-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "4ab99c91b34ddbfe9541000e55174c9e5b08ecac542ca0a040d14ed189f7d86e",
+          "size": 692611
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/ms-3_progress-app-store-study-history.png",
+          "sha256": "19562e4903434266d67cb5c1a8736551e7a236aad73664391418ab105187403c",
+          "size": 365228
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/ms-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "19799d0f94e82320bfe1affe12c5b2f1e8a2913e545ec98a85278cbdefb9497c",
+          "size": 994116
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/ms-5_cards-list-app-store-vocabulary.png",
+          "sha256": "ee7f2d4a729203f65b8ecb7b5a45b62e496e27e2d9514be76af004774d273a3b",
+          "size": 554286
+        },
+        {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/nb-1_review-card-front-app-store-opportunity-cost.png",
           "sha256": "bb692eb331e18c9edbdd0f8a331caaeeb324c0500096c08b1662e647e45c10aa",
           "size": 313958
@@ -2958,6 +3183,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/nl-5_cards-list-app-store-vocabulary.png",
           "sha256": "0385b9928464910f1b35e84cd991d9a64ae9ce1631689dc8dcb6fed40f96bec5",
           "size": 561578
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/or-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "481a95df6afe8cd5176ef3075c3873a0b207f7ecaf42b964e719729caae4bbbe",
+          "size": 359059
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/or-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "2c3baf266d26b4f3db7a6d8a2ca57b3926af4b821ce1228c7b950bfd1b8d5a3d",
+          "size": 939660
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/or-3_progress-app-store-study-history.png",
+          "sha256": "7fc4e0599186b8db2009ddf90319f6f6ccc51b6707620dc7ec917bc2d8fdcc0a",
+          "size": 378057
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/or-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "9bc2820e66984350f2dd496a8cbe680ae51d76a9a48b0ecac12111298f800aae",
+          "size": 1074693
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/or-5_cards-list-app-store-vocabulary.png",
+          "sha256": "12965ac121b19b2c3ecfdafe89fc68f51261297b08ff742a7922dd5df8508b7e",
+          "size": 661153
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pa-1_review-card-front-app-store-opportunity-cost.png",
@@ -3033,6 +3283,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pt-BR-5_cards-list-app-store-vocabulary.png",
           "sha256": "a43784a0b10de293c8396b6be17f413d80d1b8f254c10e54f14defc2ed26c0b3",
           "size": 565490
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pt-PT-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "7e885fcfd8f3d13eadc20417ec5b836e205f3d5cc5af9038066a1c87c34d5988",
+          "size": 326294
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pt-PT-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "01d5308b157afd0526a9ce9b2369eb99ce8b94c3dd4abf58732ecf67a0c13575",
+          "size": 699187
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pt-PT-3_progress-app-store-study-history.png",
+          "sha256": "5d9f4f2fd8ac82d234f52d894d6a04377faa9fce5ebed87026c8497e14605728",
+          "size": 373759
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pt-PT-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "598284772ea2b37a5a0d8557af8f0c93d94c2db68c4bc3a547d782fc5161f4c2",
+          "size": 965456
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/pt-PT-5_cards-list-app-store-vocabulary.png",
+          "sha256": "bb00ecd6261a0f8a07a1e222f565a3199d4330e2faebbf77cfba78829dacec6f",
+          "size": 568518
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/ro-1_review-card-front-app-store-opportunity-cost.png",
@@ -3358,6 +3633,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/zh-Hans-5_cards-list-app-store-vocabulary.png",
           "sha256": "193b56ab195e72bf8d503e4d27a358d53f0eb4648f7b5cd0fb91ffadb046dbdd",
           "size": 559619
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/zh-Hant-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "89c146ce77d6b168520d8e587b4d5ec58052ee9108e4f624555eacb4907114a0",
+          "size": 331988
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/zh-Hant-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "eb9d129e7e183a9235627e7b662f0a34c0e0d35a98ce5cb8e734dda9f25fa548",
+          "size": 771988
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/zh-Hant-3_progress-app-store-study-history.png",
+          "sha256": "eaa16f4d9df0b1d8b33d9075902aea90422a119c7e13feaab436cc056349f01e",
+          "size": 363576
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/zh-Hant-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "eb7b371bdea97b97157908b40be95b0d2502cdb282f6c48e8266350885dbd6fc",
+          "size": 1006718
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-inner/zh-Hant-5_cards-list-app-store-vocabulary.png",
+          "sha256": "72305ff5fb29f8597f8a95a88445603cbe9b11bbd145e2b603c32f5cf782b917",
+          "size": 591154
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/iphone-duo-outer/en-US-1_review-card-front-app-store-opportunity-cost.png",
@@ -3985,6 +4285,31 @@
           "size": 189149
         },
         {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/ms-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "bd595c4e2197b1dc6092cf5430125b51b264f74f984b1efbf2ea6c62c403c2be",
+          "size": 171411
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/ms-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "ea9fadcfb5382e0dc3240f6237e64bd854865d4d030bf12597952f6255d5fc23",
+          "size": 312509
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/ms-3_progress-app-store-study-history.png",
+          "sha256": "2eb8fa6f8cd58353fc53fd0e6c7359888717a678df5b701eb11e5ec140c3bfcb",
+          "size": 165369
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/ms-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "42ba28747c3d198ce35ecdfa5e68f96e9e102736b87ea69b0f49d5708f0c10a7",
+          "size": 381763
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/ms-5_cards-list-app-store-vocabulary.png",
+          "sha256": "1f5eb0529257f60ed64e0d54aa887b58d3dddb929492397b85ea00aa0c045ead",
+          "size": 200729
+        },
+        {
           "path": "apps/ios/docs/media/app-store-screenshots/macos/nb-1_review-card-front-app-store-opportunity-cost.png",
           "sha256": "f7d8e286c351bf5bdbcc6f94245b7d51c8f6b2f60aa3d415a1cdc720c24cb988",
           "size": 126106
@@ -4033,6 +4358,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/macos/nl-5_cards-list-app-store-vocabulary.png",
           "sha256": "7b603a9844010f9452992d794f8f3a33c52f67494364b4a08f0ae607f696a191",
           "size": 199464
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/or-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "7d9c69589c5a877ecbab9b52232650c198ee92f3fd1e6eb508adbf9313470b1d",
+          "size": 178873
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/or-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "1d858ea266bf082f92225f2f3f88b04b47ebce3b3161e6152ebbed99ad2c6845",
+          "size": 336929
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/or-3_progress-app-store-study-history.png",
+          "sha256": "6f8a16d08b42b9b629b408c39e3232df6b1abb43e6b673d76ef5571b931272df",
+          "size": 175869
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/or-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "780af6afac873c587ed33dfd633bd24724047cbb029e526329c91fb2a7d85928",
+          "size": 413269
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/or-5_cards-list-app-store-vocabulary.png",
+          "sha256": "dcfee67e9cad7f05088eaf7e1bc21f5701ce26f008f9fbcdd8dde33484b462d0",
+          "size": 215678
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/macos/pa-1_review-card-front-app-store-opportunity-cost.png",
@@ -4108,6 +4458,31 @@
           "path": "apps/ios/docs/media/app-store-screenshots/macos/pt-BR-5_cards-list-app-store-vocabulary.png",
           "sha256": "9d47a5de736078942305b4298f1440993c1cb9c53620f2fe364a5fa78ecdcf41",
           "size": 199059
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/pt-PT-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "2fc58e828399f852cbaab1c774dc8a716a65acfc79539e02d4dc233ad5a6529b",
+          "size": 177467
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/pt-PT-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "7812ec3ca2d91d9879a49492f0edf8886811c92ee7c45e14a282f45b55d5d5f5",
+          "size": 326113
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/pt-PT-3_progress-app-store-study-history.png",
+          "sha256": "5d45c775e8d3f496209be82c42223b6e82759111c0cc2dfc16ed6b7c08c2119c",
+          "size": 174722
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/pt-PT-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "c701185f9138dd2b227e27b2797271bf85f776acffc9dea976c5cb2c7bfd85b6",
+          "size": 395364
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/pt-PT-5_cards-list-app-store-vocabulary.png",
+          "sha256": "f50d062b9adcfd4f77e6f50397915f27ccd6e8e0651d73b519bb527560186dd4",
+          "size": 205692
         },
         {
           "path": "apps/ios/docs/media/app-store-screenshots/macos/ro-1_review-card-front-app-store-opportunity-cost.png",
@@ -4433,14 +4808,39 @@
           "path": "apps/ios/docs/media/app-store-screenshots/macos/zh-Hans-5_cards-list-app-store-vocabulary.png",
           "sha256": "c806efe79a72327e71b6285e129d5e871e53347164015beaf5bd3e0319fbee9f",
           "size": 179424
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/zh-Hant-1_review-card-front-app-store-opportunity-cost.png",
+          "sha256": "0e6bd56f0e68d337fff1a7def42d32e8c269ea01cc0bfd5b0e815dd9a96d47dc",
+          "size": 168430
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/zh-Hant-2_review-card-result-app-store-opportunity-cost.png",
+          "sha256": "5cae37c41a0a8b074b99ab60de4679f2eacc0256f7a362697778ad7782dbea22",
+          "size": 306142
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/zh-Hant-3_progress-app-store-study-history.png",
+          "sha256": "4f318142c5fefae95f0d590df92aa47284221a3e463d786c691358bf63ba53e0",
+          "size": 153331
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/zh-Hant-4_review-card-ai-draft-app-store-opportunity-cost.png",
+          "sha256": "bae54023ce0c2a4de60cebbfe8fca846aa5e414a160c27af6fc34d5c78650029",
+          "size": 366213
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-screenshots/macos/zh-Hant-5_cards-list-app-store-vocabulary.png",
+          "sha256": "fcad5b7af0fcd44de77d635f44b7b56b5a53bc0708a9d78d86544740d1624edb",
+          "size": 185955
         }
       ]
     },
     "ios-cards": {
       "root": "apps/ios/docs/media/app-store-cards",
       "asset": "ios-cards.tar.gz",
-      "sha256": "f260f6c544bdddc233d2e85cb0f4f093260ebe2d31f7f50430a6d6b789cedcdf",
-      "size": 960769897,
+      "sha256": "4ae1ab4925d40e58c8304ce70552ed0cf65aaab1224e04079ed1b9096c97ce05",
+      "size": 1110145505,
       "files": [
         {
           "path": "apps/ios/docs/media/app-store-cards/additional-languages/iphone/bg-1_ai-flashcards.png",
@@ -4646,6 +5046,726 @@
           "path": "apps/ios/docs/media/app-store-cards/gallery-preview.png",
           "sha256": "a5348ce5c9ea475e1214a2acd25591fd604194bdcc4283f28c7cb5bd828c0f35",
           "size": 519795
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/en-US-ipad.png",
+          "sha256": "3be37109a0654ece079fa9cc78172a9aa55fa77a547f7549543704d17820af25",
+          "size": 1056305
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/en-US-iphone-duo-inner.png",
+          "sha256": "55f8a236a87d7ee4704ad3f2ea9afcf501c65fa73276cb937f7155db4a523dd3",
+          "size": 1271110
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/en-US-iphone.png",
+          "sha256": "deed7a5bc5621ba41766d5ade56a657fa557b6e684dbd2ce3802873bbbfe9bed",
+          "size": 615255
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/en-US-macos.png",
+          "sha256": "7cf19068ccc4b4644043e39f18414ab4014c276b10905d88d67720b6d467b39b",
+          "size": 1198883
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/fr-ipad.png",
+          "sha256": "22e88d08232153c685481c35409909e0ed5a02868b5f05228c0ecf9f99823bfa",
+          "size": 1078729
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/fr-iphone-duo-inner.png",
+          "sha256": "285b6cbf2bd9393a2a633552d8447506d025b2111f14854008f968614f4e23e1",
+          "size": 1300323
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/fr-iphone.png",
+          "sha256": "0fe92f4ea3b9646154809a13b92547a77e12ec70a6334b80c7e70d144909e3de",
+          "size": 634844
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/fr-macos.png",
+          "sha256": "a0fd4bbe083bc12f7f529a5c46653e4090154af941e918d872a03b67f1dc3a9f",
+          "size": 1215578
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/ms-ipad.png",
+          "sha256": "e645fbb548c485fa0c84a9135c97089dc4bab597c8abd9562d1ffd4e344c711f",
+          "size": 1092938
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/ms-iphone-duo-inner.png",
+          "sha256": "cebee52a8e6ca6b35e78a56a50971cfccc141b1f70d51d8e0588a9a5ad26ac76",
+          "size": 1309966
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/ms-iphone.png",
+          "sha256": "5df7d3fb0a11cf19421a60d97bb76a429978909d061e6f51ac777802f18b745b",
+          "size": 653660
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/ms-macos.png",
+          "sha256": "88a05e4b1731ba006f1c242435cd9f431cbadcf4948f624899671213c253fa2f",
+          "size": 1202301
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/or-ipad.png",
+          "sha256": "20b174ce7b58bdcf335c8fad2ed00452a2eb921545005b80643d137c19ea133f",
+          "size": 1098229
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/or-iphone-duo-inner.png",
+          "sha256": "d07ef3be87294ce618e056f83137d88ab569eae8374901a26f13793fbc6e41dd",
+          "size": 1322275
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/or-iphone.png",
+          "sha256": "cf536c06f0df32f1c6de28fe0d68ee1cfb2aaa0159ad709a111193bdafc29fb5",
+          "size": 654050
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/or-macos.png",
+          "sha256": "5796ed77063a8dff0e6e3eea1e049000b72c2db6150d19aa05f4a5fcd9f468e4",
+          "size": 1212198
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/pt-PT-ipad.png",
+          "sha256": "e890a3578a9ce6e49f9b3613871da2f2c94d0e30f0ccff353928cad90c85df09",
+          "size": 1104423
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/pt-PT-iphone-duo-inner.png",
+          "sha256": "94b6e9ac62b3cfaf759152df0d0d7f703bf69f2b2eebe792ae9bff86f4b5f453",
+          "size": 1315827
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/pt-PT-iphone.png",
+          "sha256": "5d1c6a4edab77cc17e7f11b706714a3d9e7e27a06f1410d5800fc0cca352ef74",
+          "size": 659349
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/pt-PT-macos.png",
+          "sha256": "7a0a30a115a843cdb75d1ce4080dfab834af8bd1444d3847a9b8513bbd832fce",
+          "size": 1216340
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/zh-Hant-ipad.png",
+          "sha256": "77817b97f74036c3c25996318d07bce0fd1480ba79369abe021fa170a74c3909",
+          "size": 1063612
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/zh-Hant-iphone-duo-inner.png",
+          "sha256": "5890a292b334367844a387599ae4aad7de0c1750084fc8516049bdcbc73a7681",
+          "size": 1282730
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/zh-Hant-iphone.png",
+          "sha256": "3f0225e07b9af62de8b1278659485a8b74e3cec8ab2948ceea780ef6919fc4c3",
+          "size": 621982
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/previews/zh-Hant-macos.png",
+          "sha256": "22f106fe3ac85d7358beb5434782ccffc9a038c1462b021fb54ed533e1f05772",
+          "size": 1181421
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/en-US-1_ai-flashcards.png",
+          "sha256": "919a1daa738d1bb19558f6cb8d4159d471b14c1480b4a0f46eaea0eb3ac30e61",
+          "size": 1293164
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/en-US-2_start-learning.png",
+          "sha256": "48c4bf68fda595bf6ace31fa55dc890ccb98838365074954370751bcf6a98e64",
+          "size": 777823
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/en-US-3_smart-reviews.png",
+          "sha256": "0ef7061325f7af46a9c62d7ac03a1eadb67d28524ebcc63921dbd73b8759e5f6",
+          "size": 1055181
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/en-US-4_your-progress.png",
+          "sha256": "6db5f3f0bd9f8c370d0de1686d5c803c3aef0241f98fb85095d5f907c8b2ae20",
+          "size": 901184
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/en-US-5_your-cards.png",
+          "sha256": "ee3085cf6fec2a59da8752124ebb4d6f8254007144c609ee55b6213cc69292e3",
+          "size": 1121674
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/fr-1_ai-flashcards.png",
+          "sha256": "5c89388a8ebc0ad00911640b999e6c643f62e478a442e4badf0367a82ed34f9e",
+          "size": 1345480
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/fr-2_start-learning.png",
+          "sha256": "63b2f3d584116788b9b50ac7545ba19708b0bb8dbc6019daaddf8a07a13e2d4a",
+          "size": 788646
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/fr-3_smart-reviews.png",
+          "sha256": "af2185ca5ee2b81eaab00d410b39d64cae73b03e68cc376063469663d073440b",
+          "size": 1070945
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/fr-4_your-progress.png",
+          "sha256": "eb65245c0a3c1148efb01ba317f58b8d5aa59151821a0ef237c2dcde249c9c4e",
+          "size": 924984
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/fr-5_your-cards.png",
+          "sha256": "6170eac21ef9168d59014eb8231cd83a7f89854e5111c138d28cba112f177ea3",
+          "size": 1168015
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/ms-1_ai-flashcards.png",
+          "sha256": "a8649341c9a6c6044f898df112e6b166d8a99b1e5d7f1c523ae884900ccf9c87",
+          "size": 1337879
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/ms-2_start-learning.png",
+          "sha256": "74b122a192ccc0b97329ce6ccfbfede7b76fee8ec952939313bc0f86ecbdd163",
+          "size": 798554
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/ms-3_smart-reviews.png",
+          "sha256": "d6cba245ed2c6b81a1c65827f0e57950eb4d0c82a48a72392660a0525ff65bfb",
+          "size": 1066308
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/ms-4_your-progress.png",
+          "sha256": "d7acdc8e8b200117991b518e01deaa634b46de39cc53c2bf49fc4ec2de6de115",
+          "size": 932167
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/ms-5_your-cards.png",
+          "sha256": "b5ebdf9436446611ce1d6d94781900eb452d1ea11c30ec6a40f199c8050409c8",
+          "size": 1158735
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/or-1_ai-flashcards.png",
+          "sha256": "eaa9865a358e776a2dda4521ac8c01df225e2c9f9b38007f0353ab4fdb83e97b",
+          "size": 1424344
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/or-2_start-learning.png",
+          "sha256": "7a441eeb4a7a622d653757bd148a59e9cf7f777b96033ab8dda07867a36858e4",
+          "size": 819769
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/or-3_smart-reviews.png",
+          "sha256": "ad0ae7da9b82b2789f5674397553cdac0faaabddf61bc4b8c56ea7a114323377",
+          "size": 1138093
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/or-4_your-progress.png",
+          "sha256": "09564b7674e33eac2eb00169287c4366023de35515bba3fedd41511d2178a54b",
+          "size": 975669
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/or-5_your-cards.png",
+          "sha256": "24c47c8433e3cbdb1d7efcb1f8bf9dd62702b6f9ea2ed7d52f38d50be009d79f",
+          "size": 1228044
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/pt-PT-1_ai-flashcards.png",
+          "sha256": "89b73eb23562ae96cd7e3e3cafa047961a5772981cf7a9f8cf4e6b549f7f74f9",
+          "size": 1354043
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/pt-PT-2_start-learning.png",
+          "sha256": "fa341c945ce391438b1f705bf3518da613a23e8f08ba09aa41b6094a02c21a30",
+          "size": 813464
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/pt-PT-3_smart-reviews.png",
+          "sha256": "692e98fbcc92f8a8f1f40de41f1b55891492bc3f829869ed258b2e457fd1f91f",
+          "size": 1081087
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/pt-PT-4_your-progress.png",
+          "sha256": "e10afecf986bcf4d7b90b6929a898ae746d241226a1bdddf52472ebd666556f7",
+          "size": 964668
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/pt-PT-5_your-cards.png",
+          "sha256": "a71814582f7e57dffa3d51aae136cde47ff37743456a84d73efd8e96f17d5f7b",
+          "size": 1173711
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/zh-Hant-1_ai-flashcards.png",
+          "sha256": "e3806e2787225982e8b75cc60cc53121b48f5122312d66a2095ffcfb5d1add3f",
+          "size": 1252733
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/zh-Hant-2_start-learning.png",
+          "sha256": "18f6b42c8404dfbc60a84b1d620185a5b2fd9d7ca177f6f9f46c77c3f37fac2b",
+          "size": 793239
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/zh-Hant-3_smart-reviews.png",
+          "sha256": "421a0c0f7be782f484f2d9bd44103fcf2786bf3f1244b66eeb0b6b89d10fdc7c",
+          "size": 1039707
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/zh-Hant-4_your-progress.png",
+          "sha256": "6ef414e19d2c88fd45f3f1c0421f6c92a2f2010cdf23357a1d8af45143fd1482",
+          "size": 907147
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/ipad/zh-Hant-5_your-cards.png",
+          "sha256": "9655fa9c003a66709d51c4d7d1ddb849234c61ad8689e1d6afe50a32c583cf18",
+          "size": 1105125
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/en-US-1_ai-flashcards.png",
+          "sha256": "15845f97ff9a43802d7d0a2dd7eb77eaaafdd7c7d255953895a581e21e8d0457",
+          "size": 807630
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/en-US-2_start-learning.png",
+          "sha256": "20b4532f7f0691c127402a88407d4b59cbc4185e1ff41619a2d9d844b5dea59b",
+          "size": 745261
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/en-US-3_smart-reviews.png",
+          "sha256": "0cab171065a39637dcedc972e837982de60b9582f2a2e61496c7c5d76f0f4a45",
+          "size": 1122547
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/en-US-4_your-progress.png",
+          "sha256": "35e4ac455d7f98658904d4d6134cfec1b6e5072bce73cdd8751575e1170f164a",
+          "size": 827168
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/en-US-5_your-cards.png",
+          "sha256": "d9af84d100f483c378af326d41cfdd6ba34c3fd5a12ba553b0175b01e3a16c2a",
+          "size": 883124
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/fr-1_ai-flashcards.png",
+          "sha256": "6a2a81c10a91d5729f810f0ba569fd028cbbbf645a257f9be68c730d9441504d",
+          "size": 848623
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/fr-2_start-learning.png",
+          "sha256": "cf105c4bcffcb01bd2bba6563fe6d45ba284058a49f7042841ea032c29b6a24f",
+          "size": 777070
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/fr-3_smart-reviews.png",
+          "sha256": "6abc8b6400276e4a2ced36d37276d0d965258f83bd88b217a3564edb5810a5f8",
+          "size": 1169869
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/fr-4_your-progress.png",
+          "sha256": "15be143db60d518b701de1c0a3550d33634ab0d5d9c11f5815db329565d36e1f",
+          "size": 858234
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/fr-5_your-cards.png",
+          "sha256": "5a2a30b6ff3dfa6a08cb576aa1b163b863a35a669a459550ceb6d23a61d7bbc2",
+          "size": 895012
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/ms-1_ai-flashcards.png",
+          "sha256": "ae071a2425e4f5b4ae569ccf7b7af89eb76518301e3f12e2b6f2e62d382a443b",
+          "size": 865335
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/ms-2_start-learning.png",
+          "sha256": "df383039d096f90a1ca21815f75b6e6230170c7c7e96358e0141d61199720ba1",
+          "size": 776080
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/ms-3_smart-reviews.png",
+          "sha256": "f47e3edc0f55efe1b1d9803a57deaab48cac349b88acf2702628303d155ce9a7",
+          "size": 1258422
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/ms-4_your-progress.png",
+          "sha256": "154054e71b60a631ebffe809f42a3b59b086eafff775baf609a31fc8504a297a",
+          "size": 855884
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/ms-5_your-cards.png",
+          "sha256": "d468a67495d969873fa89786aa0ca96fa08ab9aea57a66c5257514a4cd5720e7",
+          "size": 871984
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/or-1_ai-flashcards.png",
+          "sha256": "b294eb82c554351427fcf00a3884808b7987088a74a405721af645b92316eeb5",
+          "size": 909351
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/or-2_start-learning.png",
+          "sha256": "70cdba6574cf82d00ce4c5290fabf36c648011c1c0b9af36b204f758a89b20d7",
+          "size": 804536
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/or-3_smart-reviews.png",
+          "sha256": "cce8b31fedc82d853f98c7303b2a1a4ef3910ed06fc18e26c48f9eb2114e2b7e",
+          "size": 1349975
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/or-4_your-progress.png",
+          "sha256": "bad062057c42a33ed865204ab710b16eb2ee4fdab10dfd92667481770dc5be5a",
+          "size": 883334
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/or-5_your-cards.png",
+          "sha256": "4f9fb904cbb8eeef1c80436e1ebb0d16651fb043678583c2e3bd12df93906355",
+          "size": 937784
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/pt-PT-1_ai-flashcards.png",
+          "sha256": "8aee2d178215940c6df221850e3cf526c4da6927464e4f02f409d7b731bf90a1",
+          "size": 865574
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/pt-PT-2_start-learning.png",
+          "sha256": "4901bb879ff13dba39eadc75cd15120c47b0cbd077a1c140790bb2bd61642510",
+          "size": 809801
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/pt-PT-3_smart-reviews.png",
+          "sha256": "9308c43aa3b41f364b0012ecebfd8d3194eb96f96d1b10ba2d0e55788a2e3550",
+          "size": 1303212
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/pt-PT-4_your-progress.png",
+          "sha256": "7eddfa781c4bdb94043fdcb5168b8a2f18f341a6e7ecc08e31916fe84ccf8b06",
+          "size": 879030
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/pt-PT-5_your-cards.png",
+          "sha256": "6658ce0604b7554f8ad7dad82bb574f68d3f686a385fe4203a9bf51f5d2ab0df",
+          "size": 897808
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/zh-Hant-1_ai-flashcards.png",
+          "sha256": "a46f088b6a243327975716ab34262aa0816e01428a2714ef0612d64ee0157018",
+          "size": 808706
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/zh-Hant-2_start-learning.png",
+          "sha256": "65e2bfcb59520086a93c374dbd5689ac012608eba7abf1a69aafe68379382443",
+          "size": 773792
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/zh-Hant-3_smart-reviews.png",
+          "sha256": "9479d1c20d9d811150dfe1c17bb26f76187c0a239753334d4bdf3496af325b77",
+          "size": 1108918
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/zh-Hant-4_your-progress.png",
+          "sha256": "2646025030b485e8ad5e8ea677d4c00a035f0b3d7309353a7d6540bb59f81b0a",
+          "size": 829403
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone/zh-Hant-5_your-cards.png",
+          "sha256": "b929f23f37b71686e121a899037e91c9944822addedb36f7901ed20cd8be0f11",
+          "size": 849837
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/en-US-1_ai-flashcards.png",
+          "sha256": "5ae59b28affc6d8229365646797ee12cea2f47a7e5913e2ec9a2fe3080c01ec6",
+          "size": 1562168
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/en-US-2_start-learning.png",
+          "sha256": "95b5f327e54efb7f145a69436c1919d86e49d2f5fd3205c8e3b3d2465e817680",
+          "size": 902860
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/en-US-3_smart-reviews.png",
+          "sha256": "0d653d9606f35e873233512aae4b99d2146116dc8068b28cd449506eb57c1c23",
+          "size": 1507914
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/en-US-4_your-progress.png",
+          "sha256": "8a616b9a2f4af599f2d03a406902e566856e758125229a9e26c7667343cc0bca",
+          "size": 992850
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/en-US-5_your-cards.png",
+          "sha256": "854ad5cfd2c388f58bee183f9d43e254a3da6d9bd063bf7df6f989c027dab7a3",
+          "size": 1207644
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/fr-1_ai-flashcards.png",
+          "sha256": "6fd82fec73743753e06619a5eb6b4f402403b4ec4f2f93d5bc9146e6bf1fc413",
+          "size": 1588088
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/fr-2_start-learning.png",
+          "sha256": "5b34f4c65bc3b44cc183952541d3ec4dc25e4cfbc9d98b456a122a1cb23fcf8b",
+          "size": 918873
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/fr-3_smart-reviews.png",
+          "sha256": "36f01fa7af882225495a2da26016acfe1edc0b2e25ddda42dc191908648fb544",
+          "size": 1534877
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/fr-4_your-progress.png",
+          "sha256": "2a2a66d751f594978f16cd745ef0d89bc6488153837e84aafa926b0f81485ab0",
+          "size": 1003537
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/fr-5_your-cards.png",
+          "sha256": "9a99d1d5a682f40eeb3deeb831e891b0b9b6fe78ea5feef4b72f966e4462a3df",
+          "size": 1234321
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/ms-1_ai-flashcards.png",
+          "sha256": "d38e6ac48db1401133e22a7ca047cf4b49152b8f0b27c2577fb45669c1bd610e",
+          "size": 1582516
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/ms-2_start-learning.png",
+          "sha256": "f882237a864df2ef7159ebabda9b425f78b5208e339a5ce073928b341f142624",
+          "size": 907747
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/ms-3_smart-reviews.png",
+          "sha256": "eb8aaf59b1bb52863b43b847a8df15fefd249770c86addffd72aec8fc684dd4e",
+          "size": 1465482
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/ms-4_your-progress.png",
+          "sha256": "57c72e16ceb12e836e65171d84c749775fe9e2f390651207d1bbc66cc2f0eda0",
+          "size": 1005268
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/ms-5_your-cards.png",
+          "sha256": "cc5e5c692c37ed228fc7bd2d61f559e8bf0a9204c396a61da9cc91d90cc0bb79",
+          "size": 1222329
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/or-1_ai-flashcards.png",
+          "sha256": "0a52aa85b630476852268f4b1e3761e255aaf395c63ef72f0a49d753f5c4e2a7",
+          "size": 1670570
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/or-2_start-learning.png",
+          "sha256": "84b6110d120bfa9027fd37bd9cdf811c7071366782f8f595a793e670cb136e36",
+          "size": 941464
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/or-3_smart-reviews.png",
+          "sha256": "2349c05f2d13b4fed6fe9fc01215a38644cf039ad786fcb81cbf7b4a7f5dab76",
+          "size": 1631259
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/or-4_your-progress.png",
+          "sha256": "61b9d29d5ab430f19d1daef5b99a405dacbe953a7fa78ed41205e21ddf38a208",
+          "size": 1019628
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/or-5_your-cards.png",
+          "sha256": "68480a9eee06c3cd2fa0d0b309ef484e3d5e344316e6fa790b472c145c8e53ae",
+          "size": 1309869
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/pt-PT-1_ai-flashcards.png",
+          "sha256": "9d6d15657f9180551cf2860a3a7bc9e8983c57e260364178287af2938ecf4e85",
+          "size": 1590287
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/pt-PT-2_start-learning.png",
+          "sha256": "f1688a85839bd7bc1b1533253b886cb98e4f9aac2e1954e4da38c5dc5e003c2a",
+          "size": 921093
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/pt-PT-3_smart-reviews.png",
+          "sha256": "1176d4709e7b1e5e339d77c0aeadcd6567f1c3fe4132e67b6ee28a8de2980706",
+          "size": 1478454
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/pt-PT-4_your-progress.png",
+          "sha256": "2fb83e3090c34878997245f86bfb03c373685f67c25bd0cf76361205f9ff53bc",
+          "size": 1016508
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/pt-PT-5_your-cards.png",
+          "sha256": "bb7deb095d1658014d7edaa274f690c6286a9a4549830b86b93b0a66f9f26fd0",
+          "size": 1246983
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/zh-Hant-1_ai-flashcards.png",
+          "sha256": "00df08c1b2aabe4d55b5581e21cbbed26004b63a825e6631d584182183be00cd",
+          "size": 1498818
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/zh-Hant-2_start-learning.png",
+          "sha256": "61cd7eaded4de6cc9ec66362133de13e0bacc489f10d51abd4fdc862826118d2",
+          "size": 903733
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/zh-Hant-3_smart-reviews.png",
+          "sha256": "9573993fe86e34367daaaeafcbc77a62e3d795a5bd67a08137fc3f6c0adb5c22",
+          "size": 1472985
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/zh-Hant-4_your-progress.png",
+          "sha256": "4f569c12e2dbd5c6c922a8056aeba57319c8ff5080ad0e184262171b23a01c08",
+          "size": 993922
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/iphone-duo-inner/zh-Hant-5_your-cards.png",
+          "sha256": "dd421930ba86259773168d29dd6d872d7bb75d0ddac8ab44ebd48c1a7fc0c0fb",
+          "size": 1154521
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/en-US-1_ai-flashcards.png",
+          "sha256": "7a6625e2e54f9b0d36feb54f59aceeb2da7f080fc41fc2e130472f98b2d552a6",
+          "size": 1122802
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/en-US-2_start-learning.png",
+          "sha256": "e925e5f095740c06c44cd12b21d81aff7ee6cd32151c45d0c37687eaa4f9b0dd",
+          "size": 735076
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/en-US-3_smart-reviews.png",
+          "sha256": "0db8dd124089169dc70d5a05b220148e2878178fa658b2577bbcabc4bbaf29e5",
+          "size": 973073
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/en-US-4_your-progress.png",
+          "sha256": "4b763c31b04c78f74be9f6288781b80585615631c1ff91ba688db347b0c80dc9",
+          "size": 807383
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/en-US-5_your-cards.png",
+          "sha256": "658893d841a2b0df6f84b4e336d5de7697cad90d4dfd4d93b275c71f9f3de3ee",
+          "size": 946852
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/fr-1_ai-flashcards.png",
+          "sha256": "399732232e64b75cc13e8a2b61e0cb49d68997df6be54fbec942df3b5c687d2d",
+          "size": 1159849
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/fr-2_start-learning.png",
+          "sha256": "c7bec5d697011045b91d587b3dcebd318eddf2326501b6f53f900711d2fca37e",
+          "size": 744251
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/fr-3_smart-reviews.png",
+          "sha256": "519014a960d1f5a740b132edfe3395570c32c0563536a842e1463eac7747dc24",
+          "size": 991267
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/fr-4_your-progress.png",
+          "sha256": "2505c82020eb06319916060bea4dbe6a5e8eaaf09d0cc09dd5c945787df2effa",
+          "size": 825949
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/fr-5_your-cards.png",
+          "sha256": "0940d358373baa29df42d8f75895ea82c5e57960ecb548e367067c6a7d0fb6fd",
+          "size": 991643
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/ms-1_ai-flashcards.png",
+          "sha256": "6f8687a8e14433346a291a8b4dc6e87a66d94f6f03686e2bca73093c2157f766",
+          "size": 1198436
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/ms-2_start-learning.png",
+          "sha256": "9a41d028f42e716037e6a08b1d4db88fc05df5878fb0ed06c3fd1442a44b61e3",
+          "size": 817668
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/ms-3_smart-reviews.png",
+          "sha256": "497a89d2269ff839016a9cff5d328f1916a332156cbd4db1c93a405fd092a437",
+          "size": 1068867
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/ms-4_your-progress.png",
+          "sha256": "e3312e9a9b33b303c2dee2be6baeedd874f67f9dc549276987a8cd9350c62a9c",
+          "size": 883392
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/ms-5_your-cards.png",
+          "sha256": "baa9aaf9cedd8d46fe807bd9b2334a0015273467ff1b787944d91436b4ee0c0f",
+          "size": 978849
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/or-1_ai-flashcards.png",
+          "sha256": "e605fb2ce39fa9b7290708aa5e6116ecf0e7c001d1dd6b96a238fa5d8ff7aba4",
+          "size": 1268339
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/or-2_start-learning.png",
+          "sha256": "0f8e934b386abfae8f103c429647e8894db2537b190dd74c54326c610e86a57a",
+          "size": 836087
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/or-3_smart-reviews.png",
+          "sha256": "05138c5a17c3dce2085449d91a442c298fc50e1d00966e330a0ed887fe1223dc",
+          "size": 1119923
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/or-4_your-progress.png",
+          "sha256": "9569acb3947da7d459e62ea7b06886e3318a58a32c2c51a9c15150ba8d205ef0",
+          "size": 916266
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/or-5_your-cards.png",
+          "sha256": "19245658b3047094d0750e35ed64203fddef00ead3246fc2c3f3e5d1967a5bd2",
+          "size": 1018956
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/pt-PT-1_ai-flashcards.png",
+          "sha256": "467a459ba45b3cc0e3f94a33734be9d5f5a84123daaf5a1b7809007445d001ad",
+          "size": 1224592
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/pt-PT-2_start-learning.png",
+          "sha256": "3507b8d90e203ff8a0bb8b05c5ae1bf530227dd4cdd6c2d969f574ae71d470c5",
+          "size": 842025
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/pt-PT-3_smart-reviews.png",
+          "sha256": "3d9d11215fc83da018480e8ded81945f27a055368c120177965785e3001043de",
+          "size": 1096928
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/pt-PT-4_your-progress.png",
+          "sha256": "9fa15b663475e2c051aa54aaef9e6719b2719f9c426df3728cf8d1d2914375b3",
+          "size": 908589
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/pt-PT-5_your-cards.png",
+          "sha256": "01aad099aeb81ca8468386fad3f0841ee60a6a2a877baee0e1b62a6d7294d291",
+          "size": 999201
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/zh-Hant-1_ai-flashcards.png",
+          "sha256": "1f523361071d58e4374a123fc75ddc956f4dcd7313d4245ae5fb483afdf5bde9",
+          "size": 1143702
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/zh-Hant-2_start-learning.png",
+          "sha256": "fac19198d7bdf768f7a9212888c316a14cfa23daa6bde2c14a5bbcc06cdbc614",
+          "size": 801552
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/zh-Hant-3_smart-reviews.png",
+          "sha256": "3713c3ef3b3bdeeb06f153df2e3e3ab98224097326ff9afd82c8dc8cb54b524a",
+          "size": 1033104
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/zh-Hant-4_your-progress.png",
+          "sha256": "3abe3b231dcbb8da730f102ad6adce082a510522ce71a9397e10b8d9108c1206",
+          "size": 850777
+        },
+        {
+          "path": "apps/ios/docs/media/app-store-cards/localizations-2026-11-13/ready/macos/zh-Hant-5_your-cards.png",
+          "sha256": "e0c63602b97dea1957db93c7513618e11eea43898f2c1c1f47ed60a2f22d338c",
+          "size": 935876
         },
         {
           "path": "apps/ios/docs/media/app-store-cards/previews/ar-ipad.png",
@@ -9762,7 +10882,7 @@
     "ios-marketing": {
       "root": "apps/ios/docs/media/marketing-materials",
       "asset": "ios-marketing.tar.gz",
-      "sha256": "1dcd45d62ef33c23c9f0ce9de336c3354f0b3013abb8aef6ee4c16938771eb6e",
+      "sha256": "a8daff472285b2bea1b4e0c7832dbe4a1c7afcf524e829790c386fc0a490aaca",
       "size": 25627810,
       "files": [
         {
@@ -10020,7 +11140,7 @@
     "ios-app-icon": {
       "root": "apps/ios/docs/media/app-icon",
       "asset": "ios-app-icon.tar.gz",
-      "sha256": "1fc94f8a9caedbcf57d8f128d3e85cfb2d4388fe0e057c8f6b8bed8021c1445c",
+      "sha256": "235d32de6c82892d5b9b831609b304ac72400c64aa86b148ceafb0e5c43b4182",
       "size": 341989,
       "files": [
         {
@@ -10043,8 +11163,8 @@
     "android-native": {
       "root": "apps/android/docs/media/play-store-screenshots",
       "asset": "android-native.tar.gz",
-      "sha256": "8b9a696d9600cb19144b3bd1fb17d49f5819da42ad6b8002940c55aae0ad64bd",
-      "size": 39052470,
+      "sha256": "4cdc187178f5d2738801eaef606525b8b5c275a42d68e119bbb172b7c7bcfdaa",
+      "size": 41409370,
       "files": [
         {
           "path": "apps/android/docs/media/play-store-screenshots/ar-1_review-card-front-google-play-opportunity-cost.png",
@@ -10822,6 +11942,31 @@
           "size": 208448
         },
         {
+          "path": "apps/android/docs/media/play-store-screenshots/ms-1_review-card-front-google-play-opportunity-cost.png",
+          "sha256": "3bd7c699e884d54b48f5ccde2906e049e8bdd68c23b549c7fd5cb5c127fd3590",
+          "size": 102455
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/ms-2_review-card-result-google-play-opportunity-cost.png",
+          "sha256": "4a1ac0dc4cb8814ced66ba393955859cad9b7ea3fa2b3e1b6ac0d68510e98717",
+          "size": 195521
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/ms-3_progress-google-play-study-history.png",
+          "sha256": "01a82d39734732cef87ba5d2c7c8b2c3d2b51dd213a4063d6ca3cc4e34236389",
+          "size": 169738
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/ms-4_review-card-ai-draft-google-play-opportunity-cost.png",
+          "sha256": "7f042a15324dab579360fa661fc102bf018dab0190847c62c5b8bc20aeefacec",
+          "size": 135110
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/ms-5_cards-list-google-play-vocabulary.png",
+          "sha256": "6eb7980abe57f22277ec76420bb1dc768d39a7fdeabd26f2f00329eeef946eae",
+          "size": 182590
+        },
+        {
           "path": "apps/android/docs/media/play-store-screenshots/nl-NL-1_review-card-front-google-play-opportunity-cost.png",
           "sha256": "8cac5d4f943f6f73830014ba3259b0daab791ea1d99f0cd4ce2231dea8d4a726",
           "size": 104153
@@ -10945,6 +12090,31 @@
           "path": "apps/android/docs/media/play-store-screenshots/pt-BR-5_cards-list-google-play-vocabulary.png",
           "sha256": "d9ca3b3460646d63ca24ead723d2c62e2cc01747a8bd01e0ad093edfaa0b5ce3",
           "size": 206547
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/pt-PT-1_review-card-front-google-play-opportunity-cost.png",
+          "sha256": "fa124db875070c9059554b2f5d5a88468d87f4d917e27ff4aef22004bbd307c5",
+          "size": 108442
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/pt-PT-2_review-card-result-google-play-opportunity-cost.png",
+          "sha256": "12fe51c9df8b4df0ae08a9cff60866ea554274904e92336eb0be9245883f9748",
+          "size": 207918
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/pt-PT-3_progress-google-play-study-history.png",
+          "sha256": "6becbfd670e02511ae13e1571cdfadde4b8b75e368b0f656f6b7fcc1b9947479",
+          "size": 182817
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/pt-PT-4_review-card-ai-draft-google-play-opportunity-cost.png",
+          "sha256": "158bee6abbec0d9af068bb723ee01ed7ce27df1955f508bb141ae4f44075218f",
+          "size": 142110
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/pt-PT-5_cards-list-google-play-vocabulary.png",
+          "sha256": "7dece4cbca773b7c80395199a63b19acf5bb3249ef661e00fa5e9c87a64bdd78",
+          "size": 201030
         },
         {
           "path": "apps/android/docs/media/play-store-screenshots/ro-1_review-card-front-google-play-opportunity-cost.png",
@@ -11297,6 +12467,31 @@
           "size": 218780
         },
         {
+          "path": "apps/android/docs/media/play-store-screenshots/zh-TW-1_review-card-front-google-play-opportunity-cost.png",
+          "sha256": "6d3d34d892fc997e3b365dbe79377cbbb9e207791c934b16ee05b62a29e03167",
+          "size": 124765
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/zh-TW-2_review-card-result-google-play-opportunity-cost.png",
+          "sha256": "f64dd32f48fd1a6ad6cf15e4d463704e592d369cc8aa14bbfbb48f79f2615a98",
+          "size": 245492
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/zh-TW-3_progress-google-play-study-history.png",
+          "sha256": "61416cf0b105266e3b8c441d9bc7dd0b31d4a102f1518b450b3848b8c4fa7a97",
+          "size": 188080
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/zh-TW-4_review-card-ai-draft-google-play-opportunity-cost.png",
+          "sha256": "8980ff196b30c3df6ee1cf4d4c099d79722eb3483b8791050e1e524f4b9a877d",
+          "size": 179272
+        },
+        {
+          "path": "apps/android/docs/media/play-store-screenshots/zh-TW-5_cards-list-google-play-vocabulary.png",
+          "sha256": "0b31db4bf07b83bc5055e6635e0e2d009d8d6daf307d6848a264fe3a232b9f73",
+          "size": 233029
+        },
+        {
           "path": "apps/android/docs/media/play-store-screenshots/zu-1_review-card-front-google-play-opportunity-cost.png",
           "sha256": "4c00c1f6c8a180bf188d26a898fcb117382a34ae4d592688ecb2b8efb87562e2",
           "size": 115312
@@ -11326,8 +12521,8 @@
     "android-cards": {
       "root": "apps/android/docs/media/play-store-cards",
       "asset": "android-cards.tar.gz",
-      "sha256": "fe55504d42a5dcfe074d5ae0c49ad4f361dda9b142919f6c0b06cc4bcd465c2c",
-      "size": 236925733,
+      "sha256": "a471364abd25f735e8b21ad13431c35a9ee9d7c03f4f25b59add2a1c4ffbb867",
+      "size": 259322431,
       "files": [
         {
           "path": "apps/android/docs/media/play-store-cards/gallery-preview.png",
@@ -11790,6 +12985,31 @@
           "size": 818969
         },
         {
+          "path": "apps/android/docs/media/play-store-cards/ready/en-AU/phoneScreenshots/01_ai-flashcards.png",
+          "sha256": "5fe0ca14633e183fb324f9b62210dc76604003ab24914344a25a413fcf752645",
+          "size": 758091
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/en-AU/phoneScreenshots/02_start-learning.png",
+          "sha256": "5b689ced559f630b8e42740cf1bea0d282567e4964b963e66b18734c23bc0f50",
+          "size": 679862
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/en-AU/phoneScreenshots/03_smart-reviews.png",
+          "sha256": "c0e04f2fd16d7ef951434b10c3bf4f2bcd547c46f9b663e775ece58e05c2b6a6",
+          "size": 802891
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/en-AU/phoneScreenshots/04_your-progress.png",
+          "sha256": "82e377275a4e267fe009eb9865c4bf7d93788f2b2d5c6f6c7906a2fcc6766e93",
+          "size": 806220
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/en-AU/phoneScreenshots/05_your-cards.png",
+          "sha256": "845e0051971f93cdb5991f9c3a3f3f398a1396beb0ac7b62699c673dd9aaedea",
+          "size": 806601
+        },
+        {
           "path": "apps/android/docs/media/play-store-cards/ready/en-US/phoneScreenshots/01_ai-flashcards.png",
           "sha256": "8776b651e7e88a123d24260a0d867d14901e764849400b755aa8048f13171544",
           "size": 758571
@@ -11963,6 +13183,31 @@
           "path": "apps/android/docs/media/play-store-cards/ready/fi-FI/phoneScreenshots/05_your-cards.png",
           "sha256": "e2726db7c3f2de43384a9377b85bf28c19239cbee1cf128746cf2749d61eb126",
           "size": 825404
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/fr-CA/phoneScreenshots/01_ai-flashcards.png",
+          "sha256": "d74a714c4bf1387f674954bb9a9fd06c1b44672aa37da7710921c197939e4c72",
+          "size": 776258
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/fr-CA/phoneScreenshots/02_start-learning.png",
+          "sha256": "80a6218d2748f44dca9752813c3b1c094b4320d5b37a15abf07e05333b82916a",
+          "size": 688446
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/fr-CA/phoneScreenshots/03_smart-reviews.png",
+          "sha256": "acc0ba8f69e6b1b6e04a82cb77f5c4c61ba835300c2f378f9186d24fae10ce62",
+          "size": 820108
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/fr-CA/phoneScreenshots/04_your-progress.png",
+          "sha256": "cbfae5f1d2299cb3bad2b7aff21b2d51156f236144e50b536f093578ed90bcaf",
+          "size": 818143
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/fr-CA/phoneScreenshots/05_your-cards.png",
+          "sha256": "004314f19f64a34a9efc6eaaefc0cfbdf9c09abdc3b82244e42d5fdcab127128",
+          "size": 822925
         },
         {
           "path": "apps/android/docs/media/play-store-cards/ready/fr-FR/phoneScreenshots/01_ai-flashcards.png",
@@ -12365,6 +13610,31 @@
           "size": 779772
         },
         {
+          "path": "apps/android/docs/media/play-store-cards/ready/ms/phoneScreenshots/01_ai-flashcards.png",
+          "sha256": "1c351876ba0783a2f803d31cc72d7db8fcc6f6a3537f5675bf7c6ef6f36b1e6d",
+          "size": 774789
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/ms/phoneScreenshots/02_start-learning.png",
+          "sha256": "97077f1cb66f6e30b16bfc99e7dc751af1fe9017a409be2e87e326e12a502499",
+          "size": 684077
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/ms/phoneScreenshots/03_smart-reviews.png",
+          "sha256": "9fe5755eabe952035e025c924b007c46dc88fe813c4885da18754d00604d95fe",
+          "size": 805324
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/ms/phoneScreenshots/04_your-progress.png",
+          "sha256": "0d91bfe38a8826c6c06d5c9e1e83deba4521c42d4aa123f47925fce39dc3d009",
+          "size": 819286
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/ms/phoneScreenshots/05_your-cards.png",
+          "sha256": "d394248430a29f83f8b1fc11f5cdff9ca1ac518abe5ddbbe524ddde1218d7022",
+          "size": 793859
+        },
+        {
           "path": "apps/android/docs/media/play-store-cards/ready/nl-NL/phoneScreenshots/01_ai-flashcards.png",
           "sha256": "5065f0f8c6971c0e800f25586729e8a2229b2c589a6e9586b0153417631f2b46",
           "size": 758198
@@ -12488,6 +13758,31 @@
           "path": "apps/android/docs/media/play-store-cards/ready/pt-BR/phoneScreenshots/05_your-cards.png",
           "sha256": "253883b8cd3bb5efeed6bf0fe81c7ddb29fa94f91f1a90791a459067ed8819b0",
           "size": 823128
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/pt-PT/phoneScreenshots/01_ai-flashcards.png",
+          "sha256": "e53c5de759bda3a724227f0f0a6fb03b553fa4bf730bad5a19bf9a033697f66c",
+          "size": 784555
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/pt-PT/phoneScreenshots/02_start-learning.png",
+          "sha256": "08a61ce98b38182cbd5caa8804d77b232005bf91dcada051c6ca924e0da05044",
+          "size": 694580
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/pt-PT/phoneScreenshots/03_smart-reviews.png",
+          "sha256": "e5c07d1451b1ba66df099b681e4b5b45097688cfd33fad701a6520d03e366b01",
+          "size": 819887
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/pt-PT/phoneScreenshots/04_your-progress.png",
+          "sha256": "0150f5fdf8c6a11328d860a934db480f46115e47d28fc6e7f613c75e20146f92",
+          "size": 837493
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/pt-PT/phoneScreenshots/05_your-cards.png",
+          "sha256": "84d0ec0fa156d14b92bc8c3ad24c87f1091b9c9f5edff1fec638783c79e3153d",
+          "size": 816538
         },
         {
           "path": "apps/android/docs/media/play-store-cards/ready/ro/phoneScreenshots/01_ai-flashcards.png",
@@ -12840,6 +14135,51 @@
           "size": 785806
         },
         {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-HK/phoneScreenshots/02_start-learning.png",
+          "sha256": "32bc7399eb9dee63edf5f288cdd1bc8775e9e73aa7c7e4560624ddcfebc35913",
+          "size": 683961
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-HK/phoneScreenshots/03_smart-reviews.png",
+          "sha256": "c155f0f4287efb99ccec618ae72b92acd28f66816e76d94e68d0a37076202815",
+          "size": 793817
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-HK/phoneScreenshots/04_your-progress.png",
+          "sha256": "709e982a89bfbe830c2232e2feab3c8ddb59eb249e1ee337e0bc8bdd8ce0d595",
+          "size": 806700
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-HK/phoneScreenshots/05_your-cards.png",
+          "sha256": "2e9cea4c57ffcc9cf6341e26b72d01a2bc88461ff68101e8ffc79fd066404a93",
+          "size": 793102
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-TW/phoneScreenshots/01_ai-flashcards.png",
+          "sha256": "eaf10d1278c0d622e303517c1fe6fed6094e92db3fc20d8ab918f4aa602dd232",
+          "size": 758748
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-TW/phoneScreenshots/02_start-learning.png",
+          "sha256": "dacf384b9b8c1931dd6dbe16615e0c9b9136a6331ae9b7f9b475ad02a457911f",
+          "size": 683977
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-TW/phoneScreenshots/03_smart-reviews.png",
+          "sha256": "000956e93ea5ea548da3d8e8643b9efcc97a3035b2c9b1d8ed1836b3b94629ee",
+          "size": 793758
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-TW/phoneScreenshots/04_your-progress.png",
+          "sha256": "e114e6aa94cb8e8a85046d427cc4eafb6c57725e1f09d6f9038ed0f7718c1f49",
+          "size": 806701
+        },
+        {
+          "path": "apps/android/docs/media/play-store-cards/ready/zh-TW/phoneScreenshots/05_your-cards.png",
+          "sha256": "9f664945c42255a3b8cc3ffdcc5708ee3db8b3ff18993a9311a51ff6197de3e5",
+          "size": 793257
+        },
+        {
           "path": "apps/android/docs/media/play-store-cards/ready/zu/phoneScreenshots/01_ai-flashcards.png",
           "sha256": "e062b10ae25968bc5414c827002c182a94444c1c3f76bf36a8a8f767bbddb5e2",
           "size": 775235
@@ -12869,8 +14209,8 @@
     "android-feature-graphics": {
       "root": "apps/android/docs/media/play-store-feature-graphic",
       "asset": "android-feature-graphics.tar.gz",
-      "sha256": "0d698eee8a5ab82f413b37d198243eb4ccb9041d076dbf423a9401162fcd7338",
-      "size": 10135174,
+      "sha256": "b6f291e8544238f5ea893c81b063e43d04b457711e282f63118d3ab16e8dc96c",
+      "size": 11856371,
       "files": [
         {
           "path": "apps/android/docs/media/play-store-feature-graphic/ar-feature-graphic.png",
@@ -12913,6 +14253,11 @@
           "size": 176711
         },
         {
+          "path": "apps/android/docs/media/play-store-feature-graphic/en-AU-feature-graphic.png",
+          "sha256": "d72f78dbfde5c4d2ddd0414c32f31e94952f3e0e8e053e2fc4f6447a59fc72fb",
+          "size": 289098
+        },
+        {
           "path": "apps/android/docs/media/play-store-feature-graphic/en-US-feature-graphic.png",
           "sha256": "578ce421e2b4318392c0c428ca427b47caa6957642ca1dc2f0e9e7c9d299f23e",
           "size": 295009
@@ -12946,6 +14291,11 @@
           "path": "apps/android/docs/media/play-store-feature-graphic/fi-FI-feature-graphic.png",
           "sha256": "5a38840be30155a21332d572c4611ceb903f7d72d04aa2b7c4167e2c8390e1fe",
           "size": 182451
+        },
+        {
+          "path": "apps/android/docs/media/play-store-feature-graphic/fr-CA-feature-graphic.png",
+          "sha256": "77b082750c54ae78da9ef212b80d65c3f8e61e37664aa0a820f19a5c0a276cbd",
+          "size": 290380
         },
         {
           "path": "apps/android/docs/media/play-store-feature-graphic/fr-FR-feature-graphic.png",
@@ -13028,6 +14378,11 @@
           "size": 157398
         },
         {
+          "path": "apps/android/docs/media/play-store-feature-graphic/ms-feature-graphic.png",
+          "sha256": "329a18f548bfd245e77201d487b687e955ae706f3c1dc594cac4ff24a6c61f6b",
+          "size": 289028
+        },
+        {
           "path": "apps/android/docs/media/play-store-feature-graphic/nl-NL-feature-graphic.png",
           "sha256": "667ff96790d39557f0fb8501e42e15f9e8fbacd6f0b0c05cceba43c6cee50b9d",
           "size": 172049
@@ -13051,6 +14406,11 @@
           "path": "apps/android/docs/media/play-store-feature-graphic/pt-BR-feature-graphic.png",
           "sha256": "f8e7dbb71cc02ed3093f2b613f8b6704106d2ae56bfae3a9bb09ceecb2a3924d",
           "size": 295295
+        },
+        {
+          "path": "apps/android/docs/media/play-store-feature-graphic/pt-PT-feature-graphic.png",
+          "sha256": "75fbc4b010933a6f47e3be27d84c05e57ba648b53a50b7d940a145b0fd66c670",
+          "size": 288060
         },
         {
           "path": "apps/android/docs/media/play-store-feature-graphic/ro-feature-graphic.png",
@@ -13121,6 +14481,16 @@
           "path": "apps/android/docs/media/play-store-feature-graphic/zh-CN-feature-graphic.png",
           "sha256": "81d1522521cf1e2ed4e5ce14ac9213d7d10ec242d8fd0dfdc3536505b176032a",
           "size": 286553
+        },
+        {
+          "path": "apps/android/docs/media/play-store-feature-graphic/zh-HK-feature-graphic.png",
+          "sha256": "2ae8f263be10e9a0000957f768e77d7c1b1e40400b9c5d14a8eb506d883822a8",
+          "size": 282522
+        },
+        {
+          "path": "apps/android/docs/media/play-store-feature-graphic/zh-TW-feature-graphic.png",
+          "sha256": "c45f66c3ab5f654bbcd778ad5c866405557c4eeea59e19fb67a5873f9287bfa1",
+          "size": 282453
         },
         {
           "path": "apps/android/docs/media/play-store-feature-graphic/zu-feature-graphic.png",

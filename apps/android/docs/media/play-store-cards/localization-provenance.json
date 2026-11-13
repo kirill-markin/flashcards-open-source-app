@@ -1,0 +1,139 @@
+{
+  "nativePackageSha256": "538f867b07684f8befd6d512c6d1204a48167e70b9e0d78b60255e653b3a53e9",
+  "captureAndRendererRevision": "ed8c5aa3bf68958f2c575d6309030152d840d6d0",
+  "regionalRendererRevision": "9f9345e45a7da95205dde5a29f3954e45eee6595",
+  "nativeRoot": "../play-store-screenshots",
+  "featureGraphicsRoot": "../play-store-feature-graphic",
+  "newNativeCaptures": {
+    "ms": {
+      "deviceLocale": "ms-MY"
+    },
+    "pt-PT": {
+      "deviceLocale": "pt-PT"
+    },
+    "zh-TW": {
+      "deviceLocale": "zh-Hant-TW"
+    }
+  },
+  "captureOnlyChatCompatibility": {
+    "capturePrefixes": [
+      "ms",
+      "zh-TW"
+    ],
+    "patchSha256": "c7dd8f1eb396cf6013e4be88b946cc6b60b717bb6e0aa1acd0eca873565d9aab",
+    "effect": "Omit the optional locale on the new-chat request while preserving localized capture UI and fixtures."
+  },
+  "draftPlacementsVerifiedDate": "2026-11-12",
+  "draftListings": [
+    "main",
+    "custom"
+  ],
+  "listingAssets": {
+    "en-AU": {
+      "phoneSet": "en-AU",
+      "featureGraphic": "en-AU-feature-graphic.png"
+    },
+    "en-CA": {
+      "phoneSet": "en-AU",
+      "featureGraphic": "en-AU-feature-graphic.png"
+    },
+    "en-GB": {
+      "phoneSet": "en-AU",
+      "featureGraphic": "en-AU-feature-graphic.png"
+    },
+    "fr-CA": {
+      "phoneSet": "fr-CA",
+      "featureGraphic": "fr-CA-feature-graphic.png"
+    },
+    "ms": {
+      "phoneSet": "ms",
+      "featureGraphic": "ms-feature-graphic.png"
+    },
+    "ms-MY": {
+      "phoneSet": "ms",
+      "featureGraphic": "ms-feature-graphic.png"
+    },
+    "pt-PT": {
+      "phoneSet": "pt-PT",
+      "featureGraphic": "pt-PT-feature-graphic.png"
+    },
+    "zh-HK": {
+      "phoneSet": "zh-HK",
+      "featureGraphic": "zh-HK-feature-graphic.png"
+    },
+    "zh-TW": {
+      "phoneSet": "zh-TW",
+      "featureGraphic": "zh-TW-feature-graphic.png"
+    }
+  },
+  "phoneSets": {
+    "en-AU": {
+      "nativeCapturePrefix": "en",
+      "orderedCards": [
+        "ready/en-AU/phoneScreenshots/01_ai-flashcards.png",
+        "ready/en-AU/phoneScreenshots/02_start-learning.png",
+        "ready/en-AU/phoneScreenshots/03_smart-reviews.png",
+        "ready/en-AU/phoneScreenshots/04_your-progress.png",
+        "ready/en-AU/phoneScreenshots/05_your-cards.png"
+      ]
+    },
+    "fr-CA": {
+      "nativeCapturePrefix": "fr-FR",
+      "orderedCards": [
+        "ready/fr-CA/phoneScreenshots/01_ai-flashcards.png",
+        "ready/fr-CA/phoneScreenshots/02_start-learning.png",
+        "ready/fr-CA/phoneScreenshots/03_smart-reviews.png",
+        "ready/fr-CA/phoneScreenshots/04_your-progress.png",
+        "ready/fr-CA/phoneScreenshots/05_your-cards.png"
+      ]
+    },
+    "ms": {
+      "nativeCapturePrefix": "ms",
+      "orderedCards": [
+        "ready/ms/phoneScreenshots/01_ai-flashcards.png",
+        "ready/ms/phoneScreenshots/02_start-learning.png",
+        "ready/ms/phoneScreenshots/03_smart-reviews.png",
+        "ready/ms/phoneScreenshots/04_your-progress.png",
+        "ready/ms/phoneScreenshots/05_your-cards.png"
+      ]
+    },
+    "pt-PT": {
+      "nativeCapturePrefix": "pt-PT",
+      "orderedCards": [
+        "ready/pt-PT/phoneScreenshots/01_ai-flashcards.png",
+        "ready/pt-PT/phoneScreenshots/02_start-learning.png",
+        "ready/pt-PT/phoneScreenshots/03_smart-reviews.png",
+        "ready/pt-PT/phoneScreenshots/04_your-progress.png",
+        "ready/pt-PT/phoneScreenshots/05_your-cards.png"
+      ]
+    },
+    "zh-HK": {
+      "nativeCapturePrefix": "zh-TW",
+      "orderedCards": [
+        "ready/zh-TW/phoneScreenshots/01_ai-flashcards.png",
+        "ready/zh-HK/phoneScreenshots/02_start-learning.png",
+        "ready/zh-HK/phoneScreenshots/03_smart-reviews.png",
+        "ready/zh-HK/phoneScreenshots/04_your-progress.png",
+        "ready/zh-HK/phoneScreenshots/05_your-cards.png"
+      ]
+    },
+    "zh-TW": {
+      "nativeCapturePrefix": "zh-TW",
+      "orderedCards": [
+        "ready/zh-TW/phoneScreenshots/01_ai-flashcards.png",
+        "ready/zh-TW/phoneScreenshots/02_start-learning.png",
+        "ready/zh-TW/phoneScreenshots/03_smart-reviews.png",
+        "ready/zh-TW/phoneScreenshots/04_your-progress.png",
+        "ready/zh-TW/phoneScreenshots/05_your-cards.png"
+      ]
+    }
+  },
+  "nativeOrderForPhoneCards": [
+    4,
+    1,
+    2,
+    3,
+    5
+  ],
+  "featureGraphicRendererRevision": "9f9345e45a7da95205dde5a29f3954e45eee6595"
+}

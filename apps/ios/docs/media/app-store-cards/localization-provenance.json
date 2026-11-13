@@ -1,0 +1,94 @@
+{
+  "nativePackageSha256": "538f867b07684f8befd6d512c6d1204a48167e70b9e0d78b60255e653b3a53e9",
+  "approvedPackageSha256": "d4be7e55734873a6c0ab7922053b76492d80a12e5edd639114b430406018561d",
+  "captureAndRendererRevision": "ed8c5aa3bf68958f2c575d6309030152d840d6d0",
+  "nativeRoot": "../app-store-screenshots",
+  "cardsRoot": "localizations-2026-11-13/ready",
+  "previewsRoot": "localizations-2026-11-13/previews",
+  "newCaptureTags": [
+    "ms",
+    "or",
+    "pt-PT",
+    "zh-Hant"
+  ],
+  "nativeDimensions": {
+    "iphone": [
+      1284,
+      2778
+    ],
+    "ipad": [
+      2752,
+      2064
+    ],
+    "iphone-duo-inner": [
+      2853,
+      2007
+    ],
+    "macos": [
+      1440,
+      900
+    ]
+  },
+  "captureOnlyChatCompatibility": {
+    "captureTags": [
+      "ms",
+      "or",
+      "zh-Hant"
+    ],
+    "patchSha256": "ebd3d13d9567e0b808b3a9d7747eb0d3e2b3d6be5e639c5261f08d9e5ca564f6",
+    "effect": "Omit the optional locale on the new-chat request while preserving localized capture UI and fixtures."
+  },
+  "draftPlacementsVerifiedDate": "2026-11-13",
+  "draftFamilies": {
+    "ios": [
+      "iphone",
+      "ipad",
+      "iphone-duo-inner"
+    ],
+    "macos": [
+      "macos"
+    ],
+    "customProductPage": [
+      "iphone",
+      "ipad"
+    ]
+  },
+  "listingCaptureTags": {
+    "en-AU": "en-US",
+    "en-CA": "en-US",
+    "en-GB": "en-US",
+    "fr-CA": "fr",
+    "ms": "ms",
+    "or-IN": "or",
+    "pt-PT": "pt-PT",
+    "zh-Hant": "zh-Hant"
+  },
+  "orderedCardFilenameSuffixes": [
+    "1_ai-flashcards.png",
+    "2_start-learning.png",
+    "3_smart-reviews.png",
+    "4_your-progress.png",
+    "5_your-cards.png"
+  ],
+  "orderedNativeFilenameSuffixes": [
+    "4_review-card-ai-draft-app-store-opportunity-cost.png",
+    "1_review-card-front-app-store-opportunity-cost.png",
+    "2_review-card-result-app-store-opportunity-cost.png",
+    "3_progress-app-store-study-history.png",
+    "5_cards-list-app-store-vocabulary.png"
+  ],
+  "captureWrapperPatchSha256": "445a10d913a65b6d6060fbfe9cc36d76a17c8df8160667baf43339c55af8ca5c",
+  "captureWrapperPatchSets": {
+    "ipad": [
+      "ms",
+      "or",
+      "pt-PT",
+      "zh-Hant"
+    ],
+    "iphone": [
+      "ms",
+      "or",
+      "zh-Hant"
+    ]
+  }
+}
