@@ -70,6 +70,7 @@
     <string name="settings_own_openai_key_field_label">Chave da API da OpenAI</string>
     <plurals name="settings_own_openai_key_month_messages">
         <item quantity="one">Este mês com a sua chave: %d mensagem</item>
+        <item quantity="many">Este mês com a sua chave: %d mensagens</item>
         <item quantity="other">Este mês com a sua chave: %d mensagens</item>
     </plurals>
     <string name="settings_own_openai_key_storage_unreadable">Não foi possível ler ou guardar a sua chave da OpenAI neste dispositivo, pelo que foi removida. Introduza-a novamente.</string>
@@ -678,51 +679,63 @@
     <string name="settings_open_source_self_hosting_summary">O projeto dá prioridade ao código aberto e prevê a possibilidade de alojamento próprio.</string>
     <plurals name="settings_cards_count">
         <item quantity="one">%d cartão</item>
+        <item quantity="many">%d cartões</item>
         <item quantity="other">%d cartões</item>
     </plurals>
     <plurals name="settings_decks_count">
         <item quantity="one">%d baralho</item>
+        <item quantity="many">%d baralhos</item>
         <item quantity="other">%d baralhos</item>
     </plurals>
     <plurals name="settings_filtered_decks_count">
         <item quantity="one">%d baralho filtrado</item>
+        <item quantity="many">%d baralhos filtrados</item>
         <item quantity="other">%d baralhos filtrados</item>
     </plurals>
     <plurals name="settings_tags_count">
         <item quantity="one">%d etiqueta</item>
+        <item quantity="many">%d etiquetas</item>
         <item quantity="other">%d etiquetas</item>
     </plurals>
     <plurals name="settings_import_success">
         <item quantity="one">Foi importado %1$d cartão.</item>
+        <item quantity="many">Foram importados %1$d cartões.</item>
         <item quantity="other">Foram importados %1$d cartões.</item>
     </plurals>
     <plurals name="settings_import_success_with_tag">
         <item quantity="one">Foi importado %1$d cartão com a etiqueta %2$s.</item>
+        <item quantity="many">Foram importados %1$d cartões com a etiqueta %2$s.</item>
         <item quantity="other">Foram importados %1$d cartões com a etiqueta %2$s.</item>
     </plurals>
     <plurals name="settings_workspace_deck_card_summary">
         <item quantity="one">%1$d cartão</item>
+        <item quantity="many">%1$d cartões</item>
         <item quantity="other">%1$d cartões</item>
     </plurals>
     <plurals name="settings_workspace_deck_to_study_summary">
         <item quantity="one">%1$d por estudar</item>
+        <item quantity="many">%1$d por estudar</item>
         <item quantity="other">%1$d por estudar</item>
     </plurals>
     <string name="settings_workspace_deck_counts_summary">%1$s · %2$s</string>
     <plurals name="settings_workspace_deck_due_summary">
         <item quantity="one">%1$d por rever</item>
+        <item quantity="many">%1$d por rever</item>
         <item quantity="other">%1$d por rever</item>
     </plurals>
     <plurals name="settings_tag_cards_count">
         <item quantity="one">%d cartão</item>
+        <item quantity="many">%d cartões</item>
         <item quantity="other">%d cartões</item>
     </plurals>
     <plurals name="settings_notifications_duration_minutes">
         <item quantity="one">%d minuto</item>
+        <item quantity="many">%d minutos</item>
         <item quantity="other">%d minutos</item>
     </plurals>
     <plurals name="settings_notifications_duration_hours">
         <item quantity="one">%d hora</item>
+        <item quantity="many">%d horas</item>
         <item quantity="other">%d horas</item>
     </plurals>
     <string name="settings_premium_preview">Pré-visualizar Premium</string>

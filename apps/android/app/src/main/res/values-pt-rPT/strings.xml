@@ -33,6 +33,7 @@
     <string name="feedback_prompt_empty_message">Escreva uma mensagem antes de a enviar.</string>
     <plurals name="feedback_prompt_message_too_long">
         <item quantity="one">A mensagem pode ter até %1$d carácter.</item>
+        <item quantity="many">A mensagem pode ter até %1$d caracteres.</item>
         <item quantity="other">A mensagem pode ter até %1$d caracteres.</item>
     </plurals>
     <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
@@ -58,10 +59,12 @@
     <string name="review_widget_due_label">por rever</string>
     <plurals name="review_widget_cards_due">
         <item quantity="one">%1$d cartão por rever</item>
+        <item quantity="many">%1$d cartões por rever</item>
         <item quantity="other">%1$d cartões por rever</item>
     </plurals>
     <plurals name="review_widget_streak_days">
         <item quantity="one">Sequência de %1$d dia</item>
+        <item quantity="many">Sequência de %1$d dias</item>
         <item quantity="other">Sequência de %1$d dias</item>
     </plurals>
     <string name="review_widget_preview_cards_due">12 cartões por rever</string>
@@ -73,10 +76,12 @@
     </string>
     <plurals name="reviews_chart_widget_trend_up">
         <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face a <xliff:g id="day_count" example="14">%2$d</xliff:g> dia anterior</item>
+        <item quantity="many">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
         <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
     </plurals>
     <plurals name="reviews_chart_widget_trend_down">
         <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face a <xliff:g id="day_count" example="14">%2$d</xliff:g> dia anterior</item>
+        <item quantity="many">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
         <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
     </plurals>
     <string name="reviews_chart_widget_preview_daily_average">Média diária: 24</string>
@@ -84,6 +89,7 @@
     <string name="coming_up_widget_description">Cartões a rever nos próximos 7 dias e o seu calendário de revisões.</string>
     <plurals name="coming_up_widget_header">
         <item quantity="one">Próximos 7 dias · <xliff:g id="card_count" example="1">%1$d</xliff:g> cartão</item>
+        <item quantity="many">Próximos 7 dias · <xliff:g id="card_count" example="58">%1$d</xliff:g> cartões</item>
         <item quantity="other">Próximos 7 dias · <xliff:g id="card_count" example="58">%1$d</xliff:g> cartões</item>
     </plurals>
     <string name="coming_up_widget_preview_header">Próximos 7 dias · 58 cartões</string>
@@ -95,14 +101,17 @@
     <string name="today_widget_no_cards_due">Nenhum cartão por rever</string>
     <plurals name="today_widget_reviewed">
         <item quantity="one">%1$d revisto</item>
+        <item quantity="many">%1$d revistos</item>
         <item quantity="other">%1$d revistos</item>
     </plurals>
     <plurals name="today_widget_left">
         <item quantity="one">Falta %1$d</item>
+        <item quantity="many">Faltam %1$d</item>
         <item quantity="other">Faltam %1$d</item>
     </plurals>
     <plurals name="today_widget_cards_left">
         <item quantity="one">Falta %1$d cartão</item>
+        <item quantity="many">Faltam %1$d cartões</item>
         <item quantity="other">Faltam %1$d cartões</item>
     </plurals>
     <string name="today_widget_preview_reviewed">8 revistos</string>
@@ -111,14 +120,17 @@
     <string name="activity_widget_description">As suas revisões diárias num mapa de calor, com a sua sequência.</string>
     <plurals name="activity_widget_streak_days">
         <item quantity="one">🔥 %1$d dia</item>
+        <item quantity="many">🔥 %1$d dias</item>
         <item quantity="other">🔥 %1$d dias</item>
     </plurals>
     <plurals name="activity_widget_reviews">
         <item quantity="one">%1$d revisão</item>
+        <item quantity="many">%1$d revisões</item>
         <item quantity="other">%1$d revisões</item>
     </plurals>
     <plurals name="activity_widget_grid_description">
         <item quantity="one">Revisões diárias na última %1$d semana</item>
+        <item quantity="many">Revisões diárias nas últimas %1$d semanas</item>
         <item quantity="other">Revisões diárias nas últimas %1$d semanas</item>
     </plurals>
     <string name="activity_widget_stat_current_streak">Sequência</string>
@@ -135,6 +147,7 @@
     <string name="year_widget_grid_description">Revisões diárias nos últimos 12 meses</string>
     <plurals name="year_widget_active_days">
         <item quantity="one">%1$d dia ativo</item>
+        <item quantity="many">%1$d dias ativos</item>
         <item quantity="other">%1$d dias ativos</item>
     </plurals>
     <string name="year_widget_preview_reviews">4120 revisões</string>
@@ -151,6 +164,7 @@
     <string name="month_calendar_widget_description">Os dias em que manteve a sequência este mês.</string>
     <plurals name="month_calendar_widget_chart_description">
         <item quantity="one">Sequência mantida em %1$d dia deste mês</item>
+        <item quantity="many">Sequência mantida em %1$d dias deste mês</item>
         <item quantity="other">Sequência mantida em %1$d dias deste mês</item>
     </plurals>
     <string name="month_calendar_widget_preview_month">Novembro</string>
@@ -202,18 +216,22 @@
     <string name="premium_entitlement_not_granted">A compra foi verificada, mas esta conta não tem acesso Premium ativo. Verifique a subscrição no Google Play ou escolha Restaurar compras para a associar a esta conta.</string>
     <plurals name="premium_phase_finite">
         <item quantity="one">%1$s/%2$s durante %3$d pagamento</item>
+        <item quantity="many">%1$s/%2$s durante %3$d pagamentos</item>
         <item quantity="other">%1$s/%2$s durante %3$d pagamentos</item>
     </plurals>
     <plurals name="premium_period_days">
         <item quantity="one">%1$d dia</item>
+        <item quantity="many">%1$d dias</item>
         <item quantity="other">%1$d dias</item>
     </plurals>
     <plurals name="premium_period_months">
         <item quantity="one">%1$d mês</item>
+        <item quantity="many">%1$d meses</item>
         <item quantity="other">%1$d meses</item>
     </plurals>
     <plurals name="premium_period_years">
         <item quantity="one">%1$d ano</item>
+        <item quantity="many">%1$d anos</item>
         <item quantity="other">%1$d anos</item>
     </plurals>
     <string name="premium_close">Fechar Premium</string>
@@ -245,6 +263,7 @@
     <string name="premium_preview_notice">Só para pré-visualização. Abra o Premium a partir de Subscrição para ver a oferta do Google Play.</string>
     <plurals name="premium_ai_messages">
         <item quantity="one">%1$d mensagem de IA por mês</item>
+        <item quantity="many">%1$d mensagens de IA por mês</item>
         <item quantity="other">%1$d mensagens de IA por mês</item>
     </plurals>
 
@@ -277,22 +296,27 @@
     <string name="card_maintenance_confirm_remove">Remover etiqueta</string>
     <plurals name="card_maintenance_reset_preview">
         <item quantity="one">Será reposto o progresso de estudo de %1$d cartão.</item>
+        <item quantity="many">Será reposto o progresso de estudo de %1$d cartões.</item>
         <item quantity="other">Será reposto o progresso de estudo de %1$d cartões.</item>
     </plurals>
     <plurals name="card_maintenance_remove_preview">
         <item quantity="one">Esta etiqueta será removida de %1$d cartão.</item>
+        <item quantity="many">Esta etiqueta será removida de %1$d cartões.</item>
         <item quantity="other">Esta etiqueta será removida de %1$d cartões.</item>
     </plurals>
     <plurals name="card_maintenance_keep_deck_rules">
         <item quantity="one">%1$d baralho usa esta etiqueta. As suas regras serão mantidas.</item>
+        <item quantity="many">%1$d baralhos usam esta etiqueta. As suas regras serão mantidas.</item>
         <item quantity="other">%1$d baralhos usam esta etiqueta. As suas regras serão mantidas.</item>
     </plurals>
     <plurals name="card_maintenance_reset_success">
         <item quantity="one">Progresso reposto para %1$d cartão.</item>
+        <item quantity="many">Progresso reposto para %1$d cartões.</item>
         <item quantity="other">Progresso reposto para %1$d cartões.</item>
     </plurals>
     <plurals name="card_maintenance_remove_success">
         <item quantity="one">Etiqueta removida de %1$d cartão.</item>
+        <item quantity="many">Etiqueta removida de %1$d cartões.</item>
         <item quantity="other">Etiqueta removida de %1$d cartões.</item>
     </plurals>
 </resources>

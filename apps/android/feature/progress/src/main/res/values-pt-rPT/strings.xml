@@ -89,46 +89,57 @@
     <string name="progress_today">Hoje</string>
     <plurals name="progress_streak_summary_content_description">
         <item quantity="one">Sequência de revisão de %d dia.</item>
+        <item quantity="many">Sequência de revisão de %d dias.</item>
         <item quantity="other">Sequência de revisão de %d dias.</item>
     </plurals>
     <plurals name="progress_reviews_day_content_description">
         <item quantity="one">Selecionar %1$s, %2$d revisão.</item>
+        <item quantity="many">Selecionar %1$s, %2$d revisões.</item>
         <item quantity="other">Selecionar %1$s, %2$d revisões.</item>
     </plurals>
     <plurals name="progress_reviews_day_selected_content_description">
         <item quantity="one">%1$s selecionado, %2$d revisão.</item>
+        <item quantity="many">%1$s selecionado, %2$d revisões.</item>
         <item quantity="other">%1$s selecionado, %2$d revisões.</item>
     </plurals>
     <plurals name="progress_leaderboard_participant_count">
         <item quantity="one">%1$s participante</item>
+        <item quantity="many">%1$s participantes</item>
         <item quantity="other">%1$s participantes</item>
     </plurals>
     <plurals name="progress_streak_leaderboard_day_count">
         <item quantity="one">%1$s dia</item>
+        <item quantity="many">%1$s dias</item>
         <item quantity="other">%1$s dias</item>
     </plurals>
     <plurals name="progress_leaderboard_updated_minute_label">
         <item quantity="one">Atualizado há %1$d minuto</item>
+        <item quantity="many">Atualizado há %1$d minutos</item>
         <item quantity="other">Atualizado há %1$d minutos</item>
     </plurals>
     <plurals name="progress_leaderboard_updated_hour_label">
         <item quantity="one">Atualizado há %1$d hora</item>
+        <item quantity="many">Atualizado há %1$d horas</item>
         <item quantity="other">Atualizado há %1$d horas</item>
     </plurals>
     <plurals name="progress_leaderboard_elapsed_minute_count">
         <item quantity="one">%1$d minuto</item>
+        <item quantity="many">%1$d minutos</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
     <plurals name="progress_leaderboard_updated_hour_minute_label">
         <item quantity="one">Atualizado há %1$d hora e %2$s</item>
+        <item quantity="many">Atualizado há %1$d horas e %2$s</item>
         <item quantity="other">Atualizado há %1$d horas e %2$s</item>
     </plurals>
     <plurals name="progress_leaderboard_profile_activity_total">
         <item quantity="one">Total de %1$s revisão</item>
+        <item quantity="many">Total de %1$s revisões</item>
         <item quantity="other">Total de %1$s revisões</item>
     </plurals>
     <plurals name="progress_leaderboard_profile_total_cards_value">
         <item quantity="one">%1$s cartão</item>
+        <item quantity="many">%1$s cartões</item>
         <item quantity="other">%1$s cartões</item>
     </plurals>
 </resources>

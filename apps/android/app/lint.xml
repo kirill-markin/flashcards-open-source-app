@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <issue id="MissingTranslation">
+        <!-- Lint groups regional overrides under their base language. English uses default
+             resources and generic French comes from Play. Keep errors for any other language. -->
+        <ignore regexp='^"[^"]+" is not translated in ("en" \(English\)( or "fr" \(French\))?|"fr" \(French\)( or "en" \(English\))?)$' />
+    </issue>
+</lint>

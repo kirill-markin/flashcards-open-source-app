@@ -82,6 +82,7 @@
     <string name="review_tag_chip_click_label">Alterar filtro de revisão</string>
     <plurals name="review_filter_due_badge_content_description">
         <item quantity="one">%d cartão para rever</item>
+        <item quantity="many">%d cartões para rever</item>
         <item quantity="other">%d cartões para rever</item>
     </plurals>
     <string name="review_tag_filter_dialog_title">Filtro de revisão</string>
@@ -96,22 +97,27 @@
     <string name="review_interval_minutes_label">dentro de %1$d min</string>
     <plurals name="review_interval_hours">
         <item quantity="one">dentro de %d hora</item>
+        <item quantity="many">dentro de %d horas</item>
         <item quantity="other">dentro de %d horas</item>
     </plurals>
     <plurals name="review_interval_days">
         <item quantity="one">dentro de %d dia</item>
+        <item quantity="many">dentro de %d dias</item>
         <item quantity="other">dentro de %d dias</item>
     </plurals>
     <plurals name="review_progress_badge_content_description">
         <item quantity="one">Sequência de revisão de %d dia.</item>
+        <item quantity="many">Sequência de revisão de %d dias.</item>
         <item quantity="other">Sequência de revisão de %d dias.</item>
     </plurals>
     <plurals name="review_queue_button_content_description">
         <item quantity="one">Fila de revisão com %d cartão.</item>
+        <item quantity="many">Fila de revisão com %d cartões.</item>
         <item quantity="other">Fila de revisão com %d cartões.</item>
     </plurals>
     <plurals name="review_filter_tag_count">
         <item quantity="one">%d etiqueta</item>
+        <item quantity="many">%d etiquetas</item>
         <item quantity="other">%d etiquetas</item>
     </plurals>
     <string name="review_test_animations_unavailable">Animação indisponível</string>

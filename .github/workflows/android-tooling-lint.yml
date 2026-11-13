@@ -17,6 +17,7 @@ on:
       - 'apps/android/buildSrc/**'
       - 'apps/android/build-logic/**'
       - 'apps/android/ci/**'
+      - 'apps/android/app/lint.xml'
       - 'apps/android/app/src/main/res/resources.properties'
       - 'apps/android/app/src/main/res/xml/locales_config.xml'
       - 'cloudbuild.android.yaml'
