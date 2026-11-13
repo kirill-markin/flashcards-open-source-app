@@ -33,6 +33,10 @@ private struct ProgressReviewRatingLegendEntry: Identifiable {
 
 struct ProgressReviewsSection: View {
     let chartDays: [ProgressChartDay]
+    /// The rolling last 7 days against the usual, whatever week the chart pages to.
+    let pace: ProgressPace
+    /// Nil at 0 minutes or under the server's timing sample.
+    let studyMinutes: Int?
     let chartCalendar: Calendar
     let selectionResetKey: String
     @Binding var pageSelection: ProgressReviewChartPageSelection?
@@ -163,7 +167,13 @@ struct ProgressReviewsSection: View {
         } else {
             maximumReviewCount = visiblePage.days.map(\.reviewCount).max() ?? 0
         }
-        return progressChartUpperBound(maximumReviewCount: maximumReviewCount)
+        guard self.selectedRating == nil, let baseline = self.pace.baseline else {
+            return progressChartUpperBound(maximumReviewCount: maximumReviewCount)
+        }
+        // The dashed usual line stays inside the plot even above every bar.
+        return progressChartUpperBound(
+            maximumReviewCount: max(maximumReviewCount, Int(baseline.usualReviewsPerDay.rounded(.up)))
+        )
     }
 
     private var visibleChartSegments: [ProgressReviewChartSegment] {
@@ -266,6 +276,8 @@ struct ProgressReviewsSection: View {
                 }
             }
 
+            ProgressReviewsPaceRows(pace: self.pace, studyMinutes: self.studyMinutes)
+
             if let visiblePage = self.visiblePage {
                 Chart {
                     ForEach(visiblePage.days) { day in
@@ -293,6 +305,12 @@ struct ProgressReviewsSection: View {
                             )
                             .accessibilityValue(segment.count.formatted())
                         }
+                    }
+                    // The usual daily average, the baseline the pace compares against.
+                    if let baseline = self.pace.baseline, self.selectedRating == nil {
+                        RuleMark(y: .value("Usual", baseline.usualReviewsPerDay))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                            .foregroundStyle(Color.secondary)
                     }
                 }
                 .chartLegend(.hidden)
@@ -400,6 +418,71 @@ struct ProgressReviewsSection: View {
         } else {
             self.selection = .rating(rating)
         }
+    }
+}
+
+/// "Last 7 days · 13.1 a day ↑ 64%" and the time studied in those days, both rolling, never a calendar week.
+private struct ProgressReviewsPaceRows: View {
+    let pace: ProgressPace
+    let studyMinutes: Int?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(
+                    String(
+                        localized: "progress.screen.last_7_days",
+                        defaultValue: "Last 7 days",
+                        table: "Foundation",
+                        comment: "Progress label for the rolling 7 local days ending today"
+                    )
+                )
+                .font(.subheadline)
+                Spacer(minLength: 12)
+                Text(progressReviewsPerDayLabel(reviewsPerDay: self.pace.lastSevenDaysAveragePerDay))
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                if let baseline = self.pace.baseline {
+                    ProgressReviewsPaceChange(percentChange: baseline.percentChange)
+                }
+            }
+            .accessibilityElement(children: .combine)
+
+            if let studyMinutes = self.studyMinutes {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(
+                        String(
+                            localized: "progress.screen.reviews.study_time",
+                            defaultValue: "Study time",
+                            table: "Foundation",
+                            comment: "Progress label for the estimated time studied in the last 7 days"
+                        )
+                    )
+                    .font(.subheadline)
+                    Spacer(minLength: 12)
+                    Text(progressMinutesEstimateLabel(minutes: studyMinutes))
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+}
+
+/// The change against the usual, in the tint both ways; effort, never a grade.
+private struct ProgressReviewsPaceChange: View {
+    let percentChange: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if self.percentChange != 0 {
+                Image(systemName: self.percentChange > 0 ? "arrow.up" : "arrow.down")
+            }
+            Text(Double(abs(self.percentChange)) / 100, format: .percent.precision(.fractionLength(0)))
+        }
+        .font(.subheadline.weight(.semibold).monospacedDigit())
+        .foregroundStyle(.tint)
     }
 }
 

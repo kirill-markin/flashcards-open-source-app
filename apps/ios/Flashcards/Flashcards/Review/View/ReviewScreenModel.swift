@@ -20,6 +20,9 @@ final class ReviewScreenModel {
     /// Review was off screen still resets it when Review is recreated.
     var presentedReviewFilter: ReviewFilter? = nil
     var presentedReviewPresentationResetRevision: Int? = nil
+    /// A widget's Reveal answer tap for this card: Review shows the card answer-side, never question-side first.
+    /// Dropped as soon as another card is shown.
+    var pendingWidgetRevealCardId: String? = nil
     var preparedRevealState: PreparedReviewRevealState? = nil
     var preparedNextRevealState: PreparedReviewRevealState? = nil
     let preparedImageCache: ReviewPreparedImageCache = ReviewPreparedImageCache()

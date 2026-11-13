@@ -6,7 +6,7 @@ let reviewsChartWidgetKind: String = "ReviewsChartWidget"
 
 private let reviewsChartDayPlotLabel: String = "Day"
 private let reviewsChartReviewsPlotLabel: String = "Reviews"
-private let reviewsChartAveragePlotLabel: String = "Daily average"
+private let reviewsChartUsualPlotLabel: String = "Usual per day"
 
 struct ReviewsChartWidget: Widget {
     var body: some WidgetConfiguration {
@@ -27,7 +27,7 @@ private struct ReviewsChartWidgetView: View {
         Group {
             if let size = widgetChartSize(family: self.family) {
                 Group {
-                    if let summary = makeReviewsChartSummary(entry: self.entry, dayCount: reviewsChartDayCount(size: size)) {
+                    if let summary = makeReviewsChartSummary(entry: self.entry) {
                         ReviewsChartContentView(size: size, summary: summary)
                     } else {
                         WidgetNoSnapshotView()
@@ -41,31 +41,14 @@ private struct ReviewsChartWidgetView: View {
                             kind: .reviewsChart,
                             workspaceId: self.entry.workspaceId,
                             size: size.deepLinkSize,
-                            cardId: nil
+                            cardId: nil,
+                            revealAnswer: false
                         )
                     )
                 )
             }
         }
         .homeScreenWidgetStyle(accentColor: self.entry.snapshot?.accentColor)
-    }
-}
-
-private func reviewsChartDayCount(size: WidgetChartSize) -> Int {
-    switch size {
-    case .medium:
-        return 14
-    case .large:
-        return 30
-    }
-}
-
-private func reviewsChartTickStride(size: WidgetChartSize) -> Int {
-    switch size {
-    case .medium:
-        return 4
-    case .large:
-        return 7
     }
 }
 
@@ -79,21 +62,20 @@ private struct ReviewsChartDay: Identifiable {
 }
 
 private struct ReviewsChartSummary {
-    let dayCount: Int
+    /// The last 7 days, the window of `pace`.
     let days: [ReviewsChartDay]
-    let dailyAverage: Double
-    /// Rounded percent change against the period of the same length before; nil when that period had no reviews.
-    let changePercent: Int?
+    let pace: ProgressPace
+    /// Nil at 0 minutes or under the server's timing sample.
+    let studyMinutes: Int?
 }
 
 /// Nil without progress, once the entry has moved past the day the app wrote progress on, or for a malformed day.
-private func makeReviewsChartSummary(entry: ReviewWidgetEntry, dayCount: Int) -> ReviewsChartSummary? {
+private func makeReviewsChartSummary(entry: ReviewWidgetEntry) -> ReviewsChartSummary? {
     guard let progress = entry.snapshot?.progress, isWidgetProgressForDay(progress: progress, date: entry.date) else {
         return nil
     }
-    let shownDays = Array(progress.days.suffix(dayCount))
     var chartDays: [ReviewsChartDay] = []
-    for day in shownDays {
+    for day in progress.days.suffix(progressPaceWindowDayCount) {
         guard let date = widgetLocalDayStart(localDate: day.localDate) else {
             reviewWidgetLogger.error(
                 "event=reviews_chart_widget_progress_invalid localDate=\(day.localDate, privacy: .public)"
@@ -102,17 +84,13 @@ private func makeReviewsChartSummary(entry: ReviewWidgetEntry, dayCount: Int) ->
         }
         chartDays.append(ReviewsChartDay(date: date, progressDay: day))
     }
-    let previousDays = progress.days.dropLast(dayCount).suffix(dayCount)
-    let shownReviewCount = shownDays.reduce(0) { total, day in total + day.reviewCount }
-    let previousReviewCount = previousDays.reduce(0) { total, day in total + day.reviewCount }
-    let changePercent: Int? = previousReviewCount > 0
-        ? Int((Double(shownReviewCount - previousReviewCount) / Double(previousReviewCount) * 100).rounded())
-        : nil
+    let studySeconds = entry.snapshot?.insights?.studySecondsByDay?.reduce(0) { total, studyDay in
+        total + studyDay.seconds
+    }
     return ReviewsChartSummary(
-        dayCount: dayCount,
         days: chartDays,
-        dailyAverage: shownDays.isEmpty ? 0 : Double(shownReviewCount) / Double(shownDays.count),
-        changePercent: changePercent
+        pace: makeProgressPace(dayReviewCounts: progress.days.map(\.reviewCount)),
+        studyMinutes: studySeconds.flatMap(makeStudyTimeMinutes(seconds:))
     )
 }
 
@@ -122,47 +100,63 @@ private struct ReviewsChartContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ReviewsChartHeaderView(summary: self.summary)
+            ReviewsChartHeaderView(pace: self.summary.pace)
             ReviewsChartPlotView(size: self.size, summary: self.summary)
             if self.size == .large {
-                ReviewsChartRatingLegendView(days: self.summary.days)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    ReviewsChartRatingLegendView(days: self.summary.days)
+                    Spacer(minLength: 0)
+                    if let studyMinutes = self.summary.studyMinutes {
+                        Text("widget.minutes \(studyMinutes)", tableName: widgetStringsTableName)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                }
             }
         }
     }
 }
 
 private struct ReviewsChartHeaderView: View {
-    let summary: ReviewsChartSummary
+    let pace: ProgressPace
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(
-                "widget.reviews_chart.daily_average \(self.summary.dailyAverage.formatted(.number.precision(.fractionLength(0 ... 1))))",
+                "widget.reviews_chart.daily_average \(self.pace.lastSevenDaysAveragePerDay.formatted(.number.precision(.fractionLength(0 ... 1))))",
                 tableName: widgetStringsTableName
             )
             .font(.headline)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             Spacer(minLength: 0)
-            if let changePercent = self.summary.changePercent {
-                reviewsChartTrendText(changePercent: changePercent, dayCount: self.summary.dayCount)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+            if let baseline = self.pace.baseline {
+                ReviewsChartPaceView(percentChange: baseline.percentChange)
             }
         }
     }
 }
 
-private func reviewsChartTrendText(changePercent: Int, dayCount: Int) -> Text {
-    if changePercent > 0 {
-        return Text("widget.reviews_chart.trend.higher \(changePercent) \(dayCount)", tableName: widgetStringsTableName)
+/// The change against the usual, in the accent colour both ways; effort, never a grade.
+private struct ReviewsChartPaceView: View {
+    @Environment(\.widgetAccent) private var accent
+    let percentChange: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if self.percentChange != 0 {
+                Image(systemName: self.percentChange > 0 ? "arrow.up" : "arrow.down")
+            }
+            Text(Double(abs(self.percentChange)) / 100, format: .percent.precision(.fractionLength(0)))
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(self.accent.color)
+        .lineLimit(1)
+        .fixedSize()
+        .widgetAccentable()
     }
-    if changePercent < 0 {
-        return Text("widget.reviews_chart.trend.lower \(-changePercent) \(dayCount)", tableName: widgetStringsTableName)
-    }
-    return Text("widget.reviews_chart.trend.same \(dayCount)", tableName: widgetStringsTableName)
 }
 
 private struct ReviewsChartRatingSegment: Identifiable {
@@ -201,13 +195,6 @@ private struct ReviewsChartPlotView: View {
     let size: WidgetChartSize
     let summary: ReviewsChartSummary
 
-    private var tickDates: [Date] {
-        let tickStride = reviewsChartTickStride(size: self.size)
-        return self.summary.days.reversed().enumerated().compactMap { offset, day in
-            offset.isMultiple(of: tickStride) ? day.date : nil
-        }
-    }
-
     var body: some View {
         Chart {
             switch self.size {
@@ -236,18 +223,31 @@ private struct ReviewsChartPlotView: View {
                     )
                 }
             }
-            RuleMark(y: .value(reviewsChartAveragePlotLabel, self.summary.dailyAverage))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                .foregroundStyle(Color.secondary)
+            if let baseline = self.summary.pace.baseline {
+                RuleMark(y: .value(reviewsChartUsualPlotLabel, baseline.usualReviewsPerDay))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    .foregroundStyle(Color.secondary)
+            }
         }
-        .chartYScale(domain: 0 ... max(self.summary.days.map(\.progressDay.reviewCount).max() ?? 0, 1))
+        .chartYScale(domain: 0 ... max(self.upperBound, 1))
         .chartYAxis(.hidden)
         .chartXAxis {
-            AxisMarks(values: self.tickDates) { _ in
-                AxisValueLabel(format: .dateTime.day(), centered: true)
+            AxisMarks(values: self.summary.days.map(\.date)) { _ in
+                switch self.size {
+                case .medium:
+                    AxisValueLabel(format: .dateTime.weekday(.narrow), centered: true)
+                case .large:
+                    AxisValueLabel(format: .dateTime.weekday(.narrow).day(), centered: true)
+                }
             }
         }
         .widgetAccentable()
+    }
+
+    /// The dashed usual line stays inside the plot even above every bar.
+    private var upperBound: Double {
+        let tallestDay = Double(self.summary.days.map(\.progressDay.reviewCount).max() ?? 0)
+        return max(tallestDay, self.summary.pace.baseline?.usualReviewsPerDay ?? 0)
     }
 }
 

@@ -124,20 +124,23 @@ extension FlashcardsStore {
     }
 
     /// Opens Review from a widget tap. A tapped card that is still in review in the current workspace starts a new
-    /// session shown first; otherwise the current session stays as it is.
-    func openReviewFromWidget(deepLink: WidgetDeepLink, navigation: AppNavigationModel, now: Date) {
+    /// session shown first; otherwise the current session stays as it is. Returns the tapped card's id when Review
+    /// shows it, so a Reveal answer tap can show its answer.
+    @discardableResult
+    func openReviewFromWidget(deepLink: WidgetDeepLink, navigation: AppNavigationModel, now: Date) -> String? {
         defer {
             navigation.selectTab(.review)
         }
         guard let cardId = deepLink.cardId, deepLink.workspaceId == self.workspace?.workspaceId else {
-            return
+            return nil
         }
         let reviewState = self.currentReviewPublishedState()
         let shownCardId = currentReviewCard(
             reviewQueue: self.reviewRuntime.effectiveReviewQueue(publishedState: reviewState)
         )?.cardId
+        // Review keeps showing this card; it counts as shown only while it is the presented card.
         guard cardId != shownCardId else {
-            return
+            return self.presentedReviewCard?.cardId == cardId ? cardId : nil
         }
         let tappedReviewCard = presentedReviewCardForBackgroundRefresh(
             reviewQueue: [],
@@ -149,13 +152,14 @@ extension FlashcardsStore {
             now: now
         )
         guard tappedReviewCard != nil else {
-            return
+            return nil
         }
-        self.startReviewLoad(
+        let didStartReviewLoad = self.startReviewLoad(
             reviewFilter: reviewState.selectedReviewFilter,
             shownCardIntent: .startNewSessionShowingCard(cardId: cardId),
             now: now
         )
+        return didStartReviewLoad && self.presentedReviewCard?.cardId == cardId ? cardId : nil
     }
 
     @discardableResult

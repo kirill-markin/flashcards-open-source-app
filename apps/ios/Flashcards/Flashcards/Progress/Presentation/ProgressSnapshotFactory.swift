@@ -5,6 +5,7 @@ private let progressLeaderboardTopRowCount: Int = 3
 
 func makeProgressSnapshot(
     summary: ProgressSummary,
+    insights: ProgressInsights?,
     series: UserProgressSeries,
     scopeKey: ProgressScopeKey,
     summarySourceState: ProgressSourceState,
@@ -48,6 +49,7 @@ func makeProgressSnapshot(
     return ProgressSnapshot(
         scopeKey: scopeKey,
         summary: summary,
+        insights: insights,
         chartData: chartData,
         streakWeeks: streakWeeks,
         presentationCalendar: presentationCalendar,

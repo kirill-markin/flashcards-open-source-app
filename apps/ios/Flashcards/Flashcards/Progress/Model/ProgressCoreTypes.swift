@@ -107,15 +107,49 @@ private func decodeProgressReviewHistoryWatermarksIfAvailable<Key: CodingKey>(
     return try container.decode([ProgressReviewHistoryWatermark].self, forKey: key)
 }
 
+struct ProgressBestDay: Codable, Hashable, Sendable {
+    let date: String
+    let reviewCount: Int
+}
+
+struct ProgressBestWeek: Codable, Hashable, Sendable {
+    /// The last of the 7 local days.
+    let endDate: String
+    let reviewCount: Int
+}
+
+struct ProgressStudySecondsDay: Codable, Hashable, Sendable {
+    let date: String
+    let seconds: Double
+}
+
+/// Server-only Progress facts that need lifetime or per-card history (`ProgressInsights` in
+/// apps/backend/src/progress/reports/contracts.ts). "Last 7 days" and "week" are rolling local days ending today;
+/// the bests exclude today.
+struct ProgressInsights: Codable, Hashable, Sendable {
+    let totalReviews: Int
+    let bestDayBeforeToday: ProgressBestDay?
+    let bestWeekBeforeToday: ProgressBestWeek?
+    let cardsMetLast7Days: Int
+    let relearnedLast7Days: Int
+    /// Nil under the server's timing sample.
+    let secondsPerDueCard: Double?
+    /// The last 7 local days; nil under the server's timing sample.
+    let studySecondsByDay: [ProgressStudySecondsDay]?
+}
+
 struct UserProgressSummary: Codable, Hashable, Sendable {
     let timeZone: String?
     let summary: ProgressSummary
+    /// Nil from a backend released before insights existed and in the legacy flat payload.
+    let insights: ProgressInsights?
     let generatedAt: String?
     let reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
 
     enum CodingKeys: String, CodingKey {
         case timeZone
         case summary
+        case insights
         case generatedAt
         case reviewHistoryWatermarks
         case currentStreakDays
@@ -129,11 +163,13 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
     init(
         timeZone: String?,
         summary: ProgressSummary,
+        insights: ProgressInsights?,
         generatedAt: String?,
         reviewHistoryWatermarks: [ProgressReviewHistoryWatermark]
     ) {
         self.timeZone = timeZone
         self.summary = summary
+        self.insights = insights
         self.generatedAt = generatedAt
         self.reviewHistoryWatermarks = reviewHistoryWatermarks
     }
@@ -144,6 +180,7 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
             self.init(
                 timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone),
                 summary: try container.decode(ProgressSummary.self, forKey: .summary),
+                insights: try container.decodeIfPresent(ProgressInsights.self, forKey: .insights),
                 generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
                 reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
                     container: container,
@@ -163,6 +200,7 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
                 activeReviewDays: try container.decode(Int.self, forKey: .activeReviewDays),
                 streakFreeze: try container.decode(ProgressStreakFreeze.self, forKey: .streakFreeze)
             ),
+            insights: nil,
             generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt),
             reviewHistoryWatermarks: try decodeProgressReviewHistoryWatermarksIfAvailable(
                 container: container,
@@ -175,6 +213,7 @@ struct UserProgressSummary: Codable, Hashable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(self.timeZone, forKey: .timeZone)
         try container.encode(self.summary, forKey: .summary)
+        try container.encodeIfPresent(self.insights, forKey: .insights)
         try container.encodeIfPresent(self.generatedAt, forKey: .generatedAt)
         try container.encode(self.reviewHistoryWatermarks, forKey: .reviewHistoryWatermarks)
     }

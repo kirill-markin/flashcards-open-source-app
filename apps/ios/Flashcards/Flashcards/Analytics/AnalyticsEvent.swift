@@ -155,8 +155,9 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// A reminder tap that brought the person back, reported where the OS hands the response to the
     /// app. It is the numerator `notificationScheduled` is the denominator of.
     case notificationOpened(notificationKind: AnalyticsNotificationKind)
-    /// A Home Screen widget tap, reported once when the app consumes it.
-    case widgetOpened(widgetSize: AnalyticsWidgetSize, widgetKind: AnalyticsWidgetKind)
+    /// A Home Screen widget tap, reported once when the app consumes it. `widgetTarget` is set only for a tap that
+    /// carries a card: its question, or its Reveal answer button.
+    case widgetOpened(widgetSize: AnalyticsWidgetSize, widgetKind: AnalyticsWidgetKind, widgetTarget: AnalyticsWidgetTarget?)
     /// How many widgets of one kind are placed now, by size, reported only when the counts differ from
     /// the last report of that kind on this installation; all zeros means none of that kind is placed.
     case widgetPlacementChanged(
@@ -468,6 +469,12 @@ enum AnalyticsWidgetKind: String, Sendable, Equatable, CaseIterable {
     case monthCalendar = "month_calendar"
     case comingUp = "coming_up"
     case dashboard
+    case question
+}
+
+enum AnalyticsWidgetTarget: String, Sendable, Equatable {
+    case card
+    case revealAnswer = "reveal_answer"
 }
 
 /// Sent only with the Lock Screen kind.
@@ -891,11 +898,15 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .notificationScheduled(let notificationKind), .notificationOpened(let notificationKind):
             return ["notification_kind": .string(notificationKind.rawValue)]
-        case .widgetOpened(let widgetSize, let widgetKind):
-            return [
+        case .widgetOpened(let widgetSize, let widgetKind, let widgetTarget):
+            var properties: [String: AnalyticsPropertyValue] = [
                 "widget_size": .string(widgetSize.rawValue),
                 "widget_kind": .string(widgetKind.rawValue)
             ]
+            if let widgetTarget {
+                properties["widget_target"] = .string(widgetTarget.rawValue)
+            }
+            return properties
         case .widgetPlacementChanged(let widgetKind, let smallCount, let mediumCount, let largeCount, let accessoryCounts):
             var properties: [String: AnalyticsPropertyValue] = [
                 "widget_kind": .string(widgetKind.rawValue),

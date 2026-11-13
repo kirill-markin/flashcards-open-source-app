@@ -49,6 +49,8 @@ struct ProgressChartData: Hashable, Sendable {
 struct ProgressSnapshot: Hashable, Sendable {
     let scopeKey: ProgressScopeKey
     let summary: ProgressSummary
+    /// Nil while only the local fallback is available.
+    let insights: ProgressInsights?
     let chartData: ProgressChartData
     let streakWeeks: [ProgressCalendarWeek]
     let presentationCalendar: Calendar

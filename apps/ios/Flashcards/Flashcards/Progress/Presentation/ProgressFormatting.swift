@@ -54,6 +54,30 @@ func progressReviewChartDayLabel(date: Date, calendar: Calendar) -> String {
     return formatter.string(from: date)
 }
 
+func progressMinutesEstimateLabel(minutes: Int) -> String {
+    let localizedFormat = String(
+        localized: "progress.screen.minutes_estimate",
+        defaultValue: "≈ %lld min",
+        table: "Foundation",
+        comment: "An estimated number of minutes. Parameter is the number of minutes"
+    )
+    return String(format: localizedFormat, locale: Locale.current, Int64(minutes))
+}
+
+func progressReviewsPerDayLabel(reviewsPerDay: Double) -> String {
+    let localizedFormat = String(
+        localized: "progress.screen.reviews.per_day",
+        defaultValue: "%@ a day",
+        table: "Foundation",
+        comment: "Average reviews per day over the last 7 days. Parameter is the formatted average, such as 13.1"
+    )
+    return String(
+        format: localizedFormat,
+        locale: Locale.current,
+        reviewsPerDay.formatted(.number.precision(.fractionLength(0 ... 1)))
+    )
+}
+
 func progressReviewRatingTitle(rating: ReviewRating) -> String {
     rating.title
 }

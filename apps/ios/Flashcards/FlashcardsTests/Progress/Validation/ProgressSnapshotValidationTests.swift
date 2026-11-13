@@ -185,6 +185,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                     nextCreditRequiredUnits: 10
                 )
             ),
+            insights: nil,
             generatedAt: "2026-04-18T09:15:00.000Z",
             reviewHistoryWatermarks: []
         )
@@ -220,6 +221,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
                     nextCreditRequiredUnits: 10
                 )
             ),
+            insights: nil,
             generatedAt: "2026-04-18T09:15:00.000Z",
             reviewHistoryWatermarks: []
         )
@@ -286,6 +288,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
             XCTAssertThrowsError(
                 try makeProgressSnapshot(
                     summary: makeEmptyProgressSummaryForTests(),
+                    insights: nil,
                     series: series,
                     scopeKey: scopeKey,
                     summarySourceState: .serverBase,
@@ -342,6 +345,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
         XCTAssertThrowsError(
             try makeProgressSnapshot(
                 summary: makeEmptyProgressSummaryForTests(),
+                insights: nil,
                 series: series,
                 scopeKey: scopeKey,
                 summarySourceState: .serverBase,
@@ -389,6 +393,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
         XCTAssertThrowsError(
             try makeProgressSnapshot(
                 summary: makeEmptyProgressSummaryForTests(),
+                insights: nil,
                 series: series,
                 scopeKey: scopeKey,
                 summarySourceState: .serverBase,
@@ -439,6 +444,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
         XCTAssertThrowsError(
             try makeProgressSnapshot(
                 summary: makeEmptyProgressSummaryForTests(),
+                insights: nil,
                 series: series,
                 scopeKey: scopeKey,
                 summarySourceState: .serverBase,
@@ -494,6 +500,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
 
         let snapshot = try makeProgressSnapshot(
             summary: makeEmptyProgressSummaryForTests(),
+            insights: nil,
             series: series,
             scopeKey: scopeKey,
             summarySourceState: .serverBase,

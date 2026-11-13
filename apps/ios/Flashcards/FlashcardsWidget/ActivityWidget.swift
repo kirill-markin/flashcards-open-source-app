@@ -98,7 +98,8 @@ struct ActivityWidgetView: View {
                             kind: .activity,
                             workspaceId: self.entry.workspaceId,
                             size: size.deepLinkSize,
-                            cardId: nil
+                            cardId: nil,
+                            revealAnswer: false
                         )
                     )
                 )

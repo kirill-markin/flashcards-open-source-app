@@ -15,37 +15,49 @@ struct TodayWidget: Widget {
     }
 }
 
-/// Today's reviews against the cards due now, the Review badge count.
+/// The last 7 days against the usual, today's reviews and the streak, at the entry date.
 struct WidgetTodayProgress: Sendable, Equatable {
-    let reviewedCount: Int
-    let leftCount: Int
+    /// One count per local day, ascending and ending at the entry's day.
+    let dayReviewCounts: [Int]
+    let pace: ProgressPace
     let streakDays: Int
+    /// False once the entry has moved past the day the app wrote progress on, where server facts of that day no
+    /// longer apply.
+    let isProgressDay: Bool
 
-    var totalCount: Int {
-        self.reviewedCount + self.leftCount
-    }
-
-    var fraction: Double {
-        self.totalCount == 0 ? 0 : Double(self.reviewedCount) / Double(self.totalCount)
+    var reviewedTodayCount: Int {
+        self.dayReviewCounts.last ?? 0
     }
 }
 
 /// Nil before the app has written a snapshot, while Progress has not loaded, or for malformed progress.
-/// Progress written on an earlier day counts as no reviews yet today.
+/// Days after the one the app wrote progress on count as not yet reviewed.
 func makeWidgetTodayProgress(entry: ReviewWidgetEntry) -> WidgetTodayProgress? {
-    guard let progress = entry.snapshot?.progress, let leftCount = widgetDueCount(content: entry.content) else {
+    guard let progress = entry.snapshot?.progress else {
         return nil
     }
-    guard let writeDay = progress.days.last, writeDay.localDate == progress.todayLocalDate else {
+    guard
+        let writeDay = progress.days.last,
+        writeDay.localDate == progress.todayLocalDate,
+        let writeDayStart = widgetLocalDayStart(localDate: progress.todayLocalDate),
+        let laterDayCount = makeWidgetLocalCalendar().dateComponents(
+            [.day],
+            from: writeDayStart,
+            to: makeWidgetLocalCalendar().startOfDay(for: entry.date)
+        ).day,
+        laterDayCount >= 0
+    else {
         reviewWidgetLogger.error(
             "event=today_widget_progress_invalid todayLocalDate=\(progress.todayLocalDate, privacy: .public) lastLocalDate=\(String(describing: progress.days.last?.localDate), privacy: .public)"
         )
         return nil
     }
+    let dayReviewCounts = progress.days.map(\.reviewCount) + Array(repeating: 0, count: laterDayCount)
     return WidgetTodayProgress(
-        reviewedCount: isWidgetProgressForDay(progress: progress, date: entry.date) ? writeDay.reviewCount : 0,
-        leftCount: leftCount,
-        streakDays: progress.currentStreakDays
+        dayReviewCounts: dayReviewCounts,
+        pace: makeProgressPace(dayReviewCounts: dayReviewCounts),
+        streakDays: progress.currentStreakDays,
+        isProgressDay: laterDayCount == 0
     )
 }
 
@@ -61,6 +73,55 @@ func widgetDueCount(content: ReviewWidgetContent) -> Int? {
     }
 }
 
+/// The third line of the medium Today widget: a record within reach, else the time studied today.
+private enum TodayWidgetThirdLine {
+    case bestDay(reviewCount: Int)
+    case newBestDay
+    case studyMinutes(Int)
+}
+
+private let todayWidgetRecordsMinimumHistoryDayCount: Int = 14
+
+/// A record shows from 80% of the best earlier day, after 14 days of history so early days are not all records.
+/// Both it and the study time are the server's facts of the day the app wrote progress on.
+private func makeTodayWidgetThirdLine(
+    today: WidgetTodayProgress,
+    progress: WidgetSnapshotProgress,
+    insights: WidgetSnapshotInsights?
+) -> TodayWidgetThirdLine? {
+    guard today.isProgressDay, let insights else {
+        return nil
+    }
+    let historyDayCount = today.dayReviewCounts.firstIndex { reviewCount in reviewCount > 0 }.map { firstIndex in
+        today.dayReviewCounts.count - firstIndex
+    } ?? 0
+    if let bestDayCount = insights.bestDayBeforeToday?.reviewCount,
+       bestDayCount > 0,
+       historyDayCount >= todayWidgetRecordsMinimumHistoryDayCount {
+        if today.reviewedTodayCount > bestDayCount {
+            return .newBestDay
+        }
+        if today.reviewedTodayCount * 5 >= bestDayCount * 4 {
+            return .bestDay(reviewCount: bestDayCount)
+        }
+    }
+    let studySeconds = insights.studySecondsByDay?.first { studyDay in
+        studyDay.localDate == progress.todayLocalDate
+    }?.seconds
+    return studySeconds.flatMap(makeStudyTimeMinutes(seconds:)).map(TodayWidgetThirdLine.studyMinutes)
+}
+
+private func todayWidgetThirdLineText(line: TodayWidgetThirdLine) -> Text {
+    switch line {
+    case .bestDay(let reviewCount):
+        return Text("widget.records.best_day \(reviewCount)", tableName: widgetStringsTableName)
+    case .newBestDay:
+        return Text("widget.records.new_best_day", tableName: widgetStringsTableName)
+    case .studyMinutes(let minutes):
+        return Text("widget.minutes \(minutes)", tableName: widgetStringsTableName)
+    }
+}
+
 struct TodayWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: ReviewWidgetEntry
@@ -68,7 +129,7 @@ struct TodayWidgetView: View {
     var body: some View {
         Group {
             if let size = todayWidgetSize(family: self.family) {
-                TodayWidgetContentView(size: size, progress: makeWidgetTodayProgress(entry: self.entry))
+                TodayWidgetContentView(size: size, entry: self.entry)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .widgetURL(
                         makeWidgetDeepLinkURL(
@@ -77,7 +138,8 @@ struct TodayWidgetView: View {
                                 kind: .today,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: nil
+                                cardId: nil,
+                                revealAnswer: false
                             )
                         )
                     )
@@ -116,15 +178,23 @@ private func todayWidgetSize(family: WidgetFamily) -> TodayWidgetSize? {
 
 private struct TodayWidgetContentView: View {
     let size: TodayWidgetSize
-    let progress: WidgetTodayProgress?
+    let entry: ReviewWidgetEntry
 
     var body: some View {
-        if let progress = self.progress {
+        if let progress = self.entry.snapshot?.progress, let today = makeWidgetTodayProgress(entry: self.entry) {
             switch self.size {
             case .small:
-                TodayWidgetSmallView(progress: progress)
+                TodayWidgetSmallView(today: today)
             case .medium:
-                TodayWidgetMediumView(progress: progress)
+                TodayWidgetMediumView(
+                    today: today,
+                    scheduledDueCount: self.entry.scheduledDueCount,
+                    thirdLine: makeTodayWidgetThirdLine(
+                        today: today,
+                        progress: progress,
+                        insights: self.entry.snapshot?.insights
+                    )
+                )
             }
         } else {
             WidgetNoSnapshotView()
@@ -133,32 +203,19 @@ private struct TodayWidgetContentView: View {
 }
 
 private struct TodayWidgetSmallView: View {
-    let progress: WidgetTodayProgress
+    let today: WidgetTodayProgress
 
     var body: some View {
         VStack(spacing: 6) {
-            ZStack {
-                WidgetProgressRing(fraction: self.progress.fraction, lineWidth: 8)
-                // Only today's reviews fit inside the ring; the due count can run into the thousands.
-                if self.progress.totalCount > 0 {
-                    Text(self.progress.reviewedCount, format: .number.notation(.compactName))
-                        .font(.system(.title2, design: .rounded, weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                        .padding(.horizontal, 14)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            WidgetPaceRingView(pace: self.today.pace, lineWidth: 8, numberFont: .title2)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             HStack(spacing: 4) {
-                todayWidgetStatusText(
-                    progress: self.progress,
-                    leftText: Text("widget.today.left \(self.progress.leftCount)", tableName: widgetStringsTableName)
-                )
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                Text("widget.today.count \(self.today.reviewedTodayCount)", tableName: widgetStringsTableName)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer(minLength: 4)
-                TodayWidgetStreakView(progress: self.progress)
+                TodayWidgetStreakView(today: self.today)
             }
             .font(.caption.weight(.semibold))
         }
@@ -166,69 +223,51 @@ private struct TodayWidgetSmallView: View {
 }
 
 private struct TodayWidgetMediumView: View {
-    @Environment(\.widgetAccent) private var accent
-    let progress: WidgetTodayProgress
+    let today: WidgetTodayProgress
+    let scheduledDueCount: Int?
+    let thirdLine: TodayWidgetThirdLine?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 16) {
+            WidgetPaceRingView(pace: self.today.pace, lineWidth: 9, numberFont: .title2)
+                .aspectRatio(1, contentMode: .fit)
             VStack(alignment: .leading, spacing: 4) {
-                Text("widget.today.title", tableName: widgetStringsTableName)
-                    .font(.headline)
-                    .lineLimit(1)
-                Text("widget.today.reviewed \(self.progress.reviewedCount)", tableName: widgetStringsTableName)
+                Text("widget.today.count \(self.today.reviewedTodayCount)", tableName: widgetStringsTableName)
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                Spacer(minLength: 0)
-                HStack(spacing: 8) {
-                    ProgressView(value: self.progress.fraction)
-                        .tint(self.accent.color)
-                        .widgetAccentable()
-                    // Rounded down so cards still left never read as 100%.
-                    Text(self.progress.fraction, format: .percent.precision(.fractionLength(0)).rounded(rule: .down))
-                        .font(.caption.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize()
+                Group {
+                    if let scheduledDueCount = self.scheduledDueCount {
+                        widgetScheduledDueText(scheduledDueCount: scheduledDueCount, minutes: nil)
+                    }
+                    if let thirdLine = self.thirdLine {
+                        todayWidgetThirdLineText(line: thirdLine)
+                    }
                 }
-                todayWidgetStatusText(
-                    progress: self.progress,
-                    leftText: Text("widget.today.cards_left \(self.progress.leftCount)", tableName: widgetStringsTableName)
-                )
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             }
-            TodayWidgetStreakView(progress: self.progress)
+            .frame(maxHeight: .infinity, alignment: .center)
+            Spacer(minLength: 0)
+            TodayWidgetStreakView(today: self.today)
                 .font(.title3.weight(.semibold))
         }
     }
 }
 
-/// `leftText` names the cards still due; it is replaced once nothing is left.
-private func todayWidgetStatusText(progress: WidgetTodayProgress, leftText: Text) -> Text {
-    if progress.totalCount == 0 {
-        return Text("widget.today.no_cards_due", tableName: widgetStringsTableName)
-    }
-    if progress.leftCount == 0 {
-        return Text("widget.all_done.title", tableName: widgetStringsTableName)
-    }
-    return leftText
-}
-
 /// The flame takes the accent colour once the user has reviewed today, as on the Review streak badge.
 private struct TodayWidgetStreakView: View {
     @Environment(\.widgetAccent) private var accent
-    let progress: WidgetTodayProgress
+    let today: WidgetTodayProgress
 
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(self.progress.reviewedCount > 0 ? self.accent.color : Color.secondary)
-                .widgetAccentable(self.progress.reviewedCount > 0)
-            Text(self.progress.streakDays, format: .number)
+                .foregroundStyle(self.today.reviewedTodayCount > 0 ? self.accent.color : Color.secondary)
+                .widgetAccentable(self.today.reviewedTodayCount > 0)
+            Text(self.today.streakDays, format: .number)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }

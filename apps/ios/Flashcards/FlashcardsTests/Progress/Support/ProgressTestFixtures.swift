@@ -156,6 +156,7 @@ func makeTestProgressSummary(
         summary: try makeProgressSummary(
             reviewDates: reviewDates,
             timeZone: timeZone,
+            insights: nil,
             generatedAt: generatedAtDate
         ),
         generatedAt: generatedAt,
