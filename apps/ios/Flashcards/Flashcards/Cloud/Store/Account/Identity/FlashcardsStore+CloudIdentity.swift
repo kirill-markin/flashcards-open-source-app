@@ -509,6 +509,9 @@ extension FlashcardsStore {
             try validateContext()
             return result
         } catch {
+            if self.isCloudCredentialRecoveryValidation(error) {
+                throw error
+            }
             try validateContext()
             // The operation above captures its own failure and rethrows it boxed in
             // `ObservedTechnicalError`, so the forced-refresh retry only sees a rejected token

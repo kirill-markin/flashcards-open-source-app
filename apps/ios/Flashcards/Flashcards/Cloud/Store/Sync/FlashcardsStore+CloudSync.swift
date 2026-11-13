@@ -301,6 +301,9 @@ extension FlashcardsStore {
                 error: nil
             )
         } catch {
+            if self.isCloudCredentialRecoveryValidation(error) {
+                throw error
+            }
             guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration) else {
                 throw CancellationError()
             }
