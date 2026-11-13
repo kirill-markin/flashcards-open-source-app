@@ -259,8 +259,8 @@ export async function executeGeneratedImageToolCall(
       );
     }
 
-    // Only the generation ceilings can refuse an image. The tier attributes usage to the
-    // current account kind, re-checked here because a guest may have signed in since the run started.
+    // The tier is resolved for usage attribution. The account kind is refreshed before spending
+    // because a guest may have signed in since the run started.
     const tierAtCall = await dependencies.resolveAiUsageTierForFacts(
       context.userId,
       resolveAccountKindForSignedInAuth(signedIn),

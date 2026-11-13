@@ -1376,8 +1376,7 @@ export function createAnalyticsDeliveryRuntime(
    * Sends the oldest events this page holds in memory unsettled when the tab is hidden or closed. The
    * flush a hide starts awaits IndexedDB before its request, and a closing tab is gone before that.
    * Only where that flush would send on the account credential: the queue owner reconciled with the
-   * confirmed one and a cached CSRF token, as last known here. A delay this client chose itself is
-   * not honoured, for the reason `runDrainPasses` gives; a server `Retry-After` is.
+   * confirmed one and a cached CSRF token, as last known here.
    */
   function sendPageHideBatch(): void {
     try {

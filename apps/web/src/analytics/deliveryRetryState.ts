@@ -25,7 +25,8 @@ export function createAnalyticsDeliveryRetryState(): AnalyticsDeliveryRetryState
   let firstDeliveryFailureAtMs: number | null = null;
   let lastFailureStatusCode: number | null = null;
   let retryNotBeforeMs = 0;
-  // Page hide and identity teardown honor this deadline independently of normal backoff resets.
+  // Page hide checks this deadline even after normal backoff resets. Identity teardown uses it
+  // only when deciding whether to clear an active normal backoff.
   let serverDirectedRetryNotBeforeMs = 0;
 
   function trackSustainedDeliveryFailure(statusCode: number): void {
