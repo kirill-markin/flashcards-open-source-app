@@ -26,9 +26,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
     func makeUIView(context: Context) -> AIChatComposerUITextView {
         let textView = AIChatComposerUITextView(usingTextLayoutManager: true)
         textView.configureComposer()
-        #if targetEnvironment(macCatalyst)
         textView.isComposerDisabled = self.isDisabled
-        #endif
         textView.delegate = context.coordinator
         textView.textDropDelegate = context.coordinator
         textView.accessibilityIdentifier = UITestIdentifier.aiComposerTextField
@@ -51,8 +49,6 @@ struct AIChatComposerTextView: UIViewRepresentable {
         textView.onAttachmentItemProviders = self.onAttachmentItemProviders
         #if targetEnvironment(macCatalyst)
         textView.macReturnKeyOwner = self.macReturnKeyOwner
-        #else
-        textView.isComposerDisabled = self.isDisabled
         #endif
         // Replacing text or selection while an input method composes would cancel the composition.
         if textView.markedTextRange == nil {
@@ -108,10 +104,8 @@ struct AIChatComposerTextView: UIViewRepresentable {
                     || self.isFocusSettled(textView: textView) == false else { return }
             DispatchQueue.main.async { [weak self, weak textView] in
                 guard let self, let textView, textView.delegate === self else { return }
-                #if targetEnvironment(macCatalyst)
-                // Disabling a focused Catalyst text view synchronously re-enters SwiftUI's responder graph.
+                // Disabling a focused text view can synchronously resign first responder and re-enter SwiftUI.
                 textView.isComposerDisabled = self.parent.isDisabled
-                #endif
                 self.syncFocus(textView: textView)
             }
         }
@@ -208,7 +202,6 @@ struct AIChatComposerTextView: UIViewRepresentable {
             self.parent.isAttachmentDropHovering = isHovering
         }
 
-        /// Disabling the field inside a SwiftUI update resigns it synchronously; that write must wait for the update to end.
         private func setFocusBinding(_ isFocused: Bool) {
             guard self.isUpdatingView else {
                 if self.parent.isFocused != isFocused {
