@@ -20,7 +20,7 @@ Requires Node 24 and the main checkout's .env credentials documented in
 docs/xcode-cloud-data-access.md. Only PREPARE_FOR_SUBMISSION and DEVELOPER_REJECTED
 are accepted for both the explicit iOS version and app info.
 Never creates, renames, withdraws, or submits a version.
-All 42 locale texts and 420 PNGs must exist before this command contacts Apple.
+All mapped locale texts and their PNGs must exist before this command contacts Apple.
 New locales inherit only the existing en-US privacy-policy and support URLs.
 Unknown locales, screenshot sizes, and screenshot filenames are preserved.
 Within the two target sizes, replaces only <locale>-[1-5]_*.png screenshots,

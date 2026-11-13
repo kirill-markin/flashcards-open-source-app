@@ -6,7 +6,6 @@ text and images. For a new shipping Android UI language, use the separate
 
 ## 1. Confirm the surface and locale set
 
-- Google Play App strings/Gemini owns shipping translated Android UI copy.
 - The repository owns authored listing text and media source inputs. Feature
   graphics and native marketing screenshots are public release assets; see
   [Media assets](../../../docs/media-assets.md).
@@ -18,9 +17,8 @@ Compare the requested languages with the current
 [app locale config](../app/src/main/res/xml/locales_config.xml), existing listing
 sections in [canonical metadata](../../../docs/google-play-store-metadata.md),
 and the exact language names/codes offered in Play Console. Preserve existing
-listings. The current tree has 49 app languages and 51 authored Play listings:
-the single app language `es` has three listings, `es-ES`, `es-419`, and `es-US`.
-Recount from these sources when changing the set.
+listings. Use the canonical metadata for the authored listing count and
+reconcile it with the app locale config when changing either set.
 
 Resolve each surface's spelling before authoring; do not copy the app tag into
 every filename or Android qualifier. Use these existing maps:
@@ -71,9 +69,9 @@ for release authorization and publication.
 | Artifact | Source and required output |
 | --- | --- |
 | Listing text | One exact-code section in [canonical metadata](../../../docs/google-play-store-metadata.md): app name, short description, full description. |
-| Feature graphic source | Locale content in [`localeConfigs` in the HTML template](media/play-store-feature-graphic/index.html); matching supported code in both the [single exporter](../../../scripts/android/export-android-feature-graphic.sh) and [batch exporter](../../../scripts/android/export-android-feature-graphics.sh). |
-| Screenshot content | Existing catalog entry, or an accepted loader mapping plus [`marketing-locales/<Play-code>.json`](../app/src/androidTest/assets/marketing-locales) fixture. Follow the [fixture contract](marketing-screenshots.md#json-locale-packs). |
-| Screenshot UI | Matching `strings.xml` under [`src/marketingScreenshot/res`](../app/src/marketingScreenshot/res), retained by the screenshot build's locale filters; confirm the device helper mapping. |
+| Feature graphic source | Locale config or explicit alias in the [HTML template](media/play-store-feature-graphic/index.html); matching supported code in both the [single exporter](../../../scripts/android/export-android-feature-graphic.sh) and [batch exporter](../../../scripts/android/export-android-feature-graphics.sh). |
+| Screenshot content | Existing catalog entry or an accepted loader mapping to a [JSON fixture](../app/src/androidTest/assets/marketing-locales). Follow the [fixture contract](marketing-screenshots.md#json-locale-packs). |
+| Screenshot UI | Bundled translations or a matching overlay under [`src/marketingScreenshot/res`](../app/src/marketingScreenshot/res), retained by the screenshot build's locale filters. Confirm the device helper mapping. |
 | Exported banner | [`media/play-store-feature-graphic/<Play-code>-feature-graphic.png`](media/play-store-feature-graphic), 1024 × 500. |
 | Native phone screenshots | Five PNGs under [`media/play-store-screenshots`](media/play-store-screenshots), with the chosen locale prefix and the ordered filenames in the [inventory](marketing-screenshots.md#current-inventory). |
 

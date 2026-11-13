@@ -336,8 +336,8 @@
     <string name="settings_account_status_sync_blocked_body">To reconnect, log out and sign in again. Logging out removes local data from this device, including changes that haven’t synced.</string>
     <string name="settings_account_status_sign_in_button">Sign in or sign up</string>
     <string name="settings_account_status_sync_now_button">Sync now</string>
-    <string name="settings_account_status_logout_dialog_title">Log out?</string>
-    <string name="settings_account_status_logout_dialog_body">Logging out removes local data from this device. Synced data will return when you sign in again. Unsynced changes will be lost.</string>
+    <string name="settings_account_status_logout_dialog_title">Log out and clear Nibomo data from this device?</string>
+    <string name="settings_account_status_logout_dialog_body">Logging out removes workspaces and cards from this device. Synced data stays in the cloud. Unsynced changes may be lost.</string>
     <string name="settings_account_status_logout_failed">Logout failed.</string>
     <string name="settings_account_status_sync_failed">Cloud sync failed.</string>
     <string name="settings_account_status_logged_out_message">Logged out. This device is disconnected.</string>

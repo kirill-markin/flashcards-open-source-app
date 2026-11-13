@@ -1,0 +1,67 @@
+{
+  "localePrefix": "zh-TW",
+  "appLocaleTag": "zh-Hant",
+  "uiText": {
+    "emptyCardsMessage": "還沒有卡片。點選新增按鈕即可建立第一張卡片。",
+    "cardsTabTitle": "卡片",
+    "reviewTabTitle": "複習",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "搜尋卡片",
+    "addCardContentDescription": "新增卡片",
+    "frontFieldTitle": "正面",
+    "backFieldTitle": "背面",
+    "tagsFieldTitle": "標籤",
+    "addTagFieldTitle": "新增標籤",
+    "addTagButtonTitle": "新增標籤",
+    "saveButtonTitle": "儲存",
+    "ratingAgainTitle": "重來",
+    "ratingHardTitle": "困難",
+    "ratingGoodTitle": "良好",
+    "ratingEasyTitle": "簡單"
+  },
+  "reviewCard": {
+    "frontText": "在經濟學中，什麼是機會成本？",
+    "backText": "機會成本是做出選擇時，所放棄的最佳替代方案的價值。\n\n考試舉例：如果你把星期六拿來準備個體經濟學考試，而不是去打工，少賺的工資就是機會成本的一部分。",
+    "tags": [
+      "經濟學"
+    ]
+  },
+  "reviewAiDraftMessage": "請針對同一個經濟學主題新增 6 張卡片，涵蓋與這個主題密切相關、目前還沒收錄的概念。",
+  "cards": [
+    {
+      "frontText": "在經濟學中，什麼是機會成本？",
+      "backText": "做出選擇時，所放棄的最佳替代方案的價值。",
+      "subjectTag": "經濟學"
+    },
+    {
+      "frontText": "在生物學中，什麼是滲透作用？",
+      "backText": "水分子穿過半透膜，從溶質濃度較低的一側移向濃度較高的一側。",
+      "subjectTag": "生物學"
+    },
+    {
+      "frontText": "在統計學中，什麼是標準差？",
+      "backText": "衡量數值在平均值周圍分散程度的指標。",
+      "subjectTag": "統計學"
+    },
+    {
+      "frontText": "在化學中，什麼是催化劑？",
+      "backText": "能加快化學反應速率，且本身不會被消耗的物質。",
+      "subjectTag": "化學"
+    },
+    {
+      "frontText": "在心理學中，什麼是認知偏誤？",
+      "backText": "一種可能使判斷和決策產生偏差的系統性思考模式。",
+      "subjectTag": "心理學"
+    },
+    {
+      "frontText": "在物理學中，什麼是速度？",
+      "backText": "同時描述物體運動快慢和方向的物理量。",
+      "subjectTag": "物理學"
+    },
+    {
+      "frontText": "在資訊科學中，什麼是遞迴？",
+      "backText": "讓函式呼叫自己，透過解決規模較小的同類問題來解決原問題的方法。",
+      "subjectTag": "資訊科學"
+    }
+  ]
+}

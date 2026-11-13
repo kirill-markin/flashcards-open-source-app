@@ -1,0 +1,24 @@
+<resources>
+    <string name="settings_auth_entry_title">ସାଇନ୍ ଇନ୍ କରନ୍ତୁ ବା ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ</string>
+    <string name="settings_auth_google">Google ଦ୍ୱାରା ସାଇନ୍ ଇନ୍ କରନ୍ତୁ</string>
+    <string name="settings_auth_email">ଇମେଲ୍ ଦ୍ୱାରା ଆଗକୁ ବଢ଼ନ୍ତୁ</string>
+    <string name="settings_auth_apple">Apple ଦ୍ୱାରା ସାଇନ୍ ଇନ୍ କରନ୍ତୁ</string>
+    <string name="settings_auth_last_used">ଶେଷ ବ୍ୟବହାର</string>
+    <string name="settings_auth_cancelled">Google ସାଇନ୍ ଇନ୍ ବାତିଲ ହୋଇଛି। ପୁଣି ଚେଷ୍ଟା କରିବାକୁ ଏକ ପଦ୍ଧତି ବାଛନ୍ତୁ।</string>
+    <string name="settings_auth_google_failed">ଏହି ଡିଭାଇସ୍‌ରେ Google ସାଇନ୍ ଇନ୍ ପୂରା ହୋଇପାରିଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ ବା ଆଗକୁ ବଢ଼ିବାକୁ ଇମେଲ୍ ବାଛନ୍ତୁ।</string>
+    <string name="settings_auth_fresh_attempt">ସାଇନ୍ ଇନ୍ ପୂରା ହୋଇପାରିଲା ନାହିଁ। ନୂଆରୁ ଚେଷ୍ଟା କରନ୍ତୁ ବା ଅନ୍ୟ ଏକ ପଦ୍ଧତି ବାଛନ୍ତୁ।</string>
+    <string name="settings_auth_apple_cleanup_pending">Apple ସାଇନ୍ ଇନ୍‌ର ପୁରୁଣା ଚେଷ୍ଟା ସଫା ହେଉଛି। ଟିକେ ଅପେକ୍ଷା କରି Apple ଦ୍ୱାରା ନୂଆରୁ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ ବା ଅନ୍ୟ ଏକ ପଦ୍ଧତି ବାଛନ୍ତୁ।</string>
+    <string name="settings_auth_network_restart">ନେଟୱର୍କରେ ସାଇନ୍ ଇନ୍ ଅନୁରୋଧ ପୂରା ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ନୂଆରୁ ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="settings_auth_fresh_email_code">ଏହି କୋଡ୍ ଅନୁରୋଧ ସୁରକ୍ଷିତ ଭାବେ ପୁଣି କରିହେବ ନାହିଁ। ଆଗକୁ ବଢ଼ିବାକୁ ନୂଆ ଇମେଲ୍ କୋଡ୍ ମାଗନ୍ତୁ।</string>
+    <string name="settings_auth_new_email_code">ନୂଆ ଇମେଲ୍ କୋଡ୍ ମାଗନ୍ତୁ</string>
+    <string name="settings_auth_mailbox_body">ଏହି ସାଇନ୍ ଇନ୍ ପାଇଁ ଇମେଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ। ଆପଣ ଖୋଲିପାରୁଥିବା ଏକ ଇମେଲ୍ ଦିଅନ୍ତୁ। ଆଗରୁ ଆକାଉଣ୍ଟ ଥିଲେ ଏହା ଆପଣଙ୍କର ବୋଲି ନୂଆରୁ ପ୍ରମାଣ କରିବାକୁ ପଡ଼ିବ।</string>
+    <string name="settings_auth_mailbox_code">୬–୮ ଅଙ୍କର ଇମେଲ୍ କୋଡ୍</string>
+    <string name="settings_auth_mailbox_restart">ଆଉ ଏକ କୋଡ୍ ଦରକାର କି? ନୂଆରୁ ସାଇନ୍ ଇନ୍ ଚେଷ୍ଟା କରନ୍ତୁ। ଏହି ଯାଞ୍ଚ ଅନୁରୋଧରୁ କୋଡ୍ ପୁଣି ପଠାଇହେବ ନାହିଁ।</string>
+    <string name="settings_auth_start_again">ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ ବା ଅନ୍ୟ ପଦ୍ଧତି ବାଛନ୍ତୁ</string>
+    <string name="settings_auth_browser_waiting">ବ୍ରାଉଜର୍‌ରେ Apple ଦ୍ୱାରା ସାଇନ୍ ଇନ୍ ପୂରା କରନ୍ତୁ। ବ୍ରାଉଜର୍ ବନ୍ଦ କରିଥିଲେ ପୁଣି ଆରମ୍ଭ କରନ୍ତୁ।</string>
+    <string name="settings_auth_return_title">Apple ସାଇନ୍ ଇନ୍</string>
+    <string name="settings_auth_return_storage_failed">Appleରୁ ଫେରିଥିବା ସାଇନ୍ ଇନ୍ ସୂଚନା ଏହି ଡିଭାଇସ୍‌ରେ ସୁରକ୍ଷିତ ଭାବେ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ। ଡିଭାଇସ୍‌ରେ କିଛି ଜାଗା ଖାଲି କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। ଏହି ମେସେଜ୍ ବନ୍ଦ କଲେ ନୂଆରୁ ସାଇନ୍ ଇନ୍ କରିପାରିବେ।</string>
+    <string name="settings_auth_return_rejected">Appleରୁ ଫେରିଥିବା ସାଇନ୍ ଇନ୍ ସୂଚନା ଦ୍ୱାରା ବାକି ସାଇନ୍ ଇନ୍ ପୂରା ହୋଇପାରିଲା ନାହିଁ। ଏହି ଆପ୍‌ରୁ ନୂଆରୁ ଚେଷ୍ଟା କରନ୍ତୁ।</string>
+    <string name="settings_auth_retry">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</string>
+    <string name="settings_auth_close">ବନ୍ଦ କରନ୍ତୁ</string>
+</resources>

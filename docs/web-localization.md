@@ -14,16 +14,15 @@ The web localization lives in [apps/web/src/i18n/](../apps/web/src/i18n/); `supp
 
 Use the iOS app tag for the language ([Locale tags per surface](add-language.md#locale-tags-per-surface)). Then:
 
-1. add it to `supportedLocales` in [types.ts](../apps/web/src/i18n/types.ts)
-2. create `catalogs/<tag>.ts` exporting one `<name>Catalog` object checked against `TranslationCatalog`, like the existing modules
-3. add its loader to `translationCatalogLoaders` in [catalog.ts](../apps/web/src/i18n/catalog.ts) in the shipped form `async () => (await import("./catalogs/<tag>")).<name>Catalog`
-4. add its direction to `localeDirections` in [locales.ts](../apps/web/src/i18n/locales.ts)
-5. add its primary language subtag to `primaryLanguageLocaleFallbacks` in the same file, so regional browser tags such as `fr-CA` resolve to it
-6. add it to `localeFirstDayFallbacks` in [weekContext.ts](../apps/web/src/i18n/weekContext.ts) with the first day of week its CLDR data defines, not the value of a neighboring row
-7. add `locale.names.<tag>` to every catalog, including the new one
-8. add its native name, English name (the `en.ts` `locale.names.<tag>` value), and common alternative names people type to `localeDisplayNames` in [localeDisplayNames.ts](../apps/web/src/i18n/localeDisplayNames.ts)
+1. Add it to `supportedLocales` in [types.ts](../apps/web/src/i18n/types.ts).
+2. For a dedicated translation, create `catalogs/<tag>.ts` checked against `TranslationCatalog` and add its lazy loader to `translationCatalogLoaders` in [catalog.ts](../apps/web/src/i18n/catalog.ts). For a regional variant that reuses app copy, register its base locale in `regionalCatalogs` and supply any regional Stripe copy.
+3. Register its direction in `localeDirections` and check how browser tags and entry hints resolve in [locales.ts](../apps/web/src/i18n/locales.ts). A new base language needs an entry in `primaryLanguageLocaleFallbacks`.
+4. Add its CLDR week start to `localeFirstDayFallbacks` in [weekContext.ts](../apps/web/src/i18n/weekContext.ts).
+5. Add its native name, English name, and common search aliases to `localeDisplayNames` in [localeDisplayNames.ts](../apps/web/src/i18n/localeDisplayNames.ts). Settings summaries use authored catalog names where available, then use `Intl.DisplayNames` for other names. Every dedicated catalog supplies the authored name keys in `en.ts` and can override other names.
 
-[scripts/checks/pr/check-web-localization-parity.mjs](../scripts/checks/pr/check-web-localization-parity.mjs), in the required `Repository static checks` gate, enforces steps 2 to 4, 6, and 7, and the `localeDisplayNames` type enforces step 8. Check by hand what neither catches: step 5 (without it only the exact tag is detected from the browser), step 6's weekday value, and that the English name matches `en.ts`.
+The required [web localization parity check](../scripts/checks/pr/check-web-localization-parity.mjs) verifies dedicated catalog modules and loaders, regional base catalogs, directions, names, and week-start registration. Verify locale resolution and the actual week-start values separately.
+
+If the marketing website adds routes for the same locale, update the Home, catalog, and MCP link mapping in [publicSiteUrl.ts](../apps/web/src/publicSiteUrl.ts). Deploy the website routes before deploying the app links.
 
 ### 2. Translate the catalog
 

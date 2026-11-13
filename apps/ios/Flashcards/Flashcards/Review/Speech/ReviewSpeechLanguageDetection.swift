@@ -36,8 +36,11 @@ private let reviewSpeechLatinLanguageHeuristics: [ReviewSpeechLanguageHeuristic]
 func selectReviewSpeechVoice(languageTag: String) -> AVSpeechSynthesisVoice? {
     let normalizedTag = sanitizeReviewSpeechLanguageTag(languageTag: languageTag).lowercased()
     let primaryLanguage = normalizedTag.split(separator: "-").first.map(String.init) ?? normalizedTag
+    let chineseLanguage = makeReviewSpeechChineseLanguage(languageTag: normalizedTag)
 
-    if let directVoice = AVSpeechSynthesisVoice(language: normalizedTag) {
+    if let directVoice = AVSpeechSynthesisVoice(language: normalizedTag),
+       chineseLanguage == nil
+        || makeReviewSpeechChineseLanguage(languageTag: directVoice.language)?.script == chineseLanguage?.script {
         return directVoice
     }
 
@@ -47,6 +50,15 @@ func selectReviewSpeechVoice(languageTag: String) -> AVSpeechSynthesisVoice? {
         voice.language.lowercased() == normalizedTag
     }) {
         return exactVoice
+    }
+
+    if let chineseLanguage {
+        let compatibleVoices = availableVoices.filter { voice in
+            makeReviewSpeechChineseLanguage(languageTag: voice.language)?.script == chineseLanguage.script
+        }
+        return compatibleVoices.first { voice in
+            makeReviewSpeechChineseLanguage(languageTag: voice.language)?.region == chineseLanguage.region
+        } ?? compatibleVoices.first
     }
 
     if let prefixVoice = availableVoices.first(where: { voice in
@@ -62,10 +74,14 @@ func selectReviewSpeechVoice(languageTag: String) -> AVSpeechSynthesisVoice? {
 
 /// Splits speakable text into ordered utterances: every non-empty line separately, and within a line
 /// wherever the letter script changes, so each piece gets its own voice and line breaks become pauses.
-func makeReviewSpeechSegments(text: String, fallbackLanguageTag: String) -> [ReviewSpeechSegment] {
-    let cjkLanguageTag = detectReviewSpeechCJKLanguage(text: text)
-    let latinFallbackLanguageTag = makeReviewSpeechLatinFallbackLanguageTag(fallbackLanguageTag: fallbackLanguageTag)
+func makeReviewSpeechSegments(
+    text: String,
+    fallbackLanguageTag: String,
+    appUILanguageTag: String?
+) -> [ReviewSpeechSegment] {
     let sanitizedFallbackLanguageTag = sanitizeReviewSpeechLanguageTag(languageTag: fallbackLanguageTag)
+    let cjkLanguageTag = detectReviewSpeechCJKLanguage(text: text, appUILanguageTag: appUILanguageTag)
+    let latinFallbackLanguageTag = makeReviewSpeechLatinFallbackLanguageTag(fallbackLanguageTag: sanitizedFallbackLanguageTag)
     var segments: [ReviewSpeechSegment] = []
 
     for line in text.components(separatedBy: .newlines) {
@@ -277,7 +293,7 @@ private func makeReviewSpeechRunLanguageTag(
 }
 
 /// Scans every character of the whole text, kana-block punctuation such as `・` included, so all CJK runs share one language.
-private func detectReviewSpeechCJKLanguage(text: String) -> String {
+private func detectReviewSpeechCJKLanguage(text: String, appUILanguageTag: String?) -> String {
     if reviewSpeechKanaExpression.matches(text) {
         return "ja-JP"
     }
@@ -285,17 +301,30 @@ private func detectReviewSpeechCJKLanguage(text: String) -> String {
         return "ko-KR"
     }
 
-    return "zh-CN"
+    guard let appUILanguageTag,
+          let chineseLanguage = makeReviewSpeechChineseLanguage(languageTag: appUILanguageTag),
+          chineseLanguage.script?.identifier == "Hant" else {
+        return "zh-CN"
+    }
+
+    return Locale.Language(identifier: appUILanguageTag).region?.identifier == "HK" ? "zh-HK" : "zh-TW"
 }
 
-/// Latin text without a language hint keeps the UI language only when that language is normally written in Latin script.
+private func makeReviewSpeechChineseLanguage(languageTag: String) -> Locale.Language? {
+    let language = Locale.Language(identifier: languageTag)
+    guard language.languageCode?.identifier == "zh" else {
+        return nil
+    }
+
+    return Locale.Language(identifier: language.maximalIdentifier)
+}
+
 private func makeReviewSpeechLatinFallbackLanguageTag(fallbackLanguageTag: String) -> String {
-    let sanitizedTag = sanitizeReviewSpeechLanguageTag(languageTag: fallbackLanguageTag)
-    let maximalLanguage = Locale.Language(identifier: Locale.Language(identifier: sanitizedTag).maximalIdentifier)
+    let maximalLanguage = Locale.Language(identifier: Locale.Language(identifier: fallbackLanguageTag).maximalIdentifier)
 
     // A language whose script cannot be resolved counts as Latin.
     guard let script = maximalLanguage.script, script.identifier != "Latn" else {
-        return sanitizedTag
+        return fallbackLanguageTag
     }
 
     return "en-US"

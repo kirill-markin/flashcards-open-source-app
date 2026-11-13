@@ -12,7 +12,7 @@ Screenshot-only translated app resources belong in `apps/android/app/src/marketi
 There is currently one supported Android manual capture flow and five expected generated output PNG targets.
 Existing repository media can still contain the previous split-run assets or older cards-list numbering until the unified generator is run and the regenerated PNGs are reviewed.
 
-The Kotlin screenshot catalog defines these locale prefixes:
+The Kotlin screenshot catalog defines these locale prefixes and the equivalent regional English and Canadian French configurations:
 
 - `en`
 - `en-US`
@@ -78,18 +78,19 @@ The unified wrapper script runs one manual-only entrypoint, seeds one guest work
 ## JSON locale packs
 
 Additional Play locales load UTF-8 fixtures from
-`apps/android/app/src/androidTest/assets/marketing-locales/<Play-code>.json`.
-`MarketingScreenshotLocaleLoader.kt` lists accepted Play codes and their exact
-`appLocaleTag` mappings. Existing Kotlin configurations take precedence; the
-default remains `en`. A requested pack that is missing or malformed fails capture.
+`apps/android/app/src/androidTest/assets/marketing-locales/<fixture-prefix>.json`.
+`MarketingScreenshotLocaleLoader.kt` lists the accepted Play codes and
+`appLocaleTag` mappings. For example, `zh-HK` uses `zh-TW.json` and `ms-MY`
+uses `ms.json`. The requested Play code still determines the output filenames.
+A missing or malformed pack fails capture.
 
 Each fixture is an object with these required fields. Strings must be nonblank;
 arrays must be nonempty. Unrelated extra fields are ignored.
 
 | Field | Value |
 | --- | --- |
-| `localePrefix` | Exact Play code used in the filename and wrapper argument |
-| `appLocaleTag` | Generic app language from the loader mapping, such as `bn`, `he`, or `id` |
+| `localePrefix` | Canonical fixture prefix matching the JSON filename stem |
+| `appLocaleTag` | Exact app locale from the loader mapping, such as `bn`, `zh-Hant`, or `pt-PT` |
 | `uiText` | Object with all 16 string fields from `MarketingScreenshotUiText` in the catalog |
 | `reviewCard` | Object with `frontText`, `backText`, and a string array `tags` |
 | `reviewAiDraftMessage` | Unsent AI request text |
@@ -100,8 +101,8 @@ Keep the seven concept cards in the existing scenario order.
 not repeat that prompt, and `reviewCard.tags` must equal
 `[cards[0].subjectTag]`. Prompts belong on the front and answers on the back.
 
-Each new pack also needs translated UI overlays in
-`apps/android/app/src/marketingScreenshot/res/values-<appLocaleTag>/strings.xml`.
+Use matching bundled UI translations when available. Supply missing UI
+translations in `apps/android/app/src/marketingScreenshot/res/values-*/strings.xml`.
 Use Android's `values-iw` for Hebrew and `values-in` for Indonesian; Norwegian
 uses `values-no`. Keep UI labels consistent with the fixture. Generic screenshot
 language filters and their Android aliases are retained by

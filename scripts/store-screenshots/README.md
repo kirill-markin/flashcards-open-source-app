@@ -31,7 +31,7 @@ already installed browser; it is optional and does not control existing tabs.
 ## Manual refresh after native capture
 
 ```bash
-# Process every configured existing iPhone, iPad and Android phone set.
+# Process every complete saved iPhone, iPad and Android phone set.
 npm run render --prefix scripts/store-screenshots
 
 # Process selected iPhone sets only.
@@ -139,7 +139,10 @@ Canonical backgrounds, translations and locale mappings remain under `assets/`.
 Android feature graphics remain in `apps/android/docs/media/play-store-feature-graphic/`;
 the delivered gallery links to them without copying banners into `ready/`.
 
-Missing or ambiguous native PNGs are an error. All selected screenshots are
+Omitting `--locales` processes saved sets independently for each selected family.
+The batch skips a configured locale only when all five native PNGs are absent.
+Partial or duplicate sets fail, and explicit `--locales` requires all five PNGs
+for each selected locale and applicable family. All selected screenshots are
 rendered into a temporary staging directory before any new card is published.
 An input/layout/render failure leaves the previous card files unchanged. The
 staging directory is removed on completion or failure. Disk errors while copying

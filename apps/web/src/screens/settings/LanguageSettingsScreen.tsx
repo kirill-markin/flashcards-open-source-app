@@ -1,36 +1,14 @@
 import type { ReactElement } from "react";
-import {
-  autoLocalePreference,
-  supportedLocales,
-  type Locale,
-  type LocalePreference,
-  type TranslationKey,
-  useI18n,
-} from "../../i18n";
+import { autoLocalePreference, supportedLocales, useI18n } from "../../i18n";
 import { LanguagePicker } from "./LanguagePicker";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
-type LocaleNameTranslationKey = `locale.names.${Locale}`;
-
-function localeNameKey(locale: Locale): LocaleNameTranslationKey {
-  return `locale.names.${locale}`;
-}
-
-function formatLocalePreferenceLabel(
-  localePreference: LocalePreference,
-  t: (key: TranslationKey) => string,
-): string {
-  if (localePreference === autoLocalePreference) {
-    return t("locale.preferenceAuto");
-  }
-
-  return t(localeNameKey(localePreference));
-}
-
 export function LanguageSettingsScreen(): ReactElement {
-  const { locale, localePreference, t } = useI18n();
-  const localeLabel = t(localeNameKey(locale));
-  const localePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
+  const { locale, localePreference, getLocaleName, t } = useI18n();
+  const localeLabel = getLocaleName(locale);
+  const localePreferenceLabel = localePreference === autoLocalePreference
+    ? t("locale.preferenceAuto")
+    : getLocaleName(localePreference);
 
   return (
     <SettingsShell
@@ -61,7 +39,7 @@ export function LanguageSettingsScreen(): ReactElement {
           <article className="content-card settings-summary-card">
             <span className="cell-secondary">{t("locale.labels.languageSelection")}</span>
             <p className="subtitle">
-              {supportedLocales.map((supportedLocale) => t(localeNameKey(supportedLocale))).join(", ")}
+              {supportedLocales.map(getLocaleName).join(", ")}
             </p>
           </article>
         </div>

@@ -1,0 +1,5 @@
+"kMDItemKeywords" = "flashcards,flash cards,kad imbas,kad imbasan,kad belajar,kad pembelajaran,kad ulang kaji,kad hafalan";
+"MDItemKeywords" = "flashcards,flash cards,kad imbas,kad imbasan,kad belajar,kad pembelajaran,kad ulang kaji,kad hafalan";
+"NSCameraUsageDescription" = "Ambil foto untuk sembang AI. Foto yang anda lampirkan dihantar kepada OpenAI untuk diproses oleh AI.";
+"NSMicrophoneUsageDescription" = "Rakam audio imlak dan hantarkannya kepada OpenAI untuk ditranskripsikan sebagai teks bagi sembang AI.";
+"NSPhotoLibraryUsageDescription" = "Pilih foto untuk dilampirkan pada sembang AI dan dihantar kepada OpenAI untuk diproses oleh AI.";

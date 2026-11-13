@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="review_math_render_failed">無法顯示數學公式。</string>
+    <string name="markdown_preview_image">圖片</string>
+</resources>

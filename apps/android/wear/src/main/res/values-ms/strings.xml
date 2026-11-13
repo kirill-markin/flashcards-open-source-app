@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="wear_retry">Cuba lagi</string>
+    <string name="wear_session_open_phone_app">Buka Nibomo pada telefon anda</string>
+    <string name="wear_session_not_connected_message">Log masuk pada telefon untuk mengulang kaji kad anda pada jam tangan.</string>
+    <string name="wear_session_connecting">Menyambung ke telefon…</string>
+    <string name="wear_session_syncing">Menyegerakkan kad…</string>
+    <string name="wear_session_update_required">Kemas kini Nibomo pada telefon dan jam tangan</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="other">Belum dapat menyegerakkan %d penilaian</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">Akaun atau ruang kerja pada telefon anda telah bertukar. Cuba lagi apabila jam tangan dalam talian, atau padam penilaian ini untuk bertukar sekarang.</string>
+    <string name="wear_session_switch_blocked_discard">Padam dan tukar</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="other">Padam %d penilaian?</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">Penilaian ini akan hilang. Tindakan ini tidak boleh dibuat asal.</string>
+    <string name="wear_review_show_answer">Tunjukkan jawapan</string>
+    <string name="wear_review_again">Ulang</string>
+    <string name="wear_review_hard">Sukar</string>
+    <string name="wear_review_good">Baik</string>
+    <string name="wear_review_easy">Mudah</string>
+    <string name="wear_review_open_on_phone">Buka pada telefon untuk melihat imej atau formula</string>
+    <string name="wear_review_all_done">Selesai</string>
+    <string name="wear_review_next_card_due">Kad seterusnya: %1$s</string>
+</resources>

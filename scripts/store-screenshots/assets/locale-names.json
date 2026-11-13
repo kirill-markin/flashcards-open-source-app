@@ -194,5 +194,21 @@
   "zu": {
     "english": "Zulu",
     "native": "isiZulu"
+  },
+  "zh-Hant": {
+    "english": "Chinese (Traditional)",
+    "native": "繁體中文"
+  },
+  "ms": {
+    "english": "Malay",
+    "native": "Bahasa Melayu"
+  },
+  "pt-PT": {
+    "english": "Portuguese (Portugal)",
+    "native": "Português (Portugal)"
+  },
+  "or": {
+    "english": "Odia",
+    "native": "ଓଡ଼ିଆ"
   }
 }

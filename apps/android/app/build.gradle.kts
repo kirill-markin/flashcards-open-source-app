@@ -67,6 +67,11 @@ val androidLocaleFilterLanguageAliases: Map<String, String> = mapOf(
 
 fun toAndroidLocaleFilters(localeTag: String): List<String> {
     val localeFilter = toAndroidLocaleFilter(localeTag)
+    if (localeTag == "zh-Hant") {
+        // AndroidX and Play Services ship Traditional Chinese under region qualifiers.
+        return listOf(localeFilter, "zh-rHK", "zh-rTW")
+    }
+
     val language = Locale.forLanguageTag(localeTag).language
     val aliasLanguage = androidLocaleFilterLanguageAliases[language]
         ?: return listOf(localeFilter)

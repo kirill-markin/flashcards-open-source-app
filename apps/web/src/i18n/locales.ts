@@ -8,8 +8,12 @@ import {
 
 const localeDirections: Readonly<Record<Locale, LocaleDirection>> = {
   en: "ltr",
+  "en-AU": "ltr",
+  "en-CA": "ltr",
+  "en-GB": "ltr",
   ar: "rtl",
   "zh-Hans": "ltr",
+  "zh-Hant": "ltr",
   de: "ltr",
   hi: "ltr",
   ja: "ltr",
@@ -17,7 +21,9 @@ const localeDirections: Readonly<Record<Locale, LocaleDirection>> = {
   "es-MX": "ltr",
   "es-ES": "ltr",
   fr: "ltr",
+  "fr-CA": "ltr",
   "pt-BR": "ltr",
+  "pt-PT": "ltr",
   it: "ltr",
   ko: "ltr",
   id: "ltr",
@@ -43,6 +49,8 @@ const localeDirections: Readonly<Record<Locale, LocaleDirection>> = {
   kn: "ltr",
   ml: "ltr",
   mr: "ltr",
+  ms: "ltr",
+  or: "ltr",
   pa: "ltr",
   ta: "ltr",
   te: "ltr",
@@ -88,10 +96,12 @@ const primaryLanguageLocaleFallbacks: Readonly<Record<string, Locale>> = {
   lv: "lv",
   ml: "ml",
   mr: "mr",
+  ms: "ms",
   nb: "nb",
   nl: "nl",
   // The Norwegian macrolanguage tag resolves to Bokmål, the written standard the catalog uses.
   no: "nb",
+  or: "or",
   pa: "pa",
   pl: "pl",
   pt: "pt-BR",
@@ -164,31 +174,49 @@ function resolveSpanishLocale(region: string | null): Locale {
 }
 
 function resolveChineseLocale(script: string | null, region: string | null): Locale | null {
-  if (script === "Hans" || region === "CN" || region === "SG") {
+  if (script === "Hans") {
     return "zh-Hans";
+  }
+
+  if (script === "Hant") {
+    return "zh-Hant";
+  }
+
+  if (region === "CN" || region === "SG") {
+    return "zh-Hans";
+  }
+
+  if (region === "TW" || region === "HK" || region === "MO") {
+    return "zh-Hant";
   }
 
   return null;
 }
 
 export function resolveSupportedLocale(languageTag: string): Locale | null {
-  const exactLocale = normalizeSupportedLocale(languageTag);
-  if (exactLocale !== null) {
-    return exactLocale;
-  }
-
   const normalizedLanguageTag = normalizeLanguageTag(languageTag);
   if (normalizedLanguageTag === null) {
     return null;
   }
 
   const locale = new Intl.Locale(normalizedLanguageTag);
+  if (isSupportedLocale(locale.baseName)) {
+    return locale.baseName;
+  }
+
   if (locale.language === "es") {
     return resolveSpanishLocale(locale.region ?? null);
   }
 
   if (locale.language === "zh") {
     return resolveChineseLocale(locale.script ?? null, locale.region ?? null);
+  }
+
+  if (locale.region !== undefined) {
+    const regionalLocale = `${locale.language}-${locale.region}`;
+    if (isSupportedLocale(regionalLocale)) {
+      return regionalLocale;
+    }
   }
 
   return hasOwnProperty(primaryLanguageLocaleFallbacks, locale.language)

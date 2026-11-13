@@ -1,0 +1,4 @@
+<resources>
+    <string name="review_math_render_failed">Formula tidak dapat dipaparkan.</string>
+    <string name="markdown_preview_image">Imej</string>
+</resources>

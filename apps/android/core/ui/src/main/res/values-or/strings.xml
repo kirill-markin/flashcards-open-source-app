@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="review_math_render_failed">ସୂତ୍ରଟି ଦେଖାଇହେଲା ନାହିଁ।</string>
+    <string name="markdown_preview_image">ଛବି</string>
+</resources>

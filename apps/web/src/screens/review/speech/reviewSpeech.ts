@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { replaceMarkdownImagesWithAltText } from "../../../components/cardPreviewMarkdown";
+import { normalizeLanguageTag } from "../../../i18n/locales";
 import type { Locale } from "../../../i18n/types";
 import { classifyReviewContentPresentation } from "../components/card/reviewContentPresentation";
 import {
@@ -52,6 +53,7 @@ const REVIEW_SPEECH_ALPHABET_SCRIPTS: ReadonlyArray<ReviewSpeechAlphabetScript> 
   { languageTag: "ar-SA", pattern: /[\u0600-\u06ff]|\p{Script=Arabic}/u },
   { languageTag: "th-TH", pattern: /[\u0e00-\u0e7f]|\p{Script=Thai}/u },
   { languageTag: "hi-IN", pattern: /[\u0900-\u097f]|\p{Script=Devanagari}/u },
+  { languageTag: "or-IN", pattern: /\p{Script=Oriya}/u },
 ];
 
 type ReviewSpeechScript = "cjk" | "latin" | "other" | ReviewSpeechAlphabetScript;
@@ -408,6 +410,33 @@ export function splitReviewSpeechSegments(
     });
 }
 
+function selectChineseVoice(
+  voices: ReadonlyArray<SpeechSynthesisVoice>,
+  languageTag: string,
+): SpeechSynthesisVoice | null {
+  const requestedLocale = new Intl.Locale(languageTag).maximize();
+  let scriptMatch: SpeechSynthesisVoice | null = null;
+
+  for (const voice of voices) {
+    const voiceLanguageTag = normalizeLanguageTag(voice.lang);
+    if (voiceLanguageTag === null) {
+      continue;
+    }
+
+    const voiceLocale = new Intl.Locale(voiceLanguageTag).maximize();
+    if (voiceLocale.language !== "zh" || voiceLocale.script !== requestedLocale.script) {
+      continue;
+    }
+
+    if (voiceLocale.region === requestedLocale.region) {
+      return voice;
+    }
+    scriptMatch ??= voice;
+  }
+
+  return scriptMatch;
+}
+
 function selectMatchingVoice(
   voices: ReadonlyArray<SpeechSynthesisVoice>,
   languageTag: string,
@@ -418,6 +447,10 @@ function selectMatchingVoice(
   const exactVoice = voices.find((voice) => voice.lang.toLocaleLowerCase() === normalizedTag);
   if (exactVoice !== undefined) {
     return exactVoice;
+  }
+
+  if (primaryLanguage === "zh") {
+    return selectChineseVoice(voices, normalizedTag);
   }
 
   const prefixVoice = voices.find((voice) => voice.lang.toLocaleLowerCase().startsWith(`${primaryLanguage}-`));

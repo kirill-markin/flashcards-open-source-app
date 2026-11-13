@@ -1,0 +1,18 @@
+<resources>
+    <string name="friend_invite_button">新增好友</string>
+    <string name="friend_invite_dialog_title">新增好友</string>
+    <string name="friend_invite_dialog_body">建立排行榜專用的私人好友邀請連結。</string>
+    <string name="friend_invite_display_name_label">好友在你的排行榜上顯示的名稱</string>
+    <string name="friend_invite_expiry_note">只有你能在自己的排行榜上看到這個名稱。好友接受邀請時，可以自行設定你在對方排行榜上的名稱。邀請連結會在 2 天後失效。</string>
+    <string name="friend_invite_create_button">建立連結</string>
+    <string name="friend_invite_cancel_button">取消</string>
+    <string name="friend_invite_share_title">將此連結傳給好友</string>
+    <string name="friend_invite_share_text">開啟這個 Nibomo 邀請連結，登入或註冊後，我們就能在應用程式裡看到彼此：\n\n%1$s</string>
+    <string name="friend_invite_display_name_empty">請輸入名稱。</string>
+    <string name="friend_invite_display_name_too_long">請輸入不超過 30 個字元的名稱。</string>
+    <string name="friend_invite_display_name_control_character">請移除換行與控制字元。</string>
+    <string name="friend_invite_create_limit_reached">有效的邀請連結已達上限。請等一個連結失效或好友接受邀請後，再建立新的連結。</string>
+    <string name="friend_invite_create_sign_in_required">請重新登入以建立邀請連結。</string>
+    <string name="friend_invite_create_invalid_name">請確認顯示名稱後再試一次。</string>
+    <string name="friend_invite_create_failed">無法建立邀請連結。請再試一次。</string>
+</resources>

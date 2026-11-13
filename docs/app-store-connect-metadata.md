@@ -10,20 +10,18 @@ Related competitor references: [iOS competitors](competitor-store-metadata.md#io
 
 Premium subscription configuration and texts: [subscription store metadata](subscription-store-metadata.md)
 
-This file owns the source text and upload procedure for 42 App Store locales
-(41 languages, including both Spanish regions). These sections are repository
-inputs, not evidence of live publication. In-app language coverage belongs to
+This file owns the source text for 50 App Store locales and the iOS/iPadOS
+upload procedure. Check App Store Connect for saved, submitted and published
+states. In-app language coverage belongs to
 [iOS localization](ios-localization.md#supported-app-locales).
 
 **Locale mapping**
 
-Apple's language selector was checked on 2026-09-20. Its label is not always the
-locale ID: Bangla uses `bn-BD`, Norwegian uses `no`, and Slovenian uses `sl-SI`.
+Use Apple's [locale shortcodes](https://developer.apple.com/documentation/appstoreconnectapi/managing-metadata-in-your-app-by-using-locale-shortcodes).
 The [uploader input map](../scripts/ios/app-store-localization-inputs.mts) pairs
-all 42 exact section headings, Store IDs, and capture tags. Keep it aligned with
-the 42 Store tags of both capture scripts and Swift catalogs described in
-[iOS marketing screenshots](../apps/ios/docs/marketing-screenshots.md#files-involved);
-capture tags without a Store ID never enter this map.
+exact section headings, Store IDs and capture tags. Keep its capture tags
+aligned with the wrappers and Swift catalogs in
+[Apple marketing screenshots](../apps/ios/docs/marketing-screenshots.md#files-involved).
 
 | Language | iOS locale | Store ID | Capture tag |
 | --- | --- | --- | --- |
@@ -43,19 +41,49 @@ capture tags without a Store ID never enter this map.
 | Tamil | `ta` | `ta-IN` | `ta` |
 | Telugu | `te` | `te-IN` | `te` |
 | Urdu | `ur` | `ur-PK` | `ur` |
+| English (Australia) | `en-AU` | `en-AU` | `en-US` |
+| English (Canada) | `en-CA` | `en-CA` | `en-US` |
+| English (U.K.) | `en-GB` | `en-GB` | `en-US` |
+| Chinese (Traditional) | `zh-Hant` | `zh-Hant` | `zh-Hant` |
+| French (Canada) | `fr-CA` | `fr-CA` | `fr` |
+| Portuguese (Portugal) | `pt-PT` | `pt-PT` | `pt-PT` |
+| Malay | `ms` | `ms` | `ms` |
+| Odia | `or` | `or-IN` | `or` |
 
 Other supported Store tags match their iOS and capture tags. Preserve `es-ES`
 and `es-MX` separately. Apple has no listing locale for these app languages:
 `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, `zu`; do not invent Store IDs for them.
 Those eight still have captured iPhone screenshots, which stay website-only
 assets that the uploader never reads.
+
+The English regional listings and Canadian French reuse the respective
+`en-US` and `fr` iPhone, iPad and Mac sets in the pinned
+[media archive](media-assets.md). For `zh-Hant`, `pt-PT`, `ms` and `or`,
+the table specifies the required capture tags. Verify those sets in the media
+archive before uploading.
+
 The parser reserves every level-two heading for exactly one locale and every
 level-three heading inside it for a metadata field. Keep usage text before the
-first locale and preserve the section/field names.
+first locale and preserve the section/field names. Validate text independently
+of the PNGs by calling `loadLocalizationTexts` from the input map. Keep names
+and subtitles within 30 characters, descriptions and release notes within
+4,000 characters, and new keyword lists within 100 UTF-8 bytes.
+[App Information](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information/)
+· [Platform Version Information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information/)
+
+**1.43.0 working notes**
+
+The eight added locale sections include draft iOS/iPadOS What's New and separate
+What's New (macOS) text for the language expansion. The working baselines are
+iOS 1.42.0 and macOS 1.41.0. Refresh all locales against the shipped baseline
+and final artifact for each platform before saving. Use the separate
+[macOS release procedure](release/macos.md#macos) to verify and save Mac
+version fields and native Mac screenshots.
 
 **Upload an editable draft**
 
-1. Generate and review all 420 raw PNGs using
+1. Gather and review the five raw PNGs for each mapped capture tag and device
+   family using
    [the capture runbook](../apps/ios/docs/marketing-screenshots.md). Follow its
    opaque-PNG, dimension, display-slot, and filename requirements; composites
    are not upload inputs. Review all localized fields below. Refresh every What's
@@ -70,7 +98,8 @@ first locale and preserve the section/field names.
    agreement status before asking for legal acceptance. An agreement error
    alone does not prove an inactive agreement; replace invalid credentials
    through the user when needed.
-3. Select an existing iOS version and the unique editable app-info resource.
+3. Select an existing iOS version and the unique editable app-info resource
+   shared across platforms.
    Each must be `PREPARE_FOR_SUBMISSION` or `DEVELOPER_REJECTED`; all other
    states are refused. Apple permits screenshot uploads in
    [Developer Rejected](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots).
@@ -1716,3 +1745,307 @@ ghi chú,ảnh,ôn tập,ngắt quãng,ngoại ngữ,trí nhớ,học tập,luy�
 - Chọn màu nhấn của ứng dụng với Premium hoặc quyền truy cập trọn đời.
 - Dùng khóa OpenAI riêng và xem mức sử dụng AI hằng tháng.
 - Cải thiện việc sắp xếp bộ thẻ và ôn tập thẻ.
+
+## English (Australia)
+
+App Store locale: `en-AU`
+
+### Name
+
+Nibomo: AI Flashcards
+
+### Subtitle
+
+Study for exams, build vocab
+
+### Description
+
+Turn notes and photos into AI flashcards for exam prep and vocabulary practice. Review at intervals that adapt to your answers, so you can focus on what needs more practice.
+
+- Ask AI to explain a difficult topic or improve a card's wording.
+- Group cards into decks and add tags to find the material you need.
+- Review saved cards offline, wherever you have a few minutes.
+- See your review activity and study streaks to keep track of your routine.
+
+AI features need an internet connection.
+
+Privacy Policy: https://nibomo.com/privacy/
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+notes,photo,spaced,repetition,language,memorise,revision,practice,decks,quiz,offline,open source
+
+### What's New
+
+- Use Nibomo on iPhone and iPad in Traditional Chinese, Australian English, Canadian English, British English, Canadian French, European Portuguese, Malay and Odia.
+
+### What's New (macOS)
+
+- Use Nibomo on Mac in Traditional Chinese, Australian English, Canadian English, British English, Canadian French, European Portuguese, Malay and Odia.
+
+## English (Canada)
+
+App Store locale: `en-CA`
+
+### Name
+
+Nibomo: AI Flashcards
+
+### Subtitle
+
+Study for exams, build vocab
+
+### Description
+
+Turn notes and photos into AI flashcards for exam prep and vocabulary practice. Review at intervals that adapt to your answers, so you can focus on what needs more practice.
+
+- Ask AI to explain a difficult topic or improve a card's wording.
+- Group cards into decks and add tags to find the material you need.
+- Review saved cards offline, wherever you have a few minutes.
+- See your review activity and study streaks to keep track of your routine.
+
+AI features need an internet connection.
+
+Privacy Policy: https://nibomo.com/privacy/
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+notes,photo,spaced,repetition,language,memorize,review,practice,decks,quiz,offline,open source
+
+### What's New
+
+- Use Nibomo on iPhone and iPad in Traditional Chinese, Australian English, Canadian English, British English, Canadian French, European Portuguese, Malay and Odia.
+
+### What's New (macOS)
+
+- Use Nibomo on Mac in Traditional Chinese, Australian English, Canadian English, British English, Canadian French, European Portuguese, Malay and Odia.
+
+## English (U.K.)
+
+App Store locale: `en-GB`
+
+### Name
+
+Nibomo: AI Flashcards
+
+### Subtitle
+
+Study for exams, build vocab
+
+### Description
+
+Turn notes and photos into AI flashcards for exam prep and vocabulary practice. Review at intervals that adapt to your answers, so you can focus on what needs more practice.
+
+- Ask AI to explain a difficult topic or improve a card's wording.
+- Group cards into decks and add tags to find the material you need.
+- Review saved cards offline, wherever you have a few minutes.
+- See your review activity and study streaks to keep track of your routine.
+
+AI features need an internet connection.
+
+Privacy Policy: https://nibomo.com/privacy/
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+notes,photo,spaced,repetition,language,memorise,revision,practice,decks,quiz,offline,open source
+
+### What's New
+
+- Use Nibomo on iPhone and iPad in Traditional Chinese, Australian English, Canadian English, British English, Canadian French, European Portuguese, Malay and Odia.
+
+### What's New (macOS)
+
+- Use Nibomo on Mac in Traditional Chinese, Australian English, Canadian English, British English, Canadian French, European Portuguese, Malay and Odia.
+
+## Chinese (Traditional)
+
+App Store locale: `zh-Hant`
+
+### Name
+
+Nibomo: AI 閃卡
+
+### Subtitle
+
+準備考試、練習單字
+
+### Description
+
+用 AI 將筆記和照片轉成閃卡，準備考試、練習單字。複習間隔會依你的作答情況調整，讓你多練習還不熟悉的內容。
+
+- 請 AI 解釋難懂的主題，或把卡片上的文字改得更清楚。
+- 用牌組和標籤整理卡片，輕鬆找到想學的內容。
+- 有幾分鐘空檔時，即使沒有網路，也能複習已儲存的卡片。
+- 查看複習紀錄和連續學習天數，掌握自己的學習進度。
+
+AI 功能需要網路連線。
+
+隱私權政策: https://nibomo.com/privacy/
+使用條款 (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+間隔重複,考試準備,單字練習,記憶訓練,離線學習,自我測驗,開源閃卡
+
+### What's New
+
+- iPhone 和 iPad 版 Nibomo 新增繁體中文、澳洲英語、加拿大英語、英國英語、加拿大法語、歐洲葡萄牙語、馬來語和奧里亞語。
+
+### What's New (macOS)
+
+- Mac 版 Nibomo 新增繁體中文、澳洲英語、加拿大英語、英國英語、加拿大法語、歐洲葡萄牙語、馬來語和奧里亞語。
+
+## French (Canada)
+
+App Store locale: `fr-CA`
+
+### Name
+
+Nibomo : Flashcards IA
+
+### Subtitle
+
+Examens et vocabulaire
+
+### Description
+
+Transformez vos notes et photos en fiches de révision avec l’IA pour préparer vos examens et apprendre du vocabulaire. Les intervalles de révision s’adaptent à vos réponses pour vous aider à travailler ce qui reste à retenir.
+
+- Demandez à l’IA d’expliquer un sujet difficile ou de reformuler une fiche.
+- Organisez vos fiches en paquets et ajoutez des étiquettes pour les retrouver.
+- Révisez vos fiches enregistrées hors ligne dès que vous avez quelques minutes.
+- Suivez votre activité de révision et voyez combien de jours d’affilée vous avez étudié.
+
+Les fonctions d’IA nécessitent une connexion Internet.
+
+Politique de confidentialité : https://nibomo.com/privacy/
+Conditions d’utilisation (EULA) : https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+notes,photo,répétition,espacée,langues,mémoire,étude,paquets,quiz,hors ligne,code source ouvert
+
+### What's New
+
+- Nibomo sur iPhone et iPad est maintenant offert en chinois traditionnel, en anglais d’Australie, du Canada et du Royaume-Uni, en français canadien, en portugais du Portugal, en malais et en odia.
+
+### What's New (macOS)
+
+- Nibomo sur Mac est maintenant offert en chinois traditionnel, en anglais d’Australie, du Canada et du Royaume-Uni, en français canadien, en portugais du Portugal, en malais et en odia.
+
+## Portuguese (Portugal)
+
+App Store locale: `pt-PT`
+
+### Name
+
+Nibomo: Flashcards com IA
+
+### Subtitle
+
+Exames e vocabulário
+
+### Description
+
+Transforme notas e fotografias em flashcards com IA para se preparar para exames e aprender vocabulário. Os intervalos entre revisões ajustam-se às suas respostas, para que possa praticar o que ainda precisa de consolidar.
+
+- Peça à IA que explique um tema difícil ou que torne mais claro o texto de um cartão.
+- Organize os cartões em baralhos e use etiquetas para encontrar o que quer estudar.
+- Reveja os cartões guardados sem ligação à Internet, sempre que tiver alguns minutos livres.
+- Acompanhe as suas revisões e o número de dias seguidos em que estudou.
+
+As funcionalidades de IA precisam de ligação à Internet.
+
+Política de Privacidade: https://nibomo.com/privacy/
+Termos de Utilização (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+notas,fotos,revisão,repetição,espaçada,vocabulário,baralhos,offline,código aberto
+
+### What's New
+
+- O Nibomo para iPhone e iPad está agora disponível em chinês tradicional, inglês da Austrália, do Canadá e do Reino Unido, francês do Canadá, português de Portugal, malaio e odia.
+
+### What's New (macOS)
+
+- O Nibomo para Mac está agora disponível em chinês tradicional, inglês da Austrália, do Canadá e do Reino Unido, francês do Canadá, português de Portugal, malaio e odia.
+
+## Malay
+
+App Store locale: `ms`
+
+### Name
+
+Nibomo: Kad Imbas AI
+
+### Subtitle
+
+Ulang kaji, tambah kosa kata
+
+### Description
+
+Tukar nota dan foto kepada kad imbas dengan AI untuk persediaan peperiksaan dan latihan kosa kata. Sela antara sesi ulang kaji disesuaikan mengikut jawapan anda supaya anda dapat menumpukan perhatian pada perkara yang belum dikuasai.
+
+- Minta AI menerangkan topik yang sukar atau memperjelas teks pada kad.
+- Susun kad dalam dek dan tambah label supaya bahan yang ingin dipelajari mudah dicari.
+- Ulang kaji kad yang telah disimpan tanpa sambungan Internet apabila ada masa lapang.
+- Lihat aktiviti ulang kaji dan bilangan hari anda belajar berturut-turut.
+
+Ciri AI memerlukan sambungan Internet.
+
+Dasar Privasi: https://nibomo.com/privacy/
+Terma Penggunaan (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+nota,foto,peperiksaan,hafalan,bahasa,kuiz,dek,pembelajaran,pengulangan,luar talian,sumber terbuka
+
+### What's New
+
+- Nibomo untuk iPhone dan iPad kini menyokong bahasa Cina Tradisional, bahasa Inggeris (Australia, Kanada dan UK), bahasa Perancis (Kanada), bahasa Portugis (Portugal), bahasa Melayu dan bahasa Odia.
+
+### What's New (macOS)
+
+- Nibomo untuk Mac kini menyokong bahasa Cina Tradisional, bahasa Inggeris (Australia, Kanada dan UK), bahasa Perancis (Kanada), bahasa Portugis (Portugal), bahasa Melayu dan bahasa Odia.
+
+## Odia
+
+App Store locale: `or-IN`
+
+### Name
+
+Nibomo: AI ଫ୍ଲାସକାର୍ଡ
+
+### Subtitle
+
+ପରୀକ୍ଷା ଓ ଶବ୍ଦ ଅଭ୍ୟାସ
+
+### Description
+
+ନୋଟ୍ ଓ ଫଟୋରୁ AI ସାହାଯ୍ୟରେ ଫ୍ଲାସକାର୍ଡ ତିଆରି କରନ୍ତୁ। ସେଗୁଡ଼ିକୁ ପରୀକ୍ଷା ପ୍ରସ୍ତୁତି ଓ ନୂଆ ଶବ୍ଦ ଶିଖିବା ପାଇଁ ବ୍ୟବହାର କରନ୍ତୁ। ଆପଣଙ୍କ ଉତ୍ତର ଅନୁସାରେ ପୁଣି ଅଭ୍ୟାସ କରିବାର ବ୍ୟବଧାନ ବଦଳେ। ତେଣୁ ଯେଉଁ ବିଷୟରେ ଅଧିକ ଅଭ୍ୟାସ ଦରକାର, ସେଥିରେ ଧ୍ୟାନ ଦେଇପାରିବେ।
+
+- କଠିନ ବିଷୟ ବୁଝାଇବାକୁ କିମ୍ବା କାର୍ଡର ଲେଖା ଆହୁରି ସ୍ପଷ୍ଟ କରିବାକୁ AIକୁ କୁହନ୍ତୁ।
+- କାର୍ଡଗୁଡ଼ିକୁ ଡେକ୍‌ରେ ସଜାନ୍ତୁ ଓ ଟ୍ୟାଗ୍ ଯୋଡ଼ନ୍ତୁ, ଯାହାଦ୍ୱାରା ପଢ଼ିବାକୁ ଚାହୁଁଥିବା ବିଷୟ ସହଜରେ ଖୋଜିପାରିବେ।
+- କିଛି ସମୟ ମିଳିଲେ, ଇଣ୍ଟରନେଟ୍ ନଥିଲେ ମଧ୍ୟ ସେଭ୍ କରିଥିବା କାର୍ଡଗୁଡ଼ିକୁ ପୁଣି ଅଭ୍ୟାସ କରନ୍ତୁ।
+- ନିଜର ଅଭ୍ୟାସ ଇତିହାସ ଦେଖନ୍ତୁ ଓ ଲଗାତାର କେତେ ଦିନ ପଢ଼ିଛନ୍ତି ଜାଣନ୍ତୁ।
+
+AI ସୁବିଧା ପାଇଁ ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ଦରକାର।
+
+ଗୋପନୀୟତା ନୀତି: https://nibomo.com/privacy/
+ବ୍ୟବହାର ସର୍ତ୍ତାବଳୀ (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+### Keywords
+
+ନୋଟ୍,ଫଟୋ,ଭାଷା,ସ୍ମୃତି,ଓପନ୍ ସୋର୍ସ
+
+### What's New
+
+- iPhone ଓ iPad ପାଇଁ Nibomo ଏବେ ପାରମ୍ପରିକ ଚୀନୀ, ଅଷ୍ଟ୍ରେଲିଆ, କାନାଡା ଓ ବ୍ରିଟେନର ଇଂରାଜୀ, କାନାଡାର ଫରାସୀ, ପର୍ତ୍ତୁଗାଲର ପର୍ତ୍ତୁଗୀଜ୍, ମାଲୟ ଓ ଓଡ଼ିଆ ଭାଷାରେ ଉପଲବ୍ଧ।
+
+### What's New (macOS)
+
+- Mac ପାଇଁ Nibomo ଏବେ ପାରମ୍ପରିକ ଚୀନୀ, ଅଷ୍ଟ୍ରେଲିଆ, କାନାଡା ଓ ବ୍ରିଟେନର ଇଂରାଜୀ, କାନାଡାର ଫରାସୀ, ପର୍ତ୍ତୁଗାଲର ପର୍ତ୍ତୁଗୀଜ୍, ମାଲୟ ଓ ଓଡ଼ିଆ ଭାଷାରେ ଉପଲବ୍ଧ।

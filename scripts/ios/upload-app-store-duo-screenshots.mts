@@ -6,12 +6,14 @@ import { parseArgs } from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createClient, object, request, resource, string, text } from "./app-store-connect-client.mts";
 import type { Client, Json, JsonObject, Resource } from "./app-store-connect-client.mts";
+import { LOCALES } from "./app-store-localization-inputs.mts";
 
 const USAGE = [
   "Upload five or ten Duo store cards per selected locale to an existing editable iOS version.",
   "node scripts/ios/upload-app-store-duo-screenshots.mts --version <editable-version> --screenshots apps/ios/docs/media/app-store-cards/ready --locale en-US --family iphone-duo-inner",
   "Required --family: iphone-duo-inner, iphone-duo-outer, or all (outer 1–5, then inner 1–5).",
-  "Use --all-locales instead of --locale for all 42 existing Store locales.",
+  "A single family preserves the other display's placements, which count toward the shared limit.",
+  "Use --all-locales for every mapped Store locale. Supply real captures for each selected display.",
   "Requires Node 24 and the main checkout's App Store Connect .env credentials.",
   "This is a live write command. It does not capture, render, create or submit a version.",
 ].join("\n");
@@ -21,7 +23,7 @@ type Family = (typeof FAMILIES)[number];
 type ImageFile = { path: string; fileName: string; size: number; width: number; height: number; referenceName: string; specId: string; slot: string };
 type Locale = { storeLocale: string; captureTag: string };
 type Placement = { id: string; imageId: string; image: Resource };
-type Plan = { locale: Locale; localizationId: string; files: ImageFile[] };
+type Plan = { locale: Locale; localizationId: string; files: ImageFile[]; families: readonly Family[]; retained: Placement[] };
 
 function entries(value: Json | undefined, context: string): Json[] {
   if (!Array.isArray(value)) throw new Error("Expected array: " + context);
@@ -186,6 +188,30 @@ function managedSlot(image: Resource, locale: string): string | undefined {
   return match !== null && match[1] === locale ? match[1] + ":" + match[2] + ":" + match[3] : undefined;
 }
 
+function partitionPlacements(current: Placement[], locale: string, files: ImageFile[], group: string, limit: number): { replaceable: Map<string, Placement>; retained: Placement[] } {
+  const targetSlots = new Set(files.map(({ slot }) => slot));
+  const managedSlots = new Set<string>();
+  const replaceable = new Map<string, Placement>();
+  const retained: Placement[] = [];
+  for (const placement of current) {
+    const slot = managedSlot(placement.image, locale);
+    if (slot !== undefined) {
+      if (managedSlots.has(slot)) throw new Error(locale + ": duplicate managed Duo slot " + slot + ". Reconcile before rerunning.");
+      managedSlots.add(slot);
+    }
+    if (slot !== undefined && targetSlots.has(slot)) replaceable.set(slot, placement);
+    else retained.push(placement);
+  }
+  if (retained.length + files.length > limit) {
+    throw new Error(locale + "/" + group + ": " + retained.length + " retained + " + files.length + " desired exceeds catalog limit " + limit + ". Reconcile placements before rerunning.");
+  }
+  return { replaceable, retained };
+}
+
+function samePlacements(expected: Placement[], actual: Placement[]): boolean {
+  return expected.length === actual.length && expected.every(({ id, imageId }, index) => id === actual[index].id && imageId === actual[index].imageId);
+}
+
 function hasDetails(value: Json | undefined): boolean {
   return value !== undefined && value !== null && (!Array.isArray(value) || value.length > 0);
 }
@@ -276,14 +302,14 @@ async function applyPlan(client: Client, libraryId: string, group: string, limit
     await guard();
     desired.set(file.slot, await readyImage(client, libraryId, file, images));
   }
+  const locale = plan.locale.storeLocale;
   let current = await placements(client, plan.localizationId, group);
-  const slots = current.map((placement) => managedSlot(placement.image, plan.locale.storeLocale)).filter((slot) => slot !== undefined);
-  if (slots.length !== new Set(slots).size || current.length - slots.length + plan.files.length > limit) {
-    throw new Error(plan.locale.storeLocale + ": Duo placements changed during image upload; reconcile before rerunning");
+  const before = partitionPlacements(current, locale, plan.files, group, limit);
+  if (!samePlacements(plan.retained, before.retained)) {
+    throw new Error(locale + ": retained Duo placements changed during image upload. Reconcile before rerunning.");
   }
-  for (const placement of current) {
-    const slot = managedSlot(placement.image, plan.locale.storeLocale);
-    if (slot !== undefined && placement.imageId !== desired.get(slot)?.id) {
+  for (const [slot, placement] of before.replaceable) {
+    if (placement.imageId !== desired.get(slot)?.id) {
       await guard();
       await client.api("DELETE", "/v1/appAssetLibraryPlacements/" + placement.id, undefined);
     }
@@ -302,15 +328,21 @@ async function applyPlan(client: Client, libraryId: string, group: string, limit
     if (!current.some((placement) => placement.imageId === image.id)) throw new Error(file.slot + ": placement POST did not appear on readback; reconcile before rerunning");
   }
   const final = await placements(client, plan.localizationId, group);
-  const managed = new Map(final.map((placement) => [managedSlot(placement.image, plan.locale.storeLocale), placement]));
-  const other = final.filter((placement) => managedSlot(placement.image, plan.locale.storeLocale) === undefined);
-  const ordered = [...plan.files.map((file) => {
-    const placement = managed.get(file.slot);
+  const { replaceable, retained } = partitionPlacements(final, locale, plan.files, group, limit);
+  if (!samePlacements(plan.retained, retained)) {
+    throw new Error(locale + ": retained Duo placements changed before ordering. Reconcile before rerunning.");
+  }
+  const targets = plan.files.map((file) => {
+    const placement = replaceable.get(file.slot);
     if (placement === undefined || placement.imageId !== desired.get(file.slot)?.id) throw new Error(file.slot + ": missing or incorrect placement before ordering");
     return placement;
-  }), ...other];
-  if (ordered.length !== final.length || new Set(ordered.map(({ id }) => id)).size !== ordered.length) throw new Error(plan.locale.storeLocale + ": duplicate or unrecognized Duo placements");
-  if (final.map(({ id }) => id).join() !== ordered.map(({ id }) => id).join()) {
+  });
+  const targetStart = plan.families[0] === "iphone-duo-inner"
+    ? retained.findLastIndex(({ image }) => managedSlot(image, locale) !== undefined) + 1
+    : 0;
+  const ordered = [...retained.slice(0, targetStart), ...targets, ...retained.slice(targetStart)];
+  if (ordered.length !== final.length || new Set(ordered.map(({ id }) => id)).size !== ordered.length) throw new Error(locale + ": duplicate or unrecognized Duo placements");
+  if (!samePlacements(ordered, final)) {
     await guard();
     await client.api("POST", "/v1/appAssetLibraryPlacementOrderingRequests", { data: {
       type: "appAssetLibraryPlacementOrderingRequests", attributes: { placementGroup: group },
@@ -319,8 +351,8 @@ async function applyPlan(client: Client, libraryId: string, group: string, limit
     } });
   }
   const saved = await placements(client, plan.localizationId, group);
-  if (saved.map(({ id }) => id).join() !== ordered.map(({ id }) => id).join()) throw new Error(plan.locale.storeLocale + ": placement order readback mismatch");
-  for (let index = 0; index < plan.files.length; index += 1) verifyImage(saved[index].image, plan.files[index]);
+  if (!samePlacements(ordered, saved)) throw new Error(locale + ": placement or image IDs changed on ordered readback");
+  for (let index = 0; index < plan.files.length; index += 1) verifyImage(saved[targetStart + index].image, plan.files[index]);
   console.log(JSON.stringify({ event: "duo_locale_verified", locale: plan.locale.storeLocale, placements: saved.length, group }));
 }
 
@@ -334,12 +366,9 @@ async function main(): Promise<void> {
   }
   const families: readonly Family[] = values.family === "all" ? FAMILIES : [values.family];
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-  const locales = JSON.parse(readFileSync(join(repoRoot, "scripts/store-screenshots/assets/app-store/store-locales.json"), "utf8")) as Locale[];
-  if (!Array.isArray(locales) || locales.length !== 42 || locales.some((locale) => typeof locale.storeLocale !== "string" || typeof locale.captureTag !== "string")) {
-    throw new Error("Expected the existing 42 Store locale mappings");
-  }
+  const locales: Locale[] = LOCALES.map(([, storeLocale, captureTag]) => ({ storeLocale, captureTag }));
   const selected = values["all-locales"] ? locales : locales.filter((locale) => locale.storeLocale === values.locale);
-  if (selected.length !== (values["all-locales"] ? 42 : 1)) throw new Error("Unknown App Store locale " + values.locale);
+  if (!values["all-locales"] && selected.length !== 1) throw new Error("Unknown App Store locale " + values.locale);
   const client = createClient(repoRoot);
   const versions = await client.list("/v1/apps/" + client.appId + "/appStoreVersions?filter[platform]=IOS&filter[versionString]=" + encodeURIComponent(values.version) + "&limit=200", "appStoreVersions");
   if (versions.length !== 1) throw new Error("Expected one existing iOS version " + values.version + "; found " + versions.length);
@@ -367,13 +396,8 @@ async function main(): Promise<void> {
     const matches = localizations.filter((item) => item.attributes.locale === locale.storeLocale);
     if (matches.length !== 1) throw new Error(locale.storeLocale + ": expected one existing version localization; found " + matches.length);
     const current = await placements(client, matches[0].id, reference.group);
-    const slots = current.map((placement) => managedSlot(placement.image, locale.storeLocale)).filter((slot) => slot !== undefined);
-    if (slots.length !== new Set(slots).size) throw new Error(locale.storeLocale + ": duplicate managed Duo slots; reconcile before rerunning");
-    const unrelated = current.length - slots.length;
-    if (unrelated + files[index].length > reference.limit) {
-      throw new Error(locale.storeLocale + "/" + reference.group + ": " + unrelated + " unrelated + " + files[index].length + " desired exceeds catalog limit " + reference.limit + "; remove unrelated placements explicitly");
-    }
-    plans.push({ locale, localizationId: matches[0].id, files: files[index] });
+    const { retained } = partitionPlacements(current, locale.storeLocale, files[index], reference.group, reference.limit);
+    plans.push({ locale, localizationId: matches[0].id, files: files[index], families, retained });
   }
   console.log(JSON.stringify({ event: "duo_preflight_complete", version: values.version, family: values.family, locales: plans.length, images: files.reduce((count, localeFiles) => count + localeFiles.length, 0), group: reference.group, limit: reference.limit }));
   for (const plan of plans) await applyPlan(client, libraryId, reference.group, reference.limit, plan, images, guard);

@@ -78,11 +78,13 @@ private enum MarketingScreenshotLocaleCatalog {
         "en-US",
         "ar",
         "zh-Hans",
+        "zh-Hant",
         "fr",
         "de",
         "hi",
         "ja",
         "pt-BR",
+        "pt-PT",
         "ru",
         "es-MX",
         "es-ES",
@@ -108,8 +110,10 @@ private enum MarketingScreenshotLocaleCatalog {
         "lv",
         "ml",
         "mr",
+        "ms",
         "nb",
         "nl",
+        "or",
         "pa",
         "pl",
         "ro",
@@ -130,11 +134,16 @@ private enum MarketingScreenshotLocaleCatalog {
     static let localizationAliases: [String: String] = [
         "en": "en-US",
         "en-US": "en-US",
+        "en-AU": "en-US",
+        "en-CA": "en-US",
+        "en-GB": "en-US",
         "ar": "ar",
         "zh-CN": "zh-Hans",
         "zh-Hans": "zh-Hans",
+        "zh-Hant": "zh-Hant",
         "fr": "fr",
         "fr-FR": "fr",
+        "fr-CA": "fr",
         "de": "de",
         "de-DE": "de",
         "hi": "hi",
@@ -142,6 +151,7 @@ private enum MarketingScreenshotLocaleCatalog {
         "ja": "ja",
         "ja-JP": "ja",
         "pt-BR": "pt-BR",
+        "pt-PT": "pt-PT",
         "pt": "pt-BR",
         "ru": "ru",
         "ru-RU": "ru",
@@ -176,10 +186,13 @@ private enum MarketingScreenshotLocaleCatalog {
         "ml-IN": "ml",
         "mr": "mr",
         "mr-IN": "mr",
+        "ms": "ms",
         "nb": "nb",
         "no": "nb",
         "nl": "nl",
         "nl-NL": "nl",
+        "or": "or",
+        "or-IN": "or",
         "pa": "pa",
         "pa-IN": "pa",
         "pl": "pl",
@@ -362,6 +375,58 @@ private enum MarketingScreenshotLocaleCatalog {
                     frontText: "在计算机科学中，什么是递归？",
                     backText: "是一种通过让函数调用自身来解决更小规模同类问题的方法。",
                     subjectTag: "计算机科学"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "zh-Hant",
+            appleLanguage: "zh-Hant",
+            appleLocale: "zh_TW",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "在經濟學中，什麼是機會成本？",
+                backText: """
+                機會成本是做出選擇時，所放棄的最佳替代方案的價值。
+
+                考試舉例：如果你把星期六拿來準備個體經濟學考試，而不是去打工，少賺的工資就是機會成本的一部分。
+                """,
+                subjectTag: "經濟學"
+            ),
+            reviewAiDraftMessage: "請針對同一個經濟學主題新增 6 張卡片，涵蓋與這個主題密切相關、目前還沒收錄的概念。",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "在經濟學中，什麼是機會成本？",
+                    backText: "做出選擇時，所放棄的最佳替代方案的價值。",
+                    subjectTag: "經濟學"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "在生物學中，什麼是滲透作用？",
+                    backText: "水分子穿過半透膜，從溶質濃度較低的一側移向濃度較高的一側。",
+                    subjectTag: "生物學"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "在統計學中，什麼是標準差？",
+                    backText: "衡量數值在平均值周圍分散程度的指標。",
+                    subjectTag: "統計學"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "在化學中，什麼是催化劑？",
+                    backText: "能加快化學反應速率，且本身不會被消耗的物質。",
+                    subjectTag: "化學"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "在心理學中，什麼是認知偏誤？",
+                    backText: "一種可能使判斷和決策產生偏差的系統性思考模式。",
+                    subjectTag: "心理學"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "在物理學中，什麼是速度？",
+                    backText: "同時描述物體運動快慢和方向的物理量。",
+                    subjectTag: "物理學"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "在資訊科學中，什麼是遞迴？",
+                    backText: "讓函式呼叫自己，透過解決規模較小的同類問題來解決原問題的方法。",
+                    subjectTag: "資訊科學"
                 )
             ]
         ),
@@ -622,6 +687,58 @@ private enum MarketingScreenshotLocaleCatalog {
                     frontText: "Em ciência da computação, o que é recursão?",
                     backText: "Um método em que uma função resolve um problema chamando a si mesma em versões menores desse problema.",
                     subjectTag: "ciência da computação"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "pt-PT",
+            appleLanguage: "pt-PT",
+            appleLocale: "pt_PT",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Em economia, o que é o custo de oportunidade?",
+                backText: """
+                O custo de oportunidade é o valor da melhor alternativa a que renuncia quando escolhe uma opção.
+
+                Exemplo de exame: se passar o sábado a estudar para um exame de microeconomia em vez de fazer um turno remunerado, o salário que deixa de receber faz parte do custo de oportunidade.
+                """,
+                subjectTag: "economia"
+            ),
+            reviewAiDraftMessage: "Cria 6 cartões novos sobre o mesmo tema de economia, com conceitos relacionados que ainda não temos.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Em economia, o que é o custo de oportunidade?",
+                    backText: "O valor da melhor alternativa a que renuncia ao escolher outra opção.",
+                    subjectTag: "economia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Em biologia, o que é osmose?",
+                    backText: "O movimento da água através de uma membrana, de uma concentração menor de soluto para uma concentração maior.",
+                    subjectTag: "biologia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Em estatística, o que é desvio padrão?",
+                    backText: "Uma medida da dispersão dos valores em torno da média.",
+                    subjectTag: "estatística"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Em química, o que é um catalisador?",
+                    backText: "Uma substância que acelera uma reação química sem ser consumida por ela.",
+                    subjectTag: "química"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Em psicologia, o que é um enviesamento cognitivo?",
+                    backText: "Um padrão sistemático de pensamento que pode distorcer o julgamento e a tomada de decisão.",
+                    subjectTag: "psicologia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Em física, o que é a velocidade?",
+                    backText: "Uma grandeza vetorial que indica a rapidez, a direção e o sentido do movimento de um objeto.",
+                    subjectTag: "física"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Em informática, o que é a recursividade?",
+                    backText: "Um método em que uma função resolve um problema chamando-se a si própria para resolver versões mais pequenas do mesmo problema.",
+                    subjectTag: "informática"
                 )
             ]
         ),
@@ -1926,6 +2043,58 @@ private enum MarketingScreenshotLocaleCatalog {
             ]
         ),
         MarketingScreenshotLocaleFixture(
+            localizationCode: "ms",
+            appleLanguage: "ms",
+            appleLocale: "ms_MY",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Dalam ekonomi, apakah kos lepas?",
+                backText: """
+                Kos lepas ialah nilai alternatif terbaik yang dilepaskan apabila kita membuat pilihan.
+
+                Contoh: Jika anda belajar untuk peperiksaan mikroekonomi pada hari Sabtu dan melepaskan syif berbayar, upah yang tidak diterima ialah sebahagian daripada kos lepas.
+                """,
+                subjectTag: "ekonomi"
+            ),
+            reviewAiDraftMessage: "Cipta 6 kad imbas baharu tentang topik ekonomi yang sama, dengan konsep berkait rapat yang belum ada dalam kad kita.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam ekonomi, apakah kos lepas?",
+                    backText: "Nilai alternatif terbaik yang dilepaskan apabila kita memilih pilihan lain.",
+                    subjectTag: "ekonomi"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam biologi, apakah osmosis?",
+                    backText: "Pergerakan air melalui membran separa telap dari bahagian yang berkepekatan zat terlarut lebih rendah ke bahagian yang berkepekatan lebih tinggi.",
+                    subjectTag: "biologi"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam statistik, apakah sisihan piawai?",
+                    backText: "Ukuran sejauh mana nilai tersebar di sekitar min.",
+                    subjectTag: "statistik"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam kimia, apakah mangkin?",
+                    backText: "Bahan yang mempercepat tindak balas kimia tanpa habis digunakan dalam tindak balas itu.",
+                    subjectTag: "kimia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam psikologi, apakah bias kognitif?",
+                    backText: "Corak pemikiran sistematik yang boleh memesongkan pertimbangan dan keputusan.",
+                    subjectTag: "psikologi"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam fizik, apakah halaju?",
+                    backText: "Laju objek berserta arah gerakannya.",
+                    subjectTag: "fizik"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Dalam sains komputer, apakah rekursi?",
+                    backText: "Dalam kaedah ini, fungsi memanggil dirinya sendiri untuk menyelesaikan versi yang lebih kecil bagi masalah yang sama.",
+                    subjectTag: "sains komputer"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
             localizationCode: "nb",
             appleLanguage: "nb",
             appleLocale: "nb_NO",
@@ -2026,6 +2195,58 @@ private enum MarketingScreenshotLocaleCatalog {
                     frontText: "Wat is recursie in de informatica?",
                     backText: "Een methode waarbij een functie een probleem oplost door zichzelf aan te roepen voor kleinere versies van hetzelfde probleem.",
                     subjectTag: "informatica"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "or",
+            appleLanguage: "or",
+            appleLocale: "or_IN",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "ଅର୍ଥଶାସ୍ତ୍ରରେ ବିକଳ୍ପ ପରିବ୍ୟୟ କ’ଣ?",
+                backText: """
+                ଗୋଟିଏ ବିକଳ୍ପ ବାଛିବା ବେଳେ ଆପଣ ଯେଉଁ ସର୍ବୋତ୍ତମ ବିକଳ୍ପଟି ଛାଡ଼ିଦିଅନ୍ତି, ତାହାର ମୂଲ୍ୟ ହେଉଛି ବିକଳ୍ପ ପରିବ୍ୟୟ।
+
+                ପରୀକ୍ଷା ପାଇଁ ଉଦାହରଣ: ଶନିବାର ମଜୁରି ମିଳୁଥିବା କାମ କରିବା ବଦଳରେ ଆପଣ ଯଦି ସୂକ୍ଷ୍ମ ଅର୍ଥଶାସ୍ତ୍ର ପରୀକ୍ଷା ପାଇଁ ପଢ଼ନ୍ତି, ତେବେ ହରାଇଥିବା ମଜୁରି ବିକଳ୍ପ ପରିବ୍ୟୟର ଏକ ଅଂଶ।
+                """,
+                subjectTag: "ଅର୍ଥଶାସ୍ତ୍ର"
+            ),
+            reviewAiDraftMessage: "ଅର୍ଥଶାସ୍ତ୍ରର ଏହି ବିଷୟ ସହ ଘନିଷ୍ଠ ଭାବେ ଜଡ଼ିତ ଏବଂ ଆମ କାର୍ଡରେ ଏଯାଏଁ ନଥିବା ଧାରଣାଗୁଡ଼ିକ ଉପରେ ୬ଟି ନୂଆ ପଢ଼ା କାର୍ଡ ତିଆରି କର।",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "ଅର୍ଥଶାସ୍ତ୍ରରେ ବିକଳ୍ପ ପରିବ୍ୟୟ କ’ଣ?",
+                    backText: "ଗୋଟିଏ ବିକଳ୍ପ ବାଛିବା ବେଳେ ଛାଡ଼ିଥିବା ସର୍ବୋତ୍ତମ ବିକଳ୍ପର ମୂଲ୍ୟ।",
+                    subjectTag: "ଅର୍ଥଶାସ୍ତ୍ର"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "ଜୀବବିଜ୍ଞାନରେ ପରାସରଣ କ’ଣ?",
+                    backText: "ଅର୍ଦ୍ଧପାରଗମ୍ୟ ଝିଲ୍ଲୀ ଦେଇ କମ୍ ଦ୍ରାବ୍ୟ ସାନ୍ଦ୍ରତା ଥିବା ପାର୍ଶ୍ୱରୁ ଅଧିକ ଦ୍ରାବ୍ୟ ସାନ୍ଦ୍ରତା ଥିବା ପାର୍ଶ୍ୱକୁ ଜଳ ଗତି କରିବା ପ୍ରକ୍ରିୟା।",
+                    subjectTag: "ଜୀବବିଜ୍ଞାନ"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "ପରିସଂଖ୍ୟାନରେ ମାନକ ବିଚ୍ୟୁତି କ’ଣ?",
+                    backText: "ହାରାହାରି ମୂଲ୍ୟଠାରୁ ତଥ୍ୟର ମୂଲ୍ୟଗୁଡ଼ିକ କେତେ ଦୂରରେ ଛିଟି ହୋଇ ରହିଛି, ତାହାର ଏକ ମାପ।",
+                    subjectTag: "ପରିସଂଖ୍ୟାନ"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "ରସାୟନ ବିଜ୍ଞାନରେ ଉତ୍ପ୍ରେରକ କ’ଣ?",
+                    backText: "ନିଜେ ବ୍ୟୟ ନ ହୋଇ ରାସାୟନିକ ପ୍ରତିକ୍ରିୟାର ବେଗ ବଢ଼ାଉଥିବା ପଦାର୍ଥ।",
+                    subjectTag: "ରସାୟନ ବିଜ୍ଞାନ"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "ମନୋବିଜ୍ଞାନରେ ସଂଜ୍ଞାନାତ୍ମକ ପକ୍ଷପାତ କ’ଣ?",
+                    backText: "ବିଚାର ଓ ନିଷ୍ପତ୍ତିକୁ ଭୁଲ ଦିଗରେ ନେଇଯାଇପାରୁଥିବା ଚିନ୍ତାର ଏକ ନିୟମିତ ଢାଞ୍ଚା।",
+                    subjectTag: "ମନୋବିଜ୍ଞାନ"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "ପଦାର୍ଥ ବିଜ୍ଞାନରେ ବେଗ କ’ଣ?",
+                    backText: "କୌଣସି ବସ୍ତୁର ଗତିର ଦ୍ରୁତତା ଓ ଦିଗକୁ ଏକାଠି ଦର୍ଶାଉଥିବା ରାଶି।",
+                    subjectTag: "ପଦାର୍ଥ ବିଜ୍ଞାନ"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "କମ୍ପ୍ୟୁଟର ବିଜ୍ଞାନରେ ରିକର୍ସନ୍ କ’ଣ?",
+                    backText: "ସେହି ସମସ୍ୟାର ଛୋଟ ରୂପଗୁଡ଼ିକୁ ସମାଧାନ କରିବା ପାଇଁ ଏକ ଫଙ୍କସନ୍ ନିଜକୁ ଡାକିଥାଏ।",
+                    subjectTag: "କମ୍ପ୍ୟୁଟର ବିଜ୍ଞାନ"
                 )
             ]
         ),

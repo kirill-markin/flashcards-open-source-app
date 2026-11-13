@@ -1,0 +1,5 @@
+"kMDItemKeywords" = "flashcards,flash cards,閃卡,學習卡片,複習卡片,記憶卡片,抽認卡";
+"MDItemKeywords" = "flashcards,flash cards,閃卡,學習卡片,複習卡片,記憶卡片,抽認卡";
+"NSCameraUsageDescription" = "拍攝供 AI 聊天使用的照片。你附加的照片會傳送至 OpenAI 進行 AI 處理。";
+"NSMicrophoneUsageDescription" = "錄下語音輸入並傳送至 OpenAI，轉寫成 AI 聊天使用的文字。";
+"NSPhotoLibraryUsageDescription" = "選擇要附加到 AI 聊天的照片，並傳送至 OpenAI 進行 AI 處理。";

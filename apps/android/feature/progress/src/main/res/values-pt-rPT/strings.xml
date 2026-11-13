@@ -1,0 +1,134 @@
+<resources>
+    <string name="progress_title">Progresso</string>
+    <string name="progress_retry">Tentar novamente</string>
+    <string name="progress_loading">A carregar o histórico de progresso</string>
+    <string name="progress_error_title">Não foi possível carregar o progresso</string>
+    <string name="progress_error_message">Os dados de progresso estão temporariamente indisponíveis. Tente voltar a carregar o histórico.</string>
+    <string name="progress_sign_in_required_title">Inicie sessão para ver o progresso</string>
+    <string name="progress_sign_in_required_message">O histórico de progresso só está disponível depois de iniciar sessão ou começar uma sessão de IA em modo de convidado.</string>
+    <string name="progress_unavailable_title">Conclua a configuração da sincronização para ver o progresso</string>
+    <string name="progress_unavailable_message">Escolha um espaço de trabalho para concluir o início de sessão antes de carregar o histórico de progresso.</string>
+    <string name="progress_streak_title">Sequência</string>
+    <string name="progress_streak_subtitle">Últimas 5 semanas</string>
+    <string name="progress_streak_summary_reviewed_today">Revisto hoje</string>
+    <string name="progress_streak_summary_not_reviewed_today">Por rever hoje</string>
+    <string name="progress_streak_freeze_bank_value">%1$d/%2$d</string>
+    <string name="progress_streak_freeze_bank_content_description">Proteções de sequência: %1$d de %2$d disponíveis.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">Sobre as proteções de sequência</string>
+    <string name="progress_streak_freeze_bank_info_title">Proteções de sequência</string>
+    <string name="progress_streak_freeze_bank_info_body">Disponíveis: %1$d/%2$d. Recuperação: %3$d/%4$d. As proteções cobrem os dias em que não revê e são repostas à medida que mantém a sequência.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
+    <string name="progress_streak_day_reviewed_content_description">%1$s: houve revisões.</string>
+    <string name="progress_streak_day_frozen_content_description">%1$s: dia coberto por uma proteção de sequência.</string>
+    <string name="progress_streak_day_future_content_description">%1$s: data futura.</string>
+    <string name="progress_streak_day_pending_content_description">%1$s: pendente.</string>
+    <string name="progress_streak_day_missed_content_description">%1$s: sem revisões.</string>
+    <string name="progress_reviews_title">Revisões</string>
+    <string name="progress_reviews_previous_week">Semana anterior</string>
+    <string name="progress_reviews_next_week">Semana seguinte</string>
+    <string name="progress_reviews_rating_again">De novo</string>
+    <string name="progress_reviews_rating_hard">Difícil</string>
+    <string name="progress_reviews_rating_good">Bom</string>
+    <string name="progress_reviews_rating_easy">Fácil</string>
+    <string name="progress_reviews_rating_count_percentage">%1$d (%2$s)</string>
+    <string name="progress_reviews_chart_clear_content_description">Limpar seleção no gráfico de revisões</string>
+    <string name="progress_review_schedule_title">Calendário de revisões</string>
+    <string name="progress_review_schedule_empty">Ainda não há cartões ativos.</string>
+    <string name="progress_review_schedule_chart_content_description">Gráfico do calendário de revisões</string>
+    <string name="progress_review_schedule_bucket_new">Novos</string>
+    <string name="progress_review_schedule_bucket_today">Hoje</string>
+    <string name="progress_review_schedule_bucket_days_1_to_7">1 a 7 dias</string>
+    <string name="progress_review_schedule_bucket_days_8_to_30">8 a 30 dias</string>
+    <string name="progress_review_schedule_bucket_days_31_to_90">31 a 90 dias</string>
+    <string name="progress_review_schedule_bucket_days_91_to_360">91 a 360 dias</string>
+    <string name="progress_review_schedule_bucket_years_1_to_2">1 a 2 anos</string>
+    <string name="progress_review_schedule_bucket_later">Mais tarde</string>
+    <string name="progress_review_schedule_bucket_value">%1$s (%2$s)</string>
+    <string name="progress_leaderboard_title">Classificação por avaliação</string>
+    <string name="progress_leaderboard_info_button_content_description">Sobre a classificação por avaliação</string>
+    <string name="progress_leaderboard_info_title">Como funciona a classificação por avaliação</string>
+    <string name="progress_leaderboard_info_fallback_body">As revisões avaliadas como Difícil, Bom ou Fácil contam para a sua posição. De novo não conta.</string>
+    <string name="progress_leaderboard_info_dismiss">OK</string>
+    <string name="progress_leaderboard_window_last_24_hours">24 h</string>
+    <string name="progress_leaderboard_window_last_3_days">3 d</string>
+    <string name="progress_leaderboard_window_last_7_days">7 d</string>
+    <string name="progress_leaderboard_window_last_30_days">30 d</string>
+    <string name="progress_leaderboard_window_all_time">Desde sempre</string>
+    <string name="progress_leaderboard_you">O seu perfil</string>
+    <string name="progress_leaderboard_rank_label">#%1$s</string>
+    <string name="progress_leaderboard_gap_content_description">Posições ocultas</string>
+    <string name="progress_leaderboard_empty_window">Ainda não há revisões elegíveis neste período.</string>
+    <string name="progress_leaderboard_sign_in_message">Crie uma conta ou inicie sessão para ver a posição das suas revisões na classificação por avaliação.</string>
+    <string name="progress_leaderboard_sign_in_button">Iniciar sessão</string>
+    <string name="progress_leaderboard_participation_disabled_message">Só pode ver a classificação por avaliação se participar nela. Ative a participação nas definições de classificação.</string>
+    <string name="progress_leaderboard_participation_disabled_button">Abrir definições de classificação</string>
+    <string name="progress_leaderboard_offline_message">A classificação por avaliação precisa de ligação à Internet. Será carregada quando voltar a ter ligação.</string>
+    <string name="progress_leaderboard_unavailable_message">A classificação por avaliação ainda não está disponível. Volte a consultar em breve.</string>
+    <string name="progress_leaderboard_profile_row_content_description">Abrir perfil (%1$s)</string>
+    <string name="progress_leaderboard_profile_friend_label">Amigo</string>
+    <string name="progress_leaderboard_profile_current_streak_label">Sequência atual</string>
+    <string name="progress_leaderboard_profile_best_rating_label">Melhor posição por avaliação</string>
+    <string name="progress_leaderboard_profile_best_rating_value">%1$s em %2$s</string>
+    <string name="progress_leaderboard_profile_no_rating_value">Ainda sem posição</string>
+    <string name="progress_leaderboard_profile_activity_title">Últimos 30 dias</string>
+    <string name="progress_leaderboard_profile_activity_chart_content_description">Atividade de revisão nos últimos 30 dias</string>
+    <string name="progress_leaderboard_profile_joined_value">Entrou a %1$s</string>
+    <string name="progress_leaderboard_profile_linked_account_required_message">Inicie sessão para ver os perfis no quadro de classificação.</string>
+    <string name="progress_leaderboard_profile_participation_disabled_message">Ative a participação na classificação para ver perfis.</string>
+    <string name="progress_leaderboard_profile_unavailable_message">Este perfil de classificação não está disponível.</string>
+    <string name="progress_leaderboard_profile_error_message">Não foi possível carregar este perfil. Verifique a ligação e tente novamente.</string>
+    <string name="progress_streak_leaderboard_title">Classificação por sequência</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">Sobre a classificação por sequência</string>
+    <string name="progress_streak_leaderboard_info_title">Como funciona a classificação por sequência</string>
+    <string name="progress_streak_leaderboard_info_fallback_body">A classificação baseia-se na duração das sequências atuais registadas no resumo público diário. Conta cada dia, no seu fuso horário, em que fizer pelo menos uma revisão avaliada como «De novo», «Difícil», «Bom» ou «Fácil». O resumo público pode demorar a refletir a sua sequência atual.</string>
+    <string name="progress_streak_leaderboard_empty">Ainda não há posições na classificação por sequência.</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Crie uma conta ou inicie sessão para comparar sequências com a comunidade.</string>
+    <string name="progress_streak_leaderboard_participation_disabled_message">Só pode ver a classificação por sequência se participar nela. Ative a participação nas definições de classificação.</string>
+    <string name="progress_streak_leaderboard_offline_message">A classificação por sequência precisa de ligação à Internet. Será carregada quando voltar a ter ligação.</string>
+    <string name="progress_streak_leaderboard_unavailable_message">A classificação por sequência ainda não está disponível. Volte a consultar em breve.</string>
+    <string name="progress_today">Hoje</string>
+    <plurals name="progress_streak_summary_content_description">
+        <item quantity="one">Sequência de revisão de %d dia.</item>
+        <item quantity="other">Sequência de revisão de %d dias.</item>
+    </plurals>
+    <plurals name="progress_reviews_day_content_description">
+        <item quantity="one">Selecionar %1$s, %2$d revisão.</item>
+        <item quantity="other">Selecionar %1$s, %2$d revisões.</item>
+    </plurals>
+    <plurals name="progress_reviews_day_selected_content_description">
+        <item quantity="one">%1$s selecionado, %2$d revisão.</item>
+        <item quantity="other">%1$s selecionado, %2$d revisões.</item>
+    </plurals>
+    <plurals name="progress_leaderboard_participant_count">
+        <item quantity="one">%1$s participante</item>
+        <item quantity="other">%1$s participantes</item>
+    </plurals>
+    <plurals name="progress_streak_leaderboard_day_count">
+        <item quantity="one">%1$s dia</item>
+        <item quantity="other">%1$s dias</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_minute_label">
+        <item quantity="one">Atualizado há %1$d minuto</item>
+        <item quantity="other">Atualizado há %1$d minutos</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_label">
+        <item quantity="one">Atualizado há %1$d hora</item>
+        <item quantity="other">Atualizado há %1$d horas</item>
+    </plurals>
+    <plurals name="progress_leaderboard_elapsed_minute_count">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_minute_label">
+        <item quantity="one">Atualizado há %1$d hora e %2$s</item>
+        <item quantity="other">Atualizado há %1$d horas e %2$s</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_activity_total">
+        <item quantity="one">Total de %1$s revisão</item>
+        <item quantity="other">Total de %1$s revisões</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_total_cards_value">
+        <item quantity="one">%1$s cartão</item>
+        <item quantity="other">%1$s cartões</item>
+    </plurals>
+</resources>

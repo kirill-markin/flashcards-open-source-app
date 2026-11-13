@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">Nibomo ଫ୍ଲାସ୍‌କାର୍ଡ</string>
+    <string name="wear_retry">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</string>
+    <string name="wear_session_open_phone_app">ଫୋନ୍‌ରେ Nibomo ଖୋଲନ୍ତୁ</string>
+    <string name="wear_session_not_connected_message">ଘଡ଼ିରେ କାର୍ଡ ଅଭ୍ୟାସ କରିବାକୁ ଫୋନ୍‌ରେ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_connecting">ଫୋନ୍ ସହ ସଂଯୋଗ ହେଉଛି…</string>
+    <string name="wear_session_syncing">କାର୍ଡ ସିଙ୍କ୍ ହେଉଛି…</string>
+    <string name="wear_session_update_required">ଫୋନ୍ ଓ ଘଡ଼ିରେ Nibomo ଅପଡେଟ୍ କରନ୍ତୁ</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="one">%dଟି ରେଟିଂ ଏବେ ସିଙ୍କ୍ ହୋଇପାରୁନାହିଁ</item>
+        <item quantity="other">%dଟି ରେଟିଂ ଏବେ ସିଙ୍କ୍ ହୋଇପାରୁନାହିଁ</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">ଆପଣଙ୍କ ଫୋନ୍‌ରେ ଆକାଉଣ୍ଟ ବା ୱର୍କସ୍ପେସ୍ ବଦଳିଛି। ଘଡ଼ି ଅନଲାଇନ୍ ହେଲେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ, କିମ୍ବା ଏବେ ବଦଳାଇବାକୁ ଏହି ରେଟିଂଗୁଡ଼ିକୁ ହଟାନ୍ତୁ।</string>
+    <string name="wear_session_switch_blocked_discard">ହଟାଇ ବଦଳାନ୍ତୁ</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="one">%dଟି ରେଟିଂ ହଟାଇବେ?</item>
+        <item quantity="other">%dଟି ରେଟିଂ ହଟାଇବେ?</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">ଏହି ରେଟିଂଗୁଡ଼ିକ ହଜିଯିବ। ଏହି କାର୍ଯ୍ୟ ଫେରାଇ ହେବ ନାହିଁ।</string>
+    <string name="wear_review_show_answer">ଉତ୍ତର ଦେଖାନ୍ତୁ</string>
+    <string name="wear_review_again">ପୁଣି</string>
+    <string name="wear_review_hard">କଠିନ</string>
+    <string name="wear_review_good">ଭଲ</string>
+    <string name="wear_review_easy">ସହଜ</string>
+    <string name="wear_review_open_on_phone">ଛବି ବା ସୂତ୍ର ଦେଖିବାକୁ ଫୋନ୍‌ରେ ଖୋଲନ୍ତୁ</string>
+    <string name="wear_review_all_done">ସବୁ ସରିଲା</string>
+    <string name="wear_review_next_card_due">ପରବର୍ତ୍ତୀ କାର୍ଡ: %1$s</string>
+</resources>

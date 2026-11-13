@@ -5,6 +5,7 @@ const STORE_LOCALES = [
   "bn-BD", "ca", "cs", "da", "el", "fi", "gu-IN", "he", "hr", "hu", "id", "it", "kn-IN", "ko",
   "ml-IN", "mr-IN", "no", "nl-NL", "pa-IN", "pl", "ro", "sk", "sl-SI", "sv", "ta-IN", "te-IN",
   "th", "tr", "uk", "ur-PK", "vi",
+  "zh-Hant", "en-AU", "en-CA", "en-GB", "fr-CA", "pt-PT", "ms", "or-IN",
 ] as const;
 
 export type SubscriptionLocalization = { locale: string; name: string; description: string; groupName: string };

@@ -14,8 +14,9 @@ const PROJECT_FILE = join(
 
 // en is DEVELOPMENT_LANGUAGE in apps/ios/Flashcards/Config/Base.xcconfig, so an en variant is
 // optional everywhere and never required by this check. Base is an Xcode pseudo-region, not a locale.
-const REQUIRED_LOCALES = ["ar", "bg", "bn", "ca", "cs", "da", "de", "el", "es-ES", "es-MX", "et", "fa", "fi", "fr", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja", "kn", "ko", "lt", "lv", "ml", "mr", "nb", "nl", "pa", "pl", "pt-BR", "ro", "ru", "sk", "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zh-Hans", "zu"];
+const REQUIRED_LOCALES = ["ar", "bg", "bn", "ca", "cs", "da", "de", "el", "en-AU", "en-CA", "en-GB", "es-ES", "es-MX", "et", "fa", "fi", "fr", "fr-CA", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja", "kn", "ko", "lt", "lv", "ml", "mr", "ms", "nb", "nl", "or", "pa", "pl", "pt-BR", "pt-PT", "ro", "ru", "sk", "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zh-Hans", "zh-Hant", "zu"];
 const UNTRANSLATED_PROJECT_REGIONS = new Set(["en", "Base"]);
+const AI_SETTINGS_SWIFT_DEFAULT_LOCALES = new Set(["en-AU", "en-CA", "en-GB"]);
 const TRANSLATED_STATE = "translated";
 const LPROJ_SUFFIX = ".lproj";
 const IGNORED_DIRECTORY_NAMES = new Set(["DerivedData", "build", ".build", ".git"]);
@@ -247,7 +248,11 @@ function groupStringsFilesByLprojParent(stringsFilePaths) {
 }
 
 function findMissingLocaleFiles(group) {
-  return REQUIRED_LOCALES.filter((locale) => !group.filePathsByLocale.has(locale)).map((locale) => ({
+  const requiredLocales = group.stringsFileName === "AISettings.strings"
+    ? REQUIRED_LOCALES.filter((locale) => !AI_SETTINGS_SWIFT_DEFAULT_LOCALES.has(locale))
+    : REQUIRED_LOCALES;
+
+  return requiredLocales.filter((locale) => !group.filePathsByLocale.has(locale)).map((locale) => ({
     rule: "missing-locale-file",
     group: group.groupId,
     locale,

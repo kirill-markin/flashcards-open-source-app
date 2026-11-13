@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Nibomo Flashcards</string>
+    <string name="wear_retry">Tentar novamente</string>
+    <string name="wear_session_open_phone_app">Abra o Nibomo no telemóvel</string>
+    <string name="wear_session_not_connected_message">Inicie sessão no telemóvel para rever os seus cartões no relógio.</string>
+    <string name="wear_session_connecting">A ligar ao telemóvel…</string>
+    <string name="wear_session_syncing">A sincronizar cartões…</string>
+    <string name="wear_session_update_required">Atualize o Nibomo no telemóvel e no relógio</string>
+    <plurals name="wear_session_switch_blocked_title">
+        <item quantity="one">%d avaliação ainda por sincronizar</item>
+        <item quantity="many">%d avaliações ainda por sincronizar</item>
+        <item quantity="other">%d avaliações ainda por sincronizar</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_message">O telemóvel mudou de conta ou de espaço de trabalho. Volte a tentar quando o relógio estiver online ou elimine estas avaliações para mudar já.</string>
+    <string name="wear_session_switch_blocked_discard">Eliminar e mudar</string>
+    <plurals name="wear_session_switch_blocked_discard_confirmation_title">
+        <item quantity="one">Eliminar %d avaliação?</item>
+        <item quantity="many">Eliminar %d avaliações?</item>
+        <item quantity="other">Eliminar %d avaliações?</item>
+    </plurals>
+    <string name="wear_session_switch_blocked_discard_confirmation_message">As avaliações serão perdidas. Não pode desfazer esta ação.</string>
+    <string name="wear_review_show_answer">Mostrar resposta</string>
+    <string name="wear_review_again">De novo</string>
+    <string name="wear_review_hard">Difícil</string>
+    <string name="wear_review_good">Bom</string>
+    <string name="wear_review_easy">Fácil</string>
+    <string name="wear_review_open_on_phone">Abra no telemóvel para ver a imagem ou a fórmula</string>
+    <string name="wear_review_all_done">Tudo em dia</string>
+    <string name="wear_review_next_card_due">Próximo cartão: %1$s</string>
+</resources>
