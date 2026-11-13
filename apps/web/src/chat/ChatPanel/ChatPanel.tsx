@@ -36,7 +36,6 @@ import {
   getChatComposerState,
   hasChatDraftContent,
 } from "../composer/chatComposerState";
-import { useAiImportHandoff } from "../handoff/AiImportHandoffContext";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
 import { ChatHistoryPanel } from "../history/ChatHistoryPanel";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
@@ -72,7 +71,8 @@ export function ChatPanel(props: Props): ReactElement {
     clearSessionBoundDraftIfUnchanged,
     getSessionBoundRequestIdForSend,
     isAiImportRestartRequired,
-    requireAiImportRestart,
+    isAiImportAutoSendPending,
+    claimAiImportAutoSend,
     dismissAiImportRestart,
     composerSendPhase: sendPhase,
     replaceComposerSendPhase: setSendPhase,
@@ -279,10 +279,7 @@ export function ChatPanel(props: Props): ReactElement {
   const isDictationVisible = dictationState !== "idle";
   const isChatActionLocked = appData.isSessionVerified === false || indexedDbOpenRecoveryState.hasFailed();
   const isAiActionLocked = isChatActionLocked || isGuestUsageUnavailable;
-  const aiImportHandoff = useAiImportHandoff();
-  const aiImportTarget = mode === "fullscreen" ? aiImportHandoff?.target ?? null : null;
-  const isAiImportTargetActive = aiImportTarget !== null && aiImportTarget.workspaceId === activeWorkspaceId
-    && aiImportTarget.sessionId === currentSessionId;
+  const isAiImportAutoSendActive = mode === "fullscreen" && isAiImportAutoSendPending;
   const aiImportRestartMessage = isAiImportRestartRequired ? t("workspaceImport.ai.chatChanged") : null;
   const visibleErrorDialogMessage = errorDialogMessage ?? aiImportRestartMessage;
 
@@ -298,7 +295,7 @@ export function ChatPanel(props: Props): ReactElement {
   }
 
   async function sendPendingMessage(): Promise<void> {
-    if (!isAiImportTargetActive) {
+    if (!isAiImportAutoSendActive) {
       await runPendingMessageSend(null);
     }
   }
@@ -374,36 +371,20 @@ export function ChatPanel(props: Props): ReactElement {
   });
 
   useEffect(() => {
-    if (aiImportTarget === null || aiImportHandoff === null || !isHistoryLoaded) {
+    if (mode !== "fullscreen") {
       return;
     }
 
-    if (!isAiImportTargetActive) {
-      if (aiImportHandoff.consume(aiImportTarget) && aiImportTarget.workspaceId === activeWorkspaceId) {
-        requireAiImportRestart(aiImportTarget.sessionId, aiImportTarget.draftUpdatedAt);
-      }
-      return;
+    const sessionId = claimAiImportAutoSend({
+      workspaceId: activeWorkspaceId,
+      sessionId: currentSessionId,
+      isHistoryLoaded,
+      canSendPendingMessage,
+    });
+    if (sessionId !== null) {
+      sendAiImport(sessionId);
     }
-
-    if (draft.sessionBoundDraftId === null || draft.updatedAt !== aiImportTarget.draftUpdatedAt) {
-      aiImportHandoff.consume(aiImportTarget);
-      return;
-    }
-
-    if (canSendPendingMessage && aiImportHandoff.consume(aiImportTarget)) {
-      sendAiImport(aiImportTarget.sessionId);
-    }
-  }, [
-    activeWorkspaceId,
-    aiImportHandoff,
-    aiImportTarget,
-    canSendPendingMessage,
-    draft.sessionBoundDraftId,
-    draft.updatedAt,
-    isAiImportTargetActive,
-    isHistoryLoaded,
-    requireAiImportRestart,
-  ]);
+  }, [activeWorkspaceId, canSendPendingMessage, claimAiImportAutoSend, currentSessionId, isHistoryLoaded, mode]);
 
   const isSendButtonBusy = sendPhase === "preparingSend" || sendPhase === "startingRun";
   const canShowComposerSuggestions = getCanShowComposerSuggestions({
@@ -646,7 +627,7 @@ export function ChatPanel(props: Props): ReactElement {
         data-assistant-run-active={isAssistantRunActive ? "true" : "false"}
         data-stopping={isStopping ? "true" : "false"}
         data-draft-state={hasDraftContent ? "filled" : "empty"}
-        data-can-send={canSendPendingMessage && !isAiImportTargetActive ? "true" : "false"}
+        data-can-send={canSendPendingMessage && !isAiImportAutoSendActive ? "true" : "false"}
       >
         {isGuestUsageUnavailable ? (
           <p className="chat-ai-usage-notice" role="status" data-testid="guest-ai-usage-status" data-load-status={aiUsageLoadStatus}>
@@ -840,7 +821,7 @@ export function ChatPanel(props: Props): ReactElement {
                 aria-label={t("chatPanel.actions.sendAriaLabel")}
                 aria-busy={isSendButtonBusy ? "true" : "false"}
                 onClick={() => void sendPendingMessage()}
-                disabled={!canSendPendingMessage || isAiImportTargetActive}
+                disabled={!canSendPendingMessage || isAiImportAutoSendActive}
                 data-testid="chat-send-button"
               >
                 <span

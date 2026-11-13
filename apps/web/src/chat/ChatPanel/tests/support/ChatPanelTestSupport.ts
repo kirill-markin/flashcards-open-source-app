@@ -330,6 +330,7 @@ type ChatPanelTestHarness = Readonly<{
   flushAsync: () => Promise<void>;
   renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
   renderChatPanelStrictMode: () => Promise<void>;
+  renderChatPanelShell: (panel: ReactNode, shouldUseStrictMode: boolean) => Promise<void>;
   hideChatPanel: () => Promise<void>;
   setLocalePreference: (localePreference: LocalePreference) => Promise<void>;
   unmountChatPanel: () => Promise<void>;
@@ -984,6 +985,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     flushAsync,
     renderChatPanel,
     renderChatPanelStrictMode,
+    renderChatPanelShell,
     hideChatPanel,
     setLocalePreference,
     unmountChatPanel,
