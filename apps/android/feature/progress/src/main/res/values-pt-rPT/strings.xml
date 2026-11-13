@@ -142,4 +142,24 @@
         <item quantity="many">%1$s cartões</item>
         <item quantity="other">%1$s cartões</item>
     </plurals>
+    <string name="progress_reviews_pace_last_7_days">Últimos 7 dias · %1$s por dia</string>
+    <plurals name="progress_reviews_study_time">
+        <item quantity="one">Tempo de estudo · ≈ %1$d min</item>
+        <item quantity="many">Tempo de estudo · ≈ %1$d min</item>
+        <item quantity="other">Tempo de estudo · ≈ %1$d min</item>
+    </plurals>
+    <string name="progress_review_schedule_due_today">Para hoje: %1$s</string>
+    <plurals name="progress_review_schedule_due_today_with_minutes">
+        <item quantity="one">Para hoje: %1$s · ≈ %2$d min</item>
+        <item quantity="many">Para hoje: %1$s · ≈ %2$d min</item>
+        <item quantity="other">Para hoje: %1$s · ≈ %2$d min</item>
+    </plurals>
+    <string name="progress_records_title">Recordes</string>
+    <string name="progress_records_best_day">Melhor dia</string>
+    <string name="progress_records_best_week">Melhor semana</string>
+    <string name="progress_records_longest_streak">Sequência mais longa</string>
+    <string name="progress_records_total_reviews">Total de revisões</string>
+    <string name="progress_records_last_7_days">Últimos 7 dias</string>
+    <string name="progress_records_cards_met">Cartões novos vistos</string>
+    <string name="progress_records_relearned">Reaprendidos</string>
 </resources>

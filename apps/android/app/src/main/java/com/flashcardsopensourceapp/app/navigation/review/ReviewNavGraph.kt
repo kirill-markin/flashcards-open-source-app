@@ -186,7 +186,8 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 val request = reviewWidgetCardRequest ?: return@LaunchedEffect
                 val didHandle = reviewViewModel.startSessionOnCardForHandoff(
                     workspaceId = request.workspaceId,
-                    cardId = request.cardId
+                    cardId = request.cardId,
+                    revealAnswer = request.revealAnswer
                 )
                 if (didHandle) {
                     appGraph.appHandoffCoordinator.consumeReviewWidgetCard(requestId = request.requestId)

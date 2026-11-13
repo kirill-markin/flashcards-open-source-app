@@ -131,4 +131,27 @@
         <item quantity="one">%1$s card</item>
         <item quantity="other">%1$s cards</item>
     </plurals>
+    <!-- Reviews card: the last 7 days' daily average; the arrow and percent against the usual follow in code. -->
+    <string name="progress_reviews_pace_last_7_days">Last 7 days · %1$s a day</string>
+    <plurals name="progress_reviews_study_time">
+        <item quantity="one">Study time · ≈ %1$d min</item>
+        <item quantity="other">Study time · ≈ %1$d min</item>
+    </plurals>
+    <!-- Review schedule card: cards due today, with the estimated minutes to clear them when known. -->
+    <string name="progress_review_schedule_due_today">Due today %1$s</string>
+    <plurals name="progress_review_schedule_due_today_with_minutes">
+        <item quantity="one">Due today %1$s · ≈ %2$d min</item>
+        <item quantity="other">Due today %1$s · ≈ %2$d min</item>
+    </plurals>
+    <!-- Records card: personal bests and plain counts. -->
+    <string name="progress_records_title">Records</string>
+    <string name="progress_records_best_day">Best day</string>
+    <string name="progress_records_best_week">Best week</string>
+    <string name="progress_records_longest_streak">Longest streak</string>
+    <string name="progress_records_total_reviews">Total reviews</string>
+    <string name="progress_records_last_7_days">Last 7 days</string>
+    <!-- Cards reviewed for the first time ever in the last 7 days. -->
+    <string name="progress_records_cards_met">Cards met</string>
+    <!-- Cards rated Again, then remembered on a later day, in the last 7 days. -->
+    <string name="progress_records_relearned">Relearned</string>
 </resources>

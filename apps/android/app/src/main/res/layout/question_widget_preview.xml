@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget picker preview; `@android:id/background` gets the launcher's system corner radius.
+     Overdraw: the launcher inflates this without the app theme, so the root background is the only one. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/review_widget_background"
+    android:orientation="vertical"
+    android:padding="12dp"
+    tools:ignore="Overdraw">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="3"
+        android:text="@string/review_widget_preview_question"
+        android:textColor="@color/review_widget_on_surface"
+        android:textSize="16sp" />
+
+    <!-- RemoteViews inflate only allowlisted views, so the spacer is a FrameLayout, not a Space. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:ignore="UselessLeaf" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:text="@string/question_widget_preview_due"
+            android:textColor="@color/review_widget_on_surface_variant"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/question_widget_preview_button"
+            android:maxLines="1"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
+            android:text="@string/widget_reveal_answer"
+            android:textColor="@android:color/black"
+            android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

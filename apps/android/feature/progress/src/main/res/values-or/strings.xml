@@ -131,4 +131,22 @@
         <item quantity="one">%1$sଟି କାର୍ଡ</item>
         <item quantity="other">%1$sଟି କାର୍ଡ</item>
     </plurals>
+    <string name="progress_reviews_pace_last_7_days">ଗତ 7 ଦିନ · ଦିନକୁ %1$s</string>
+    <plurals name="progress_reviews_study_time">
+        <item quantity="one">ଅଧ୍ୟୟନ ସମୟ · ≈ %1$d ମିନିଟ୍</item>
+        <item quantity="other">ଅଧ୍ୟୟନ ସମୟ · ≈ %1$d ମିନିଟ୍</item>
+    </plurals>
+    <string name="progress_review_schedule_due_today">ଆଜି ବାକି %1$s</string>
+    <plurals name="progress_review_schedule_due_today_with_minutes">
+        <item quantity="one">ଆଜି ବାକି %1$s · ≈ %2$d ମିନିଟ୍</item>
+        <item quantity="other">ଆଜି ବାକି %1$s · ≈ %2$d ମିନିଟ୍</item>
+    </plurals>
+    <string name="progress_records_title">ରେକର୍ଡ</string>
+    <string name="progress_records_best_day">ସର୍ବୋତ୍ତମ ଦିନ</string>
+    <string name="progress_records_best_week">ସର୍ବୋତ୍ତମ ସପ୍ତାହ</string>
+    <string name="progress_records_longest_streak">ସବୁଠାରୁ ଲମ୍ବା ଧାରା</string>
+    <string name="progress_records_total_reviews">ମୋଟ ଅଭ୍ୟାସ</string>
+    <string name="progress_records_last_7_days">ଗତ 7 ଦିନ</string>
+    <string name="progress_records_cards_met">ନୂଆ ଦେଖାହୋଇଥିବା କାର୍ଡ</string>
+    <string name="progress_records_relearned">ପୁଣି ଶିଖାଗଲା</string>
 </resources>

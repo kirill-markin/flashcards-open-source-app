@@ -14,6 +14,13 @@ data class ReviewDueBadgeCountRow(
     val nextDueAtMillis: Long?
 )
 
+/** [ReviewDueBadgeCountRow] with the new cards among [dueCount], for Home Screen widgets. */
+data class ReviewWidgetDueCountRow(
+    val dueCount: Int,
+    val newCount: Int,
+    val nextDueAtMillis: Long?
+)
+
 @Dao
 interface ReviewCountDao {
     @Query(
@@ -120,6 +127,19 @@ interface ReviewCountDao {
         """
     )
     fun observeReviewDueBadgeCount(workspaceId: String, nowMillis: Long): Flow<ReviewDueBadgeCountRow>
+
+    @Query(
+        """
+        SELECT
+            COUNT(CASE WHEN dueAtMillis IS NULL OR dueAtMillis <= :nowMillis THEN 1 END) AS dueCount,
+            COUNT(CASE WHEN dueAtMillis IS NULL THEN 1 END) AS newCount,
+            MIN(CASE WHEN dueAtMillis > :nowMillis THEN dueAtMillis END) AS nextDueAtMillis
+        FROM cards
+        WHERE workspaceId = :workspaceId
+            AND deletedAtMillis IS NULL
+        """
+    )
+    fun observeReviewWidgetDueCount(workspaceId: String, nowMillis: Long): Flow<ReviewWidgetDueCountRow>
 
     @Query(
         """

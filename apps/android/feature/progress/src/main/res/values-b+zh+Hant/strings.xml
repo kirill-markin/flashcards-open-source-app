@@ -120,4 +120,20 @@
     <plurals name="progress_leaderboard_profile_total_cards_value">
         <item quantity="other">%1$s 張卡片</item>
     </plurals>
+    <string name="progress_reviews_pace_last_7_days">最近 7 天 · 每天 %1$s 次</string>
+    <plurals name="progress_reviews_study_time">
+        <item quantity="other">學習時間 · 約 %1$d 分鐘</item>
+    </plurals>
+    <string name="progress_review_schedule_due_today">今天到期 %1$s</string>
+    <plurals name="progress_review_schedule_due_today_with_minutes">
+        <item quantity="other">今天到期 %1$s · 約 %2$d 分鐘</item>
+    </plurals>
+    <string name="progress_records_title">紀錄</string>
+    <string name="progress_records_best_day">最佳單日</string>
+    <string name="progress_records_best_week">最佳一週</string>
+    <string name="progress_records_longest_streak">最長連續天數</string>
+    <string name="progress_records_total_reviews">複習總數</string>
+    <string name="progress_records_last_7_days">最近 7 天</string>
+    <string name="progress_records_cards_met">新認識的卡片</string>
+    <string name="progress_records_relearned">重新學會</string>
 </resources>

@@ -21,7 +21,8 @@ private fun makeAllWidgets(): List<GlanceAppWidget> {
         YearWidget(),
         StreaksWidget(),
         MonthCalendarWidget(),
-        DashboardWidget()
+        DashboardWidget(),
+        QuestionWidget()
     )
 }
 

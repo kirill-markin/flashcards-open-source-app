@@ -54,12 +54,6 @@
     <string name="review_widget_question_without_text">圖片題目</string>
     <!-- The placeholder is a time today, otherwise a date and time. -->
     <string name="review_widget_next_due">下一張卡片：<xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
-    <!-- The big due count on the small widget, in the locale's digits. -->
-    <!-- Shown under the big due count on the small widget. -->
-    <string name="review_widget_due_label">待複習</string>
-    <plurals name="review_widget_cards_due">
-        <item quantity="other">%1$d 張待複習</item>
-    </plurals>
     <plurals name="review_widget_streak_days">
         <item quantity="other">連續複習 %1$d 天</item>
     </plurals>
@@ -69,16 +63,7 @@
     <string name="review_widget_preview_streak">連續複習 7 天</string>
     <!-- Reviews chart Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="reviews_chart_widget_label">複習次數</string>
-    <string name="reviews_chart_widget_description">查看最近幾週每天的複習次數。</string>
-    <string name="reviews_chart_widget_daily_average">日均 <xliff:g id="review_count" example="24">%1$d</xliff:g> 次</string>
-    <!-- The quantity is the day count. -->
-    <plurals name="reviews_chart_widget_trend_up">
-        <item quantity="other">較前 <xliff:g id="day_count" example="14">%2$d</xliff:g> 天 ↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%%</item>
-    </plurals>
-    <!-- The quantity is the day count. -->
-    <plurals name="reviews_chart_widget_trend_down">
-        <item quantity="other">較前 <xliff:g id="day_count" example="14">%2$d</xliff:g> 天 ↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%%</item>
-    </plurals>
+    <string name="reviews_chart_widget_description">最近 7 天每天的複習次數，與你的平常相比。</string>
     <string name="reviews_chart_widget_preview_daily_average">日均 24 次</string>
     <!-- Coming up Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="coming_up_widget_label">即將到期</string>
@@ -89,22 +74,7 @@
     <string name="coming_up_widget_preview_header">未來 7 天 · 58 張卡片</string>
     <!-- Today Home Screen widget name in the launcher's widget picker, also its title on the medium widget. -->
     <string name="today_widget_label">今天</string>
-    <string name="today_widget_description">查看今天的複習進度、剩餘卡片和連續複習紀錄。</string>
-    <!-- A count inside the small widget's ring (cards reviewed today) or next to the streak flame, in the locale's digits. -->
-    <!-- Share of today's cards already reviewed, next to the progress bar. -->
-    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
-    <!-- Shown when no card was reviewed today and none is due. -->
-    <string name="today_widget_no_cards_due">沒有待複習卡片</string>
-    <plurals name="today_widget_reviewed">
-        <item quantity="other">已複習 %1$d 張</item>
-    </plurals>
-    <!-- Cards still due today, under the ring on the small widget. -->
-    <plurals name="today_widget_left">
-        <item quantity="other">剩 %1$d 張</item>
-    </plurals>
-    <plurals name="today_widget_cards_left">
-        <item quantity="other">剩 %1$d 張卡片</item>
-    </plurals>
+    <string name="today_widget_description">最近 7 天與平常相比、今天的複習、到期卡片和連續複習紀錄。</string>
     <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
     <string name="today_widget_preview_reviewed">已複習 8 張</string>
     <string name="today_widget_preview_cards_left">剩 4 張卡片</string>
@@ -145,13 +115,10 @@
     <string name="year_widget_preview_active_days">186 天有複習</string>
     <!-- Streaks Home Screen widget name in the launcher's widget picker; also its medium-size header. -->
     <string name="streaks_widget_label">連續複習紀錄</string>
-    <string name="streaks_widget_description">查看目前、最長和近期的連續複習紀錄。</string>
+    <string name="streaks_widget_description">連續複習紀錄、最長紀錄、凍結次數和最近 7 天。</string>
     <!-- A streak length in days, in the locale's digits. -->
     <!-- The longest streak ever, in days. -->
     <string name="streaks_widget_best">最長 <xliff:g id="days" example="30">%1$d</xliff:g> 天</string>
-    <!-- Streak freezes available. -->
-    <string name="streaks_widget_empty">今天開始複習，建立連續紀錄。</string>
-    <string name="streaks_widget_chart_description">目前和近期的連續複習紀錄</string>
     <!-- Sample content of the Streaks widget preview in the launcher's widget picker. -->
     <string name="streaks_widget_preview_best">最長 30 天</string>
     <!-- Month calendar Home Screen widget name in the launcher's widget picker. -->
@@ -166,6 +133,33 @@
     <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
     <string name="dashboard_widget_label">複習總覽</string>
     <string name="dashboard_widget_description">查看今日進度、待複習卡片、連續複習紀錄、下一道題目和活動。</string>
+    <string name="widget_reveal_answer">顯示答案</string>
+    <string name="review_widget_to_review_label">待複習</string>
+    <plurals name="review_widget_to_review_count">
+        <item quantity="other"><xliff:g id="count" example="132">%1$d</xliff:g> 張待複習</item>
+    </plurals>
+    <plurals name="widget_scheduled_due">
+        <item quantity="other"><xliff:g id="count" example="34">%1$d</xliff:g> 張到期</item>
+    </plurals>
+    <string name="widget_scheduled_due_none">✓ 0 張到期</string>
+    <plurals name="widget_minutes_estimate">
+        <item quantity="other">約 <xliff:g id="minutes" example="6">%1$d</xliff:g> 分鐘</item>
+    </plurals>
+    <plurals name="widget_new_count">
+        <item quantity="other"><xliff:g id="count" example="98">%1$d</xliff:g> 張新卡</item>
+    </plurals>
+    <string name="widget_last_7_days_label">7 天</string>
+    <plurals name="today_widget_today_count">
+        <item quantity="other">今天 <xliff:g id="count" example="36">%1$d</xliff:g> 次</item>
+    </plurals>
+    <string name="today_widget_best_day">最佳單日 <xliff:g id="count" example="61">%1$d</xliff:g></string>
+    <string name="today_widget_new_best_day">新的最佳單日</string>
+    <string name="reviews_chart_widget_daily_average_value">日均 <xliff:g id="average" example="13.1">%1$s</xliff:g> 次</string>
+    <string name="streaks_widget_day_streak_label">連續天數</string>
+    <string name="streaks_widget_days_description">最近 7 天</string>
+    <string name="question_widget_label">問題</string>
+    <string name="question_widget_description">從接下來的卡片中挑一個問題，並附有顯示答案的按鈕。</string>
+    <string name="question_widget_preview_due">12 張到期</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">支持應用程式的開發者</string>
     <string name="premium_benefit_accent_color">自選強調色</string>
