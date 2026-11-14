@@ -107,12 +107,45 @@ func aiChatFileImporterContentTypes(fileExtension: String) -> [UTType] {
     return types
 }
 
-func aiChatImporterContentTypes() -> [UTType] {
-    let baseTypes = Set(aiChatSupportedFileExtensions.flatMap(aiChatFileImporterContentTypes(fileExtension:)))
+private final class AIChatImporterContentTypeCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var contentTypes: [UTType]?
+    private var foregroundObserver: NSObjectProtocol?
 
-    return baseTypes.sorted { left, right in
-        left.identifier < right.identifier
+    init() {
+        self.foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.invalidate()
+        }
     }
+
+    var value: [UTType] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        if let contentTypes = self.contentTypes { return contentTypes }
+        let types = Set(aiChatSupportedFileExtensions.flatMap(aiChatFileImporterContentTypes(fileExtension:)))
+            .sorted { $0.identifier < $1.identifier }
+        self.contentTypes = types
+        return types
+    }
+
+    func invalidate() {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        // Another installed app can change the extension's exported type while Nibomo is running.
+        self.contentTypes = nil
+    }
+}
+
+private let aiChatImporterContentTypeCache = AIChatImporterContentTypeCache()
+
+func aiChatImporterContentTypes() -> [UTType] {
+    aiChatImporterContentTypeCache.value
+}
+
+func aiChatInvalidateImporterContentTypes() {
+    aiChatImporterContentTypeCache.invalidate()
 }
 
 func aiChatUnsupportedFileTypeError(fileExtension: String) -> NSError {

@@ -118,6 +118,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
     final class Coordinator: NSObject, UITextViewDelegate, UITextDropDelegate {
         var parent: AIChatComposerTextView
         var isUpdatingView: Bool
+        private var isFocusSyncScheduled = false
         var lastBindingSelectionRange: NSRange?
 
         init(parent: AIChatComposerTextView) {
@@ -144,8 +145,12 @@ struct AIChatComposerTextView: UIViewRepresentable {
         func scheduleFocusSync(textView: AIChatComposerUITextView) {
             guard textView.isComposerDisabled != self.parent.isDisabled
                     || self.isFocusSettled(textView: textView) == false else { return }
+            guard self.isFocusSyncScheduled == false else { return }
+            self.isFocusSyncScheduled = true
             DispatchQueue.main.async { [weak self, weak textView] in
-                guard let self, let textView, textView.delegate === self else { return }
+                guard let self else { return }
+                self.isFocusSyncScheduled = false
+                guard let textView, textView.delegate === self else { return }
                 // Disabling a focused text view can synchronously resign first responder and re-enter SwiftUI.
                 textView.isComposerDisabled = self.parent.isDisabled
                 self.syncFocus(textView: textView)
@@ -412,6 +417,7 @@ final class AIChatComposerUITextView: UITextView {
     private static weak var keyboardHolder: AIChatComposerUITextView?
     var onKeyboardLost: (() -> Void)?
     private weak var lastWindow: UIWindow?
+    fileprivate weak var holdingSectionSwitchTracker: AIChatSectionSwitchTouchTracker?
 
     /// Ends the keyboard of the chat field in `scene` when no chat on screen takes it over. A field that left its
     /// window keeps the first responder and cannot resign it, so a responder in that window takes it and lets it go.
@@ -609,14 +615,8 @@ final class AIChatSectionSwitchTouchTracker: UIGestureRecognizer {
 
     /// The tracker of whichever window the field kept the keyboard in; a held field may already have left its window.
     static func tracker(holding field: AIChatComposerUITextView) -> AIChatSectionSwitchTouchTracker? {
-        for scene in UIApplication.shared.connectedScenes {
-            for window in (scene as? UIWindowScene)?.windows ?? [] {
-                if let tracker = self.tracker(in: window), tracker.heldField === field {
-                    return tracker
-                }
-            }
-        }
-        return nil
+        guard let tracker = field.holdingSectionSwitchTracker, tracker.heldField === field else { return nil }
+        return tracker
     }
 
     override init(target: Any?, action: Selector?) {
@@ -628,11 +628,13 @@ final class AIChatSectionSwitchTouchTracker: UIGestureRecognizer {
 
     func hold(_ field: AIChatComposerUITextView) {
         self.heldField = field
+        field.holdingSectionSwitchTracker = self
     }
 
     func release(_ field: AIChatComposerUITextView) {
         if self.heldField === field {
             self.heldField = nil
+            if field.holdingSectionSwitchTracker === self { field.holdingSectionSwitchTracker = nil }
         }
     }
 
@@ -688,7 +690,7 @@ final class AIChatSectionSwitchTouchTracker: UIGestureRecognizer {
             if let field = self.heldField, field.window == nil, field.isFirstResponder {
                 AIChatComposerUITextView.releaseOrphanedKeyboard()
             }
-            self.heldField = nil
+            if let field = self.heldField { self.release(field) }
             if self.sequence == endedSequence, self.liveTouches.isEmpty {
                 self.holdsKeyboardForSectionSwitch = false
             }

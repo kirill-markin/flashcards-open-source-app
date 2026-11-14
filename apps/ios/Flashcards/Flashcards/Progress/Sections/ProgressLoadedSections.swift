@@ -144,12 +144,14 @@ private struct ProgressStreakLeaderboardCard: View {
 
 private struct ProgressReviewsCard: View {
     private let chartDays: [ProgressChartDay]
+    private let chartPages: [ProgressReviewChartPage]
     private let selectionResetKey: String
     private let presentationCalendar: Calendar
     @Binding private var pageSelection: ProgressReviewChartPageSelection?
 
     init(progressSnapshot: ProgressSnapshot, pageSelection: Binding<ProgressReviewChartPageSelection?>) {
         self.chartDays = progressSnapshot.chartData.chartDays
+        self.chartPages = progressSnapshot.reviewChartPages
         self.selectionResetKey = progressSnapshot.scopeKey.storageKey
         self.presentationCalendar = progressSnapshot.presentationCalendar
         self._pageSelection = pageSelection
@@ -159,6 +161,7 @@ private struct ProgressReviewsCard: View {
         VStack(alignment: .leading, spacing: 0) {
             ProgressReviewsSection(
                 chartDays: self.chartDays,
+                chartPages: self.chartPages,
                 chartCalendar: self.presentationCalendar,
                 selectionResetKey: self.selectionResetKey,
                 pageSelection: self.$pageSelection

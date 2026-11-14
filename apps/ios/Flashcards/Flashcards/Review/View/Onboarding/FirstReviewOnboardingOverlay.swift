@@ -31,6 +31,39 @@ private struct FirstReviewOnboardingDrawing {
     let bounds: CGRect
 }
 
+private struct FirstReviewOnboardingCachedFrames {
+    let drawings: [FirstReviewOnboardingDrawing]
+
+    var byteCount: Int {
+        self.drawings.reduce(0) { result, drawing in
+            guard let image = drawing.image.cgImage else { return result }
+            return result + image.bytesPerRow * image.height
+        }
+    }
+}
+
+private final class FirstReviewOnboardingDrawingCache: NSObject {
+    let entries: [FirstReviewOnboardingCachedFrames]
+
+    init(entries: [FirstReviewOnboardingCachedFrames]) {
+        self.entries = entries
+    }
+}
+
+// Retain up to two recent geometries within the budget; Foundation's NSCache may evict them under memory pressure.
+@MainActor
+private let firstReviewOnboardingDrawingCache: NSCache<NSString, FirstReviewOnboardingDrawingCache> = {
+    let cache = NSCache<NSString, FirstReviewOnboardingDrawingCache>()
+    cache.countLimit = 1
+    cache.totalCostLimit = 24 * 1_024 * 1_024
+    return cache
+}()
+
+@MainActor
+func clearFirstReviewOnboardingDrawingCache() {
+    firstReviewOnboardingDrawingCache.removeAllObjects()
+}
+
 /// Moves and container resizes, such as a resizing window or side chat, redraw once the layout holds this long.
 private let firstReviewOnboardingSettledRedrawDelay: Duration = .milliseconds(150)
 
@@ -88,11 +121,29 @@ struct FirstReviewOnboardingOverlay: View {
     }
 
     private func draw(key: FirstReviewOnboardingDrawingKey) {
-        self.drawings = (0..<2).map {
+        let cacheKey: NSString = "frames"
+        let entries = firstReviewOnboardingDrawingCache.object(forKey: cacheKey)?.entries ?? []
+        if let cached = entries.first(where: { $0.drawings.first?.key == key }) {
+            self.drawings = cached.drawings
+            return
+        }
+        let drawings = (0..<2).map {
             makeFirstReviewOnboardingImage(
                 key: key, frame: $0, drawingBleed: self.drawingBleed
             )
         }
+        self.drawings = drawings
+        let cachedFrames = FirstReviewOnboardingCachedFrames(drawings: drawings)
+        var updatedEntries = [cachedFrames]
+        var byteCount = cachedFrames.byteCount
+        if let previous = entries.first,
+           byteCount + previous.byteCount <= firstReviewOnboardingDrawingCache.totalCostLimit {
+            updatedEntries.append(previous)
+            byteCount += previous.byteCount
+        }
+        firstReviewOnboardingDrawingCache.setObject(
+            FirstReviewOnboardingDrawingCache(entries: updatedEntries), forKey: cacheKey, cost: byteCount
+        )
     }
 }
 

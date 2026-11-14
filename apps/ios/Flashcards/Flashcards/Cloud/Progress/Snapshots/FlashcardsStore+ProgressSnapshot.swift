@@ -128,16 +128,52 @@ extension FlashcardsStore {
             reviewedAtClientSources: reviewedAtClientSources
         )
 
-        let snapshot = try makeProgressSnapshot(
-            summary: renderedProgress.renderedSummary.summary,
-            series: renderedProgress.renderedSeries.series,
+        let snapshot = try self.makeProgressPresentationSnapshot(
+            summary: renderedProgress.renderedSummary,
+            series: renderedProgress.renderedSeries,
             scopeKey: scopeKey,
-            summarySourceState: renderedProgress.renderedSummary.sourceState,
-            seriesSourceState: renderedProgress.renderedSeries.sourceState,
             calendar: calendar
         )
         self.applyProgressSnapshot(snapshot: snapshot)
         self.progressSnapshotPublishedClientRevision = self.progressReviewedAtClientRevision
+    }
+
+    private func makeProgressPresentationSnapshot(
+        summary: ProgressRenderedSummary,
+        series: ProgressRenderedSeries,
+        scopeKey: ProgressScopeKey,
+        calendar: Calendar
+    ) throws -> ProgressSnapshot {
+        let presentationCalendar = try makeProgressPresentationCalendar(
+            timeZoneIdentifier: scopeKey.timeZone,
+            userCalendar: Calendar.autoupdatingCurrent
+        )
+        if let cached = self.progressRenderedSummaryAndSeriesCache,
+           cached.key.scopeKey == scopeKey,
+           cached.renderedSummary == summary,
+           cached.renderedSeries == series,
+           let presentation = cached.presentation,
+           presentation.storeCalendar == calendar,
+           presentation.snapshot.presentationCalendar == presentationCalendar {
+            return presentation.snapshot
+        }
+
+        let snapshot = try makeProgressSnapshot(
+            summary: summary.summary,
+            series: series.series,
+            scopeKey: scopeKey,
+            summarySourceState: summary.sourceState,
+            seriesSourceState: series.sourceState,
+            calendar: calendar
+        )
+        if var cached = self.progressRenderedSummaryAndSeriesCache,
+           cached.key.scopeKey == scopeKey,
+           cached.renderedSummary == summary,
+           cached.renderedSeries == series {
+            cached.presentation = ProgressRenderedPresentationCache(storeCalendar: calendar, snapshot: snapshot)
+            self.progressRenderedSummaryAndSeriesCache = cached
+        }
+        return snapshot
     }
 
     private func makeProgressRenderedSummaryAndSeries(
@@ -147,51 +183,71 @@ extension FlashcardsStore {
         renderedSummary: ProgressRenderedSummary,
         renderedSeries: ProgressRenderedSeries
     ) {
-        let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
-        let localFallbackActiveDates = try progressActiveDatesFromReviewEvents(
-            reviewEvents: reviewedAtClientSources.canonicalReviewEvents,
-            timeZone: summaryScopeKey.timeZone
-        )
-        let pendingLocalOverlayActiveDates = try progressActiveDatesFromReviewEvents(
-            reviewEvents: reviewedAtClientSources.pendingReviewEvents,
-            timeZone: summaryScopeKey.timeZone
-        )
-        let mergedActiveReviewDates = localFallbackActiveDates.union(pendingLocalOverlayActiveDates)
-        let localFallbackSummary = try makeProgressSummary(
-            reviewDates: localFallbackActiveDates,
-            timeZone: summaryScopeKey.timeZone,
-            generatedAt: progressReferenceDate(
-                localDate: scopeKey.to,
-                timeZoneIdentifier: summaryScopeKey.timeZone
-            )
-        )
-        let localFallbackSeries = try makeProgressSeriesFromReviewEvents(
-            reviewEvents: reviewedAtClientSources.canonicalReviewEvents,
-            requestRange: progressRequestRange(scopeKey: scopeKey)
-        )
-        let pendingLocalOverlaySeries = try makeProgressSeriesFromReviewEvents(
-            reviewEvents: reviewedAtClientSources.pendingReviewEvents,
-            requestRange: progressRequestRange(scopeKey: scopeKey)
-        )
-        let renderedSeries = try makeProgressRenderedSeries(
-            serverBase: self.progressSeriesServerBaseCache,
+        let cacheKey = ProgressRenderedSummaryAndSeriesCacheKey(
             scopeKey: scopeKey,
-            localFallbackSeries: localFallbackSeries,
-            pendingLocalOverlaySeries: pendingLocalOverlaySeries,
-            mergedActiveReviewDates: mergedActiveReviewDates
+            reviewedAtClientKey: self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey),
+            summaryServerBase: self.progressSummaryServerBaseCache,
+            seriesServerBase: self.progressSeriesServerBaseCache
         )
-        let renderedSummary = try makeProgressRenderedSummary(
-            serverBase: self.progressSummaryServerBaseCache,
-            scopeKey: summaryScopeKey,
-            localFallbackSummary: localFallbackSummary,
-            localFallbackActiveDates: mergedActiveReviewDates,
-            pendingLocalOverlayState: reviewedAtClientSources.pendingLocalOverlayState
+        if let cached = self.progressRenderedSummaryAndSeriesCache, cached.key == cacheKey {
+            return (renderedSummary: cached.renderedSummary, renderedSeries: cached.renderedSeries)
+        }
+        let rendered = try renderProgressSummaryAndSeries(
+            scopeKey: scopeKey,
+            reviewedAtClientSources: reviewedAtClientSources,
+            summaryServerBase: cacheKey.summaryServerBase,
+            seriesServerBase: cacheKey.seriesServerBase
         )
+        self.progressRenderedSummaryAndSeriesCache = ProgressRenderedSummaryAndSeriesCacheEntry(
+            key: cacheKey,
+            renderedSummary: rendered.renderedSummary,
+            renderedSeries: rendered.renderedSeries
+        )
+        return rendered
+    }
 
-        return (
-            renderedSummary: renderedSummary,
-            renderedSeries: renderedSeries
+    private func preloadProgressRenderedResultOffMain(
+        scopeKey: ProgressScopeKey,
+        sources: ProgressReviewedAtClientSources
+    ) async -> Bool {
+        let key = ProgressRenderedSummaryAndSeriesCacheKey(
+            scopeKey: scopeKey,
+            reviewedAtClientKey: self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey),
+            summaryServerBase: self.progressSummaryServerBaseCache,
+            seriesServerBase: self.progressSeriesServerBaseCache
         )
+        if self.progressRenderedSummaryAndSeriesCache?.key == key { return true }
+        let result = await Task.detached(priority: .utility) {
+            Result {
+                try Task.checkCancellation()
+                return try renderProgressSummaryAndSeries(
+                    scopeKey: scopeKey,
+                    reviewedAtClientSources: sources,
+                    summaryServerBase: key.summaryServerBase,
+                    seriesServerBase: key.seriesServerBase
+                )
+            }
+        }.value
+        // A superseded render must neither replace current data nor report an obsolete failure.
+        guard Task.isCancelled == false,
+              self.progressObservedScopeKey == scopeKey,
+              self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey) == key.reviewedAtClientKey,
+              self.progressSummaryServerBaseCache == key.summaryServerBase,
+              self.progressSeriesServerBaseCache == key.seriesServerBase else { return false }
+        switch result {
+        case .success(let rendered):
+            guard self.progressRenderedSummaryAndSeriesCache?.key != key else { return true }
+            self.progressRenderedSummaryAndSeriesCache = ProgressRenderedSummaryAndSeriesCacheEntry(
+                key: key,
+                renderedSummary: rendered.renderedSummary,
+                renderedSeries: rendered.renderedSeries
+            )
+        case .failure:
+            // Leave failures uncached: the publish reruns this pure render under its original
+            // breadcrumb and cloud-blocked error handling, rather than runDeferredProgressRefresh's catch.
+            break
+        }
+        return true
     }
 
     func publishReviewScheduleSnapshot(scopeKey: ReviewScheduleScopeKey) throws {
@@ -579,12 +635,10 @@ extension FlashcardsStore {
     ) {
         let snapshot: ProgressSnapshot?
         do {
-            snapshot = try makeProgressSnapshot(
-                summary: summary.summary,
-                series: series.series,
+            snapshot = try self.makeProgressPresentationSnapshot(
+                summary: summary,
+                series: series,
                 scopeKey: scopeKey,
-                summarySourceState: summary.sourceState,
-                seriesSourceState: series.sourceState,
                 calendar: makeProgressStoreCalendar(timeZone: try progressTimeZone(identifier: scopeKey.timeZone))
             )
         } catch {
@@ -666,13 +720,13 @@ extension FlashcardsStore {
         ).reviewSchedule
     }
 
-    /// Reads the whole review history off the main thread, so the publishes after it hit the cache.
+    /// Reads and aggregates review history off the main thread, so subsequent publishes hit both caches.
     /// Returns false when a rating, sync or scope change superseded the read and left the cache stale.
     func preloadProgressReviewedAtClientSourcesOffMain(now: Date) async throws -> Bool {
         let scopeKey = try self.prepareProgressScope(now: now)
         let cacheKey = self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey)
-        if self.progressReviewedAtClientCache?.key == cacheKey {
-            return true
+        if let cached = self.progressReviewedAtClientCache, cached.key == cacheKey {
+            return await self.preloadProgressRenderedResultOffMain(scopeKey: scopeKey, sources: cached.sources)
         }
 
         let database = try requireLocalDatabase(database: self.database)
@@ -689,7 +743,7 @@ extension FlashcardsStore {
         }
 
         self.progressReviewedAtClientCache = ProgressReviewedAtClientCacheEntry(key: cacheKey, sources: sources)
-        return true
+        return await self.preloadProgressRenderedResultOffMain(scopeKey: scopeKey, sources: sources)
     }
 
     private func makeProgressReviewedAtClientCacheKey(scopeKey: ProgressScopeKey) -> ProgressReviewedAtClientCacheKey {

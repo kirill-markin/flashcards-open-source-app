@@ -50,6 +50,7 @@ struct ProgressSnapshot: Hashable, Sendable {
     let scopeKey: ProgressScopeKey
     let summary: ProgressSummary
     let chartData: ProgressChartData
+    let reviewChartPages: [ProgressReviewChartPage]
     let streakWeeks: [ProgressCalendarWeek]
     let presentationCalendar: Calendar
     let summarySourceState: ProgressSourceState

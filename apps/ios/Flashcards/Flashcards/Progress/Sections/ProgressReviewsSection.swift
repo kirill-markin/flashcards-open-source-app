@@ -33,6 +33,7 @@ private struct ProgressReviewRatingLegendEntry: Identifiable {
 
 struct ProgressReviewsSection: View {
     let chartDays: [ProgressChartDay]
+    let chartPages: [ProgressReviewChartPage]
     let chartCalendar: Calendar
     let selectionResetKey: String
     @Binding var pageSelection: ProgressReviewChartPageSelection?
@@ -51,15 +52,6 @@ struct ProgressReviewsSection: View {
         }
 
         return pageSelection.startLocalDate
-    }
-
-    private var chartPages: [ProgressReviewChartPage] {
-        let today = self.chartDays.first(where: { day in day.isToday })?.date
-        return makeProgressReviewChartPages(
-            chartDays: self.chartDays,
-            calendar: self.chartCalendar,
-            today: today
-        )
     }
 
     private var selectedPageIndex: Int {

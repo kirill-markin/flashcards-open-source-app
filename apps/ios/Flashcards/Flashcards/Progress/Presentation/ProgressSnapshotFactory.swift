@@ -49,6 +49,11 @@ func makeProgressSnapshot(
         scopeKey: scopeKey,
         summary: summary,
         chartData: chartData,
+        reviewChartPages: makeProgressReviewChartPages(
+            chartDays: chartDays,
+            calendar: presentationCalendar,
+            today: chartDays.first(where: \.isToday)?.date
+        ),
         streakWeeks: streakWeeks,
         presentationCalendar: presentationCalendar,
         summarySourceState: summarySourceState,

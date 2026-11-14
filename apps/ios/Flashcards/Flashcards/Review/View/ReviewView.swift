@@ -314,6 +314,11 @@ struct ReviewView: View {
 
     private var reviewContentWithOnboarding: some View {
         self.nativeReviewContent
+        .onChange(of: self.store.firstReviewOnboardingCompleted) { _, completed in
+            if completed == true {
+                clearFirstReviewOnboardingDrawingCache()
+            }
+        }
         #if !targetEnvironment(macCatalyst)
         .background {
             // The presenter must outlive replacements of the toolbar/header control.

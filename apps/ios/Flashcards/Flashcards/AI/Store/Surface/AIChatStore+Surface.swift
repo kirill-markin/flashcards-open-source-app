@@ -168,7 +168,9 @@ extension AIChatStore {
         let didAccessContextChange = previousActivity.accessContext != activity.accessContext
         let didVisibilityChange = previousActivity.isVisible != activity.isVisible
         let didBecomeVisible = previousActivity.isVisible == false && activity.isVisible
-        self.surfaceState.activity = activity
+        if previousActivity != activity {
+            self.surfaceState.activity = activity
+        }
 
         if previousActivity.isAITabSelected && activity.isAITabSelected == false {
             // No section shows a chat any more, so none takes the keyboard when one comes back. A window going inactive

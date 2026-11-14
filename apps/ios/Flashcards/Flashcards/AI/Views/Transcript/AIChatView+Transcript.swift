@@ -121,6 +121,9 @@ extension AIChatView {
                         return
                     }
 
+                    guard self.isAutoFollowEnabled, self.isPresentationActive else {
+                        return
+                    }
                     let didAppendTail: Bool = aiChatMessageListUpdateAppendsTail(
                         previousMessages: previousMessages,
                         nextMessages: messages
