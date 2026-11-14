@@ -204,7 +204,15 @@ extension FlashcardsStore {
     }
 
     func loadGuestSessionForCurrentConfiguration() throws -> StoredGuestCloudSession? {
-        guard let storedGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+        try self.guestSessionForCurrentConfiguration(
+            storedGuestSession: self.dependencies.guestCredentialStore.loadGuestSession()
+        )
+    }
+
+    private func guestSessionForCurrentConfiguration(
+        storedGuestSession: StoredGuestCloudSession?
+    ) throws -> StoredGuestCloudSession? {
+        guard let storedGuestSession else {
             return nil
         }
 
@@ -226,39 +234,43 @@ extension FlashcardsStore {
      * adopts that same credential when the person opts into AI chat, feedback or cloud sync, so an
      * install still only ever has one guest identity.
      */
-    func loadUsableCloudGuestSessionForCurrentConfiguration() throws -> StoredGuestCloudSession? {
-        guard let storedGuestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
-            // Nothing is stored, so any marker left behind names a token this install no longer has.
-            // Swept opportunistically, so the sidecar stops carrying a dead token — not because that
-            // marker could capture anything: `isAnalyticsOnlyGuestSession` is authoritative only by
-            // value, and a marker whose token is gone can never match a later credential. Best-effort
-            // for the same reason: the answer is already correct without it, this is hygiene the next
-            // read performs again, and this loader runs on every sync, so an unreadable sidecar must
-            // not be allowed to fail all of them.
-            try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
-            return nil
-        }
-        // A credential this install already runs its cloud session on is a cloud session whatever it
-        // was originally created for.
-        if self.cloudSettings?.cloudState == .guest {
-            return storedGuestSession
-        }
-        // A marker that cannot be read answers "analytics-only". This loader only ever widens what
-        // the app may adopt as a cloud session, so treating an unclassifiable credential as a cloud
-        // session is the one outcome the marker exists to prevent, and throwing instead would fail
-        // every sync on the install for as long as the sidecar stays unreadable.
-        //
-        // An unreadable sidecar is unreachable by construction; `GuestCloudCredentialStore.loadSidecar`
-        // states what keeps it that way. This is the direction to fall in if that ever stops holding,
-        // not a state the code is expected to reach.
-        let isAnalyticsOnly = (
-            try? self.isAnalyticsOnlyGuestSession(storedGuestSession: storedGuestSession)
-        ) ?? true
-        guard isAnalyticsOnly == false else {
-            return nil
+    func reconcileDiscoveredCloudGuestSession(
+        discovery: GuestCloudSessionDiscovery
+    ) throws -> StoredGuestCloudSession? {
+        let guestStore = self.dependencies.guestCredentialStore
+        let storedSession = try guestStore.resolveGuestSession(record: discovery.record)
+        let usableSession = try self.guestSessionForCurrentConfiguration(storedGuestSession: storedSession)
+        // Server mismatch removes the whole sidecar, including the creation key.
+        var sidecar = storedSession != nil && usableSession == nil ? .success(nil) : discovery.sidecar
+        let session: StoredGuestCloudSession?
+        if let usableSession {
+            session = usableSession
+        } else {
+            session = try self.restoreStoredGuestSessionFromActiveSession()
+            if session != nil, (try? guestStore.clearAnalyticsOnlyGuestToken(sidecar: sidecar.get())) != nil {
+                sidecar = .success(nil)
+            }
         }
 
-        return storedGuestSession
+        guard let session else {
+            try? guestStore.clearAnalyticsOnlyGuestToken(sidecar: sidecar.get())
+            return nil
+        }
+        if self.cloudSettings?.cloudState == .guest {
+            return session
+        }
+        // An unreadable marker cannot authorize adopting a credential for cloud sync.
+        guard case .success(let storedSidecar) = sidecar else {
+            return nil
+        }
+        guard let analyticsOnlyToken = storedSidecar?.analyticsOnlyGuestToken else {
+            return session
+        }
+        guard analyticsOnlyToken != session.guestToken else {
+            return nil
+        }
+        try? guestStore.clearAnalyticsOnlyGuestToken(sidecar: storedSidecar)
+        return session
     }
 
     /// The stored guest session when this install created it to authenticate analytics and has not
@@ -288,7 +300,7 @@ extension FlashcardsStore {
      * The marker and the session record are two Keychain items, so they do diverge: a session record
      * written straight from an active cloud session, a clear that removed only one of the two, or a
      * failed write between them. The sweeps that follow such a divergence — here, in
-     * `loadUsableCloudGuestSessionForCurrentConfiguration`, in `clearGuestSessionIfNeeded`, in
+     * `reconcileDiscoveredCloudGuestSession`, in `clearGuestSessionIfNeeded`, in
      * `createAndStoreGuestCloudSession`'s rollback and in
      * `loadUsableGuestSessionForCurrentConfiguration` — are opportunistic hygiene that stop the
      * sidecar carrying a dead token. They are best-effort because no answer depends on them.

@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-private struct LegacyStoredGuestCloudSession: Codable {
+struct LegacyStoredGuestCloudSession: Codable, Sendable {
     let guestToken: String
     let userId: String
     let workspaceId: String
@@ -15,9 +15,19 @@ private struct LegacyStoredGuestCloudSession: Codable {
  * It lives in its own Keychain item so the session record keeps the shape every stored credential
  * already has, and so it travels with that credential across an app reinstall.
  */
-private struct StoredGuestCloudSessionSidecar: Codable {
+struct StoredGuestCloudSessionSidecar: Codable, Sendable {
     let creationIdempotencyKey: String?
     let analyticsOnlyGuestToken: String?
+}
+
+enum GuestCloudSessionRecord: Sendable {
+    case current(StoredGuestCloudSession)
+    case legacy(LegacyStoredGuestCloudSession)
+}
+
+struct GuestCloudSessionDiscovery: Sendable {
+    let record: GuestCloudSessionRecord?
+    let sidecar: Result<StoredGuestCloudSessionSidecar?, Error>
 }
 
 enum GuestCloudCredentialStoreError: LocalizedError {
@@ -40,14 +50,16 @@ enum GuestCloudCredentialStoreError: LocalizedError {
     }
 }
 
-final class GuestCloudCredentialStore {
+final class GuestCloudCredentialStore: Sendable {
+    @MainActor private(set) var revision = UUID()
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let service: String
     private let account: String
     private let bundle: Bundle
-    private let userDefaults: UserDefaults
+    @MainActor private let userDefaults: UserDefaults
 
+    @MainActor
     init(
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder(),
@@ -72,14 +84,37 @@ final class GuestCloudCredentialStore {
         self.account + ".sidecar"
     }
 
+    @MainActor
     func loadGuestSession() throws -> StoredGuestCloudSession? {
+        try self.resolveGuestSession(record: self.readGuestSessionRecord())
+    }
+
+    func discoverGuestSession(cloudState: CloudAccountState?) throws -> GuestCloudSessionDiscovery {
+        let record = try self.readGuestSessionRecord()
+        // An adopted credential needs no marker read. A wrong-server record clears its whole sidecar.
+        let sidecar: Result<StoredGuestCloudSessionSidecar?, Error> = if record != nil, cloudState == .guest {
+            .success(nil)
+        } else {
+            Result { try self.loadSidecar() }
+        }
+        return GuestCloudSessionDiscovery(record: record, sidecar: sidecar)
+    }
+
+    private func readGuestSessionRecord() throws -> GuestCloudSessionRecord? {
         guard let data = try self.loadData(account: self.account) else {
             return nil
         }
+        if let session = try? self.decoder.decode(StoredGuestCloudSession.self, from: data) {
+            return .current(session)
+        }
+        if let session = try? self.decoder.decode(LegacyStoredGuestCloudSession.self, from: data) {
+            return .legacy(session)
+        }
 
-        return try self.decodeGuestSession(data: data)
+        throw GuestCloudCredentialStoreError.decodingFailed
     }
 
+    @MainActor
     func saveGuestSession(session: StoredGuestCloudSession) throws {
         let data: Data
         do {
@@ -103,6 +138,7 @@ final class GuestCloudCredentialStore {
      * guest, the only handle that could have reclaimed it by rotation is gone, and it stays a
      * permanent orphan user and workspace, which the reaper never collects for mobile guests.
      */
+    @MainActor
     func clearGuestSession() throws {
         try self.deleteData(account: self.account)
         try self.deleteData(account: self.sidecarAccount)
@@ -112,6 +148,7 @@ final class GuestCloudCredentialStore {
         try self.loadSidecar()?.creationIdempotencyKey
     }
 
+    @MainActor
     func saveGuestSessionCreationIdempotencyKey(idempotencyKey: String) throws {
         let sidecar = try self.loadSidecar()
         try self.saveSidecar(
@@ -122,6 +159,7 @@ final class GuestCloudCredentialStore {
         )
     }
 
+    @MainActor
     func clearGuestSessionCreationIdempotencyKey() throws {
         guard let sidecar = try self.loadSidecar(), sidecar.creationIdempotencyKey != nil else {
             return
@@ -139,6 +177,7 @@ final class GuestCloudCredentialStore {
         try self.loadSidecar()?.analyticsOnlyGuestToken
     }
 
+    @MainActor
     func saveAnalyticsOnlyGuestToken(guestToken: String) throws {
         let sidecar = try self.loadSidecar()
         try self.saveSidecar(
@@ -149,8 +188,14 @@ final class GuestCloudCredentialStore {
         )
     }
 
+    @MainActor
     func clearAnalyticsOnlyGuestToken() throws {
-        guard let sidecar = try self.loadSidecar(), sidecar.analyticsOnlyGuestToken != nil else {
+        try self.clearAnalyticsOnlyGuestToken(sidecar: self.loadSidecar())
+    }
+
+    @MainActor
+    func clearAnalyticsOnlyGuestToken(sidecar: StoredGuestCloudSessionSidecar?) throws {
+        guard let sidecar, sidecar.analyticsOnlyGuestToken != nil else {
             return
         }
 
@@ -180,7 +225,7 @@ final class GuestCloudCredentialStore {
      * If that ever stops holding, this needs a self-healing read rather than a throw, because the
      * consequences are permanent. `loadOrCreateGuestCloudSession` clears the marker fatally, so a
      * `.guest` install would fail every sync and every AI-chat and feedback guest preparation, and the
-     * `?? true` fallback in `loadUsableCloudGuestSessionForCurrentConfiguration` would silently skip
+     * polling reconciliation would silently skip
      * the guest cloud restore of a reinstalled real guest install.
      */
     private func loadSidecar() throws -> StoredGuestCloudSessionSidecar? {
@@ -195,6 +240,7 @@ final class GuestCloudCredentialStore {
         }
     }
 
+    @MainActor
     private func saveSidecar(sidecar: StoredGuestCloudSessionSidecar) throws {
         let data: Data
         do {
@@ -236,7 +282,9 @@ final class GuestCloudCredentialStore {
         return data
     }
 
+    @MainActor
     private func saveData(data: Data, account: String) throws {
+        self.revision = UUID()
         if self.usesTestFileStorage {
             try data.write(to: self.testStorageUrl(account: account), options: .atomic)
             return
@@ -266,7 +314,9 @@ final class GuestCloudCredentialStore {
         }
     }
 
+    @MainActor
     private func deleteData(account: String) throws {
+        self.revision = UUID()
         if self.usesTestFileStorage {
             try self.deleteTestFileData(account: account)
             return
@@ -311,21 +361,22 @@ final class GuestCloudCredentialStore {
         try FileManager.default.removeItem(at: fileUrl)
     }
 
-    private func decodeGuestSession(data: Data) throws -> StoredGuestCloudSession {
-        guard let session = try? self.decoder.decode(StoredGuestCloudSession.self, from: data) else {
-            guard let legacySession = try? self.decoder.decode(LegacyStoredGuestCloudSession.self, from: data) else {
-                throw GuestCloudCredentialStoreError.decodingFailed
-            }
-
-            return try self.migrateLegacyGuestSession(session: legacySession)
+    @MainActor
+    func resolveGuestSession(record: GuestCloudSessionRecord?) throws -> StoredGuestCloudSession? {
+        switch record {
+        case .current(let session):
+            return canonicalizedStoredGuestCloudSession(
+                session: session,
+                configuration: try self.currentCloudServiceConfiguration()
+            )
+        case .legacy(let session):
+            return try self.migrateLegacyGuestSession(session: session)
+        case nil:
+            return nil
         }
-
-        return canonicalizedStoredGuestCloudSession(
-            session: session,
-            configuration: try self.currentCloudServiceConfiguration()
-        )
     }
 
+    @MainActor
     private func currentCloudServiceConfiguration() throws -> CloudServiceConfiguration {
         do {
             return try loadCloudServiceConfiguration(
@@ -338,6 +389,7 @@ final class GuestCloudCredentialStore {
         }
     }
 
+    @MainActor
     private func migrateLegacyGuestSession(session: LegacyStoredGuestCloudSession) throws -> StoredGuestCloudSession {
         let configuration = try self.currentCloudServiceConfiguration()
 

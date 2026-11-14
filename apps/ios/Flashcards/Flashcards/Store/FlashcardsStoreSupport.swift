@@ -448,13 +448,19 @@ extension CloudSyncServing {
     }
 }
 
-protocol CredentialStoring {
-    func loadCredentials() throws -> StoredCloudCredentials?
+@MainActor
+protocol CredentialStoring: Sendable {
+    var revision: UUID { get }
+    nonisolated func loadCredentials() throws -> StoredCloudCredentials?
     func saveCredentials(credentials: StoredCloudCredentials) throws
     func clearCredentials() throws
 }
 
-protocol GuestCredentialStoring {
+@MainActor
+protocol GuestCredentialStoring: Sendable {
+    var revision: UUID { get }
+    nonisolated func discoverGuestSession(cloudState: CloudAccountState?) throws -> GuestCloudSessionDiscovery
+    func resolveGuestSession(record: GuestCloudSessionRecord?) throws -> StoredGuestCloudSession?
     func loadGuestSession() throws -> StoredGuestCloudSession?
     func saveGuestSession(session: StoredGuestCloudSession) throws
     func clearGuestSession() throws
@@ -464,6 +470,7 @@ protocol GuestCredentialStoring {
     func loadAnalyticsOnlyGuestToken() throws -> String?
     func saveAnalyticsOnlyGuestToken(guestToken: String) throws
     func clearAnalyticsOnlyGuestToken() throws
+    func clearAnalyticsOnlyGuestToken(sidecar: StoredGuestCloudSessionSidecar?) throws
 }
 
 @MainActor

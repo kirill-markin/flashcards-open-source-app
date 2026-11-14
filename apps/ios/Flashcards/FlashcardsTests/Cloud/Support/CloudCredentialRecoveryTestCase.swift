@@ -44,6 +44,7 @@ class CloudCredentialRecoveryTestCase: LocalWorkspaceSyncTestCase {
         )
     }
 
+    @MainActor
     func makeGuestCredentialStore(
         suiteName: String,
         userDefaults: UserDefaults,
