@@ -435,11 +435,10 @@ extension FlashcardsStore {
             return storedGuestSession
         }
 
-        guard let activeGuestSession = try self.activeGuestSessionForCurrentConfiguration() else {
+        guard let activeGuestSession = try self.restoreStoredGuestSessionFromActiveSession() else {
             return nil
         }
 
-        try self.dependencies.guestCredentialStore.saveGuestSession(session: activeGuestSession)
         // The record now names the session this install is already running its cloud state on, so an
         // analytics-only marker from the credential it replaced describes nothing: it names a token
         // the record no longer holds, and `isAnalyticsOnlyGuestSession` matches by value, so it
@@ -448,6 +447,15 @@ extension FlashcardsStore {
         // session paths that must not fail on an analytics bookkeeping question, and the next read
         // recognises and sweeps it again.
         try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
+        return activeGuestSession
+    }
+
+    func restoreStoredGuestSessionFromActiveSession() throws -> StoredGuestCloudSession? {
+        guard let activeGuestSession = try self.activeGuestSessionForCurrentConfiguration() else {
+            return nil
+        }
+
+        try self.dependencies.guestCredentialStore.saveGuestSession(session: activeGuestSession)
         return activeGuestSession
     }
 

@@ -1,5 +1,7 @@
 import Foundation
 
+private let cloudCredentialDiscoveryQueue = DispatchQueue(label: "cloud-credential-discovery", qos: .utility)
+
 private enum PersistedCloudStateReconciliationOutcome {
     case continueSync(hasStoredCredentials: Bool, hasStoredGuestSession: Bool)
     case stopSync
@@ -581,15 +583,52 @@ extension FlashcardsStore {
         }
     }
 
+    private func discoverPersistedCloudCredentials() async throws -> (Bool, GuestCloudSessionDiscovery) {
+        let credentialStore = self.dependencies.credentialStore
+        let guestStore = self.dependencies.guestCredentialStore
+        let credentialRevision = credentialStore.revision
+        let guestRevision = guestStore.revision
+        let syncGeneration = self.cloudRuntime.syncGeneration
+        let activeSession = self.cloudRuntime.activeCloudSession()
+        let cloudSettings = self.cloudSettings
+        let workspaceId = self.workspace?.workspaceId
+        let serverOverride = self.userDefaults.data(forKey: customCloudServerOverrideUserDefaultsKey)
+        let pendingGuestUpgrade = self.userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey)
+        let cloudState = cloudSettings?.cloudState
+
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+        let discovered: Result<(Bool, GuestCloudSessionDiscovery), Error> = await withCheckedContinuation { continuation in
+            cloudCredentialDiscoveryQueue.async {
+                continuation.resume(returning: Result {
+                    let hasStoredCredentials = try credentialStore.loadCredentials() != nil
+                    let guestDiscovery = try guestStore.discoverGuestSession(cloudState: cloudState)
+                    return (hasStoredCredentials, guestDiscovery)
+                })
+            }
+        }
+
+        try self.cloudRuntime.checkSyncGeneration(syncGeneration)
+        // Credential and sidecar writes do not necessarily advance the sync generation.
+        guard credentialStore.revision == credentialRevision,
+              guestStore.revision == guestRevision,
+              self.cloudRuntime.activeCloudSession() == activeSession,
+              self.cloudSettings == cloudSettings,
+              self.workspace?.workspaceId == workspaceId,
+              self.userDefaults.data(forKey: customCloudServerOverrideUserDefaultsKey) == serverOverride,
+              self.userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey) == pendingGuestUpgrade,
+              self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) == false,
+              self.isCloudSyncBlocked == false else {
+            throw CancellationError()
+        }
+
+        return try discovered.get()
+    }
+
     private func reconcilePersistedCloudStateBeforeSync(
         trigger: CloudSyncTrigger
     ) async throws -> PersistedCloudStateReconciliationOutcome {
-        let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
-        // Only a guest session this install adopted as its cloud session counts. A credential minted
-        // to authenticate analytics sits in the same Keychain item while `cloudState` is
-        // `disconnected`, and reading it as a cloud session here would restore guest cloud state and
-        // turn on sync for an install that never asked for either.
-        let hasStoredGuestSession = try self.loadUsableCloudGuestSessionForCurrentConfiguration() != nil
+        let (hasStoredCredentials, guestDiscovery) = try await self.discoverPersistedCloudCredentials()
+        let hasStoredGuestSession = try self.reconcileDiscoveredCloudGuestSession(discovery: guestDiscovery) != nil
         guard let cloudSettings = self.cloudSettings else {
             return .continueSync(
                 hasStoredCredentials: hasStoredCredentials,
