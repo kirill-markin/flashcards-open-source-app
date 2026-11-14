@@ -59,6 +59,13 @@ enum IOSBreadcrumbEvent: Sendable {
     case aiLiveLifecycle(AILiveLifecycleObservation)
     case notificationTap(NotificationTapObservation)
     case premiumPresentation(PremiumPresentationObservation)
+    case macReviewCompanionClose(MacReviewCompanionCloseStage)
+}
+
+enum MacReviewCompanionCloseStage: String, Sendable {
+    case requested
+    case visibilityUpdated = "visibility_updated"
+    case panelDisappeared = "panel_disappeared"
 }
 
 enum GoogleAuthorizationAction: String, Sendable {

@@ -1,6 +1,5 @@
 import CoreGraphics
 import Observation
-import SwiftUI
 
 struct ReviewCardScrollOffset {
     let cardId: String
@@ -23,7 +22,6 @@ final class ReviewScreenModel {
     var preparedRevealState: PreparedReviewRevealState? = nil
     var preparedNextRevealState: PreparedReviewRevealState? = nil
     let preparedImageCache: ReviewPreparedImageCache = ReviewPreparedImageCache()
-    var cardScrollPosition: ScrollPosition = ScrollPosition(edge: .top)
     /// Written on every scroll frame, so it stays out of observation.
     @ObservationIgnored var cardScrollOffset: ReviewCardScrollOffset? = nil
 
