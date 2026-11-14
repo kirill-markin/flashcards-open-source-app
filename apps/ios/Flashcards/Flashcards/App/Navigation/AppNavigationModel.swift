@@ -270,6 +270,12 @@ final class AppNavigationModel {
             self.selectTab(.ai)
             return
         }
+        #if targetEnvironment(macCatalyst)
+        let closesReviewCompanion = self.selectedTab == .review && self.isAICompanionVisible
+        if closesReviewCompanion {
+            FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.requested))
+        }
+        #endif
         if self.isAICompanionVisible {
             // End typing before SwiftUI removes the focused composer.
             UIApplication.shared.sendAction(
@@ -280,6 +286,11 @@ final class AppNavigationModel {
             )
         }
         self.isAICompanionPresented.toggle()
+        #if targetEnvironment(macCatalyst)
+        if closesReviewCompanion {
+            FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.visibilityUpdated))
+        }
+        #endif
     }
 
     func openAICardCreation() {

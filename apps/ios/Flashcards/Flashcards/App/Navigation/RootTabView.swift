@@ -700,6 +700,13 @@ struct RootTabView: View {
             .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
             .background(Color(uiColor: .systemBackground))
             .presentationBackground(Color(uiColor: .systemBackground))
+            #if targetEnvironment(macCatalyst)
+            .onDisappear {
+                if hostTab == .review && !self.navigation.isAICompanionPresented {
+                    FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.panelDisappeared))
+                }
+            }
+            #endif
     }
 
     // Paired Progress shares one native bar in both tab placements; Review does under a top tab bar.

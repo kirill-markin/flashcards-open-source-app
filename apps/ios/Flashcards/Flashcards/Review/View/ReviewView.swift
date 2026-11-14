@@ -13,11 +13,6 @@ private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
-private enum ReviewCardScrollTarget: Hashable {
-    case front
-    case back
-}
-
 struct ReviewView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locale) private var locale
@@ -826,49 +821,17 @@ struct ReviewView: View {
     }
 
     private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
-        @Bindable var reviewScreen = self.reviewScreen
-        return ScrollViewReader { proxy in
-            ScrollView {
-                ReadableContentLayout(
-                    maxWidth: flashcardsReadableContentMaxWidth,
-                    horizontalPadding: reviewCardContentHorizontalPadding
-                ) {
-                    activeCardContentView(card: card, preparedRevealState: preparedRevealState)
-                        .padding(.vertical, 20)
-                        .background(ReviewOutsideTextTapReceiver())
-                        .macToolbarScrollSurface("review")
-                }
-            }
-            .scrollPosition($reviewScreen.cardScrollPosition)
-            // `ScrollPosition` measures y from the inset-adjusted top, unlike `contentOffset`.
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top
-            } action: { _, offsetY in
-                reviewScreen.cardScrollOffset = ReviewCardScrollOffset(cardId: card.cardId, y: offsetY)
-            }
-            .onAppear {
-                restoreReviewCardScrollOffset(reviewScreen: reviewScreen, cardId: card.cardId)
-            }
-            .onChange(of: self.reviewScreen.isAnswerVisible) { wasVisible, isVisible in
-                guard wasVisible == false, isVisible else {
-                    return
-                }
-
-                proxy.scrollTo(ReviewCardScrollTarget.back, anchor: .top)
-            }
-            .onChange(of: card.cardId) { _, _ in
-                proxy.scrollTo(ReviewCardScrollTarget.front, anchor: .top)
+        ReviewCardScrollView(cardId: card.cardId, isAnswerVisible: self.reviewScreen.isAnswerVisible) {
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableContentMaxWidth,
+                horizontalPadding: reviewCardContentHorizontalPadding
+            ) {
+                self.activeCardContentView(card: card, preparedRevealState: preparedRevealState)
+                    .padding(.vertical, 20)
+                    .background(ReviewOutsideTextTapReceiver())
+                    .macToolbarScrollSurface("review")
             }
         }
-    }
-
-    /// A recreated Review returns to its unfinished presentation's offset; anything else starts at the top.
-    private func restoreReviewCardScrollOffset(reviewScreen: ReviewScreenModel, cardId: String) {
-        guard let offset = reviewScreen.cardScrollOffset, offset.cardId == cardId else {
-            reviewScreen.cardScrollPosition.scrollTo(edge: .top)
-            return
-        }
-        reviewScreen.cardScrollPosition.scrollTo(y: offset.y)
     }
 
     private func beginReviewFiltering() {
