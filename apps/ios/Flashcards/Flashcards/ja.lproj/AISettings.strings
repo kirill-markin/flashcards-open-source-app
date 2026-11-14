@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "添付ファイルをアップロードできませんでした。接続を確認してから、もう一度お試しください。";
 "ai.drop.overlay" = "ファイルをドロップして添付";
 "ai.composer.dictation.start" = "ディクテーションを開始";
-"ai.composer.dictation.stop" = "ディクテーションを停止";
-"ai.composer.dictation.waiting" = "マイクへのアクセスを待機しています...";
-"ai.composer.dictation.listening" = "聞いています...";
+"ai.composer.dictation.cancel" = "ディクテーションをキャンセル";
+"ai.composer.dictation.finish" = "ディクテーションを完了";
+"ai.composer.dictation.preparing" = "準備中";
+"ai.composer.dictation.recording" = "録音中 %@";
 "ai.composer.dictation.transcribing" = "文字起こし中...";
+"ai.composer.dictation.dismissError" = "ディクテーションのエラーを閉じる";
+"ai.composer.dictation.announcement.started" = "録音を開始しました";
+"ai.composer.dictation.announcement.inserted" = "文字起こしを追加しました";
 "ai.error.title" = "エラー";
 "ai.error.requestTooLarge.title" = "メッセージが大きすぎます";
 "ai.error.requestTooLarge.message" = "AI チャットは一度にこれだけの内容を送信できません。添付ファイルを 1 つ以上削除するか、より小さいファイルまたは写真を選ぶか、リクエストを分けてもう一度お試しください。";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "録音された音声を準備できませんでした。";
 "ai.dictation.error.recordingStartFailed" = "マイク録音を開始できませんでした。";
 "ai.dictation.error.emptyRecording" = "音声は録音されていません。";
+"ai.dictation.error.interrupted" = "録音が中断されました";
 "ai.dictation.error.network" = "ネットワークに問題があります。修正してもう一度お試しください。";
 "ai.dictation.error.invalidAudio" = "その録音を処理できませんでした。もう一度お試しください。";
 "ai.message.unsupportedContent" = "サポートされていないコンテンツ";

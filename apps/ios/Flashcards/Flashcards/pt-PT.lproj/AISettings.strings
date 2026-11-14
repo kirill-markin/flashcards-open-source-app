@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Não foi possível enviar um anexo. Verifique a ligação e tente novamente.";
 "ai.drop.overlay" = "Largue os ficheiros para os anexar";
 "ai.composer.dictation.start" = "Iniciar ditado";
-"ai.composer.dictation.stop" = "Parar ditado";
-"ai.composer.dictation.waiting" = "A aguardar acesso ao microfone...";
-"ai.composer.dictation.listening" = "A ouvir...";
+"ai.composer.dictation.cancel" = "Cancelar ditado";
+"ai.composer.dictation.finish" = "Concluir ditado";
+"ai.composer.dictation.preparing" = "A preparar";
+"ai.composer.dictation.recording" = "A gravar %@";
 "ai.composer.dictation.transcribing" = "A transcrever...";
+"ai.composer.dictation.dismissError" = "Fechar erro do ditado";
+"ai.composer.dictation.announcement.started" = "Gravação iniciada";
+"ai.composer.dictation.announcement.inserted" = "Transcrição adicionada";
 "ai.error.title" = "Erro";
 "ai.error.requestTooLarge.title" = "Mensagem demasiado grande";
 "ai.error.requestTooLarge.message" = "A conversa com IA não consegue enviar tanto conteúdo de uma vez. Remova um ou mais anexos, escolha um ficheiro ou uma fotografia de menor tamanho ou divida o pedido e tente novamente.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Não foi possível preparar o áudio gravado.";
 "ai.dictation.error.recordingStartFailed" = "Não foi possível iniciar a gravação pelo microfone.";
 "ai.dictation.error.emptyRecording" = "Não foi gravada voz.";
+"ai.dictation.error.interrupted" = "Gravação interrompida";
 "ai.dictation.error.network" = "Há um problema de rede. Verifique a ligação e tente novamente.";
 "ai.dictation.error.invalidAudio" = "Não foi possível processar essa gravação. Tente novamente.";
 "ai.message.unsupportedContent" = "Conteúdo não compatível";

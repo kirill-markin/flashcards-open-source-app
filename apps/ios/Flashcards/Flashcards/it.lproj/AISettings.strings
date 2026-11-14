@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Impossibile caricare un allegato. Controlla la connessione, poi riprova.";
 "ai.drop.overlay" = "Trascina qui i file da allegare";
 "ai.composer.dictation.start" = "Avvia dettatura";
-"ai.composer.dictation.stop" = "Interrompi dettatura";
-"ai.composer.dictation.waiting" = "In attesa dell’accesso al microfono...";
-"ai.composer.dictation.listening" = "In ascolto...";
+"ai.composer.dictation.cancel" = "Annulla dettatura";
+"ai.composer.dictation.finish" = "Termina dettatura";
+"ai.composer.dictation.preparing" = "Preparazione";
+"ai.composer.dictation.recording" = "Registrazione %@";
 "ai.composer.dictation.transcribing" = "Trascrizione...";
+"ai.composer.dictation.dismissError" = "Chiudi errore di dettatura";
+"ai.composer.dictation.announcement.started" = "Registrazione avviata";
+"ai.composer.dictation.announcement.inserted" = "Trascrizione aggiunta";
 "ai.error.title" = "Errore";
 "ai.error.requestTooLarge.title" = "Il messaggio è troppo grande";
 "ai.error.requestTooLarge.message" = "La chat IA non può inviare così tanti contenuti insieme. Rimuovi uno o più allegati, scegli un file o una foto più piccoli oppure dividi la richiesta e riprova.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Impossibile preparare l’audio registrato.";
 "ai.dictation.error.recordingStartFailed" = "Impossibile avviare la registrazione dal microfono.";
 "ai.dictation.error.emptyRecording" = "Nessuna voce registrata.";
+"ai.dictation.error.interrupted" = "Registrazione interrotta";
 "ai.dictation.error.network" = "Si è verificato un problema di rete. Risolvilo e riprova.";
 "ai.dictation.error.invalidAudio" = "Impossibile elaborare la registrazione. Riprova.";
 "ai.message.unsupportedContent" = "Contenuto non supportato";

@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Не вдалося надіслати вкладення. Перевірте з’єднання та спробуйте ще раз.";
 "ai.drop.overlay" = "Перетягніть файли, щоб додати";
 "ai.composer.dictation.start" = "Почати диктування";
-"ai.composer.dictation.stop" = "Зупинити диктування";
-"ai.composer.dictation.waiting" = "Очікування доступу до мікрофона...";
-"ai.composer.dictation.listening" = "Слухаю...";
+"ai.composer.dictation.cancel" = "Скасувати диктування";
+"ai.composer.dictation.finish" = "Завершити диктування";
+"ai.composer.dictation.preparing" = "Підготовка";
+"ai.composer.dictation.recording" = "Запис %@";
 "ai.composer.dictation.transcribing" = "Транскрибування...";
+"ai.composer.dictation.dismissError" = "Закрити помилку диктування";
+"ai.composer.dictation.announcement.started" = "Запис розпочато";
+"ai.composer.dictation.announcement.inserted" = "Текст додано";
 "ai.error.title" = "Помилка";
 "ai.error.requestTooLarge.title" = "Повідомлення завелике";
 "ai.error.requestTooLarge.message" = "Чат ШІ не може надіслати стільки вмісту за раз. Приберіть одне чи кілька вкладень, виберіть менший файл або фото чи розділіть запит і спробуйте ще раз.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Не вдалося підготувати записане аудіо.";
 "ai.dictation.error.recordingStartFailed" = "Не вдалося почати запис із мікрофона.";
 "ai.dictation.error.emptyRecording" = "Мовлення не записано.";
+"ai.dictation.error.interrupted" = "Запис перервано";
 "ai.dictation.error.network" = "Виникла проблема з мережею. Усуньте її та спробуйте ще раз.";
 "ai.dictation.error.invalidAudio" = "Не вдалося обробити цей запис. Спробуйте ще раз.";
 "ai.message.unsupportedContent" = "Непідтримуваний вміст";

@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "ଏକ ସଂଲଗ୍ନକ ଅପଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।";
 "ai.drop.overlay" = "ଯୋଡ଼ିବା ପାଇଁ ଫାଇଲ୍ ଟାଣି ଏଠି ଛାଡ଼ନ୍ତୁ";
 "ai.composer.dictation.start" = "କହି ଲେଖିବା ଆରମ୍ଭ କରନ୍ତୁ";
-"ai.composer.dictation.stop" = "କହି ଲେଖିବା ବନ୍ଦ କରନ୍ତୁ";
-"ai.composer.dictation.waiting" = "ମାଇକ୍ରୋଫୋନ୍ ଅନୁମତି ପାଇଁ ଅପେକ୍ଷା କରୁଛି...";
-"ai.composer.dictation.listening" = "ଶୁଣୁଛି...";
+"ai.composer.dictation.cancel" = "କହି ଲେଖିବା ବାତିଲ କରନ୍ତୁ";
+"ai.composer.dictation.finish" = "କହି ଲେଖିବା ଶେଷ କରନ୍ତୁ";
+"ai.composer.dictation.preparing" = "ପ୍ରସ୍ତୁତ ହେଉଛି";
+"ai.composer.dictation.recording" = "ରେକର୍ଡ ହେଉଛି %@";
 "ai.composer.dictation.transcribing" = "ଲେଖାରେ ବଦଳାଉଛି...";
+"ai.composer.dictation.dismissError" = "କହି ଲେଖିବା ତ୍ରୁଟି ବନ୍ଦ କରନ୍ତୁ";
+"ai.composer.dictation.announcement.started" = "ରେକର୍ଡିଂ ଆରମ୍ଭ ହେଲା";
+"ai.composer.dictation.announcement.inserted" = "ଟ୍ରାନ୍ସକ୍ରିପ୍ଟ ଯୋଡ଼ାଗଲା";
 "ai.error.title" = "ତ୍ରୁଟି";
 "ai.error.requestTooLarge.title" = "ବାର୍ତ୍ତା ବହୁତ ବଡ଼";
 "ai.error.requestTooLarge.message" = "AI ଚାଟ୍ ଏତେ ତଥ୍ୟ ଏକାଥରେ ପଠାଇପାରିବ ନାହିଁ। କିଛି ସଂଲଗ୍ନକ ହଟାନ୍ତୁ, ଛୋଟ ଫାଇଲ୍ ବା ଫଟୋ ବାଛନ୍ତୁ, କିମ୍ବା ଅନୁରୋଧକୁ ଭାଗ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "ରେକର୍ଡ ହୋଇଥିବା ଅଡିଓ ପ୍ରସ୍ତୁତ କରିହେଲା ନାହିଁ।";
 "ai.dictation.error.recordingStartFailed" = "ମାଇକ୍ରୋଫୋନ୍ ରେକର୍ଡିଂ ଆରମ୍ଭ ହୋଇପାରିଲା ନାହିଁ।";
 "ai.dictation.error.emptyRecording" = "କୌଣସି କଥା ରେକର୍ଡ ହୋଇନାହିଁ।";
+"ai.dictation.error.interrupted" = "ରେକର୍ଡିଂ ବାଧାପ୍ରାପ୍ତ ହେଲା";
 "ai.dictation.error.network" = "ନେଟୱର୍କରେ ସମସ୍ୟା ଅଛି। ସମସ୍ୟା ସମାଧାନ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।";
 "ai.dictation.error.invalidAudio" = "ସେହି ରେକର୍ଡିଂକୁ ପ୍ରକ୍ରିୟାକରଣ କରିହେଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।";
 "ai.message.unsupportedContent" = "ଅସମର୍ଥିତ ବିଷୟବସ୍ତୁ";

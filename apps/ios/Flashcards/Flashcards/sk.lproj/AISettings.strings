@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Prílohu sa nepodarilo nahrať. Skontrolujte pripojenie a skúste to znova.";
 "ai.drop.overlay" = "Pustite súbory sem a priložte ich";
 "ai.composer.dictation.start" = "Začať diktovanie";
-"ai.composer.dictation.stop" = "Zastaviť diktovanie";
-"ai.composer.dictation.waiting" = "Čaká sa na prístup k mikrofónu...";
-"ai.composer.dictation.listening" = "Počúvam...";
+"ai.composer.dictation.cancel" = "Zrušiť diktovanie";
+"ai.composer.dictation.finish" = "Dokončiť diktovanie";
+"ai.composer.dictation.preparing" = "Pripravuje sa";
+"ai.composer.dictation.recording" = "Nahráva sa %@";
 "ai.composer.dictation.transcribing" = "Prepisuje sa...";
+"ai.composer.dictation.dismissError" = "Zavrieť chybu diktovania";
+"ai.composer.dictation.announcement.started" = "Nahrávanie sa začalo";
+"ai.composer.dictation.announcement.inserted" = "Prepis bol pridaný";
 "ai.error.title" = "Chyba";
 "ai.error.requestTooLarge.title" = "Správa je príliš veľká";
 "ai.error.requestTooLarge.message" = "AI chat nedokáže naraz odoslať toľko obsahu. Odstráňte jednu alebo viac príloh, vyberte menší súbor alebo fotku, prípadne rozdeľte požiadavku a skúste to znova.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Nahraný zvuk sa nepodarilo pripraviť.";
 "ai.dictation.error.recordingStartFailed" = "Nahrávanie mikrofónu sa nepodarilo spustiť.";
 "ai.dictation.error.emptyRecording" = "Nebola nahraná žiadna reč.";
+"ai.dictation.error.interrupted" = "Nahrávanie bolo prerušené";
 "ai.dictation.error.network" = "Vyskytol sa problém so sieťou. Vyriešte ho a skúste to znova.";
 "ai.dictation.error.invalidAudio" = "Túto nahrávku sa nepodarilo spracovať. Skúste to znova.";
 "ai.message.unsupportedContent" = "Nepodporovaný obsah";

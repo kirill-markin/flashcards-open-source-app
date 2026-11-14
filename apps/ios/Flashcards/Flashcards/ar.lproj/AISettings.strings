@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "تعذر رفع أحد المرفقات. تحقق من اتصالك، ثم حاول مرة أخرى.";
 "ai.drop.overlay" = "أفلت الملفات لإرفاقها";
 "ai.composer.dictation.start" = "بدء الإملاء";
-"ai.composer.dictation.stop" = "إيقاف الإملاء";
-"ai.composer.dictation.waiting" = "في انتظار الوصول إلى الميكروفون...";
-"ai.composer.dictation.listening" = "جاري الاستماع...";
+"ai.composer.dictation.cancel" = "إلغاء الإملاء";
+"ai.composer.dictation.finish" = "إنهاء الإملاء";
+"ai.composer.dictation.preparing" = "جارٍ التحضير";
+"ai.composer.dictation.recording" = "جارٍ التسجيل %@";
 "ai.composer.dictation.transcribing" = "جاري النسخ...";
+"ai.composer.dictation.dismissError" = "إغلاق خطأ الإملاء";
+"ai.composer.dictation.announcement.started" = "بدأ التسجيل";
+"ai.composer.dictation.announcement.inserted" = "تمت إضافة النص";
 "ai.error.title" = "خطأ";
 "ai.error.requestTooLarge.title" = "الرسالة كبيرة جدًا";
 "ai.error.requestTooLarge.message" = "لا يمكن لدردشة الذكاء الاصطناعي إرسال هذا القدر من المحتوى دفعة واحدة. أزل مرفقًا واحدًا أو أكثر، أو اختر ملفًا أو صورة أصغر، أو قسّم الطلب ثم حاول مرة أخرى.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "تعذر تحضير الصوت المسجل.";
 "ai.dictation.error.recordingStartFailed" = "تعذر بدء تسجيل الميكروفون.";
 "ai.dictation.error.emptyRecording" = "لم يتم تسجيل أي صوت.";
+"ai.dictation.error.interrupted" = "تمت مقاطعة التسجيل";
 "ai.dictation.error.network" = "هناك مشكلة في الشبكة. الرجاء تصحيحه والمحاولة مرة أخرى.";
 "ai.dictation.error.invalidAudio" = "لم نتمكن من معالجة هذا التسجيل. الرجاء المحاولة مرة أخرى.";
 "ai.message.unsupportedContent" = "محتوى غير مدعوم";

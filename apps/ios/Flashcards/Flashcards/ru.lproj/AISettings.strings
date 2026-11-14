@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Не удалось отправить вложение. Проверьте подключение и попробуйте снова.";
 "ai.drop.overlay" = "Перетащите файлы для вложения";
 "ai.composer.dictation.start" = "Начать диктовку";
-"ai.composer.dictation.stop" = "Прекратить диктовку";
-"ai.composer.dictation.waiting" = "Ожидание доступа к микрофону...";
-"ai.composer.dictation.listening" = "Слушаю...";
+"ai.composer.dictation.cancel" = "Отменить диктовку";
+"ai.composer.dictation.finish" = "Завершить диктовку";
+"ai.composer.dictation.preparing" = "Подготовка";
+"ai.composer.dictation.recording" = "Запись %@";
 "ai.composer.dictation.transcribing" = "Расшифровка...";
+"ai.composer.dictation.dismissError" = "Закрыть ошибку диктовки";
+"ai.composer.dictation.announcement.started" = "Запись началась";
+"ai.composer.dictation.announcement.inserted" = "Текст добавлен";
 "ai.error.title" = "Ошибка";
 "ai.error.requestTooLarge.title" = "Сообщение слишком большое";
 "ai.error.requestTooLarge.message" = "AI-чат не может отправить столько содержимого за один раз. Удалите одно или несколько вложений, выберите файл или фото меньшего размера либо разделите запрос и повторите попытку.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Не удалось подготовить записанный звук.";
 "ai.dictation.error.recordingStartFailed" = "Не удалось начать запись с микрофона.";
 "ai.dictation.error.emptyRecording" = "Голос не был записан.";
+"ai.dictation.error.interrupted" = "Запись прервана";
 "ai.dictation.error.network" = "Возникла проблема с сетью. Пожалуйста, исправьте это и повторите попытку.";
 "ai.dictation.error.invalidAudio" = "Мы не смогли обработать эту запись. Пожалуйста, попробуйте еще раз.";
 "ai.message.unsupportedContent" = "Неподдерживаемый контент";

@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "జోడింపును అప్‌లోడ్ చేయడం సాధ్యం కాలేదు. మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.";
 "ai.drop.overlay" = "జోడించడానికి ఫైళ్లను ఇక్కడ వదలండి";
 "ai.composer.dictation.start" = "మాట్లాడి టైప్ చేయడం ప్రారంభించు";
-"ai.composer.dictation.stop" = "మాట్లాడి టైప్ చేయడం ఆపు";
-"ai.composer.dictation.waiting" = "మైక్రోఫోన్ అనుమతి కోసం వేచి ఉంది...";
-"ai.composer.dictation.listening" = "వింటోంది...";
+"ai.composer.dictation.cancel" = "మాట్లాడి టైప్ చేయడం రద్దు చేయి";
+"ai.composer.dictation.finish" = "మాట్లాడి టైప్ చేయడం ముగించు";
+"ai.composer.dictation.preparing" = "సిద్ధం చేస్తోంది";
+"ai.composer.dictation.recording" = "రికార్డ్ చేస్తోంది %@";
 "ai.composer.dictation.transcribing" = "వచనంగా మారుస్తోంది...";
+"ai.composer.dictation.dismissError" = "మాట్లాడి టైప్ చేయడంలో లోపాన్ని మూసివేయి";
+"ai.composer.dictation.announcement.started" = "రికార్డింగ్ ప్రారంభమైంది";
+"ai.composer.dictation.announcement.inserted" = "వచనం జోడించబడింది";
 "ai.error.title" = "లోపం";
 "ai.error.requestTooLarge.title" = "సందేశం చాలా పెద్దది";
 "ai.error.requestTooLarge.message" = "AI చాట్ ఒకేసారి ఇంత కంటెంట్‌ను పంపలేకపోతుంది. ఒకటి లేదా అంతకంటే ఎక్కువ జోడింపులను తీసివేయండి, చిన్న ఫైల్ లేదా ఫొటోను ఎంచుకోండి లేదా అభ్యర్థనను విడగొట్టి మళ్లీ ప్రయత్నించండి.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "రికార్డ్ చేసిన ఆడియోను సిద్ధం చేయడం విఫలమైంది.";
 "ai.dictation.error.recordingStartFailed" = "మైక్రోఫోన్ రికార్డింగ్ ప్రారంభించడం విఫలమైంది.";
 "ai.dictation.error.emptyRecording" = "మాటలు ఏవీ రికార్డ్ కాలేదు.";
+"ai.dictation.error.interrupted" = "రికార్డింగ్‌కు అంతరాయం కలిగింది";
 "ai.dictation.error.network" = "నెట్‌వర్క్ సమస్య ఉంది. దాన్ని పరిష్కరించి మళ్లీ ప్రయత్నించండి.";
 "ai.dictation.error.invalidAudio" = "ఆ రికార్డింగ్‌ను ప్రాసెస్ చేయలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.";
 "ai.message.unsupportedContent" = "మద్దతు లేని కంటెంట్";

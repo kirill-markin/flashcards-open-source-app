@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Ein Anhang konnte nicht hochgeladen werden. Prüfe deine Verbindung und versuche es erneut.";
 "ai.drop.overlay" = "Dateien hier ablegen, um sie anzuhängen";
 "ai.composer.dictation.start" = "Diktat starten";
-"ai.composer.dictation.stop" = "Diktat stoppen";
-"ai.composer.dictation.waiting" = "Warten auf Zugriff auf das Mikrofon...";
-"ai.composer.dictation.listening" = "Zuhören...";
+"ai.composer.dictation.cancel" = "Diktat abbrechen";
+"ai.composer.dictation.finish" = "Diktat beenden";
+"ai.composer.dictation.preparing" = "Wird vorbereitet";
+"ai.composer.dictation.recording" = "Aufnahme %@";
 "ai.composer.dictation.transcribing" = "Transkribieren...";
+"ai.composer.dictation.dismissError" = "Diktatfehler schließen";
+"ai.composer.dictation.announcement.started" = "Aufnahme gestartet";
+"ai.composer.dictation.announcement.inserted" = "Transkript eingefügt";
 "ai.error.title" = "Fehler";
 "ai.error.requestTooLarge.title" = "Nachricht ist zu groß";
 "ai.error.requestTooLarge.message" = "Der KI-Chat kann nicht so viel Inhalt auf einmal senden. Entferne einen oder mehrere Anhänge, wähle eine kleinere Datei oder ein kleineres Foto, oder teile die Anfrage auf und versuche es erneut.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Die Audioaufnahme konnte nicht vorbereitet werden.";
 "ai.dictation.error.recordingStartFailed" = "Die Mikrofonaufnahme konnte nicht gestartet werden.";
 "ai.dictation.error.emptyRecording" = "Es wurde keine Stimme aufgezeichnet.";
+"ai.dictation.error.interrupted" = "Aufnahme unterbrochen";
 "ai.dictation.error.network" = "Es liegt ein Netzwerkproblem vor. Bitte behebe es und versuche es erneut.";
 "ai.dictation.error.invalidAudio" = "Wir konnten diese Aufnahme nicht verarbeiten. Bitte versuche es erneut.";
 "ai.message.unsupportedContent" = "Nicht unterstützter Inhalt";

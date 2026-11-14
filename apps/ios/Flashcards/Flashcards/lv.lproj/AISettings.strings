@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Neizdevās augšupielādēt pielikumu. Pārbaudiet savienojumu un mēģiniet vēlreiz.";
 "ai.drop.overlay" = "Nometiet failus, lai tos pievienotu";
 "ai.composer.dictation.start" = "Sākt diktēšanu";
-"ai.composer.dictation.stop" = "Apturēt diktēšanu";
-"ai.composer.dictation.waiting" = "Gaida piekļuvi mikrofonam...";
-"ai.composer.dictation.listening" = "Klausās...";
+"ai.composer.dictation.cancel" = "Atcelt diktēšanu";
+"ai.composer.dictation.finish" = "Pabeigt diktēšanu";
+"ai.composer.dictation.preparing" = "Sagatavo";
+"ai.composer.dictation.recording" = "Ieraksta %@";
 "ai.composer.dictation.transcribing" = "Transkribē...";
+"ai.composer.dictation.dismissError" = "Aizvērt diktēšanas kļūdu";
+"ai.composer.dictation.announcement.started" = "Ierakstīšana sākta";
+"ai.composer.dictation.announcement.inserted" = "Transkripcija pievienota";
 "ai.error.title" = "Kļūda";
 "ai.error.requestTooLarge.title" = "Ziņa ir pārāk liela";
 "ai.error.requestTooLarge.message" = "MI saruna nevar nosūtīt tik daudz satura vienlaikus. Noņemiet vienu vai vairākus pielikumus, izvēlieties mazāku failu vai fotoattēlu vai sadaliet pieprasījumu un mēģiniet vēlreiz.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Neizdevās sagatavot ierakstīto audio.";
 "ai.dictation.error.recordingStartFailed" = "Neizdevās sākt mikrofona ierakstu.";
 "ai.dictation.error.emptyRecording" = "Runa netika ierakstīta.";
+"ai.dictation.error.interrupted" = "Ierakstīšana pārtraukta";
 "ai.dictation.error.network" = "Radusies tīkla problēma. Novērsiet to un mēģiniet vēlreiz.";
 "ai.dictation.error.invalidAudio" = "Neizdevās apstrādāt šo ierakstu. Lūdzu, mēģiniet vēlreiz.";
 "ai.message.unsupportedContent" = "Neatbalstīts saturs";

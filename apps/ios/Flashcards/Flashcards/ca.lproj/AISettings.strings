@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "No s'ha pogut pujar un fitxer adjunt. Comproveu la connexió i torneu-ho a provar.";
 "ai.drop.overlay" = "Deixa anar els fitxers per adjuntar-los";
 "ai.composer.dictation.start" = "Comença el dictat";
-"ai.composer.dictation.stop" = "Atura el dictat";
-"ai.composer.dictation.waiting" = "S'està esperant l'accés al micròfon...";
-"ai.composer.dictation.listening" = "Escoltant...";
+"ai.composer.dictation.cancel" = "Cancel·la el dictat";
+"ai.composer.dictation.finish" = "Acaba el dictat";
+"ai.composer.dictation.preparing" = "Preparant";
+"ai.composer.dictation.recording" = "Gravant %@";
 "ai.composer.dictation.transcribing" = "Transcripció...";
+"ai.composer.dictation.dismissError" = "Descarta l'error del dictat";
+"ai.composer.dictation.announcement.started" = "Ha començat la gravació";
+"ai.composer.dictation.announcement.inserted" = "S'ha afegit la transcripció";
 "ai.error.title" = "Error";
 "ai.error.requestTooLarge.title" = "El missatge és massa gran";
 "ai.error.requestTooLarge.message" = "El xat d'IA no pot enviar tant de contingut alhora. Elimina un o més fitxers adjunts, tria un fitxer o una foto més petit o divideix la sol·licitud i torna-ho a provar.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "No s'ha pogut preparar l'àudio gravat.";
 "ai.dictation.error.recordingStartFailed" = "No s'ha pogut iniciar la gravació del micròfon.";
 "ai.dictation.error.emptyRecording" = "No s’ha gravat cap veu.";
+"ai.dictation.error.interrupted" = "S'ha interromput la gravació";
 "ai.dictation.error.network" = "Hi ha un problema de xarxa. Arregla-ho i torna-ho a provar.";
 "ai.dictation.error.invalidAudio" = "No hem pogut processar aquesta gravació. Si us plau, torna-ho a provar.";
 "ai.message.unsupportedContent" = "Contingut no compatible";

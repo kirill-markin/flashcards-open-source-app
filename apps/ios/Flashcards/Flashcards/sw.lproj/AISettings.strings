@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Imeshindwa kupakia kiambatisho. Angalia muunganisho wako, kisha ujaribu tena.";
 "ai.drop.overlay" = "Dondosha faili ili kuambatisha";
 "ai.composer.dictation.start" = "Anza kuandika kwa sauti";
-"ai.composer.dictation.stop" = "Acha kuandika kwa sauti";
-"ai.composer.dictation.waiting" = "Inasubiri ufikiaji wa maikrofoni...";
-"ai.composer.dictation.listening" = "Inasikiliza...";
+"ai.composer.dictation.cancel" = "Ghairi kuandika kwa sauti";
+"ai.composer.dictation.finish" = "Maliza kuandika kwa sauti";
+"ai.composer.dictation.preparing" = "Inaandaa";
+"ai.composer.dictation.recording" = "Inarekodi %@";
 "ai.composer.dictation.transcribing" = "Inanukuu...";
+"ai.composer.dictation.dismissError" = "Funga hitilafu ya kuandika kwa sauti";
+"ai.composer.dictation.announcement.started" = "Kurekodi kumeanza";
+"ai.composer.dictation.announcement.inserted" = "Maandishi yameongezwa";
 "ai.error.title" = "Hitilafu";
 "ai.error.requestTooLarge.title" = "Ujumbe ni mkubwa mno";
 "ai.error.requestTooLarge.message" = "Gumzo la AI haliwezi kutuma maudhui mengi hivi kwa wakati mmoja. Ondoa kiambatisho kimoja au zaidi, chagua faili au picha ndogo, au gawanya ombi na ujaribu tena.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Imeshindwa kuandaa sauti iliyorekodiwa.";
 "ai.dictation.error.recordingStartFailed" = "Imeshindwa kuanza kurekodi kwa maikrofoni.";
 "ai.dictation.error.emptyRecording" = "Hakuna sauti ya maneno iliyorekodiwa.";
+"ai.dictation.error.interrupted" = "Kurekodi kumekatizwa";
 "ai.dictation.error.network" = "Kuna tatizo la mtandao. Litatue na ujaribu tena.";
 "ai.dictation.error.invalidAudio" = "Hatukuweza kuchakata rekodi hiyo. Tafadhali jaribu tena.";
 "ai.message.unsupportedContent" = "Maudhui yasiyotumika";

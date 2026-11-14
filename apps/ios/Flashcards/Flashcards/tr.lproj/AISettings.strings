@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Bir ek yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.";
 "ai.drop.overlay" = "Eklemek için dosyaları buraya bırakın";
 "ai.composer.dictation.start" = "Dikteyi başlat";
-"ai.composer.dictation.stop" = "Dikteyi durdur";
-"ai.composer.dictation.waiting" = "Mikrofon erişimi bekleniyor...";
-"ai.composer.dictation.listening" = "Dinleniyor...";
+"ai.composer.dictation.cancel" = "Dikteyi iptal et";
+"ai.composer.dictation.finish" = "Dikteyi bitir";
+"ai.composer.dictation.preparing" = "Hazırlanıyor";
+"ai.composer.dictation.recording" = "Kaydediliyor %@";
 "ai.composer.dictation.transcribing" = "Yazıya dökülüyor...";
+"ai.composer.dictation.dismissError" = "Dikte hatasını kapat";
+"ai.composer.dictation.announcement.started" = "Kayıt başladı";
+"ai.composer.dictation.announcement.inserted" = "Metin eklendi";
 "ai.error.title" = "Hata";
 "ai.error.requestTooLarge.title" = "Mesaj çok büyük";
 "ai.error.requestTooLarge.message" = "AI sohbeti bu kadar içeriği tek seferde gönderemez. Bir veya daha fazla eki kaldırın, daha küçük bir dosya veya fotoğraf seçin ya da isteği bölüp tekrar deneyin.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Kaydedilen ses hazırlanamadı.";
 "ai.dictation.error.recordingStartFailed" = "Mikrofon kaydı başlatılamadı.";
 "ai.dictation.error.emptyRecording" = "Konuşma kaydedilmedi.";
+"ai.dictation.error.interrupted" = "Kayıt kesildi";
 "ai.dictation.error.network" = "Bir ağ sorunu var. Sorunu giderip tekrar deneyin.";
 "ai.dictation.error.invalidAudio" = "Bu kayıt işlenemedi. Lütfen tekrar deneyin.";
 "ai.message.unsupportedContent" = "Desteklenmeyen içerik";

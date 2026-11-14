@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Egy mellékletet nem sikerült feltölteni. Ellenőrizd a kapcsolatot, majd próbáld újra.";
 "ai.drop.overlay" = "Húzd ide a fájlokat a csatoláshoz";
 "ai.composer.dictation.start" = "Diktálás indítása";
-"ai.composer.dictation.stop" = "Diktálás leállítása";
-"ai.composer.dictation.waiting" = "Várakozás mikrofonhozzáférésre…";
-"ai.composer.dictation.listening" = "Hallgatás…";
+"ai.composer.dictation.cancel" = "Diktálás megszakítása";
+"ai.composer.dictation.finish" = "Diktálás befejezése";
+"ai.composer.dictation.preparing" = "Előkészítés";
+"ai.composer.dictation.recording" = "Felvétel: %@";
 "ai.composer.dictation.transcribing" = "Átírás…";
+"ai.composer.dictation.dismissError" = "Diktálási hiba bezárása";
+"ai.composer.dictation.announcement.started" = "A felvétel elindult";
+"ai.composer.dictation.announcement.inserted" = "Átirat hozzáadva";
 "ai.error.title" = "Hiba";
 "ai.error.requestTooLarge.title" = "Az üzenet túl nagy";
 "ai.error.requestTooLarge.message" = "Az AI-csevegés nem tud ennyi tartalmat egyszerre elküldeni. Távolíts el mellékleteket, válassz kisebb fájlt vagy fotót, vagy oszd fel a kérést, majd próbáld újra.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Nem sikerült előkészíteni a hangfelvételt.";
 "ai.dictation.error.recordingStartFailed" = "Nem sikerült elindítani a mikrofonfelvételt.";
 "ai.dictation.error.emptyRecording" = "Nem rögzült beszéd.";
+"ai.dictation.error.interrupted" = "A felvétel megszakadt";
 "ai.dictation.error.network" = "Hálózati probléma van. Javítsd ki, majd próbáld újra.";
 "ai.dictation.error.invalidAudio" = "Nem sikerült feldolgozni a felvételt. Próbáld újra.";
 "ai.message.unsupportedContent" = "Nem támogatott tartalom";

@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "לא ניתן היה להעלות קובץ מצורף. יש לבדוק את החיבור ולנסות שוב.";
 "ai.drop.overlay" = "גרור קבצים לכאן כדי לצרף";
 "ai.composer.dictation.start" = "התחלת הכתבה";
-"ai.composer.dictation.stop" = "עצירת הכתבה";
-"ai.composer.dictation.waiting" = "ממתין לגישה למיקרופון...";
-"ai.composer.dictation.listening" = "בהאזנה...";
+"ai.composer.dictation.cancel" = "ביטול הכתבה";
+"ai.composer.dictation.finish" = "סיום הכתבה";
+"ai.composer.dictation.preparing" = "בהכנה";
+"ai.composer.dictation.recording" = "בהקלטה %@";
 "ai.composer.dictation.transcribing" = "מתבצע תמלול...";
+"ai.composer.dictation.dismissError" = "סגירת שגיאת ההכתבה";
+"ai.composer.dictation.announcement.started" = "ההקלטה התחילה";
+"ai.composer.dictation.announcement.inserted" = "התמלול נוסף";
 "ai.error.title" = "שגיאה";
 "ai.error.requestTooLarge.title" = "ההודעה גדולה מדי";
 "ai.error.requestTooLarge.message" = "צ׳אט AI אינו יכול לשלוח כמות כזו של תוכן בבת אחת. יש להסיר קובץ מצורף אחד או יותר, לבחור קובץ או תמונה קטנים יותר, או לפצל את הבקשה ולנסות שוב.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "הכנת השמע שהוקלט נכשלה.";
 "ai.dictation.error.recordingStartFailed" = "הפעלת ההקלטה מהמיקרופון נכשלה.";
 "ai.dictation.error.emptyRecording" = "לא הוקלט דיבור.";
+"ai.dictation.error.interrupted" = "ההקלטה הופסקה";
 "ai.dictation.error.network" = "יש בעיה ברשת. יש לתקן אותה ולנסות שוב.";
 "ai.dictation.error.invalidAudio" = "לא ניתן לעבד את ההקלטה הזו. יש לנסות שוב.";
 "ai.message.unsupportedContent" = "תוכן לא נתמך";

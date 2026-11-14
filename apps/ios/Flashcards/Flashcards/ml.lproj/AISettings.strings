@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "ഒരു അറ്റാച്ച്മെന്റ് അപ്‌ലോഡ് ചെയ്യാനായില്ല. ബന്ധം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.";
 "ai.drop.overlay" = "അറ്റാച്ച് ചെയ്യാൻ ഫയലുകൾ ഇവിടെ ഇടുക";
 "ai.composer.dictation.start" = "പറഞ്ഞെഴുത്ത് തുടങ്ങുക";
-"ai.composer.dictation.stop" = "പറഞ്ഞെഴുത്ത് നിർത്തുക";
-"ai.composer.dictation.waiting" = "മൈക്രോഫോൺ അനുമതിക്കായി കാത്തിരിക്കുന്നു...";
-"ai.composer.dictation.listening" = "കേൾക്കുന്നു...";
+"ai.composer.dictation.cancel" = "പറഞ്ഞെഴുത്ത് റദ്ദാക്കുക";
+"ai.composer.dictation.finish" = "പറഞ്ഞെഴുത്ത് പൂർത്തിയാക്കുക";
+"ai.composer.dictation.preparing" = "തയ്യാറാക്കുന്നു";
+"ai.composer.dictation.recording" = "റെക്കോർഡ് ചെയ്യുന്നു %@";
 "ai.composer.dictation.transcribing" = "ലിപ്യന്തരണം ചെയ്യുന്നു...";
+"ai.composer.dictation.dismissError" = "പറഞ്ഞെഴുത്ത് പിശക് അടയ്ക്കുക";
+"ai.composer.dictation.announcement.started" = "റെക്കോർഡിംഗ് ആരംഭിച്ചു";
+"ai.composer.dictation.announcement.inserted" = "വാചകം ചേർത്തു";
 "ai.error.title" = "പിശക്";
 "ai.error.requestTooLarge.title" = "സന്ദേശം വളരെ വലുതാണ്";
 "ai.error.requestTooLarge.message" = "AI ചാറ്റിന് ഇത്രയും ഉള്ളടക്കം ഒരുമിച്ച് അയയ്ക്കാനാവില്ല. ഒന്നോ അതിലധികമോ അറ്റാച്ച്മെന്റുകൾ നീക്കുക, ചെറിയ ഫയലോ ഫോട്ടോയോ തിരഞ്ഞെടുക്കുക, അല്ലെങ്കിൽ അഭ്യർത്ഥന വിഭജിച്ച് വീണ്ടും ശ്രമിക്കുക.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "റെക്കോർഡ് ചെയ്ത ഓഡിയോ തയ്യാറാക്കാനായില്ല.";
 "ai.dictation.error.recordingStartFailed" = "മൈക്രോഫോൺ റെക്കോർഡിംഗ് തുടങ്ങാനായില്ല.";
 "ai.dictation.error.emptyRecording" = "സംസാരം റെക്കോർഡ് ചെയ്തിട്ടില്ല.";
+"ai.dictation.error.interrupted" = "റെക്കോർഡിംഗ് തടസ്സപ്പെട്ടു";
 "ai.dictation.error.network" = "നെറ്റ്‌വർക്ക് പ്രശ്നമുണ്ട്. പരിഹരിച്ച് വീണ്ടും ശ്രമിക്കുക.";
 "ai.dictation.error.invalidAudio" = "ഈ റെക്കോർഡിംഗ് പ്രോസസ്സ് ചെയ്യാനായില്ല. വീണ്ടും ശ്രമിക്കുക.";
 "ai.message.unsupportedContent" = "പിന്തുണയ്ക്കാത്ത ഉള്ളടക്കം";

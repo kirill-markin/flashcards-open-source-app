@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "એક જોડાણ અપલોડ કરી શકાયું નથી. તમારું ઇન્ટરનેટ કનેક્શન તપાસો, પછી ફરી પ્રયાસ કરો.";
 "ai.drop.overlay" = "જોડવા માટે ફાઇલો અહીં મૂકો";
 "ai.composer.dictation.start" = "બોલીને લખવાનું શરૂ કરો";
-"ai.composer.dictation.stop" = "બોલીને લખવાનું રોકો";
-"ai.composer.dictation.waiting" = "માઇક્રોફોનની ઍક્સેસની રાહ જોઈ રહ્યું છે...";
-"ai.composer.dictation.listening" = "સાંભળી રહ્યું છે...";
+"ai.composer.dictation.cancel" = "બોલીને લખવાનું રદ કરો";
+"ai.composer.dictation.finish" = "બોલીને લખવાનું પૂર્ણ કરો";
+"ai.composer.dictation.preparing" = "તૈયાર થઈ રહ્યું છે";
+"ai.composer.dictation.recording" = "રેકોર્ડ થઈ રહ્યું છે %@";
 "ai.composer.dictation.transcribing" = "લખાણમાં રૂપાંતર થઈ રહ્યું છે...";
+"ai.composer.dictation.dismissError" = "બોલીને લખવાની ભૂલ બંધ કરો";
+"ai.composer.dictation.announcement.started" = "રેકોર્ડિંગ શરૂ થયું";
+"ai.composer.dictation.announcement.inserted" = "લખાણ ઉમેરાયું";
 "ai.error.title" = "ભૂલ";
 "ai.error.requestTooLarge.title" = "સંદેશ ખૂબ મોટો છે";
 "ai.error.requestTooLarge.message" = "AI ચૅટ એકસાથે આટલી સામગ્રી મોકલી શકતી નથી. એક કે વધુ જોડાણ દૂર કરો, નાની ફાઇલ કે ફોટો પસંદ કરો, અથવા વિનંતી વહેંચીને ફરી પ્રયાસ કરો.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "રેકોર્ડ કરેલો ઑડિયો તૈયાર કરવામાં નિષ્ફળતા.";
 "ai.dictation.error.recordingStartFailed" = "માઇક્રોફોનનું રેકોર્ડિંગ શરૂ કરવામાં નિષ્ફળતા.";
 "ai.dictation.error.emptyRecording" = "કોઈ વાણી રેકોર્ડ થઈ નથી.";
+"ai.dictation.error.interrupted" = "રેકોર્ડિંગમાં વિક્ષેપ પડ્યો";
 "ai.dictation.error.network" = "નેટવર્કમાં સમસ્યા છે. તે ઠીક કરીને ફરી પ્રયાસ કરો.";
 "ai.dictation.error.invalidAudio" = "આ રેકોર્ડિંગ પર પ્રક્રિયા થઈ શકી નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.";
 "ai.message.unsupportedContent" = "સામગ્રી સમર્થિત નથી";

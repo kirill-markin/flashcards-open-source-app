@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "ایک منسلکہ اپ لوڈ نہیں ہو سکا۔ اپنا کنکشن چیک کریں، پھر دوبارہ کوشش کریں۔";
 "ai.drop.overlay" = "منسلک کرنے کے لیے فائلیں یہاں چھوڑیں";
 "ai.composer.dictation.start" = "بول کر لکھنا شروع کریں";
-"ai.composer.dictation.stop" = "بول کر لکھنا روکیں";
-"ai.composer.dictation.waiting" = "مائیکروفون کی رسائی کا انتظار ہے...";
-"ai.composer.dictation.listening" = "سنا جا رہا ہے...";
+"ai.composer.dictation.cancel" = "بول کر لکھنا منسوخ کریں";
+"ai.composer.dictation.finish" = "بول کر لکھنا مکمل کریں";
+"ai.composer.dictation.preparing" = "تیاری ہو رہی ہے";
+"ai.composer.dictation.recording" = "ریکارڈنگ ہو رہی ہے %@";
 "ai.composer.dictation.transcribing" = "متن میں بدلا جا رہا ہے...";
+"ai.composer.dictation.dismissError" = "بول کر لکھنے کی خرابی بند کریں";
+"ai.composer.dictation.announcement.started" = "ریکارڈنگ شروع ہو گئی";
+"ai.composer.dictation.announcement.inserted" = "متن شامل کر دیا گیا";
 "ai.error.title" = "خرابی";
 "ai.error.requestTooLarge.title" = "پیغام بہت بڑا ہے";
 "ai.error.requestTooLarge.message" = "AI چیٹ ایک ساتھ اتنا مواد نہیں بھیج سکتی۔ ایک یا زیادہ منسلکات ہٹائیں، چھوٹی فائل یا تصویر چنیں، یا درخواست تقسیم کر کے دوبارہ کوشش کریں۔";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "ریکارڈ شدہ آڈیو تیار نہیں ہو سکی۔";
 "ai.dictation.error.recordingStartFailed" = "مائیکروفون کی ریکارڈنگ شروع نہیں ہو سکی۔";
 "ai.dictation.error.emptyRecording" = "کوئی آواز ریکارڈ نہیں ہوئی۔";
+"ai.dictation.error.interrupted" = "ریکارڈنگ میں خلل پڑا";
 "ai.dictation.error.network" = "نیٹ ورک کا مسئلہ ہے۔ اسے ٹھیک کر کے دوبارہ کوشش کریں۔";
 "ai.dictation.error.invalidAudio" = "ہم اس ریکارڈنگ پر کارروائی نہیں کر سکے۔ براہ کرم دوبارہ کوشش کریں۔";
 "ai.message.unsupportedContent" = "غیر معاون مواد";

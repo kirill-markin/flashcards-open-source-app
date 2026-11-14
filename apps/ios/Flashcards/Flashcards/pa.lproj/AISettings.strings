@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "ਅਟੈਚਮੈਂਟ ਅੱਪਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ, ਫਿਰ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "ai.drop.overlay" = "ਨੱਥੀ ਕਰਨ ਲਈ ਫ਼ਾਈਲਾਂ ਇੱਥੇ ਸੁੱਟੋ";
 "ai.composer.dictation.start" = "ਬੋਲ ਕੇ ਲਿਖਣਾ ਸ਼ੁਰੂ ਕਰੋ";
-"ai.composer.dictation.stop" = "ਬੋਲ ਕੇ ਲਿਖਣਾ ਰੋਕੋ";
-"ai.composer.dictation.waiting" = "ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਦੀ ਉਡੀਕ...";
-"ai.composer.dictation.listening" = "ਸੁਣ ਰਿਹਾ ਹੈ...";
+"ai.composer.dictation.cancel" = "ਬੋਲ ਕੇ ਲਿਖਣਾ ਰੱਦ ਕਰੋ";
+"ai.composer.dictation.finish" = "ਬੋਲ ਕੇ ਲਿਖਣਾ ਪੂਰਾ ਕਰੋ";
+"ai.composer.dictation.preparing" = "ਤਿਆਰ ਹੋ ਰਿਹਾ ਹੈ";
+"ai.composer.dictation.recording" = "ਰਿਕਾਰਡ ਹੋ ਰਿਹਾ ਹੈ %@";
 "ai.composer.dictation.transcribing" = "ਲਿਖਤ ਵਿੱਚ ਬਦਲ ਰਿਹਾ ਹੈ...";
+"ai.composer.dictation.dismissError" = "ਬੋਲ ਕੇ ਲਿਖਣ ਦੀ ਗਲਤੀ ਬੰਦ ਕਰੋ";
+"ai.composer.dictation.announcement.started" = "ਰਿਕਾਰਡਿੰਗ ਸ਼ੁਰੂ ਹੋਈ";
+"ai.composer.dictation.announcement.inserted" = "ਲਿਖਤ ਜੋੜੀ ਗਈ";
 "ai.error.title" = "ਗਲਤੀ";
 "ai.error.requestTooLarge.title" = "ਸੁਨੇਹਾ ਬਹੁਤ ਵੱਡਾ ਹੈ";
 "ai.error.requestTooLarge.message" = "AI ਚੈਟ ਇਕੱਠੀ ਇੰਨੀ ਸਮੱਗਰੀ ਨਹੀਂ ਭੇਜ ਸਕਦੀ। ਇੱਕ ਜਾਂ ਵੱਧ ਅਟੈਚਮੈਂਟ ਹਟਾਓ, ਛੋਟੀ ਫ਼ਾਈਲ ਜਾਂ ਫ਼ੋਟੋ ਚੁਣੋ ਜਾਂ ਬੇਨਤੀ ਵੰਡ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "ਰਿਕਾਰਡ ਕੀਤੀ ਆਡੀਓ ਤਿਆਰ ਨਹੀਂ ਹੋ ਸਕੀ।";
 "ai.dictation.error.recordingStartFailed" = "ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਰਿਕਾਰਡਿੰਗ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋ ਸਕੀ।";
 "ai.dictation.error.emptyRecording" = "ਕੋਈ ਬੋਲੀ ਰਿਕਾਰਡ ਨਹੀਂ ਹੋਈ।";
+"ai.dictation.error.interrupted" = "ਰਿਕਾਰਡਿੰਗ ਵਿੱਚ ਰੁਕਾਵਟ ਆਈ";
 "ai.dictation.error.network" = "ਨੈੱਟਵਰਕ ਦੀ ਸਮੱਸਿਆ ਹੈ। ਇਸਨੂੰ ਠੀਕ ਕਰੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "ai.dictation.error.invalidAudio" = "ਅਸੀਂ ਇਸ ਰਿਕਾਰਡਿੰਗ ਨੂੰ ਪ੍ਰੋਸੈਸ ਨਹੀਂ ਕਰ ਸਕੇ। ਕਿਰਪਾ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "ai.message.unsupportedContent" = "ਗੈਰ-ਸਮਰਥਿਤ ਸਮੱਗਰੀ";

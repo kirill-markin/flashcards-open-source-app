@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Priloge ni bilo mogoče naložiti. Preverite povezavo in poskusite znova.";
 "ai.drop.overlay" = "Spustite datoteke, da jih priložite";
 "ai.composer.dictation.start" = "Začni narekovanje";
-"ai.composer.dictation.stop" = "Ustavi narekovanje";
-"ai.composer.dictation.waiting" = "Čakanje na dostop do mikrofona ...";
-"ai.composer.dictation.listening" = "Poslušanje ...";
+"ai.composer.dictation.cancel" = "Prekliči narekovanje";
+"ai.composer.dictation.finish" = "Dokončaj narekovanje";
+"ai.composer.dictation.preparing" = "Pripravljanje";
+"ai.composer.dictation.recording" = "Snemanje %@";
 "ai.composer.dictation.transcribing" = "Prepisovanje ...";
+"ai.composer.dictation.dismissError" = "Zapri napako narekovanja";
+"ai.composer.dictation.announcement.started" = "Snemanje se je začelo";
+"ai.composer.dictation.announcement.inserted" = "Prepis je dodan";
 "ai.error.title" = "Napaka";
 "ai.error.requestTooLarge.title" = "Sporočilo je preveliko";
 "ai.error.requestTooLarge.message" = "Klepet z UI ne more poslati toliko vsebine hkrati. Odstranite eno ali več prilog, izberite manjšo datoteko ali fotografijo ali razdelite zahtevo in poskusite znova.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Posnetega zvoka ni bilo mogoče pripraviti.";
 "ai.dictation.error.recordingStartFailed" = "Snemanja z mikrofonom ni bilo mogoče začeti.";
 "ai.dictation.error.emptyRecording" = "Govor ni bil posnet.";
+"ai.dictation.error.interrupted" = "Snemanje je bilo prekinjeno";
 "ai.dictation.error.network" = "Prišlo je do omrežne težave. Odpravite jo in poskusite znova.";
 "ai.dictation.error.invalidAudio" = "Tega posnetka ni bilo mogoče obdelati. Poskusite znova.";
 "ai.message.unsupportedContent" = "Nepodprta vsebina";

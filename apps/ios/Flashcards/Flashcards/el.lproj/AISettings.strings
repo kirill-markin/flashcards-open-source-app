@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Δεν ήταν δυνατή η μεταφόρτωση ενός συνημμένου. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.";
 "ai.drop.overlay" = "Αφήστε εδώ αρχεία για επισύναψη";
 "ai.composer.dictation.start" = "Έναρξη υπαγόρευσης";
-"ai.composer.dictation.stop" = "Διακοπή υπαγόρευσης";
-"ai.composer.dictation.waiting" = "Αναμονή πρόσβασης στο μικρόφωνο…";
-"ai.composer.dictation.listening" = "Ακρόαση…";
+"ai.composer.dictation.cancel" = "Ακύρωση υπαγόρευσης";
+"ai.composer.dictation.finish" = "Ολοκλήρωση υπαγόρευσης";
+"ai.composer.dictation.preparing" = "Προετοιμασία";
+"ai.composer.dictation.recording" = "Εγγραφή %@";
 "ai.composer.dictation.transcribing" = "Απομαγνητοφώνηση…";
+"ai.composer.dictation.dismissError" = "Παράβλεψη σφάλματος υπαγόρευσης";
+"ai.composer.dictation.announcement.started" = "Η εγγραφή ξεκίνησε";
+"ai.composer.dictation.announcement.inserted" = "Η απομαγνητοφώνηση προστέθηκε";
 "ai.error.title" = "Σφάλμα";
 "ai.error.requestTooLarge.title" = "Το μήνυμα είναι πολύ μεγάλο";
 "ai.error.requestTooLarge.message" = "Η συνομιλία με την ΤΝ δεν μπορεί να στείλει τόσο περιεχόμενο ταυτόχρονα. Αφαιρέστε ένα ή περισσότερα συνημμένα, επιλέξτε μικρότερο αρχείο ή φωτογραφία ή χωρίστε το αίτημα και δοκιμάστε ξανά.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Η προετοιμασία του ηχογραφημένου ήχου απέτυχε.";
 "ai.dictation.error.recordingStartFailed" = "Η έναρξη εγγραφής από το μικρόφωνο απέτυχε.";
 "ai.dictation.error.emptyRecording" = "Δεν καταγράφηκε ομιλία.";
+"ai.dictation.error.interrupted" = "Η εγγραφή διακόπηκε";
 "ai.dictation.error.network" = "Υπάρχει πρόβλημα δικτύου. Επιλύστε το και δοκιμάστε ξανά.";
 "ai.dictation.error.invalidAudio" = "Δεν ήταν δυνατή η επεξεργασία της εγγραφής. Δοκιμάστε ξανά.";
 "ai.message.unsupportedContent" = "Μη υποστηριζόμενο περιεχόμενο";

@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "بارگذاری یکی از پیوست‌ها ممکن نشد. اتصال خود را بررسی کنید، سپس دوباره امتحان کنید.";
 "ai.drop.overlay" = "فایل‌ها را برای پیوست اینجا رها کنید";
 "ai.composer.dictation.start" = "شروع دیکته";
-"ai.composer.dictation.stop" = "توقف دیکته";
-"ai.composer.dictation.waiting" = "در انتظار دسترسی به میکروفون...";
-"ai.composer.dictation.listening" = "در حال گوش دادن...";
+"ai.composer.dictation.cancel" = "لغو دیکته";
+"ai.composer.dictation.finish" = "پایان دیکته";
+"ai.composer.dictation.preparing" = "در حال آماده‌سازی";
+"ai.composer.dictation.recording" = "در حال ضبط %@";
 "ai.composer.dictation.transcribing" = "در حال تبدیل گفتار به متن...";
+"ai.composer.dictation.dismissError" = "بستن خطای دیکته";
+"ai.composer.dictation.announcement.started" = "ضبط شروع شد";
+"ai.composer.dictation.announcement.inserted" = "متن اضافه شد";
 "ai.error.title" = "خطا";
 "ai.error.requestTooLarge.title" = "پیام بیش از حد بزرگ است";
 "ai.error.requestTooLarge.message" = "گفت‌وگوی هوش مصنوعی نمی‌تواند این مقدار محتوا را یک‌جا بفرستد. یک یا چند پیوست را بردارید، فایل یا عکس کوچک‌تری انتخاب کنید یا درخواست را تقسیم کنید و دوباره امتحان کنید.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "آماده‌سازی صدای ضبط‌شده ناموفق بود.";
 "ai.dictation.error.recordingStartFailed" = "شروع ضبط میکروفون ناموفق بود.";
 "ai.dictation.error.emptyRecording" = "هیچ گفتاری ضبط نشد.";
+"ai.dictation.error.interrupted" = "ضبط قطع شد";
 "ai.dictation.error.network" = "مشکلی در شبکه وجود دارد. آن را برطرف و دوباره امتحان کنید.";
 "ai.dictation.error.invalidAudio" = "پردازش آن ضبط ممکن نشد. لطفاً دوباره امتحان کنید.";
 "ai.message.unsupportedContent" = "محتوای پشتیبانی‌نشده";

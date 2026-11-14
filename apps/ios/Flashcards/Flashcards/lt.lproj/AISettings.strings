@@ -59,10 +59,14 @@
 "ai.attachment.error.uploadFailed" = "Nepavyko įkelti priedo. Patikrinkite ryšį ir bandykite dar kartą.";
 "ai.drop.overlay" = "Nutempkite failus, kad juos pridėtumėte";
 "ai.composer.dictation.start" = "Pradėti diktavimą";
-"ai.composer.dictation.stop" = "Sustabdyti diktavimą";
-"ai.composer.dictation.waiting" = "Laukiama prieigos prie mikrofono...";
-"ai.composer.dictation.listening" = "Klausomasi...";
+"ai.composer.dictation.cancel" = "Atšaukti diktavimą";
+"ai.composer.dictation.finish" = "Baigti diktavimą";
+"ai.composer.dictation.preparing" = "Ruošiama";
+"ai.composer.dictation.recording" = "Įrašoma %@";
 "ai.composer.dictation.transcribing" = "Transkribuojama...";
+"ai.composer.dictation.dismissError" = "Uždaryti diktavimo klaidą";
+"ai.composer.dictation.announcement.started" = "Įrašymas pradėtas";
+"ai.composer.dictation.announcement.inserted" = "Transkripcija pridėta";
 "ai.error.title" = "Klaida";
 "ai.error.requestTooLarge.title" = "Žinutė per didelė";
 "ai.error.requestTooLarge.message" = "DI pokalbis negali vienu metu išsiųsti tiek turinio. Pašalinkite vieną ar daugiau priedų, pasirinkite mažesnį failą ar nuotrauką arba padalykite užklausą ir bandykite dar kartą.";
@@ -97,6 +101,7 @@
 "ai.dictation.error.invalidRecording" = "Nepavyko paruošti įrašyto garso.";
 "ai.dictation.error.recordingStartFailed" = "Nepavyko pradėti įrašymo mikrofonu.";
 "ai.dictation.error.emptyRecording" = "Kalba neįrašyta.";
+"ai.dictation.error.interrupted" = "Įrašymas nutrauktas";
 "ai.dictation.error.network" = "Tinklo problema. Ištaisykite ją ir bandykite dar kartą.";
 "ai.dictation.error.invalidAudio" = "Nepavyko apdoroti šio įrašo. Bandykite dar kartą.";
 "ai.message.unsupportedContent" = "Nepalaikomas turinys";
