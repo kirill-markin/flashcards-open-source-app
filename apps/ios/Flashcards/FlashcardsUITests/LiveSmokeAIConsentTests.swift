@@ -190,6 +190,10 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
         try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip, timeout: 30)
         try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerDictationButton, timeout: 10)
         try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerAttachmentButton, timeout: 10)
+        #if !targetEnvironment(macCatalyst)
+        // The handoff leaves the side chat's keyboard up, and Settings' side chat keeps it, so it is put away first.
+        try self.dismissAiComposerKeyboard()
+        #endif
         try self.openAIConsentLegalSettings()
         let grant = try self.readConsentReceipt()
         try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.aiConsentWithdrawButton, timeout: 10)
