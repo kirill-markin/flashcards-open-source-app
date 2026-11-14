@@ -323,9 +323,25 @@ const arCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "تقييمات المراجعة",
     },
+    reviewsPace: {
+      lastSevenDays: "آخر 7 أيام · {{count}} يوميًا",
+      studyTime: "وقت الدراسة · ≈ {{count}} دقيقة",
+    },
+    records: {
+      title: "الأرقام القياسية",
+      bestDay: "أفضل يوم",
+      bestWeek: "أفضل أسبوع",
+      longestStreak: "أطول سلسلة",
+      totalReviews: "إجمالي المراجعات",
+      lastSevenDays: "آخر 7 أيام",
+      cardsMet: "بطاقات جديدة",
+      relearned: "أعيد تعلمها",
+    },
     reviewSchedule: {
       title: "جدول المراجعة",
       totalCards: "إجمالي البطاقات: {{count}}",
+      dueToday: "مستحقة اليوم {{count}}",
+      dueTodayWithMinutes: "مستحقة اليوم {{count}} · ≈ {{minutes}} دقيقة",
       legendLabel: "مجموعات جدول المراجعة",
       buckets: {
         new: "جديدة",

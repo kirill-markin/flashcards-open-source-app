@@ -330,9 +330,25 @@ const plCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Oceny powtórek",
     },
+    reviewsPace: {
+      lastSevenDays: "Ostatnie 7 dni · {{count}} dziennie",
+      studyTime: "Czas nauki · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordy",
+      bestDay: "Najlepszy dzień",
+      bestWeek: "Najlepszy tydzień",
+      longestStreak: "Najdłuższa seria",
+      totalReviews: "Powtórki łącznie",
+      lastSevenDays: "Ostatnie 7 dni",
+      cardsMet: "Nowe karty",
+      relearned: "Nauczone ponownie",
+    },
     reviewSchedule: {
       title: "Harmonogram powtórek",
       totalCards: "Łącznie kart: {{count}}",
+      dueToday: "Na dziś {{count}}",
+      dueTodayWithMinutes: "Na dziś {{count}} · ≈ {{minutes}} min",
       legendLabel: "Przedziały harmonogramu powtórek",
       buckets: {
         new: "Nowe",

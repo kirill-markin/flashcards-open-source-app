@@ -1,7 +1,9 @@
 import type {
+  ProgressInsights,
   ProgressScopeKey,
   ProgressSummaryPayload,
 } from "../../../types";
+import { parseProgressInsights } from "../../../apiContracts/progress";
 import {
   addProgressCacheMissBreadcrumb,
   isNonNegativeSafeIntegerValue,
@@ -26,6 +28,19 @@ type PersistedProgressSummary = Readonly<{
 
 function buildProgressSummaryStorageKey(scopeKey: ProgressScopeKey): string {
   return `${progressSummaryStorageKeyPrefix}:${scopeKey}`;
+}
+
+// Copies saved before insights existed have none; a malformed copy is a cache miss.
+function parsePersistedProgressInsights(value: unknown): ProgressInsights | null | "invalid" {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  try {
+    return parseProgressInsights(value, "persisted progress summary", "serverBase.insights");
+  } catch {
+    return "invalid";
+  }
 }
 
 function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheReadResult<PersistedProgressSummary> {
@@ -93,6 +108,14 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
     };
   }
 
+  const insights = parsePersistedProgressInsights(parsedValue.serverBase.insights);
+  if (insights === "invalid") {
+    return {
+      status: "miss",
+      reason: "invalid_shape",
+    };
+  }
+
   return {
     status: "hit",
     value: {
@@ -111,6 +134,7 @@ function parsePersistedProgressSummary(rawValue: string | null): ProgressCacheRe
           activeReviewDays: parsedValue.serverBase.summary.activeReviewDays,
           streakFreeze,
         },
+        insights,
       },
     },
   };

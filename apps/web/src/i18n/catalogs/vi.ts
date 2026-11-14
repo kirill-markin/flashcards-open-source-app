@@ -323,9 +323,25 @@ const viCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Mức đánh giá ôn tập",
     },
+    reviewsPace: {
+      lastSevenDays: "7 ngày qua · {{count}} mỗi ngày",
+      studyTime: "Thời gian học · ≈ {{count}} phút",
+    },
+    records: {
+      title: "Kỷ lục",
+      bestDay: "Ngày tốt nhất",
+      bestWeek: "Tuần tốt nhất",
+      longestStreak: "Chuỗi dài nhất",
+      totalReviews: "Tổng lượt ôn",
+      lastSevenDays: "7 ngày qua",
+      cardsMet: "Thẻ mới",
+      relearned: "Học lại",
+    },
     reviewSchedule: {
       title: "Lịch ôn tập",
       totalCards: "Tổng số thẻ: {{count}}",
+      dueToday: "Đến hạn hôm nay {{count}}",
+      dueTodayWithMinutes: "Đến hạn hôm nay {{count}} · ≈ {{minutes}} phút",
       legendLabel: "Các nhóm trong lịch ôn tập",
       buckets: {
         new: "Mới",

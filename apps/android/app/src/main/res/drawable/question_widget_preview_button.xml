@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Reveal answer button in the Question widget's picker preview. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/review_widget_primary" />
+    <corners android:radius="20dp" />
+</shape>

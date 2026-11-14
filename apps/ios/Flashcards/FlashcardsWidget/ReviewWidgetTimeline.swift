@@ -20,6 +20,8 @@ struct ReviewWidgetEntry: TimelineEntry, Sendable {
     let date: Date
     let workspaceId: String?
     let content: ReviewWidgetContent
+    /// The scheduled cards due at `date`, the due cards without the new ones; nil without the snapshot's new count.
+    let scheduledDueCount: Int?
     /// The decoded snapshot behind `content`, for widget kinds that show more than Review; nil without one.
     let snapshot: WidgetSnapshot?
 }
@@ -45,19 +47,25 @@ struct ReviewWidgetTimelineProvider: TimelineProvider {
             completion(Timeline(entries: [makeNoSnapshotReviewWidgetEntry(date: now)], policy: .never))
             return
         }
-        completion(Timeline(entries: makeReviewWidgetEntries(snapshot: snapshot, now: now), policy: .never))
+        completion(
+            Timeline(
+                entries: makeReviewWidgetEntries(snapshot: snapshot, now: now, reservedDates: []),
+                policy: .never
+            )
+        )
     }
 }
 
-/// One entry now, one per later due time up to the cap, and always one at the next local midnight,
-/// so the count grows as cards become due and day-based widgets roll over to the new day.
-/// Past the last entry the content stays as it is until the app writes a new snapshot.
-func makeReviewWidgetEntries(snapshot: WidgetSnapshot, now: Date) -> [ReviewWidgetEntry] {
-    // Two slots stay reserved: `now` and the next local midnight.
+/// One entry now, one per later due time up to the cap, always one at the next local midnight, and one at each of
+/// `reservedDates`, so the count grows as cards become due, day-based widgets roll over to the new day, and a widget
+/// can change on its own schedule. Past the last entry the content stays as it is until the app writes a new snapshot.
+func makeReviewWidgetEntries(snapshot: WidgetSnapshot, now: Date, reservedDates: [Date]) -> [ReviewWidgetEntry] {
+    let laterReservedDates = reservedDates.filter { reservedDate in reservedDate > now }
+    // `now`, the next local midnight and the reserved dates keep their slots.
     let laterDueDates = Set(snapshot.upcomingDueAt.filter { dueAt in dueAt > now })
         .sorted()
-        .prefix(reviewWidgetMaximumEntryCount - 2)
-    let laterDates = Set(laterDueDates + [widgetNextLocalDayStart(after: now)]).sorted()
+        .prefix(reviewWidgetMaximumEntryCount - 2 - laterReservedDates.count)
+    let laterDates = Set(laterDueDates + laterReservedDates + [widgetNextLocalDayStart(after: now)]).sorted()
     let entryDates = [now] + laterDates
     return entryDates.map { entryDate in
         makeReviewWidgetEntry(snapshot: snapshot, date: entryDate)
@@ -76,15 +84,32 @@ func makeReviewWidgetEntry(snapshot: WidgetSnapshot, date: Date) -> ReviewWidget
             streakDays: snapshot.streakDays
         )
     }
-    return ReviewWidgetEntry(date: date, workspaceId: snapshot.workspaceId, content: content, snapshot: snapshot)
+    return ReviewWidgetEntry(
+        date: date,
+        workspaceId: snapshot.workspaceId,
+        content: content,
+        scheduledDueCount: snapshot.newCount.map { newCount in max(0, snapshot.dueCount - newCount + becameDueCount) },
+        snapshot: snapshot
+    )
 }
 
 func makeNoSnapshotReviewWidgetEntry(date: Date) -> ReviewWidgetEntry {
-    ReviewWidgetEntry(date: date, workspaceId: nil, content: .noSnapshot, snapshot: nil)
+    ReviewWidgetEntry(date: date, workspaceId: nil, content: .noSnapshot, scheduledDueCount: nil, snapshot: nil)
+}
+
+/// Minutes to clear the scheduled due cards at the entry date; nil at 0 due or under the server's timing sample.
+func widgetReviewTimeEstimateMinutes(entry: ReviewWidgetEntry) -> Int? {
+    guard
+        let scheduledDueCount = entry.scheduledDueCount,
+        let secondsPerDueCard = entry.snapshot?.insights?.secondsPerDueCard
+    else {
+        return nil
+    }
+    return makeReviewTimeEstimateMinutes(dueCount: scheduledDueCount, secondsPerDueCard: secondsPerDueCard)
 }
 
 /// A read failure renders the no-snapshot state; the next app write replaces the file.
-private func loadReviewWidgetSnapshot() -> WidgetSnapshot? {
+func loadReviewWidgetSnapshot() -> WidgetSnapshot? {
     do {
         return try readWidgetSnapshot(fileURL: try widgetSnapshotFileURL())
     } catch {

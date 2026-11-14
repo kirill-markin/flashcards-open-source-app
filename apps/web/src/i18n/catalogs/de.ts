@@ -323,9 +323,25 @@ const deCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Wiederholungsbewertungen",
     },
+    reviewsPace: {
+      lastSevenDays: "Letzte 7 Tage · {{count}} pro Tag",
+      studyTime: "Lernzeit · ≈ {{count}} Min.",
+    },
+    records: {
+      title: "Rekorde",
+      bestDay: "Bester Tag",
+      bestWeek: "Beste Woche",
+      longestStreak: "Längste Serie",
+      totalReviews: "Wiederholungen gesamt",
+      lastSevenDays: "Letzte 7 Tage",
+      cardsMet: "Neue Karten",
+      relearned: "Neu gelernt",
+    },
     reviewSchedule: {
       title: "Wiederholungsplan",
       totalCards: "Karten gesamt: {{count}}",
+      dueToday: "Heute fällig {{count}}",
+      dueTodayWithMinutes: "Heute fällig {{count}} · ≈ {{minutes}} Min.",
       legendLabel: "Abschnitte im Wiederholungsplan",
       buckets: {
         new: "Neu",

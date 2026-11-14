@@ -8,6 +8,7 @@ import type {
 type ProgressReviewScheduleSectionProps = Readonly<{
   title: string;
   totalCardsLabel: string;
+  dueTodayLabel: string;
   legendLabel: string;
   selectedBucket: ProgressReviewScheduleBucketKey | null;
   bucketViews: ReadonlyArray<ReviewScheduleBucketView>;
@@ -20,6 +21,7 @@ export function ProgressReviewScheduleSection(props: ProgressReviewScheduleSecti
   const {
     title,
     totalCardsLabel,
+    dueTodayLabel,
     legendLabel,
     selectedBucket,
     bucketViews,
@@ -40,6 +42,9 @@ export function ProgressReviewScheduleSection(props: ProgressReviewScheduleSecti
           <h2 className="progress-section-title">{title}</h2>
           <p className="progress-chart-range">
             {totalCardsLabel}
+          </p>
+          <p className="progress-chart-range" data-testid="progress-review-schedule-due-today">
+            {dueTodayLabel}
           </p>
         </div>
       </div>

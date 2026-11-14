@@ -41,6 +41,15 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
       activeReviewDays: 0,
       streakFreeze: createFullStreakFreeze(),
     },
+    insights: {
+      totalReviews: 0,
+      bestDayBeforeToday: null,
+      bestWeekBeforeToday: null,
+      cardsMetLast7Days: 0,
+      relearnedLast7Days: 0,
+      secondsPerDueCard: null,
+      studySecondsByDay: null,
+    },
     generatedAt: progress.generatedAt,
     reviewHistoryWatermarks: [
       { workspaceId: "workspace-1", reviewSequenceId: 0 },

@@ -57,12 +57,6 @@
     <string name="review_widget_next_due">Next card: <xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
     <!-- The big due count on the small widget, in the locale's digits. -->
     <string name="review_widget_due_count" translatable="false">%1$d</string>
-    <!-- Shown under the big due count on the small widget. -->
-    <string name="review_widget_due_label">due</string>
-    <plurals name="review_widget_cards_due">
-        <item quantity="one">%1$d card due</item>
-        <item quantity="other">%1$d cards due</item>
-    </plurals>
     <plurals name="review_widget_streak_days">
         <item quantity="one">%1$d-day streak</item>
         <item quantity="other">%1$d-day streak</item>
@@ -73,18 +67,7 @@
     <string name="review_widget_preview_streak">7-day streak</string>
     <!-- Reviews chart Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="reviews_chart_widget_label">Reviews</string>
-    <string name="reviews_chart_widget_description">Your daily reviews over the last weeks.</string>
-    <string name="reviews_chart_widget_daily_average">Daily avg <xliff:g id="review_count" example="24">%1$d</xliff:g></string>
-    <!-- The quantity is the day count. -->
-    <plurals name="reviews_chart_widget_trend_up">
-        <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> day</item>
-        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> days</item>
-    </plurals>
-    <!-- The quantity is the day count. -->
-    <plurals name="reviews_chart_widget_trend_down">
-        <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> day</item>
-        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% vs previous <xliff:g id="day_count" example="14">%2$d</xliff:g> days</item>
-    </plurals>
+    <string name="reviews_chart_widget_description">Your daily reviews of the last 7 days against your usual.</string>
     <string name="reviews_chart_widget_preview_daily_average">Daily avg 24</string>
     <!-- Coming up Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="coming_up_widget_label">Coming up</string>
@@ -94,28 +77,11 @@
         <item quantity="other">Next 7 days · <xliff:g id="card_count" example="58">%1$d</xliff:g> cards</item>
     </plurals>
     <string name="coming_up_widget_preview_header">Next 7 days · 58 cards</string>
-    <!-- Today Home Screen widget name in the launcher's widget picker, also its title on the medium widget. -->
+    <!-- Today Home Screen widget name in the launcher's widget picker. -->
     <string name="today_widget_label">Today</string>
-    <string name="today_widget_description">Today’s reviews, cards left and your streak.</string>
-    <!-- A count inside the small widget's ring (cards reviewed today) or next to the streak flame, in the locale's digits. -->
+    <string name="today_widget_description">Your last 7 days against your usual, today’s reviews, cards due and your streak.</string>
+    <!-- A count inside the pace ring (reviews in the last 7 days) or next to the streak flame, in the locale's digits. -->
     <string name="today_widget_count" translatable="false">%1$d</string>
-    <!-- Share of today's cards already reviewed, next to the progress bar. -->
-    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
-    <!-- Shown when no card was reviewed today and none is due. -->
-    <string name="today_widget_no_cards_due">No cards due</string>
-    <plurals name="today_widget_reviewed">
-        <item quantity="one">%1$d reviewed</item>
-        <item quantity="other">%1$d reviewed</item>
-    </plurals>
-    <!-- Cards still due today, under the ring on the small widget. -->
-    <plurals name="today_widget_left">
-        <item quantity="one">%1$d left</item>
-        <item quantity="other">%1$d left</item>
-    </plurals>
-    <plurals name="today_widget_cards_left">
-        <item quantity="one">%1$d card left</item>
-        <item quantity="other">%1$d cards left</item>
-    </plurals>
     <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
     <string name="today_widget_preview_reviewed">8 reviewed</string>
     <string name="today_widget_preview_cards_left">4 cards left</string>
@@ -160,18 +126,15 @@
     <!-- Sample content of the Year widget preview in the launcher's widget picker. -->
     <string name="year_widget_preview_reviews">4,120 reviews</string>
     <string name="year_widget_preview_active_days">186 active days</string>
-    <!-- Streaks Home Screen widget name in the launcher's widget picker; also its medium-size header. -->
+    <!-- Streaks Home Screen widget name in the launcher's widget picker. -->
     <string name="streaks_widget_label">Streaks</string>
-    <string name="streaks_widget_description">Your current streak, your best and your recent streaks.</string>
-    <string name="streaks_widget_flame" translatable="false">🔥</string>
+    <string name="streaks_widget_description">Your streak, your best, your freezes and your last 7 days.</string>
     <!-- A streak length in days, in the locale's digits. -->
     <string name="streaks_widget_day_count" translatable="false">%1$d</string>
     <!-- The longest streak ever, in days. -->
     <string name="streaks_widget_best">Best <xliff:g id="days" example="30">%1$d</xliff:g></string>
     <!-- Streak freezes available. -->
     <string name="streaks_widget_freeze_credits" translatable="false">❄️ %1$d</string>
-    <string name="streaks_widget_empty">Review today to start a streak.</string>
-    <string name="streaks_widget_chart_description">Your current and recent streaks</string>
     <!-- Sample content of the Streaks widget preview in the launcher's widget picker. -->
     <string name="streaks_widget_preview_current" translatable="false">🔥 12</string>
     <string name="streaks_widget_preview_best">Best 30</string>
@@ -191,6 +154,50 @@
     <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
     <string name="dashboard_widget_label">Dashboard</string>
     <string name="dashboard_widget_description">Today’s progress, cards due, your streak, the next question and your activity.</string>
+    <!-- Shared by the widgets that show a question; opens Review on that card with the answer shown. -->
+    <string name="widget_reveal_answer">Reveal answer</string>
+    <!-- Under the big count of cards to review, which counts due and new cards. -->
+    <string name="review_widget_to_review_label">To review</string>
+    <plurals name="review_widget_to_review_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> To review</item>
+        <item quantity="other"><xliff:g id="count" example="132">%1$d</xliff:g> To review</item>
+    </plurals>
+    <!-- Cards due by schedule, without the new ones. -->
+    <plurals name="widget_scheduled_due">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> due</item>
+        <item quantity="other"><xliff:g id="count" example="34">%1$d</xliff:g> due</item>
+    </plurals>
+    <!-- Shown instead of the due count when only new cards are left to review. -->
+    <string name="widget_scheduled_due_none">✓ 0 due</string>
+    <!-- An estimate of study minutes. -->
+    <plurals name="widget_minutes_estimate">
+        <item quantity="one">≈ <xliff:g id="minutes" example="1">%1$d</xliff:g> min</item>
+        <item quantity="other">≈ <xliff:g id="minutes" example="6">%1$d</xliff:g> min</item>
+    </plurals>
+    <!-- New cards among the cards to review. -->
+    <plurals name="widget_new_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> new</item>
+        <item quantity="other"><xliff:g id="count" example="98">%1$d</xliff:g> new</item>
+    </plurals>
+    <!-- Under the count of reviews in the last 7 days, inside the pace ring. -->
+    <string name="widget_last_7_days_label">7 days</string>
+    <plurals name="today_widget_today_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> today</item>
+        <item quantity="other"><xliff:g id="count" example="36">%1$d</xliff:g> today</item>
+    </plurals>
+    <!-- Shown once today's reviews reach 80% of the best earlier day; the number is that best day's reviews. -->
+    <string name="today_widget_best_day">Best day <xliff:g id="count" example="61">%1$d</xliff:g></string>
+    <string name="today_widget_new_best_day">New best day</string>
+    <!-- The daily average of the last 7 days, with one decimal. -->
+    <string name="reviews_chart_widget_daily_average_value">Daily avg <xliff:g id="average" example="13.1">%1$s</xliff:g></string>
+    <!-- Under the current streak's day count. -->
+    <string name="streaks_widget_day_streak_label">Day streak</string>
+    <string name="streaks_widget_days_description">Your last 7 days</string>
+    <!-- Question Home Screen widget; label and description appear in the launcher's widget picker. -->
+    <string name="question_widget_label">Question</string>
+    <string name="question_widget_description">A question from your next cards, with a button to reveal its answer.</string>
+    <!-- Sample content of the Question widget preview in the launcher's widget picker. -->
+    <string name="question_widget_preview_due">12 due</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Supports the app’s creator</string>
     <string name="premium_benefit_accent_color">Any accent color</string>

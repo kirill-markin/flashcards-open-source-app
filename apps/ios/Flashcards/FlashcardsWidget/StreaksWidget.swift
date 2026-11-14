@@ -1,14 +1,9 @@
-import OSLog
 import SwiftUI
 import WidgetKit
 
 let streaksWidgetKind: String = "StreaksWidget"
 
-private let streaksWidgetMaximumPastRunCount: Int = 4
-private let streaksWidgetBarHeight: CGFloat = 14
-private let streaksWidgetBarMinimumWidth: CGFloat = 26
-private let streaksWidgetBarDateWidth: CGFloat = 40
-private let streaksWidgetBarDateSpacing: CGFloat = 4
+private let streaksWidgetDotCount: Int = 7
 
 struct StreaksWidget: Widget {
     var body: some WidgetConfiguration {
@@ -43,7 +38,8 @@ struct StreaksWidgetView: View {
                                 kind: .streaks,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: nil
+                                cardId: nil,
+                                revealAnswer: false
                             )
                         )
                     )
@@ -80,74 +76,20 @@ private func streaksWidgetSize(family: WidgetFamily) -> StreaksWidgetSize? {
     }
 }
 
-private struct StreaksWidgetRun: Identifiable, Equatable {
-    let startDate: Date
-    let endDate: Date
-    let dayCount: Int
-    let isCurrent: Bool
+private struct StreaksWidgetDot: Identifiable {
+    let date: Date
+    let state: WidgetSnapshotStreakDayState
 
     var id: Date {
-        self.startDate
+        self.date
     }
 }
 
-/// Most recent first: the current streak when there is one, then up to 4 earlier streaks of the history window.
-/// The current streak takes the app's length, so one longer than the window keeps its true length and start;
-/// the oldest earlier streak may be cut at the window start. Nil when the current streak start is not a calendar date.
-private func makeStreaksWidgetRuns(streakProgress: StreakWidgetProgress) -> [StreaksWidgetRun]? {
-    let progress = streakProgress.progress
-    var indexRuns: [(startIndex: Int, endIndex: Int)] = []
-    var runStartIndex: Int? = nil
-    for (index, day) in progress.days.enumerated() {
-        if isStreakWidgetStreakDay(state: day.streakState) {
-            if runStartIndex == nil {
-                runStartIndex = index
-            }
-        } else if let startIndex = runStartIndex {
-            indexRuns.append((startIndex: startIndex, endIndex: index - 1))
-            runStartIndex = nil
-        }
-    }
-    if let startIndex = runStartIndex {
-        indexRuns.append((startIndex: startIndex, endIndex: progress.days.count - 1))
-    }
-
-    let lastIndex = progress.days.count - 1
-    // Today still pending does not break the current streak.
-    let currentEndIndex = progress.days.last?.streakState == .pending ? lastIndex - 1 : lastIndex
-    let currentIndexRun = indexRuns.last.flatMap { indexRun in
-        progress.currentStreakDays > 0 && indexRun.endIndex == currentEndIndex ? indexRun : nil
-    }
-    let pastIndexRuns = currentIndexRun == nil ? indexRuns[...] : indexRuns.dropLast()
-    let pastRuns = pastIndexRuns.suffix(streaksWidgetMaximumPastRunCount).reversed().map { indexRun in
-        StreaksWidgetRun(
-            startDate: streakProgress.dayDates[indexRun.startIndex],
-            endDate: streakProgress.dayDates[indexRun.endIndex],
-            dayCount: indexRun.endIndex - indexRun.startIndex + 1,
-            isCurrent: false
-        )
-    }
-    guard let currentIndexRun else {
-        return pastRuns
-    }
-    let currentEndDate = streakProgress.dayDates[currentIndexRun.endIndex]
-    guard let currentStartDate = streakProgress.dayCalendar.date(
-        byAdding: .day,
-        value: 1 - progress.currentStreakDays,
-        to: currentEndDate
-    ) else {
-        reviewWidgetLogger.error(
-            "event=streaks_widget_current_start_invalid currentStreakDays=\(progress.currentStreakDays, privacy: .public) todayLocalDate=\(progress.todayLocalDate, privacy: .public)"
-        )
-        return nil
-    }
-    let currentRun = StreaksWidgetRun(
-        startDate: currentStartDate,
-        endDate: currentEndDate,
-        dayCount: progress.currentStreakDays,
-        isCurrent: true
-    )
-    return [currentRun] + pastRuns
+/// The last 7 days, today last; rolling, never a calendar week.
+private func makeStreaksWidgetDots(streakProgress: StreakWidgetProgress) -> [StreaksWidgetDot] {
+    zip(streakProgress.dayDates, streakProgress.progress.days)
+        .suffix(streaksWidgetDotCount)
+        .map { date, day in StreaksWidgetDot(date: date, state: day.streakState) }
 }
 
 private struct StreaksWidgetContentView: View {
@@ -156,19 +98,12 @@ private struct StreaksWidgetContentView: View {
 
     var body: some View {
         if let progress {
+            let dots = makeStreaksWidgetDots(streakProgress: progress)
             switch self.size {
             case .small:
-                StreaksWidgetSmallView(progress: progress.progress)
+                StreaksWidgetSmallView(progress: progress, dots: dots)
             case .medium:
-                if let runs = makeStreaksWidgetRuns(streakProgress: progress) {
-                    StreaksWidgetMediumView(
-                        progress: progress.progress,
-                        runs: runs,
-                        dateFormatStyle: progress.dateFormatStyle
-                    )
-                } else {
-                    WidgetNoSnapshotView()
-                }
+                StreaksWidgetMediumView(progress: progress, dots: dots)
             }
         } else {
             WidgetNoSnapshotView()
@@ -177,20 +112,16 @@ private struct StreaksWidgetContentView: View {
 }
 
 private struct StreaksWidgetSmallView: View {
-    @Environment(\.widgetAccent) private var accent
-    let progress: WidgetSnapshotProgress
+    let progress: StreakWidgetProgress
+    let dots: [StreaksWidgetDot]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 32, weight: .semibold))
-                    .foregroundStyle(self.accent.color)
-                    .widgetAccentable()
-                Text(self.progress.currentStreakDays, format: .number)
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.4)
+                StreaksWidgetCountView(progress: self.progress.progress, flameSize: 28, countSize: 40)
+                Spacer(minLength: 4)
+                StreaksWidgetFreezeView(availableFreezeCredits: self.progress.progress.availableFreezeCredits)
+                    .font(.caption.weight(.semibold))
             }
             Text("widget.streaks.current", tableName: widgetStringsTableName)
                 .font(.subheadline)
@@ -198,12 +129,59 @@ private struct StreaksWidgetSmallView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer(minLength: 0)
-            HStack(spacing: 8) {
-                StreaksWidgetBestView(longestStreakDays: self.progress.longestStreakDays)
-                Spacer(minLength: 0)
-                StreaksWidgetFreezeView(availableFreezeCredits: self.progress.availableFreezeCredits)
+            StreaksWidgetDotsView(dots: self.dots, displayCalendar: self.progress.displayCalendar, dotSide: 16)
+        }
+    }
+}
+
+private struct StreaksWidgetMediumView: View {
+    let progress: StreakWidgetProgress
+    let dots: [StreaksWidgetDot]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                StreaksWidgetCountView(progress: self.progress.progress, flameSize: 28, countSize: 40)
+                Text("widget.streaks.current", tableName: widgetStringsTableName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 8)
+                StreaksWidgetBestView(longestStreakDays: self.progress.progress.longestStreakDays)
+                    .font(.subheadline.weight(.semibold))
             }
-            .font(.caption.weight(.semibold))
+            Spacer(minLength: 0)
+            HStack(alignment: .bottom, spacing: 12) {
+                StreaksWidgetDotsView(dots: self.dots, displayCalendar: self.progress.displayCalendar, dotSide: 22)
+                StreaksWidgetFreezeView(availableFreezeCredits: self.progress.progress.availableFreezeCredits)
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+    }
+}
+
+/// The flame stays grey until the first review today.
+private struct StreaksWidgetCountView: View {
+    @Environment(\.widgetAccent) private var accent
+    let progress: WidgetSnapshotProgress
+    let flameSize: CGFloat
+    let countSize: CGFloat
+
+    private var hasReviewedToday: Bool {
+        self.progress.days.last?.streakState == .reviewed
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: self.flameSize, weight: .semibold))
+                .foregroundStyle(self.hasReviewedToday ? self.accent.color : Color.secondary)
+                .widgetAccentable(self.hasReviewedToday)
+            Text(self.progress.currentStreakDays, format: .number)
+                .font(.system(size: self.countSize, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
         }
     }
 }
@@ -239,120 +217,70 @@ private struct StreaksWidgetFreezeView: View {
     }
 }
 
-private struct StreaksWidgetMediumView: View {
-    @Environment(\.widgetAccent) private var accent
-    let progress: WidgetSnapshotProgress
-    let runs: [StreaksWidgetRun]
-    let dateFormatStyle: Date.FormatStyle
+/// One dot per day with its weekday initial: reviewed, covered by a freeze, missed, or still open today.
+private struct StreaksWidgetDotsView: View {
+    let dots: [StreaksWidgetDot]
+    let displayCalendar: Calendar
+    let dotSide: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                Image(systemName: "flame.fill")
-                    .foregroundStyle(self.accent.color)
+        HStack(spacing: 0) {
+            ForEach(self.dots) { dot in
+                VStack(spacing: 3) {
+                    StreaksWidgetDotView(state: dot.state, side: self.dotSide)
+                    Text(dot.date, format: self.weekdayFormatStyle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    private var weekdayFormatStyle: Date.FormatStyle {
+        Date.FormatStyle(
+            date: nil,
+            time: nil,
+            locale: Locale.autoupdatingCurrent,
+            calendar: self.displayCalendar,
+            timeZone: self.displayCalendar.timeZone,
+            capitalizationContext: .standalone
+        )
+        .weekday(.narrow)
+    }
+}
+
+private struct StreaksWidgetDotView: View {
+    @Environment(\.widgetAccent) private var accent
+    let state: WidgetSnapshotStreakDayState
+    let side: CGFloat
+
+    var body: some View {
+        ZStack {
+            switch self.state {
+            case .reviewed:
+                Circle()
+                    .fill(self.accent.color)
                     .widgetAccentable()
-                Text("widget.streak_days \(self.progress.currentStreakDays)", tableName: widgetStringsTableName)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Spacer(minLength: 8)
-                StreaksWidgetBestView(longestStreakDays: self.progress.longestStreakDays)
-            }
-            .font(.caption.weight(.semibold))
-            if self.runs.isEmpty {
-                Text("widget.streaks.empty", tableName: widgetStringsTableName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-                Spacer(minLength: 0)
-            } else {
-                StreaksWidgetBarsView(runs: self.runs, dateFormatStyle: self.dateFormatStyle)
+                Image(systemName: "checkmark")
+                    .font(.system(size: self.side * 0.5, weight: .bold))
+                    .foregroundStyle(self.accent.filledLabelColor)
+            case .frozen:
+                Circle()
+                    .strokeBorder(streakWidgetFrozenColor, lineWidth: 1.5)
+                Image(systemName: "snowflake")
+                    .font(.system(size: self.side * 0.55, weight: .semibold))
+                    .foregroundStyle(streakWidgetFrozenColor)
+            case .missed:
+                Circle()
+                    .fill(Color.secondary.opacity(0.2))
+            case .pending:
+                Circle()
+                    .strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1.5)
             }
         }
-    }
-}
-
-/// Bars like a habit tracker's streak chart: each bar's length is proportional to its days, with its dates at the ends.
-private struct StreaksWidgetBarsView: View {
-    let runs: [StreaksWidgetRun]
-    let dateFormatStyle: Date.FormatStyle
-
-    var body: some View {
-        GeometryReader { geometry in
-            let longestDayCount = self.runs.map(\.dayCount).reduce(0, max)
-            let dateColumnsWidth = 2 * (streaksWidgetBarDateWidth + streaksWidgetBarDateSpacing)
-            let maximumBarWidth = max(geometry.size.width - dateColumnsWidth, streaksWidgetBarMinimumWidth)
-            VStack(spacing: 4) {
-                ForEach(self.runs) { run in
-                    StreaksWidgetBarRow(
-                        run: run,
-                        barWidth: max(
-                            streaksWidgetBarMinimumWidth,
-                            maximumBarWidth * CGFloat(run.dayCount) / CGFloat(longestDayCount)
-                        ),
-                        dateFormatStyle: self.dateFormatStyle.month(.abbreviated).day()
-                    )
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-    }
-}
-
-private struct StreaksWidgetBarRow: View {
-    @Environment(\.widgetAccent) private var accent
-    @Environment(\.widgetRenderingMode) private var renderingMode
-    let run: StreaksWidgetRun
-    let barWidth: CGFloat
-    let dateFormatStyle: Date.FormatStyle
-
-    var body: some View {
-        HStack(spacing: streaksWidgetBarDateSpacing) {
-            StreaksWidgetBarDateView(date: self.run.startDate, dateFormatStyle: self.dateFormatStyle)
-                .frame(width: streaksWidgetBarDateWidth, alignment: .trailing)
-            ZStack {
-                if self.isAccentFilled {
-                    Capsule()
-                        .fill(self.accent.color)
-                        .widgetAccentable()
-                } else {
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.3))
-                }
-                // Tinted and clear Home Screens draw accentable fills opaque, which would hide the day count, so there
-                // the current run is outlined instead.
-                if self.run.isCurrent && self.renderingMode == .accented {
-                    Capsule()
-                        .strokeBorder(Color.primary, lineWidth: 1.5)
-                        .widgetAccentable()
-                }
-                Text(self.run.dayCount, format: .number)
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(self.isAccentFilled ? self.accent.filledLabelColor : Color.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, 4)
-            }
-            .frame(width: self.barWidth, height: streaksWidgetBarHeight)
-            StreaksWidgetBarDateView(date: self.run.endDate, dateFormatStyle: self.dateFormatStyle)
-                .frame(width: streaksWidgetBarDateWidth, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var isAccentFilled: Bool {
-        self.run.isCurrent && self.renderingMode != .accented
-    }
-}
-
-private struct StreaksWidgetBarDateView: View {
-    let date: Date
-    let dateFormatStyle: Date.FormatStyle
-
-    var body: some View {
-        Text(self.date, format: self.dateFormatStyle)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+        .frame(width: self.side, height: self.side)
     }
 }

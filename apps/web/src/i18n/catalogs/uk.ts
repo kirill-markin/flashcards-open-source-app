@@ -330,9 +330,25 @@ const ukCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Оцінки повторень",
     },
+    reviewsPace: {
+      lastSevenDays: "Останні 7 днів · {{count}} на день",
+      studyTime: "Час навчання · ≈ {{count}} хв",
+    },
+    records: {
+      title: "Рекорди",
+      bestDay: "Найкращий день",
+      bestWeek: "Найкращий тиждень",
+      longestStreak: "Найдовша серія",
+      totalReviews: "Усього повторень",
+      lastSevenDays: "Останні 7 днів",
+      cardsMet: "Нові картки",
+      relearned: "Вивчено знову",
+    },
     reviewSchedule: {
       title: "Розклад повторень",
       totalCards: "Усього карток: {{count}}",
+      dueToday: "На сьогодні {{count}}",
+      dueTodayWithMinutes: "На сьогодні {{count}} · ≈ {{minutes}} хв",
       legendLabel: "Групи розкладу повторень",
       buckets: {
         new: "Нові",

@@ -331,9 +331,25 @@ const ptPtCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Avaliações das revisões",
     },
+    reviewsPace: {
+      lastSevenDays: "Últimos 7 dias · {{count}} por dia",
+      studyTime: "Tempo de estudo · ≈ {{count}} min",
+    },
+    records: {
+      title: "Recordes",
+      bestDay: "Melhor dia",
+      bestWeek: "Melhor semana",
+      longestStreak: "Maior sequência",
+      totalReviews: "Total de revisões",
+      lastSevenDays: "Últimos 7 dias",
+      cardsMet: "Cartões novos",
+      relearned: "Reaprendidos",
+    },
     reviewSchedule: {
       title: "Calendário de revisões",
       totalCards: "Total de cartões: {{count}}",
+      dueToday: "Para hoje {{count}}",
+      dueTodayWithMinutes: "Para hoje {{count}} · ≈ {{minutes}} min",
       legendLabel: "Intervalos do calendário de revisões",
       buckets: {
         new: "Novos",

@@ -330,9 +330,25 @@ const csCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Hodnocení opakování",
     },
+    reviewsPace: {
+      lastSevenDays: "Posledních 7 dní · {{count}} denně",
+      studyTime: "Čas učení · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordy",
+      bestDay: "Nejlepší den",
+      bestWeek: "Nejlepší týden",
+      longestStreak: "Nejdelší série",
+      totalReviews: "Opakování celkem",
+      lastSevenDays: "Posledních 7 dní",
+      cardsMet: "Nové karty",
+      relearned: "Znovu naučené",
+    },
     reviewSchedule: {
       title: "Plán opakování",
       totalCards: "Kartiček celkem: {{count}}",
+      dueToday: "Dnes k opakování {{count}}",
+      dueTodayWithMinutes: "Dnes k opakování {{count}} · ≈ {{minutes}} min",
       legendLabel: "Intervaly plánu opakování",
       buckets: {
         new: "Nové",

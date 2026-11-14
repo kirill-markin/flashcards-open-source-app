@@ -331,9 +331,25 @@ export const zhHantCatalog = {
     reviewsBreakdown: {
       legendLabel: "複習評分",
     },
+    reviewsPace: {
+      lastSevenDays: "過去 7 天 · 每天 {{count}}",
+      studyTime: "學習時間 · ≈ {{count}}分鐘",
+    },
+    records: {
+      title: "紀錄",
+      bestDay: "最佳單日",
+      bestWeek: "最佳一週",
+      longestStreak: "最長連續",
+      totalReviews: "總複習數",
+      lastSevenDays: "過去 7 天",
+      cardsMet: "新卡片",
+      relearned: "重新學會",
+    },
     reviewSchedule: {
       title: "複習時程",
       totalCards: "卡片總數：{{count}}",
+      dueToday: "今日到期 {{count}}",
+      dueTodayWithMinutes: "今日到期 {{count}} · ≈ {{minutes}}分鐘",
       legendLabel: "複習時程分組",
       buckets: {
         new: "新卡",

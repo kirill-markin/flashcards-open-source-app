@@ -326,7 +326,14 @@ enum class AnalyticsWidgetKind(val wireValue: String) {
     STREAKS(wireValue = "streaks"),
     MONTH_CALENDAR(wireValue = "month_calendar"),
     COMING_UP(wireValue = "coming_up"),
-    DASHBOARD(wireValue = "dashboard")
+    DASHBOARD(wireValue = "dashboard"),
+    QUESTION(wireValue = "question")
+}
+
+/** The control a widget tap that carries a card came from: the card's question, or its Reveal answer button. */
+enum class AnalyticsWidgetTarget(val wireValue: String) {
+    CARD(wireValue = "card"),
+    REVEAL_ANSWER(wireValue = "reveal_answer")
 }
 
 enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
@@ -914,17 +921,24 @@ sealed interface AnalyticsEvent {
         )
     }
 
-    /** A Home Screen widget tap, reported where the tap intent reaches the process, like [NotificationOpened]. */
+    /**
+     * A Home Screen widget tap, reported where the tap intent reaches the process, like [NotificationOpened].
+     * [widgetTarget] is set only for a tap that carries a card.
+     */
     data class WidgetOpened(
         val widgetSize: AnalyticsWidgetSize,
-        val widgetKind: AnalyticsWidgetKind
+        val widgetKind: AnalyticsWidgetKind,
+        val widgetTarget: AnalyticsWidgetTarget?
     ) : AnalyticsEvent {
         override val eventName: String = "widget_opened"
         override val screen: AnalyticsSurface? = null
-        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "widget_size" to AnalyticsPropertyValue.Text(value = widgetSize.wireValue),
-            "widget_kind" to AnalyticsPropertyValue.Text(value = widgetKind.wireValue)
-        )
+        override val properties: Map<String, AnalyticsPropertyValue> = buildMap {
+            put("widget_size", AnalyticsPropertyValue.Text(value = widgetSize.wireValue))
+            put("widget_kind", AnalyticsPropertyValue.Text(value = widgetKind.wireValue))
+            if (widgetTarget != null) {
+                put("widget_target", AnalyticsPropertyValue.Text(value = widgetTarget.wireValue))
+            }
+        }
     }
 
     /** The widgets of one kind placed on this device, per size, reported on a foreground when they changed. */

@@ -70,6 +70,7 @@ const widgetKindLabels: Readonly<Record<WidgetKind, string>> = {
   month_calendar: "Calendar",
   coming_up: "Coming up",
   dashboard: "Dashboard",
+  question: "Question",
 };
 
 const widgetSizeColors = buildBreakdownValueColors(widgetSizes);

@@ -140,6 +140,7 @@ private fun widgetProviderClass(kind: WidgetKind): Class<out GlanceAppWidget> {
         WidgetKind.MONTH_CALENDAR -> MonthCalendarWidget::class.java
         WidgetKind.COMING_UP -> ComingUpWidget::class.java
         WidgetKind.DASHBOARD -> DashboardWidget::class.java
+        WidgetKind.QUESTION -> QuestionWidget::class.java
     }
 }
 
@@ -155,6 +156,9 @@ private fun portraitWidgetSize(kind: WidgetKind, portraitSize: DpSize): ReviewWi
         )
         WidgetKind.TODAY -> todayWidgetSize(
             size = renderedResponsiveLayoutSize(hostSize = portraitSize, layoutSizes = todayWidgetSizes)
+        )
+        WidgetKind.QUESTION -> questionWidgetSize(
+            size = renderedResponsiveLayoutSize(hostSize = portraitSize, layoutSizes = questionWidgetSizes)
         )
         WidgetKind.ACTIVITY -> activityWidgetSize(layoutSize = portraitSize)
         WidgetKind.REVIEWS_CHART, WidgetKind.COMING_UP -> chartWidgetSize(size = portraitSize)

@@ -73,9 +73,41 @@ export type ProgressReviewHistoryWatermarkPayload = Readonly<{
   reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
 }>;
 
+export type ProgressBestDay = Readonly<{
+  date: string;
+  reviewCount: number;
+}>;
+
+export type ProgressBestWeek = Readonly<{
+  endDate: string;
+  reviewCount: number;
+}>;
+
+export type ProgressStudySecondsDay = Readonly<{
+  date: string;
+  seconds: number;
+}>;
+
+// Server-only Progress facts that need lifetime or per-card history, which a
+// client's local review log cannot be trusted to hold. "Last 7 days" and
+// "week" mean the rolling 7 local days ending today. Bests exclude today so a
+// client can compare its own local count for today without counting it twice.
+export type ProgressInsights = Readonly<{
+  totalReviews: number;
+  bestDayBeforeToday: ProgressBestDay | null;
+  bestWeekBeforeToday: ProgressBestWeek | null;
+  cardsMetLast7Days: number;
+  relearnedLast7Days: number;
+  // Null under the timing sample (see loaders/insights.ts).
+  secondsPerDueCard: number | null;
+  studySecondsByDay: ReadonlyArray<ProgressStudySecondsDay> | null;
+}>;
+
 export type ProgressSummaryResponse = Readonly<{
   timeZone: string;
   summary: ProgressSummary;
+  // Always sent by this backend; clients treat it as optional.
+  insights: ProgressInsights;
   generatedAt: string;
 }> & ProgressReviewHistoryWatermarkPayload;
 

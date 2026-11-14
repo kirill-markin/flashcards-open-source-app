@@ -323,9 +323,25 @@ const fiCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Kertausten arviot",
     },
+    reviewsPace: {
+      lastSevenDays: "Viimeiset 7 päivää · {{count}} päivässä",
+      studyTime: "Opiskeluaika · ≈ {{count}} min",
+    },
+    records: {
+      title: "Ennätykset",
+      bestDay: "Paras päivä",
+      bestWeek: "Paras viikko",
+      longestStreak: "Pisin putki",
+      totalReviews: "Kertauksia yhteensä",
+      lastSevenDays: "Viimeiset 7 päivää",
+      cardsMet: "Uudet kortit",
+      relearned: "Uudelleen opitut",
+    },
     reviewSchedule: {
       title: "Kertausaikataulu",
       totalCards: "Kortteja yhteensä: {{count}}",
+      dueToday: "Erääntyy tänään {{count}}",
+      dueTodayWithMinutes: "Erääntyy tänään {{count}} · ≈ {{minutes}} min",
       legendLabel: "Kertausaikataulun jaksot",
       buckets: {
         new: "Uusi",

@@ -8,6 +8,7 @@ let reviewWidgetKind: String = "ReviewWidget"
 private let widgetSnapshotUpcomingDueLimit: Int = 100
 private let widgetSnapshotUpcomingDueDayCount: Int = 6
 private let widgetSnapshotFrontTextCharacterLimit: Int = 300
+private let widgetSnapshotNextCardLimit: Int = 6
 
 @MainActor
 extension FlashcardsStore {
@@ -23,6 +24,7 @@ extension FlashcardsStore {
         let localReadVersion = self.localReadVersion
         let reviewScheduleVersion = self.reviewScheduleVersion
         let presentedReviewCard = self.presentedReviewCard
+        let pendingReviewCardIds = self.currentReviewPublishedState().pendingReviewCardIds
         let streakDays = makeWidgetSnapshotStreakDays(badgeState: self.reviewProgressBadgeState)
         let widgetProgressSnapshot = makeStreakConsistentWidgetProgressSnapshot(
             widgetProgressSnapshot: self.widgetProgressSnapshot,
@@ -44,7 +46,8 @@ extension FlashcardsStore {
                 databaseURL: database.databaseURL,
                 workspaceId: workspaceId,
                 reviewFilter: reviewFilter,
-                isReviewCardPresented: presentedReviewCard != nil,
+                // Room for the shown card and the cards awaiting their rating, which the head may still hold.
+                reviewHeadLimit: widgetSnapshotNextCardLimit + 1 + pendingReviewCardIds.count,
                 upcomingDueLimit: widgetSnapshotUpcomingDueLimit,
                 upcomingDueDayBoundaries: upcomingDueDayBoundaries,
                 now: now
@@ -60,6 +63,11 @@ extension FlashcardsStore {
                 return
             }
 
+            let nextCards = makeWidgetSnapshotNextCards(
+                presentedReviewCard: presentedReviewCard,
+                reviewHeadCards: databaseRead.reviewHeadCards,
+                pendingReviewCardIds: pendingReviewCardIds
+            )
             let snapshot = WidgetSnapshot(
                 generatedAt: now,
                 workspaceId: workspaceId,
@@ -68,7 +76,7 @@ extension FlashcardsStore {
                 streakDays: streakDays,
                 nextCard: makeWidgetSnapshotCard(
                     presentedReviewCard: presentedReviewCard,
-                    reviewHeadCard: databaseRead.reviewHeadCard
+                    reviewHeadCard: databaseRead.reviewHeadCards.first
                 ),
                 progress: progress,
                 upcomingDueDays: makeWidgetSnapshotDueDays(
@@ -77,7 +85,12 @@ extension FlashcardsStore {
                     calendar: dueDayCalendar
                 ),
                 reviewSchedule: reviewSchedule,
-                accentColor: self.effectiveAccountAccentColor
+                accentColor: self.effectiveAccountAccentColor,
+                newCount: databaseRead.newCount,
+                nextCards: nextCards,
+                insights: widgetProgressSnapshot.flatMap { snapshot in
+                    snapshot.insights.map(makeWidgetSnapshotInsights(insights:))
+                }
             )
             if let lastWrittenWidgetSnapshot = self.lastWrittenWidgetSnapshot,
                lastWrittenWidgetSnapshot.generatedAt <= now,
@@ -252,6 +265,18 @@ private func makeWidgetSnapshotDueDays(
     }
 }
 
+private func makeWidgetSnapshotInsights(insights: ProgressInsights) -> WidgetSnapshotInsights {
+    WidgetSnapshotInsights(
+        bestDayBeforeToday: insights.bestDayBeforeToday.map { bestDay in
+            WidgetSnapshotBestDay(localDate: bestDay.date, reviewCount: bestDay.reviewCount)
+        },
+        secondsPerDueCard: insights.secondsPerDueCard,
+        studySecondsByDay: insights.studySecondsByDay?.map { studyDay in
+            WidgetSnapshotStudyDay(localDate: studyDay.date, seconds: studyDay.seconds)
+        }
+    )
+}
+
 /// Prefers the card Review is showing; a card without readable question text yields no widget card.
 private func makeWidgetSnapshotCard(
     presentedReviewCard: Card?,
@@ -260,7 +285,32 @@ private func makeWidgetSnapshotCard(
     guard let card = presentedReviewCard ?? reviewHeadCard else {
         return nil
     }
+    return makeWidgetSnapshotCard(card: card)
+}
 
+/// The shown card first, then the queue head in order, without cards awaiting their rating or repeats.
+private func makeWidgetSnapshotNextCards(
+    presentedReviewCard: Card?,
+    reviewHeadCards: [Card],
+    pendingReviewCardIds: Set<String>
+) -> [WidgetSnapshotCard] {
+    var seenCardIds: Set<String> = []
+    var nextCards: [WidgetSnapshotCard] = []
+    for card in [presentedReviewCard].compactMap({ card in card }) + reviewHeadCards {
+        guard
+            nextCards.count < widgetSnapshotNextCardLimit,
+            pendingReviewCardIds.contains(card.cardId) == false,
+            seenCardIds.insert(card.cardId).inserted,
+            let widgetCard = makeWidgetSnapshotCard(card: card)
+        else {
+            continue
+        }
+        nextCards.append(widgetCard)
+    }
+    return nextCards
+}
+
+private func makeWidgetSnapshotCard(card: Card) -> WidgetSnapshotCard? {
     let frontPlainText = String(
         makeReviewSpeakableText(text: card.frontText)
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -283,5 +333,8 @@ private func hasSameWidgetSnapshotContent(lhs: WidgetSnapshot, rhs: WidgetSnapsh
         && lhs.upcomingDueDays == rhs.upcomingDueDays
         && lhs.reviewSchedule == rhs.reviewSchedule
         && lhs.accentColor == rhs.accentColor
+        && lhs.newCount == rhs.newCount
+        && lhs.nextCards == rhs.nextCards
+        && lhs.insights == rhs.insights
 }
 #endif

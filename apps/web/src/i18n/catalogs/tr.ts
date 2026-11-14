@@ -323,9 +323,25 @@ const trCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Tekrar değerlendirmeleri",
     },
+    reviewsPace: {
+      lastSevenDays: "Son 7 gün · günde {{count}}",
+      studyTime: "Çalışma süresi · ≈ {{count}} dk",
+    },
+    records: {
+      title: "Rekorlar",
+      bestDay: "En iyi gün",
+      bestWeek: "En iyi hafta",
+      longestStreak: "En uzun seri",
+      totalReviews: "Toplam tekrar",
+      lastSevenDays: "Son 7 gün",
+      cardsMet: "Yeni kartlar",
+      relearned: "Yeniden öğrenilen",
+    },
     reviewSchedule: {
       title: "Tekrar takvimi",
       totalCards: "Toplam kart: {{count}}",
+      dueToday: "Bugün tekrarlanacak {{count}}",
+      dueTodayWithMinutes: "Bugün tekrarlanacak {{count}} · ≈ {{minutes}} dk",
       legendLabel: "Tekrar takvimi grupları",
       buckets: {
         new: "Yeni",

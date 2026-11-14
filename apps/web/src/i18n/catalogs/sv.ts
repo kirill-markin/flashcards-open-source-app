@@ -323,9 +323,25 @@ const svCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Repetitionsbetyg",
     },
+    reviewsPace: {
+      lastSevenDays: "Senaste 7 dagarna · {{count}} om dagen",
+      studyTime: "Studietid · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekord",
+      bestDay: "Bästa dag",
+      bestWeek: "Bästa vecka",
+      longestStreak: "Längsta svit",
+      totalReviews: "Repetitioner totalt",
+      lastSevenDays: "Senaste 7 dagarna",
+      cardsMet: "Nya kort",
+      relearned: "Ominlärda",
+    },
     reviewSchedule: {
       title: "Repetitionsschema",
       totalCards: "Totalt antal kort: {{count}}",
+      dueToday: "Förfaller i dag {{count}}",
+      dueTodayWithMinutes: "Förfaller i dag {{count}} · ≈ {{minutes}} min",
       legendLabel: "Intervall i repetitionsschemat",
       buckets: {
         new: "Nya",

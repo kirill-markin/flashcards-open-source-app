@@ -131,6 +131,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-17",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
@@ -212,6 +213,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-16",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
@@ -285,6 +287,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-18",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: "2026-04-20T11:59:00.000Z",
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
@@ -343,6 +346,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-17",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: "2026-04-18T11:59:00.000Z",
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 41)
         )
@@ -408,6 +412,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2025-04-14",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: "2026-04-18T11:59:00.000Z",
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
@@ -473,6 +478,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-16",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: "2026-04-18T11:59:00.000Z",
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
@@ -544,6 +550,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-18",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
@@ -617,6 +624,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-17",
                 activeReviewDays: 200
             ),
+            insights: nil,
             generatedAt: "2026-04-18T11:59:00.000Z",
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )

@@ -302,3 +302,13 @@
     gap: 6px;
   }
 }
+
+/* Usual reviews per day. The bar area starts above the 36px labels and 8px gap and ends
+   below the 10px plot padding and the 8px bar-shell padding. */
+.progress-chart-usual-line {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(44px + (100% - 62px) * var(--progress-chart-usual-fraction));
+  border-top: 2px dashed rgba(var(--overlay-rgb), 0.45);
+  pointer-events: none;
+}

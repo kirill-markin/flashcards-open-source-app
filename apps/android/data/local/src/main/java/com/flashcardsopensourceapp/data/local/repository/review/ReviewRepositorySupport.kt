@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelation
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.review.ReviewDueBadgeCountRow
 import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCardRow
+import com.flashcardsopensourceapp.data.local.database.review.ReviewWidgetDueCountRow
 import com.flashcardsopensourceapp.data.local.database.review.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
@@ -14,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDueDay
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHead
 import com.flashcardsopensourceapp.data.local.model.review.ReviewQueueHeadCard
+import com.flashcardsopensourceapp.data.local.model.review.reviewQueueHeadCardLimit
 import com.flashcardsopensourceapp.data.local.model.review.WorkspaceReviewDueCount
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
@@ -223,22 +225,28 @@ internal fun observeWidgetReviewQueueHead(
         observeAtReviewDueClock(
             observeAt = { nowMillis ->
                 combine(
-                    database.reviewCountDao().observeReviewDueBadgeCount(workspaceId = workspaceId, nowMillis = nowMillis),
+                    database.reviewCountDao().observeReviewWidgetDueCount(workspaceId = workspaceId, nowMillis = nowMillis),
                     observeActiveReviewQueue(
                         database = database,
                         workspaceId = workspaceId,
                         nowMillis = nowMillis,
                         predicate = predicate,
-                        limit = 1
+                        limit = reviewQueueHeadCardLimit
                     )
-                ) { row, cards ->
+                ) { row: ReviewWidgetDueCountRow, cards ->
+                    val nextCards: List<ReviewQueueHeadCard> = cards.map { cardWithRelations ->
+                        ReviewQueueHeadCard(
+                            cardId = cardWithRelations.card.cardId,
+                            frontText = cardWithRelations.card.frontText
+                        )
+                    }
                     ReviewQueueHead(
                         workspaceId = workspaceId,
                         dueCount = row.dueCount,
+                        newCount = row.newCount,
                         nextDueAtMillis = row.nextDueAtMillis,
-                        topCard = cards.firstOrNull()?.card?.let { card ->
-                            ReviewQueueHeadCard(cardId = card.cardId, frontText = card.frontText)
-                        }
+                        topCard = nextCards.firstOrNull(),
+                        nextCards = nextCards
                     )
                 }
             },

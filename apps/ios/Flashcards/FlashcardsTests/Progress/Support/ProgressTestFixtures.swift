@@ -158,6 +158,7 @@ func makeTestProgressSummary(
             timeZone: timeZone,
             generatedAt: generatedAtDate
         ),
+        insights: nil,
         generatedAt: generatedAt,
         reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
     )

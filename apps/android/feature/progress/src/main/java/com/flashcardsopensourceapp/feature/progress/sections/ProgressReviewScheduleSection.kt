@@ -38,6 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -93,10 +94,28 @@ internal fun ReviewScheduleSectionCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.progress_review_schedule_title),
-                style = MaterialTheme.typography.titleLarge
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(id = R.string.progress_review_schedule_title),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                val dueTodayMinutes: Int? = uiState.dueTodayMinutes
+                val dueTodayCountLabel: String = countFormatter.format(uiState.dueTodayCount.toLong())
+                Text(
+                    text = if (dueTodayMinutes == null) {
+                        stringResource(id = R.string.progress_review_schedule_due_today, dueTodayCountLabel)
+                    } else {
+                        pluralStringResource(
+                            id = R.plurals.progress_review_schedule_due_today_with_minutes,
+                            count = dueTodayMinutes,
+                            dueTodayCountLabel,
+                            dueTodayMinutes
+                        )
+                    },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             if (uiState.hasCards) {
                 ReviewScheduleDonutChart(

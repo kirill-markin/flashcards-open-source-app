@@ -8,6 +8,9 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgre
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSummaryCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressStreakLeaderboardCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudArrayOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudObjectOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudIsoTimestamp
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
@@ -18,6 +21,9 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableStr
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressBestDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressBestWeek
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressInsights
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
@@ -42,6 +48,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRankingRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardViewer
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStudySecondsDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileReviewActivityDateBasis
@@ -52,6 +59,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import org.json.JSONArray
 import org.json.JSONObject
 
 private const val leaderboardProfileReviewActivityDayCount: Int = 30
@@ -176,10 +184,131 @@ internal fun parseCloudProgressSummaryResponse(
     val reviewHistoryWatermarks = response.requireProgressReviewHistoryWatermarks(
         fieldPath = fieldPath
     )
+    // Older servers omit insights.
+    val insights = response.optCloudObjectOrNull("insights", "$fieldPath.insights")?.let { payload ->
+        parseCloudProgressInsights(payload = payload, fieldPath = "$fieldPath.insights")
+    }
     return response.requireCloudObject("summary", "$fieldPath.summary").toCloudProgressSummary(
         fieldPath = "$fieldPath.summary",
-        reviewHistoryWatermarks = reviewHistoryWatermarks
+        reviewHistoryWatermarks = reviewHistoryWatermarks,
+        insights = insights
     )
+}
+
+// Shared between the live response and the summary cache, which stores the wire payload.
+internal fun parseCloudProgressInsights(
+    payload: JSONObject,
+    fieldPath: String
+): CloudProgressInsights {
+    val studySecondsByDay = payload.optCloudArrayOrNull("studySecondsByDay", "$fieldPath.studySecondsByDay")
+    val secondsPerDueCard = payload.optCloudDoubleOrNull("secondsPerDueCard", "$fieldPath.secondsPerDueCard")
+    if (secondsPerDueCard != null && secondsPerDueCard < 0.0) {
+        throw CloudContractMismatchException("$fieldPath.secondsPerDueCard must not be negative.")
+    }
+    return CloudProgressInsights(
+        totalReviews = requireNonNegativeProgressInt(
+            value = payload.requireCloudInt("totalReviews", "$fieldPath.totalReviews"),
+            fieldPath = "$fieldPath.totalReviews"
+        ),
+        bestDayBeforeToday = payload.optCloudObjectOrNull(
+            "bestDayBeforeToday",
+            "$fieldPath.bestDayBeforeToday"
+        )?.let { bestDay ->
+            CloudProgressBestDay(
+                date = parseCloudProgressLocalDate(
+                    value = bestDay.requireCloudString("date", "$fieldPath.bestDayBeforeToday.date"),
+                    fieldPath = "$fieldPath.bestDayBeforeToday.date"
+                ).toString(),
+                reviewCount = requireNonNegativeProgressInt(
+                    value = bestDay.requireCloudInt("reviewCount", "$fieldPath.bestDayBeforeToday.reviewCount"),
+                    fieldPath = "$fieldPath.bestDayBeforeToday.reviewCount"
+                )
+            )
+        },
+        bestWeekBeforeToday = payload.optCloudObjectOrNull(
+            "bestWeekBeforeToday",
+            "$fieldPath.bestWeekBeforeToday"
+        )?.let { bestWeek ->
+            CloudProgressBestWeek(
+                endDate = parseCloudProgressLocalDate(
+                    value = bestWeek.requireCloudString("endDate", "$fieldPath.bestWeekBeforeToday.endDate"),
+                    fieldPath = "$fieldPath.bestWeekBeforeToday.endDate"
+                ).toString(),
+                reviewCount = requireNonNegativeProgressInt(
+                    value = bestWeek.requireCloudInt("reviewCount", "$fieldPath.bestWeekBeforeToday.reviewCount"),
+                    fieldPath = "$fieldPath.bestWeekBeforeToday.reviewCount"
+                )
+            )
+        },
+        cardsMetLast7Days = requireNonNegativeProgressInt(
+            value = payload.requireCloudInt("cardsMetLast7Days", "$fieldPath.cardsMetLast7Days"),
+            fieldPath = "$fieldPath.cardsMetLast7Days"
+        ),
+        relearnedLast7Days = requireNonNegativeProgressInt(
+            value = payload.requireCloudInt("relearnedLast7Days", "$fieldPath.relearnedLast7Days"),
+            fieldPath = "$fieldPath.relearnedLast7Days"
+        ),
+        secondsPerDueCard = secondsPerDueCard,
+        studySecondsByDay = studySecondsByDay?.let { days ->
+            buildList {
+                for (index in 0 until days.length()) {
+                    val day = days.requireCloudObject(index, "$fieldPath.studySecondsByDay[$index]")
+                    val dayFieldPath = "$fieldPath.studySecondsByDay[$index]"
+                    add(
+                        CloudProgressStudySecondsDay(
+                            date = parseCloudProgressLocalDate(
+                                value = day.requireCloudString("date", "$dayFieldPath.date"),
+                                fieldPath = "$dayFieldPath.date"
+                            ).toString(),
+                            seconds = requireNonNegativeProgressInt(
+                                value = day.requireCloudInt("seconds", "$dayFieldPath.seconds"),
+                                fieldPath = "$dayFieldPath.seconds"
+                            )
+                        )
+                    )
+                }
+            }
+        }
+    )
+}
+
+// Shared with the summary cache so both sides write the same wire payload.
+internal fun serializeCloudProgressInsights(insights: CloudProgressInsights): JSONObject {
+    return JSONObject()
+        .put("totalReviews", insights.totalReviews)
+        .put(
+            "bestDayBeforeToday",
+            insights.bestDayBeforeToday?.let { bestDay ->
+                JSONObject()
+                    .put("date", bestDay.date)
+                    .put("reviewCount", bestDay.reviewCount)
+            } ?: JSONObject.NULL
+        )
+        .put(
+            "bestWeekBeforeToday",
+            insights.bestWeekBeforeToday?.let { bestWeek ->
+                JSONObject()
+                    .put("endDate", bestWeek.endDate)
+                    .put("reviewCount", bestWeek.reviewCount)
+            } ?: JSONObject.NULL
+        )
+        .put("cardsMetLast7Days", insights.cardsMetLast7Days)
+        .put("relearnedLast7Days", insights.relearnedLast7Days)
+        .put("secondsPerDueCard", insights.secondsPerDueCard ?: JSONObject.NULL)
+        .put(
+            "studySecondsByDay",
+            insights.studySecondsByDay?.let { days ->
+                JSONArray().apply {
+                    days.forEach { day ->
+                        put(
+                            JSONObject()
+                                .put("date", day.date)
+                                .put("seconds", day.seconds)
+                        )
+                    }
+                }
+            } ?: JSONObject.NULL
+        )
 }
 
 internal fun parseCloudProgressSeriesResponse(
@@ -259,7 +388,8 @@ internal fun parseCloudProgressSeriesResponse(
 
 private fun JSONObject.toCloudProgressSummary(
     fieldPath: String,
-    reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>
+    reviewHistoryWatermarks: List<ProgressReviewHistoryWatermark>,
+    insights: CloudProgressInsights?
 ): CloudProgressSummary {
     return CloudProgressSummary(
         currentStreakDays = requireNonNegativeProgressInt(
@@ -279,7 +409,8 @@ private fun JSONObject.toCloudProgressSummary(
         streakFreeze = requireCloudObject("streakFreeze", "$fieldPath.streakFreeze").toCloudProgressStreakFreeze(
             fieldPath = "$fieldPath.streakFreeze"
         ),
-        reviewHistoryWatermarks = reviewHistoryWatermarks
+        reviewHistoryWatermarks = reviewHistoryWatermarks,
+        insights = insights
     )
 }
 

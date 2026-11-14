@@ -323,9 +323,25 @@ const idCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Penilaian tinjauan",
     },
+    reviewsPace: {
+      lastSevenDays: "7 hari terakhir · {{count}} per hari",
+      studyTime: "Waktu belajar · ≈ {{count}} mnt",
+    },
+    records: {
+      title: "Rekor",
+      bestDay: "Hari terbaik",
+      bestWeek: "Minggu terbaik",
+      longestStreak: "Runtutan terpanjang",
+      totalReviews: "Total ulasan",
+      lastSevenDays: "7 hari terakhir",
+      cardsMet: "Kartu baru",
+      relearned: "Dipelajari ulang",
+    },
     reviewSchedule: {
       title: "Jadwal tinjauan",
       totalCards: "Total kartu: {{count}}",
+      dueToday: "Jatuh tempo hari ini {{count}}",
+      dueTodayWithMinutes: "Jatuh tempo hari ini {{count}} · ≈ {{minutes}} mnt",
       legendLabel: "Kelompok jadwal tinjauan",
       buckets: {
         new: "Baru",

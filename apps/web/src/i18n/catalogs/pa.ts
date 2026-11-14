@@ -323,9 +323,25 @@ const paCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "ਦੁਹਰਾਈ ਦੇ ਰੇਟਿੰਗ",
     },
+    reviewsPace: {
+      lastSevenDays: "ਪਿਛਲੇ 7 ਦਿਨ · ਦਿਨ ਵਿੱਚ {{count}}",
+      studyTime: "ਪੜ੍ਹਾਈ ਦਾ ਸਮਾਂ · ≈ {{count}} ਮਿੰਟ",
+    },
+    records: {
+      title: "ਰਿਕਾਰਡ",
+      bestDay: "ਸਭ ਤੋਂ ਵਧੀਆ ਦਿਨ",
+      bestWeek: "ਸਭ ਤੋਂ ਵਧੀਆ ਹਫ਼ਤਾ",
+      longestStreak: "ਸਭ ਤੋਂ ਲੰਮੀ ਲੜੀ",
+      totalReviews: "ਕੁੱਲ ਦੁਹਰਾਈਆਂ",
+      lastSevenDays: "ਪਿਛਲੇ 7 ਦਿਨ",
+      cardsMet: "ਨਵੇਂ ਕਾਰਡ",
+      relearned: "ਮੁੜ ਸਿੱਖੇ",
+    },
     reviewSchedule: {
       title: "ਦੁਹਰਾਈ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ",
       totalCards: "ਕੁੱਲ ਕਾਰਡ: {{count}}",
+      dueToday: "ਅੱਜ ਬਾਕੀ {{count}}",
+      dueTodayWithMinutes: "ਅੱਜ ਬਾਕੀ {{count}} · ≈ {{minutes}} ਮਿੰਟ",
       legendLabel: "ਦੁਹਰਾਈ ਸਮਾਂ-ਸਾਰਣੀ ਦੇ ਹਿੱਸੇ",
       buckets: {
         new: "ਨਵੇਂ",

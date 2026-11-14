@@ -38,6 +38,7 @@ class ProgressCacheValidationTest {
     @Test
     fun invalidSummaryCacheLastReviewedOnIsIgnored() {
         val cacheEntity = ProgressSummaryCacheEntity(
+            insightsJson = null,
             scopeKey = "scope-1",
             scopeId = "local:installation-1",
             timeZone = "Europe/Madrid",
@@ -104,6 +105,7 @@ class ProgressCacheValidationTest {
             zoneId = ZoneId.of("Europe/Madrid")
         )
         val summary = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 4,
             longestStreakDays = 4,
             hasReviewedToday = false,
@@ -214,6 +216,7 @@ class ProgressCacheValidationTest {
             workspaceIds = listOf("workspace-1", "workspace-2")
         )
         val summary = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 3,
             longestStreakDays = 3,
             hasReviewedToday = true,

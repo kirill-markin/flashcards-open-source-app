@@ -330,9 +330,25 @@ const hrCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Ocjene ponavljanja",
     },
+    reviewsPace: {
+      lastSevenDays: "Zadnjih 7 dana · {{count}} dnevno",
+      studyTime: "Vrijeme učenja · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordi",
+      bestDay: "Najbolji dan",
+      bestWeek: "Najbolji tjedan",
+      longestStreak: "Najduži niz",
+      totalReviews: "Ukupno ponavljanja",
+      lastSevenDays: "Zadnjih 7 dana",
+      cardsMet: "Nove kartice",
+      relearned: "Ponovno naučeno",
+    },
     reviewSchedule: {
       title: "Raspored ponavljanja",
       totalCards: "Ukupno kartica: {{count}}",
+      dueToday: "Danas na redu {{count}}",
+      dueTodayWithMinutes: "Danas na redu {{count}} · ≈ {{minutes}} min",
       legendLabel: "Razdoblja rasporeda ponavljanja",
       buckets: {
         new: "Novo",

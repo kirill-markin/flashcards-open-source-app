@@ -21,6 +21,7 @@ private let analyticsWidgetKindsByWidgetKitKind: [String: AnalyticsWidgetKind] =
     "MonthCalendarWidget": .monthCalendar,
     "ComingUpWidget": .comingUp,
     "DashboardWidget": .dashboard,
+    "QuestionWidget": .question,
 ]
 
 private struct ReviewWidgetPlacementCounts: Codable, Hashable {

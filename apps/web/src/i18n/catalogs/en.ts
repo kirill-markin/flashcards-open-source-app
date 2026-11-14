@@ -322,9 +322,25 @@ const enCatalog = {
     reviewsBreakdown: {
       legendLabel: "Review ratings",
     },
+    reviewsPace: {
+      lastSevenDays: "Last 7 days · {{count}} a day",
+      studyTime: "Study time · ≈ {{count}} min",
+    },
+    records: {
+      title: "Records",
+      bestDay: "Best day",
+      bestWeek: "Best week",
+      longestStreak: "Longest streak",
+      totalReviews: "Total reviews",
+      lastSevenDays: "Last 7 days",
+      cardsMet: "Cards met",
+      relearned: "Relearned",
+    },
     reviewSchedule: {
       title: "Review schedule",
       totalCards: "Total cards: {{count}}",
+      dueToday: "Due today {{count}}",
+      dueTodayWithMinutes: "Due today {{count}} · ≈ {{minutes}} min",
       legendLabel: "Review schedule buckets",
       buckets: {
         new: "New",

@@ -36,7 +36,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration26To27,
         migration27To28,
         migration28To29,
-        migration29To30
+        migration29To30,
+        migration30To31
     )
 }
 
@@ -1030,5 +1031,11 @@ val migration29To30: Migration = object : Migration(29, 30) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("DELETE FROM progress_local_cache_state")
         db.execSQL("DELETE FROM progress_local_day_counts")
+    }
+}
+
+val migration30To31: Migration = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE progress_summary_cache ADD COLUMN insightsJson TEXT")
     }
 }

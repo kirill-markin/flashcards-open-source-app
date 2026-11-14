@@ -323,9 +323,25 @@ const swCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Ukadiriaji wa marudio",
     },
+    reviewsPace: {
+      lastSevenDays: "Siku 7 zilizopita · {{count}} kwa siku",
+      studyTime: "Muda wa kusoma · ≈ {{count}} dak",
+    },
+    records: {
+      title: "Rekodi",
+      bestDay: "Siku bora",
+      bestWeek: "Wiki bora",
+      longestStreak: "Mfululizo mrefu zaidi",
+      totalReviews: "Jumla ya marudio",
+      lastSevenDays: "Siku 7 zilizopita",
+      cardsMet: "Kadi mpya",
+      relearned: "Zilizojifunzwa upya",
+    },
     reviewSchedule: {
       title: "Ratiba ya marudio",
       totalCards: "Jumla ya kadi: {{count}}",
+      dueToday: "Zinazodaiwa leo {{count}}",
+      dueTodayWithMinutes: "Zinazodaiwa leo {{count}} · ≈ {{minutes}} dak",
       legendLabel: "Makundi ya ratiba ya marudio",
       buckets: {
         new: "Mpya",

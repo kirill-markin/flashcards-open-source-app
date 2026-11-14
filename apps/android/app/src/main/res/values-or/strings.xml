@@ -55,12 +55,6 @@
     <string name="review_widget_question_without_text">ଛବି ଥିବା ପ୍ରଶ୍ନ</string>
     <!-- The placeholder is a time today, otherwise a date and time. -->
     <string name="review_widget_next_due">ପରବର୍ତ୍ତୀ କାର୍ଡ: <xliff:g id="due_time" example="14:30">%1$s</xliff:g></string>
-    <!-- Shown under the big due count on the small widget. -->
-    <string name="review_widget_due_label">ବାକି</string>
-    <plurals name="review_widget_cards_due">
-        <item quantity="one">%1$dଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</item>
-        <item quantity="other">%1$dଟି କାର୍ଡର ଅଭ୍ୟାସ ବାକି</item>
-    </plurals>
     <plurals name="review_widget_streak_days">
         <item quantity="one">ଲଗାତାର %1$d ଦିନ</item>
         <item quantity="other">ଲଗାତାର %1$d ଦିନ</item>
@@ -71,18 +65,7 @@
     <string name="review_widget_preview_streak">ଲଗାତାର ୭ ଦିନ</string>
     <!-- Reviews chart Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="reviews_chart_widget_label">ଅଭ୍ୟାସ ଚାର୍ଟ</string>
-    <string name="reviews_chart_widget_description">ଗତ କିଛି ସପ୍ତାହର ଦୈନିକ ଅଭ୍ୟାସ।</string>
-    <string name="reviews_chart_widget_daily_average">ଦୈନିକ ହାରାହାରି <xliff:g id="review_count" example="24">%1$d</xliff:g></string>
-    <!-- The quantity is the day count. -->
-    <plurals name="reviews_chart_widget_trend_up">
-        <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
-        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
-    </plurals>
-    <!-- The quantity is the day count. -->
-    <plurals name="reviews_chart_widget_trend_down">
-        <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
-        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% · ଗତ <xliff:g id="day_count" example="14">%2$d</xliff:g> ଦିନ ତୁଳନାରେ</item>
-    </plurals>
+    <string name="reviews_chart_widget_description">ଆପଣଙ୍କ ସାଧାରଣ ତୁଳନାରେ ଗତ 7 ଦିନର ଦୈନିକ ଅଭ୍ୟାସ।</string>
     <string name="reviews_chart_widget_preview_daily_average">ଦୈନିକ ହାରାହାରି ୨୪</string>
     <!-- Coming up Home Screen widget; label and description appear in the launcher's widget picker. -->
     <string name="coming_up_widget_label">ଆଗାମୀ ଅଭ୍ୟାସ</string>
@@ -94,24 +77,7 @@
     <string name="coming_up_widget_preview_header">ଆଗାମୀ ୭ ଦିନ · ୫୮ଟି କାର୍ଡ</string>
     <!-- Today Home Screen widget name in the launcher's widget picker, also its title on the medium widget. -->
     <string name="today_widget_label">ଆଜି</string>
-    <string name="today_widget_description">ଆଜିର ଅଭ୍ୟାସ, ବାକି କାର୍ଡ ଓ ଲଗାତାର ଅଭ୍ୟାସର ହିସାବ।</string>
-    <!-- Share of today's cards already reviewed, next to the progress bar. -->
-    <string name="today_widget_percent"><xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
-    <!-- Shown when no card was reviewed today and none is due. -->
-    <string name="today_widget_no_cards_due">କୌଣସି କାର୍ଡ ବାକି ନାହିଁ</string>
-    <plurals name="today_widget_reviewed">
-        <item quantity="one">%1$dଟି ସରିଛି</item>
-        <item quantity="other">%1$dଟି ସରିଛି</item>
-    </plurals>
-    <!-- Cards still due today, under the ring on the small widget. -->
-    <plurals name="today_widget_left">
-        <item quantity="one">%1$dଟି ବାକି</item>
-        <item quantity="other">%1$dଟି ବାକି</item>
-    </plurals>
-    <plurals name="today_widget_cards_left">
-        <item quantity="one">%1$dଟି କାର୍ଡ ବାକି</item>
-        <item quantity="other">%1$dଟି କାର୍ଡ ବାକି</item>
-    </plurals>
+    <string name="today_widget_description">ଆପଣଙ୍କ ସାଧାରଣ ତୁଳନାରେ ଗତ 7 ଦିନ, ଆଜିର ଅଭ୍ୟାସ, ବାକି କାର୍ଡ ଓ ଲଗାତାର ଅଭ୍ୟାସର ହିସାବ।</string>
     <!-- Sample content of the Today widget preview in the launcher's widget picker. -->
     <string name="today_widget_preview_reviewed">୮ଟି ସରିଛି</string>
     <string name="today_widget_preview_cards_left">୪ଟି କାର୍ଡ ବାକି</string>
@@ -154,11 +120,9 @@
     <string name="year_widget_preview_active_days">୧୮୬ ଦିନ ସକ୍ରିୟ</string>
     <!-- Streaks Home Screen widget name in the launcher's widget picker; also its medium-size header. -->
     <string name="streaks_widget_label">ଲଗାତାର ଅଭ୍ୟାସ</string>
-    <string name="streaks_widget_description">ଏବେର ଅଭ୍ୟାସ ଧାରା, ସବୁଠାରୁ ଲମ୍ବା ଧାରା ଓ ଗତ କିଛି ଧାରା।</string>
+    <string name="streaks_widget_description">ଆପଣଙ୍କ ଅଭ୍ୟାସ ଧାରା, ସବୁଠାରୁ ଲମ୍ବା ଧାରା, ଫ୍ରିଜ୍ ଓ ଗତ 7 ଦିନ।</string>
     <!-- The longest streak ever, in days. -->
     <string name="streaks_widget_best">ସର୍ବାଧିକ <xliff:g id="days" example="30">%1$d</xliff:g> ଦିନ</string>
-    <string name="streaks_widget_empty">ଲଗାତାର ଅଭ୍ୟାସର ଧାରା ଆରମ୍ଭ କରିବାକୁ ଆଜି ଅଭ୍ୟାସ କରନ୍ତୁ।</string>
-    <string name="streaks_widget_chart_description">ଏବେର ଓ ଗତ କିଛି ଅଭ୍ୟାସ ଧାରା</string>
     <string name="streaks_widget_preview_best">ସର୍ବାଧିକ ୩୦ ଦିନ</string>
     <!-- Month calendar Home Screen widget name in the launcher's widget picker. -->
     <string name="month_calendar_widget_label">କ୍ୟାଲେଣ୍ଡର</string>
@@ -172,6 +136,38 @@
     <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
     <string name="dashboard_widget_label">ଡ୍ୟାସ୍‌ବୋର୍ଡ</string>
     <string name="dashboard_widget_description">ଆଜିର ପ୍ରଗତି, ବାକି କାର୍ଡ, ଲଗାତାର ଅଭ୍ୟାସ, ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ ଓ ଆପଣଙ୍କ କାର୍ଯ୍ୟକଳାପ।</string>
+    <string name="widget_reveal_answer">ଉତ୍ତର ଦେଖାନ୍ତୁ</string>
+    <string name="review_widget_to_review_label">ଅଭ୍ୟାସ ପାଇଁ</string>
+    <plurals name="review_widget_to_review_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> ଅଭ୍ୟାସ ପାଇଁ</item>
+        <item quantity="other"><xliff:g id="count" example="132">%1$d</xliff:g> ଅଭ୍ୟାସ ପାଇଁ</item>
+    </plurals>
+    <plurals name="widget_scheduled_due">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> ବାକି</item>
+        <item quantity="other"><xliff:g id="count" example="34">%1$d</xliff:g> ବାକି</item>
+    </plurals>
+    <string name="widget_scheduled_due_none">✓ 0 ବାକି</string>
+    <plurals name="widget_minutes_estimate">
+        <item quantity="one">≈ <xliff:g id="minutes" example="1">%1$d</xliff:g> ମିନିଟ୍</item>
+        <item quantity="other">≈ <xliff:g id="minutes" example="6">%1$d</xliff:g> ମିନିଟ୍</item>
+    </plurals>
+    <plurals name="widget_new_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> ନୂଆ</item>
+        <item quantity="other"><xliff:g id="count" example="98">%1$d</xliff:g> ନୂଆ</item>
+    </plurals>
+    <string name="widget_last_7_days_label">7 ଦିନ</string>
+    <plurals name="today_widget_today_count">
+        <item quantity="one">ଆଜି <xliff:g id="count" example="1">%1$d</xliff:g></item>
+        <item quantity="other">ଆଜି <xliff:g id="count" example="36">%1$d</xliff:g></item>
+    </plurals>
+    <string name="today_widget_best_day">ସର୍ବୋତ୍ତମ ଦିନ <xliff:g id="count" example="61">%1$d</xliff:g></string>
+    <string name="today_widget_new_best_day">ନୂଆ ସର୍ବୋତ୍ତମ ଦିନ</string>
+    <string name="reviews_chart_widget_daily_average_value">ଦୈନିକ ହାରାହାରି <xliff:g id="average" example="13.1">%1$s</xliff:g></string>
+    <string name="streaks_widget_day_streak_label">ଦିନର ଧାରା</string>
+    <string name="streaks_widget_days_description">ଆପଣଙ୍କ ଗତ 7 ଦିନ</string>
+    <string name="question_widget_label">ପ୍ରଶ୍ନ</string>
+    <string name="question_widget_description">ଆପଣଙ୍କ ପରବର୍ତ୍ତୀ କାର୍ଡରୁ ଗୋଟିଏ ପ୍ରଶ୍ନ, ଉତ୍ତର ଦେଖାଇବା ପାଇଁ ଏକ ବଟନ୍ ସହିତ।</string>
+    <string name="question_widget_preview_due">12 ବାକି</string>
     <string name="premium_title">ପ୍ରିମିୟମ୍</string>
     <string name="premium_benefit_creator_support">ଆପ୍‌ର ନିର୍ମାତାଙ୍କୁ ସହଯୋଗ</string>
     <string name="premium_benefit_accent_color">ନିଜ ପସନ୍ଦର ଆପ୍ ରଙ୍ଗ</string>

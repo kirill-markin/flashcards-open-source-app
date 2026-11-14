@@ -323,9 +323,25 @@ const daCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Vurderinger af repetitioner",
     },
+    reviewsPace: {
+      lastSevenDays: "Seneste 7 dage · {{count}} om dagen",
+      studyTime: "Studietid · ≈ {{count}} min.",
+    },
+    records: {
+      title: "Rekorder",
+      bestDay: "Bedste dag",
+      bestWeek: "Bedste uge",
+      longestStreak: "Længste stime",
+      totalReviews: "Gennemgange i alt",
+      lastSevenDays: "Seneste 7 dage",
+      cardsMet: "Nye kort",
+      relearned: "Genlært",
+    },
     reviewSchedule: {
       title: "Repetitionsplan",
       totalCards: "Kort i alt: {{count}}",
+      dueToday: "Forfalder i dag {{count}}",
+      dueTodayWithMinutes: "Forfalder i dag {{count}} · ≈ {{minutes}} min.",
       legendLabel: "Grupper i repetitionsplanen",
       buckets: {
         new: "Nye",

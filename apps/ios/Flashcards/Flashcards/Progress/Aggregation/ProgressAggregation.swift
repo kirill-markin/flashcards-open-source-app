@@ -41,6 +41,8 @@ enum ReviewScheduleLocalCoverage: Hashable, Sendable {
 
 struct ProgressRenderedSummary: Hashable, Sendable {
     let summary: ProgressSummary
+    /// Server-only facts, taken as they are from a server base of the same scope; nil for the local fallback.
+    let insights: ProgressInsights?
     let sourceState: ProgressSourceState
 }
 
@@ -137,11 +139,13 @@ func makeProgressRenderedSummary(
           persistedServerBase.scopeKey == scopeKey else {
         return ProgressRenderedSummary(
             summary: localFallbackSummary,
+            insights: nil,
             sourceState: .localOnly
         )
     }
 
     let serverBaseSummary = persistedServerBase.serverBase.summary
+    let serverBaseInsights = persistedServerBase.serverBase.insights
     let renderedSummary = try mergeProgressSummary(
         serverBase: serverBaseSummary,
         localFallbackActiveDates: localFallbackActiveDates,
@@ -152,18 +156,21 @@ func makeProgressRenderedSummary(
     case .present:
         return ProgressRenderedSummary(
             summary: renderedSummary,
+            insights: serverBaseInsights,
             sourceState: .serverBaseWithPendingLocalOverlay
         )
     case .empty:
         guard renderedSummary != serverBaseSummary else {
             return ProgressRenderedSummary(
                 summary: serverBaseSummary,
+                insights: serverBaseInsights,
                 sourceState: .serverBase
             )
         }
 
         return ProgressRenderedSummary(
             summary: renderedSummary,
+            insights: serverBaseInsights,
             sourceState: .serverBaseWithPendingLocalOverlay
         )
     }

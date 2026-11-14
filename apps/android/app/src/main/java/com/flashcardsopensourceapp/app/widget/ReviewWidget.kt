@@ -17,12 +17,16 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
+import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
+import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -72,7 +76,8 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
                     workspaceId = content?.workspaceId,
                     size = size,
                     kind = WidgetKind.REVIEW,
-                    cardId = shownCard?.cardId
+                    cardId = shownCard?.cardId,
+                    revealAnswer = false
                 )
             )
         )
@@ -82,11 +87,8 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
                 content == null -> ReviewWidgetOpenApp()
                 content.dueCount == 0 -> ReviewWidgetAllDone(content = content, showStreak = size != ReviewWidgetSize.MEDIUM)
                 size == ReviewWidgetSize.SMALL -> ReviewWidgetSmallDue(content = content)
-                else -> ReviewWidgetDueWithCard(
-                    content = content,
-                    card = shownCard,
-                    showStreak = size == ReviewWidgetSize.LARGE
-                )
+                size == ReviewWidgetSize.MEDIUM -> ReviewWidgetMediumDue(content = content, card = shownCard)
+                else -> ReviewWidgetLargeDue(content = content, card = shownCard)
             }
         }
     }
@@ -129,36 +131,121 @@ private fun ColumnScope.ReviewWidgetAllDone(content: ReviewWidgetContent, showSt
     }
 }
 
+/** The cards to review, how many of them are due, and the streak. */
 @Composable
 private fun ColumnScope.ReviewWidgetSmallDue(content: ReviewWidgetContent) {
     val context = LocalContext.current
     Text(
         text = context.getString(R.string.review_widget_due_count, content.dueCount),
-        style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 40.sp, fontWeight = FontWeight.Bold),
+        // Smaller than a lone headline, so the due line fits under it.
+        style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 34.sp, fontWeight = FontWeight.Bold),
         maxLines = 1
     )
-    Text(text = context.getString(R.string.review_widget_due_label), style = secondaryStyle(), maxLines = 1)
+    Text(text = context.getString(R.string.review_widget_to_review_label), style = secondaryStyle(), maxLines = 1)
+    Text(
+        text = widgetScheduledDueText(context = context, scheduledDueCount = content.scheduledDueCount),
+        style = secondaryStyle(),
+        maxLines = 1
+    )
     ReviewWidgetStreakFooter(streakDays = content.streakDays)
 }
 
+/** The cards to review, the next question, the due line with its minutes, and Reveal answer. */
 @Composable
-private fun ColumnScope.ReviewWidgetDueWithCard(content: ReviewWidgetContent, card: ReviewWidgetCard?, showStreak: Boolean) {
+private fun ColumnScope.ReviewWidgetMediumDue(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
     val context = LocalContext.current
     Text(
-        text = context.resources.getQuantityString(R.plurals.review_widget_cards_due, content.dueCount, content.dueCount),
+        text = context.resources.getQuantityString(R.plurals.review_widget_to_review_count, content.dueCount, content.dueCount),
         style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold),
         maxLines = 1
     )
     if (card != null) {
-        Spacer(modifier = GlanceModifier.height(8.dp))
-        Text(
-            text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
-            style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            maxLines = if (showStreak) 6 else 3
-        )
+        Spacer(modifier = GlanceModifier.height(4.dp))
+        ReviewWidgetQuestion(card = card, maxLines = 3, modifier = GlanceModifier.defaultWeight())
+    } else {
+        Spacer(modifier = GlanceModifier.defaultWeight())
     }
-    if (showStreak) {
-        ReviewWidgetStreakFooter(streakDays = content.streakDays)
+    ReviewWidgetDueRow(content = content, card = card)
+}
+
+/** The cards to review with the streak, the due line with its minutes and the new count, the question, and Reveal answer. */
+@Composable
+private fun ColumnScope.ReviewWidgetLargeDue(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
+    val context = LocalContext.current
+    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = context.resources.getQuantityString(R.plurals.review_widget_to_review_count, content.dueCount, content.dueCount),
+            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            modifier = GlanceModifier.defaultWeight()
+        )
+        val streakDays: Int? = content.streakDays
+        if (streakDays != null) {
+            Text(
+                text = context.resources.getQuantityString(R.plurals.review_widget_streak_days, streakDays, streakDays),
+                style = secondaryStyle(),
+                maxLines = 1
+            )
+        }
+    }
+    val newCountDetail: List<String> = if (content.newCount > 0) {
+        listOf(context.resources.getQuantityString(R.plurals.widget_new_count, content.newCount, content.newCount))
+    } else {
+        emptyList()
+    }
+    Text(
+        text = joinWidgetDetails(details = widgetScheduledDueDetails(context = context, content = content) + newCountDetail),
+        style = secondaryStyle(),
+        maxLines = 1
+    )
+    if (card == null) {
+        return
+    }
+    Spacer(modifier = GlanceModifier.height(8.dp))
+    ReviewWidgetQuestion(card = card, maxLines = 6, modifier = GlanceModifier.defaultWeight())
+    Spacer(modifier = GlanceModifier.height(8.dp))
+    WidgetRevealAnswerButton(
+        workspaceId = content.workspaceId,
+        cardId = card.cardId,
+        size = ReviewWidgetSize.LARGE,
+        kind = WidgetKind.REVIEW,
+        modifier = GlanceModifier
+    )
+}
+
+/** The question area; its tap is the widget's, which opens the card question-side. */
+@Composable
+internal fun ReviewWidgetQuestion(card: ReviewWidgetCard, maxLines: Int, modifier: GlanceModifier) {
+    val context = LocalContext.current
+    Text(
+        text = card.frontPlainText.ifBlank { context.getString(R.string.review_widget_question_without_text) },
+        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+        maxLines = maxLines,
+        modifier = modifier
+    )
+}
+
+/** The due line beside Reveal answer, which shows only with a card. */
+@Composable
+private fun ReviewWidgetDueRow(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
+    val context = LocalContext.current
+    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = joinWidgetDetails(details = widgetScheduledDueDetails(context = context, content = content)),
+            style = secondaryStyle(),
+            maxLines = 1,
+            modifier = GlanceModifier.defaultWeight()
+        )
+        if (card != null) {
+            Spacer(modifier = GlanceModifier.width(8.dp))
+            WidgetRevealAnswerButton(
+                workspaceId = content.workspaceId,
+                cardId = card.cardId,
+                size = ReviewWidgetSize.MEDIUM,
+                kind = WidgetKind.REVIEW,
+                modifier = GlanceModifier
+            )
+        }
     }
 }
 

@@ -323,9 +323,25 @@ export const zhHansCatalog = {
     reviewsBreakdown: {
       legendLabel: "复习评分",
     },
+    reviewsPace: {
+      lastSevenDays: "过去 7 天 · 每天 {{count}}",
+      studyTime: "学习时间 · ≈ {{count}}分钟",
+    },
+    records: {
+      title: "纪录",
+      bestDay: "最佳一天",
+      bestWeek: "最佳一周",
+      longestStreak: "最长连续",
+      totalReviews: "总复习数",
+      lastSevenDays: "过去 7 天",
+      cardsMet: "新卡片",
+      relearned: "重新学会",
+    },
     reviewSchedule: {
       title: "复习计划",
       totalCards: "卡片总数：{{count}}",
+      dueToday: "今日到期 {{count}}",
+      dueTodayWithMinutes: "今日到期 {{count}} · ≈ {{minutes}}分钟",
       legendLabel: "复习计划分组",
       buckets: {
         new: "新卡",
