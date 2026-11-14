@@ -25,8 +25,12 @@ private struct TagInputRow: View {
         HStack(spacing: 12) {
             Image(systemName: "tag")
                 .foregroundStyle(.secondary)
+                .allowsHitTesting(false)
 
             TextField(String(localized: "Add or filter tags", table: reviewCardsStringsTableName), text: $searchText)
+                #if !targetEnvironment(macCatalyst)
+                .textFieldStyle(.plain)
+                #endif
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)
@@ -39,15 +43,22 @@ private struct TagInputRow: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                        #if targetEnvironment(macCatalyst)
                         .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                        #endif
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "Delete", table: reviewCardsStringsTableName))
+                .accessibilityLabel(String(localized: "text_input.clear", table: "Foundation"))
             }
         }
+        #if !targetEnvironment(macCatalyst)
+        .frame(minHeight: appMinimumTouchTarget)
+        .padding(.leading, 12)
+        .padding(.trailing, self.searchText.isEmpty ? 12 : 0)
+        .padding(.vertical, 2)
+        .nativeTextInputFocusTarget(isFocused: self.$isInputFocused)
+        .nativeTextInputBackground(cornerRadius: 24)
+        .listRowBackground(Color.clear)
+        #endif
     }
 }
 
@@ -98,6 +109,7 @@ private struct TagPickerRow: View {
 
 struct TagPickerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
 
     let suggestions: [TagSuggestion]
     @Binding private var selectedTags: [String]
@@ -262,12 +274,15 @@ struct TagPickerView: View {
         .onChange(of: self.sourceTags) {
             self.reconcileTagsWithSelection()
         }
-        .navigationTitle(String(localized: "Tags", table: reviewCardsStringsTableName))
+        .pageNavigationTitle(String(localized: "Tags", table: reviewCardsStringsTableName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(String(localized: "Cancel", table: reviewCardsStringsTableName)) {
-                    dismiss()
+            // Pushed into a section, Back leaves the tags unapplied.
+            if self.presentationStyle == .sheet {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(String(localized: "Cancel", table: reviewCardsStringsTableName)) {
+                        dismiss()
+                    }
                 }
             }
 
@@ -279,6 +294,12 @@ struct TagPickerView: View {
                 }
             }
         }
+        .sectionChildBackGuard(isLocked: false, hasUnsavedChanges: self.hasUnsavedChanges, onDiscard: { self.dismiss() })
+    }
+
+    /// Whether the draft differs from the tags it would replace, in any order.
+    private var hasUnsavedChanges: Bool {
+        Set(self.draftTags.map { normalizeTagKey(tag: $0) }) != Set(self.sourceTags.map { normalizeTagKey(tag: $0) })
     }
 }
 

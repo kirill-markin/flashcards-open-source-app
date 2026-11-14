@@ -7,26 +7,77 @@ enum AIChatHistoryReaderPhase: Equatable {
     case loaded(messages: [AIChatMessage])
 }
 
+/// One old chat's transcript. Its history list keeps it, so every section's side chat shows the same load and
+/// returning to the chat keeps the transcript.
+@MainActor
+@Observable
+final class AIChatHistoryReaderModel {
+    private(set) var phase: AIChatHistoryReaderPhase
+
+    @ObservationIgnored private let chatStore: AIChatStore
+    @ObservationIgnored private let sessionId: String
+    @ObservationIgnored private let onUnavailable: () -> Void
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+
+    init(chatStore: AIChatStore, sessionId: String, onUnavailable: @escaping () -> Void) {
+        self.phase = .loading
+        self.chatStore = chatStore
+        self.sessionId = sessionId
+        self.onUnavailable = onUnavailable
+        self.loadTask = nil
+    }
+
+    /// Only a load that never finished runs again. The load outlives the page that started it, so the next section's
+    /// side chat shows its result instead of starting over.
+    func loadIfNeeded() {
+        guard self.phase == .loading, self.loadTask == nil else {
+            return
+        }
+        self.loadTask = Task {
+            await self.load()
+            self.loadTask = nil
+        }
+    }
+
+    func retry() {
+        self.phase = .loading
+        self.loadIfNeeded()
+    }
+
+    private func load() async {
+        do {
+            let session = try await self.chatStore.flashcardsStore.cloudSessionForAI()
+            let snapshot = try await self.chatStore.chatService.loadSnapshot(
+                session: session,
+                sessionId: self.sessionId
+            )
+            self.phase = .loaded(messages: snapshot.conversation.messages)
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+            if isAIChatSessionUnavailableError(error: error) {
+                self.phase = .unavailable
+                self.onUnavailable()
+                return
+            }
+            captureAIChatHistoryFailure(
+                error: error,
+                flashcardsStore: self.chatStore.flashcardsStore,
+                action: "chat_history_read",
+                sessionId: self.sessionId
+            )
+            self.phase = .failed(message: errorMessage(error: error))
+        }
+    }
+}
+
 /// Shows an old chat without a composer; the server refuses to continue a chat that is not current.
 struct AIChatHistoryReaderView: View {
-    @Environment(FlashcardsStore.self) private var flashcardsStore: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     let chatStore: AIChatStore
     let summary: AIChatSessionHistorySummary
-    let onUnavailable: (String) -> Void
-    @State private var phase: AIChatHistoryReaderPhase
-
-    @MainActor
-    init(
-        chatStore: AIChatStore,
-        summary: AIChatSessionHistorySummary,
-        onUnavailable: @escaping (String) -> Void
-    ) {
-        self.chatStore = chatStore
-        self.summary = summary
-        self.onUnavailable = onUnavailable
-        self._phase = State(initialValue: .loading)
-    }
+    let model: AIChatHistoryReaderModel
 
     var body: some View {
         self.content
@@ -43,17 +94,14 @@ struct AIChatHistoryReaderView: View {
                     .padding(.horizontal, aiChatMessageListHorizontalPadding)
                     .padding(.vertical, 12)
             }
-            .task {
-                await self.loadIfNeeded()
-            }
-            .onChange(of: aiChatHistoryScope(flashcardsStore: self.flashcardsStore)) { _, _ in
-                self.navigation.popAIToLiveChat()
+            .onAppear {
+                self.model.loadIfNeeded()
             }
     }
 
     @ViewBuilder
     private var content: some View {
-        switch self.phase {
+        switch self.model.phase {
         case .loading:
             ProgressView(aiSettingsLocalized("ai.history.readerLoading", "Loading chat..."))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -68,10 +116,7 @@ struct AIChatHistoryReaderView: View {
                     .textSelection(.enabled)
             } actions: {
                 Button(aiSettingsLocalized("common.retry", "Retry")) {
-                    self.phase = .loading
-                    Task {
-                        await self.loadIfNeeded()
-                    }
+                    self.model.retry()
                 }
                 .nativeProminentActionButtonStyle()
             }
@@ -95,6 +140,10 @@ struct AIChatHistoryReaderView: View {
                     isRunActive: false,
                     repairStatus: nil,
                     showsTypingIndicator: false,
+                    disclosures: self.chatStore.transcriptDisclosures[message.id] ?? [:],
+                    onSetDisclosure: { [chatStore = self.chatStore, messageId = message.id] key, isExpanded in
+                        chatStore.setTranscriptDisclosure(messageId: messageId, key: key, isExpanded: isExpanded)
+                    },
                     onExpandContent: {},
                     onOpenAccountStatus: {
                         self.navigation.openSettings(destination: .accountStatus)
@@ -113,37 +162,5 @@ struct AIChatHistoryReaderView: View {
         .contentMargins(.vertical, 12, for: .scrollContent)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .accessibilityIdentifier(UITestIdentifier.aiHistoryReader)
-    }
-
-    /// Only a load that never finished runs again, so returning to this screen keeps the transcript.
-    private func loadIfNeeded() async {
-        guard self.phase == .loading else {
-            return
-        }
-
-        do {
-            let session = try await self.chatStore.flashcardsStore.cloudSessionForAI()
-            let snapshot = try await self.chatStore.chatService.loadSnapshot(
-                session: session,
-                sessionId: self.summary.sessionId
-            )
-            self.phase = .loaded(messages: snapshot.conversation.messages)
-        } catch {
-            if isRequestCancellationError(error: error) {
-                return
-            }
-            if isAIChatSessionUnavailableError(error: error) {
-                self.phase = .unavailable
-                self.onUnavailable(self.summary.sessionId)
-                return
-            }
-            captureAIChatHistoryFailure(
-                error: error,
-                flashcardsStore: self.chatStore.flashcardsStore,
-                action: "chat_history_read",
-                sessionId: self.summary.sessionId
-            )
-            self.phase = .failed(message: errorMessage(error: error))
-        }
     }
 }

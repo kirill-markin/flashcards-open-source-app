@@ -86,9 +86,10 @@ struct CardsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(CardsScreenModel.self) private var cardsModel: CardsScreenModel
-    @Environment(\.dismissSearch) private var dismissSearch
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.usesRegularToolbarLayout) private var usesRegularToolbarLayout
     @Environment(\.tabBarPlacement) private var tabBarPlacement
+
+    @FocusState private var isSearchFocused: Bool
 
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var pendingDeletion: Card? = nil
@@ -165,7 +166,7 @@ struct CardsScreen: View {
         } message: { card in
             Text(makeReviewPreviewText(text: card.frontText).text)
         }
-        .sheet(
+        .sectionChildPresentation(
             item: self.$editorPresentation,
             onDismiss: {
                 // From the presentation, never from the content, for the reason
@@ -176,23 +177,28 @@ struct CardsScreen: View {
                 Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
             }
         ) { presentation in
-            NavigationStack(path: self.$cardFormState.navigationPath) {
-                CardEditorScreen(
-                    title: presentation.title,
-                    errorMessage: self.screenErrorMessage,
-                    availableTagSuggestions: self.availableTagSuggestions,
-                    formState: self.$cardFormState,
-                    onEditWithAI: presentation.editingCardId.map { editingCardId in
-                        {
-                            self.openEditingCardWithAI(editingCardId: editingCardId)
-                        }
-                    },
-                    onCancel: self.cancelCardEditor,
-                    onSave: self.saveCard,
-                    onDelete: {
-                        self.deleteEditingCard()
+            CardEditorScreen(
+                title: presentation.title,
+                errorMessage: self.screenErrorMessage,
+                availableTagSuggestions: self.availableTagSuggestions,
+                formState: self.$cardFormState,
+                onEditWithAI: presentation.editingCardId.map { editingCardId in
+                    {
+                        self.openEditingCardWithAI(editingCardId: editingCardId)
                     }
-                )
+                },
+                onCancel: self.cancelCardEditor,
+                onSave: self.saveCard,
+                onDelete: {
+                    self.deleteEditingCard()
+                }
+            )
+            .onAppear {
+                Analytics.trackScreenViewed(.cardEditor)
+            }
+        } sheet: { presentation, editor in
+            NavigationStack(path: self.$cardFormState.navigationPath) {
+                editor
             }
             .modifier(CardEditorKeyboardModifier(
                 isEnabled: self.editorPresentation == presentation && self.store.presentedTechnicalError == nil,
@@ -203,22 +209,21 @@ struct CardsScreen: View {
             .technicalErrorSheet(store: self.store)
             .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
             .interactiveDismissDisabled()
-            .onAppear {
-                Analytics.trackScreenViewed(.cardEditor)
-            }
         }
-        .sheet(isPresented: $isFilterSheetPresented) {
+        .sectionChildPresentation(isPresented: $isFilterSheetPresented, onDismiss: nil) {
+            CardFiltersSheetView(
+                suggestions: availableTagSuggestions,
+                draftFilter: self.$draftFilter,
+                onCancel: {
+                    self.isFilterSheetPresented = false
+                },
+                onApply: {
+                    self.applyFilters()
+                }
+            )
+        } sheet: { filters in
             NavigationStack {
-                CardFiltersSheetView(
-                    suggestions: availableTagSuggestions,
-                    draftFilter: self.$draftFilter,
-                    onCancel: {
-                        self.isFilterSheetPresented = false
-                    },
-                    onApply: {
-                        self.applyFilters()
-                    }
-                )
+                filters
             }
         }
         .onAppear {
@@ -251,6 +256,9 @@ struct CardsScreen: View {
     private func bodyContent(scrollProxy: ScrollViewProxy) -> some View {
         @Bindable var cardsModel = self.cardsModel
         return List {
+            #if !targetEnvironment(macCatalyst)
+            NativeSearchRow(text: $cardsModel.searchText, isFocused: self.$isSearchFocused, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName))
+            #endif
             if screenErrorMessage.isEmpty == false {
                 Section {
                     Text(screenErrorMessage)
@@ -345,6 +353,12 @@ struct CardsScreen: View {
             }
         }
         .listStyle(.insetGrouped)
+        .nativeSearchKeyboardShortcut(
+            isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true },
+            prompt: String(localized: "Search cards", table: reviewCardsStringsTableName),
+            isEnabled: self.editorPresentation == nil && self.isFilterSheetPresented == false,
+            scrollProxy: scrollProxy
+        )
         .onScrollGeometryChange(for: Bool.self, of: { geometry in
             geometry.containerSize.height > 0 && geometry.contentSize.height > 0
         }) { _, isLaidOut in
@@ -373,14 +387,6 @@ struct CardsScreen: View {
         .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
         #endif
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
-        #if !targetEnvironment(macCatalyst)
-        .searchable(
-            text: $cardsModel.searchText,
-            placement: .automatic,
-            prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
-        )
-        .nativeSearchToolbar(horizontalSizeClass: self.usesTopTabNavigation ? .compact : self.horizontalSizeClass)
-        #endif
         .toolbar {
             #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
@@ -396,7 +402,7 @@ struct CardsScreen: View {
                     }
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) { self.filterToolbarButton }
+            ToolbarItem(placement: self.filterToolbarPlacement) { self.filterToolbarButton }
             ToolbarItem(placement: .topBarTrailing) { self.addToolbarButton }
             #endif
         }
@@ -421,21 +427,39 @@ struct CardsScreen: View {
     }
     #endif
 
+    /// The regular toolbar layout shows the plain filter glyph, accent while a filter is set; iPhone fills its circle.
+    /// Filter and add share the bar's glass.
+    @ViewBuilder
     private var filterToolbarButton: some View {
-        Button {
-            self.beginFiltering()
-        } label: {
-            let symbolName = self.activeFilterDimensionCount == 0 ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill"
-            let symbolColor = Color.primary
-            Image(systemName: symbolName)
-                .foregroundStyle(symbolColor)
-                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
-                .contentShape(Rectangle())
+        if self.usesRegularToolbarLayout {
+            Button {
+                self.beginFiltering()
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .nativeToolbarIconLabel()
+            }
+            .accessibilityIdentifier(UITestIdentifier.cardsFilterButton)
+            .accessibilityLabel(self.filterToolbarAccessibilityLabel)
+            .nativeToolbarState(isActive: self.activeFilterDimensionCount > 0)
+        } else {
+            Button {
+                self.beginFiltering()
+            } label: {
+                Image(systemName: self.activeFilterDimensionCount == 0 ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                    .foregroundStyle(Color.primary)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityIdentifier(UITestIdentifier.cardsFilterButton)
+            .accessibilityLabel(self.filterToolbarAccessibilityLabel)
         }
-        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
-        .accessibilityIdentifier(UITestIdentifier.cardsFilterButton)
-        .accessibilityLabel(self.filterToolbarAccessibilityLabel)
     }
+
+    #if !targetEnvironment(macCatalyst)
+    /// The filter leads when the floating tab bar occupies the top bar.
+    private var filterToolbarPlacement: ToolbarItemPlacement {
+        self.usesTopTabNavigation && self.navigation.isAICompanionPaneOpen == false ? .topBarLeading : .topBarTrailing
+    }
+    #endif
 
     private var filterToolbarAccessibilityLabel: String {
         self.activeFilterDimensionCount == 0
@@ -448,18 +472,18 @@ struct CardsScreen: View {
     }
 
     private var addToolbarButton: some View {
-        let action = self.beginCreatingFromToolbar
-        return Group {
-            Button(action: action) {
-            Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
-                .foregroundStyle(Color.primary)
-                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
-                .contentShape(Rectangle())
+        Button(action: self.beginCreatingFromToolbar) {
+            if self.usesRegularToolbarLayout {
+                Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
+                    .nativeToolbarIconLabel()
+            } else {
+                Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
+                    .foregroundStyle(Color.primary)
+                    .contentShape(Rectangle())
+            }
         }
-        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
         .tint(Color.primary)
         .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
-        }
     }
 
     private func beginCreatingFromToolbar() {
@@ -685,7 +709,7 @@ struct CardsScreen: View {
         #if targetEnvironment(macCatalyst)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         #else
-        self.dismissSearch()
+        self.isSearchFocused = false
         #endif
     }
 
@@ -825,6 +849,7 @@ struct CardsScreen: View {
 }
 
 private struct CardFiltersSheetView: View {
+    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
     let suggestions: [TagSuggestion]
     @Binding var draftFilter: CardFilter?
     let onCancel: () -> Void
@@ -846,6 +871,8 @@ private struct CardFiltersSheetView: View {
                         selectedTags: Binding(get: { self.draftTags }, set: self.updateDraftFilter),
                         suggestions: suggestions
                     )
+                    .environment(\.sectionChildPresentationStyle, self.presentationStyle)
+                    .aiCompanionColumnPage(when: self.presentationStyle)
                 } label: {
                     TagsFieldRow(summary: localizedTagSelectionSummary(tags: draftTags))
                 }
@@ -869,10 +896,13 @@ private struct CardFiltersSheetView: View {
                 Text(String(localized: "Actions", table: reviewCardsStringsTableName))
             }
         }
-        .navigationTitle(String(localized: "Filters", table: reviewCardsStringsTableName))
+        .pageNavigationTitle(String(localized: "Filters", table: reviewCardsStringsTableName))
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
+            // Pushed into Cards, Back leaves the filters unapplied.
+            if self.presentationStyle == .sheet {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
+                }
             }
 
             ToolbarItem(placement: .topBarTrailing) {

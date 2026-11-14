@@ -5,9 +5,8 @@ struct DecksScreen: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
     @Environment(\.locale) private var locale
-    @Environment(\.dismissSearch) private var dismissSearch
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    @FocusState private var isSearchFocused: Bool
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var editorErrorMessage: String = ""
@@ -18,7 +17,6 @@ struct DecksScreen: View {
     )
     @State private var availableTagSuggestions: [TagSuggestion] = []
     @State private var isLoading: Bool = true
-    @State private var isSearchPresented: Bool = false
     @State private var searchText: String = ""
 
     private var deckListEntries: [DeckScreenListItem] {
@@ -33,57 +31,68 @@ struct DecksScreen: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the tags you choose."))
-                    .foregroundStyle(.secondary)
-            }
-
-            Section(aiSettingsLocalized("settings.workspace.row.decks", "Decks")) {
-                if self.isLoading {
-                    Text(aiSettingsLocalized("settings.workspace.decks.loading", "Loading decks…"))
+        ScrollViewReader { scrollProxy in
+            List {
+                #if !targetEnvironment(macCatalyst)
+                NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks"))
+                #endif
+                Section {
+                    Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the tags you choose."))
                         .foregroundStyle(.secondary)
-                } else if self.filteredDeckListEntries.isEmpty {
-                    ContentUnavailableView(
-                        aiSettingsLocalized("settings.workspace.decks.noMatching", "No Matching Decks"),
-                        systemImage: "magnifyingglass",
-                        description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
-                    )
-                } else {
-                    ForEach(self.filteredDeckListEntries) { deckListEntry in
-                        if let persistedDeckId = deckListEntry.persistedDeckId {
-                            NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
-                                DeckListRow(deckListEntry: deckListEntry)
-                            }
-                            .rememberedListRow(id: deckListEntry.id)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button {
-                                    self.pendingDeletion = DeckDeletionTarget(
-                                        deckId: persistedDeckId,
-                                        name: deckListEntry.title
-                                    )
-                                } label: {
-                                    Label(aiSettingsLocalized("common.delete", "Delete"), systemImage: "trash")
+                }
+
+                Section(aiSettingsLocalized("settings.workspace.row.decks", "Decks")) {
+                    if self.isLoading {
+                        Text(aiSettingsLocalized("settings.workspace.decks.loading", "Loading decks…"))
+                            .foregroundStyle(.secondary)
+                    } else if self.filteredDeckListEntries.isEmpty {
+                        ContentUnavailableView(
+                            aiSettingsLocalized("settings.workspace.decks.noMatching", "No Matching Decks"),
+                            systemImage: "magnifyingglass",
+                            description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
+                        )
+                    } else {
+                        ForEach(self.filteredDeckListEntries) { deckListEntry in
+                            if let persistedDeckId = deckListEntry.persistedDeckId {
+                                NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
+                                    DeckListRow(deckListEntry: deckListEntry)
                                 }
-                                .tint(.red)
+                                .rememberedListRow(id: deckListEntry.id)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button {
+                                        self.pendingDeletion = DeckDeletionTarget(
+                                            deckId: persistedDeckId,
+                                            name: deckListEntry.title
+                                        )
+                                    } label: {
+                                        Label(aiSettingsLocalized("common.delete", "Delete"), systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                }
+                            } else {
+                                NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
+                                    DeckListRow(deckListEntry: deckListEntry)
+                                }
+                                .accessibilityIdentifier(UITestIdentifier.decksAllCardsRow)
+                                .rememberedListRow(id: deckListEntry.id)
                             }
-                        } else {
-                            NavigationLink(value: LibraryNavigationDestination.deckDetail(deckListEntry.destination)) {
-                                DeckListRow(deckListEntry: deckListEntry)
-                            }
-                            .accessibilityIdentifier(UITestIdentifier.decksAllCardsRow)
-                            .rememberedListRow(id: deckListEntry.id)
                         }
                     }
                 }
             }
+            .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
+            .listStyle(.insetGrouped)
+            .nativeSearchKeyboardShortcut(
+                isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true },
+                prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks"),
+                isEnabled: self.isEditorPresented == false,
+                scrollProxy: scrollProxy
+            )
+            .rememberedListScroll(
+                topRowID: self.settingsScroll.topRowID(\.decksTopRowID, whileOnPath: { self.navigation.isDecksOnLibraryPath }),
+                isContentReady: self.isLoading == false
+            )
         }
-        .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
-        .listStyle(.insetGrouped)
-        .rememberedListScroll(
-            topRowID: self.settingsScroll.topRowID(\.decksTopRowID, whileOnPath: { self.navigation.isDecksOnLibraryPath }),
-            isContentReady: self.isLoading == false
-        )
         .accessibilityIdentifier(UITestIdentifier.decksScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
         #if targetEnvironment(macCatalyst)
@@ -105,14 +114,6 @@ struct DecksScreen: View {
                 onFocusRequestHandled: {}
             )
         ))
-        #else
-        .searchable(
-            text: self.$searchText,
-            isPresented: self.$isSearchPresented,
-            placement: .automatic,
-            prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks")
-        )
-        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         #endif
         .task(id: "\(store.localReadVersion)|\(store.reviewScheduleVersion)") {
             await self.reloadDecksSnapshot()
@@ -150,7 +151,7 @@ struct DecksScreen: View {
             }
         }
         #endif
-        .sheet(
+        .sectionChildPresentation(
             isPresented: $isEditorPresented,
             onDismiss: {
                 // From the presentation, never from the content, for the reason
@@ -160,27 +161,29 @@ struct DecksScreen: View {
                 Analytics.trackScreenViewedOnDismiss(of: .deckEditor, restoring: .decks)
             }
         ) {
-            NavigationStack {
-                DeckEditorView(
-                    title: aiSettingsLocalized("settings.workspace.decks.newDeck", "New deck"),
-                    availableTagSuggestions: self.availableTagSuggestions,
-                    errorMessage: self.editorErrorMessage,
-                    formState: $deckFormState,
-                    savedDeck: nil,
-                    onMaintenanceDismissed: {},
-                    onCancel: {
-                        isEditorPresented = false
-                    },
-                    onSave: {
-                        self.saveDeck()
-                    },
-                    onDelete: nil
-                )
-            }
-            .technicalErrorSheetHost(store: self.store)
+            DeckEditorView(
+                title: aiSettingsLocalized("settings.workspace.decks.newDeck", "New deck"),
+                availableTagSuggestions: self.availableTagSuggestions,
+                errorMessage: self.editorErrorMessage,
+                formState: $deckFormState,
+                savedDeck: nil,
+                onMaintenanceDismissed: {},
+                onCancel: {
+                    isEditorPresented = false
+                },
+                onSave: {
+                    self.saveDeck()
+                },
+                onDelete: nil
+            )
             .onAppear {
                 Analytics.trackScreenViewed(.deckEditor)
             }
+        } sheet: { editor in
+            NavigationStack {
+                editor
+            }
+            .technicalErrorSheetHost(store: self.store)
         }
     }
 
@@ -192,8 +195,7 @@ struct DecksScreen: View {
     }
 
     private func dismissDecksSearch() {
-        self.dismissSearch()
-        self.isSearchPresented = false
+        self.isSearchFocused = false
     }
 
     private func saveDeck() {
@@ -590,7 +592,7 @@ struct DeckDetailScreen: View {
             }
         }
         #endif
-        .sheet(
+        .sectionChildPresentation(
             isPresented: $isEditorPresented,
             onDismiss: {
                 if self.didDeleteDeck {
@@ -601,28 +603,30 @@ struct DeckDetailScreen: View {
                 }
             }
         ) {
-            NavigationStack {
-                DeckEditorView(
-                    title: aiSettingsLocalized("settings.workspace.decks.editDeck", "Edit deck"),
-                    availableTagSuggestions: self.availableTagSuggestions,
-                    errorMessage: self.editorErrorMessage,
-                    formState: $deckFormState,
-                    savedDeck: self.editingDeck,
-                    onMaintenanceDismissed: self.reloadEditingDeckRules,
-                    onCancel: {
-                        isEditorPresented = false
-                    },
-                    onSave: {
-                        self.saveDeckChanges()
-                    },
-                    onDelete: self.beginDeletingDeck
-                )
-            }
+            DeckEditorView(
+                title: aiSettingsLocalized("settings.workspace.decks.editDeck", "Edit deck"),
+                availableTagSuggestions: self.availableTagSuggestions,
+                errorMessage: self.editorErrorMessage,
+                formState: $deckFormState,
+                savedDeck: self.editingDeck,
+                onMaintenanceDismissed: self.reloadEditingDeckRules,
+                onCancel: {
+                    isEditorPresented = false
+                },
+                onSave: {
+                    self.saveDeckChanges()
+                },
+                onDelete: self.beginDeletingDeck
+            )
             .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
-            .technicalErrorSheetHost(store: self.store)
             .onAppear {
                 Analytics.trackScreenViewed(.deckEditor)
             }
+        } sheet: { editor in
+            NavigationStack {
+                editor
+            }
+            .technicalErrorSheetHost(store: self.store)
         }
     }
 
@@ -772,6 +776,7 @@ struct DeckDetailScreen: View {
 }
 
 private struct DeckEditorView: View {
+    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
     let title: String
     let availableTagSuggestions: [TagSuggestion]
     let errorMessage: String
@@ -811,6 +816,8 @@ private struct DeckEditorView: View {
                             selectedTags: $formState.tags,
                             suggestions: availableTagSuggestions
                         )
+                        .environment(\.sectionChildPresentationStyle, self.presentationStyle)
+                        .aiCompanionColumnPage(when: self.presentationStyle)
                     } label: {
                         TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
                     }
@@ -853,16 +860,30 @@ private struct DeckEditorView: View {
                 }
             }
         }
-        .navigationTitle(title)
+        .pageNavigationTitle(title)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(aiSettingsLocalized("common.cancel", "Cancel"), action: onCancel)
+            // Pushed into Decks, Back leaves the editor.
+            if self.presentationStyle == .sheet {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(aiSettingsLocalized("common.cancel", "Cancel"), action: onCancel)
+                }
             }
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button(aiSettingsLocalized("common.save", "Save"), action: onSave)
             }
         }
+        .sectionChildBackGuard(isLocked: false, hasUnsavedChanges: self.hasUnsavedChanges, onDiscard: onCancel)
+    }
+
+    /// Whether the draft differs from the saved deck, or holds any input for a new one.
+    private var hasUnsavedChanges: Bool {
+        let name = self.formState.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let savedDeck else {
+            return name.isEmpty == false || self.formState.tags.isEmpty == false
+        }
+        return name != savedDeck.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            || Set(self.formState.tags) != Set(savedDeck.filterDefinition.tags)
     }
 }
 

@@ -11,6 +11,7 @@ final class AIConsentStore {
     @ObservationIgnored private let userDefaults: UserDefaults
     @ObservationIgnored private var syncTask: Task<Void, Error>?
     @ObservationIgnored private var syncActor: AIConsentActor?
+    @ObservationIgnored private var receiptCheck: (decision: AIConsentDecision, matches: Bool)?
 
     init(userDefaults: UserDefaults) {
         self.userDefaults = userDefaults
@@ -36,7 +37,17 @@ final class AIConsentStore {
         guard let decision = self.currentDecision else { return false }
         return !self.isLocallyBlocked && decision.evidence.action == .grant
             && decision.evidence.disclosureVersion == aiConsentDisclosureVersion
-            && decision.receipt?.matches(decision.evidence) == true && decision.owner != nil
+            && self.receiptMatches(decision: decision) && decision.owner != nil
+    }
+
+    /// Views read the grant several times per update, so the receipt's dates are parsed once per decision.
+    private func receiptMatches(decision: AIConsentDecision) -> Bool {
+        if let receiptCheck = self.receiptCheck, receiptCheck.decision == decision {
+            return receiptCheck.matches
+        }
+        let matches = decision.receipt?.matches(decision.evidence) == true
+        self.receiptCheck = (decision, matches)
+        return matches
     }
 
     var hasPendingDecisions: Bool {

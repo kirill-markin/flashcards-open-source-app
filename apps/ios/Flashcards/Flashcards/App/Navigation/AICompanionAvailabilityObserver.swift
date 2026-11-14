@@ -10,26 +10,33 @@ func fitsMacAICompanionColumns(_ size: CGSize) -> Bool {
 /// Mac observes the sidebar's detail column; mobile uses the full owning window.
 struct AICompanionAvailabilityObserver: UIViewRepresentable {
     let onChange: (Bool) -> Void
+    /// Whether the window's short side is at least 600 points, as on iPad and Duo's inner display; no phone has one.
+    var onLargeWindowChange: ((Bool) -> Void)? = nil
 
     func makeUIView(context: Context) -> AvailabilityView {
         let view = AvailabilityView()
         view.isUserInteractionEnabled = false
         view.onChange = self.onChange
+        view.onLargeWindowChange = self.onLargeWindowChange
         return view
     }
 
     func updateUIView(_ uiView: AvailabilityView, context: Context) {
         uiView.onChange = self.onChange
+        uiView.onLargeWindowChange = self.onLargeWindowChange
         uiView.reportAvailability()
     }
 
     final class AvailabilityView: UIView {
         var onChange: ((Bool) -> Void)?
+        var onLargeWindowChange: ((Bool) -> Void)?
         private var lastAvailability: Bool?
+        private var lastLargeWindow: Bool?
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
             self.lastAvailability = nil
+            self.lastLargeWindow = nil
             self.reportAvailability()
         }
 
@@ -51,6 +58,14 @@ struct AICompanionAvailabilityObserver: UIViewRepresentable {
             let size = window.bounds.size
             let isAvailable = size.width >= 900 && size.height >= 600
                 && size.width > size.height && self.traitCollection.horizontalSizeClass == .regular
+            let isLargeWindow = min(size.width, size.height) >= 600
+            if isLargeWindow != self.lastLargeWindow {
+                self.lastLargeWindow = isLargeWindow
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.window != nil, self.lastLargeWindow == isLargeWindow else { return }
+                    self.onLargeWindowChange?(isLargeWindow)
+                }
+            }
             #endif
             guard isAvailable != self.lastAvailability else { return }
             self.lastAvailability = isAvailable

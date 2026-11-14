@@ -40,6 +40,7 @@ func aiChatTextSelection(
     text: String,
     selection: AIChatDictationInsertionSelection
 ) -> TextSelection {
-    let insertionIndex = String.Index(utf16Offset: selection.endUtf16Offset, in: text)
+    // A draft edited after the caret was captured can be shorter than it.
+    let insertionIndex = String.Index(utf16Offset: min(max(selection.endUtf16Offset, 0), text.utf16.count), in: text)
     return TextSelection(insertionPoint: insertionIndex)
 }

@@ -16,12 +16,12 @@ extension FlashcardsStore {
             || self.isReviewHardReminderPresented
     }
 
-    func presentFeedbackSheet(trigger: FeedbackTrigger) {
-        self.feedbackPresentation = makeFeedbackPresentation(trigger: trigger, isTestPreview: false)
+    func presentFeedbackSheet(trigger: FeedbackTrigger, isPushed: Bool) {
+        self.feedbackPresentation = makeFeedbackPresentation(trigger: trigger, isTestPreview: false, isPushed: isPushed)
     }
 
     func presentAutomaticFeedbackPromptTestPreview() {
-        self.feedbackPresentation = makeFeedbackPresentation(trigger: .automatic, isTestPreview: true)
+        self.feedbackPresentation = makeFeedbackPresentation(trigger: .automatic, isTestPreview: true, isPushed: false)
     }
 
     func dismissFeedbackSheet() {
@@ -103,7 +103,7 @@ extension FlashcardsStore {
             return false
         }
 
-        self.presentFeedbackSheet(trigger: .automatic)
+        self.presentFeedbackSheet(trigger: .automatic, isPushed: false)
         return true
     }
 

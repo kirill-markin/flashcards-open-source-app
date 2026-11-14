@@ -123,7 +123,7 @@ private struct AIChatDisclosureToggleButton<Label: View>: View {
 }
 
 private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View {
-    @State private var isExpanded: Bool
+    @Binding var isExpanded: Bool
     /// Nil keeps the identifier inherited from the enclosing row.
     let toggleAccessibilityIdentifier: String?
     let onExpand: () -> Void
@@ -131,12 +131,13 @@ private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View
     let label: () -> Label
 
     init(
+        isExpanded: Binding<Bool>,
         toggleAccessibilityIdentifier: String?,
         onExpand: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder label: @escaping () -> Label
     ) {
-        self._isExpanded = State(initialValue: false)
+        self._isExpanded = isExpanded
         self.toggleAccessibilityIdentifier = toggleAccessibilityIdentifier
         self.onExpand = onExpand
         self.content = content
@@ -162,6 +163,8 @@ private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View
         AIChatDisclosureToggleButton(isExpanded: self.$isExpanded, onExpand: self.onExpand, label: self.label)
     }
 }
+
+private let aiChatWorkBlockDisclosureKey: String = "work"
 
 /// Work is every part up to and including the last tool call or reasoning step; the answer is the rest.
 struct AIChatWorkContentSplit {
@@ -268,7 +271,9 @@ func aiChatWorkBlockTitle(timing: AIChatWorkBlockTiming, now: Date) -> String {
 
 /// Follows the automatic open state whenever it changes, such as when the run ends, and otherwise keeps the user's toggle.
 private struct AIChatWorkBlock<WorkContent: View>: View {
-    @State private var isExpanded: Bool
+    /// The user's toggle; nil follows `automaticIsExpanded`.
+    let userIsExpanded: Bool?
+    let onSetUserIsExpanded: (Bool?) -> Void
     let automaticIsExpanded: Bool
     let showsClosingDivider: Bool
     let timing: AIChatWorkBlockTiming
@@ -276,13 +281,16 @@ private struct AIChatWorkBlock<WorkContent: View>: View {
     let workContent: () -> WorkContent
 
     init(
+        userIsExpanded: Bool?,
+        onSetUserIsExpanded: @escaping (Bool?) -> Void,
         automaticIsExpanded: Bool,
         showsClosingDivider: Bool,
         timing: AIChatWorkBlockTiming,
         onExpand: @escaping () -> Void,
         @ViewBuilder workContent: @escaping () -> WorkContent
     ) {
-        self._isExpanded = State(initialValue: automaticIsExpanded)
+        self.userIsExpanded = userIsExpanded
+        self.onSetUserIsExpanded = onSetUserIsExpanded
         self.automaticIsExpanded = automaticIsExpanded
         self.showsClosingDivider = showsClosingDivider
         self.timing = timing
@@ -290,9 +298,16 @@ private struct AIChatWorkBlock<WorkContent: View>: View {
         self.workContent = workContent
     }
 
+    private var isExpanded: Bool {
+        self.userIsExpanded ?? self.automaticIsExpanded
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AIChatDisclosureToggleButton(isExpanded: self.$isExpanded, onExpand: self.onExpand) {
+            AIChatDisclosureToggleButton(
+                isExpanded: Binding(get: { self.isExpanded }, set: { self.onSetUserIsExpanded($0) }),
+                onExpand: self.onExpand
+            ) {
                 self.title
             }
             .accessibilityIdentifier(UITestIdentifier.aiWorkBlockToggle)
@@ -311,9 +326,9 @@ private struct AIChatWorkBlock<WorkContent: View>: View {
                 }
             }
         }
-        .onChange(of: self.automaticIsExpanded) { _, nextIsExpanded in
+        .onChange(of: self.automaticIsExpanded) { _, _ in
             withAnimation {
-                self.isExpanded = nextIsExpanded
+                self.onSetUserIsExpanded(nil)
             }
         }
         .accessibilityElement(children: .contain)
@@ -367,14 +382,33 @@ private let aiChatActivityRowLeadingIndent: CGFloat = 4
 private let aiChatActivityRowVerticalPadding: CGFloat = 2
 
 /// Renders one transcript message; the live chat and the read-only history reader share it.
-struct AIChatMessageRow: View {
+struct AIChatMessageRow: View, Equatable {
     let message: AIChatMessage
     /// True only for the transcript's latest assistant message while its run streams.
     let isRunActive: Bool
     let repairStatus: AIChatRepairAttemptStatus?
     let showsTypingIndicator: Bool
+    /// This message's expanded or collapsed blocks, shared by every chat view.
+    let disclosures: [String: Bool]
+    let onSetDisclosure: (String, Bool?) -> Void
     let onExpandContent: () -> Void
     let onOpenAccountStatus: () -> Void
+
+    /// The callbacks only reach state that outlives the row, so a row with the same data keeps its previous body.
+    nonisolated static func == (lhs: AIChatMessageRow, rhs: AIChatMessageRow) -> Bool {
+        lhs.message == rhs.message
+            && lhs.isRunActive == rhs.isRunActive
+            && lhs.repairStatus == rhs.repairStatus
+            && lhs.showsTypingIndicator == rhs.showsTypingIndicator
+            && lhs.disclosures == rhs.disclosures
+    }
+
+    private func disclosureBinding(_ key: String) -> Binding<Bool> {
+        Binding(
+            get: { self.disclosures[key] ?? false },
+            set: { self.onSetDisclosure(key, $0) }
+        )
+    }
 
     var body: some View {
         self.messageRow(
@@ -435,6 +469,10 @@ struct AIChatMessageRow: View {
         let content = VStack(alignment: .leading, spacing: 8) {
             if let workContentSplit {
                 AIChatWorkBlock(
+                    userIsExpanded: self.disclosures[aiChatWorkBlockDisclosureKey],
+                    onSetUserIsExpanded: { isExpanded in
+                        self.onSetDisclosure(aiChatWorkBlockDisclosureKey, isExpanded)
+                    },
                     automaticIsExpanded: aiChatWorkBlockAutomaticIsExpanded(
                         message: message,
                         isRunActive: self.isRunActive,
@@ -499,11 +537,11 @@ struct AIChatMessageRow: View {
         switch part {
         case .text(let text):
             if message.role == .assistant {
-                AIChatLongTextView(text: text, isSelectable: true)
+                AIChatLongTextView(text: text, messageId: message.id, isSelectable: true)
                     .textSelection(.enabled)
                     .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
             } else {
-                AIChatLongTextView(text: text)
+                AIChatLongTextView(text: text, messageId: message.id)
             }
         case .image:
             Label(aiSettingsLocalized("ai.message.imageAttached", "Image attached"), systemImage: "photo")
@@ -515,6 +553,7 @@ struct AIChatMessageRow: View {
                 .foregroundStyle(.secondary)
         case .card(let card):
             AIChatExpandableDisclosureGroup(
+                isExpanded: self.disclosureBinding("card:\(card.cardId)"),
                 toggleAccessibilityIdentifier: nil,
                 onExpand: {
                     self.onExpandContent()
@@ -559,6 +598,7 @@ struct AIChatMessageRow: View {
         case .toolCall(let toolCall):
             let sections = aiChatToolSections(input: toolCall.input, output: toolCall.output)
             AIChatExpandableDisclosureGroup(
+                isExpanded: self.disclosureBinding("tool:\(toolCall.id)"),
                 toggleAccessibilityIdentifier: UITestIdentifier.aiToolCallSummary,
                 onExpand: {
                     self.onExpandContent()
@@ -608,6 +648,7 @@ struct AIChatMessageRow: View {
             .accessibilityIdentifier(aiChatToolStatusAccessibilityIdentifier(status: toolCall.status))
         case .reasoningSummary(let reasoningSummary):
             AIChatExpandableDisclosureGroup(
+                isExpanded: self.disclosureBinding("reasoning:\(reasoningSummary.id)"),
                 toggleAccessibilityIdentifier: nil,
                 onExpand: {
                     self.onExpandContent()
@@ -617,6 +658,7 @@ struct AIChatMessageRow: View {
                     text: reasoningSummary.summary.isEmpty
                         ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
                         : reasoningSummary.summary,
+                    messageId: message.id,
                     textStyle: .subheadline,
                     isSelectable: true
                 )
@@ -690,3 +732,4 @@ private func aiChatToolSectionAccessibilityIdentifier(sectionId: String) -> Stri
         return ""
     }
 }
+

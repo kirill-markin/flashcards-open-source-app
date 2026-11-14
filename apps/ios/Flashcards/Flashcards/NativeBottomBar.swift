@@ -6,9 +6,18 @@ extension View {
         alignment: HorizontalAlignment,
         usesColumnLayout: Bool = false,
         showsBackground: Bool = true,
+        extendsScrollEdgeEffect: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        if usesColumnLayout {
+        if #available(iOS 26.0, *), usesColumnLayout, extendsScrollEdgeEffect {
+            let accessory = content()
+            GeometryReader { geometry in
+                self
+                    .safeAreaBar(edge: .bottom, alignment: alignment, spacing: 0) { accessory }
+                    .scrollEdgeEffectStyle(.soft, for: .bottom)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+            }
+        } else if usesColumnLayout {
             // Keep the accessory in the same layout proposal as its content.
             // Floating keyboards must not relocate an independent safe-area bar.
             VStack(spacing: 0) {

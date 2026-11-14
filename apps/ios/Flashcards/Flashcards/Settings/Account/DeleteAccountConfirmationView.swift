@@ -43,7 +43,16 @@ struct DeleteAccountConfirmationView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
                         .keyboardType(.asciiCapable)
+                        #if targetEnvironment(macCatalyst)
                         .textFieldStyle(.roundedBorder)
+                        #else
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(minHeight: appMinimumTouchTarget)
+                        .nativeTextInputFocusTarget(isFocused: self.$isConfirmationFieldFocused)
+                        .nativeTextInputBackground(cornerRadius: 12)
+                        #endif
                         .submitLabel(.done)
                         .focused(self.$isConfirmationFieldFocused)
                         .onSubmit {
@@ -61,7 +70,7 @@ struct DeleteAccountConfirmationView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
             }
-            .navigationTitle(aiSettingsLocalized("settings.account.deleteConfirmation.title", "Delete account"))
+            .pageNavigationTitle(aiSettingsLocalized("settings.account.deleteConfirmation.title", "Delete account"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -16,6 +16,7 @@ struct SyncStatusPresentation: Equatable {
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
+    @Environment(\.usesRegularToolbarLayout) private var usesRegularToolbarLayout
 
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
@@ -427,7 +428,14 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .rememberedListScroll(topRowID: Bindable(self.settingsScroll).settingsTopRowID, isContentReady: true)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
-        .nativeNavigationTitle(aiSettingsLocalized("settings.title", "Settings"))
+        // The regular toolbar layout names sections only in the tab bar.
+        .nativeNavigationTitle(self.usesRegularToolbarLayout ? "" : aiSettingsLocalized("settings.title", "Settings"))
+        .navigationBarTitleDisplayMode(self.usesRegularToolbarLayout ? .inline : .automatic)
+        #if !targetEnvironment(macCatalyst)
+        .toolbar {
+            AICompanionToolbarItem()
+        }
+        #endif
         .onAppear {
             store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
         }

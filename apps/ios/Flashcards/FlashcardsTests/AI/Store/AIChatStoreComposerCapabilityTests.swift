@@ -72,14 +72,14 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
         store.transitionToStreaming(activeRun: makeAIChatCapabilityTestActiveRunSession())
         store.dictationState = .recording
-        XCTAssertTrue(store.canEditDraftText)
+        XCTAssertFalse(store.canEditDraftText)
         XCTAssertFalse(store.canEditDraft)
         XCTAssertFalse(store.canAttachToDraft)
         XCTAssertFalse(store.canStartDictation)
         XCTAssertTrue(store.canUseDictation)
 
         store.transitionToStopping(runId: "run-1")
-        XCTAssertTrue(store.canEditDraftText)
+        XCTAssertFalse(store.canEditDraftText)
         XCTAssertFalse(store.canEditDraft)
         XCTAssertFalse(store.canAttachToDraft)
         XCTAssertFalse(store.canStartDictation)
@@ -87,7 +87,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
         XCTAssertTrue(store.canUseDictation)
     }
 
-    func testActiveDictationKeepsTextEditingOpenButLocksDraftActions() throws {
+    func testActiveDictationLocksDraftTextAndActions() throws {
         let activeStates: [AIChatDictationState] = [
             .requestingPermission,
             .recording,
@@ -115,7 +115,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
             store.dictationState = dictationState
 
-            XCTAssertTrue(store.canEditDraftText)
+            XCTAssertFalse(store.canEditDraftText)
             XCTAssertTrue(store.visibleComposerSuggestions.isEmpty)
 
             let activeRun = makeAIChatCapabilityTestActiveRunSession()
@@ -131,7 +131,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
             XCTAssertFalse(store.canStartNewChat)
 
             store.transitionToStopping(runId: activeRun.runId)
-            XCTAssertTrue(store.canEditDraftText)
+            XCTAssertFalse(store.canEditDraftText)
             XCTAssertFalse(store.canEditDraft)
             XCTAssertFalse(store.canModifyDraftAttachments)
             XCTAssertFalse(store.canAttachToDraft)

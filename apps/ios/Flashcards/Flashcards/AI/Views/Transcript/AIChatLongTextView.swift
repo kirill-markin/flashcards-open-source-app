@@ -73,17 +73,34 @@ func buildAIChatLongTextChunks(
     }
 }
 
+extension EnvironmentValues {
+    /// True inside the side chat's pane, whose own stack shows the full response as a page beside the section.
+    @Entry var aiChatPushesFullResponse: Bool = false
+}
+
+/// The pushed full response names its message, so the page follows a reply that is still streaming.
+struct AIChatFullResponseRoute: Hashable {
+    let messageId: String?
+    /// The text when the page opened, kept once the message no longer continues it.
+    let text: String
+}
+
 struct AIChatLongTextView: View {
     let text: String
+    let messageId: String?
     let textStyle: UIFont.TextStyle
     let isSelectable: Bool
 
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(\.aiChatPushesFullResponse) private var pushesFullResponse
     @State private var isFullResponsePresented: Bool = false
 
     private let preview: AIChatLongTextPreview
 
-    init(text: String, textStyle: UIFont.TextStyle = .body, isSelectable: Bool = false) {
+    init(text: String, messageId: String?, textStyle: UIFont.TextStyle = .body, isSelectable: Bool = false) {
         self.text = text
+        self.messageId = messageId
         self.textStyle = textStyle
         self.isSelectable = isSelectable
         self.preview = buildAIChatLongTextPreview(
@@ -98,7 +115,14 @@ struct AIChatLongTextView: View {
             VStack(alignment: .leading, spacing: 8) {
                 AIChatContentText(text: self.preview.text, textStyle: self.textStyle, isSelectable: self.isSelectable)
                 Button {
-                    self.isFullResponsePresented = true
+                    // The full response covers the composer, so a recording finishes into the draft first.
+                    self.store.aiChatStore.leaveDictationForNavigation()
+                    // Decided once per tap, so a shown page never turns into a sheet or back.
+                    if self.pushesFullResponse {
+                        self.navigation.aiCompanionPath.append(.fullResponse(AIChatFullResponseRoute(messageId: self.messageId, text: self.text)))
+                    } else {
+                        self.isFullResponsePresented = true
+                    }
                 } label: {
                     Text(aiSettingsLocalized("ai.message.fullResponse.show", "Show full response"))
                         #if targetEnvironment(macCatalyst)
@@ -109,7 +133,9 @@ struct AIChatLongTextView: View {
                 .font(.subheadline.weight(.semibold))
             }
             .sheet(isPresented: self.$isFullResponsePresented) {
-                AIChatFullResponseView(text: self.text)
+                NavigationStack {
+                    AIChatFullResponseView(text: self.text, isPushed: false)
+                }
             }
             .reviewKeyboardBlockingPresentation(isPresented: self.isFullResponsePresented)
         } else {
@@ -318,76 +344,122 @@ private func buildAIChatFullResponseChunks(text: String) async -> AIChatFullResp
     return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
 }
 
-private struct AIChatFullResponseView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var chunks: AIChatFullResponseChunks?
-
-    let text: String
-
-    init(text: String) {
-        self.text = text
-    }
+/// The full response opened in the side chat's pane. Like the sheet, it follows a streaming reply.
+struct AIChatFullResponsePage: View {
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    let route: AIChatFullResponseRoute
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                switch self.chunks {
-                case .markdown(let chunks):
-                    // Trailing blank lines do not render, so the stack restores the paragraph gap between chunks.
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        ForEach(chunks.indices, id: \.self) { index in
-                            AIChatMarkdownText(text: chunks[index], textStyle: .body, isSelectable: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    .padding()
-                case .mathText(let chunks):
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(chunks.indices, id: \.self) { index in
-                            MathContentText(text: chunks[index].text, isSelectable: true, parsedBlocks: chunks[index].blocks)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
-                        }
-                    }
-                    .padding()
-                case nil:
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-            }
-            .task(id: self.text) {
-                let text = self.text
-                self.chunks = nil
+        AIChatFullResponseView(text: aiChatFullResponseLiveText(route: self.route, chatStore: self.store.aiChatStore), isPushed: true)
+    }
+}
 
-                guard let chunks = await buildAIChatFullResponseChunks(text: text) else {
-                    return
-                }
-                guard Task.isCancelled == false else {
-                    return
-                }
+/// Streaming only appends, so the part that still begins with the opened text is the same part.
+@MainActor
+func aiChatFullResponseLiveText(route: AIChatFullResponseRoute, chatStore: AIChatStore) -> String {
+    guard let messageId = route.messageId,
+          let message = chatStore.messages.last(where: { $0.id == messageId }) else {
+        return route.text
+    }
+    for part in message.content {
+        let text: String
+        switch part {
+        case .text(let partText):
+            text = partText
+        case .reasoningSummary(let reasoningSummary):
+            text = reasoningSummary.summary
+        default:
+            continue
+        }
+        if text.hasPrefix(route.text) {
+            return text
+        }
+    }
+    return route.text
+}
 
-                self.chunks = chunks
-            }
-            .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(aiSettingsLocalized("common.close", "Close")) {
-                        self.dismiss()
+/// A sheet with Close, or a page in the side chat's pane, whose row holds its Back and Copy.
+struct AIChatFullResponseView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.aiCompanionPaneOpensPages) private var isInPane
+
+    @State private var chunks: AIChatFullResponseChunks?
+    @State private var chunkedText: String?
+
+    let text: String
+    let isPushed: Bool
+
+    var body: some View {
+        ScrollView {
+            switch self.chunks {
+            case .markdown(let chunks):
+                // Trailing blank lines do not render, so the stack restores the paragraph gap between chunks.
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    ForEach(chunks.indices, id: \.self) { index in
+                        AIChatMarkdownText(text: chunks[index], textStyle: .body, isSelectable: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button(
-                        aiSettingsLocalized("common.copy", "Copy"),
-                        systemImage: "doc.on.doc"
-                    ) {
-                        UIPasteboard.general.string = self.text
+                .padding()
+            case .mathText(let chunks):
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(chunks.indices, id: \.self) { index in
+                        MathContentText(text: chunks[index].text, isSelectable: true, parsedBlocks: chunks[index].blocks)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
                     }
-                    .accessibilityLabel(aiSettingsLocalized("ai.tool.copy.response", "Copy response"))
+                }
+                .padding()
+            case nil:
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            }
+        }
+        .task(id: self.text) {
+            let text = self.text
+            // A page shown again after a section switch keeps its chunks, and a streaming reply shows the last
+            // chunks until the next are built.
+            guard text != self.chunkedText else {
+                return
+            }
+
+            guard let chunks = await buildAIChatFullResponseChunks(text: text) else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            self.chunks = chunks
+            self.chunkedText = text
+        }
+        .navigationTitle(aiSettingsLocalized("ai.message.fullResponse.title", "Full response"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if self.isInPane == false {
+                self.toolbarContent
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if self.isPushed == false {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(aiSettingsLocalized("common.close", "Close")) {
+                    self.dismiss()
                 }
             }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button(
+                aiSettingsLocalized("common.copy", "Copy"),
+                systemImage: "doc.on.doc"
+            ) {
+                UIPasteboard.general.string = self.text
+            }
+            .accessibilityLabel(aiSettingsLocalized("ai.tool.copy.response", "Copy response"))
         }
     }
 }

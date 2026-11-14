@@ -99,7 +99,7 @@ struct AccountMethodsView: View {
                 self.statusControls
             }
         }
-        .navigationTitle(accountMethodCopy(.title))
+        .pageNavigationTitle(accountMethodCopy(.title))
         .accessibilityIdentifier("accountMethods.screen")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -123,7 +123,7 @@ struct AccountMethodsView: View {
             .disabled(self.busy)
             self.statusControls
         }
-        .navigationTitle(self.stepTitle(destination))
+        .pageNavigationTitle(self.stepTitle(destination))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(self.busy)
         .accessibilityIdentifier("accountMethods.step.\(destination.rawValue)")

@@ -1,5 +1,15 @@
 import AVFoundation
 import Foundation
+import OSLog
+
+/// Records each recorder start and stop with the audio session state, so a run's log shows the microphone closing.
+let aiChatDictationLogger: Logger = Logger(
+    subsystem: appBundleIdentifier(),
+    category: "ai_dictation"
+)
+
+/// Recording stops on its own at this length, as on T3 Code.
+let aiChatDictationMaximumDurationSeconds: TimeInterval = 5 * 60
 
 enum AIChatDictationState: Sendable, Equatable {
     case idle
@@ -24,11 +34,42 @@ struct AIChatDictationInsertionResult: Equatable, Sendable {
     let selection: AIChatDictationInsertionSelection
 }
 
+struct AIChatVoiceRecordingSample: Equatable, Sendable {
+    let durationSeconds: TimeInterval
+    /// The average input power in dBFS, or `nil` when the recorder does not meter.
+    let averagePowerDecibels: Float?
+}
+
 @MainActor
 protocol AIChatVoiceRecording: AnyObject {
     func startRecording() async throws
+    /// Stops the microphone and deactivates the audio session before it returns, with no suspension in between.
     func stopRecording() async throws -> AIChatRecordedAudio
     func cancelRecording()
+    /// The running recording's length and level, or `nil` when nothing is recording.
+    func currentRecordingSample() -> AIChatVoiceRecordingSample?
+}
+
+extension AIChatVoiceRecording {
+    func currentRecordingSample() -> AIChatVoiceRecordingSample? {
+        nil
+    }
+}
+
+private let aiChatDictationNoiseFloorDecibels: Float = -60
+private let aiChatDictationNoiseFloorAmplitude: Float = pow(10, aiChatDictationNoiseFloorDecibels / 20)
+
+/// Maps input power above a -60 dB floor onto 0...1 on a square-root amplitude curve, as T3 Code's waveform does.
+func normalizeAIChatDictationLevel(decibels: Float?) -> CGFloat {
+    guard let decibels, decibels.isFinite, decibels > aiChatDictationNoiseFloorDecibels else {
+        return 0
+    }
+    guard decibels < 0 else {
+        return 1
+    }
+
+    let amplitude = pow(10, decibels / 20)
+    return CGFloat(((amplitude - aiChatDictationNoiseFloorAmplitude) / (1 - aiChatDictationNoiseFloorAmplitude)).squareRoot())
 }
 
 protocol AIChatAudioTranscribing: Sendable {
@@ -135,6 +176,8 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
     private var isAudioSessionActive: Bool = false
 
     func startRecording() async throws {
+        // A recording this recorder still holds belongs to an abandoned attempt.
+        self.cancelRecording()
         if AVAudioApplication.shared.recordPermission == .denied {
             throw AIChatVoiceRecorderError.microphoneBlocked
         }
@@ -161,14 +204,23 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
             AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
-        let recorder = try AVAudioRecorder(url: fileUrl, settings: settings)
-        recorder.isMeteringEnabled = false
+        let recorder: AVAudioRecorder
+        do {
+            recorder = try AVAudioRecorder(url: fileUrl, settings: settings)
+        } catch {
+            self.deactivateAudioSession()
+            throw error
+        }
+        recorder.isMeteringEnabled = true
         guard recorder.record() else {
+            try? FileManager.default.removeItem(at: fileUrl)
+            self.deactivateAudioSession()
             throw AIChatVoiceRecorderError.recordingStartFailed
         }
 
         self.recorder = recorder
         self.currentFileUrl = fileUrl
+        aiChatDictationLogger.log("event=recorder_started isRecording=\(recorder.isRecording, privacy: .public)")
     }
 
     func stopRecording() async throws -> AIChatRecordedAudio {
@@ -180,6 +232,9 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         self.recorder = nil
         self.currentFileUrl = nil
         self.deactivateAudioSession()
+        aiChatDictationLogger.log(
+            "event=recorder_stopped isRecording=\(recorder.isRecording, privacy: .public) audioSessionActive=\(self.isAudioSessionActive, privacy: .public)"
+        )
 
         let attributes = try FileManager.default.attributesOfItem(atPath: fileUrl.path)
         let fileSize = attributes[.size] as? NSNumber
@@ -196,13 +251,34 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
     }
 
     func cancelRecording() {
-        self.recorder?.stop()
+        let recorder = self.recorder
+        recorder?.stop()
         self.recorder = nil
         if let currentFileUrl = self.currentFileUrl {
             try? FileManager.default.removeItem(at: currentFileUrl)
         }
         self.currentFileUrl = nil
+        let wasAudioSessionActive = self.isAudioSessionActive
         self.deactivateAudioSession()
+        if let recorder {
+            aiChatDictationLogger.log(
+                "event=recorder_cancelled isRecording=\(recorder.isRecording, privacy: .public) audioSessionActive=\(self.isAudioSessionActive, privacy: .public)"
+            )
+        } else if wasAudioSessionActive {
+            aiChatDictationLogger.log("event=audio_session_released audioSessionActive=\(self.isAudioSessionActive, privacy: .public)")
+        }
+    }
+
+    func currentRecordingSample() -> AIChatVoiceRecordingSample? {
+        guard let recorder = self.recorder else {
+            return nil
+        }
+
+        recorder.updateMeters()
+        return AIChatVoiceRecordingSample(
+            durationSeconds: recorder.currentTime,
+            averagePowerDecibels: recorder.averagePower(forChannel: 0)
+        )
     }
 
     private func deactivateAudioSession() {
@@ -210,7 +286,8 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
             return
         }
 
-        try? AVAudioSession.sharedInstance().setActive(false)
+        // Other apps' audio resumes once dictation lets the session go.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         self.isAudioSessionActive = false
     }
 }
@@ -313,6 +390,10 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         } catch let error as AIChatTranscriptionError {
             throw error
         } catch {
+            // An abandoned upload is not a network problem, so its caller can drop it without an error.
+            if isRequestCancellationError(error: error) {
+                throw CancellationError()
+            }
             throw AIChatTranscriptionError.serviceUnavailable
         }
     }

@@ -17,7 +17,7 @@ struct ReviewFilterPopover: View {
     /// All cards and deck rows are a single choice, so they apply and close at once; tag rows keep it open.
     let onSingleChoice: () -> Void
 
-    @State private var scrollPosition: ScrollPosition = ScrollPosition(idType: String.self)
+    @State private var scrollPosition: ScrollPosition = ScrollPosition(idType: String.self, edge: .top)
 
     private var sortedDecks: [Deck] {
         self.decks.sorted { left, right in
@@ -74,8 +74,14 @@ struct ReviewFilterPopover: View {
             .scrollTargetLayout()
         }
         .scrollPosition(self.$scrollPosition)
+        .scrollDismissesKeyboard(.never)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterScrollSurface)
-        .frame(width: reviewFilterPopoverWidth, height: reviewFilterPopoverHeight)
+        .frame(width: reviewFilterPopoverWidth)
+        .frame(minHeight: 0, idealHeight: reviewFilterPopoverHeight, maxHeight: reviewFilterPopoverHeight, alignment: .top)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onAppear {
+            self.scrollPosition.scrollTo(edge: .top)
+        }
     }
 
     private var allCardsButton: some View {

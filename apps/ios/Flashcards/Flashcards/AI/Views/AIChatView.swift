@@ -11,6 +11,8 @@ struct AIChatView: View {
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.tabBarPlacement) var tabBarPlacement
     @Environment(\.isKeyboardDocked) private var isKeyboardDocked
+    @Environment(\.usesRegularToolbarLayout) var usesRegularToolbarLayout
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
     let chatStore: AIChatStore
     let isCompanion: Bool
     let companionHostTab: AppTab?
@@ -29,12 +31,20 @@ struct AIChatView: View {
     @State var isComposerDropHovering: Bool
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
+    @State var transcriptLayout: AIChatTranscriptLayout = AIChatTranscriptLayout()
+    @State var transcriptRestore: AIChatTranscriptRestore? = nil
+    @State var composerWindowScene: AIChatComposerWindowScene = AIChatComposerWindowScene()
+    /// The transcript a chat off screen keeps showing. Every section mounts its own side chat beside the AI tab's, so
+    /// without this each one would diff and lay out every streamed token.
+    @State var frozenTranscriptMessages: [AIChatMessage]? = nil
     @State var composerAttachmentViewportWidth: CGFloat?
     @State private var presentationRequestCoordinator: AIChatPresentationRequestCoordinator
     @State var isComposerFocused: Bool
     #if targetEnvironment(macCatalyst)
     @State var macComposerReturnKeyOwner = MacComposerReturnKeyOwner()
     @State private var restoresMacComposerFocus = false
+    #else
+    @State var tabComposerShellWidth = AIChatComposerShellWidth()
     #endif
     @State var refocusesComposerAfterSend: Bool
 
@@ -101,8 +111,9 @@ struct AIChatView: View {
             .onDisappear {
                 self.recordComposerPresentation(operation: .presentation, isVisible: false)
             }
-            .onChange(of: self.isComposerFocused) { _, _ in
+            .onChange(of: self.isComposerFocused) { _, isFocused in
                 self.recordComposerPresentation(operation: .focus, isVisible: self.isPresentationActive)
+                self.recordComposerFocusOwner(isFocused: isFocused)
             }
             .onChange(of: self.chatStore.quotaRefusal, initial: true) { _, refusal in
                 self.handleQuotaRefusal(refusal)
@@ -159,7 +170,8 @@ struct AIChatView: View {
     @ViewBuilder
     var bodyBaseModifiers: some View {
         if self.isCompanion {
-            if UIDevice.current.userInterfaceIdiom == .pad {
+            #if targetEnvironment(macCatalyst)
+            if UIDevice.current.userInterfaceIdiom == .pad || self.usesRegularToolbarLayout {
                 self.companionBody
                     .safeAreaInset(edge: .top, spacing: 0) {
                         if self.usesCompactCompanionToolbar == false {
@@ -168,22 +180,25 @@ struct AIChatView: View {
                                 .background(.bar)
                         }
                     }
-                    #if !targetEnvironment(macCatalyst)
-                    .toolbar {
-                        if self.usesCompactCompanionToolbar {
-                            self.companionToolbarContent
-                        }
-                    }
-                    #endif
             } else {
                 self.companionBody
                     .nativeTopBar(alignment: .center) {
                         self.companionHeader
                     }
             }
+            #else
+            // The pane has no navigation bar. It draws one row, level with the section's bar, for whichever page is on
+            // top; at the live chat that row holds these controls.
+            AICompanionPane {
+                self.companionPaneHeader
+            } liveChat: {
+                self.companionBody
+            }
+            #endif
         } else {
+            // The regular toolbar layout names sections only in the tab bar.
             self.bodyCommonModifiers
-                .nativeNavigationTitle(aiSettingsLocalized("ai.title", "AI"))
+                .nativeNavigationTitle(self.usesRegularToolbarLayout ? "" : aiSettingsLocalized("ai.title", "AI"))
                 .navigationBarTitleDisplayMode(.inline)
                 #if !targetEnvironment(macCatalyst)
                 .toolbar {
@@ -197,7 +212,7 @@ struct AIChatView: View {
     private var macChatToolbar: MacToolbarContribution? {
         guard self.isPresentationActive else { return nil }
         var actions = [MacToolbarAction(
-            identifier: UITestIdentifier.aiHistoryButton, symbol: "list.bullet",
+            identifier: UITestIdentifier.aiHistoryButton, symbol: self.historySymbol,
             label: aiSettingsLocalized("ai.history.button", "History"),
             isEnabled: self.chatStore.dictationState == .idle,
             perform: { _ in self.openChatHistory() }
@@ -219,20 +234,24 @@ struct AIChatView: View {
 
     var companionBody: some View {
         self.bodyCommonModifiers
+            #if targetEnvironment(macCatalyst)
             .overlay(alignment: .trailing) {
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    HStack(spacing: 0) { Divider() }
-                        .frame(width: 1)
-                        .ignoresSafeArea(.container, edges: .bottom)
-                }
+                HStack(spacing: 0) { Divider() }
+                    .frame(width: 1)
+                    .ignoresSafeArea(.container, edges: .bottom)
             }
+            #endif
     }
 
     var bodyCommonModifiers: some View {
         self.bodyContent
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier(UITestIdentifier.aiScreen)
-            .nativeBottomBar(alignment: .center, usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad) {
+            .nativeBottomBar(
+                alignment: .center,
+                usesColumnLayout: UIDevice.current.userInterfaceIdiom == .pad,
+                showsBackground: self.composerBarShowsBackground
+            ) {
                 self.bottomBarContent
             }
             .overlay {
@@ -249,6 +268,18 @@ struct AIChatView: View {
                 )
             )
             .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
+    }
+
+    /// The Liquid Glass composer floats with nothing behind it; the iOS 18 and Mac fields are not glass and keep the bar.
+    var composerBarShowsBackground: Bool {
+        #if targetEnvironment(macCatalyst)
+        return true
+        #else
+        if #available(iOS 26.0, *) {
+            return false
+        }
+        return true
+        #endif
     }
 
     var dropOverlay: some View {
@@ -438,30 +469,55 @@ struct AIChatView: View {
         }
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    self.newChatToolbarButton.tint(Color.primary)
-                } else {
-                    self.newChatToolbarButton
-                        .labelStyle(.titleOnly)
-                }
+                self.newChatToolbarButton.tint(Color.primary)
             }
         }
     }
     #endif
 
     var historyToolbarButton: some View {
+        self.historyButton(usesToolbarIconLabel: false)
+    }
+
+    /// History reads past chats without continuing them, so iOS shows a past-time symbol rather than a list of equal
+    /// chats to move between; the Mac keeps its list symbol.
+    var historySymbol: String {
+        #if targetEnvironment(macCatalyst)
+        "list.bullet"
+        #else
+        "clock.arrow.circlepath"
+        #endif
+    }
+
+    @ViewBuilder
+    func historyButton(usesToolbarIconLabel: Bool) -> some View {
         Button(action: self.openChatHistory) {
-            Image(systemName: "list.bullet")
+            if usesToolbarIconLabel {
+                Image(systemName: self.historySymbol)
+                    .nativeToolbarIconLabel()
+            } else {
+                Image(systemName: self.historySymbol)
+            }
         }
         .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
         .accessibilityIdentifier(UITestIdentifier.aiHistoryButton)
         .disabled(self.chatStore.dictationState != .idle)
+        // Regular-layout toolbar buttons are primary while they can be used and dim when they cannot.
+        .tint(self.usesRegularToolbarLayout ? Color.primary : nil)
     }
 
     private func openChatHistory() {
         self.dismissComposerFocus()
+        let route = AIChatHistoryListRoute(model: AIChatHistoryListModel(chatStore: self.chatStore))
+        #if !targetEnvironment(macCatalyst)
+        // The side chat's history opens inside its pane, beside the section.
+        if self.isCompanion {
+            self.navigation.aiCompanionPath.append(.history(route))
+            return
+        }
+        #endif
         if self.isCompanion { self.navigation.selectTab(.ai) }
-        self.navigation.aiPath.append(AIChatHistoryListRoute())
+        self.navigation.aiPath.append(route)
     }
 
     var newChatToolbarButton: some View {
@@ -629,9 +685,11 @@ struct AIChatView: View {
     }
 
     private var readyAIImportRequestID: UUID? {
+        // The import waits until its chat is back on top of its stack. The path is read only while a request waits,
+        // so pushing a page never re-renders the chat beneath it.
         guard self.isPresentationActive, self.scenePhase == .active,
-              self.isCompanion || self.navigation.aiPath.isEmpty,
-              let request = self.navigation.aiImportRequest else {
+              let request = self.navigation.aiImportRequest,
+              self.isCompanion ? self.navigation.aiCompanionPath.isEmpty : self.navigation.aiPath.isEmpty else {
             return nil
         }
 
@@ -715,9 +773,10 @@ struct AIChatView: View {
             self.presentationRequestCoordinator.clearDeferredPresentationRequest()
             return
         }
+        self.retireStaleDeferredPresentationRequest()
 
         guard let completedRequest = self.presentationRequestCoordinator.handle(
-            request: request,
+            request: request == self.navigation.aiChatPresentationRequest ? request : nil,
             source: source,
             context: self.presentationRequestContext
         ) else {
@@ -777,15 +836,23 @@ struct AIChatView: View {
         #endif
         self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
         self.chatStore.recordComposerEditing(operation: .focus, phase: .before, beforeUTF16Count: self.chatStore.inputText.utf16.count, afterUTF16Count: self.chatStore.inputText.utf16.count)
+        if let sceneIdentifier = self.composerWindowScene.identifier {
+            self.chatStore.focusedComposerHosts[sceneIdentifier] = nil
+        }
         self.isComposerFocused = false
         self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
         self.composerSelection = nil
-        UIApplication.shared.sendAction(
-            #selector(UIResponder.resignFirstResponder),
-            to: nil,
-            from: nil,
-            for: nil
-        )
+        AIChatComposerUITextView.resignDeliberately {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil,
+                from: nil,
+                for: nil
+            )
+        }
+        #if !targetEnvironment(macCatalyst)
+        AIChatComposerUITextView.releaseOrphanedKeyboard()
+        #endif
     }
 
     func startNewChat() {
@@ -797,13 +864,63 @@ struct AIChatView: View {
         }
         self.dismissComposerFocus()
         self.chatStore.clearHistory()
+        self.navigation.popAIToLiveChat()
+    }
+
+    var composerHost: AIChatComposerHost {
+        AIChatComposerHost(
+            tab: self.isCompanion ? self.companionHostTab ?? self.navigation.selectedTab : .ai,
+            isCompanion: self.isCompanion
+        )
+    }
+
+    /// A chat that loses its keyboard on screen was dismissed on purpose: the swipe, the dismiss key or a tap
+    /// elsewhere. One that loses it by leaving the screen keeps the ownership, so the next chat takes the keyboard.
+    private func recordComposerFocusOwner(isFocused: Bool) {
+        guard self.isPresentationActive, let sceneIdentifier = self.composerWindowScene.identifier else { return }
+        if isFocused {
+            self.chatStore.focusedComposerHosts[sceneIdentifier] = self.composerHost
+        } else if self.chatStore.focusedComposerHosts[sceneIdentifier] == self.composerHost {
+            self.chatStore.focusedComposerHosts[sceneIdentifier] = nil
+        }
+    }
+
+    /// Read by the field as it enters a window, before this view's own activation runs.
+    func takesComposerKeyboardOnArrival(windowScene: UIWindowScene?) -> Bool {
+        #if targetEnvironment(macCatalyst)
+        return false
+        #else
+        guard self.isPresentationActive, let sceneIdentifier = windowScene?.session.persistentIdentifier else {
+            return false
+        }
+        return self.chatStore.focusedComposerHosts[sceneIdentifier] != nil
+        #endif
+    }
+
+    /// The chat coming on screen takes the keyboard that another section's chat in the same window held.
+    private func takeComposerFocusFromPreviousChat() {
+        #if !targetEnvironment(macCatalyst)
+        guard self.isPresentationActive,
+              let sceneIdentifier = self.composerWindowScene.identifier,
+              self.chatStore.focusedComposerHosts[sceneIdentifier] != nil,
+              self.isComposerFocused == false else { return }
+        self.isComposerFocused = true
+        #endif
     }
 
     func handleViewAppear() {
         self.recordComposerPresentation(operation: .presentation, isVisible: self.isPresentationActive)
+        // A chat that mounts off screen, such as a hidden section's side chat, starts with its transcript frozen too.
+        if self.isPresentationActive == false, self.frozenTranscriptMessages == nil {
+            self.frozenTranscriptMessages = self.chatStore.messages
+        }
+        self.takeComposerFocusFromPreviousChat()
         self.handleQuotaRefusal(self.chatStore.quotaRefusal)
-        self.syncChatSurface(refreshConsent: true)
-        self.refreshAIUsage()
+        let refreshes = self.chatStore.claimViewAppearRefresh(now: Date())
+        self.syncChatSurface(refreshConsent: refreshes)
+        if refreshes {
+            self.refreshAIUsage()
+        }
         self.handleCompletedDictationTranscriptChange(nextTranscript: self.chatStore.completedDictationTranscript)
         self.captureAIChatPresentationRequest(
             request: self.navigation.aiChatPresentationRequest,
@@ -815,7 +932,16 @@ struct AIChatView: View {
         )
     }
 
+    /// The navigation request is the one request. Each section's chat keeps its own deferred copy, so a copy that no
+    /// longer matches was applied by another chat or replaced, and must never replay.
+    private func retireStaleDeferredPresentationRequest() {
+        guard let deferredRequest = self.presentationRequestCoordinator.deferredPresentationRequest,
+              deferredRequest != self.navigation.aiChatPresentationRequest else { return }
+        self.presentationRequestCoordinator.clearDeferredPresentationRequest()
+    }
+
     func handlePresentationRequestChange(request: AIChatPresentationRequest?) {
+        self.retireStaleDeferredPresentationRequest()
         self.captureAIChatPresentationRequest(
             request: request,
             source: .navigationRequestChange
@@ -871,9 +997,7 @@ struct AIChatView: View {
     }
 
     func refreshAIUsage() {
-        Task {
-            await self.flashcardsStore.refreshAIUsage()
-        }
+        self.chatStore.refreshAIUsage()
     }
 
     func handleExternalProviderConsentChange(hasConsent: Bool) {
@@ -941,12 +1065,23 @@ struct AIChatView: View {
             #if targetEnvironment(macCatalyst)
             self.restoresMacComposerFocus = false
             #endif
+            self.frozenTranscriptMessages = self.chatStore.messages
+            #if !targetEnvironment(macCatalyst)
+            if self.navigation.isAIChatVisible == false {
+                // No chat on screen takes the keyboard over, so it ends instead of staying with a field off screen.
+                AIChatComposerUITextView.releaseKeyboard(in: self.composerWindowScene.scene)
+            }
+            #endif
             self.syncChatSurface(refreshConsent: false)
             return
         }
 
+        self.frozenTranscriptMessages = nil
+
+        self.takeComposerFocusFromPreviousChat()
+
         self.handleQuotaRefusal(self.chatStore.quotaRefusal)
-        self.syncChatSurface(refreshConsent: true)
+        self.syncChatSurface(refreshConsent: self.chatStore.claimViewAppearRefresh(now: Date()))
         self.handleAIChatPresentationRequest(
             request: self.presentationRequestCoordinator.deferredPresentationRequest,
             source: .selectedAITab
@@ -1035,22 +1170,29 @@ let aiChatComposerControlSpacing: CGFloat = 8
 let aiChatComposerTextVerticalPadding: CGFloat = 8
 let aiChatComposerSuggestionHorizontalPadding: CGFloat = 0
 let aiChatComposerSuggestionVerticalPadding: CGFloat = 0
+let aiChatComposerSendButtonInset: CGFloat = 8
+let aiChatComposerSendButtonHitSize: CGFloat = appMinimumTouchTarget
+let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = aiChatComposerSendButtonHitSize
 #else
 let aiChatComposerControlSpacing: CGFloat = 12
-let aiChatComposerTextVerticalPadding: CGFloat = 12
 let aiChatComposerSuggestionHorizontalPadding: CGFloat = 12
 let aiChatComposerSuggestionVerticalPadding: CGFloat = 9
+let aiChatComposerControlSize: CGFloat = appMinimumTouchTarget
+let aiChatComposerShellHorizontalInset: CGFloat = 4
+let aiChatComposerShellVerticalInset: CGFloat = 2
+let aiChatComposerCompactTextHorizontalPadding: CGFloat = 4
+/// Aligns expanded text with the leading edge of the attachment symbol.
+let aiChatComposerExpandedTextHorizontalPadding: CGFloat = 12
+let aiChatComposerExpandedTextTopPadding: CGFloat = 12
+/// The draft expands slightly before it touches the single-row controls.
+let aiChatComposerExpansionMargin: CGFloat = 8
+/// The draft's lines never take more of the window height than this.
+let aiChatComposerMaximumWindowHeightFraction: CGFloat = 0.2
 #endif
 
 let aiChatComposerMaximumLineCount: Int = 5
 let aiChatComposerTopPadding: CGFloat = 8
-let aiChatComposerSendButtonInset: CGFloat = 8
 let aiChatComposerSendButtonVisualSize: CGFloat = 28
-let aiChatComposerSendButtonHitSize: CGFloat = appMinimumTouchTarget
-let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = aiChatComposerSendButtonHitSize
-let aiChatComposerStatusLaneHeight: CGFloat = 24
-let aiChatComposerStatusLaneSpacing: CGFloat = 8
-let aiChatComposerDictationTextFieldTopPadding: CGFloat = 12 + aiChatComposerStatusLaneHeight + aiChatComposerStatusLaneSpacing
 let aiChatMessageListHorizontalPadding: CGFloat = 16
 let aiChatAutoScrollBottomThreshold: CGFloat = 12
 let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25

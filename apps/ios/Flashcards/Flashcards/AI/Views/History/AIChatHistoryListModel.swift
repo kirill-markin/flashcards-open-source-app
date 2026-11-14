@@ -1,10 +1,32 @@
 import Foundation
 import Observation
 
-struct AIChatHistoryListRoute: Hashable {}
+/// Carries its page's model: every section's side chat pushes the same path, so the list loads once for all of them.
+struct AIChatHistoryListRoute: Hashable {
+    let model: AIChatHistoryListModel
 
+    static func == (lhs: AIChatHistoryListRoute, rhs: AIChatHistoryListRoute) -> Bool {
+        lhs.model === rhs.model
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self.model))
+    }
+}
+
+/// Carries the list it was opened from, which keeps the old chat's loaded transcript for every section's side chat.
 struct AIChatHistoryReaderRoute: Hashable {
     let summary: AIChatSessionHistorySummary
+    let list: AIChatHistoryListModel
+
+    static func == (lhs: AIChatHistoryReaderRoute, rhs: AIChatHistoryReaderRoute) -> Bool {
+        lhs.summary == rhs.summary && lhs.list === rhs.list
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.summary)
+        hasher.combine(ObjectIdentifier(self.list))
+    }
 }
 
 enum AIChatHistoryListPhase: Equatable {
@@ -124,6 +146,8 @@ final class AIChatHistoryListModel {
     @ObservationIgnored private var listGeneration: Int
     @ObservationIgnored private var activeFirstPageTask: Task<Void, Never>?
     @ObservationIgnored private var activeNextPageTask: Task<Void, Never>?
+    /// Old chats cannot change, so each one opened from this list loads once.
+    @ObservationIgnored private var readerModels: [String: AIChatHistoryReaderModel] = [:]
 
     init(chatStore: AIChatStore) {
         self.searchQuery = ""
@@ -296,6 +320,19 @@ final class AIChatHistoryListModel {
     func removeUnavailableSession(sessionId: String) {
         self.removeSession(sessionId: sessionId)
         self.notice = aiSettingsLocalized("ai.history.unavailable", "This chat is no longer available.")
+    }
+
+    func readerModel(sessionId: String) -> AIChatHistoryReaderModel {
+        if let model = self.readerModels[sessionId] {
+            return model
+        }
+        let model = AIChatHistoryReaderModel(
+            chatStore: self.chatStore,
+            sessionId: sessionId,
+            onUnavailable: { [weak self] in self?.removeUnavailableSession(sessionId: sessionId) }
+        )
+        self.readerModels[sessionId] = model
+        return model
     }
 
     private func reload(searchText: String?) {

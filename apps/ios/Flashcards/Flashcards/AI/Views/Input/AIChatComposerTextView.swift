@@ -13,8 +13,17 @@ struct AIChatComposerTextView: UIViewRepresentable {
     let isDisabled: Bool
     let canAttachToDraft: Bool
     let maximumLineCount: Int
+    #if !targetEnvironment(macCatalyst)
+    /// Space above the first line inside the text view, so scrolled lines run up to the composer's edge.
+    let topContentInset: CGFloat
+    #endif
     /// Receives pasted or dropped items that carry a file or image; plain text stays with the text view.
     let onAttachmentItemProviders: @MainActor ([NSItemProvider]) -> Void
+    /// Read as the field enters a window: another section's chat in that window held the keyboard, so this one takes it
+    /// straight away.
+    let takesKeyboardOnArrival: @MainActor (UIWindowScene?) -> Bool
+    /// The window scene the field shows in, which scopes its keyboard to that window.
+    let onWindowSceneChange: @MainActor (UIWindowScene?) -> Void
     #if targetEnvironment(macCatalyst)
     let macReturnKeyOwner: MacComposerReturnKeyOwner
     #endif
@@ -24,7 +33,9 @@ struct AIChatComposerTextView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> AIChatComposerUITextView {
-        let textView = AIChatComposerUITextView(usingTextLayoutManager: true)
+        // The designated initializer runs this subclass's property initializers, which the TextKit 2 factory
+        // initializer skips on iOS 27; it already lays out with TextKit 2.
+        let textView = AIChatComposerUITextView(frame: .zero, textContainer: nil)
         textView.configureComposer()
         textView.isComposerDisabled = self.isDisabled
         textView.delegate = context.coordinator
@@ -32,8 +43,19 @@ struct AIChatComposerTextView: UIViewRepresentable {
         textView.accessibilityIdentifier = UITestIdentifier.aiComposerTextField
         textView.onDidMoveToWindow = { [weak coordinator = context.coordinator, weak textView] in
             guard let coordinator, let textView else { return }
+            coordinator.parent.onWindowSceneChange(textView.window?.windowScene)
+            coordinator.takeKeyboardOnArrival(textView: textView)
             coordinator.scheduleFocusSync(textView: textView)
         }
+        #if !targetEnvironment(macCatalyst)
+        textView.onKeyboardLost = { [weak coordinator = context.coordinator, weak textView] in
+            // Reported from inside the other field's take-over, which can run during a SwiftUI update.
+            DispatchQueue.main.async {
+                guard let coordinator, let textView, textView.isFirstResponder == false else { return }
+                coordinator.setFocusBinding(false)
+            }
+        }
+        #endif
         return textView
     }
 
@@ -49,6 +71,10 @@ struct AIChatComposerTextView: UIViewRepresentable {
         textView.onAttachmentItemProviders = self.onAttachmentItemProviders
         #if targetEnvironment(macCatalyst)
         textView.macReturnKeyOwner = self.macReturnKeyOwner
+        #else
+        if textView.textContainerInset.top != self.topContentInset {
+            textView.textContainerInset.top = self.topContentInset
+        }
         #endif
         // Replacing text or selection while an input method composes would cancel the composition.
         if textView.markedTextRange == nil {
@@ -75,7 +101,9 @@ struct AIChatComposerTextView: UIViewRepresentable {
     static func dismantleUIView(_ textView: AIChatComposerUITextView, coordinator: Coordinator) {
         coordinator.isUpdatingView = true
         if textView.isFirstResponder {
-            textView.resignFirstResponder()
+            AIChatComposerUITextView.resignDeliberately {
+                _ = textView.resignFirstResponder()
+            }
         }
         textView.delegate = nil
         textView.textDropDelegate = nil
@@ -98,6 +126,20 @@ struct AIChatComposerTextView: UIViewRepresentable {
             self.lastBindingSelectionRange = nil
         }
 
+        /// Becomes first responder while the previous chat's field still holds the keyboard, in the same update as the
+        /// section switch, so the keyboard moves between the fields without going down. The focus binding follows on
+        /// the next turn.
+        func takeKeyboardOnArrival(textView: AIChatComposerUITextView) {
+            #if !targetEnvironment(macCatalyst)
+            guard textView.isFirstResponder == false,
+                  self.parent.isDisabled == false,
+                  self.parent.takesKeyboardOnArrival(textView.window?.windowScene) else { return }
+            self.isUpdatingView = true
+            defer { self.isUpdatingView = false }
+            _ = textView.becomeFirstResponder()
+            #endif
+        }
+
         /// Runs on the next main-queue turn, outside the SwiftUI update, and reads the binding again.
         func scheduleFocusSync(textView: AIChatComposerUITextView) {
             guard textView.isComposerDisabled != self.parent.isDisabled
@@ -116,13 +158,17 @@ struct AIChatComposerTextView: UIViewRepresentable {
             guard self.isFocusSettled(textView: textView) == false else { return }
             if self.parent.isDisabled {
                 if textView.isFirstResponder {
-                    textView.resignFirstResponder()
+                    AIChatComposerUITextView.resignDeliberately {
+                        _ = textView.resignFirstResponder()
+                    }
                 }
                 if self.parent.isFocused {
                     self.parent.isFocused = false
                 }
             } else if self.parent.isFocused == false {
-                textView.resignFirstResponder()
+                AIChatComposerUITextView.resignDeliberately {
+                    _ = textView.resignFirstResponder()
+                }
             } else if textView.window != nil, textView.becomeFirstResponder() == false {
                 self.parent.isFocused = false
             }
@@ -202,7 +248,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
             self.parent.isAttachmentDropHovering = isHovering
         }
 
-        private func setFocusBinding(_ isFocused: Bool) {
+        fileprivate func setFocusBinding(_ isFocused: Bool) {
             guard self.isUpdatingView else {
                 if self.parent.isFocused != isFocused {
                     self.parent.isFocused = isFocused
@@ -215,6 +261,22 @@ struct AIChatComposerTextView: UIViewRepresentable {
             }
         }
     }
+}
+
+private let aiChatComposerTextStyle: UIFont.TextStyle = .body
+
+@MainActor
+func aiChatComposerFont(dynamicTypeSize: DynamicTypeSize) -> UIFont {
+    UIFont.preferredFont(
+        forTextStyle: aiChatComposerTextStyle,
+        compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
+    )
+}
+
+/// The draft's width laid out on a single line in the composer font.
+@MainActor
+func aiChatComposerSingleLineWidth(text: String, dynamicTypeSize: DynamicTypeSize) -> CGFloat {
+    ceil((text as NSString).size(withAttributes: [.font: aiChatComposerFont(dynamicTypeSize: dynamicTypeSize)]).width)
 }
 
 @MainActor
@@ -259,7 +321,7 @@ final class AIChatComposerUITextView: UITextView {
     var onAttachmentItemProviders: (@MainActor ([NSItemProvider]) -> Void)?
 
     func configureComposer() {
-        let font = UIFont.preferredFont(forTextStyle: .body)
+        let font = UIFont.preferredFont(forTextStyle: aiChatComposerTextStyle)
         self.font = font
         self.adjustsFontForContentSizeCategory = true
         self.textColor = .label
@@ -267,13 +329,26 @@ final class AIChatComposerUITextView: UITextView {
         self.textContainerInset = .zero
         self.textContainer.lineFragmentPadding = 0
         self.autocorrectionType = .no
+        #if !targetEnvironment(macCatalyst)
+        // Keeps the keyboard short: no suggestion bar, and no iPad undo/redo/paste bar that would keep it showing.
+        self.spellCheckingType = .no
+        self.inlinePredictionType = .no
+        self.inputAssistantItem.leadingBarButtonGroups = []
+        self.inputAssistantItem.trailingBarButtonGroups = []
+        #endif
         self.isScrollEnabled = false
         self.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         self.placeholderLabel.font = font
         self.placeholderLabel.adjustsFontForContentSizeCategory = true
         self.placeholderLabel.textColor = .placeholderText
+        #if targetEnvironment(macCatalyst)
         self.placeholderLabel.numberOfLines = 0
+        #else
+        // The empty single-row composer is one line tall, so its placeholder truncates instead of wrapping.
+        self.placeholderLabel.numberOfLines = 1
+        self.placeholderLabel.lineBreakMode = .byTruncatingTail
+        #endif
         self.placeholderLabel.isAccessibilityElement = false
         self.addSubview(self.placeholderLabel)
     }
@@ -285,6 +360,9 @@ final class AIChatComposerUITextView: UITextView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if self.window != nil {
+            #if !targetEnvironment(macCatalyst)
+            self.lastWindow = self.window
+            #endif
             self.onDidMoveToWindow?()
         }
     }
@@ -314,6 +392,95 @@ final class AIChatComposerUITextView: UITextView {
         onAttachmentItemProviders(itemProviders)
     }
 
+    /// True while the app itself resigns a field, which the section-switch hold never refuses.
+    private static var isResigningDeliberately: Bool = false
+
+    /// Runs a resign the app chose, such as a tap on the transcript, a send, or a field leaving its view.
+    static func resignDeliberately(_ resign: () -> Void) {
+        let wasResigningDeliberately = Self.isResigningDeliberately
+        Self.isResigningDeliberately = true
+        defer { Self.isResigningDeliberately = wasResigningDeliberately }
+        resign()
+    }
+
+    // The Mac keeps its own focus behavior: no section-switch hold and no hand-over between sections.
+    #if !targetEnvironment(macCatalyst)
+    /// The field taking the keyboard from another chat's field; that hand-over is always allowed.
+    private static var fieldTakingKeyboard: AIChatComposerUITextView?
+    /// The field that last took the keyboard. One that left its window before losing the keyboard gets no end of
+    /// editing, so whatever took the keyboard reports the loss through `onKeyboardLost`.
+    private static weak var keyboardHolder: AIChatComposerUITextView?
+    var onKeyboardLost: (() -> Void)?
+    private weak var lastWindow: UIWindow?
+
+    /// Ends the keyboard of the chat field in `scene` when no chat on screen takes it over. A field that left its
+    /// window keeps the first responder and cannot resign it, so a responder in that window takes it and lets it go.
+    static func releaseKeyboard(in scene: UIWindowScene?) {
+        guard let holder = Self.keyboardHolder, holder.isFirstResponder,
+              let window = holder.lastWindow, window.windowScene === scene else { return }
+        Self.resignDeliberately {
+            if holder.window != nil {
+                _ = holder.resignFirstResponder()
+                return
+            }
+            let releaser = AIChatKeyboardReleaser()
+            window.addSubview(releaser)
+            if releaser.becomeFirstResponder() {
+                _ = releaser.resignFirstResponder()
+            }
+            releaser.removeFromSuperview()
+        }
+        holder.onKeyboardLost?()
+    }
+
+    /// Ends the keyboard of a chat field that left its window still holding it, which a resign through the responder
+    /// chain cannot reach.
+    static func releaseOrphanedKeyboard() {
+        guard let holder = Self.keyboardHolder, holder.isFirstResponder, holder.window == nil else { return }
+        Self.releaseKeyboard(in: holder.lastWindow?.windowScene)
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let previousField = Self.fieldTakingKeyboard
+        Self.fieldTakingKeyboard = self
+        defer { Self.fieldTakingKeyboard = previousField }
+        let didBecome = super.becomeFirstResponder()
+        if didBecome {
+            if let holder = Self.keyboardHolder, holder !== self, holder.isFirstResponder == false {
+                holder.onKeyboardLost?()
+            }
+            Self.keyboardHolder = self
+        }
+        if didBecome, let window = self.window {
+            AIChatSectionSwitchTouchTracker.install(in: window)
+        }
+        return didBecome
+    }
+
+    /// Selecting a section in the tab bar or sidebar moves UIKit's focus, and with it the first responder, to that bar
+    /// before the section switches. The chat keeps its keyboard across sections, so during that touch alone the field
+    /// stays first responder until the next chat's field takes it; the tracker resigns it if none does. Another text
+    /// input, a presentation, and the app's own dismissals always take the first responder.
+    override var canResignFirstResponder: Bool {
+        if Self.isResigningDeliberately {
+            return super.canResignFirstResponder
+        }
+        if let takingField = Self.fieldTakingKeyboard, takingField !== self {
+            AIChatSectionSwitchTouchTracker.tracker(holding: self)?.release(self)
+            return super.canResignFirstResponder
+        }
+        let tracker = self.window.flatMap(AIChatSectionSwitchTouchTracker.tracker(in:))
+            ?? AIChatSectionSwitchTouchTracker.tracker(holding: self)
+        if let tracker,
+           tracker.holdsKeyboardForSectionSwitch,
+           self.window?.rootViewController?.presentedViewController == nil {
+            tracker.hold(self)
+            return false
+        }
+        return super.canResignFirstResponder
+    }
+    #endif
+
     override var canBecomeFirstResponder: Bool {
         self.isEditable && super.canBecomeFirstResponder
     }
@@ -335,7 +502,7 @@ final class AIChatComposerUITextView: UITextView {
         )
     }
 
-    /// Grows with its lines up to `maximumLineCount`, then scrolls; an empty draft fits its wrapped placeholder.
+    /// Grows with its lines up to `maximumLineCount`, fewer on a short iOS window, then scrolls; an empty draft fits its placeholder.
     func composerFittingSize(proposedWidth: CGFloat?, maximumLineCount: Int) -> CGSize {
         guard let font = self.font else {
             preconditionFailure("The AI composer text view has no font to measure its lines.")
@@ -351,7 +518,15 @@ final class AIChatComposerUITextView: UITextView {
             ))
             contentHeight = max(contentHeight, ceil(placeholderSize.height) + verticalInset)
         }
-        let maximumHeight = ceil(font.lineHeight * CGFloat(maximumLineCount) + verticalInset)
+        var lineCount = maximumLineCount
+        #if !targetEnvironment(macCatalyst)
+        // Accessibility text on a short window, such as Duo's outer display, would otherwise cover the whole chat.
+        if let windowHeight = self.window?.bounds.height {
+            let fittingLineCount = Int(windowHeight * aiChatComposerMaximumWindowHeightFraction / font.lineHeight)
+            lineCount = min(lineCount, max(1, fittingLineCount))
+        }
+        #endif
+        let maximumHeight = ceil(font.lineHeight * CGFloat(lineCount) + verticalInset)
         self.updateScrolling(isEnabled: contentHeight > maximumHeight)
         return CGSize(
             width: measuringWidth == .greatestFiniteMagnitude ? textSize.width : measuringWidth,
@@ -401,3 +576,141 @@ final class AIChatComposerUITextView: UITextView {
     }
     #endif
 }
+
+#if !targetEnvironment(macCatalyst)
+/// Takes the first responder from a chat field that left its window, then gives it up.
+private final class AIChatKeyboardReleaser: UIView {
+    override var canBecomeFirstResponder: Bool { true }
+}
+
+/// Notes whether the window's touches are selecting a section in the tab controller's own bar or sidebar, so a chat
+/// field can keep the keyboard while that touch switches sections. Any other touch in the same sequence, such as a
+/// second finger on a search field, ends the hold. It never recognizes, delays or cancels touches.
+@MainActor
+final class AIChatSectionSwitchTouchTracker: UIGestureRecognizer {
+    /// From a touch on a section item until the turn after the last touch of its sequence ends, which is when the
+    /// selection has switched the section.
+    private(set) var holdsKeyboardForSectionSwitch: Bool = false
+    private var liveTouches: Set<ObjectIdentifier> = []
+    private var touchesSectionItem: Bool = false
+    private var touchesElsewhere: Bool = false
+    private var sequence: Int = 0
+    /// The field that kept the keyboard; it resigns afterwards unless another chat's field took over.
+    private weak var heldField: AIChatComposerUITextView?
+
+    static func install(in window: UIWindow) {
+        guard self.tracker(in: window) == nil else { return }
+        window.addGestureRecognizer(AIChatSectionSwitchTouchTracker(target: nil, action: nil))
+    }
+
+    static func tracker(in window: UIWindow) -> AIChatSectionSwitchTouchTracker? {
+        window.gestureRecognizers?.lazy.compactMap { $0 as? AIChatSectionSwitchTouchTracker }.first
+    }
+
+    /// The tracker of whichever window the field kept the keyboard in; a held field may already have left its window.
+    static func tracker(holding field: AIChatComposerUITextView) -> AIChatSectionSwitchTouchTracker? {
+        for scene in UIApplication.shared.connectedScenes {
+            for window in (scene as? UIWindowScene)?.windows ?? [] {
+                if let tracker = self.tracker(in: window), tracker.heldField === field {
+                    return tracker
+                }
+            }
+        }
+        return nil
+    }
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        self.cancelsTouchesInView = false
+        self.delaysTouchesBegan = false
+        self.delaysTouchesEnded = false
+    }
+
+    func hold(_ field: AIChatComposerUITextView) {
+        self.heldField = field
+    }
+
+    func release(_ field: AIChatComposerUITextView) {
+        if self.heldField === field {
+            self.heldField = nil
+        }
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        if self.liveTouches.isEmpty {
+            self.sequence += 1
+            self.touchesSectionItem = false
+            self.touchesElsewhere = false
+        }
+        for touch in touches {
+            self.liveTouches.insert(ObjectIdentifier(touch))
+            if let view = touch.view, Self.isSectionItem(view) {
+                self.touchesSectionItem = true
+            } else {
+                self.touchesElsewhere = true
+            }
+        }
+        self.holdsKeyboardForSectionSwitch = self.touchesSectionItem && self.touchesElsewhere == false
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        self.endTouches(touches)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        self.endTouches(touches)
+    }
+
+    override func reset() {
+        super.reset()
+        self.liveTouches.removeAll()
+    }
+
+    override func canPrevent(_ preventedGestureRecognizer: UIGestureRecognizer) -> Bool {
+        false
+    }
+
+    override func canBePrevented(by preventingGestureRecognizer: UIGestureRecognizer) -> Bool {
+        false
+    }
+
+    /// The bar selects on touch-up and the section switches right after, so the hold ends on the next turn, unless a
+    /// newer touch sequence has begun by then.
+    private func endTouches(_ touches: Set<UITouch>) {
+        for touch in touches {
+            self.liveTouches.remove(ObjectIdentifier(touch))
+        }
+        guard self.liveTouches.isEmpty else { return }
+        self.state = .failed
+        let endedSequence = self.sequence
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if let field = self.heldField, field.window == nil, field.isFirstResponder {
+                AIChatComposerUITextView.releaseOrphanedKeyboard()
+            }
+            self.heldField = nil
+            if self.sequence == endedSequence, self.liveTouches.isEmpty {
+                self.holdsKeyboardForSectionSwitch = false
+            }
+        }
+    }
+
+    /// A tab item in the tab controller's bar or sidebar, outside the selected section's own view.
+    private static func isSectionItem(_ view: UIView) -> Bool {
+        var isItem = false
+        var responder: UIResponder? = view
+        while let current = responder {
+            if current is UICollectionViewCell || current is UIControl {
+                isItem = true
+            }
+            if let tabController = current as? UITabBarController {
+                // Tabs built from `UITab` leave `viewControllers` empty, so the selected section is the reference.
+                guard isItem, let sectionView = tabController.selectedViewController?.viewIfLoaded else { return false }
+                return view.isDescendant(of: sectionView) == false
+            }
+            responder = current.next
+        }
+        return false
+    }
+}
+#endif

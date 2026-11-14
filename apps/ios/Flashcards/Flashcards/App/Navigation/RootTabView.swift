@@ -64,6 +64,10 @@ struct RootTabView: View {
     @Environment(\.requestReview) private var requestReview
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #if !targetEnvironment(macCatalyst)
+    @State private var isLargeWindow: Bool = false
+    #endif
     @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
@@ -71,7 +75,6 @@ struct RootTabView: View {
     @Environment(AppleSubscriptionService.self) private var appleSubscriptions: AppleSubscriptionService
     @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
-    @State private var isKeyboardDocked: Bool = false
     @State private var loadedTagsCount: (workspaceId: String, count: Int)?
     #if targetEnvironment(macCatalyst)
     @State private var macSidebarVisibility: NavigationSplitViewVisibility = .all
@@ -246,8 +249,9 @@ struct RootTabView: View {
         )
     }
 
+    /// A composer pushed beside the side chat covers no window, so it does not hold back the paywall.
     private var canShowPremiumPresentation: Bool {
-        store.feedbackPresentation == nil
+        (store.feedbackPresentation?.isPushed ?? true)
             && store.presentedTechnicalError == nil
             && store.activeCloudSignInSheetCount == 0
             && self.isGuestSignInCloudSignInPresented == false
@@ -273,10 +277,11 @@ struct RootTabView: View {
         self.store.aiChatStore.quotaRefusal = nil
     }
 
+    /// Settings pushes its own composer beside the side chat; every other showing is this sheet.
     private var feedbackPresentation: Binding<FeedbackPresentation?> {
         Binding<FeedbackPresentation?>(
             get: {
-                store.feedbackPresentation
+                store.feedbackPresentation.flatMap { $0.isPushed ? nil : $0 }
             },
             set: { presentation in
                 if presentation == nil {
@@ -695,39 +700,20 @@ struct RootTabView: View {
             .accessibilityIdentifier(identifier)
     }
 
-    private func aiCompanionPane(hostTab: AppTab) -> some View {
-        AIChatView(chatStore: store.aiChatStore, isCompanion: true, companionHostTab: hostTab)
-            .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
-            .background(Color(uiColor: .systemBackground))
-            .presentationBackground(Color(uiColor: .systemBackground))
-            #if targetEnvironment(macCatalyst)
-            .onDisappear {
-                if hostTab == .review && !self.navigation.isAICompanionPresented {
-                    FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.panelDisappeared))
-                }
-            }
-            #endif
-    }
-
-    // Paired Progress shares one native bar in both tab placements; Review does under a top tab bar.
-    // Their screen-owned drafts and presentations survive sidebar transitions.
+    /// Every section hosts the side chat the same way: the pane beside the section's own navigation stack, so the
+    /// section's pushes stay in its column and the pane keeps its place.
     @ViewBuilder
     private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
         #if targetEnvironment(macCatalyst)
         NavigationStack {
-            self.aiCompanionColumns(for: hostTab, content: content)
+            AICompanionColumns(hostTab: hostTab, content: content())
                 .toolbar(.hidden, for: .navigationBar)
         }
         #else
-        if UIDevice.current.userInterfaceIdiom == .pad {
+        AICompanionColumns(hostTab: hostTab) {
             NavigationStack {
-                self.aiCompanionColumns(for: hostTab, content: content)
-                    .toolbarBackground(.bar, for: .navigationBar)
-                    .toolbarBackground(self.navigation.isAICompanionVisible && self.navigation.selectedTab == hostTab ? .visible : .automatic, for: .navigationBar)
-            }
-        } else {
-            NavigationStack {
-                self.aiCompanionColumns(for: hostTab, content: content)
+                content()
+                    .aiCompanionColumnPage()
             }
         }
         #endif
@@ -792,90 +778,31 @@ struct RootTabView: View {
     }
     #endif
 
-    // Native edge bars keep their outer bounds. Regular-width content reserves chat space.
-    @ViewBuilder
-    private func aiCompanionColumns<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
-        let hostContent = content()
-        let isRequested = self.navigation.isAICompanionVisible
-            && self.navigation.selectedTab == hostTab
-        let isPad = UIDevice.current.userInterfaceIdiom == .pad
-        // Duo chat stays on the physical left; iPad retains logical leading.
-        let isLeading = isPad || self.layoutDirection == .leftToRight
-        GeometryReader { geometry in
-            #if targetEnvironment(macCatalyst)
-            // Apply the current layout proposal immediately during a resize,
-            // before the observer publishes the updated toolbar availability.
-            let isVisible = isRequested && fitsMacAICompanionColumns(geometry.size)
-            #else
-            let isVisible = isRequested
-            #endif
-            let leftInset = self.layoutDirection == .leftToRight ? geometry.safeAreaInsets.leading : geometry.safeAreaInsets.trailing
-            let rightInset = self.layoutDirection == .leftToRight ? geometry.safeAreaInsets.trailing : geometry.safeAreaInsets.leading
-            // The content excludes native edge bars. Include their asymmetric
-            // insets when locating the full window's midpoint on inner landscape.
-            #if targetEnvironment(macCatalyst)
-            // Keep study content dominant instead of stretching chat over half a desktop.
-            let width = min(480, max(360, geometry.size.width * 0.38))
-            #else
-            let width = isPad
-                ? geometry.size.width / 2
-                : max(0, min(geometry.size.width, (geometry.size.width + rightInset - leftInset) / 2))
-            #endif
-            HStack(spacing: 0) {
-                Color.clear
-                    .frame(width: isVisible && isLeading ? width : 0)
-                    .accessibilityHidden(true)
-                hostContent
-                    #if targetEnvironment(macCatalyst)
-                    // The geometry is known. Avoid asking rich Review text to size itself for speculative column widths.
-                    .frame(width: max(0, geometry.size.width - (isVisible ? width : 0)))
-                    .frame(maxHeight: .infinity)
-                    #else
-                    .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
-                    #endif
-                Color.clear
-                    .frame(width: isVisible && !isLeading ? width : 0)
-                    .accessibilityHidden(true)
-            }
-            .overlay(alignment: isLeading ? .leading : .trailing) {
-                if isVisible {
-                    self.aiCompanionPane(hostTab: hostTab)
-                        .frame(width: width)
-                        .overlay(alignment: isLeading ? .trailing : .leading) {
-                            if isPad == false {
-                                HStack(spacing: 0) { Divider() }.frame(width: 1)
-                            }
-                        }
-                        .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
-                }
-            }
-            .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
-
-        }
-        // The paired columns share one keyboard boundary and one layout proposal.
-        .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
-    }
-
     private var tabRootTasks: some View {
-        self.tabRootPresentation
-        .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
-        .environment(\.isKeyboardDocked, self.isKeyboardDocked)
+        DockedKeyboardEnvironment {
+            self.tabRootPresentation
+        }
         #if !targetEnvironment(macCatalyst)
+        // Regular width only: an iPad window in Slide Over or a narrow split has a bottom tab bar and keeps its titles.
+        // A Plus or Max iPhone is regular in landscape too, but only Duo's inner display among phones is this large.
+        .environment(
+            \.usesRegularToolbarLayout,
+            self.horizontalSizeClass == .regular && (UIDevice.current.userInterfaceIdiom == .pad || self.isLargeWindow)
+        )
         .background {
-            AICompanionAvailabilityObserver { isAvailable in
-                self.navigation.updateAICompanionAvailability(isAvailable)
-            }
+            AICompanionAvailabilityObserver(
+                onChange: { isAvailable in
+                    self.navigation.updateAICompanionAvailability(isAvailable)
+                },
+                onLargeWindowChange: { isLargeWindow in
+                    self.isLargeWindow = isLargeWindow
+                }
+            )
             .ignoresSafeArea()
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
         #endif
-        .background {
-            DockedKeyboardObserver(isDocked: self.$isKeyboardDocked)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
         .onChange(of: self.navigation.isAIChatVisible) { _, isVisible in
             // Both AI presentations share one chat session and composer draft.
             self.store.aiChatStore.updateSurface(activity: AIChatSurfaceActivity(
@@ -978,6 +905,18 @@ struct RootTabView: View {
         }
         .onChange(of: store.cloudSettings?.cloudState) { _, _ in
             self.store.retryAIConsentSync()
+        }
+        // Chat history belongs to one workspace and account. Its pages close here, where every AI stack is reached,
+        // including a side chat that is closed or a section that is not on screen.
+        .onChange(of: aiChatHistoryScope(flashcardsStore: self.store)) { previousScope, nextScope in
+            guard isPreservedGuestHistoryBootstrap(
+                previousScope: previousScope,
+                nextScope: nextScope,
+                link: self.store.preservedGuestWorkspaceLink
+            ) == false else {
+                return
+            }
+            self.navigation.popAIToLiveChat()
         }
         .onChange(of: store.lastSuccessfulCloudSyncAt) { _, _ in
             self.store.syncPaywallStateIfNeeded()
@@ -1095,28 +1034,8 @@ struct RootTabView: View {
 
     private func aiTab(aiPath: Binding<NavigationPath>) -> some View {
         NavigationStack(path: aiPath) {
-            Group {
-                if self.navigation.selectedTab == .ai {
-                    if UIDevice.current.userInterfaceIdiom == .pad {
-                        // Match the paired columns: the fixed viewport owns keyboard avoidance
-                        // inside the native navigation stack, below its toolbar.
-                        GeometryReader { _ in
-                            AIChatView(chatStore: store.aiChatStore)
-                                .id(self.navigation.aiTabVisitID)
-                        }
-                        .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .all)
-                    } else {
-                        AIChatView(chatStore: store.aiChatStore)
-                            .id(self.navigation.aiTabVisitID)
-                    }
-                }
-            }
-            .navigationDestination(for: AIChatHistoryListRoute.self) { _ in
-                AIChatHistoryView(chatStore: store.aiChatStore)
-                    #if targetEnvironment(macCatalyst)
-                    .environment(\.macToolbarOwnerTab, .ai)
-                    #endif
-            }
+            AITabChat()
+            .aiChatHistoryDestinations(chatStore: store.aiChatStore)
             #if targetEnvironment(macCatalyst)
             .toolbar(.hidden, for: .navigationBar)
             #endif
@@ -1126,13 +1045,14 @@ struct RootTabView: View {
         #endif
     }
 
-    /// The companion pane sits beside the whole stack, so it stays open across Library pages.
     private func libraryTab(libraryPath: Binding<LibraryNavigationPath>) -> some View {
-        self.aiCompanionColumns(for: .library) {
+        AICompanionColumns(hostTab: .library) {
             NavigationStack(path: libraryPath) {
                 self.libraryRoot
+                    .aiCompanionColumnPage()
                     .navigationDestination(for: LibraryNavigationDestination.self) { destination in
                         self.libraryDestinationView(destination: destination)
+                            .aiCompanionColumnPage()
                             #if targetEnvironment(macCatalyst)
                             .environment(\.macToolbarOwnerTab, .library)
                             #endif
@@ -1197,11 +1117,26 @@ struct RootTabView: View {
         }
     }
 
+    @ViewBuilder
     private func settingsTab(settingsPath: Binding<SettingsNavigationPath>) -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.settingsStack(settingsPath: settingsPath)
+            .environment(\.macToolbarOwnerTab, .settings)
+        #else
+        // Settings pages push inside their column while the side chat stays open beside them.
+        AICompanionColumns(hostTab: .settings) {
+            self.settingsStack(settingsPath: settingsPath)
+        }
+        #endif
+    }
+
+    private func settingsStack(settingsPath: Binding<SettingsNavigationPath>) -> some View {
         NavigationStack(path: settingsPath) {
             SettingsView()
+                .aiCompanionColumnPage()
                 .navigationDestination(for: SettingsNavigationDestination.self) { destination in
                     self.settingsDestinationView(destination: destination)
+                        .aiCompanionColumnPage()
                         #if targetEnvironment(macCatalyst)
                         .environment(\.macToolbarOwnerTab, .settings)
                         #endif
@@ -1210,9 +1145,6 @@ struct RootTabView: View {
                 .toolbar(.hidden, for: .navigationBar)
                 #endif
         }
-        #if targetEnvironment(macCatalyst)
-        .environment(\.macToolbarOwnerTab, .settings)
-        #endif
     }
 
     @ViewBuilder

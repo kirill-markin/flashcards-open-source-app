@@ -1,61 +1,60 @@
 import SwiftUI
 
 extension AIChatView {
+    /// The Mac pane's controls join the window toolbar. On iOS the pane draws its own row beside its section's bar.
     var usesCompactCompanionToolbar: Bool {
         #if targetEnvironment(macCatalyst)
         self.isCompanion && self.isPresentationActive
         #else
-        self.isCompanion && self.isPresentationActive
-            && UIDevice.current.userInterfaceIdiom == .pad
-            && self.companionHostTab != .library
-            && (self.companionHostTab != .review || self.tabBarPlacement == .topBar)
+        false
         #endif
     }
 
     #if !targetEnvironment(macCatalyst)
-    private var companionNewChatToolbarPlacement: ToolbarItemPlacement {
-        self.usesCompactCompanionToolbar ? .topBarLeading : .topBarTrailing
-    }
-
-    @ToolbarContentBuilder
-    var companionToolbarContent: some ToolbarContent {
-        if self.isPresentationActive {
-            if #available(iOS 26.0, *) {
-                ToolbarItem(placement: .topBarLeading) {
+    /// The pane's row on iOS while the live chat is on top. The toggle keeps its own circle; History and New share one
+    /// glass pill, like Review's badges. Like the section, it has no title.
+    @ViewBuilder
+    var companionPaneHeader: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 12) {
+                HStack(spacing: 12) {
                     self.companionToggleButton
-                }
-                .sharedBackgroundVisibility(.hidden)
-            } else {
-                ToolbarItem(placement: .topBarLeading) {
-                    self.companionToggleButton
-                }
-            }
-
-            ToolbarItem(placement: self.companionNewChatToolbarPlacement) {
-                self.historyToolbarButton
-            }
-            if self.accessState == .ready {
-                if #available(iOS 26.0, *) {
-                    ToolbarItem(placement: self.companionNewChatToolbarPlacement) {
-                        self.newCompanionChatButton
-                            .labelStyle(.iconOnly)
-                            .buttonBorderShape(.circle)
+                    HStack(spacing: 0) {
+                        self.companionPillButton(self.historyButton(usesToolbarIconLabel: true))
+                        if self.accessState == .ready {
+                            self.companionPillButton(self.newCompanionChatLabelButton)
+                        }
                     }
-                    .sharedBackgroundVisibility(.hidden)
-                } else {
-                    ToolbarItem(placement: self.companionNewChatToolbarPlacement) {
-                        self.newCompanionChatButton
-                            .labelStyle(.iconOnly)
-                            .buttonBorderShape(.circle)
-                    }
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    Spacer(minLength: 0)
                 }
             }
+            .padding(.horizontal, aiChatCompanionHeaderHorizontalPadding)
+            .disabled(self.isPresentationActive == false)
+        } else {
+            HStack(spacing: 12) {
+                self.companionToggleButton
+                self.companionHistoryButton
+                if self.accessState == .ready {
+                    self.newCompanionChatButton
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, aiChatCompanionHeaderHorizontalPadding)
+            .disabled(self.isPresentationActive == false)
         }
     }
-    #endif
 
-    /// Sidebar Review, Library and phone companions keep controls inside the inset header;
-    /// Library's pane sits beside its navigation stack, outside any navigation bar.
+    /// One segment of the glass pill: primary while usable and dimmed while disabled, at the toolbar's 44 points.
+    private func companionPillButton<Control: View>(_ control: Control) -> some View {
+        control
+            .labelStyle(.iconOnly)
+            .buttonStyle(.plain)
+            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+            .contentShape(Rectangle())
+    }
+    #else
+    /// The pane's top row, level with its section's toolbar: the controls lead and, like the section, it has no title.
     @ViewBuilder
     var companionHeader: some View {
         if #available(iOS 26.0, *) {
@@ -69,60 +68,47 @@ extension AIChatView {
 
     private var companionHeaderContent: some View {
         HStack(spacing: 12) {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                self.companionToggleButton
-            }
-
-            Text(aiSettingsLocalized("ai.title", "AI"))
-                .font(.headline)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity)
-
-            self.historyToolbarButton
+            self.companionToggleButton
+            self.companionHistoryButton
             if self.accessState == .ready {
                 self.newCompanionChatButton
             }
+            Spacer(minLength: 0)
         }
-        .labelStyle(.iconOnly)
-        .nativeActionButtonStyle()
-        .buttonBorderShape(.circle)
-        .controlSize(UIDevice.current.userInterfaceIdiom == .pad ? .regular : .large)
-        .padding(.horizontal, self.chatContentHorizontalPadding)
-        .padding(.top, UIDevice.current.userInterfaceIdiom == .pad ? 0 : 10)
-        .padding(.bottom, 10)
+        .padding(.horizontal, aiChatCompanionHeaderHorizontalPadding)
+        .padding(.bottom, aiChatCompanionHeaderBottomPadding)
         .disabled(self.isPresentationActive == false)
     }
+    #endif
 
     private var companionToggleButton: some View {
-        AICompanionToolbarButton(labelMinimumSize: 30)
-            .labelStyle(.iconOnly)
-            .nativeActionButtonStyle()
-            .buttonBorderShape(.circle)
-            .controlSize(.regular)
-            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-            .contentShape(Rectangle())
+        AICompanionToolbarButton()
+            .nativeToolbarIconButton()
     }
 
-    @ViewBuilder
+    private var companionHistoryButton: some View {
+        self.historyButton(usesToolbarIconLabel: true)
+            .nativeToolbarIconButton()
+    }
+
     private var newCompanionChatButton: some View {
-        let button = Button(action: self.startNewChat) {
+        self.newCompanionChatLabelButton
+            .nativeToolbarIconButton()
+    }
+
+    private var newCompanionChatLabelButton: some View {
+        Button(action: self.startNewChat) {
             Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
-                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
-                .contentShape(Rectangle())
+                .nativeToolbarIconLabel()
         }
         .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
         .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
-
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            button
-                .font(.title3)
-                .tint(Color.primary)
-                .nativeActionButtonStyle()
-                .controlSize(.regular)
-                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
-                .contentShape(Rectangle())
-        } else {
-            button
-        }
+        .tint(Color.primary)
     }
 }
+
+/// The leading inset of the section's navigation bar items, so the pane's row lines up with the section's toolbar.
+let aiChatCompanionHeaderHorizontalPadding: CGFloat = 10
+#if targetEnvironment(macCatalyst)
+let aiChatCompanionHeaderBottomPadding: CGFloat = 8
+#endif

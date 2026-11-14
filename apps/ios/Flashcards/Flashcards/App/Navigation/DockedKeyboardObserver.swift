@@ -5,6 +5,29 @@ extension EnvironmentValues {
     @Entry var isKeyboardDocked: Bool = false
 }
 
+/// Owns the docked-keyboard flag below the root view, so a docking change updates only the views that read it.
+struct DockedKeyboardEnvironment<Content: View>: View {
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @State private var isDocked: Bool = false
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        self.content
+            .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
+            .environment(\.isKeyboardDocked, self.isDocked)
+            .background {
+                DockedKeyboardObserver(isDocked: self.$isDocked)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+    }
+}
+
 /// Reads the native docked-keyboard guide without following floating keyboards.
 /// The background fills the scene so this remains independent of content insets.
 struct DockedKeyboardObserver: UIViewRepresentable {

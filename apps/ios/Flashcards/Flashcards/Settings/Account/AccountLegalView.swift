@@ -113,12 +113,16 @@ struct AccountLegalView: View {
         }
         .listStyle(.insetGrouped)
         .nativeNavigationTitle(aiSettingsLocalized("settings.account.legal.title", "Legal"))
-        .sheet(isPresented: self.$isDisclosurePresented) {
+        .sectionChildPresentation(isPresented: self.$isDisclosurePresented, onDismiss: nil) {
+            AIConsentDisclosureView(
+                onAllowed: { self.isDisclosurePresented = false },
+                onNotNow: { self.isDisclosurePresented = false }
+            )
+            .pageNavigationTitle(aiSettingsLocalized("ai.consent.dataSharingTitle", "AI data sharing"))
+            .navigationBarTitleDisplayMode(.inline)
+        } sheet: { disclosure in
             NavigationStack {
-                AIConsentDisclosureView(
-                    onAllowed: { self.isDisclosurePresented = false },
-                    onNotNow: { self.isDisclosurePresented = false }
-                )
+                disclosure
             }
         }
     }

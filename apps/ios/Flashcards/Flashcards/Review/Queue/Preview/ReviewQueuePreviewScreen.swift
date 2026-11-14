@@ -107,7 +107,7 @@ struct ReviewQueuePreviewScreen: View {
             }
         }
         .background(.thinMaterial)
-        .navigationTitle(title)
+        .pageNavigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: self.activeLoadRequest) {
             await self.performActiveLoadRequest()

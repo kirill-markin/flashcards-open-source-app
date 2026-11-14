@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeedbackSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
     @Environment(FlashcardsStore.self) private var store
 
     let presentation: FeedbackPresentation
@@ -54,74 +55,7 @@ struct FeedbackSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text(self.bodyText)
-                        .foregroundStyle(.secondary)
-
-                    ZStack(alignment: .topLeading) {
-                        TextEditor(text: self.$message)
-                            .frame(minHeight: 180)
-                            .accessibilityIdentifier(UITestIdentifier.feedbackMessageEditor)
-
-                        if self.message.isEmpty {
-                            Text(self.placeholder)
-                                .foregroundStyle(.tertiary)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
-                        }
-                    }
-                }
-
-                if let validationMessage = self.validationMessage {
-                    Section {
-                        Text(validationMessage)
-                            .foregroundStyle(.red)
-                            .accessibilityIdentifier(UITestIdentifier.feedbackErrorMessage)
-                    }
-                }
-
-                if let errorMessage = self.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .accessibilityIdentifier(UITestIdentifier.feedbackErrorMessage)
-                    }
-                }
-            }
-            .navigationTitle(self.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .accessibilityIdentifier(UITestIdentifier.feedbackSheet)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(self.cancelTitle) {
-                        self.store.dismissFeedbackSheet()
-                        self.dismiss()
-                    }
-                    .disabled(self.isSubmitting)
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task { @MainActor in
-                            await self.submit()
-                        }
-                    } label: {
-                        if self.isSubmitting {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text(self.sendTitle)
-                        }
-                    }
-                    .disabled(self.canSend == false)
-                    .accessibilityIdentifier(UITestIdentifier.feedbackSendButton)
-                }
-            }
-        }
-        .interactiveDismissDisabled(self.isSubmitting)
+        self.page
         .onAppear {
             guard self.hasRecordedAutomaticPromptShown == false else { return }
             self.hasRecordedAutomaticPromptShown = true
@@ -134,6 +68,91 @@ struct FeedbackSheet: View {
             self.errorMessage = nil
             guard self.presentation.isTestPreview == false else { return }
             self.store.saveFeedbackDraftMessage(message: nextMessage)
+        }
+    }
+
+    /// Pushed from Settings beside the side chat, the composer sits in Settings' own stack. Back keeps the saved
+    /// draft, and waits while sending.
+    @ViewBuilder
+    private var page: some View {
+        if self.presentationStyle == .push {
+            self.form
+                .sectionChildBackGuard(isLocked: self.isSubmitting, hasUnsavedChanges: false, onDiscard: {})
+        } else {
+            NavigationStack {
+                self.form
+            }
+            .interactiveDismissDisabled(self.isSubmitting)
+        }
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                Text(self.bodyText)
+                    .foregroundStyle(.secondary)
+
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: self.$message)
+                        .frame(minHeight: 180)
+                        .accessibilityIdentifier(UITestIdentifier.feedbackMessageEditor)
+
+                    if self.message.isEmpty {
+                        Text(self.placeholder)
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 8)
+                            .allowsHitTesting(false)
+                    }
+                }
+            }
+
+            if let validationMessage = self.validationMessage {
+                Section {
+                    Text(validationMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier(UITestIdentifier.feedbackErrorMessage)
+                }
+            }
+
+            if let errorMessage = self.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier(UITestIdentifier.feedbackErrorMessage)
+                }
+            }
+        }
+        .pageNavigationTitle(self.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier(UITestIdentifier.feedbackSheet)
+        .toolbar {
+            if self.presentationStyle == .sheet {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(self.cancelTitle) {
+                        self.store.dismissFeedbackSheet()
+                        self.dismiss()
+                    }
+                    .disabled(self.isSubmitting)
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    Task { @MainActor in
+                        await self.submit()
+                    }
+                } label: {
+                    if self.isSubmitting {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text(self.sendTitle)
+                    }
+                }
+                .disabled(self.canSend == false)
+                .accessibilityIdentifier(UITestIdentifier.feedbackSendButton)
+            }
         }
     }
 
@@ -182,7 +201,7 @@ struct FeedbackSheet: View {
 
 #Preview {
     FeedbackSheet(
-        presentation: makeFeedbackPresentation(trigger: .settings, isTestPreview: false)
+        presentation: makeFeedbackPresentation(trigger: .settings, isTestPreview: false, isPushed: false)
     )
     .environment(FlashcardsStore())
 }

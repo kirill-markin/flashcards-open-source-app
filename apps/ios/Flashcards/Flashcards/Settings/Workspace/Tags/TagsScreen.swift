@@ -12,12 +12,11 @@ struct TagsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    @FocusState private var isSearchFocused: Bool
     @State private var loadedWorkspaceId: String?
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
     @State private var isLoading: Bool = true
-    @State private var isSearchPresented: Bool = false
     @State private var searchText: String = ""
 
     private var filteredTags: [WorkspaceTagSummary] {
@@ -28,83 +27,89 @@ struct TagsScreen: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                Text(
-                    aiSettingsLocalized(
-                        "settings.workspace.tags.description",
-                        "Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags."
-                    )
-                )
-                    .foregroundStyle(.secondary)
-            }
-
-            Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
-                if self.isLoading || self.loadedWorkspaceId != self.store.workspace?.workspaceId {
-                    Text(aiSettingsLocalized("settings.workspace.tags.loading", "Loading tags…"))
-                        .foregroundStyle(.secondary)
-                } else if self.tagsSummary.tags.isEmpty {
-                    Text(aiSettingsLocalized("settings.workspace.tags.empty", "No tags have been used yet."))
-                        .foregroundStyle(.secondary)
-                } else if self.filteredTags.isEmpty {
-                    ContentUnavailableView(
-                        aiSettingsLocalized("settings.workspace.tags.noMatching", "No Matching Tags"),
-                        systemImage: "magnifyingglass",
-                        description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
-                    )
-                } else if let workspaceId = self.loadedWorkspaceId {
-                    ForEach(self.filteredTags, id: \.tag) { tagSummary in
-                        NavigationLink(value: LibraryNavigationDestination.tagDetail(tag: tagSummary.tag, workspaceId: workspaceId)) {
-                            HStack(spacing: 12) {
-                                Label(tagSummary.tag, systemImage: "tag")
-                                    .foregroundStyle(.primary)
-
-                                Spacer()
-
-                                Text(formatCardsCount(tagSummary.cardsCount))
-                                    .font(.subheadline.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                            #if targetEnvironment(macCatalyst)
-                            .frame(minHeight: appMinimumTouchTarget)
-                            #endif
-                            .contentShape(Rectangle())
-                        }
-                        .padding(.vertical, 4)
-                        .rememberedListRow(id: tagSummary.tag)
-                    }
-                }
-            }
-
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(aiSettingsLocalized("settings.workspace.tags.totalCards", "Total cards"))
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text("\(tagsSummary.totalCards)")
-                            .font(.headline.monospacedDigit())
-                    }
-
+        ScrollViewReader { scrollProxy in
+            List {
+                #if !targetEnvironment(macCatalyst)
+                NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags"))
+                #endif
+                Section {
                     Text(
                         aiSettingsLocalized(
-                            "settings.workspace.tags.totalCardsDescription",
-                            "This count is for the full workspace and does not double-count cards that share tags."
+                            "settings.workspace.tags.description",
+                            "Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags."
                         )
                     )
-                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 4)
+
+                Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
+                    if self.isLoading || self.loadedWorkspaceId != self.store.workspace?.workspaceId {
+                        Text(aiSettingsLocalized("settings.workspace.tags.loading", "Loading tags…"))
+                            .foregroundStyle(.secondary)
+                    } else if self.tagsSummary.tags.isEmpty {
+                        Text(aiSettingsLocalized("settings.workspace.tags.empty", "No tags have been used yet."))
+                            .foregroundStyle(.secondary)
+                    } else if self.filteredTags.isEmpty {
+                        ContentUnavailableView(
+                            aiSettingsLocalized("settings.workspace.tags.noMatching", "No Matching Tags"),
+                            systemImage: "magnifyingglass",
+                            description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
+                        )
+                    } else if let workspaceId = self.loadedWorkspaceId {
+                        ForEach(self.filteredTags, id: \.tag) { tagSummary in
+                            NavigationLink(value: LibraryNavigationDestination.tagDetail(tag: tagSummary.tag, workspaceId: workspaceId)) {
+                                HStack(spacing: 12) {
+                                    Label(tagSummary.tag, systemImage: "tag")
+                                        .foregroundStyle(.primary)
+
+                                    Spacer()
+
+                                    Text(formatCardsCount(tagSummary.cardsCount))
+                                        .font(.subheadline.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                }
+                                #if targetEnvironment(macCatalyst)
+                                .frame(minHeight: appMinimumTouchTarget)
+                                #endif
+                                .contentShape(Rectangle())
+                            }
+                            .padding(.vertical, 4)
+                            .rememberedListRow(id: tagSummary.tag)
+                        }
+                    }
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(aiSettingsLocalized("settings.workspace.tags.totalCards", "Total cards"))
+                                .foregroundStyle(.secondary)
+
+                            Spacer()
+
+                            Text("\(tagsSummary.totalCards)")
+                                .font(.headline.monospacedDigit())
+                        }
+
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.workspace.tags.totalCardsDescription",
+                                "This count is for the full workspace and does not double-count cards that share tags."
+                            )
+                        )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
             }
+            .listStyle(.insetGrouped)
+            .nativeSearchKeyboardShortcut(isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true }, prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags"), scrollProxy: scrollProxy)
+            .rememberedListScroll(
+                topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isTagsOnLibraryPath }),
+                isContentReady: self.isLoading == false
+            )
         }
-        .listStyle(.insetGrouped)
-        .rememberedListScroll(
-            topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isTagsOnLibraryPath }),
-            isContentReady: self.isLoading == false
-        )
         .accessibilityIdentifier(UITestIdentifier.tagsScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
         #if targetEnvironment(macCatalyst)
@@ -120,13 +125,6 @@ struct TagsScreen: View {
             )
         ))
         #else
-        .searchable(
-            text: self.$searchText,
-            isPresented: self.$isSearchPresented,
-            placement: .automatic,
-            prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags")
-        )
-        .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         .toolbar {
             AICompanionToolbarItem()
         }

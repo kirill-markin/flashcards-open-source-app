@@ -142,9 +142,11 @@ enum AIChatAlert: Identifiable, Equatable {
     }
 }
 
+/// A transcript already in the draft whose composer had the keyboard when dictation began, so the chat on screen
+/// takes it back with the caret after the inserted text.
 struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
     let id: String
-    let transcript: String
+    let selection: AIChatDictationInsertionSelection
 }
 
 /// Raw values are persisted with the composer draft.

@@ -168,12 +168,15 @@ extension AIChatStore {
         let didAccessContextChange = previousActivity.accessContext != activity.accessContext
         let didVisibilityChange = previousActivity.isVisible != activity.isVisible
         let didBecomeVisible = previousActivity.isVisible == false && activity.isVisible
-        let didBecomeHidden = previousActivity.isVisible && activity.isVisible == false
         self.surfaceState.activity = activity
 
-        if didBecomeHidden || aiChatSurfaceShouldCancelDictation(activity: activity) {
-            self.cancelDictation()
+        if previousActivity.isAITabSelected && activity.isAITabSelected == false {
+            // No section shows a chat any more, so none takes the keyboard when one comes back. A window going inactive
+            // leaves every window's keyboard alone.
+            self.focusedComposerHosts.removeAll()
         }
+
+        self.updateDictationSurface(activity: activity)
 
         if didAccessContextChange {
             self.activateAccessContext(
@@ -941,10 +944,6 @@ private func aiChatNewSessionRetryLogMetadata(
         metadata[key] = value
     }
     return metadata
-}
-
-private func aiChatSurfaceShouldCancelDictation(activity: AIChatSurfaceActivity) -> Bool {
-    activity.isSceneActive == false || activity.isAITabSelected == false
 }
 
 private func aiChatSurfaceShouldWarmUp(

@@ -116,6 +116,8 @@ struct FeedbackPresentation: Identifiable, Hashable, Sendable {
     let trigger: FeedbackTrigger
     /// A Settings → Test preview records no showing, keeps no draft and sends nothing.
     let isTestPreview: Bool
+    /// Chosen when it opens: Settings pushes the composer beside the side chat, and every other showing is a sheet.
+    let isPushed: Bool
 }
 
 /// Only an automatic showing starts the automatic prompt's cooldown; submissions do not.
@@ -152,11 +154,16 @@ func makeDefaultFeedbackPromptState() -> PersistedFeedbackPromptState {
     PersistedFeedbackPromptState(lastAutomaticPromptShownAt: nil)
 }
 
-func makeFeedbackPresentation(trigger: FeedbackTrigger, isTestPreview: Bool) -> FeedbackPresentation {
+func makeFeedbackPresentation(
+    trigger: FeedbackTrigger,
+    isTestPreview: Bool,
+    isPushed: Bool
+) -> FeedbackPresentation {
     FeedbackPresentation(
         id: UUID().uuidString.lowercased(),
         trigger: trigger,
-        isTestPreview: isTestPreview
+        isTestPreview: isTestPreview,
+        isPushed: isPushed
     )
 }
 

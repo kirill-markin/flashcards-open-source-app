@@ -10,30 +10,40 @@ struct ReviewCardTextSelection: Identifiable {
 
 struct ReviewCardTextSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sectionChildPresentationStyle) private var presentationStyle: SectionChildPresentationStyle
 
     let selection: ReviewCardTextSelection
 
     var body: some View {
-        NavigationStack {
-            Group {
-                switch self.selection.text {
-                case .success(let text):
-                    ReviewCardSelectableTextView(text: text, accessibilityLabel: self.selection.title)
-                case .failure(let error):
-                    ContentUnavailableView(error.localizedDescription, systemImage: "exclamationmark.triangle")
-                }
-            }
-            .navigationTitle(self.selection.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "Done", table: "ReviewCards")) {
-                        self.dismiss()
+        // Pushed beside the side chat, the text sits in Review's own stack and Back closes it.
+        if self.presentationStyle == .push {
+            self.content
+        } else {
+            NavigationStack {
+                self.content
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(String(localized: "Done", table: "ReviewCards")) {
+                                self.dismiss()
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.reviewTextSelectionDoneButton)
+                        }
                     }
-                    .accessibilityIdentifier(UITestIdentifier.reviewTextSelectionDoneButton)
-                }
             }
         }
+    }
+
+    private var content: some View {
+        Group {
+            switch self.selection.text {
+            case .success(let text):
+                ReviewCardSelectableTextView(text: text, accessibilityLabel: self.selection.title)
+            case .failure(let error):
+                ContentUnavailableView(error.localizedDescription, systemImage: "exclamationmark.triangle")
+            }
+        }
+        .pageNavigationTitle(self.selection.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

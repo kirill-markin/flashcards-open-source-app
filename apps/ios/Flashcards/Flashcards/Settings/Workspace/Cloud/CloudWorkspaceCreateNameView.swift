@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Pushed after an explicit "Create new workspace" tap; automatic workspace creation never asks for a name.
 struct CloudWorkspaceCreateNameView: View {
+    @Environment(\.dismiss) private var dismiss
     let isSubmitting: Bool
     let guidanceMessage: String
     let onCreate: (String) -> Void
@@ -39,7 +40,7 @@ struct CloudWorkspaceCreateNameView: View {
                 }
             }
         }
-        .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.createNew", "Create new workspace"))
+        .pageNavigationTitle(aiSettingsLocalized("settings.currentWorkspace.createNew", "Create new workspace"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(self.isSubmitting)
         .toolbar {
@@ -58,6 +59,12 @@ struct CloudWorkspaceCreateNameView: View {
                 .accessibilityIdentifier(UITestIdentifier.cloudWorkspaceCreateNameConfirmButton)
             }
         }
+        // Pushed beside the side chat, its Back and swipes wait while the workspace is created.
+        .sectionChildBackGuard(
+            isLocked: self.isSubmitting,
+            hasUnsavedChanges: self.trimmedWorkspaceName.isEmpty == false,
+            onDiscard: { self.dismiss() }
+        )
         .task {
             await Task.yield()
             self.isWorkspaceNameFieldFocused = true
