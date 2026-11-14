@@ -260,7 +260,7 @@ struct FlashcardsApp: App {
                 .preferredColorScheme(store.effectiveAccountTheme.colorScheme)
                 .onOpenURL { url in
                     if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
-                        self.pendingWidgetDeepLink = widgetDeepLink
+                        self.receiveWidgetDeepLink(deepLink: widgetDeepLink)
                         return
                     }
                     _ = GIDSignIn.sharedInstance.handle(url)
@@ -271,7 +271,7 @@ struct FlashcardsApp: App {
                         return
                     }
                     self.widgetDeepLinkInbox.deepLink = nil
-                    self.pendingWidgetDeepLink = deepLink
+                    self.receiveWidgetDeepLink(deepLink: deepLink)
                 }
                 .environment(store)
                 .environment(self.appleSubscriptions)
@@ -886,6 +886,16 @@ struct FlashcardsApp: App {
             details: nil
         )
         logAppNotificationTapEvent(action: "notification_tap_consumed", metadata: consumedMetadata)
+    }
+
+    /// A Reveal answer tap holds its card behind the Review loader from the first frame, so a cold start never
+    /// shows its question side while startup runs; consumption then keeps or drops the reveal.
+    @MainActor
+    private func receiveWidgetDeepLink(deepLink: WidgetDeepLink) {
+        self.pendingWidgetDeepLink = deepLink
+        if deepLink.revealAnswer {
+            self.reviewScreen.pendingWidgetRevealCardId = deepLink.cardId
+        }
     }
 
     @MainActor
