@@ -701,6 +701,11 @@ struct RootTabView: View {
             .background(Color(uiColor: .systemBackground))
             .presentationBackground(Color(uiColor: .systemBackground))
             #if targetEnvironment(macCatalyst)
+            .onAppear {
+                if hostTab == .review {
+                    FlashcardsObservability.addBreadcrumb(.macReviewCompanionOpen(.panelAppeared))
+                }
+            }
             .onDisappear {
                 if hostTab == .review && !self.navigation.isAICompanionPresented {
                     FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.panelDisappeared))
