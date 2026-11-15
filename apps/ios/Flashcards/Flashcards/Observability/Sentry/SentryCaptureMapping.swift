@@ -186,6 +186,15 @@ extension SentryObservabilityAdapter {
                 category: "ios.premium_presentation", level: .info,
                 message: observation.phase.rawValue, data: context
             )
+        case .macReviewCompanionOpen(let stage):
+            self.writeLocalRecord(
+                kind: "breadcrumb", feature: .storeReview,
+                action: "mac_review_companion_open", fields: ["stage": stage.rawValue]
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.mac_review_companion_open", level: .info,
+                message: stage.rawValue, data: [:]
+            )
         case .macReviewCompanionClose(let stage):
             self.writeLocalRecord(
                 kind: "breadcrumb", feature: .storeReview,

@@ -299,6 +299,8 @@ final class AppNavigationModel {
         let closesReviewCompanion = self.selectedTab == .review && self.isAICompanionVisible
         if closesReviewCompanion {
             FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.requested))
+        } else if self.selectedTab == .review {
+            FlashcardsObservability.addBreadcrumb(.macReviewCompanionOpen(.requested))
         }
         #endif
         if self.isAICompanionVisible {

@@ -117,6 +117,11 @@ struct AICompanionColumns<Content: View>: View {
             .background(Color(uiColor: .systemBackground))
             .presentationBackground(Color(uiColor: .systemBackground))
             #if targetEnvironment(macCatalyst)
+            .onAppear {
+                if self.hostTab == .review {
+                    FlashcardsObservability.addBreadcrumb(.macReviewCompanionOpen(.panelAppeared))
+                }
+            }
             .onDisappear {
                 if self.hostTab == .review && !self.navigation.isAICompanionPresented {
                     FlashcardsObservability.addBreadcrumb(.macReviewCompanionClose(.panelDisappeared))
