@@ -67,6 +67,7 @@ struct RootTabView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if !targetEnvironment(macCatalyst)
     @State private var isLargeWindow: Bool = false
+    @State private var companionComposerHost = AICompanionComposerHost()
     #endif
     @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -426,6 +427,20 @@ struct RootTabView: View {
     private var tabRoot: some View {
         self.tabRootAlerts
             .environment(self.premiumPresenter)
+            #if !targetEnvironment(macCatalyst)
+            .environment(self.companionComposerHost)
+            .background {
+                AICompanionComposerParking(host: self.companionComposerHost)
+                    .frame(width: 0, height: 0)
+            }
+            .onChange(of: self.navigation.isAIChatVisible) { _, isVisible in
+                if isVisible == false { self.companionComposerHost.releaseKeyboard() }
+            }
+            .onChange(of: self.navigation.selectedTab) { _, tab in
+                // A page pushed over the AI tab's chat leaves no field to take the side chat's keyboard.
+                if tab == .ai && self.navigation.aiPath.isEmpty == false { self.companionComposerHost.releaseKeyboard() }
+            }
+            #endif
     }
 
     private var selectedTabBinding: Binding<AppTab> {

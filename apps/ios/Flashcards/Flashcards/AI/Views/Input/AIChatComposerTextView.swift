@@ -33,22 +33,31 @@ struct AIChatComposerTextView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> AIChatComposerUITextView {
+        self.makeTextView(coordinator: context.coordinator)
+    }
+
+    func makeTextView(coordinator: Coordinator) -> AIChatComposerUITextView {
         // The designated initializer runs this subclass's property initializers, which the TextKit 2 factory
         // initializer skips on iOS 27; it already lays out with TextKit 2.
         let textView = AIChatComposerUITextView(frame: .zero, textContainer: nil)
         textView.configureComposer()
         textView.isComposerDisabled = self.isDisabled
-        textView.delegate = context.coordinator
-        textView.textDropDelegate = context.coordinator
+        self.bindTextView(textView, coordinator: coordinator)
+        return textView
+    }
+
+    func bindTextView(_ textView: AIChatComposerUITextView, coordinator: Coordinator) {
+        textView.delegate = coordinator
+        textView.textDropDelegate = coordinator
         textView.accessibilityIdentifier = UITestIdentifier.aiComposerTextField
-        textView.onDidMoveToWindow = { [weak coordinator = context.coordinator, weak textView] in
+        textView.onDidMoveToWindow = { [weak coordinator, weak textView] in
             guard let coordinator, let textView else { return }
             coordinator.parent.onWindowSceneChange(textView.window?.windowScene)
             coordinator.takeKeyboardOnArrival(textView: textView)
             coordinator.scheduleFocusSync(textView: textView)
         }
         #if !targetEnvironment(macCatalyst)
-        textView.onKeyboardLost = { [weak coordinator = context.coordinator, weak textView] in
+        textView.onKeyboardLost = { [weak coordinator, weak textView] in
             // Reported from inside the other field's take-over, which can run during a SwiftUI update.
             DispatchQueue.main.async {
                 guard let coordinator, let textView, textView.isFirstResponder == false else { return }
@@ -56,11 +65,13 @@ struct AIChatComposerTextView: UIViewRepresentable {
             }
         }
         #endif
-        return textView
     }
 
     func updateUIView(_ textView: AIChatComposerUITextView, context: Context) {
-        let coordinator = context.coordinator
+        self.updateTextView(textView, coordinator: context.coordinator)
+    }
+
+    func updateTextView(_ textView: AIChatComposerUITextView, coordinator: Coordinator) {
         coordinator.parent = self
         coordinator.isUpdatingView = true
         defer { coordinator.isUpdatingView = false }
@@ -253,7 +264,7 @@ struct AIChatComposerTextView: UIViewRepresentable {
             self.parent.isAttachmentDropHovering = isHovering
         }
 
-        fileprivate func setFocusBinding(_ isFocused: Bool) {
+        func setFocusBinding(_ isFocused: Bool) {
             guard self.isUpdatingView else {
                 if self.parent.isFocused != isFocused {
                     self.parent.isFocused = isFocused

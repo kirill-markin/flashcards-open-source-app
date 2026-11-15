@@ -5,6 +5,9 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct AIChatView: View {
+    #if !targetEnvironment(macCatalyst)
+    @Environment(AICompanionComposerHost.self) var companionComposerHost
+    #endif
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
     @Environment(PremiumPresenter.self) var premiumPresenter: PremiumPresenter
     @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
@@ -377,7 +380,11 @@ struct AIChatView: View {
         Binding(
             get: { self.chatStore.composerSelection },
             set: { selection in
+                #if targetEnvironment(macCatalyst)
                 guard self.isPresentationActive else { return }
+                #else
+                guard self.isPresentationActive || (self.isCompanion && self.companionComposerHost.isFocused) else { return }
+                #endif
                 self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
                 self.chatStore.composerSelection = selection
             }

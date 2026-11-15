@@ -380,11 +380,25 @@ extension AIChatView {
 
     /// `topContentInset` applies on iOS only; the Mac composer keeps its outer padding.
     private func composerTextSlot(topContentInset: CGFloat) -> some View {
-        self.composerTextView(topContentInset: topContentInset)
-            .modifier(ComposerKeyboardModifier(
-                isEnabled: self.isPresentationActive,
-                onDismiss: self.dismissComposerFocus
-            ))
+        Group {
+            #if targetEnvironment(macCatalyst)
+            self.composerTextView(topContentInset: topContentInset)
+            #else
+            if self.isCompanion {
+                AIChatCompanionComposerTextView(
+                    input: self.composerTextView(topContentInset: topContentInset),
+                    host: self.companionComposerHost,
+                    isActive: self.isPresentationActive
+                )
+            } else {
+                self.composerTextView(topContentInset: topContentInset)
+            }
+            #endif
+        }
+        .modifier(ComposerKeyboardModifier(
+            isEnabled: self.isPresentationActive,
+            onDismiss: self.dismissComposerFocus
+        ))
     }
 
     /// Behind the text view, so its padding focuses it and taps on the text stay with UIKit selection gestures.
