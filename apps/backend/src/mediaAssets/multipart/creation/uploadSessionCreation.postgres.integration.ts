@@ -513,7 +513,7 @@ test("finalized persistence recovery preserves the retryable aborting response",
   });
 });
 
-test("lost successful create response replays the exact active session without another S3 call", async () => {
+test("lost successful create response replays the active session with timestamp drift and no extra S3 call", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const input = createUploadInput(fixture, randomUUID());
     let s3CreateCalls = 0;
@@ -540,9 +540,12 @@ test("lost successful create response replays the exact active session without a
     assert.equal(first.sessionResult.status, "upload_required");
     if (first.sessionResult.status !== "upload_required") return;
 
+    const retryClientUpdatedAt = new Date(
+      Date.parse(input.clientUpdatedAt) + 1_000,
+    ).toISOString();
     const replay = await createAtBoundary(
       fixture,
-      input,
+      { ...input, clientUpdatedAt: retryClientUpdatedAt },
       randomUUID(),
       randomUUID(),
       60_000,
@@ -553,6 +556,10 @@ test("lost successful create response replays the exact active session without a
     assert.equal(
       replay.sessionResult.uploadSession.sessionId,
       first.sessionResult.uploadSession.sessionId,
+    );
+    assert.equal(
+      replay.sessionResult.uploadSession.clientUpdatedAt,
+      input.clientUpdatedAt,
     );
     assert.equal(replay.multipartUploadCreated, false);
     assert.equal(s3CreateCalls, 1);
