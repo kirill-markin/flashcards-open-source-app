@@ -147,9 +147,9 @@ struct AIChatHistoryView: View {
                 NativeSearchRow(
                     text: self.$model.searchQuery,
                     isFocused: self.$isSearchFocused,
-                    prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats")
+                    prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
+                    isInPlainList: true
                 )
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 #endif
 
                 switch self.model.phase {
@@ -198,6 +198,7 @@ struct AIChatHistoryView: View {
                 }
             }
             .listStyle(.plain)
+            .nativeSearchListMargins()
             .refreshable {
                 await self.model.refresh()
             }

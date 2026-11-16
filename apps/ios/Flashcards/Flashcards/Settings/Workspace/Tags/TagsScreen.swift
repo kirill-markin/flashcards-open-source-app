@@ -26,20 +26,28 @@ struct TagsScreen: View {
         )
     }
 
+    private var descriptionText: Text {
+        Text(
+            aiSettingsLocalized(
+                "settings.workspace.tags.description",
+                "Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags."
+            )
+        )
+    }
+
     var body: some View {
         ScrollViewReader { scrollProxy in
             List {
-                #if !targetEnvironment(macCatalyst)
-                NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags"))
-                #endif
                 Section {
-                    Text(
-                        aiSettingsLocalized(
-                            "settings.workspace.tags.description",
-                            "Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags."
-                        )
-                    )
-                        .foregroundStyle(.secondary)
+                    #if targetEnvironment(macCatalyst)
+                    self.descriptionText.foregroundStyle(.secondary)
+                    #else
+                    NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags"))
+                    #endif
+                } footer: {
+                    #if !targetEnvironment(macCatalyst)
+                    self.descriptionText
+                    #endif
                 }
 
                 Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
@@ -104,6 +112,7 @@ struct TagsScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .nativeSearchListMargins()
             .nativeSearchKeyboardShortcut(isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true }, prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags"), scrollProxy: scrollProxy)
             .rememberedListScroll(
                 topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isTagsOnLibraryPath }),

@@ -30,15 +30,23 @@ struct DecksScreen: View {
         )
     }
 
+    private var descriptionText: Text {
+        Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the tags you choose."))
+    }
+
     var body: some View {
         ScrollViewReader { scrollProxy in
             List {
-                #if !targetEnvironment(macCatalyst)
-                NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks"))
-                #endif
                 Section {
-                    Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the tags you choose."))
-                        .foregroundStyle(.secondary)
+                    #if targetEnvironment(macCatalyst)
+                    self.descriptionText.foregroundStyle(.secondary)
+                    #else
+                    NativeSearchRow(text: self.$searchText, isFocused: self.$isSearchFocused, prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks"))
+                    #endif
+                } footer: {
+                    #if !targetEnvironment(macCatalyst)
+                    self.descriptionText
+                    #endif
                 }
 
                 Section(aiSettingsLocalized("settings.workspace.row.decks", "Decks")) {
@@ -82,6 +90,7 @@ struct DecksScreen: View {
             }
             .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
             .listStyle(.insetGrouped)
+            .nativeSearchListMargins()
             .nativeSearchKeyboardShortcut(
                 isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true },
                 prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks"),
