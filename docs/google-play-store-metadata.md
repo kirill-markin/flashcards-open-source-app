@@ -9,7 +9,7 @@ For locale mapping, assets, repository delivery, and Play publication, use the
 
 ## Which languages live in this file
 
-This file holds authored Play listing copy for 60 locales, including regional listings. Each section owns its app name, short description, and full description. Play locale codes can differ from app locale codes: for example, `es-419` maps to `es-MX`, and `iw-IL` maps to `he`. The `es-US` listing has no matching product locale.
+This file holds authored Play listing copy for 87 locales, including regional listings. Each section owns its app name, short description, and full description. Play locale codes can differ from app locale codes: for example, `es-419` maps to `es-MX`, and `iw-IL` maps to `he`. The `es-US` listing has no matching product locale.
 
 So a section here is not evidence that a shipped build carries that language. Before publishing a listing, check the client locale lists in `apps/web/src/i18n/types.ts`, `apps/android/app/src/main/res/xml/locales_config.xml`, and the iOS `knownRegions` in `apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/project.pbxproj`.
 
@@ -1985,3 +1985,729 @@ Ulang kaji kad imbas di luar talian
 Buka kad yang telah disimpan semasa dalam perjalanan atau apabila tiada internet. Log masuk ke akaun anda untuk menyegerakkan kemajuan antara peranti apabila kembali dalam talian.
 
 Ciri AI memerlukan sambungan internet.
+
+## Afrikaans - af
+
+### App Name
+
+Nibomo: Flitskaarte met KI
+
+### Short Description
+
+Maak flitskaarte uit notas en foto's. Hersien gestoorde kaarte vanlyn.
+
+### Full Description
+
+Verander jou klasnotas, foto's of onderwerpe in flitskaarte met Nibomo. Maak jou eie stelle en hersien dit met gespasieerde herhaling. Sodra jou kaarte gestoor is, kan jy ook sonder internet oefen.
+
+Maak flitskaarte uit jou studiemateriaal
+Plak jou notas, voeg 'n foto van 'n bladsy by of beskryf wat jy wil leer. Vra die KI om vrae en antwoorde oor belangrike feite, definisies of voorbeelde op te stel. Pas dit aan voordat jy begin leer, of skryf elke kaart self.
+
+Hersien met tussenposes
+Lees die vraag en probeer die antwoord onthou voordat jy die kaart omdraai. Dui aan hoe goed jy die antwoord onthou het. Nibomo beplan die volgende hersiening volgens jou beoordeling. Moeilike kaarte kom gouer terug en bekende kaarte ná 'n langer tyd.
+
+Brei jou woordeskat uit
+Maak flitskaarte vir nuwe woorde uit 'n boek, 'n les of 'n gesprek. Skryf jou eie voorbeeldsinne om die woorde in konteks te leer. Jy kan ook met 'n klaargemaakte stel uit die Nibomo-katalogus begin, soos Engelse frasewerkwoorde of Spaanse woordeskat vir beginners.
+
+Hersien jou gestoorde flitskaarte vanlyn. Meld met dieselfde rekening aan en sinkroniseer jou vordering wanneer jy weer aanlyn is. Die KI-funksies het internet nodig.
+
+## Albanian - sq
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+Kartela flash nga shënime e foto. Përsëritni kartelat e ruajtura pa internet.
+
+### Full Description
+
+Krijoni kartela flash me Nibomo nga shënimet e mësimit, një foto ose një temë që doni të studioni. Organizojini në grupe dhe përsëritini në intervale për të mbajtur mend materialin.
+
+Nga shënimet te kartelat
+Kopjoni shënimet dhe ngjitini në aplikacion, shtoni një foto të faqes së fletores ose përshkruani temën. Kërkojini inteligjencës artificiale (IA) të hartojë pyetje e përgjigje për përkufizimet, shembujt ose idetë që doni të mbani mend. Përpunoni kartelat para se të studioni ose shkruajini vetë.
+
+Përsëritje në intervale
+Përpiquni ta kujtoni përgjigjen para se të ktheni kartelën. Pastaj vlerësoni sa mirë e mbajtët mend. Nibomo planifikon përsëritjen e radhës sipas vlerësimit tuaj. Kartelat më të vështira shfaqen më shpejt.
+
+Ushtroni fjalorin
+Krijoni kartela për fjalët që gjeni në libra ose dëgjoni në biseda. Shtoni nga një fjali shembull për të mbajtur mend përdorimin e tyre. Mund të nisni edhe nga një grup kartelash në katalogun e Nibomo.
+
+Përsëritni pa internet
+Hapni kartelat e ruajtura gjatë udhëtimit ose mes orëve të mësimit. Kur të lidheni sërish me internetin, mund ta sinkronizoni përparimin duke përdorur të njëjtën llogari në pajisjet tuaja.
+
+Funksionet me IA kërkojnë lidhje me internetin.
+
+## Amharic - am
+
+### App Name
+
+Nibomo: የማጠናከሪያ ካርዶች
+
+### Short Description
+
+ከማስታወሻና ከፎቶ የጥናት ካርዶች ይሥሩ። ያስቀመጧቸውን ያለ ኢንተርኔት ይከልሱ።
+
+### Full Description
+
+በNibomo የክፍል ማስታወሻዎችን፣ ፎቶዎችን ወይም ሊያጠኑት የሚፈልጉትን ርዕስ ወደ የማጠናከሪያ ካርዶች ይቀይሩ። የራስዎን የካርድ ስብስብ ይፍጠሩ እና በየጊዜው በመከለስ ያጠኑትን ያስታውሱ።
+
+ከጥናት ቁሳቁሶችዎ ካርዶች ይሥሩ
+የክፍል ማስታወሻዎን ይለጥፉ፣ የደብተር ገጽ ፎቶ ያክሉ ወይም ርዕሱን ይግለጹ። ሊያስታውሷቸው ስለሚፈልጉት ትርጓሜዎች፣ ምሳሌዎች ወይም ቁልፍ ነጥቦች ጥያቄና መልስ እንዲያዘጋጅ AIን ይጠይቁ። ጥያቄዎቹንና መልሶቹን ያርትዑ ወይም ካርዶቹን አንድ በአንድ ራስዎ ይጻፉ።
+
+የተማሩትን በተወሰኑ ክፍተቶች ይድገሙ
+ካርዱን ከመገልበጥዎ በፊት መልሱን ለማስታወስ ይሞክሩ። ከዚያ መልሱን ምን ያህል እንዳስታወሱ ይመዝግቡ። Nibomo በዚህ መሠረት የሚቀጥለውን የክለሳ ጊዜ ይወስናል። አስቸጋሪ ካርዶች ቶሎ ይመለሳሉ፣ በደንብ የሚያውቋቸው ካርዶች ደግሞ ቆይተው ይታያሉ።
+
+የእንግሊዝኛ ቃላትን ይለማመዱ
+በክፍል፣ በመጽሐፍ ወይም በውይይት ያገኟቸውን አዲስ ቃላት በካርድ ላይ ይጻፉ። የቃሉን አጠቃቀም ለማስታወስ የምሳሌ ዓረፍተ ነገር ያክሉ። ከNibomo ካታሎግ እንደ የእንግሊዝኛ ሐረግ ግሦች ወይም የጀማሪ የስፓኒሽ ቃላት ያሉ ዝግጁ ስብስቦችን መምረጥ ይችላሉ።
+
+ያስቀመጧቸውን ካርዶች ያለ ኢንተርኔት ይከልሱ
+በመንገድ ላይ ወይም በክፍል ዕረፍት ጊዜ ያስቀመጧቸውን ካርዶች ይክፈቱ። እንደገና ከኢንተርኔት ጋር ሲገናኙ በተመሳሳይ መለያ ገብተው የጥናት ሂደትዎን በመሣሪያዎችዎ መካከል ማመሳሰል ይችላሉ።
+
+የAI ባህሪያት የኢንተርኔት ግንኙነት ይፈልጋሉ።
+
+## Armenian - hy-AM
+
+### App Name
+
+Nibomo: Ֆլեշքարտեր
+
+### Short Description
+
+Ստեղծեք քարտեր գրառումներից ու լուսանկարներից։ Կրկնեք առանց ինտերնետի։
+
+### Full Description
+
+Nibomo-ով ձեր գրառումներից, լուսանկարներից կամ ընտրված թեմայից ստեղծեք ուսումնական քարտեր։ Կազմեք քարտերի ձեր հավաքածուները և կրկնեք սովորածը տարբեր ժամանակային ընդմիջումներով։
+
+Գրառումներից ստեղծեք ֆլեշքարտեր
+Տեղադրեք դասի գրառումները, կցեք տետրի էջի լուսանկարը կամ նկարագրեք թեման։ Խնդրեք արհեստական բանականությանն առաջարկել հարցեր ու պատասխաններ կարևոր հասկացությունների, փաստերի կամ օրինակների մասին։ Խմբագրեք առաջարկները կամ քարտերը գրեք ինքներդ։
+
+Կրկնեք ժամանակային ընդմիջումներով
+Փորձեք հիշել պատասխանը մինչև քարտը շրջելը։ Ապա նշեք, թե որքան լավ հիշեցիք այն։ Nibomo-ն ձեր գնահատականով է որոշում հաջորդ կրկնության ժամանակը։ Դժվար քարտերն ավելի շուտ են նորից հայտնվում։
+
+Սովորեք նոր բառեր
+Ստեղծեք անգլերեն բառերի քարտեր դասի, գրքի կամ զրույցի ընթացքում հանդիպած բառերից։ Ավելացրեք ձեր օրինակները, որպեսզի հիշեք բառերի կիրառությունը։ Կարող եք սկսել նաև Nibomo-ի կատալոգում եղած պատրաստի հավաքածուից։
+
+Կրկնեք առանց ինտերնետի
+Բացեք արդեն պահպանված քարտերը ճանապարհին կամ դասերի միջև։ Երբ նորից ինտերնետ ունենաք, նույն հաշվով մուտք գործեք՝ ձեր առաջընթացը սարքերի միջև համաժամացնելու համար։
+
+Արհեստական բանականության գործառույթների համար անհրաժեշտ է ինտերնետ կապ։
+
+## Azerbaijani - az-AZ
+
+### App Name
+
+Nibomo: Fləşkartlar
+
+### Short Description
+
+Qeydlərdən və şəkillərdən fləşkart yaradın. İnternetsiz də təkrar edin.
+
+### Full Description
+
+Dərs qeydlərinizi, şəkillərinizi və öyrənmək istədiyiniz mövzuları Nibomo ilə fləşkartlara çevirin. Öz öyrənmə kartlarınızı hazırlayın və öyrəndiklərinizi aralıqlı təkrarla yadda saxlayın.
+
+Öz materiallarınızdan kart yaradın
+Dərs qeydlərinizi yapışdırın, dəftər səhifəsinin şəklini əlavə edin və ya mövzunu təsvir edin. Süni intellektdən yadda saxlamaq istədiyiniz anlayışlar, nümunələr və faktlar üzrə suallar və cavablar hazırlamasını istəyin. Təklifləri özünüzə uyğun düzəldin və ya kartları bir-bir özünüz yazın.
+
+Aralıqlı təkrarla öyrəndiklərinizi yadda saxlayın
+Kartı çevirməzdən əvvəl cavabı xatırlamağa çalışın. Sonra cavabı nə dərəcədə yaxşı xatırladığınızı qeyd edin. Nibomo növbəti təkrarı buna əsasən planlaşdırır. Çətin kartlar daha tez, yaxşı bildiyiniz kartlar isə daha gec yenidən göstərilir.
+
+İngilis dilində söz ehtiyatınızı artırın
+Dərsdə, oxuyarkən və ya söhbət zamanı rast gəldiyiniz sözlərdən fləşkartlar yaradın. Sözün necə işlədildiyini yadda saxlamaq üçün nümunə cümlə əlavə edin. Nibomo kataloqundakı hazır dəstlə də başlaya bilərsiniz. Məsələn, ingilis dilində frazal felləri və ya ispan dilində başlanğıc səviyyəli sözləri məşq edin.
+
+Saxladığınız kartları internetsiz təkrar edin
+Yolda və ya dərslər arasında saxlanmış kartları açın. Yenidən internetə qoşulduqda eyni hesabla daxil olaraq irəliləyişinizi cihazlar arasında sinxronlaşdıra bilərsiniz.
+
+Süni intellekt funksiyaları üçün internet bağlantısı lazımdır.
+
+## Basque - eu-ES
+
+### App Name
+
+Nibomo: Oroimen-txartelak
+
+### Short Description
+
+Sortu txartelak apunte eta argazkietatik. Errepasatu konexiorik gabe.
+
+### Full Description
+
+Bihurtu ikasgelako apunteak, argazkiak edo ikasi nahi dituzun gaiak oroimen-txartel (flashcards). Sortu zure txartel-sortak Nibomorekin eta errepasatu ikasitakoa tarteka. Gordetako txartelak konexiorik gabe ere erabil ditzakezu.
+
+Sortu txartelak zure ikasmaterialarekin
+Itsatsi apunteak, erantsi koadernoko orri baten argazkia edo deskribatu ikasi nahi duzun gaia. Eskatu adimen artifizialari (AA) definizio, adibide edo ideia nagusiei buruzko galdera eta erantzunen zirriborroa prestatzeko. Egokitu edukia ikasten hasi aurretik, edo idatzi txartelak eskuz, banan-banan.
+
+Gogoratu ikasitakoa errepikapen banatuarekin
+Irakurri galdera eta saiatu erantzuna gogoratzen txartelari buelta eman aurretik. Adierazi erantzuna gogoratzea zein erraza edo zaila egin zaizun. Nibomok horren arabera antolatzen du hurrengo errepasoa. Txartel zailak lehenago agertuko dira berriz.
+
+Landu hiztegia
+Prestatu txartelak irakurtzean, ikasgelan edo elkarrizketa batean aurkitzen dituzun hitzekin. Gehitu adibideak hitzak testuinguruan gogoratzeko. Nibomoren katalogoko sorta batekin ere has zaitezke, adibidez hasiberrientzako gaztelaniazko hiztegiaren sortarekin.
+
+Errepasatu gordetako txartelak konexiorik gabe. Sarean berriro zaudenean, hasi saioa kontu berarekin gailuen artean aurrerapena sinkronizatzeko. Adimen artifizialeko funtzioek Interneteko konexioa behar dute.
+
+## Belarusian - be
+
+### App Name
+
+Nibomo: Карткі для запамінання
+
+### Short Description
+
+Стварайце карткі з нататак і фота. Паўтарайце матэрыял без інтэрнэту.
+
+### Full Description
+
+Стварайце карткі для запамінання ў Nibomo з нататак, фота або тэмы, якую хочаце вывучыць. Збірайце свае наборы картак і замацоўвайце вывучанае з дапамогай інтэрвальнага паўтарэння.
+
+Карткі з вашых нататак
+Устаўце нататкі, далучыце фота старонкі сшытка або апішыце тэму. Папрасіце штучны інтэлект (ШІ) скласці пытанні і адказы па важных азначэннях, прыкладах або фактах. Вы можаце адрэдагаваць прапанаваныя карткі ці напісаць свае з нуля.
+
+Інтэрвальнае паўтарэнне
+Паспрабуйце ўспомніць адказ, перш чым перавярнуць картку. Потым ацаніце, наколькі добра вы яго ўспомнілі. Nibomo прызначыць наступнае паўтарэнне з улікам вашай ацэнкі. Складаныя карткі з’явяцца раней, а знаёмыя — пазней.
+
+Папаўняйце слоўнікавы запас
+Рабіце слоўнікавыя карткі са словамі, якія сустрэлі ў кнізе, на занятках або ў размове. Дадавайце прыклады сказаў, каб запомніць ужыванне слоў. Можна таксама выбраць гатовы набор з каталога Nibomo.
+
+Паўтарайце без інтэрнэту
+Адкрывайце захаваныя карткі ў дарозе або паміж заняткамі. Калі зноў падключыцеся да інтэрнэту, увайдзіце ў той самы ўліковы запіс, каб сінхранізаваць прагрэс паміж прыладамі.
+
+Для функцый ШІ патрэбна падключэнне да інтэрнэту.
+
+## Burmese - my-MM
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+မှတ်စုနဲ့ ဓာတ်ပုံကနေ ကတ်လုပ်ပါ။ သိမ်းထားတဲ့ကတ်ကို အော့ဖ်လိုင်းလေ့လာပါ။
+
+### Full Description
+
+အတန်းမှတ်စု၊ စာအုပ်စာမျက်နှာဓာတ်ပုံ ဒါမှမဟုတ် သင်လေ့လာနေတဲ့ အကြောင်းအရာကို Nibomo နဲ့ လေ့လာရေးကတ် (flashcards) အဖြစ် ပြောင်းပါ။ ကိုယ်ပိုင်ကတ်တွေ စုထားပြီး အချိန်ခြားကာ ပြန်လေ့လာနိုင်ပါတယ်။
+
+ကိုယ်ပိုင်စာကတ်တွေ ဖန်တီးပါ
+မှတ်စုကို ကူးထည့်ပါ၊ ဓာတ်ပုံတစ်ပုံ ထည့်ပါ၊ ဒါမှမဟုတ် လေ့လာချင်တဲ့ ခေါင်းစဉ်ကို ရေးပါ။ မှတ်မိချင်တဲ့ အဓိပ္ပာယ်၊ ဥပမာနဲ့ အရေးကြီးတဲ့ အချက်တွေကို မေးခွန်းနဲ့ အဖြေပုံစံ ရေးပေးဖို့ AI ကို တောင်းဆိုပါ။ မလေ့လာခင် ပြင်ဆင်နိုင်သလို ကတ်တွေကို ကိုယ်တိုင်လည်း ရေးနိုင်ပါတယ်။
+
+အချိန်ခြားပြီး ပြန်လေ့လာပါ
+မေးခွန်းကို ဖတ်ပြီး အဖြေကို အရင်စဉ်းစားပါ။ ကတ်ကို လှန်ပြီး အဖြေကို ဘယ်လောက်မှတ်မိလဲ အမှတ်ပေးပါ။ မှတ်မိဖို့ခက်တဲ့ ကတ်တွေကို Nibomo က စောစောပြန်ပြပေးပြီး မှတ်မိပြီးသားကတ်တွေကို နောက်မှ ပြန်ပြပေးပါတယ်။
+
+ဝေါဟာရ လေ့ကျင့်ပါ
+စာသင်ခန်း၊ စာအုပ် ဒါမှမဟုတ် စကားပြောရာမှာ တွေ့တဲ့ အင်္ဂလိပ်စကားလုံးတွေနဲ့ ကိုယ်ပိုင်ကတ်တွေ လုပ်ပါ။ စကားလုံးသုံးပုံကို မှတ်မိဖို့ ကိုယ်ပိုင်ဥပမာဝါကျတွေ ထည့်ပါ။
+
+သိမ်းထားတဲ့ ကတ်တွေကို အင်တာနက်မရှိလည်း ပြန်လေ့လာနိုင်ပါတယ်။ AI သုံးဖို့ အင်တာနက်လိုပါတယ်။
+
+## English (India) - en-IN
+
+### App Name
+
+Nibomo: AI Flashcard Maker
+
+### Short Description
+
+Turn notes and photos into flashcards. Revise saved cards offline.
+
+### Full Description
+
+Make flashcards from class notes, photos and topics you want to remember. Use Nibomo’s AI flashcard maker to create your own study sets and revise them with spaced repetition.
+
+Make cards from your study material
+Paste a lecture note, add a photo of a notebook page or describe a topic. Ask AI to draft questions and answers, then edit them to suit what you need to learn. You can also write cards yourself and organise them into decks by subject.
+
+Revise at the right intervals
+Try to answer each question before you turn the card over. Rate how well you remembered it. Nibomo brings difficult cards back sooner and leaves longer gaps for cards you know well. Use your own deck to revise for an exam or keep key concepts fresh after class.
+
+Build your English vocabulary
+Make vocabulary flashcards for words you find in your reading or hear in conversation. Add an example sentence so you remember how to use the word.
+
+Study saved cards offline
+Open your saved cards on the way to class or whenever you have a few minutes. When you’re online, sign in to sync your progress across devices.
+
+AI features need an internet connection.
+
+## English (Singapore) - en-SG
+
+### App Name
+
+Nibomo: AI Flashcard Maker
+
+### Short Description
+
+Make flashcards from notes and photos. Review saved cards offline.
+
+### Full Description
+
+Turn class notes and photos into flashcards with Nibomo. Make your own revision decks, use spaced repetition to review them and study saved cards offline.
+
+Make flashcards for your next revision session
+Paste notes, attach a photo of a page or describe what you want to study. AI can draft questions and answers from that material. Edit the cards to focus on what you need, or create your own one at a time.
+
+Use spaced repetition to remember more
+Read the question and try to recall the answer before flipping the card. Rate how well you remembered it. Nibomo shows difficult cards again sooner and gives familiar cards a longer interval.
+
+Practise English or Chinese vocabulary
+Make a deck from words you encounter in class or while reading. For English, you might pair a word with an example sentence. For Chinese, you can put a character on one side and its meaning on the other.
+
+Review while you’re on the move
+Open your saved cards between lessons or on the train without an internet connection. Sign in when you’re back online to sync review progress across devices.
+
+AI features need an internet connection.
+
+## English (South Africa) - en-ZA
+
+### App Name
+
+Nibomo: AI Flashcard Maker
+
+### Short Description
+
+Make flashcards from notes and photos. Revise saved cards without data.
+
+### Full Description
+
+Turn lesson notes, photos or a topic into flashcards for your next revision session. With Nibomo you can build your own decks and revisit them with spaced repetition.
+
+Make revision cards from your own notes
+Paste your notes or add a photo of a page. Ask AI to turn the material into questions and answers, then edit the cards. You can also write cards yourself. Build a deck for matric revision from your own school notes, or make one for a module you’re taking at university.
+
+Give difficult cards another look sooner
+Try to answer the question before turning the card over. Rate how well you recalled it. Nibomo schedules reviews based on that rating, so familiar cards can wait longer.
+
+Learn new words in context
+Make vocabulary flashcards from the words you meet in class, books or conversation. Write your own example sentences and keep the words together in a deck.
+
+Review saved flashcards offline
+Go through saved cards on the way to class or whenever you’re without mobile data. When you’re online, sign in to sync progress across devices.
+
+AI features need an internet connection.
+
+## Filipino - fil
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+Gumawa ng flashcards mula sa notes at litrato. Mag-review kahit offline.
+
+### Full Description
+
+Gawing flashcards ang notes sa klase, litrato ng notebook, o paksang gusto mong aralin. Sa Nibomo, makakagawa ka ng sarili mong set ng mga card at makakapag-review sa tamang pagitan. Kapag naka-save na ang mga card, magagamit mo ang mga ito kahit walang internet.
+
+Gumawa ng flashcards mula sa sarili mong materyales
+I-paste ang notes, magdagdag ng litrato ng isang pahina, o ilarawan ang paksang gusto mong aralin. Hilingin sa AI na bumuo ng mga tanong at sagot tungkol sa mga depinisyon, halimbawa, o detalyeng gusto mong matandaan. Puwede mong baguhin ang mga ito bago mag-review. Puwede ka ring sumulat ng sarili mong mga card.
+
+Balikan ang inaral gamit ang spaced repetition
+Basahin ang tanong at subukang alalahanin ang sagot bago baliktarin ang card. I-rate kung gaano mo kahusay naalala ang sagot. Batay rito, itatakda ng Nibomo ang susunod na review. Mas maaga mong mababalikan ang mahihirap na card, at mas mahaba ang pagitan para sa mga sagot na alam mo na.
+
+Palawakin ang iyong talasalitaan
+Gumawa ng mga card para sa mga bagong salitang nabasa mo o narinig sa klase o sa usapan. Magdagdag ng sarili mong halimbawang pangungusap para maalala kung paano ginagamit ang bawat salita. Puwede ka ring magsimula sa set na handa nang gamitin mula sa katalogo ng Nibomo, gaya ng pangunahing bokabularyo sa Espanyol.
+
+Mag-review offline gamit ang mga naka-save na card. Kapag may internet ka na ulit, mag-sign in sa parehong account para ma-sync ang iyong progreso sa iba mong device. Kailangan ng internet para gamitin ang AI.
+
+## Galician - gl-ES
+
+### App Name
+
+Nibomo: Tarxetas de estudo
+
+### Short Description
+
+Crea tarxetas con IA a partir de apuntamentos ou fotos. Repasa sen conexión.
+
+### Full Description
+
+Converte apuntamentos, fotos ou temas de estudo en tarxetas de estudo (flashcards) con Nibomo. Crea as túas propias barallas e repasa o que aprendiches con repetición espazada. Unha vez gardadas as tarxetas, podes repasalas sen conexión.
+
+Crea tarxetas cos teus apuntamentos
+Pega os apuntamentos, engade unha foto dunha páxina do caderno ou describe o tema que queres estudar. Pídelle á IA que prepare preguntas e respostas a partir das definicións, dos exemplos ou das ideas que queres lembrar. Revisa o borrador e edítao ao teu gusto. Tamén podes crear as tarxetas á man, unha a unha.
+
+Repasa con repetición espazada
+Le a pregunta e tenta lembrar a resposta antes de darlle a volta á tarxeta. Indica canto che custou lembrala. Nibomo usa a túa valoración para programar o seguinte repaso. As tarxetas máis difíciles volven antes, e as que xa coñeces volven máis tarde.
+
+Practica vocabulario en contexto
+Crea tarxetas coas palabras que atopes nun libro, na clase ou nunha conversa. Engade frases de exemplo para lembrar como se usan. Tamén podes comezar cunha baralla xa preparada do catálogo de Nibomo, como a de vocabulario básico en español.
+
+Abre as tarxetas gardadas para repasar sen conexión. Cando volvas ter Internet, inicia sesión coa mesma conta para sincronizar o teu progreso entre dispositivos. As funcións de IA requiren conexión a Internet.
+
+## Georgian - ka-GE
+
+### App Name
+
+Nibomo: სასწავლო ბარათები
+
+### Short Description
+
+შექმენით ფლეშბარათები ჩანაწერებიდან და ფოტოებიდან. გაიმეორეთ ინტერნეტის გარეშე.
+
+### Full Description
+
+შექმენით ფლეშბარათები ლექციის ჩანაწერებიდან, ფოტოებიდან ან თემიდან, რომლის სწავლაც გსურთ. Nibomo-ში შეგიძლიათ სასწავლო ბარათების დაჯგუფება და მასალის ინტერვალებით გამეორება.
+
+ჩანაწერებიდან სასწავლო ბარათებამდე
+ჩასვით ჩანაწერები, დაურთეთ რვეულის გვერდის ფოტო ან აღწერეთ თემა. სთხოვეთ ხელოვნურ ინტელექტს, მოამზადოს კითხვები და პასუხები მნიშვნელოვან ცნებებზე, ფაქტებსა და მაგალითებზე. შეგიძლიათ შეთავაზებული ტექსტის შესწორება ან ბარათების თავად დაწერა.
+
+გამეორება ინტერვალებით
+სანამ ბარათს გადააბრუნებთ, სცადეთ პასუხის გახსენება. შემდეგ შეაფასეთ, რამდენად კარგად გაიხსენეთ პასუხი. Nibomo თქვენი შეფასებით განსაზღვრავს შემდეგი გამეორების დროს. რთული ბარათები უფრო მალე გამოჩნდება.
+
+ივარჯიშეთ ახალ სიტყვებზე
+შექმენით ბარათები ინგლისური სიტყვებისთვის, რომლებსაც გაკვეთილზე, წიგნში ან საუბარში შეხვდებით. დაამატეთ მაგალითები, რომ დაიმახსოვროთ მათი გამოყენება. შეგიძლიათ Nibomo-ს კატალოგში მზა ნაკრებიც აირჩიოთ.
+
+გაიმეორეთ ინტერნეტის გარეშე
+გახსენით შენახული ბარათები გზაში ან გაკვეთილებს შორის. როდესაც ინტერნეტს ისევ დაუკავშირდებით, შედით იმავე ანგარიშით, რომ თქვენი პროგრესი სხვადასხვა მოწყობილობაზე სინქრონიზდეს.
+
+ხელოვნური ინტელექტის ფუნქციებს ინტერნეტკავშირი სჭირდება.
+
+## Kazakh - kk
+
+### App Name
+
+Nibomo: Флешкарталар
+
+### Short Description
+
+Жазбалар мен фотолардан флешкарта жасаңыз. Интернетсіз де қайталаңыз.
+
+### Full Description
+
+Сабақта жазған жазбаларыңызды, фотоларыңызды және үйренгіңіз келетін тақырыптарды Nibomo арқылы флешкарталарға айналдырыңыз. Өз карточка жинағыңызды жасап, оқығаныңызды аралық қайталау арқылы есте сақтаңыз.
+
+Өз материалыңыздан карточка жасаңыз
+Дәріс жазбаларын көшіріп қойыңыз, дәптер бетінің фотосын тіркеңіз немесе тақырыпты сипаттаңыз. Жасанды интеллектен есте сақтағыңыз келетін анықтамалар, мысалдар мен негізгі деректер бойынша сұрақтар мен жауаптар құрастыруды сұраңыз. Сұрақтар мен жауаптарды түзетіңіз немесе әр карточканы өзіңіз жазыңыз.
+
+Аралық қайталау
+Карточканы аудармай тұрып, жауабын еске түсіріп көріңіз. Содан кейін жауапты қаншалықты жақсы есте сақтағаныңызды белгілеңіз. Nibomo келесі қайталау уақытын соған қарай белгілейді. Қиын карточкалар ертерек, жақсы білетіндеріңіз кейінірек қайта көрсетіледі.
+
+Ағылшын сөздерін жаттаңыз
+Сабақта, кітапта немесе әңгімеде кездескен сөздерден карточка жасаңыз. Сөздің қалай қолданылатынын есте сақтау үшін мысал сөйлем қосыңыз. Nibomo каталогынан ағылшын тіліндегі фразалық етістіктер немесе испан тілін үйренуді енді бастағандарға арналған сөздер жинағын таңдай аласыз.
+
+Сақталған карточкаларды интернетсіз қайталаңыз
+Жолда немесе сабақ арасында сақталған карточкаларды ашыңыз. Интернетке қайта қосылғанда, бір есептік жазбаны пайдаланып, оқу барысын құрылғылар арасында синхрондай аласыз.
+
+Жасанды интеллект функциялары үшін интернет байланысы қажет.
+
+## Khmer - km-KH
+
+### App Name
+
+Nibomo: កាតសិក្សា AI
+
+### Short Description
+
+បង្កើតកាតពីកំណត់ត្រា ឬរូបថត។ រំលឹកមេរៀនដោយមិនចាំបាច់មានអ៊ីនធឺណិត។
+
+### Full Description
+
+បំប្លែងកំណត់ត្រាក្នុងថ្នាក់ រូបថតទំព័រសៀវភៅ ឬប្រធានបទដែលអ្នកកំពុងរៀន ទៅជាកាតសិក្សា (flashcards) ជាមួយ Nibomo។ បង្កើតសំណុំកាតផ្ទាល់ខ្លួន ហើយរំលឹកមេរៀនតាមចន្លោះពេល។
+
+បង្កើតកាតពីឯកសារសិក្សារបស់អ្នក
+បិទភ្ជាប់កំណត់ត្រា ភ្ជាប់រូបថត ឬសរសេរប្រធានបទដែលអ្នកចង់រៀន។ សុំឱ្យ AI រៀបចំសំណួរ និងចម្លើយអំពីនិយមន័យ ឧទាហរណ៍ ឬចំណុចសំខាន់ៗ។ អ្នកអាចកែសម្រួលសំណួរ និងចម្លើយមុនពេលរៀន ឬសរសេរកាតដោយខ្លួនឯង។
+
+រំលឹកតាមចន្លោះពេល
+អានសំណួរ ហើយព្យាយាមនឹកចម្លើយមុនពេលមើលចម្លើយនៅម្ខាងទៀតនៃកាត។ បន្ទាប់មក បញ្ជាក់ថាអ្នកចាំចម្លើយបានល្អកម្រិតណា។ Nibomo នឹងបង្ហាញកាតដែលពិបាកចាំឆាប់ជាងកាតដែលអ្នកចាំបានល្អ។
+
+ហាត់ពាក្យអង់គ្លេស
+បង្កើតកាតពាក្យពីពាក្យអង់គ្លេសដែលអ្នកជួបនៅក្នុងថ្នាក់ ក្នុងសៀវភៅ ឬក្នុងការសន្ទនា។ បន្ថែមប្រយោគជាឧទាហរណ៍ ដើម្បីចងចាំរបៀបប្រើពាក្យនីមួយៗ។
+
+អ្នកអាចរំលឹកមេរៀនជាមួយកាតដែលបានរក្សាទុក ទោះបីគ្មានអ៊ីនធឺណិតក៏ដោយ។ មុខងារ AI ត្រូវការអ៊ីនធឺណិត។
+
+## Kyrgyz - ky-KG
+
+### App Name
+
+Nibomo: Флешкарталар
+
+### Short Description
+
+Конспекттен жана сүрөттөн флешкарта түзүңүз. Интернетсиз да кайталаңыз.
+
+### Full Description
+
+Сабактын конспекттерин, сүрөттөрдү жана үйрөнгүңүз келген темаларды Nibomo менен флешкарталарга айлантыңыз. Өзүңүздүн карта топтомуңузду түзүп, аралык кайталоо менен окуганыңызды эсте сактаңыз.
+
+Өз материалыңыздан карта түзүңүз
+Конспектиңизди чаптаңыз, дептердин бетин сүрөткө тартып тиркеңиз же теманы сүрөттөп бериңиз. Жасалма интеллекттен эсте калтыргыңыз келген аныктамалар, мисалдар же маанилүү маалыматтар боюнча суроо-жооп түзүүнү сураңыз. Суроо-жоопторду өзүңүзгө ылайык оңдоңуз же карталарды бирден өзүңүз жазыңыз.
+
+Аралык кайталоо менен эсте сактаңыз
+Картаны оодарардан мурун жоопту эстеп көрүңүз. Анан жоопту канчалык жакшы эстегениңизди белгилеңиз. Nibomo кийинки кайталоонун убактысын ошого жараша аныктайт. Кыйын карталар эртерээк, жакшы билген карталарыңыз кийинчерээк кайра көрсөтүлөт.
+
+Англисче сөздөрдү жаттаңыз
+Сабакта, китепте же сүйлөшүүдө жолуккан сөздөрдөн флешкарталарды түзүңүз. Сөздүн кандай колдонуларын эстеш үчүн мисал сүйлөм кошуңуз. Nibomo каталогунан англис тилиндеги фразалык этиштер же испан тилин жаңы үйрөнгөндөр үчүн даяр топтом тандасаңыз болот.
+
+Сакталган карталарды интернетсиз кайталаңыз
+Жолдо же сабактардын ортосунда сакталган карталарды ачыңыз. Кайра интернетке туташканда, ошол эле каттоо эсеби менен кирип, жетишкендиктериңизди түзмөктөр арасында шайкештештире аласыз.
+
+Жасалма интеллект функциялары үчүн интернет байланышы керек.
+
+## Lao - lo-LA
+
+### App Name
+
+Nibomo: AI Flashcards
+
+### Short Description
+
+ສ້າງບັດຈາກບັນທຶກແລະຮູບຖ່າຍ. ທົບທວນບັດທີ່ບັນທຶກໄວ້ໄດ້ເຖິງຈະບໍ່ມີອິນເຕີເນັດ.
+
+### Full Description
+
+ໃຊ້ Nibomo ປ່ຽນບັນທຶກຈາກຫ້ອງຮຽນ, ຮູບຖ່າຍໜ້າປຶ້ມ ຫຼື ຫົວຂໍ້ທີ່ກຳລັງຮຽນ ໃຫ້ເປັນບັດສຳລັບທົບທວນ (flashcards). ສ້າງຊຸດບັດຂອງຕົນເອງ ແລະ ທົບທວນແບບເວັ້ນໄລຍະ.
+
+ສ້າງບັດຈາກບັນທຶກ ຫຼື ຮູບຖ່າຍ
+ວາງຂໍ້ຄວາມຈາກບັນທຶກ, ແນບຮູບຖ່າຍ ຫຼື ບອກຫົວຂໍ້ທີ່ຢາກຮຽນ. ໃຫ້ AI ຊ່ວຍຮ່າງຄຳຖາມ ແລະ ຄຳຕອບຈາກຄຳນິຍາມ, ຕົວຢ່າງ ຫຼື ຈຸດສຳຄັນ. ແກ້ໄຂກ່ອນເລີ່ມຮຽນ ຫຼື ຂຽນບັດດ້ວຍຕົນເອງກໍໄດ້.
+
+ທົບທວນແບບເວັ້ນໄລຍະ
+ອ່ານຄຳຖາມ ແລະ ລອງນຶກຄຳຕອບກ່ອນປີ້ນບັດ. ຈາກນັ້ນປະເມີນວ່າຈື່ຄຳຕອບໄດ້ດີປານໃດ. Nibomo ຈັດເວລາທົບທວນຕາມຜົນປະເມີນ. ບັດທີ່ຈື່ຍາກຈະກັບມາໄວກວ່າບັດທີ່ຈື່ໄດ້ດີ.
+
+ຝຶກຄຳສັບອັງກິດ
+ສ້າງບັດຄຳສັບຈາກຄຳທີ່ພົບໃນຫ້ອງຮຽນ, ໃນປຶ້ມ ຫຼື ໃນການສົນທະນາ. ເພີ່ມປະໂຫຍກຕົວຢ່າງເພື່ອຈື່ວິທີໃຊ້ແຕ່ລະຄຳ.
+
+ທົບທວນບັດທີ່ບັນທຶກໄວ້ໄດ້ເຖິງຈະບໍ່ມີອິນເຕີເນັດ. ການໃຊ້ AI ຕ້ອງເຊື່ອມຕໍ່ອິນເຕີເນັດ.
+
+## Macedonian - mk-MK
+
+### App Name
+
+Nibomo: Флеш картички
+
+### Short Description
+
+Направете картички од белешки и фотографии. Повторувајте и офлајн.
+
+### Full Description
+
+Направете флеш картички во Nibomo од белешки, фотографија или тема што сакате да ја проучите. Организирајте ги картичките за учење во свои збирки и повторувајте го материјалот во интервали.
+
+Од белешки до картички
+Вметнете ги белешките, додајте фотографија од страница во тетратка или опишете ја темата. Побарајте од вештачката интелигенција да предложи прашања и одговори за важните поими, факти или примери. Уредете ги пред учење или напишете ги картичките сами.
+
+Интервално повторување
+Обидете се да се сетите на одговорот пред да ја превртите картичката. Потоа оценете колку добро се сетивте. Nibomo го планира следното повторување според вашата оценка. Потешките картички се појавуваат порано, а познатите подоцна.
+
+Вежбајте нови зборови
+Направете картички за англиски зборови што ги среќавате во книги, на час или во разговор. Додајте свои примери за да запомните како се користат. Може да почнете и со готова збирка од каталогот на Nibomo.
+
+Повторувајте офлајн
+Отворете ги зачуваните картички во движење или меѓу часови. Кога повторно ќе се поврзете на интернет, најавете се со истата сметка за да го синхронизирате напредокот меѓу уредите.
+
+За функциите со вештачка интелигенција е потребен интернет.
+
+## Mongolian - mn-MN
+
+### App Name
+
+Nibomo: Флаш карт
+
+### Short Description
+
+Тэмдэглэл, зургаас флаш карт хийгээрэй. Интернэтгүй үед ч давтаарай.
+
+### Full Description
+
+Хичээлийн тэмдэглэл, зураг болон сурахыг хүссэн сэдвээ Nibomo ашиглан флаш карт болгоорой. Өөрийн картын багцыг бүтээж, сурсан зүйлээ зайтай давталтаар тогтоогоорой.
+
+Өөрийн материалаар флаш карт хийх
+Хичээлийн тэмдэглэлээ хуулж оруулах, дэвтрийн хуудасны зураг хавсаргах эсвэл сэдвээ тайлбарлах боломжтой. Тогтоохыг хүссэн тодорхойлолт, жишээ, гол баримтаар асуулт, хариулт гаргахыг хиймэл оюун ухаанаас хүсээрэй. Бэлдсэн асуулт, хариултыг засах эсвэл карт бүрээ өөрөө бичиж болно.
+
+Зайтай давталтаар тогтоох
+Картаа эргүүлэхээсээ өмнө хариултаа санахыг хичээгээрэй. Дараа нь хэр сайн санаснаа тэмдэглээрэй. Nibomo дараагийн давталтын хугацааг үүнд үндэслэн товлоно. Хэцүү картууд эрт, сайн мэддэг картууд арай хожуу дахин гарч ирнэ.
+
+Англи үг цээжлэх
+Хичээл, ном, ярианаас таарсан шинэ үгсээр флаш карт хийгээрэй. Үгийг хэрхэн хэрэглэхийг тогтоохын тулд жишээ өгүүлбэр нэмээрэй. Nibomo-ийн каталогоос англи хэлний хэлц үйл үг эсвэл анхан шатны испани үгийн сангийн бэлэн багцыг сонгож болно.
+
+Хадгалсан картаа интернэтгүй үед ч давтах
+Замд явж байхдаа эсвэл хичээлийн завсарлагаар хадгалсан картаа нээгээрэй. Интернэтэд дахин холбогдоод ижил бүртгэлээр нэвтэрч, суралцсан явцаа төхөөрөмжүүдийнхээ хооронд синк хийж болно.
+
+Хиймэл оюун ухааны боломжуудыг ашиглахад интернэт холболт шаардлагатай.
+
+## Nepali - ne-NP
+
+### App Name
+
+Nibomo: AI फ्ल्यासकार्ड
+
+### Short Description
+
+नोट वा फोटोबाट फ्ल्यासकार्ड बनाउनुहोस्। अफलाइन पनि दोहोर्‍याउनुहोस्।
+
+### Full Description
+
+कक्षाका नोट, कापीको पानाको फोटो वा आफूले पढिरहेको विषयलाई Nibomo मा फ्ल्यासकार्डमा बदल्नुहोस्। आफ्नै कार्डका सेट बनाउनुहोस् र समयको अन्तराल राखेर दोहोर्‍याउनुहोस्।
+
+आफ्नै सामग्रीबाट फ्ल्यासकार्ड बनाउनुहोस्
+नोट टाँस्नुहोस्, फोटो थप्नुहोस् वा आफूले पढ्न चाहेको विषय लेख्नुहोस्। परिभाषा, उदाहरण वा मुख्य बुँदामा आधारित प्रश्न र उत्तरको मस्यौदा बनाउन AI लाई भन्नुहोस्। पढ्नुअघि मस्यौदा सच्याउन सक्नुहुन्छ। कार्ड आफैं लेख्न पनि सक्नुहुन्छ।
+
+अन्तराल राखेर दोहोर्‍याउनुहोस्
+प्रश्न पढ्नुहोस् र कार्ड पल्टाउनुअघि उत्तर सम्झने कोसिस गर्नुहोस्। कार्ड पल्टाएपछि उत्तर कति राम्रोसँग सम्झनुभयो भनेर जनाउनुहोस्। त्यसैअनुसार Nibomo ले कार्ड फेरि देखाउने समय मिलाउँछ। गाह्रो लागेका कार्ड छिट्टै फर्कन्छन्, राम्ररी सम्झिएका कार्ड पछि देखिन्छन्।
+
+अंग्रेजी शब्दावली अभ्यास गर्नुहोस्
+कक्षा, किताब वा कुराकानीमा भेटेका अंग्रेजी शब्दका लागि फ्ल्यासकार्ड बनाउनुहोस्। ती शब्द कसरी प्रयोग हुन्छन् भनेर सम्झन आफ्नै उदाहरण वाक्य थप्नुहोस्।
+
+सेभ गरिएका कार्ड इन्टरनेट नभए पनि दोहोर्‍याउन सक्नुहुन्छ। AI सुविधा प्रयोग गर्न इन्टरनेट चाहिन्छ।
+
+## Persian (Iran) - fa-IR
+
+### App Name
+
+Nibomo: ساخت فلش کارت
+
+### Short Description
+
+از جزوه و عکس با هوش مصنوعی فلش کارت بسازید و کارت‌های ذخیره‌شده را مرور کنید.
+
+### Full Description
+
+با Nibomo از جزوه، عکس یا موضوعی که در حال مطالعهٔ آن هستید فلش کارت بسازید. با تکرار فاصله‌دار مطالب را مرور کنید و کارت‌هایی را که ذخیره کرده‌اید بدون اینترنت هم بخوانید.
+
+ساخت فلش کارت از جزوه و عکس
+متن جزوه را وارد کنید، عکسی از صفحهٔ دفتر بفرستید یا موضوعی بنویسید. از هوش مصنوعی بخواهید برای تعریف‌ها، مثال‌ها و نکته‌های مهم پرسش و پاسخ پیشنهاد کند. قبل از مطالعه کارت‌ها را ویرایش کنید یا خودتان آن‌ها را یکی‌یکی بسازید.
+
+مرور فاصله‌دار
+پرسش را بخوانید و پیش از برگرداندن کارت پاسخ را به یاد بیاورید. سپس مشخص کنید چقدر خوب آن را به یاد داشتید. Nibomo زمان مرور بعدی را بر اساس ارزیابی شما تعیین می‌کند و کارت‌های دشوار را زودتر نشان می‌دهد.
+
+تمرین لغات انگلیسی با فلش کارت
+برای لغت‌هایی که در کلاس، کتاب یا گفت‌وگو می‌بینید کارت بسازید. یک جملهٔ نمونه هم اضافه کنید تا به یاد بیاورید هر واژه در چه موقعیتی به کار می‌رود.
+
+مرور آفلاین
+کارت‌های ذخیره‌شده را در راه یا بین کلاس‌ها مرور کنید. بعد از اتصال دوباره به اینترنت، با همان حساب وارد شوید تا پیشرفتتان بین دستگاه‌ها همگام شود.
+
+امکانات هوش مصنوعی به اتصال اینترنت نیاز دارند.
+
+## Persian (United Arab Emirates) - fa-AE
+
+### App Name
+
+Nibomo: ساخت فلش کارت
+
+### Short Description
+
+از یادداشت و عکس فلش کارت بسازید. کارت‌های ذخیره‌شده را آفلاین مرور کنید.
+
+### Full Description
+
+با Nibomo از یادداشت‌های کلاس، عکس صفحهٔ دفتر یا موضوعی که می‌خواهید یاد بگیرید فلش کارت بسازید. با مرور فاصله‌دار، کارت‌هایی را که بیشتر به تمرین نیاز دارند زودتر دوباره ببینید.
+
+از مطالب خودتان کارت بسازید
+متن یادداشت‌ها را وارد کنید، عکسی اضافه کنید یا موضوعی بنویسید. از هوش مصنوعی بخواهید بر اساس آن پرسش و پاسخ پیشنهاد کند. کارت‌ها را پیش از مطالعه ویرایش کنید یا خودتان آن‌ها را یکی‌یکی بسازید و دسته‌بندی کنید.
+
+در فاصله‌های مناسب مرور کنید
+پرسش را بخوانید و قبل از برگرداندن کارت پاسخ را به یاد بیاورید. بعد مشخص کنید چقدر خوب آن را به یاد داشتید. Nibomo بر اساس ارزیابی شما زمان مرور بعدی را تعیین می‌کند.
+
+لغات انگلیسی را در جمله تمرین کنید
+از واژه‌هایی که در کلاس، محل کار یا گفت‌وگو می‌شنوید فلش کارت بسازید. برای هر واژه یک جملهٔ نمونه بنویسید تا کاربرد آن را هم به یاد بسپارید.
+
+کارت‌های ذخیره‌شده را بدون اینترنت مرور کنید
+در مسیر یا بین کلاس‌ها کارت‌هایتان را آفلاین مرور کنید. وقتی دوباره به اینترنت وصل شدید، با همان حساب وارد شوید تا پیشرفتتان بین دستگاه‌ها همگام شود.
+
+امکانات هوش مصنوعی به اتصال اینترنت نیاز دارند.
+
+## Persian / Dari (Afghanistan) - fa-AF
+
+### App Name
+
+Nibomo: ساخت فلش کارت
+
+### Short Description
+
+از یادداشت و عکس فلش کارت بسازید. کارت‌های ذخیره‌شده را بدون انترنت مرور کنید.
+
+### Full Description
+
+با Nibomo از یادداشت‌های صنف، عکس صفحۀ کتابچه یا موضوعی که می‌خواهید یاد بگیرید فلش کارت بسازید. کارت‌هایتان را در دسته‌ها تنظیم کنید و درس را در فاصله‌های مناسب مرور کنید.
+
+از یادداشت‌هایتان فلش کارت بسازید
+یادداشت را وارد کنید، عکس بگذارید یا موضوع درس را بنویسید. از هوش مصنوعی بخواهید برای نکته‌های مهم سوال و جواب پیشنهاد کند. پیش از مطالعه می‌توانید کارت‌ها را تغییر دهید یا خودتان هر کارت را بنویسید.
+
+درس را در فاصله‌های مناسب مرور کنید
+سوال را بخوانید و پیش از برگرداندن کارت، جواب را به یاد بیاورید. بعد مشخص کنید که جواب چقدر به یادتان مانده بود. Nibomo کارت‌های دشوار را زودتر برای مرور دوباره نشان می‌دهد.
+
+لغات انگلیسی را تمرین کنید
+از لغاتی که در صنف، کتاب یا گفتگو می‌بینید فلش کارت بسازید. برای هر کلمه یک جملهٔ نمونه اضافه کنید تا به یاد داشته باشید در کجا و چگونه به کار می‌رود.
+
+کارت‌های ذخیره‌شده را بدون انترنت مرور کنید
+در راه یا بین درس‌ها، کارت‌های ذخیره‌شده را بدون انترنت باز کنید. وقتی دوباره وصل شدید، با همان حساب وارد شوید تا پیشرفت‌تان در دستگاه‌های دیگر هم به‌روز شود.
+
+امکانات هوش مصنوعی به انترنت نیاز دارند.
+
+## Romansh - rm
+
+### App Name
+
+Nibomo: Cartas d’emprender
+
+### Short Description
+
+Creai cartas cun Vossas notizias e fotos. Repetai senza internet.
+
+### Full Description
+
+Faschai cartas d’emprender (flashcards) cun Vossas notizias da scola, fotografias u temas che Vus vulais emprender. Cun Nibomo pudais Vus crear Voss agens sets da cartas e repeter la materia en intervals.
+
+Creai cartas cun Voss material
+Agiuntai Vossas notizias u ina foto d’ina pagina. Vus pudais era descriver in tema. Dumandai a l’intelligenza artifiziala (IA) da preparar dumondas e respostas davart las noziuns, ils exempels u ils fatgs che Vus vulais tegnair endament. Vus pudais modifitgar il sboz u scriver mintga carta a maun.
+
+Repetai en intervals
+Legiai la dumonda ed empruvai da As regurdar da la resposta avant da volver la carta. Inditgai quant facil ch’igl è stà da tegnair endament la resposta. Nibomo determinescha cura che Vus duais repeter la carta. Las cartas pli difficilas cumparan pli baud.
+
+Exercitai Voss vocabulari
+Creai cartas cun pleds novs da la scola, d’in cudesch u d’ina conversaziun. Agiuntai ina frasa sco exempel per tegnair endament co duvrar il pled.
+
+Vus pudais repeter las cartas arcunadas era senza internet. Cura che Vus essas puspè online, As annunziai cun il medem conto per sincronisar Voss progress tranter differents apparats. Per utilisar las funcziuns da l’IA dovrais Vus ina colliaziun cun l’internet.
+
+## Serbian - sr
+
+### App Name
+
+Nibomo: Флеш картице
+
+### Short Description
+
+Направите флеш картице од бележака и фотографија. Понављајте и офлајн.
+
+### Full Description
+
+Направите флеш картице у апликацији Nibomo од бележака, фотографија или теме коју учите. Организујте картице за учење у своје збирке и обнављајте градиво у размацима.
+
+Од бележака до картица
+Налепите белешке са часа, приложите фотографију странице свеске или опишите тему. Затражите од вештачке интелигенције да предложи питања и одговоре за важне појмове, примере и чињенице. Можете да уредите предлоге или да сами напишете сваку картицу.
+
+Размакнуто понављање
+Покушајте да се сетите одговора пре него што окренете картицу. Затим оцените колико сте га добро запамтили. Nibomo заказује следеће понављање према вашој оцени. Теже картице се враћају раније, а познате касније.
+
+Вежбајте нове речи
+Направите картице за енглеске речи које срећете на часу, у књизи или у разговору. Додајте своје примере реченица да бисте запамтили како се речи користе. Можете да почнете и са готовом збирком из каталога Nibomo.
+
+Понављајте офлајн
+Отворите сачуване картице у превозу или између часова. Када поново имате интернет, пријавите се на исти налог да бисте синхронизовали напредак између уређаја.
+
+За функције вештачке интелигенције потребна је интернет веза.
+
+## Sinhala - si-LK
+
+### App Name
+
+Nibomo: AI ෆ්ලෑෂ් කාඩ්
+
+### Short Description
+
+සටහන් හෝ ඡායාරූපවලින් කාඩ් සාදන්න. සුරැකූ කාඩ් අන්තර්ජාලය නැතිවත් බලන්න.
+
+### Full Description
+
+පන්තියේ සටහන්, පොතක පිටුවක ඡායාරූපයක් හෝ ඔබ ඉගෙන ගන්නා මාතෘකාවක් Nibomo සමඟ ෆ්ලෑෂ් කාඩ්පත් බවට පත් කරන්න. ඔබේම කාඩ් කට්ටල සාදා, සුදුසු කාල පරතරවලදී නැවත පාඩම් කරන්න.
+
+ඔබේ සටහන්වලින් කාඩ්පත් සාදන්න
+සටහන් අලවන්න, ඡායාරූපයක් එක් කරන්න, නැත්නම් ඔබට ඉගෙන ගැනීමට අවශ්‍ය මාතෘකාව ලියන්න. නිර්වචන, උදාහරණ හෝ වැදගත් කරුණු අනුව ප්‍රශ්න සහ පිළිතුරු යෝජනා කරන්නැයි AI වෙතින් ඉල්ලන්න. පාඩම් කිරීමට පෙර ඒවා වෙනස් කරන්න. ඔබටම කාඩ්පත් ලියන්නත් පුළුවන්.
+
+කාල පරතර තබා නැවත පුහුණු වන්න
+ප්‍රශ්නය කියවා කාඩ්පත පෙරළීමට පෙර පිළිතුර මතක් කරගන්න. පිළිතුර දැකීමෙන් පසු එය කොතරම් හොඳින් මතක් වුණාදැයි සටහන් කරන්න. මතක් කරගැනීමට අපහසු කාඩ්පත් Nibomo ඉක්මනින් නැවත පෙන්වයි. හොඳින් මතක ඇති කාඩ්පත් පසුව පෙන්වයි.
+
+ඉංග්‍රීසි වචන පුහුණු වන්න
+පන්තියේදී, පොතකින් හෝ කතාබහකදී හමුවන ඉංග්‍රීසි වචනවලට කාඩ්පත් සාදන්න. වචනය භාවිත කරන ආකාරය මතක තබා ගැනීමට ඔබේම උදාහරණ වාක්‍යයක් එක් කරන්න.
+
+සුරැකූ කාඩ්පත් අන්තර්ජාල සම්බන්ධතාවක් නැති විටත් නැවත බලන්න පුළුවන්. AI පහසුකම් භාවිතයට අන්තර්ජාල සම්බන්ධතාවක් අවශ්‍යයි.

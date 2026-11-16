@@ -219,7 +219,7 @@ extension FlashcardsStore {
      * sync reconciliation would eventually resolve the disagreement by clearing this install's stored
      * cloud credentials. Two things keep that unreachable: this check, which refuses to mint while any
      * cloud identity is present or still loading, and the analytics-only marker, which keeps a minted
-     * credential invisible to `loadUsableCloudGuestSessionForCurrentConfiguration` so it can never be
+     * credential invisible to pre-sync reconciliation so it can never be
      * read as a guest cloud session.
      */
     private func isAnalyticsGuestCredentialMintEligible() throws -> Bool {

@@ -32,6 +32,9 @@ extension FlashcardsStore {
             try self.finishCardMaintenanceRefresh(linkedSession: linkedSession, token: refreshToken)
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
         } catch {
+            if self.isCloudCredentialRecoveryValidation(error) {
+                throw error
+            }
             guard self.cloudRuntime.isCurrentSyncGeneration(syncGeneration) else {
                 throw CancellationError()
             }

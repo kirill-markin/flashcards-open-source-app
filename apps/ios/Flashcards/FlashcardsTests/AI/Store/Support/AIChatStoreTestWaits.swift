@@ -115,7 +115,7 @@ extension AIChatStoreTestSupport {
                 && store.hasPendingStatePersistence() == false
                 && store.chatSessionId == replacementState.chatSessionId
                 && store.pendingToolRunPostSync
-                && originalState.pendingToolRunPostSync == false
+                && originalState.pendingToolRunPostSync
                 && replacementState.pendingToolRunPostSync
 
             if isSettled {

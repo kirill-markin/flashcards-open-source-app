@@ -134,6 +134,9 @@ extension AIChatStore {
                 await self.completeToolRunPostSyncAfterSuccess(origin: origin)
                 self.startApplyingLinkedSyncResult(syncResult: syncResult)
             } catch {
+                if isRequestCancellationError(error: error) {
+                    return
+                }
                 if self.isCurrentToolRunPostSyncOrigin(origin) && self.pendingToolRunPostSync {
                     self.schedulePersistCurrentState()
                     await self.waitForPendingStatePersistence()

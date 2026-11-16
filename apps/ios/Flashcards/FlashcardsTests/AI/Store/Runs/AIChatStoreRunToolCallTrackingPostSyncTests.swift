@@ -737,7 +737,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
         XCTAssertFalse(context.historyStore.loadState().pendingToolRunPostSync)
     }
 
-    func testTerminalPostSyncWorkspaceSwitchDoesNotClearNewWorkspacePendingFlag() async throws {
+    func testTerminalPostSyncWorkspaceSwitchKeepsBothPendingFlags() async throws {
         let context = AIChatStoreTestSupport.Context.make()
         defer {
             context.tearDown()
@@ -802,8 +802,9 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertEqual(store.chatSessionId, "session-2")
         XCTAssertTrue(store.pendingToolRunPostSync)
-        XCTAssertFalse(context.historyStore.loadState(workspaceId: originalWorkspaceId).pendingToolRunPostSync)
+        XCTAssertTrue(context.historyStore.loadState(workspaceId: originalWorkspaceId).pendingToolRunPostSync)
         XCTAssertTrue(context.historyStore.loadState(workspaceId: replacementWorkspaceId).pendingToolRunPostSync)
+        XCTAssertTrue(context.flashcardsStore.globalErrorMessage.isEmpty)
     }
 
     func testTerminalPostSyncLocalSessionResetKeepsNewSessionState() async throws {

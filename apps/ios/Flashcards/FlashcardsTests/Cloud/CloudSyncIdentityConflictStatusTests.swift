@@ -280,7 +280,7 @@ final class CloudSyncIdentityConflictStatusTests: CloudCredentialRecoveryTestCas
             userDefaults: userDefaults,
             encoder: encoder,
             decoder: decoder,
-            database: nil,
+            database: try self.makeDatabase(),
             cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
             credentialStore: credentialStore,

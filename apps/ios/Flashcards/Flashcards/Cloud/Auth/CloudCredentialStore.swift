@@ -18,7 +18,8 @@ enum CloudCredentialStoreError: LocalizedError {
     }
 }
 
-final class CloudCredentialStore {
+final class CloudCredentialStore: Sendable {
+    @MainActor private(set) var revision = UUID()
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let service: String
@@ -81,7 +82,9 @@ final class CloudCredentialStore {
         }
     }
 
+    @MainActor
     func saveCredentials(credentials: StoredCloudCredentials) throws {
+        self.revision = UUID()
         if self.usesTestFileStorage {
             try self.saveCredentialsToTestFile(credentials: credentials)
             return
@@ -118,7 +121,9 @@ final class CloudCredentialStore {
         }
     }
 
+    @MainActor
     func clearCredentials() throws {
+        self.revision = UUID()
         if self.usesTestFileStorage {
             try self.clearCredentialsFromTestFile()
             return
