@@ -154,12 +154,13 @@ extension LiveSmokeTestCase {
                     step: self.currentStepTitle
                 )
             }
-            // Halfway between the top of the AI surface and the composer stays inside the visible transcript,
-            // clear of the header above and the keyboard, chips and suggestions around the composer. The tap is
-            // relative to the transcript because app-relative taps miss on Duo's inner display.
+            // A floating safe-area composer leaves the transcript's reported frame at full window height.
+            // During keyboard relayout XCTest can also report the composer's pre-keyboard frame, so bound the
+            // visible transcript by the keyboard as well. Keep the tap transcript-relative for Duo's inner display.
+            let visibleTranscriptBottom = min(composerFrame.minY, self.app.keyboards.firstMatch.frame.minY)
             transcript.coordinate(withNormalizedOffset: CGVector(
                 dx: (composerFrame.midX - transcriptFrame.minX) / transcriptFrame.width,
-                dy: ((transcriptFrame.minY + composerFrame.minY) / 2 - transcriptFrame.minY) / transcriptFrame.height
+                dy: ((transcriptFrame.minY + visibleTranscriptBottom) / 2 - transcriptFrame.minY) / transcriptFrame.height
             )).tap()
             guard self.app.keyboards.firstMatch.waitForNonExistence(
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
