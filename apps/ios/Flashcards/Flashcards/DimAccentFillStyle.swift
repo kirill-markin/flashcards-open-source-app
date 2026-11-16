@@ -3,9 +3,10 @@ import SwiftUI
 /// The native bordered Review chips' color over systemBackground, kept opaque so cards and materials match it too.
 struct DimAccentFillStyle: ShapeStyle {
     func resolve(in environment: EnvironmentValues) -> Color {
-        // FlashcardsApp sets tint and accentColor together from the user's current displayed accent.
-        let accent = Color.accentColor.resolve(in: environment)
+        // Lists adapt the legacy accent lookup under Increase Contrast; keep the app's displayed tint.
+        let accent = (environment.appAccentColor ?? .accentColor).resolve(in: environment)
         let background = Color(uiColor: .systemBackground).resolve(in: environment)
+        // Native bordered chips keep these fill alphas with Increase Contrast too.
         let alpha: Float = environment.colorScheme == .dark ? 0.25 : 0.18
 
         return Color(
@@ -19,4 +20,16 @@ struct DimAccentFillStyle: ShapeStyle {
 
 extension ShapeStyle where Self == DimAccentFillStyle {
     static var dimAccent: DimAccentFillStyle { DimAccentFillStyle() }
+}
+
+extension EnvironmentValues {
+    @Entry var appAccentColor: Color? = nil
+}
+
+extension View {
+    func appAccent(_ color: Color) -> some View {
+        self.tint(color)
+            .accentColor(color)
+            .environment(\.appAccentColor, color)
+    }
 }
