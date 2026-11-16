@@ -372,13 +372,17 @@ private struct CardTextEditorScreen: View {
             horizontalPadding: 16
         ) {
             VStack(alignment: .leading, spacing: 12) {
-                TextEditor(text: self.diagnosticTextBinding, selection: self.diagnosticSelectionBinding)
-                    .scrollContentBackground(.hidden)
-                    .focused(self.$isTextEditorFocused)
+                NativeMultilineEditor(
+                    text: self.diagnosticTextBinding,
+                    selection: self.diagnosticSelectionBinding,
+                    isFocused: self.$isTextEditorFocused,
+                    hidesScrollBackground: true,
+                    accessibilityLabel: self.field.title,
+                    accessibilityIdentifier: self.field.accessibilityIdentifier
+                )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(12)
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: cardEditorTextAreaCornerRadius, style: .continuous))
-                    .accessibilityIdentifier(self.field.accessibilityIdentifier)
 
                 if self.isImportingImage {
                     CardEditorImageProcessingView()

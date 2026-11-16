@@ -134,13 +134,18 @@ struct WorkspaceAIImportView: View {
     private var pastedTextSection: some View {
         let label = aiSettingsLocalized("settings.workspace.import.aiImport.textLabel", "Exported text")
         return Section {
-            TextEditor(text: self.$pastedText)
+            NativeMultilineEditor(
+                text: self.$pastedText,
+                autocapitalization: .none,
+                accessibilityLabel: label,
+                accessibilityIdentifier: UITestIdentifier.workspaceAIImportTextField
+            )
                 .frame(minHeight: 160)
+                #if targetEnvironment(macCatalyst)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                #endif
                 .disabled(self.isBusy)
-                .accessibilityLabel(label)
-                .accessibilityIdentifier(UITestIdentifier.workspaceAIImportTextField)
                 .onChange(of: self.pastedText) {
                     self.errorMessage = nil
                 }

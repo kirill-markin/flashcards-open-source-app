@@ -9,6 +9,7 @@ struct WorkspacePackageExportSection: View {
     let cleanupExportedFile: @MainActor () -> Bool
     let presentExportedFile: @MainActor (URL) -> Void
 
+    @State private var commentScrollID = UUID()
     @State private var preview: WorkspacePackageExportPreviewResponse?
     @State private var previewWorkspaceId: String = ""
     @State private var metadataDraft: WorkspacePackageExportMetadataDraft = WorkspacePackageExportMetadataDraft(
@@ -192,14 +193,14 @@ struct WorkspacePackageExportSection: View {
             .keyboardType(.URL)
             .accessibilityIdentifier(UITestIdentifier.workspacePackageExportMetadataSourceUrlField)
 
-            TextField(
-                aiSettingsLocalized("settings.workspace.export.package.metadata.comment", "Comment"),
+            NativeMultilineEditor(
                 text: self.$metadataDraft.comment,
-                axis: .vertical
+                lineLimits: 2...4,
+                accessibilityLabel: aiSettingsLocalized("settings.workspace.export.package.metadata.comment", "Comment"),
+                accessibilityIdentifier: UITestIdentifier.workspacePackageExportMetadataCommentField
             )
-            .lineLimit(2...4)
             .disabled(self.isBusy)
-            .accessibilityIdentifier(UITestIdentifier.workspacePackageExportMetadataCommentField)
+            .nativeEditorScrollTarget(self.commentScrollID)
         }
     }
 

@@ -18,6 +18,8 @@ extension View {
 }
 
 #if !targetEnvironment(macCatalyst)
+protocol NativeCompactKeyboardPreparedInput: AnyObject {}
+
 /// SwiftUI inherits its traits from the root; the native composer uses the same policy before focus.
 @MainActor
 enum NativeCompactKeyboard {
@@ -27,7 +29,7 @@ enum NativeCompactKeyboard {
         _ = self.observer
     }
 
-    static func configureComposer(_ textView: UITextView) {
+    static func configureTextView(_ textView: UITextView) {
         textView.autocorrectionType = .no
         textView.spellCheckingType = .no
         textView.inlinePredictionType = .no
@@ -75,11 +77,13 @@ enum NativeCompactKeyboard {
             if let field = responder as? UITextField {
                 field.spellCheckingType = .no
                 field.inlinePredictionType = .no
-            } else if let textView = responder as? UITextView {
+            } else if let textView = responder as? UITextView, (responder is NativeCompactKeyboardPreparedInput) == false {
                 textView.spellCheckingType = .no
                 textView.inlinePredictionType = .no
             }
-            NativeCompactKeyboard.removeShortcuts(from: responder)
+            if (responder is NativeCompactKeyboardPreparedInput) == false {
+                NativeCompactKeyboard.removeShortcuts(from: responder)
+            }
         }
 
         #if DEBUG

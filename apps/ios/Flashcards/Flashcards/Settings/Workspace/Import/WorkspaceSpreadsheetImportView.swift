@@ -91,6 +91,7 @@ struct WorkspaceSpreadsheetImportView: View {
                 }
             }
         }
+        .nativeEditorKeyboardAvoidance()
         .formStyle(.grouped)
         .disabled(self.isImporting)
         .nativeNavigationTitle(WorkspaceImportFormat.spreadsheet.localizedTitle)
@@ -126,12 +127,17 @@ struct WorkspaceSpreadsheetImportView: View {
     private var sourceSection: some View {
         let label = aiSettingsLocalized("settings.workspace.import.spreadsheet.textInputLabel", "Terms and definitions")
         return Section {
-            TextEditor(text: self.$sourceText)
+            NativeMultilineEditor(
+                text: self.$sourceText,
+                autocapitalization: .none,
+                accessibilityLabel: label,
+                accessibilityIdentifier: UITestIdentifier.workspaceSpreadsheetImportSource
+            )
                 .frame(minHeight: 100)
+                #if targetEnvironment(macCatalyst)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .accessibilityLabel(label)
-                .accessibilityIdentifier(UITestIdentifier.workspaceSpreadsheetImportSource)
+                #endif
         } header: {
             Text(label)
         } footer: {
@@ -258,6 +264,7 @@ struct WorkspaceSpreadsheetImportView: View {
             }
             .buttonStyle(.borderless)
         }
+        .nativeEditorScrollTarget(card.id)
     }
 
     private func previewField(title: String, text: Binding<String>) -> some View {
@@ -266,8 +273,7 @@ struct WorkspaceSpreadsheetImportView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            TextField(title, text: text, axis: .vertical)
-                .lineLimit(1...5)
+            NativeMultilineEditor(text: text, lineLimits: 1...5, accessibilityLabel: title)
         }
     }
 

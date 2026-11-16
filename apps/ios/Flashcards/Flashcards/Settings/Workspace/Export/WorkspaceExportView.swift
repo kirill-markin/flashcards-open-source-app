@@ -22,6 +22,7 @@ struct WorkspaceExportView: View {
             )
             .id(self.store.workspace?.workspaceId)
         }
+        .nativeEditorKeyboardAvoidance()
         .onChange(of: self.store.workspace?.workspaceId) { _, _ in
             self.exportTask?.cancel()
             self.cleanupExportedFile()

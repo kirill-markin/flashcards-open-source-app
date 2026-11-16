@@ -93,9 +93,12 @@ struct FeedbackSheet: View {
                     .foregroundStyle(.secondary)
 
                 ZStack(alignment: .topLeading) {
-                    TextEditor(text: self.$message)
+                    NativeMultilineEditor(
+                        text: self.$message,
+                        accessibilityLabel: self.placeholder,
+                        accessibilityIdentifier: UITestIdentifier.feedbackMessageEditor
+                    )
                         .frame(minHeight: 180)
-                        .accessibilityIdentifier(UITestIdentifier.feedbackMessageEditor)
 
                     if self.message.isEmpty {
                         Text(self.placeholder)

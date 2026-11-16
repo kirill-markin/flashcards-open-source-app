@@ -347,7 +347,7 @@ final class AIChatComposerUITextView: UITextView {
         #if targetEnvironment(macCatalyst)
         self.autocorrectionType = .no
         #else
-        NativeCompactKeyboard.configureComposer(self)
+        NativeCompactKeyboard.configureTextView(self)
         #endif
         self.isScrollEnabled = false
         self.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -723,4 +723,8 @@ final class AIChatSectionSwitchTouchTracker: UIGestureRecognizer {
         return false
     }
 }
+#endif
+
+#if !targetEnvironment(macCatalyst)
+extension AIChatComposerUITextView: NativeCompactKeyboardPreparedInput {}
 #endif
