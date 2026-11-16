@@ -2,11 +2,17 @@ import SwiftUI
 import UIKit
 
 struct NativeSearchRow: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     static let scrollID: UUID = UUID()
 
     @Binding var text: String
     @FocusState.Binding var isFocused: Bool
     let prompt: String
+    var isInPlainList: Bool = false
+
+    private var horizontalInset: CGFloat {
+        self.isInPlainList ? (self.horizontalSizeClass == .regular ? 20 : 16) : 0
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -42,7 +48,7 @@ struct NativeSearchRow: View {
         .padding(.vertical, 2)
         .nativeTextInputFocusTarget(isFocused: self.$isFocused)
         .nativeTextInputBackground(cornerRadius: 24)
-        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+        .listRowInsets(EdgeInsets(top: 8, leading: self.horizontalInset, bottom: 8, trailing: self.horizontalInset))
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .id(Self.scrollID)
@@ -50,6 +56,17 @@ struct NativeSearchRow: View {
 }
 
 extension View {
+    /// Keep the first search row at the same offset below each navigation bar.
+    @ViewBuilder
+    func nativeSearchListMargins() -> some View {
+        #if targetEnvironment(macCatalyst)
+        self
+        #else
+        self
+            .contentMargins(.top, 0, for: .scrollContent)
+        #endif
+    }
+
     func nativeSearchKeyboardShortcut(
         isFocused: Bool,
         onFocus: @escaping () -> Void,

@@ -60,6 +60,7 @@ struct CatalogListScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .nativeSearchListMargins()
             .nativeSearchKeyboardShortcut(isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true }, prompt: self.searchPrompt, scrollProxy: scrollProxy)
         }
         .accessibilityIdentifier(UITestIdentifier.catalogListScreen)

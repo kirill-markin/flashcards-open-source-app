@@ -253,22 +253,30 @@ struct CardsScreen: View {
         self.editorPresentation = nil
     }
 
+    private var descriptionText: Text {
+        Text(String(localized: "Cards are the prompts and answers you review to learn and remember.", table: reviewCardsStringsTableName))
+    }
+
     private func bodyContent(scrollProxy: ScrollViewProxy) -> some View {
         @Bindable var cardsModel = self.cardsModel
         return List {
-            #if !targetEnvironment(macCatalyst)
-            NativeSearchRow(text: $cardsModel.searchText, isFocused: self.$isSearchFocused, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName))
-            #endif
+            Section {
+                #if targetEnvironment(macCatalyst)
+                self.descriptionText.foregroundStyle(.secondary)
+                #else
+                NativeSearchRow(text: $cardsModel.searchText, isFocused: self.$isSearchFocused, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName))
+                #endif
+            } footer: {
+                #if !targetEnvironment(macCatalyst)
+                self.descriptionText
+                #endif
+            }
+
             if screenErrorMessage.isEmpty == false {
                 Section {
                     Text(screenErrorMessage)
                         .foregroundStyle(.red)
                 }
-            }
-
-            Section {
-                Text(String(localized: "Cards are the prompts and answers you review to learn and remember.", table: reviewCardsStringsTableName))
-                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -353,6 +361,7 @@ struct CardsScreen: View {
             }
         }
         .listStyle(.insetGrouped)
+        .nativeSearchListMargins()
         .nativeSearchKeyboardShortcut(
             isFocused: self.isSearchFocused, onFocus: { self.isSearchFocused = true },
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName),
