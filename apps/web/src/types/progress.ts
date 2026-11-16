@@ -80,11 +80,24 @@ export type ProgressChartData = Readonly<{
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
 }>;
 
+// Server-only Progress facts (apps/backend/src/progress/reports/contracts.ts). Absent offline, in
+// local fallbacks, and from older servers; every line built from them hides when it is null.
+export type ProgressInsights = Readonly<{
+  totalReviews: number;
+  bestDayBeforeToday: Readonly<{ date: string; reviewCount: number }> | null;
+  bestWeekBeforeToday: Readonly<{ endDate: string; reviewCount: number }> | null;
+  cardsMetLast7Days: number;
+  relearnedLast7Days: number;
+  secondsPerDueCard: number | null;
+  studySecondsByDay: ReadonlyArray<Readonly<{ date: string; seconds: number }>> | null;
+}>;
+
 export type ProgressSummaryPayload = Readonly<{
   timeZone: string;
   generatedAt: string | null;
   reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark>;
   summary: ProgressSummary;
+  insights: ProgressInsights | null;
 }>;
 
 export type ProgressSeries = Readonly<{

@@ -52,8 +52,18 @@ data class ProgressStreakSectionUiState(
     val freezeBankSummary: ProgressFreezeBankUiState?
 )
 
+/** The last 7 days against the usual daily average; [percentChange] and [usualReviewsPerDay] need a baseline. */
+data class ProgressReviewsPaceUiState(
+    val last7DaysAveragePerDay: Double,
+    val percentChange: Int?,
+    val usualReviewsPerDay: Double?,
+    /** Null at 0 minutes and without the server's timing sample. */
+    val last7DaysStudyMinutes: Int?
+)
+
 data class ProgressReviewsSectionUiState(
-    val pages: List<ProgressReviewPageUiState>
+    val pages: List<ProgressReviewPageUiState>,
+    val pace: ProgressReviewsPaceUiState
 )
 
 data class ProgressReviewScheduleBucketUiState(
@@ -65,7 +75,26 @@ data class ProgressReviewScheduleBucketUiState(
 data class ProgressReviewScheduleSectionUiState(
     val totalCards: Int,
     val buckets: List<ProgressReviewScheduleBucketUiState>,
-    val hasCards: Boolean
+    val hasCards: Boolean,
+    val dueTodayCount: Int,
+    /** Null at 0 due and without the server's timing sample. */
+    val dueTodayMinutes: Int?
+)
+
+data class ProgressRecordDayUiState(
+    val date: LocalDate,
+    val reviewCount: Int
+)
+
+/** Counts and bests from the server's insights, with today's local count competing for the bests. */
+data class ProgressRecordsSectionUiState(
+    val bestDay: ProgressRecordDayUiState?,
+    /** [ProgressRecordDayUiState.date] is the last day of the best rolling 7 days. */
+    val bestWeek: ProgressRecordDayUiState?,
+    val longestStreakDays: Int,
+    val totalReviews: Int,
+    val cardsMetLast7Days: Int,
+    val relearnedLast7Days: Int
 )
 
 data class ProgressLeaderboardProfileIdentityUiState(
@@ -243,6 +272,8 @@ sealed interface ProgressUiState {
         val streakSection: ProgressStreakSectionUiState,
         val reviewsSection: ProgressReviewsSectionUiState,
         val reviewScheduleSection: ProgressReviewScheduleSectionUiState?,
+        /** Null until the server's insights have loaded. */
+        val recordsSection: ProgressRecordsSectionUiState?,
         val leaderboardSection: ProgressLeaderboardSectionUiState,
         val streakLeaderboardSection: ProgressStreakLeaderboardSectionUiState,
         val leaderboardProfileSheet: ProgressLeaderboardProfileSheetUiState?

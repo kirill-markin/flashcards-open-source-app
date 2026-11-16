@@ -45,7 +45,8 @@ struct MonthCalendarWidgetView: View {
                                 kind: .monthCalendar,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: nil
+                                cardId: nil,
+                                revealAnswer: false
                             )
                         )
                     )

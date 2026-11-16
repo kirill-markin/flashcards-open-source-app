@@ -323,9 +323,25 @@ const esEsCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Valoraciones de repaso",
     },
+    reviewsPace: {
+      lastSevenDays: "Últimos 7 días · {{count}} al día",
+      studyTime: "Tiempo de estudio · ≈ {{count}} min",
+    },
+    records: {
+      title: "Récords",
+      bestDay: "Mejor día",
+      bestWeek: "Mejor semana",
+      longestStreak: "Racha más larga",
+      totalReviews: "Repasos totales",
+      lastSevenDays: "Últimos 7 días",
+      cardsMet: "Tarjetas nuevas",
+      relearned: "Reaprendidas",
+    },
     reviewSchedule: {
       title: "Calendario de repasos",
       totalCards: "Tarjetas totales: {{count}}",
+      dueToday: "Pendientes hoy {{count}}",
+      dueTodayWithMinutes: "Pendientes hoy {{count}} · ≈ {{minutes}} min",
       legendLabel: "Intervalos del calendario de repasos",
       buckets: {
         new: "Nuevas",

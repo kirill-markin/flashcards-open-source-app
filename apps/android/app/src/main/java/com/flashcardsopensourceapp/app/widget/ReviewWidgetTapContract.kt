@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import com.flashcardsopensourceapp.app.MainHostActivity
 
 enum class ReviewWidgetSize(val rawValue: String) {
@@ -20,7 +21,8 @@ enum class WidgetKind(val rawValue: String) {
     STREAKS(rawValue = "streaks"),
     MONTH_CALENDAR(rawValue = "month_calendar"),
     COMING_UP(rawValue = "coming_up"),
-    DASHBOARD(rawValue = "dashboard")
+    DASHBOARD(rawValue = "dashboard"),
+    QUESTION(rawValue = "question")
 }
 
 /**
@@ -35,26 +37,47 @@ object ReviewWidgetTapContract {
     const val EXTRA_WIDGET_SIZE: String = "com.flashcardsopensourceapp.app.widget.extra.SIZE"
     const val EXTRA_WIDGET_KIND: String = "com.flashcardsopensourceapp.app.widget.extra.KIND"
     const val EXTRA_WIDGET_CARD_ID: String = "com.flashcardsopensourceapp.app.widget.extra.CARD_ID"
+    /** Set only with [EXTRA_WIDGET_CARD_ID], by the Reveal answer button. */
+    const val EXTRA_WIDGET_REVEAL_ANSWER: String = "com.flashcardsopensourceapp.app.widget.extra.REVEAL_ANSWER"
 
     /**
      * [workspaceId] is null when the widget had no data yet; [cardId] is the card the tapped widget
-     * showed, or null when it showed none.
+     * showed, or null when it showed none. [revealAnswer] opens that card answer-side.
      */
     fun makeOpenReviewIntent(
         context: Context,
         workspaceId: String?,
         size: ReviewWidgetSize,
         kind: WidgetKind,
-        cardId: String?
+        cardId: String?,
+        revealAnswer: Boolean
     ): Intent {
+        require(!revealAnswer || cardId != null) {
+            "A Reveal answer tap needs the card it reveals."
+        }
         return makeWidgetTapIntent(context = context, action = ACTION_OPEN_REVIEW, size = size, kind = kind).apply {
             if (workspaceId != null) {
                 putExtra(EXTRA_WIDGET_WORKSPACE_ID, workspaceId)
             }
             if (cardId != null) {
                 putExtra(EXTRA_WIDGET_CARD_ID, cardId)
+                putExtra(EXTRA_WIDGET_REVEAL_ANSWER, revealAnswer)
+                // PendingIntents ignore extras when they compare intents, so the question tap and the
+                // Reveal answer button of one widget would share one otherwise.
+                data = makeWidgetCardTapUri(kind = kind, size = size, cardId = cardId, revealAnswer = revealAnswer)
             }
         }
+    }
+
+    private fun makeWidgetCardTapUri(kind: WidgetKind, size: ReviewWidgetSize, cardId: String, revealAnswer: Boolean): Uri {
+        return Uri.Builder()
+            .scheme("nibomo-widget")
+            .authority("review")
+            .appendPath(kind.rawValue)
+            .appendPath(size.rawValue)
+            .appendPath(cardId)
+            .appendPath(if (revealAnswer) "reveal" else "card")
+            .build()
     }
 
     fun makeOpenProgressIntent(

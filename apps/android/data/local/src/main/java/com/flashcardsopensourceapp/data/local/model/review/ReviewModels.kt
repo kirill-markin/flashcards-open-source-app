@@ -168,13 +168,20 @@ data class WorkspaceReviewDueCount(
     val dueCount: Int
 )
 
-/** Workspace due counts with the first card in the saved Review filter, for Home Screen widgets. */
+/** Workspace due counts with the first cards in the saved Review filter, for Home Screen widgets. */
 data class ReviewQueueHead(
     val workspaceId: String,
+    /** Due and new cards: the count Review shows as cards to review. */
     val dueCount: Int,
+    /** The new cards among [dueCount]. */
+    val newCount: Int,
     val nextDueAtMillis: Long?,
-    val topCard: ReviewQueueHeadCard?
+    val topCard: ReviewQueueHeadCard?,
+    /** The queue order of the saved Review filter, [topCard] first, at most [reviewQueueHeadCardLimit]. */
+    val nextCards: List<ReviewQueueHeadCard>
 )
+
+const val reviewQueueHeadCardLimit: Int = 6
 
 data class ReviewQueueHeadCard(
     val cardId: String,

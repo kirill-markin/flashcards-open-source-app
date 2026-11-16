@@ -24,6 +24,8 @@ data class ProgressSummaryCacheEntity(
     val streakFreezeEarnedUnitsPerStreakDay: Int,
     val streakFreezeNextCreditProgressUnits: Int,
     val streakFreezeNextCreditRequiredUnits: Int,
+    /** The server's insights wire payload; null when the server sent none. */
+    val insightsJson: String?,
     val updatedAtMillis: Long
 )
 

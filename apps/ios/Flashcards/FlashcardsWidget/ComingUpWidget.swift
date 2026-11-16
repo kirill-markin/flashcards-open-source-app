@@ -46,7 +46,8 @@ private struct ComingUpWidgetView: View {
                             kind: .comingUp,
                             workspaceId: self.entry.workspaceId,
                             size: size.deepLinkSize,
-                            cardId: nil
+                            cardId: nil,
+                            revealAnswer: false
                         )
                     )
                 )

@@ -323,9 +323,25 @@ const huCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Ismétlési értékelések",
     },
+    reviewsPace: {
+      lastSevenDays: "Az elmúlt 7 nap · napi {{count}}",
+      studyTime: "Tanulási idő · ≈ {{count}} perc",
+    },
+    records: {
+      title: "Rekordok",
+      bestDay: "Legjobb nap",
+      bestWeek: "Legjobb hét",
+      longestStreak: "Leghosszabb sorozat",
+      totalReviews: "Összes ismétlés",
+      lastSevenDays: "Az elmúlt 7 nap",
+      cardsMet: "Új kártyák",
+      relearned: "Újratanulva",
+    },
     reviewSchedule: {
       title: "Ismétlési ütemterv",
       totalCards: "Összes kártya: {{count}}",
+      dueToday: "Ma esedékes {{count}}",
+      dueTodayWithMinutes: "Ma esedékes {{count}} · ≈ {{minutes}} perc",
       legendLabel: "Az ismétlési ütemterv szakaszai",
       buckets: {
         new: "Új",

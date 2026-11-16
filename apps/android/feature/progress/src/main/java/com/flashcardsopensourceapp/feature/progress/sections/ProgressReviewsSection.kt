@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.progress.ProgressHistoryDayUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressReviewPageUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressReviewsPaceUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressReviewsSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
 import java.text.NumberFormat
@@ -62,6 +64,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.ceil
 
 private const val reviewChartVisibleGridLines: Int = 4
@@ -154,14 +157,27 @@ internal fun ReviewsSectionCard(
             )
         } ?: emptyList()
     }
-    val chartUpperBound = remember(visiblePage, selectedRatingKey) {
+    // The dashed usual-per-day line; hidden without a pace baseline and while one rating is shown.
+    val usualLineValue: Double? = if (selectedRatingKey == null) uiState.pace.usualReviewsPerDay else null
+    val usualLineColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val chartUpperBound = remember(visiblePage, selectedRatingKey, usualLineValue) {
         visiblePage?.let { page ->
             calculateVisibleReviewChartUpperBound(
                 page = page,
-                selectedRatingKey = selectedRatingKey
+                selectedRatingKey = selectedRatingKey,
+                usualLineValue = usualLineValue
             )
         } ?: 1
     }
+    val paceLabel = formatProgressReviewsPaceLabel(
+        pace = uiState.pace,
+        averageLabel = stringResource(
+            id = R.string.progress_reviews_pace_last_7_days,
+            formatProgressReviewsAverage(averagePerDay = uiState.pace.last7DaysAveragePerDay, locale = locale)
+        ),
+        locale = locale
+    )
+    val studyMinutes: Int? = uiState.pace.last7DaysStudyMinutes
     val selectedRatingCount = remember(legendRows, selectedRatingKey) {
         selectedRatingKey?.let { ratingKey ->
             legendRows.firstOrNull { row -> row.key == ratingKey }?.count
@@ -219,6 +235,22 @@ internal fun ReviewsSectionCard(
                         }
                         Text(
                             text = pageRangeLabel,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Text(
+                        text = paceLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (studyMinutes != null) {
+                        Text(
+                            text = pluralStringResource(
+                                id = R.plurals.progress_reviews_study_time,
+                                count = studyMinutes,
+                                studyMinutes
+                            ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -311,6 +343,20 @@ internal fun ReviewsSectionCard(
                                             start = androidx.compose.ui.geometry.Offset(0f, y),
                                             end = androidx.compose.ui.geometry.Offset(size.width, y),
                                             strokeWidth = 1.dp.toPx()
+                                        )
+                                    }
+                                    if (usualLineValue != null && usualLineValue > 0.0) {
+                                        // Bars stand on the bottom padding and scale over the bar area.
+                                        val usualY = size.height - reviewChartVerticalPadding.toPx() -
+                                            reviewChartBarAreaHeight.toPx() * (usualLineValue / chartUpperBound).toFloat()
+                                        drawLine(
+                                            color = usualLineColor,
+                                            start = androidx.compose.ui.geometry.Offset(0f, usualY),
+                                            end = androidx.compose.ui.geometry.Offset(size.width, usualY),
+                                            strokeWidth = 1.dp.toPx(),
+                                            pathEffect = PathEffect.dashPathEffect(
+                                                intervals = floatArrayOf(4.dp.toPx(), 3.dp.toPx())
+                                            )
                                         )
                                     }
                                 }
@@ -735,13 +781,40 @@ private fun formatProgressReviewVisibleDateLabel(
 
 private fun calculateVisibleReviewChartUpperBound(
     page: ProgressReviewPageUiState,
-    selectedRatingKey: ReviewRatingChartKey?
+    selectedRatingKey: ReviewRatingChartKey?,
+    usualLineValue: Double?
 ): Int {
     val maximumReviewCount = page.days.maxOfOrNull { day ->
         selectedRatingKey?.reviewCount(day = day) ?: day.reviewCount
     } ?: 0
 
-    return calculateReviewChartUpperBound(maximumReviewCount = maximumReviewCount)
+    return calculateReviewChartUpperBound(
+        maximumReviewCount = maxOf(maximumReviewCount, ceil(usualLineValue ?: 0.0).toInt())
+    )
+}
+
+private fun formatProgressReviewsAverage(averagePerDay: Double, locale: Locale): String {
+    return NumberFormat.getNumberInstance(locale).apply {
+        maximumFractionDigits = 1
+    }.format(averagePerDay)
+}
+
+/** "Last 7 days · 13.1 a day", then the arrow and percent against the usual when there is a baseline; 0% has no arrow. */
+private fun formatProgressReviewsPaceLabel(
+    pace: ProgressReviewsPaceUiState,
+    averageLabel: String,
+    locale: Locale
+): String {
+    val percentChange: Int = pace.percentChange ?: return averageLabel
+    val percentLabel: String = NumberFormat.getPercentInstance(locale).apply {
+        maximumFractionDigits = 0
+    }.format(abs(percentChange) / 100.0)
+    val arrow: String = when {
+        percentChange > 0 -> "↑ "
+        percentChange < 0 -> "↓ "
+        else -> ""
+    }
+    return "$averageLabel $arrow$percentLabel"
 }
 
 private fun calculateReviewChartUpperBound(

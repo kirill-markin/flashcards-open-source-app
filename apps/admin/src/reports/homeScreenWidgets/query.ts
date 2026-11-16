@@ -45,6 +45,7 @@ export const widgetKinds = [
   "month_calendar",
   "coming_up",
   "dashboard",
+  "question",
 ] as const;
 export type WidgetKind = (typeof widgetKinds)[number];
 

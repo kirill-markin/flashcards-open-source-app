@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressInsights
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
@@ -21,13 +22,20 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.resolveBestLeaderboardPlacement
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
+import com.flashcardsopensourceapp.data.local.repository.progress.ReviewPace
+import com.flashcardsopensourceapp.data.local.repository.progress.ReviewPaceDay
+import com.flashcardsopensourceapp.data.local.repository.progress.calculateLast7DaysStudySeconds
+import com.flashcardsopensourceapp.data.local.repository.progress.calculateReviewPace
+import com.flashcardsopensourceapp.data.local.repository.progress.estimateDueMinutes
 import com.flashcardsopensourceapp.data.local.repository.progress.progressHistoryDayCount
+import com.flashcardsopensourceapp.data.local.repository.progress.roundStudyMinutes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
@@ -274,11 +282,12 @@ private fun createLoadedProgressUiState(
     leaderboardProfileSheet: ProgressLeaderboardProfileSheetUiState?
 ): ProgressUiState {
     val today = LocalDate.parse(seriesSnapshot.renderedSeries.to)
+    val insights: CloudProgressInsights? = summarySnapshot?.renderedSummary?.insights
     return seriesSnapshot.renderedSeries.toUiState(
         locale = Locale.getDefault(),
         today = today,
         summary = summarySnapshot?.toUiState() ?: ProgressSummaryUiState.Loading,
-        reviewSchedule = reviewScheduleSnapshot?.renderedSchedule?.toUiState(),
+        reviewSchedule = reviewScheduleSnapshot?.renderedSchedule?.toUiState(insights = insights),
         leaderboardSection = createProgressLeaderboardSectionUiState(
             snapshot = leaderboardSnapshot,
             selectedWindowKey = selectedLeaderboardWindowKey
@@ -462,11 +471,19 @@ private fun CloudProgressSeries.toUiState(
         parseProgressDate(rawDate = day.date) to day.state
     }
     val weekContext = createProgressWeekContext(locale = locale)
+    val loadedSummary: CloudProgressSummary? = (summary as? ProgressSummaryUiState.Loaded)?.summary
+    val reviewPace: ReviewPace = calculateReviewPace(
+        days = parsedPoints.map { point ->
+            ReviewPaceDay(localDate = point.date, reviewCount = point.reviewCount)
+        },
+        today = today
+    )
     val reviewsSection = ProgressReviewsSectionUiState(
         pages = parsedPoints.toReviewPages(
             today = today,
             weekContext = weekContext
         ),
+        pace = reviewPace.toUiState(insights = loadedSummary?.insights)
     )
     val streakSection = ProgressStreakSectionUiState(
         weekdayLabels = weekContext.createWeekdayLabels(),
@@ -484,6 +501,17 @@ private fun CloudProgressSeries.toUiState(
         streakSection = streakSection,
         reviewsSection = reviewsSection,
         reviewScheduleSection = reviewSchedule,
+        recordsSection = loadedSummary?.let { cloudSummary ->
+            cloudSummary.insights?.let { insights ->
+                createProgressRecordsSectionUiState(
+                    insights = insights,
+                    summary = cloudSummary,
+                    pace = reviewPace,
+                    todayReviewCount = progressPointsByDate[today]?.reviewCount ?: 0,
+                    today = today
+                )
+            }
+        },
         leaderboardSection = leaderboardSection,
         streakLeaderboardSection = streakLeaderboardSection,
         leaderboardProfileSheet = leaderboardProfileSheet
@@ -513,7 +541,55 @@ private fun CloudProgressSummary.toFreezeBankUiState(): ProgressFreezeBankUiStat
     )
 }
 
-private fun CloudProgressReviewSchedule.toUiState(): ProgressReviewScheduleSectionUiState {
+private fun ReviewPace.toUiState(insights: CloudProgressInsights?): ProgressReviewsPaceUiState {
+    return ProgressReviewsPaceUiState(
+        last7DaysAveragePerDay = last7DaysAveragePerDay,
+        percentChange = baseline?.percentChange,
+        usualReviewsPerDay = baseline?.usualReviewsPerDay,
+        last7DaysStudyMinutes = calculateLast7DaysStudySeconds(insights = insights)?.let { seconds ->
+            roundStudyMinutes(seconds = seconds.toDouble())
+        }?.takeIf { minutes -> minutes > 0 }
+    )
+}
+
+/**
+ * The server's bests exclude today, so today's local count and the current 7 days compete here
+ * without counting today twice.
+ */
+private fun createProgressRecordsSectionUiState(
+    insights: CloudProgressInsights,
+    summary: CloudProgressSummary,
+    pace: ReviewPace,
+    todayReviewCount: Int,
+    today: LocalDate
+): ProgressRecordsSectionUiState {
+    val serverBestDay: ProgressRecordDayUiState? = insights.bestDayBeforeToday?.let { bestDay ->
+        ProgressRecordDayUiState(date = parseProgressDate(rawDate = bestDay.date), reviewCount = bestDay.reviewCount)
+    }
+    val serverBestWeek: ProgressRecordDayUiState? = insights.bestWeekBeforeToday?.let { bestWeek ->
+        ProgressRecordDayUiState(date = parseProgressDate(rawDate = bestWeek.endDate), reviewCount = bestWeek.reviewCount)
+    }
+    val currentWeekCount: Int = pace.last7DaysReviewCount
+    return ProgressRecordsSectionUiState(
+        bestDay = if (todayReviewCount > 0 && (serverBestDay == null || todayReviewCount > serverBestDay.reviewCount)) {
+            ProgressRecordDayUiState(date = today, reviewCount = todayReviewCount)
+        } else {
+            serverBestDay
+        },
+        bestWeek = if (currentWeekCount > 0 && (serverBestWeek == null || currentWeekCount > serverBestWeek.reviewCount)) {
+            ProgressRecordDayUiState(date = today, reviewCount = currentWeekCount)
+        } else {
+            serverBestWeek
+        },
+        longestStreakDays = summary.longestStreakDays,
+        totalReviews = insights.totalReviews,
+        cardsMetLast7Days = insights.cardsMetLast7Days,
+        relearnedLast7Days = insights.relearnedLast7Days
+    )
+}
+
+private fun CloudProgressReviewSchedule.toUiState(insights: CloudProgressInsights?): ProgressReviewScheduleSectionUiState {
+    val dueTodayCount: Int = buckets.firstOrNull { bucket -> bucket.key == ProgressReviewScheduleBucketKey.TODAY }?.count ?: 0
     return ProgressReviewScheduleSectionUiState(
         totalCards = totalCards,
         buckets = buckets.map { bucket ->
@@ -527,7 +603,9 @@ private fun CloudProgressReviewSchedule.toUiState(): ProgressReviewScheduleSecti
                 }
             )
         },
-        hasCards = totalCards > 0
+        hasCards = totalCards > 0,
+        dueTodayCount = dueTodayCount,
+        dueTodayMinutes = estimateDueMinutes(dueCount = dueTodayCount, insights = insights)
     )
 }
 

@@ -323,9 +323,25 @@ const isCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Einkunnir upprifjana",
     },
+    reviewsPace: {
+      lastSevenDays: "Síðustu 7 dagar · {{count}} á dag",
+      studyTime: "Námstími · ≈ {{count}} mín.",
+    },
+    records: {
+      title: "Met",
+      bestDay: "Besti dagur",
+      bestWeek: "Besta vika",
+      longestStreak: "Lengsta lota",
+      totalReviews: "Upprifjanir alls",
+      lastSevenDays: "Síðustu 7 dagar",
+      cardsMet: "Ný spjöld",
+      relearned: "Endurlært",
+    },
     reviewSchedule: {
       title: "Upprifjunaráætlun",
       totalCards: "Spjöld alls: {{count}}",
+      dueToday: "Á gjalddaga í dag {{count}}",
+      dueTodayWithMinutes: "Á gjalddaga í dag {{count}} · ≈ {{minutes}} mín.",
       legendLabel: "Flokkar upprifjunaráætlunar",
       buckets: {
         new: "Nýtt",

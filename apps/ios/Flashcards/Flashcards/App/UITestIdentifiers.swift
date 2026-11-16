@@ -43,6 +43,7 @@ enum UITestIdentifier {
     static let progressStreakSection: String = "progress.streakSection"
     static let progressReviewsSection: String = "progress.reviewsSection"
     static let progressReviewScheduleSection: String = "progress.reviewScheduleSection"
+    static let progressRecordsSection: String = "progress.recordsSection"
     static let progressLeaderboardSection: String = "progress.leaderboardSection"
     static let progressLeaderboardInfoButton: String = "progress.leaderboard.infoButton"
     static let progressStreakLeaderboardInfoButton: String = "progress.streakLeaderboard.infoButton"

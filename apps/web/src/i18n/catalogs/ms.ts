@@ -331,9 +331,25 @@ const msCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Penilaian ulang kaji",
     },
+    reviewsPace: {
+      lastSevenDays: "7 hari lepas · {{count}} sehari",
+      studyTime: "Masa belajar · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekod",
+      bestDay: "Hari terbaik",
+      bestWeek: "Minggu terbaik",
+      longestStreak: "Rentetan terpanjang",
+      totalReviews: "Jumlah ulang kaji",
+      lastSevenDays: "7 hari lepas",
+      cardsMet: "Kad baharu",
+      relearned: "Dipelajari semula",
+    },
     reviewSchedule: {
       title: "Jadual ulang kaji",
       totalCards: "Jumlah kad: {{count}}",
+      dueToday: "Perlu diulang kaji hari ini {{count}}",
+      dueTodayWithMinutes: "Perlu diulang kaji hari ini {{count}} · ≈ {{minutes}} min",
       legendLabel: "Julat masa jadual ulang kaji",
       buckets: {
         new: "Baharu",

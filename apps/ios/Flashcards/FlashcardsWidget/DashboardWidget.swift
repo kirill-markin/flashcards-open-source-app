@@ -5,7 +5,7 @@ let dashboardWidgetKind: String = "DashboardWidget"
 
 private let dashboardWidgetWeekCount: Int = 5
 private let dashboardWidgetCellSpacing: CGFloat = 2
-private let dashboardWidgetRingSide: CGFloat = 56
+private let dashboardWidgetRingSide: CGFloat = 64
 private let dashboardWidgetRingLineWidth: CGFloat = 6
 private let dashboardWidgetHeatmapHeight: CGFloat = 104
 
@@ -53,7 +53,7 @@ struct DashboardWidgetView: View {
         let progress = makeDashboardWidgetProgress(entry: self.entry)
         Group {
             if let progress {
-                DashboardWidgetContentView(entryDate: self.entry.date, content: self.entry.content, progress: progress)
+                DashboardWidgetContentView(entry: self.entry, progress: progress)
             } else {
                 WidgetNoSnapshotView()
             }
@@ -66,7 +66,8 @@ struct DashboardWidgetView: View {
                     kind: .dashboard,
                     workspaceId: self.entry.workspaceId,
                     size: .large,
-                    cardId: dashboardWidgetShownCardId(progress: progress, content: self.entry.content)
+                    cardId: dashboardWidgetShownCardId(progress: progress, content: self.entry.content),
+                    revealAnswer: false
                 )
             )
         )
@@ -75,25 +76,48 @@ struct DashboardWidgetView: View {
 }
 
 private struct DashboardWidgetContentView: View {
-    let entryDate: Date
-    let content: ReviewWidgetContent
+    let entry: ReviewWidgetEntry
     let progress: DashboardWidgetProgress
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-                DashboardWidgetRingView(today: self.progress.today)
-                ReviewWidgetDueCountView(count: self.progress.today.leftCount)
+                WidgetPaceRingView(pace: self.progress.today.pace, lineWidth: dashboardWidgetRingLineWidth, numberFont: .subheadline)
+                    .frame(width: dashboardWidgetRingSide, height: dashboardWidgetRingSide)
+                VStack(alignment: .leading, spacing: 2) {
+                    ReviewWidgetDueCountView(count: widgetDueCount(content: self.entry.content) ?? 0)
+                    if let scheduledDueCount = self.entry.scheduledDueCount {
+                        ReviewWidgetScheduledDueView(scheduledDueCount: scheduledDueCount, minutes: nil)
+                    }
+                }
                 Spacer(minLength: 8)
                 DashboardWidgetStreakView(today: self.progress.today)
             }
             Group {
-                switch self.content {
+                switch self.entry.content {
                 case .due(_, let nextCard, _):
-                    ReviewWidgetNextCardView(nextCard: nextCard, font: .title3.weight(.semibold), lineLimit: 3)
+                    // The question always owns three lines, so the button and the heatmap never move with it.
+                    VStack(alignment: .leading, spacing: 8) {
+                        ReviewWidgetNextCardView(
+                            nextCard: nextCard,
+                            font: .title3.weight(.semibold),
+                            lineLimit: 3,
+                            reservesLines: true
+                        )
+                        if let nextCard {
+                            WidgetRevealAnswerButton(
+                                deepLink: makeWidgetRevealAnswerDeepLink(
+                                    kind: .dashboard,
+                                    workspaceId: self.entry.workspaceId,
+                                    size: .large,
+                                    cardId: nextCard.cardId
+                                )
+                            )
+                        }
+                    }
                 case .allDone(let nextDueAt, _):
                     // The top row already shows the streak.
-                    ReviewWidgetAllDoneView(entryDate: self.entryDate, nextDueAt: nextDueAt, streakDays: nil)
+                    ReviewWidgetAllDoneView(entryDate: self.entry.date, nextDueAt: nextDueAt, streakDays: nil)
                 case .noSnapshot:
                     EmptyView()
                 }
@@ -101,25 +125,6 @@ private struct DashboardWidgetContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             DashboardWidgetHeatmapView(weeks: self.progress.weeks)
         }
-    }
-}
-
-private struct DashboardWidgetRingView: View {
-    let today: WidgetTodayProgress
-
-    var body: some View {
-        ZStack {
-            WidgetProgressRing(fraction: self.today.fraction, lineWidth: dashboardWidgetRingLineWidth)
-            // Only today's reviews fit inside the ring; the due count can run into the thousands.
-            if self.today.totalCount > 0 {
-                Text(self.today.reviewedCount, format: .number.notation(.compactName))
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .padding(.horizontal, 10)
-            }
-        }
-        .frame(width: dashboardWidgetRingSide, height: dashboardWidgetRingSide)
     }
 }
 
@@ -131,8 +136,8 @@ private struct DashboardWidgetStreakView: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(self.today.reviewedCount > 0 ? self.accent.color : Color.secondary)
-                .widgetAccentable(self.today.reviewedCount > 0)
+                .foregroundStyle(self.today.reviewedTodayCount > 0 ? self.accent.color : Color.secondary)
+                .widgetAccentable(self.today.reviewedTodayCount > 0)
             Text("widget.streak_days \(self.today.streakDays)", tableName: widgetStringsTableName)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

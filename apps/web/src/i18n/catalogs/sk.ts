@@ -330,9 +330,25 @@ const skCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Hodnotenia opakovaní",
     },
+    reviewsPace: {
+      lastSevenDays: "Posledných 7 dní · {{count}} denne",
+      studyTime: "Čas učenia · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordy",
+      bestDay: "Najlepší deň",
+      bestWeek: "Najlepší týždeň",
+      longestStreak: "Najdlhšia séria",
+      totalReviews: "Opakovaní spolu",
+      lastSevenDays: "Posledných 7 dní",
+      cardsMet: "Nové karty",
+      relearned: "Znovu naučené",
+    },
     reviewSchedule: {
       title: "Plán opakovania",
       totalCards: "Celkový počet kariet: {{count}}",
+      dueToday: "Na dnes {{count}}",
+      dueTodayWithMinutes: "Na dnes {{count}} · ≈ {{minutes}} min",
       legendLabel: "Skupiny plánu opakovania",
       buckets: {
         new: "Nové",

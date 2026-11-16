@@ -331,9 +331,25 @@ const orCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "ପୁନରାବୃତ୍ତି ମୂଲ୍ୟାୟନ",
     },
+    reviewsPace: {
+      lastSevenDays: "ଗତ 7 ଦିନ · ଦିନକୁ {{count}}",
+      studyTime: "ପଢ଼ା ସମୟ · ≈ {{count}} ମିନିଟ୍",
+    },
+    records: {
+      title: "ରେକର୍ଡ",
+      bestDay: "ସର୍ବୋତ୍ତମ ଦିନ",
+      bestWeek: "ସର୍ବୋତ୍ତମ ସପ୍ତାହ",
+      longestStreak: "ସବୁଠୁ ଲମ୍ବା ଧାରା",
+      totalReviews: "ମୋଟ ସମୀକ୍ଷା",
+      lastSevenDays: "ଗତ 7 ଦିନ",
+      cardsMet: "ନୂଆ କାର୍ଡ",
+      relearned: "ପୁଣି ଶିଖିଲେ",
+    },
     reviewSchedule: {
       title: "ପୁନରାବୃତ୍ତି ସମୟସୂଚୀ",
       totalCards: "ମୋଟ କାର୍ଡ: {{count}}",
+      dueToday: "ଆଜି ବାକି {{count}}",
+      dueTodayWithMinutes: "ଆଜି ବାକି {{count}} · ≈ {{minutes}} ମିନିଟ୍",
       legendLabel: "ସମୟ ଅନୁସାରେ ପୁନରାବୃତ୍ତି ଗୋଷ୍ଠୀ",
       buckets: {
         new: "ନୂଆ",

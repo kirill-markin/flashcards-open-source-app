@@ -3,180 +3,134 @@ package com.flashcardsopensourceapp.app.widget
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Paint
-import android.graphics.Typeface
-import android.text.format.DateFormat
+import android.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.math.max
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 
-/** The dates and day counts at most; it follows the font scale while the rows have room. */
-private val streakBarTextSize: TextUnit = 11.sp
-/** A row's height when there is room: a bar that holds the count, and the gap to the next bar. */
-private const val streakBarRowHeightPerTextSize: Float = 1.8f
-private const val streakBarHeightPerRowHeight: Float = 0.82f
-private const val streakBarMaxDateHeightPerRowHeight: Float = 0.8f
-private const val streakBarMaxCountHeightPerBarHeight: Float = 0.78f
-/** The dates beside each end never take more than this share of the width, so the bars keep the rest. */
-private const val streakBarMaxDateWidthFraction: Float = 0.25f
-private const val streakBarDateGapDp: Float = 4f
+internal const val streakDotsDayCount: Int = 7
+/** The Progress screen's frozen streak day color. */
+private val streakDotsFrozenColor = Color(0xFF90CAF9)
+/** The weekday letters at most; they shrink with a narrow widget. */
+private val streakDotsLabelTextSize: TextUnit = 10.sp
+private const val streakDotsOpenStrokeDp: Float = 1.5f
+private const val streakDotsMarkStrokeFraction: Float = 0.16f
 
-/** A run of consecutive reviewed or frozen days. */
-internal data class WidgetStreakRun(
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val dayCount: Int,
-    val isCurrent: Boolean
+/** [state] is null for a day the history does not cover. */
+internal data class StreakDot(
+    val date: LocalDate,
+    val state: CloudProgressStreakDayState?
 )
 
-/**
- * The current streak first, when there is one, then up to [pastRunLimit] earlier streaks found in
- * the history, newest first. The current streak's length is the Progress summary's, because it may
- * be longer than the history; an earlier streak that reaches the first history day may have started
- * before it.
- */
-internal fun makeWidgetStreakRuns(content: WidgetProgressContent, pastRunLimit: Int): List<WidgetStreakRun> {
-    val historyRuns: List<WidgetStreakRun> = makeHistoryStreakRuns(days = content.days)
-    if (content.currentStreakDays == 0) {
-        return historyRuns.takeLast(n = pastRunLimit).reversed()
+/** The last 7 local days, today last, as the streak saw them. */
+internal fun makeStreakDots(content: WidgetProgressContent): List<StreakDot> {
+    val statesByDate: Map<LocalDate, CloudProgressStreakDayState> = content.days.associate { day ->
+        day.localDate to day.streakState
     }
-    // A pending today does not break the current streak, which then ends yesterday.
-    val todayKeepsStreak: Boolean = content.days.any { day ->
-        day.localDate == content.todayLocalDate && isStreakDayState(state = day.streakState)
+    return (streakDotsDayCount - 1 downTo 0).map { daysAgo ->
+        val date: LocalDate = content.todayLocalDate.minusDays(daysAgo.toLong())
+        StreakDot(date = date, state = statesByDate[date])
     }
-    val currentEndDate: LocalDate = if (todayKeepsStreak) content.todayLocalDate else content.todayLocalDate.minusDays(1)
-    val currentRun = WidgetStreakRun(
-        startDate = currentEndDate.minusDays(content.currentStreakDays.toLong() - 1),
-        endDate = currentEndDate,
-        dayCount = content.currentStreakDays,
-        isCurrent = true
-    )
-    val pastRuns: List<WidgetStreakRun> = historyRuns
-        .filter { run -> run.endDate < currentRun.startDate }
-        .takeLast(n = pastRunLimit)
-        .reversed()
-    return listOf(currentRun) + pastRuns
-}
-
-/** Oldest first; a missed day or a gap in the dates ends a run, a pending day does not. */
-private fun makeHistoryStreakRuns(days: List<WidgetProgressDay>): List<WidgetStreakRun> {
-    val runs: MutableList<WidgetStreakRun> = mutableListOf()
-    var openRun: WidgetStreakRun? = null
-    days.forEach { day ->
-        val run: WidgetStreakRun? = openRun
-        when (day.streakState) {
-            CloudProgressStreakDayState.REVIEWED, CloudProgressStreakDayState.FROZEN -> {
-                openRun = if (run != null && run.endDate.plusDays(1) == day.localDate) {
-                    run.copy(endDate = day.localDate, dayCount = run.dayCount + 1)
-                } else {
-                    run?.let(runs::add)
-                    WidgetStreakRun(startDate = day.localDate, endDate = day.localDate, dayCount = 1, isCurrent = false)
-                }
-            }
-            CloudProgressStreakDayState.MISSED -> {
-                run?.let(runs::add)
-                openRun = null
-            }
-            CloudProgressStreakDayState.PENDING -> Unit
-        }
-    }
-    openRun?.let(runs::add)
-    return runs
 }
 
 /**
- * One centered bar per run, top to bottom, each as long as its days relative to the longest shown,
- * with the day count inside and the start and end dates beside its ends. The rows fit [size], with text
- * shrunk below [streakBarTextSize] only when they would not; rows center vertically when [size] is taller.
+ * One dot per day over its weekday letter: reviewed in the accent with a check, frozen in ice blue
+ * with a snowflake, missed faint, and a day still open as an empty ring.
  */
-internal fun drawStreakBarsBitmap(
+internal fun drawStreakDotsBitmap(
     context: Context,
-    runs: List<WidgetStreakRun>,
-    accentColor: Color,
+    dots: List<StreakDot>,
+    accentArgb: Int,
     size: DpSize
 ): Bitmap {
     val displayMetrics = context.resources.displayMetrics
     val density: Float = displayMetrics.density
     val locale: Locale = context.resources.configuration.locales[0]
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
-        DateFormat.getBestDateTimePattern(locale, "MMMd"),
-        locale
-    )
-    val longestDayCount: Int = runs.maxOf { run -> run.dayCount }
-    val currentBarArgb: Int = accentColor.toArgb()
-    val pastBarArgb: Int = accentColor.copy(alpha = 0.35f).toArgb()
-    val currentLabelArgb: Int = widgetFillLabelArgb(fillArgb = currentBarArgb)
-    val pastLabelArgb: Int = widgetFillLabelArgb(fillArgb = pastBarArgb)
+    val frozenArgb: Int = streakDotsFrozenColor.toArgb()
+    val faintArgb: Int = FlashcardsDarkColorScheme.onSurface.copy(alpha = 0.18f).toArgb()
     return drawWidgetBitmap(size = size, density = density) { canvas ->
-        val textSize: Float = widgetTextSizePx(fontSize = streakBarTextSize, displayMetrics = displayMetrics)
-        val rowHeight: Float = min(canvas.height.toFloat() / runs.size, textSize * streakBarRowHeightPerTextSize)
-        val barHeight: Float = rowHeight * streakBarHeightPerRowHeight
-        val rowsTop: Float = (canvas.height - rowHeight * runs.size) / 2
-        val dateGap: Float = streakBarDateGapDp * density
-        val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.textSize = min(textSize, rowHeight * streakBarMaxDateHeightPerRowHeight)
-            color = FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
-        }
-        val widestDateWidth: Float = runs.maxOf { run ->
-            max(
-                datePaint.measureText(dateFormatter.format(run.startDate)),
-                datePaint.measureText(dateFormatter.format(run.endDate))
-            )
-        }
-        val maxDateWidth: Float = canvas.width * streakBarMaxDateWidthFraction
-        if (widestDateWidth > maxDateWidth) {
-            datePaint.textSize = datePaint.textSize * maxDateWidth / widestDateWidth
-        }
-        // The widest bar spans the bar area, so each side keeps room for the widest date shown.
-        val dateColumnWidth: Float = min(widestDateWidth, maxDateWidth)
-        val barAreaLeft: Float = dateColumnWidth + dateGap
-        val barAreaWidth: Float = canvas.width - 2 * barAreaLeft
-        val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val countPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val cellWidth: Float = canvas.width.toFloat() / dots.size
+        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textAlign = Paint.Align.CENTER
-            this.textSize = min(textSize, barHeight * streakBarMaxCountHeightPerBarHeight)
-            typeface = Typeface.DEFAULT_BOLD
+            color = FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
+            textSize = min(widgetTextSizePx(fontSize = streakDotsLabelTextSize, displayMetrics = displayMetrics), cellWidth * 0.6f)
         }
-        val countTexts: List<String> = runs.map { run -> context.getString(R.string.streaks_widget_day_count, run.dayCount) }
-        // A bar keeps half its height beside each end of its count, so the widest count fits the bar area.
-        val widestCountWidth: Float = countTexts.maxOf { countText -> countPaint.measureText(countText) }
-        val maxCountWidth: Float = barAreaWidth - barHeight
-        if (widestCountWidth > maxCountWidth && maxCountWidth > 0f) {
-            countPaint.textSize = countPaint.textSize * maxCountWidth / widestCountWidth
+        val labelHeight: Float = labelPaint.fontSpacing
+        val dotRadius: Float = min(cellWidth * 0.38f, (canvas.height - labelHeight) / 2f - streakDotsOpenStrokeDp * density)
+            .coerceAtLeast(minimumValue = density)
+        val dotCenterY: Float = (canvas.height - labelHeight) / 2f
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
         }
-        runs.forEachIndexed { index, run ->
-            val centerY: Float = rowsTop + rowHeight * index + rowHeight / 2
-            val countText: String = countTexts[index]
-            val minBarWidth: Float = max(barHeight, countPaint.measureText(countText) + barHeight)
-            val barWidth: Float = max(minBarWidth, barAreaWidth * run.dayCount / longestDayCount).coerceAtMost(barAreaWidth)
-            val barLeft: Float = barAreaLeft + (barAreaWidth - barWidth) / 2
-            val barRight: Float = barLeft + barWidth
-            barPaint.color = if (run.isCurrent) currentBarArgb else pastBarArgb
-            canvas.drawRoundRect(
-                barLeft,
-                centerY - barHeight / 2,
-                barRight,
-                centerY + barHeight / 2,
-                barHeight / 2,
-                barHeight / 2,
-                barPaint
+        dots.forEachIndexed { index, dot ->
+            val centerX: Float = cellWidth * index + cellWidth / 2f
+            when (dot.state) {
+                CloudProgressStreakDayState.REVIEWED -> {
+                    fillPaint.color = accentArgb
+                    canvas.drawCircle(centerX, dotCenterY, dotRadius, fillPaint)
+                    strokePaint.color = widgetFillLabelArgb(fillArgb = accentArgb)
+                    strokePaint.strokeWidth = dotRadius * streakDotsMarkStrokeFraction * 2f
+                    canvas.drawPath(makeCheckPath(centerX = centerX, centerY = dotCenterY, radius = dotRadius), strokePaint)
+                }
+                CloudProgressStreakDayState.FROZEN -> {
+                    fillPaint.color = frozenArgb
+                    canvas.drawCircle(centerX, dotCenterY, dotRadius, fillPaint)
+                    strokePaint.color = widgetFillLabelArgb(fillArgb = frozenArgb)
+                    strokePaint.strokeWidth = dotRadius * streakDotsMarkStrokeFraction
+                    canvas.drawPath(makeSnowflakePath(centerX = centerX, centerY = dotCenterY, radius = dotRadius), strokePaint)
+                }
+                CloudProgressStreakDayState.PENDING -> {
+                    strokePaint.color = FlashcardsDarkColorScheme.onSurfaceVariant.toArgb()
+                    strokePaint.strokeWidth = streakDotsOpenStrokeDp * density
+                    canvas.drawCircle(centerX, dotCenterY, dotRadius - strokePaint.strokeWidth / 2f, strokePaint)
+                }
+                CloudProgressStreakDayState.MISSED, null -> {
+                    fillPaint.color = faintArgb
+                    canvas.drawCircle(centerX, dotCenterY, dotRadius, fillPaint)
+                }
+            }
+            canvas.drawText(
+                dot.date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale),
+                centerX,
+                canvas.height - labelPaint.descent(),
+                labelPaint
             )
-            countPaint.color = if (run.isCurrent) currentLabelArgb else pastLabelArgb
-            canvas.drawText(countText, barLeft + barWidth / 2, centeredBaseline(centerY = centerY, paint = countPaint), countPaint)
-            val dateBaseline: Float = centeredBaseline(centerY = centerY, paint = datePaint)
-            datePaint.textAlign = Paint.Align.RIGHT
-            canvas.drawText(dateFormatter.format(run.startDate), barLeft - dateGap, dateBaseline, datePaint)
-            datePaint.textAlign = Paint.Align.LEFT
-            canvas.drawText(dateFormatter.format(run.endDate), barRight + dateGap, dateBaseline, datePaint)
+        }
+    }
+}
+
+private fun makeCheckPath(centerX: Float, centerY: Float, radius: Float): Path {
+    return Path().apply {
+        moveTo(centerX - radius * 0.45f, centerY + radius * 0.02f)
+        lineTo(centerX - radius * 0.12f, centerY + radius * 0.35f)
+        lineTo(centerX + radius * 0.48f, centerY - radius * 0.3f)
+    }
+}
+
+/** Three crossing strokes, a snowflake that reads at a dot's size. */
+private fun makeSnowflakePath(centerX: Float, centerY: Float, radius: Float): Path {
+    val armLength: Float = radius * 0.55f
+    return Path().apply {
+        listOf(90.0, 30.0, -30.0).forEach { degrees ->
+            val radians: Double = degrees * PI / 180.0
+            val dx: Float = (cos(radians) * armLength).toFloat()
+            val dy: Float = (sin(radians) * armLength).toFloat()
+            moveTo(centerX - dx, centerY - dy)
+            lineTo(centerX + dx, centerY + dy)
         }
     }
 }

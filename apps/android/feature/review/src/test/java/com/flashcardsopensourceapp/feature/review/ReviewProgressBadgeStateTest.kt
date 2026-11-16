@@ -204,6 +204,7 @@ private fun createProgressSummarySnapshot(
     hasReviewedToday: Boolean
 ): ProgressSummarySnapshot {
     val renderedSummary = CloudProgressSummary(
+        insights = null,
         currentStreakDays = currentStreakDays,
         longestStreakDays = currentStreakDays,
         hasReviewedToday = hasReviewedToday,

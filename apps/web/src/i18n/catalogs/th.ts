@@ -323,9 +323,25 @@ const thCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "คะแนนการทบทวน",
     },
+    reviewsPace: {
+      lastSevenDays: "7 วันที่ผ่านมา · วันละ {{count}}",
+      studyTime: "เวลาเรียน · ≈ {{count}} นาที",
+    },
+    records: {
+      title: "สถิติ",
+      bestDay: "วันที่ดีที่สุด",
+      bestWeek: "สัปดาห์ที่ดีที่สุด",
+      longestStreak: "สตรีคยาวที่สุด",
+      totalReviews: "ทบทวนทั้งหมด",
+      lastSevenDays: "7 วันที่ผ่านมา",
+      cardsMet: "การ์ดใหม่",
+      relearned: "เรียนใหม่อีกครั้ง",
+    },
     reviewSchedule: {
       title: "ตารางการทบทวน",
       totalCards: "การ์ดทั้งหมด: {{count}}",
+      dueToday: "ถึงกำหนดวันนี้ {{count}}",
+      dueTodayWithMinutes: "ถึงกำหนดวันนี้ {{count}} · ≈ {{minutes}} นาที",
       legendLabel: "ช่วงของตารางการทบทวน",
       buckets: {
         new: "ใหม่",

@@ -101,6 +101,7 @@ class ProgressSummarySnapshotTest {
             zoneId = ZoneId.of("Europe/Madrid")
         )
         val localFallback = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 10,
             longestStreakDays = 10,
             hasReviewedToday = true,
@@ -110,6 +111,7 @@ class ProgressSummarySnapshotTest {
             reviewHistoryWatermarks = emptyList()
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 9,
             longestStreakDays = 9,
             hasReviewedToday = false,
@@ -144,6 +146,7 @@ class ProgressSummarySnapshotTest {
             zoneId = ZoneId.of("Europe/Madrid")
         )
         val localFallback = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 1,
             longestStreakDays = 1,
             hasReviewedToday = true,
@@ -153,6 +156,7 @@ class ProgressSummarySnapshotTest {
             reviewHistoryWatermarks = emptyList()
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 3,
             longestStreakDays = 3,
             hasReviewedToday = false,
@@ -236,6 +240,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 200,
             longestStreakDays = 200,
             hasReviewedToday = false,
@@ -306,6 +311,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 0,
             longestStreakDays = 0,
             hasReviewedToday = false,
@@ -396,6 +402,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 200,
             longestStreakDays = 200,
             hasReviewedToday = false,
@@ -471,6 +478,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 200,
             longestStreakDays = 200,
             hasReviewedToday = false,
@@ -546,6 +554,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 0,
             longestStreakDays = 0,
             hasReviewedToday = false,
@@ -618,6 +627,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 200,
             longestStreakDays = 200,
             hasReviewedToday = true,
@@ -690,6 +700,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 0,
             longestStreakDays = 0,
             hasReviewedToday = false,
@@ -766,6 +777,7 @@ class ProgressSummarySnapshotTest {
             )
         )
         val serverBase = CloudProgressSummary(
+            insights = null,
             currentStreakDays = 1,
             longestStreakDays = 1,
             hasReviewedToday = false,

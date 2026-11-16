@@ -21,6 +21,7 @@ enum WidgetDeepLinkKind: String, Sendable, Equatable, CaseIterable {
     case monthCalendar = "month_calendar"
     case comingUp = "coming_up"
     case dashboard
+    case question
 }
 
 /// The tab a widget tap opens; the raw value is the URL host.
@@ -30,15 +31,17 @@ enum WidgetDeepLinkDestination: String, Sendable, Equatable, CaseIterable {
 }
 
 /// Tap target of every widget:
-/// `nibomo-widget://<review|progress>?[workspaceId=<id>&]size=<size>[&kind=<kind>][&cardId=<id>]`.
+/// `nibomo-widget://<review|progress>?[workspaceId=<id>&]size=<size>[&kind=<kind>][&cardId=<id>][&reveal=1]`.
 /// `workspaceId` is absent only when the widget had no snapshot; `cardId` requires `workspaceId` and the
-/// `review` host. A URL without `kind` comes from a Review widget placed before kinds existed.
+/// `review` host, and `reveal=1`, the Reveal answer button, requires `cardId`. A URL without `kind` comes from a
+/// Review widget placed before kinds existed.
 struct WidgetDeepLink: Sendable, Equatable {
     let destination: WidgetDeepLinkDestination
     let kind: WidgetDeepLinkKind
     let workspaceId: String?
     let size: WidgetDeepLinkSize
     let cardId: String?
+    let revealAnswer: Bool
 }
 
 let widgetDeepLinkScheme: String = "nibomo-widget"
@@ -47,6 +50,8 @@ private let widgetDeepLinkWorkspaceIdQueryName: String = "workspaceId"
 private let widgetDeepLinkSizeQueryName: String = "size"
 private let widgetDeepLinkKindQueryName: String = "kind"
 private let widgetDeepLinkCardIdQueryName: String = "cardId"
+private let widgetDeepLinkRevealQueryName: String = "reveal"
+private let widgetDeepLinkRevealQueryValue: String = "1"
 
 func makeWidgetDeepLinkURL(deepLink: WidgetDeepLink) -> URL {
     var components = URLComponents()
@@ -60,6 +65,9 @@ func makeWidgetDeepLinkURL(deepLink: WidgetDeepLink) -> URL {
     queryItems.append(URLQueryItem(name: widgetDeepLinkKindQueryName, value: deepLink.kind.rawValue))
     if let cardId = deepLink.cardId {
         queryItems.append(URLQueryItem(name: widgetDeepLinkCardIdQueryName, value: cardId))
+    }
+    if deepLink.revealAnswer {
+        queryItems.append(URLQueryItem(name: widgetDeepLinkRevealQueryName, value: widgetDeepLinkRevealQueryValue))
     }
     components.queryItems = queryItems
     guard let url = components.url else {
@@ -90,6 +98,7 @@ func parseWidgetDeepLinkURL(url: URL) -> WidgetDeepLink? {
         widgetDeepLinkSizeQueryName,
         widgetDeepLinkKindQueryName,
         widgetDeepLinkCardIdQueryName,
+        widgetDeepLinkRevealQueryName,
     ]
     var valuesByName: [String: String] = [:]
     for queryItem in queryItems {
@@ -124,11 +133,21 @@ func parseWidgetDeepLinkURL(url: URL) -> WidgetDeepLink? {
     if cardId != nil && (workspaceId == nil || destination != .review) {
         return nil
     }
+    let revealAnswer: Bool
+    if let revealValue = valuesByName[widgetDeepLinkRevealQueryName] {
+        guard revealValue == widgetDeepLinkRevealQueryValue, cardId != nil else {
+            return nil
+        }
+        revealAnswer = true
+    } else {
+        revealAnswer = false
+    }
     return WidgetDeepLink(
         destination: destination,
         kind: kind,
         workspaceId: workspaceId,
         size: size,
-        cardId: cardId
+        cardId: cardId,
+        revealAnswer: revealAnswer
     )
 }

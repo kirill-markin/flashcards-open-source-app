@@ -56,12 +56,6 @@
     <!-- The placeholder is a time today, otherwise a date and time. -->
     <string name="review_widget_next_due">Próximo cartão: <xliff:g id="due_time" example="14:30">%1$s</xliff:g>
     </string>
-    <string name="review_widget_due_label">por rever</string>
-    <plurals name="review_widget_cards_due">
-        <item quantity="one">%1$d cartão por rever</item>
-        <item quantity="many">%1$d cartões por rever</item>
-        <item quantity="other">%1$d cartões por rever</item>
-    </plurals>
     <plurals name="review_widget_streak_days">
         <item quantity="one">Sequência de %1$d dia</item>
         <item quantity="many">Sequência de %1$d dias</item>
@@ -71,19 +65,7 @@
     <string name="review_widget_preview_question">O que produzem as mitocôndrias para a célula?</string>
     <string name="review_widget_preview_streak">Sequência de 7 dias</string>
     <string name="reviews_chart_widget_label">Revisões</string>
-    <string name="reviews_chart_widget_description">As suas revisões diárias nas últimas semanas.</string>
-    <string name="reviews_chart_widget_daily_average">Média diária: <xliff:g id="review_count" example="24">%1$d</xliff:g>
-    </string>
-    <plurals name="reviews_chart_widget_trend_up">
-        <item quantity="one">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face a <xliff:g id="day_count" example="14">%2$d</xliff:g> dia anterior</item>
-        <item quantity="many">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
-        <item quantity="other">↑ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
-    </plurals>
-    <plurals name="reviews_chart_widget_trend_down">
-        <item quantity="one">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face a <xliff:g id="day_count" example="14">%2$d</xliff:g> dia anterior</item>
-        <item quantity="many">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
-        <item quantity="other">↓ <xliff:g id="percent" example="12">%1$d</xliff:g>%% face aos <xliff:g id="day_count" example="14">%2$d</xliff:g> dias anteriores</item>
-    </plurals>
+    <string name="reviews_chart_widget_description">As suas revisões diárias dos últimos 7 dias face ao seu habitual.</string>
     <string name="reviews_chart_widget_preview_daily_average">Média diária: 24</string>
     <string name="coming_up_widget_label">Próximos dias</string>
     <string name="coming_up_widget_description">Cartões a rever nos próximos 7 dias e o seu calendário de revisões.</string>
@@ -94,26 +76,7 @@
     </plurals>
     <string name="coming_up_widget_preview_header">Próximos 7 dias · 58 cartões</string>
     <string name="today_widget_label">Hoje</string>
-    <string name="today_widget_description">As revisões de hoje, os cartões que faltam e a sua sequência.</string>
-    <!-- Share of today's cards already reviewed, next to the progress bar. -->
-    <string name="today_widget_percent">
-        <xliff:g id="percent" example="67">%1$d</xliff:g>%%</string>
-    <string name="today_widget_no_cards_due">Nenhum cartão por rever</string>
-    <plurals name="today_widget_reviewed">
-        <item quantity="one">%1$d revisto</item>
-        <item quantity="many">%1$d revistos</item>
-        <item quantity="other">%1$d revistos</item>
-    </plurals>
-    <plurals name="today_widget_left">
-        <item quantity="one">Falta %1$d</item>
-        <item quantity="many">Faltam %1$d</item>
-        <item quantity="other">Faltam %1$d</item>
-    </plurals>
-    <plurals name="today_widget_cards_left">
-        <item quantity="one">Falta %1$d cartão</item>
-        <item quantity="many">Faltam %1$d cartões</item>
-        <item quantity="other">Faltam %1$d cartões</item>
-    </plurals>
+    <string name="today_widget_description">Os últimos 7 dias face ao seu habitual, as revisões de hoje, os cartões por rever e a sua sequência.</string>
     <string name="today_widget_preview_reviewed">8 revistos</string>
     <string name="today_widget_preview_cards_left">Faltam 4 cartões</string>
     <string name="activity_widget_label">Atividade</string>
@@ -153,12 +116,10 @@
     <string name="year_widget_preview_reviews">4120 revisões</string>
     <string name="year_widget_preview_active_days">186 dias ativos</string>
     <string name="streaks_widget_label">Sequências</string>
-    <string name="streaks_widget_description">A sequência atual, a melhor e as mais recentes.</string>
+    <string name="streaks_widget_description">A sua sequência, o recorde, os congelamentos e os últimos 7 dias.</string>
     <!-- The longest streak ever, in days. -->
     <string name="streaks_widget_best">Recorde: <xliff:g id="days" example="30">%1$d</xliff:g>
     </string>
-    <string name="streaks_widget_empty">Reveja cartões hoje para começar uma sequência.</string>
-    <string name="streaks_widget_chart_description">A sequência atual e as mais recentes</string>
     <string name="streaks_widget_preview_best">Recorde: 30</string>
     <string name="month_calendar_widget_label">Calendário</string>
     <string name="month_calendar_widget_description">Os dias em que manteve a sequência este mês.</string>
@@ -170,6 +131,43 @@
     <string name="month_calendar_widget_preview_month">Novembro</string>
     <string name="dashboard_widget_label">Resumo</string>
     <string name="dashboard_widget_description">O progresso de hoje, os cartões por rever, a sequência, a próxima pergunta e a atividade.</string>
+    <string name="widget_reveal_answer">Mostrar resposta</string>
+    <string name="review_widget_to_review_label">Por rever</string>
+    <plurals name="review_widget_to_review_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> por rever</item>
+        <item quantity="many"><xliff:g id="count" example="132">%1$d</xliff:g> por rever</item>
+        <item quantity="other"><xliff:g id="count" example="132">%1$d</xliff:g> por rever</item>
+    </plurals>
+    <plurals name="widget_scheduled_due">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> pendente</item>
+        <item quantity="many"><xliff:g id="count" example="34">%1$d</xliff:g> pendentes</item>
+        <item quantity="other"><xliff:g id="count" example="34">%1$d</xliff:g> pendentes</item>
+    </plurals>
+    <string name="widget_scheduled_due_none">✓ 0 pendentes</string>
+    <plurals name="widget_minutes_estimate">
+        <item quantity="one">≈ <xliff:g id="minutes" example="1">%1$d</xliff:g> min</item>
+        <item quantity="many">≈ <xliff:g id="minutes" example="6">%1$d</xliff:g> min</item>
+        <item quantity="other">≈ <xliff:g id="minutes" example="6">%1$d</xliff:g> min</item>
+    </plurals>
+    <plurals name="widget_new_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> novo</item>
+        <item quantity="many"><xliff:g id="count" example="98">%1$d</xliff:g> novos</item>
+        <item quantity="other"><xliff:g id="count" example="98">%1$d</xliff:g> novos</item>
+    </plurals>
+    <string name="widget_last_7_days_label">7 dias</string>
+    <plurals name="today_widget_today_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> hoje</item>
+        <item quantity="many"><xliff:g id="count" example="36">%1$d</xliff:g> hoje</item>
+        <item quantity="other"><xliff:g id="count" example="36">%1$d</xliff:g> hoje</item>
+    </plurals>
+    <string name="today_widget_best_day">Melhor dia: <xliff:g id="count" example="61">%1$d</xliff:g></string>
+    <string name="today_widget_new_best_day">Novo melhor dia</string>
+    <string name="reviews_chart_widget_daily_average_value">Média diária: <xliff:g id="average" example="13,1">%1$s</xliff:g></string>
+    <string name="streaks_widget_day_streak_label">Dias seguidos</string>
+    <string name="streaks_widget_days_description">Os seus últimos 7 dias</string>
+    <string name="question_widget_label">Pergunta</string>
+    <string name="question_widget_description">Uma pergunta dos seus próximos cartões, com um botão para mostrar a resposta.</string>
+    <string name="question_widget_preview_due">12 pendentes</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Apoia o criador da aplicação</string>
     <string name="premium_benefit_accent_color">Qualquer cor de destaque</string>

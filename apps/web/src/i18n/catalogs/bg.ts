@@ -323,9 +323,25 @@ const bgCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Оценки при преговор",
     },
+    reviewsPace: {
+      lastSevenDays: "Последните 7 дни · {{count}} на ден",
+      studyTime: "Време за учене · ≈ {{count}} мин",
+    },
+    records: {
+      title: "Рекорди",
+      bestDay: "Най-добър ден",
+      bestWeek: "Най-добра седмица",
+      longestStreak: "Най-дълга серия",
+      totalReviews: "Общо прегледи",
+      lastSevenDays: "Последните 7 дни",
+      cardsMet: "Нови карти",
+      relearned: "Научени отново",
+    },
     reviewSchedule: {
       title: "График за преговор",
       totalCards: "Общо карти: {{count}}",
+      dueToday: "За днес {{count}}",
+      dueTodayWithMinutes: "За днес {{count}} · ≈ {{minutes}} мин",
       legendLabel: "Групи в графика за преговор",
       buckets: {
         new: "Нови",

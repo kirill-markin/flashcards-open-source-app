@@ -31,6 +31,7 @@ import com.flashcardsopensourceapp.feature.progress.sections.ErrorCard
 import com.flashcardsopensourceapp.feature.progress.sections.GuidanceCard
 import com.flashcardsopensourceapp.feature.progress.sections.leaderboard.LeaderboardSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.LoadingCard
+import com.flashcardsopensourceapp.feature.progress.sections.RecordsSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.leaderboard.ProgressLeaderboardProfileSheet
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewScheduleSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewsSectionCard
@@ -230,6 +231,14 @@ fun ProgressRoute(
                         item {
                             ReviewScheduleSectionCard(
                                 uiState = reviewScheduleSection
+                            )
+                        }
+                    }
+                    val recordsSection = uiState.recordsSection
+                    if (recordsSection != null) {
+                        item {
+                            RecordsSectionCard(
+                                uiState = recordsSection
                             )
                         }
                     }

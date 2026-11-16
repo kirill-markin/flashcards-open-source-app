@@ -323,9 +323,25 @@ const itCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Valutazioni dei ripassi",
     },
+    reviewsPace: {
+      lastSevenDays: "Ultimi 7 giorni · {{count}} al giorno",
+      studyTime: "Tempo di studio · ≈ {{count}} min",
+    },
+    records: {
+      title: "Record",
+      bestDay: "Giorno migliore",
+      bestWeek: "Settimana migliore",
+      longestStreak: "Serie più lunga",
+      totalReviews: "Ripassi totali",
+      lastSevenDays: "Ultimi 7 giorni",
+      cardsMet: "Nuove schede",
+      relearned: "Riapprese",
+    },
     reviewSchedule: {
       title: "Pianificazione dei ripassi",
       totalCards: "Carte totali: {{count}}",
+      dueToday: "Da ripassare oggi {{count}}",
+      dueTodayWithMinutes: "Da ripassare oggi {{count}} · ≈ {{minutes}} min",
       legendLabel: "Fasce della pianificazione dei ripassi",
       buckets: {
         new: "Nuove",

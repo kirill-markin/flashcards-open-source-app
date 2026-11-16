@@ -188,7 +188,8 @@ internal fun mergeProgressSummary(
             base = base,
             hasReferenceDateReviewOverlay = hasReferenceDateReviewOverlay
         ),
-        reviewHistoryWatermarks = base.reviewHistoryWatermarks
+        reviewHistoryWatermarks = base.reviewHistoryWatermarks,
+        insights = base.insights
     )
 }
 

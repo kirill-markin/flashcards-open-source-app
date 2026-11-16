@@ -323,9 +323,25 @@ const etCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Kordamiste hinnangud",
     },
+    reviewsPace: {
+      lastSevenDays: "Viimased 7 päeva · {{count}} päevas",
+      studyTime: "Õppeaeg · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordid",
+      bestDay: "Parim päev",
+      bestWeek: "Parim nädal",
+      longestStreak: "Pikim seeria",
+      totalReviews: "Kordusi kokku",
+      lastSevenDays: "Viimased 7 päeva",
+      cardsMet: "Uued kaardid",
+      relearned: "Uuesti õpitud",
+    },
     reviewSchedule: {
       title: "Kordamisgraafik",
       totalCards: "Kaarte kokku: {{count}}",
+      dueToday: "Täna tähtajaga {{count}}",
+      dueTodayWithMinutes: "Täna tähtajaga {{count}} · ≈ {{minutes}} min",
       legendLabel: "Kordamisgraafiku vahemikud",
       buckets: {
         new: "Uus",

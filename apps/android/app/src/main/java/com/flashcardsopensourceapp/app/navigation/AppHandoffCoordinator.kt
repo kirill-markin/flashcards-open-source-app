@@ -45,7 +45,9 @@ data class ReviewFilterRequest(
 data class ReviewWidgetCardRequest(
     val requestId: Long,
     val workspaceId: String,
-    val cardId: String
+    val cardId: String,
+    /** Show [cardId] answer-side, for a widget's Reveal answer tap. */
+    val revealAnswer: Boolean
 )
 
 enum class ProgressNavigationTarget {
@@ -223,11 +225,12 @@ class AppHandoffCoordinator {
         reviewFilterState.value = null
     }
 
-    fun requestReviewWidgetCard(workspaceId: String, cardId: String) {
+    fun requestReviewWidgetCard(workspaceId: String, cardId: String, revealAnswer: Boolean) {
         reviewWidgetCardState.value = ReviewWidgetCardRequest(
             requestId = nextRequestId.incrementAndGet(),
             workspaceId = workspaceId,
-            cardId = cardId
+            cardId = cardId,
+            revealAnswer = revealAnswer
         )
     }
 
