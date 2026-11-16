@@ -18,12 +18,20 @@ extension AIChatView {
                 .defaultScrollAnchor(.bottom, for: .alignment)
                 // The zero-height structural row's gap preserves the existing bottom spacing.
                 .contentMargins(.top, self.usesStudySpacing ? 20 : 12, for: .scrollContent)
+                // Content margins add spacing beyond the safe area; keep zero extra on both iPad and iPhone.
                 .contentMargins(.bottom, 0, for: .scrollContent)
                 .contentMargins(.horizontal, 0, for: .scrollIndicators)
                 .onGeometryChange(for: CGFloat.self) { geometry in
                     geometry.frame(in: .global).minY
                 } action: { top in
                     self.transcriptLayout.viewportTop = top
+                }
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.containerSize.height - geometry.contentInsets.top - geometry.contentInsets.bottom
+                } action: { _, _ in
+                    guard self.hasActiveUserScrollGesture == false else { return }
+                    // Keep the newest message above a resized composer or keyboard; a reader's older position stays.
+                    self.scrollToBottomIfNeeded(proxy: proxy, isAnimated: false)
                 }
                 .onScrollGeometryChange(for: CGFloat.self) { geometry in
                     geometry.contentOffset.y
