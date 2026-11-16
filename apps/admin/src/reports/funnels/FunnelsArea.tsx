@@ -77,7 +77,7 @@ export function FunnelsArea(
         onDetailsNavigate: props.onNavigate,
       };
       return (
-        <div className="level-1-metrics-grid">
+        <div className="level-1-metrics-grid journeys-overview-grid">
           <div className="journeys-first-launch">
             <firstLaunchFunnelSection.Section {...funnelSectionProps} />
           </div>
