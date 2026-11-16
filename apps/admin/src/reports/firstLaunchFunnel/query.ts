@@ -37,6 +37,7 @@ export type FirstLaunchFunnelCounts = Readonly<{
   reviewScreenCount: number;
   revealedCount: number;
   oneReviewCount: number;
+  reviewAndCardAddedCount: number;
   twoReviewsCount: number;
   twoReviewDaysCount: number;
   engagedReturningCount: number;
@@ -273,16 +274,12 @@ function buildGroupSourceJoinSqlLines(
  *   to `actor_first_events` rather than to the cohort, and only while that dimension is selected
  *   (`buildGroupSourceJoinSqlLines`).
  *
- * Every later step is the same actor within seven days of the first launch, at or after the step
- * above it: the review screen, which the launch itself may be, then an answer reveal, then a first
- * `review_answered`. The review count runs from that first answer to the seven-day bound, and the
- * review day count is the distinct UTC dates those same answers fall on. The tail steps are two
- * reviews, then reviews on two distinct days, then the threshold together with three distinct days,
- * and all three read that one per-person aggregate of the count pair, so a later step can never
- * exceed an earlier one. `review_answered` is
- * the server's fact and carries no platform, so an answer given on another device of the same person
- * counts. Two launches at the same microsecond on different platforms count as a first launch when
- * either platform is selected.
+ * A person can add their first card before or after their first accepted review. The engagement
+ * aggregate starts at that first review, but stays empty until the person reviews again after
+ * both events. That lets reviews before the first card addition contribute to the totals without
+ * letting the addition itself qualify someone for a later study step.
+ * Two launches at the same microsecond on different platforms count as a first launch when either
+ * platform is selected.
  */
 export function buildFirstLaunchFunnelSql(
   filters: AnalyticsFilterState,
@@ -354,51 +351,85 @@ export function buildFirstLaunchFunnelSql(
     "  SELECT",
     "    history.actor_id,",
     "    step_event.event_name,",
-    "    step_event.occurred_at",
+    "    step_time.step_at,",
+    // A synced review may keep its device time, but a manual save uses a corrected clock.
+    "    CASE WHEN step_event.event_name = 'manual_card_saved'",
+    "      THEN GREATEST(step_time.step_at, step_event.client_occurred_at)",
+    "      ELSE step_time.step_at",
+    "    END AS ordering_at,",
+    // Live and backfilled reviews can have their occurrence time replaced by receipt time.
+    "    (step_event.occurred_at <> step_event.server_received_at",
+    "      OR step_event.client_occurred_at IS NOT NULL) AS has_occurrence_time",
     "  FROM analytics.product_events_resolved AS step_event",
+    // Live creations can carry a timestamp from before the write committed.
+    "  CROSS JOIN LATERAL (SELECT CASE",
+    "    WHEN step_event.event_name = 'card_created' AND step_event.origin = 'server'",
+    "      THEN step_event.server_received_at",
+    "    ELSE step_event.occurred_at",
+    "  END AS step_at) AS step_time",
     "  INNER JOIN actor_first_events AS history",
     "    ON history.actor_id = step_event.actor_id",
-    "    AND step_event.occurred_at >= history.first_launch_at",
-    `    AND step_event.occurred_at <= history.first_launch_at + ${windowSql}`,
+    "    AND step_time.step_at >= history.first_launch_at",
+    `    AND step_time.step_at <= history.first_launch_at + ${windowSql}`,
     "  WHERE (",
     "      step_event.event_name IN ('review_card_revealed', 'review_answered')",
     "      OR (step_event.event_name = 'screen_viewed' AND step_event.screen = 'review')",
+    "      OR (step_event.event_name = 'manual_card_saved' AND step_event.origin = 'client')",
+    // App-origin card_created also covers demo seed writes. Only the named sources prove an addition.
+    "      OR (step_event.event_name = 'card_created' AND step_event.origin IN ('server', 'backfill')",
+    "        AND step_event.event_properties->>'source' IN ('ai_chat', 'agent', 'package_import'))",
+    "      OR (step_event.event_name IN ('catalog_deck_installed', 'workspace_package_imported')",
+    "        AND step_event.origin IN ('server', 'backfill')",
+    "        AND jsonb_typeof(step_event.event_properties->'card_count') = 'number'",
+    "        AND step_event.event_properties->'card_count' > '0'::jsonb)",
     "    )",
     `    AND ${buildTrustedActorRowsFilterSql("step_event.trust_level")}`,
-    `    AND step_event.occurred_at >= ${rangeStartSql}`,
-    `    AND step_event.occurred_at < ${stepWindowEndSql}`,
+    `    AND step_time.step_at >= ${rangeStartSql}`,
+    `    AND step_time.step_at < ${stepWindowEndSql}`,
     "), review_screens AS MATERIALIZED (",
-    "  SELECT screen_event.actor_id, MIN(screen_event.occurred_at) AS review_screen_at",
+    "  SELECT screen_event.actor_id, MIN(screen_event.step_at) AS review_screen_at",
     "  FROM step_events AS screen_event",
     "  WHERE screen_event.event_name = 'screen_viewed'",
     "  GROUP BY screen_event.actor_id",
     "), reveals AS MATERIALIZED (",
-    "  SELECT revealed_event.actor_id, MIN(revealed_event.occurred_at) AS revealed_at",
+    "  SELECT revealed_event.actor_id, MIN(revealed_event.step_at) AS revealed_at",
     "  FROM step_events AS revealed_event",
     "  INNER JOIN review_screens AS review_screen",
     "    ON review_screen.actor_id = revealed_event.actor_id",
-    "    AND revealed_event.occurred_at >= review_screen.review_screen_at",
+    "    AND revealed_event.step_at >= review_screen.review_screen_at",
     "  WHERE revealed_event.event_name = 'review_card_revealed'",
     "  GROUP BY revealed_event.actor_id",
     "), first_reviews AS MATERIALIZED (",
-    "  SELECT review_event.actor_id, MIN(review_event.occurred_at) AS first_review_at",
+    "  SELECT review_event.actor_id, MIN(review_event.step_at) AS first_review_at",
     "  FROM step_events AS review_event",
     "  INNER JOIN reveals AS revealed",
     "    ON revealed.actor_id = review_event.actor_id",
-    "    AND review_event.occurred_at >= revealed.revealed_at",
+    "    AND review_event.step_at >= revealed.revealed_at",
     "  WHERE review_event.event_name = 'review_answered'",
     "  GROUP BY review_event.actor_id",
+    "), first_card_additions AS MATERIALIZED (",
+    "  SELECT added.actor_id, MIN(added.ordering_at) AS first_addition_ordering_at",
+    "  FROM step_events AS added",
+    "  WHERE added.event_name IN ('manual_card_saved', 'card_created', 'catalog_deck_installed', 'workspace_package_imported')",
+    "  GROUP BY added.actor_id",
+    "), activations AS MATERIALIZED (",
+    "  SELECT first_review.actor_id, first_review.first_review_at,",
+    "    GREATEST(first_review.first_review_at, first_addition.first_addition_ordering_at) AS review_after",
+    "  FROM first_reviews AS first_review",
+    "  INNER JOIN first_card_additions AS first_addition ON first_addition.actor_id = first_review.actor_id",
     "), person_engagement AS MATERIALIZED (",
     "  SELECT",
     "    review.actor_id,",
     "    COUNT(*)::int AS review_count,",
-    "    COUNT(DISTINCT (review.occurred_at AT TIME ZONE 'UTC')::date)::int AS review_day_count",
+    "    COUNT(DISTINCT (review.step_at AT TIME ZONE 'UTC')::date)::int AS review_day_count",
     "  FROM step_events AS review",
-    "  INNER JOIN first_reviews AS first_review",
-    "    ON first_review.actor_id = review.actor_id",
-    "    AND review.occurred_at >= first_review.first_review_at",
+    "  INNER JOIN activations AS activation",
+    "    ON activation.actor_id = review.actor_id",
+    "    AND review.step_at >= activation.first_review_at",
     "  WHERE review.event_name = 'review_answered'",
+    "    AND review.has_occurrence_time",
     "  GROUP BY review.actor_id",
+    "  HAVING BOOL_OR(review.step_at > activation.review_after)",
     ")",
     "SELECT",
     `  ${groupKeySql} AS group_key,`,
@@ -406,6 +437,7 @@ export function buildFirstLaunchFunnelSql(
     "  COUNT(review_screen.review_screen_at)::int AS review_screen_count,",
     "  COUNT(revealed.revealed_at)::int AS revealed_count,",
     "  COUNT(first_review.first_review_at)::int AS one_review_count,",
+    "  COUNT(activation.actor_id)::int AS review_and_card_added_count,",
     "  (COUNT(*) FILTER (WHERE engagement.review_count >= 2))::int AS two_reviews_count,",
     "  (COUNT(*) FILTER (WHERE engagement.review_day_count >= 2))::int AS two_review_days_count,",
     "  (COUNT(*) FILTER (",
@@ -419,6 +451,7 @@ export function buildFirstLaunchFunnelSql(
     "LEFT JOIN review_screens AS review_screen ON review_screen.actor_id = cohort.actor_id",
     "LEFT JOIN reveals AS revealed ON revealed.actor_id = cohort.actor_id",
     "LEFT JOIN first_reviews AS first_review ON first_review.actor_id = cohort.actor_id",
+    "LEFT JOIN activations AS activation ON activation.actor_id = cohort.actor_id",
     "LEFT JOIN person_engagement AS engagement ON engagement.actor_id = cohort.actor_id",
     ...groupSourceJoinSqlLines,
     "GROUP BY group_key",
@@ -458,6 +491,7 @@ export async function loadFirstLaunchFunnelReport(
         reviewScreenCount: count("review_screen_count"),
         revealedCount: count("revealed_count"),
         oneReviewCount: count("one_review_count"),
+        reviewAndCardAddedCount: count("review_and_card_added_count"),
         twoReviewsCount: count("two_reviews_count"),
         twoReviewDaysCount: count("two_review_days_count"),
         engagedReturningCount: count("engaged_returning_count"),

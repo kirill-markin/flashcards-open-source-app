@@ -493,6 +493,7 @@ export function CardFormScreen(): ReactElement {
         };
         await createCardItem(payload);
         indexedDbOpenRecoveryState.throwIfFailed();
+        track({ name: "manual_card_saved", screen: "card_editor" });
       } else if (cardId !== undefined) {
         await updateCardItem(cardId, buildUpdatePayload());
         indexedDbOpenRecoveryState.throwIfFailed();
