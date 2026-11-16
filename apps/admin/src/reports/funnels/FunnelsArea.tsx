@@ -6,9 +6,13 @@ import { FirstLaunchFunnelDetailsPage } from "../firstLaunchFunnel/FirstLaunchFu
 import type { RetentionCurveCohortFilters } from "../retentionCurve/query";
 import { StudiedRetentionCurveSection } from "../retentionCurve/RetentionCurveSections";
 import { RetentionDetailsPage } from "../retentionCurve/RetentionDetailsPage";
-import { funnelSections, type FunnelReportProps } from "./funnelSections";
+import {
+  firstLaunchFunnelSection,
+  otherFunnelSections,
+  type FunnelReportProps,
+  type FunnelSectionProps,
+} from "./funnelSections";
 
-/** What the Journeys tab shows: its cards, or the Details page of one of them. */
 export type JourneysPage =
   | Readonly<{ kind: "cards" }>
   | Readonly<{ kind: "funnelDetails"; funnelId: FunnelDetail }>
@@ -49,10 +53,6 @@ function useRetentionCurveCohortFilters(filters: AnalyticsFilterState): Retentio
   );
 }
 
-/**
- * The Journeys area: the Retention card, then every funnel in `funnelSections` order, as chart cards
- * in the Level 1 metrics grid, or the Details page `page` names.
- */
 export function FunnelsArea(
   props: Readonly<{
     config: AdminAppConfig;
@@ -68,9 +68,19 @@ export function FunnelsArea(
   const retentionCohortFilters = useRetentionCurveCohortFilters(props.filters);
 
   switch (props.page.kind) {
-    case "cards":
+    case "cards": {
+      const funnelSectionProps: FunnelSectionProps = {
+        config: props.config,
+        filters: funnelFilters,
+        isRangeLoading: props.isReportLoading,
+        onTerminalAdminError: props.onTerminalAdminError,
+        onDetailsNavigate: props.onNavigate,
+      };
       return (
         <div className="level-1-metrics-grid">
+          <div className="journeys-first-launch">
+            <firstLaunchFunnelSection.Section {...funnelSectionProps} />
+          </div>
           <StudiedRetentionCurveSection
             config={props.config}
             dateRange={funnelFilters.dateRange}
@@ -80,18 +90,12 @@ export function FunnelsArea(
             onDetailsNavigate={props.onNavigate}
             onTerminalAdminError={props.onTerminalAdminError}
           />
-          {funnelSections.map((funnel) => (
-            <funnel.Section
-              key={funnel.anchor.funnelId}
-              config={props.config}
-              filters={funnelFilters}
-              isRangeLoading={props.isReportLoading}
-              onTerminalAdminError={props.onTerminalAdminError}
-              onDetailsNavigate={props.onNavigate}
-            />
+          {otherFunnelSections.map((funnel) => (
+            <funnel.Section key={funnel.anchor.funnelId} {...funnelSectionProps} />
           ))}
         </div>
       );
+    }
     case "funnelDetails": {
       const FunnelDetailsPage = funnelDetailsPages[props.page.funnelId];
       return (
