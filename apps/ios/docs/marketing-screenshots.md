@@ -53,6 +53,7 @@ Main scripts:
 - `scripts/ios/capture-ios-marketing-screenshot.sh`
 - `scripts/ios/capture-ios-marketing-screenshots.sh`
 - `scripts/ios/build-ios-marketing-materials.sh`
+- `scripts/ios/marketing-screenshot-preflight.sh`
 
 Manual XCUITest entrypoints:
 
@@ -68,7 +69,8 @@ Screenshot support:
 
 What each layer does:
 
-- `capture-ios-marketing-screenshot.sh` resolves the locale, selects the already booted simulator, derives the device family, runs one `-only-testing` XCUITest target, and verifies that each expected screenshot index produced exactly one PNG.
+- `marketing-screenshot-preflight.sh` owns capture tags, aliases, device-family eligibility, and booted simulator selection for capture and composition.
+- `capture-ios-marketing-screenshot.sh` runs one `-only-testing` XCUITest target and verifies that each expected screenshot index produced exactly one PNG.
 - `capture-ios-marketing-screenshots.sh` runs the supported unified marketing scenario and verifies screenshots 1, 2, 3, 4, and 5 in one pass.
 - `build-ios-marketing-materials.sh` can regenerate raw localized screenshots, compose the horizontal derived PNGs, and optimize the final files.
 - `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
@@ -76,12 +78,9 @@ What each layer does:
 - `MarketingScreenshotFixtures.swift` holds the Apple launch locales, unsent AI drafts, and screenshot filenames.
 - `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content and defines the dedicated guest-session cleanup launch scenario.
 
-The shell layer also owns locale maps: `capture-ios-marketing-screenshot.sh`
-has `supported_locales`, `iphone_only_locales`, and `canonicalize_locale`, and
-`build-ios-marketing-materials.sh` has another `canonicalize_locale`.
-
 Add every capture tag to the shared Swift catalog, the UI test launch fixtures,
-`supported_locales`, and both `canonicalize_locale` maps in the same change. Add
+and the `supported_locales` array and `canonicalize_locale` map in
+`marketing-screenshot-preflight.sh` in the same change. Add
 it to `iphone_only_locales` if and only if Apple has no listing locale for it, in
 which case it must stay out of the uploader's
 [locale mapping](../../../scripts/ios/app-store-localization-inputs.mts); every
@@ -105,7 +104,7 @@ This is why the screenshot wrappers must still run sequentially. The cleanup rel
 ## Supported locales
 
 The canonical list is the `supported_locales` array in
-[capture-ios-marketing-screenshot.sh](../../../scripts/ios/capture-ios-marketing-screenshot.sh).
+[marketing-screenshot-preflight.sh](../../../scripts/ios/marketing-screenshot-preflight.sh).
 Use `--list-locales` below instead of copying a fixed list into capture loops.
 `en-US` is the default and the only capture tag that differs from its iOS bundle
 tag (`en`). Norwegian captures use `nb`; both Spanish regions remain separate.
@@ -119,8 +118,8 @@ resolved family is `ipad`, `iphone-duo-outer`, or `iphone-duo-inner`.
 
 Store aliases use the
 [App Store locale map](../../../docs/app-store-connect-metadata.md): for example
-`ar-SA` becomes `ar`, `bn-BD` becomes `bn`, and `no` becomes `nb`. Both shell
-canonicalizers also accept these non-Store aliases:
+`ar-SA` becomes `ar`, `bn-BD` becomes `bn`, and `no` becomes `nb`. The shell
+preflight also accepts these non-Store aliases:
 
 | Input | Canonical capture tag |
 | --- | --- |

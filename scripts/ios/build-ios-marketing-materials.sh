@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# shellcheck source=scripts/ios/marketing-screenshot-preflight.sh
+source "$(dirname "${BASH_SOURCE[0]}")/marketing-screenshot-preflight.sh"
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 marketing_background_color="rgb(31,31,31)"
 marketing_margin_px="120"
@@ -44,207 +47,6 @@ Environment:
 EOF
 }
 
-print_supported_locales() {
-    bash "$repo_root/scripts/ios/capture-ios-marketing-screenshot.sh" --list-locales
-}
-
-print_locales_for_family() {
-    local family="$1"
-
-    if [[ "$family" == "ipad" || "$family" == iphone-duo-* ]]; then
-        bash "$repo_root/scripts/ios/capture-ios-marketing-screenshot.sh" --list-ipad-locales
-        return
-    fi
-
-    print_supported_locales
-}
-
-locale_is_listed() {
-    local candidate="$1"
-    local locales_output="$2"
-    local locale=""
-
-    while IFS= read -r locale; do
-        if [[ "$locale" == "$candidate" ]]; then
-            return 0
-        fi
-    done <<< "$locales_output"
-
-    return 1
-}
-
-canonicalize_locale() {
-    local raw_locale="$1"
-
-    case "$raw_locale" in
-        en | en-US | en-AU | en-CA | en-GB)
-            echo "en-US"
-            ;;
-        ar | ar-SA)
-            echo "ar"
-            ;;
-        zh-CN | zh-Hans)
-            echo "zh-Hans"
-            ;;
-        zh-Hant)
-            echo "zh-Hant"
-            ;;
-        fr | fr-FR | fr-CA)
-            echo "fr"
-            ;;
-        de | de-DE)
-            echo "de"
-            ;;
-        hi | hi-IN)
-            echo "hi"
-            ;;
-        ja | ja-JP)
-            echo "ja"
-            ;;
-        pt-BR | pt)
-            echo "pt-BR"
-            ;;
-        pt-PT)
-            echo "pt-PT"
-            ;;
-        ru | ru-RU)
-            echo "ru"
-            ;;
-        es-MX | es-419)
-            echo "es-MX"
-            ;;
-        es-ES)
-            echo "es-ES"
-            ;;
-        bg)
-            echo "bg"
-            ;;
-        bn | bn-BD)
-            echo "bn"
-            ;;
-        ca)
-            echo "ca"
-            ;;
-        cs)
-            echo "cs"
-            ;;
-        da)
-            echo "da"
-            ;;
-        el)
-            echo "el"
-            ;;
-        et)
-            echo "et"
-            ;;
-        fa)
-            echo "fa"
-            ;;
-        fi)
-            echo "fi"
-            ;;
-        gu | gu-IN)
-            echo "gu"
-            ;;
-        he)
-            echo "he"
-            ;;
-        hr)
-            echo "hr"
-            ;;
-        hu)
-            echo "hu"
-            ;;
-        id)
-            echo "id"
-            ;;
-        is)
-            echo "is"
-            ;;
-        it)
-            echo "it"
-            ;;
-        kn | kn-IN)
-            echo "kn"
-            ;;
-        ko)
-            echo "ko"
-            ;;
-        lt)
-            echo "lt"
-            ;;
-        lv)
-            echo "lv"
-            ;;
-        ml | ml-IN)
-            echo "ml"
-            ;;
-        mr | mr-IN)
-            echo "mr"
-            ;;
-        ms)
-            echo "ms"
-            ;;
-        nb | no)
-            echo "nb"
-            ;;
-        nl | nl-NL)
-            echo "nl"
-            ;;
-        or | or-IN)
-            echo "or"
-            ;;
-        pa | pa-IN)
-            echo "pa"
-            ;;
-        pl)
-            echo "pl"
-            ;;
-        ro)
-            echo "ro"
-            ;;
-        sk)
-            echo "sk"
-            ;;
-        sl | sl-SI)
-            echo "sl"
-            ;;
-        sv)
-            echo "sv"
-            ;;
-        sw)
-            echo "sw"
-            ;;
-        ta | ta-IN)
-            echo "ta"
-            ;;
-        te | te-IN)
-            echo "te"
-            ;;
-        th)
-            echo "th"
-            ;;
-        tr)
-            echo "tr"
-            ;;
-        uk)
-            echo "uk"
-            ;;
-        ur | ur-PK)
-            echo "ur"
-            ;;
-        vi)
-            echo "vi"
-            ;;
-        zu)
-            echo "zu"
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
 ensure_command_exists() {
     local command_name="$1"
 
@@ -254,88 +56,11 @@ ensure_command_exists() {
     fi
 }
 
-list_booted_simulator_lines() {
-    xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)[[:space:]]*$/p'
-}
-
-resolve_booted_simulator_id() {
-    if [[ -n "${FLASHCARDS_IOS_SIMULATOR_ID:-}" ]]; then
-        echo "$FLASHCARDS_IOS_SIMULATOR_ID"
-        return
-    fi
-
-    local booted_ids_output
-    local line
-    local -a booted_ids=()
-    booted_ids_output="$(
-        list_booted_simulator_lines | sed -nE 's/^.*\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\) \(Booted\)[[:space:]]*$/\1/p'
-    )"
-    booted_ids=()
-    while IFS= read -r line; do
-        [[ -n "$line" ]] && booted_ids+=("$line")
-    done <<< "${booted_ids_output}"
-
-    if [[ "${#booted_ids[@]}" -eq 0 ]]; then
-        echo "No booted iOS simulator was found. Boot one simulator manually first." >&2
-        exit 1
-    fi
-
-    if [[ "${#booted_ids[@]}" -gt 1 ]]; then
-        echo "More than one iOS simulator is booted. Set FLASHCARDS_IOS_SIMULATOR_ID explicitly." >&2
-        exit 1
-    fi
-
-    echo "${booted_ids[0]}"
-}
-
-resolve_simulator_name() {
-    local simulator_id="$1"
-    local simulator_line=""
-
-    simulator_line="$(list_booted_simulator_lines | rg -F "($simulator_id) (Booted)" | head -n 1 || true)"
-
-    if [[ -z "$simulator_line" ]]; then
-        echo "Failed to resolve the booted simulator line for $simulator_id." >&2
-        exit 1
-    fi
-
-    echo "$simulator_line" | sed -E 's/^[[:space:]]*//; s/[[:space:]]+\([^)]*\)[[:space:]]+\(Booted\)[[:space:]]*$//'
-}
-
-resolve_device_family_from_simulator_name() {
-    local simulator_name="$1"
-
-    if [[ "$simulator_name" == *"iPhone"* && "$simulator_name" == *"Duo"* ]]; then
-        if [[ -z "$requested_duo_display" ]]; then
-            echo "iPhone Duo requires --duo-display outer|inner after selecting that display in Device Hub." >&2
-            exit 1
-        fi
-        echo "iphone-duo-$requested_duo_display"
-        return
-    fi
-
-    if [[ -n "$requested_duo_display" ]]; then
-        echo "--duo-display requires a booted iPhone Duo simulator; found '$simulator_name'." >&2
-        exit 1
-    fi
-
-    if [[ "$simulator_name" == *"iPad"* ]]; then
-        echo "ipad"
-        return
-    fi
-
-    if [[ "$simulator_name" == *"iPhone"* ]]; then
-        echo "iphone"
-        return
-    fi
-
-    echo "Unable to derive iOS screenshot device family from booted simulator '$simulator_name'." >&2
-    exit 1
-}
-
 resolve_requested_family() {
     local requested_family="$1"
     local should_capture_screenshots="$2"
+    local simulator_override="$3"
+    local duo_display="$4"
 
     if [[ -n "$requested_family" && "$requested_family" != "iphone" && "$requested_family" != "ipad" && "$requested_family" != "iphone-duo-outer" && "$requested_family" != "iphone-duo-inner" ]]; then
         echo "Unsupported family: $requested_family" >&2
@@ -343,11 +68,11 @@ resolve_requested_family() {
     fi
 
     if [[ "$requested_family" == iphone-duo-* ]]; then
-        if [[ "$requested_family" != "iphone-duo-$requested_duo_display" ]]; then
+        if [[ "$requested_family" != "iphone-duo-$duo_display" ]]; then
             echo "Family '$requested_family' requires matching --duo-display outer|inner." >&2
             exit 1
         fi
-    elif [[ -n "$requested_duo_display" && "$should_capture_screenshots" == "false" ]]; then
+    elif [[ -n "$duo_display" && "$should_capture_screenshots" == "false" ]]; then
         echo "--duo-display requires a matching Duo --family when --skip-screenshots is used." >&2
         exit 1
     fi
@@ -366,9 +91,9 @@ resolve_requested_family() {
     local simulator_name=""
     local inferred_family=""
 
-    simulator_id="$(resolve_booted_simulator_id)"
+    simulator_id="$(resolve_booted_simulator_id "$simulator_override")"
     simulator_name="$(resolve_simulator_name "$simulator_id")"
-    inferred_family="$(resolve_device_family_from_simulator_name "$simulator_name")"
+    inferred_family="$(resolve_device_family "$simulator_name" "$duo_display")"
 
     if [[ -n "$requested_family" && "$requested_family" != "$inferred_family" ]]; then
         echo "Requested family '$requested_family' does not match the booted simulator family '$inferred_family'." >&2
@@ -399,7 +124,7 @@ resolve_requested_locales() {
             exit 1
         fi
 
-        if ! locale_is_listed "$canonical_locale" "$family_locales_output"; then
+        if ! is_locale_eligible_for_family "$canonical_locale" "$family"; then
             echo "Locale '$canonical_locale' is an iPhone-only capture tag and has no $family screenshots." >&2
             exit 1
         fi
@@ -655,7 +380,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --list-locales)
-            print_supported_locales
+            print_locales_for_family "iphone"
             exit 0
             ;;
         --list-ipad-locales)
@@ -681,7 +406,7 @@ fi
 
 ensure_command_exists "magick"
 
-resolved_family="$(resolve_requested_family "$requested_family" "$should_capture_screenshots")"
+resolved_family="$(resolve_requested_family "$requested_family" "$should_capture_screenshots" "${FLASHCARDS_IOS_SIMULATOR_ID:-}" "$requested_duo_display")"
 if [[ "$resolved_family" == iphone-duo-* && "$should_capture_screenshots" == "true" ]]; then
     echo "Capture Duo screenshots explicitly first, then run this builder with --skip-screenshots, matching --family, and --duo-display." >&2
     exit 1
