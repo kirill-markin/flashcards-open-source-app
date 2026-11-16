@@ -37,7 +37,7 @@ The browser never queries Postgres. Each chart or page sends its own SQL to `POS
 - A person is an `actor_id` of `analytics.product_events_resolved`, so a guest and the account it became are one person, and an `actor_id` is not always an account id.
 - [Account deletion](../apps/backend/src/auth/accountDeletion.ts) anonymizes analytics rows onto a per-deletion pseudonym, so a deleted person's history keeps counting as a `(no email)` actor whose raw UUID the user filter and tooltips show; `identity_state = 'anonymized'` is the handle for filtering it out. An account deleted before it had analytics history is absent everywhere, and an actor is who the events resolve to now, not a durable review author, so do not reconcile totals against `content.review_events`.
 - Review days are `occurred_at`: the client clock inside a 30-day window ending at a server anchor, the anchor outside it ([`reviewAnswers.ts`](../apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts)). Offline, imported or guest-merged history older than 30 days therefore lands on its sync day, and a bulk review-history import shows as a one-day spike on the importing device's platform ([`reviewHistory.ts`](../apps/backend/src/sync/replication/reviewHistory.ts)).
-- `card_created` and `deck_created`, which no admin chart reads, carry a platform only from the day their producer began resolving it; NULL before that is missing attribution, permanently, because no table kept the creating replica.
+- `card_created` and `deck_created` carry a platform only from the day their producer began resolving it; NULL before that is missing attribution, permanently, because no table kept the creating replica.
 
 ## Self-hosted deploy
 
