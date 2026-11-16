@@ -171,7 +171,7 @@ internal fun buildUploadSessionCreateRequest(
         partCount = uploadFilePlan.parts.size,
         sourceUrl = null,
         createdAtMillis = transfer.createdAtMillis,
-        clientUpdatedAtMillis = transfer.updatedAtMillis,
+        clientUpdatedAtMillis = transfer.createdAtMillis,
         lastModifiedByReplicaId = buildClientWorkspaceReplicaId(
             workspaceId = transfer.workspaceId,
             installationId = cloudSettings.installationId
