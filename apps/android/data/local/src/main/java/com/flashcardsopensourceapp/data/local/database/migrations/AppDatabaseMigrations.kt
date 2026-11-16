@@ -36,7 +36,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration26To27,
         migration27To28,
         migration28To29,
-        migration29To30
+        migration29To30,
+        migration30To31
     )
 }
 
@@ -1030,5 +1031,23 @@ val migration29To30: Migration = object : Migration(29, 30) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("DELETE FROM progress_local_cache_state")
         db.execSQL("DELETE FROM progress_local_day_counts")
+    }
+}
+
+val migration30To31: Migration = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val hexDigit = "[0-9a-f]"
+        val uuidGlob = listOf(8, 4, 4, 4, 12).joinToString("-") { length -> hexDigit.repeat(length) }
+        val timestampConflict = "Session creation retry does not match the committed immutable input. " +
+            "sessionId=$uuidGlob conflictingFields=clientUpdatedAt"
+        db.execSQL(
+            """
+            UPDATE main.media_transfer_queue
+            SET status = 'queued', nextAttemptAtMillis = 0, lastError = NULL
+            WHERE kind = 'upload' AND status = 'failed'
+                AND (lastError GLOB ? OR lastError GLOB ?)
+            """.trimIndent(),
+            arrayOf(timestampConflict, "$timestampConflict Reference: $uuidGlob")
+        )
     }
 }
