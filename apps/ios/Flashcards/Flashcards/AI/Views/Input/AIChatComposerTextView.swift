@@ -709,7 +709,7 @@ final class AIChatSectionSwitchTouchTracker: UIGestureRecognizer {
     }
 
     /// A tab item in the tab controller's bar or sidebar, outside the selected section's own view.
-    private static func isSectionItem(_ view: UIView) -> Bool {
+    static func isSectionItem(_ view: UIView) -> Bool {
         var isItem = false
         var responder: UIResponder? = view
         while let current = responder {

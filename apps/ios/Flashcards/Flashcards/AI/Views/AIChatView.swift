@@ -256,6 +256,14 @@ struct AIChatView: View {
                 showsBackground: self.composerBarShowsBackground
             ) {
                 self.bottomBarContent
+                    #if !targetEnvironment(macCatalyst)
+                    .background {
+                        AIChatOutsideTapObserver(
+                            isEnabled: self.isCompanion && self.isPresentationActive && self.isComposerFocused,
+                            onDismiss: self.dismissComposerFocus
+                        )
+                    }
+                    #endif
             }
             .overlay {
                 if (self.isDropTargeted || self.isComposerDropHovering) && self.chatStore.canAttachToDraft {
