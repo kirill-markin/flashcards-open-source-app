@@ -63,7 +63,8 @@ struct AIChatCompanionComposerTextView: UIViewRepresentable {
     private static func update(slot: AICompanionComposerSlot, coordinator: AIChatComposerTextView.Coordinator) {
         guard slot.isActive, slot.window != nil else { return }
         let field = slot.field
-        if field.superview !== slot {
+        let isArriving = field.superview !== slot
+        if isArriving {
             if let previous = field.delegate as? AIChatComposerTextView.Coordinator, previous !== coordinator {
                 previous.isUpdatingView = true
                 previous.setFocusBinding(false)
@@ -86,7 +87,11 @@ struct AIChatCompanionComposerTextView: UIViewRepresentable {
         field.onAttachmentItemProviders = { [weak coordinator] providers in
             coordinator?.parent.onAttachmentItemProviders(providers)
         }
-        coordinator.takeKeyboardOnArrival(textView: field)
+        // Only a pane arrival may take another chat's keyboard. A normal update also follows a system keyboard
+        // dismissal, before SwiftUI's focus-owner onChange runs; taking it then would immediately refocus the field.
+        if isArriving {
+            coordinator.takeKeyboardOnArrival(textView: field)
+        }
         coordinator.scheduleFocusSync(textView: field)
     }
 

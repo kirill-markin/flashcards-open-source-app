@@ -82,6 +82,12 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
         #if !targetEnvironment(macCatalyst)
+        let hideKeyboard = self.app.buttons["Hide keyboard"].firstMatch
+        XCTAssertTrue(hideKeyboard.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        hideKeyboard.tap()
+        XCTAssertTrue(self.app.keyboards.firstMatch.waitForNonExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "The system hide key must dismiss the side-chat keyboard.")
+        try self.focusElementForTextInput(composer, identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertTrue(self.app.keyboards.firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "The composer must regain its keyboard after a deliberate dismissal.")
         try self.dismissAiComposerKeyboard()
         try self.waitForAiComposerValue(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         #endif
