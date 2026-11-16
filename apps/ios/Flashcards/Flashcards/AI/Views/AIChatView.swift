@@ -1183,15 +1183,11 @@ struct AIChatView: View {
 #if targetEnvironment(macCatalyst)
 let aiChatComposerControlSpacing: CGFloat = 8
 let aiChatComposerTextVerticalPadding: CGFloat = 8
-let aiChatComposerSuggestionHorizontalPadding: CGFloat = 0
-let aiChatComposerSuggestionVerticalPadding: CGFloat = 0
 let aiChatComposerSendButtonInset: CGFloat = 8
 let aiChatComposerSendButtonHitSize: CGFloat = appMinimumTouchTarget
 let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = aiChatComposerSendButtonHitSize
 #else
 let aiChatComposerControlSpacing: CGFloat = 12
-let aiChatComposerSuggestionHorizontalPadding: CGFloat = 12
-let aiChatComposerSuggestionVerticalPadding: CGFloat = 9
 let aiChatComposerControlSize: CGFloat = appMinimumTouchTarget
 let aiChatComposerShellHorizontalInset: CGFloat = 4
 let aiChatComposerShellVerticalInset: CGFloat = 2
