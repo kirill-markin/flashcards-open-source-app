@@ -4,9 +4,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
-import { createClient, object, request, resource, string, text } from "./app-store-connect-client.mts";
+import { createClient, object, resource, string, text } from "./app-store-connect-client.mts";
 import type { Client, Json, JsonObject, Resource } from "./app-store-connect-client.mts";
 import { LOCALES } from "./app-store-localization-inputs.mts";
+import { transferScreenshotBytes } from "./app-store-screenshot-transfer.mts";
 
 const USAGE = [
   "Upload five or ten Duo store cards per selected locale to an existing editable iOS version.",
@@ -244,26 +245,7 @@ async function transfer(client: Client, reservation: Resource, file: ImageFile):
   if (bytes.length !== file.size || "nibomo-duo-v1:" + file.slot + ":sha256:" + createHash("sha256").update(bytes).digest("hex") !== file.referenceName) {
     throw new Error(file.path + ": file changed after preflight");
   }
-  const operations = entries(reservation.attributes.uploadOperations, reservation.id + ".uploadOperations")
-    .map((item) => object(item, "upload operation")).sort((a, b) => integer(a.offset, "offset") - integer(b.offset, "offset"));
-  if (operations.length === 0) throw new Error("Image " + reservation.id + ": missing upload operations");
-  let offset = 0;
-  for (const operation of operations) {
-    const start = integer(operation.offset, "upload offset");
-    const length = integer(operation.length, "upload length");
-    if (start !== offset || length <= 0 || start + length > bytes.length || operation.method !== "PUT") {
-      throw new Error("Image " + reservation.id + ": invalid upload byte range or method");
-    }
-    const url = new URL(string(operation.url, "upload URL"));
-    if (url.protocol !== "https:" || !url.hostname.endsWith(".apple.com")) throw new Error("Image " + reservation.id + ": unexpected upload host");
-    const headers = Object.fromEntries(entries(operation.requestHeaders, "upload headers").map((item) => {
-      const header = object(item, "upload header");
-      return [string(header.name, "upload header name"), string(header.value, "upload header value")];
-    }));
-    await request(url.href, "PUT", headers, bytes.subarray(start, start + length), "Upload Duo image " + reservation.id + " bytes " + start + "-" + (start + length));
-    offset += length;
-  }
-  if (offset !== bytes.length) throw new Error("Image " + reservation.id + ": upload operations did not cover the full file");
+  await transferScreenshotBytes(reservation.id, reservation.attributes.uploadOperations, bytes);
   await client.api("PATCH", "/v1/appAssetLibraryImages/" + reservation.id, {
     data: { type: "appAssetLibraryImages", id: reservation.id, attributes: { uploaded: true } },
   });

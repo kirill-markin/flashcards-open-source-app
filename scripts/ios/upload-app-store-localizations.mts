@@ -4,10 +4,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
-import { createClient, object, request, resource, string, text } from "./app-store-connect-client.mts";
+import { createClient, object, resource, string, text } from "./app-store-connect-client.mts";
 import type { Client, JsonObject, Resource, Write } from "./app-store-connect-client.mts";
 import { loadLocalizations } from "./app-store-localization-inputs.mts";
 import type { Screenshot, ScreenshotSet } from "./app-store-localization-inputs.mts";
+import { transferScreenshotBytes } from "./app-store-screenshot-transfer.mts";
 
 const USAGE = `Upload repository App Store metadata and five screenshots per iPhone/iPad locale.
 
@@ -133,29 +134,7 @@ async function uploadImage(client: Client, write: Write, setId: string, file: Sc
     type: "appScreenshots", attributes: { fileName: file.fileName, fileSize: file.fileSize },
     relationships: relationship("appScreenshotSet", "appScreenshotSets", setId),
   })).data, "appScreenshots");
-  const operations = reservation.attributes.uploadOperations;
-  if (!Array.isArray(operations) || operations.length === 0) throw new Error(`Screenshot ${reservation.id}: missing upload operations`);
-  const orderedOperations: Array<JsonObject & { offset: number }> = operations.map((item) => {
-    const operation = object(item, `${reservation.id}.uploadOperations`);
-    if (typeof operation.offset !== "number") throw new Error(`Screenshot ${reservation.id}: missing upload offset`);
-    return { ...operation, offset: operation.offset };
-  }).sort((left, right) => left.offset - right.offset);
-  let uploadedBytes = 0;
-  for (const operation of orderedOperations) {
-    const { offset, length } = operation;
-    if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || typeof offset !== "number" || typeof length !== "number"
-      || offset !== uploadedBytes || length <= 0 || offset + length > bytes.length) throw new Error(`Screenshot ${reservation.id}: invalid upload byte range`);
-    const url = new URL(string(operation.url, "upload URL"));
-    if (url.protocol !== "https:" || !url.hostname.endsWith(".apple.com")) throw new Error(`Screenshot ${reservation.id}: unexpected upload host`);
-    if (operation.method !== "PUT" || !Array.isArray(operation.requestHeaders)) throw new Error(`Screenshot ${reservation.id}: invalid upload instructions`);
-    const headers = Object.fromEntries(operation.requestHeaders.map((header) => {
-      const pair = object(header, "upload header");
-      return [string(pair.name, "upload header name"), string(pair.value, "upload header value")];
-    }));
-    await request(url.href, "PUT", headers, bytes.subarray(offset, offset + length), `Upload screenshot ${reservation.id} bytes ${offset}–${offset + length}`);
-    uploadedBytes += length;
-  }
-  if (uploadedBytes !== bytes.length) throw new Error(`Screenshot ${reservation.id}: upload operations did not cover the full file`);
+  await transferScreenshotBytes(reservation.id, reservation.attributes.uploadOperations, bytes);
   await write("PATCH", `/v1/appScreenshots/${reservation.id}`, {
     type: "appScreenshots", id: reservation.id, attributes: { uploaded: true, sourceFileChecksum: file.checksum },
   });
