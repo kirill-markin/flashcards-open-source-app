@@ -344,13 +344,10 @@ final class AIChatComposerUITextView: UITextView {
         self.backgroundColor = .clear
         self.textContainerInset = .zero
         self.textContainer.lineFragmentPadding = 0
+        #if targetEnvironment(macCatalyst)
         self.autocorrectionType = .no
-        #if !targetEnvironment(macCatalyst)
-        // Keeps the keyboard short: no suggestion bar, and no iPad undo/redo/paste bar that would keep it showing.
-        self.spellCheckingType = .no
-        self.inlinePredictionType = .no
-        self.inputAssistantItem.leadingBarButtonGroups = []
-        self.inputAssistantItem.trailingBarButtonGroups = []
+        #else
+        NativeCompactKeyboard.configureComposer(self)
         #endif
         self.isScrollEnabled = false
         self.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)

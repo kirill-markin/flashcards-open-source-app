@@ -121,6 +121,9 @@ struct FlashcardsApp: App {
     init() {
         FlashcardsObservability.configure(bundle: .main, processInfo: ProcessInfo.processInfo)
         AutomationRun.logDecision()
+        #if !targetEnvironment(macCatalyst)
+        NativeCompactKeyboard.install()
+        #endif
         TestDistribution.startResolution()
         logAppLifecycleBreadcrumb(
             action: .appInitConfigured,
@@ -252,6 +255,7 @@ struct FlashcardsApp: App {
     var body: some Scene {
         WindowGroup {
             ReviewKeyCommandOwner { RootTabView() }
+                .nativeCompactKeyboard()
                 #if targetEnvironment(macCatalyst)
                 .macSidebarCommandOwner()
                 #endif
