@@ -1,6 +1,7 @@
 import UIKit
 import XCTest
 
+#if !targetEnvironment(macCatalyst)
 final class LiveSmokeNativeEditorTests: LiveSmokeTestCase {
     @MainActor
     func testCardEditorAutofocusSwitchingAndPhotoPickerDismissal() throws {
@@ -119,3 +120,4 @@ final class LiveSmokeNativeEditorTests: LiveSmokeTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 10), .completed)
     }
 }
+#endif

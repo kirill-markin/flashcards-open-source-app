@@ -260,6 +260,11 @@ private struct NativeMultilineEditorView: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ view: NativeMultilineTextView, coordinator: Coordinator) {
+        if view.isFirstResponder {
+            let editingChanged = coordinator.parent.editingChanged
+            // Teardown must clear the scroll focus after SwiftUI finishes updating.
+            DispatchQueue.main.async { editingChanged(false) }
+        }
         view.delegate = nil
         view.onWindowChange = nil
         if view.isFirstResponder { view.resignFirstResponder() }
@@ -307,12 +312,22 @@ private struct NativeMultilineEditorView: UIViewRepresentable {
 
         func textViewDidBeginEditing(_ textView: UITextView) {
             if self.isUpdating == false { self.setFocus(true) }
-            self.parent.editingChanged(true)
+            self.publishEditingChanged(true)
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
             if self.isUpdating == false { self.setFocus(false) }
-            self.parent.editingChanged(false)
+            self.publishEditingChanged(false)
+        }
+
+        private func publishEditingChanged(_ focused: Bool) {
+            let editingChanged = self.parent.editingChanged
+            if self.isUpdating {
+                // Disabling a focused view can end editing during a SwiftUI update.
+                DispatchQueue.main.async { editingChanged(focused) }
+            } else {
+                editingChanged(focused)
+            }
         }
 
         func textViewDidChange(_ textView: UITextView) {
