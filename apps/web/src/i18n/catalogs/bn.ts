@@ -323,9 +323,25 @@ const bnCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "পুনরালোচনার রেটিং",
     },
+    reviewsPace: {
+      lastSevenDays: "গত 7 দিন · দিনে {{count}}",
+      studyTime: "পড়ার সময় · ≈ {{count}} মিনিট",
+    },
+    records: {
+      title: "রেকর্ড",
+      bestDay: "সেরা দিন",
+      bestWeek: "সেরা সপ্তাহ",
+      longestStreak: "দীর্ঘতম ধারা",
+      totalReviews: "মোট পর্যালোচনা",
+      lastSevenDays: "গত 7 দিন",
+      cardsMet: "নতুন কার্ড",
+      relearned: "আবার শেখা",
+    },
     reviewSchedule: {
       title: "পুনরালোচনার সময়সূচি",
       totalCards: "মোট কার্ড: {{count}}",
+      dueToday: "আজ বাকি {{count}}",
+      dueTodayWithMinutes: "আজ বাকি {{count}} · ≈ {{minutes}} মিনিট",
       legendLabel: "পুনরালোচনার সময়সূচির বিভাগ",
       buckets: {
         new: "নতুন",

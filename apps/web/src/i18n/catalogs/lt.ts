@@ -330,9 +330,25 @@ const ltCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Kartojimų įvertinimai",
     },
+    reviewsPace: {
+      lastSevenDays: "Paskutinės 7 dienos · {{count}} per dieną",
+      studyTime: "Mokymosi laikas · ≈ {{count}} min.",
+    },
+    records: {
+      title: "Rekordai",
+      bestDay: "Geriausia diena",
+      bestWeek: "Geriausia savaitė",
+      longestStreak: "Ilgiausia serija",
+      totalReviews: "Iš viso kartojimų",
+      lastSevenDays: "Paskutinės 7 dienos",
+      cardsMet: "Naujos kortelės",
+      relearned: "Išmokta iš naujo",
+    },
     reviewSchedule: {
       title: "Kartojimo tvarkaraštis",
       totalCards: "Iš viso kortelių: {{count}}",
+      dueToday: "Šiandien kartoti {{count}}",
+      dueTodayWithMinutes: "Šiandien kartoti {{count}} · ≈ {{minutes}} min.",
       legendLabel: "Kartojimo tvarkaraščio grupės",
       buckets: {
         new: "Nauja",

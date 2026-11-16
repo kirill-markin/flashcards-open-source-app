@@ -150,6 +150,7 @@ export function useProgressSummarySourcePipeline(
           generatedAt: null,
           reviewHistoryWatermarks: [],
           summary: localSummary,
+          insights: null,
         }, "local_only", true),
         localFallbackActiveDates,
         hasPendingLocalReviews,

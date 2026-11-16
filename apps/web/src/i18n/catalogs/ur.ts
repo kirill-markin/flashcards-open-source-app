@@ -323,9 +323,25 @@ const urCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "دہرائی کی ریٹنگز",
     },
+    reviewsPace: {
+      lastSevenDays: "پچھلے 7 دن · روزانہ {{count}}",
+      studyTime: "مطالعے کا وقت · ≈ {{count}} منٹ",
+    },
+    records: {
+      title: "ریکارڈ",
+      bestDay: "بہترین دن",
+      bestWeek: "بہترین ہفتہ",
+      longestStreak: "طویل ترین سلسلہ",
+      totalReviews: "کل جائزے",
+      lastSevenDays: "پچھلے 7 دن",
+      cardsMet: "نئے کارڈ",
+      relearned: "دوبارہ سیکھے",
+    },
     reviewSchedule: {
       title: "دہرائی کا شیڈول",
       totalCards: "کل کارڈز: {{count}}",
+      dueToday: "آج واجب {{count}}",
+      dueTodayWithMinutes: "آج واجب {{count}} · ≈ {{minutes}} منٹ",
       legendLabel: "دہرائی کے شیڈول کے خانے",
       buckets: {
         new: "نئے",

@@ -4,31 +4,37 @@ Cross-client contract for the widget set on the iOS/iPadOS and Android Home Scre
 
 ## Product decisions
 
-- Both platforms offer the same Home Screen widgets, and iOS adds a Lock Screen widget. All are free for everyone, guests included. No Premium gating, no configuration, and no buttons inside a widget.
+- Both platforms offer the same Home Screen widgets, and iOS adds a Lock Screen widget. All are free for everyone, guests included. No Premium gating and no configuration.
+- A widget never changes data. A widget that shows a question carries a Reveal answer button at every size, except the Lock Screen rectangular widget; it opens Review on that card with the answer shown.
 - Due counts, the next due time, and the Coming up forecast cover the whole workspace selected in the app. Due counts use the same [card eligibility as Review](fsrs-scheduling-logic.md#review-counts).
-- Card previews show the next question from the workspace's saved Review filter as plain text. There can be cards due in the workspace even when the saved filter has no card to preview. A widget never shows the answer.
-- Progress facts (reviews per day, streaks, the review schedule) are the ones the Progress tab shows; widgets never compute them.
+- Card previews show the next question from the workspace's saved Review filter as plain text; the Question widget rotates through the first 6 cards of that queue at 06:00, 12:00, 16:00, and 20:00 local time. There can be cards due in the workspace even when the saved filter has no card to preview. A widget never shows the answer.
+- Progress facts (reviews per day, streaks, the review schedule, records, timing) are the ones the Progress tab shows. Widgets compute only two things from them: the pace against the user's usual, with the same function as Progress ([`reviewPace.ts`](../apps/web/src/progress/reviewPace.ts) and its iOS and Android ports), and cards due × seconds per due card.
+- Pace compares the last 7 local days with the daily average of the 28 days before; without 14 days of history or 14 reviews in that baseline there is no comparison. The ring is the same ratio, drawn up to two laps; a widget shows either the ring or the percentage.
+- Minutes measure effort, never a grade: they come from the gaps between ratings on each device ([`insights.ts`](../apps/backend/src/progress/reports/loaders/insights.ts)) and stay hidden at 0 or without enough timed reviews.
 
 | Widget | Shows | Sizes | Tap opens |
 | --- | --- | --- | --- |
-| Review | Cards due, the next question, the streak | Small, Medium, Large | Review, with the shown card on Medium and Large |
-| Today | Today's reviews, cards left, the streak | Small, Medium | Review |
-| Cards due (iOS only) | Cards due, today's progress, the next question | Lock Screen circular, rectangular, inline | Review, with the shown card on rectangular |
+| Review | Cards to review and due, the next question, minutes to clear, the streak | Small, Medium, Large | Review, with the shown card on Medium and Large |
+| Question | A question from the next few cards; cards due on larger sizes | Small, Medium (Android also Large) | Review, with the shown card |
+| Today | The last 7 days against your usual, today's reviews, cards due, the streak; Medium adds minutes or the best day | Small, Medium | Review |
+| Cards due (iOS only) | The last 7 days, cards to review and due, the next question | Lock Screen circular, rectangular, inline | Review, with the shown card on rectangular |
 | Activity | Daily reviews as a heatmap, the streak | Small, Medium, Large | Progress |
 | Year | A year of daily reviews, one row per month | Large | Progress |
-| Streaks | Current, best, and recent streaks | Small, Medium | Progress |
+| Streaks | Current and best streak, freezes, the last 7 days | Small, Medium | Progress |
 | Calendar | This month's streak days | Small, Large | Progress |
-| Reviews | Daily reviews compared with the period before | Medium, Large | Progress |
+| Reviews | Daily reviews of the last 7 days against your usual | Medium, Large | Progress |
 | Coming up | Cards due today and over the next days | Medium, Large | Progress |
-| Dashboard | Today's progress, cards due, the streak, the next question, recent activity | Large | Review, with the shown card |
+| Dashboard | The last 7 days against your usual, cards to review and due, the streak, the next question, 30-day reviews and active days | Large | Review, with the shown card |
 
 The Review widget's sizes by workspace count:
 
-| Size | Cards due | No cards due |
+| Size | Cards to review | Nothing to review |
 | --- | --- | --- |
-| Small | Due count and streak | "All done", the next due time when known, and the streak |
-| Medium | Due count and the next card's question | "All done" and the next due time when known |
-| Large | Due count, the next card's question, and the streak | "All done", the next due time when known, and the streak |
+| Small | To-review and due counts, the streak | "All done", the next due time when known, and the streak |
+| Medium | To-review count, the next card's question, due count, minutes | "All done" and the next due time when known |
+| Large | Medium plus the new count and the streak | "All done", the next due time when known, and the streak |
+
+To review counts due and new cards. With new cards left and none due, the layout stays and shows 0 due.
 
 Before the app has provided any data, for example on a fresh install, every widget invites the user to open the app, and a widget built on progress does so until progress has loaded. Progress can lag the latest review until the app reloads it. On iOS, once the snapshot is from an earlier day, a widget never shows that day's numbers as today's: it shows today as not yet reviewed or invites the user to open the app.
 
@@ -39,12 +45,12 @@ Before the app has provided any data, for example on a fresh install, every widg
 
 ## Tap
 
-A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if the card is still in the selected workspace, eligible under its saved Review filter, and neither on screen nor awaiting its rating, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). Otherwise Review opens as it is.
+A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if the card is still in the selected workspace, eligible under its saved Review filter, and neither on screen nor awaiting its rating, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). Otherwise Review opens as it is. A Reveal answer tap passes the same card and Review shows it answer-side with the ratings ready, recording `review_card_revealed`; if the card cannot be shown, nothing is revealed.
 
-- iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
-- Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)), and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
+- iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab; Reveal answer adds `reveal=1` and reaches the app through an app intent. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
+- Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)), with `EXTRA_WIDGET_REVEAL_ANSWER` for Reveal answer, and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
 
-Each tap records one `widget_opened` with `widget_size` and `widget_kind` where the app consumes it, as its own event rather than an `app_opened` property. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes, one event per widget kind; one without `widget_kind` comes from an older client and counts Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
+Each tap records one `widget_opened` with `widget_size`, `widget_kind`, and `widget_target` (`card` or `reveal_answer`) where the app consumes it, as its own event rather than an `app_opened` property. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes, one event per widget kind; one without `widget_kind` comes from an older client and counts Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
 
 ## Platform scope
 

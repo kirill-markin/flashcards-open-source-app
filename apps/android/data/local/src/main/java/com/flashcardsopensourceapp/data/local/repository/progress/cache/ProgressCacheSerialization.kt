@@ -1,7 +1,9 @@
 package com.flashcardsopensourceapp.data.local.repository.progress.cache
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressInsights
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.cloud.remote.progress.serializeCloudProgressInsights
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
@@ -64,6 +66,9 @@ internal fun CloudProgressSummary.toCacheEntity(
         streakFreezeEarnedUnitsPerStreakDay = streakFreeze.earnedUnitsPerStreakDay,
         streakFreezeNextCreditProgressUnits = streakFreeze.nextCreditProgressUnits,
         streakFreezeNextCreditRequiredUnits = streakFreeze.nextCreditRequiredUnits,
+        insightsJson = insights?.let { cachedInsights ->
+            serializeCloudProgressInsights(insights = cachedInsights).toString()
+        },
         updatedAtMillis = updatedAtMillis
     )
 }
@@ -530,7 +535,10 @@ internal fun ProgressSummaryCacheEntity.toCloudProgressSummaryOrNull(): CloudPro
                     fieldPath = "progressSummaryCache.streakFreezeNextCreditRequiredUnits"
                 )
             ),
-            reviewHistoryWatermarks = reviewHistoryWatermarks
+            reviewHistoryWatermarks = reviewHistoryWatermarks,
+            insights = insightsJson?.let { rawJson ->
+                parseCloudProgressInsights(payload = JSONObject(rawJson), fieldPath = "progressSummaryCache.insights")
+            }
         )
     }.getOrElse { error ->
         logProgressRepositoryWarning(

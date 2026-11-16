@@ -11,6 +11,7 @@ import { useDeferredProgressRefreshWhileShown } from "../../appData/progress/inv
 import { useProgressInvalidationState } from "../../appData/progress/invalidation/progressInvalidation";
 import { canLoadProgressServerBase, useProgressSource } from "../../appData/progress/progressSource";
 import { resolveLocaleWeekContext, useI18n } from "../../i18n";
+import { calculateReviewPace } from "../../progress/reviewPace";
 import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import type {
   DailyReviewPoint,
@@ -23,6 +24,14 @@ import { ProgressLeaderboardProfileDialog } from "./leaderboard/ProgressLeaderbo
 import type { ProgressLeaderboardProfileDialogSeed } from "./leaderboard/ProgressLeaderboardPresentation";
 import { ProgressLeaderboardSection } from "./leaderboard/ProgressLeaderboardSection";
 import { ProgressStreakLeaderboardSection } from "./leaderboard/ProgressStreakLeaderboardSection";
+import { ProgressRecordsSection } from "./records/ProgressRecordsSection";
+import {
+  buildProgressRecordsView,
+  calculateLast7DaysStudySeconds,
+  estimateDueMinutes,
+  formatReviewPaceSuffix,
+  roundStudyMinutes,
+} from "./records/progressInsightsModel";
 import { ProgressReviewScheduleSection } from "./reviewSchedule/ProgressReviewScheduleSection";
 import {
   buildReviewScheduleBucketViews,
@@ -31,6 +40,7 @@ import {
 import {
   ProgressReviewsChartSection,
   type ProgressReviewsChartNavigationState,
+  type ProgressReviewsPaceView,
 } from "./reviewsChart/ProgressReviewsChartSection";
 import {
   buildChartRatingLegendItems,
@@ -217,9 +227,29 @@ export function ProgressScreen(): ReactElement {
   const selectedReviewsChartRatingKey = reviewsChartSelection.kind === "rating"
     ? reviewsChartSelection.ratingKey
     : null;
+  const progressInsights = progressSummary?.insights ?? null;
+  const reviewPace = progress === null ? null : calculateReviewPace(dailyReviews, today);
+  const studyMinutes = roundStudyMinutes(calculateLast7DaysStudySeconds(progressInsights) ?? 0);
+  const reviewsPace: ProgressReviewsPaceView | null = reviewPace === null
+    ? null
+    : {
+      paceLabel: t("progressScreen.reviewsPace.lastSevenDays", {
+        count: formatNumber(reviewPace.last7DaysAveragePerDay, { maximumFractionDigits: 1 }),
+      }) + formatReviewPaceSuffix(reviewPace, formatNumber),
+      studyTimeLabel: studyMinutes === 0
+        ? null
+        : t("progressScreen.reviewsPace.studyTime", { count: formatNumber(studyMinutes) }),
+    };
   const chartPages = progress === null
     ? []
-    : buildChartPages(dailyReviews, today, formatDate, weekContext, selectedReviewsChartRatingKey);
+    : buildChartPages(
+      dailyReviews,
+      today,
+      formatDate,
+      weekContext,
+      selectedReviewsChartRatingKey,
+      reviewPace?.baseline?.usualReviewsPerDay ?? null,
+    );
   const selectedPageIndex = chartPages.findIndex((page) => page.startLocalDate === selectedPageStartLocalDate);
   const visiblePage = chartPages.length === 0
     ? null
@@ -294,6 +324,37 @@ export function ProgressScreen(): ReactElement {
     ? []
     : buildReviewScheduleBucketViews(reviewSchedule, t, formatNumber);
   const reviewScheduleDonutSegments = buildReviewScheduleDonutSegments(reviewScheduleBucketViews);
+  const reviewScheduleDueTodayCount = reviewSchedule?.buckets.find((bucket) => bucket.key === "today")?.count ?? 0;
+  const reviewScheduleDueTodayMinutes = estimateDueMinutes(reviewScheduleDueTodayCount, progressInsights);
+  const reviewScheduleDueTodayLabel = reviewScheduleDueTodayMinutes === null
+    ? t("progressScreen.reviewSchedule.dueToday", { count: formatNumber(reviewScheduleDueTodayCount) })
+    : t("progressScreen.reviewSchedule.dueTodayWithMinutes", {
+      count: formatNumber(reviewScheduleDueTodayCount),
+      minutes: formatNumber(reviewScheduleDueTodayMinutes),
+    });
+  const progressRecords = progressInsights === null || progressSummary === null
+    ? null
+    : buildProgressRecordsView(
+      progressInsights,
+      progressSummary.summary,
+      reviewPace,
+      dailyReviews.find((day) => day.date === today)?.reviewCount ?? 0,
+      today,
+      {
+        bestDay: t("progressScreen.records.bestDay"),
+        bestWeek: t("progressScreen.records.bestWeek"),
+        longestStreak: t("progressScreen.records.longestStreak"),
+        totalReviews: t("progressScreen.records.totalReviews"),
+        cardsMet: t("progressScreen.records.cardsMet"),
+        relearned: t("progressScreen.records.relearned"),
+      },
+      {
+        formatNumber,
+        formatStreakDays: (days) => formatPluralMessage(days, messages.reviewScreen.progressBadge.streakDayCount),
+        formatDay: (date) => formatChartDayLabel(date, locale),
+        formatRange: (startDate, endDate) => formatChartRangeLabel(startDate, endDate, locale),
+      },
+    );
   const canRenderLeaderboardServerBase = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
   const handleSelectChartPageStartLocalDate = (pageStartLocalDate: string | null): void => {
     setSelectedPageStartLocalDate(pageStartLocalDate);
@@ -396,6 +457,7 @@ export function ProgressScreen(): ReactElement {
 
               <ProgressReviewsChartSection
                 title={t("progressScreen.reviewsTitle")}
+                pace={reviewsPace}
                 pageRangeLabel={pageRangeLabel}
                 visiblePage={visiblePage}
                 chartGuideLabels={chartGuideLabels}
@@ -415,6 +477,7 @@ export function ProgressScreen(): ReactElement {
                   totalCardsLabel={t("progressScreen.reviewSchedule.totalCards", {
                     count: formatNumber(reviewSchedule.totalCards),
                   })}
+                  dueTodayLabel={reviewScheduleDueTodayLabel}
                   legendLabel={t("progressScreen.reviewSchedule.legendLabel")}
                   selectedBucket={selectedReviewScheduleBucket}
                   bucketViews={reviewScheduleBucketViews}
@@ -423,6 +486,15 @@ export function ProgressScreen(): ReactElement {
                   onClearSelection={handleClearReviewScheduleSelection}
                 />
               ) : null}
+
+              {progressRecords === null ? null : (
+                <ProgressRecordsSection
+                  title={t("progressScreen.records.title")}
+                  records={progressRecords.records}
+                  recentTitle={t("progressScreen.records.lastSevenDays")}
+                  recentRecords={progressRecords.recentRecords}
+                />
+              )}
             </div>
           ) : null}
         </div>

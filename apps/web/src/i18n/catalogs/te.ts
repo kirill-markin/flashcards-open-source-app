@@ -323,9 +323,25 @@ const teCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "పునశ్చరణ రేటింగ్‌లు",
     },
+    reviewsPace: {
+      lastSevenDays: "గత 7 రోజులు · రోజుకు {{count}}",
+      studyTime: "చదువు సమయం · ≈ {{count}} నిమి",
+    },
+    records: {
+      title: "రికార్డులు",
+      bestDay: "ఉత్తమ రోజు",
+      bestWeek: "ఉత్తమ వారం",
+      longestStreak: "పొడవైన వరుస",
+      totalReviews: "మొత్తం సమీక్షలు",
+      lastSevenDays: "గత 7 రోజులు",
+      cardsMet: "కొత్త కార్డులు",
+      relearned: "మళ్లీ నేర్చుకున్నవి",
+    },
     reviewSchedule: {
       title: "పునశ్చరణ షెడ్యూల్",
       totalCards: "మొత్తం కార్డులు: {{count}}",
+      dueToday: "ఈరోజు బాకీ {{count}}",
+      dueTodayWithMinutes: "ఈరోజు బాకీ {{count}} · ≈ {{minutes}} నిమి",
       legendLabel: "పునశ్చరణ షెడ్యూల్ విభాగాలు",
       buckets: {
         new: "కొత్తవి",

@@ -114,6 +114,10 @@ extension LocalDatabase {
         try self.cardStore.loadWorkspaceReviewDueBadgeSnapshot(workspaceId: workspaceId, now: now)
     }
 
+    func loadWorkspaceReviewNewCount(workspaceId: String) throws -> Int {
+        try self.cardStore.loadWorkspaceReviewNewCount(workspaceId: workspaceId)
+    }
+
     func loadWorkspaceReviewDueAdvance(workspaceId: String, countedThrough: Date, now: Date) throws -> Int {
         try self.cardStore.loadWorkspaceReviewDueAdvance(workspaceId: workspaceId, countedThrough: countedThrough, now: now)
     }

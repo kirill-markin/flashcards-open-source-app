@@ -6,6 +6,8 @@ private let progressReviewScheduleLegendMarkerSize: CGFloat = 10
 
 struct ProgressReviewScheduleSection: View {
     let snapshot: ReviewScheduleSnapshot
+    /// Nil under the server's timing sample.
+    let secondsPerDueCard: Double?
 
     @State private var selectedBucketKey: ReviewScheduleBucketKey?
     @State private var selectedAngle: Int?
@@ -31,6 +33,27 @@ struct ProgressReviewScheduleSection: View {
                 )
             )
             .font(.headline)
+
+            if let dueTodayEstimate = self.dueTodayEstimate {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(
+                        String(
+                            localized: "progress.screen.review_schedule.due_today",
+                            defaultValue: "Due today",
+                            table: "Foundation",
+                            comment: "Progress review schedule label for the cards due by the end of today"
+                        )
+                    )
+                    .font(.subheadline)
+                    Spacer(minLength: 12)
+                    Text(
+                        verbatim: "\(dueTodayEstimate.dueCount.formatted()) · \(progressMinutesEstimateLabel(minutes: dueTodayEstimate.minutes))"
+                    )
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+            }
 
             if self.snapshot.schedule.totalCards > 0 {
                 Chart {
@@ -95,6 +118,19 @@ struct ProgressReviewScheduleSection: View {
                     self.selectedBucketKey = nil
                 }
         )
+    }
+
+    /// The scheduled cards due by the end of today and the minutes to clear them; hidden at 0 due and under the
+    /// server's timing sample.
+    private var dueTodayEstimate: (dueCount: Int, minutes: Int)? {
+        guard
+            let secondsPerDueCard = self.secondsPerDueCard,
+            let dueCount = self.buckets.first(where: { bucket in bucket.key == .today })?.count,
+            let minutes = makeReviewTimeEstimateMinutes(dueCount: dueCount, secondsPerDueCard: secondsPerDueCard)
+        else {
+            return nil
+        }
+        return (dueCount: dueCount, minutes: minutes)
     }
 
     private var chartAccessibilityValue: String {

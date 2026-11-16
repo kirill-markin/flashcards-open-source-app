@@ -202,6 +202,17 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/dashboard_widget_info" />
         </receiver>
+        <receiver
+            android:name=".widget.QuestionWidgetReceiver"
+            android:exported="true"
+            android:label="@string/question_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/question_widget_info" />
+        </receiver>
         <!-- Google Play services binds it; WearableListenerService rejects every other caller. -->
         <service
             android:name=".watch.WatchHandoffListenerService"

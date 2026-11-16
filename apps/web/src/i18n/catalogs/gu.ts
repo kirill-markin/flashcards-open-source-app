@@ -323,9 +323,25 @@ const guCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "પુનરાવર્તનનાં રેટિંગ",
     },
+    reviewsPace: {
+      lastSevenDays: "છેલ્લા 7 દિવસ · દિવસે {{count}}",
+      studyTime: "અભ્યાસ સમય · ≈ {{count}} મિનિટ",
+    },
+    records: {
+      title: "રેકોર્ડ",
+      bestDay: "શ્રેષ્ઠ દિવસ",
+      bestWeek: "શ્રેષ્ઠ અઠવાડિયું",
+      longestStreak: "સૌથી લાંબી શ્રેણી",
+      totalReviews: "કુલ પુનરાવર્તનો",
+      lastSevenDays: "છેલ્લા 7 દિવસ",
+      cardsMet: "નવા કાર્ડ",
+      relearned: "ફરી શીખ્યા",
+    },
     reviewSchedule: {
       title: "પુનરાવર્તનનું સમયપત્રક",
       totalCards: "કુલ કાર્ડ: {{count}}",
+      dueToday: "આજે બાકી {{count}}",
+      dueTodayWithMinutes: "આજે બાકી {{count}} · ≈ {{minutes}} મિનિટ",
       legendLabel: "પુનરાવર્તન સમયપત્રકના વિભાગ",
       buckets: {
         new: "નવાં",

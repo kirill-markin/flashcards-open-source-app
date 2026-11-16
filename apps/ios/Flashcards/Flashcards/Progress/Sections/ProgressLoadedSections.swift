@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-// The five loaded Progress cards are siblings at one nesting level so the
+// The six loaded Progress cards are siblings at one nesting level so the
 // enclosing lazy container keeps a shallow generic type. Each optional card
 // decides on its own whether it draws, and every value a card needs is passed
 // in explicitly instead of read back from the environment.
@@ -44,7 +44,12 @@ struct ProgressLoadedSections: View {
             pageSelection: self.$reviewChartPageSelection
         )
 
-        ProgressReviewScheduleCard(snapshot: self.reviewScheduleSnapshot)
+        ProgressReviewScheduleCard(
+            snapshot: self.reviewScheduleSnapshot,
+            secondsPerDueCard: self.progressSnapshot.insights?.secondsPerDueCard
+        )
+
+        ProgressRecordsCard(progressSnapshot: self.progressSnapshot)
     }
 }
 
@@ -145,6 +150,8 @@ private struct ProgressStreakLeaderboardCard: View {
 private struct ProgressReviewsCard: View {
     private let chartDays: [ProgressChartDay]
     private let chartPages: [ProgressReviewChartPage]
+    private let pace: ProgressPace
+    private let studyMinutes: Int?
     private let selectionResetKey: String
     private let presentationCalendar: Calendar
     @Binding private var pageSelection: ProgressReviewChartPageSelection?
@@ -152,6 +159,10 @@ private struct ProgressReviewsCard: View {
     init(progressSnapshot: ProgressSnapshot, pageSelection: Binding<ProgressReviewChartPageSelection?>) {
         self.chartDays = progressSnapshot.chartData.chartDays
         self.chartPages = progressSnapshot.reviewChartPages
+        self.pace = makeProgressPace(dayReviewCounts: progressSnapshot.chartData.chartDays.map(\.reviewCount))
+        self.studyMinutes = progressSnapshot.insights?.studySecondsByDay.flatMap { studyDays in
+            makeStudyTimeMinutes(seconds: studyDays.reduce(0) { total, studyDay in total + studyDay.seconds })
+        }
         self.selectionResetKey = progressSnapshot.scopeKey.storageKey
         self.presentationCalendar = progressSnapshot.presentationCalendar
         self._pageSelection = pageSelection
@@ -162,6 +173,8 @@ private struct ProgressReviewsCard: View {
             ProgressReviewsSection(
                 chartDays: self.chartDays,
                 chartPages: self.chartPages,
+                pace: self.pace,
+                studyMinutes: self.studyMinutes,
                 chartCalendar: self.presentationCalendar,
                 selectionResetKey: self.selectionResetKey,
                 pageSelection: self.$pageSelection
@@ -175,14 +188,36 @@ private struct ProgressReviewsCard: View {
 
 private struct ProgressReviewScheduleCard: View {
     let snapshot: ReviewScheduleSnapshot?
+    let secondsPerDueCard: Double?
 
     var body: some View {
         if let snapshot = self.snapshot {
             VStack(alignment: .leading, spacing: 0) {
-                ProgressReviewScheduleSection(snapshot: snapshot)
+                ProgressReviewScheduleSection(snapshot: snapshot, secondsPerDueCard: self.secondsPerDueCard)
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
+            .modifier(ProgressCardModifier())
+        }
+    }
+}
+
+private struct ProgressRecordsCard: View {
+    private let records: ProgressRecords?
+    private let presentationCalendar: Calendar
+
+    init(progressSnapshot: ProgressSnapshot) {
+        self.records = makeProgressRecords(progressSnapshot: progressSnapshot)
+        self.presentationCalendar = progressSnapshot.presentationCalendar
+    }
+
+    var body: some View {
+        if let records = self.records {
+            VStack(alignment: .leading, spacing: 0) {
+                ProgressRecordsSection(records: records, calendar: self.presentationCalendar)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(UITestIdentifier.progressRecordsSection)
             .modifier(ProgressCardModifier())
         }
     }

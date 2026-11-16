@@ -323,9 +323,25 @@ const heCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "דירוגי חזרה",
     },
+    reviewsPace: {
+      lastSevenDays: "7 הימים האחרונים · {{count}} ביום",
+      studyTime: "זמן לימוד · ≈ {{count}} דק׳",
+    },
+    records: {
+      title: "שיאים",
+      bestDay: "היום הטוב ביותר",
+      bestWeek: "השבוע הטוב ביותר",
+      longestStreak: "הרצף הארוך ביותר",
+      totalReviews: "סך החזרות",
+      lastSevenDays: "7 הימים האחרונים",
+      cardsMet: "כרטיסים חדשים",
+      relearned: "נלמדו מחדש",
+    },
     reviewSchedule: {
       title: "לוח החזרות",
       totalCards: "סך הכרטיסים: {{count}}",
+      dueToday: "לחזרה היום {{count}}",
+      dueTodayWithMinutes: "לחזרה היום {{count}} · ≈ {{minutes}} דק׳",
       legendLabel: "קבוצות לוח החזרות",
       buckets: {
         new: "חדשים",

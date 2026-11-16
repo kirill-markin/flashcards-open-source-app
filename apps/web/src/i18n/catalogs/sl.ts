@@ -337,9 +337,25 @@ const slCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Ocene ponovitev",
     },
+    reviewsPace: {
+      lastSevenDays: "Zadnjih 7 dni · {{count}} na dan",
+      studyTime: "Čas učenja · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekordi",
+      bestDay: "Najboljši dan",
+      bestWeek: "Najboljši teden",
+      longestStreak: "Najdaljši niz",
+      totalReviews: "Skupaj ponovitev",
+      lastSevenDays: "Zadnjih 7 dni",
+      cardsMet: "Nove kartice",
+      relearned: "Ponovno naučene",
+    },
     reviewSchedule: {
       title: "Urnik ponavljanja",
       totalCards: "Skupno število kartic: {{count}}",
+      dueToday: "Za danes {{count}}",
+      dueTodayWithMinutes: "Za danes {{count}} · ≈ {{minutes}} min",
       legendLabel: "Skupine urnika ponavljanja",
       buckets: {
         new: "Novo",

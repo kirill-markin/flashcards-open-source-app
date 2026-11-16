@@ -2,11 +2,13 @@ package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -30,20 +32,21 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import com.flashcardsopensourceapp.app.R
 
-private const val streaksWidgetPastStreakLimit: Int = 4
 /** The smallest widget that shows the medium layout; anything smaller shows the small one. */
 private val streaksWidgetMediumMinSize = DpSize(width = 220.dp, height = 100.dp)
-private val streaksWidgetHeaderFontSize: TextUnit = 14.sp
-private val streaksWidgetHeaderSpacing: Dp = 4.dp
+private val streaksWidgetSmallDotsHeight: Dp = 28.dp
+private val streaksWidgetMediumDotsHeight: Dp = 36.dp
 
 class StreaksWidget : GlanceAppWidget() {
-    /** Exact, so [LocalSize] is the real widget size and the chart bitmap is drawn at it, never upscaled. */
+    /** Exact, so [LocalSize] is the real widget size and the dots bitmap is drawn at it, never upscaled. */
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -84,7 +87,7 @@ private fun StreaksWidgetBody(content: WidgetProgressContent?, widgetSize: DpSiz
             when {
                 content == null -> StreaksWidgetOpenApp()
                 size == ReviewWidgetSize.MEDIUM -> StreaksWidgetMedium(content = content, widgetSize = widgetSize)
-                else -> StreaksWidgetSmall(content = content)
+                else -> StreaksWidgetSmall(content = content, widgetSize = widgetSize)
             }
         }
     }
@@ -102,12 +105,13 @@ private fun ColumnScope.StreaksWidgetOpenApp() {
     )
 }
 
+/** The streak with its freezes, and the last 7 days. */
 @Composable
-private fun ColumnScope.StreaksWidgetSmall(content: WidgetProgressContent) {
+private fun ColumnScope.StreaksWidgetSmall(content: WidgetProgressContent, widgetSize: DpSize) {
     val context = LocalContext.current
     val dayCountText: String = context.getString(R.string.streaks_widget_day_count, content.currentStreakDays)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = context.getString(R.string.streaks_widget_flame), style = TextStyle(fontSize = 20.sp), maxLines = 1)
+    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        StreaksWidgetFlame(content = content, iconSize = 20.dp)
         Spacer(modifier = GlanceModifier.width(4.dp))
         Text(
             text = dayCountText,
@@ -116,85 +120,103 @@ private fun ColumnScope.StreaksWidgetSmall(content: WidgetProgressContent) {
                 fontSize = streaksSmallDayCountFontSize(digitCount = dayCountText.length),
                 fontWeight = FontWeight.Bold
             ),
-            maxLines = 1
+            maxLines = 1,
+            modifier = GlanceModifier.defaultWeight()
         )
+        StreaksWidgetFreezeCredits(content = content)
     }
+    Text(text = context.getString(R.string.streaks_widget_day_streak_label), style = streaksSecondaryStyle(), maxLines = 1)
     Spacer(modifier = GlanceModifier.defaultWeight())
-    Text(
-        text = context.getString(R.string.streaks_widget_best, content.longestStreakDays),
-        style = streaksSmallSecondaryStyle(),
-        maxLines = 1
-    )
-    Text(
-        text = context.getString(R.string.streaks_widget_freeze_credits, content.availableFreezeCredits),
-        style = streaksSmallSecondaryStyle(),
-        maxLines = 1
-    )
+    StreaksWidgetDots(content = content, widgetSize = widgetSize, dotsHeight = streaksWidgetSmallDotsHeight)
 }
 
-/** The flame and the count share the small widget's content width, 76dp at its narrowest, so longer counts shrink. */
-private fun streaksSmallDayCountFontSize(digitCount: Int): TextUnit {
-    return when {
-        digitCount <= 2 -> 30.sp
-        digitCount == 3 -> 24.sp
-        else -> 19.sp
-    }
-}
-
-/** Smaller than the medium's, so both lines stay under the count at a larger system font. */
-@Composable
-private fun streaksSmallSecondaryStyle(): TextStyle {
-    return TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp)
-}
-
+/** The streak with its best and its freezes, and the last 7 days. */
 @Composable
 private fun ColumnScope.StreaksWidgetMedium(content: WidgetProgressContent, widgetSize: DpSize) {
     val context = LocalContext.current
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        StreaksWidgetFlame(content = content, iconSize = 26.dp)
+        Spacer(modifier = GlanceModifier.width(4.dp))
         Text(
-            text = context.getString(R.string.streaks_widget_label),
-            style = TextStyle(
-                color = GlanceTheme.colors.primary,
-                fontSize = streaksWidgetHeaderFontSize,
-                fontWeight = FontWeight.Bold
-            ),
+            text = context.getString(R.string.streaks_widget_day_count, content.currentStreakDays),
+            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 30.sp, fontWeight = FontWeight.Bold),
             maxLines = 1
         )
-        Spacer(modifier = GlanceModifier.defaultWeight())
-        Text(
-            text = context.getString(R.string.streaks_widget_best, content.longestStreakDays),
-            style = streaksSecondaryStyle(),
-            maxLines = 1
-        )
+        Spacer(modifier = GlanceModifier.width(8.dp))
+        Column(modifier = GlanceModifier.defaultWeight()) {
+            Text(
+                text = context.getString(R.string.streaks_widget_day_streak_label),
+                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                maxLines = 1
+            )
+            Text(
+                text = context.getString(R.string.streaks_widget_best, content.longestStreakDays),
+                style = streaksSecondaryStyle(),
+                maxLines = 1
+            )
+        }
+        StreaksWidgetFreezeCredits(content = content)
     }
-    val streakRuns: List<WidgetStreakRun> = makeWidgetStreakRuns(
-        content = content,
-        pastRunLimit = streaksWidgetPastStreakLimit
+    Spacer(modifier = GlanceModifier.defaultWeight())
+    StreaksWidgetDots(content = content, widgetSize = widgetSize, dotsHeight = streaksWidgetMediumDotsHeight)
+}
+
+/** The flame is in the accent color once the user has reviewed today, grey while today is open. */
+@Composable
+private fun StreaksWidgetFlame(content: WidgetProgressContent, iconSize: Dp) {
+    val context = LocalContext.current
+    val tint: ColorProvider = if (content.todayReviewCount > 0) GlanceTheme.colors.primary else GlanceTheme.colors.onSurfaceVariant
+    Image(
+        provider = ImageProvider(resId = R.drawable.widget_streak_flame),
+        contentDescription = context.resources.getQuantityString(
+            R.plurals.review_widget_streak_days,
+            content.currentStreakDays,
+            content.currentStreakDays
+        ),
+        colorFilter = ColorFilter.tint(colorProvider = tint),
+        modifier = GlanceModifier.size(iconSize)
     )
-    if (streakRuns.isEmpty()) {
-        Spacer(modifier = GlanceModifier.height(8.dp))
-        Text(text = context.getString(R.string.streaks_widget_empty), style = streaksSecondaryStyle(), maxLines = 2)
-        return
-    }
-    Spacer(modifier = GlanceModifier.height(streaksWidgetHeaderSpacing))
+}
+
+@Composable
+private fun StreaksWidgetFreezeCredits(content: WidgetProgressContent) {
+    val context = LocalContext.current
+    Text(
+        text = context.getString(R.string.streaks_widget_freeze_credits, content.availableFreezeCredits),
+        style = streaksSecondaryStyle(),
+        maxLines = 1
+    )
+}
+
+/** Drawn at the content width and [dotsHeight], the size it is shown at. */
+@Composable
+private fun StreaksWidgetDots(content: WidgetProgressContent, widgetSize: DpSize, dotsHeight: Dp) {
+    val context = LocalContext.current
     Image(
         provider = ImageProvider(
-            bitmap = drawStreakBarsBitmap(
+            bitmap = drawStreakDotsBitmap(
                 context = context,
-                runs = streakRuns,
-                accentColor = widgetAccentColor(),
-                size = widgetImageSize(
-                    context = context,
-                    widgetSize = widgetSize,
-                    headerFontSize = streaksWidgetHeaderFontSize,
-                    headerSpacing = streaksWidgetHeaderSpacing
+                dots = makeStreakDots(content = content),
+                accentArgb = widgetAccentColor().toArgb(),
+                size = DpSize(
+                    width = (widgetSize.width - widgetContentPadding * 2).coerceAtLeast(1.dp),
+                    height = dotsHeight
                 )
             )
         ),
-        contentDescription = context.getString(R.string.streaks_widget_chart_description),
-        modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        contentScale = ContentScale.Fit
+        contentDescription = context.getString(R.string.streaks_widget_days_description),
+        contentScale = ContentScale.Fit,
+        modifier = GlanceModifier.fillMaxWidth().height(dotsHeight)
     )
+}
+
+/** The flame, the count and the freezes share the small widget's content width, 76dp at its narrowest. */
+private fun streaksSmallDayCountFontSize(digitCount: Int): TextUnit {
+    return when {
+        digitCount <= 2 -> 26.sp
+        digitCount == 3 -> 21.sp
+        else -> 17.sp
+    }
 }
 
 @Composable

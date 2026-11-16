@@ -191,6 +191,7 @@ describe("progress API endpoints", () => {
         { workspaceId: "workspace-1", reviewSequenceId: 42 },
       ],
       summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
+      insights: null,
     });
   });
 
@@ -216,6 +217,7 @@ describe("progress API endpoints", () => {
       generatedAt: "2026-04-18T09:15:00.000Z",
       reviewHistoryWatermarks: [],
       summary: createProgressSummaryValue(1, true, "2026-04-03", 2),
+      insights: null,
     });
   });
 
@@ -254,6 +256,7 @@ describe("progress API endpoints", () => {
       generatedAt: "2026-04-18T09:15:00.000Z",
       reviewHistoryWatermarks: [],
       summary,
+      insights: null,
     });
   });
 

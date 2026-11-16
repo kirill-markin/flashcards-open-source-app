@@ -17,6 +17,7 @@ struct FlashcardsWidgetBundle: WidgetBundle {
         ReviewsChartWidget()
         ComingUpWidget()
         DashboardWidget()
+        QuestionWidget()
     }
 }
 

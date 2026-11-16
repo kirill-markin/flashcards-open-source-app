@@ -58,7 +58,7 @@ Implemented sync behavior:
 - Cards, decks, and workspace scheduler settings resolve conflicts last-writer-wins ([`lww.ts`](../apps/backend/src/sync/conflicts/lww.ts)).
 - Review events are append-only and deduplicated by `(workspace_id, replica_id, client_event_id)`. Live and historical submissions both use the normal push contract; for `review_event` operations, `clientUpdatedAt` must equal `payload.reviewedAtClient`.
 - Mutable state and review history sync through separate lanes with separate local cursors: hot mutable roots use `sync.hot_changes` plus direct materialization from canonical tables, and review history uses `content.review_events.review_sequence`.
-- Progress, streaks, and chart day buckets are derived from `content.review_events.reviewed_at_client` in the requested timezone, not from server ingest time.
+- Progress, streaks, and chart day buckets are derived from `content.review_events.reviewed_at_client` in the requested timezone, not from server ingest time; review-time estimates come from the gaps between those values per installation.
 
 ### Client media transfer
 

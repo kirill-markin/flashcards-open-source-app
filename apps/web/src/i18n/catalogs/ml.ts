@@ -323,9 +323,25 @@ const mlCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "അവലോകന റേറ്റിംഗുകൾ",
     },
+    reviewsPace: {
+      lastSevenDays: "കഴിഞ്ഞ 7 ദിവസം · ദിവസം {{count}}",
+      studyTime: "പഠന സമയം · ≈ {{count}} മിനിറ്റ്",
+    },
+    records: {
+      title: "റെക്കോർഡുകൾ",
+      bestDay: "മികച്ച ദിവസം",
+      bestWeek: "മികച്ച ആഴ്ച",
+      longestStreak: "ഏറ്റവും നീണ്ട തുടർച്ച",
+      totalReviews: "ആകെ റിവ്യൂകൾ",
+      lastSevenDays: "കഴിഞ്ഞ 7 ദിവസം",
+      cardsMet: "പുതിയ കാർഡുകൾ",
+      relearned: "വീണ്ടും പഠിച്ചവ",
+    },
     reviewSchedule: {
       title: "അവലോകന സമയക്രമം",
       totalCards: "ആകെ കാർഡുകൾ: {{count}}",
+      dueToday: "ഇന്ന് ബാക്കി {{count}}",
+      dueTodayWithMinutes: "ഇന്ന് ബാക്കി {{count}} · ≈ {{minutes}} മിനിറ്റ്",
       legendLabel: "അവലോകന സമയക്രമ വിഭാഗങ്ങൾ",
       buckets: {
         new: "പുതിയത്",

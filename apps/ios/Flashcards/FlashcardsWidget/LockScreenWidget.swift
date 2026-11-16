@@ -29,7 +29,8 @@ struct LockScreenWidgetView: View {
                                 kind: .lockScreen,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: lockScreenWidgetShownCardId(size: size, content: self.entry.content)
+                                cardId: lockScreenWidgetShownCardId(size: size, content: self.entry.content),
+                                revealAnswer: false
                             )
                         )
                     )
@@ -78,11 +79,11 @@ private struct LockScreenWidgetContentView: View {
     var body: some View {
         switch self.size {
         case .circular:
-            if let progress = makeWidgetTodayProgress(entry: self.entry) {
-                LockScreenWidgetCircularView(progress: progress)
-            } else {
-                ZStack {
-                    AccessoryWidgetBackground()
+            ZStack {
+                AccessoryWidgetBackground()
+                if let today = makeWidgetTodayProgress(entry: self.entry) {
+                    WidgetPaceRingView(pace: today.pace, lineWidth: 4, numberFont: .title3)
+                } else {
                     Image(systemName: "rectangle.stack.fill")
                         .font(.title3)
                         .widgetAccentable()
@@ -92,8 +93,8 @@ private struct LockScreenWidgetContentView: View {
             if let dueCount = widgetDueCount(content: self.entry.content) {
                 LockScreenWidgetRectangularView(
                     dueCount: dueCount,
-                    nextCard: lockScreenWidgetNextCard(content: self.entry.content),
-                    streakDays: self.entry.snapshot?.progress?.currentStreakDays
+                    headlineText: lockScreenWidgetRectangularHeadline(entry: self.entry, dueCount: dueCount),
+                    nextCard: lockScreenWidgetNextCard(content: self.entry.content)
                 )
             } else {
                 Text("widget.no_snapshot", tableName: widgetStringsTableName)
@@ -105,10 +106,7 @@ private struct LockScreenWidgetContentView: View {
         case .inline:
             if let dueCount = widgetDueCount(content: self.entry.content) {
                 if dueCount > 0 {
-                    lockScreenWidgetDueText(
-                        dueCount: dueCount,
-                        streakDays: self.entry.snapshot?.progress?.currentStreakDays
-                    )
+                    lockScreenWidgetInlineText(dueCount: dueCount, scheduledDueCount: self.entry.scheduledDueCount)
                 } else {
                     Text("widget.all_done.title", tableName: widgetStringsTableName)
                 }
@@ -119,31 +117,37 @@ private struct LockScreenWidgetContentView: View {
     }
 }
 
-private struct LockScreenWidgetCircularView: View {
-    let progress: WidgetTodayProgress
-
-    var body: some View {
-        Gauge(value: self.progress.fraction) {
-            Text("widget.today.title", tableName: widgetStringsTableName)
-        } currentValueLabel: {
-            Text(self.progress.leftCount, format: .number.notation(.compactName))
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-        }
-        .gaugeStyle(.accessoryCircularCapacity)
-        .widgetAccentable()
+/// The scheduled due cards and the minutes to clear them; the To review count when the snapshot has no split yet.
+private func lockScreenWidgetRectangularHeadline(entry: ReviewWidgetEntry, dueCount: Int) -> Text {
+    guard let scheduledDueCount = entry.scheduledDueCount else {
+        return Text("widget.lock_screen.to_review \(dueCount)", tableName: widgetStringsTableName)
     }
+    return widgetScheduledDueText(
+        scheduledDueCount: scheduledDueCount,
+        minutes: widgetReviewTimeEstimateMinutes(entry: entry)
+    )
 }
 
+/// "Due" alone would read as the To review count, so the inline line names both.
+private func lockScreenWidgetInlineText(dueCount: Int, scheduledDueCount: Int?) -> Text {
+    let toReviewText = Text("widget.lock_screen.to_review \(dueCount)", tableName: widgetStringsTableName)
+    guard let scheduledDueCount else {
+        return toReviewText
+    }
+    return toReviewText
+        + Text(verbatim: " · ")
+        + Text("widget.scheduled_due \(scheduledDueCount)", tableName: widgetStringsTableName)
+}
+
+/// One tap opens the shown card; the family is too small for a Reveal answer button.
 private struct LockScreenWidgetRectangularView: View {
     let dueCount: Int
+    let headlineText: Text
     let nextCard: WidgetSnapshotCard?
-    let streakDays: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            lockScreenWidgetDueText(dueCount: self.dueCount, streakDays: self.streakDays)
+            self.headlineText
                 .font(.headline)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -181,12 +185,4 @@ private func lockScreenWidgetNextCard(content: ReviewWidgetContent) -> WidgetSna
         return nil
     }
     return nextCard
-}
-
-/// The streak part is hidden until Progress has loaded.
-private func lockScreenWidgetDueText(dueCount: Int, streakDays: Int?) -> Text {
-    guard let streakDays else {
-        return Text("widget.lock_screen.due \(dueCount)", tableName: widgetStringsTableName)
-    }
-    return Text("widget.lock_screen.due_streak \(dueCount) \(streakDays)", tableName: widgetStringsTableName)
 }

@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import type {
   ChartPage,
   ChartRatingLegendItem,
@@ -15,8 +15,14 @@ export type ProgressReviewsChartNavigationState = Readonly<{
   nextWeekArrow: string;
 }>;
 
+export type ProgressReviewsPaceView = Readonly<{
+  paceLabel: string;
+  studyTimeLabel: string | null;
+}>;
+
 type ProgressReviewsChartSectionProps = Readonly<{
   title: string;
+  pace: ProgressReviewsPaceView | null;
   pageRangeLabel: string;
   visiblePage: ChartPage | null;
   chartGuideLabels: ReadonlyArray<string>;
@@ -155,6 +161,7 @@ function ProgressReviewsRatingLegend(props: Readonly<{
 export function ProgressReviewsChartSection(props: ProgressReviewsChartSectionProps): ReactElement {
   const {
     title,
+    pace,
     pageRangeLabel,
     visiblePage,
     chartGuideLabels,
@@ -178,6 +185,16 @@ export function ProgressReviewsChartSection(props: ProgressReviewsChartSectionPr
               {pageRangeLabel}
             </p>
           ) : null}
+          {pace === null ? null : (
+            <p className="progress-chart-range" data-testid="progress-reviews-pace">
+              {pace.paceLabel}
+            </p>
+          )}
+          {pace === null || pace.studyTimeLabel === null ? null : (
+            <p className="progress-chart-range" data-testid="progress-reviews-study-time">
+              {pace.studyTimeLabel}
+            </p>
+          )}
         </div>
 
         {navigation === null ? null : (
@@ -236,6 +253,15 @@ export function ProgressReviewsChartSection(props: ProgressReviewsChartSectionPr
                 <span key={`progress-guide-line-${index}`} className="progress-chart-guide-line" />
               ))}
             </div>
+
+            {visiblePage.usualLineHeightPercentage === null ? null : (
+              <span
+                className="progress-chart-usual-line"
+                style={{ "--progress-chart-usual-fraction": visiblePage.usualLineHeightPercentage / 100 } as CSSProperties}
+                aria-hidden="true"
+                data-testid="progress-chart-usual-line"
+              />
+            )}
 
             <div className="progress-chart-columns">
               {visiblePage.days.map((day) => (

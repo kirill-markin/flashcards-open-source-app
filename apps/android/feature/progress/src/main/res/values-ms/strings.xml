@@ -120,4 +120,20 @@
     <plurals name="progress_leaderboard_profile_total_cards_value">
         <item quantity="other">%1$s kad</item>
     </plurals>
+    <string name="progress_reviews_pace_last_7_days">7 hari lalu · %1$s sehari</string>
+    <plurals name="progress_reviews_study_time">
+        <item quantity="other">Masa belajar · ≈ %1$d min</item>
+    </plurals>
+    <string name="progress_review_schedule_due_today">Tamat tempoh hari ini %1$s</string>
+    <plurals name="progress_review_schedule_due_today_with_minutes">
+        <item quantity="other">Tamat tempoh hari ini %1$s · ≈ %2$d min</item>
+    </plurals>
+    <string name="progress_records_title">Rekod</string>
+    <string name="progress_records_best_day">Hari terbaik</string>
+    <string name="progress_records_best_week">Minggu terbaik</string>
+    <string name="progress_records_longest_streak">Rentetan terpanjang</string>
+    <string name="progress_records_total_reviews">Jumlah ulang kaji</string>
+    <string name="progress_records_last_7_days">7 hari lalu</string>
+    <string name="progress_records_cards_met">Kad baharu ditemui</string>
+    <string name="progress_records_relearned">Dipelajari semula</string>
 </resources>

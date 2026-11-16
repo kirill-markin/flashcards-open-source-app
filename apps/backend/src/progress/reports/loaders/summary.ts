@@ -21,6 +21,11 @@ import type {
   ProgressSummaryResponse,
 } from "../contracts";
 import {
+  accumulateWorkspaceProgressInsightsInExecutor,
+  createEmptyProgressInsightsAccumulator,
+  createProgressInsights,
+} from "./insights";
+import {
   loadReviewHistoryWatermarksInExecutor,
   sortReviewHistoryWatermarks,
 } from "./shared";
@@ -53,7 +58,9 @@ async function buildUserProgressSummaryInExecutor(
   // The workspace loop only bounds raw review_event and watermark reads by RLS.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   await rememberProgressTimeZoneInExecutor(executor, request.userId, request.timeZone);
+  const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
   let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
+  let insightsAccumulator = createEmptyProgressInsightsAccumulator();
 
   for (const workspaceId of workspaceIds) {
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
@@ -63,6 +70,12 @@ async function buildUserProgressSummaryInExecutor(
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
+    insightsAccumulator = await accumulateWorkspaceProgressInsightsInExecutor(executor, insightsAccumulator, {
+      workspaceId,
+      userId: request.userId,
+      timeZone: request.timeZone,
+      today,
+    });
   }
 
   // Active-day materialization is owned by review writes and the scheduled
@@ -70,7 +83,6 @@ async function buildUserProgressSummaryInExecutor(
   const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
   const activeReviewDateSet = new Set(activeReviewLocalDates);
   const lastReviewedOn = activeReviewLocalDates.at(-1) ?? null;
-  const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
   // Future-dated rows can appear when a client clock is ahead, so today must
   // be checked against the full normalized date set instead of the latest date.
   const hasReviewedToday = activeReviewDateSet.has(today);
@@ -90,6 +102,7 @@ async function buildUserProgressSummaryInExecutor(
       lastReviewedOn,
       streakFreezeEvaluation.streakFreeze,
     ),
+    insights: createProgressInsights(insightsAccumulator, today),
     generatedAt: generatedAtDate.toISOString(),
     reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
   };

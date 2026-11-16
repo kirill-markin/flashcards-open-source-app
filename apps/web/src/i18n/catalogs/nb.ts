@@ -323,9 +323,25 @@ const nbCatalog: TranslationCatalog = {
     reviewsBreakdown: {
       legendLabel: "Vurderinger i repetisjon",
     },
+    reviewsPace: {
+      lastSevenDays: "Siste 7 dager · {{count}} om dagen",
+      studyTime: "Studietid · ≈ {{count}} min",
+    },
+    records: {
+      title: "Rekorder",
+      bestDay: "Beste dag",
+      bestWeek: "Beste uke",
+      longestStreak: "Lengste rekke",
+      totalReviews: "Repetisjoner totalt",
+      lastSevenDays: "Siste 7 dager",
+      cardsMet: "Nye kort",
+      relearned: "Lært på nytt",
+    },
     reviewSchedule: {
       title: "Repetisjonsplan",
       totalCards: "Kort totalt: {{count}}",
+      dueToday: "Forfaller i dag {{count}}",
+      dueTodayWithMinutes: "Forfaller i dag {{count}} · ≈ {{minutes}} min",
       legendLabel: "Bolker i repetisjonsplanen",
       buckets: {
         new: "Nye",

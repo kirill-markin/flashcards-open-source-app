@@ -61,6 +61,8 @@ export type ChartPage = Readonly<{
   endDate: string;
   startLocalDate: string;
   upperBound: number;
+  // The dashed usual-per-day line; null without a pace baseline or while one rating is shown.
+  usualLineHeightPercentage: number | null;
 }>;
 
 export const progressReviewsChartRatingColors: Readonly<Record<ProgressReviewsChartRatingKey, string>> = {
@@ -218,8 +220,12 @@ function buildChartPage(
   today: string,
   formatDate: DateFormatter,
   selectedRatingKey: ProgressReviewsChartRatingKey | null,
+  usualReviewsPerDay: number | null,
 ): ChartPage {
-  const upperBound = calculateChartUpperBound(calculateMaxReviewCount(dailyReviews, selectedRatingKey));
+  const usualLineValue = selectedRatingKey === null ? usualReviewsPerDay : null;
+  const upperBound = calculateChartUpperBound(
+    Math.max(calculateMaxReviewCount(dailyReviews, selectedRatingKey), usualLineValue ?? 0),
+  );
 
   return {
     days: dailyReviews.map((day, dayIndex): ChartDay => {
@@ -246,6 +252,7 @@ function buildChartPage(
     endDate: dailyReviews[dailyReviews.length - 1]?.date ?? "",
     startLocalDate: dailyReviews[0]?.date ?? "",
     upperBound,
+    usualLineHeightPercentage: usualLineValue === null ? null : calculateBarHeightPercentage(usualLineValue, upperBound),
   };
 }
 
@@ -277,6 +284,7 @@ export function buildChartPages(
   formatDate: DateFormatter,
   weekContext: LocaleWeekContext,
   selectedRatingKey: ProgressReviewsChartRatingKey | null,
+  usualReviewsPerDay: number | null,
 ): ReadonlyArray<ChartPage> {
   if (dailyReviews.length === 0) {
     return [];
@@ -295,6 +303,7 @@ export function buildChartPages(
         today,
         formatDate,
         selectedRatingKey,
+        usualReviewsPerDay,
       ));
       currentPageDays = [day];
       currentWeekStart = weekStart;
@@ -311,6 +320,7 @@ export function buildChartPages(
       today,
       formatDate,
       selectedRatingKey,
+      usualReviewsPerDay,
     ));
   }
 

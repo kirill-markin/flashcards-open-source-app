@@ -1,9 +1,7 @@
 package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
-import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -19,15 +17,12 @@ import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxHeight
@@ -42,24 +37,21 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.flashcardsopensourceapp.app.R
-import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
+import com.flashcardsopensourceapp.data.local.repository.progress.calculateStudySecondsOnDate
+import com.flashcardsopensourceapp.data.local.repository.progress.reviewPaceMinimumHistoryDayCount
+import com.flashcardsopensourceapp.data.local.repository.progress.roundStudyMinutes
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 private val todayWidgetSmallSize = DpSize(width = 100.dp, height = 100.dp)
 private val todayWidgetMediumSize = DpSize(width = 220.dp, height = 100.dp)
 internal val todayWidgetSizes: Set<DpSize> = setOf(todayWidgetSmallSize, todayWidgetMediumSize)
 /** The ring bitmap is drawn at the small widget's minimum size and scaled down to fit the space left. */
 private val todayWidgetRingBitmapSize = DpSize(width = 100.dp, height = 100.dp)
-private const val TODAY_WIDGET_RING_STROKE_FRACTION: Float = 0.1f
-
-/** Today's reviews against the cards still due now, the Review badge count. */
-private data class TodayWidgetProgress(
-    val reviewedCount: Int,
-    val leftCount: Int,
-    val streakDays: Int
-) {
-    val totalCount: Int = reviewedCount + leftCount
-    val fraction: Float = if (totalCount == 0) 0f else reviewedCount.toFloat() / totalCount
-}
+/** The medium widget's content height at its minimum size, so the ring keeps its place beside the text. */
+private val todayWidgetMediumRingSize: Dp = 76.dp
+/** The best-day line shows from this share of the best earlier day. */
+private const val todayWidgetBestDayLineShare: Double = 0.8
 
 class TodayWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(sizes = todayWidgetSizes)
@@ -79,18 +71,6 @@ internal fun todayWidgetSize(size: DpSize): ReviewWidgetSize {
     return if (size == todayWidgetMediumSize) ReviewWidgetSize.MEDIUM else ReviewWidgetSize.SMALL
 }
 
-private fun makeTodayWidgetProgress(queue: ReviewWidgetContent, progress: WidgetProgressContent): TodayWidgetProgress {
-    val today: WidgetProgressDay = checkNotNull(progress.days.lastOrNull { day -> day.localDate == progress.todayLocalDate }) {
-        "Widget progress days ${progress.days.firstOrNull()?.localDate}..${progress.days.lastOrNull()?.localDate} " +
-            "have no entry for today ${progress.todayLocalDate}."
-    }
-    return TodayWidgetProgress(
-        reviewedCount = today.reviewCount,
-        leftCount = queue.dueCount,
-        streakDays = progress.currentStreakDays
-    )
-}
-
 @Composable
 private fun TodayWidgetBody(content: WidgetContent?, size: ReviewWidgetSize) {
     val context = LocalContext.current
@@ -105,7 +85,8 @@ private fun TodayWidgetBody(content: WidgetContent?, size: ReviewWidgetSize) {
                     workspaceId = queue?.workspaceId,
                     size = size,
                     kind = WidgetKind.TODAY,
-                    cardId = null
+                    cardId = null,
+                    revealAnswer = false
                 )
             )
         )
@@ -114,10 +95,9 @@ private fun TodayWidgetBody(content: WidgetContent?, size: ReviewWidgetSize) {
             if (queue == null || progress == null) {
                 TodayWidgetOpenApp()
             } else {
-                val todayProgress = makeTodayWidgetProgress(queue = queue, progress = progress)
                 when (size) {
-                    ReviewWidgetSize.SMALL -> TodayWidgetSmall(progress = todayProgress)
-                    ReviewWidgetSize.MEDIUM, ReviewWidgetSize.LARGE -> TodayWidgetMedium(progress = todayProgress)
+                    ReviewWidgetSize.SMALL -> TodayWidgetSmall(progress = progress)
+                    ReviewWidgetSize.MEDIUM, ReviewWidgetSize.LARGE -> TodayWidgetMedium(queue = queue, progress = progress)
                 }
             }
         }
@@ -140,102 +120,67 @@ private fun ColumnScope.TodayWidgetOpenApp() {
     )
 }
 
+/** The pace ring, today's reviews and the streak. */
 @Composable
-private fun ColumnScope.TodayWidgetSmall(progress: TodayWidgetProgress) {
+private fun ColumnScope.TodayWidgetSmall(progress: WidgetProgressContent) {
     val context = LocalContext.current
-    Box(
-        modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            provider = ImageProvider(
-                bitmap = makeTodayWidgetRingBitmap(
-                    context = context,
-                    fraction = progress.fraction,
-                    accentArgb = widgetAccentColor().toArgb()
-                )
-            ),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = GlanceModifier.fillMaxSize()
-        )
-        if (progress.totalCount > 0) {
-            Text(
-                text = context.getString(R.string.today_widget_count, progress.reviewedCount),
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                maxLines = 1
-            )
-        }
-    }
+    WidgetPaceRing(
+        pace = progress.pace,
+        bitmapSize = todayWidgetRingBitmapSize,
+        numberFontSize = 16.sp,
+        modifier = GlanceModifier.fillMaxWidth().defaultWeight()
+    )
     Spacer(modifier = GlanceModifier.height(2.dp))
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = todayWidgetFinishedText(context = context, progress = progress)
-                ?: context.resources.getQuantityString(R.plurals.today_widget_left, progress.leftCount, progress.leftCount),
+            text = todayWidgetTodayCountText(context = context, progress = progress),
             style = secondaryStyle(),
             maxLines = 1,
             modifier = GlanceModifier.defaultWeight()
         )
         TodayWidgetStreakFlame(progress = progress, iconSize = 14.dp)
         Text(
-            text = context.getString(R.string.today_widget_count, progress.streakDays),
+            text = context.getString(R.string.today_widget_count, progress.currentStreakDays),
             style = secondaryStyle(),
             maxLines = 1
         )
     }
 }
 
+/** The pace ring; today's reviews, the cards due, and the best day or today's study time; the streak. */
 @Composable
-private fun ColumnScope.TodayWidgetMedium(progress: TodayWidgetProgress) {
+private fun ColumnScope.TodayWidgetMedium(queue: ReviewWidgetContent, progress: WidgetProgressContent) {
     val context = LocalContext.current
+    val thirdLine: String? = todayWidgetBestDayText(context = context, progress = progress)
+        ?: todayWidgetStudyTimeText(context = context, progress = progress)
     Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+        WidgetPaceRing(
+            pace = progress.pace,
+            bitmapSize = todayWidgetRingBitmapSize,
+            numberFontSize = 16.sp,
+            modifier = GlanceModifier.size(todayWidgetMediumRingSize)
+        )
+        Spacer(modifier = GlanceModifier.width(12.dp))
+        Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = context.getString(R.string.today_widget_label),
+                text = todayWidgetTodayCountText(context = context, progress = progress),
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold),
                 maxLines = 1
             )
             Text(
-                text = context.resources.getQuantityString(
-                    R.plurals.today_widget_reviewed,
-                    progress.reviewedCount,
-                    progress.reviewedCount
-                ),
+                text = widgetScheduledDueText(context = context, scheduledDueCount = queue.scheduledDueCount),
                 style = secondaryStyle(),
                 maxLines = 1
             )
-            Spacer(modifier = GlanceModifier.defaultWeight())
-            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                LinearProgressIndicator(
-                    progress = progress.fraction,
-                    modifier = GlanceModifier.defaultWeight().height(6.dp),
-                    color = GlanceTheme.colors.primary,
-                    backgroundColor = GlanceTheme.colors.surfaceVariant
-                )
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                Text(
-                    text = context.getString(R.string.today_widget_percent, (progress.fraction * 100).toInt()),
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
+            if (thirdLine != null) {
+                Text(text = thirdLine, style = secondaryStyle(), maxLines = 1)
             }
-            Spacer(modifier = GlanceModifier.defaultWeight())
-            Text(
-                text = todayWidgetFinishedText(context = context, progress = progress)
-                    ?: context.resources.getQuantityString(
-                        R.plurals.today_widget_cards_left,
-                        progress.leftCount,
-                        progress.leftCount
-                    ),
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp),
-                maxLines = 1
-            )
         }
-        Spacer(modifier = GlanceModifier.width(12.dp))
+        Spacer(modifier = GlanceModifier.width(8.dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             TodayWidgetStreakFlame(progress = progress, iconSize = 24.dp)
             Text(
-                text = context.getString(R.string.today_widget_count, progress.streakDays),
+                text = context.getString(R.string.today_widget_count, progress.currentStreakDays),
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold),
                 maxLines = 1
             )
@@ -245,41 +190,62 @@ private fun ColumnScope.TodayWidgetMedium(progress: TodayWidgetProgress) {
 
 /** The flame is in the accent color once the user has reviewed today, as on the Review top bar. */
 @Composable
-private fun TodayWidgetStreakFlame(progress: TodayWidgetProgress, iconSize: Dp) {
+private fun TodayWidgetStreakFlame(progress: WidgetProgressContent, iconSize: Dp) {
     val context = LocalContext.current
-    val tint: ColorProvider = if (progress.reviewedCount > 0) GlanceTheme.colors.primary else GlanceTheme.colors.onSurfaceVariant
+    val tint: ColorProvider = if (progress.todayReviewCount > 0) GlanceTheme.colors.primary else GlanceTheme.colors.onSurfaceVariant
     Image(
         provider = ImageProvider(resId = R.drawable.widget_streak_flame),
         contentDescription = context.resources.getQuantityString(
             R.plurals.review_widget_streak_days,
-            progress.streakDays,
-            progress.streakDays
+            progress.currentStreakDays,
+            progress.currentStreakDays
         ),
         colorFilter = ColorFilter.tint(colorProvider = tint),
         modifier = GlanceModifier.size(iconSize)
     )
 }
 
-/** Null while cards are left; the caller then shows the left count in its own wording. */
-private fun todayWidgetFinishedText(context: Context, progress: TodayWidgetProgress): String? {
+private fun todayWidgetTodayCountText(context: Context, progress: WidgetProgressContent): String {
+    return context.resources.getQuantityString(
+        R.plurals.today_widget_today_count,
+        progress.todayReviewCount,
+        progress.todayReviewCount
+    )
+}
+
+/**
+ * "Best day 61" from 80% of the best earlier day, "New best day" once today passes it; nothing in the
+ * first 14 days of history, when every growing day would be a record.
+ */
+private fun todayWidgetBestDayText(context: Context, progress: WidgetProgressContent): String? {
+    val bestDay = progress.insights?.bestDayBeforeToday ?: return null
+    if (!hasReviewHistoryDays(progress = progress, minimumDayCount = reviewPaceMinimumHistoryDayCount)) {
+        return null
+    }
     return when {
-        progress.totalCount == 0 -> context.getString(R.string.today_widget_no_cards_due)
-        progress.leftCount == 0 -> context.getString(R.string.review_widget_all_done)
+        progress.todayReviewCount > bestDay.reviewCount -> context.getString(R.string.today_widget_new_best_day)
+        progress.todayReviewCount >= bestDay.reviewCount * todayWidgetBestDayLineShare -> context.getString(
+            R.string.today_widget_best_day,
+            bestDay.reviewCount
+        )
         else -> null
     }
 }
 
-private fun makeTodayWidgetRingBitmap(context: Context, fraction: Float, accentArgb: Int): Bitmap {
-    val density: Float = context.resources.displayMetrics.density
-    return drawWidgetBitmap(size = todayWidgetRingBitmapSize, density = density) { canvas ->
-        drawWidgetProgressRing(
-            canvas = canvas,
-            fraction = fraction,
-            strokeWidthPx = canvas.width * TODAY_WIDGET_RING_STROKE_FRACTION,
-            trackColor = FlashcardsDarkColorScheme.surfaceVariant.toArgb(),
-            progressColor = accentArgb
-        )
+/** Today's study time; hidden at 0 and without the server's timing sample. */
+private fun todayWidgetStudyTimeText(context: Context, progress: WidgetProgressContent): String? {
+    val seconds: Int = calculateStudySecondsOnDate(insights = progress.insights, date = progress.todayLocalDate) ?: return null
+    val minutes: Int = roundStudyMinutes(seconds = seconds.toDouble())
+    if (minutes == 0) {
+        return null
     }
+    return widgetMinutesText(context = context, minutes = minutes)
+}
+
+/** The first reviewed day in the history stands for the first review, as in the pace. */
+private fun hasReviewHistoryDays(progress: WidgetProgressContent, minimumDayCount: Int): Boolean {
+    val firstReviewDate: LocalDate = progress.days.firstOrNull { day -> day.reviewCount > 0 }?.localDate ?: return false
+    return ChronoUnit.DAYS.between(firstReviewDate, progress.todayLocalDate) + 1L >= minimumDayCount
 }
 
 @Composable
