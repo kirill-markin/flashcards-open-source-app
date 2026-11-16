@@ -508,6 +508,7 @@ function getMediaAssetUploadSessionCreationReplayConflicts(
   const metadata = normalizeMediaAssetMutationMetadata(
     toMediaAssetMutationMetadataFromUploadSessionCreate(input),
   );
+  // Legacy Android retries regenerate clientUpdatedAt. Replay keeps the committed timestamp.
   return [
     ...(session.workspaceId === workspaceId ? [] : ["workspaceId"]),
     ...(session.mediaAssetId === snapshot.mediaAssetId ? [] : ["mediaAssetId"]),
@@ -526,9 +527,6 @@ function getMediaAssetUploadSessionCreationReplayConflicts(
     ...(session.partCount === input.partCount ? [] : ["partCount"]),
     ...(session.sourceUrl === snapshot.sourceUrl ? [] : ["sourceUrl"]),
     ...(session.assetCreatedAt === snapshot.createdAt ? [] : ["createdAt"]),
-    ...(session.clientUpdatedAt === metadata.clientUpdatedAt
-      ? []
-      : ["clientUpdatedAt"]),
     ...(session.lastModifiedByReplicaId === metadata.lastModifiedByReplicaId
       ? []
       : ["lastModifiedByReplicaId"]),
