@@ -260,17 +260,13 @@ struct CardsScreen: View {
     private func bodyContent(scrollProxy: ScrollViewProxy) -> some View {
         @Bindable var cardsModel = self.cardsModel
         return List {
+            #if !targetEnvironment(macCatalyst)
             Section {
-                #if targetEnvironment(macCatalyst)
-                self.descriptionText.foregroundStyle(.secondary)
-                #else
                 NativeSearchRow(text: $cardsModel.searchText, isFocused: self.$isSearchFocused, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName))
-                #endif
             } footer: {
-                #if !targetEnvironment(macCatalyst)
                 self.descriptionText
-                #endif
             }
+            #endif
 
             if screenErrorMessage.isEmpty == false {
                 Section {
@@ -278,6 +274,12 @@ struct CardsScreen: View {
                         .foregroundStyle(.red)
                 }
             }
+
+            #if targetEnvironment(macCatalyst)
+            Section {
+                self.descriptionText.foregroundStyle(.secondary)
+            }
+            #endif
 
             Section {
                 if self.cardsLoadErrorMessage.isEmpty == false {
