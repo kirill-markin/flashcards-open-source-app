@@ -167,6 +167,7 @@ enum AnalyticsEvent: Sendable, Equatable {
         accessoryCounts: AnalyticsWidgetAccessoryCounts?
     )
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
+    case manualCardSaved
     /**
      * Voice input reached the microphone: the recorder really started, not the button being pressed.
      *
@@ -742,6 +743,8 @@ extension AnalyticsEvent {
             return "widget_placement_changed"
         case .cardCreateStarted:
             return "card_create_started"
+        case .manualCardSaved:
+            return "manual_card_saved"
         case .dictationStarted:
             return "dictation_started"
         case .dictationFailed:
@@ -786,6 +789,8 @@ extension AnalyticsEvent {
         // unrecognised surface value draws instead.
         case .reviewCardRevealed:
             return .review
+        case .manualCardSaved:
+            return .cardEditor
         // The catalog requires a surface on both sign-in steps, and the sign-in flow always knows
         // which of its two surfaces it is running on, so the value travels with the event instead
         // of being left to a `track(screen:)` a call site can forget.
@@ -911,6 +916,8 @@ extension AnalyticsEvent {
             return properties
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
+        case .manualCardSaved:
+            return [:]
         case .dictationStarted:
             return [:]
         case .dictationFailed(let reason):
