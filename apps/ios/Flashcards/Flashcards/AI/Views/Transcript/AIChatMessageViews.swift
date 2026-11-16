@@ -525,7 +525,7 @@ struct AIChatMessageRow: View, Equatable {
         if message.role == .user {
             content
                 .padding(12)
-                .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(.dimAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         } else {
             content

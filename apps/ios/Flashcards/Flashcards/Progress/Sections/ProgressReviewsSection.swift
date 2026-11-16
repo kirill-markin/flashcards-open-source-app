@@ -279,7 +279,7 @@ struct ProgressReviewsSection: View {
                                 yStart: .value("Floor", 0),
                                 yEnd: .value("Ceiling", self.visiblePageUpperBound)
                             )
-                            .foregroundStyle(.tint.opacity(0.12))
+                            .foregroundStyle(.dimAccent)
                             .cornerRadius(8)
                         }
                     }
@@ -546,7 +546,7 @@ private struct ProgressReviewsRatingLegendRow: View {
             #endif
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
+                    .fill(.dimAccent.opacity(self.isSelected ? 1 : 0))
                     .padding(.horizontal, -8)
                     .padding(.vertical, -4)
             )
