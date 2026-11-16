@@ -52,8 +52,10 @@ final class AIChatOutsideTapView: UIView, UIGestureRecognizerDelegate {
               keyboardFirstResponderView(in: window) is AIChatComposerUITextView,
               window.rootViewController.map({ hasCoveringPresentation($0) }) == false,
               self.bounds.contains(touch.location(in: self)) == false else { return false }
-        // Keep #3440's section-switch keyboard continuity. Removing this one condition opts the bars into dismissal.
+        // Section and navigation-bar controls keep the keyboard, as UIKit bars do. Removing this condition opts the bars into dismissal.
         if let view = touch.view, Self.isSectionBarControl(view) { return false }
+        // Another text input takes the keyboard over directly; resigning the composer first would hide and reshow it.
+        if let view = touch.view, Self.isEditableTextInput(view) { return false }
         return true
     }
 
@@ -66,6 +68,16 @@ final class AIChatOutsideTapView: UIView, UIGestureRecognizerDelegate {
         guard let window = self.window,
               keyboardFirstResponderView(in: window) is AIChatComposerUITextView else { return }
         self.onDismiss?()
+    }
+
+    private static func isEditableTextInput(_ view: UIView) -> Bool {
+        var ancestor: UIView? = view
+        while let current = ancestor {
+            if let textView = current as? UITextView { return textView.isEditable }
+            if current is UITextInput { return true }
+            ancestor = current.superview
+        }
+        return false
     }
 
     private static func isSectionBarControl(_ view: UIView) -> Bool {
