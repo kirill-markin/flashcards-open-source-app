@@ -130,6 +130,10 @@ test("catalog install creates logical media assets from existing blobs and rewri
         return createQueryResult([]);
       }
 
+      if (text === "SELECT pg_catalog.set_config('app.card_addition_writer', $1, true)") {
+        assert.deepEqual(params, ["import"]);
+        return createQueryResult([]);
+      }
       if (text.includes("INSERT INTO content.cards")) {
         assert.notEqual(insertedMediaAssetId, null);
         insertedCardId = String(params[0]);
@@ -322,6 +326,10 @@ test("catalog install preserves catalog order with millisecond timestamps and on
             "catalog-install-ordered:card:2",
           ],
         ]);
+        return createQueryResult([]);
+      }
+      if (text === "SELECT pg_catalog.set_config('app.card_addition_writer', $1, true)") {
+        assert.deepEqual(params, ["import"]);
         return createQueryResult([]);
       }
       if (text.includes("INSERT INTO content.cards")) {
@@ -630,6 +638,11 @@ test("catalog install rejects invalid package card source createdAt", async () =
 
       if (text.includes("operation_conflicts")) {
         assert.deepEqual(params, [testWorkspaceId, ["catalog-install-invalid-card-source:card:0"]]);
+        return createQueryResult([]);
+      }
+
+      if (text === "SELECT pg_catalog.set_config('app.card_addition_writer', $1, true)") {
+        assert.deepEqual(params, ["import"]);
         return createQueryResult([]);
       }
 

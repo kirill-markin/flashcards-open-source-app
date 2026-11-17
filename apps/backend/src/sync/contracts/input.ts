@@ -185,6 +185,7 @@ const cardSourceMetadataSchema = z.object({
 export const cardMetadataSchema = z.object({
   version: z.literal(1),
   source: cardSourceMetadataSchema.nullable(),
+  creationKind: z.literal("user_added").optional().catch(undefined),
   onboardingDemo: z.unknown().transform(normalizeOnboardingDemo).optional(),
   maintenanceRevision: z.number().int().positive().optional(),
 });

@@ -1242,6 +1242,17 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: true,
     properties: {},
   },
+  // First server insert of a card. An unmarked legacy snapshot can still be an offline demo.
+  card_addition_committed: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      demo_status: {
+        kind: "enum",
+        values: ["demo", "non_demo", "unknown"],
+      },
+    },
+  },
   card_created: {
     serverOnly: true,
     requiresScreen: false,

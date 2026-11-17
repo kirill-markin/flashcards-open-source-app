@@ -18,6 +18,7 @@ import type {
   ProductAnalyticsOsName,
   ProductAnalyticsPlatform,
 } from "../../../productAnalytics/catalog";
+import { setCardAdditionWriterInExecutor } from "../../../productAnalytics/serverFacts/cardAdditions";
 import {
   toWorkspaceReplicaRowAttribution,
   type WorkspaceReplicaPlatformRow,
@@ -288,6 +289,7 @@ export async function installCatalogPackageVersionInExecutor(
   const installedMediaAssetIdsByPackageMediaKey = buildInstalledMediaAssetIdsByPackageMediaKey(
     installedMediaAssets,
   );
+  await setCardAdditionWriterInExecutor(executor, "import");
   const installedCards = await installCatalogPackageCardsInExecutor(
     executor,
     normalizedWorkspaceId,

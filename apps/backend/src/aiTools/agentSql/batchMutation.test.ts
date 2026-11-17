@@ -134,7 +134,7 @@ test("executeSqlMutationBatch appends legacy deck effort tags after final tags a
         return createQueryResult<Row>([]);
       }
 
-      if (text.includes("set_config('app.user_id'")) {
+      if (text.includes("set_config('app.user_id'") || text.includes("set_config('app.card_addition_writer'")) {
         return createQueryResult<Row>([]);
       }
 
