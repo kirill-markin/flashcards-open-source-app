@@ -32,7 +32,7 @@ internal fun NavGraphBuilder.registerLibraryBrandImportDestination(
             factory = createBrandImportViewModelFactory(
                 applicationContext = context.applicationContext,
                 source = aiImportSourceForId(id = sourceId),
-                captureImportOrigin = appGraph::captureAiImportOrigin
+                captureImportOrigin = appGraph.aiImportHandoffCoordinator::captureOrigin
             )
         )
         BrandImportRoute(
