@@ -1,12 +1,17 @@
 package com.flashcardsopensourceapp.data.local.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapEntry
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.cards.CardCreationKind
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.CardImportText
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
 import com.flashcardsopensourceapp.data.local.support.bootstrapTestWorkspace
 import com.flashcardsopensourceapp.data.local.support.closeLocalDatabaseTestRuntime
@@ -15,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.support.createTestCardsRepository
 import com.flashcardsopensourceapp.data.local.support.createTestDecksRepository
 import com.flashcardsopensourceapp.data.local.support.createTestReviewRepository
 import com.flashcardsopensourceapp.data.local.support.createTestWorkspaceRepository
+import com.flashcardsopensourceapp.data.local.support.makeNewReviewOrderingCardEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -86,6 +92,9 @@ class LocalSyncOutboxContractTest {
                 .getJSONObject("source")
                 .getString("createdAt") == payload.getString("createdAt")
         })
+        entries.forEach { entry ->
+            assertEquals("user_added", JSONObject(entry.payloadJson).getJSONObject("metadata").getString("creationKind"))
+        }
         assertTrue(entries.any { entry ->
             JSONObject(entry.payloadJson).getString("frontText") == "What is a repository pattern?"
         })
@@ -99,6 +108,77 @@ class LocalSyncOutboxContractTest {
         )
         val deletedCard = requireNotNull(database.cardDao().loadCard(cardId = createdCardId))
         assertEquals(deletedCard.updatedAtMillis, requireNotNull(deletedCard.deletedAtMillis))
+
+        val operationIds = entries.map { entry -> entry.outboxEntryId }
+        runtime.syncLocalStore.markOutboxEntriesFailed(operationIds = operationIds, errorMessage = "Network unavailable")
+        val retryEntries = runtime.syncLocalStore.loadOutboxEntries(workspaceId = workspaceId)
+            .filter { entry -> entry.operationId in operationIds }
+        assertEquals(3, retryEntries.size)
+        retryEntries.forEach { entry ->
+            assertEquals(1, entry.attemptCount)
+            val payload = (entry.operation.payload as SyncOperationPayload.Card).payload
+            assertEquals(CardCreationKind.USER_ADDED, payload.metadata.creationKind)
+        }
+    }
+
+    @Test
+    fun bootstrapRoundTripKeepsCreationKindOnlyOnNewUserAddedCards(): Unit = runBlocking {
+        val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = 100L)
+        val cardsRepository = createTestCardsRepository(runtime = runtime)
+        val demo = CardDraft.onboardingDemo(frontText = "Demo prompt", backText = "Demo answer", tags = listOf("demo"))
+        val manual = CardDraft(frontText = "Manual prompt", backText = "Manual answer", tags = listOf("demo"))
+        val imported = CardImportText(frontText = "Imported prompt", backText = "Imported answer")
+        val legacy = makeNewReviewOrderingCardEntity(
+            cardId = "legacy-card",
+            workspaceId = workspaceId,
+            createdAtMillis = 100L,
+            updatedAtMillis = 100L
+        )
+        cardsRepository.createCard(cardDraft = demo)
+        cardsRepository.createCard(cardDraft = manual)
+        cardsRepository.importSpreadsheetCards(workspaceId = workspaceId, rows = listOf(imported), tags = emptyList())
+        database.cardDao().insertCard(card = legacy)
+        cardsRepository.updateCard(
+            cardId = legacy.cardId,
+            cardDraft = CardDraft(frontText = "Edited legacy prompt", backText = legacy.backText, tags = emptyList()),
+            savedTags = emptyList()
+        )
+
+        val bootstrap = runtime.syncLocalStore.buildBootstrapEntries(workspaceId = workspaceId)
+        val entries = (0 until bootstrap.length()).map { index -> bootstrap.getJSONObject(index) }
+            .filter { entry -> entry.getString("entityType") == "card" }
+            .map { entry ->
+                RemoteBootstrapEntry(
+                    entityType = SyncEntityType.CARD,
+                    entityId = entry.getString("entityId"),
+                    action = entry.getString("action"),
+                    payload = entry.getJSONObject("payload")
+                )
+            }
+        val addedFronts = setOf(manual.frontText, imported.frontText)
+        assertEquals(4, entries.size)
+        assertEquals(addedFronts, entries.filter { entry ->
+            entry.payload.getJSONObject("metadata").optString("creationKind") == "user_added"
+        }.map { entry -> entry.payload.getString("frontText") }.toSet())
+
+        val demoMetadata = entries.single { entry -> entry.payload.getString("frontText") == demo.frontText }
+            .payload.getJSONObject("metadata")
+        assertTrue(demoMetadata.has("onboardingDemo"))
+        assertFalse(demoMetadata.has("creationKind"))
+        demoMetadata.put("creationKind", "user_added")
+        database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = workspaceId)
+        entries.forEach { entry -> database.cardDao().deleteCard(cardId = entry.entityId) }
+        runtime.syncLocalStore.applyBootstrapEntries(workspaceId = workspaceId, entries = entries)
+        val restoredCards = database.cardDao().loadCards(workspaceId = workspaceId)
+        assertEquals(4, restoredCards.size)
+        restoredCards.forEach { card ->
+            val metadata = JSONObject(card.metadataJson)
+            if (card.frontText in addedFronts) {
+                assertEquals("user_added", metadata.getString("creationKind"))
+            } else {
+                assertFalse(metadata.has("creationKind"))
+            }
+        }
     }
 
     @Test
@@ -236,8 +316,12 @@ class LocalSyncOutboxContractTest {
             reviewLogs.first().reviewedTimeZone,
             JSONObject(reviewEventEntry.payloadJson).getString("reviewedTimeZone")
         )
-        assertTrue(entries.any { entry ->
+        val cardEntries = entries.filter { entry ->
             entry.entityType == "card" && entry.entityId == cardId
-        })
+        }
+        assertEquals(2, cardEntries.size)
+        cardEntries.forEach { entry ->
+            assertEquals("user_added", JSONObject(entry.payloadJson).getJSONObject("metadata").getString("creationKind"))
+        }
     }
 }
