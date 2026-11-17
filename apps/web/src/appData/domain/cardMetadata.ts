@@ -65,6 +65,10 @@ export function makeDefaultCardMetadata(createdAt: string): CardMetadata {
   };
 }
 
+export function normalizeCardCreationKind(value: unknown): CardMetadata["creationKind"] {
+  return value === "user_added" ? value : undefined;
+}
+
 export function isValidCardMaintenanceRevision(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 }
@@ -79,6 +83,7 @@ export function normalizeCardMetadata(value: unknown, createdAt: string): CardMe
     throw new Error("metadata.version must be 1");
   }
 
+  const creationKind = normalizeCardCreationKind(record.creationKind);
   const onboardingDemo = normalizeOnboardingDemoMetadata(record.onboardingDemo);
   const maintenanceRevision = record.maintenanceRevision;
   if (maintenanceRevision !== undefined && isValidCardMaintenanceRevision(maintenanceRevision) === false) {
@@ -88,6 +93,7 @@ export function normalizeCardMetadata(value: unknown, createdAt: string): CardMe
   return {
     version: 1,
     source: normalizeCardSourceMetadata(record.source),
+    ...(creationKind === undefined ? {} : { creationKind }),
     ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
     ...(maintenanceRevision === undefined ? {} : { maintenanceRevision }),
   };

@@ -9,6 +9,7 @@ import type {
   DatabaseExecutor,
   WorkspaceDatabaseScope,
 } from "../../../database";
+import { setCardAdditionWriterInExecutor } from "../../../productAnalytics/serverFacts/cardAdditions";
 import {
   declareContentCreationSource,
   transactionWithWorkspaceScopeReportingContentWrites,
@@ -187,6 +188,7 @@ export async function persistWorkspacePackageImportCardsWithDependencies(
       // report the channel as `app`. This transaction creates nothing else, so one declaration
       // covers all of it.
       declareContentCreationSource(executor, "package_import");
+      await setCardAdditionWriterInExecutor(executor, "import");
       const cards: Array<Card> = [];
 
       for (const [batchIndex, batch] of batches.entries()) {

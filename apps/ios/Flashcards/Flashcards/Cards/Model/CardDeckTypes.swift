@@ -95,32 +95,40 @@ struct CardSourceMetadata: Codable, Hashable, Sendable {
     }
 }
 
+enum CardCreationKind: String, Codable, Sendable {
+    case userAdded = "user_added"
+}
+
 struct CardMetadata: Codable, Hashable, Sendable {
     let version: Int
     let source: CardSourceMetadata?
     let onboardingDemo: OnboardingDemoMetadata?
     let maintenanceRevision: Int64?
+    let creationKind: CardCreationKind?
 
     enum CodingKeys: String, CodingKey {
         case version
         case source
         case onboardingDemo
         case maintenanceRevision
-    }
-
-    init(source: CardSourceMetadata?) {
-        self.init(source: source, onboardingDemo: nil)
+        case creationKind
     }
 
     init(source: CardSourceMetadata?, onboardingDemo: OnboardingDemoMetadata?) {
-        self.init(source: source, onboardingDemo: onboardingDemo, maintenanceRevision: nil)
+        self.init(source: source, onboardingDemo: onboardingDemo, maintenanceRevision: nil, creationKind: nil)
     }
 
-    init(source: CardSourceMetadata?, onboardingDemo: OnboardingDemoMetadata?, maintenanceRevision: Int64?) {
+    init(
+        source: CardSourceMetadata?,
+        onboardingDemo: OnboardingDemoMetadata?,
+        maintenanceRevision: Int64?,
+        creationKind: CardCreationKind?
+    ) {
         self.version = 1
         self.source = source
         self.onboardingDemo = onboardingDemo
         self.maintenanceRevision = maintenanceRevision
+        self.creationKind = creationKind
     }
 
     init(from decoder: Decoder) throws {
@@ -137,6 +145,7 @@ struct CardMetadata: Codable, Hashable, Sendable {
         self.version = version
         self.source = try container.decode(CardSourceMetadata?.self, forKey: .source)
         self.onboardingDemo = try? container.decode(OnboardingDemoMetadata.self, forKey: .onboardingDemo)
+        self.creationKind = try? container.decode(CardCreationKind.self, forKey: .creationKind)
         if container.contains(.maintenanceRevision) {
             let revision = try container.decode(Int64.self, forKey: .maintenanceRevision)
             guard (1...9_007_199_254_740_991).contains(revision) else {
@@ -157,6 +166,7 @@ struct CardMetadata: Codable, Hashable, Sendable {
         try container.encode(self.version, forKey: .version)
         try container.encodeIfPresent(self.onboardingDemo, forKey: .onboardingDemo)
         try container.encodeIfPresent(self.maintenanceRevision, forKey: .maintenanceRevision)
+        try container.encodeIfPresent(self.creationKind, forKey: .creationKind)
         if let source = self.source {
             try container.encode(source, forKey: .source)
         } else {
@@ -187,6 +197,10 @@ func normalizeCardType(cardType: String?) -> String {
 }
 
 func makeDefaultCardMetadata(createdAt: String) -> CardMetadata {
+    makeCardMetadata(createdAt: createdAt, creationKind: nil)
+}
+
+func makeCardMetadata(createdAt: String, creationKind: CardCreationKind?) -> CardMetadata {
     CardMetadata(
         source: CardSourceMetadata(
             label: nil,
@@ -195,7 +209,10 @@ func makeDefaultCardMetadata(createdAt: String) -> CardMetadata {
             createdAt: createdAt,
             importedAt: nil,
             importId: nil
-        )
+        ),
+        onboardingDemo: nil,
+        maintenanceRevision: nil,
+        creationKind: creationKind
     )
 }
 

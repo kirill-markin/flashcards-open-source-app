@@ -158,8 +158,10 @@ function createPersistenceHarness(): TestPersistenceHarness {
         callback: (executor: DatabaseExecutor) => Promise<WorkspacePackageImportCardPersistenceResult>,
       ): Promise<WorkspacePackageImportCardPersistenceResult> => {
         const executor: DatabaseExecutor = {
-          async query(): Promise<never> {
-            throw new Error("Test executor query should not be called");
+          async query(text, params) {
+            assert.equal(text, "SELECT pg_catalog.set_config('app.card_addition_writer', $1, true)");
+            assert.deepEqual(params, ["import"]);
+            return { rows: [], command: "SELECT", rowCount: 1, oid: 0, fields: [] };
           },
         };
         transactionCalls.push({ scope, executor });
@@ -312,8 +314,10 @@ test("workspace package import card persistence preserves later batch HttpError 
       callback: (executor: DatabaseExecutor) => Promise<WorkspacePackageImportCardPersistenceResult>,
     ): Promise<WorkspacePackageImportCardPersistenceResult> => {
       const executor: DatabaseExecutor = {
-        async query(): Promise<never> {
-          throw new Error("Test executor query should not be called");
+        async query(text, params) {
+          assert.equal(text, "SELECT pg_catalog.set_config('app.card_addition_writer', $1, true)");
+          assert.deepEqual(params, ["import"]);
+          return { rows: [], command: "SELECT", rowCount: 1, oid: 0, fields: [] };
         },
       };
       transactionCalls.push({ scope, executor });

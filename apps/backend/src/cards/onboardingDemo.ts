@@ -65,14 +65,18 @@ export function establishOnboardingDemoMetadata(
   };
 }
 
-export function mergeOnboardingDemoMetadata(
+export function mergeCardMetadata(
   existingCard: OnboardingDemoCardFields & Readonly<{ metadata: CardMetadata }>,
   incomingMetadata: CardMetadata,
   card: OnboardingDemoCardFields,
 ): CardMetadata {
   const existingMetadata = existingCard.metadata;
   const baseline = existingMetadata.onboardingDemo;
-  const metadata: CardMetadata = { version: 1, source: incomingMetadata.source };
+  const metadata: CardMetadata = {
+    version: 1,
+    source: incomingMetadata.source,
+    ...(existingMetadata.creationKind === undefined ? {} : { creationKind: existingMetadata.creationKind }),
+  };
   if (baseline === undefined) {
     return metadata;
   }
