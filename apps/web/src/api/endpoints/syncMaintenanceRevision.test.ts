@@ -4,6 +4,7 @@ import "./endpointsTestSupport";
 import { defaultWorkspaceSchedulerConfig } from "../../../../backend/src/scheduling/workspaceConfig";
 import {
   createCardLocally,
+  createOnboardingDemoCardLocally,
   deleteCardLocally,
   submitReviewLocally,
   updateCardLocally,
@@ -17,7 +18,7 @@ import { clearWebSyncCache } from "../../localDb/core/cache";
 import { makeCard, workspaceId } from "../../localDb/core/testSupport";
 import { putCloudSettings } from "../../localDb/sync/cloudSettings";
 import { listOutboxRecords } from "../../localDb/sync/outbox";
-import type { SyncPushOperation } from "../../types";
+import type { Card, SyncPushOperation } from "../../types";
 import { primeSessionCsrfToken } from "../transport/transport";
 
 it("roundtrips a pulled card revision through local writes while preserving a previously queued snapshot", async () => {
@@ -82,9 +83,9 @@ it("roundtrips a pulled card revision through local writes while preserving a pr
 
   const maintenanceRevision = Number.MAX_SAFE_INTEGER;
   const maintainedAt = "2026-03-10T11:00:00.000Z";
-  const maintained = {
+  const maintained: Card = {
     ...original,
-    metadata: { ...original.metadata, maintenanceRevision },
+    metadata: { ...original.metadata, maintenanceRevision, creationKind: "user_added" },
     tags: ["keep"],
     clientUpdatedAt: maintainedAt,
     lastModifiedByReplicaId: "maintenance-replica",
@@ -125,12 +126,20 @@ it("roundtrips a pulled card revision through local writes while preserving a pr
     cardId,
     clientUpdatedAt: "2026-03-10T15:00:00.000Z",
   }, recoveryState);
+  const demoInput = { frontText: original.frontText, backText: original.backText, tags: ["demo"] };
   const created = await createCardLocally({
     workspaceId,
-    input: { frontText: original.frontText, backText: original.backText, tags: original.tags },
+    input: demoInput,
     clientUpdatedAt: "2026-03-10T16:00:00.000Z",
   }, recoveryState);
+  const demo = await createOnboardingDemoCardLocally({
+    workspaceId,
+    input: demoInput,
+    clientUpdatedAt: "2026-03-10T17:00:00.000Z",
+  }, recoveryState);
 
+  expect(await loadCardById(workspaceId, created.card.cardId)).toEqual(created.card);
+  expect(await loadCardById(workspaceId, demo.card.cardId)).toEqual(demo.card);
   const queued = await listOutboxRecords(workspaceId);
   fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
     operations: queued.map(({ operation }) => ({
@@ -149,7 +158,7 @@ it("roundtrips a pulled card revision through local writes while preserving a pr
   }>;
   const cardWrites = requestBody.operations.filter((operation) => operation.entityType === "card");
   expect(cardWrites.map((operation) => operation.operationId)).toEqual(
-    [stale, rebased, readded, reviewed, deleted, created].map(({ card }) => card.lastOperationId),
+    [stale, rebased, readded, reviewed, deleted, created, demo].map(({ card }) => card.lastOperationId),
   );
   expect(cardWrites[0]?.payload).toMatchObject({ frontText: "Queued edit", tags: ["keep", "removed"] });
   expect(cardWrites[0]?.payload.metadata).not.toHaveProperty("maintenanceRevision");
@@ -158,5 +167,8 @@ it("roundtrips a pulled card revision through local writes while preserving a pr
   expect(cardWrites.slice(1, 5).map((operation) => operation.payload.metadata?.maintenanceRevision))
     .toEqual([maintenanceRevision, maintenanceRevision, maintenanceRevision, maintenanceRevision]);
   expect(cardWrites[5]?.payload.metadata).not.toHaveProperty("maintenanceRevision");
+  expect(cardWrites.map((operation) => operation.payload.metadata?.creationKind))
+    .toEqual([undefined, "user_added", "user_added", "user_added", "user_added", "user_added", undefined]);
+  expect(cardWrites[6]?.payload.metadata?.onboardingDemo?.wasEdited).toBe(false);
   expect(await listOutboxRecords(workspaceId)).toEqual([]);
 });
