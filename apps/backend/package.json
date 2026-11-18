@@ -15,32 +15,32 @@
   },
   "dependencies": {
     "@apple/app-store-server-library": "3.1.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.1166.0",
-    "@aws-sdk/client-cognito-identity-provider": "^3.1166.0",
-    "@aws-sdk/client-dynamodb": "^3.1166.0",
-    "@aws-sdk/client-lambda": "^3.1166.0",
-    "@aws-sdk/client-s3": "^3.1166.0",
-    "@aws-sdk/client-secrets-manager": "^3.1166.0",
-    "@aws-sdk/s3-request-presigner": "^3.1166.0",
-    "@hono/node-server": "^2.1.6",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1171.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1171.0",
+    "@aws-sdk/client-dynamodb": "^3.1171.0",
+    "@aws-sdk/client-lambda": "^3.1171.0",
+    "@aws-sdk/client-s3": "^3.1171.0",
+    "@aws-sdk/client-secrets-manager": "^3.1171.0",
+    "@aws-sdk/s3-request-presigner": "^3.1171.0",
+    "@hono/node-server": "^2.1.9",
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@opentelemetry/instrumentation": "^0.301.1",
-    "@sentry/aws-serverless": "^11.12.0",
-    "@sentry/server-runtime-injection": "11.12.0",
+    "@opentelemetry/instrumentation": "^0.301.2",
+    "@sentry/aws-serverless": "^11.14.0",
+    "@sentry/server-runtime-injection": "11.14.0",
     "aws-jwt-verify": "^5.2.1",
     "fflate": "^0.8.3",
     "google-auth-library": "11.3.4",
-    "hono": "^4.13.17",
-    "just-bash": "3.6.0",
+    "hono": "^4.13.19",
+    "just-bash": "3.6.1",
     "mammoth": "^1.13.0",
     "markdown-it": "15.0.3",
-    "maxmind": "^5.0.8",
-    "openai": "^7.55.0",
-    "papaparse": "^5.7.0",
+    "maxmind": "^5.1.0",
+    "openai": "^7.59.0",
+    "papaparse": "^5.7.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "6.4.299",
     "pg": "^8.23.1",
-    "read-excel-file": "^9.3.14",
+    "read-excel-file": "^9.3.17",
     "sharp": "^0.35.5",
     "stripe": "23.0.1",
     "yauzl": "^3.4.0",
@@ -65,11 +65,11 @@
       "undici": "7.30.2"
     },
     "@sentry/bundler-plugins": {
-      "glob": "14.0.3"
+      "glob": "14.0.6"
     }
   },
   "engines": {
-    "node": ">=24.22.2 <25"
+    "node": ">=24.22.3 <25"
   },
   "allowScripts": {
     "@mongodb-js/zstd@7.0.0": true,
