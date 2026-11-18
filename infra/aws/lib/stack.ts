@@ -31,6 +31,7 @@ import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
+import { cardAdditionReconciliation } from "./scheduled-jobs/card-addition-reconciliation";
 import { countryRetention } from "./scheduled-jobs/country-retention";
 import { dailyVisitorHashSaltExpiry } from "./scheduled-jobs/daily-visitor-hash-salt-expiry";
 import { syntheticActorDetector } from "./scheduled-jobs/synthetic-actor-detector";
@@ -369,6 +370,15 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
       schedulerRole,
     });
+    const cardAdditionReconciliationResult = cardAdditionReconciliation(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
+      ...sentryContext,
+      schedulerRole,
+    });
     const webGuestReaperResult = webGuestReaper(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -652,6 +662,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     // it the auth.user_identities INSERT its account creation performs).
     addDatabaseMigrationDependency(authApi.authFn, migrationGate);
     addDatabaseMigrationDependency(nativeProofChallengeFn, migrationGate);
+    addDatabaseMigrationDependency(cardAdditionReconciliationResult.reconciliationFunction, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
     addDatabaseMigrationDependency(dailyVisitorHashSaltExpiryResult.expiryFunction, migrationGate);
@@ -686,6 +697,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       directImageIngestionLogGroup: api.directImageIngestionFn.logGroup,
       mcpDispatcherLogGroup: mcpApi.dispatcherFn.logGroup,
       backendLogGroup: api.backendFn.logGroup,
+      cardAdditionReconciliationLogGroup: cardAdditionReconciliationResult.reconciliationFunction.logGroup,
       webGuestReaperLogGroup: webGuestReaperResult.reaperFunction.logGroup,
       multipartCompletionReconciliationLogGroup:
         multipartCompletionReconciliationResult.reconciliationFunction.logGroup,
@@ -706,6 +718,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      cardAdditionReconciliationFn: cardAdditionReconciliationResult.reconciliationFunction,
       countryRetentionFn: countryRetentionResult.retentionFunction,
       dailyVisitorHashSaltExpiryFn: dailyVisitorHashSaltExpiryResult.expiryFunction,
       syntheticActorDetectorFn: syntheticActorDetectorResult.detectorFunction,
@@ -744,9 +757,11 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      cardAdditionReconciliationFn: cardAdditionReconciliationResult.reconciliationFunction,
       webGuestReaperFn: webGuestReaperResult.reaperFunction,
       catalogDumpFn: catalogDumpResult.dumpFunction,
       migrationFn,
+      cardAdditionReconciliationScheduleArn: cardAdditionReconciliationResult.reconciliationScheduleArn,
       generatedMediaPromotionScheduleArn:
         generatedMediaPromotionResult.promotionScheduleArn,
       multipartCompletionReconciliationScheduleArn:
@@ -782,6 +797,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFunction: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFunction: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFunction: progressActiveDaysBackfillResult.backfillFunction,
+      cardAdditionReconciliationFunction: cardAdditionReconciliationResult.reconciliationFunction,
+      cardAdditionReconciliationLogGroupName: cardAdditionReconciliationResult.reconciliationFunction.logGroup.logGroupName,
+      cardAdditionReconciliationScheduleName: cardAdditionReconciliationResult.reconciliationScheduleName,
+      cardAdditionReconciliationScheduleArn: cardAdditionReconciliationResult.reconciliationScheduleArn,
       webGuestReaperFunction: webGuestReaperResult.reaperFunction,
       catalogDumpBucket: catalogDumpResult.bucket,
       catalogDumpDistribution: catalogDumpResult.distribution,

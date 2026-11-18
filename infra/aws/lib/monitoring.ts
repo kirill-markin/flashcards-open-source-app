@@ -26,6 +26,7 @@ import {
 import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
+import { cardAdditionReconciliationScheduleHours } from "./scheduled-jobs/card-addition-reconciliation";
 import { webGuestReaperScheduleHours } from "./scheduled-jobs/web-guest-reaper";
 import { countryRetentionScheduleHours } from "./scheduled-jobs/country-retention";
 import { dailyVisitorHashSaltExpiryScheduleHours } from "./scheduled-jobs/daily-visitor-hash-salt-expiry";
@@ -67,6 +68,8 @@ export interface MonitoringProps {
   communityLeaderboardSnapshotFn: lambda.IFunction;
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
+  cardAdditionReconciliationFn: lambda.IFunction;
+  cardAdditionReconciliationLogGroup: logs.ILogGroup;
   webGuestReaperFn: lambda.IFunction;
   webGuestReaperLogGroup: logs.ILogGroup;
   countryRetentionFn: lambda.IFunction;
@@ -870,6 +873,65 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       "so known-timezone users may keep missing active-day materialization",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
+
+  const cardAdditionReconciliationErrorAlarm = new cloudwatch.Alarm(scope, "CardAdditionReconciliationLambdaErrorAlarm", {
+    metric: props.cardAdditionReconciliationFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Legacy card-addition reconciliation failed; inspect its structured failure and retry logs",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  });
+  notifyAlertTopic(cardAdditionReconciliationErrorAlarm, alertTopic);
+
+  const cardAdditionReconciliationCompletedMetricFilter = new logs.MetricFilter(scope, "CardAdditionReconciliationCompletedMetricFilter", {
+    logGroup: props.cardAdditionReconciliationLogGroup,
+    filterPattern: logs.FilterPattern.stringValue("$.message.action", "=", "card_addition_reconciliation_completed"),
+    metricNamespace: "FlashcardsOpenSourceApp/CardAdditionReconciliation",
+    metricName: "CompletedRuns",
+    metricValue: "1",
+    defaultValue: 0,
+  });
+  const cardAdditionReconciliationStaleAlarm = new cloudwatch.Alarm(scope, "CardAdditionReconciliationStaleAlarm", {
+    metric: cardAdditionReconciliationCompletedMetricFilter.metric({
+      period: cdk.Duration.hours(cardAdditionReconciliationScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "Legacy card-addition reconciliation has not completed a run for two consecutive days",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  });
+  notifyAlertTopic(cardAdditionReconciliationStaleAlarm, alertTopic);
+
+  const cardAdditionReconciliationBacklogMetricFilter = new logs.MetricFilter(scope, "CardAdditionReconciliationBacklogMetricFilter", {
+    logGroup: props.cardAdditionReconciliationLogGroup,
+    filterPattern: logs.FilterPattern.all(
+      logs.FilterPattern.stringValue("$.message.action", "=", "card_addition_reconciliation_completed"),
+      logs.FilterPattern.booleanValue("$.message.finished", false),
+    ),
+    metricNamespace: "FlashcardsOpenSourceApp/CardAdditionReconciliation",
+    metricName: "UnfinishedRuns",
+    metricValue: "1",
+    defaultValue: 0,
+  });
+  const cardAdditionReconciliationBacklogAlarm = new cloudwatch.Alarm(scope, "CardAdditionReconciliationBacklogAlarm", {
+    metric: cardAdditionReconciliationBacklogMetricFilter.metric({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Legacy card-addition reconciliation reached its batch limit with recoverable work remaining; run another bounded catch-up",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  });
+  notifyAlertTopic(cardAdditionReconciliationBacklogAlarm, alertTopic);
+
+  for (const [id, alarm] of [
+    ["CardAdditionReconciliationErrorAlarmName", cardAdditionReconciliationErrorAlarm],
+    ["CardAdditionReconciliationStaleAlarmName", cardAdditionReconciliationStaleAlarm],
+    ["CardAdditionReconciliationBacklogAlarmName", cardAdditionReconciliationBacklogAlarm],
+  ] as const) {
+    new cdk.CfnOutput(scope, id, { value: alarm.alarmName });
+  }
 
   // The reaper permanently deletes org.user_settings and org.workspaces rows once a day, so a run
   // that throws every night has to reach the alert topic rather than only Sentry. A candidate scan

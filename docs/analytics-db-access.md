@@ -84,6 +84,35 @@ aws ssm terminate-session --profile "${AWS_PROFILE:?}" --session-id <SessionId>
 
 The tunnel is not narrow: a principal holding `ssm:StartSession` on the bastion also gets an interactive shell on it and port forwarding to any host reachable from it. That is accepted because the only such principals in this account are already account administrators.
 
+## Legacy card-addition reconciliation
+
+The temporary [daily worker](../infra/aws/lib/scheduled-jobs/card-addition-reconciliation.ts) saves proven legacy additions as durable facts using the [shared recovery module](../apps/backend/src/productAnalytics/cardAdditionRecovery.ts). It also catches cards first synced by older offline clients after deployment. It does not infer an addition from an unproven snapshot.
+
+After CI deploys the change, read the current core-stack outputs `CardAdditionReconciliationFunctionName`, `CardAdditionReconciliationLogGroupName`, `CardAdditionReconciliationScheduleName`, and `CardAdditionReconciliationScheduleArn`. Verify the target account with `aws sts get-caller-identity`, then check the live schedule and run one bounded catch-up:
+
+```bash
+aws scheduler get-schedule --name <CardAdditionReconciliationScheduleName>
+aws lambda invoke --function-name <CardAdditionReconciliationFunctionName> \
+  --cli-binary-format raw-in-base64-out --payload '{}' /tmp/card-addition-reconciliation.json
+cat /tmp/card-addition-reconciliation.json
+aws logs tail <CardAdditionReconciliationLogGroupName> --since 1h
+```
+
+Confirm the schedule is enabled, its UTC expression matches the worker definition, and its target is the deployed function. Require no `FunctionError` in invoke metadata and `ok: true` in the response. Repeat bounded invocations when `finished: false`; when it is true, repeat once and require `recoveredCount: 0`. A database or timeout failure needs diagnosis before increasing the request bounds. Check the next daily completion log as well: it includes scanned, recovered and batch counts without card or user IDs. Watch database connections during catch-up because this worker shares the existing pool budget.
+
+Through the read-only analytics connection, verify the recoverable backlog and retained history without reproducing the proof rules:
+
+```sql
+SELECT count(*) FROM analytics.card_addition_recovery_candidates(NULL::uuid);
+SELECT count(*) FROM analytics.product_events
+WHERE event_name = 'card_addition_recovered'
+  AND origin = 'backfill' AND trust_level = 'backfill_derived';
+```
+
+The first count must reach zero; the second confirms that saved facts remain available. The monitoring stack exposes `CardAdditionReconciliationErrorAlarmName`, `CardAdditionReconciliationStaleAlarmName`, and `CardAdditionReconciliationBacklogAlarmName`. Verify their live configuration and SNS actions after deploy, and their healthy state once daily completion data arrives. They detect Lambda errors, two consecutive days without a completed run, and a completed run with recoverable backlog remaining.
+
+First fixed published native versions are **unset**: published `1.43.0` predates the November 17 fix. Record the actual first published iOS and Android builds containing the marker fix when available; neither a checked-in version nor a guessed `1.44` cutoff proves publication. Retire the schedule and report compatibility path only after those builds have verified adoption, delayed offline sync has caught up, repeat catch-up finds no recoverable backlog, and historical report counts stay stable from the permanently stored facts. Preserve those facts and their historical counts when removing the worker and fallback.
+
 ## Database role: `reporting_readonly`
 
 [`0044_reporting_readonly_role.sql`](../db/migrations/0044_reporting_readonly_role.sql) owns the login role, its non-privileged attributes, session settings (read-only transactions and timeouts), and connection limit, which [`0046`](../db/migrations/0046_reporting_readonly_connection_limit.sql) raised on databases where 0044 had already been applied. It also grants the initial `SELECT` set, and later migrations add the rest, often column-scoped; each granted table with row-level security gets an explicit `USING (true)` `FOR SELECT` policy; no write access is ever granted. The deployed migration runner rotates the password through the reporting secret without changing the schema-owned role.

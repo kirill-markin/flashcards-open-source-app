@@ -98,6 +98,8 @@ export type {
 export type {
   AdminQueryDetails,
   AgentSqlDetails,
+  CardAdditionReconciliationCompletedDetails,
+  CardAdditionReconciliationFailureDetails,
   CatalogDeckInstalledAnalyticsSkippedDetails,
   CatalogDeckInstalledDeviceUnresolvedDetails,
   CatalogDumpFailureDetails,
