@@ -1544,6 +1544,15 @@ const ltCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Klauskite apie korteles, kartojimų istoriją arba pridėkite užrašų...",
     currentChatRecovered: "Šis pokalbis buvo pakeistas naujesniu. Jūsų žinutė vis dar teksto laukelyje — išsiųskite ją dar kartą.",
+    customInstructions: {
+      add: "Pridėti pasirinktines instrukcijas",
+      count: "{{count}} / {{max}}",
+      description: "Nuostatos, kurių DI pokalbis laikosi šioje darbo srityje, pavyzdžiui, kalba, lygis, atsakymų ilgis ir kortelių stilius.",
+      loadFailed: "Nepavyko įkelti pasirinktinių instrukcijų.",
+      placeholder: "Pavyzdžiui: mokausi vokiečių kalbos A2 lygiu. Kiekvienos kortelės kitoje pusėje pridėk pavyzdinį sakinį. Atsakyk trumpai.",
+      saveFailed: "Nepavyko išsaugoti pasirinktinių instrukcijų. Bandykite dar kartą.",
+      title: "Pasirinktinės instrukcijos",
+    },
     dictation: {
       listening: "Klausomasi...",
       start: "Pradėti diktavimą",

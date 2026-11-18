@@ -1533,6 +1533,15 @@ const lvCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Jautājiet par kartītēm, atkārtošanas vēsturi vai pievienojiet piezīmes...",
     currentChatRecovered: "Šī tērzēšana tika aizstāta ar jaunāku. Jūsu ziņa joprojām ir teksta laukā — nosūtiet to vēlreiz.",
+    customInstructions: {
+      add: "Pievienot pielāgotus norādījumus",
+      count: "{{count}} / {{max}}",
+      description: "Preferences, kurām MI saruna seko šajā darbvietā, piemēram, valoda, līmenis, atbilžu garums un kartīšu stils.",
+      loadFailed: "Neizdevās ielādēt pielāgotos norādījumus.",
+      placeholder: "Piemēram: es mācos vācu valodu A2 līmenī. Katras kartītes otrā pusē pievieno piemēra teikumu. Atbildi īsi.",
+      saveFailed: "Neizdevās saglabāt pielāgotos norādījumus. Mēģiniet vēlreiz.",
+      title: "Pielāgoti norādījumi",
+    },
     dictation: {
       listening: "Klausās...",
       start: "Sākt diktēšanu",

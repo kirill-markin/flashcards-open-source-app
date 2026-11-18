@@ -1544,6 +1544,15 @@ const skCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Pýtajte sa na karty, históriu opakovania alebo priložte poznámky...",
     currentChatRecovered: "Tento chat bol nahradený novším. Vaša správa je stále v textovom poli – odošlite ju znova.",
+    customInstructions: {
+      add: "Pridať vlastné pokyny",
+      count: "{{count}} / {{max}}",
+      description: "Preferencie, ktorými sa AI chat v tomto pracovnom priestore riadi, napríklad jazyk, úroveň, dĺžka odpovedí a štýl kariet.",
+      loadFailed: "Vlastné pokyny sa nepodarilo načítať.",
+      placeholder: "Napríklad: Učím sa nemčinu na úrovni A2. Na zadnú stranu každej karty pridaj ukážkovú vetu. Odpovedaj stručne.",
+      saveFailed: "Vlastné pokyny sa nepodarilo uložiť. Skúste to znova.",
+      title: "Vlastné pokyny",
+    },
     dictation: {
       listening: "Počúva sa...",
       start: "Spustiť diktovanie",

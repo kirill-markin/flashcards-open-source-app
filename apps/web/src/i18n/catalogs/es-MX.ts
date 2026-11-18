@@ -1533,6 +1533,15 @@ const esMxCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Pregunta sobre tarjetas, historial de repaso o adjunta notas...",
     currentChatRecovered: "Este chat se reemplazó por uno más reciente. Tu mensaje sigue en el cuadro de texto: vuelve a enviarlo.",
+    customInstructions: {
+      add: "Agregar instrucciones personalizadas",
+      count: "{{count}} / {{max}}",
+      description: "Preferencias que sigue el chat con IA en este espacio de trabajo, como el idioma, el nivel, la longitud de las respuestas y el estilo de las tarjetas.",
+      loadFailed: "No se pudieron cargar las instrucciones personalizadas.",
+      placeholder: "Por ejemplo: estudio alemán de nivel A2. Agrega una oración de ejemplo al reverso de cada tarjeta. Responde de forma breve.",
+      saveFailed: "No se pudieron guardar las instrucciones personalizadas. Inténtalo de nuevo.",
+      title: "Instrucciones personalizadas",
+    },
     dictation: {
       listening: "Escuchando...",
       start: "Iniciar dictado",

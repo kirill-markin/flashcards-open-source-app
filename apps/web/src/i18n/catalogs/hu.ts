@@ -1533,6 +1533,15 @@ const huCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Kérdezz kártyákról, ismétlési előzményekről, vagy csatolj jegyzeteket...",
     currentChatRecovered: "Ezt a csevegést egy újabb váltotta fel. Az üzeneted még a szövegmezőben van – küldd el újra.",
+    customInstructions: {
+      add: "Egyéni utasítások hozzáadása",
+      count: "{{count}} / {{max}}",
+      description: "Beállítások, amelyeket az AI-csevegés ebben a munkaterületben követ, például a nyelv, a szint, a válaszok hossza és a kártyák stílusa.",
+      loadFailed: "Az egyéni utasítások nem tölthetők be.",
+      placeholder: "Például: A2-es szinten tanulok németül. Minden kártya hátoldalára írj egy példamondatot. Válaszolj röviden.",
+      saveFailed: "Az egyéni utasítások nem menthetők. Próbáld újra.",
+      title: "Egyéni utasítások",
+    },
     dictation: {
       listening: "Hallgatom...",
       start: "Diktálás indítása",

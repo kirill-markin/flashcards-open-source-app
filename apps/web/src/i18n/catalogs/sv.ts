@@ -1533,6 +1533,15 @@ const svCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Fråga om kort, repetitionshistorik eller bifoga anteckningar...",
     currentChatRecovered: "Den här chatten har ersatts av en nyare. Ditt meddelande finns kvar i textfältet – skicka det igen.",
+    customInstructions: {
+      add: "Lägg till anpassade instruktioner",
+      count: "{{count}} / {{max}}",
+      description: "Inställningar som AI-chatten följer i den här arbetsytan, till exempel språk, nivå, svarslängd och kortstil.",
+      loadFailed: "Det gick inte att läsa in anpassade instruktioner.",
+      placeholder: "Till exempel: Jag läser tyska på A2-nivå. Lägg till en exempelmening på baksidan av varje kort. Svara kortfattat.",
+      saveFailed: "Det gick inte att spara anpassade instruktioner. Försök igen.",
+      title: "Anpassade instruktioner",
+    },
     dictation: {
       listening: "Lyssnar...",
       start: "Starta diktering",

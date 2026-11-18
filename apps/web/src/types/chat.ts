@@ -109,6 +109,8 @@ export type ChatSessionSnapshot = Readonly<{
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ChatConfig;
   activeRun: ChatActiveRun | null;
+  /** The workspace's chat custom instructions; an older backend omits the field, read as null. */
+  customInstructions: string | null;
 }>;
 
 /** A file or image staged through `POST /chat/files/uploads`; the backend stores it as a session file. */
@@ -172,6 +174,13 @@ export type NewChatSessionResponse = Readonly<{
   sessionId: string;
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ChatConfig;
+  customInstructions: string | null;
+}>;
+
+/** `GET`/`POST /workspaces/:workspaceId/chat-instructions`; the server owns `maxLength`. */
+export type WorkspaceChatInstructions = Readonly<{
+  customInstructions: string | null;
+  maxLength: number;
 }>;
 
 export type StopChatRunResponse = Readonly<{

@@ -168,6 +168,8 @@ export function useChatSessionController(
       composerSuggestions: [],
       chatConfig: state.chatConfig,
       activeRun: null,
+      // Custom instructions stay in memory only.
+      customInstructions: null,
     }, state.pendingToolRunPostSync, snapshotSync.runtimeRefs.serverSessionIdRef.current === state.currentSessionId);
   });
 

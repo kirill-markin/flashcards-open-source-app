@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router";
 import { StrictMode, act, createElement, useEffect, useLayoutEffect, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
@@ -877,11 +878,15 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   }
 
   async function renderChatPanel(mode: "sidebar" | "fullscreen" = "fullscreen"): Promise<void> {
-    await renderChatPanelShell(createElement(ChatPanel, { key: mode, mode }), false);
+    // ChatPanel links to the custom-instructions editor, so it needs the router the app provides.
+    await renderChatPanelShell(createElement(MemoryRouter, null, createElement(ChatPanel, { key: mode, mode })), false);
   }
 
   async function renderChatPanelStrictMode(): Promise<void> {
-    await renderChatPanelShell(createElement(ChatPanel, { key: "strict-fullscreen", mode: "fullscreen" }), true);
+    await renderChatPanelShell(
+      createElement(MemoryRouter, null, createElement(ChatPanel, { key: "strict-fullscreen", mode: "fullscreen" })),
+      true,
+    );
   }
 
   async function hideChatPanel(): Promise<void> {

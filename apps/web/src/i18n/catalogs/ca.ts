@@ -1533,6 +1533,15 @@ const caCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Pregunta sobre les targetes o l'historial de repassos, o adjunta apunts...",
     currentChatRecovered: "Aquest xat s’ha substituït per un de més recent. El teu missatge encara és al quadre de text: torna’l a enviar.",
+    customInstructions: {
+      add: "Afegeix instruccions personalitzades",
+      count: "{{count}} / {{max}}",
+      description: "Preferències que el xat d'IA segueix en aquest espai de treball, com ara l'idioma, el nivell, la llargada de les respostes i l'estil de les targetes.",
+      loadFailed: "No s'han pogut carregar les instruccions personalitzades.",
+      placeholder: "Per exemple: estudio alemany de nivell A2. Afegeix una frase d'exemple al dors de cada targeta. Respon breument.",
+      saveFailed: "No s'han pogut desar les instruccions personalitzades. Torna-ho a provar.",
+      title: "Instruccions personalitzades",
+    },
     dictation: {
       listening: "Escoltant...",
       start: "Comença el dictat",

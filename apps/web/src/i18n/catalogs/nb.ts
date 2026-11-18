@@ -1533,6 +1533,15 @@ const nbCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Spør om kort og repetisjonshistorikk, eller legg ved notater...",
     currentChatRecovered: "Denne chatten er erstattet av en nyere. Meldingen din står fortsatt i tekstfeltet – send den på nytt.",
+    customInstructions: {
+      add: "Legg til egendefinerte instruksjoner",
+      count: "{{count}} / {{max}}",
+      description: "Preferanser AI-chatten følger i dette arbeidsområdet, for eksempel språk, nivå, svarlengde og kortstil.",
+      loadFailed: "Kunne ikke laste inn egendefinerte instruksjoner.",
+      placeholder: "For eksempel: Jeg lærer tysk på A2-nivå. Legg til en eksempelsetning på baksiden av hvert kort. Svar kort.",
+      saveFailed: "Kunne ikke lagre egendefinerte instruksjoner. Prøv igjen.",
+      title: "Egendefinerte instruksjoner",
+    },
     dictation: {
       listening: "Lytter...",
       start: "Start diktering",

@@ -1533,6 +1533,15 @@ const deCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Frage nach Karten, Wiederholungsverlauf oder hänge Notizen an...",
     currentChatRecovered: "Dieser Chat wurde durch einen neueren ersetzt. Deine Nachricht steht noch im Eingabefeld – sende sie erneut.",
+    customInstructions: {
+      add: "Eigene Anweisungen hinzufügen",
+      count: "{{count}} / {{max}}",
+      description: "Vorgaben, denen der AI-Chat in diesem Arbeitsbereich folgt, etwa Sprache, Niveau, Antwortlänge und Kartenstil.",
+      loadFailed: "Eigene Anweisungen konnten nicht geladen werden.",
+      placeholder: "Zum Beispiel: Ich lerne Spanisch auf Niveau A2. Füge auf der Rückseite jeder Karte einen Beispielsatz hinzu. Antworte kurz.",
+      saveFailed: "Eigene Anweisungen konnten nicht gespeichert werden. Versuche es erneut.",
+      title: "Eigene Anweisungen",
+    },
     dictation: {
       listening: "Hört zu...",
       start: "Diktat starten",

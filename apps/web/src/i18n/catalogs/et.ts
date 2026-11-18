@@ -1533,6 +1533,15 @@ const etCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Küsi kaartide või kordamiste ajaloo kohta või lisa märkmeid...",
     currentChatRecovered: "See vestlus asendati uuemaga. Sinu sõnum on endiselt tekstiväljas – saada see uuesti.",
+    customInstructions: {
+      add: "Lisa kohandatud juhised",
+      count: "{{count}} / {{max}}",
+      description: "Eelistused, mida tehisintellekti vestlus selles tööruumis järgib, näiteks keel, tase, vastuste pikkus ja kaartide stiil.",
+      loadFailed: "Kohandatud juhiseid ei õnnestunud laadida.",
+      placeholder: "Näiteks: õpin saksa keelt A2-tasemel. Lisa iga kaardi tagaküljele näitelause. Vasta lühidalt.",
+      saveFailed: "Kohandatud juhiseid ei õnnestunud salvestada. Proovi uuesti.",
+      title: "Kohandatud juhised",
+    },
     dictation: {
       listening: "Kuulamine...",
       start: "Alusta dikteerimist",

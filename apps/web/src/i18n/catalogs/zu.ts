@@ -1533,6 +1533,15 @@ const zuCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Buza ngamakhadi, umlando wokubukeza, noma unamathisele amanothi...",
     currentChatRecovered: "Le ngxoxo ithathelwe indawo ngengxoxo entsha. Umlayezo wakho usesebhokisini lombhalo — wuthumele futhi.",
+    customInstructions: {
+      add: "Engeza imiyalelo yangokwezifiso",
+      count: "{{count}} / {{max}}",
+      description: "Okuncamelayo okulandelwa yi-Ingxoxo ye-AI kule ndawo yokusebenza, njengolimi, izinga, ubude bezimpendulo nesitayela samakhadi.",
+      loadFailed: "Ayikwazanga ukulayisha imiyalelo yangokwezifiso.",
+      placeholder: "Isibonelo: Ngifunda isiJalimane ezingeni le-A2. Engeza umusho oyisibonelo ngemuva kwekhadi ngalinye. Phendula kafushane.",
+      saveFailed: "Ayikwazanga ukulondoloza imiyalelo yangokwezifiso. Zama futhi.",
+      title: "Imiyalelo yangokwezifiso",
+    },
     dictation: {
       listening: "Kuyalalelwa...",
       start: "Qala ukuloba ngezwi",

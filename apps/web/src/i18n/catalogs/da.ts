@@ -1533,6 +1533,15 @@ const daCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Spørg om kort, repetitioner, eller vedhæft noter...",
     currentChatRecovered: "Denne chat er blevet erstattet af en nyere. Din besked står stadig i feltet – send den igen.",
+    customInstructions: {
+      add: "Tilføj brugerdefinerede instruktioner",
+      count: "{{count}} / {{max}}",
+      description: "Præferencer, som AI-chatten følger i dette arbejdsområde, f.eks. sprog, niveau, svarlængde og kortstil.",
+      loadFailed: "Kunne ikke indlæse brugerdefinerede instruktioner.",
+      placeholder: "For eksempel: Jeg lærer tysk på A2-niveau. Tilføj en eksempelsætning på bagsiden af hvert kort. Hold svarene korte.",
+      saveFailed: "Kunne ikke gemme brugerdefinerede instruktioner. Prøv igen.",
+      title: "Brugerdefinerede instruktioner",
+    },
     dictation: {
       listening: "Lytter...",
       start: "Start diktering",

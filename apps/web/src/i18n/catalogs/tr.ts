@@ -1533,6 +1533,15 @@ const trCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Kartlar veya tekrar geçmişi hakkında soru sorun ya da not ekleyin...",
     currentChatRecovered: "Bu sohbet daha yeni bir sohbetle değiştirildi. Mesajınız hâlâ metin kutusunda — tekrar gönderin.",
+    customInstructions: {
+      add: "Özel talimat ekle",
+      count: "{{count}} / {{max}}",
+      description: "AI sohbetinin bu çalışma alanında uyduğu tercihler; örneğin dil, seviye, yanıt uzunluğu ve kart stili.",
+      loadFailed: "Özel talimatlar yüklenemedi.",
+      placeholder: "Örneğin: A2 seviyesinde Almanca çalışıyorum. Her kartın arka yüzüne bir örnek cümle ekle. Kısa yanıt ver.",
+      saveFailed: "Özel talimatlar kaydedilemedi. Tekrar deneyin.",
+      title: "Özel talimatlar",
+    },
     dictation: {
       listening: "Dinleniyor...",
       start: "Dikteyi başlat",

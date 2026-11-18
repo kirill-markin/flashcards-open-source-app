@@ -1541,6 +1541,15 @@ export const zhHantCatalog = {
     },
     composerPlaceholder: "詢問卡片或複習紀錄，也可以附上筆記…",
     currentChatRecovered: "這段聊天已由較新的聊天取代。你的訊息仍在輸入欄，請再送出一次。",
+    customInstructions: {
+      add: "新增自訂指示",
+      count: "{{count}} / {{max}}",
+      description: "AI 聊天在此工作區中遵循的偏好，例如語言、程度、回答長度和卡片風格。",
+      loadFailed: "無法載入自訂指示。",
+      placeholder: "例如：我正在學習 A2 程度的德文。請在每張卡片背面加入一個例句。回答盡量簡短。",
+      saveFailed: "無法儲存自訂指示。請再試一次。",
+      title: "自訂指示",
+    },
     dictation: {
       listening: "正在收音…",
       start: "開始語音輸入",

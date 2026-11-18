@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactElement } from "react";
+import { Link, useLocation } from "react-router";
 import { GuestSignIn } from "../../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../../appData";
 import {
@@ -46,6 +47,9 @@ import { useChatComposerKeyboard } from "../composer/useChatComposerKeyboard";
 import { useChatComposerSend } from "../composer/useChatComposerSend";
 import { useChatDictationCapture } from "../composer/dictation/useChatDictationCapture";
 import { useChatSidebarResize } from "../layout/useChatSidebarResize";
+import { useWorkspaceChatInstructions } from "../customInstructions/workspaceChatInstructionsStore";
+import { normalizeRoutePath, settingsChatInstructionsRoute, splitWorkspaceRoutePath } from "../../routes";
+import { useWorkspacePath } from "../../useWorkspacePath";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
@@ -187,6 +191,10 @@ export function ChatPanel(props: Props): ReactElement {
     scrollKey: currentSessionId,
   });
   const isInitialHistoryLoading = !isHistoryLoaded && messages.length === 0;
+  const location = useLocation();
+  const workspacePath = useWorkspacePath();
+  const savedChatInstructions = useWorkspaceChatInstructions(appData.session?.userId ?? null, activeWorkspaceId) ?? null;
+  const isNewChatEmpty = isHistoryLoaded && messages.length === 0 && !isAssistantRunActive && activeWorkspaceId !== null;
   const attachmentLimitMessages = formatChatAttachmentLimitMessages({ t, formatNumber });
   const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
   const technicalErrorMessage = t("appError.technicalError.message");
@@ -346,7 +354,7 @@ export function ChatPanel(props: Props): ReactElement {
     pendingAttachmentsRef,
     setPendingAttachmentsState,
   });
-  const { handleKeyDown } = useChatComposerKeyboard({
+  const { handleKeyDown, isMobileChatLayout } = useChatComposerKeyboard({
     composerAction,
     sendPendingMessage,
   });
@@ -469,12 +477,18 @@ export function ChatPanel(props: Props): ReactElement {
     }
   }
 
+  const isMobileSidebar = mode === "sidebar" && isMobileChatLayout;
+  // On a phone the sidebar is a drawer over the page, so it steps aside while the instructions editor is shown
+  // and is still open, with the new preview, when the editor returns.
+  const isBehindChatInstructions = isMobileSidebar
+    && normalizeRoutePath(splitWorkspaceRoutePath(location.pathname).appPath) === settingsChatInstructionsRoute;
+
   return (
     <div
       ref={rootRef}
       className={rootClassName}
       data-testid="chat-panel"
-      style={mode === "sidebar" ? { width: localWidth } : undefined}
+      style={mode === "sidebar" ? { width: localWidth, display: isBehindChatInstructions ? "none" : undefined } : undefined}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -580,6 +594,34 @@ export function ChatPanel(props: Props): ReactElement {
                 <span className="chat-loading-line" />
                 <span className="chat-loading-line chat-loading-line-short" />
               </div>
+            </div>
+          ) : null}
+
+          {isNewChatEmpty ? (
+            <div className="chat-custom-instructions-entry">
+              <Link
+                className="chat-custom-instructions-button"
+                to={workspacePath(settingsChatInstructionsRoute)}
+                state={{ parentPath: `${location.pathname}${location.search}` }}
+                onClick={() => {
+                  if (isMobileSidebar) {
+                    discardDictation();
+                  }
+                }}
+                data-testid="chat-custom-instructions-button"
+                data-state={savedChatInstructions === null ? "unset" : "set"}
+              >
+                <span className="chat-custom-instructions-label">
+                  {savedChatInstructions === null
+                    ? t("chatPanel.customInstructions.add")
+                    : t("chatPanel.customInstructions.title")}
+                </span>
+                {savedChatInstructions === null ? null : (
+                  <span className="chat-custom-instructions-preview" data-testid="chat-custom-instructions-preview">
+                    {savedChatInstructions}
+                  </span>
+                )}
+              </Link>
             </div>
           ) : null}
 

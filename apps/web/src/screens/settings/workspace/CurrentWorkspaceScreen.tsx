@@ -17,7 +17,9 @@ import { captureAppOperationError } from "../../../observability/appOperationObs
 import { addWebBreadcrumb } from "../../../observability/webObservability";
 import { useTransientMessage } from "../../../useTransientMessage";
 import { isWorkspaceManagementLocked } from "../../../workspaceManagement";
-import { SettingsActionCard, SettingsGroup, SettingsShell } from "../SettingsShared";
+import { settingsChatInstructionsRoute, settingsCurrentWorkspaceRoute } from "../../../routes";
+import { useWorkspacePath } from "../../../useWorkspacePath";
+import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "../SettingsShared";
 import { WorkspaceActionDialog } from "./WorkspaceActionDialog";
 
 export function CurrentWorkspaceScreen(): ReactElement {
@@ -38,6 +40,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
+  const workspacePath = useWorkspacePath();
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
@@ -364,6 +367,18 @@ export function CurrentWorkspaceScreen(): ReactElement {
               testId="workspace-rename-open"
               isMuted={isWorkspaceLocked}
               workspaceManagementState={workspaceManagementState}
+            />
+          </div>
+        </SettingsGroup>
+        <SettingsGroup>
+          <div className="settings-nav-list">
+            <SettingsNavigationCard
+              title={t("chatPanel.customInstructions.title")}
+              description={t("chatPanel.customInstructions.description")}
+              value={null}
+              to={workspacePath(settingsChatInstructionsRoute)}
+              parentPath={workspacePath(settingsCurrentWorkspaceRoute)}
+              testId="workspace-chat-instructions-open"
             />
           </div>
         </SettingsGroup>

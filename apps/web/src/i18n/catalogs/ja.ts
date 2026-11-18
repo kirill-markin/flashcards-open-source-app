@@ -1533,6 +1533,15 @@ export const jaCatalog = {
     },
     composerPlaceholder: "カードや復習履歴について質問するか、抽出用のメモを添付してください...",
     currentChatRecovered: "このチャットは新しいチャットに置き換えられました。メッセージは入力欄に残っています。もう一度送信してください。",
+    customInstructions: {
+      add: "カスタム指示を追加",
+      count: "{{count}} / {{max}}",
+      description: "このワークスペースで AI チャットが従う設定です。言語、レベル、回答の長さ、カードのスタイルなどを指定できます。",
+      loadFailed: "カスタム指示を読み込めませんでした。",
+      placeholder: "例: A2レベルのドイツ語を勉強しています。各カードの裏面に例文を追加してください。回答は短くしてください。",
+      saveFailed: "カスタム指示を保存できませんでした。もう一度お試しください。",
+      title: "カスタム指示",
+    },
     dictation: {
       listening: "聞き取り中...",
       start: "音声入力を開始",

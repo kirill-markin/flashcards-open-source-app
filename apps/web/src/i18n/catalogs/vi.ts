@@ -1533,6 +1533,15 @@ const viCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Hỏi về thẻ, lịch sử ôn tập hoặc đính kèm ghi chú...",
     currentChatRecovered: "Cuộc trò chuyện này đã được thay bằng một cuộc trò chuyện mới hơn. Tin nhắn của bạn vẫn còn trong ô nhập — hãy gửi lại.",
+    customInstructions: {
+      add: "Thêm hướng dẫn tùy chỉnh",
+      count: "{{count}} / {{max}}",
+      description: "Các tùy chọn mà Trò chuyện AI tuân theo trong không gian làm việc này, như ngôn ngữ, trình độ, độ dài câu trả lời và kiểu thẻ.",
+      loadFailed: "Không thể tải hướng dẫn tùy chỉnh.",
+      placeholder: "Ví dụ: Tôi học tiếng Đức trình độ A2. Thêm một câu ví dụ ở mặt sau của mỗi thẻ. Trả lời ngắn gọn.",
+      saveFailed: "Không thể lưu hướng dẫn tùy chỉnh. Hãy thử lại.",
+      title: "Hướng dẫn tùy chỉnh",
+    },
     dictation: {
       listening: "Đang nghe...",
       start: "Bắt đầu đọc chính tả",

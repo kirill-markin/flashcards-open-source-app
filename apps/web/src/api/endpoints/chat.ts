@@ -12,6 +12,10 @@ import {
   OWN_OPENAI_KEY_HEADER_NAME,
   readActiveOwnOpenAIKey,
 } from "../../chat/preferences/ownOpenAIKeyStorage";
+import {
+  beginWorkspaceChatInstructionsRequest,
+  recordWorkspaceChatInstructions,
+} from "../../chat/customInstructions/workspaceChatInstructionsStore";
 import { webAppVersion } from "../../clientIdentity";
 import type { Locale } from "../../i18n/types";
 import type {
@@ -48,6 +52,21 @@ function buildOwnOpenAIKeyHeaders(): Record<string, string> {
   return ownOpenAIKey === null ? {} : { [OWN_OPENAI_KEY_HEADER_NAME]: ownOpenAIKey };
 }
 
+/** Every chat response carries the workspace's custom instructions; keep the in-memory copy current. */
+async function recordingCustomInstructions<Response extends Readonly<{ customInstructions: string | null }>>(
+  workspaceId: string | undefined,
+  request: () => Promise<Response>,
+): Promise<Response> {
+  if (workspaceId === undefined) {
+    return request();
+  }
+
+  const token = beginWorkspaceChatInstructionsRequest(workspaceId);
+  const response = await request();
+  recordWorkspaceChatInstructions(token, response.customInstructions, "read");
+  return response;
+}
+
 function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
   const searchParams = new URLSearchParams({
     sessionId,
@@ -61,10 +80,10 @@ export async function getCurrentChatSnapshot(
   signal: AbortSignal,
 ): Promise<ChatSessionSnapshot> {
   const searchParams = new URLSearchParams({ workspaceId });
-  return parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+  return recordingCustomInstructions(workspaceId, async () => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
     method: "GET",
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function getChatSnapshot(
@@ -72,10 +91,10 @@ export async function getChatSnapshot(
   workspaceId: string,
   signal: AbortSignal,
 ): Promise<ChatSessionSnapshot> {
-  return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return recordingCustomInstructions(workspaceId, async () => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 function buildChatResumeDiagnosticsHeaders(diagnostics: ChatResumeRequestDiagnostics): Record<string, string> {
@@ -92,11 +111,11 @@ export async function getChatSnapshotWithResumeDiagnostics(
   diagnostics: ChatResumeRequestDiagnostics,
   signal: AbortSignal,
 ): Promise<ChatSessionSnapshot> {
-  return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
+  return recordingCustomInstructions(workspaceId, async () => parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function getCurrentChatSnapshotWithResumeDiagnostics(
@@ -105,11 +124,11 @@ export async function getCurrentChatSnapshotWithResumeDiagnostics(
   signal: AbortSignal,
 ): Promise<ChatSessionSnapshot> {
   const searchParams = new URLSearchParams({ workspaceId });
-  return parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
+  return recordingCustomInstructions(workspaceId, async () => parseContractResponse(await requestJson(`/chat?${searchParams.toString()}`, {
     method: "GET",
     headers: buildChatResumeDiagnosticsHeaders(diagnostics),
     signal,
-  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse));
 }
 
 export async function listChatSessions(
@@ -166,14 +185,14 @@ export async function archiveChatSession(
 }
 
 async function requestStartChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
-  return parseContractResponse(await requestJson("/chat", {
+  return recordingCustomInstructions(body.workspaceId, async () => parseContractResponse(await requestJson("/chat", {
     method: "POST",
     headers: {
       "X-Client-Platform": "web",
       ...buildOwnOpenAIKeyHeaders(),
     },
     body: JSON.stringify(body),
-  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse));
 }
 
 /**
@@ -213,10 +232,10 @@ export async function createNewChatSession(
     uiLocale,
   };
 
-  return parseContractResponse(await requestJson("/chat/new", {
+  return recordingCustomInstructions(workspaceId, async () => parseContractResponse(await requestJson("/chat/new", {
     method: "POST",
     body: JSON.stringify(requestBody),
-  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat/new", parseNewChatSessionResponse);
+  }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat/new", parseNewChatSessionResponse));
 }
 
 export async function stopChatRun(

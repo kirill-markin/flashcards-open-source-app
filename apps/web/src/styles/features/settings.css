@@ -1117,3 +1117,40 @@
 .account-method-button:focus-visible { outline: 2px solid var(--text-secondary); outline-offset: 3px; }
 .account-method-button:active { opacity: .75; }
 .account-method-button:disabled { opacity: .5; cursor: default; }
+
+.chat-instructions-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 24px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.chat-instructions-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-instructions-retry {
+  min-height: 32px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.chat-instructions-count {
+  margin-inline-start: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-instructions-save-spinner {
+  border-color: currentColor;
+  border-block-start-color: transparent;
+}
+
+.chat-instructions-count-over {
+  color: var(--danger);
+}

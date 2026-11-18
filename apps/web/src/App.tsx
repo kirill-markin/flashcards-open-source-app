@@ -69,6 +69,7 @@ import {
   settingsAccessRoute,
   settingsAccessDetailRoutePattern,
   settingsAIChatSuggestionsRoute,
+  settingsChatInstructionsRoute,
   settingsAnalyticsRoute,
   settingsOwnOpenAIKeyRoute,
   settingsSubscriptionRoute,
@@ -192,6 +193,9 @@ const LanguageSettingsScreen = lazy(async () => import("./screens/settings/Langu
 })));
 const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screens/settings/LeaderboardParticipationSettingsScreen").then((module) => ({
   default: module.LeaderboardParticipationSettingsScreen,
+})));
+const ChatInstructionsScreen = lazy(async () => import("./screens/settings/workspace/ChatInstructionsScreen").then((module) => ({
+  default: module.ChatInstructionsScreen,
 })));
 const AIChatSuggestionsSettingsScreen = lazy(async () => import("./screens/settings/AIChatSuggestionsSettingsScreen").then((module) => ({
   default: module.AIChatSuggestionsSettingsScreen,
@@ -1159,6 +1163,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsAccentColorRoute}`} element={renderDeferredRoute(<AccentColorSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsChatInstructionsRoute}`} element={renderDeferredRoute(<ChatInstructionsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsSubscriptionRoute}`} element={renderDeferredRoute(isGuest ? <AccountStatusScreen /> : <SubscriptionSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsOwnOpenAIKeyRoute}`} element={renderDeferredRoute(<OwnOpenAIKeySettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />

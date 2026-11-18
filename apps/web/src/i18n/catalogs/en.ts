@@ -1532,6 +1532,15 @@ const enCatalog = {
     },
     composerPlaceholder: "Ask about cards, review history, or attach notes...",
     currentChatRecovered: "This chat was replaced by a newer one. Your message is still in the box — send it again.",
+    customInstructions: {
+      add: "Add custom instructions",
+      count: "{{count}} / {{max}}",
+      description: "Preferences the AI chat follows in this workspace, such as language, level, answer length and card style.",
+      loadFailed: "Couldn't load custom instructions.",
+      placeholder: "For example: I study German at A2. Add an example sentence on the back of each card. Keep answers short.",
+      saveFailed: "Couldn't save custom instructions. Try again.",
+      title: "Custom instructions",
+    },
     dictation: {
       listening: "Listening...",
       start: "Start dictation",

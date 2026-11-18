@@ -1544,6 +1544,15 @@ const plCatalog: TranslationCatalog = {
     },
     composerPlaceholder: "Zapytaj o karty, historię powtórek lub dołącz notatki...",
     currentChatRecovered: "Ten czat został zastąpiony nowszym. Twoja wiadomość nadal jest w polu tekstowym — wyślij ją ponownie.",
+    customInstructions: {
+      add: "Dodaj własne instrukcje",
+      count: "{{count}} / {{max}}",
+      description: "Preferencje, których Czat AI przestrzega w tej przestrzeni roboczej, np. język, poziom, długość odpowiedzi i styl kart.",
+      loadFailed: "Nie udało się wczytać własnych instrukcji.",
+      placeholder: "Na przykład: uczę się niemieckiego na poziomie A2. Dodawaj przykładowe zdanie na odwrocie każdej karty. Odpowiadaj krótko.",
+      saveFailed: "Nie udało się zapisać własnych instrukcji. Spróbuj ponownie.",
+      title: "Własne instrukcje",
+    },
     dictation: {
       listening: "Słucham...",
       start: "Rozpocznij dyktowanie",

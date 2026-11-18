@@ -131,10 +131,12 @@ export {
   createWorkspace,
   deleteWorkspace,
   listWorkspaces,
+  loadWorkspaceChatInstructions,
   loadWorkspaceDeletePreview,
   loadWorkspaceResetProgressPreview,
   renameWorkspace,
   resetWorkspaceProgress,
+  saveWorkspaceChatInstructions,
   selectWorkspace,
 } from "./api/endpoints/workspaces";
 export {
