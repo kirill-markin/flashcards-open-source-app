@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructions
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsScope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsScopeChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
@@ -483,6 +486,17 @@ interface AiChatRepository {
         title: String
     ): AiChatSessionHistorySummary
     suspend fun archiveChatSession(workspaceId: String, sessionId: String)
+    /** The newest known custom chat instructions of this account's workspace; null while unset or not loaded yet. */
+    fun observeCustomInstructions(workspaceId: String): Flow<String?>
+    /** Changes whenever the account or the current workspace changes; null while no workspace is resolved. */
+    fun observeCustomInstructionsScope(): Flow<AiChatCustomInstructionsScope?>
+    /** Authorizes first, so a fresh guest is provisioned and its workspace moved, then loads for the resulting current workspace and returns that scope. */
+    suspend fun loadCurrentCustomInstructions(): Pair<AiChatCustomInstructionsScope, AiChatCustomInstructions>
+    /** Blank text clears the instructions; throws [AiChatCustomInstructionsScopeChangedException] once [scope] is no longer current. */
+    suspend fun saveCustomInstructions(
+        scope: AiChatCustomInstructionsScope,
+        customInstructions: String
+    ): AiChatCustomInstructions
 }
 
 class FirstReviewOnboardingPushPendingException(cause: Exception) : IllegalStateException(

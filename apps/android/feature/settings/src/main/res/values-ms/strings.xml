@@ -820,4 +820,10 @@
     <string name="settings_tag_detail_open_review">Buka Ulang kaji</string>
     <string name="settings_tag_detail_remove_tag">Alih keluar tag daripada kad</string>
     <string name="settings_tag_detail_unavailable">Tag ini tidak lagi tersedia dalam ruang kerja semasa.</string>
+    <string name="ai_chat_instructions_add">Tambah arahan tersuai</string>
+    <string name="ai_chat_instructions_title">Arahan tersuai</string>
+    <string name="ai_chat_instructions_placeholder">Contohnya: Saya belajar bahasa Jerman pada tahap A2. Tambahkan contoh ayat di belakang setiap kad. Jawab dengan ringkas.</string>
+    <string name="ai_chat_instructions_count">%1$d / %2$d</string>
+    <string name="ai_chat_instructions_load_failed">Tidak dapat memuatkan arahan tersuai.</string>
+    <string name="ai_chat_instructions_save_failed">Tidak dapat menyimpan arahan tersuai. Cuba lagi.</string>
 </resources>

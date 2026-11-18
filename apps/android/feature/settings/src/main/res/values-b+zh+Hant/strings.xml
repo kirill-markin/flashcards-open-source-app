@@ -820,4 +820,10 @@
     <string name="settings_tag_detail_open_review">開啟複習</string>
     <string name="settings_tag_detail_remove_tag">從卡片移除標籤</string>
     <string name="settings_tag_detail_unavailable">此標籤在目前的工作區中已無法使用。</string>
+    <string name="ai_chat_instructions_add">新增自訂指示</string>
+    <string name="ai_chat_instructions_title">自訂指示</string>
+    <string name="ai_chat_instructions_placeholder">例如：我正在學習 A2 程度的德文。請在每張卡片背面加入一個例句。回答盡量簡短。</string>
+    <string name="ai_chat_instructions_count">%1$d / %2$d</string>
+    <string name="ai_chat_instructions_load_failed">無法載入自訂指示。</string>
+    <string name="ai_chat_instructions_save_failed">無法儲存自訂指示。請再試一次。</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings.workspace.current
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,11 +11,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -64,6 +68,7 @@ const val currentWorkspaceNameFieldTag: String = "current_workspace_name_field"
 const val currentWorkspaceSaveNameButtonTag: String = "current_workspace_save_name_button"
 const val currentWorkspaceNewNameFieldTag: String = "current_workspace_new_name_field"
 const val currentWorkspaceNewNameCreateButtonTag: String = "current_workspace_new_name_create_button"
+const val currentWorkspaceChatInstructionsRowTag: String = "current_workspace_chat_instructions_row"
 
 fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
     return currentWorkspaceExistingButtonTagPrefix + workspaceId
@@ -84,6 +89,8 @@ fun CurrentWorkspaceRoute(
     onSaveWorkspaceName: () -> String,
     onOpenSignIn: () -> Unit,
     onRetryLastWorkspaceAction: () -> Unit,
+    /** Opens the current workspace's custom AI chat instructions; null while no workspace is resolved. */
+    onOpenChatInstructions: (() -> Unit)?,
     onBack: () -> Unit
 ) {
     var isChangeSheetVisible by rememberSaveable { mutableStateOf(false) }
@@ -274,6 +281,28 @@ fun CurrentWorkspaceRoute(
                         ) {
                             Text(stringResource(R.string.settings_current_workspace_rename_action))
                         }
+                    }
+                }
+            }
+
+            // Free for guests too, so it is not locked behind a linked account.
+            if (onOpenChatInstructions != null) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.ai_chat_instructions_title))
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.Chat,
+                                    contentDescription = null
+                                )
+                            },
+                            modifier = Modifier
+                                .clickable(onClick = onOpenChatInstructions)
+                                .testTag(tag = currentWorkspaceChatInstructionsRowTag)
+                        )
                     }
                 }
             }

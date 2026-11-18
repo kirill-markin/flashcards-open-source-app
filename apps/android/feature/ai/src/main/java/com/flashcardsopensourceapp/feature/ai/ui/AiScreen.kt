@@ -112,6 +112,7 @@ internal fun AiRouteContent(
     onCancelStreaming: () -> Unit,
     onNewChat: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenCustomInstructions: () -> Unit,
     onOpenAccountStatus: () -> Unit,
     onViewPremium: (() -> Unit)?,
     onDismissErrorMessage: () -> Unit,
@@ -538,6 +539,14 @@ internal fun AiRouteContent(
                         conversationScrollStateKey = uiState.conversationScrollStateKey,
                         messages = uiState.messages,
                         currentWorkspaceName = uiState.currentWorkspaceName,
+                        customInstructions = uiState.customInstructions,
+                        // Hidden without a workspace; the consent gate and load states never reach this branch.
+                        onOpenCustomInstructions = uiState.workspaceId?.let {
+                            {
+                                dismissComposerFocus()
+                                onOpenCustomInstructions()
+                            }
+                        },
                         isStreaming = uiState.isStreaming,
                         onOpenAccountStatus = onOpenAccountStatus,
                         onDismissComposerFocus = dismissComposerFocus,

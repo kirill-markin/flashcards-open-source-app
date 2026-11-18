@@ -36,6 +36,9 @@ import com.flashcardsopensourceapp.feature.ai.history.AiChatHistoryReaderState
 import com.flashcardsopensourceapp.feature.ai.history.AiChatHistoryRoute
 import com.flashcardsopensourceapp.feature.ai.history.AiChatHistoryViewModel
 import com.flashcardsopensourceapp.feature.ai.history.createAiChatHistoryViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.ai.AiChatCustomInstructionsRoute
+import com.flashcardsopensourceapp.feature.settings.ai.AiChatCustomInstructionsViewModel
+import com.flashcardsopensourceapp.feature.settings.ai.createAiChatCustomInstructionsViewModelFactory
 
 internal data object AiChatHistoryDestination {
     const val route: String = "ai/history"
@@ -48,6 +51,42 @@ internal data object AiChatHistoryReaderDestination {
 
     fun createRoute(sessionId: String): String {
         return "$routePrefix/$sessionId"
+    }
+}
+
+/** One editor screen, reachable from the AI tab and from Settings, so each entry keeps its own tab selected. */
+internal enum class AiChatCustomInstructionsDestination(val route: String) {
+    AI(route = "ai/custom-instructions"),
+    SETTINGS(route = "settings/current-workspace/custom-instructions")
+}
+
+internal fun NavGraphBuilder.registerAiChatCustomInstructionsDestination(
+    appGraph: AppGraph,
+    navController: NavHostController,
+    destination: AiChatCustomInstructionsDestination
+) {
+    composable(route = destination.route) { backStackEntry ->
+        // The editor follows the current account and workspace rather than a route argument.
+        val customInstructionsViewModel = viewModel<AiChatCustomInstructionsViewModel>(
+            factory = createAiChatCustomInstructionsViewModelFactory(
+                aiChatRepository = appGraph.aiChatRepository
+            )
+        )
+        val uiState by customInstructionsViewModel.uiState.collectAsStateWithLifecycle()
+
+        AiChatCustomInstructionsRoute(
+            uiState = uiState,
+            onRetryLoad = customInstructionsViewModel::reload,
+            onSave = customInstructionsViewModel::save,
+            onSaved = {
+                if (navController.currentBackStackEntry == backStackEntry) {
+                    navController.popBackStack()
+                }
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
     }
 }
 
@@ -190,6 +229,11 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                     launchSingleTop = true
                 }
             },
+            onOpenCustomInstructions = {
+                navController.navigate(route = AiChatCustomInstructionsDestination.AI.route) {
+                    launchSingleTop = true
+                }
+            },
             onOpenAccountStatus = {
                 navController.navigate(
                     route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.AI)
@@ -262,6 +306,11 @@ internal fun NavGraphBuilder.registerAiNavGraph(
     registerAiChatHistoryDestinations(
         appGraph = appGraph,
         navController = navController
+    )
+    registerAiChatCustomInstructionsDestination(
+        appGraph = appGraph,
+        navController = navController,
+        destination = AiChatCustomInstructionsDestination.AI
     )
 }
 

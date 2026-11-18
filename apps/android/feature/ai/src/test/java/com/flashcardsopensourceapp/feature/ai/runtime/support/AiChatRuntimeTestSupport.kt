@@ -15,6 +15,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatImportRequest
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatConversation
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructions
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsScope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEventMetadata
@@ -52,6 +54,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.withContext
 
@@ -268,7 +271,8 @@ internal fun makeBootstrapResponse(
         ),
         composerSuggestions = emptyList(),
         chatConfig = defaultAiChatServerConfig,
-        activeRun = activeRun
+        activeRun = activeRun,
+        customInstructions = null
     )
 }
 
@@ -292,7 +296,8 @@ internal fun makeAcceptedStartRunResponse(
         composerSuggestions = composerSuggestions,
         chatConfig = defaultAiChatServerConfig,
         activeRun = activeRun,
-        deduplicated = false
+        deduplicated = false,
+        customInstructions = null
     )
 }
 
@@ -312,7 +317,8 @@ internal fun makeSessionSnapshot(
         ),
         composerSuggestions = composerSuggestions,
         chatConfig = defaultAiChatServerConfig,
-        activeRun = null
+        activeRun = null,
+        customInstructions = null
     )
 }
 
@@ -389,7 +395,8 @@ internal class FakeAiChatRepository : AiChatRepository {
         composerSuggestions = emptyList(),
         chatConfig = defaultAiChatServerConfig,
         activeRun = null,
-        deduplicated = false
+        deduplicated = false,
+        customInstructions = null
     )
 
     override fun observeConsent(): Flow<Boolean> {
@@ -667,7 +674,8 @@ internal class FakeAiChatRepository : AiChatRepository {
             ),
             composerSuggestions = emptyList(),
             chatConfig = defaultAiChatServerConfig,
-            activeRun = null
+            activeRun = null,
+            customInstructions = null
         )
     }
 
@@ -766,6 +774,25 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun archiveChatSession(workspaceId: String, sessionId: String) {
         throw UnsupportedOperationException("Chat history is not used by the AI chat runtime tests.")
+    }
+
+    override fun observeCustomInstructions(workspaceId: String): Flow<String?> {
+        return flowOf(value = null)
+    }
+
+    override fun observeCustomInstructionsScope(): Flow<AiChatCustomInstructionsScope?> {
+        return flowOf(value = null)
+    }
+
+    override suspend fun loadCurrentCustomInstructions(): Pair<AiChatCustomInstructionsScope, AiChatCustomInstructions> {
+        throw UnsupportedOperationException("Custom instructions are not used by the AI chat runtime tests.")
+    }
+
+    override suspend fun saveCustomInstructions(
+        scope: AiChatCustomInstructionsScope,
+        customInstructions: String
+    ): AiChatCustomInstructions {
+        throw UnsupportedOperationException("Custom instructions are not used by the AI chat runtime tests.")
     }
 
     fun setPersistedState(

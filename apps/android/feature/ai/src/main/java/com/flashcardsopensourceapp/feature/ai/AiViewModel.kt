@@ -32,10 +32,13 @@ import com.flashcardsopensourceapp.feature.ai.runtime.makeInitialAiUiState
 import com.flashcardsopensourceapp.feature.ai.runtime.mapToAiUiState
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -97,6 +100,26 @@ class AiViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = aiChatRepository.areComposerSuggestionsEnabled()
     )
+    private val accessContextFlow = combine(
+        workspaceState.map { workspace ->
+            workspace?.workspaceId
+        },
+        cloudSettingsState
+    ) { workspaceId, cloudSettings ->
+        AiAccessContext(
+            workspaceId = workspaceId,
+            cloudState = cloudSettings.cloudState,
+            linkedUserId = cloudSettings.linkedUserId,
+            activeWorkspaceId = cloudSettings.activeWorkspaceId
+        )
+    }.distinctUntilChanged { previous, next ->
+        previous.runtimeKey() == next.runtimeKey()
+    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val customInstructionsFlow = accessContextFlow.flatMapLatest { accessContext ->
+        val workspaceId = accessContext.workspaceId ?: return@flatMapLatest flowOf(value = null)
+        aiChatRepository.observeCustomInstructions(workspaceId = workspaceId)
+    }
     private val chatRuntime = AiChatRuntime(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
@@ -129,12 +152,14 @@ class AiViewModel(
         combine(
             chatRuntime.state,
             chatRuntime.aiUsageState,
-            aiChatRepository.observeOwnOpenAiKeySettings()
-        ) { runtimeState, aiUsage, ownOpenAiKeySettings ->
+            aiChatRepository.observeOwnOpenAiKeySettings(),
+            customInstructionsFlow
+        ) { runtimeState, aiUsage, ownOpenAiKeySettings, customInstructions ->
             AiChatRuntimeSnapshot(
                 runtimeState = runtimeState,
                 aiUsage = aiUsage,
-                isOwnOpenAiKeyActive = hasActiveOwnOpenAiKey(settings = ownOpenAiKeySettings)
+                isOwnOpenAiKeyActive = hasActiveOwnOpenAiKey(settings = ownOpenAiKeySettings),
+                customInstructions = customInstructions
             )
         }
     ) { metadata, cloudSettings, syncStatus, preferences, runtimeSnapshot ->
@@ -147,6 +172,7 @@ class AiViewModel(
             runtimeState = runtimeSnapshot.runtimeState,
             aiUsage = runtimeSnapshot.aiUsage,
             isOwnOpenAiKeyActive = runtimeSnapshot.isOwnOpenAiKeyActive,
+            customInstructions = runtimeSnapshot.customInstructions,
             textProvider = textProvider
         )
     }.stateIn(
@@ -160,21 +186,7 @@ class AiViewModel(
 
     init {
         viewModelScope.launch {
-            combine(
-                workspaceState.map { workspace ->
-                    workspace?.workspaceId
-                },
-                cloudSettingsState
-            ) { workspaceId, cloudSettings ->
-                AiAccessContext(
-                    workspaceId = workspaceId,
-                    cloudState = cloudSettings.cloudState,
-                    linkedUserId = cloudSettings.linkedUserId,
-                    activeWorkspaceId = cloudSettings.activeWorkspaceId
-                )
-            }.distinctUntilChanged { previous, next ->
-                previous.runtimeKey() == next.runtimeKey()
-            }.collect { accessContext ->
+            accessContextFlow.collect { accessContext ->
                 chatRuntime.updateAccessContext(accessContext = accessContext)
             }
         }
@@ -316,7 +328,8 @@ private data class AiChatPreferenceState(
 private data class AiChatRuntimeSnapshot(
     val runtimeState: AiChatRuntimeState,
     val aiUsage: AiUsageStatus?,
-    val isOwnOpenAiKeyActive: Boolean
+    val isOwnOpenAiKeyActive: Boolean,
+    val customInstructions: String?
 )
 
 fun createAiViewModelFactory(

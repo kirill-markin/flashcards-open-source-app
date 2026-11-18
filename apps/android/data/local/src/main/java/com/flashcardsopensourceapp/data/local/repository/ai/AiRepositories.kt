@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository.ai
 
+import com.flashcardsopensourceapp.data.local.ai.store.AiChatCustomInstructionsStore
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatPreferencesStore
@@ -15,6 +16,9 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiImportTarget
 import com.flashcardsopensourceapp.data.local.model.ai.AiImportTargetChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructions
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsScope
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatCustomInstructionsScopeChangedException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
@@ -49,8 +53,12 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGu
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.refreshExpiredStoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
@@ -82,6 +90,8 @@ class LocalAiChatRepository(
     private val aiChatPreferencesStore: AiChatPreferencesStore,
     private val ownOpenAiKeyStore: OwnOpenAiKeyStore
 ) : AiChatRepository {
+    private val customInstructionsStore = AiChatCustomInstructionsStore()
+
     override fun observeConsent(): Flow<Boolean> {
         return aiChatPreferencesStore.observeConsent()
     }
@@ -242,11 +252,17 @@ class LocalAiChatRepository(
         val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
         val session = authorizedSession(workspaceId = remoteWorkspaceId)
         return try {
-            aiChatRemoteService.loadSnapshot(
-                apiBaseUrl = session.apiBaseUrl,
-                authorizationHeader = session.authorizationHeader,
-                sessionId = sessionId,
-                workspaceId = remoteWorkspaceId
+            recordingCustomInstructions(
+                workspaceId = remoteWorkspaceId,
+                request = {
+                    aiChatRemoteService.loadSnapshot(
+                        apiBaseUrl = session.apiBaseUrl,
+                        authorizationHeader = session.authorizationHeader,
+                        sessionId = sessionId,
+                        workspaceId = remoteWorkspaceId
+                    )
+                },
+                customInstructions = AiChatSessionSnapshot::customInstructions
             )
         } catch (error: AiChatRemoteException) {
             if (error.statusCode == 404) {
@@ -334,24 +350,28 @@ class LocalAiChatRepository(
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
-        return aiChatRemoteService.loadBootstrap(
-            apiBaseUrl = preparedSession.apiBaseUrl,
-            authorizationHeader = preparedSession.authorizationHeader,
-            sessionId = sessionId,
-            limit = limit,
+        return recordingCustomInstructions(
             workspaceId = preparedSession.workspaceId,
-            resumeDiagnostics = resumeDiagnostics
+            request = {
+                aiChatRemoteService.loadBootstrap(
+                    apiBaseUrl = preparedSession.apiBaseUrl,
+                    authorizationHeader = preparedSession.authorizationHeader,
+                    sessionId = sessionId,
+                    limit = limit,
+                    workspaceId = preparedSession.workspaceId,
+                    resumeDiagnostics = resumeDiagnostics
+                )
+            },
+            customInstructions = AiChatBootstrapResponse::customInstructions
         )
     }
 
     override suspend fun loadCurrentBootstrap(workspaceId: String?, limit: Int): AiChatBootstrapResponse {
         val preparedSession = prepareSessionForAi(workspaceId = workspaceId)
-        return aiChatRemoteService.loadBootstrap(
-            apiBaseUrl = preparedSession.apiBaseUrl,
-            authorizationHeader = preparedSession.authorizationHeader,
+        return loadBootstrapFromPreparedSession(
+            preparedSession = preparedSession,
             sessionId = null,
             limit = limit,
-            workspaceId = preparedSession.workspaceId,
             resumeDiagnostics = null
         )
     }
@@ -374,14 +394,20 @@ class LocalAiChatRepository(
         sessionId: String,
         uiLocale: String?
     ): AiChatSessionSnapshot {
-        return aiChatRemoteService.createNewSession(
-            apiBaseUrl = preparedSession.apiBaseUrl,
-            authorizationHeader = preparedSession.authorizationHeader,
-            request = AiChatNewSessionRequest(
-                sessionId = sessionId,
-                workspaceId = preparedSession.workspaceId,
-                uiLocale = uiLocale
-            )
+        return recordingCustomInstructions(
+            workspaceId = preparedSession.workspaceId,
+            request = {
+                aiChatRemoteService.createNewSession(
+                    apiBaseUrl = preparedSession.apiBaseUrl,
+                    authorizationHeader = preparedSession.authorizationHeader,
+                    request = AiChatNewSessionRequest(
+                        sessionId = sessionId,
+                        workspaceId = preparedSession.workspaceId,
+                        uiLocale = uiLocale
+                    )
+                )
+            },
+            customInstructions = AiChatSessionSnapshot::customInstructions
         )
     }
 
@@ -485,7 +511,13 @@ class LocalAiChatRepository(
         )
 
         return try {
-            val response = startRunRetryingTimeout(session = session, request = request, importTarget = importTarget)
+            val response = recordingCustomInstructions(
+                workspaceId = remoteWorkspaceId,
+                request = {
+                    startRunRetryingTimeout(session = session, request = request, importTarget = importTarget)
+                },
+                customInstructions = AiChatStartRunResponse::customInstructions
+            )
             if (importRequest != null && response.sessionId != importRequest.sessionId) {
                 throw AiImportTargetChangedException()
             }
@@ -716,6 +748,101 @@ class LocalAiChatRepository(
         require(archivedSession.sessionId == sessionId) {
             "AI chat archive returned mismatched sessionId. requestedSessionId=$sessionId responseSessionId=${archivedSession.sessionId}"
         }
+    }
+
+    override fun observeCustomInstructions(workspaceId: String): Flow<String?> {
+        return customInstructionsStore.observe(scopeId = historyScopeId(workspaceId = workspaceId))
+    }
+
+    override fun observeCustomInstructionsScope(): Flow<AiChatCustomInstructionsScope?> {
+        return combine(
+            observeCurrentWorkspace(database = database, preferencesStore = preferencesStore),
+            preferencesStore.observeCloudSettings()
+        ) { workspace, cloudSettings ->
+            workspace?.let {
+                AiChatCustomInstructionsScope(
+                    workspaceId = it.workspaceId,
+                    scopeId = makeAiChatHistoryScopedWorkspaceId(workspaceId = it.workspaceId, cloudSettings = cloudSettings)
+                )
+            }
+        }.distinctUntilChanged()
+    }
+
+    override suspend fun loadCurrentCustomInstructions(): Pair<AiChatCustomInstructionsScope, AiChatCustomInstructions> {
+        val session = authorizedSession(
+            workspaceId = loadCurrentWorkspaceOrNull(database = database, preferencesStore = preferencesStore)?.workspaceId
+        )
+        // Read after authorizing: provisioning a fresh guest moves the local workspace to its server ID.
+        val scope = requireNotNull(currentCustomInstructionsScopeOrNull()) {
+            "AI chat custom instructions require an active workspace."
+        }
+        val instructions = recordingCustomInstructions(
+            workspaceId = scope.workspaceId,
+            request = {
+                aiChatRemoteService.loadCustomInstructions(
+                    apiBaseUrl = session.apiBaseUrl,
+                    authorizationHeader = session.authorizationHeader,
+                    workspaceId = scope.workspaceId
+                )
+            },
+            customInstructions = AiChatCustomInstructions::customInstructions
+        )
+        return scope to instructions
+    }
+
+    override suspend fun saveCustomInstructions(
+        scope: AiChatCustomInstructionsScope,
+        customInstructions: String
+    ): AiChatCustomInstructions {
+        // Checked before authorizing too, so a signed-out account never provisions a guest for a stale workspace.
+        requireCurrentCustomInstructionsScope(scope = scope)
+        val session = authorizedSession(workspaceId = scope.workspaceId)
+        requireCurrentCustomInstructionsScope(scope = scope)
+        val saved = aiChatRemoteService.saveCustomInstructions(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            workspaceId = scope.workspaceId,
+            customInstructions = customInstructions.takeIf(String::isNotBlank)
+        )
+        customInstructionsStore.record(
+            scopeId = scope.scopeId,
+            observedAt = customInstructionsStore.stamp(),
+            customInstructions = saved.customInstructions
+        )
+        return saved
+    }
+
+    private suspend fun currentCustomInstructionsScopeOrNull(): AiChatCustomInstructionsScope? {
+        val workspaceId = loadCurrentWorkspaceOrNull(database = database, preferencesStore = preferencesStore)
+            ?.workspaceId
+            ?: return null
+        return AiChatCustomInstructionsScope(
+            workspaceId = workspaceId,
+            scopeId = historyScopeId(workspaceId = workspaceId)
+        )
+    }
+
+    private suspend fun requireCurrentCustomInstructionsScope(scope: AiChatCustomInstructionsScope) {
+        if (currentCustomInstructionsScopeOrNull() != scope) {
+            throw AiChatCustomInstructionsScopeChangedException()
+        }
+    }
+
+    /** Records the workspace's custom instructions carried by a chat response, stamped when its request started. */
+    private suspend fun <T> recordingCustomInstructions(
+        workspaceId: String,
+        request: suspend () -> T,
+        customInstructions: (T) -> String?
+    ): T {
+        val scopeId = historyScopeId(workspaceId = workspaceId)
+        val observedAt = customInstructionsStore.stamp()
+        val response = request()
+        customInstructionsStore.record(
+            scopeId = scopeId,
+            observedAt = observedAt,
+            customInstructions = customInstructions(response)
+        )
+        return response
     }
 
     private suspend fun authorizedSession(workspaceId: String?): AuthorizedAiChatSession {
