@@ -211,6 +211,21 @@ export type StreakLeaderboardSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type CardAdditionReconciliationCompletedDetails = Readonly<{
+  batchSize: number;
+  maxBatches: number;
+  scannedCount: number;
+  recoveredCount: number;
+  batchCount: number;
+  finished: boolean;
+}>;
+
+export type CardAdditionReconciliationFailureDetails = Readonly<{
+  batchSize: number | null;
+  maxBatches: number | null;
+  message: string;
+}>;
+
 export type ProgressActiveDaysBackfillCompletedDetails = Readonly<{
   batchSize: number;
   maxPages: number;
@@ -920,6 +935,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
+  | EventByAction<"card_addition_reconciliation_completed", CardAdditionReconciliationCompletedDetails>
   | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
   | EventByAction<"guest_browser_challenge", GuestBrowserChallengeDetails>
   | EventByAction<"country_retention_completed", Readonly<{ deleted: number; cutoff: string; finished: boolean }>>
@@ -1026,6 +1042,7 @@ export type OperationsWarningEvent =
   > & Readonly<{ message: string }>);
 
 export type OperationsExceptionEvent =
+  | (EventByAction<"card_addition_reconciliation_failed", CardAdditionReconciliationFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"country_retention_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)

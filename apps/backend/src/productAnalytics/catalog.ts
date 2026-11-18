@@ -1253,6 +1253,11 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  card_addition_recovered: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
   card_created: {
     serverOnly: true,
     requiresScreen: false,

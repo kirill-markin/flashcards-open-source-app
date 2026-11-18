@@ -256,7 +256,7 @@ function buildGroupSourceJoinSqlLines(
  *   The auth service's sign-in page rows are dropped from the whole pass (`buildNonAuthOriginRowSql`).
  *   Per actor it keeps the first launch, the first launch on a selected one of the three platforms,
  *   the first launch on iOS and on Android, the first `card_created`, and the first other event,
- *   a reconstructed open included. The durable card-addition fact is excluded from this pass.
+ *   a reconstructed open included.
  *   `first_launches` then keeps the people whose first launch is on a selected day and on a selected
  *   platform, with no earlier event.
  *   A `card_created` is allowed up to `firstLaunchDemoCardAllowanceSeconds` before the launch, and
@@ -328,9 +328,9 @@ export function buildFirstLaunchFunnelSql(
     "  WHERE resolved.actor_id IS NOT NULL",
     `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     `    AND ${buildNonAuthOriginRowSql("resolved")}`,
-    // The durable addition fact can be dated before launch by a device snapshot. It changes the
+    // Durable addition facts can be dated before launch by a device snapshot. They change the
     // evidence for the addition step, not the launch-eligibility history.
-    "    AND resolved.event_name <> 'card_addition_committed'",
+    "    AND resolved.event_name NOT IN ('card_addition_committed', 'card_addition_recovered')",
     `    AND resolved.occurred_at < ${rangeEndSql}`,
     "  GROUP BY resolved.actor_id",
     "), first_launches AS MATERIALIZED (",
@@ -384,6 +384,8 @@ export function buildFirstLaunchFunnelSql(
     "        AND step_event.event_properties->>'source' IN ('ai_chat', 'agent', 'package_import'))",
     "      OR (step_event.event_name = 'card_addition_committed' AND step_event.origin = 'server'",
     "        AND step_event.event_properties->>'demo_status' = 'non_demo')",
+    "      OR (step_event.event_name = 'card_addition_recovered' AND step_event.origin = 'backfill'",
+    "        AND step_event.trust_level = 'backfill_derived')",
     "      OR (step_event.event_name IN ('catalog_deck_installed', 'workspace_package_imported')",
     "        AND step_event.origin IN ('server', 'backfill')",
     "        AND jsonb_typeof(step_event.event_properties->'card_count') = 'number'",
@@ -512,7 +514,7 @@ export function buildFirstLaunchFunnelSql(
     "  SELECT added.actor_id, MIN(added.ordering_at) AS first_addition_ordering_at",
     "  FROM (",
     "    SELECT actor_id, ordering_at FROM step_events",
-    "    WHERE event_name IN ('manual_card_saved', 'card_created', 'card_addition_committed',",
+    "    WHERE event_name IN ('manual_card_saved', 'card_created', 'card_addition_committed', 'card_addition_recovered',",
     "      'catalog_deck_installed', 'workspace_package_imported')",
     "    UNION ALL",
     "    SELECT actor_id, ordering_at FROM recovered_card_additions",
