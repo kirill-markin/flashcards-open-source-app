@@ -412,6 +412,7 @@ async function guestWorkspaceHasContentInExecutor(
       "OR EXISTS (SELECT 1 FROM content.media_upload_sessions WHERE workspace_id = $1::uuid)",
       "OR EXISTS (SELECT 1 FROM content.generated_media_promotion_jobs WHERE workspace_id = $1::uuid)",
       "OR EXISTS (SELECT 1 FROM ai.chat_sessions WHERE workspace_id = $1::uuid)",
+      "OR EXISTS (SELECT 1 FROM ai.workspace_chat_instructions WHERE workspace_id = $1::uuid)",
       "OR EXISTS (SELECT 1 FROM sync.applied_operations_current WHERE workspace_id = $1::uuid)",
       "OR EXISTS (SELECT 1 FROM sync.catalog_package_install_idempotency WHERE workspace_id = $1::uuid)",
       "OR EXISTS (",

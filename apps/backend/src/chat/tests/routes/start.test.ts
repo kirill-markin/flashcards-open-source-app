@@ -162,6 +162,7 @@ test("POST /chat can return an active run before the current turn appears in mes
     chatConfig: {
       ...createExpectedChatConfig(),
     },
+    customInstructions: null,
     deduplicated: true,
   });
 });

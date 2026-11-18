@@ -326,6 +326,10 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
         return communityActivityResult;
       }
 
+      if (text === "SELECT custom_instructions FROM ai.workspace_chat_instructions WHERE workspace_id = $1") {
+        return createQueryResult<Row>([]);
+      }
+
       if (text === "SELECT ai.transfer_guest_consent($1, $2)") {
         context.scope.requireCurrentUserScope(String(params[1]));
         return createQueryResult<Row>([]);

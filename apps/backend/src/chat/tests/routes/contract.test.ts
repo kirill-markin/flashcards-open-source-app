@@ -112,6 +112,7 @@ function createRunningSnapshot(): ChatSessionSnapshot {
     composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages: [],
+    customInstructions: null,
   };
 }
 

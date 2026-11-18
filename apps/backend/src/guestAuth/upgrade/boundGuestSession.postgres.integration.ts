@@ -599,7 +599,7 @@ test("demo-only qualification preserves chat content, files, authored history an
     ["title", "title = 'My chat'"], ["archived", "archived_at = now()"],
     ["invalidated content", "main_content_invalidation_version = 1"],
   ] as const;
-  for (const variant of [...sessionChanges.map(([label]) => label), "message", "file", "queued run", "completed run"]) {
+  for (const variant of [...sessionChanges.map(([label]) => label), "message", "file", "chat instructions", "queued run", "completed run"]) {
     await withDemoUpgradeFixture(async (fixture) => {
       const { ownerPool, guest, subject, targetWorkspaceId } = fixture;
       const sessionId = await createEmptyChatInFixture(fixture);
@@ -608,6 +608,11 @@ test("demo-only qualification preserves chat content, files, authored history an
       const sessionChange = sessionChanges.find(([label]) => label === variant);
       if (sessionChange !== undefined) {
         await ownerPool.query(`UPDATE ai.chat_sessions SET ${sessionChange[1]} WHERE session_id = $1`, [sessionId]);
+      } else if (variant === "chat instructions") {
+        await ownerPool.query(
+          "INSERT INTO ai.workspace_chat_instructions (workspace_id, custom_instructions) VALUES ($1, 'Answer in German')",
+          [guest.workspaceId],
+        );
       } else if (variant === "file") {
         await ownerPool.query(
           `INSERT INTO ai.chat_files (file_id, session_id, user_id, workspace_id, path, origin, media_type, size_bytes, sha256, s3_key)

@@ -10,6 +10,11 @@ import {
   type ChatComposerSuggestion,
 } from "../composerSuggestions";
 import { getChatConfig } from "../config";
+import {
+  loadWorkspaceChatInstructionsForUser,
+  parseChatCustomInstructionsBody,
+  saveWorkspaceChatInstructionsForUser,
+} from "../customInstructions";
 import type {
   ChatSessionArchiveResponse,
   ChatSessionRenameResponse,
@@ -33,8 +38,9 @@ import {
 } from "../../aiUsage";
 import type { AccountKind } from "../../billing/limits";
 import { resolveAccountKindForTransport } from "../../billing/snapshot";
-import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
+import { parseOptionalWorkspaceIdParam, parseWorkspaceIdParam } from "../../server/requestContext";
 import {
+  expectRecord,
   parseJsonBody,
   parseJsonBodyWithByteLimit,
 } from "../../server/requestParsing";
@@ -81,6 +87,7 @@ type ChatNewResponse = Readonly<{
   sessionId: string;
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ReturnType<typeof getChatConfig>;
+  customInstructions: string | null;
 }>;
 
 function buildChatNewResponse(
@@ -95,6 +102,7 @@ function buildChatNewResponse(
       uiLocale,
     ),
     chatConfig: getChatConfig(),
+    customInstructions: snapshot.customInstructions,
   };
 }
 
@@ -618,5 +626,28 @@ export function createPostChatSessionArchiveHandler(dependencies: ChatRouteDepen
     } catch (error) {
       return mapStoreError(error);
     }
+  };
+}
+
+export function createGetWorkspaceChatInstructionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadSupportedRequestContext(context.req.raw, dependencies);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    return context.json(await loadWorkspaceChatInstructionsForUser(requestContext.userId, workspaceId));
+  };
+}
+
+// Online-only, with no outbox or synced entity: the chat needs the network anyway, and a new synced
+// entity_type would break shipped clients that pull it.
+export function createPostWorkspaceChatInstructionsHandler(dependencies: ChatRouteDependencies): Handler<AppEnv> {
+  return async (context) => {
+    const requestContext = await loadSupportedRequestContext(context.req.raw, dependencies);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const customInstructions = parseChatCustomInstructionsBody(expectRecord(await parseJsonBody(context.req.raw)));
+    return context.json(await saveWorkspaceChatInstructionsForUser(
+      requestContext.userId,
+      workspaceId,
+      customInstructions,
+    ));
   };
 }

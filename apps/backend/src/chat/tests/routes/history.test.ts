@@ -160,6 +160,7 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
     },
     composerSuggestions: [],
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
     activeRun: null,
   });
 });
@@ -287,6 +288,7 @@ test("GET /chat preserves card content parts in snapshot history", async () => {
     },
     composerSuggestions: [],
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
     activeRun: null,
   });
 });
@@ -386,6 +388,7 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
     },
     composerSuggestions: [],
     chatConfig: createExpectedChatConfig(),
+    customInstructions: null,
     activeRun: null,
   });
 });

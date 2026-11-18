@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import {
+  copyWorkspaceChatInstructionsInExecutor,
+  loadWorkspaceChatInstructionsWithExecutor,
+} from "../../chat/customInstructions";
+import {
   appendReviewEventSnapshotInExecutor,
   getInvalidFsrsStateReason,
   upsertCardSnapshotInExecutor,
@@ -875,6 +879,11 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
   const guestMediaAssets = await loadGuestMediaAssetsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const targetScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.guestUserId,
+    workspaceId: params.guestWorkspaceId,
+  });
+  const guestCustomInstructions = await loadWorkspaceChatInstructionsWithExecutor(executor, params.guestWorkspaceId);
   const droppedEntities = createGuestMergeDroppedEntitiesAccumulator();
 
   await deleteGuestWorkspaceContentInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
@@ -936,6 +945,11 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     replicaIdMap,
     upgradeId,
   );
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.targetUserId,
+    workspaceId: params.targetWorkspaceId,
+  });
+  await copyWorkspaceChatInstructionsInExecutor(executor, guestCustomInstructions, params.targetWorkspaceId);
 
   const finalizedDroppedEntities = finalizeGuestMergeDroppedEntities(droppedEntities);
 

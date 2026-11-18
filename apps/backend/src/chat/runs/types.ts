@@ -86,6 +86,7 @@ export type ClaimedChatRun = Readonly<{
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
   clientDeviceType: ProductAnalyticsDeviceType | null;
+  customInstructions: string | null;
   diagnostics: ChatRunDiagnostics;
 }>;
 

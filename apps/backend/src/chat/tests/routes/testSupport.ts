@@ -88,6 +88,7 @@ export function createSnapshot(messages: ChatSessionSnapshot["messages"]): ChatS
     composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages,
+    customInstructions: null,
   };
 }
 
@@ -101,6 +102,7 @@ export function createRunningSnapshot(messages: ChatSessionSnapshot["messages"])
     composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages,
+    customInstructions: null,
   };
 }
 
