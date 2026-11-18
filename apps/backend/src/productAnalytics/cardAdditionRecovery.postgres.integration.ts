@@ -127,7 +127,7 @@ async function insertCard(owner: pg.Pool, actor: Fixture, card: CardProof): Prom
     "INSERT INTO analytics.product_events(event_id,schema_version,event_name,origin,trust_level,user_id,subject_user_id,"
     + "workspace_id,platform,occurred_at,server_received_at,event_properties)"
     + " VALUES (COALESCE($1::uuid,analytics.derive_server_event_id($2,ARRAY[$3::text])),1,$2,'server','server_derived',"
-    + "$4,$5,$6,'ios',$7,$8,$9)",
+    + "$4,$5,$6,'ios',LEAST($7::timestamptz,$8::timestamptz),$8,$9)",
     [card.eventId, card.eventName, card.cardId, card.eventUserId, card.eventSubjectId, card.eventWorkspaceId,
       card.createdAt, receiptAt, JSON.stringify(card.properties)],
   );
@@ -227,6 +227,59 @@ test("recovery proves original cards and replicas, catches delayed history, and 
     await owner.query("DELETE FROM sync.hot_changes WHERE workspace_id = $1", [actor.workspaceId]);
     assert.equal((await reconcileCardAdditions({ batchSize: 10, maxBatches: 1 }, scope)).recoveredCount, 0);
     assert.equal((await recoveredCardIds(owner, [legacy, unknown, delayed])).length, 3);
+  } finally {
+    await owner.end();
+  }
+});
+
+test("future device timestamps preserve server-proven additions without weakening chronology", async () => {
+  const owner = ownerPool();
+  try {
+    const actor = await fixture(owner);
+    const seed = { ...legacyCard(actor), createdAt: "2026-01-02T10:00:00.297Z", metadata: markedDemo };
+    const valid = [
+      { ...legacyCard(actor), createdAt: "2026-01-02T10:00:01.000Z" },
+      { ...legacyCard(actor), createdAt: "2026-01-02T10:00:37.565Z",
+        eventName: "card_addition_committed", properties: { demo_status: "unknown" } },
+    ] as const;
+    const lateEvent = { ...legacyCard(actor), createdAt: "2026-01-02T10:00:02.000Z" };
+    const invalid = [
+      { ...legacyCard(actor), createdAt: "2026-01-02T10:00:03.000Z", eventId: randomUUID() },
+      { ...legacyCard(actor), createdAt: "2026-01-02T10:00:04.000Z", hotAt: null },
+      { ...legacyCard(actor), createdAt: "2026-01-02T10:00:05.000Z", hotAt: "2026-01-02T10:00:00.001Z" },
+      lateEvent,
+    ];
+    const cards = [seed, ...valid, ...invalid];
+    for (const card of cards) await insertCard(owner, actor, card);
+    await owner.query(
+      "UPDATE analytics.product_events SET occurred_at=$2 WHERE event_id=analytics.derive_server_event_id("
+      + "'card_created',ARRAY[$1::text])", [lateEvent.cardId, lateEvent.createdAt],
+    );
+    const originalEventsSql = "SELECT event_id,occurred_at,server_received_at FROM analytics.product_events"
+      + " WHERE workspace_id=$1 AND event_name IN ('card_created','card_addition_committed') ORDER BY event_id";
+    const originals = await owner.query<Readonly<{
+      event_id: string; occurred_at: Date; server_received_at: Date;
+    }>>(originalEventsSql, [actor.workspaceId]);
+    assert.equal(originals.rows.filter((row) => row.occurred_at.toISOString() === receiptAt).length, cards.length - 1);
+    assert.deepEqual(await reconcileCardAdditions({ batchSize: 10, maxBatches: 1 }, scope),
+      { scannedCount: 2, recoveredCount: 2, batchCount: 1, finished: true });
+    assert.deepEqual(await recoveredCardIds(owner, cards), valid.map((card) => card.cardId).sort());
+    const recovered = await owner.query<Readonly<{ occurred_at: Date; server_received_at: Date }>>(
+      "SELECT occurred_at,server_received_at FROM analytics.product_events"
+      + " WHERE workspace_id=$1 AND event_name='card_addition_recovered'", [actor.workspaceId],
+    );
+    assert.equal(recovered.rows.length, valid.length);
+    for (const row of recovered.rows) {
+      assert.equal(row.occurred_at.toISOString(), receiptAt);
+      assert.equal(row.server_received_at.toISOString(), receiptAt);
+    }
+    assert.deepEqual((await owner.query(originalEventsSql, [actor.workspaceId])).rows, originals.rows);
+    const preserved = await owner.query<Readonly<{ created_at: Date }>>(
+      "SELECT created_at FROM content.cards WHERE workspace_id=$1 ORDER BY created_at",
+      [actor.workspaceId]);
+    assert.deepEqual(preserved.rows.map((row) => row.created_at.toISOString()), cards.map((card) => card.createdAt).sort());
+    assert.deepEqual(await reconcileCardAdditions({ batchSize: 10, maxBatches: 1 }, scope),
+      { scannedCount: 0, recoveredCount: 0, batchCount: 1, finished: true });
   } finally {
     await owner.end();
   }
