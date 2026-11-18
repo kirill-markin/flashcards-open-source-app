@@ -73,8 +73,8 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0248_keep_card_additions_out_of_audience_classifiers.sql",
-    expectedMigrationCount: 250,
+    migrationFileName: "0249_card_addition_recovery.sql",
+    expectedMigrationCount: 251,
     testFiles: Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
@@ -95,6 +95,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/cards/onboardingDemo.postgres.integration.ts",
       "src/productAnalytics/serverFacts/cardAdditions.postgres.integration.ts",
+      "src/productAnalytics/cardAdditionRecovery.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
     ]),
