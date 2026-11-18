@@ -391,9 +391,9 @@ describe("useWorkspaceSession reauth resume", () => {
 
     await act(async () => {
       syncDiscardDeferred.resolve();
-      await replacementWorkspaceSyncStarted.promise;
       await Promise.resolve();
     });
+    await replacementWorkspaceSyncStarted.promise;
 
     await waitForBrowserSignInMethodConsumption(2);
 
