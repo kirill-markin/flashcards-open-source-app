@@ -2,14 +2,14 @@
   "name": "nibomo-store-screenshot-processing",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.22.2 <25" },
+  "engines": { "node": ">=24.22.3 <25" },
   "scripts": {
     "render": "node --experimental-strip-types render.mts",
     "check": "tsc --noEmit",
     "smoke": "node --experimental-strip-types smoke.mts"
   },
   "dependencies": {
-    "playwright": "1.65.0",
+    "playwright": "1.65.1",
     "sharp": "0.35.5"
   },
   "devDependencies": {

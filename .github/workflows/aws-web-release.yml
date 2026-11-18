@@ -193,7 +193,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Log in to Amazon ECR Public
-        uses: aws-actions/amazon-ecr-login@v2.1.7
+        uses: aws-actions/amazon-ecr-login@v2.2.0
         with:
           registry-type: public
 
@@ -317,7 +317,7 @@ jobs:
       # The action authenticates ECR Public in us-east-1 itself.
       - name: Log in to Amazon ECR Public
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: aws-actions/amazon-ecr-login@v2.1.7
+        uses: aws-actions/amazon-ecr-login@v2.2.0
         with:
           registry-type: public
 
@@ -763,7 +763,7 @@ jobs:
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.aws_deploy.result == 'success' && (needs.changes.outputs.deploy_web == 'true' || needs.changes.outputs.deploy_platform == 'true') }}
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
       options: --init --ipc=host
     timeout-minutes: 45
 
