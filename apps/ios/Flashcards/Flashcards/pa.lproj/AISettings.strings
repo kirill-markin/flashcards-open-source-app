@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "ਸਿਰਫ਼ ਪੜ੍ਹਨ ਲਈ: ਪੁਰਾਣੀਆਂ ਚੈਟਾਂ ਜਾਰੀ ਨਹੀਂ ਰੱਖੀਆਂ ਜਾ ਸਕਦੀਆਂ।";
 "ai.history.readerLoading" = "ਚੈਟ ਲੋਡ ਹੋ ਰਹੀ ਹੈ...";
 "ai.history.readerLoadError" = "ਇਹ ਚੈਟ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ।";
+"ai.customInstructions.add" = "ਕਸਟਮ ਹਦਾਇਤਾਂ ਸ਼ਾਮਲ ਕਰੋ";
+"ai.customInstructions.title" = "ਕਸਟਮ ਹਦਾਇਤਾਂ";
+"ai.customInstructions.placeholder" = "ਉਦਾਹਰਨ: ਮੈਂ A2 ਪੱਧਰ 'ਤੇ ਜਰਮਨ ਸਿੱਖ ਰਿਹਾ/ਰਹੀ ਹਾਂ। ਹਰ ਕਾਰਡ ਦੇ ਪਿੱਛੇ ਇੱਕ ਉਦਾਹਰਨ ਵਾਕ ਸ਼ਾਮਲ ਕਰੋ। ਜਵਾਬ ਛੋਟੇ ਰੱਖੋ।";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "ਕਸਟਮ ਹਦਾਇਤਾਂ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀਆਂ।";
+"ai.customInstructions.saveFailed" = "ਕਸਟਮ ਹਦਾਇਤਾਂ ਸੰਭਾਲੀਆਂ ਨਹੀਂ ਜਾ ਸਕੀਆਂ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "ai.consent.title" = "AI ਵਰਤਣ ਤੋਂ ਪਹਿਲਾਂ";
 "ai.consent.warning" = "AI ਗਲਤ ਹੋ ਸਕਦੀ ਹੈ। ਮਹੱਤਵਪੂਰਨ ਨਤੀਜਿਆਂ ਉੱਤੇ ਭਰੋਸਾ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਉਹਨਾਂ ਦੀ ਜਾਂਚ ਕਰੋ।";
 "ai.consent.disclosure.prompts" = "ਤੁਹਾਡੀ ਬੇਨਤੀ ਲਈ ਲੋੜੀਂਦੇ ਲਿਖੇ ਪ੍ਰੌਂਪਟ ਅਤੇ ਕਾਰਡਾਂ ਦਾ ਸੰਦਰਭ ਹੋਸਟ ਕੀਤੀ AI ਸੇਵਾ ਨੂੰ ਭੇਜੇ ਜਾ ਸਕਦੇ ਹਨ।";

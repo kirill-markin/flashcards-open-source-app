@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Лише читання: старі чати не можна продовжити.";
 "ai.history.readerLoading" = "Завантаження чату...";
 "ai.history.readerLoadError" = "Не вдалося завантажити цей чат.";
+"ai.customInstructions.add" = "Додати власні інструкції";
+"ai.customInstructions.title" = "Власні інструкції";
+"ai.customInstructions.placeholder" = "Наприклад: я вивчаю німецьку на рівні A2. Додавай приклад речення на звороті кожної картки. Відповідай коротко.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Не вдалося завантажити власні інструкції.";
+"ai.customInstructions.saveFailed" = "Не вдалося зберегти власні інструкції. Спробуйте ще раз.";
 "ai.consent.title" = "Перед використанням ШІ";
 "ai.consent.warning" = "ШІ може помилятися. Перевіряйте важливі результати, перш ніж покладатися на них.";
 "ai.consent.disclosure.prompts" = "Введені запити та необхідний для них контекст із карток можуть надсилатися до розміщеного на сервері сервісу ШІ.";

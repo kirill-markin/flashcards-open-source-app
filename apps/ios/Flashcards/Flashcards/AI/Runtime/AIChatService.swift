@@ -304,6 +304,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             additionalHeaders: [:]
         )
 
+        let requestedAt = ContinuousClock.now
         let data = try await self.execute(
             session: session,
             request: request,
@@ -312,7 +313,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         do {
             let payload = try self.decoder.decode(AIChatSessionSnapshotWire.self, from: data)
-            return mapConversationEnvelope(payload)
+            var envelope = mapConversationEnvelope(payload)
+            envelope.customInstructions = AIChatCustomInstructionsReading(
+                session: session,
+                text: payload.customInstructions,
+                observedAt: requestedAt
+            )
+            return envelope
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -356,6 +363,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             clientRequestId: clientRequestId,
             additionalHeaders: additionalHeaders
         )
+        let requestedAt = ContinuousClock.now
         let data = try await self.execute(
             session: session,
             request: request,
@@ -364,7 +372,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         do {
             let payload = try self.decoder.decode(AIChatBootstrapResponseWire.self, from: data)
-            return mapConversationEnvelope(payload)
+            var envelope = mapConversationEnvelope(payload)
+            envelope.customInstructions = AIChatCustomInstructionsReading(
+                session: session,
+                text: payload.customInstructions,
+                observedAt: requestedAt
+            )
+            return envelope
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -483,6 +497,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                 ownOpenAIKeyStore: self.ownOpenAIKeyStore
             )
         )
+        let requestedAt = ContinuousClock.now
         let data = try await self.executeStartRun(
             session: session,
             request: urlRequest,
@@ -491,7 +506,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         do {
             let payload = try self.decoder.decode(AIChatAcceptedConversationEnvelopeWire.self, from: data)
-            return mapAcceptedConversationEnvelope(payload)
+            var response = mapAcceptedConversationEnvelope(payload)
+            response.customInstructions = AIChatCustomInstructionsReading(
+                session: session,
+                text: payload.customInstructions,
+                observedAt: requestedAt
+            )
+            return response
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -756,6 +777,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             body: requestBody,
             clientRequestId: clientRequestId
         )
+        let requestedAt = ContinuousClock.now
         let data = try await self.execute(
             session: session,
             request: urlRequest,
@@ -763,7 +785,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         )
 
         do {
-            return try self.decoder.decode(AIChatNewSessionResponse.self, from: data)
+            var response = try self.decoder.decode(AIChatNewSessionResponse.self, from: data)
+            response.customInstructions = AIChatCustomInstructionsReading(
+                session: session,
+                text: response.customInstructionsText,
+                observedAt: requestedAt
+            )
+            return response
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -922,6 +950,45 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             data: data,
             clientRequestId: clientRequestId,
             invalidPayloadMessage: "AI chat archive response is invalid."
+        )
+    }
+
+    func loadCustomInstructions(session: CloudLinkedSession) async throws -> AIChatCustomInstructionsResponse {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let request = try self.makeRequest(
+            session: session,
+            path: "/workspaces/\(session.workspaceId)/chat-instructions",
+            method: "GET",
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
+        )
+        let data = try await self.execute(session: session, request: request, clientRequestId: clientRequestId)
+        return try self.decodeSessionHistoryPayload(
+            AIChatCustomInstructionsResponse.self,
+            data: data,
+            clientRequestId: clientRequestId,
+            invalidPayloadMessage: "AI chat custom instructions payload is invalid."
+        )
+    }
+
+    func saveCustomInstructions(
+        session: CloudLinkedSession,
+        customInstructions: String?
+    ) async throws -> AIChatCustomInstructionsResponse {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let request = try self.makeJsonRequest(
+            session: session,
+            path: "/workspaces/\(session.workspaceId)/chat-instructions",
+            method: "POST",
+            body: AIChatCustomInstructionsRequestBody(customInstructions: customInstructions),
+            clientRequestId: clientRequestId
+        )
+        let data = try await self.execute(session: session, request: request, clientRequestId: clientRequestId)
+        return try self.decodeSessionHistoryPayload(
+            AIChatCustomInstructionsResponse.self,
+            data: data,
+            clientRequestId: clientRequestId,
+            invalidPayloadMessage: "AI chat custom instructions save response is invalid."
         )
     }
 

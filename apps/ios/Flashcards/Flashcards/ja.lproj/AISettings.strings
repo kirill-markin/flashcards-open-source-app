@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "読み取り専用：以前のチャットは続けられません。";
 "ai.history.readerLoading" = "チャットを読み込んでいます...";
 "ai.history.readerLoadError" = "このチャットを読み込めませんでした。";
+"ai.customInstructions.add" = "カスタム指示を追加";
+"ai.customInstructions.title" = "カスタム指示";
+"ai.customInstructions.placeholder" = "例: A2レベルのドイツ語を勉強しています。各カードの裏面に例文を追加してください。回答は短くしてください。";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "カスタム指示を読み込めませんでした。";
+"ai.customInstructions.saveFailed" = "カスタム指示を保存できませんでした。もう一度お試しください。";
 "ai.consent.title" = "AIを使用する前に";
 "ai.consent.warning" = "AI は間違いを犯す可能性があります。重要な結果を信頼する前に確認してください。";
 "ai.consent.disclosure.prompts" = "リクエストに必要な入力済みメッセージとカード由来のコンテキストは、ホスト型AIサービスに送信される場合があります。";

@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "صرف پڑھنے کے لیے: پرانی چیٹس جاری نہیں رکھی جا سکتیں۔";
 "ai.history.readerLoading" = "چیٹ لوڈ ہو رہی ہے...";
 "ai.history.readerLoadError" = "یہ چیٹ لوڈ نہیں ہو سکی۔";
+"ai.customInstructions.add" = "حسب ضرورت ہدایات شامل کریں";
+"ai.customInstructions.title" = "حسب ضرورت ہدایات";
+"ai.customInstructions.placeholder" = "مثال: میں A2 سطح پر جرمن سیکھ رہا/رہی ہوں۔ ہر کارڈ کی پشت پر ایک مثالی جملہ شامل کریں۔ جوابات مختصر رکھیں۔";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "حسب ضرورت ہدایات لوڈ نہیں ہو سکیں۔";
+"ai.customInstructions.saveFailed" = "حسب ضرورت ہدایات محفوظ نہیں ہو سکیں۔ دوبارہ کوشش کریں۔";
 "ai.consent.title" = "AI استعمال کرنے سے پہلے";
 "ai.consent.warning" = "AI غلط ہو سکتا ہے۔ اہم نتائج پر بھروسا کرنے سے پہلے ان کا جائزہ لیں۔";
 "ai.consent.disclosure.prompts" = "آپ کی درخواست کے لیے ضروری لکھے گئے پرامپٹس اور کارڈز سے حاصل شدہ سیاق میزبان AI سروس کو بھیجے جا سکتے ہیں۔";

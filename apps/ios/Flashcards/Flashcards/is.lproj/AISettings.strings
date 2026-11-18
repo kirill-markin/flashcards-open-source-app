@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Aðeins lestur: ekki er hægt að halda áfram með eldri spjöll.";
 "ai.history.readerLoading" = "Hleð spjalli...";
 "ai.history.readerLoadError" = "Ekki tókst að hlaða þessu spjalli.";
+"ai.customInstructions.add" = "Bæta við sérsniðnum fyrirmælum";
+"ai.customInstructions.title" = "Sérsniðin fyrirmæli";
+"ai.customInstructions.placeholder" = "Til dæmis: Ég læri þýsku á stigi A2. Bættu dæmasetningu aftan á hvert spjald. Svaraðu stuttlega.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Ekki tókst að hlaða sérsniðnum fyrirmælum.";
+"ai.customInstructions.saveFailed" = "Ekki tókst að vista sérsniðin fyrirmæli. Reyndu aftur.";
 "ai.consent.title" = "Áður en þú notar gervigreind";
 "ai.consent.warning" = "Gervigreind getur gert mistök. Farðu yfir mikilvægar niðurstöður áður en þú treystir á þær.";
 "ai.consent.disclosure.prompts" = "Innslegin fyrirmæli og nauðsynlegt samhengi úr spjöldum geta verið send til hýstu gervigreindarþjónustunnar.";

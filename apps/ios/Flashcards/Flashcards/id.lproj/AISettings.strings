@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Hanya baca: obrolan lama tidak dapat dilanjutkan.";
 "ai.history.readerLoading" = "Memuat obrolan...";
 "ai.history.readerLoadError" = "Tidak dapat memuat obrolan ini.";
+"ai.customInstructions.add" = "Tambahkan instruksi khusus";
+"ai.customInstructions.title" = "Instruksi khusus";
+"ai.customInstructions.placeholder" = "Contoh: Saya belajar bahasa Jerman di level A2. Tambahkan contoh kalimat di sisi belakang setiap kartu. Jawab dengan singkat.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Tidak dapat memuat instruksi khusus.";
+"ai.customInstructions.saveFailed" = "Tidak dapat menyimpan instruksi khusus. Coba lagi.";
 "ai.consent.title" = "Sebelum menggunakan AI";
 "ai.consent.warning" = "AI bisa salah. Tinjau hasil penting sebelum mengandalkannya.";
 "ai.consent.disclosure.prompts" = "Prompt yang diketik dan konteks dari kartu yang diperlukan untuk permintaan Anda dapat dikirim ke layanan AI yang dihosting.";

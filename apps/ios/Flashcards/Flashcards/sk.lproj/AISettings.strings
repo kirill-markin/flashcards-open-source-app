@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Iba na čítanie: v starých chatoch nemožno pokračovať.";
 "ai.history.readerLoading" = "Načítava sa chat...";
 "ai.history.readerLoadError" = "Tento chat sa nepodarilo načítať.";
+"ai.customInstructions.add" = "Pridať vlastné pokyny";
+"ai.customInstructions.title" = "Vlastné pokyny";
+"ai.customInstructions.placeholder" = "Napríklad: Učím sa nemčinu na úrovni A2. Na zadnú stranu každej karty pridaj ukážkovú vetu. Odpovedaj stručne.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Vlastné pokyny sa nepodarilo načítať.";
+"ai.customInstructions.saveFailed" = "Vlastné pokyny sa nepodarilo uložiť. Skúste to znova.";
 "ai.consent.title" = "Pred použitím AI";
 "ai.consent.warning" = "AI sa môže mýliť. Dôležité výsledky skontrolujte, skôr než sa na ne spoľahnete.";
 "ai.consent.disclosure.prompts" = "Písané zadania a kontext z kariet potrebný pre vašu požiadavku sa môžu odoslať hostovanej AI službe.";

@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "לקריאה בלבד: אי אפשר להמשיך צ׳אטים ישנים.";
 "ai.history.readerLoading" = "הצ׳אט נטען...";
 "ai.history.readerLoadError" = "לא ניתן היה לטעון את הצ׳אט הזה.";
+"ai.customInstructions.add" = "הוספת הוראות מותאמות אישית";
+"ai.customInstructions.title" = "הוראות מותאמות אישית";
+"ai.customInstructions.placeholder" = "לדוגמה: אני לומד/ת גרמנית ברמה A2. הוסף משפט לדוגמה בגב כל כרטיס. ענה בקצרה.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "לא ניתן היה לטעון את ההוראות המותאמות אישית.";
+"ai.customInstructions.saveFailed" = "לא ניתן היה לשמור את ההוראות המותאמות אישית. נסה שוב.";
 "ai.consent.title" = "לפני השימוש ב-AI";
 "ai.consent.warning" = "AI עלול לטעות. יש לבדוק תוצאות חשובות לפני שמסתמכים עליהן.";
 "ai.consent.disclosure.prompts" = "הנחיות מוקלדות והקשר מהכרטיסיות הנחוצים לבקשה שלך עשויים להישלח לשירות AI המתארח בשרת.";

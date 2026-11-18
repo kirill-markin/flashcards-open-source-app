@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "ફક્ત વાંચવા માટે: જૂની ચૅટ આગળ ચાલુ રાખી શકાતી નથી.";
 "ai.history.readerLoading" = "ચૅટ લોડ થઈ રહી છે...";
 "ai.history.readerLoadError" = "આ ચૅટ લોડ થઈ શકી નહીં.";
+"ai.customInstructions.add" = "કસ્ટમ સૂચનાઓ ઉમેરો";
+"ai.customInstructions.title" = "કસ્ટમ સૂચનાઓ";
+"ai.customInstructions.placeholder" = "ઉદાહરણ: હું A2 સ્તરે જર્મન શીખું છું. દરેક કાર્ડની પાછળ એક ઉદાહરણ વાક્ય ઉમેરો. જવાબો ટૂંકા રાખો.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "કસ્ટમ સૂચનાઓ લોડ થઈ શકી નથી.";
+"ai.customInstructions.saveFailed" = "કસ્ટમ સૂચનાઓ સાચવી શકાઈ નથી. ફરી પ્રયાસ કરો.";
 "ai.consent.title" = "AI વાપરતાં પહેલાં";
 "ai.consent.warning" = "AI ભૂલ કરી શકે છે. મહત્વનાં પરિણામો પર આધાર રાખતાં પહેલાં તે તપાસો.";
 "ai.consent.disclosure.prompts" = "તમારી વિનંતી માટે જરૂરી લખેલા પ્રોમ્પ્ટ અને કાર્ડમાંથી લીધેલો સંદર્ભ હોસ્ટ કરેલી AI સેવાને મોકલી શકાય છે.";

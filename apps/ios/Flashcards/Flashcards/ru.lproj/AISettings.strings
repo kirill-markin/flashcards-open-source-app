@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Только чтение: старые чаты нельзя продолжить.";
 "ai.history.readerLoading" = "Загрузка чата...";
 "ai.history.readerLoadError" = "Не удалось загрузить этот чат.";
+"ai.customInstructions.add" = "Добавить пользовательские инструкции";
+"ai.customInstructions.title" = "Пользовательские инструкции";
+"ai.customInstructions.placeholder" = "Например: я учу немецкий на уровне A2. Добавляй пример предложения на обратную сторону каждой карточки. Отвечай кратко.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Не удалось загрузить пользовательские инструкции.";
+"ai.customInstructions.saveFailed" = "Не удалось сохранить пользовательские инструкции. Попробуйте ещё раз.";
 "ai.consent.title" = "Перед использованием ИИ";
 "ai.consent.warning" = "ИИ может совершать ошибки. Просмотрите важные результаты, прежде чем полагаться на них.";
 "ai.consent.disclosure.prompts" = "Введенные сообщения и контекст из карточек, необходимые для вашего запроса, могут быть отправлены в размещенную службу ИИ.";

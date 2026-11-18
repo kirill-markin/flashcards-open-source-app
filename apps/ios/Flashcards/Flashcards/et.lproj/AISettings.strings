@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Ainult lugemiseks: vanu vestlusi ei saa jätkata.";
 "ai.history.readerLoading" = "Vestluse laadimine...";
 "ai.history.readerLoadError" = "Vestlust ei õnnestunud laadida.";
+"ai.customInstructions.add" = "Lisa kohandatud juhised";
+"ai.customInstructions.title" = "Kohandatud juhised";
+"ai.customInstructions.placeholder" = "Näiteks: õpin saksa keelt A2-tasemel. Lisa iga kaardi tagaküljele näitelause. Vasta lühidalt.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Kohandatud juhiseid ei õnnestunud laadida.";
+"ai.customInstructions.saveFailed" = "Kohandatud juhiseid ei õnnestunud salvestada. Proovi uuesti.";
 "ai.consent.title" = "Enne tehisintellekti kasutamist";
 "ai.consent.warning" = "Tehisintellekt võib eksida. Kontrolli olulisi tulemusi enne nende usaldamist.";
 "ai.consent.disclosure.prompts" = "Sisestatud päringud ja sinu päringu jaoks vajalik kaartidest tuletatud kontekst võidakse saata majutatud tehisintellekti teenusele.";

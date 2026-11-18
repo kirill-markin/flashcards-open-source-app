@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "只读：旧聊天无法继续。";
 "ai.history.readerLoading" = "正在加载聊天...";
 "ai.history.readerLoadError" = "无法加载此聊天。";
+"ai.customInstructions.add" = "添加自定义指令";
+"ai.customInstructions.title" = "自定义指令";
+"ai.customInstructions.placeholder" = "例如：我在学习 A2 水平的德语。请在每张卡片背面添加一个例句。回答尽量简短。";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "无法加载自定义指令。";
+"ai.customInstructions.saveFailed" = "无法保存自定义指令。请重试。";
 "ai.consent.title" = "使用AI之前";
 "ai.consent.warning" = "人工智能可能会犯错误。在依赖重要结果之前先查看它们。";
 "ai.consent.disclosure.prompts" = "您的请求所需的键入消息和卡片衍生上下文可能会发送到托管 AI 服务。";

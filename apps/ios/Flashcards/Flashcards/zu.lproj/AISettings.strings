@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Ukufunda kuphela: izingxoxo ezindala azikwazi ukuqhubeka.";
 "ai.history.readerLoading" = "Kulayishwa ingxoxo...";
 "ai.history.readerLoadError" = "Le ngxoxo ayilayishekanga.";
+"ai.customInstructions.add" = "Engeza imiyalelo yangokwezifiso";
+"ai.customInstructions.title" = "Imiyalelo yangokwezifiso";
+"ai.customInstructions.placeholder" = "Isibonelo: Ngifunda isiJalimane ezingeni le-A2. Engeza umusho oyisibonelo ngemuva kwekhadi ngalinye. Phendula kafushane.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Ayikwazanga ukulayisha imiyalelo yangokwezifiso.";
+"ai.customInstructions.saveFailed" = "Ayikwazanga ukulondoloza imiyalelo yangokwezifiso. Zama futhi.";
 "ai.consent.title" = "Ngaphambi kokusebenzisa i-AI";
 "ai.consent.warning" = "I-AI ingenza amaphutha. Hlola imiphumela ebalulekile ngaphambi kokuthembela kuyo.";
 "ai.consent.disclosure.prompts" = "Imiyalo oyibhalile nomongo othathwe emakhadini odingekayo esicelweni sakho kungathunyelwa ensizeni ye-AI eseziphakelini.";

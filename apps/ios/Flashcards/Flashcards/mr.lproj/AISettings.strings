@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "फक्त वाचण्यासाठी: जुने चॅट पुढे सुरू ठेवता येत नाहीत.";
 "ai.history.readerLoading" = "चॅट लोड करत आहे...";
 "ai.history.readerLoadError" = "हे चॅट लोड करता आले नाही.";
+"ai.customInstructions.add" = "सानुकूल सूचना जोडा";
+"ai.customInstructions.title" = "सानुकूल सूचना";
+"ai.customInstructions.placeholder" = "उदाहरण: मी A2 स्तरावर जर्मन शिकत आहे. प्रत्येक कार्डच्या मागे एक उदाहरण वाक्य जोडा. उत्तरे थोडक्यात द्या.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "सानुकूल सूचना लोड करता आल्या नाहीत.";
+"ai.customInstructions.saveFailed" = "सानुकूल सूचना जतन करता आल्या नाहीत. पुन्हा प्रयत्न करा.";
 "ai.consent.title" = "AI वापरण्यापूर्वी";
 "ai.consent.warning" = "AI चुकीचे असू शकते. महत्त्वाच्या परिणामांवर अवलंबून राहण्यापूर्वी ते तपासा.";
 "ai.consent.disclosure.prompts" = "तुम्ही लिहिलेल्या सूचना आणि तुमच्या विनंतीसाठी आवश्यक कार्डांमधील संदर्भ होस्ट केलेल्या AI सेवेला पाठवले जाऊ शकतात.";

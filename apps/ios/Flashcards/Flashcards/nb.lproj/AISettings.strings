@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Skrivebeskyttet: gamle chatter kan ikke fortsettes.";
 "ai.history.readerLoading" = "Laster chatten...";
 "ai.history.readerLoadError" = "Kunne ikke laste denne chatten.";
+"ai.customInstructions.add" = "Legg til egendefinerte instruksjoner";
+"ai.customInstructions.title" = "Egendefinerte instruksjoner";
+"ai.customInstructions.placeholder" = "For eksempel: Jeg lærer tysk på A2-nivå. Legg til en eksempelsetning på baksiden av hvert kort. Svar kort.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Kunne ikke laste inn egendefinerte instruksjoner.";
+"ai.customInstructions.saveFailed" = "Kunne ikke lagre egendefinerte instruksjoner. Prøv igjen.";
 "ai.consent.title" = "Før du bruker AI";
 "ai.consent.warning" = "AI kan ta feil. Kontroller viktige resultater før du stoler på dem.";
 "ai.consent.disclosure.prompts" = "Skrevne forespørsler og kortbasert kontekst som trengs for forespørselen din, kan sendes til den driftede AI-tjenesten.";

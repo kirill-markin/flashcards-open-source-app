@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Csak olvasható: a korábbi csevegések nem folytathatók.";
 "ai.history.readerLoading" = "Csevegés betöltése…";
 "ai.history.readerLoadError" = "Nem sikerült betölteni ezt a csevegést.";
+"ai.customInstructions.add" = "Egyéni utasítások hozzáadása";
+"ai.customInstructions.title" = "Egyéni utasítások";
+"ai.customInstructions.placeholder" = "Például: A2-es szinten tanulok németül. Minden kártya hátoldalára írj egy példamondatot. Válaszolj röviden.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Az egyéni utasítások nem tölthetők be.";
+"ai.customInstructions.saveFailed" = "Az egyéni utasítások nem menthetők. Próbáld újra.";
 "ai.consent.title" = "Az AI használata előtt";
 "ai.consent.warning" = "Az AI tévedhet. Ellenőrizd a fontos eredményeket, mielőtt rájuk támaszkodsz.";
 "ai.consent.disclosure.prompts" = "A begépelt utasításokat és a kéréshez szükséges kártyaadatokat elküldhetjük a hosztolt AI-szolgáltatásnak.";

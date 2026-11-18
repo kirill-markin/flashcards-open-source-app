@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "อ่านอย่างเดียว: คุยต่อในแชตเก่าไม่ได้";
 "ai.history.readerLoading" = "กำลังโหลดแชต...";
 "ai.history.readerLoadError" = "โหลดแชตนี้ไม่สำเร็จ";
+"ai.customInstructions.add" = "เพิ่มคำสั่งที่กำหนดเอง";
+"ai.customInstructions.title" = "คำสั่งที่กำหนดเอง";
+"ai.customInstructions.placeholder" = "ตัวอย่าง: ฉันเรียนภาษาเยอรมันระดับ A2 เพิ่มประโยคตัวอย่างที่ด้านหลังของการ์ดทุกใบ ตอบให้สั้น";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "โหลดคำสั่งที่กำหนดเองไม่ได้";
+"ai.customInstructions.saveFailed" = "บันทึกคำสั่งที่กำหนดเองไม่ได้ ลองอีกครั้ง";
 "ai.consent.title" = "ก่อนใช้ AI";
 "ai.consent.warning" = "AI อาจผิดพลาดได้ ตรวจสอบผลลัพธ์ที่สำคัญก่อนนำไปใช้";
 "ai.consent.disclosure.prompts" = "คำสั่งที่พิมพ์และบริบทจากการ์ดที่จำเป็นต่อคำขอของคุณอาจถูกส่งไปยังบริการ AI บนเซิร์ฟเวอร์";

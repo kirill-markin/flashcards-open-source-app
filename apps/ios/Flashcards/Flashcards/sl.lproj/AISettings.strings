@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Samo za branje: starih klepetov ni mogoče nadaljevati.";
 "ai.history.readerLoading" = "Nalaganje klepeta ...";
 "ai.history.readerLoadError" = "Tega klepeta ni bilo mogoče naložiti.";
+"ai.customInstructions.add" = "Dodaj navodila po meri";
+"ai.customInstructions.title" = "Navodila po meri";
+"ai.customInstructions.placeholder" = "Na primer: učim se nemščine na ravni A2. Na hrbtno stran vsake kartice dodaj primer stavka. Odgovarjaj na kratko.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Navodil po meri ni bilo mogoče naložiti.";
+"ai.customInstructions.saveFailed" = "Navodil po meri ni bilo mogoče shraniti. Poskusite znova.";
 "ai.consent.title" = "Pred uporabo UI";
 "ai.consent.warning" = "UI se lahko moti. Pomembne rezultate preverite, preden se zanesete nanje.";
 "ai.consent.disclosure.prompts" = "Vneseni pozivi in kontekst iz kartic, potreben za vašo zahtevo, se lahko pošljejo gostovani storitvi UI.";

@@ -458,6 +458,7 @@ extension AIChatStore {
         self.conversationScopeId = response.conversationScopeId
         self.requiresRemoteSessionProvisioning = false
         self.serverChatConfig = response.chatConfig
+        self.applyCustomInstructionsReading(response.customInstructions)
         self.applyComposerSuggestions(response.composerSuggestions)
         self.hasOlderMessages = response.conversation.hasOlder
         self.oldestCursor = response.conversation.oldestCursor

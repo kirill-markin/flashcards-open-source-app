@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Vain luku: vanhoja keskusteluja ei voi jatkaa.";
 "ai.history.readerLoading" = "Ladataan keskustelua...";
 "ai.history.readerLoadError" = "Keskustelun lataus epäonnistui.";
+"ai.customInstructions.add" = "Lisää mukautetut ohjeet";
+"ai.customInstructions.title" = "Mukautetut ohjeet";
+"ai.customInstructions.placeholder" = "Esimerkiksi: Opiskelen saksaa A2-tasolla. Lisää jokaisen kortin taakse esimerkkilause. Vastaa lyhyesti.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Mukautettuja ohjeita ei voitu ladata.";
+"ai.customInstructions.saveFailed" = "Mukautettuja ohjeita ei voitu tallentaa. Yritä uudelleen.";
 "ai.consent.title" = "Ennen tekoälyn käyttöä";
 "ai.consent.warning" = "Tekoäly voi erehtyä. Tarkista tärkeät tulokset ennen niihin luottamista.";
 "ai.consent.disclosure.prompts" = "Kirjoitetut kehotteet ja pyyntöösi tarvittava korteista johdettu konteksti voidaan lähettää ylläpidettyyn tekoälypalveluun.";

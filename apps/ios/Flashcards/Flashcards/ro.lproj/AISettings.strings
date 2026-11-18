@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Doar citire: chaturile vechi nu pot fi continuate.";
 "ai.history.readerLoading" = "Se încarcă chatul...";
 "ai.history.readerLoadError" = "Acest chat nu a putut fi încărcat.";
+"ai.customInstructions.add" = "Adaugă instrucțiuni personalizate";
+"ai.customInstructions.title" = "Instrucțiuni personalizate";
+"ai.customInstructions.placeholder" = "De exemplu: învăț germană la nivelul A2. Adaugă o propoziție exemplu pe spatele fiecărei fișe. Răspunde pe scurt.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Instrucțiunile personalizate nu au putut fi încărcate.";
+"ai.customInstructions.saveFailed" = "Instrucțiunile personalizate nu au putut fi salvate. Încearcă din nou.";
 "ai.consent.title" = "Înainte de a folosi AI";
 "ai.consent.warning" = "AI poate greși. Verifică rezultatele importante înainte de a te baza pe ele.";
 "ai.consent.disclosure.prompts" = "Instrucțiunile introduse și contextul din fișe necesar cererii tale pot fi trimise serviciului AI găzduit.";

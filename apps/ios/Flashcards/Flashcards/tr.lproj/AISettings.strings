@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Salt okunur: eski sohbetlere devam edilemez.";
 "ai.history.readerLoading" = "Sohbet yükleniyor...";
 "ai.history.readerLoadError" = "Bu sohbet yüklenemedi.";
+"ai.customInstructions.add" = "Özel talimat ekle";
+"ai.customInstructions.title" = "Özel talimatlar";
+"ai.customInstructions.placeholder" = "Örneğin: A2 seviyesinde Almanca çalışıyorum. Her kartın arka yüzüne bir örnek cümle ekle. Kısa yanıt ver.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Özel talimatlar yüklenemedi.";
+"ai.customInstructions.saveFailed" = "Özel talimatlar kaydedilemedi. Tekrar deneyin.";
 "ai.consent.title" = "AI kullanmadan önce";
 "ai.consent.warning" = "AI yanılabilir. Önemli sonuçlara güvenmeden önce gözden geçirin.";
 "ai.consent.disclosure.prompts" = "Yazdığınız istemler ve isteğiniz için gereken kart bağlamı barındırılan AI hizmetine gönderilebilir.";

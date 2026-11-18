@@ -1122,6 +1122,12 @@ struct RootTabView: View {
                     .environment(\.macToolbarOwnerTab, .ai)
                     #endif
             }
+            .navigationDestination(for: AIChatCustomInstructionsRoute.self) { _ in
+                AIChatCustomInstructionsView(cachedText: store.aiChatStore.currentCustomInstructionsReading?.text)
+                    #if targetEnvironment(macCatalyst)
+                    .environment(\.macToolbarOwnerTab, .ai)
+                    #endif
+            }
             #if targetEnvironment(macCatalyst)
             .toolbar(.hidden, for: .navigationBar)
             #endif
@@ -1227,6 +1233,8 @@ struct RootTabView: View {
             SubscriptionSettingsView()
         case .currentWorkspace:
             CurrentWorkspaceView()
+        case .chatCustomInstructions:
+            AIChatCustomInstructionsView(cachedText: store.aiChatStore.currentCustomInstructionsReading?.text)
         case .theme:
             ThemeSettingsView()
         case .accentColor:

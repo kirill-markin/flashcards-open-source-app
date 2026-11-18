@@ -20,6 +20,12 @@
 "ai.history.readOnlyNotice" = "Baca sahaja: sembang lama tidak boleh disambung.";
 "ai.history.readerLoading" = "Memuatkan sembang...";
 "ai.history.readerLoadError" = "Sembang ini tidak dapat dimuatkan.";
+"ai.customInstructions.add" = "Tambah arahan tersuai";
+"ai.customInstructions.title" = "Arahan tersuai";
+"ai.customInstructions.placeholder" = "Contohnya: Saya belajar bahasa Jerman pada tahap A2. Tambahkan contoh ayat di belakang setiap kad. Jawab dengan ringkas.";
+"ai.customInstructions.count" = "%1$lld / %2$lld";
+"ai.customInstructions.loadFailed" = "Tidak dapat memuatkan arahan tersuai.";
+"ai.customInstructions.saveFailed" = "Tidak dapat menyimpan arahan tersuai. Cuba lagi.";
 "ai.consent.title" = "Sebelum menggunakan AI";
 "ai.consent.warning" = "AI boleh tersilap. Semak hasil yang penting sebelum bergantung padanya.";
 "ai.consent.disclosure.prompts" = "Arahan yang ditaip dan konteks kad yang diperlukan untuk permintaan anda boleh dihantar ke perkhidmatan AI yang dihoskan.";

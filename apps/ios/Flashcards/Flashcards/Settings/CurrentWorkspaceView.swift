@@ -58,6 +58,14 @@ struct CurrentWorkspaceView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRenameButton)
             }
+
+            // Free for guests too, so it is not locked behind a linked account.
+            Section {
+                NavigationLink(value: SettingsNavigationDestination.chatCustomInstructions) {
+                    Label(aiChatCustomInstructionsTitle(), systemImage: "text.bubble")
+                }
+                .accessibilityIdentifier(UITestIdentifier.currentWorkspaceCustomInstructionsRow)
+            }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)

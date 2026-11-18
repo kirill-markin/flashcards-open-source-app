@@ -148,6 +148,8 @@ final class AIChatStore {
     }
 
     var quotaRefusal: AIChatQuotaRefusal? = nil
+    /// Online-only and kept in memory, per account and workspace.
+    var customInstructionsReadings: [AIChatCustomInstructionsScope: AIChatCustomInstructionsReading] = [:]
     var activeAlert: AIChatAlert?
     var repairStatus: AIChatRepairAttemptStatus?
 
