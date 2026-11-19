@@ -153,6 +153,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.material3)
+    implementation(libs.androidx.wear.phone.interactions)
+    implementation(libs.androidx.wear.remote.interactions)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

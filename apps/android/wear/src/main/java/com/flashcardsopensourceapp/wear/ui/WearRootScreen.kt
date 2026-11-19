@@ -42,6 +42,7 @@ import androidx.wear.compose.material3.lazy.transformedHeight
 import com.flashcardsopensourceapp.wear.R
 import com.flashcardsopensourceapp.wear.review.WearReviewScreen
 import com.flashcardsopensourceapp.wear.review.WearReviewViewModel
+import com.flashcardsopensourceapp.wear.session.WearPhoneSetupMessage
 import com.flashcardsopensourceapp.wear.session.WearSessionFailureMessage
 import com.flashcardsopensourceapp.wear.session.WearSessionState
 import com.flashcardsopensourceapp.wear.session.WearSessionViewModel
@@ -52,10 +53,24 @@ fun WearRootScreen(viewModel: WearSessionViewModel, reviewViewModelFactory: View
     val isRequestingHandoff by viewModel.isRequestingHandoff.collectAsStateWithLifecycle()
 
     when (val currentState = state) {
-        WearSessionState.NotConnected -> WearSessionMessageScreen(
+        WearSessionState.PhoneSignInRequired -> WearSessionMessageScreen(
             title = stringResource(R.string.wear_session_open_phone_app),
             message = stringResource(R.string.wear_session_not_connected_message),
             isRequestingHandoff = isRequestingHandoff,
+            onRetry = viewModel::refreshFromPhone
+        )
+
+        WearSessionState.PhoneConnectionRequired -> WearSessionMessageScreen(
+            title = stringResource(R.string.wear_session_connect_android_phone),
+            message = stringResource(R.string.wear_session_connect_android_phone_message),
+            isRequestingHandoff = isRequestingHandoff,
+            onRetry = viewModel::refreshFromPhone
+        )
+
+        is WearSessionState.PhoneSetup -> WearPhoneSetupScreen(
+            state = currentState,
+            isRequestingHandoff = isRequestingHandoff,
+            onOpenPlayStore = viewModel::openPhonePlayStore,
             onRetry = viewModel::refreshFromPhone
         )
 
@@ -82,7 +97,11 @@ fun WearRootScreen(viewModel: WearSessionViewModel, reviewViewModelFactory: View
 
         is WearSessionState.Failed -> WearSessionMessageScreen(
             title = failureMessageText(message = currentState.message),
-            message = null,
+            message = if (currentState.message == WearSessionFailureMessage.OpenPhoneApp) {
+                stringResource(R.string.wear_session_connect_android_phone_message)
+            } else {
+                null
+            },
             isRequestingHandoff = isRequestingHandoff,
             onRetry = viewModel::refreshFromPhone
         )
@@ -128,10 +147,59 @@ private fun WearSessionMessageScreen(
             }
         }
         item {
-            WearRetryButton(
-                isRequestingHandoff = isRequestingHandoff,
+            WearSessionActionButton(
+                label = stringResource(R.string.wear_retry),
+                isPending = isRequestingHandoff,
+                isEnabled = true,
                 transformationSpec = transformationSpec,
-                onRetry = onRetry
+                onClick = onRetry
+            )
+        }
+    }
+}
+
+@Composable
+private fun WearPhoneSetupScreen(
+    state: WearSessionState.PhoneSetup,
+    isRequestingHandoff: Boolean,
+    onOpenPlayStore: () -> Unit,
+    onRetry: () -> Unit
+) {
+    val title = if (state.message == WearPhoneSetupMessage.PlayStoreFailed) {
+        R.string.wear_session_play_store_failed
+    } else {
+        R.string.wear_session_setup_phone_app
+    }
+    val message = when (state.message) {
+        WearPhoneSetupMessage.InstallOrUpdate -> R.string.wear_session_install_phone_app_message
+        WearPhoneSetupMessage.CheckConnection -> R.string.wear_session_check_phone_message
+        WearPhoneSetupMessage.PlayStoreRequested -> R.string.wear_session_play_store_requested_message
+        WearPhoneSetupMessage.PlayStoreFailed -> R.string.wear_session_play_store_failed_message
+    }
+
+    WearScrollingScreen { transformationSpec ->
+        item {
+            WearSessionTitle(text = stringResource(title), transformationSpec = transformationSpec)
+        }
+        item {
+            WearSessionMessage(text = stringResource(message), transformationSpec = transformationSpec)
+        }
+        item {
+            WearSessionActionButton(
+                label = stringResource(R.string.wear_session_open_play_store),
+                isPending = state.isOpeningPlayStore,
+                isEnabled = !isRequestingHandoff,
+                transformationSpec = transformationSpec,
+                onClick = onOpenPlayStore
+            )
+        }
+        item {
+            WearSessionActionButton(
+                label = stringResource(R.string.wear_retry),
+                isPending = isRequestingHandoff,
+                isEnabled = !state.isOpeningPlayStore,
+                transformationSpec = transformationSpec,
+                onClick = onRetry
             )
         }
     }
@@ -171,10 +239,12 @@ private fun WearSwitchBlockedScreen(
             )
         }
         item {
-            WearRetryButton(
-                isRequestingHandoff = isRequestingHandoff,
+            WearSessionActionButton(
+                label = stringResource(R.string.wear_retry),
+                isPending = isRequestingHandoff,
+                isEnabled = true,
                 transformationSpec = transformationSpec,
-                onRetry = onRetry
+                onClick = onRetry
             )
         }
         if (isRequestingHandoff.not()) {
@@ -262,14 +332,15 @@ private fun TransformingLazyColumnItemScope.WearSessionMessage(text: String, tra
     )
 }
 
-/** The refresh runs in place of the button, so a tap always shows that it was taken. */
 @Composable
-private fun TransformingLazyColumnItemScope.WearRetryButton(
-    isRequestingHandoff: Boolean,
+private fun TransformingLazyColumnItemScope.WearSessionActionButton(
+    label: String,
+    isPending: Boolean,
+    isEnabled: Boolean,
     transformationSpec: TransformationSpec,
-    onRetry: () -> Unit
+    onClick: () -> Unit
 ) {
-    if (isRequestingHandoff) {
+    if (isPending) {
         CircularProgressIndicator(
             modifier = Modifier
                 .transformedListItem(itemScope = this, transformationSpec = transformationSpec)
@@ -277,14 +348,15 @@ private fun TransformingLazyColumnItemScope.WearRetryButton(
         )
     } else {
         Button(
-            onClick = onRetry,
+            onClick = onClick,
+            enabled = isEnabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .transformedHeight(this, transformationSpec)
                 .minimumVerticalContentPadding(ButtonDefaults.minimumVerticalListContentPadding),
             transformation = SurfaceTransformation(transformationSpec)
         ) {
-            Text(text = stringResource(R.string.wear_retry))
+            Text(text = label)
         }
     }
 }
