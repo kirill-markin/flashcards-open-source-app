@@ -2,7 +2,16 @@
     <string name="app_name">Nibomo 學習卡</string>
     <string name="wear_retry">重試</string>
     <string name="wear_session_open_phone_app">在手機上開啟 Nibomo</string>
-    <string name="wear_session_not_connected_message">在手機上登入後，即可在手錶上複習卡片。</string>
+    <string name="wear_session_not_connected_message">請在手機上登入，然後輕觸「重試」。</string>
+    <string name="wear_session_connect_android_phone">連接 Android 手機</string>
+    <string name="wear_session_connect_android_phone_message">請確認手錶已配對並連線，然後輕觸「重試」。</string>
+    <string name="wear_session_setup_phone_app">在手機上設定 Nibomo</string>
+    <string name="wear_session_install_phone_app_message">請在 Google Play 安裝或更新 Nibomo，登入後輕觸「重試」。</string>
+    <string name="wear_session_check_phone_message">請確認手機已連線。視需要安裝或更新 Nibomo，登入後輕觸「重試」。</string>
+    <string name="wear_session_open_play_store">開啟 Google Play</string>
+    <string name="wear_session_play_store_requested_message">請在手機的 Google Play 完成安裝或更新，登入 Nibomo 後輕觸「重試」。</string>
+    <string name="wear_session_play_store_failed">無法開啟 Google Play</string>
+    <string name="wear_session_play_store_failed_message">請在手機的 Google Play 搜尋 Nibomo Flashcards，登入後輕觸「重試」。</string>
     <string name="wear_session_connecting">正在連線至手機…</string>
     <string name="wear_session_syncing">正在同步卡片…</string>
     <string name="wear_session_update_required">在手機和手錶上更新 Nibomo</string>

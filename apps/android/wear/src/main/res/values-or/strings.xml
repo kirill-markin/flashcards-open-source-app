@@ -2,7 +2,16 @@
     <string name="app_name">Nibomo ଫ୍ଲାସ୍‌କାର୍ଡ</string>
     <string name="wear_retry">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</string>
     <string name="wear_session_open_phone_app">ଫୋନ୍‌ରେ Nibomo ଖୋଲନ୍ତୁ</string>
-    <string name="wear_session_not_connected_message">ଘଡ଼ିରେ କାର୍ଡ ଅଭ୍ୟାସ କରିବାକୁ ଫୋନ୍‌ରେ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_not_connected_message">ଫୋନ୍‌ରେ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ, ତା’ପରେ ‘ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ’ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_connect_android_phone">ଏକ Android ଫୋନ୍ ସଂଯୋଗ କରନ୍ତୁ</string>
+    <string name="wear_session_connect_android_phone_message">ଘଡ଼ି ଫୋନ୍ ସହ ଯୋଡ଼ା ଏବଂ ସଂଯୁକ୍ତ ଅଛି କି ଦେଖନ୍ତୁ, ତା’ପରେ ‘ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ’ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_setup_phone_app">ଫୋନ୍‌ରେ Nibomo ସେଟ୍ ଅପ୍ କରନ୍ତୁ</string>
+    <string name="wear_session_install_phone_app_message">Google Play ରେ Nibomo ଇନଷ୍ଟଲ୍ ବା ଅପଡେଟ୍ କରନ୍ତୁ, ତା’ପରେ ସାଇନ୍ ଇନ୍ କରି ‘ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ’ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_check_phone_message">ଫୋନ୍ ସଂଯୁକ୍ତ ଅଛି କି ଦେଖନ୍ତୁ। ଆବଶ୍ୟକ ହେଲେ Nibomo ଇନଷ୍ଟଲ୍ ବା ଅପଡେଟ୍ କରନ୍ତୁ, ତା’ପରେ ସାଇନ୍ ଇନ୍ କରି ‘ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ’ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_open_play_store">Google Play ଖୋଲନ୍ତୁ</string>
+    <string name="wear_session_play_store_requested_message">ଫୋନ୍‌ରେ Google Play ରେ ଇନଷ୍ଟଲ୍ ବା ଅପଡେଟ୍ ସାରନ୍ତୁ। ତା’ପରେ Nibomo ରେ ସାଇନ୍ ଇନ୍ କରି ‘ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ’ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।</string>
+    <string name="wear_session_play_store_failed">Google Play ଖୋଲି ହେଲା ନାହିଁ</string>
+    <string name="wear_session_play_store_failed_message">ଫୋନ୍‌ରେ Google Play ରେ Nibomo Flashcards ଖୋଜନ୍ତୁ। ତା’ପରେ ସାଇନ୍ ଇନ୍ କରି ‘ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ’ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।</string>
     <string name="wear_session_connecting">ଫୋନ୍ ସହ ସଂଯୋଗ ହେଉଛି…</string>
     <string name="wear_session_syncing">କାର୍ଡ ସିଙ୍କ୍ ହେଉଛି…</string>
     <string name="wear_session_update_required">ଫୋନ୍ ଓ ଘଡ଼ିରେ Nibomo ଅପଡେଟ୍ କରନ୍ତୁ</string>
