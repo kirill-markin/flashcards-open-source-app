@@ -787,7 +787,7 @@ jobs:
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- Upload state: \`draft\`"
-            echo "- Next step: publish it in Play Console together with the phone draft of this run."
+            echo "- Follow the [Wear OS submission checks](https://github.com/kirill-markin/flashcards-open-source-app/blob/main/docs/release/android.md#wear-os-submission) before submitting the draft in Play Console."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
