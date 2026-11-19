@@ -61,8 +61,9 @@ import {
 } from "./queue";
 import {
   hasResolvedAnalyticsVisitorIdentity,
-  resolveAnalyticsVisitorIdentity,
-  resolveAnalyticsVisitorIdentityAfterConsentGrant,
+  mintAnalyticsVisitorIdentity,
+  resetDeferredConsentMintRetry,
+  startAnalyticsVisitorIdentityResolution,
 } from "./visitorIdentity";
 import {
   buildAnalyticsWireContext,
@@ -114,15 +115,6 @@ const flushRequestBudget = 12;
  * other, on the first flush the browser is allowed.
  */
 const heldEventLimit = 200;
-/**
- * The shortest gap between two attempts at an owed mint. Nothing schedules that `POST` any more —
- * `startVisitorIdentityResolution` performs it whenever the browser owes one, so the load, every
- * `online` event and every periodic tick reattempt it by themselves — and this is the one thing a
- * ladder of timers was still doing that nothing else does: keeping a failing browser from asking a
- * route that can pay a GeoLite download once a minute for the life of the page. It matches the plain
- * resolution's own retry spacing, because it bounds the same route for the same reason.
- */
-const deferredConsentMintRetryDelayMs = 5 * 60 * 1000;
 
 function readInitialEnabled(): boolean {
   try {
@@ -280,21 +272,6 @@ export function createAnalyticsDeliveryRuntime(
    * granted would keep `isQueueOwnerReconciled` false and park their events until the next load.
    */
   let isQueueOwnerClaimDeferred = false;
-  /**
-   * A consent mint in flight, and the earliest a failed owed one may be attempted again. Both are
-   * per document and neither is stored: whether a mint is owed at all is read from the stored
-   * consent decision and the visitor cookie, so a load that ends mid-attempt owes exactly the same
-   * thing to the next one. The in-flight flag is what keeps the callers that reattempt the mint —
-   * the load, `online`, the periodic tick — from overlapping two `POST`s, which would mint two ids
-   * and count one browser as two visitors.
-   *
-   * It covers the banner's own grant as well as the owed mint, and in both cases it stays raised
-   * across the identity resolution that follows the `POST`: that resolution clears the settled flag
-   * for the length of its `GET`, which is exactly the shape a tick landing inside it would read as
-   * an owed mint and answer with a second, redundant `POST`.
-   */
-  let isConsentIdentityMintInFlight = false;
-  let deferredConsentMintNotBeforeMs = 0;
   /**
    * The collection answer this runtime has already carried out. The person can move the switch in
    * another tab, where only that document runs `applyProductAnalyticsCollection`, so the shared
@@ -1427,11 +1404,6 @@ export function createAnalyticsDeliveryRuntime(
   /**
    * Records a consent grant for this browser and releases everything that was waiting on it.
    *
-   * The grant succeeded exactly when the answer carries a `visitorId`; the `consentRequired` field
-   * reports the jurisdiction on this method and says nothing about whether this browser still has to
-   * be asked (docs/analytics-visitor-identity.md). Nothing is recorded locally unless the server
-   * recorded it, so a failed call leaves the banner up rather than silently swallowing the answer.
-   *
    * It reports no event of its own: the surface the person answered on reports the decision, so a
    * decision carried over from an account does not look like one somebody just made.
    */
@@ -1456,34 +1428,17 @@ export function createAnalyticsDeliveryRuntime(
       return true;
     }
 
-    // The banner's grant is a consent mint like the owed one, and it is raised across the resolution
-    // that follows: between recording `granted` and that resolution settling, this browser reads as
-    // owing a mint, and a periodic tick landing there would answer it with a second `POST`.
-    isConsentIdentityMintInFlight = true;
-    try {
-      const visitor = await submitAnalyticsVisitorConsent(true);
-      if (visitor.visitorId === null) {
-        return false;
-      }
-
-      // Consent is not retroactive. Whatever was collected while a refusal stood was collected under
-      // an answer that said this person was not to be measured, so the grant releases what follows
-      // it and nothing before it. Not reported as a loss, for the same reason the refusal's own
-      // discard is not: it is the recorded answer taking effect, not something anybody needs to be
-      // told about.
+    return mintAnalyticsVisitorIdentity((): boolean => {
+      // A grant releases events collected while the question was open. Events held under an
+      // earlier refusal retain that answer.
       if (readAnalyticsConsentDecision() === "declined") {
         heldWireEvents = [];
         forgetColdOpen();
       }
 
       recordAnalyticsConsentDecision("granted");
-      await resolveAnalyticsVisitorIdentityAfterConsentGrant();
-    } finally {
-      isConsentIdentityMintInFlight = false;
-    }
-
-    flush();
-    return true;
+      return true;
+    }, flush);
   }
 
   /**
@@ -1975,54 +1930,11 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   /**
-   * Asks for the shared visitor identity and flushes once it has settled: reporting with no
-   * credential waits for that, so this is what releases a signed-out browser's first page view. It
-   * is also the only path that performs a mint owed to a grant, which is why every caller that
-   * reattempts the identity reattempts that too. One answer is asked for once;
-   * `resolveAnalyticsVisitorIdentity` re-asks only after a call that threw and only under its own
-   * bounds, and an owed mint has a minimum spacing of its own, so calling this on every connectivity
-   * change and every periodic tick costs nothing once the identity has settled or the browser holds
-   * one. Never awaited and never on a render path,
-   * because a first visit can pay a GeoLite download inside the request. The kill switch, the
-   * product-analytics setting and a refused banner are all explicit opt-outs and this call can set a
-   * 13-month cookie, so none of those browsers asks for anything.
+   * Triggers a flush after the identity attempt so a signed-out browser can deliver its first page
+   * view once identity has settled.
    */
   function startVisitorIdentityResolution(): void {
-    if (isEnabled === false) {
-      return;
-    }
-
-    // The shared identifier exists only to attribute product-analytics rows, and the switch has just
-    // guaranteed there will be none. Keeping a cookie this browser already carries is a separate
-    // question; minting a new one — which the route does unasked for every country that requires no
-    // consent — is not defensible once collection is off.
-    if (isProductAnalyticsCollectionEnabled() === false) {
-      return;
-    }
-
-    // A browser that refused is never asked again. The route mints for any country that requires no
-    // consent, so one more `GET` would hand back the identity the refusal had just cleared.
-    if (readAnalyticsConsentDecision() === "declined") {
-      return;
-    }
-
-    // A browser that granted and carries no identity is owed the `POST`, not this `GET` — and it is
-    // owed it for as long as it owes it, whether or not this particular call may attempt one. Where
-    // consent is required the `GET` withholds an identity from a browser the server holds no consent
-    // record for, and then settles anyway on the stored `granted`, which permanently satisfies the
-    // mint's own gate: one such `GET` ends the owed mint for the rest of the load and degrades a
-    // granting browser to the per-tab id. So the owed state alone returns here, and the attempt
-    // below is what the in-flight flag and the retry spacing bound. Suppressing the `GET` costs this
-    // browser nothing else: a stored decision already answers `isAwaitingAnalyticsConsentDecision`,
-    // so only the credential-free delivery waits, which is what owing a mint means.
-    if (isDeferredAnalyticsConsentMintOwed()) {
-      attemptDeferredAnalyticsConsentMint();
-      return;
-    }
-
-    void resolveAnalyticsVisitorIdentity().then((): void => {
-      flush();
-    });
+    startAnalyticsVisitorIdentityResolution(isProductAnalyticsCollecting, flush);
   }
 
   /** Drops the coalescing timer, so nothing it was holding is written after this point. */
@@ -2290,16 +2202,7 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
-    // A person moving the switch is not the flaky network the mint spacing exists to bound, and the
-    // window standing here may have been armed for an attempt the off answer cut short, so the
-    // transition back on drops it and the resolution below may mint at once. Every tab carries out
-    // the answer, so none of them holds a stale window over a switch just turned back on.
-    deferredConsentMintNotBeforeMs = 0;
-
-    // Turning it back on is the first moment an opted-out browser may ask for the shared identity
-    // again, exactly as it is for the kill switch: without this a signed-out browser reports nothing
-    // until a periodic tick asks, a minute later. Where a grant taken while collection was off left
-    // a mint owed, this is also what performs it — the resolution is the one path that does.
+    resetDeferredConsentMintRetry();
     startVisitorIdentityResolution();
 
     // A queue-owner claim published while collection was off was deferred, exactly as one published
@@ -2308,91 +2211,6 @@ export function createAnalyticsDeliveryRuntime(
     // the claim itself re-checks both gates and simply defers again where one is still shut.
     claimDeferredQueueOwner();
     scheduleFlush(0);
-  }
-
-  /**
-   * Whether a granted browser carrying no identity still owes the mint `POST`. The `POST` is what
-   * such a browser owes: where consent is required the plain `GET` withholds an identity from a
-   * browser the server holds no consent record for, so asking again would never mint the identifier
-   * the person has already granted.
-   *
-   * What makes it owed is read rather than remembered — the stored decision says `granted` and the
-   * visitor cookie is absent — so this is a fact about the browser, not about the page load that
-   * noticed it, and deliberately not about whether an attempt may be made right now.
-   *
-   * A settled identity is not owed a mint, and that is what stops this from reading true forever.
-   * A browser that minted and kept no cookie has the record the server needed and degrades to the
-   * per-tab id its grant allows, exactly as one that blocks cookies always has; `granted` alone
-   * would otherwise read as owed on every tick for the rest of its life.
-   */
-  function isDeferredAnalyticsConsentMintOwed(): boolean {
-    return readAnalyticsConsentDecision() === "granted"
-      && readAnalyticsVisitorId() === null
-      && hasResolvedAnalyticsVisitorIdentity() === false;
-  }
-
-  /**
-   * Attempts the owed mint where both bounds allow one, and does nothing where they do not: a mint
-   * already in flight would otherwise be doubled, and a failed one would be retried on the next tick
-   * a minute later against a route whose first call can pay a GeoLite download.
-   *
-   * Its one caller is `startVisitorIdentityResolution`, which the load, the `online` event, the
-   * periodic tick and both switches going back on already call, and that is the whole retry story:
-   * nothing here schedules anything.
-   */
-  function attemptDeferredAnalyticsConsentMint(): void {
-    if (isConsentIdentityMintInFlight || Date.now() < deferredConsentMintNotBeforeMs) {
-      return;
-    }
-
-    isConsentIdentityMintInFlight = true;
-    // Armed for the attempt, not for one of its outcomes. A `POST` that answers with an identifier
-    // this browser cannot store settles nothing: the browser owes the mint still, the flag is down
-    // again the moment the attempt ends, and without a window already standing the next tick would
-    // answer with a fresh `POST` — one more server-side visitor per minute for the life of the page.
-    deferredConsentMintNotBeforeMs = Date.now() + deferredConsentMintRetryDelayMs;
-    // Never awaited and never on a render path: nothing analytics does may block or fail a person
-    // moving a switch. The `catch` is the file's usual backstop — the request's own failure is
-    // handled inside, so only an unexpected throw reaches here and it may not surface.
-    void runDeferredAnalyticsConsentMint().catch((): void => undefined);
-  }
-
-  /**
-   * One attempt at the owed `POST`. A rejected call and an answer carrying no identifier are the
-   * same unfinished mint, and neither is answered with the plain `GET`: that `GET` settles the
-   * identity on a `granted` browser while the server is still holding no consent record for it,
-   * which is precisely the state this exists to leave behind — and the owed check above is what
-   * keeps any later caller from issuing it either. It is answered with nothing instead — the browser
-   * still owes a mint, nothing recorded that it does not, and the next caller of
-   * `startVisitorIdentityResolution` asks again once the spacing allows it.
-   */
-  async function runDeferredAnalyticsConsentMint(): Promise<void> {
-    try {
-      let mintedVisitorId: string | null = null;
-      try {
-        mintedVisitorId = (await submitAnalyticsVisitorConsent(true)).visitorId;
-      } catch {
-        // Nothing analytics does may surface to the user.
-      }
-
-      if (mintedVisitorId === null) {
-        return;
-      }
-
-      // The switch can go off during the round trip. The cookie the answer planted is already on
-      // this browser and is left alone like any other it carries, but nothing further is asked for:
-      // resolving here would send one more identity request after the off answer was recorded, and
-      // that request re-writes the cookie — the one thing a switched-off browser may never do.
-      if (isProductAnalyticsCollecting() === false) {
-        return;
-      }
-
-      await resolveAnalyticsVisitorIdentityAfterConsentGrant();
-    } finally {
-      isConsentIdentityMintInFlight = false;
-    }
-
-    flush();
   }
 
   /**

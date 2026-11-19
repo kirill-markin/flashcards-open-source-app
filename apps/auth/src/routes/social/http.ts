@@ -1,4 +1,4 @@
-import { AccountConnectionError } from "../../server/social/accountConnectionContract.js";
+import { AccountConnectionError } from "../../server/social/accountConnection/index.js";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { type AuthAppEnv, jsonAuthError } from "../../server/apiErrors.js";

@@ -11,7 +11,7 @@ import { requireNativeProvider, requireSignInProvider } from "./publicMethods.js
 import type { NativeSignInRequest, SignInContinuationRequest, AccountProviderContinuation } from "./publicContract.js";
 import type { TokenResult } from "../cognito/cognitoAuth.js";
 import type { ProviderSignInHint } from "./signInHint.js";
-import type { ConnectionSuggestion } from "./accountConnectionContract.js";
+import type { ConnectionSuggestion } from "./accountConnection/index.js";
 import type { IdentityProvider } from "./identityStore.js";
 import { decideOtpRateLimit, recordOtpSendDecision } from "../otp/otpRateLimit.js";
 
