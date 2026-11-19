@@ -9,7 +9,26 @@ import type { CloudSettings, SessionInfo } from "../../../types";
 import { hasLoggedInCookie } from "../activation/warmStart";
 import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
 import { endGuestBrowserChallenge, waitForGuestBrowserChallengeToken } from "./guestBrowserChallenge";
-import { clearBrowserGuestCreatingMarker, readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
+import { clearBrowserGuestCreatingMarker, readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges, writeBrowserGuestState, type BrowserGuestStoredState, type PendingGuestConversion } from "./browserGuestStorage";
+
+// Only the noncredential attempt ID is shared with other tabs.
+type BrowserGuestCreationIdentity = Readonly<{ userId: string; sessionId: string }>;
+type BrowserGuestCreationAttempt = Readonly<{
+  attemptId: string;
+  idempotencyKey: string;
+  identity: BrowserGuestCreationIdentity | null;
+}>;
+let pendingGuestCreation: BrowserGuestCreationAttempt | null = null;
+
+function forgetUnmatchedBrowserGuestCreation(saved: BrowserGuestStoredState | null): void {
+  if (saved?.status !== "creating" || saved.attemptId !== pendingGuestCreation?.attemptId) {
+    pendingGuestCreation = null;
+  }
+}
+
+if (typeof window !== "undefined") subscribeToBrowserGuestChanges(() => {
+  if (pendingGuestCreation !== null) forgetUnmatchedBrowserGuestCreation(readBrowserGuestState());
+});
 
 export class GuestConversionRequiredError extends Error {
   readonly pending: PendingGuestConversion | null;
@@ -50,28 +69,38 @@ function requireMatchingOwner(probe: BrowserGuestProbe, localUserId: string | nu
   }
 }
 
-/**
- * The backend answers both check codes before it commits anything, so the creation marker is
- * cleared while the user takes the check (a reload then starts a fresh creation) and the same key is
- * retried with each token. Only a token from a check the user passes creates a guest; the screen
- * stays up until this creation settles.
- */
-async function createBrowserGuestSessionPassingCheck(idempotencyKey: string): Promise<BrowserGuestProbe> {
+function requireMatchingCreationIdentity(
+  expected: BrowserGuestCreationIdentity | null,
+  actual: BrowserGuestCreationIdentity,
+): void {
+  if (expected !== null && (expected.userId !== actual.userId || expected.sessionId !== actual.sessionId)) {
+    throw new Error("Browser guest cookie round-trip changed identity. Preserve local state and retry recovery.");
+  }
+}
+
+async function createBrowserGuestSessionPassingCheck(attempt: BrowserGuestCreationAttempt): Promise<BrowserGuestCreationIdentity> {
   let siteKey: string | null = null;
   let turnstileToken: string | null = null;
   try {
     for (;;) {
+      writeBrowserGuestState({ status: "creating", attemptId: attempt.attemptId });
+      pendingGuestCreation = attempt;
       try {
-        return await createBrowserGuestSession(idempotencyKey, turnstileToken);
+        const { guestSession } = await createBrowserGuestSession(attempt.idempotencyKey, turnstileToken);
+        if (guestSession.status !== "active") throw new Error("Browser guest creation did not return an active guest.");
+        requireMatchingCreationIdentity(attempt.identity, guestSession);
+        const identity = attempt.identity ?? { userId: guestSession.userId, sessionId: guestSession.sessionId };
+        if (pendingGuestCreation === attempt) pendingGuestCreation = { ...attempt, identity };
+        return identity;
       } catch (error) {
         if (error instanceof ApiError === false) throw error;
         const challengeSiteKey: string | null = error.code === "GUEST_BROWSER_CHALLENGE_REQUIRED" ? error.guestBrowserChallengeSiteKey
           : error.code === "GUEST_BROWSER_CHALLENGE_FAILED" ? siteKey : null;
         if (challengeSiteKey === null) throw error;
         siteKey = challengeSiteKey;
+        // The backend refused this POST before committing it.
         clearBrowserGuestCreatingMarker();
         turnstileToken = await waitForGuestBrowserChallengeToken(challengeSiteKey, turnstileToken !== null);
-        writeBrowserGuestState({ status: "creating" });
       }
     }
   } finally {
@@ -97,17 +126,19 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
   return runWithBrowserGuestLock("exclusive", async () => {
     const persisted = await loadCloudSettings();
     const saved = readBrowserGuestState();
-    const hasGuestOwnership = saved !== null || persisted?.cloudState === "guest";
+    forgetUnmatchedBrowserGuestCreation(saved);
+    if (persisted !== null) pendingGuestCreation = null;
+    const hasSavedGuestState = saved !== null || persisted?.cloudState === "guest";
     const canRevalidateCurrentOwner = saved?.status === "owned" && saved.owner.pending === null
       && persisted?.cloudState === "guest" && persisted.linkedUserId === saved.owner.userId
       && persisted.linkedWorkspaceId === saved.owner.workspaceId
       && isBrowserGuestSessionVerified(saved.owner.userId, saved.owner.workspaceId);
-    if (hasGuestOwnership && canRevalidateCurrentOwner === false) pauseBrowserGuestSession();
+    if (hasSavedGuestState && canRevalidateCurrentOwner === false) pauseBrowserGuestSession();
     try {
       let probe = await probeBrowserGuestSessionWithRegisteredRecovery();
       const guest = probe.guestSession;
       const pending = saved?.status === "owned" ? saved.owner.pending : null;
-      if (hasGuestOwnership && (probe.registeredSession.present || guest.status !== "active" || pending !== null)) {
+      if (hasSavedGuestState && (probe.registeredSession.present || guest.status !== "active" || pending !== null)) {
         pauseBrowserGuestSession();
       }
       if (pending?.phase === "completed" && pending.result !== null && probe.registeredSession.present) {
@@ -120,8 +151,10 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
         throw new GuestConversionRequiredError(probe, pending);
       }
       if (probe.registeredSession.present) return resumeVerifiedBrowserSession(await getSession());
+      let expectedCreationIdentity = pendingGuestCreation?.identity ?? null;
       if (guest.status === "absent") {
-        if (saved !== null || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
+        if (saved?.status === "owned" || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
+          pendingGuestCreation = null;
           if (saved === null && ((persisted !== null && persisted.cloudState !== "guest") || hasLoggedInCookie())) {
             await recoverRegisteredCredentialForProbe();
             const refreshed = await probeBrowserGuestSession();
@@ -130,20 +163,21 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
           }
           throw new Error("Browser credential is missing while local ownership exists. Local data has been preserved; restore the original session.");
         }
-        // This marker survives a lost response without persisting the per-attempt bearer key.
-        writeBrowserGuestState({ status: "creating" });
-        const key = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-        const created = await createBrowserGuestSessionPassingCheck(key);
+        const attempt = pendingGuestCreation ?? {
+          attemptId: crypto.randomUUID(),
+          idempotencyKey: Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join(""),
+          identity: null,
+        };
+        expectedCreationIdentity = await createBrowserGuestSessionPassingCheck(attempt);
         probe = await probeBrowserGuestSession();
-        requireMatchingOwner(probe, null);
-        if (created.guestSession.status !== "active" || probe.guestSession.status !== "active"
-          || created.guestSession.userId !== probe.guestSession.userId || created.guestSession.sessionId !== probe.guestSession.sessionId) {
-          throw new Error("Browser guest cookie round-trip changed identity. Preserve local state and retry recovery.");
+        if (probe.guestSession.status === "absent") {
+          throw new Error("Browser guest cookie could not be verified after creation. Allow essential site cookies and retry.");
         }
       }
       requireMatchingOwner(probe, persisted?.linkedUserId ?? null);
       const activeGuest = probe.guestSession;
       if (activeGuest.status !== "active") throw new Error("Active browser guest is required");
+      requireMatchingCreationIdentity(expectedCreationIdentity, activeGuest);
       const session = await loadVerifiedBrowserGuestSession(activeGuest.userId, activeGuest.workspaceId);
       writeBrowserGuestState({ status: "owned", owner: {
         userId: activeGuest.userId, workspaceId: activeGuest.workspaceId,
@@ -151,9 +185,10 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
           && (saved?.status === "owned" ? saved.owner.initialSeedAllowed : saved?.status === "creating" || guest.status === "absent"),
         pending: null,
       } });
+      pendingGuestCreation = null;
       return resumeVerifiedBrowserSession(session);
     } catch (error) {
-      if (hasGuestOwnership || readBrowserGuestState() !== null) pauseBrowserGuestSession();
+      if (hasSavedGuestState || readBrowserGuestState() !== null) pauseBrowserGuestSession();
       throw error;
     }
   });
