@@ -15,7 +15,7 @@ import type {
 } from "../../types";
 import type { TranslationKey } from "../../i18n";
 import type { SessionLoadState } from "../context/types";
-import type { SessionVerificationState } from "./workspaceSessionTypes";
+import type { SessionVerificationState, WorkspaceSessionSyncActions } from "./workspaceSessionTypes";
 import { clearWebSyncCache } from "../../localDb/cache";
 
 const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
@@ -102,7 +102,7 @@ export type TestHarnessProps = Readonly<{
   initialActiveWorkspace: WorkspaceSummary | null;
   initialAvailableWorkspaces: ReadonlyArray<WorkspaceSummary>;
   onStateChange: (snapshot: HarnessSnapshot) => void;
-  refreshWorkspaceViewMock: Mock<() => Promise<void>>;
+  refreshWorkspaceViewMock: WorkspaceSessionSyncActions["refreshWorkspaceView"];
   runSyncMock: Mock<() => Promise<void>>;
   runSyncSilentlyMock: Mock<() => Promise<void>>;
   runSyncForWorkspaceMock: Mock<(workspace: WorkspaceSummary) => Promise<void>>;

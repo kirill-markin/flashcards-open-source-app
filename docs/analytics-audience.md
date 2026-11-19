@@ -26,7 +26,7 @@ where it is certain.
 - [Account and linked-guest deletion](../apps/backend/src/auth/accountDeletion.ts)
 - [Country retention](../apps/backend/src/productAnalytics/countryRetention.ts),
   [daily schedule](../infra/aws/lib/scheduled-jobs/country-retention.ts) and
-  [failure/staleness alarms](../infra/aws/lib/monitoring.ts)
+  [failure/staleness alarms](../infra/aws/lib/scheduled-data-job-monitoring.ts)
 - [Synthetic actor detection](../apps/backend/src/productAnalytics/syntheticActorDetector.ts) and
   its [daily schedule](../infra/aws/lib/scheduled-jobs/synthetic-actor-detector.ts), recording into
   [`analytics.excluded_actors`](../db/migrations/0140_analytics_excluded_actors.sql)

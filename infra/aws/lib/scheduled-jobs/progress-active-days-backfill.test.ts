@@ -45,7 +45,7 @@ test("stack wires the progress active days backfill function into monitoring, ci
 });
 
 test("monitoring alarms cover progress active days backfill errors and staleness", () => {
-  const source = readLibSource("lib/monitoring.ts");
+  const source = readLibSource("lib/scheduled-data-job-monitoring.ts");
 
   assert.match(source, /new cloudwatch\.Alarm\(scope, "ProgressActiveDaysBackfillLambdaErrorAlarm"/);
   assert.match(source, /props\.progressActiveDaysBackfillFn\.metricErrors\(/);
