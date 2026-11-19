@@ -202,10 +202,12 @@ describe("useWorkspaceSession reauth resume", () => {
     seedBrowserStorage();
     await seedIndexedDbState();
     const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const outgoingBootstrapSync = createDeferredVoidPromise();
     const syncDiscardDeferred = createDeferredVoidPromise();
     const discardAllSyncWorkMock = vi.fn(async (
       runWhileDiscarding: () => Promise<void>,
     ): Promise<void> => {
+      outgoingBootstrapSync.resolve();
       await syncDiscardDeferred.promise;
       await runWhileDiscarding();
     });
@@ -222,7 +224,10 @@ describe("useWorkspaceSession reauth resume", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
-    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
+    const refreshWorkspaceViewMock = vi.fn(async (_workspaceId: string): Promise<void> => {});
+    const runSyncForWorkspaceMock = vi.fn<(workspace: WorkspaceSummary) => Promise<void>>()
+      .mockReturnValueOnce(outgoingBootstrapSync.promise)
+      .mockResolvedValue(undefined);
 
     await act(async () => {
       root?.render(
@@ -235,7 +240,7 @@ describe("useWorkspaceSession reauth resume", () => {
           onStateChange={(snapshot: HarnessSnapshot): void => {
             latestState = snapshot;
           }}
-          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          refreshWorkspaceViewMock={refreshWorkspaceViewMock}
           runSyncMock={vi.fn(async (): Promise<void> => {})}
           runSyncSilentlyMock={runSyncSilentlyMock}
           runSyncForWorkspaceMock={runSyncForWorkspaceMock}
@@ -255,13 +260,18 @@ describe("useWorkspaceSession reauth resume", () => {
     await flushEffects();
     await waitForBrowserSignInMethodConsumption(1);
 
-    await act(async () => {
+    const { teardownWait, refreshCallsBeforeCleanup } = await act(async () => {
       window.dispatchEvent(new Event("focus"));
+      const teardownWait = vi.waitFor(() => {
+        expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
+      });
+      // Let the outgoing sync settle before React cleans up its bootstrap effect.
+      await Promise.allSettled([teardownWait]);
+      return { teardownWait, refreshCallsBeforeCleanup: [...refreshWorkspaceViewMock.mock.calls] };
     });
 
-    await vi.waitFor(() => {
-      expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
-    });
+    await teardownWait;
+    expect(refreshCallsBeforeCleanup).toEqual([[seededWorkspace.workspaceId]]);
     await vi.waitFor(() => {
       expect(latestState?.session).toBeNull();
       expect(latestState?.activeWorkspace).toBeNull();
