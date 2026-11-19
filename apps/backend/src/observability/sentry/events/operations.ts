@@ -268,8 +268,9 @@ export type ProgressActiveDaysBackfillFailureDetails = Readonly<{
  * on `maxPages` or on its deadline with candidates still waiting, so web guest rows are being
  * minted faster than this schedule reaps them and the accumulation the job exists to stop is still
  * running. No count on its own can distinguish that from a run that simply had a busy day, and such
- * a run is a successful invocation with no errors, so neither Lambda alarm sees it:
- * `WebGuestReaperSaturatedAlarm` in `infra/aws/lib/monitoring.ts` is the metric filter that does.
+ * a run is a successful invocation with no errors, so neither Lambda alarm sees it.
+ * `WebGuestReaperSaturationMetricFilter` feeds `WebGuestReaperSaturatedAlarm` in
+ * `infra/aws/lib/scheduled-data-job-monitoring.ts`.
  *
  * `scanFailed` separates the two ways a run can end with `finished: false`. It means the run
  * stopped because a candidate scan threw, so the counters above cover only the pages it got
