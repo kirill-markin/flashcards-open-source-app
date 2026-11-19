@@ -1,6 +1,6 @@
-import type { verifyCurrentAccountSession } from "../browserSession.js";
-import type { SocialClient } from "./providers.js";
-import type { AuthAttemptBinding } from "./attemptContract.js";
+import type { verifyCurrentAccountSession } from "../../browserSession.js";
+import type { SocialClient } from "../providers.js";
+import type { AuthAttemptBinding } from "../attemptContract.js";
 
 export type ConnectionSession = Awaited<ReturnType<typeof verifyCurrentAccountSession>>;
 export type ConnectionBinding = AuthAttemptBinding & Readonly<{ purpose: "reauth" }>;
@@ -53,7 +53,7 @@ export type ConnectionAction =
   | Readonly<{ action: "adopt"; capability: "canonical-account-v1"; suggestion: string }>
   | Readonly<{ action: "load" | "cancel"; operation: string }>
   | Readonly<{ action: "provider_begin"; operation: string; provider: "apple" | "google"; codeChallenge: string | null }>
-  | Readonly<{ action: "provider_complete"; operation: string; attempt: string; submission: import("./attemptContract.js").AuthProviderSubmission }>
+  | Readonly<{ action: "provider_complete"; operation: string; attempt: string; submission: import("../attemptContract.js").AuthProviderSubmission }>
   | Readonly<{ action: "email_send"; operation: string; email: string }>
   | Readonly<{ action: "email_verify"; operation: string; code: string }>
   | Readonly<{ action: "preview"; operation: string; omittedWorkspaceIds: readonly string[] }>
@@ -61,7 +61,7 @@ export type ConnectionAction =
 export type ConnectionActionResult =
   | Readonly<{ status: "proof_required" | "proved"; receipt: ConnectionReceipt }>
   | Readonly<{ status: "already_connected" | "cancelled"; operation: string }>
-  | Readonly<{ status: "provider_required"; proof: import("./attemptContract.js").AuthAttemptResponse }>
+  | Readonly<{ status: "provider_required"; proof: import("../attemptContract.js").AuthAttemptResponse }>
   | Readonly<{ status: "email_required"; email: string; expiresAt: string }>
   | (ConnectionPreview & Readonly<{ status: "preview"; operation: string; consequences: typeof connectionConsequences }>)
   | ConnectionCommitted;

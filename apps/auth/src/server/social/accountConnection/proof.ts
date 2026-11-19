@@ -1,19 +1,19 @@
-import { query } from "../../db.js";
-import { verifyCurrentAccountSession } from "../browserSession.js";
-import { initiateCurrentEmailOtp, loadExistingEmailPrincipal, verifyCurrentEmailOtpPrincipal } from "../cognito/cognitoAuth.js";
-import { decideOtpRateLimit, recordOtpSendDecision } from "../otp/otpRateLimit.js";
-import { normalizeEnrollmentEmail } from "./mailboxProof.js";
-import { requireAuthHandle, type AuthAttemptRequest, type AuthAttemptResponse, type AuthProviderSubmission } from "./attemptContract.js";
+import { query } from "../../../db.js";
+import { verifyCurrentAccountSession } from "../../browserSession.js";
+import { initiateCurrentEmailOtp, loadExistingEmailPrincipal, verifyCurrentEmailOtpPrincipal } from "../../cognito/cognitoAuth.js";
+import { decideOtpRateLimit, recordOtpSendDecision } from "../../otp/otpRateLimit.js";
+import { normalizeEnrollmentEmail } from "../mailboxProof.js";
+import { requireAuthHandle, type AuthAttemptRequest, type AuthAttemptResponse, type AuthProviderSubmission } from "../attemptContract.js";
 import {
   authHandleHash, claimConnectionProviderAttempt, prepareAuthAttempt, sealAuthAttemptState, openAuthAttemptState,
   verifyClaimedAuthAttempt, claimConnectionBrowserAttempt, connectionCallbackParameters,
-} from "./attemptStore.js";
-import { connectionParameters, connectionReceipt, loadAccountConnectionProofs } from "./accountConnectionStore.js";
+} from "../attemptStore.js";
+import { connectionParameters, connectionReceipt, loadAccountConnectionProofs } from "./store.js";
 import {
   AccountConnectionError, type ConnectionBinding, type ConnectionReceipt, type ConnectionRow, type ConnectionEmailRow,
-} from "./accountConnectionContract.js";
-import { appleRequestNonce } from "./providers.js";
-import { browserAttemptBinding, type BrowserCallbackState } from "./browserState.js";
+} from "./contract.js";
+import { appleRequestNonce } from "../providers.js";
+import { browserAttemptBinding, type BrowserCallbackState } from "../browserState.js";
 import { createHash } from "node:crypto";
 
 export async function beginConnectionProviderProof(
@@ -121,8 +121,8 @@ export async function completeConnectionBrowserProof(
 }
 
 /** The verifier's branded claim and signed callback state are the only callback authority. */
-export async function recordVerifiedConnectionCallback(
-  state: BrowserCallbackState, verified: import("./attemptStore.js").ClaimedAuthAttempt,
+async function recordVerifiedConnectionCallback(
+  state: BrowserCallbackState, verified: import("../attemptStore.js").ClaimedAuthAttempt,
 ): Promise<ConnectionReceipt> {
   const proof = verified.secrets.proof;
   if (state.connectionOperation === undefined || verified.handle !== state.attempt || verified.phase !== "provider_proved"

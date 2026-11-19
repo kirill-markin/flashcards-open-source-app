@@ -7,9 +7,9 @@ import { createNativeSignInTokenResponse, type NativeSignInTokenResponse } from 
 import { encryptAppleCredential } from "../server/social/appleCredential.js";
 import { authAttemptBindingHash, authHandleHash } from "../server/social/attemptStore.js";
 import { completeAuthoritativeLoginInExecutor, redeemSocialSignInInExecutor } from "../server/social/completionStore.js";
-import { adoptConnectionSuggestionInExecutor } from "../server/social/accountConnectionPreparation.js";
-import { prepareAccountConnectionChoicesInExecutor, replayAccountConnectionInExecutor } from "../server/social/accountConnectionStore.js";
-import type { ConnectionSession, ConnectionSuggestion } from "../server/social/accountConnectionContract.js";
+import { adoptConnectionSuggestionInExecutor } from "../server/social/accountConnection/preparation.js";
+import { prepareAccountConnectionChoicesInExecutor, replayAccountConnectionInExecutor } from "../server/social/accountConnection/store.js";
+import type { ConnectionSession, ConnectionSuggestion } from "../server/social/accountConnection/contract.js";
 import type { ProviderEnrollmentProof } from "../server/social/principalEnrollment.js";
 
 function executor(client: pg.Client): DatabaseExecutor {
