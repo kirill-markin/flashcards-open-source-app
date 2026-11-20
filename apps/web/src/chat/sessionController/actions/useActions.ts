@@ -6,21 +6,10 @@ import {
   type IndexedDbOpenRecoveryState,
 } from "../../../appError/AppErrorContext";
 import {
-  ApiContractError,
-  ApiError,
-  AuthRedirectError,
-  ChatFileUploadTransferError,
   getCurrentChatSnapshot,
   startChatRun,
   stopChatRun,
 } from "../../../api";
-import {
-  captureWebException,
-  normalizeCaughtError,
-  type ChatRunRequestFailureDetails,
-  type WebObservationScope,
-} from "../../../observability/webObservability";
-import { isBrowserApiNetworkError } from "../../../observability/apiNetworkErrorPolicy";
 import type { Locale } from "../../../i18n/types";
 import type {
   AiUsageStatus,
@@ -29,10 +18,7 @@ import type {
   StartChatRunRequestBody,
   StartChatRunResponse,
 } from "../../../types";
-import {
-  getChatApiObservationMetadata,
-  getCurrentRoute,
-} from "../support/apiObservation";
+import { captureChatRunRequestError } from "../support/apiObservation";
 import { loadStoredChatConfig, storeChatConfig } from "../support/config";
 import {
   createClientChatSessionId,
@@ -101,138 +87,8 @@ type ChatSessionActions = Readonly<{
   getFreshSessionRequestSequence: () => number;
 }>;
 
-function buildChatRequestScope(workspaceId: string | null, error: Error): WebObservationScope {
-  const metadata = getChatApiObservationMetadata(error);
-  return {
-    app: "web",
-    feature: "chat",
-    userId: null,
-    workspaceId,
-    installationId: null,
-    route: getCurrentRoute(),
-    requestId: metadata.requestId,
-    statusCode: metadata.statusCode,
-    code: metadata.code,
-  };
-}
-
-function isExpectedChatProductErrorCode(code: string | null): boolean {
-  switch (code) {
-    case "ACCOUNT_DELETED":
-    case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
-    case "AI_LIMIT_REACHED":
-    case "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED":
-    case "GUEST_WEB_AI_SIGN_IN_REQUIRED":
-    case "AUTH_UNAUTHORIZED":
-    case "CHAT_ACTIVE_RUN_IN_PROGRESS":
-    case "CHAT_ATTACHMENT_UNSUPPORTED_TYPE":
-    case "CHAT_FILE_UPLOAD_IMAGES_TOO_LARGE":
-    case "CHAT_FILE_UPLOAD_TOO_LARGE":
-    case "CHAT_FILE_UPLOADS_TOO_MANY":
-    case "CHAT_REQUEST_TOO_LARGE":
-    case "CHAT_SESSION_ID_CONFLICT":
-    case "GUEST_AUTH_INVALID":
-    case "WORKSPACE_NOT_FOUND":
-    case "WORKSPACE_SELECTION_REQUIRED":
-      return true;
-  }
-
-  return isOwnOpenAIKeyError(code);
-}
-
-function isExpectedChatValidationError(error: ApiError): boolean {
-  return error.statusCode === 400
-    && error.code === null
-    && error.responseBodyKind === "json";
-}
-
-function shouldCaptureChatRunRequestError(error: Error): boolean {
-  if (error instanceof ApiContractError) {
-    return true;
-  }
-
-  if (error instanceof AuthRedirectError) {
-    return false;
-  }
-
-  if (isBrowserApiNetworkError(error)) {
-    return false;
-  }
-
-  // A PUT without a response failed on the connection, like the network error above; a response means
-  // the storage refused a PUT this client built from a signed target.
-  if (error instanceof ChatFileUploadTransferError && error.statusCode === null) {
-    return false;
-  }
-
-  if (error instanceof ApiError) {
-    if (error.statusCode >= 500) {
-      return true;
-    }
-
-    if (isAiChatRequestTooLargeError({
-      statusCode: error.statusCode,
-      code: error.code,
-    })) {
-      return false;
-    }
-
-    if (isExpectedChatProductErrorCode(error.code)) {
-      return false;
-    }
-
-    if (error.statusCode === 401) {
-      return false;
-    }
-
-    if (isExpectedChatValidationError(error)) {
-      return false;
-    }
-
-    if (error.statusCode >= 400 && error.statusCode < 500) {
-      return true;
-    }
-  }
-
-  return true;
-}
-
 function isChatSessionIdConflictError(error: unknown): boolean {
   return isChatApiError(error) && error.code === "CHAT_SESSION_ID_CONFLICT";
-}
-
-function captureChatRunRequestError(
-  caughtError: unknown,
-  workspaceId: string | null,
-  details: ChatRunRequestFailureDetails,
-): void {
-  const error = normalizeCaughtError(caughtError);
-  if (shouldCaptureChatRunRequestError(error) === false) {
-    return;
-  }
-
-  const scope = buildChatRequestScope(workspaceId, error);
-  if (error instanceof ApiContractError) {
-    captureWebException({
-      action: "api_contract_failed",
-      error,
-      scope,
-      details: {
-        endpoint: error.endpoint,
-        fieldPath: error.fieldPath,
-        expected: error.expected,
-        sourceAction: details.operation,
-      },
-    });
-    return;
-  }
-
-  captureWebException({
-    action: "chat_run_request_failed",
-    error,
-    scope,
-    details,
-  });
 }
 
 export function useChatSessionActions(
@@ -422,7 +278,7 @@ export function useChatSessionActions(
           return;
         }
 
-        captureChatRunRequestError(error, workspaceId, {
+        captureChatRunRequestError(error, {
           operation: "chat_fresh_session_failed",
           sessionId,
           workspaceId,
@@ -538,7 +394,7 @@ export function useChatSessionActions(
         refreshAiUsageInBackground();
         return { status: "rejected", accepted: false, sessionId: state.currentSessionId, guestAiRefusal };
       }
-      captureChatRunRequestError(error, workspaceId, {
+      captureChatRunRequestError(error, {
         operation: "chat_remote_session_failed",
         sessionId: runtimeRefs.currentSessionIdRef.current,
         workspaceId,
@@ -695,7 +551,7 @@ export function useChatSessionActions(
       requestSessionId: string,
       resultSessionId: string | null,
     ): SendChatMessageResult => {
-      captureChatRunRequestError(error, workspaceId, {
+      captureChatRunRequestError(error, {
         operation: "chat_attachment_upload_failed",
         sessionId: requestSessionId,
         workspaceId,
@@ -829,7 +685,7 @@ export function useChatSessionActions(
         return createRejectedSendResult(resultSessionId);
       }
 
-      captureChatRunRequestError(error, workspaceId, {
+      captureChatRunRequestError(error, {
         operation: "chat_start_run_failed",
         sessionId: requestSessionId,
         workspaceId,
@@ -1144,7 +1000,7 @@ export function useChatSessionActions(
         return;
       }
 
-      captureChatRunRequestError(error, requestWorkspaceId, {
+      captureChatRunRequestError(error, {
         operation: "chat_stop_run_failed",
         sessionId: requestSessionId,
         workspaceId: requestWorkspaceId,
