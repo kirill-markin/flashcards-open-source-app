@@ -33,57 +33,103 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             try self.tapTabBarItem(selectedTab: .review, timeout: timeout)
         }
 
-        try self.step("read the front formulas in order and copy the selected source") {
-            let identifier = LiveSmokeIdentifier.reviewFrontSelectableText
+        let frontView = self.app.textViews[LiveSmokeIdentifier.reviewFrontSelectableText].firstMatch
+        let backView = self.app.textViews[LiveSmokeIdentifier.reviewBackSelectableText].firstMatch
+        try self.step("render the front formulas and copy their selected source") {
             try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
-            try self.assertReviewInlineMathContent(
-                ["已知合力", "F=ma", "，且加速度", #"a=\frac{\Delta v}{\Delta t}"#, "，如何求速度變化？"],
-                identifier: identifier
+            try self.assertReviewSmokeValue("已知合力 \u{FFFC}，且加速度 \u{FFFC}，如何求速度變化？", in: frontView)
+            self.attachReviewMathScreenshot(named: "inline-math-front")
+            try self.assertCopiedReviewSelection(
+                front,
+                from: frontView,
+                editButtonIdentifier: LiveSmokeIdentifier.reviewEditCardButton,
+                editorRowIdentifier: LiveSmokeIdentifier.cardEditorBackRow,
+                editorIdentifier: LiveSmokeIdentifier.cardEditorBackTextEditor
             )
-            self.app.staticTexts.matching(identifier: identifier).firstMatch.press(forDuration: 0.8)
-            self.app.typeKey("a", modifierFlags: .command)
-            self.app.typeKey("c", modifierFlags: .command)
-
-            try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.reviewEditCardButton, timeout: timeout)
-            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: timeout)
-            try self.pasteReviewSmokeText(front, into: LiveSmokeIdentifier.cardEditorBackTextEditor)
-            try self.tapFirstNavigationBackButton()
-            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorCancelButton, timeout: timeout)
-            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: timeout)
         }
 
-        try self.step("reveal the answer and advance to the next card") {
+        try self.step("reveal the answer, render its formulas, and copy their selected source") {
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
             try self.waitForReviewAnswerReveal()
-            try self.assertReviewInlineMathContent(
-                ["若合力固定，則", #"a=\frac{F}{m}"#, "，因此", #"\Delta v=\frac{F}{m}\Delta t"#, "。"],
-                identifier: LiveSmokeIdentifier.reviewBackSelectableText
+            try self.assertReviewSmokeValue("若合力固定，則 \u{FFFC}，因此 \u{FFFC}。", in: backView)
+            self.attachReviewMathScreenshot(named: "inline-math-back")
+            try self.assertCopiedReviewSelection(
+                back,
+                from: backView,
+                editButtonIdentifier: LiveSmokeIdentifier.reviewEditBackCardButton,
+                editorRowIdentifier: LiveSmokeIdentifier.cardEditorFrontRow,
+                editorIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor
             )
+        }
+
+        try self.step("rate the math card and advance to the next question") {
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: timeout)
             try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
-            try self.assertTextExists(nextFront, timeout: timeout)
+            try self.assertReviewSmokeValue(nextFront, in: frontView)
         }
+    }
+
+    @MainActor
+    private func assertCopiedReviewSelection(
+        _ source: String,
+        from textView: XCUIElement,
+        editButtonIdentifier: String,
+        editorRowIdentifier: String,
+        editorIdentifier: String
+    ) throws {
+        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        UIPasteboard.general.items = []
+        // Press the leading prose to start native selection away from the attachment and line endings.
+        textView.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.35)).press(forDuration: 0.8)
+        self.app.typeKey("a", modifierFlags: .command)
+        self.app.typeKey("c", modifierFlags: .command)
+
+        try self.tapButtonScrollingIntoView(identifier: editButtonIdentifier, timeout: timeout)
+        try self.tapButton(identifier: editorRowIdentifier, timeout: timeout)
+        try self.pasteReviewSmokeText(source, into: editorIdentifier)
+        try self.tapFirstNavigationBackButton()
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorCancelButton, timeout: timeout)
+        try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: timeout)
     }
 
     @MainActor
     private func pasteReviewSmokeText(_ expected: String, into identifier: String) throws {
-        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
-        let editor = self.element(identifier: identifier)
-        try self.focusElementForTextInput(editor, identifier: identifier, timeout: timeout)
+        let editor = self.app.textViews[identifier].firstMatch
+        try self.focusElementForTextInput(
+            editor,
+            identifier: identifier,
+            timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        )
         self.app.typeKey("a", modifierFlags: .command)
         self.app.typeKey("v", modifierFlags: .command)
-        let pasted = try self.waitForElementValue(editor, identifier: identifier, expectedValue: expected, timeout: timeout)
-        XCTAssertTrue(pasted, "Expected the original source in '\(identifier)', found '\(self.elementValue(element: editor))'.")
+        try self.assertReviewSmokeValue(expected, in: editor)
     }
 
     @MainActor
-    private func assertReviewInlineMathContent(_ expectedLabels: [String], identifier: String) throws {
-        try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
-        let labels = self.app.staticTexts.matching(identifier: identifier).allElementsBoundByIndex.map {
-            $0.label.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func assertReviewSmokeValue(_ expected: String, in textView: XCUIElement) throws {
+        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        XCTAssertTrue(textView.waitForExistence(timeout: timeout), "Expected the Review smoke text view to be present.")
+        let identifier = textView.identifier
+        let matched = try self.waitForElementValue(textView, identifier: identifier, expectedValue: expected, timeout: timeout)
+        let actual = textView.value as? String
+        guard matched && actual == expected else {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: identifier,
+                expectedValue: expected,
+                actualValue: actual ?? self.elementValue(element: textView),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
-        // The fallback keeps the formula label and appends a rendering warning to the prose.
-        XCTAssertEqual(labels, expectedLabels, "Expected '\(identifier)' in reading order without a rendering warning.")
+    }
+
+    @MainActor
+    private func attachReviewMathScreenshot(named name: String) {
+        let attachment = XCTAttachment(screenshot: self.app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        self.add(attachment)
     }
 
     @MainActor
