@@ -30,6 +30,7 @@ enum IOSObservationFeature: String, Sendable {
     case storeReview = "store_review"
     case subscription = "subscription"
     case reviewReactions = "review_reactions"
+    case reviewRendering = "review_rendering"
     case macToolbar = "mac_toolbar"
     case widget = "widget"
 }
@@ -49,6 +50,7 @@ struct IOSObservationScope: Sendable, Hashable {
 enum IOSBreadcrumbEvent: Sendable {
     case nativeEditor(NativeEditorObservation)
     case reviewReaction(ReviewReactionObservation)
+    case reviewRendering(ReviewRenderingObservation)
     case appLifecycle(AppLifecycleObservation)
     case foregroundOperation(ForegroundOperationObservation)
     case cloudFlow(CloudFlowObservation)
@@ -61,6 +63,34 @@ enum IOSBreadcrumbEvent: Sendable {
     case premiumPresentation(PremiumPresentationObservation)
     case macReviewCompanionOpen(MacReviewCompanionOpenStage)
     case macReviewCompanionClose(MacReviewCompanionCloseStage)
+}
+
+struct ReviewRenderingObservation: Sendable {
+    enum Side: String, Sendable {
+        case front, back
+    }
+
+    enum Phase: String, Sendable {
+        case contentPreparation = "content_preparation"
+        case textInstallation = "text_installation"
+        case textMeasurement = "text_measurement"
+    }
+
+    enum Outcome: String, Sendable {
+        case start, success, failure
+    }
+
+    struct Render: Sendable {
+        let cardId: String
+        let side: Side
+        let id: UUID
+    }
+
+    let render: Render
+    let phase: Phase
+    let outcome: Outcome
+    let durationMilliseconds: Int?
+    let attributedUTF16Count: Int?
 }
 
 enum MacReviewCompanionOpenStage: String, Sendable {

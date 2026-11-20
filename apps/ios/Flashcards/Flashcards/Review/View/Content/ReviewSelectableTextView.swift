@@ -9,6 +9,7 @@ struct ReviewSelectableTextView: UIViewRepresentable {
     var textColor: UIColor = .label
     var isSelectable: Bool = true
     var lineLimit: Int? = nil
+    var activeReviewCardId: String?
     @State private var attachmentLayoutVersion = 0
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -31,59 +32,124 @@ struct ReviewSelectableTextView: UIViewRepresentable {
         _ = self.attachmentLayoutVersion
         view.onAttachmentSizeChange = { self.attachmentLayoutVersion += 1 }
         let font = self.textFont ?? UIFont.preferredFont(forTextStyle: .body)
-        view.isSelectable = self.isSelectable
-        view.textContainer.maximumNumberOfLines = self.lineLimit ?? 0
-        view.textContainer.lineBreakMode = self.lineLimit == nil ? .byWordWrapping : .byTruncatingTail
         let color = self.textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: context.environment.colorScheme == .dark ? .dark : .light))
-        let identity = "\(self.sourceText)-\(font.fontName)-\(font.pointSize)-\(font.fontDescriptor.symbolicTraits.rawValue)-\(color.cgColor.components ?? [])-\(self.isSelectable)-\(String(describing: self.lineLimit))-\(context.environment.colorScheme)-\(context.environment.displayScale)"
+        let identity = "\(self.activeReviewCardId ?? "")-\(self.renderingSide.rawValue)-\(self.sourceText)-\(font.fontName)-\(font.pointSize)-\(font.fontDescriptor.symbolicTraits.rawValue)-\(color.cgColor.components ?? [])-\(self.isSelectable)-\(String(describing: self.lineLimit))-\(context.environment.colorScheme)-\(context.environment.displayScale)"
         guard context.coordinator.identity != identity else { return }
         context.coordinator.identity = identity
-        view.resignFirstResponder()
+        context.coordinator.pendingMeasurement = nil
+
+        let render = self.activeReviewCardId.map { cardId in
+            ReviewRenderingObservation.Render(cardId: cardId, side: self.renderingSide, id: UUID())
+        }
+        let preparation = render.map { ReviewRenderingPhaseMeasurement(render: $0, phase: .contentPreparation) }
+        let attributedText: NSAttributedString
         do {
-            view.applyReviewContent(try makeReviewSelectableContent(
+            let prepared = try makeReviewSelectableContent(
                 content: self.content,
                 surfaceStyle: self.surfaceStyle,
                 environment: context.environment,
                 textFont: self.textFont,
                 textColor: self.textColor
-            ))
+            )
+            attributedText = prepared.attributedText
+            preparation?.complete(
+                outcome: prepared.didFailRenderingFormula ? .failure : .success,
+                attributedUTF16Count: attributedText.length
+            )
         } catch {
-            view.applyReviewContent(NSAttributedString(
+            preparation?.complete(outcome: .failure, attributedUTF16Count: nil)
+            attributedText = NSAttributedString(
                 string: error.localizedDescription,
                 attributes: [.font: font, .foregroundColor: UIColor.systemRed]
-            ))
+            )
         }
+
+        let installation = render.map { ReviewRenderingPhaseMeasurement(render: $0, phase: .textInstallation) }
+        view.isSelectable = self.isSelectable
+        view.textContainer.maximumNumberOfLines = self.lineLimit ?? 0
+        view.textContainer.lineBreakMode = self.lineLimit == nil ? .byWordWrapping : .byTruncatingTail
+        view.resignFirstResponder()
+        view.applyReviewContent(attributedText)
         view.selectedRange = NSRange(location: 0, length: 0)
         if self.textFont == nil {
             view.accessibilityIdentifier = self.surfaceStyle == .front
                 ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText
         }
         view.rebuildAccessibilityContent()
+        installation?.complete(outcome: .success, attributedUTF16Count: nil)
+        context.coordinator.pendingMeasurement = render
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReviewSelectionTextView, context: Context) -> CGSize? {
         // Horizontal suggestion/chip stacks propose no width; keep those previews bounded.
         guard let width = proposal.width ?? (self.textFont == nil ? nil : 320), width > 0 else { return nil }
-        return uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        let constraint = CGSize(width: width, height: .greatestFiniteMagnitude)
+        guard width.isFinite,
+              let render = context.coordinator.pendingMeasurement,
+              render.cardId == self.activeReviewCardId, render.side == self.renderingSide else {
+            return uiView.sizeThatFits(constraint)
+        }
+
+        context.coordinator.pendingMeasurement = nil
+        let measurement = ReviewRenderingPhaseMeasurement(render: render, phase: .textMeasurement)
+        let size = uiView.sizeThatFits(constraint)
+        measurement.complete(
+            outcome: size.width.isFinite && size.height.isFinite ? .success : .failure,
+            attributedUTF16Count: nil
+        )
+        return size
+    }
+
+    private var renderingSide: ReviewRenderingObservation.Side {
+        self.surfaceStyle == .front ? .front : .back
     }
 
     final class Coordinator {
         var identity: String?
+        var pendingMeasurement: ReviewRenderingObservation.Render?
+    }
+}
+
+private struct ReviewRenderingPhaseMeasurement {
+    let render: ReviewRenderingObservation.Render
+    let phase: ReviewRenderingObservation.Phase
+    let startedAt: Date
+
+    init(render: ReviewRenderingObservation.Render, phase: ReviewRenderingObservation.Phase) {
+        FlashcardsObservability.addBreadcrumb(.reviewRendering(ReviewRenderingObservation(
+            render: render,
+            phase: phase,
+            outcome: .start,
+            durationMilliseconds: nil,
+            attributedUTF16Count: nil
+        )))
+        self.render = render
+        self.phase = phase
+        self.startedAt = Date()
+    }
+
+    func complete(outcome: ReviewRenderingObservation.Outcome, attributedUTF16Count: Int?) {
+        FlashcardsObservability.addBreadcrumb(.reviewRendering(ReviewRenderingObservation(
+            render: self.render,
+            phase: self.phase,
+            outcome: outcome,
+            durationMilliseconds: iosObservationDurationMilliseconds(startedAt: self.startedAt, finishedAt: Date()),
+            attributedUTF16Count: attributedUTF16Count
+        )))
     }
 }
 
 extension NSAttributedString {
     var reviewSelectionCopyText: String {
         let selected = NSMutableAttributedString(attributedString: self)
-        var attachments: [(attachment: ReviewContentAttachment, range: NSRange)] = []
-        selected.enumerateAttribute(.attachment, in: NSRange(location: 0, length: selected.length), options: .reverse) { value, range, _ in
-            if let attachment = value as? ReviewContentAttachment {
-                attachments.append((attachment, range))
+        self.enumerateAttribute(.attachment, in: NSRange(location: 0, length: self.length), options: .reverse) { value, range, _ in
+            if let formula = value as? ReviewInlineMathAttachment {
+                selected.replaceCharacters(in: range, with: formula.copyText)
+                return
             }
-        }
-        for (attachment, range) in attachments {
+            guard let attachment = value as? ReviewContentAttachment else { return }
             var replacedRange = range
-            if attachment.copyText.isEmpty && attachment.layout == .block {
+            if attachment.copyText.isEmpty {
                 // A block attachment owns its line, so with no text its line separator goes too.
                 let text = selected.string as NSString
                 if NSMaxRange(range) < text.length && text.character(at: NSMaxRange(range)) == 0x0A {
@@ -172,6 +238,17 @@ final class ReviewSelectionTextView: UITextView, UITextViewDelegate, UIGestureRe
             }
         }
         self.attributedText.enumerateAttribute(.attachment, in: NSRange(location: 0, length: self.attributedText.length)) { value, range, _ in
+            if let formula = value as? ReviewInlineMathAttachment {
+                appendText(until: range.location)
+                let element = ReviewSelectionAccessibilityElement(textView: self, range: range)
+                element.accessibilityLabel = formula.accessibilityLabelText
+                element.accessibilityTraits = .staticText
+                element.accessibilityIdentifier = self.accessibilityIdentifier
+                if #available(iOS 18.1, *) { element.accessibilityTextInputResponder = self }
+                elements.append(element)
+                start = NSMaxRange(range)
+                return
+            }
             guard let attachment = value as? ReviewContentAttachment else { return }
             appendText(until: range.location)
             if let view = attachment.accessibilityView(in: self) {
@@ -295,9 +372,28 @@ private final class ReviewSelectionAccessibilityElement: UIAccessibilityElement 
     }
 }
 
-enum ReviewContentAttachmentLayout {
-    case inline
-    case block
+final class ReviewInlineMathAttachment: NSTextAttachment {
+    let copyText: String
+    let accessibilityLabelText: String
+
+    init(image: UIImage, formula: ReviewFormulaContent) {
+        self.copyText = formula.originalSource
+        self.accessibilityLabelText = formula.latex
+        super.init(data: nil, ofType: nil)
+        self.image = image
+        self.bounds = CGRect(origin: .zero, size: image.size)
+        self.allowsTextAttachmentView = false
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    nonisolated override func attachmentBounds(for attributes: [NSAttributedString.Key: Any], location: any NSTextLocation, textContainer: NSTextContainer?, proposedLineFragment: CGRect, position: CGPoint) -> CGRect {
+        let width = max(proposedLineFragment.width, 1)
+        let bounds = self.bounds
+        guard bounds.width > width else { return bounds }
+        // Fit an oversized formula to a full line; TextKit wraps it if it cannot fit at the current position.
+        return CGRect(origin: bounds.origin, size: CGSize(width: width, height: bounds.height * width / bounds.width))
+    }
 }
 
 /// What VoiceOver reads for an attachment whose hosted view is not in the text view.
@@ -324,18 +420,16 @@ final class ReviewContentAttachment: NSTextAttachment {
     let content: Content
     let copyText: String
     let accessibility: ReviewContentAttachmentAccessibility
-    let layout: ReviewContentAttachmentLayout
     @MainActor weak var selectionTextView: ReviewSelectionTextView?
     // TextKit creates a provider, and so a hosted view, per layout of this attachment; state that
     // must outlive one provider lives in the content's state objects, not in a hosted view.
     @MainActor private let hostedViews = NSHashTable<UIView>.weakObjects()
 
     @MainActor
-    init(content: Content, copyText: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout) {
+    init(content: Content, copyText: String, accessibility: ReviewContentAttachmentAccessibility) {
         self.content = content
         self.copyText = copyText
         self.accessibility = accessibility
-        self.layout = layout
         super.init(data: nil, ofType: Self.contentType)
     }
 
@@ -348,7 +442,7 @@ final class ReviewContentAttachment: NSTextAttachment {
 
     @MainActor
     func copyForTableCell() -> ReviewContentAttachment {
-        ReviewContentAttachment(content: self.content, copyText: self.copyText, accessibility: self.accessibility, layout: self.layout)
+        ReviewContentAttachment(content: self.content, copyText: self.copyText, accessibility: self.accessibility)
     }
 
     @MainActor
@@ -368,15 +462,8 @@ final class ReviewContentAttachment: NSTextAttachment {
     @MainActor
     fileprivate func measuredBounds(width: CGFloat, size: CGSize) -> CGRect {
         let scale = max(self.selectionTextView?.traitCollection.displayScale ?? 1, 1)
-        let measuredWidth: CGFloat
-        switch self.layout {
-        case .inline:
-            measuredWidth = min(size.width, width)
-        case .block:
-            measuredWidth = width
-        }
         return CGRect(origin: .zero, size: CGSize(
-            width: (measuredWidth * scale).rounded(.up) / scale,
+            width: (width * scale).rounded(.up) / scale,
             height: (max(size.height, 1) * scale).rounded(.up) / scale
         ))
     }
@@ -392,10 +479,10 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
     @MainActor private var isSizeNotificationScheduled = false
 
     @MainActor
-    private func hostedController(content: AnyView, layout: ReviewContentAttachmentLayout) -> UIHostingController<AnyView> {
+    private func hostedController(content: AnyView) -> UIHostingController<AnyView> {
         if let controller = self.hostingController { return controller }
-        let hostedContent = layout == .block ? AnyView(content.frame(maxWidth: .infinity, alignment: .leading)) : content
-        let controller = UIHostingController(rootView: AnyView(hostedContent
+        let controller = UIHostingController(rootView: AnyView(content
+            .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: CGSize.self) { proxy in
                 proxy.size
@@ -432,7 +519,7 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
         let size: CGSize
         switch attachment.content {
         case .hosted(let content):
-            size = self.hostedController(content: content, layout: attachment.layout).sizeThatFits(in: proposal)
+            size = self.hostedController(content: content).sizeThatFits(in: proposal)
         #if targetEnvironment(macCatalyst)
         case .table(let rows):
             size = self.nativeTable(rows: rows).sizeThatFits(proposal)
@@ -449,7 +536,7 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
             let view: UIView
             switch attachment.content {
             case .hosted(let content):
-                view = ReviewContentAttachmentHostView(hostingController: provider.hostedController(content: content, layout: attachment.layout))
+                view = ReviewContentAttachmentHostView(hostingController: provider.hostedController(content: content))
             #if targetEnvironment(macCatalyst)
             case .table(let rows):
                 view = provider.nativeTable(rows: rows)

@@ -862,6 +862,7 @@ struct ReviewView: View {
                 label: String(localized: "Front", table: reviewCardsStringsTableName),
                 content: preparedRevealState.frontContent,
                 sourceText: card.frontText,
+                cardId: card.cardId,
                 onSelectText: {
                     self.openReviewTextSelection(card: card, side: .front)
                 },
@@ -895,6 +896,7 @@ struct ReviewView: View {
                     label: String(localized: "Back", table: reviewCardsStringsTableName),
                     content: preparedRevealState.backContent,
                     sourceText: card.backText,
+                    cardId: card.cardId,
                     onSelectText: {
                         self.openReviewTextSelection(card: card, side: .back)
                     },

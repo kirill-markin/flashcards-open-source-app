@@ -48,6 +48,24 @@ extension SentryObservabilityAdapter {
                 category: "ios.review_reactions", level: .info,
                 message: observation.action.rawValue, data: context
             )
+        case .reviewRendering(let observation):
+            var context: [String: Any] = [
+                "card_id": observation.render.cardId,
+                "side": observation.render.side.rawValue,
+                "render_id": observation.render.id.uuidString,
+                "phase": observation.phase.rawValue,
+                "outcome": observation.outcome.rawValue
+            ]
+            context["duration_ms"] = observation.durationMilliseconds
+            context["attributed_utf16_count"] = observation.attributedUTF16Count
+            self.writeLocalRecord(
+                kind: "breadcrumb", feature: .reviewRendering, action: observation.phase.rawValue,
+                fields: stringifyContext(context)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.review_rendering", level: observation.outcome == .failure ? .warning : .info,
+                message: "\(observation.phase.rawValue).\(observation.outcome.rawValue)", data: context
+            )
         case .appLifecycle(let observation):
             self.writeLocalRecord(
                 kind: "breadcrumb",
