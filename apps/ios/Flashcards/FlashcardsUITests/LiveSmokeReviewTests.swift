@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 private enum ReviewFilterToggleValue: String {
@@ -6,6 +7,85 @@ private enum ReviewFilterToggleValue: String {
 }
 
 final class LiveSmokeReviewTests: LiveSmokeTestCase {
+    @MainActor
+    func testLiveSmokeInlineMathCardReviewFlow() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "This smoke requires an iPhone.")
+        XCUIDevice.shared.orientation = .portrait
+        let front = #"已知合力 $F=ma$，且加速度 $a=\frac{\Delta v}{\Delta t}$，如何求速度變化？"#
+        let back = #"若合力固定，則 $a=\frac{F}{m}$，因此 $\Delta v=\frac{F}{m}\Delta t$。"#
+        let nextFront = "What is momentum?"
+        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
+
+        try self.step("create a card with inline formulas and a following card in the guest workspace") {
+            try self.tapButton(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: timeout)
+            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: timeout)
+            UIPasteboard.general.string = front
+            try self.pasteReviewSmokeText(front, into: LiveSmokeIdentifier.cardEditorFrontTextEditor)
+            try self.tapFirstNavigationBackButton()
+            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: timeout)
+            UIPasteboard.general.string = back
+            try self.pasteReviewSmokeText(back, into: LiveSmokeIdentifier.cardEditorBackTextEditor)
+            try self.tapFirstNavigationBackButton()
+            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: timeout)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: timeout)
+            try self.createManualCard(frontText: nextFront, backText: "Mass times velocity.")
+            try self.tapTabBarItem(selectedTab: .review, timeout: timeout)
+        }
+
+        try self.step("read the front formulas in order and copy the selected source") {
+            let identifier = LiveSmokeIdentifier.reviewFrontSelectableText
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
+            try self.assertReviewInlineMathContent(
+                ["已知合力", "F=ma", "，且加速度", #"a=\frac{\Delta v}{\Delta t}"#, "，如何求速度變化？"],
+                identifier: identifier
+            )
+            self.app.staticTexts.matching(identifier: identifier).firstMatch.press(forDuration: 0.8)
+            self.app.typeKey("a", modifierFlags: .command)
+            self.app.typeKey("c", modifierFlags: .command)
+
+            try self.tapButtonScrollingIntoView(identifier: LiveSmokeIdentifier.reviewEditCardButton, timeout: timeout)
+            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: timeout)
+            try self.pasteReviewSmokeText(front, into: LiveSmokeIdentifier.cardEditorBackTextEditor)
+            try self.tapFirstNavigationBackButton()
+            try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorCancelButton, timeout: timeout)
+            try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: timeout)
+        }
+
+        try self.step("reveal the answer and advance to the next card") {
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
+            try self.waitForReviewAnswerReveal()
+            try self.assertReviewInlineMathContent(
+                ["若合力固定，則", #"a=\frac{F}{m}"#, "，因此", #"\Delta v=\frac{F}{m}\Delta t"#, "。"],
+                identifier: LiveSmokeIdentifier.reviewBackSelectableText
+            )
+            try self.tapButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: timeout)
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: timeout)
+            try self.assertTextExists(nextFront, timeout: timeout)
+        }
+    }
+
+    @MainActor
+    private func pasteReviewSmokeText(_ expected: String, into identifier: String) throws {
+        let timeout = LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        let editor = self.element(identifier: identifier)
+        try self.focusElementForTextInput(editor, identifier: identifier, timeout: timeout)
+        self.app.typeKey("a", modifierFlags: .command)
+        self.app.typeKey("v", modifierFlags: .command)
+        let pasted = try self.waitForElementValue(editor, identifier: identifier, expectedValue: expected, timeout: timeout)
+        XCTAssertTrue(pasted, "Expected the original source in '\(identifier)', found '\(self.elementValue(element: editor))'.")
+    }
+
+    @MainActor
+    private func assertReviewInlineMathContent(_ expectedLabels: [String], identifier: String) throws {
+        try self.assertElementExists(identifier: identifier, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+        let labels = self.app.staticTexts.matching(identifier: identifier).allElementsBoundByIndex.map {
+            $0.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // The fallback keeps the formula label and appends a rendering warning to the prose.
+        XCTAssertEqual(labels, expectedLabels, "Expected '\(identifier)' in reading order without a rendering warning.")
+    }
+
     @MainActor
     func testLiveSmokeManualCardReviewFlow() throws {
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
