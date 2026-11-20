@@ -9,6 +9,7 @@ struct ReviewSelectableTextView: UIViewRepresentable {
     var textColor: UIColor = .label
     var isSelectable: Bool = true
     var lineLimit: Int? = nil
+    var activeReviewCardId: String?
     @State private var attachmentLayoutVersion = 0
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -31,44 +32,110 @@ struct ReviewSelectableTextView: UIViewRepresentable {
         _ = self.attachmentLayoutVersion
         view.onAttachmentSizeChange = { self.attachmentLayoutVersion += 1 }
         let font = self.textFont ?? UIFont.preferredFont(forTextStyle: .body)
-        view.isSelectable = self.isSelectable
-        view.textContainer.maximumNumberOfLines = self.lineLimit ?? 0
-        view.textContainer.lineBreakMode = self.lineLimit == nil ? .byWordWrapping : .byTruncatingTail
         let color = self.textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: context.environment.colorScheme == .dark ? .dark : .light))
-        let identity = "\(self.sourceText)-\(font.fontName)-\(font.pointSize)-\(font.fontDescriptor.symbolicTraits.rawValue)-\(color.cgColor.components ?? [])-\(self.isSelectable)-\(String(describing: self.lineLimit))-\(context.environment.colorScheme)-\(context.environment.displayScale)"
+        let identity = "\(self.activeReviewCardId ?? "")-\(self.renderingSide.rawValue)-\(self.sourceText)-\(font.fontName)-\(font.pointSize)-\(font.fontDescriptor.symbolicTraits.rawValue)-\(color.cgColor.components ?? [])-\(self.isSelectable)-\(String(describing: self.lineLimit))-\(context.environment.colorScheme)-\(context.environment.displayScale)"
         guard context.coordinator.identity != identity else { return }
         context.coordinator.identity = identity
-        view.resignFirstResponder()
+        context.coordinator.pendingMeasurement = nil
+
+        let render = self.activeReviewCardId.map { cardId in
+            ReviewRenderingObservation.Render(cardId: cardId, side: self.renderingSide, id: UUID())
+        }
+        let preparation = render.map { ReviewRenderingPhaseMeasurement(render: $0, phase: .contentPreparation) }
+        let attributedText: NSAttributedString
         do {
-            view.applyReviewContent(try makeReviewSelectableContent(
+            let prepared = try makeReviewSelectableContent(
                 content: self.content,
                 surfaceStyle: self.surfaceStyle,
                 environment: context.environment,
                 textFont: self.textFont,
                 textColor: self.textColor
-            ))
+            )
+            attributedText = prepared.attributedText
+            preparation?.complete(
+                outcome: prepared.didFailRenderingFormula ? .failure : .success,
+                attributedUTF16Count: attributedText.length
+            )
         } catch {
-            view.applyReviewContent(NSAttributedString(
+            preparation?.complete(outcome: .failure, attributedUTF16Count: nil)
+            attributedText = NSAttributedString(
                 string: error.localizedDescription,
                 attributes: [.font: font, .foregroundColor: UIColor.systemRed]
-            ))
+            )
         }
+
+        let installation = render.map { ReviewRenderingPhaseMeasurement(render: $0, phase: .textInstallation) }
+        view.isSelectable = self.isSelectable
+        view.textContainer.maximumNumberOfLines = self.lineLimit ?? 0
+        view.textContainer.lineBreakMode = self.lineLimit == nil ? .byWordWrapping : .byTruncatingTail
+        view.resignFirstResponder()
+        view.applyReviewContent(attributedText)
         view.selectedRange = NSRange(location: 0, length: 0)
         if self.textFont == nil {
             view.accessibilityIdentifier = self.surfaceStyle == .front
                 ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText
         }
         view.rebuildAccessibilityContent()
+        installation?.complete(outcome: .success, attributedUTF16Count: nil)
+        context.coordinator.pendingMeasurement = render
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReviewSelectionTextView, context: Context) -> CGSize? {
         // Horizontal suggestion/chip stacks propose no width; keep those previews bounded.
         guard let width = proposal.width ?? (self.textFont == nil ? nil : 320), width > 0 else { return nil }
-        return uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        let constraint = CGSize(width: width, height: .greatestFiniteMagnitude)
+        guard width.isFinite,
+              let render = context.coordinator.pendingMeasurement,
+              render.cardId == self.activeReviewCardId, render.side == self.renderingSide else {
+            return uiView.sizeThatFits(constraint)
+        }
+
+        context.coordinator.pendingMeasurement = nil
+        let measurement = ReviewRenderingPhaseMeasurement(render: render, phase: .textMeasurement)
+        let size = uiView.sizeThatFits(constraint)
+        measurement.complete(
+            outcome: size.width.isFinite && size.height.isFinite ? .success : .failure,
+            attributedUTF16Count: nil
+        )
+        return size
+    }
+
+    private var renderingSide: ReviewRenderingObservation.Side {
+        self.surfaceStyle == .front ? .front : .back
     }
 
     final class Coordinator {
         var identity: String?
+        var pendingMeasurement: ReviewRenderingObservation.Render?
+    }
+}
+
+private struct ReviewRenderingPhaseMeasurement {
+    let render: ReviewRenderingObservation.Render
+    let phase: ReviewRenderingObservation.Phase
+    let startedAt: Date
+
+    init(render: ReviewRenderingObservation.Render, phase: ReviewRenderingObservation.Phase) {
+        FlashcardsObservability.addBreadcrumb(.reviewRendering(ReviewRenderingObservation(
+            render: render,
+            phase: phase,
+            outcome: .start,
+            durationMilliseconds: nil,
+            attributedUTF16Count: nil
+        )))
+        self.render = render
+        self.phase = phase
+        self.startedAt = Date()
+    }
+
+    func complete(outcome: ReviewRenderingObservation.Outcome, attributedUTF16Count: Int?) {
+        FlashcardsObservability.addBreadcrumb(.reviewRendering(ReviewRenderingObservation(
+            render: self.render,
+            phase: self.phase,
+            outcome: outcome,
+            durationMilliseconds: iosObservationDurationMilliseconds(startedAt: self.startedAt, finishedAt: Date()),
+            attributedUTF16Count: attributedUTF16Count
+        )))
     }
 }
 

@@ -3,6 +3,11 @@ import MarkdownUI
 import SwiftUI
 import UIKit
 
+struct ReviewSelectableContent {
+    let attributedText: NSAttributedString
+    let didFailRenderingFormula: Bool
+}
+
 @MainActor
 func makeReviewSelectableContent(
     content: ReviewRenderedContent,
@@ -10,9 +15,10 @@ func makeReviewSelectableContent(
     environment: EnvironmentValues,
     textFont: UIFont? = nil,
     textColor: UIColor = .label
-) throws -> NSAttributedString {
+) throws -> ReviewSelectableContent {
     let font = textFont ?? UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: surfaceStyle == .front ? 18 : 17))
     let result = NSMutableAttributedString()
+    var hasFormulaRenderingFailure = false
     let appearance = UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light)
     let markdownFormulaColor = reviewMathRenderableColor(UIColor.label.resolvedColor(with: appearance))
 
@@ -46,6 +52,14 @@ func makeReviewSelectableContent(
         let attachment = ReviewInlineMathAttachment(image: entry.image, formula: formula)
         destination.append(NSAttributedString(attachment: attachment, attributes: attributes))
         return entry.didFailRendering
+    }
+
+    func appendFormulaRenderingFailure() {
+        hasFormulaRenderingFailure = true
+        result.append(NSAttributedString(
+            string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
+            attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
+        ))
     }
 
     func appendMarkdown(_ markdown: MarkdownContent, formulas: [ReviewInlineMathReference]) throws {
@@ -263,10 +277,7 @@ func makeReviewSelectableContent(
         appendTable()
         for _ in breaks { appendBreak() }
         if didFailRenderingFormula {
-            result.append(NSAttributedString(
-                string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
-                attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
-            ))
+            appendFormulaRenderingFailure()
         }
     }
 
@@ -295,10 +306,7 @@ func makeReviewSelectableContent(
             }
         }
         if didFailRenderingFormula {
-            result.append(NSAttributedString(
-                string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
-                attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
-            ))
+            appendFormulaRenderingFailure()
         }
     case .shortPlain(let text):
         let paragraph = NSMutableParagraphStyle()
@@ -345,7 +353,7 @@ func makeReviewSelectableContent(
             }
         }
     }
-    return result
+    return ReviewSelectableContent(attributedText: result, didFailRenderingFormula: hasFormulaRenderingFailure)
 }
 
 @MainActor
