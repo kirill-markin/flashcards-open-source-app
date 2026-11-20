@@ -1,9 +1,9 @@
-import { transaction, type DatabaseExecutor } from "../../db.js";
-import { log, logWarning } from "../logger.js";
+import { transaction, type DatabaseExecutor } from "../../../db.js";
+import { log, logWarning } from "../../logger.js";
 import { revokePrincipalRefreshSessions } from "./principalSessionRevocation.js";
-import { revokeAppleCredential } from "./apple.js";
-import type { EncryptedAppleCredential } from "./appleCredential.js";
-import { SocialProofError } from "./providers.js";
+import { revokeAppleCredential } from "../apple.js";
+import type { EncryptedAppleCredential } from "../appleCredential.js";
+import { SocialProofError } from "../providers.js";
 
 /** Caller has freshly authorized the unlink; staging and disabling share its transaction. */
 export async function stageAppleMethodRevocationInExecutor(

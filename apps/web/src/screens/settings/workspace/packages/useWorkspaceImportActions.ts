@@ -4,8 +4,13 @@ import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
 import { buildClientWorkspaceReplicaId } from "../../../../media/mediaCrypto";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
-import type { WorkspacePackageImportConfirmResponse, WorkspacePackageImportConfirmSummary } from "../../../../types";
-import type { WorkspaceImportOptions } from "./workspaceImportPresentationModel";
+import type {
+  WorkspacePackageImportConfirmOptions,
+  WorkspacePackageImportConfirmResponse,
+  WorkspacePackageImportConfirmSummary,
+} from "../../../../types";
+
+export type WorkspaceImportOptions = Pick<WorkspacePackageImportConfirmOptions, "addImportTag" | "importTag" | "removeTags">;
 
 export function useWorkspaceImportActions() {
   const appData = useAppData();
