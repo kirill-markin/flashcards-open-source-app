@@ -536,6 +536,28 @@ extension CardStore {
         return counts
     }
 
+    func loadEligibleReviewCard(
+        workspaceId: String,
+        cardId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date
+    ) throws -> Card? {
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+        return try self.core.query(
+            sql: """
+            SELECT
+            \(cardStoreSelectColumnsSQL)
+            FROM cards
+            WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
+                AND \(cardStoreActiveReviewDueEligibilitySQL)\(querySQL.clause)
+            LIMIT 1
+            """,
+            values: [.text(workspaceId), .text(cardId), .integer(epochMillis(date: now))] + querySQL.values
+        ) { statement in
+            try self.mapCard(statement: statement)
+        }.first
+    }
+
     /**
      Loads the first review queue page directly from SQLite so the review tab
      can show the first card without hydrating all cards in memory.

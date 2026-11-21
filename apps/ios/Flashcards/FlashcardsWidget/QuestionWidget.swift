@@ -118,8 +118,19 @@ private struct QuestionWidgetContentView: View {
                     reservesLines: false
                 )
                 Spacer(minLength: 0)
-                if self.size == .medium, let scheduledDueCount = self.entry.scheduledDueCount {
-                    ReviewWidgetScheduledDueView(scheduledDueCount: scheduledDueCount, minutes: nil)
+                HStack(alignment: .center, spacing: 8) {
+                    if self.size == .medium, let scheduledDueCount = self.entry.scheduledDueCount {
+                        ReviewWidgetScheduledDueView(scheduledDueCount: scheduledDueCount, minutes: nil)
+                        Spacer(minLength: 0)
+                    }
+                    if let workspaceId = self.entry.workspaceId, let card = self.card {
+                        WidgetRevealAnswerButton(
+                            kind: .question,
+                            workspaceId: workspaceId,
+                            size: self.size.deepLinkSize,
+                            cardId: card.cardId
+                        )
+                    }
                 }
             }
         }

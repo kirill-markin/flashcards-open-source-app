@@ -27,13 +27,14 @@ enum WidgetDeepLinkKind: String, Sendable, Equatable, CaseIterable {
 /// The tab a widget tap opens; the raw value is the URL host.
 enum WidgetDeepLinkDestination: String, Sendable, Equatable, CaseIterable {
     case review
+    case reviewAnswer = "review-answer"
     case progress
 }
 
 /// Tap target of every widget:
-/// `nibomo-widget://<review|progress>?[workspaceId=<id>&]size=<size>[&kind=<kind>][&cardId=<id>]`.
-/// `workspaceId` is absent only when the widget had no snapshot; `cardId` requires `workspaceId` and the
-/// `review` host. A URL without `kind` comes from a Review widget placed before kinds existed.
+/// `nibomo-widget://<review|review-answer|progress>?[workspaceId=<id>&]size=<size>[&kind=<kind>][&cardId=<id>]`.
+/// A card target requires a workspace and a Review destination, and opening the answer requires a card.
+/// A URL without `kind` comes from a Review widget placed before kinds existed.
 struct WidgetDeepLink: Sendable, Equatable {
     let destination: WidgetDeepLinkDestination
     let kind: WidgetDeepLinkKind
@@ -122,7 +123,10 @@ func parseWidgetDeepLinkURL(url: URL) -> WidgetDeepLink? {
     }
     let workspaceId = valuesByName[widgetDeepLinkWorkspaceIdQueryName]
     let cardId = valuesByName[widgetDeepLinkCardIdQueryName]
-    if cardId != nil && (workspaceId == nil || destination != .review) {
+    if cardId != nil && (workspaceId == nil || destination == .progress) {
+        return nil
+    }
+    if destination == .reviewAnswer && cardId == nil {
         return nil
     }
     return WidgetDeepLink(

@@ -821,12 +821,20 @@ struct ReviewView: View {
     }
 
     private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
-        ReviewCardScrollView(cardId: card.cardId, isAnswerVisible: self.reviewScreen.isAnswerVisible) {
+        ReviewCardScrollView(
+            cardId: card.cardId,
+            isAnswerVisible: self.reviewScreen.isAnswerVisible,
+            widgetAnswerScrollRequest: self.reviewScreen.widgetAnswerScrollRequest
+        ) { measureWidgetAnswerFrame in
             ReadableContentLayout(
                 maxWidth: flashcardsReadableContentMaxWidth,
                 horizontalPadding: reviewCardContentHorizontalPadding
             ) {
-                self.activeCardContentView(card: card, preparedRevealState: preparedRevealState)
+                self.activeCardContentView(
+                    card: card,
+                    preparedRevealState: preparedRevealState,
+                    measureWidgetAnswerFrame: measureWidgetAnswerFrame
+                )
                     .padding(.vertical, 20)
                     .background(ReviewOutsideTextTapReceiver())
                     .macToolbarScrollSurface("review")
@@ -838,7 +846,11 @@ struct ReviewView: View {
         self.reviewFilterEditSession.open(in: self.reviewFilterScope)
     }
 
-    private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
+    private func activeCardContentView(
+        card: Card,
+        preparedRevealState: PreparedReviewRevealState,
+        measureWidgetAnswerFrame: @escaping (ReviewWidgetAnswerFrame?) -> Void
+    ) -> some View {
         return VStack(alignment: .leading, spacing: 20) {
             if screenErrorMessage.isEmpty == false {
                 Text(screenErrorMessage)
@@ -920,6 +932,13 @@ struct ReviewView: View {
                 )
                 .id(card.cardId)
                 .id(ReviewCardScrollTarget.back)
+                .onGeometryChange(for: ReviewWidgetAnswerFrame?.self) { [request = self.reviewScreen.widgetAnswerScrollRequest] geometry in
+                    request.map {
+                        ReviewWidgetAnswerFrame(request: $0, rect: geometry.frame(in: .named(ReviewCardScrollSpace.content)))
+                    }
+                } action: { frame in
+                    measureWidgetAnswerFrame(frame)
+                }
             }
 
             if let reviewActionErrorMessage = reviewActionErrorMessage(card: card) {
@@ -932,6 +951,7 @@ struct ReviewView: View {
                 reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
             }
         }
+        .scrollTargetLayout()
     }
 
     @ViewBuilder
@@ -951,9 +971,13 @@ struct ReviewView: View {
                 EmptyView()
             } else if !(self.reviewScreen.isAnswerVisible && self.dynamicTypeSize.isAccessibilitySize),
                       let currentCard {
+                let isPositioningWidgetAnswer = self.reviewScreen.widgetAnswerScrollRequest != nil
                 reviewBottomBarContainer {
                     reviewBottomBar(card: currentCard, preparedRevealState: self.displayedRevealState(card: currentCard))
                 }
+                .opacity(isPositioningWidgetAnswer ? 0 : 1)
+                .allowsHitTesting(!isPositioningWidgetAnswer)
+                .accessibilityHidden(isPositioningWidgetAnswer)
             }
         }
     }
@@ -1187,6 +1211,7 @@ struct ReviewView: View {
             && self.reviewFilterEditSession.isPresented == false
             && self.reviewTagFilterRequest == nil
             && self.shouldShowReviewLoader == false
+            && self.reviewScreen.widgetAnswerScrollRequest == nil
             && self.store.reviewSubmissionFailure == nil
             && self.store.isReviewHardReminderPresented == false
             && self.store.isReviewNotificationPrePromptPresented == false
@@ -1221,7 +1246,7 @@ struct ReviewView: View {
                 self.reviewReactionPlayback.dismissActiveReviewReactions(
                     reason: "interaction", context: self.reviewReactionContext
                 )
-                self.revealReviewAnswer()
+                self.reviewScreen.revealAnswer()
             }
             let toggleSpeech: (@MainActor () -> Void)? = self.keyboardToggleSpeech(
                 side: .front, sourceText: card.frontText, speakableText: revealState.frontSpeakableText
@@ -1308,22 +1333,6 @@ struct ReviewView: View {
         self.isEditorPresented = false
     }
 
-    /**
-     * `review_card_revealed` is emitted from the explicit reveal action rather than from a state observer,
-     * because an observer fires for view updates the person did not cause. The guard is
-     * `isAnswerVisible`, which is per *presentation* and not per card: `.onChange(of:
-     * currentCard?.cardId)` clears it whenever the presented card changes, and answering a card puts
-     * it in the pending set so the presented card changes immediately — so a card that later returns
-     * to the head of the queue is a new presentation and reports its flip again. A "last card
-     * reported" guard would go silent on exactly that card. Within one presentation the guard also
-     * absorbs a double tap landing before SwiftUI swaps the bottom bar for the rating buttons.
-     */
-    private func revealReviewAnswer() {
-        guard self.reviewScreen.isAnswerVisible == false else { return }
-        self.reviewScreen.isAnswerVisible = true
-        Analytics.track(.reviewCardRevealed)
-    }
-
     private func rateReviewCard(cardId: String, rating: ReviewRating) {
         guard self.store.isReviewPending(cardId: cardId) == false else { return }
         let isReactionScheduled: Bool = self.reviewReactionPlayback.scheduleReviewReaction(
@@ -1336,7 +1345,7 @@ struct ReviewView: View {
 
     private var showAnswerButton: some View {
         Button {
-            self.revealReviewAnswer()
+            self.reviewScreen.revealAnswer()
         } label: {
             Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
                 .frame(maxWidth: .infinity)
