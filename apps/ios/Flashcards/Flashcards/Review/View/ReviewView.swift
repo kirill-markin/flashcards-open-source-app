@@ -236,7 +236,9 @@ struct ReviewView: View {
             }
         }
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
-        .nativeNavigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
+        // Beside the side chat the selected tab or sidebar row names the section, leaving the column's row to its controls.
+        .nativeNavigationTitle(self.showsFilterInReviewColumn || self.usesCompactCompanionToolbar
+            ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
         #if !targetEnvironment(macCatalyst)
         .toolbar(self.hidesReviewNavigationBar ? .hidden : .automatic, for: .navigationBar)
         #endif
@@ -366,9 +368,6 @@ struct ReviewView: View {
             if self.usesCompactCompanionToolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     reviewFilterMenu
-                }
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     reviewLeaderboardButton
