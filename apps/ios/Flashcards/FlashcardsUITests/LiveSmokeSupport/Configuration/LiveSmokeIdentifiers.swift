@@ -2,6 +2,7 @@ import Foundation
 
 enum LiveSmokeIdentifier {
     static let aiCompanionToggle: String = "ai.companion.toggle"
+    static let aiCompanionBackButton: String = "ai.companion.back"
     static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
