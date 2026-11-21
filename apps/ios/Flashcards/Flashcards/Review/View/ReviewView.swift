@@ -134,7 +134,7 @@ struct ReviewView: View {
     private var usesPairedReviewSpacing: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
             && self.horizontalSizeClass == .regular
-            && self.navigation.isAICompanionVisible
+            && self.navigation.isAICompanionPaneOpen
     }
 
     private var usesCompactCompanionToolbar: Bool {

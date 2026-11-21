@@ -1,10 +1,32 @@
 import Foundation
 import Observation
 
-struct AIChatHistoryListRoute: Hashable {}
+/// Carries its page's model: every section's side chat pushes the same path, so the list loads once for all of them.
+struct AIChatHistoryListRoute: Hashable {
+    let model: AIChatHistoryListModel
 
+    static func == (lhs: AIChatHistoryListRoute, rhs: AIChatHistoryListRoute) -> Bool {
+        lhs.model === rhs.model
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self.model))
+    }
+}
+
+/// The full AI tab's value-based link identifies its chat and owning list.
 struct AIChatHistoryReaderRoute: Hashable {
     let summary: AIChatSessionHistorySummary
+    let list: AIChatHistoryListModel
+
+    static func == (lhs: AIChatHistoryReaderRoute, rhs: AIChatHistoryReaderRoute) -> Bool {
+        lhs.summary == rhs.summary && lhs.list === rhs.list
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.summary)
+        hasher.combine(ObjectIdentifier(self.list))
+    }
 }
 
 enum AIChatHistoryListPhase: Equatable {
@@ -296,6 +318,14 @@ final class AIChatHistoryListModel {
     func removeUnavailableSession(sessionId: String) {
         self.removeSession(sessionId: sessionId)
         self.notice = aiSettingsLocalized("ai.history.unavailable", "This chat is no longer available.")
+    }
+
+    func makeReaderModel(sessionId: String) -> AIChatHistoryReaderModel {
+        AIChatHistoryReaderModel(
+            chatStore: self.chatStore,
+            sessionId: sessionId,
+            onUnavailable: { [weak self] in self?.removeUnavailableSession(sessionId: sessionId) }
+        )
     }
 
     private func reload(searchText: String?) {

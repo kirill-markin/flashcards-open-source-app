@@ -99,8 +99,18 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func tapButton(identifier: String, timeout: TimeInterval) throws {
-        let button = self.buttons(identifier: identifier).firstMatch
-        try self.tapButton(button: button, identifier: identifier, timeout: timeout)
+        let matches = self.buttons(identifier: identifier)
+        #if !targetEnvironment(macCatalyst)
+        if identifier == LiveSmokeIdentifier.aiCompanionToggle {
+            // Opening or closing the side chat crossfades its toggle between the section's toolbar and the pane's row;
+            // a tap that resolves the outgoing copy is lost.
+            let deadline = Date(timeIntervalSinceNow: timeout)
+            while matches.count > 1 && Date() < deadline {
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+            }
+        }
+        #endif
+        try self.tapButton(button: matches.firstMatch, identifier: identifier, timeout: timeout)
     }
 
     @MainActor

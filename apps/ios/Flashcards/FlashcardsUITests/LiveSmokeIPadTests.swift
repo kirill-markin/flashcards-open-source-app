@@ -32,7 +32,15 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
 #endif
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+#if !targetEnvironment(macCatalyst)
+        try self.assertCompanionControlsAreReachableAfterBackground()
+#endif
+        #if targetEnvironment(macCatalyst)
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+        #else
+        // After reactivation XCTest can return a hit point outside this landscape button's measured frame.
+        self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        #endif
         try self.waitForReviewAnswerReveal()
         try self.tapButton(identifier: LiveSmokeIdentifier.reviewAiButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.acceptCompanionConsentIfPresented()
@@ -44,9 +52,11 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         self.app.typeKey(draft, modifierFlags: [])
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         #else
-        let draft = "Keep this unsent companion draft"
-        composer.typeText(draft)
-        try self.tapButton(identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        var draft = "Keep this unsent companion draft"
+        XCTAssertTrue(self.app.keyboards.firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        for character in draft {
+            self.app.keys.matching(NSPredicate(format: "label ==[c] %@", character == " " ? "space" : String(character))).firstMatch.tap()
+        }
         #endif
 
         #if targetEnvironment(macCatalyst)
@@ -54,12 +64,33 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         #else
         let libraryDestination: LiveSmokeSelectedTab = .library
         #endif
-        for destination in [libraryDestination, .progress, .review] {
+        #if targetEnvironment(macCatalyst)
+        let destinations: [LiveSmokeSelectedTab] = [libraryDestination, .progress, .review]
+        #else
+        let destinations: [LiveSmokeSelectedTab] = [.progress, libraryDestination, .settings, .review]
+        #endif
+        for destination in destinations {
             try self.tapTabBarItem(identifier: destination.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: destination.screen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #if !targetEnvironment(macCatalyst)
+            XCTAssertTrue(self.app.keyboards.firstMatch.exists, "A side-chat section switch must keep the software keyboard up.")
+            self.app.keys.matching(NSPredicate(format: "label ==[c] %@", "x")).firstMatch.tap()
+            draft.append("x")
+            #else
             try self.waitForAiComposerValue(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            #endif
             try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
+        #if !targetEnvironment(macCatalyst)
+        let hideKeyboard = self.app.buttons["Hide keyboard"].firstMatch
+        XCTAssertTrue(hideKeyboard.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        hideKeyboard.tap()
+        XCTAssertTrue(self.app.keyboards.firstMatch.waitForNonExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "The system hide key must dismiss the side-chat keyboard.")
+        try self.focusElementForTextInput(composer, identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertTrue(self.app.keyboards.firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), "The composer must regain its keyboard after a deliberate dismissal.")
+        try self.dismissAiComposerKeyboard()
+        try self.waitForAiComposerValue(draft, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        #endif
         try self.waitForReviewAnswerReveal()
         try self.assertTextExists("Smoke guest AI review answer", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiMessageRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -71,6 +102,20 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
     }
 
 #if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func assertCompanionControlsAreReachableAfterBackground() throws {
+        XCUIDevice.shared.press(.home)
+        self.app.activate()
+        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].firstMatch
+        let filter = self.app.buttons[LiveSmokeIdentifier.reviewFilterMenu].firstMatch
+        let history = self.app.buttons[LiveSmokeIdentifier.aiHistoryButton].firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        XCTAssertTrue(filter.isHittable)
+        XCTAssertTrue(toggle.isHittable)
+        XCTAssertTrue(history.isHittable)
+    }
+
     @MainActor
     private func assertReviewFilterLifetimeAcrossCompanionLayouts() throws {
         try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -100,7 +145,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         try self.step("commit the pending filter when rotation removes its companion toolbar control") {
             XCUIDevice.shared.orientation = .landscapeLeft
             try self.tapButton(identifier: LiveSmokeIdentifier.aiCompanionToggle, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.waitForAiComposerValue("Keep this unsent companion draft", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerValue("Keep this unsent companion draftxxxx", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertElementExists(identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             XCTAssertEqual(self.elementValue(element: allCards), "1")

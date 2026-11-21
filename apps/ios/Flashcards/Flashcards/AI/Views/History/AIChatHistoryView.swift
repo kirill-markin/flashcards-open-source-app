@@ -13,7 +13,8 @@ func aiChatHistoryScope(flashcardsStore: FlashcardsStore) -> [String?] {
     ]
 }
 
-private func isPreservedGuestHistoryBootstrap(
+/// A guest's first sign-in keeps the guest workspace's chats, so it leaves chat history open.
+func isPreservedGuestHistoryBootstrap(
     previousScope: [String?],
     nextScope: [String?],
     link: PreservedGuestWorkspaceLink?
@@ -23,19 +24,46 @@ private func isPreservedGuestHistoryBootstrap(
         && nextScope == [link.targetWorkspaceId, link.targetWorkspaceId, link.userId]
 }
 
+extension View {
+    /// The history pages of the AI tab's stack, declared at its root, so an old chat opens from a pushed history page.
+    func aiChatHistoryDestinations(chatStore: AIChatStore) -> some View {
+        self
+            .navigationDestination(for: AIChatHistoryListRoute.self) { route in
+                AIChatHistoryView(chatStore: chatStore, model: route.model)
+                    .aiCompanionColumnPage()
+                    #if targetEnvironment(macCatalyst)
+                    .environment(\.macToolbarOwnerTab, .ai)
+                    #endif
+            }
+            .navigationDestination(for: AIChatHistoryReaderRoute.self) { route in
+                AIChatHistoryReaderView(
+                    chatStore: chatStore,
+                    summary: route.summary,
+                    model: route.list.makeReaderModel(sessionId: route.summary.sessionId)
+                )
+                .aiCompanionColumnPage()
+                #if targetEnvironment(macCatalyst)
+                .environment(\.macToolbarOwnerTab, .ai)
+                #endif
+            }
+    }
+}
+
 struct AIChatHistoryView: View {
-    @Environment(FlashcardsStore.self) private var flashcardsStore: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.aiCompanionHostTab) private var companionHostTab
+    private var isInPane: Bool { self.companionHostTab != nil }
     let chatStore: AIChatStore
-    @State private var model: AIChatHistoryListModel
+    @Bindable private var model: AIChatHistoryListModel
+    @State private var isSearchPresented = false
     @State private var renameTarget: AIChatSessionHistorySummary?
     @State private var renameDraft: String
     @State private var archiveTarget: AIChatSessionHistorySummary?
 
     @MainActor
-    init(chatStore: AIChatStore) {
+    init(chatStore: AIChatStore, model: AIChatHistoryListModel) {
         self.chatStore = chatStore
-        self._model = State(initialValue: AIChatHistoryListModel(chatStore: chatStore))
+        self.model = model
         self._renameTarget = State(initialValue: nil)
         self._renameDraft = State(initialValue: "")
         self._archiveTarget = State(initialValue: nil)
@@ -57,14 +85,17 @@ struct AIChatHistoryView: View {
                     onFocusRequestHandled: {}
                 )
             ))
-            #else
-            .searchable(
-                text: self.$model.searchQuery,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats")
-            )
             #endif
-            .task(id: self.model.searchQuery) {
+            .onChange(of: self.canSearch) { _, canSearch in
+                if canSearch == false {
+                    self.isSearchPresented = false
+                }
+            }
+            .onDisappear {
+                self.isSearchPresented = false
+            }
+            .task(id: self.isVisible ? self.model.searchQuery : nil) {
+                guard self.isVisible else { return }
                 await self.model.handleSearchQueryChange()
             }
             .onChange(of: self.model.searchQuery) { _, query in
@@ -84,28 +115,6 @@ struct AIChatHistoryView: View {
                 if limitedDraft != draft {
                     self.renameDraft = limitedDraft
                 }
-            }
-            .onChange(of: aiChatHistoryScope(flashcardsStore: self.flashcardsStore)) { previousScope, nextScope in
-                if isPreservedGuestHistoryBootstrap(
-                    previousScope: previousScope,
-                    nextScope: nextScope,
-                    link: self.flashcardsStore.preservedGuestWorkspaceLink
-                ) {
-                    return
-                }
-                self.navigation.popAIToLiveChat()
-            }
-            .navigationDestination(for: AIChatHistoryReaderRoute.self) { route in
-                AIChatHistoryReaderView(
-                    chatStore: self.chatStore,
-                    summary: route.summary,
-                    onUnavailable: { sessionId in
-                        self.model.removeUnavailableSession(sessionId: sessionId)
-                    }
-                )
-                #if targetEnvironment(macCatalyst)
-                .environment(\.macToolbarOwnerTab, .ai)
-                #endif
             }
             .alert(
                 aiSettingsLocalized("ai.history.rename", "Rename"),
@@ -141,60 +150,102 @@ struct AIChatHistoryView: View {
             }
     }
 
-    @ViewBuilder
-    private var content: some View {
-        switch self.model.phase {
-        case .loading:
-            ProgressView(aiSettingsLocalized("ai.history.loading", "Loading chats..."))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .failed(let message):
-            ContentUnavailableView {
-                Label(
-                    aiSettingsLocalized("ai.history.loadError", "Couldn't load chat history."),
-                    systemImage: "exclamationmark.triangle"
-                )
-            } description: {
-                Text(message)
-                    .textSelection(.enabled)
-            } actions: {
-                Button(aiSettingsLocalized("common.retry", "Retry")) {
-                    self.model.retry()
-                }
-                .nativeProminentActionButtonStyle()
+    private var isVisible: Bool {
+        if let companionHostTab = self.companionHostTab {
+            guard self.navigation.isAICompanionVisible,
+                  self.navigation.selectedTab == companionHostTab,
+                  case .history(let route)? = self.navigation.aiCompanionPath.last else {
+                return false
             }
-        case .loaded:
-            self.sessionList
+            return route.model === self.model
         }
+        return self.navigation.selectedTab == .ai && self.navigation.aiPath.count == 1
+    }
+
+    private var canSearch: Bool {
+        self.isVisible && self.renameTarget == nil && self.archiveTarget == nil
+    }
+
+    private var content: some View {
+        self.sessionList
+            #if !targetEnvironment(macCatalyst)
+            .searchable(
+                text: self.searchQueryBinding,
+                isPresented: self.isSearchPresentedBinding,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: Text(verbatim: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"))
+            )
+            #endif
+    }
+
+    private var searchQueryBinding: Binding<String> {
+        Binding(
+            get: { self.model.searchQuery },
+            set: { query in
+                if self.canSearch {
+                    self.model.searchQuery = query
+                }
+            }
+        )
+    }
+
+    private var isSearchPresentedBinding: Binding<Bool> {
+        Binding(
+            get: { self.canSearch && self.isSearchPresented },
+            set: { isPresented in
+                self.isSearchPresented = self.canSearch && isPresented
+            }
+        )
     }
 
     private var sessionList: some View {
         List {
-            if let notice = self.model.notice {
-                Text(notice)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            switch self.model.phase {
+            case .loading:
+                ProgressView(aiSettingsLocalized("ai.history.loading", "Loading chats..."))
+                    .frame(maxWidth: .infinity)
+                    .listRowSeparator(.hidden)
+            case .failed(let message):
+                ContentUnavailableView {
+                    Label(
+                        aiSettingsLocalized("ai.history.loadError", "Couldn't load chat history."),
+                        systemImage: "exclamationmark.triangle"
+                    )
+                } description: {
+                    Text(message)
+                        .textSelection(.enabled)
+                } actions: {
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        self.model.retry()
+                    }
+                    .nativeProminentActionButtonStyle()
+                }
+                .listRowSeparator(.hidden)
+            case .loaded:
+                if let notice = self.model.notice {
+                    Text(notice)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
-            ForEach(
-                aiChatHistoryCurrentChatFirst(
-                    sessions: self.model.sessions,
-                    currentSessionId: self.currentSessionId
-                )
-            ) { summary in
-                self.sessionRow(summary: summary)
-            }
+                ForEach(
+                    aiChatHistoryCurrentChatFirst(
+                        sessions: self.model.sessions,
+                        currentSessionId: self.currentSessionId
+                    )
+                ) { summary in
+                    self.sessionRow(summary: summary)
+                }
 
-            if self.model.nextCursor != nil {
-                self.loadMoreRow
+                if self.model.nextCursor != nil {
+                    self.loadMoreRow
+                } else if self.model.sessions.isEmpty {
+                    self.emptyState
+                        .listRowSeparator(.hidden)
+                }
             }
         }
         .listStyle(.plain)
-        .overlay {
-            // Archiving every loaded row empties the list while older pages remain behind the cursor.
-            if self.model.sessions.isEmpty && self.model.nextCursor == nil {
-                self.emptyState
-            }
-        }
         .refreshable {
             await self.model.refresh()
         }
@@ -263,13 +314,29 @@ struct AIChatHistoryView: View {
                     rowContent
                 }
                 .accessibilityIdentifier(UITestIdentifier.aiHistoryCurrentSessionRow)
+            } else if self.isInPane {
+                Button {
+                    self.isSearchPresented = false
+                    let route = AICompanionHistoryReaderRoute(
+                        summary: summary,
+                        model: self.model.makeReaderModel(sessionId: summary.sessionId)
+                    )
+                    self.navigation.aiCompanionPath.append(.reader(route))
+                } label: {
+                    rowContent
+                }
+                .tint(Color.primary)
+                .accessibilityIdentifier(UITestIdentifier.aiHistorySessionRow)
             } else {
-                NavigationLink(value: AIChatHistoryReaderRoute(summary: summary)) {
+                NavigationLink(value: AIChatHistoryReaderRoute(summary: summary, list: self.model)) {
                     rowContent
                 }
                 .accessibilityIdentifier(UITestIdentifier.aiHistorySessionRow)
             }
         }
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        .alignmentGuide(.listRowSeparatorLeading) { dimensions in dimensions[.leading] }
+        .alignmentGuide(.listRowSeparatorTrailing) { dimensions in dimensions[.trailing] }
         .disabled(rowAction == .archiving)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button {
@@ -339,6 +406,7 @@ struct AIChatHistoryView: View {
     }
 
     private func beginRename(summary: AIChatSessionHistorySummary) {
+        self.isSearchPresented = false
         self.renameDraft = summary.title ?? ""
         self.renameTarget = summary
     }
