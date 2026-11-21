@@ -246,6 +246,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
      * change that re-delivers the same intent does not report the tap twice.
      */
     fun requestAppNotificationTap(request: AppNotificationTapRequest) {
+        reviewWidgetTapStateMutable.value = null
         appGraphOrNull?.analytics?.track(
             event = AnalyticsEvent.NotificationOpened(
                 notificationKind = analyticsNotificationKind(type = request.type)
@@ -268,15 +269,15 @@ class FlashcardsApplication : Application(), Configuration.Provider {
 
     /** The single point every widget tap passes through, for the reasons [requestAppNotificationTap] gives. */
     fun requestReviewWidgetTap(request: ReviewWidgetTapRequest) {
+        reviewWidgetTapStateMutable.value = ReviewWidgetTapHandoffRequest(
+            requestId = nextReviewWidgetTapRequestId.incrementAndGet(),
+            request = request
+        )
         appGraphOrNull?.analytics?.track(
             event = AnalyticsEvent.WidgetOpened(
                 widgetSize = analyticsWidgetSize(size = request.size),
                 widgetKind = analyticsWidgetKind(kind = request.kind)
             )
-        )
-        reviewWidgetTapStateMutable.value = ReviewWidgetTapHandoffRequest(
-            requestId = nextReviewWidgetTapRequestId.incrementAndGet(),
-            request = request
         )
     }
 

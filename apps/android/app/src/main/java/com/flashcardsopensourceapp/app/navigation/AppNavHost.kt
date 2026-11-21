@@ -3,10 +3,12 @@ package com.flashcardsopensourceapp.app.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -29,6 +31,8 @@ import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
 import com.flashcardsopensourceapp.app.widget.WidgetTapDestination
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 internal fun AppNavHost(
@@ -39,7 +43,7 @@ internal fun AppNavHost(
     isPowerSaveMode: Boolean,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
     consumeAppNotificationTap: (Long) -> Unit,
-    reviewWidgetTapRequest: ReviewWidgetTapHandoffRequest?,
+    reviewWidgetTapState: StateFlow<ReviewWidgetTapHandoffRequest?>,
     consumeReviewWidgetTap: (Long) -> Unit,
     premiumPresenter: PremiumPresenter
 ) {
@@ -48,6 +52,7 @@ internal fun AppNavHost(
         newValue = reviewReactionAnimationsEnabled
     )
     val isPowerSaveModeState: State<Boolean> = rememberUpdatedState(newValue = isPowerSaveMode)
+    val reviewWidgetTapRequest = reviewWidgetTapState.collectAsState().value
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
     val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
     val libraryNavigationRequest by appGraph.appHandoffCoordinator.observeLibraryNavigation().collectAsStateWithLifecycle()
@@ -95,16 +100,31 @@ internal fun AppNavHost(
 
     LaunchedEffect(reviewWidgetTapRequest?.requestId) {
         val request = reviewWidgetTapRequest ?: return@LaunchedEffect
+        if (reviewWidgetTapState.value?.requestId != request.requestId) {
+            return@LaunchedEffect
+        }
+
         when (request.request.destination) {
             WidgetTapDestination.REVIEW -> {
                 navigateToTopLevelDestination(
                     navController = navController,
                     destination = ReviewDestination
                 )
-                val workspaceId = request.request.workspaceId
-                val cardId = request.request.cardId
-                if (workspaceId != null && cardId != null) {
-                    appGraph.appHandoffCoordinator.requestReviewWidgetCard(workspaceId = workspaceId, cardId = cardId)
+                if (request.request.workspaceId != null && request.request.cardId != null) {
+                    navController.popBackStack(route = ReviewDestination.route, inclusive = false)
+                    val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                        if (destination.route != ReviewDestination.route) {
+                            consumeReviewWidgetTap(request.requestId)
+                        }
+                    }
+                    navController.addOnDestinationChangedListener(listener)
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        navController.removeOnDestinationChangedListener(listener)
+                    }
+                } else {
+                    consumeReviewWidgetTap(request.requestId)
                 }
             }
 
@@ -113,9 +133,9 @@ internal fun AppNavHost(
                     navController = navController,
                     destination = ProgressDestination
                 )
+                consumeReviewWidgetTap(request.requestId)
             }
         }
-        consumeReviewWidgetTap(request.requestId)
     }
 
     LaunchedEffect(libraryNavigationRequest?.requestId) {
@@ -135,7 +155,9 @@ internal fun AppNavHost(
             appGraph = appGraph,
             navController = navController,
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
-            reviewReactionAnimationsEnabledState = reviewReactionAnimationsEnabledState
+            reviewReactionAnimationsEnabledState = reviewReactionAnimationsEnabledState,
+            reviewWidgetTapState = reviewWidgetTapState,
+            consumeReviewWidgetTap = consumeReviewWidgetTap
         )
         registerLibraryNavGraph(
             appGraph = appGraph,

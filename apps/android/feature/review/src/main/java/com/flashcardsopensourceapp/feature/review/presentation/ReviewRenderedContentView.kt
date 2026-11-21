@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 @Composable
 internal fun ReviewRenderedContentView(
     content: ReviewRenderedContent,
+    renderMarkdownImmediately: Boolean,
     reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     modifier: Modifier
@@ -40,6 +41,7 @@ internal fun ReviewRenderedContentView(
         is ReviewRenderedContent.Markdown -> {
             ReviewMarkdownText(
                 markdown = content.markdown,
+                renderImmediately = renderMarkdownImmediately,
                 inlineFormulas = emptyList(),
                 components = reviewMarkdownGalleryComponents,
                 modifier = modifier.fillMaxWidth()
@@ -57,6 +59,7 @@ internal fun ReviewRenderedContentView(
                         when (block) {
                             is ReviewManagedMarkdownBlock.Markdown -> ReviewMarkdownText(
                                 markdown = block.markdown,
+                                renderImmediately = renderMarkdownImmediately,
                                 inlineFormulas = block.inlineFormulas,
                                 components = reviewMarkdownPlainComponents,
                                 modifier = Modifier.fillMaxWidth()
@@ -87,6 +90,7 @@ internal fun ReviewRenderedContentView(
 
                                             is ReviewImageGalleryItem.Linked -> ReviewMarkdownText(
                                                 markdown = item.markdown,
+                                                renderImmediately = renderMarkdownImmediately,
                                                 inlineFormulas = emptyList(),
                                                 components = reviewMarkdownPlainComponents,
                                                 modifier = Modifier.fillMaxWidth()

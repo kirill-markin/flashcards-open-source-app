@@ -102,6 +102,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        widgetPresentation = null,
                         sessionWorkspaceId = "review-route-test-workspace",
                         requestedFilter = ReviewFilter.AllCards,
                         isRequestedFilterSessionPending = false,
@@ -136,6 +137,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isNotificationPermissionPromptVisible = false,
                         isHardAnswerReminderVisible = false
                     ),
+                    widgetRevealRequestId = null,
+                    isCurrentWidgetRevealRequest = { false },
+                    onWidgetAnswerPositioned = {},
                     workspaceId = "review-route-test-workspace",
                     reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                     reviewReactionAnimationsEnabled = true,
@@ -471,6 +475,9 @@ private fun ReviewRouteTestContent(
             )
         ReviewRoute(
             uiState = uiState,
+            widgetRevealRequestId = null,
+            isCurrentWidgetRevealRequest = { false },
+            onWidgetAnswerPositioned = {},
             workspaceId = workspaceId,
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
             reviewReactionAnimationsEnabled = false,
@@ -522,6 +529,7 @@ private fun reviewRouteUiState(
 ): ReviewUiState {
     return ReviewUiState(
         isLoading = isLoading,
+        widgetPresentation = null,
         sessionWorkspaceId = null,
         requestedFilter = requestedFilter,
         isRequestedFilterSessionPending = false,

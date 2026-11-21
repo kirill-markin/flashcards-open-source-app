@@ -164,6 +164,32 @@ extension LocalDatabase {
         )
     }
 
+    func loadEligibleReviewCard(
+        workspaceId: String,
+        cardId: String,
+        reviewFilter: ReviewFilter,
+        now: Date
+    ) throws -> (card: Card, resolvedReviewQuery: ResolvedReviewQuery)? {
+        try self.core.inReadTransaction {
+            let resolvedReviewQuery = try self.loadResolvedReviewQuery(
+                workspaceId: workspaceId,
+                reviewFilter: reviewFilter
+            )
+            guard isMissingDeckReviewFilterFallback(
+                requestedReviewFilter: reviewFilter,
+                resolvedReviewFilter: resolvedReviewQuery.reviewFilter
+            ) == false, let card = try self.cardStore.loadEligibleReviewCard(
+                workspaceId: workspaceId,
+                cardId: cardId,
+                reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+                now: now
+            ) else {
+                return nil
+            }
+            return (card: card, resolvedReviewQuery: resolvedReviewQuery)
+        }
+    }
+
     func loadReviewHead(
         workspaceId: String,
         resolvedReviewFilter: ReviewFilter,

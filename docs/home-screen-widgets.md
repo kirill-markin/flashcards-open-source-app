@@ -13,7 +13,7 @@ Cross-client contract for the widget set on the iOS/iPadOS and Android Home Scre
 - Progress counts a card as relearned if you rated it Hard, Good, or Easy in the last 7 local days and rated it Again on the previous day you reviewed that card. Each card counts once.
 - Minutes measure effort, never a grade: they come from the gaps between ratings on each device ([`insights.ts`](../apps/backend/src/progress/reports/loaders/insights.ts)) and stay hidden at 0 or without enough timed reviews.
 
-| Widget | Shows | Sizes | Tap opens |
+| Widget | Shows | Sizes | Body tap opens |
 | --- | --- | --- | --- |
 | Review | Cards to review and due, the next question, minutes to clear, the streak | Small, Medium, Large | Review, with the shown card on Medium and Large |
 | Question | A question from the next few cards; cards due on larger sizes | Small, Medium (Android also Large) | Review, with the shown card |
@@ -46,10 +46,14 @@ Before the app has provided any data, for example on a fresh install, every widg
 
 ## Tap
 
-A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if the card is still in the selected workspace, eligible under its saved Review filter, and neither on screen nor awaiting its rating, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). The card opens on its question. Otherwise Review opens the current session.
+The widget body opens the destination in the table. An eligible card that differs from the one already shown starts a new Review session on its question. A body tap for the card already shown keeps the current session and side.
 
-- iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
-- Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)) and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
+Review (Medium and Large), Question, and Dashboard offer **Reveal answer** when they show a question. On Android, Small Question uses an eye button with the localized label for accessibility. The button opens Review with the shown card's answer positioned for reading.
+
+For either tap, a card target must be in the selected workspace, match its saved Review filter, be new or due, and have no pending rating. A stale or unavailable target opens ordinary Review.
+
+- iOS: widget taps use private [`nibomo-widget://` URLs](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift). The button is a SwiftUI `Link` to `nibomo-widget://review-answer`. The scheme stays unregistered in `CFBundleURLTypes`.
+- Android: widget taps launch the app with an [explicit intent](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt). The button uses a distinct intent action.
 
 Each tap records one `widget_opened` with `widget_size` and `widget_kind` where the app consumes it. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes, one event per widget kind; one without `widget_kind` comes from an older client and counts Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
 

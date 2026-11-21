@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
@@ -29,11 +30,13 @@ import com.flashcardsopensourceapp.app.navigation.LibraryNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.ReviewWidgetTapHandoffRequest
 import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.canShowNotificationPermissionDialog
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
+import com.flashcardsopensourceapp.app.widget.WidgetTapDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCardCreateEntryPoint
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermission
@@ -48,13 +51,21 @@ import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
+import kotlinx.coroutines.flow.StateFlow
 
 internal fun NavGraphBuilder.registerReviewNavGraph(
     appGraph: AppGraph,
     navController: NavHostController,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
-    reviewReactionAnimationsEnabledState: State<Boolean>
+    reviewReactionAnimationsEnabledState: State<Boolean>,
+    reviewWidgetTapState: StateFlow<ReviewWidgetTapHandoffRequest?>,
+    consumeReviewWidgetTap: (Long) -> Unit
 ) {
+    fun isCurrentWidgetTap(requestId: Long): Boolean {
+        return navController.currentDestination?.route == ReviewDestination.route &&
+            reviewWidgetTapState.value?.requestId == requestId
+    }
+
     fun handleNotificationPermissionGranted() {
         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
             trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
@@ -146,10 +157,31 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             )
             SideEffect {
                 reviewViewModel.updateAppPresentationAvailability {
-                    canPresentReviewPrompt(appGraph = appGraph)
+                    reviewWidgetTapState.value?.request?.revealAnswer != true &&
+                        canPresentReviewPrompt(appGraph = appGraph)
                 }
             }
-            val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+            val observedUiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+            val reviewWidgetTapRequest by reviewWidgetTapState.collectAsState()
+            val widgetCardTap = reviewWidgetTapRequest?.takeIf { tap ->
+                tap.request.destination == WidgetTapDestination.REVIEW &&
+                    tap.request.workspaceId != null && tap.request.cardId != null
+            }
+            val widgetPresentation = observedUiState.widgetPresentation?.takeIf { presentation ->
+                presentation.requestId == widgetCardTap?.requestId &&
+                    (presentation.cardId == null || presentation.cardId == observedUiState.preparedCurrentCard?.card?.cardId)
+            }
+            val widgetRevealRequestId = widgetCardTap?.takeIf { it.request.revealAnswer }?.requestId
+            val uiState = if (widgetRevealRequestId != null && widgetPresentation == null) {
+                observedUiState.copy(
+                    isLoading = true,
+                    isAnswerVisible = false,
+                    preparedCurrentCard = null,
+                    preparedNextCard = null
+                )
+            } else {
+                observedUiState
+            }
             val workspaceId by reviewViewModel.workspaceId.collectAsStateWithLifecycle()
             val guestReviewPrompt by appGraph.guestSignInAfterReviewPromptController.observeUiState().collectAsStateWithLifecycle()
             val feedbackPrompt by appGraph.feedbackPromptController.observeUiState().collectAsStateWithLifecycle()
@@ -158,7 +190,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 initialValue = com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences().copy(firstReviewOnboardingCompleted = null)
             )
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
-            val reviewWidgetCardRequest by appGraph.appHandoffCoordinator.observeReviewWidgetCard().collectAsStateWithLifecycle()
             // Resolved when the prompt appears, so its button text and its action stay one decision.
             val notificationPermissionPromptContinueAction = remember(uiState.isNotificationPermissionPromptVisible) {
                 if (
@@ -182,15 +213,38 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 }
             }
 
-            LaunchedEffect(reviewWidgetCardRequest?.requestId, uiState) {
-                val request = reviewWidgetCardRequest ?: return@LaunchedEffect
-                val didHandle = reviewViewModel.startSessionOnCardForHandoff(
-                    workspaceId = request.workspaceId,
-                    cardId = request.cardId
+            LaunchedEffect(widgetCardTap?.requestId) {
+                val tap = widgetCardTap ?: return@LaunchedEffect
+                reviewViewModel.startSessionOnCardForHandoff(
+                    requestId = tap.requestId,
+                    workspaceId = requireNotNull(tap.request.workspaceId),
+                    cardId = requireNotNull(tap.request.cardId),
+                    revealAnswer = tap.request.revealAnswer,
+                    isCurrentHandoff = { isCurrentWidgetTap(requestId = tap.requestId) }
                 )
-                if (didHandle) {
-                    appGraph.appHandoffCoordinator.consumeReviewWidgetCard(requestId = request.requestId)
+            }
+
+            LaunchedEffect(widgetCardTap?.requestId, widgetPresentation) {
+                val presentation = widgetPresentation ?: return@LaunchedEffect
+                if (presentation.needsAnswerPosition && presentation.cardId != null) {
+                    return@LaunchedEffect
                 }
+                val revealedCardId = presentation.cardId?.takeIf { presentation.didRevealAnswer }
+                if (revealedCardId != null) {
+                    withFrameNanos { }
+                }
+                if (!isCurrentWidgetTap(requestId = presentation.requestId)) {
+                    return@LaunchedEffect
+                }
+                if (revealedCardId != null) {
+                    val drawnUiState = reviewViewModel.uiState.value
+                    if (drawnUiState.isAnswerVisible &&
+                        drawnUiState.preparedCurrentCard?.card?.cardId == revealedCardId
+                    ) {
+                        appGraph.analytics.track(event = AnalyticsEvent.ReviewCardRevealed)
+                    }
+                }
+                consumeReviewWidgetTap(presentation.requestId)
             }
 
             LifecycleStartEffect(reviewViewModel) {
@@ -200,8 +254,10 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 }
             }
 
-            LaunchedEffect(uiState.isLoading, uiState.preparedCurrentCard?.card?.cardId, uiState.emptyState) {
-                if (uiState.isLoading) {
+            val isPositioningWidgetAnswer = widgetRevealRequestId == widgetPresentation?.requestId &&
+                widgetPresentation?.needsAnswerPosition == true && widgetPresentation.cardId != null
+            LaunchedEffect(uiState.isLoading, isPositioningWidgetAnswer, uiState.preparedCurrentCard?.card?.cardId, uiState.emptyState) {
+                if (uiState.isLoading || isPositioningWidgetAnswer) {
                     return@LaunchedEffect
                 }
                 val shownCard = uiState.preparedCurrentCard
@@ -216,6 +272,13 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
 
             ReviewRoute(
                 uiState = uiState,
+                widgetRevealRequestId = widgetRevealRequestId,
+                isCurrentWidgetRevealRequest = ::isCurrentWidgetTap,
+                onWidgetAnswerPositioned = { requestId ->
+                    if (isCurrentWidgetTap(requestId = requestId)) {
+                        reviewViewModel.completeWidgetAnswerPosition(requestId = requestId)
+                    }
+                },
                 workspaceId = workspaceId,
                 reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                 reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabledState.value,

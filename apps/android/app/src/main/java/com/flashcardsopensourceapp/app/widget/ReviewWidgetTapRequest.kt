@@ -16,7 +16,8 @@ data class ReviewWidgetTapRequest(
     val workspaceId: String?,
     val size: ReviewWidgetSize,
     val kind: WidgetKind,
-    val cardId: String?
+    val cardId: String?,
+    val revealAnswer: Boolean
 )
 
 fun analyticsWidgetSize(size: ReviewWidgetSize): AnalyticsWidgetSize {
@@ -50,7 +51,8 @@ private const val reviewWidgetLogTag: String = "FlashcardsReviewWidget"
  */
 fun consumeReviewWidgetTapRequest(intent: Intent): ReviewWidgetTapRequest? {
     val destination: WidgetTapDestination = when (intent.action) {
-        ReviewWidgetTapContract.ACTION_OPEN_REVIEW -> WidgetTapDestination.REVIEW
+        ReviewWidgetTapContract.ACTION_OPEN_REVIEW,
+        ReviewWidgetTapContract.ACTION_REVEAL_ANSWER -> WidgetTapDestination.REVIEW
         ReviewWidgetTapContract.ACTION_OPEN_PROGRESS -> WidgetTapDestination.PROGRESS
         else -> return null
     }
@@ -58,11 +60,16 @@ fun consumeReviewWidgetTapRequest(intent: Intent): ReviewWidgetTapRequest? {
     val rawKind: String? = intent.getStringExtra(ReviewWidgetTapContract.EXTRA_WIDGET_KIND)
     val workspaceId: String? = intent.getStringExtra(ReviewWidgetTapContract.EXTRA_WIDGET_WORKSPACE_ID)
     val cardId: String? = intent.getStringExtra(ReviewWidgetTapContract.EXTRA_WIDGET_CARD_ID)
+    val revealAnswer = destination == WidgetTapDestination.REVIEW && workspaceId != null && cardId != null &&
+        (intent.action == ReviewWidgetTapContract.ACTION_REVEAL_ANSWER ||
+            intent.getBooleanExtra(ReviewWidgetTapContract.EXTRA_WIDGET_REVEAL_ANSWER, false))
     intent.action = null
+    intent.data = null
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_SIZE)
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_KIND)
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_WORKSPACE_ID)
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_CARD_ID)
+    intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_REVEAL_ANSWER)
 
     val size: ReviewWidgetSize? = ReviewWidgetSize.entries.firstOrNull { entry -> entry.rawValue == rawSize }
     if (size == null) {
@@ -90,6 +97,7 @@ fun consumeReviewWidgetTapRequest(intent: Intent): ReviewWidgetTapRequest? {
         workspaceId = workspaceId,
         size = size,
         kind = kind,
-        cardId = cardId
+        cardId = cardId,
+        revealAnswer = revealAnswer
     )
 }

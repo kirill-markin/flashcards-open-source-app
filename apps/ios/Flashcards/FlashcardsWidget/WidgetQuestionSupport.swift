@@ -4,6 +4,36 @@ import WidgetKit
 /// The local hours at which the Question widget moves on to the next card.
 private let questionWidgetSlotHours: [Int] = [6, 12, 16, 20]
 
+struct WidgetRevealAnswerButton: View {
+    @Environment(\.widgetAccent) private var accent
+    let kind: WidgetDeepLinkKind
+    let workspaceId: String
+    let size: WidgetDeepLinkSize
+    let cardId: String
+
+    var body: some View {
+        Link(destination: makeWidgetDeepLinkURL(deepLink: WidgetDeepLink(
+            destination: .reviewAnswer,
+            kind: self.kind,
+            workspaceId: self.workspaceId,
+            size: self.size,
+            cardId: self.cardId
+        ))) {
+            Text("widget.reveal_answer", tableName: widgetStringsTableName)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(self.accent.filledLabelColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .controlSize(.small)
+        .tint(self.accent.color)
+        .widgetAccentable()
+        .accessibilityIdentifier("widget.revealAnswer")
+    }
+}
+
 /// The scheduled due count, with the minutes to clear it when known; a check mark at 0 due.
 func widgetScheduledDueText(scheduledDueCount: Int, minutes: Int?) -> Text {
     let dueText = Text("widget.scheduled_due \(scheduledDueCount)", tableName: widgetStringsTableName)

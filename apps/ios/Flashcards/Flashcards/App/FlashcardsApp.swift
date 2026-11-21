@@ -17,11 +17,6 @@ private struct CloudSyncPollingTaskID: Hashable {
     let isSyncBlocked: Bool
 }
 
-private struct WidgetTapConsumptionTaskID: Equatable {
-    let isConsumptionReady: Bool
-    let pendingWidgetDeepLink: WidgetDeepLink?
-}
-
 private struct ProgressContextWatcherTaskID: Hashable {
     let isStartupReady: Bool
     let isSceneActive: Bool
@@ -102,7 +97,7 @@ struct FlashcardsApp: App {
     @State private var hasPresentedFirstScene: Bool
     @State private var isStartupReadyForBackgroundWork: Bool
     @State private var isLowPowerModeEnabled: Bool
-    /// The latest widget tap, held until the app can open Review; a newer tap replaces it.
+    /// Holds the latest widget tap while cloud credential recovery gates navigation.
     @State private var pendingWidgetDeepLink: WidgetDeepLink?
     #if os(iOS) && !targetEnvironment(macCatalyst)
     @State private var watchHandoffResponder: WatchHandoffResponder
@@ -249,7 +244,7 @@ struct FlashcardsApp: App {
                 .preferredColorScheme(store.effectiveAccountTheme.colorScheme)
                 .onOpenURL { url in
                     if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
-                        self.pendingWidgetDeepLink = widgetDeepLink
+                        self.openWidgetDeepLink(widgetDeepLink)
                         return
                     }
                     _ = GIDSignIn.sharedInstance.handle(url)
@@ -387,8 +382,10 @@ struct FlashcardsApp: App {
                 .task(id: self.isAppNotificationTapConsumptionReady) {
                     await self.consumePendingAppNotificationTapIfNeeded()
                 }
-                .task(id: self.widgetTapConsumptionTaskID) {
-                    await self.consumePendingWidgetTapIfNeeded()
+                .onChange(of: self.isCloudCredentialRecoveryGateActive) { _, isRecovering in
+                    if isRecovering == false, let deepLink = self.pendingWidgetDeepLink {
+                        self.openWidgetDeepLink(deepLink)
+                    }
                 }
                 .task(id: self.progressContextWatcherTaskID) {
                     await self.runProgressContextWatcherLoop()
@@ -446,13 +443,6 @@ struct FlashcardsApp: App {
         self.isStartupReadyForBackgroundWork
             && self.scenePhase == .active
             && self.isCloudCredentialRecoveryGateActive == false
-    }
-
-    private var widgetTapConsumptionTaskID: WidgetTapConsumptionTaskID {
-        WidgetTapConsumptionTaskID(
-            isConsumptionReady: self.isAppNotificationTapConsumptionReady,
-            pendingWidgetDeepLink: self.pendingWidgetDeepLink
-        )
     }
 
     private var progressContextWatcherTaskID: ProgressContextWatcherTaskID {
@@ -870,21 +860,31 @@ struct FlashcardsApp: App {
     }
 
     @MainActor
-    private func consumePendingWidgetTapIfNeeded() async {
-        guard self.isAppNotificationTapConsumptionReady, self.pendingWidgetDeepLink != nil else {
-            return
-        }
-
-        await Task.yield()
-        guard self.isAppNotificationTapConsumptionReady, let deepLink = self.pendingWidgetDeepLink else {
+    private func openWidgetDeepLink(_ deepLink: WidgetDeepLink) {
+        guard self.isCloudCredentialRecoveryGateActive == false else {
+            self.pendingWidgetDeepLink = deepLink
             return
         }
 
         self.pendingWidgetDeepLink = nil
+        let didRevealAnswer: Bool
         switch deepLink.destination {
-        case .review:
-            self.store.openReviewFromWidget(deepLink: deepLink, navigation: self.navigation, now: Date())
+        case .review, .reviewAnswer:
+            // The local store is available before background startup. Apply the card and its side before
+            // switching tabs so no question-only presentation can render between the two updates.
+            if let card = self.store.prepareReviewCardFromWidget(deepLink: deepLink, now: Date()) {
+                didRevealAnswer = self.reviewScreen.presentWidgetCard(
+                    card: card,
+                    reviewFilter: self.store.selectedReviewFilter,
+                    resetRevision: self.store.reviewPresentationResetRevision,
+                    initialSide: deepLink.destination == .reviewAnswer ? .answer : .question
+                )
+            } else {
+                didRevealAnswer = false
+            }
+            self.navigation.selectTab(.review)
         case .progress:
+            didRevealAnswer = false
             self.navigation.selectTab(.progress)
         }
         Analytics.track(
@@ -893,6 +893,9 @@ struct FlashcardsApp: App {
                 widgetKind: analyticsWidgetKind(kind: deepLink.kind)
             )
         )
+        if didRevealAnswer {
+            Analytics.track(.reviewCardRevealed)
+        }
     }
 
     @MainActor
