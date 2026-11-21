@@ -351,6 +351,10 @@ struct ReviewView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     reviewFilterMenu
                 }
+                if #available(iOS 26.0, *) {
+                    // The filter keeps its own glass, apart from the badges, as it does without the side chat.
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     reviewLeaderboardButton
                     reviewProgressBadgeButton
