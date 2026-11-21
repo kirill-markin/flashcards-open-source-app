@@ -148,6 +148,9 @@ final class AIChatStore {
     }
 
     var quotaRefusal: AIChatQuotaRefusal? = nil
+    /// The reader's expanded or collapsed work, tool and reasoning blocks per message, shared by every chat view so a
+    /// section switch shows the same transcript; a missing choice follows the block's automatic state.
+    var transcriptDisclosures: [String: [String: Bool]] = [:]
     var activeAlert: AIChatAlert?
     var repairStatus: AIChatRepairAttemptStatus?
 
@@ -207,6 +210,14 @@ final class AIChatStore {
     @ObservationIgnored var lastBootstrapFailureWasRetryable: Bool
     @ObservationIgnored var suppressDraftRestore: Bool
     @ObservationIgnored var optimisticOutgoingTurnState: AIChatOptimisticOutgoingTurnState?
+    @ObservationIgnored let companionPresentation: AIChatCompanionPresentation = AIChatCompanionPresentation()
+    /// The chat whose composer holds the keyboard, per window scene. The side chat and the AI tab act as one chat
+    /// across sections: the chat that comes on screen next in that window takes the keyboard, until a deliberate
+    /// dismissal or a hidden chat clears it.
+    @ObservationIgnored var focusedComposerHosts: [String: AIChatComposerHost] = [:]
+    @ObservationIgnored var lastViewAppearRefreshAt: Date? = nil
+    @ObservationIgnored var activeAIUsageRefreshTask: Task<Void, Never>? = nil
+    @ObservationIgnored var refreshesAIUsageAgain: Bool = false
 
     var hasOlderMessages: Bool {
         get { self.conversationState.hasOlderMessages }

@@ -29,6 +29,33 @@ extension View {
         }
     }
 
+    /// An active toolbar control shows its filled glyph in the accent color; an inactive one stays primary. Glass
+    /// items in a navigation bar draw their label monochrome and ignore the tint, so the color is also set directly;
+    /// the controls using this are never disabled, so no disabled dimming is lost.
+    func nativeToolbarState(isActive: Bool) -> some View {
+        self.tint(isActive ? Color.accentColor : Color.primary)
+            .foregroundStyle(isActive ? Color.accentColor : Color.primary)
+            .symbolVariant(isActive ? .fill : .none)
+    }
+
+    /// The glyph of an icon-only toolbar control in the regular toolbar layout.
+    func nativeToolbarIconLabel() -> some View {
+        self.font(.title3)
+            .frame(minWidth: 30, minHeight: 30)
+            .contentShape(Rectangle())
+    }
+
+    /// An icon-only toolbar control with its own glass in the regular toolbar layout. Its label uses
+    /// `nativeToolbarIconLabel()`, so every such control is the same 44-point circle.
+    func nativeToolbarIconButton() -> some View {
+        self.labelStyle(.iconOnly)
+            .nativeActionButtonStyle()
+            .buttonBorderShape(.circle)
+            .controlSize(.regular)
+            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+            .contentShape(Rectangle())
+    }
+
     @ViewBuilder
     func nativeProminentActionButtonStyle() -> some View {
         if #available(iOS 26.0, *) {

@@ -49,14 +49,7 @@ extension LiveSmokeTestCase {
 #if targetEnvironment(macCatalyst)
             self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
 #else
-            try self.tapButton(
-                identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.assertElementDoesNotExist(
-                identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
+            try self.dismissAiComposerKeyboard()
 #endif
             let messageRowsBeforeSend = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
@@ -113,16 +106,80 @@ extension LiveSmokeTestCase {
         )
     }
 
+    /// The composer has no Done button: tapping the transcript above it dismisses the keyboard.
+    @MainActor
+    func dismissAiComposerKeyboard() throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "dismiss_ai_composer_keyboard") {
+            let transcript = self.element(identifier: LiveSmokeIdentifier.aiScreen)
+            guard self.waitForOptionalElement(
+                transcript,
+                identifier: LiveSmokeIdentifier.aiScreen,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            ) else {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: LiveSmokeIdentifier.aiScreen,
+                    timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            // Typing can hide the simulator's software keyboard for a moment and show it again, moving the composer
+            // and resizing the transcript; a tap while they move lands mid-animation, where the transcript's scroll
+            // view takes it.
+            let composer = self.aiComposerTextFieldElement()
+            var composerFrame = composer.frame
+            var transcriptFrame = transcript.frame
+            var settledAt = Date()
+            let settleDeadline = Date(timeIntervalSinceNow: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            while Date().timeIntervalSince(settledAt) < 0.6 {
+                guard Date() < settleDeadline else {
+                    throw LiveSmokeFailure.unexpectedAiConversationState(
+                        message: "The AI composer and transcript never stopped moving before the keyboard dismissal tap.",
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.15))
+                if composer.frame != composerFrame || transcript.frame != transcriptFrame {
+                    composerFrame = composer.frame
+                    transcriptFrame = transcript.frame
+                    settledAt = Date()
+                }
+            }
+            // A keyboard already gone would let the dismissal pass without the tap doing anything.
+            guard self.app.keyboards.firstMatch.exists else {
+                throw LiveSmokeFailure.unexpectedAiConversationState(
+                    message: "Expected the software keyboard before tapping the AI transcript to dismiss it.",
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            // A floating safe-area composer leaves the transcript's reported frame at full window height.
+            // During keyboard relayout XCTest can also report the composer's pre-keyboard frame, so bound the
+            // visible transcript by the keyboard as well. Keep the tap transcript-relative for Duo's inner display.
+            let visibleTranscriptBottom = min(composerFrame.minY, self.app.keyboards.firstMatch.frame.minY)
+            transcript.coordinate(withNormalizedOffset: CGVector(
+                dx: (composerFrame.midX - transcriptFrame.minX) / transcriptFrame.width,
+                dy: ((transcriptFrame.minY + visibleTranscriptBottom) / 2 - transcriptFrame.minY) / transcriptFrame.height
+            )).tap()
+            guard self.app.keyboards.firstMatch.waitForNonExistence(
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            ) else {
+                throw LiveSmokeFailure.unexpectedAiConversationState(
+                    message: "Expected a tap on the AI transcript to dismiss the software keyboard.",
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+        }
+    }
+
     @MainActor
     func startNewAiChatAndAssertConversationReset() throws {
         let assistantErrorMessagesBeforeReset = self.visibleAssistantErrorMessageCount()
 
         try self.replaceAiComposerText("Hi", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 #if !targetEnvironment(macCatalyst)
-        try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
         guard self.softwareKeyboardIsVisible() else {
             throw LiveSmokeFailure.unexpectedAiConversationState(
                 message: "Expected the software keyboard to remain visible for the focused AI draft before New.",

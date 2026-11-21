@@ -264,7 +264,7 @@ For the first release expanding iOS/iPadOS 18 support, or changes affecting
 its OS-specific behavior, check the applicable surfaces on that destination
 with disposable data and the verified [automation marker](ios-ci-cd.md#automation-marker).
 
-- AI composer, transcript and Done with the keyboard open, including multiline input and send/stop.
+- AI composer with the keyboard open, including the single-row to multiline switch, send/stop and a transcript tap that dismisses the keyboard.
 - Long review text scrolls clear of bottom actions, and editor, pickers and scheduler inputs remain usable.
 - Destructive workspace confirmation, cancellation and completion, and account deletion confirmation cancelled.
 - Native notification permissions and reminder routing on a device that can receive the reminder.

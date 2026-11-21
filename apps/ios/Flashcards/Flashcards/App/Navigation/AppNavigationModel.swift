@@ -157,6 +157,9 @@ final class AppNavigationModel {
     #endif
     var libraryPath: LibraryNavigationPath
     var aiPath: NavigationPath
+    /// The side chat pane's own pages on iOS, above its live chat. Every section's pane shows this one path, so a page
+    /// stays open across section switches; the Mac pane opens history in the AI tab.
+    var aiCompanionPath: [AICompanionPaneRoute]
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
     private(set) var aiImportRequest: AIImportPresentationRequest?
@@ -166,13 +169,29 @@ final class AppNavigationModel {
     /// Open presentations that disable the Review commands; see `View.reviewKeyboardBlockingPresentation`.
     private(set) var reviewKeyboardBlockingPresentationIDs: Set<UUID> = []
 
+    /// The AI tab shows the chat itself; the Mac keeps Settings without the pane.
     var isAICompanionVisible: Bool {
+        #if targetEnvironment(macCatalyst)
+        self.isAICompanionPaneOpen && (self.selectedTab != .ai && self.selectedTab != .settings)
+        #else
+        self.isAICompanionPaneOpen && self.selectedTab != .ai
+        #endif
+    }
+
+    /// Every host keeps its pane mounted while this is true, so a section switch never inserts or removes it.
+    var isAICompanionPaneOpen: Bool {
         self.canPresentAICompanion && self.isAICompanionPresented
-            && (self.selectedTab != .ai && self.selectedTab != .settings)
     }
 
     var isAIChatVisible: Bool {
         self.selectedTab == .ai || self.isAICompanionVisible
+    }
+
+    var isLiveAIChatVisible: Bool {
+        if self.selectedTab == .ai {
+            return self.aiPath.isEmpty
+        }
+        return self.isAICompanionVisible && self.aiCompanionPath.isEmpty
     }
 
     init() {
@@ -181,6 +200,7 @@ final class AppNavigationModel {
         self.settingsPath = SettingsNavigationPath()
         self.libraryPath = LibraryNavigationPath()
         self.aiPath = NavigationPath()
+        self.aiCompanionPath = []
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
         self.progressPresentationRequest = nil
@@ -209,6 +229,7 @@ final class AppNavigationModel {
         self.libraryPath = LibraryNavigationPath(libraryPath)
         #endif
         self.aiPath = NavigationPath()
+        self.aiCompanionPath = []
         self.cardsPresentationRequest = cardsPresentationRequest
         self.aiChatPresentationRequest = aiChatPresentationRequest
         self.progressPresentationRequest = progressPresentationRequest
@@ -342,11 +363,14 @@ final class AppNavigationModel {
         }
     }
 
+    /// Returns both the AI tab and the side chat pane to the one live chat.
     func popAIToLiveChat() {
-        guard self.aiPath.isEmpty == false else {
-            return
+        if self.aiPath.isEmpty == false {
+            self.aiPath = NavigationPath()
         }
-        self.aiPath = NavigationPath()
+        if self.aiCompanionPath.isEmpty == false {
+            self.aiCompanionPath = []
+        }
     }
 
     func openProgress(target: ProgressPresentationTarget) {

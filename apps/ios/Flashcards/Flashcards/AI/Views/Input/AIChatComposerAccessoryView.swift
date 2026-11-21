@@ -1,6 +1,76 @@
 import SwiftUI
 import UIKit
 
+@MainActor
+func aiChatComposerAccessoryIcon(systemName: String) -> some View {
+    #if targetEnvironment(macCatalyst)
+    Image(systemName: systemName)
+        .font(.system(size: 15, weight: .medium))
+        .frame(width: 16, height: 16)
+        .contentShape(Rectangle())
+    #else
+    AIChatComposerInlineIcon(systemName: systemName)
+    #endif
+}
+
+#if !targetEnvironment(macCatalyst)
+/// A plain button keeps its tint when disabled, so the glyph turns grey itself when its control cannot be used.
+private struct AIChatComposerInlineIcon: View {
+    @Environment(\.isEnabled) private var isEnabled
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: self.systemName)
+            .font(.system(size: 20, weight: .medium))
+            .foregroundStyle(self.isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
+            .frame(width: aiChatComposerControlSize, height: aiChatComposerControlSize)
+            .contentShape(Rectangle())
+    }
+}
+#endif
+
+extension View {
+    /// Notices above the composer float over the transcript with nothing behind them, so they carry their own glass.
+    @ViewBuilder
+    func aiChatComposerNoticeBackground() -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.padding(.horizontal, 12)
+        #else
+        self.padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .nativeTextInputBackground(cornerRadius: 16, isInteractive: false)
+        #endif
+    }
+}
+
+#if !targetEnvironment(macCatalyst)
+/// The composer shell's measured width. A width animation changes it every frame, so only a width that moves the
+/// draft between one row and its own lines notifies the views that read it. The decision's other inputs are observed
+/// in the same body, so any of their changes re-reads the latest width.
+@MainActor
+final class AIChatComposerShellWidth: Observable {
+    private let registrar = ObservationRegistrar()
+    private var storedValue: CGFloat = 0
+
+    var value: CGFloat {
+        self.registrar.access(self, keyPath: \.value)
+        return self.storedValue
+    }
+
+    func update(_ value: CGFloat, notifiesObservers: Bool) {
+        if notifiesObservers {
+            self.registrar.withMutation(of: self, keyPath: \.value) {
+                self.storedValue = value
+            }
+        } else {
+            self.storedValue = value
+        }
+    }
+}
+#endif
+
+private let aiChatComposerStatusLaneHeight: CGFloat = 24
+
 struct AIChatDictationStatusLane: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let statusText: String
@@ -29,14 +99,6 @@ struct AIChatDictationStatusLane: View {
             )
         }
     }
-}
-
-@MainActor
-func aiChatComposerAccessoryIcon(systemName: String) -> some View {
-    Image(systemName: systemName)
-        .font(.system(size: 15, weight: .medium))
-        .frame(width: 16, height: 16)
-        .contentShape(Rectangle())
 }
 
 extension AIChatView {
@@ -126,6 +188,7 @@ extension AIChatView {
                     )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .aiChatComposerNoticeBackground()
                 }
 
                 if self.chatStore.visibleComposerSuggestions.isEmpty == false {
@@ -174,183 +237,334 @@ extension AIChatView {
                     }
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
+                    .aiChatComposerNoticeBackground()
                     .accessibilityIdentifier(UITestIdentifier.aiRemainingMessagesNotice)
                 }
 
-                ZStack(alignment: .bottomTrailing) {
-                    self.composerTextView
-                    .padding(.leading, 12)
-                    .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
-                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                    .padding(.bottom, aiChatComposerTextVerticalPadding)
-                    #if targetEnvironment(macCatalyst)
-                    .frame(minHeight: aiChatComposerSendButtonHitSize)
-                    #endif
-                    // Behind the text view, so its padding focuses it and taps on the text stay with UIKit selection gestures.
-                    .background {
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                self.isComposerFocused = true
-                            }
-                    }
-                    .modifier(ComposerKeyboardModifier(
-                        isEnabled: self.isPresentationActive,
-                        onDismiss: self.dismissComposerFocus
-                    ))
-
-                    Button {
-                        self.handlePrimaryComposerAction()
-                    } label: {
-                        Group {
-                            if self.chatStore.bootstrapPhase == .loading
-                                || self.chatStore.composerPhase == .preparingSend {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .frame(
-                                        width: aiChatComposerSendButtonVisualSize,
-                                        height: aiChatComposerSendButtonVisualSize
-                                    )
-                            } else {
-                                Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
-                                    .font(.system(size: 28))
-                                    .frame(
-                                        width: aiChatComposerSendButtonVisualSize,
-                                        height: aiChatComposerSendButtonVisualSize
-                                    )
-                                    .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
-                            }
-                        }
-                        .padding(.trailing, aiChatComposerSendButtonInset)
-                        .padding(.bottom, aiChatComposerSendButtonInset)
-                        .frame(
-                            width: aiChatComposerSendButtonHitSize,
-                            height: aiChatComposerSendButtonHitSize,
-                            alignment: .bottomTrailing
-                        )
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(self.primaryComposerButtonDisabled)
-                    .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
-                    .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
-                }
-                .background {
-                    #if targetEnvironment(macCatalyst)
-                    AIChatComposerKeyboardObserver(
-                        isEnabled: self.isPresentationActive,
-                        canSend: { self.chatStore.canSendMessage },
-                        onSend: self.sendComposerMessageFromReturnKey,
-                        macReturnKeyOwner: self.macComposerReturnKeyOwner
-                    )
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                    #else
-                    AIChatComposerKeyboardObserver(
-                        isEnabled: self.isPresentationActive,
-                        canSend: { self.chatStore.canSendMessage },
-                        onSend: self.sendComposerMessageFromReturnKey
-                    )
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                    #endif
-                }
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(alignment: .topLeading) {
-                    if self.chatStore.dictationState != .idle {
-                        AIChatDictationStatusLane(statusText: self.dictationStatusText)
-                            .allowsHitTesting(false)
-                            .accessibilityIdentifier(UITestIdentifier.aiDictationStatus)
-                            .accessibilityValue(String(describing: self.chatStore.dictationState))
-                            .padding(.top, 12)
-                            .padding(.leading, 12)
-                            .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                    }
+                if self.chatStore.dictationState != .idle {
+                    AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                        .accessibilityIdentifier(UITestIdentifier.aiDictationStatus)
+                        .accessibilityValue(String(describing: self.chatStore.dictationState))
                 }
 
-                HStack {
-                    if UIDevice.current.userInterfaceIdiom != .pad {
-                        Spacer()
-                    }
-
-                    HStack(spacing: 8) {
-                        // Mac has no software keyboard to dismiss; Escape leaves the composer.
-                        #if !targetEnvironment(macCatalyst)
-                        if self.isComposerFocused {
-                            Button {
-                                self.dismissComposerFocus()
-                            } label: {
-                                Text(String(
-                                    localized: "ai.composer.dismiss_keyboard",
-                                    defaultValue: "Done",
-                                    table: "Foundation",
-                                    comment: "Dismiss the AI composer keyboard"
-                                ))
-                            }
-                            .nativeActionButtonStyle()
-                            .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
-                        }
-                        #endif
-
-                        if self.chatStore.serverChatConfig.features.attachmentsEnabled {
-                            Menu {
-                                ForEach(aiChatAttachmentMenuActions()) { action in
-                                    Button {
-                                        self.handleAttachmentMenuAction(action)
-                            } label: {
-                                Label(localizedAIAttachmentMenuActionTitle(action), systemImage: action.systemImage)
-                            }
-                        }
-                            } label: {
-                                aiChatComposerAccessoryIcon(systemName: "paperclip")
-                            }
-                            .nativeActionButtonStyle()
-                            .tint(.accentColor)
-                            .disabled(self.chatStore.canAttachToDraft == false)
-                            .accessibilityIdentifier(UITestIdentifier.aiComposerAttachmentButton)
-                            .accessibilityLabel(aiSettingsLocalized("ai.composer.addAttachment", "Add attachment"))
-                            .accessibilityHint(
-                                aiSettingsLocalized(
-                                    "ai.composer.addAttachment.hint",
-                                    "Take a photo, choose a photo, or select a file"
-                                )
-                            )
-                            .menuOrder(.fixed)
-                        }
-
-                        if self.chatStore.serverChatConfig.features.dictationEnabled || self.chatStore.dictationState != .idle {
-                            Button {
-                                self.handleDictationButtonTap()
-                            } label: {
-                                aiChatComposerAccessoryIcon(
-                                    systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
-                                )
-                            }
-                            .nativeActionButtonStyle()
-                            .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
-                            .disabled(self.chatStore.canUseDictation == false)
-                            .accessibilityIdentifier(UITestIdentifier.aiComposerDictationButton)
-                            .accessibilityLabel(
-                                self.chatStore.dictationState == .recording
-                                    ? aiSettingsLocalized("ai.composer.dictation.stop", "Stop dictation")
-                                    : aiSettingsLocalized("ai.composer.dictation.start", "Start dictation")
-                            )
-                        }
-                    }
-
-                    if UIDevice.current.userInterfaceIdiom == .pad {
-                        // Leave the trailing edge clear for the system's compact input assistant.
-                        Spacer()
-                    }
-                }
+                #if targetEnvironment(macCatalyst)
+                self.macComposerShell
+                #else
+                self.composerShell
+                #endif
             }
             .padding(.top, aiChatComposerTopPadding)
             .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 8 : 16)
         }
     }
 
-    private var composerTextView: AIChatComposerTextView {
+    #if targetEnvironment(macCatalyst)
+    private var macComposerShell: some View {
+        Group {
+            ZStack(alignment: .bottomTrailing) {
+                self.composerTextSlot(topContentInset: 0)
+                    .padding(.leading, 12)
+                    .padding(.top, aiChatComposerTextVerticalPadding)
+                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    .padding(.bottom, aiChatComposerTextVerticalPadding)
+                    .frame(minHeight: aiChatComposerSendButtonHitSize)
+                    .background {
+                        self.composerTextSlotFocusTarget
+                    }
+
+                self.composerPrimaryButton
+            }
+            .background {
+                self.composerKeyboardObserver
+            }
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            // Mac has no software keyboard to dismiss; Escape leaves the composer.
+            HStack(spacing: 8) {
+                if self.composerShowsAttachmentButton {
+                    self.composerAttachmentMenu
+                }
+                if self.composerShowsDictationButton {
+                    self.composerDictationButton
+                }
+                Spacer()
+            }
+        }
+    }
+    #else
+    /// One glass shell: a single row while the draft fits beside the controls, then the text on its own lines above
+    /// a control row. The text view keeps its structural slot, so focus, selection and marked text survive the switch.
+    private var composerShell: some View {
+        let isExpanded = self.isComposerExpanded
+
+        return VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 0) {
+                if isExpanded == false && self.composerShowsAttachmentButton {
+                    self.composerAttachmentMenu
+                }
+                self.composerTextSlot(topContentInset: isExpanded ? aiChatComposerExpandedTextTopPadding : 0)
+                    .padding(.horizontal, isExpanded ? aiChatComposerExpandedTextHorizontalPadding : aiChatComposerCompactTextHorizontalPadding)
+                    .frame(maxWidth: .infinity, minHeight: isExpanded ? nil : aiChatComposerControlSize, alignment: .leading)
+                    .background {
+                        self.composerTextSlotFocusTarget
+                    }
+                if isExpanded == false {
+                    if self.composerShowsDictationButton {
+                        self.composerDictationButton
+                    }
+                    self.composerPrimaryButton
+                }
+            }
+
+            if isExpanded {
+                HStack(spacing: 0) {
+                    if self.composerShowsAttachmentButton {
+                        self.composerAttachmentMenu
+                    }
+                    Spacer(minLength: 0)
+                    if self.composerShowsDictationButton {
+                        self.composerDictationButton
+                    }
+                    self.composerPrimaryButton
+                }
+            }
+        }
+        .padding(.horizontal, aiChatComposerShellHorizontalInset)
+        .padding(.vertical, aiChatComposerShellVerticalInset)
+        .background {
+            self.composerKeyboardObserver
+        }
+        .nativeTextInputBackground(cornerRadius: self.composerShellCornerRadius)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { width in
+            // A side chat off screen keeps the measurement of the one on screen.
+            guard self.isCompanion == false || self.isPresentationActive else { return }
+            let previousWidth = self.composerShellWidth.value
+            guard abs(width - previousWidth) >= 0.5 else { return }
+            self.composerShellWidth.update(
+                width,
+                notifiesObservers: self.isComposerExpanded(shellWidth: width)
+                    != self.isComposerExpanded(shellWidth: previousWidth)
+            )
+        }
+        // The text view must widen and move in one frame; an inherited animation would slide its caret and text.
+        .transaction { transaction in
+            transaction.animation = nil
+        }
+    }
+
+    /// Every section's side chat shares one measurement, so a pane coming on screen lays the draft out in its final
+    /// shape at once.
+    var composerShellWidth: AIChatComposerShellWidth {
+        self.isCompanion ? self.chatStore.companionPresentation.composerShellWidth : self.tabComposerShellWidth
+    }
+
+    /// The shell's corner radius makes the single-row shell a capsule and stays the same once the draft expands.
+    private var composerShellCornerRadius: CGFloat {
+        (self.composerSingleRowHeight + 2 * aiChatComposerShellVerticalInset) / 2
+    }
+
+    private var composerSingleRowHeight: CGFloat {
+        max(aiChatComposerControlSize, ceil(aiChatComposerFont(dynamicTypeSize: self.dynamicTypeSize).lineHeight))
+    }
+
+    /// The draft leaves the single row once it no longer fits one line of the row's text slot. Measuring that slot
+    /// from the shell width, rather than the text view, keeps the decision independent of the current layout.
+    private var isComposerExpanded: Bool {
+        self.isComposerExpanded(shellWidth: self.composerShellWidth.value)
+    }
+
+    private func isComposerExpanded(shellWidth: CGFloat) -> Bool {
+        // A draft over 256 characters always takes the full width, so only shorter drafts are measured and a long
+        // draft costs the same as a short one.
+        let text = self.chatStore.inputText.prefix(257)
+        guard text.isEmpty == false else { return false }
+        if text.count > 256 || text.contains(where: \.isNewline) {
+            return true
+        }
+        guard shellWidth > 0 else { return false }
+        let controlCount = 1
+            + (self.composerShowsAttachmentButton ? 1 : 0)
+            + (self.composerShowsDictationButton ? 1 : 0)
+        let compactTextWidth = shellWidth
+            - 2 * aiChatComposerShellHorizontalInset
+            - CGFloat(controlCount) * aiChatComposerControlSize
+            - 2 * aiChatComposerCompactTextHorizontalPadding
+            - aiChatComposerExpansionMargin
+        return aiChatComposerSingleLineWidth(text: String(text), dynamicTypeSize: self.dynamicTypeSize) > compactTextWidth
+    }
+    #endif
+
+    /// `topContentInset` applies on iOS only; the Mac composer keeps its outer padding.
+    private func composerTextSlot(topContentInset: CGFloat) -> some View {
+        Group {
+            #if targetEnvironment(macCatalyst)
+            self.composerTextView(topContentInset: topContentInset)
+            #else
+            if self.isCompanion {
+                AIChatCompanionComposerTextView(
+                    input: self.composerTextView(topContentInset: topContentInset),
+                    host: self.companionComposerHost,
+                    isActive: self.isPresentationActive
+                )
+            } else {
+                self.composerTextView(topContentInset: topContentInset)
+            }
+            #endif
+        }
+        .modifier(ComposerKeyboardModifier(
+            isEnabled: self.isPresentationActive,
+            onDismiss: self.dismissComposerFocus
+        ))
+    }
+
+    /// Behind the text view, so its padding focuses it and taps on the text stay with UIKit selection gestures.
+    private var composerTextSlotFocusTarget: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture {
+                self.isComposerFocused = true
+            }
+    }
+
+    private var composerKeyboardObserver: some View {
+        #if targetEnvironment(macCatalyst)
+        AIChatComposerKeyboardObserver(
+            isEnabled: self.isPresentationActive,
+            canSend: { self.chatStore.canSendMessage },
+            onSend: self.sendComposerMessageFromReturnKey,
+            macReturnKeyOwner: self.macComposerReturnKeyOwner
+        )
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        #else
+        AIChatComposerKeyboardObserver(
+            isEnabled: self.isPresentationActive,
+            canSend: { self.chatStore.canSendMessage },
+            onSend: self.sendComposerMessageFromReturnKey
+        )
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        #endif
+    }
+
+    private var composerShowsAttachmentButton: Bool {
+        self.chatStore.serverChatConfig.features.attachmentsEnabled
+    }
+
+    private var composerShowsDictationButton: Bool {
+        self.chatStore.serverChatConfig.features.dictationEnabled || self.chatStore.dictationState != .idle
+    }
+
+    private var composerPrimaryButton: some View {
+        Button {
+            self.handlePrimaryComposerAction()
+        } label: {
+            Group {
+                if self.chatStore.bootstrapPhase == .loading
+                    || self.chatStore.composerPhase == .preparingSend {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(
+                            width: aiChatComposerSendButtonVisualSize,
+                            height: aiChatComposerSendButtonVisualSize
+                        )
+                } else {
+                    Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
+                        .font(.system(size: 28))
+                        .frame(
+                            width: aiChatComposerSendButtonVisualSize,
+                            height: aiChatComposerSendButtonVisualSize
+                        )
+                        .foregroundStyle(self.chatStore.canStopResponse ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint))
+                }
+            }
+            #if targetEnvironment(macCatalyst)
+            .padding(.trailing, aiChatComposerSendButtonInset)
+            .padding(.bottom, aiChatComposerSendButtonInset)
+            .frame(
+                width: aiChatComposerSendButtonHitSize,
+                height: aiChatComposerSendButtonHitSize,
+                alignment: .bottomTrailing
+            )
+            #else
+            .frame(width: aiChatComposerControlSize, height: aiChatComposerControlSize)
+            #endif
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(self.primaryComposerButtonDisabled)
+        .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
+        .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
+    }
+
+    private var composerAttachmentMenu: some View {
+        Menu {
+            ForEach(aiChatAttachmentMenuActions()) { action in
+                Button {
+                    self.handleAttachmentMenuAction(action)
+                } label: {
+                    Label(localizedAIAttachmentMenuActionTitle(action), systemImage: action.systemImage)
+                }
+            }
+        } label: {
+            aiChatComposerAccessoryIcon(systemName: "paperclip")
+        }
+        #if targetEnvironment(macCatalyst)
+        .nativeActionButtonStyle()
+        #else
+        .menuStyle(.button)
+        .nativeInlineActionButtonStyle()
+        #endif
+        .tint(.accentColor)
+        .disabled(self.chatStore.canAttachToDraft == false)
+        .accessibilityIdentifier(UITestIdentifier.aiComposerAttachmentButton)
+        .accessibilityLabel(aiSettingsLocalized("ai.composer.addAttachment", "Add attachment"))
+        .accessibilityHint(
+            aiSettingsLocalized(
+                "ai.composer.addAttachment.hint",
+                "Take a photo, choose a photo, or select a file"
+            )
+        )
+        .menuOrder(.fixed)
+    }
+
+    var dictationStatusText: String {
+        switch self.chatStore.dictationState {
+        case .idle:
+            return ""
+        case .requestingPermission:
+            return aiSettingsLocalized("ai.composer.dictation.waiting", "Waiting for microphone access...")
+        case .recording:
+            return aiSettingsLocalized("ai.composer.dictation.listening", "Listening...")
+        case .transcribing:
+            return aiSettingsLocalized("ai.composer.dictation.transcribing", "Transcribing...")
+        }
+    }
+
+    private var composerDictationButton: some View {
+        Button {
+            self.handleDictationButtonTap()
+        } label: {
+            aiChatComposerAccessoryIcon(systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic")
+        }
+        #if targetEnvironment(macCatalyst)
+        .nativeActionButtonStyle()
+        #else
+        .nativeInlineActionButtonStyle()
+        #endif
+        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+        .disabled(self.chatStore.canUseDictation == false)
+        .accessibilityIdentifier(UITestIdentifier.aiComposerDictationButton)
+        .accessibilityLabel(
+            self.chatStore.dictationState == .recording
+                ? aiSettingsLocalized("ai.composer.dictation.stop", "Stop dictation")
+                : aiSettingsLocalized("ai.composer.dictation.start", "Start dictation")
+        )
+    }
+
+    private func composerTextView(topContentInset: CGFloat) -> AIChatComposerTextView {
         let placeholder = aiSettingsLocalized(
             "ai.composer.placeholder",
             "Ask about cards, review history, or propose a change..."
@@ -366,6 +580,10 @@ extension AIChatView {
             canAttachToDraft: self.chatStore.canAttachToDraft,
             maximumLineCount: aiChatComposerMaximumLineCount,
             onAttachmentItemProviders: self.attachItemProviders,
+            takesKeyboardOnArrival: self.takesComposerKeyboardOnArrival(windowScene:),
+            onWindowSceneChange: { [composerWindowScene = self.composerWindowScene] scene in
+                composerWindowScene.scene = scene
+            },
             macReturnKeyOwner: self.macComposerReturnKeyOwner
         )
         #else
@@ -378,7 +596,12 @@ extension AIChatView {
             isDisabled: self.composerTextFieldDisabled,
             canAttachToDraft: self.chatStore.canAttachToDraft,
             maximumLineCount: aiChatComposerMaximumLineCount,
-            onAttachmentItemProviders: self.attachItemProviders
+            topContentInset: topContentInset,
+            onAttachmentItemProviders: self.attachItemProviders,
+            takesKeyboardOnArrival: self.takesComposerKeyboardOnArrival(windowScene:),
+            onWindowSceneChange: { [composerWindowScene = self.composerWindowScene] scene in
+                composerWindowScene.scene = scene
+            }
         )
         #endif
     }
@@ -406,19 +629,6 @@ extension AIChatView {
                 "Unsupported attachment (%@)",
                 unknownAttachment.originalType
             )
-        }
-    }
-
-    var dictationStatusText: String {
-        switch self.chatStore.dictationState {
-        case .idle:
-            return ""
-        case .requestingPermission:
-            return aiSettingsLocalized("ai.composer.dictation.waiting", "Waiting for microphone access...")
-        case .recording:
-            return aiSettingsLocalized("ai.composer.dictation.listening", "Listening...")
-        case .transcribing:
-            return aiSettingsLocalized("ai.composer.dictation.transcribing", "Transcribing...")
         }
     }
 
