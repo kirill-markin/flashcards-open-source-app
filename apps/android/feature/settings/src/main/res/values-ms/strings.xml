@@ -657,6 +657,9 @@
     <string name="settings_post_auth_prepare_guest_local_recovery_title">Menyediakan ruang kerja yang dipulihkan…</string>
     <string name="settings_post_auth_choose_workspace_body">Pilih ruang kerja yang dipautkan untuk dibuka pada peranti Android ini atau buat ruang kerja baharu.</string>
     <string name="settings_post_auth_choose_guest_workspace_body">Pilih ruang kerja yang dipautkan untuk menerima sesi AI tetamu ini atau buat ruang kerja baharu.</string>
+    <string name="settings_post_auth_guest_workspace_unavailable">Ruang kerja itu tidak lagi tersedia. Data tetamu anda masih ada. Pilih ruang kerja lain atau cipta ruang kerja baharu.</string>
+    <string name="settings_post_auth_refreshing_workspaces">Menyegarkan semula ruang kerja…</string>
+    <string name="settings_post_auth_refresh_workspaces_failed">Ruang kerja anda tidak dapat disegarkan semula. Cuba lagi untuk memilih tempat memindahkan data tetamu anda.</string>
     <string name="settings_post_auth_current_workspace_suffix">%1$s (Semasa)</string>
     <string name="settings_post_auth_processing_title">Menyelesaikan log masuk</string>
     <string name="settings_post_auth_processing_body">Menyelesaikan persediaan awan untuk peranti ini.</string>

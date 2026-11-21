@@ -9,15 +9,22 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
@@ -25,11 +32,13 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.creat
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createOtpChallenge
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createStoredGuestAiSession
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -48,6 +57,113 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
     @After
     fun tearDown() {
         environment.close()
+    }
+
+    @Test
+    fun unavailableDestinationRetainsGuestUntilAnotherWorkspaceIsChosen() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val cardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
+        val configuration = makeOfficialCloudServiceConfiguration()
+        val guestSession = createStoredGuestAiSession(
+            workspaceId = localWorkspaceId,
+            configurationMode = configuration.mode,
+            apiBaseUrl = configuration.apiBaseUrl,
+            guestToken = "guest-token",
+            userId = "guest-user"
+        )
+        environment.guestAiSessionStore.saveSession(localWorkspaceId, guestSession)
+        val removed = createCloudWorkspaceSummary("workspace-removed", "Travel Spanish", 200L, true)
+        val remaining = createCloudWorkspaceSummary("workspace-remaining", "Personal", 100L, false)
+        val initialSnapshot = createCloudAccountSnapshot("user-1", "user@example.com", listOf(removed, remaining))
+        var snapshot = initialSnapshot
+        val removedTransfer = CloudGuestUpgradeSelection.Existing(removed.workspaceId, false)
+        val remainingTransfer = CloudGuestUpgradeSelection.Existing(remaining.workspaceId, false)
+        val transferRequests = mutableListOf<CloudGuestUpgradeSelection>()
+        val baseGateway = FakeCloudRemoteGateway.forGuestUpgrade(
+            guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
+            accountSnapshot = initialSnapshot,
+            bootstrapRemoteIsEmpty = false,
+            guestUpgradeReconciliation = null
+        )
+        val remoteGateway = object : CloudRemoteGateway by baseGateway {
+            override suspend fun fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String): CloudAccountSnapshot {
+                return snapshot
+            }
+
+            override suspend fun completeGuestUpgrade(
+                apiBaseUrl: String,
+                bearerToken: String,
+                guestToken: String,
+                selection: CloudGuestUpgradeSelection,
+                guestWorkspaceSyncedAndOutboxDrained: Boolean,
+                supportsDroppedEntities: Boolean
+            ): CloudGuestUpgradeCompletion {
+                transferRequests.add(selection)
+                assertNotNull(environment.cloudPreferencesStore.loadPendingGuestUpgrade())
+                assertEquals(guestSession.guestToken, guestToken)
+                if (selection == removedTransfer) {
+                    snapshot = initialSnapshot.copy(workspaces = listOf(remaining))
+                    throw CloudGuestUpgradeDestinationUnavailableException(removed.workspaceId, null)
+                }
+                return baseGateway.completeGuestUpgrade(
+                    apiBaseUrl, bearerToken, guestToken, selection, guestWorkspaceSyncedAndOutboxDrained, supportsDroppedEntities
+                )
+            }
+        }
+        val repository = environment.createCloudAccountRepository(remoteGateway)
+        val context = repository.verifyCode(createOtpChallenge("user@example.com"), "123456", {})
+        val removedSelection = CloudWorkspaceLinkSelection.Existing(removed.workspaceId)
+        repeat(2) {
+            try {
+                // The first request loses the destination after account lookup. The second catches
+                // the same missing destination before saving or sending the transfer.
+                repository.completeGuestUpgrade(context, removedSelection, {}, {})
+                throw AssertionError("Expected the missing destination to be rejected.")
+            } catch (error: CloudGuestUpgradeDestinationUnavailableException) {
+                assertEquals(removed.workspaceId, error.workspaceId)
+            }
+            assertEquals(listOf(removedTransfer), transferRequests)
+            assertNull(environment.cloudPreferencesStore.loadPendingGuestUpgrade())
+            assertEquals(CloudAccountState.GUEST, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+            assertEquals(guestSession, environment.guestAiSessionStore.loadAnySession(configuration))
+            assertEquals(localWorkspaceId, environment.database.cardDao().loadCard(cardId)?.workspaceId)
+        }
+
+        val cardsRepository = LocalCardsRepository(
+            database = environment.database,
+            preferencesStore = environment.cloudPreferencesStore,
+            syncLocalStore = environment.createSyncLocalStore()
+        )
+        val editedCard = CardDraft(frontText = "Edited question", backText = "Edited answer", tags = emptyList())
+        cardsRepository.updateCard(cardId = cardId, cardDraft = editedCard, savedTags = emptyList())
+        val savedCard = requireNotNull(cardsRepository.observeCard(cardId = cardId).first())
+        assertEquals(editedCard.frontText, savedCard.frontText)
+        assertEquals(editedCard.backText, savedCard.backText)
+        assertEquals(listOf(removedTransfer), transferRequests)
+
+        val aiChatRepository = environment.createAiChatRepository(remoteGateway = remoteGateway)
+        val guestChat = aiChatRepository.prepareSessionForAi(workspaceId = localWorkspaceId)
+        assertEquals(localWorkspaceId, guestChat.workspaceId)
+        assertEquals("Guest ${guestSession.guestToken}", guestChat.authorizationHeader)
+        assertEquals(listOf(removedTransfer), transferRequests)
+
+        val refreshed = repository.refreshGuestUpgradeWorkspaces(
+            linkContext = context.copy(unavailableGuestUpgradeWorkspaceId = removed.workspaceId),
+            socialAttemptId = null
+        )
+        assertEquals(listOf(remaining), refreshed.workspaces)
+        assertEquals(context.credentials, refreshed.credentials)
+        val workspace = repository.completeGuestUpgrade(
+            refreshed, CloudWorkspaceLinkSelection.Existing(remaining.workspaceId), {}, {}
+        )
+        assertEquals(remaining.workspaceId, workspace.workspaceId)
+        assertNull(environment.cloudPreferencesStore.loadPendingGuestUpgrade())
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+
+        val linkedChat = aiChatRepository.prepareSessionForAi(workspaceId = remaining.workspaceId)
+        assertEquals(remaining.workspaceId, linkedChat.workspaceId)
+        assertEquals("Bearer ${context.credentials.idToken}", linkedChat.authorizationHeader)
+        assertEquals(listOf(removedTransfer, remainingTransfer), transferRequests)
     }
 
     @Test

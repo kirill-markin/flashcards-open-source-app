@@ -175,6 +175,30 @@ enum class CloudWorkspacePostAuthRoute {
     INVALID_STORED_STATE
 }
 
+class CloudGuestUpgradeDestinationUnavailableException private constructor(
+    val workspaceId: String,
+    cause: Throwable?,
+    private val recoveryUserId: String?,
+    private val recoveryCredentials: StoredCloudCredentials?
+) : Exception("The guest upgrade destination '$workspaceId' is unavailable.", cause) {
+    constructor(workspaceId: String, cause: Throwable?) : this(workspaceId, cause, null, null)
+
+    internal fun withRecoveryCredentials(
+        userId: String,
+        credentials: StoredCloudCredentials
+    ): CloudGuestUpgradeDestinationUnavailableException {
+        return CloudGuestUpgradeDestinationUnavailableException(workspaceId, cause, userId, credentials)
+    }
+
+    fun linkContextForReselection(context: CloudWorkspaceLinkContext): CloudWorkspaceLinkContext {
+        return context.copy(
+            credentials = recoveryCredentials?.takeIf { recoveryUserId == context.userId } ?: context.credentials,
+            demoOnlyDestinationWorkspaceId = null,
+            unavailableGuestUpgradeWorkspaceId = workspaceId
+        )
+    }
+}
+
 @Serializable
 data class CloudWorkspaceLinkContext(
     val userId: String,
@@ -184,7 +208,8 @@ data class CloudWorkspaceLinkContext(
     val postAuthRoute: CloudWorkspacePostAuthRoute,
     val guestUpgradeMode: CloudGuestUpgradeMode?,
     val preferredWorkspaceId: String?,
-    val demoOnlyDestinationWorkspaceId: String? = null
+    val demoOnlyDestinationWorkspaceId: String? = null,
+    val unavailableGuestUpgradeWorkspaceId: String? = null
 ) {
     init {
         require(demoOnlyDestinationWorkspaceId == null ||

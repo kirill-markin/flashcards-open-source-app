@@ -15,6 +15,9 @@ import com.flashcardsopensourceapp.feature.settings.cloud.buildAutomaticWorkspac
 internal fun buildCloudPostAuthPendingSelection(
     linkContext: CloudWorkspaceLinkContext
 ): CloudWorkspaceLinkSelection? {
+    if (linkContext.unavailableGuestUpgradeWorkspaceId != null) {
+        return null
+    }
     return when (linkContext.postAuthRoute) {
         CloudWorkspacePostAuthRoute.NONE -> linkContext.demoOnlyDestinationWorkspaceId?.let { workspaceId ->
             CloudWorkspaceLinkSelection.Existing(workspaceId = workspaceId, discardDemoOnly = true)

@@ -35,8 +35,8 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 const val cloudPostAuthExistingButtonTagPrefix: String = "cloud_post_auth_existing_button:"
-const val cloudPostAuthWorkspaceRowTag: String = "cloud_post_auth_workspace_row"
 const val cloudPostAuthSelectedIndicatorTagPrefix: String = "cloud_post_auth_selected_indicator:"
+const val cloudPostAuthUnavailableWorkspaceNoticeTag: String = "cloud_post_auth_unavailable_workspace_notice"
 const val cloudPostAuthCreateNewButtonTag: String = "cloud_post_auth_create_new_button"
 const val cloudPostAuthNewWorkspaceNameFieldTag: String = "cloud_post_auth_new_workspace_name_field"
 const val cloudPostAuthNewWorkspaceCreateButtonTag: String = "cloud_post_auth_new_workspace_create_button"
@@ -180,22 +180,31 @@ fun CloudPostAuthRoute(
                             }
 
                             CloudPostAuthMode.CHOOSE_WORKSPACE -> {
-                                Text(
-                                    if (uiState.isGuestUpgrade) {
-                                        stringResource(R.string.settings_post_auth_choose_guest_workspace_body)
-                                    } else {
-                                        stringResource(R.string.settings_post_auth_choose_workspace_body)
-                                    }
-                                )
+                                if (uiState.needsGuestUpgradeReselection) {
+                                    Text(
+                                        text = stringResource(R.string.settings_post_auth_guest_workspace_unavailable),
+                                        modifier = Modifier.testTag(tag = cloudPostAuthUnavailableWorkspaceNoticeTag)
+                                    )
+                                } else {
+                                    Text(
+                                        if (uiState.isGuestUpgrade) {
+                                            stringResource(R.string.settings_post_auth_choose_guest_workspace_body)
+                                        } else {
+                                            stringResource(R.string.settings_post_auth_choose_workspace_body)
+                                        }
+                                    )
+                                }
                             }
 
                             CloudPostAuthMode.PROCESSING -> {
                                 CircularProgressIndicator()
                                 Text(uiState.processingTitle)
-                                Text(
-                                    text = uiState.processingMessage,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                if (uiState.processingMessage.isNotEmpty()) {
+                                    Text(
+                                        text = uiState.processingMessage,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
 
                             CloudPostAuthMode.FAILED -> {
@@ -247,23 +256,9 @@ fun CloudPostAuthRoute(
                         enabled = uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (workspace.isCreateNew) {
-                                    Modifier.testTag(tag = cloudPostAuthCreateNewButtonTag)
-                                } else {
-                                    Modifier.testTag(tag = cloudPostAuthWorkspaceRowTag)
-                                }
-                            )
-                            .then(
-                                if (workspace.isCreateNew) {
-                                    Modifier
-                                } else {
-                                    Modifier.testTag(
-                                        tag = cloudPostAuthExistingButtonTag(
-                                            workspaceId = workspace.workspaceId
-                                        )
-                                    )
-                                }
+                            .testTag(
+                                tag = if (workspace.isCreateNew) cloudPostAuthCreateNewButtonTag
+                                else cloudPostAuthExistingButtonTag(workspaceId = workspace.workspaceId)
                             )
                     ) {
                         Column(

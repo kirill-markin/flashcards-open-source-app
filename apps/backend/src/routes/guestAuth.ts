@@ -27,6 +27,7 @@ import {
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import { extractRequestAuthInputs, toAuthRequest } from "../auth/requestSecurity";
+import { isWorkspaceId } from "../workspaces/identity";
 import type { AppEnv } from "../server/app";
 
 type GuestSessionEnvelope = Readonly<{
@@ -322,6 +323,9 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
       const scope = createGuestUpgradeScope(requestId, context.req.path, context.req.method, auth.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         selectionType: selection.type,
+        requestedExistingWorkspaceId: selection.type === "existing" && isWorkspaceId(selection.workspaceId)
+          ? selection.workspaceId
+          : null,
         guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,
         requiresGuestWorkspaceSyncedAndOutboxDrained: capabilities.requiresGuestWorkspaceSyncedAndOutboxDrained,
         supportsDroppedEntities: capabilities.supportsDroppedEntities,

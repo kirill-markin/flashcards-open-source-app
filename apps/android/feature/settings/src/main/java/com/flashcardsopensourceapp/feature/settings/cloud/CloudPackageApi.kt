@@ -39,7 +39,6 @@ const val cloudCredentialRecoveryGateConfirmEraseButtonTag: String =
     "cloud_credential_recovery_gate_confirm_erase_button"
 
 const val cloudPostAuthExistingButtonTagPrefix: String = "cloud_post_auth_existing_button:"
-const val cloudPostAuthWorkspaceRowTag: String = "cloud_post_auth_workspace_row"
 const val cloudPostAuthSelectedIndicatorTagPrefix: String =
     "cloud_post_auth_selected_indicator:"
 const val cloudPostAuthCreateNewButtonTag: String =

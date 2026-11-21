@@ -24,7 +24,7 @@ import { deleteGuestSessionInExecutor } from "../delete";
 import { hashGuestToken } from "../shared";
 import { updateAccountPreferences } from "../../routes/system/account/accountPreferences";
 import { parseAccountPreferencesInput } from "../../routes/system/support";
-import { HttpError } from "../../shared/errors";
+import { createPublicHttpErrorDetails, HttpError } from "../../shared/errors";
 import { configureBackendRuntimeObservability, resetBackendRuntimeObservability } from "../../observability/runtime";
 import { loadPaywallState, recordPaywallShown, type PaywallShownInput } from "../../paywallState";
 import {
@@ -833,6 +833,42 @@ test("demo-only preparation recovers the ordinary existing workspace without cre
   });
 });
 
+test("a missing native destination leaves the guest transferable and a missing replay result cannot be reselected", async () => {
+  await withGuestUpgradeFixture(() => createGuestSession("android", null), async ({ guest, subject, targetWorkspaceId, snapshot, ownerPool }) => {
+    const preparation = await prepareGuestUpgrade(guest.guestToken, subject, null);
+    assert.equal(preparation.mode, "merge_required");
+
+    await assert.rejects(
+      completeGuestUpgrade(guest.guestToken, subject, { type: "existing", workspaceId: randomUUID() }, UPGRADE_CAPABILITIES),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpError);
+        assert.equal(error.statusCode, 404);
+        assert.equal(error.code, "WORKSPACE_NOT_FOUND");
+        assert.deepEqual(createPublicHttpErrorDetails(error.details), { guestUpgradeDestinationUnavailable: true });
+        return true;
+      },
+    );
+    assert.equal((await authenticateGuestSession(guest.guestToken)).userId, guest.userId);
+    assert.deepEqual(await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId), {
+      userSettingsRows: 1, workspaceRows: 1, liveGuestSessionRows: 1,
+    });
+    assert.equal((await ownerPool.query("SELECT 1 FROM auth.guest_upgrade_history WHERE source_guest_user_id = $1", [guest.userId])).rowCount, 0);
+
+    const selection = { type: "existing", workspaceId: targetWorkspaceId } as const;
+    const completed = await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
+    assert.equal(completed.outcome, "fresh_completion");
+    assert.deepEqual((await ownerPool.query("SELECT workspace_id FROM content.cards WHERE card_id = $1", [snapshot.cardId])).rows, [
+      { workspace_id: targetWorkspaceId },
+    ]);
+
+    await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [targetWorkspaceId]);
+    await assert.rejects(
+      completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES),
+      { statusCode: 404, code: "WORKSPACE_NOT_FOUND", details: null },
+    );
+  });
+});
+
 test("browser demo-only disposal and lost-response preparation replay the same stored destination", async () => {
   await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID(), null), async (fixture) => {
     const { guest, subject, snapshot, targetWorkspaceId, ownerPool } = fixture;
@@ -841,6 +877,10 @@ test("browser demo-only disposal and lost-response preparation replay the same s
     const preparation = await prepareBrowserGuestUpgrade(guest.guestToken, subject, null);
     assert.deepEqual(preparation, { mode: "merge_required", demoOnlyDestinationWorkspaceId: targetWorkspaceId });
     const selection = { type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true } as const;
+    await assert.rejects(
+      completeBrowserGuestUpgrade(guest.guestToken, subject, { ...selection, workspaceId: randomUUID() }, UPGRADE_CAPABILITIES),
+      { statusCode: 404, code: "WORKSPACE_NOT_FOUND", details: null },
+    );
     const first = await completeBrowserGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
     assert.deepEqual(first.droppedEntities?.cardIds, [snapshot.cardId]);
     assert.deepEqual(first.droppedEntities?.reviewEventIds, [reviewEventId]);

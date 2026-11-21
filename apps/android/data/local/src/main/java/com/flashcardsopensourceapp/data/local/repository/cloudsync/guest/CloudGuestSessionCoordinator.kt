@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -169,16 +170,20 @@ class CloudGuestSessionCoordinator(
     ): CloudIdentityReconciliationResult {
         val activeRecoveryState = preferencesStore.loadCloudCredentialRecoveryState()
         if (activeRecoveryState == null || activeRecoveryState.isPendingGuestUpgradeRecovery()) {
-            val recoveredGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeRecoveryIfNeeded(
-                database = database,
-                preferencesStore = preferencesStore,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                guestSessionStore = guestSessionStore,
-                appVersion = appVersion,
-                onGuestCompletionStarted = {},
-                onGuestCompletionFinished = {}
-            )
+            val recoveredGuestUpgrade: CloudWorkspaceSummary? = try {
+                resumePendingGuestUpgradeRecoveryIfNeeded(
+                    database = database,
+                    preferencesStore = preferencesStore,
+                    remoteService = remoteService,
+                    syncLocalStore = syncLocalStore,
+                    guestSessionStore = guestSessionStore,
+                    appVersion = appVersion,
+                    onGuestCompletionStarted = {},
+                    onGuestCompletionFinished = {}
+                )
+            } catch (_: CloudGuestUpgradeDestinationUnavailableException) {
+                null
+            }
             if (recoveredGuestUpgrade != null) {
                 return CloudIdentityReconciliationResult(
                     cloudSettings = preferencesStore.currentCloudSettings(),

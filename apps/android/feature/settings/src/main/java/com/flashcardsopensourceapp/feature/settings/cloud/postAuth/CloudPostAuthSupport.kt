@@ -10,6 +10,8 @@ import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSignInDraftState
 
 internal sealed interface CloudPostAuthRetryAction {
+    data class RestoreAcceptedSocialSignIn(val attemptId: String) : CloudPostAuthRetryAction
+
     data class CompleteCloudLink(
         val authAttemptId: Long,
         val linkContext: CloudWorkspaceLinkContext,
@@ -20,6 +22,11 @@ internal sealed interface CloudPostAuthRetryAction {
         val authAttemptId: Long,
         val linkContext: CloudWorkspaceLinkContext,
         val selection: CloudWorkspaceLinkSelection
+    ) : CloudPostAuthRetryAction
+
+    data class RefreshGuestUpgradeWorkspaces(
+        val authAttemptId: Long,
+        val linkContext: CloudWorkspaceLinkContext
     ) : CloudPostAuthRetryAction
 
     data class CompleteGuestLocalRecovery(
@@ -46,6 +53,7 @@ internal fun resolveCloudPostAuthFailureAction(
     draft: CloudSignInDraftState
 ): CloudPostAuthFailureAction? {
     return when {
+        draft.retryAction is CloudPostAuthRetryAction.RefreshGuestUpgradeWorkspaces -> null
         draft.postAuthResetAllowed -> CloudPostAuthFailureAction.RESET_INVALID_RECOVERY
         draft.linkContext?.postAuthRoute == CloudWorkspacePostAuthRoute.NONE &&
             draft.postAuthRecoveryBlocked.not() -> CloudPostAuthFailureAction.LOGOUT

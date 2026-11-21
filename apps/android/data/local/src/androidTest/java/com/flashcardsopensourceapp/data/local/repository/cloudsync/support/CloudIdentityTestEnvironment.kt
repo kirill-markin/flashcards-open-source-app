@@ -31,6 +31,8 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.network.OkHttpSignedPutUploader
+import com.flashcardsopensourceapp.data.local.repository.ai.LocalAiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionCreationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
@@ -43,6 +45,7 @@ import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import okhttp3.OkHttpClient
 
 private suspend fun unsupportedTestReviewMediaAssetFile(mediaAssetId: String): ReviewMediaAssetFile {
     throw UnsupportedOperationException(
@@ -244,6 +247,32 @@ internal class CloudIdentityTestEnvironment private constructor(
             cloudPreferencesStore = restartedCloudPreferencesStore,
             guestAiSessionStore = restartedGuestAiSessionStore,
             cloudGuestSessionCoordinator = coordinator
+        )
+    }
+
+    fun createAiChatRepository(remoteGateway: CloudRemoteGateway): LocalAiChatRepository {
+        val httpClient = OkHttpClient.Builder().addInterceptor { chain ->
+            throw AssertionError("Unexpected Chat HTTP request: ${chain.request().url}")
+        }.build()
+        val chatRemoteService = AiChatRemoteService(
+            dispatchers = AiCoroutineDispatchers(io = Dispatchers.IO),
+            okHttpClient = httpClient
+        )
+        return LocalAiChatRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            cloudRemoteService = remoteGateway,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinatorWithGuestSessionCreator(
+                remoteGateway = remoteGateway,
+                guestSessionCreator = chatRemoteService
+            ),
+            operationCoordinator = operationCoordinator,
+            syncRepository = createSyncRepository(remoteGateway = remoteGateway),
+            aiChatRemoteService = chatRemoteService,
+            signedPutUploader = OkHttpSignedPutUploader(okHttpClient = httpClient),
+            historyStore = aiChatHistoryStore,
+            aiChatPreferencesStore = aiChatPreferencesStore,
+            ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context)
         )
     }
 

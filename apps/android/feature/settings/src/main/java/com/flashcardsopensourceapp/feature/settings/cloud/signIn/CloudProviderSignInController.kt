@@ -85,6 +85,13 @@ class CloudProviderSignInController internal constructor(
         }
     }
 
+    internal suspend fun restoreAcceptedSignIn(attemptId: String): Boolean {
+        val current = repository.resumePendingSignIn() ?: return false
+        if (current.localId != attemptId || current.phase != CloudSocialSignInPhase.ACCEPTED) return false
+        prepare(current)
+        return true
+    }
+
     fun email(value: String) { mutableState.update { it.copy(email = value) } }
     fun code(value: String) { mutableState.update { it.copy(code = value.filter { character -> character in '0'..'9' }.take(8)) } }
     fun consumePrepared() { mutableState.update { it.copy(prepared = false) } }
@@ -241,19 +248,23 @@ class CloudProviderSignInController internal constructor(
             CloudSocialSignInPhase.MAILBOX -> mutableState.update { it.copy(step = CloudSignInEntryStep.MAILBOX,
                 email = current.providerEmail.orEmpty(), code = "", codeRequested = current.mailboxCodeRequested, requiresRestart = false) }
             CloudSocialSignInPhase.COMPLETION, CloudSocialSignInPhase.ACCEPTED -> {
-                val context = try {
-                    repository.prepareSignIn(current.localId, ::reportAppleCredentialReceived) {
-                        analytics.track(AnalyticsEvent.AuthSessionAccepted(current.provider.analyticsMethod(), surface))
-                        analytics.track(AnalyticsEvent.SignInSucceededWithMethod(current.provider.analyticsMethod(), surface))
-                    }
-                } finally {
-                    val stored = repository.resumePendingSignIn()
-                    if (stored?.localId == current.localId) pending = stored
-                }
-                onPrepared(current.localId, current.provider.analyticsMethod(), context, current.workspaceSelection)
+                prepare(current)
                 mutableState.update { it.copy(prepared = true) }
             }
         }
+    }
+
+    private suspend fun prepare(current: CloudPendingSocialSignIn) {
+        val context = try {
+            repository.prepareSignIn(current.localId, ::reportAppleCredentialReceived) {
+                analytics.track(AnalyticsEvent.AuthSessionAccepted(current.provider.analyticsMethod(), surface))
+                analytics.track(AnalyticsEvent.SignInSucceededWithMethod(current.provider.analyticsMethod(), surface))
+            }
+        } finally {
+            pending = repository.resumePendingSignIn()?.takeIf { it.localId == current.localId }
+        }
+        val prepared = checkNotNull(pending) { "The accepted sign-in attempt changed during preparation." }
+        onPrepared(prepared.localId, prepared.provider.analyticsMethod(), context, prepared.workspaceSelection)
     }
 
     fun resetEntry() {

@@ -71,6 +71,7 @@ export type ReviewScheduleErrorDetails = Readonly<{
 
 export type HttpErrorDetails = Readonly<{
   browserGuestAiTrial?: BrowserGuestAiTrialQuotaDetails;
+  guestUpgradeDestinationUnavailable?: true;
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
@@ -93,6 +94,7 @@ export type PublicSyncConflictDetails = Readonly<{
 
 export type PublicHttpErrorDetails = Readonly<{
   browserGuestAiTrial?: BrowserGuestAiTrialQuotaDetails;
+  guestUpgradeDestinationUnavailable?: true;
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: PublicSyncConflictDetails;
   mediaAssetStorage?: PublicMediaAssetStorageErrorDetails;
@@ -117,6 +119,7 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
   }
 
   const browserGuestAiTrial = details.browserGuestAiTrial;
+  const guestUpgradeDestinationUnavailable = details.guestUpgradeDestinationUnavailable;
   const validationIssues = details.validationIssues;
   const syncConflict = details.syncConflict;
   const mediaAssetStorage = details.mediaAssetStorage;
@@ -124,6 +127,7 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
   const turnstileSiteKey = details.turnstileSiteKey;
   if (
     browserGuestAiTrial === undefined
+    && guestUpgradeDestinationUnavailable === undefined
     && validationIssues === undefined
     && syncConflict === undefined
     && mediaAssetStorage === undefined
@@ -135,6 +139,7 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
 
   return {
     ...(browserGuestAiTrial === undefined ? {} : { browserGuestAiTrial }),
+    ...(guestUpgradeDestinationUnavailable === undefined ? {} : { guestUpgradeDestinationUnavailable }),
     ...(validationIssues === undefined ? {} : { validationIssues }),
     ...(syncConflict === undefined ? {} : { syncConflict: createPublicSyncConflictDetails(syncConflict) }),
     ...(mediaAssetStorage === undefined ? {} : {
