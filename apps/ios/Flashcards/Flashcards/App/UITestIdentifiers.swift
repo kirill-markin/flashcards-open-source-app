@@ -33,7 +33,6 @@ enum UITestIdentifier {
     static let reviewCardTagChipPrefix: String = "review.cardTagChip."
     static let reviewCardTagsButton: String = "review.cardTagsButton"
     static let reviewTagFilterCancelButton: String = "review.tagFilter.cancelButton"
-    static let reviewCompanionTitle = "review.companionTitle"
     static let reviewFilterScrollSurface: String = "review.filter.scrollSurface"
     static let reviewFilterAllCardsAction: String = "review.filter.allCards"
     static let reviewFilterDeckActionPrefix: String = "review.filter.deck."

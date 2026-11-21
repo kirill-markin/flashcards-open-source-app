@@ -690,24 +690,16 @@ struct ReviewView: View {
     private var reviewCompanionHeader: some View {
         // Preserve the same controls/popover anchor when enlarged text needs more space.
         let layout = self.dynamicTypeSize > .large
-            ? AnyLayout(VStackLayout(spacing: 12))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(spacing: 12))
         return layout {
+            // The sidebar names the section, so the filter takes the row's free space.
             reviewFilterMenu
                 .nativeActionButtonStyle()
                 .controlSize(.regular)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(String(localized: "Review", table: reviewCardsStringsTableName))
-                .font(.headline)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(maxWidth: .infinity)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier(UITestIdentifier.reviewCompanionTitle)
-
             reviewCompanionBadges
-                .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
