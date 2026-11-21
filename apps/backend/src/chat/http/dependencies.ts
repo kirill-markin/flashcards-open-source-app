@@ -5,8 +5,7 @@ import {
   resolveAiUsageAllowanceForEnforcement,
 } from "../../aiUsage";
 import { createChatFileUpload } from "../../chatFiles";
-import { assertGuestRequestSupportsProduct } from "../../guestAuth/webPlatform";
-import { requireHumanManagedConnectionAccess } from "../../routes/workspaces/connectionAccess";
+import { assertGuestRequestSupportsProduct, isBrowserProductGuest } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
@@ -14,6 +13,7 @@ import {
   type RequestContext,
   type WorkspaceRequestContext,
 } from "../../server/requestContext";
+import type { ChatGuestCredential } from "../customInstructions";
 import { createChatLiveStreamEnvelope } from "../live/auth";
 import {
   archiveChatSession,
@@ -173,9 +173,22 @@ export async function loadSupportedRequestContext(
   return requestContext;
 }
 
-function assertExpectedAccount(request: Request, userId: string): void {
-  const expectedAccountId = new URL(request.url).searchParams.get("expectedAccountId");
-  if (expectedAccountId !== null && expectedAccountId !== userId) {
+export function readChatGuestCredential(context: RequestContext): ChatGuestCredential | undefined {
+  if (context.transport !== "guest") return undefined;
+
+  const native = context.guestCredentialSource === "authorization"
+    && context.guestSessionPurpose === "legacy" && context.guestPlatform !== "web";
+  return { sessionId: native || isBrowserProductGuest(context) ? context.guestSessionId : null };
+}
+
+function assertExpectedAccount(request: Request, context: RequestContext): void {
+  const params = new URL(request.url).searchParams;
+  const expectedAccountId = params.get("expectedAccountId");
+  const expectedAuthKind = params.get("expectedAuthKind");
+  const browserAuthKind = isBrowserProductGuest(context) ? "guest"
+    : context.transport === "session" ? "registered" : null;
+  if ((expectedAccountId !== null && expectedAccountId !== context.userId)
+      || (expectedAuthKind !== null && expectedAuthKind !== browserAuthKind)) {
     throw new HttpError(409, "The signed-in account changed. Reload the page.", "ACCOUNT_SCOPE_CHANGED");
   }
 }
@@ -185,16 +198,6 @@ export async function loadAccountBoundChatRequestContext(
   dependencies: ChatRouteDependencies,
 ): Promise<RequestContext> {
   const requestContext = await loadSupportedRequestContext(request, dependencies);
-  assertExpectedAccount(request, requestContext.userId);
-  return requestContext;
-}
-
-export async function loadWorkspaceChatInstructionsRequestContext(
-  request: Request,
-  dependencies: ChatRouteDependencies,
-): Promise<RequestContext> {
-  const requestContext = await loadSupportedRequestContext(request, dependencies);
-  requireHumanManagedConnectionAccess(requestContext.transport);
-  assertExpectedAccount(request, requestContext.userId);
+  assertExpectedAccount(request, requestContext);
   return requestContext;
 }

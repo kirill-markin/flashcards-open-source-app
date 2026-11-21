@@ -55,6 +55,7 @@ export type StartPersistedChatRunParams = Readonly<{
   browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
   customInstructions: string | null;
+  beforeSendingGuestInstructions?: () => Promise<void>;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
   clientDeviceType: ProductAnalyticsDeviceType | null;

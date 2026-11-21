@@ -70,6 +70,7 @@ function createRunRow(
     finished_at: null,
     last_error_message: null,
     initiating_auth_is_signed_in: false,
+    initiating_guest_session_id: null,
     live_attach_client_id: null,
     live_attach_seq: "0",
     ...overrides,

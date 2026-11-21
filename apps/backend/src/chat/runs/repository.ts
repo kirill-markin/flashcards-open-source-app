@@ -47,6 +47,7 @@ export type ChatRunRow = Readonly<{
   finished_at: string | null;
   last_error_message: string | null;
   initiating_auth_is_signed_in: boolean;
+  initiating_guest_session_id: string | null;
   browser_guest_ai_trial?: boolean;
   live_attach_client_id: string | null;
   // BIGINT, which node-postgres hands back as a string.
@@ -83,6 +84,7 @@ export type InsertChatRunParams = Readonly<{
   uiLocale: ChatComposerSuggestionsLocale | null;
   turnInput: ReadonlyArray<ContentPart>;
   initiatingAuthIsSignedIn: boolean;
+  initiatingGuestSessionId?: string | null;
   browserGuestAiTrial?: boolean;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
@@ -142,6 +144,7 @@ const CHAT_RUN_COLUMNS_SQL = `
     finished_at,
     last_error_message,
     initiating_auth_is_signed_in,
+    initiating_guest_session_id,
     browser_guest_ai_trial,
     live_attach_client_id,
     live_attach_seq
@@ -189,6 +192,7 @@ const INSERT_CHAT_RUN_SQL = `
     ui_locale,
     turn_input,
     initiating_auth_is_signed_in,
+    initiating_guest_session_id,
     client_platform,
     client_os_name,
     client_device_type,
@@ -196,7 +200,7 @@ const INSERT_CHAT_RUN_SQL = `
     browser_guest_ai_trial,
     updated_at
   )
-  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, now())
+  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, now())
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
 `;
@@ -499,6 +503,7 @@ export async function insertChatRunWithExecutor(
       params.uiLocale,
       JSON.stringify(params.turnInput),
       params.initiatingAuthIsSignedIn,
+      params.initiatingGuestSessionId ?? null,
       params.clientPlatform,
       params.clientOsName,
       params.clientDeviceType,

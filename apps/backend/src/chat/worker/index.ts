@@ -1,4 +1,5 @@
 import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
+import { assertGuestChatInstructionsStillAuthorized } from "../customInstructions";
 import { claimChatRun, failQueuedChatRun, recordAiRunFailedAnalytics } from "../runs";
 import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
 import {
@@ -191,6 +192,13 @@ async function claimAndRunChatWorkerEvent(
     new Date(),
   );
 
+  const { authorizedGuestInstructionsSessionId } = claimedRun;
+  const beforeSendingGuestInstructions = authorizedGuestInstructionsSessionId !== null
+    ? () => assertGuestChatInstructionsStillAuthorized(
+      { userId: claimedRun.userId, workspaceId: claimedRun.workspaceId },
+      authorizedGuestInstructionsSessionId,
+    )
+    : undefined;
   const result: ChatWorkerRunResult = await runPersistedChatSession({
     aiConsentId: claimedRun.aiConsentId ?? null,
     lambdaRequestId: executionContext.lambdaRequestId,
@@ -210,7 +218,7 @@ async function claimAndRunChatWorkerEvent(
     browserGuestTrial: claimedRun.browserGuestAiTrial === true && userOpenAIApiKey === null ? {
       userId: claimedRun.userId, transport: "guest", guestPlatform: "web",
       guestSessionPurpose: "browser_product", guestCredentialSource: "cookie",
-      guestSessionId: event.browserGuestSessionId ?? null,
+      guestSessionId: claimedRun.initiatingGuestSessionId ?? event.browserGuestSessionId ?? null,
     } satisfies BrowserGuestTrialContext : undefined,
     generatedImageEligible: claimedRun.browserGuestAiTrial === true || isGeneratedImageEligibleForWorker(
       event,
@@ -218,6 +226,7 @@ async function claimAndRunChatWorkerEvent(
       userOpenAIApiKey,
     ),
     customInstructions: claimedRun.customInstructions,
+    beforeSendingGuestInstructions,
     userOpenAIApiKey,
     clientPlatform: claimedRun.clientPlatform,
     clientOsName: claimedRun.clientOsName,

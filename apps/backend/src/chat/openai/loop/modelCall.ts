@@ -73,6 +73,7 @@ type BuildOpenAIResponsesRequestParams = Readonly<{
 
 type RunOneModelCallParams = Readonly<{
   aiConsent?: Readonly<{ userId: string; eventId: string | null }>;
+  beforeSendingGuestInstructions?: () => Promise<void>;
   client: OpenAI;
   signal: AbortSignal | undefined;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool", toolName: string | null) => void) | undefined;
@@ -248,20 +249,22 @@ async function runOneModelCallAttempt(
   onEvent: OpenAILoopEventSink,
 ): Promise<ModelCallResult> {
   const receipt = params.aiConsent;
+  const needsReauthorization = receipt?.eventId != null || params.beforeSendingGuestInstructions !== undefined;
   let stream: ResponseStreamWithOptionalFinalResponse;
   for (let attempt = 1; ; attempt += 1) {
     if (receipt !== undefined) {
       await assertAiConsentReceiptActive(receipt.userId, receipt.eventId);
     }
+    await params.beforeSendingGuestInstructions?.();
     params.signal?.throwIfAborted();
     try {
       stream = await params.client.responses.create(
         { ...params.request, stream: true },
-        { signal: params.signal, ...(receipt?.eventId == null ? {} : { maxRetries: 0 }) },
+        { signal: params.signal, ...(needsReauthorization ? { maxRetries: 0 } : {}) },
       );
       break;
     } catch (error) {
-      const retryDelayMs = receipt?.eventId == null || params.signal?.aborted
+      const retryDelayMs = !needsReauthorization || params.signal?.aborted
         ? null : getReceiptProviderRetryDelayMs(error, attempt);
       if (retryDelayMs === null || !(error instanceof OpenAI.APIError)) throw error;
       logProviderCallRetried(params, error, retryDelayMs);

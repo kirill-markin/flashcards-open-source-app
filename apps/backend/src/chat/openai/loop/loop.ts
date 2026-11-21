@@ -15,7 +15,7 @@ import { isDatabaseDeadlineExpiry } from "../../../database";
 import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall } from "../tools/toolExecutor";
 import {
-  dropHistoryEncryptedItemsFromOtherKey,
+  filterEncryptedHistoryForKey,
   sliceReplayItemsFromLatestCompaction,
   stripViewedContentFromReplayItems,
   toOpenAIResponseInputItem,
@@ -117,6 +117,7 @@ export type StartOpenAILoopParams = Readonly<{
   generatedImageEligible: boolean;
   /** The workspace's chat custom instructions, read when the run was claimed. */
   customInstructions: string | null;
+  beforeSendingGuestInstructions?: () => Promise<void>;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
@@ -288,6 +289,7 @@ async function runModelCallWithOverflowRetry(
       userSuppliedKey: params.userOpenAIApiKey !== null,
       observationScope: createChatLoopObservationScope(params),
       aiConsent: { userId: params.userId, eventId: params.aiConsentId ?? null },
+      beforeSendingGuestInstructions: params.beforeSendingGuestInstructions,
     });
     await recordModelCallUsage(params, dependencies, modelCall);
     return { baseInput, modelCall };
@@ -317,6 +319,7 @@ async function runModelCallWithOverflowRetry(
       userSuppliedKey: params.userOpenAIApiKey !== null,
       observationScope: createChatLoopObservationScope(params),
       aiConsent: { userId: params.userId, eventId: params.aiConsentId ?? null },
+      beforeSendingGuestInstructions: params.beforeSendingGuestInstructions,
     });
     await recordModelCallUsage(params, dependencies, retriedModelCall);
     return { baseInput: reducedBaseInput, modelCall: retriedModelCall };
@@ -542,7 +545,9 @@ export async function startOpenAILoopWithDeps(
 ): Promise<OpenAILoopCompletion> {
   setExecutionPhase(params, "idle");
   const userSuppliedKey = params.userOpenAIApiKey !== null;
-  const history = dropHistoryEncryptedItemsFromOtherKey(params.localMessages, userSuppliedKey);
+  // Opaque history may still contain instructions from an earlier turn.
+  const canReplayEncryptedHistory = params.initiatingAuthIsSignedIn || params.beforeSendingGuestInstructions !== undefined;
+  const history = filterEncryptedHistoryForKey(params.localMessages, canReplayEncryptedHistory ? userSuppliedKey : null);
   if (history.droppedReasoningItems > 0 || history.droppedCompactionItems > 0) {
     addBackendBreadcrumb({
       action: "chat_replay_encrypted_items_dropped",
@@ -554,7 +559,14 @@ export async function startOpenAILoopWithDeps(
       },
     });
   }
-  return runLoopWithDeps({ ...params, localMessages: history.messages }, onEvent, dependencies)
+  const beforeSendingGuestInstructions = params.customInstructions !== null || history.hasEncryptedItems
+    ? params.beforeSendingGuestInstructions
+    : undefined;
+  return runLoopWithDeps({
+    ...params,
+    localMessages: history.messages,
+    beforeSendingGuestInstructions,
+  }, onEvent, dependencies)
     .then((completion) => ({ ...completion, openaiItems: stripViewedContentFromReplayItems(completion.openaiItems) }))
     .finally(() => {
       setExecutionPhase(params, "idle");

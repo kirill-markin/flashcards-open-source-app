@@ -94,6 +94,7 @@ export const getChatSessionSnapshotWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string | undefined,
+  includeCustomInstructions: boolean,
 ): Promise<ChatSessionSnapshot> => {
   const sessionRow = sessionId === undefined
     ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
@@ -104,7 +105,9 @@ export const getChatSessionSnapshotWithExecutor = async (
   return {
     ...mapSessionRow(sessionRow),
     messages: mapPersistedMessagesToStoredMessages(messages),
-    customInstructions: await loadWorkspaceChatInstructionsWithExecutor(executor, scope.workspaceId),
+    customInstructions: includeCustomInstructions
+      ? await loadWorkspaceChatInstructionsWithExecutor(executor, scope.workspaceId)
+      : null,
   };
 };
 
@@ -150,4 +153,4 @@ export const getChatSessionSnapshot = async (
   sessionId: string | undefined,
 ): Promise<ChatSessionSnapshot> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    getChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId));
+    getChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId, true));
