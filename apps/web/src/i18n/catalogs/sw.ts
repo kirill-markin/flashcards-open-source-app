@@ -325,6 +325,7 @@ const swCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Siku 7 zilizopita · {{count}} kwa siku",
+      vsUsual: "dhidi ya wastani wako",
       studyTime: "Muda wa kusoma · ≈ {{count}} dak",
     },
     records: {

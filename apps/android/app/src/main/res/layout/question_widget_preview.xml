@@ -26,30 +26,11 @@
         android:layout_weight="1"
         tools:ignore="UselessLeaf" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:text="@string/question_widget_preview_due"
-            android:textColor="@color/review_widget_on_surface_variant"
-            android:textSize="13sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/question_widget_preview_button"
-            android:maxLines="1"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="10dp"
-            android:text="@string/widget_reveal_answer"
-            android:textColor="@android:color/black"
-            android:textSize="14sp" />
-    </LinearLayout>
+        android:maxLines="1"
+        android:text="@string/question_widget_preview_due"
+        android:textColor="@color/review_widget_on_surface_variant"
+        android:textSize="13sp" />
 </LinearLayout>

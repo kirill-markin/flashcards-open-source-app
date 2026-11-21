@@ -22,6 +22,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -29,47 +30,60 @@ import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsDarkColorScheme
 import com.flashcardsopensourceapp.data.local.repository.progress.ReviewPace
 import com.flashcardsopensourceapp.data.local.repository.progress.reviewPaceMaximumRingLaps
+import com.flashcardsopensourceapp.feature.progress.R as ProgressR
+import java.text.NumberFormat
 
 /** How far the second lap's shade moves from the accent toward white, so it reads over the first lap. */
 private const val widgetPaceRingSecondLapTint: Float = 0.45f
 private const val widgetPaceRingStrokeFraction: Float = 0.1f
 private val widgetPaceRingLabelFontSize: TextUnit = 10.sp
 
-/**
- * The last 7 days' reviews with "7 days" under them, inside the pace ring. Without a pace baseline
- * the number stands alone, with no ring and no track. [bitmapSize] is the size the ring is drawn at
- * before it is fitted into [modifier]'s space.
- */
 @Composable
 internal fun WidgetPaceRing(pace: ReviewPace, bitmapSize: DpSize, numberFontSize: TextUnit, modifier: GlanceModifier) {
     val context = LocalContext.current
     val baseline = pace.baseline
     val accentArgb: Int = widgetAccentColor().toArgb()
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        if (baseline != null) {
-            Image(
-                provider = ImageProvider(
-                    bitmap = makeWidgetPaceRingBitmap(
-                        context = context,
-                        ringProgress = baseline.ringProgress.toFloat(),
-                        accentArgb = accentArgb,
-                        bitmapSize = bitmapSize
-                    )
-                ),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = GlanceModifier.fillMaxSize()
-            )
+    val labelStyle = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = widgetPaceRingLabelFontSize)
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(modifier = GlanceModifier.fillMaxWidth().defaultWeight(), contentAlignment = Alignment.Center) {
+            if (baseline != null) {
+                val percentFormat = NumberFormat.getPercentInstance(context.resources.configuration.locales.get(0)).apply {
+                    maximumFractionDigits = 0
+                }
+                Image(
+                    provider = ImageProvider(
+                        bitmap = makeWidgetPaceRingBitmap(
+                            context = context,
+                            ringProgress = baseline.ringProgress.toFloat(),
+                            accentArgb = accentArgb,
+                            bitmapSize = bitmapSize
+                        )
+                    ),
+                    contentDescription = context.getString(
+                        R.string.reviews_chart_widget_comparison,
+                        percentFormat.format(pace.last7DaysAveragePerDay / baseline.usualReviewsPerDay)
+                    ),
+                    contentScale = ContentScale.Fit,
+                    modifier = GlanceModifier.fillMaxSize()
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = context.getString(R.string.today_widget_count, pace.last7DaysReviewCount),
+                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = numberFontSize, fontWeight = FontWeight.Bold),
+                    maxLines = 1
+                )
+                Text(
+                    text = context.getString(R.string.widget_last_7_days_label),
+                    style = labelStyle,
+                    maxLines = 1
+                )
+            }
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (baseline != null) {
             Text(
-                text = context.getString(R.string.today_widget_count, pace.last7DaysReviewCount),
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = numberFontSize, fontWeight = FontWeight.Bold),
-                maxLines = 1
-            )
-            Text(
-                text = context.getString(R.string.widget_last_7_days_label),
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = widgetPaceRingLabelFontSize),
+                text = context.getString(ProgressR.string.progress_reviews_pace_vs_usual),
+                style = labelStyle,
                 maxLines = 1
             )
         }

@@ -325,6 +325,7 @@ const isCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Síðustu 7 dagar · {{count}} á dag",
+      vsUsual: "miðað við meðaltalið þitt",
       studyTime: "Námstími · ≈ {{count}} mín.",
     },
     records: {

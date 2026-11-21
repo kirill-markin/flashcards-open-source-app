@@ -121,6 +121,7 @@
         <item quantity="other">%1$s kad</item>
     </plurals>
     <string name="progress_reviews_pace_last_7_days">7 hari lalu · %1$s sehari</string>
+    <string name="progress_reviews_pace_vs_usual">berbanding biasa</string>
     <plurals name="progress_reviews_study_time">
         <item quantity="other">Masa belajar · ≈ %1$d min</item>
     </plurals>

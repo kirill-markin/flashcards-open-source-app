@@ -4,24 +4,19 @@ import android.content.Intent
 import android.util.Log
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsWidgetKind
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsWidgetSize
-import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsWidgetTarget
 
 enum class WidgetTapDestination {
     REVIEW,
     PROGRESS
 }
 
-/**
- * [workspaceId] and [cardId] are set only for a [WidgetTapDestination.REVIEW] tap, and [revealAnswer]
- * only with a [cardId].
- */
+/** [workspaceId] and [cardId] are set only for a [WidgetTapDestination.REVIEW] tap. */
 data class ReviewWidgetTapRequest(
     val destination: WidgetTapDestination,
     val workspaceId: String?,
     val size: ReviewWidgetSize,
     val kind: WidgetKind,
-    val cardId: String?,
-    val revealAnswer: Boolean
+    val cardId: String?
 )
 
 fun analyticsWidgetSize(size: ReviewWidgetSize): AnalyticsWidgetSize {
@@ -47,14 +42,6 @@ fun analyticsWidgetKind(kind: WidgetKind): AnalyticsWidgetKind {
     }
 }
 
-fun analyticsWidgetTarget(request: ReviewWidgetTapRequest): AnalyticsWidgetTarget? {
-    return when {
-        request.cardId == null -> null
-        request.revealAnswer -> AnalyticsWidgetTarget.REVEAL_ANSWER
-        else -> AnalyticsWidgetTarget.CARD
-    }
-}
-
 private const val reviewWidgetLogTag: String = "FlashcardsReviewWidget"
 
 /**
@@ -71,15 +58,11 @@ fun consumeReviewWidgetTapRequest(intent: Intent): ReviewWidgetTapRequest? {
     val rawKind: String? = intent.getStringExtra(ReviewWidgetTapContract.EXTRA_WIDGET_KIND)
     val workspaceId: String? = intent.getStringExtra(ReviewWidgetTapContract.EXTRA_WIDGET_WORKSPACE_ID)
     val cardId: String? = intent.getStringExtra(ReviewWidgetTapContract.EXTRA_WIDGET_CARD_ID)
-    val revealAnswer: Boolean = cardId != null &&
-        intent.getBooleanExtra(ReviewWidgetTapContract.EXTRA_WIDGET_REVEAL_ANSWER, false)
     intent.action = null
-    intent.data = null
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_SIZE)
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_KIND)
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_WORKSPACE_ID)
     intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_CARD_ID)
-    intent.removeExtra(ReviewWidgetTapContract.EXTRA_WIDGET_REVEAL_ANSWER)
 
     val size: ReviewWidgetSize? = ReviewWidgetSize.entries.firstOrNull { entry -> entry.rawValue == rawSize }
     if (size == null) {
@@ -107,7 +90,6 @@ fun consumeReviewWidgetTapRequest(intent: Intent): ReviewWidgetTapRequest? {
         workspaceId = workspaceId,
         size = size,
         kind = kind,
-        cardId = cardId,
-        revealAnswer = revealAnswer
+        cardId = cardId
     )
 }

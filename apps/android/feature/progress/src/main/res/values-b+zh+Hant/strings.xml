@@ -121,6 +121,7 @@
         <item quantity="other">%1$s 張卡片</item>
     </plurals>
     <string name="progress_reviews_pace_last_7_days">最近 7 天 · 每天 %1$s 次</string>
+    <string name="progress_reviews_pace_vs_usual">較平時</string>
     <plurals name="progress_reviews_study_time">
         <item quantity="other">學習時間 · 約 %1$d 分鐘</item>
     </plurals>

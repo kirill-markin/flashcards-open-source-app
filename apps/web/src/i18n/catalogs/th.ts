@@ -325,6 +325,7 @@ const thCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 วันที่ผ่านมา · วันละ {{count}}",
+      vsUsual: "เทียบกับค่าเฉลี่ยของคุณ",
       studyTime: "เวลาเรียน · ≈ {{count}} นาที",
     },
     records: {

@@ -325,6 +325,7 @@ const arCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "آخر 7 أيام · {{count}} يوميًا",
+      vsUsual: "مقارنةً بمعتادك",
       studyTime: "وقت الدراسة · ≈ {{count}} دقيقة",
     },
     records: {

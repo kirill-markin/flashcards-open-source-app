@@ -104,11 +104,7 @@ internal fun AppNavHost(
                 val workspaceId = request.request.workspaceId
                 val cardId = request.request.cardId
                 if (workspaceId != null && cardId != null) {
-                    appGraph.appHandoffCoordinator.requestReviewWidgetCard(
-                        workspaceId = workspaceId,
-                        cardId = cardId,
-                        revealAnswer = request.request.revealAnswer
-                    )
+                    appGraph.appHandoffCoordinator.requestReviewWidgetCard(workspaceId = workspaceId, cardId = cardId)
                 }
             }
 

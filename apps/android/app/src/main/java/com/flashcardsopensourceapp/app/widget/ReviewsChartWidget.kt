@@ -202,7 +202,6 @@ private fun ColumnScope.ReviewsChartLarge(progress: WidgetProgressContent, widge
     }
 }
 
-/** "Daily avg 13.1", then "↑ 64%" against the usual when there is a baseline; 0% has no arrow. */
 @Composable
 private fun ReviewsChartHeader(summary: ReviewsChartSummary) {
     val context = LocalContext.current
@@ -223,7 +222,10 @@ private fun ReviewsChartHeader(summary: ReviewsChartSummary) {
         if (percentChange != null) {
             Spacer(modifier = GlanceModifier.width(6.dp))
             Text(
-                text = formatReviewsChartPercentChange(percentChange = percentChange, locale = locale),
+                text = context.getString(
+                    R.string.reviews_chart_widget_comparison,
+                    formatReviewsChartPercentChange(percentChange = percentChange, locale = locale)
+                ),
                 style = TextStyle(color = GlanceTheme.colors.primary, fontSize = reviewsChartTrendFontSize),
                 maxLines = 1
             )

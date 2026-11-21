@@ -339,6 +339,7 @@ const slCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Zadnjih 7 dni · {{count}} na dan",
+      vsUsual: "glede na tvoje povprečje",
       studyTime: "Čas učenja · ≈ {{count}} min",
     },
     records: {

@@ -38,8 +38,7 @@ struct StreaksWidgetView: View {
                                 kind: .streaks,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: nil,
-                                revealAnswer: false
+                                cardId: nil
                             )
                         )
                     )

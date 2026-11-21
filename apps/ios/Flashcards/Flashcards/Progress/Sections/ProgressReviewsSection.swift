@@ -480,6 +480,9 @@ private struct ProgressReviewsPaceChange: View {
                 Image(systemName: self.percentChange > 0 ? "arrow.up" : "arrow.down")
             }
             Text(Double(abs(self.percentChange)) / 100, format: .percent.precision(.fractionLength(0)))
+            Text("progress.screen.reviews.vs_usual", tableName: "Foundation")
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
         .font(.subheadline.weight(.semibold).monospacedDigit())
         .foregroundStyle(.tint)

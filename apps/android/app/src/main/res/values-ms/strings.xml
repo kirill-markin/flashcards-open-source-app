@@ -110,7 +110,6 @@
     <string name="month_calendar_widget_preview_month">November</string>
     <string name="dashboard_widget_label">Papan pemuka</string>
     <string name="dashboard_widget_description">Kemajuan hari ini, kad untuk diulang kaji, rekod hari berturut-turut, soalan seterusnya dan aktiviti anda.</string>
-    <string name="widget_reveal_answer">Tunjukkan jawapan</string>
     <string name="review_widget_to_review_label">Untuk ulang kaji</string>
     <plurals name="review_widget_to_review_count">
         <item quantity="other"><xliff:g id="count" example="132">%1$d</xliff:g> untuk ulang kaji</item>
@@ -132,10 +131,11 @@
     <string name="today_widget_best_day">Hari terbaik <xliff:g id="count" example="61">%1$d</xliff:g></string>
     <string name="today_widget_new_best_day">Hari terbaik baharu</string>
     <string name="reviews_chart_widget_daily_average_value">Purata harian <xliff:g id="average" example="13.1">%1$s</xliff:g></string>
+    <string name="reviews_chart_widget_comparison">%1$s berbanding biasa</string>
     <string name="streaks_widget_day_streak_label">Hari berturut-turut</string>
     <string name="streaks_widget_days_description">7 hari lalu anda</string>
     <string name="question_widget_label">Soalan</string>
-    <string name="question_widget_description">Soalan daripada kad seterusnya anda, dengan butang untuk menunjukkan jawapannya.</string>
+    <string name="question_widget_description">Soalan daripada kad anda yang seterusnya.</string>
     <string name="question_widget_preview_due">12 tamat tempoh</string>
     <string name="premium_title">Premium</string>
     <string name="premium_benefit_creator_support">Menyokong pencipta aplikasi</string>

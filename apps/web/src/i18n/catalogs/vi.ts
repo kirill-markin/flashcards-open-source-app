@@ -325,6 +325,7 @@ const viCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 ngày qua · {{count}} mỗi ngày",
+      vsUsual: "so với mức thường lệ",
       studyTime: "Thời gian học · ≈ {{count}} phút",
     },
     records: {

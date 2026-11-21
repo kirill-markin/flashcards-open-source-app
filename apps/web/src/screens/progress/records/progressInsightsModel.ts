@@ -48,7 +48,11 @@ export function estimateDueMinutes(dueCount: number, insights: ProgressInsights 
   return roundStudyMinutes(dueCount * insights.secondsPerDueCard);
 }
 
-export function formatReviewPaceSuffix(pace: ReviewPace, formatNumber: NumberFormatter): string {
+export function formatReviewPaceSuffix(
+  pace: ReviewPace,
+  formatNumber: NumberFormatter,
+  comparisonLabel: string,
+): string {
   if (pace.baseline === null) {
     return "";
   }
@@ -58,7 +62,7 @@ export function formatReviewPaceSuffix(pace: ReviewPace, formatNumber: NumberFor
     maximumFractionDigits: 0,
   });
   const arrow = pace.baseline.percentChange > 0 ? "↑ " : pace.baseline.percentChange < 0 ? "↓ " : "";
-  return ` ${arrow}${percentLabel}`;
+  return ` ${arrow}${percentLabel} ${comparisonLabel}`;
 }
 
 /**

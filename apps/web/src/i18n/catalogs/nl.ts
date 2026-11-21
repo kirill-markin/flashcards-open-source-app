@@ -325,6 +325,7 @@ const nlCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Laatste 7 dagen · {{count}} per dag",
+      vsUsual: "vs. jouw gemiddelde",
       studyTime: "Studietijd · ≈ {{count}} min",
     },
     records: {

@@ -325,6 +325,7 @@ const zuCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Izinsuku ezi-7 ezedlule · {{count}} ngosuku",
+      vsUsual: "uma kuqhathaniswa nesilinganiso sakho",
       studyTime: "Isikhathi sokufunda · ≈ {{count}} imiz",
     },
     records: {

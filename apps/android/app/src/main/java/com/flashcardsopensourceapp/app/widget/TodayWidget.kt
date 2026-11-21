@@ -50,6 +50,7 @@ internal val todayWidgetSizes: Set<DpSize> = setOf(todayWidgetSmallSize, todayWi
 private val todayWidgetRingBitmapSize = DpSize(width = 100.dp, height = 100.dp)
 /** The medium widget's content height at its minimum size, so the ring keeps its place beside the text. */
 private val todayWidgetMediumRingSize: Dp = 76.dp
+private val todayWidgetMediumPaceWidth: Dp = 88.dp
 /** The best-day line shows from this share of the best earlier day. */
 private const val todayWidgetBestDayLineShare: Double = 0.8
 
@@ -85,8 +86,7 @@ private fun TodayWidgetBody(content: WidgetContent?, size: ReviewWidgetSize) {
                     workspaceId = queue?.workspaceId,
                     size = size,
                     kind = WidgetKind.TODAY,
-                    cardId = null,
-                    revealAnswer = false
+                    cardId = null
                 )
             )
         )
@@ -158,7 +158,9 @@ private fun ColumnScope.TodayWidgetMedium(queue: ReviewWidgetContent, progress: 
             pace = progress.pace,
             bitmapSize = todayWidgetRingBitmapSize,
             numberFontSize = 16.sp,
-            modifier = GlanceModifier.size(todayWidgetMediumRingSize)
+            modifier = GlanceModifier.height(todayWidgetMediumRingSize).width(
+                if (progress.pace.baseline == null) todayWidgetMediumRingSize else todayWidgetMediumPaceWidth
+            )
         )
         Spacer(modifier = GlanceModifier.width(12.dp))
         Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {

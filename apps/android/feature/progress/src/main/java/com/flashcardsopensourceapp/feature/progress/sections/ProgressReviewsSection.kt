@@ -175,6 +175,7 @@ internal fun ReviewsSectionCard(
             id = R.string.progress_reviews_pace_last_7_days,
             formatProgressReviewsAverage(averagePerDay = uiState.pace.last7DaysAveragePerDay, locale = locale)
         ),
+        comparisonLabel = stringResource(R.string.progress_reviews_pace_vs_usual),
         locale = locale
     )
     val studyMinutes: Int? = uiState.pace.last7DaysStudyMinutes
@@ -799,10 +800,10 @@ private fun formatProgressReviewsAverage(averagePerDay: Double, locale: Locale):
     }.format(averagePerDay)
 }
 
-/** "Last 7 days · 13.1 a day", then the arrow and percent against the usual when there is a baseline; 0% has no arrow. */
 private fun formatProgressReviewsPaceLabel(
     pace: ProgressReviewsPaceUiState,
     averageLabel: String,
+    comparisonLabel: String,
     locale: Locale
 ): String {
     val percentChange: Int = pace.percentChange ?: return averageLabel
@@ -814,7 +815,7 @@ private fun formatProgressReviewsPaceLabel(
         percentChange < 0 -> "↓ "
         else -> ""
     }
-    return "$averageLabel $arrow$percentLabel"
+    return "$averageLabel $arrow$percentLabel $comparisonLabel"
 }
 
 private fun calculateReviewChartUpperBound(

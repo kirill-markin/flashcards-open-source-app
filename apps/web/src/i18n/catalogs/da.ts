@@ -325,6 +325,7 @@ const daCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Seneste 7 dage · {{count}} om dagen",
+      vsUsual: "mod dit snit",
       studyTime: "Studietid · ≈ {{count}} min.",
     },
     records: {

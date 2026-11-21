@@ -6,6 +6,7 @@ let dashboardWidgetKind: String = "DashboardWidget"
 private let dashboardWidgetWeekCount: Int = 5
 private let dashboardWidgetCellSpacing: CGFloat = 2
 private let dashboardWidgetRingSide: CGFloat = 64
+private let dashboardWidgetPaceWidth: CGFloat = 88
 private let dashboardWidgetRingLineWidth: CGFloat = 6
 private let dashboardWidgetHeatmapHeight: CGFloat = 104
 
@@ -66,8 +67,7 @@ struct DashboardWidgetView: View {
                     kind: .dashboard,
                     workspaceId: self.entry.workspaceId,
                     size: .large,
-                    cardId: dashboardWidgetShownCardId(progress: progress, content: self.entry.content),
-                    revealAnswer: false
+                    cardId: dashboardWidgetShownCardId(progress: progress, content: self.entry.content)
                 )
             )
         )
@@ -83,7 +83,10 @@ private struct DashboardWidgetContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
                 WidgetPaceRingView(pace: self.progress.today.pace, lineWidth: dashboardWidgetRingLineWidth, numberFont: .subheadline)
-                    .frame(width: dashboardWidgetRingSide, height: dashboardWidgetRingSide)
+                    .frame(
+                        width: self.progress.today.pace.baseline == nil ? dashboardWidgetRingSide : dashboardWidgetPaceWidth,
+                        height: dashboardWidgetRingSide
+                    )
                 VStack(alignment: .leading, spacing: 2) {
                     ReviewWidgetDueCountView(count: widgetDueCount(content: self.entry.content) ?? 0)
                     if let scheduledDueCount = self.entry.scheduledDueCount {
@@ -96,25 +99,12 @@ private struct DashboardWidgetContentView: View {
             Group {
                 switch self.entry.content {
                 case .due(_, let nextCard, _):
-                    // The question always owns three lines, so the button and the heatmap never move with it.
-                    VStack(alignment: .leading, spacing: 8) {
-                        ReviewWidgetNextCardView(
-                            nextCard: nextCard,
-                            font: .title3.weight(.semibold),
-                            lineLimit: 3,
-                            reservesLines: true
-                        )
-                        if let nextCard {
-                            WidgetRevealAnswerButton(
-                                deepLink: makeWidgetRevealAnswerDeepLink(
-                                    kind: .dashboard,
-                                    workspaceId: self.entry.workspaceId,
-                                    size: .large,
-                                    cardId: nextCard.cardId
-                                )
-                            )
-                        }
-                    }
+                    ReviewWidgetNextCardView(
+                        nextCard: nextCard,
+                        font: .title3.weight(.semibold),
+                        lineLimit: 3,
+                        reservesLines: true
+                    )
                 case .allDone(let nextDueAt, _):
                     // The top row already shows the streak.
                     ReviewWidgetAllDoneView(entryDate: self.entry.date, nextDueAt: nextDueAt, streakDays: nil)

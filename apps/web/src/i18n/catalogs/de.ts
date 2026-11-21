@@ -325,6 +325,7 @@ const deCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Letzte 7 Tage · {{count}} pro Tag",
+      vsUsual: "ggü. deinem Schnitt",
       studyTime: "Lernzeit · ≈ {{count}} Min.",
     },
     records: {

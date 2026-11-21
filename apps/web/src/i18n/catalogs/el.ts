@@ -325,6 +325,7 @@ const elCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Τελευταίες 7 ημέρες · {{count}} την ημέρα",
+      vsUsual: "έναντι του μέσου σου",
       studyTime: "Χρόνος μελέτης · ≈ {{count}} λεπ.",
     },
     records: {

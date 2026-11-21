@@ -125,14 +125,10 @@ struct ReviewView: View {
         return "\(presentedStateId)|\(queueStateId)"
     }
 
-    /// A kept card stays on screen while a rebuild loads the queue behind it. A card opened by a widget's Reveal
-    /// answer button stays behind the loader until its answer shows, so its question side never flashes.
+    /// A kept card stays on screen while a rebuild loads the queue behind it.
     /// See docs/fsrs-scheduling-logic.md#non-blocking-review.
     private var shouldShowReviewLoader: Bool {
-        if let currentCard, self.reviewScreen.pendingWidgetRevealCardId == currentCard.cardId {
-            return self.reviewScreen.isAnswerVisible == false
-        }
-        return self.currentCard == nil && (store.isReviewHeadLoading || store.isReviewQueueChunkLoading)
+        self.currentCard == nil && (store.isReviewHeadLoading || store.isReviewQueueChunkLoading)
     }
 
     private var usesPairedReviewSpacing: Bool {
@@ -266,9 +262,6 @@ struct ReviewView: View {
             }
             self.reviewSpeechController.stopSpeech()
             self.reconcileReviewPresentation()
-        }
-        .onChange(of: self.reviewScreen.pendingWidgetRevealCardId) { _, _ in
-            self.applyPendingWidgetReveal()
         }
         .onDisappear {
             self.textSelection = nil
@@ -692,23 +685,6 @@ struct ReviewView: View {
         }
         self.reviewScreen.lastPresentedReviewCardId = cardId
         self.reviewScreen.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
-        self.applyPendingWidgetReveal()
-    }
-
-    /// Shows the answer for a widget's Reveal answer tap once its card is presented, through the same reveal action
-    /// as Show answer; any other presented card drops the request.
-    private func applyPendingWidgetReveal() {
-        guard
-            let pendingCardId = self.reviewScreen.pendingWidgetRevealCardId,
-            let currentCardId = self.currentCard?.cardId
-        else {
-            return
-        }
-        self.reviewScreen.pendingWidgetRevealCardId = nil
-        guard pendingCardId == currentCardId else {
-            return
-        }
-        self.revealReviewAnswer()
     }
 
     private var reviewCompanionHeader: some View {

@@ -332,6 +332,7 @@ const ukCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Останні 7 днів · {{count}} на день",
+      vsUsual: "відносно вашого середнього",
       studyTime: "Час навчання · ≈ {{count}} хв",
     },
     records: {

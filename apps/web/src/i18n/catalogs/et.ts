@@ -325,6 +325,7 @@ const etCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Viimased 7 päeva · {{count}} päevas",
+      vsUsual: "võrreldes tavapärasega",
       studyTime: "Õppeaeg · ≈ {{count}} min",
     },
     records: {

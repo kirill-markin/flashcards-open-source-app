@@ -333,6 +333,7 @@ const orCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "ଗତ 7 ଦିନ · ଦିନକୁ {{count}}",
+      vsUsual: "ନିଜ ହାରାହାରି ତୁଳନାରେ",
       studyTime: "ପଢ଼ା ସମୟ · ≈ {{count}} ମିନିଟ୍",
     },
     records: {

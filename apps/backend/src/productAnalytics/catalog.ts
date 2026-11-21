@@ -1204,9 +1204,6 @@ export const productAnalyticsEventCatalog = {
         kind: "enum",
         values: ["small", "medium", "large", "accessory_circular", "accessory_rectangular", "accessory_inline"],
       },
-      // Which control was tapped: the card's question, or its Reveal answer button. Clients released
-      // before it existed omit it.
-      widget_target: { kind: "enum", values: ["card", "reveal_answer"], optional: true },
     },
   },
   // A stock reported on change: the widgets of one kind placed on this installation, by size, sent

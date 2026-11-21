@@ -325,6 +325,7 @@ const svCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Senaste 7 dagarna · {{count}} om dagen",
+      vsUsual: "mot ditt snitt",
       studyTime: "Studietid · ≈ {{count}} min",
     },
     records: {
