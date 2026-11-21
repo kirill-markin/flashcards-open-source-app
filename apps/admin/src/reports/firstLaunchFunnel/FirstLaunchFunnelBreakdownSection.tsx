@@ -67,7 +67,7 @@ function buildGroupCounts(
 }
 
 /**
- * The First launch funnel split by one dimension: the main chart's seven steps, one bar per group,
+ * The First launch funnel split by one dimension: the main chart's steps, one bar per group,
  * each group measured inside itself. Under a comparison every group draws its A and B bars as a pair.
  */
 export function FirstLaunchFunnelBreakdownSection(

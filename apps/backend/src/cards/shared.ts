@@ -169,6 +169,9 @@ export function normalizeCardMetadata(metadata: unknown): CardMetadata {
   return {
     version: 1,
     source: normalizeCardSourceMetadata(record.source),
+    ...(record.creationKind === "user_added" && onboardingDemo === undefined
+      ? { creationKind: record.creationKind }
+      : {}),
     ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
   };
 }

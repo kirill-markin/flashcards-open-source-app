@@ -332,6 +332,7 @@ const plCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Ostatnie 7 dni · {{count}} dziennie",
+      vsUsual: "względem twojej średniej",
       studyTime: "Czas nauki · ≈ {{count}} min",
     },
     records: {

@@ -12,7 +12,7 @@ import {
   type AuthAttemptResponse, type AuthProviderSubmission, type AuthReauthenticationBinding,
 } from "./attemptContract.js";
 import { appleRequestNonce } from "./providers.js";
-import { wakeAppleRevocations } from "./appleRevocationWake.js";
+import { wakeAppleRevocations } from "./revocation/appleRevocationWake.js";
 import type { IdentityProvider } from "./identityStore.js";
 
 export type AccountProviderMethod = Readonly<{

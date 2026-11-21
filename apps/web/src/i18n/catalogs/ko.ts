@@ -325,6 +325,7 @@ const koCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "최근 7일 · 하루 {{count}}회",
+      vsUsual: "평소 대비",
       studyTime: "학습 시간 · ≈ {{count}}분",
     },
     records: {

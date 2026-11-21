@@ -1,5 +1,5 @@
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
-import { log, logWarning } from "../logger.js";
+import { log, logWarning } from "../../logger.js";
 import type { AppleRevocationWakeEvent } from "./appleRevocationEvent.js";
 
 const client = new LambdaClient({

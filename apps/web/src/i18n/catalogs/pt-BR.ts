@@ -325,6 +325,7 @@ const ptBrCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Últimos 7 dias · {{count}} por dia",
+      vsUsual: "vs. sua média",
       studyTime: "Tempo de estudo · ≈ {{count}} min",
     },
     records: {

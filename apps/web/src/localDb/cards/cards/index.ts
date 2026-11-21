@@ -21,6 +21,7 @@ import {
   type StoredCard,
 } from "../../core/database";
 import { encodeCursor, decodeCursor } from "../../core/queryShared";
+import type { PersistedOutboxRecord } from "../../sync/outbox";
 
 type CardCursorIndexName =
   | "workspaceId_createdAt_cardId"
@@ -1002,4 +1003,13 @@ export async function putCard(workspaceId: string, card: Card): Promise<void> {
       return null;
     });
   });
+}
+
+export async function putCardWithOutboxRecord(card: Card, record: PersistedOutboxRecord): Promise<void> {
+  await closeDatabaseAfterWrite((database) => (
+    runReadwrite(database, ["cards", "cardTags", "outbox"], (transaction, continueRequest) => {
+      putCardInTransaction(transaction, record.workspaceId, card, continueRequest);
+      return transaction.objectStore("outbox").put(record);
+    })
+  ));
 }

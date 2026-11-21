@@ -325,6 +325,7 @@ const nbCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Siste 7 dager · {{count}} om dagen",
+      vsUsual: "mot ditt snitt",
       studyTime: "Studietid · ≈ {{count}} min",
     },
     records: {

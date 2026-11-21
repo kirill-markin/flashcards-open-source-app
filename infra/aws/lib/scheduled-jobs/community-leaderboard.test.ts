@@ -47,7 +47,7 @@ test("stack wires the community leaderboard snapshot function into monitoring, c
 });
 
 test("monitoring alarms cover leaderboard snapshot Lambda errors and snapshot staleness", () => {
-  const source = readLibSource("lib/monitoring.ts");
+  const source = readLibSource("lib/scheduled-data-job-monitoring.ts");
 
   assert.match(source, /new cloudwatch\.Alarm\(scope, "CommunityLeaderboardSnapshotLambdaErrorAlarm"/);
   assert.match(source, /props\.communityLeaderboardSnapshotFn\.metricErrors\(/);

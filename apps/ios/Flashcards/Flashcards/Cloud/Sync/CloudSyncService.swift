@@ -138,10 +138,12 @@ private func makeCloudAccountContext(
 final class CloudSyncService: @unchecked Sendable {
     private let database: LocalDatabase
     private let transport: CloudSyncTransport
+    private let packageTransport: CloudWorkspacePackageTransport
 
     init(database: LocalDatabase, session: URLSession = .shared) {
         self.database = database
         self.transport = CloudSyncTransport(session: session)
+        self.packageTransport = CloudWorkspacePackageTransport(session: session)
     }
 
     func fetchCloudAccountContext(
@@ -414,7 +416,7 @@ final class CloudSyncService: @unchecked Sendable {
         workspaceId: String,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportPreviewResponse {
-        try await self.transport.previewWorkspacePackageExport(
+        try await self.packageTransport.previewWorkspacePackageExport(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             workspaceId: workspaceId,
@@ -429,7 +431,7 @@ final class CloudSyncService: @unchecked Sendable {
         format: WorkspacePackageExportFormat,
         request: WorkspacePackageExportRequest
     ) async throws -> WorkspacePackageExportDownloadResponse {
-        try await self.transport.exportWorkspacePackage(
+        try await self.packageTransport.exportWorkspacePackage(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             workspaceId: workspaceId,
@@ -444,7 +446,7 @@ final class CloudSyncService: @unchecked Sendable {
         workspaceId: String,
         packageBytes: Data
     ) async throws -> WorkspacePackageImportPreviewResponse {
-        try await self.transport.previewWorkspacePackageImport(
+        try await self.packageTransport.previewWorkspacePackageImport(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             workspaceId: workspaceId,
@@ -459,7 +461,7 @@ final class CloudSyncService: @unchecked Sendable {
         packageBytes: Data,
         options: WorkspacePackageImportConfirmOptions
     ) async throws -> WorkspacePackageImportConfirmResponse {
-        try await self.transport.confirmWorkspacePackageImport(
+        try await self.packageTransport.confirmWorkspacePackageImport(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             workspaceId: workspaceId,

@@ -314,17 +314,11 @@ class ReviewViewModel(
 
     /**
      * Starts a new session showing [cardId] first when it is still in review in [workspaceId]; otherwise
-     * the current session stays. With [revealAnswer] the card shows answer-side from its first frame,
-     * and when it is already on screen it flips; a card awaiting its rating reveals nothing. Returns
-     * false until the workspace is known, so the caller retries.
+     * the current session stays. Returns false until the workspace is known, so the caller retries.
      */
-    fun startSessionOnCardForHandoff(workspaceId: String, cardId: String, revealAnswer: Boolean): Boolean {
+    fun startSessionOnCardForHandoff(workspaceId: String, cardId: String): Boolean {
         val currentWorkspaceId = activeWorkspaceId ?: return false
-        if (currentWorkspaceId != workspaceId) {
-            return true
-        }
-        if (isShowingOrRatingCard(cardId = cardId)) {
-            revealShownCardForHandoff(cardId = cardId, shouldReveal = revealAnswer)
+        if (currentWorkspaceId != workspaceId || isShowingOrRatingCard(cardId = cardId)) {
             return true
         }
 
@@ -351,12 +345,8 @@ class ReviewViewModel(
             if (
                 operationWorkspaceGeneration != workspaceGeneration
                 || operationFilterGeneration != reviewFilterGeneration
+                || isShowingOrRatingCard(cardId = cardId)
             ) {
-                return@launch
-            }
-            // The queue may have presented the card while it loaded, for example on a cold launch.
-            if (isShowingOrRatingCard(cardId = cardId)) {
-                revealShownCardForHandoff(cardId = cardId, shouldReveal = revealAnswer)
                 return@launch
             }
 
@@ -366,22 +356,10 @@ class ReviewViewModel(
             ownedReviewSubmissions = emptyMap()
             reviewSessionNowMillis.value = System.currentTimeMillis()
             draftState.update { state ->
-                applyReviewSessionStartOnCard(state = state, card = card).copy(
-                    revealedCardId = if (revealAnswer) card.cardId else null
-                )
-            }
-            if (revealAnswer) {
-                analytics.track(event = AnalyticsEvent.ReviewCardRevealed)
+                applyReviewSessionStartOnCard(state = state, card = card)
             }
         }
         return true
-    }
-
-    /** Flips [cardId] when it is the shown card; a card awaiting its rating reveals nothing. */
-    private fun revealShownCardForHandoff(cardId: String, shouldReveal: Boolean) {
-        if (shouldReveal && uiState.value.preparedCurrentCard?.card?.cardId == cardId) {
-            revealAnswer()
-        }
     }
 
     private fun isShowingOrRatingCard(cardId: String): Boolean {

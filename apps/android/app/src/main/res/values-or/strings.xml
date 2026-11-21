@@ -136,7 +136,6 @@
     <!-- Dashboard Home Screen widget name in the launcher's widget picker. -->
     <string name="dashboard_widget_label">ଡ୍ୟାସ୍‌ବୋର୍ଡ</string>
     <string name="dashboard_widget_description">ଆଜିର ପ୍ରଗତି, ବାକି କାର୍ଡ, ଲଗାତାର ଅଭ୍ୟାସ, ପରବର୍ତ୍ତୀ ପ୍ରଶ୍ନ ଓ ଆପଣଙ୍କ କାର୍ଯ୍ୟକଳାପ।</string>
-    <string name="widget_reveal_answer">ଉତ୍ତର ଦେଖାନ୍ତୁ</string>
     <string name="review_widget_to_review_label">ଅଭ୍ୟାସ ପାଇଁ</string>
     <plurals name="review_widget_to_review_count">
         <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> ଅଭ୍ୟାସ ପାଇଁ</item>
@@ -163,10 +162,11 @@
     <string name="today_widget_best_day">ସର୍ବୋତ୍ତମ ଦିନ <xliff:g id="count" example="61">%1$d</xliff:g></string>
     <string name="today_widget_new_best_day">ନୂଆ ସର୍ବୋତ୍ତମ ଦିନ</string>
     <string name="reviews_chart_widget_daily_average_value">ଦୈନିକ ହାରାହାରି <xliff:g id="average" example="13.1">%1$s</xliff:g></string>
+    <string name="reviews_chart_widget_comparison">%1$s ନିଜ ହାରାହାରି ତୁଳନାରେ</string>
     <string name="streaks_widget_day_streak_label">ଦିନର ଧାରା</string>
     <string name="streaks_widget_days_description">ଆପଣଙ୍କ ଗତ 7 ଦିନ</string>
     <string name="question_widget_label">ପ୍ରଶ୍ନ</string>
-    <string name="question_widget_description">ଆପଣଙ୍କ ପରବର୍ତ୍ତୀ କାର୍ଡରୁ ଗୋଟିଏ ପ୍ରଶ୍ନ, ଉତ୍ତର ଦେଖାଇବା ପାଇଁ ଏକ ବଟନ୍ ସହିତ।</string>
+    <string name="question_widget_description">ଆପଣଙ୍କ ପରବର୍ତ୍ତୀ କାର୍ଡରୁ ଏକ ପ୍ରଶ୍ନ।</string>
     <string name="question_widget_preview_due">12 ବାକି</string>
     <string name="premium_title">ପ୍ରିମିୟମ୍</string>
     <string name="premium_benefit_creator_support">ଆପ୍‌ର ନିର୍ମାତାଙ୍କୁ ସହଯୋଗ</string>

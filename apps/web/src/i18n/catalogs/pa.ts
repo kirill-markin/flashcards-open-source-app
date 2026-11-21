@@ -325,6 +325,7 @@ const paCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "ਪਿਛਲੇ 7 ਦਿਨ · ਦਿਨ ਵਿੱਚ {{count}}",
+      vsUsual: "ਆਪਣੀ ਔਸਤ ਦੇ ਮੁਕਾਬਲੇ",
       studyTime: "ਪੜ੍ਹਾਈ ਦਾ ਸਮਾਂ · ≈ {{count}} ਮਿੰਟ",
     },
     records: {

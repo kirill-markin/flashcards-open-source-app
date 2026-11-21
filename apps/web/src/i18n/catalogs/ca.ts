@@ -325,6 +325,7 @@ const caCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Últims 7 dies · {{count}} al dia",
+      vsUsual: "respecte al teu ritme",
       studyTime: "Temps d'estudi · ≈ {{count}} min",
     },
     records: {

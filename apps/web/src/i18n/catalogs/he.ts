@@ -325,6 +325,7 @@ const heCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 הימים האחרונים · {{count}} ביום",
+      vsUsual: "לעומת הממוצע שלך",
       studyTime: "זמן לימוד · ≈ {{count}} דק׳",
     },
     records: {

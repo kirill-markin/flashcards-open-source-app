@@ -324,6 +324,7 @@ const enCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Last 7 days · {{count}} a day",
+      vsUsual: "vs usual",
       studyTime: "Study time · ≈ {{count}} min",
     },
     records: {

@@ -40,8 +40,8 @@ private struct ReviewInlineMathImageKey: Hashable {
     let displayScale: CGFloat
 }
 
-private struct ReviewInlineMathImageEntry {
-    let image: Image
+struct ReviewInlineMathImageEntry {
+    let image: UIImage
     let didFailRendering: Bool
 }
 
@@ -69,7 +69,10 @@ func makeReviewInlineMathRendering(
             color: color,
             displayScale: displayScale
         )
-        images[reference.source] = entry.image
+        let label = Text(reference.formula.latex)
+        images[reference.source] = entry.image.cgImage.map {
+            Image($0, scale: entry.image.scale, orientation: .up, label: label)
+        } ?? Image(size: CGSize(width: 1, height: 1), label: label, renderer: { _ in })
         didFailRendering = didFailRendering || entry.didFailRendering
     }
 
@@ -108,7 +111,7 @@ struct ReviewMathBlockImageProvider: ImageProvider {
 }
 
 @MainActor
-private func reviewInlineMathImageEntry(
+func reviewInlineMathImageEntry(
     formula: ReviewFormulaContent,
     fontSize: CGFloat,
     color: UIColor,
@@ -152,9 +155,8 @@ private func makeReviewInlineMathImageEntry(
         let renderer = RaTeXRenderer(displayList: displayList, fontSize: fontSize)
         if let image = makeReviewInlineMathFormulaImage(
             renderer: renderer,
-            displayScale: displayScale,
-            label: formula.latex
-        ) {
+            displayScale: displayScale
+        ), image.cgImage != nil {
             return ReviewInlineMathImageEntry(image: image, didFailRendering: false)
         }
 
@@ -181,9 +183,8 @@ private func makeReviewInlineMathImageEntry(
 @MainActor
 private func makeReviewInlineMathFormulaImage(
     renderer: RaTeXRenderer,
-    displayScale: CGFloat,
-    label: String
-) -> Image? {
+    displayScale: CGFloat
+) -> UIImage? {
     let size = CGSize(width: renderer.width, height: renderer.totalHeight)
     let scale = max(displayScale, 1)
     guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0,
@@ -191,10 +192,9 @@ private func makeReviewInlineMathFormulaImage(
         return nil
     }
 
-    let renderedImage = makeReviewInlineMathRenderedImage(size: size, displayScale: displayScale) { context in
+    return makeReviewInlineMathRenderedImage(size: size, displayScale: displayScale) { context in
         renderer.draw(in: context)
     }
-    return makeReviewInlineMathImage(renderedImage: renderedImage, label: label)
 }
 
 @MainActor
@@ -203,7 +203,7 @@ private func makeReviewInlineMathSourceImage(
     fontSize: CGFloat,
     color: UIColor,
     displayScale: CGFloat
-) -> Image {
+) -> UIImage {
     let attributes: [NSAttributedString.Key: Any] = [
         .font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular),
         .foregroundColor: color
@@ -220,14 +220,9 @@ private func makeReviewInlineMathSourceImage(
         height: height
     )
 
-    let renderedImage = makeReviewInlineMathRenderedImage(size: size, displayScale: displayScale) { _ in
+    return makeReviewInlineMathRenderedImage(size: size, displayScale: displayScale) { _ in
         source.draw(at: .zero, withAttributes: attributes)
     }
-    // Every `Image` initializer that carries a `Text` label needs a `CGImage`, so the
-    // unreachable no-`CGImage` case labels an empty image with the LaTeX instead of exposing an
-    // SF Symbol name to VoiceOver.
-    return makeReviewInlineMathImage(renderedImage: renderedImage, label: formula.latex)
-        ?? Image(size: CGSize(width: 1, height: 1), label: Text(formula.latex), renderer: { _ in })
 }
 
 @MainActor
@@ -245,13 +240,4 @@ private func makeReviewInlineMathRenderedImage(
     return UIGraphicsImageRenderer(size: size, format: format).image { context in
         draw(context.cgContext)
     }
-}
-
-@MainActor
-private func makeReviewInlineMathImage(renderedImage: UIImage, label: String) -> Image? {
-    guard let cgImage = renderedImage.cgImage else {
-        return nil
-    }
-
-    return Image(cgImage, scale: renderedImage.scale, orientation: .up, label: Text(label))
 }

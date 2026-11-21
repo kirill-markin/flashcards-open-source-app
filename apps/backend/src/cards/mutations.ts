@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseExecutor } from "../database";
+import { setCardAdditionChatPlatformInExecutor } from "../productAnalytics/serverFacts/cardAdditions";
 import {
   collectContentAuthoringUpdate,
   collectContentCreation,
@@ -26,7 +27,7 @@ import {
   type ManagedImageRestoreLedger,
 } from "./managedMedia/managedImageSnapshotMerge";
 import { mergeMaintenanceIntoCardSnapshot, nextCardCorrectionTimestamp } from "./maintenanceSync";
-import { establishOnboardingDemoMetadata, mergeOnboardingDemoMetadata } from "./onboardingDemo";
+import { establishOnboardingDemoMetadata, mergeCardMetadata } from "./onboardingDemo";
 import { assertConsistentFsrsState } from "./review/fsrs";
 import {
   ACTIVE_MAINTENANCE_SNAPSHOT_LWW_AT_SQL,
@@ -476,7 +477,7 @@ export async function upsertCardSnapshotInExecutor(
       mergedCardWrite.frontText,
       mergedCardWrite.backText,
       normalizedInput.cardType ?? existingCard.cardType,
-      JSON.stringify(mergeOnboardingDemoMetadata(
+      JSON.stringify(mergeCardMetadata(
         existingCard,
         normalizedInput.metadata ?? existingCard.metadata,
         {
@@ -673,6 +674,7 @@ export async function createCards(
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     declareContentWriteAiChatClient(executor, aiChatClient);
+    await setCardAdditionChatPlatformInExecutor(executor, aiChatClient?.platform ?? null);
     const createdCards: Array<Card> = [];
     for (const item of items) {
       createdCards.push(await createCardInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -704,7 +706,7 @@ export async function updateCardInExecutor(
   const existingCard = mapCard(existingRow);
   const updateParts = buildCardUpdateQueryParts({
     ...normalizedInput,
-    metadata: mergeOnboardingDemoMetadata(
+    metadata: mergeCardMetadata(
       existingCard,
       normalizedInput.metadata ?? existingCard.metadata,
       {

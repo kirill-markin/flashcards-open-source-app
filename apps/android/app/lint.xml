@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <lint>
+    <issue id="GradleDependency">
+        <!-- Compose BOM 2026.11.01 requires compile SDK 37.1. -->
+        <ignore regexp="^A newer version of androidx\.compose:compose-bom than 2026\.09\.00 is available: 2026\.11\.01$" />
+    </issue>
     <issue id="MissingTranslation">
         <!-- Lint groups regional overrides under their base language. English uses default
              resources and generic French comes from Play. Keep errors for any other language. -->

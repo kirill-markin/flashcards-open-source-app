@@ -87,18 +87,10 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             uiState.isImportingAttachment
         ) {
             val request = importRequest ?: return@LaunchedEffect
-            appGraph.withAiImportWorkspace(request = request) { workspace ->
-                if (appGraph.appHandoffCoordinator.observeAiImport().value?.requestId != request.requestId) {
-                    return@withAiImportWorkspace
-                }
-                val didHandle = aiViewModel.handoffImportToChat(
-                    aiImport = request.aiImport,
-                    workspace = workspace
-                )
-                if (didHandle) {
-                    appGraph.appHandoffCoordinator.consumeAiImport(requestId = request.requestId)
-                }
-            }
+            appGraph.aiImportHandoffCoordinator.deliver(
+                request = request,
+                handoff = aiViewModel::handoffImportToChat
+            )
         }
 
         val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()

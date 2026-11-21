@@ -482,6 +482,12 @@ export type ProductBreadcrumbEvent =
   | EventByAction<"workspace_delete_transaction_error", WorkspaceTransactionDetails>;
 
 export type ProductWarningEvent =
+  | EventByAction<"guest_upgrade_guest_busy_retry", Readonly<{
+    attempt: number;
+    maxAttempts: number;
+    delayMs: number;
+    targetSubjectUserId: string;
+  }>>
   | EventByAction<
     "media_asset_upload_session_completion_resolution_retry",
     MultipartCompletionResolutionRetryDetails

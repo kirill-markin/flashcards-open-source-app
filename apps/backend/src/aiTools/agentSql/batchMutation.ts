@@ -17,6 +17,7 @@ import {
   type DeckFilterDefinition,
   type UpdateDeckInput,
 } from "../../decks";
+import { setCardAdditionChatPlatformInExecutor } from "../../productAnalytics/serverFacts/cardAdditions";
 import {
   declareContentWriteAiChatClient,
   transactionWithWorkspaceScopeReportingContentWrites,
@@ -250,6 +251,7 @@ export async function executeSqlMutationBatch(
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId: context.userId, workspaceId: context.workspaceId }, async (executor) => {
     declareContentWriteAiChatClient(executor, dependencies.aiChatClient);
+    await setCardAdditionChatPlatformInExecutor(executor, dependencies.aiChatClient?.platform ?? null);
     let state: MutationBatchState = {
       cards: await listCardsInExecutor(executor, context.workspaceId),
       decks: await listDecksInExecutor(executor, context.workspaceId),

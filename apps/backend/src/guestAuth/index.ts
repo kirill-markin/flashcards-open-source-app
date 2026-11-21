@@ -1,5 +1,7 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { type DatabaseExecutor, runDatabaseOperationsWithDeadline } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
+import { HttpError } from "../shared/errors";
 // Report through `observability/runtime`, never through `observability/sentry`, for the reason the
 // product analytics producers spell out: `initializeBackendSentry` installs `captureBackendWarning`
 // as the runtime sink, so this is the same Sentry warning wherever Sentry is initialized and the
@@ -285,7 +287,7 @@ async function runGuestUpgradeCompletion(
   // gets. Recognizing the redundant rows would mean asking analytics which event ids it already
   // holds, which is one more analytics round trip on the request with the least headroom - the same
   // cost as the chunk it would avoid - and it would still race the emission it is checking for.
-  const completion = await runTransactionReportingReviewAnswers<GuestUpgradeCompletion>(
+  const completeTransaction = (): Promise<GuestUpgradeCompletion> => runTransactionReportingReviewAnswers<GuestUpgradeCompletion>(
     analyticsBudget,
     null,
     (runInTransaction) => unsafeTransactionReportingContentWrites(
@@ -310,6 +312,33 @@ async function runGuestUpgradeCompletion(
       capabilities,
     ),
   );
+  const retryDelaysMs = [100, 200] as const;
+  let completion: GuestUpgradeCompletion;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      completion = await completeTransaction();
+      break;
+    } catch (error) {
+      const delayMs = retryDelaysMs[attempt - 1];
+      if (!(error instanceof HttpError) || error.statusCode !== 409
+          || error.code !== "GUEST_UPGRADE_GUEST_BUSY" || delayMs === undefined) {
+        throw error;
+      }
+
+      // The reporting wrappers never reject after commit. The busy refusal reaches here only
+      // after the transaction rolled back and released its subject lock and database client.
+      captureBackendRuntimeWarning({
+        action: "guest_upgrade_guest_busy_retry",
+        scope: createBackendObservationScope(
+          "backend-api", null, null, null, null,
+          selection.type === "existing" ? selection.workspaceId : null,
+          null, null, null, null, null,
+        ),
+        details: { attempt, maxAttempts: retryDelaysMs.length + 1, delayMs, targetSubjectUserId: cognitoSubject },
+      });
+      await sleep(delayMs);
+    }
+  }
   if (completion.outcome === "fresh_completion") {
     await recordGuestUpgradeCompletedAnalytics(completion, analyticsBudget);
   }

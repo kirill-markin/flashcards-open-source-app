@@ -2,7 +2,16 @@
     <string name="app_name">Nibomo Flashcards</string>
     <string name="wear_retry">Retry</string>
     <string name="wear_session_open_phone_app">Open Nibomo on your phone</string>
-    <string name="wear_session_not_connected_message">Sign in there to review your cards on your watch.</string>
+    <string name="wear_session_not_connected_message">Sign in there, then tap Retry.</string>
+    <string name="wear_session_connect_android_phone">Connect an Android phone</string>
+    <string name="wear_session_connect_android_phone_message">Make sure your watch is paired and connected, then tap Retry.</string>
+    <string name="wear_session_setup_phone_app">Set up Nibomo on your phone</string>
+    <string name="wear_session_install_phone_app_message">Install or update Nibomo in Google Play, then sign in and tap Retry.</string>
+    <string name="wear_session_check_phone_message">Check that your phone is connected. If needed, install or update Nibomo, then sign in and tap Retry.</string>
+    <string name="wear_session_open_play_store">Open Google Play</string>
+    <string name="wear_session_play_store_requested_message">Finish in Google Play on your phone. Then sign in to Nibomo and tap Retry.</string>
+    <string name="wear_session_play_store_failed">Couldn’t open Google Play</string>
+    <string name="wear_session_play_store_failed_message">Find Nibomo Flashcards in Google Play on your phone. Then sign in and tap Retry.</string>
     <string name="wear_session_connecting">Connecting to phone…</string>
     <string name="wear_session_syncing">Syncing cards…</string>
     <string name="wear_session_update_required">Update Nibomo on your phone and watch</string>

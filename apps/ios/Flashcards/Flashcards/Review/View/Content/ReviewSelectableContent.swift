@@ -3,6 +3,11 @@ import MarkdownUI
 import SwiftUI
 import UIKit
 
+struct ReviewSelectableContent {
+    let attributedText: NSAttributedString
+    let didFailRenderingFormula: Bool
+}
+
 @MainActor
 func makeReviewSelectableContent(
     content: ReviewRenderedContent,
@@ -10,11 +15,14 @@ func makeReviewSelectableContent(
     environment: EnvironmentValues,
     textFont: UIFont? = nil,
     textColor: UIColor = .label
-) throws -> NSAttributedString {
+) throws -> ReviewSelectableContent {
     let font = textFont ?? UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: surfaceStyle == .front ? 18 : 17))
     let result = NSMutableAttributedString()
+    var hasFormulaRenderingFailure = false
+    let appearance = UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light)
+    let markdownFormulaColor = reviewMathRenderableColor(UIColor.label.resolvedColor(with: appearance))
 
-    func appendAttachment(view: AnyView, text: String, accessibility: ReviewContentAttachmentAccessibility, layout: ReviewContentAttachmentLayout, attributes: [NSAttributedString.Key: Any], to destination: NSMutableAttributedString) {
+    func appendBlockAttachment(view: AnyView, text: String, accessibility: ReviewContentAttachmentAccessibility, attributes: [NSAttributedString.Key: Any], to destination: NSMutableAttributedString) {
         let value = NSMutableAttributedString(attachment: ReviewContentAttachment(
             content: .hosted(AnyView(view.transformEnvironment(\.self) { hostedEnvironment in
                 // The hosting controller derives these from its own window and accessibility state.
@@ -25,11 +33,33 @@ func makeReviewSelectableContent(
                 hostedEnvironment.legibilityWeight = legibilityWeight
             })),
             copyText: text,
-            accessibility: accessibility,
-            layout: layout
+            accessibility: accessibility
         ))
         value.addAttributes(attributes, range: NSRange(location: 0, length: value.length))
         destination.append(value)
+    }
+
+    func appendInlineFormula(
+        _ formula: ReviewFormulaContent,
+        fontSize: CGFloat,
+        color: UIColor,
+        attributes: [NSAttributedString.Key: Any],
+        to destination: NSMutableAttributedString
+    ) -> Bool {
+        let entry = reviewInlineMathImageEntry(
+            formula: formula, fontSize: fontSize, color: color, displayScale: environment.displayScale
+        )
+        let attachment = ReviewInlineMathAttachment(image: entry.image, formula: formula)
+        destination.append(NSAttributedString(attachment: attachment, attributes: attributes))
+        return entry.didFailRendering
+    }
+
+    func appendFormulaRenderingFailure() {
+        hasFormulaRenderingFailure = true
+        result.append(NSAttributedString(
+            string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
+            attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
+        ))
     }
 
     func appendMarkdown(_ markdown: MarkdownContent, formulas: [ReviewInlineMathReference]) throws {
@@ -76,15 +106,13 @@ func makeReviewSelectableContent(
             result.append(NSAttributedString(attachment: ReviewContentAttachment(
                 content: .table(tableContent.rows),
                 copyText: tableContent.copyText,
-                accessibility: .text(tableContent.copyText),
-                layout: .block
+                accessibility: .text(tableContent.copyText)
             )))
             #else
-            appendAttachment(
+            appendBlockAttachment(
                 view: AnyView(ReviewSelectableTable(rows: tableContent.rows)),
                 text: tableContent.copyText,
                 accessibility: .text(tableContent.copyText),
-                layout: .block,
                 attributes: [:],
                 to: result
             )
@@ -97,7 +125,7 @@ func makeReviewSelectableContent(
 
         func appendBreak() {
             if result.length > 0 { result.append(NSAttributedString(string: "\n", attributes: previousAttributes)) }
-            appendAttachment(view: AnyView(Divider().padding(.vertical, 16)), text: "---", accessibility: .text("---"), layout: .block, attributes: [:], to: result)
+            appendBlockAttachment(view: AnyView(Divider().padding(.vertical, 16)), text: "---", accessibility: .text("---"), attributes: [:], to: result)
             previousBlock = nil
             previousAttributes = [:]
         }
@@ -200,14 +228,13 @@ func makeReviewSelectableContent(
             if let codeBlock, let code = codeBlocks[codeBlock.identity] {
                 guard renderedCodeBlocks.insert(codeBlock.identity).inserted else { continue }
                 if let listMarker { destination.append(NSAttributedString(string: listMarker, attributes: attributes)) }
-                appendAttachment(
+                appendBlockAttachment(
                     view: AnyView(ReviewSelectableCodeBlock(
                         code: code,
                         font: UIFont.monospacedSystemFont(ofSize: font.pointSize * 0.88, weight: .regular)
                     )),
                     text: code,
                     accessibility: .text(code),
-                    layout: .block,
                     attributes: attributes,
                     to: destination
                 )
@@ -221,11 +248,10 @@ func makeReviewSelectableContent(
             previousAttributes = attributes
             if let block, let images = galleries[block.identity] {
                 if renderedGalleries.insert(block.identity).inserted {
-                    appendAttachment(
+                    appendBlockAttachment(
                         view: AnyView(ReviewImageGalleryGrid(cells: images.map { makeReviewLinkedImageCell(url: $0.url) })),
                         text: images.map { reviewMediaCopyText(item: .linked(url: $0.url, label: $0.label)) }.joined(separator: " "),
                         accessibility: .image(label: reviewMediaAccessibilityLabel(labels: images.map(\.label))),
-                        layout: .block,
                         attributes: attributes,
                         to: destination
                     )
@@ -235,17 +261,13 @@ func makeReviewSelectableContent(
             let text = String(value[run.range].characters)
             if let url = run.imageURL {
                 if let formula = formulas.first(where: { $0.source == url.absoluteString }) {
-                    let rendering = makeReviewInlineMathRendering(
-                        references: [formula], fontSize: font.pointSize,
-                        color: reviewMathRenderableColor(UIColor.label.resolvedColor(with: UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light))),
-                        displayScale: environment.displayScale
+                    let failed = appendInlineFormula(
+                        formula.formula, fontSize: font.pointSize, color: markdownFormulaColor,
+                        attributes: attributes, to: destination
                     )
-                    didFailRenderingFormula = didFailRenderingFormula || rendering.didFailRendering
-                    if let image = rendering.images[formula.source] {
-                        appendAttachment(view: AnyView(image.accessibilityLabel(formula.formula.latex)), text: formula.formula.originalSource, accessibility: .text(formula.formula.originalSource), layout: .inline, attributes: attributes, to: destination)
-                    }
+                    didFailRenderingFormula = didFailRenderingFormula || failed
                 } else {
-                    appendAttachment(view: makeReviewLinkedImageCell(url: url), text: text, accessibility: .image(label: reviewMarkdownImageLabel(altText: text)), layout: .block, attributes: attributes, to: destination)
+                    appendBlockAttachment(view: makeReviewLinkedImageCell(url: url), text: text, accessibility: .image(label: reviewMarkdownImageLabel(altText: text)), attributes: attributes, to: destination)
                 }
                 continue
             }
@@ -255,16 +277,14 @@ func makeReviewSelectableContent(
         appendTable()
         for _ in breaks { appendBreak() }
         if didFailRenderingFormula {
-            result.append(NSAttributedString(
-                string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
-                attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
-            ))
+            appendFormulaRenderingFailure()
         }
     }
 
     switch content {
     case .mathText(let blocks):
         let textFont = textFont ?? font
+        let formulaColor = reviewMathRenderableColor(textColor.resolvedColor(with: appearance))
         let attributes: [NSAttributedString.Key: Any] = [.font: textFont, .foregroundColor: textColor]
         var didFailRenderingFormula = false
         for block in blocks {
@@ -273,29 +293,20 @@ func makeReviewSelectableContent(
                 result.append(NSAttributedString(string: source, attributes: attributes))
             case .formula(let formula):
                 if formula.continuesParagraph {
-                    let reference = ReviewInlineMathReference(source: "formula", formula: formula)
-                    let rendering = makeReviewInlineMathRendering(
-                        references: [reference], fontSize: textFont.pointSize,
-                        color: reviewMathRenderableColor(textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light))),
-                        displayScale: environment.displayScale
+                    let failed = appendInlineFormula(
+                        formula, fontSize: textFont.pointSize, color: formulaColor, attributes: attributes, to: result
                     )
-                    didFailRenderingFormula = didFailRenderingFormula || rendering.didFailRendering
-                    if let image = rendering.images[reference.source] {
-                        appendAttachment(view: AnyView(image.accessibilityLabel(formula.latex)), text: formula.originalSource, accessibility: .text(formula.originalSource), layout: .inline, attributes: attributes, to: result)
-                    }
+                    didFailRenderingFormula = didFailRenderingFormula || failed
                 } else {
-                    appendAttachment(
-                        view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, textFontSize: textFont.pointSize, textColor: Color(uiColor: reviewMathRenderableColor(textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light)))))),
-                        text: formula.originalSource, accessibility: .text(formula.originalSource), layout: .block, attributes: attributes, to: result
+                    appendBlockAttachment(
+                        view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, textFontSize: textFont.pointSize, textColor: Color(uiColor: formulaColor))),
+                        text: formula.originalSource, accessibility: .text(formula.originalSource), attributes: attributes, to: result
                     )
                 }
             }
         }
         if didFailRenderingFormula {
-            result.append(NSAttributedString(
-                string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
-                attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
-            ))
+            appendFormulaRenderingFailure()
         }
     case .shortPlain(let text):
         let paragraph = NSMutableParagraphStyle()
@@ -317,9 +328,9 @@ func makeReviewSelectableContent(
             case .markdown(let markdown, let formulas):
                 try appendMarkdown(markdown, formulas: formulas)
             case .formula(let formula):
-                appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, rendering: ReviewFormulaState())), text: formula.originalSource, accessibility: .text(formula.originalSource), layout: .block, attributes: [:], to: result)
+                appendBlockAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, rendering: ReviewFormulaState())), text: formula.originalSource, accessibility: .text(formula.originalSource), attributes: [:], to: result)
             case .managedMedia(let reference):
-                appendAttachment(view: makeReviewManagedMediaCell(reference: reference, surfaceStyle: surfaceStyle), text: reviewMediaCopyText(item: .managed(reference)), accessibility: reviewManagedMediaAccessibility(reference: reference), layout: .block, attributes: [:], to: result)
+                appendBlockAttachment(view: makeReviewManagedMediaCell(reference: reference, surfaceStyle: surfaceStyle), text: reviewMediaCopyText(item: .managed(reference)), accessibility: reviewManagedMediaAccessibility(reference: reference), attributes: [:], to: result)
             case .mediaGallery(let items):
                 let cells = items.map { item -> AnyView in
                     switch item {
@@ -338,11 +349,11 @@ func makeReviewSelectableContent(
                         return label
                     }
                 }
-                appendAttachment(view: AnyView(ReviewImageGalleryGrid(cells: cells)), text: copyText, accessibility: .image(label: reviewMediaAccessibilityLabel(labels: labels)), layout: .block, attributes: [:], to: result)
+                appendBlockAttachment(view: AnyView(ReviewImageGalleryGrid(cells: cells)), text: copyText, accessibility: .image(label: reviewMediaAccessibilityLabel(labels: labels)), attributes: [:], to: result)
             }
         }
     }
-    return result
+    return ReviewSelectableContent(attributedText: result, didFailRenderingFormula: hasFormulaRenderingFailure)
 }
 
 @MainActor

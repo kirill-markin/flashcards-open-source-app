@@ -235,7 +235,7 @@ export function ProgressScreen(): ReactElement {
     : {
       paceLabel: t("progressScreen.reviewsPace.lastSevenDays", {
         count: formatNumber(reviewPace.last7DaysAveragePerDay, { maximumFractionDigits: 1 }),
-      }) + formatReviewPaceSuffix(reviewPace, formatNumber),
+      }) + formatReviewPaceSuffix(reviewPace, formatNumber, t("progressScreen.reviewsPace.vsUsual")),
       studyTimeLabel: studyMinutes === 0
         ? null
         : t("progressScreen.reviewsPace.studyTime", { count: formatNumber(studyMinutes) }),

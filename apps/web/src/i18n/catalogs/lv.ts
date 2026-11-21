@@ -325,6 +325,7 @@ const lvCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "Pēdējās 7 dienas · {{count}} dienā",
+      vsUsual: "pret jūsu vidējo",
       studyTime: "Mācību laiks · ≈ {{count}} min",
     },
     records: {

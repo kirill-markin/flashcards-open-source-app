@@ -26,7 +26,6 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -76,8 +75,7 @@ private fun ReviewWidgetBody(content: ReviewWidgetContent?, size: ReviewWidgetSi
                     workspaceId = content?.workspaceId,
                     size = size,
                     kind = WidgetKind.REVIEW,
-                    cardId = shownCard?.cardId,
-                    revealAnswer = false
+                    cardId = shownCard?.cardId
                 )
             )
         )
@@ -150,7 +148,6 @@ private fun ColumnScope.ReviewWidgetSmallDue(content: ReviewWidgetContent) {
     ReviewWidgetStreakFooter(streakDays = content.streakDays)
 }
 
-/** The cards to review, the next question, the due line with its minutes, and Reveal answer. */
 @Composable
 private fun ColumnScope.ReviewWidgetMediumDue(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
     val context = LocalContext.current
@@ -165,10 +162,13 @@ private fun ColumnScope.ReviewWidgetMediumDue(content: ReviewWidgetContent, card
     } else {
         Spacer(modifier = GlanceModifier.defaultWeight())
     }
-    ReviewWidgetDueRow(content = content, card = card)
+    Text(
+        text = joinWidgetDetails(details = widgetScheduledDueDetails(context = context, content = content)),
+        style = secondaryStyle(),
+        maxLines = 1
+    )
 }
 
-/** The cards to review with the streak, the due line with its minutes and the new count, the question, and Reveal answer. */
 @Composable
 private fun ColumnScope.ReviewWidgetLargeDue(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
     val context = LocalContext.current
@@ -203,14 +203,6 @@ private fun ColumnScope.ReviewWidgetLargeDue(content: ReviewWidgetContent, card:
     }
     Spacer(modifier = GlanceModifier.height(8.dp))
     ReviewWidgetQuestion(card = card, maxLines = 6, modifier = GlanceModifier.defaultWeight())
-    Spacer(modifier = GlanceModifier.height(8.dp))
-    WidgetRevealAnswerButton(
-        workspaceId = content.workspaceId,
-        cardId = card.cardId,
-        size = ReviewWidgetSize.LARGE,
-        kind = WidgetKind.REVIEW,
-        modifier = GlanceModifier
-    )
 }
 
 /** The question area; its tap is the widget's, which opens the card question-side. */
@@ -223,30 +215,6 @@ internal fun ReviewWidgetQuestion(card: ReviewWidgetCard, maxLines: Int, modifie
         maxLines = maxLines,
         modifier = modifier
     )
-}
-
-/** The due line beside Reveal answer, which shows only with a card. */
-@Composable
-private fun ReviewWidgetDueRow(content: ReviewWidgetContent, card: ReviewWidgetCard?) {
-    val context = LocalContext.current
-    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = joinWidgetDetails(details = widgetScheduledDueDetails(context = context, content = content)),
-            style = secondaryStyle(),
-            maxLines = 1,
-            modifier = GlanceModifier.defaultWeight()
-        )
-        if (card != null) {
-            Spacer(modifier = GlanceModifier.width(8.dp))
-            WidgetRevealAnswerButton(
-                workspaceId = content.workspaceId,
-                cardId = card.cardId,
-                size = ReviewWidgetSize.MEDIUM,
-                kind = WidgetKind.REVIEW,
-                modifier = GlanceModifier
-            )
-        }
-    }
 }
 
 @Composable

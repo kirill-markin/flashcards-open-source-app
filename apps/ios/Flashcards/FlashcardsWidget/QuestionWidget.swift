@@ -61,8 +61,7 @@ struct QuestionWidgetView: View {
                                 kind: .question,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: card?.cardId,
-                                revealAnswer: false
+                                cardId: card?.cardId
                             )
                         )
                     )
@@ -119,21 +118,8 @@ private struct QuestionWidgetContentView: View {
                     reservesLines: false
                 )
                 Spacer(minLength: 0)
-                HStack(alignment: .center, spacing: 8) {
-                    if self.size == .medium, let scheduledDueCount = self.entry.scheduledDueCount {
-                        ReviewWidgetScheduledDueView(scheduledDueCount: scheduledDueCount, minutes: nil)
-                        Spacer(minLength: 0)
-                    }
-                    if let card = self.card {
-                        WidgetRevealAnswerButton(
-                            deepLink: makeWidgetRevealAnswerDeepLink(
-                                kind: .question,
-                                workspaceId: self.entry.workspaceId,
-                                size: self.size.deepLinkSize,
-                                cardId: card.cardId
-                            )
-                        )
-                    }
+                if self.size == .medium, let scheduledDueCount = self.entry.scheduledDueCount {
+                    ReviewWidgetScheduledDueView(scheduledDueCount: scheduledDueCount, minutes: nil)
                 }
             }
         }

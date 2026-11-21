@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
-import { accountConnectionAction } from "../../server/social/accountConnection.js";
-import type { ConnectionBinding } from "../../server/social/accountConnectionContract.js";
+import {
+  accountConnectionAction, loadConnectionProviderBrowserLaunch, type ConnectionBinding,
+} from "../../server/social/accountConnection/index.js";
 import { AuthAttemptError } from "../../server/social/attemptContract.js";
 import { browserAuthOrigin, createBrowserState, requireBrowserRedirect, writeBrowserState } from "../../server/social/browserState.js";
-import { loadConnectionProviderBrowserLaunch } from "../../server/social/attemptStore.js";
 import { parseAccountConnectionAction, parseCompletionHandle, parseSocialObject } from "../../server/social/publicContract.js";
 import { getPublicAuthMethods } from "../../server/social/publicMethods.js";
 import { createAuthAnalyticsFactEventFactory, type ConnectionAnalyticsAction } from "../../server/analytics/catalog.js";

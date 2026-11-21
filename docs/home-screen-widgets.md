@@ -5,11 +5,12 @@ Cross-client contract for the widget set on the iOS/iPadOS and Android Home Scre
 ## Product decisions
 
 - Both platforms offer the same Home Screen widgets, and iOS adds a Lock Screen widget. All are free for everyone, guests included. No Premium gating and no configuration.
-- A widget never changes data. A widget that shows a question carries a Reveal answer button at every size, except the Lock Screen rectangular widget; it opens Review on that card with the answer shown.
+- Widgets are read-only.
 - Due counts, the next due time, and the Coming up forecast cover the whole workspace selected in the app. Due counts use the same [card eligibility as Review](fsrs-scheduling-logic.md#review-counts).
 - Card previews show the next question from the workspace's saved Review filter as plain text; the Question widget rotates through the first 6 cards of that queue at 06:00, 12:00, 16:00, and 20:00 local time. There can be cards due in the workspace even when the saved filter has no card to preview. A widget never shows the answer.
 - Progress facts (reviews per day, streaks, the review schedule, records, timing) are the ones the Progress tab shows. Widgets compute only two things from them: the pace against the user's usual, with the same function as Progress ([`reviewPace.ts`](../apps/web/src/progress/reviewPace.ts) and its iOS and Android ports), and cards due × seconds per due card.
-- Pace compares the last 7 local days with the daily average of the 28 days before; without 14 days of history or 14 reviews in that baseline there is no comparison. The ring is the same ratio, drawn up to two laps; a widget shows either the ring or the percentage.
+- Pace compares the last 7 local days with your own daily average over the preceding 28 days. The preceding window starts on its first day with reviews. The comparison requires at least 14 days of history in the combined window and 14 reviews in the baseline. One lap of the ring matches that average, and the ring shows up to two laps.
+- Progress counts a card as relearned if you rated it Hard, Good, or Easy in the last 7 local days and rated it Again on the previous day you reviewed that card. Each card counts once.
 - Minutes measure effort, never a grade: they come from the gaps between ratings on each device ([`insights.ts`](../apps/backend/src/progress/reports/loaders/insights.ts)) and stay hidden at 0 or without enough timed reviews.
 
 | Widget | Shows | Sizes | Tap opens |
@@ -45,12 +46,12 @@ Before the app has provided any data, for example on a fresh install, every widg
 
 ## Tap
 
-A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if the card is still in the selected workspace, eligible under its saved Review filter, and neither on screen nor awaiting its rating, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). Otherwise Review opens as it is. A Reveal answer tap passes the same card and Review shows it answer-side with the ratings ready, recording `review_card_revealed`; if the card cannot be shown, nothing is revealed.
+A tap opens Review or Progress, as the table says. A widget that shows a card passes that card: if the card is still in the selected workspace, eligible under its saved Review filter, and neither on screen nor awaiting its rating, Review starts a new session showing it first, the widget exception in [non-blocking review](fsrs-scheduling-logic.md#non-blocking-review). The card opens on its question. Otherwise Review opens the current session.
 
-- iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab; Reveal answer adds `reveal=1` and reaches the app through an app intent. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
-- Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)), with `EXTRA_WIDGET_REVEAL_ANSWER` for Reveal answer, and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
+- iOS: the widget opens a `nibomo-widget://` URL ([`WidgetDeepLink.swift`](../apps/ios/Flashcards/WidgetShared/WidgetDeepLink.swift)) that the app routes in `openReviewFromWidget` ([`FlashcardsStore+Review.swift`](../apps/ios/Flashcards/Flashcards/Review/Queue/StoreBridge/FlashcardsStore+Review.swift)) or to the Progress tab. The scheme is deliberately absent from `CFBundleURLTypes`: widget taps reach the app without it, and other apps cannot fake a tap.
+- Android: the widget starts an explicit intent with its own action ([`ReviewWidgetTapContract.kt`](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/widget/ReviewWidgetTapContract.kt)) and Review shows the card through `startSessionOnCardForHandoff` ([`ReviewViewModel.kt`](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewViewModel.kt)).
 
-Each tap records one `widget_opened` with `widget_size`, `widget_kind`, and `widget_target` (`card` or `reveal_answer`) where the app consumes it, as its own event rather than an `app_opened` property. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes, one event per widget kind; one without `widget_kind` comes from an older client and counts Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
+Each tap records one `widget_opened` with `widget_size` and `widget_kind` where the app consumes it. Which widgets are placed is reported as `widget_placement_changed` on a foreground when it changes, one event per widget kind; one without `widget_kind` comes from an older client and counts Review widgets ([`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)).
 
 ## Platform scope
 

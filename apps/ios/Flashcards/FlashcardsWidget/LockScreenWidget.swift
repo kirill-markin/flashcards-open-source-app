@@ -29,8 +29,7 @@ struct LockScreenWidgetView: View {
                                 kind: .lockScreen,
                                 workspaceId: self.entry.workspaceId,
                                 size: size.deepLinkSize,
-                                cardId: lockScreenWidgetShownCardId(size: size, content: self.entry.content),
-                                revealAnswer: false
+                                cardId: lockScreenWidgetShownCardId(size: size, content: self.entry.content)
                             )
                         )
                     )
@@ -139,7 +138,6 @@ private func lockScreenWidgetInlineText(dueCount: Int, scheduledDueCount: Int?) 
         + Text("widget.scheduled_due \(scheduledDueCount)", tableName: widgetStringsTableName)
 }
 
-/// One tap opens the shown card; the family is too small for a Reveal answer button.
 private struct LockScreenWidgetRectangularView: View {
     let dueCount: Int
     let headlineText: Text

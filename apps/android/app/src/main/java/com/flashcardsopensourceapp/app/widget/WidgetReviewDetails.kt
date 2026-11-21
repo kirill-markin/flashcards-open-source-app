@@ -1,46 +1,11 @@
 package com.flashcardsopensourceapp.app.widget
 
 import android.content.Context
-import androidx.compose.runtime.Composable
-import androidx.glance.GlanceModifier
-import androidx.glance.LocalContext
-import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.components.FilledButton
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.data.local.repository.progress.estimateDueMinutes
 
 /** Separates the short facts one widget line holds, such as "34 due · ≈ 6 min". */
 private const val widgetDetailSeparator: String = " · "
-
-/**
- * Opens Review on [cardId] answer-side. Every widget that shows a question carries it; the question
- * area keeps its own tap, which opens the card question-side.
- */
-@Composable
-internal fun WidgetRevealAnswerButton(
-    workspaceId: String,
-    cardId: String,
-    size: ReviewWidgetSize,
-    kind: WidgetKind,
-    modifier: GlanceModifier
-) {
-    val context = LocalContext.current
-    FilledButton(
-        text = context.getString(R.string.widget_reveal_answer),
-        onClick = actionStartActivity(
-            intent = ReviewWidgetTapContract.makeOpenReviewIntent(
-                context = context,
-                workspaceId = workspaceId,
-                size = size,
-                kind = kind,
-                cardId = cardId,
-                revealAnswer = true
-            )
-        ),
-        modifier = modifier,
-        maxLines = 1
-    )
-}
 
 /** Minutes to clear the cards due by schedule; null at 0 due and without the server's timing sample. */
 internal fun reviewWidgetDueMinutes(content: ReviewWidgetContent): Int? {

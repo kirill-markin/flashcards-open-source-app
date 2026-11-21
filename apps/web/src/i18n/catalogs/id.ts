@@ -325,6 +325,7 @@ const idCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 hari terakhir · {{count}} per hari",
+      vsUsual: "vs rata-rata Anda",
       studyTime: "Waktu belajar · ≈ {{count}} mnt",
     },
     records: {

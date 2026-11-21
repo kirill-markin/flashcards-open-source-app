@@ -9,6 +9,7 @@ export type BackendService =
   | "community-leaderboard-snapshot"
   | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
+  | "card-addition-reconciliation"
   | "web-guest-reaper"
   | "country-retention"
   | "daily-visitor-hash-salt-expiry"

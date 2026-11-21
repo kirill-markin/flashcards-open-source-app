@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { JwtPayload } from "aws-jwt-verify/jwt-model";
 import { query, transaction } from "../../db.js";
 import { getAppleSignInConfig } from "./config.js";
-import { wakeAppleRevocations } from "./appleRevocationWake.js";
+import { wakeAppleRevocations } from "./revocation/appleRevocationWake.js";
 import {
   createProviderVerifier, parseProviderObject, readProviderBoolean, readProviderEmail,
   rejectProviderProof, SocialProofError,

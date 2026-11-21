@@ -19,13 +19,10 @@ import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.ColumnScope
-import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -97,8 +94,7 @@ private fun QuestionWidgetBody(content: ReviewWidgetContent?, size: ReviewWidget
                     workspaceId = content?.workspaceId,
                     size = size,
                     kind = WidgetKind.QUESTION,
-                    cardId = shownCard?.cardId,
-                    revealAnswer = false
+                    cardId = shownCard?.cardId
                 )
             )
         )
@@ -108,28 +104,17 @@ private fun QuestionWidgetBody(content: ReviewWidgetContent?, size: ReviewWidget
                 content == null -> ReviewWidgetOpenApp()
                 content.dueCount == 0 -> QuestionWidgetAllDone(content = content)
                 shownCard == null -> QuestionWidgetNoCard(content = content)
-                size == ReviewWidgetSize.SMALL -> QuestionWidgetSmall(content = content, card = shownCard)
+                size == ReviewWidgetSize.SMALL -> ReviewWidgetQuestion(
+                    card = shownCard,
+                    maxLines = 5,
+                    modifier = GlanceModifier.defaultWeight()
+                )
                 else -> QuestionWidgetWithDueCount(content = content, card = shownCard, size = size)
             }
         }
     }
 }
 
-/** The question and Reveal answer. */
-@Composable
-private fun ColumnScope.QuestionWidgetSmall(content: ReviewWidgetContent, card: ReviewWidgetCard) {
-    ReviewWidgetQuestion(card = card, maxLines = 3, modifier = GlanceModifier.defaultWeight())
-    Spacer(modifier = GlanceModifier.height(4.dp))
-    WidgetRevealAnswerButton(
-        workspaceId = content.workspaceId,
-        cardId = card.cardId,
-        size = ReviewWidgetSize.SMALL,
-        kind = WidgetKind.QUESTION,
-        modifier = GlanceModifier.fillMaxWidth()
-    )
-}
-
-/** The question, then the cards due beside Reveal answer. */
 @Composable
 private fun ColumnScope.QuestionWidgetWithDueCount(content: ReviewWidgetContent, card: ReviewWidgetCard, size: ReviewWidgetSize) {
     val context = LocalContext.current
@@ -139,25 +124,13 @@ private fun ColumnScope.QuestionWidgetWithDueCount(content: ReviewWidgetContent,
         modifier = GlanceModifier.defaultWeight()
     )
     Spacer(modifier = GlanceModifier.height(4.dp))
-    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = widgetScheduledDueText(context = context, scheduledDueCount = content.scheduledDueCount),
-            style = questionSecondaryStyle(),
-            maxLines = 1,
-            modifier = GlanceModifier.defaultWeight()
-        )
-        Spacer(modifier = GlanceModifier.width(8.dp))
-        WidgetRevealAnswerButton(
-            workspaceId = content.workspaceId,
-            cardId = card.cardId,
-            size = size,
-            kind = WidgetKind.QUESTION,
-            modifier = GlanceModifier
-        )
-    }
+    Text(
+        text = widgetScheduledDueText(context = context, scheduledDueCount = content.scheduledDueCount),
+        style = questionSecondaryStyle(),
+        maxLines = 1
+    )
 }
 
-/** Nothing to review: "All done" with the next due time when known, and no button. */
 @Composable
 private fun ColumnScope.QuestionWidgetAllDone(content: ReviewWidgetContent) {
     val context = LocalContext.current

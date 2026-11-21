@@ -23,7 +23,6 @@ import {
 } from "../signInFunnel/SignInFunnelSection";
 import type { FunnelAnchor } from "./funnelAnchorUrl";
 
-/** What a funnel card loads its report from. */
 export type FunnelReportProps = Readonly<{
   config: AdminAppConfig;
   /** The selection the Journeys area applies; each funnel applies the fields it can answer and says which it cannot. */
@@ -43,10 +42,19 @@ export type FunnelSectionDefinition = Readonly<{
   Section: (props: FunnelSectionProps) => JSX.Element;
 }>;
 
+export const firstLaunchFunnelSection: FunnelSectionDefinition = {
+  anchor: firstLaunchFunnelAnchor,
+  Section: FirstLaunchFunnelSection,
+};
+
+export const otherFunnelSections: ReadonlyArray<FunnelSectionDefinition> = [
+  { anchor: catalogInstallFunnelAnchor, Section: CatalogInstallFunnelSection },
+  { anchor: blogPlatformChoiceFunnelAnchor, Section: BlogPlatformChoiceFunnelSection },
+  { anchor: signInFunnelAnchor, Section: SignInFunnelSection },
+  { anchor: paywallFunnelAnchor, Section: PaywallFunnelSection },
+];
+
 /**
- * The funnels in page order. Each funnel's query states who it counts as a person and how its steps
- * count.
- *
  * A FUNNEL EXISTS FOR ONE MAIN USER FLOW, and each of its steps is written as the designed path rather
  * than as a union of every way that step could be reached. Where a flow genuinely splits, it becomes
  * its own funnel with its own first step.
@@ -55,9 +63,6 @@ export type FunnelSectionDefinition = Readonly<{
  * partial first day, and a funnel with a seven-day window warns while some entries are still inside it.
  */
 export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
-  { anchor: firstLaunchFunnelAnchor, Section: FirstLaunchFunnelSection },
-  { anchor: catalogInstallFunnelAnchor, Section: CatalogInstallFunnelSection },
-  { anchor: blogPlatformChoiceFunnelAnchor, Section: BlogPlatformChoiceFunnelSection },
-  { anchor: signInFunnelAnchor, Section: SignInFunnelSection },
-  { anchor: paywallFunnelAnchor, Section: PaywallFunnelSection },
+  firstLaunchFunnelSection,
+  ...otherFunnelSections,
 ];

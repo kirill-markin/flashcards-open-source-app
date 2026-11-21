@@ -142,10 +142,12 @@
 				Cloud/Support/CloudOfficialApiHosts.swift,
 				Cloud/Support/CloudServiceConfigurationValidator.swift,
 				Cloud/Support/CloudSupport.swift,
+				Cloud/Sync/CloudSyncHTTPTransport.swift,
 				Cloud/Sync/CloudSyncMapper.swift,
 				Cloud/Sync/CloudSyncService.swift,
 				"Cloud/Sync/CloudSyncTransport+Paywall.swift",
 				Cloud/Sync/CloudSyncTransport.swift,
+				Cloud/Sync/CloudWorkspacePackageTransport.swift,
 				Cloud/Sync/Contracts/CloudAccountContracts.swift,
 				Cloud/Sync/Contracts/CloudCatalogInstallContracts.swift,
 				Cloud/Sync/Contracts/CloudSyncTypes.swift,
@@ -779,7 +781,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				/* Only the app and widget targets expose App Intents; they turn extraction back on. */
+				/* App and test bundles do not expose App Intents. */
 				LM_SKIP_METADATA_EXTRACTION = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -848,8 +850,6 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				CODE_SIGN_ENTITLEMENTS = Config/iOS.entitlements;
-				/* RevealAnswerIntent runs in the app, so its metadata must ship there. */
-				LM_SKIP_METADATA_EXTRACTION = NO;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Config/MacCatalyst.entitlements;
 				"ENABLE_APP_SANDBOX[sdk=macosx*]" = YES;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
@@ -866,8 +866,6 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				CODE_SIGN_ENTITLEMENTS = Config/iOS.entitlements;
-				/* RevealAnswerIntent runs in the app, so its metadata must ship there. */
-				LM_SKIP_METADATA_EXTRACTION = NO;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Config/MacCatalyst.entitlements;
 				"ENABLE_APP_SANDBOX[sdk=macosx*]" = YES;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
@@ -980,7 +978,6 @@
 				CODE_SIGN_ENTITLEMENTS = FlashcardsWidget/FlashcardsWidget.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FlashcardsWidget/Info.plist;
-				LM_SKIP_METADATA_EXTRACTION = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1006,7 +1003,6 @@
 				CODE_SIGN_ENTITLEMENTS = FlashcardsWidget/FlashcardsWidget.entitlements;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FlashcardsWidget/Info.plist;
-				LM_SKIP_METADATA_EXTRACTION = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1148,7 +1144,7 @@
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 9.33.0;
+				minimumVersion = 9.35.0;
 			};
 			traits = (
 			);

@@ -325,6 +325,7 @@ const frCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "7 derniers jours · {{count}} par jour",
+      vsUsual: "vs ta moyenne",
       studyTime: "Temps d'étude · ≈ {{count}} min",
     },
     records: {

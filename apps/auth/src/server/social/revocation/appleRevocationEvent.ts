@@ -1,4 +1,7 @@
-export type AppleRevocationScheduledEvent = Readonly<{
+import type { Context } from "aws-lambda";
+import { drainAppleRevocations, type AppleRevocationDrainSummary } from "./appleLifecycle.js";
+
+type AppleRevocationScheduledEvent = Readonly<{
   version: "0";
   id: string;
   source: "aws.events";
@@ -11,7 +14,7 @@ export type AppleRevocationScheduledEvent = Readonly<{
 }>;
 
 /** Only the native EventBridge envelope of our fixed rule reaches the privileged drain. */
-export function isAppleRevocationScheduledEvent(event: object): event is AppleRevocationScheduledEvent {
+function isAppleRevocationScheduledEvent(event: object): event is AppleRevocationScheduledEvent {
   if ("requestContext" in event || "httpMethod" in event || "rawPath" in event) return false;
   const value = event as Partial<AppleRevocationScheduledEvent>;
   const ruleArn = process.env.APPLE_REVOCATION_RULE_ARN;
@@ -31,9 +34,21 @@ export type AppleRevocationWakeEvent = Readonly<{
 }>;
 
 /** Direct IAM invocation only; no HTTP envelope or caller-selected job/identity is accepted. */
-export function isAppleRevocationWakeEvent(event: object): event is AppleRevocationWakeEvent {
+function isAppleRevocationWakeEvent(event: object): event is AppleRevocationWakeEvent {
   if ("requestContext" in event || "httpMethod" in event || "rawPath" in event || Array.isArray(event)) return false;
   const value = event as Partial<AppleRevocationWakeEvent>;
   return Object.keys(event).length === 3 && value.source === "nibomo.auth"
     && value.action === "drain-apple-revocations" && value.version === 1;
+}
+
+export type AppleRevocationEvent = AppleRevocationScheduledEvent | AppleRevocationWakeEvent;
+
+export function dispatchAppleRevocationEvent(
+  event: unknown, context: Pick<Context, "awsRequestId" | "getRemainingTimeInMillis">,
+): Promise<AppleRevocationDrainSummary> | null {
+  if (event !== null && typeof event === "object"
+    && (isAppleRevocationScheduledEvent(event) || isAppleRevocationWakeEvent(event))) {
+    return drainAppleRevocations(context.awsRequestId, () => context.getRemainingTimeInMillis());
+  }
+  return null;
 }

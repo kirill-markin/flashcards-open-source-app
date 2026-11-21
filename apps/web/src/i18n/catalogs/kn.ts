@@ -325,6 +325,7 @@ const knCatalog: TranslationCatalog = {
     },
     reviewsPace: {
       lastSevenDays: "ಕಳೆದ 7 ದಿನಗಳು · ದಿನಕ್ಕೆ {{count}}",
+      vsUsual: "ನಿಮ್ಮ ಸರಾಸರಿಗೆ ಹೋಲಿಕೆ",
       studyTime: "ಅಧ್ಯಯನ ಸಮಯ · ≈ {{count}} ನಿಮಿಷ",
     },
     records: {
