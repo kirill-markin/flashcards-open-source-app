@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 /// Everything the module needs to post a batch, read without touching the network.
 struct AnalyticsCredentials: Sendable, Equatable {
@@ -34,6 +35,11 @@ enum AnalyticsGuestCredentialMintOutcome: Sendable {
 /// it is bounded to one attempt per launch.
 typealias AnalyticsGuestCredentialMinter = @MainActor @Sendable () async -> AnalyticsGuestCredentialMintOutcome
 
+struct AnalyticsStorageDiagnostics: Sendable {
+    let observeStorageFull: @Sendable () -> StorageDiagnosticInstallation?
+    let pendingOutboxCount: @MainActor @Sendable (StorageDiagnosticInstallation) -> Int?
+}
+
 /**
  * The product analytics client.
  *
@@ -61,12 +67,14 @@ enum Analytics {
     /// once at app start; it opens no store and performs no I/O of its own.
     static func configure(
         credentialsProvider: @escaping AnalyticsCredentialsProvider,
-        guestCredentialMinter: @escaping AnalyticsGuestCredentialMinter
+        guestCredentialMinter: @escaping AnalyticsGuestCredentialMinter,
+        storageDiagnostics: AnalyticsStorageDiagnostics?
     ) {
         self.networkMonitor.start {
             Analytics.flush()
         }
         Task.detached(priority: .utility) {
+            await self.runtime.setStorageDiagnostics(storageDiagnostics)
             await self.runtime.setCredentialsProvider(credentialsProvider)
             await self.runtime.setGuestCredentialMinter(guestCredentialMinter)
             await self.runtime.flush()
@@ -519,6 +527,8 @@ actor AnalyticsRuntime {
     private var reportedOverflowThisSession: Bool
     private var reportedExpiryThisSession: Bool
     private var reportedStoreFailureStages: Set<String>
+    private var reportedStorageFullFailureStages: Set<String> = []
+    private var storageDiagnostics: AnalyticsStorageDiagnostics?
     private var reportedInvalidBatchThisSession: Bool
     private var reportedSustainedServerErrorThisSession: Bool
     private var identityBoundaryDiscardedCount: Int
@@ -552,6 +562,10 @@ actor AnalyticsRuntime {
 
     func setGuestCredentialMinter(_ minter: @escaping AnalyticsGuestCredentialMinter) {
         self.guestCredentialMinter = minter
+    }
+
+    func setStorageDiagnostics(_ diagnostics: AnalyticsStorageDiagnostics?) {
+        self.storageDiagnostics = diagnostics
     }
 
     func enqueue(_ pendingEvent: AnalyticsPendingEvent) async {
@@ -1207,19 +1221,40 @@ actor AnalyticsRuntime {
      * The local store failing to open, write or read is the one failure nothing else can see, so it is
      * the one this module reports itself.
      *
-     * Reported once per stage rather than once per session. A single session-wide flag let one earlier
-     * benign append failure swallow the report for a failed identity-boundary sweep, which is the
-     * failure that decides whether the previous person's events can still be posted; the boundary
-     * stage is not rate limited at all, because it can only happen once per logout.
+     * A prior unrelated failure at the same stage must not suppress the first storage-full report.
+     * The identity-boundary sweep runs once per logout and needs every failure reported.
      */
     private func reportStoreFailure(error: Error, stage: String) {
-        if stage != analyticsIdentityResetFailureStage {
-            guard self.reportedStoreFailureStages.contains(stage) == false else {
+        let shouldReport = self.reportedStoreFailureStages.insert(stage).inserted || stage == analyticsIdentityResetFailureStage
+        #if !os(watchOS)
+        if let sqliteResultCode = (error as? AnalyticsQueueError)?.sqliteResultCode,
+           sqliteResultCode == SQLITE_FULL {
+            let storageDiagnostics = self.storageDiagnostics
+            let installation = storageDiagnostics?.observeStorageFull()
+            let isFirstStorageFullAtStage = self.reportedStorageFullFailureStages.insert(stage).inserted
+            guard shouldReport || isFirstStorageFullAtStage else {
                 return
             }
-        }
 
-        self.reportedStoreFailureStages.insert(stage)
+            Task { @MainActor in
+                let diagnostics = StorageFullFailureDiagnostics(
+                    source: .analyticsQueue,
+                    sqliteResultCode: sqliteResultCode,
+                    installationId: installation?.id,
+                    pendingOutboxOperationCount: installation.flatMap { storageDiagnostics?.pendingOutboxCount($0) }
+                )
+                Self.captureStoreFailure(error: error, stage: stage, diagnostics: diagnostics)
+            }
+            return
+        }
+        #endif
+
+        if shouldReport {
+            Self.captureStoreFailure(error: error, stage: stage, diagnostics: nil)
+        }
+    }
+
+    private static func captureStoreFailure(error: Error, stage: String, diagnostics: StorageFullFailureDiagnostics?) {
         FlashcardsObservability.captureSilentFailure(
             error: error,
             scope: analyticsObservationScope(),
@@ -1227,7 +1262,9 @@ actor AnalyticsRuntime {
             stage: stage,
             statusCode: nil,
             backendCode: nil,
-            requestId: nil
+            requestId: nil,
+            transportDiagnostics: nil,
+            storageFullDiagnostics: diagnostics
         )
     }
 

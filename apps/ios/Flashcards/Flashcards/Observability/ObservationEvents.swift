@@ -775,12 +775,30 @@ struct AppStartupFailureDetails: Sendable, Hashable {
     let messageSummary: String
 }
 
+struct StorageDiagnosticInstallation: Sendable {
+    let id: String
+    let workspaceId: String?
+}
+
+enum StorageFullSource: String, Sendable {
+    case analyticsQueue = "analytics_queue"
+    case localSync = "local_sync"
+}
+
+struct StorageFullFailureDiagnostics: Sendable, Hashable {
+    let source: StorageFullSource
+    let sqliteResultCode: Int32
+    let installationId: String?
+    let pendingOutboxOperationCount: Int?
+}
+
 struct CloudSyncFailureDetails: Sendable, Hashable {
     let action: String
     let statusCode: Int?
     let backendCode: String?
     let requestId: String?
     let messageSummary: String?
+    let storageFullDiagnostics: StorageFullFailureDiagnostics?
 }
 
 struct CloudAuthFailureDetails: Sendable, Hashable {
@@ -837,6 +855,7 @@ struct SilentFailureDetails: Sendable, Hashable {
     let requestId: String?
     let messageSummary: String?
     let transportDiagnostics: IOSNetworkTransportDiagnostics?
+    let storageFullDiagnostics: StorageFullFailureDiagnostics?
 }
 
 

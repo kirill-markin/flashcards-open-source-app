@@ -42,17 +42,24 @@ struct AnalyticsQueueBatchLoad: Sendable, Equatable {
 }
 
 enum AnalyticsQueueError: LocalizedError, Equatable {
-    case open(String)
-    case write(String)
-    case read(String)
+    case open(String, sqliteResultCode: Int32?)
+    case write(String, sqliteResultCode: Int32?)
+    case read(String, sqliteResultCode: Int32?)
+
+    var sqliteResultCode: Int32? {
+        switch self {
+        case .open(_, let code), .write(_, let code), .read(_, let code):
+            return code
+        }
+    }
 
     var errorDescription: String? {
         switch self {
-        case .open(let message):
+        case .open(let message, _):
             return "Analytics queue could not be opened: \(message)"
-        case .write(let message):
+        case .write(let message, _):
             return "Analytics queue write failed: \(message)"
-        case .read(let message):
+        case .read(let message, _):
             return "Analytics queue read failed: \(message)"
         }
     }
@@ -106,7 +113,8 @@ final class AnalyticsQueue: @unchecked Sendable {
         let payloadBytes = payloadJson.utf8.count
         guard payloadBytes <= analyticsMaximumEventByteCount else {
             throw AnalyticsQueueError.write(
-                "Event \(event.payload.eventName) is \(payloadBytes) bytes and exceeds the per-event limit"
+                "Event \(event.payload.eventName) is \(payloadBytes) bytes and exceeds the per-event limit",
+                sqliteResultCode: nil
             )
         }
 
@@ -282,7 +290,7 @@ final class AnalyticsQueue: @unchecked Sendable {
     private func encodePayload(payload: AnalyticsEventPayload) throws -> String {
         let data = try self.encoder.encode(payload)
         guard let json = String(data: data, encoding: .utf8) else {
-            throw AnalyticsQueueError.write("Event payload could not be encoded as UTF-8")
+            throw AnalyticsQueueError.write("Event payload could not be encoded as UTF-8", sqliteResultCode: nil)
         }
 
         return json
@@ -353,7 +361,7 @@ final class AnalyticsQueue: @unchecked Sendable {
                 attributes: nil
             )
         } catch {
-            throw AnalyticsQueueError.open(Flashcards.errorMessage(error: error))
+            throw AnalyticsQueueError.open(Flashcards.errorMessage(error: error), sqliteResultCode: nil)
         }
 
         var connection: OpaquePointer?
@@ -366,7 +374,7 @@ final class AnalyticsQueue: @unchecked Sendable {
             if let connection {
                 sqlite3_close_v2(connection)
             }
-            throw AnalyticsQueueError.open(message)
+            throw AnalyticsQueueError.open(message, sqliteResultCode: resultCode)
         }
 
         sqlite3_busy_timeout(connection, 2_000)
@@ -395,24 +403,27 @@ final class AnalyticsQueue: @unchecked Sendable {
             CREATE INDEX IF NOT EXISTS analytics_events_created_at
                 ON analytics_events (created_at);
             """
-        guard sqlite3_exec(connection, sql, nil, nil, nil) == SQLITE_OK else {
-            throw AnalyticsQueueError.open(String(cString: sqlite3_errmsg(connection)))
+        let resultCode = sqlite3_exec(connection, sql, nil, nil, nil)
+        guard resultCode == SQLITE_OK else {
+            throw AnalyticsQueueError.open(String(cString: sqlite3_errmsg(connection)), sqliteResultCode: resultCode)
         }
     }
 
     @discardableResult
     private func execute(connection: OpaquePointer, sql: String, values: [SQLiteValue]) throws -> Int {
         var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(connection, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
-            throw AnalyticsQueueError.write(String(cString: sqlite3_errmsg(connection)))
+        let prepareResult = sqlite3_prepare_v2(connection, sql, -1, &statement, nil)
+        guard prepareResult == SQLITE_OK, let statement else {
+            throw AnalyticsQueueError.write(String(cString: sqlite3_errmsg(connection)), sqliteResultCode: prepareResult)
         }
         defer {
             sqlite3_finalize(statement)
         }
 
         try self.bind(connection: connection, values: values, to: statement)
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw AnalyticsQueueError.write(String(cString: sqlite3_errmsg(connection)))
+        let stepResult = sqlite3_step(statement)
+        guard stepResult == SQLITE_DONE else {
+            throw AnalyticsQueueError.write(String(cString: sqlite3_errmsg(connection)), sqliteResultCode: stepResult)
         }
 
         return Int(sqlite3_changes(connection))
@@ -425,8 +436,9 @@ final class AnalyticsQueue: @unchecked Sendable {
         map: (OpaquePointer) -> T
     ) throws -> [T] {
         var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(connection, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
-            throw AnalyticsQueueError.read(String(cString: sqlite3_errmsg(connection)))
+        let prepareResult = sqlite3_prepare_v2(connection, sql, -1, &statement, nil)
+        guard prepareResult == SQLITE_OK, let statement else {
+            throw AnalyticsQueueError.read(String(cString: sqlite3_errmsg(connection)), sqliteResultCode: prepareResult)
         }
         defer {
             sqlite3_finalize(statement)
@@ -445,7 +457,7 @@ final class AnalyticsQueue: @unchecked Sendable {
                 break
             }
 
-            throw AnalyticsQueueError.read(String(cString: sqlite3_errmsg(connection)))
+            throw AnalyticsQueueError.read(String(cString: sqlite3_errmsg(connection)), sqliteResultCode: stepResult)
         }
 
         return rows
@@ -456,7 +468,7 @@ final class AnalyticsQueue: @unchecked Sendable {
             Int(sqlite3_column_int64(statement, 0))
         }
         guard let value = rows.first else {
-            throw AnalyticsQueueError.read("Expected one row for \(sql)")
+            throw AnalyticsQueueError.read("Expected one row for \(sql)", sqliteResultCode: nil)
         }
 
         return value
@@ -477,7 +489,7 @@ final class AnalyticsQueue: @unchecked Sendable {
                 resultCode = sqlite3_bind_null(statement, index)
             }
             guard resultCode == SQLITE_OK else {
-                throw AnalyticsQueueError.write(String(cString: sqlite3_errmsg(connection)))
+                throw AnalyticsQueueError.write(String(cString: sqlite3_errmsg(connection)), sqliteResultCode: resultCode)
             }
         }
     }

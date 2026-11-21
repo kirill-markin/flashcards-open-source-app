@@ -132,7 +132,13 @@ struct FlashcardsApp: App {
                     }
 
                     return await store.mintAnalyticsGuestCredential()
-                }
+                },
+                storageDiagnostics: AnalyticsStorageDiagnostics(
+                    observeStorageFull: store.storageFullEpisode.observe,
+                    pendingOutboxCount: { [weak store] installation in
+                        store?.pendingStorageOutboxCount(installation: installation)
+                    }
+                )
             )
         }
         let uiTestSelectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]

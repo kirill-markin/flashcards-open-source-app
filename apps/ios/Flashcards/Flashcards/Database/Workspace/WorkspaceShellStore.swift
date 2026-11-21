@@ -5,10 +5,7 @@ struct WorkspaceShellStore {
     let workspaceSettingsStore: WorkspaceSettingsStore
 
     func assertNoPendingOutboxEntriesBeforeGuestWorkspaceDelete(workspaceId: String) throws {
-        let pendingOutboxCount = try self.core.scalarInt(
-            sql: "SELECT COUNT(*) FROM outbox WHERE workspace_id = ?",
-            values: [.text(workspaceId)]
-        )
+        let pendingOutboxCount = try OutboxStore(core: self.core).pendingOperationCount(workspaceId: workspaceId)
         guard pendingOutboxCount == 0 else {
             throw LocalStoreError.database(
                 "Guest upgrade cannot delete workspace \(workspaceId) because \(pendingOutboxCount) pending guest outbox entries remain."
