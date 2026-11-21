@@ -48,7 +48,7 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
       metricTitle={metricTitle}
       testIdPrefix="who-studied"
       breakdowns={whoStudiedBreakdowns}
-      platformCompanion={(
+      deviceSection={(
         <BreakdownSection
           config={props.config}
           dateRange={props.dateRange}
@@ -58,8 +58,8 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
           testId="who-studied-by-device-section"
           explanationId="who-studied-by-device-explanation"
           explanation={<>
-            <li>A person counts once per UTC day, week or month on each native device category they answered a review on. The same person can count in several categories.</li>
-            <li>Unknown includes native reviews with missing or unsupported device details.</li>
+            <li>A person counts once per UTC day, week or month in each native or Web device category they used to answer a review. The same person can count in several categories.</li>
+            <li>Unknown includes native reviews with missing or unsupported device details. Web · Unknown device covers browser reviews with missing or unsupported device class.</li>
             <li>The Platform and Device filters apply to each review. The App version filter keeps a person when their last app open in the same bucket, on a selected platform and device class, has a selected version.</li>
             <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. Today’s bucket is in progress. A bucket that starts before the retained history is unavailable.</li>
             <li>Later offline review syncs can revise past bars.</li>

@@ -10,7 +10,7 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import type { DailyActivitySource } from "../dailyNewReturning/query";
-import { buildNativeDeviceSql } from "../levelOneMetrics/nativeDeviceBreakdownQuery";
+import { buildEventDeviceSql } from "../levelOneMetrics/deviceBreakdownQuery";
 import { buildReportBucketSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 
 const appOpenRowsFromSql = `FROM analytics.product_events_resolved AS events
@@ -123,7 +123,7 @@ export function buildAppOpenRangeDevicesCteSql(
     SELECT events.actor_id::text AS actor_id,
       (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
       ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
-      ${buildNativeDeviceSql("events", "events.device_model")} AS device
+      ${buildEventDeviceSql("events", "events.device_model")} AS device
     ${buildAppOpenRangeRowsFromSql(range, eventPlatforms, eventDeviceTypes, appVersions)}
   ) AS range_opens
   JOIN app_open_activity USING (actor_id, activity_date)

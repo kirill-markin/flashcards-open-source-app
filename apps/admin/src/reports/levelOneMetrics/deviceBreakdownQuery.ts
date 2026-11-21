@@ -14,10 +14,22 @@ const androidDevices = [
   { type: "desktop", label: "Android PC" },
   { type: "watch", label: "Wear OS" },
 ] as const;
-const deviceLabels = [...appleDevices.map((device) => device.label), ...androidDevices.map((device) => device.label), breakdownUnknownValue];
+const webDevices = [
+  { type: "phone", label: "Web · Phone" },
+  { type: "tablet", label: "Web · Tablet" },
+  { type: "desktop", label: "Web · Desktop" },
+] as const;
+const webUnknownDevice = "Web · Unknown device";
+const deviceLabels = [
+  ...appleDevices.map((device) => device.label),
+  ...androidDevices.map((device) => device.label),
+  breakdownUnknownValue,
+  ...webDevices.map((device) => device.label),
+  webUnknownDevice,
+];
 
-/** Classify the event's own device. Pass SQL NULL if the event source has no model. A NULL result means the row is outside the native report. */
-export function buildNativeDeviceSql(eventAlias: string, deviceModelSql: string): string {
+/** Pass SQL NULL if the event source has no device model. A NULL result excludes the row from the device report. */
+export function buildEventDeviceSql(eventAlias: string, deviceModelSql: string): string {
   const deviceType = `${eventAlias}.device_type`;
   // Older Apple builds still send only the hardware identifiers mapped by migration 0177.
   const appleOs = `COALESCE(${eventAlias}.os_name, CASE ${deviceType}
@@ -39,11 +51,15 @@ export function buildNativeDeviceSql(eventAlias: string, deviceModelSql: string)
       ${androidDevices.map(({ type, label }) => `WHEN '${type}' THEN ${escapeSqlStringLiteral(label)}`).join("\n      ")}
       ELSE ${unknownSql}
     END
+    WHEN 'web' THEN CASE ${deviceType}
+      ${webDevices.map(({ type, label }) => `WHEN '${type}' THEN ${escapeSqlStringLiteral(label)}`).join("\n      ")}
+      ELSE ${escapeSqlStringLiteral(webUnknownDevice)}
+    END
   END`;
 }
 
-/** Keep every observed native device in a fixed order, even if a single event used it. */
-export function buildNativeDeviceBreakdownSql(ctesSql: string): string {
+/** Keep every observed device category in a fixed order. */
+export function buildDeviceBreakdownSql(ctesSql: string): string {
   const rankCases = deviceLabels.map((label, index) => `WHEN ${escapeSqlStringLiteral(label)} THEN ${index + 1}`);
   return buildBreakdownResultsSql(`${ctesSql}, series_counts AS (
   SELECT bucket_date, dimension_value AS series_value, value_count,

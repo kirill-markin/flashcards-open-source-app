@@ -3,7 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { loadBreakdownReport } from "../levelOneMetrics/breakdownQuery";
 import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
-import { buildNativeDeviceBreakdownSql, buildNativeDeviceSql } from "../levelOneMetrics/nativeDeviceBreakdownQuery";
+import { buildDeviceBreakdownSql, buildEventDeviceSql } from "../levelOneMetrics/deviceBreakdownQuery";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange } from "../reportValues";
 import { buildMeasuredReviewsCtesSql } from "./reviewEventsBreakdownQuery";
@@ -22,8 +22,8 @@ function buildReviewDeviceBreakdownLoader(
     signal: AbortSignal,
   ): Promise<BreakdownReport> {
     const range = assertValidDateRange(dateRange, reportLabel);
-    const sql = buildNativeDeviceBreakdownSql(`${buildMeasuredReviewsCtesSql(range, period, eventPlatforms, eventDeviceTypes, appVersions)}, review_devices AS (
-  SELECT review.bucket_date, review.actor_id, ${buildNativeDeviceSql("review", "NULL")} AS device
+    const sql = buildDeviceBreakdownSql(`${buildMeasuredReviewsCtesSql(range, period, eventPlatforms, eventDeviceTypes, appVersions)}, review_devices AS (
+  SELECT review.bucket_date, review.actor_id, ${buildEventDeviceSql("review", "NULL")} AS device
   FROM measured_reviews AS review
 ), measured_values AS (
   SELECT bucket_date, device AS dimension_value, ${countSql} AS value_count
