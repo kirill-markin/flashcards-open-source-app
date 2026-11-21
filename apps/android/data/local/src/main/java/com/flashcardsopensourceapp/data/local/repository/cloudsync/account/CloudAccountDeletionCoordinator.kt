@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDestinationUnavailableException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.resumePendingGuestUpgradeRecoveryIfNeeded
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
@@ -37,7 +38,11 @@ internal class CloudAccountDeletionCoordinator(
 
     suspend fun resumePendingAccountDeletionIfNeeded() {
         operationCoordinator.runExclusive {
-            resumePendingGuestUpgradeIfNeeded()
+            try {
+                resumePendingGuestUpgradeIfNeeded()
+            } catch (_: CloudGuestUpgradeDestinationUnavailableException) {
+                return@runExclusive
+            }
             if (preferencesStore.currentAccountDeletionState() == AccountDeletionState.Hidden) {
                 return@runExclusive
             }
