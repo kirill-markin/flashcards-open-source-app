@@ -245,8 +245,7 @@ struct FlashcardsApp: App {
                 #if targetEnvironment(macCatalyst)
                 .macSidebarCommandOwner()
                 #endif
-                .tint(store.displayedAccountAccentColor.color)
-                .accentColor(store.displayedAccountAccentColor.color)
+                .appAccent(store.displayedAccountAccentColor.color)
                 .preferredColorScheme(store.effectiveAccountTheme.colorScheme)
                 .onOpenURL { url in
                     if let widgetDeepLink = parseWidgetDeepLinkURL(url: url) {
